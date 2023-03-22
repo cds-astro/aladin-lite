@@ -1331,8 +1331,6 @@ export let View = (function () {
         // send events
         if (gridCfg) {
             if (gridCfg.hasOwnProperty('enabled')) {
-                this.showCooGrid = true;
-
                 if (gridCfg.enabled === true) {
                     ALEvent.COO_GRID_ENABLED.dispatchedTo(this.aladinDiv);
                 }
@@ -1468,11 +1466,9 @@ export let View = (function () {
                 return promise;
             })
             .then((imageLayer) => {
-
                 this.empty = false;
 
                 if (imageLayer.children) {
-                    console.log("fits with extensions")
                     imageLayer.children.forEach((imageLayer) => {
                         this.addLayer(imageLayer);
                     })

@@ -39,6 +39,7 @@
     constructor(parentDiv, aladin, view) {
         this.aladin = aladin;
         this.view = view;
+        this.isChecked = false;
 
         this.mainDiv = document.createElement('div');
         this.mainDiv.style.display = 'none';
@@ -63,42 +64,9 @@
         )
 
         // Coordinates grid plot
-        var checked = '';
-        if (this.view.showCooGrid) {
-            checked = 'checked="checked"';
-        }
-        let optionsOpenerForCoordinatesGrid = $('<span class="indicator right-triangle"> </span>');
-        let coordinatesGridCb = $('<input type="checkbox" ' + checked + ' id="displayCoordinatesGrid"/>');
-        let labelCoordinatesGridCb = $('<label>Coordinates grid</label>');
-        let cooGridOptions = $('<div class="layer-options" style="display: none;"><table><tbody><tr><td>Color</td><td><input type="color" value="#00ff00"></td></tr><tr><td>Opacity</td><td><input class="opacity" value="1.0" type="range" min="0" max="1" step="0.05"></td></tr><tr><td>Label size</td><td><input class="label-size" type="range" value="1" min="0" max="1" step="0.01"></td></tr></table></div>');
-        labelCoordinatesGridCb.prepend(coordinatesGridCb);
-        layerBox.append(optionsOpenerForCoordinatesGrid).append(labelCoordinatesGridCb).append(cooGridOptions);
-        coordinatesGridCb.change(function () {
-            let isChecked = $(this).is(':checked');
-            if (isChecked) {
-                self.view.setGridConfig({
-                    enabled: true,
-                });
-            } else {
-                self.view.setGridConfig({
-                    enabled: false,
-                });
-            }
-        });
-
-        optionsOpenerForCoordinatesGrid.click(function () {
-            var $this = $(this);
-            if ($this.hasClass('right-triangle')) {
-                $this.removeClass('right-triangle');
-                $this.addClass('down-triangle');
-                cooGridOptions.slideDown(300);
-            }
-            else {
-                $this.removeClass('down-triangle');
-                $this.addClass('right-triangle');
-                cooGridOptions.slideUp(300);
-            }
-        });
+        let labelCoordinatesGridCb = $('<label>Coo grid options</label>');
+        let cooGridOptions = $('<div class="layer-options"><table><tbody><tr><td>Color</td><td><input type="color" value="#00ff00"></td></tr><tr><td>Opacity</td><td><input class="opacity" value="1.0" type="range" min="0" max="1" step="0.05"></td></tr><tr><td>Label size</td><td><input class="label-size" type="range" value="1" min="0" max="1" step="0.01"></td></tr></table></div>');
+        layerBox.append(labelCoordinatesGridCb).append(cooGridOptions);
 
         let gridColorInput = cooGridOptions.find('input[type="color"]');
         let gridOpacityInput = cooGridOptions.find('.opacity');
@@ -122,15 +90,13 @@
 
         // coordinates grid - add event listeners
         ALEvent.COO_GRID_ENABLED.listenedBy(self.aladinDiv, function () {
-            if (!coordinatesGridCb.prop('checked')) {
-                coordinatesGridCb.prop('checked', true);
-            }
+            self.isChecked = !self.isChecked;
         });
+
         ALEvent.COO_GRID_DISABLED.listenedBy(self.aladinDiv, function () {
-            if (coordinatesGridCb.prop('checked')) {
-                coordinatesGridCb.prop('checked', false);
-            }
+            self.isChecked = !self.isChecked;
         });
+
         ALEvent.COO_GRID_UPDATED.listenedBy(self.aladinDiv, function (e) {
             let opacity = e.detail.opacity;
 

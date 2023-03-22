@@ -600,7 +600,6 @@ impl HiPS {
     }
 
     pub fn recompute_vertices(&mut self, camera: &CameraViewPort, projection: &ProjectionType) {
-        al_core::log("recompute vertices");
         self.position.clear();
         self.uv_start.clear();
         self.uv_end.clear();

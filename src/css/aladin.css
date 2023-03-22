@@ -225,6 +225,7 @@ word-wrap:break-word;
 	display: none;
     z-index: 30;
     position: absolute;
+    left: 40px;
     background: whitesmoke;
     border-radius: 1px;
     font-size: 14px;

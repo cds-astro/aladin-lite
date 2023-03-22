@@ -103,7 +103,7 @@ export class Stack {
 
         layerBox.append('<div class="aladin-box-separator"></div>' +
             '<div class="aladin-label">Image layers</div>' +
-            '<button class="aladin-btn add-layer-hips" type="button">Add image layer</button>'
+            '<button class="aladin-btn add-layer-hips" type="button">Add survey</button>'
         );
         $(this.mainDiv).find('.add-layer-hips').click(function () {
             let layerName = Utils.uuidv4();

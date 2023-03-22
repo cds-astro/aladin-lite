@@ -32,7 +32,6 @@ where
     let mut pixels_written = 0;
     let num_pixels = width * height;
 
-
     let num_texture_x = (width / max_tex_size) + 1;
     let num_texture_y = (height / max_tex_size) + 1;
 

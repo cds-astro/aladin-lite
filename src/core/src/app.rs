@@ -826,23 +826,19 @@ impl App {
         if scene_redraw {
             let shaders = &mut self.shaders;
 
-            let grid = &mut self.grid;
-            let layers = &mut self.layers;
             //let catalogs = &self.manager;
-            let colormaps = &self.colormaps;
-            let camera = &self.camera;
             // Render the scene
             // Clear all the screen first (only the region set by the scissor)
             self.gl.clear(web_sys::WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
-            layers.draw(camera, shaders, colormaps, &self.projection)?;
-            self.moc.draw(shaders, camera);
+            self.layers.draw(&self.camera, shaders, &self.colormaps, &self.projection)?;
+            self.moc.draw(shaders, &self.camera);
 
             // Draw the catalog
             //let fbo_view = &self.fbo_view;
             //catalogs.draw(&gl, shaders, camera, colormaps, fbo_view)?;
             //catalogs.draw(&gl, shaders, camera, colormaps, None, self.projection)?;
-            grid.draw(camera, shaders)?;
+            self.grid.draw(&self.camera, shaders)?;
 
             //let dpi  = self.camera.get_dpi();
             //ui.draw(&gl, dpi)?;
@@ -893,7 +889,6 @@ impl App {
 
     pub(crate) fn add_image_fits(&mut self, cfg: FITSCfg) -> Result<js_sys::Promise, JsValue> {
         let FITSCfg { layer, url, meta } = cfg;
-        al_core::log(&format!("url: {:?}", url));
         let gl = self.gl.clone();
 
         let fits_sender = self.fits_send.clone();
@@ -1096,12 +1091,12 @@ impl App {
         layer: String,
         meta: ImageMetadata,
     ) -> Result<(), JsValue> {
-        self.request_redraw = true;
 
         let old_meta = self.layers.get_layer_cfg(&layer)?;
         // Set the new meta
         let new_img_fmt = meta.img_format;
         self.layers.set_layer_cfg(layer.clone(), meta, &self.camera, &self.projection)?;
+
 
         if old_meta.img_format != new_img_fmt {
             // The image format has been changed
@@ -1115,8 +1110,9 @@ impl App {
 
             // Once its added, request the tiles in the view (unless the viewer is at depth 0)
             self.request_for_new_tiles = true;
-            self.request_redraw = true;
         }
+
+        self.request_redraw = true;
 
         Ok(())
     }

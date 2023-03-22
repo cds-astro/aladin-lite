@@ -302,10 +302,14 @@ impl Image {
     }
 
     pub fn update(&mut self, camera: &CameraViewPort, projection: &ProjectionType) -> Result<(), JsValue> {
-        if !camera.has_moved() {
-            return Ok(());
+        if camera.has_moved() {
+            self.recompute_vertices(camera, projection)?;
         }
 
+        Ok(())
+    }
+
+    pub fn recompute_vertices(&mut self, camera: &CameraViewPort, projection: &ProjectionType) -> Result<(), JsValue> {
         let (width, height) = self.wcs.img_dimensions();
         let width = width as f64;
         let height = height as f64;

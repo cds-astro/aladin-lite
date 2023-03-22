@@ -565,7 +565,7 @@ impl Layers {
                 }
 
                 if let Some(image) = self.get_mut_image_from_layer(&layer) {
-                    image.update(camera, projection)?;
+                    image.recompute_vertices(camera, projection)?;
                 }
             }
         }

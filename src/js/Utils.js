@@ -389,7 +389,6 @@ Utils.getDroppedFilesHandler = function(ev) {
     })
     .map((item) => item.getAsFile());
 
-    console.log(files);
     return files;
 }
 

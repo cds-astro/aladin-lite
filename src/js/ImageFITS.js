@@ -197,12 +197,13 @@ export let ImageFITS = (function () {
                 hduIdx += 1;
             });
 
+            // Call the success callback on the first HDU image parsed
             if (self.successCallback) {
                 self.successCallback(
-                    self.ra,
-                    self.dec,
-                    self.fov,
-                    self
+                    self.children[0].ra,
+                    self.children[0].dec,
+                    self.children[0].fov,
+                    self.children[0]
                 );
             }
 

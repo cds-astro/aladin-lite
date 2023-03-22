@@ -61,8 +61,11 @@ export class Stack {
                 .forEach((layer) => {
                     let selectedHipsLayer = self.imgLayers.get(layer);
 
-                    let headerSelectedLayerElement = selectedHipsLayer.headerDiv[0];
-                    headerSelectedLayerElement.style.backgroundColor = "gainsboro";
+                    let layerElement = selectedHipsLayer.headerDiv[0];
+                    layerElement.style.backgroundColor = "gainsboro";
+
+                    let headerLayerElement = layerElement.querySelector(".aladin-layer-header")
+                    headerLayerElement.style.backgroundColor = "gainsboro";
                 })
         };
 
@@ -70,8 +73,11 @@ export class Stack {
             // Change the color currently selected layer
             const layer = hipsLayer.layer.layer;
 
-            let headerLayerElement = hipsLayer.headerDiv[0];
-            headerLayerElement.style.backgroundColor = "darkgray";
+            let layerElement = hipsLayer.headerDiv[0];
+            layerElement.style.backgroundColor = "darkgray";
+
+            let headerLayerElement = layerElement.querySelector(".aladin-layer-header")
+            headerLayerElement.style.backgroundColor = "gray";
 
             // Set the active hips layer
             self.aladin.setActiveHiPSLayer(layer);

@@ -8,6 +8,7 @@ pub mod hips;
 
 use crate::renderable::image::Image;
 
+use al_core::image::format::ChannelType;
 pub use hips::HiPS;
 
 pub use labels::TextRenderManager;
@@ -23,7 +24,6 @@ use al_core::VertexArrayObject;
 use al_core::SliceData;
 use al_core::shader::Shader;
 use al_core::WebGlContext;
-use al_core::image::format::ImageFormatType;
 use al_core::colormap::Colormaps;
 
 use crate::Abort;
@@ -226,7 +226,7 @@ impl Layers {
                 let url = self.urls.get(layer).unwrap_abort();
                 if let Some(survey) = self.surveys.get(url) {
                     let hips_cfg = survey.get_config();
-                    (survey.is_allsky() || hips_cfg.get_format() == ImageFormatType::RGB8U) && meta.opacity == 1.0
+                    (survey.is_allsky() || hips_cfg.get_format().get_channel() == ChannelType::RGB8U) && meta.opacity == 1.0
                 } else {
                     // image fits case
                     false
@@ -268,7 +268,7 @@ impl Layers {
             if let Some(survey) = self.surveys.get_mut(url) {
                 let hips_cfg = survey.get_config();
 
-                let fully_covering_survey = (survey.is_allsky() || hips_cfg.get_format() == ImageFormatType::RGB8U) && meta.opacity == 1.0;
+                let fully_covering_survey = (survey.is_allsky() || hips_cfg.get_format().get_channel() == ChannelType::RGB8U) && meta.opacity == 1.0;
                 if fully_covering_survey {
                     idx_start_layer = idx_layer;
                 }
@@ -565,7 +565,7 @@ impl Layers {
                 }
 
                 if let Some(image) = self.get_mut_image_from_layer(&layer) {
-                    image.update(camera, projection)?;
+                    image.recompute_vertices(camera, projection)?;
                 }
             }
         }

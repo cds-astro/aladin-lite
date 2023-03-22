@@ -29,7 +29,6 @@ use al_core::WebGlContext;
 use al_core::VecData;
 use al_core::webgl_ctx::GlWrapper;
 use al_core::image::format::*;
-use al_core::image::format::ImageFormatType;
 
 use crate::camera::CameraViewPort;
 use crate::ProjectionType;
@@ -58,7 +57,7 @@ pub struct Image {
     centered_fov: CenteredFoV,
 
     //+ Texture format
-    format: ImageFormatType,
+    channel: ChannelType,
     /// Texture chunks objects
     textures: Vec<Texture2D>,
     /// Texture indices that must be drawn
@@ -103,7 +102,8 @@ impl Image {
             .unwrap() as f32;
 
         // Create a WCS from a specific header unit
-        let wcs = WCS::new(&header).map_err(|_| JsValue::from_str("Failed to parse the WCS"))?;
+        let wcs = WCS::new(&header)
+            .map_err(|e| JsValue::from_str(&format!("WCS parsing error: reason: {}", e)))?;
 
         let (w, h) = wcs.img_dimensions();
         let width = w as f64;
@@ -111,7 +111,7 @@ impl Image {
 
         let data = hdu.get_data_mut();
         
-        let (textures, format) = match data {
+        let (textures, channel) = match data {
             stream::Data::U8(data) => {
                 let reader = data
                     .map_ok(|v| {
@@ -120,7 +120,7 @@ impl Image {
                     .into_async_read();
 
                 let textures = subdivide_texture::build::<R8UI, _>(gl, w, h, reader).await?;
-                (textures, ImageFormatType::R8UI)
+                (textures, ChannelType::R8UI)
             },
             stream::Data::I16(data) => {
                 let reader = data
@@ -130,7 +130,7 @@ impl Image {
                     .into_async_read();
 
                 let textures = subdivide_texture::build::<R16I, _>(gl, w, h, reader).await?;
-                (textures, ImageFormatType::R16I)
+                (textures, ChannelType::R16I)
             },
             stream::Data::I32(data) => {
                 let reader = data
@@ -140,7 +140,7 @@ impl Image {
                     .into_async_read();
 
                 let textures = subdivide_texture::build::<R32I, _>(gl, w, h, reader).await?;
-                (textures, ImageFormatType::R32I)
+                (textures, ChannelType::R32I)
             },
             stream::Data::I64(data) => {
                 let reader = data
@@ -151,7 +151,7 @@ impl Image {
                     .into_async_read();
 
                 let textures = subdivide_texture::build::<R32I, _>(gl, w, h, reader).await?;
-                (textures, ImageFormatType::R32I)
+                (textures, ChannelType::R32I)
             },
             stream::Data::F32(data) => {
                 let reader = data
@@ -161,7 +161,7 @@ impl Image {
                     .into_async_read();
 
                 let textures = subdivide_texture::build::<R32F, _>(gl, w, h, reader).await?;
-                (textures, ImageFormatType::R32F)
+                (textures, ChannelType::R32F)
             },
             stream::Data::F64(data) => {
                 let reader = data
@@ -172,7 +172,7 @@ impl Image {
                     .into_async_read();
 
                 let textures = subdivide_texture::build::<R32F, _>(gl, w, h, reader).await?;
-                (textures, ImageFormatType::R32F)
+                (textures, ChannelType::R32F)
             },
         };
 
@@ -292,7 +292,7 @@ impl Image {
             centered_fov,
 
             // Texture parameters
-            format,
+            channel,
             textures,
             // Indices of textures that must be drawn
             idx_tex,
@@ -302,10 +302,14 @@ impl Image {
     }
 
     pub fn update(&mut self, camera: &CameraViewPort, projection: &ProjectionType) -> Result<(), JsValue> {
-        if !camera.has_moved() {
-            return Ok(());
+        if camera.has_moved() {
+            self.recompute_vertices(camera, projection)?;
         }
 
+        Ok(())
+    }
+
+    pub fn recompute_vertices(&mut self, camera: &CameraViewPort, projection: &ProjectionType) -> Result<(), JsValue> {
         let (width, height) = self.wcs.img_dimensions();
         let width = width as f64;
         let height = height as f64;
@@ -337,43 +341,50 @@ impl Image {
             let is_ranges_overlapping = |x: &std::ops::Range<f64>, y: &std::ops::Range<f64>| {
                 x.start <= y.end && y.start <= x.end
             };
+
             let fov_image_overlapping = is_ranges_overlapping(&x_fov_proj_range, &(0.0..width)) && is_ranges_overlapping(&y_fov_proj_range, &(0.0..height));
 
-            if !fov_image_overlapping {
-                self.idx_tex.clear();
-                al_core::log(&format!("fov and image do not overlap"));
+            if fov_image_overlapping {
+                if camera.get_field_of_view().contains_pole() {
+                    self.idx_tex = (0..self.textures.len()).collect();
+                    (0.0..width, 0.0..height)
+                } else {
+                    // The fov is overlapping the image, we must render it!
+                    // clamp the texture
+                    let x_mesh_range = x_fov_proj_range.start.max(0.0)..x_fov_proj_range.end.min(width);
+                    let y_mesh_range = y_fov_proj_range.start.max(0.0)..y_fov_proj_range.end.min(height);
 
+                    // Select the textures overlapping the fov
+                    let id_min_tx = (x_mesh_range.start as u64) / (MAX_TEX_SIZE as u64);
+                    let id_min_ty = (y_mesh_range.start as u64) / (MAX_TEX_SIZE as u64);
+
+                    let id_max_tx = (x_mesh_range.end as u64) / (MAX_TEX_SIZE as u64);
+                    let id_max_ty = (y_mesh_range.end as u64) / (MAX_TEX_SIZE as u64);
+
+                    let num_texture_y = (((height as i32) / (MAX_TEX_SIZE as i32)) + 1) as u64;
+
+                    self.idx_tex = (id_min_tx..=id_max_tx)
+                        .flat_map(|id_tx| {
+                            (id_min_ty..=id_max_ty).map(move |id_ty| (id_ty + id_tx*num_texture_y) as usize)
+                        })
+                        .collect::<Vec<_>>();
+
+                    (x_mesh_range, y_mesh_range)
+                }
+            } else {
+                // out of field of view
+                self.idx_tex.clear();
+
+                // terminate here
                 return Ok(());
             }
-
-            // The fov is overlapping the image, we must render it!
-            // clamp the texture
-            let x_mesh_range = x_fov_proj_range.start.max(0.0)..x_fov_proj_range.end.min(width);
-            let y_mesh_range = y_fov_proj_range.start.max(0.0)..y_fov_proj_range.end.min(height);
-
-            // Select the textures overlapping the fov
-            let id_min_tx = (x_mesh_range.start as u64) / (MAX_TEX_SIZE as u64);
-            let id_min_ty = (y_mesh_range.start as u64) / (MAX_TEX_SIZE as u64);
-
-            let id_max_tx = (x_mesh_range.end as u64) / (MAX_TEX_SIZE as u64);
-            let id_max_ty = (y_mesh_range.end as u64) / (MAX_TEX_SIZE as u64);
-
-            let num_texture_y = (((height as i32) / (MAX_TEX_SIZE as i32)) + 1) as u64;
-
-            self.idx_tex = (id_min_tx..=id_max_tx)
-                .flat_map(|id_tx| {
-                    (id_min_ty..=id_max_ty).map(move |id_ty| (id_ty + id_tx*num_texture_y) as usize)
-                })
-                .collect::<Vec<_>>();
-
-            (x_mesh_range, y_mesh_range)
         } else {
             self.idx_tex = (0..self.textures.len()).collect();
 
             (0.0..width, 0.0..height)
         };
 
-        const MAX_NUM_TRI_PER_SIDE_IMAGE: usize = 25; 
+        const MAX_NUM_TRI_PER_SIDE_IMAGE: usize = 25;
         let num_vertices = ((self.centered_fov.fov / 360.0) * (MAX_NUM_TRI_PER_SIDE_IMAGE as f64)).ceil() as u64;
 
         let (pos, uv, indices, num_indices) = grid::get_grid_vertices(
@@ -423,14 +434,14 @@ impl Image {
             ..
         } = cfg;
 
-        let shader = match self.format {
-            ImageFormatType::R32F => crate::shader::get_shader(&self.gl, shaders, "FitsVS", "FitsFS")?,
+        let shader = match self.channel {
+            ChannelType::R32F => crate::shader::get_shader(&self.gl, shaders, "FitsVS", "FitsFS")?,
             #[cfg(feature = "webgl2")]
-            ImageFormatType::R32I => crate::shader::get_shader(&self.gl, shaders, "FitsVS", "FitsFSInteger")?,
+            ChannelType::R32I => crate::shader::get_shader(&self.gl, shaders, "FitsVS", "FitsFSInteger")?,
             #[cfg(feature = "webgl2")]
-            ImageFormatType::R16I => crate::shader::get_shader(&self.gl, shaders, "FitsVS", "FitsFSInteger")?,
+            ChannelType::R16I => crate::shader::get_shader(&self.gl, shaders, "FitsVS", "FitsFSInteger")?,
             #[cfg(feature = "webgl2")]
-            ImageFormatType::R8UI => crate::shader::get_shader(&self.gl, shaders, "FitsVS", "FitsFSUnsigned")?,
+            ChannelType::R8UI => crate::shader::get_shader(&self.gl, shaders, "FitsVS", "FitsFSUnsigned")?,
             _ => return Err(JsValue::from_str("Image format type not supported"))
         };
 

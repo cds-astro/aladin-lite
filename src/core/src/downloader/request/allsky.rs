@@ -1,9 +1,9 @@
 
-use al_core::image::format::ImageFormatType;
 use std::io::Cursor;
 
 use crate::downloader::{query};
 use al_core::image::ImageType;
+use al_core::image::format::ChannelType;
 
 use fitsrs::{
     fits::Fits,
@@ -90,12 +90,12 @@ impl From<query::Allsky> for AllskyRequest {
         } = query;
 
         let depth_tile = crate::math::utils::log_2_unchecked(texture_size / tile_size) as u8;
-
+        let channel = format.get_channel();
         let url_clone = url.clone();
 
         let request = Request::new(async move {
-            match format {
-                ImageFormatType::RGB8U => {
+            match channel {
+                ChannelType::RGB8U => {
                     let allsky_tile_size = std::cmp::min(tile_size, 64);
                     let allsky = query_image(&url_clone).await?;
 
@@ -112,7 +112,7 @@ impl From<query::Allsky> for AllskyRequest {
 
                     Ok(allsky_tiles)
                 }
-                ImageFormatType::RGBA8U => {
+                ChannelType::RGBA8U => {
                     let allsky_tile_size = std::cmp::min(tile_size, 64);
                     let allsky = query_image(&url_clone).await?;
 

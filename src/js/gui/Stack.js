@@ -61,8 +61,11 @@ export class Stack {
                 .forEach((layer) => {
                     let selectedHipsLayer = self.imgLayers.get(layer);
 
-                    let headerSelectedLayerElement = selectedHipsLayer.headerDiv[0];
-                    headerSelectedLayerElement.style.backgroundColor = "gainsboro";
+                    let layerElement = selectedHipsLayer.headerDiv[0];
+                    layerElement.style.backgroundColor = "gainsboro";
+
+                    let headerLayerElement = layerElement.querySelector(".aladin-layer-header")
+                    headerLayerElement.style.backgroundColor = "gainsboro";
                 })
         };
 
@@ -70,8 +73,11 @@ export class Stack {
             // Change the color currently selected layer
             const layer = hipsLayer.layer.layer;
 
-            let headerLayerElement = hipsLayer.headerDiv[0];
-            headerLayerElement.style.backgroundColor = "darkgray";
+            let layerElement = hipsLayer.headerDiv[0];
+            layerElement.style.backgroundColor = "darkgray";
+
+            let headerLayerElement = layerElement.querySelector(".aladin-layer-header")
+            headerLayerElement.style.backgroundColor = "gray";
 
             // Set the active hips layer
             self.aladin.setActiveHiPSLayer(layer);
@@ -103,7 +109,7 @@ export class Stack {
 
         layerBox.append('<div class="aladin-box-separator"></div>' +
             '<div class="aladin-label">Image layers</div>' +
-            '<button class="aladin-btn add-layer-hips" type="button">Add image layer</button>'
+            '<button class="aladin-btn add-layer-hips" type="button">Add survey</button>'
         );
         $(this.mainDiv).find('.add-layer-hips').click(function () {
             let layerName = Utils.uuidv4();
@@ -218,7 +224,6 @@ export class Stack {
                     }
                     else if(type=='votable') {
                         let catalogLayer = A.catalogFromURL(params.url, {onClick: 'showTable'});
-                        console.log(catalogLayer)
                         self.aladin.addCatalog(catalogLayer);
                     }
                 };
@@ -298,7 +303,6 @@ export class Stack {
             const layer = e.detail.layer;
 
             const hipsLayer = new HiPSLayer(self.aladin, layer);
-
             self.imgLayers.set(layer.layer, hipsLayer);
 
             self._createComponent();
@@ -338,10 +342,19 @@ export class Stack {
         ALEvent.HIPS_LAYER_REMOVED.listenedBy(this.aladin.aladinDiv, function (e) {
             const layer = e.detail.layer;
             let hipsLayer = self.imgLayers.get(layer);
-            // unbind the events
-            hipsLayer.destroy();
-            self.imgLayers.delete(layer);
-    
+
+            if(hipsLayer.children) {
+                hipsLayer.children.forEach((child) => {
+                // unbind the events
+                    child.destroy();
+                    self.imgLayers.delete(child.layer);
+                });
+            } else {
+                // unbind the events
+                hipsLayer.destroy();
+                self.imgLayers.delete(layer);
+            }
+
             self._createComponent();
 
             self.updateSelectedLayer();

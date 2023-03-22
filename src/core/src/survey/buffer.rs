@@ -3,16 +3,17 @@ use std::rc::Rc;
 use std::collections::BinaryHeap;
 use std::collections::HashMap;
 
+use al_core::image::format::ChannelType;
 use cgmath::Vector3;
 
-use al_api::hips::HiPSTileFormat;
+use al_api::hips::ImageExt;
 
 use al_core::shader::{SendUniforms, ShaderBound};
 use al_core::Texture2DArray;
 use al_core::WebGlContext;
 use al_core::image::format::ImageFormat;
 use al_core::image::Image;
-use al_core::image::format::{ImageFormatType, R32F, R64F, RGB8U, RGBA8U};
+use al_core::image::format::{R32F, R64F, RGB8U, RGBA8U};
 #[cfg(feature = "webgl2")]
 use al_core::image::format::{R16I, R32I, R8UI};
 use al_core::texture::{
@@ -196,26 +197,27 @@ impl ImageSurveyTextures {
             Texture::new(&HEALPixCell(0, 10), 10, now),
             Texture::new(&HEALPixCell(0, 11), 11, now)
         ];
+        let channel = config.get_format().get_channel();
 
         #[cfg(feature = "webgl2")]
-        let texture_2d_array = match config.get_format() {
-            ImageFormatType::RGBA32F => unimplemented!(),
-            ImageFormatType::RGB32F => unimplemented!(),
-            ImageFormatType::RGBA8U => Rc::new(create_texture_array::<RGBA8U>(gl, &config)?),
-            ImageFormatType::RGB8U => Rc::new(create_texture_array::<RGB8U>(gl, &config)?),
-            ImageFormatType::R8UI => Rc::new(create_texture_array::<R8UI>(gl, &config)?),
-            ImageFormatType::R16I => Rc::new(create_texture_array::<R16I>(gl, &config)?),
-            ImageFormatType::R32I => Rc::new(create_texture_array::<R32I>(gl, &config)?),
-            ImageFormatType::R32F => Rc::new(create_texture_array::<R32F>(gl, &config)?),
-            ImageFormatType::R64F => Rc::new(create_texture_array::<R64F>(gl, &config)?),
+        let texture_2d_array = match channel {
+            ChannelType::RGBA32F => unimplemented!(),
+            ChannelType::RGB32F => unimplemented!(),
+            ChannelType::RGBA8U => Rc::new(create_texture_array::<RGBA8U>(gl, &config)?),
+            ChannelType::RGB8U => Rc::new(create_texture_array::<RGB8U>(gl, &config)?),
+            ChannelType::R8UI => Rc::new(create_texture_array::<R8UI>(gl, &config)?),
+            ChannelType::R16I => Rc::new(create_texture_array::<R16I>(gl, &config)?),
+            ChannelType::R32I => Rc::new(create_texture_array::<R32I>(gl, &config)?),
+            ChannelType::R32F => Rc::new(create_texture_array::<R32F>(gl, &config)?),
+            ChannelType::R64F => Rc::new(create_texture_array::<R64F>(gl, &config)?),
         };
         #[cfg(feature = "webgl1")]
         let texture_2d_array = match config.get_format() {
-            ImageFormatType::RGBA32F => unimplemented!(),
-            ImageFormatType::RGB32F => unimplemented!(),
-            ImageFormatType::RGBA8U => Rc::new(create_texture_array::<RGBA8U>(gl, &config)?),
-            ImageFormatType::RGB8U => Rc::new(create_texture_array::<RGB8U>(gl, &config)?),
-            ImageFormatType::R32F => Rc::new(create_texture_array::<R32F>(gl, &config)?),
+            ChannelType::RGBA32F => unimplemented!(),
+            ChannelType::RGB32F => unimplemented!(),
+            ChannelType::RGBA8U => Rc::new(create_texture_array::<RGBA8U>(gl, &config)?),
+            ChannelType::RGB8U => Rc::new(create_texture_array::<RGB8U>(gl, &config)?),
+            ChannelType::R32F => Rc::new(create_texture_array::<R32F>(gl, &config)?),
         };
         // The root textures have not been loaded
         let ready = false;
@@ -240,23 +242,25 @@ impl ImageSurveyTextures {
         })
     }
 
-    pub fn set_format(&mut self, gl: &WebGlContext, fmt: HiPSTileFormat) -> Result<(), JsValue> {
-        self.config.set_image_fmt(fmt)?;
+    pub fn set_format(&mut self, gl: &WebGlContext, ext: ImageExt) -> Result<(), JsValue> {
+        self.config.set_image_fmt(ext)?;
 
-        self.texture_2d_array = match self.config.get_format() {
-            ImageFormatType::RGBA32F => unimplemented!(),
-            ImageFormatType::RGB32F => unimplemented!(),
-            ImageFormatType::RGBA8U => Rc::new(create_texture_array::<RGBA8U>(gl, &self.config)?),
-            ImageFormatType::RGB8U => Rc::new(create_texture_array::<RGB8U>(gl, &self.config)?),
-            ImageFormatType::R32F => Rc::new(create_texture_array::<R32F>(gl, &self.config)?),
+        let channel = self.config.get_format().get_channel();
+
+        self.texture_2d_array = match channel {
+            ChannelType::RGBA32F => unimplemented!(),
+            ChannelType::RGB32F => unimplemented!(),
+            ChannelType::RGBA8U => Rc::new(create_texture_array::<RGBA8U>(gl, &self.config)?),
+            ChannelType::RGB8U => Rc::new(create_texture_array::<RGB8U>(gl, &self.config)?),
+            ChannelType::R32F => Rc::new(create_texture_array::<R32F>(gl, &self.config)?),
             #[cfg(feature = "webgl2")]
-            ImageFormatType::R8UI => Rc::new(create_texture_array::<R8UI>(gl, &self.config)?),
+            ChannelType::R8UI => Rc::new(create_texture_array::<R8UI>(gl, &self.config)?),
             #[cfg(feature = "webgl2")]
-            ImageFormatType::R16I => Rc::new(create_texture_array::<R16I>(gl, &self.config)?),
+            ChannelType::R16I => Rc::new(create_texture_array::<R16I>(gl, &self.config)?),
             #[cfg(feature = "webgl2")]
-            ImageFormatType::R32I => Rc::new(create_texture_array::<R32I>(gl, &self.config)?),
+            ChannelType::R32I => Rc::new(create_texture_array::<R32I>(gl, &self.config)?),
             #[cfg(feature = "webgl2")]
-            ImageFormatType::R64F => Rc::new(create_texture_array::<R64F>(gl, &self.config)?),
+            ChannelType::R64F => Rc::new(create_texture_array::<R64F>(gl, &self.config)?),
         };
 
         let now = Time::now();

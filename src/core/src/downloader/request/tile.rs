@@ -1,5 +1,5 @@
 use crate::{healpix::cell::HEALPixCell};
-use al_core::image::format::{ImageFormatType, RGBA8U, RGB8U};
+use al_core::image::format::{ChannelType, ImageFormatType, RGBA8U, RGB8U};
 
 use crate::downloader::query;
 use al_core::image::ImageType;
@@ -67,10 +67,11 @@ impl From<query::Tile> for TileRequest {
         } = query;
 
         let url_clone = url.clone();
+        let channel = format.get_channel();
 
         let window = web_sys::window().unwrap_abort();
-        let request = match format {
-            ImageFormatType::RGB8U => Request::new(async move {
+        let request = match channel {
+            ChannelType::RGB8U => Request::new(async move {
                 /*let mut opts = RequestInit::new();
                 opts.method("GET");
                 opts.mode(RequestMode::Cors);
@@ -102,9 +103,9 @@ impl From<query::Tile> for TileRequest {
                 // HTMLImageElement
                 let image = query_html_image(&url_clone).await?;
                 // The image has been resolved
-                Ok(ImageType::JpgHTMLImageRgb8u { image: HTMLImage::<RGB8U>::new(image) })
+                Ok(ImageType::HTMLImageRgb8u { image: HTMLImage::<RGB8U>::new(image) })
             }),
-            ImageFormatType::RGBA8U => Request::new(async move {
+            ChannelType::RGBA8U => Request::new(async move {
                 /*let mut opts = RequestInit::new();
                 opts.method("GET");
                 opts.mode(RequestMode::Cors);
@@ -136,9 +137,9 @@ impl From<query::Tile> for TileRequest {
                 // HTMLImageElement
                 let image = query_html_image(&url_clone).await?;
                 // The image has been resolved
-                Ok(ImageType::PngHTMLImageRgba8u { image: HTMLImage::<RGBA8U>::new(image) })
+                Ok(ImageType::HTMLImageRgba8u { image: HTMLImage::<RGBA8U>::new(image) })
             }),
-            ImageFormatType::R32F | ImageFormatType::R64F | ImageFormatType::R32I | ImageFormatType::R16I | ImageFormatType::R8UI => Request::new(async move {
+            ChannelType::R32F | ChannelType::R64F | ChannelType::R32I | ChannelType::R16I | ChannelType::R8UI => Request::new(async move {
                 let mut opts = RequestInit::new();
                 opts.method("GET");
                 opts.mode(RequestMode::Cors);

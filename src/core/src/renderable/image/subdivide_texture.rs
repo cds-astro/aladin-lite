@@ -19,9 +19,10 @@ where
     R: AsyncReadExt + Unpin
 {
     let mut buf = vec![0; MAX_TEX_SIZE * std::mem::size_of::<<F::P as Pixel>::Item>()];
+    let max_tex_size = MAX_TEX_SIZE as u64;
 
     // Subdivision
-    let num_textures = ((((width as i32) / (MAX_TEX_SIZE as i32)) + 1) * (((height as i32) / (MAX_TEX_SIZE as i32)) + 1)) as usize;
+    let num_textures = ((width / max_tex_size) + 1) * ((height / max_tex_size) + 1);
 
     let mut tex_chunks = vec![];
     for _ in 0..num_textures {
@@ -31,13 +32,13 @@ where
     let mut pixels_written = 0;
     let num_pixels = width * height;
 
-    let num_texture_x = (((width as i32) / (MAX_TEX_SIZE as i32)) + 1) as u64;
-    let num_texture_y = (((height as i32) / (MAX_TEX_SIZE as i32)) + 1) as u64;
+    let num_texture_x = (width / max_tex_size) + 1;
+    let num_texture_y = (height / max_tex_size) + 1;
 
     while pixels_written < num_pixels {
         // Get the id of the texture to fill
-        let id_tx = (pixels_written % width) / (MAX_TEX_SIZE as u64);
-        let id_ty = (pixels_written / width) / (MAX_TEX_SIZE as u64);
+        let id_tx = (pixels_written % width) / max_tex_size;
+        let id_ty = (pixels_written / width) / max_tex_size;
 
         let id_t = id_ty + id_tx*num_texture_y;
 
@@ -45,7 +46,7 @@ where
         let num_pixels_to_read = if id_tx == num_texture_x - 1 {
             width - (pixels_written % width)
         } else {
-            MAX_TEX_SIZE as u64
+            max_tex_size
         };
         let num_bytes_to_read = (num_pixels_to_read as usize) * std::mem::size_of::<<F::P as Pixel>::Item>();
         reader.read_exact(&mut buf[..num_bytes_to_read])
@@ -53,7 +54,7 @@ where
             .map_err(|_| JsValue::from_str("Read some bytes error"))?;
 
         // Tell where the data must go inside the texture
-        let off_y_px = id_ty * (MAX_TEX_SIZE as u64);
+        let off_y_px = id_ty * max_tex_size;
 
         let dy = (pixels_written / width) - off_y_px;
         let view = unsafe {
@@ -65,7 +66,7 @@ where
         };
 
         (&mut tex_chunks[id_t as usize])
-            .bind_mut()
+            .bind()
             .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_array_buffer_view(
                 0,
                 dy as i32,

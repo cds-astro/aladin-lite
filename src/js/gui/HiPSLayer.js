@@ -45,23 +45,25 @@ export class HiPSLayer {
 
         // HiPS header div
         this.headerDiv = $(
-            '<div class="aladin-layer-header aladin-hips-layer">' +
-            '<span class="indicator right-triangle">&nbsp;</span>' +
-            '<select class="aladin-layerSelection"></select>' +
-            '<button class="aladin-btn-small aladin-layer-hide" type="button" title="Hide this layer">👁️</button>' +
-            '<button class="aladin-btn-small aladin-HiPSSelector" type="button" title="Search for a specific HiPS">🔍</button>' +
-            '<button class="aladin-btn-small aladin-delete-layer" type="button" title="Delete this layer">❌</button>' +
+            '<div class="aladin-layer">' +
+                '<div class="aladin-layer-header" style="border-radius: 4px">' +
+                    '<span class="indicator right-triangle">&nbsp;</span>' +
+                    '<select class="aladin-layerSelection"></select>' +
+                    '<button class="aladin-btn-small aladin-layer-hide" type="button" title="Hide this layer">👁️</button>' +
+                    '<button class="aladin-btn-small aladin-HiPSSelector" type="button" title="Search for a specific HiPS">🔍</button>' +
+                    '<button class="aladin-btn-small aladin-delete-layer" type="button" title="Delete this layer">❌</button>' +
+                '</div>' +
             '</div>'
         );
 
         // Add a centered on button for images
-        if (this.layer.name.startsWith('fits')) {
-            let layerSelector = this.headerDiv[0].getElementsByClassName("aladin-layerSelection")[0];
+        if (this.layer.subtype === "fits") {
+            let layerSelector = this.headerDiv[0].querySelector(".aladin-layerSelection");
             layerSelector.after($('<button class="aladin-btn-small aladin-layer-focuson" type="button" title="Focus on this layer">🎯</button>')[0]);
         }
 
         if (this.layer.layer === "base") {
-            let deleteLayerBtn = this.headerDiv[0].getElementsByClassName("aladin-delete-layer")[0];
+            let deleteLayerBtn = this.headerDiv[0].querySelector(".aladin-delete-layer");
             deleteLayerBtn.disabled = true;
             deleteLayerBtn.style.backgroundColor = 'lightgray';
             deleteLayerBtn.style.borderColor = 'gray';
@@ -81,7 +83,7 @@ export class HiPSLayer {
         this.cmap = "native";
         this.color = "#ff0000";
 
-        this.mainDiv = $('<div class="aladin-frame" style="display:none">' +
+        this.mainDiv = $('<div class="aladin-frame" style="display:none; padding: 0px 4px">' +
             '<div class="aladin-options">' +
             // colormap
             '  <div class="row"><div class="col-label">Colormap</div><div class="col-input"><select class="colormap-selector">' + cmListStr + '</select></div></div>' +
@@ -100,7 +102,7 @@ export class HiPSLayer {
             // opacity
             '  <div class="row"><div class="col-label"><label>Opacity</label></div><div class="col-input"><input class="opacity" type="range" min="0" max="1" step="0.01"></div></div>' +
             '</div> ' +
-            '</div>');
+        '</div>');
 
         this._addListeners();
         this._updateHiPSLayerOptions();
@@ -157,7 +159,8 @@ export class HiPSLayer {
             let cfg = ImageLayer.LAYERS[layerSelector[0].selectedIndex];
             let layer;
             
-            if (cfg.name.startsWith("fits")) {
+            // Max order is specific for surveys
+            if (!cfg.maxOrder) {
                 // FITS
                 layer = self.aladin.createImageFITS(
                     cfg.url,
@@ -232,11 +235,8 @@ export class HiPSLayer {
         // Hide HiPS button
         const focusOnLayer = this.headerDiv.find('.aladin-layer-focuson');
         if (focusOnLayer) {
-            console.log("jkjsdf");
             focusOnLayer.off("click");
             focusOnLayer.on("click", function () {
-                console.log("click on focus");
-
                 self.layer.focusOn();
             });
         }

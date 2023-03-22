@@ -58,6 +58,8 @@ export let View = (function () {
         this.aladinDiv = this.aladin.aladinDiv;
         this.popup = new Popup(this.aladinDiv, this);
         this.createCanvases();
+        this.loadingState = false;
+
         let self = this;
         // Init the WebGL context
         // At this point, the view has been created so the image canvas too
@@ -1329,8 +1331,6 @@ export let View = (function () {
         // send events
         if (gridCfg) {
             if (gridCfg.hasOwnProperty('enabled')) {
-                this.showCooGrid = true;
-
                 if (gridCfg.enabled === true) {
                     ALEvent.COO_GRID_ENABLED.dispatchedTo(this.aladinDiv);
                 }
@@ -1417,6 +1417,33 @@ export let View = (function () {
         return imageLayer;
     };
 
+    View.prototype.addLayer = function(imageLayer) {
+        const layerName = imageLayer.layer;
+        // Check whether this layer already exist
+        const idxOverlayLayer = this.overlayLayers.findIndex(overlayLayer => overlayLayer == layerName);
+        if (idxOverlayLayer == -1) {
+            this.overlayLayers.push(layerName);
+        }
+
+        if (this.options.log) {
+            Logger.log("setImageLayer", imageLayer.url);
+        }
+
+        // Find the toppest layer
+        const toppestLayer = this.overlayLayers[this.overlayLayers.length - 1];
+        this.selectedLayer = toppestLayer;
+
+        // Remove the existant layer if there is one
+        let existantImageLayer = this.imageLayers.get(layerName);
+        if (existantImageLayer) {
+            existantImageLayer.added = false;
+        }
+
+        this.imageLayers.set(layerName, imageLayer);
+
+        ALEvent.HIPS_LAYER_ADDED.dispatchedTo(this.aladinDiv, { layer: imageLayer });
+    }
+
     View.prototype.addImageLayer = function (imageLayer, layer) {
         let self = this;
         // start the query
@@ -1431,38 +1458,32 @@ export let View = (function () {
             // to the image layer objet (whether it is an ImageSurvey or an ImageFITS)
             .then((imageLayer) => {
                 // Add to the backend
-                imageLayer.add(layer);
+                const promise = imageLayer.add(layer);
 
+                self.loadingState = true;
+                ALEvent.LOADING_STATE.dispatchedTo(this.aladinDiv, { loading: true });
+
+                return promise;
+            })
+            .then((imageLayer) => {
                 this.empty = false;
 
-                // Check whether this layer already exist
-                const idxOverlayLayer = this.overlayLayers.findIndex(overlayLayer => overlayLayer == layer);
-                if (idxOverlayLayer == -1) {
-                    this.overlayLayers.push(layer);
+                if (imageLayer.children) {
+                    imageLayer.children.forEach((imageLayer) => {
+                        this.addLayer(imageLayer);
+                    })
+                } else {
+                    this.addLayer(imageLayer);
                 }
-
-                if (this.options.log) {
-                    Logger.log("setImageLayer", imageLayer.url);
-                }
-
-                // Find the toppest layer
-                const toppestLayer = this.overlayLayers[this.overlayLayers.length - 1];
-                this.selectedLayer = toppestLayer;
-
-                // Remove the existant layer if there is one
-                let existantImageLayer = this.imageLayers.get(layer);
-                if (existantImageLayer) {
-                    existantImageLayer.added = false;
-                }
-
-                this.imageLayers.set(layer, imageLayer);
-
-                ALEvent.HIPS_LAYER_ADDED.dispatchedTo(self.aladinDiv, { layer: imageLayer });
             })
             .catch((e) => {
                 throw e;
             })
             .finally(() => {
+                // Loading state is over
+                self.loadingState = false;
+                ALEvent.LOADING_STATE.dispatchedTo(this.aladinDiv, { loading: false });
+
                 self.imageLayersBeingQueried.delete(layer);
 
                 // Remove the settled promise

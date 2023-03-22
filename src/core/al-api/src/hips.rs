@@ -45,7 +45,7 @@ pub struct HiPSProperties {
     max_order: u8,
     frame: CooSystem,
     tile_size: i32,
-    formats: Vec<HiPSTileFormat>,
+    formats: Vec<ImageExt>,
     dataproduct_subtype: Option<Vec<String>>,
     hips_body: Option<bool>,
 
@@ -84,7 +84,7 @@ impl HiPSProperties {
     }
 
     #[inline]
-    pub fn get_formats(&self) -> &[HiPSTileFormat] {
+    pub fn get_formats(&self) -> &[ImageExt] {
         &self.formats[..]
     }
 
@@ -124,22 +124,25 @@ impl HiPSProperties {
     }
 }
 
-#[derive(Deserialize, Debug, Clone, Copy, PartialEq)]
+#[derive(Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[wasm_bindgen]
 #[serde(rename_all = "camelCase")]
-pub enum HiPSTileFormat {
+pub enum ImageExt {
     Fits,
     Jpeg,
     Png,
+    Webp
 }
 
-#[derive(Deserialize, Debug, Clone, Copy, PartialEq)]
-#[wasm_bindgen]
-#[serde(rename_all = "camelCase")]
-pub enum HiPSDataproductSubtype {
-    Fits,
-    Jpeg,
-    Png,
+impl std::fmt::Display for ImageExt {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            ImageExt::Fits => write!(f, "fits"),
+            ImageExt::Png => write!(f, "png"),
+            ImageExt::Jpeg => write!(f, "jpg"),
+            ImageExt::Webp => write!(f, "webp")
+        }
+    }
 }
 
 use serde::Serialize;
@@ -220,7 +223,7 @@ pub struct ImageMetadata {
     pub opacity: f32,
     pub longitude_reversed: bool,
     /// the current format chosen
-    pub img_format: HiPSTileFormat,
+    pub img_format: ImageExt,
 }
 
 fn default_opacity() -> f32 {

@@ -22,11 +22,11 @@
 
 /******************************************************************************
  * Aladin Lite project
- * 
+ *
  * File View.js
- * 
+ *
  * Author: Thomas Boch[CDS]
- * 
+ *
  *****************************************************************************/
 
 import { Aladin } from "./Aladin.js";
@@ -36,6 +36,7 @@ import { ProjectionEnum } from "./ProjectionEnum.js";
 import { AladinUtils } from "./AladinUtils.js";
 import { Utils, dropHandler } from "./Utils.js";
 import { SimbadPointer } from "./SimbadPointer.js";
+import { PlanetaryFeaturesPointer } from "./PlanetaryFeaturesPointer.js";
 import { Stats } from "./libs/Stats.js";
 import { Footprint } from "./Footprint.js";
 import { Circle } from "./Circle.js";
@@ -232,12 +233,12 @@ export let View = (function () {
         init(this);
         // listen to window resize and reshape canvases
         this.resizeTimer = null;
-        let resizeObserver = new ResizeObserver(() => { 
+        let resizeObserver = new ResizeObserver(() => {
             self.fixLayoutDimensions();
             self.requestRedraw();
         });
 
-        resizeObserver.observe(this.aladinDiv); 
+        resizeObserver.observe(this.aladinDiv);
         //$(window).resize(() => {
             self.fixLayoutDimensions();
             //self.requestRedraw();
@@ -268,7 +269,7 @@ export let View = (function () {
     View.TOOL_SIMBAD_POINTER = 2;
 
 
-    // TODO: should be put as an option at layer level    
+    // TODO: should be put as an option at layer level
     View.DRAW_SOURCES_WHILE_DRAGGING = true;
     View.DRAW_MOCS_WHILE_DRAGGING = true;
 
@@ -391,7 +392,7 @@ export let View = (function () {
         return loadImage("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAI4AAABTCAMAAAB+g8/LAAACx1BMVEVMaXGBYYSWk5i7ur1fGUW0Fzbi4OP////Qz9K2s7f////qyseffX7TxczMytBXU1ndrahOWXi0o7RaH0v///+1GjfYkY29srb///+1GTe0Fzajn6RgFkFdHkni3+GLV3PU0dXMubr6+vpmIktUJVKiGDqGcX7p5ujLwMJgFkFgFkFNOWnp1tZaHUi0FzaEZohkX2VVKVXUwcvy8vI4U4tQMWBXIk+NGT9ZIEx+Wn5vF0EUYqF3c3lgFkL5+PkUYqH///////9lFkG0FzYUYqFeNF/BwMs2WpP6+vrBv8JSJ1TNy85TJlO0FzaJhYsUYqF5GEEUYqF2Zo60FzazFza0FzYUYqGWdIsrWpWTGj6jGDp3Kk58Y4S0FzZgFkFXIU2OiY+vmqVhGENlGEJqQ2z///9SKFJTJlP///9pF0GOjpd0Ol6rFzi9sbm0Fza0FzYUYqGXmLp3TXJmHkhLSXy/jJBVK1ivrLDu7e7l5OYLCw6AYYRpFkGCIUYVYqGAZoqJfofez9hZPGtcW4phFkIUYqGVbG1BToTFw8ZqZGr4+PmIGkAWYqD6+vpaHUoUYqGEZoh5ZH2ceYAbGyCmFzmgGjsUYqGAYIOuiJJ3SW1PZJlNM0OliJ+MQF5uF0Gcmp8kXZpSKFWEZojDwcXq1tQzVY9pN2CyFzbZlZFHbKOZgpWjnaRlMlsUYqGHGD9FRElaHUiZfpfW1dddW2HMtsJ3k8NTJlPDT1WlMElcGkY6UYjMa2tDSH3IpKOEZoiFTWqni54DAwQsLDGsqa3Pu8cUFBnEtr8gHyU4Nz3cwsMKDA/GV1tGRUtCKjDczM7NfXzMvcza1Nv///+9PUmhfZRxY2y2KT/15eLo4ud5fKXCXmTnu7ekZ3pgFkFTJlOEZoiUGT5aHkp8GEBzF0G0FzadGDtKQnNeJ1JqJk5fGEReGkaDGT8UYqGlSw8iAAAAwXRSTlMA87vu8R/SwN6iQP7+/vf9/J75s4DT/v0gokr33vzj++7+9/Hz8/3u1tFw9P4f5nP9cvl0/vb+/vL79HH9++WPMFA7s1r++vRhscXEiWT9PvLQ+Ffzih/9/vb+9z3Enn7N/cWI/RDWPND+9/38gTx6uPj5/fn+/efauu7k8fnl0+ro/f33wvj7meDU2PeaZquWH9jJ1O0QrPfC0vXo+uHj+J7ETZvkpfzI+6e44qCorUr22cpX3xDd9VdUvtb6V9z+sGF5dwAACP1JREFUeF7s011r01AcBvATON8gFCgkV+2AFrKSm5MGCEKlDIqCgEgpXYUaOkanQLrtpupgCxTY8A3EDWToYBNlgFeiIOIX+f/z0pe96IcwSZtRxY0ByXaT3204nIfnPCHXLJFIJBKJgoe8LLyp/+fbPXJ16mvW3k7XsjiOs3xGd+1FoVAn12Hh1g7HqcYqMsdxGAZ0K8B15avOUkGPQymFvm0Plb6InrKOuqEbqoHVd1vPSfxk+fvT/VZRpBQ0aoLPtRW7VptRKD0VGTKcmNva/0biJPmVjDZUtXN8egKBXIM3IeC64NEohHlGvV6WxOcTj4hHhmq015dHyASh0ciXSKjUhAka5in21AMSi0ev3v7UEfEEjM5Rtbd+mPssSeQfz8JEIgZoR7VIHB6ubFvj4WqQ4xvnTqIkgE+j6KPQiSHOe54vlx0Krj38BYJ08bp27UUAcZyHQibiOJIsV9DXV4a1mrKYk8jFSndn+qCJwXuJZmYt2mKy6HvyemlJ8Zd7iSO3Bx8ANKCITDONQpTVtNCzam2vfHVBOK+OvLek/FRpmy4ABWBIob0X5TsF1Th6FY/NHC9NN5BOzadvzg5m06ldmGiSiQYAOCYwBpmNHyQaX+QW+ljbPDjkH5CJheCnnx+MDZU7j+FMcyqOSDU0Ye5jNL1UshhwaNvwo4SK4mYqNQjZGvzl/lkck1GKsPz7xiUu+0Nq2b+2VYVx/NDZJTYmnV2TpuvMsiJNhbSUZmMwSpssENJl7XSmrrDNpkpn3dqO4eraoqXFMmddBWcVncImDpgOMKiiImJu3t+Wl9a54UiccOxA8keY+5xzc25ugiTx+9s5fHL55D7nPM9dk5FY6NpO1wVgJ8g0pVIpv793mWLP31JEeiMKiCa5yeu8CRIeP8STySzLIMv5VSrl+e1YLne0Ap3BMMcnNE/XdV5Ybyer+lcOZyGeIsyKn+AxSDR8qcVwq9X6Lj+sDuwlm8FMJsiJ4o2fSX9fyeeXuY2D6MrpvDz1KEtylmIG/uh2Y6ZDlOomGxBaxx86CzovybniRG12VEEMUaCXLGV03svSPPaMXsBG8jKCDssHc3aE1BgLOj9OCzoshoYKdExxYL3zpTpuODZbo6+f7hKw0A5e5sBDqQ63MGcfwkxnHZXqeL+pQEd7kbpLdY5kwebt0f1HeGwbwYy8zsGMC7Ain9UfmE5va32pDqfXVuCjCwB73Vys0wUy+0f3fV6EeWLqkRn0U13QR9MTEOql4HXI5nZE304Ilo2E6KmkWnYCh9eKdMhI2LpxwU2xaYp10lZsdWKsbj138klVD/X55Q+Mnc/mOyC0bKLjvf3c4sBJB7mX8ekKdCb0rFpMh7ThrcPCNJhRK9kVrG/txkKGkMvHQe48wOpdu1dop6Q6j6N8Glxs8R9pgNAyXDSLdIJZyE4B+zkWS4QE7Fw33oyRYKxGyEWLYVTXmz/5jn+kGY0FRQYT8kp0tJPNfDb6AI6bpDrURtt/U6PRzArYTX5IaXZo+NzDGI+g99NE5/ivu5ebIbKxv1rEBhXpmL6F0yYn1YrqpDpjFHsHsCaKJUR9JwI66Dp5cY2fHaL3SZ75p3qd1QV4yLSDlkEr0mE2XcYQYF9RbHyzSMeaR66SpnS6GcmFrvzIVq2OthMgn9YyTP6cSawj2LhPJGCnrYAlxTrOeoROXSKH52umc2FfVTqsCFE9QgagAw6RztNuavNG8i7s5DE9wSIiHesuNNONP/ZKdFS5RXm1Oqtwo8KDhbGun0DIRXUKNlNGKab8HXRo8x5xYkyP8m1LQWcAVauj1QEz/AVC5jOkDHbk7mAzi9hsklr1ibAk04GBOksb4by2y8bRn1elw2rFqWACwLwOda6/WqTjXpnCyR6GGQAL7FWfuspuFk7aomRK9L+40lKzzhwUIQBNfzAOvOpgRqxzaOVvjCMi7HJc6N91gs7DE+M+OrWW9mSequ3tsFo19svymWwjFdlT0OF3dRGFIpkog1kEnZag0hfmSO4YX9u6UrOOqYcrSWic6LB4H5TDHENwdooSMB6/AfepNh2olTTpEh1jOUyJS3QCCU/uygCqUQfmeGmGz0p0wvfLYjGpTih9/ti1F1CtOvCVU5qwR/KZd7etLDbbIcHaz+euIVS7jiPAlYsKziiLr688tsSwhU877tu+XDyK/ofOxIZMHH3KD4m0D6q2QVpINu4p8lHyiQCRUCh6lYb2tUkZRJdI+5v+fCs38BGCyGgQaofHqC7DtrD4tx07aGkbDAM4/hTmB5gFhqAILAFs0SHYpqaMwkwRhtBWtmp0FobFURqw1uJlaQdO6SVMB0zZmNCeelLmbd1p32CXIjj2BNNkZUnyIZa0tKlujAFtveR3ed/b++fhvbwv/JcvDVFDmaSQg7YzSrkhile6MjW3OQQt4Ekkxp/PhsPJmRgDvZQp3mdlXVE4Bdo8tP36pqI0z/MP8d1T6FIdVWeXxEDW9TICPRUXfFwFzRzliZ0T/UnV63XqyhqL5Y77EXR58D5dW/KryUXXIfTY6TzBss2cNTsHdVlOIVIcRSPi3vq1lmNXdrx2guF548NbgJ4PR02lsG7mjEDHKCJP0/wen5hITEK3Y5crvY1oxRRC0HMHMyparudA1T0x0SmxTbqzaTTtzhvCaRx6blLwYTtnCv5paHPkbNSKGcuVDCF4BH1QXg50cuzx/GlzZO3iG5nO1jBcNIxCEPpjoyFhE0WSCgd/88IzZ/26kT++tq6MEItAv2yI2u4YoqZpiKR+8x+9ulB+TIiSTHKsjL+aVybGHEH/lEXMhRElUULUFZ1f94DlzfT0gntjJ5kVTX5JRZ0lKyclI8NAX00TGiKqhN9cUmSF06Mpmq7L2wHRxq5UFOXzyetMKA79RgQQ0TycCEgqpnRdJ/NsXkaU8kvnH4fvnSe9Oe9qfnXZ2I/DAHwq5cY0QrT4Ec0d4feLor5y8X14a+vycnExFotlQgwMSkQo+cRWD2EuLTve3LIh7L86fAaDFr/rbRgzXsuOz+fzFnNFo3AQZODWMJmCYdsPReDWMXEm2NTd4nA4HA6H4zc5mbo+QO8AVQAAAABJRU5ErkJggg==")
             .then((img) => {
                 imgType = imgType || "image/png";
-                
+
                 const canvas = this.wasm.canvas();
 
                 var c = document.createElement('canvas');
@@ -400,7 +401,7 @@ export let View = (function () {
                 c.height = height || (this.height * dpi);
 
                 var ctx = c.getContext('2d');
- 
+
                 ctx.drawImage(canvas, 0, 0, c.width, c.height);
                 ctx.drawImage(this.catalogCanvas, 0, 0, c.width, c.height);
 
@@ -445,7 +446,7 @@ export let View = (function () {
         }
 
         $(view.catalogCanvas).bind("contextmenu", function (e) {
-            // do something here... 
+            // do something here...
             e.preventDefault();
         }, false);
 
@@ -522,7 +523,7 @@ export let View = (function () {
             }
         });
 
-        $(view.catalogCanvas).bind("click mouseout touchend", function (e) { // reacting on 'click' rather on 'mouseup' is more reliable when panning the view                 
+        $(view.catalogCanvas).bind("click mouseout touchend", function (e) { // reacting on 'click' rather on 'mouseup' is more reliable when panning the view
             if (e.type === 'touchend' && view.pinchZoomParameters.isPinching) {
                 view.pinchZoomParameters.isPinching = false;
                 view.pinchZoomParameters.initialFov = view.pinchZoomParameters.initialDistance = undefined;
@@ -594,7 +595,16 @@ export let View = (function () {
                 view.setMode(View.PAN);
                 view.setCursor('wait');
                 if (radec) {
-                    SimbadPointer.query(radec[0], radec[1], Math.min(1, 15 * view.fov / view.largestDim), view.aladin);
+                    // sky case
+                    if (view.aladin.getBaseImageLayer().properties.hipsBody === false) {
+                        SimbadPointer.query(radec[0], radec[1], Math.min(1, 15 * view.fov / view.largestDim), view.aladin);
+                    }
+                    // planetary body case
+                    else {
+                        // TODO: replace with actual value
+                        const body = 'mars';
+                        PlanetaryFeaturesPointer.query(radec[0], radec[1], Math.min(80, view.fov / 10.0), body, view.aladin);
+                    }
                 } else {
                     console.log("Cannot unproject at the location you clicked on")
                 }
@@ -852,7 +862,7 @@ export let View = (function () {
                     view.decreaseZoom(amount);
                 }
             };
-            
+
             if (isTouchPadDefined) {
                 if (isTouchPad) {
                     // touchpad
@@ -863,7 +873,7 @@ export let View = (function () {
                         oldTime = new Date().getTime();
                     }
                 } else {
-                    // mouse 
+                    // mouse
                     triggerZoom(0.007);
                 }
             }
@@ -1191,7 +1201,7 @@ export let View = (function () {
         var nside = Math.pow(2, norder); // TODO : to be modified
         var npix = 12 * nside * nside;
         var ipixCenter = null;
-        
+
         // build list of pixels
         var pixList = this.getVisiblePixList(norder)
         var ipix;
@@ -1199,7 +1209,7 @@ export let View = (function () {
         var corners;
         for (var ipixIdx=0, len=pixList.length; ipixIdx<len; ipixIdx++) {
             ipix = pixList[ipixIdx];
-            if (ipix==ipixCenter && ipixIdx>0) { 
+            if (ipix==ipixCenter && ipixIdx>0) {
                 continue;
             }
             var cornersXYView = [];
@@ -1247,7 +1257,7 @@ export let View = (function () {
                 !AladinUtils.counterClockwiseTriangle(cornersXYView[0].vx, cornersXYView[0].vy, cornersXYView[2].vx, cornersXYView[2].vy, cornersXYView[3].vx, cornersXYView[3].vy)) {
                 continue;
             }
-            
+
             if (this.projection == ProjectionEnum.HPX) {
                 const triIdxInCollignonZone = ((p) => {
                     const x = ((p.vx / this.catalogCanvas.clientWidth) - 0.5) * this.zoomFactor;
@@ -1270,11 +1280,11 @@ export let View = (function () {
                     }
                 }
             }
-            
+
             cornersXYView.ipix = ipix;
             cells.push(cornersXYView);
         }
-        
+
         return cells;*/
         return this.wasm.getVisibleCells(norder);
     };
@@ -1496,7 +1506,7 @@ export let View = (function () {
                         // no promises to launch!
                         const idxServiceUrl = Math.round(Math.random());
                         const dssUrl = Aladin.DEFAULT_OPTIONS.surveyUrl[idxServiceUrl]
-                
+
                         self.aladin.setBaseImageLayer(dssUrl);
                     } else {
                         // there is surveys that have been queried
@@ -1538,7 +1548,7 @@ export let View = (function () {
     View.prototype.swapLayers = function(firstLayer, secondLayer) {
         // Throw an exception if either the first or the second layers are not in the stack
         this.wasm.swapLayers(firstLayer, secondLayer);
-    
+
         // Swap in overlaylayers
         const idxFirstLayer = this.overlayLayers.findIndex(overlayLayer => overlayLayer == firstLayer);
         const idxSecondLayer = this.overlayLayers.findIndex(overlayLayer => overlayLayer == secondLayer);
@@ -1566,7 +1576,7 @@ export let View = (function () {
         if (idxOverlaidLayer == -1) {
             // layer not found
             return;
-        }   
+        }
 
         // Delete it
         this.imageLayers.delete(layer);
@@ -1593,7 +1603,7 @@ export let View = (function () {
             // no promises to launch!
             const idxServiceUrl = Math.round(Math.random());
             const dssUrl = Aladin.DEFAULT_OPTIONS.surveyUrl[idxServiceUrl]
-    
+
             this.aladin.setBaseImageLayer(dssUrl);
         }
     };
@@ -1620,10 +1630,10 @@ export let View = (function () {
     View.prototype.setProjection = function (projectionName) {
         this.fovLimit = 1000.0;
         /*
-            TAN: {id: 1, fov: 180},	  
-            STG: {id: 2, fov: 360},	  
-            SIN: {id: 3, fov: 180},	  
-            ZEA: {id: 4, fov: 360},	 
+            TAN: {id: 1, fov: 180},
+            STG: {id: 2, fov: 360},
+            SIN: {id: 3, fov: 180},
+            ZEA: {id: 4, fov: 360},
             FEYE: {id: 5, fov: 190},
             AIR: {id: 6, fov: 360},
             //AZP: {fov: 180},
@@ -1711,7 +1721,7 @@ export let View = (function () {
                 this.fovLimit = 360.0;
                 break;
             default:
-                break;  
+                break;
         }
         // Change the projection here
         this.wasm.setProjection(projectionName);
@@ -1779,13 +1789,13 @@ export let View = (function () {
     };
 
     /**
-     * 
+     *
      * @API Point to a specific location in ICRSJ2000
-     * 
+     *
      * @param ra ra expressed in ICRS J2000 frame
      * @param dec dec expressed in ICRS J2000 frame
      * @param options
-     *   
+     *
      */
     View.prototype.pointTo = function (ra, dec, options) {
         options = options || {};
@@ -1920,7 +1930,7 @@ export let View = (function () {
 
     };
 
-    // update objLookup, lookup table 
+    // update objLookup, lookup table
     View.prototype.updateObjectsLookup = function () {
         this.objLookup = [];
 

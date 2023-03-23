@@ -41,12 +41,12 @@ If you want to embed it into your webpage, please include [the javascript script
 
 ## New features corner
 
-- Fits images drag and drop
-<p align="center">
-  <img src="https://user-images.githubusercontent.com/2772384/227277372-04240e02-63ca-41dd-ba6d-13edd842e01f.gif" alt="animated" />
-</p>
-- Support of fits and webp tiles
-- Planetary name resolver
+* Fits images drag and drop
+    <p align="center">
+        <img src="https://user-images.githubusercontent.com/2772384/227277372-04240e02-63ca-41dd-ba6d-13edd842e01f.gif" alt="animated" />
+    </p>
+* Support of fits and webp tiles
+* Planetary name resolver
 
 ## Goals of v3
 

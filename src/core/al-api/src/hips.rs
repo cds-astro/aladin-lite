@@ -47,7 +47,7 @@ pub struct HiPSProperties {
     tile_size: i32,
     formats: Vec<ImageExt>,
     dataproduct_subtype: Option<Vec<String>>,
-    hips_body: Option<bool>,
+    is_planetary_body: Option<bool>,
 
     bitpix: Option<i32>,
     sky_fraction: Option<f32>,

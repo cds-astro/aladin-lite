@@ -21,11 +21,11 @@
 
 /******************************************************************************
  * Aladin Lite project
- * 
+ *
  * File ImageSurvey
- * 
+ *
  * Authors: Thomas Boch & Matthieu Baumann [CDS]
- * 
+ *
  *****************************************************************************/
 import { Utils } from "./Utils.js";
 import { ALEvent } from "./events/ALEvent.js";
@@ -124,7 +124,7 @@ PropertyParser.dataproductSubtype = function(options, properties = {}) {
     return dataproductSubtype;
 }
 
-PropertyParser.hipsBody = function(options, properties = {}) {
+PropertyParser.isPlanetaryBody = function(options, properties = {}) {
     return properties.hips_body !== undefined;
 }
 
@@ -132,7 +132,7 @@ export let ImageSurvey = (function () {
     /** Constructor
      * cooFrame and maxOrder can be set to null
      * They will be determined by reading the properties file
-     *  
+     *
      */
     function ImageSurvey(id, name, url, view, options) {
         // A reference to the view
@@ -150,7 +150,7 @@ export let ImageSurvey = (function () {
 
         let self = this;
         self.query = (async () => {
-            let maxOrder, frame, tileSize, formats, minCutout, maxCutout, bitpix, skyFraction, minOrder, initialFov, initialRa, initialDec, hipsBody, dataproductSubtype;
+            let maxOrder, frame, tileSize, formats, minCutout, maxCutout, bitpix, skyFraction, minOrder, initialFov, initialRa, initialDec, hipsBody, isPlanetaryBody, dataproductSubtype;
 
             try {
                 const properties = await HiPSProperties.fetch(url || id);
@@ -202,7 +202,10 @@ export let ImageSurvey = (function () {
                 dataproductSubtype = PropertyParser.dataproductSubtype(options, properties);
 
                 // HiPS body
-                hipsBody = PropertyParser.hipsBody(options, properties);
+                isPlanetaryBody = PropertyParser.isPlanetaryBody(options, properties);
+                if (properties.hips_body) {
+                    hipsBody = properties.hips_body;
+                }
 
                 // TODO move that code out of here
                 if (properties.hips_body !== undefined) {
@@ -264,6 +267,7 @@ export let ImageSurvey = (function () {
                 hipsInitialRa: initialRa,
                 hipsInitialDec: initialDec,
                 dataproductSubtype: dataproductSubtype,
+                isPlanetaryBody: isPlanetaryBody,
                 hipsBody: hipsBody
             };
 
@@ -359,21 +363,21 @@ export let ImageSurvey = (function () {
             .then(() => {
                 updateMetadata(self, () => {
                     let imgFormat = format.toLowerCase();
-        
+
                     if (imgFormat !== "fits" && imgFormat !== "png" && imgFormat !== "jpg" && imgFormat !== "jpeg" && imgFormat !== "webp") {
                         throw 'Formats must lie in ["fits", "png", "jpg", "webp"]';
                     }
-        
+
                     if (imgFormat === "jpg") {
                         imgFormat = "jpeg";
                     }
-        
+
                     // Passed the check, we erase the image format with the new one
                     // We do nothing if the imgFormat is the same
                     if (self.imgFormat === imgFormat) {
                         return;
                     }
-        
+
                     // Check the properties to see if the given format is available among the list
                     // If the properties have not been retrieved yet, it will be tested afterwards
                     const availableFormats = self.properties.formats;
@@ -381,7 +385,7 @@ export let ImageSurvey = (function () {
                     if (imgFormat === "fits" && availableFormats.indexOf('fits') < 0) {
                         throw self.id + " does not provide fits tiles";
                     }
-        
+
                     if (imgFormat === "webp" && availableFormats.indexOf('webp') < 0) {
                         throw self.id + " does not provide webp tiles";
                     }
@@ -389,13 +393,13 @@ export let ImageSurvey = (function () {
                     if (imgFormat === "png" && availableFormats.indexOf('png') < 0) {
                         throw self.id + " does not provide png tiles";
                     }
-        
+
                     if (imgFormat === "jpeg" && availableFormats.indexOf('jpeg') < 0) {
                         throw self.id + " does not provide jpeg tiles";
                     }
-        
+
                     // Check if it is a fits
-                    self.imgFormat = imgFormat;    
+                    self.imgFormat = imgFormat;
                 });
             })
     };
@@ -474,7 +478,7 @@ export let ImageSurvey = (function () {
             if (self.added) {
                 const metadata = self.metadata();
                 self.wasm.setImageMetadata(self.layer, metadata);
-                // once the meta have been well parsed, we can set the meta 
+                // once the meta have been well parsed, we can set the meta
                 ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(self.view.aladinDiv, { layer: self });
             }
         } catch (e) {

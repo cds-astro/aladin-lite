@@ -20,12 +20,12 @@
 
 /******************************************************************************
  * Aladin Lite project
- * 
+ *
  * File Aladin.js (main class)
  * Facade to expose Aladin Lite methods
- * 
+ *
  * Author: Thomas Boch[CDS]
- * 
+ *
  *****************************************************************************/
 
 import { View } from "./View.js";
@@ -340,7 +340,7 @@ export let Aladin = (function () {
                 }, 50);
             });
 
-            d.on("mouseup", function () {                
+            d.on("mouseup", function () {
                 mousedown = false;
                 clearInterval(interval);
                 if ((new Date() - startMouseDown) < 500) {
@@ -426,7 +426,7 @@ export let Aladin = (function () {
                     }
                     i++;
                 });
-            } else {                
+            } else {
                 this.setBaseImageLayer(options.survey);
             }
         } else {
@@ -521,7 +521,7 @@ export let Aladin = (function () {
         pixelateCanvas: true
     };
 
-    // realFullscreen: AL div expands not only to the size of its parent, but takes the whole available screen estate 
+    // realFullscreen: AL div expands not only to the size of its parent, but takes the whole available screen estate
     Aladin.prototype.toggleFullscreen = function (realFullscreen) {
         let self = this;
 
@@ -571,7 +571,7 @@ export let Aladin = (function () {
                 }
             }
         }
-        
+
         // Delay the fixLayoutDimensions layout for firefox
         setTimeout(function () {
             self.view.fixLayoutDimensions();
@@ -751,7 +751,7 @@ export let Aladin = (function () {
 
     /**
      * go to a given position, expressed in the current coordinate frame
-     * 
+     *
      * @API
      */
     Aladin.prototype.gotoPosition = function (lon, lat) {
@@ -773,7 +773,7 @@ export let Aladin = (function () {
             return;
         }
         var now = new Date().getTime();
-        // this is the animation end: set the view to the end position, and call complete callback 
+        // this is the animation end: set the view to the end position, and call complete callback
         if (now > params['end']) {
             aladin.gotoRaDec(params['raEnd'], params['decEnd']);
 
@@ -814,13 +814,13 @@ export let Aladin = (function () {
 
     /*
      * animate smoothly from the current position to the given ra, dec
-     * 
+     *
      * the total duration (in seconds) of the animation can be given (otherwise set to 5 seconds by default)
-     * 
+     *
      * complete: a function to call once the animation has completed
-     * 
+     *
      * @API
-     * 
+     *
      */
     Aladin.prototype.animateToRaDec = function (ra, dec, duration, complete) {
         duration = duration || 5;
@@ -849,7 +849,7 @@ export let Aladin = (function () {
             return;
         }
         var now = new Date().getTime();
-        // this is the zoom animation end: set the view to the end fov, and call complete callback 
+        // this is the zoom animation end: set the view to the end fov, and call complete callback
         if (now > params['end']) {
             aladin.setFoV(params['fovEnd']);
 
@@ -870,13 +870,13 @@ export let Aladin = (function () {
     };
     /*
      * zoom smoothly from the current FoV to the given new fov to the given ra, dec
-     * 
+     *
      * the total duration (in seconds) of the animation can be given (otherwise set to 5 seconds by default)
-     * 
+     *
      * complete: a function to call once the animation has completed
-     * 
+     *
      * @API
-     * 
+     *
      */
     Aladin.prototype.zoomToFoV = function (fov, duration, complete) {
         duration = duration || 5;
@@ -940,7 +940,7 @@ export let Aladin = (function () {
 
     /**
      * get current [ra, dec] position of the center of the view
-     * 
+     *
      * @API
      */
     Aladin.prototype.getRaDec = function () {
@@ -965,7 +965,7 @@ export let Aladin = (function () {
 
     /**
      * point to a given position, expressed as a ra,dec coordinate
-     * 
+     *
      * @API
      */
     Aladin.prototype.gotoRaDec = function (ra, dec) {
@@ -995,7 +995,7 @@ export let Aladin = (function () {
         this.view.addCatalog(catalog);
 
         ALEvent.GRAPHIC_OVERLAY_LAYER_ADDED.dispatchedTo(this.aladinDiv, {layer: catalog});
-        
+
     };
     Aladin.prototype.addOverlay = function (overlay) {
         this.view.addOverlay(overlay);
@@ -1034,7 +1034,7 @@ export let Aladin = (function () {
             if (maxOrder) {
                 options.maxOrder = maxOrder;
             }
-    
+
             cfg = {id, name, rootUrl, options};
             this.cacheSurveys.set(id, cfg);
         } else {
@@ -1080,8 +1080,8 @@ export let Aladin = (function () {
         const name = idOrUrl;
 
         try {
-            const url = new URL(rootUrlOrId).toString()    
-            
+            const url = new URL(rootUrlOrId).toString()
+
             // Valid URL case
             const id = url;
             return this.createImageSurvey(id, name, url, null, null, options);
@@ -1379,16 +1379,16 @@ export let Aladin = (function () {
 
     /**
      * Transform pixel coordinates to world coordinates
-     * 
+     *
      * Origin (0,0) of pixel coordinates is at top left corner of Aladin Lite view
-     * 
+     *
      * @API
-     * 
+     *
      * @param x
      * @param y
-     * 
+     *
      * @return a [ra, dec] array with world coordinates in degrees. Returns undefined is something went wrong
-     * 
+     *
      */
     Aladin.prototype.pix2world = function (x, y) {
         // this might happen at early stage of initialization
@@ -1411,14 +1411,14 @@ export let Aladin = (function () {
 
     /**
      * Transform world coordinates to pixel coordinates in the view
-     * 
+     *
      * @API
-     * 
-     * @param ra  
+     *
+     * @param ra
      * @param dec
-     * 
+     *
      * @return a [x, y] array with pixel coordinates in the view. Returns null if the projection failed somehow
-     *   
+     *
      */
     Aladin.prototype.world2pix = function (ra, dec) {
         // this might happen at early stage of initialization
@@ -1434,14 +1434,14 @@ export let Aladin = (function () {
     };
 
     /**
-     * 
+     *
      * @API
-     * 
-     * @param ra  
+     *
+     * @param ra
      * @param nbSteps the number of points to return along each side (the total number of points returned is 4*nbSteps)
-     * 
+     *
      * @return set of points along the current FoV with the following format: [[ra1, dec1], [ra2, dec2], ..., [ra_n, dec_n]]
-     *   
+     *
      */
     Aladin.prototype.getFovCorners = function (nbSteps) {
         // default value: 1
@@ -1469,7 +1469,7 @@ export let Aladin = (function () {
 
     /**
      * @API
-     * 
+     *
      * @return the current FoV size in degrees as a 2-elements array
      */
     Aladin.prototype.getFov = function () {
@@ -1485,7 +1485,7 @@ export let Aladin = (function () {
 
     /**
      * @API
-     * 
+     *
      * @return the size in pixels of the Aladin Lite view
      */
     Aladin.prototype.getSize = function () {
@@ -1494,7 +1494,7 @@ export let Aladin = (function () {
 
     /**
      * @API
-     * 
+     *
      * @return the jQuery object representing the DIV element where the Aladin Lite instance lies
      */
     Aladin.prototype.getParentDiv = function () {
@@ -1510,7 +1510,7 @@ export let Aladin = (function () {
 let A = {};
 
 //// New API ////
-// For developers using Aladin lite: all objects should be created through the API, 
+// For developers using Aladin lite: all objects should be created through the API,
 // rather than creating directly the corresponding JS objects
 // This facade allows for more flexibility as objects can be updated/renamed harmlessly
 
@@ -1555,15 +1555,15 @@ A.circle = function (ra, dec, radiusDeg, options) {
 };
 
 /**
- * 
+ *
  * @API
- * 
- * @param ra 
+ *
+ * @param ra
  * @param dec
  * @param radiusRaDeg the radius along the ra axis in degrees
  * @param radiusDecDeg the radius along the dec axis in degrees
  * @param rotationDeg the rotation angle in degrees
- *   
+ *
  */
 A.ellipse = function (ra, dec, radiusRaDeg, radiusDecDeg, rotationDeg, options) {
     return new Ellipse([ra, dec], radiusRaDeg, radiusDecDeg, rotationDeg, options);
@@ -1598,11 +1598,27 @@ Aladin.prototype.box = function (options) {
 // @API
 /*
  * show popup at ra, dec position with given title and content
+ *
+ * If circleRadius, the corresponding circle will also be plotted
  */
-Aladin.prototype.showPopup = function (ra, dec, title, content) {
+Aladin.prototype.showPopup = function (ra, dec, title, content, circleRadius) {
     this.view.catalogForPopup.removeAll();
-    var marker = A.marker(ra, dec, { popupTitle: title, popupDesc: content, useMarkerDefaultIcon: false });
+    this.view.overlayForPopup.removeAll();
+
+    console.log(circleRadius)
+
+    let marker;
+    if (circleRadius !== undefined) {
+        this.view.overlayForPopup.add(A.circle(ra, dec, circleRadius, {fillColor: 'rgba(255, 0, 0, 0.2)'}));
+         marker = A.marker(ra, dec, { popupTitle: title, popupDesc: content, useMarkerDefaultIcon: true });
+    }
+    else {
+         marker = A.marker(ra, dec, { popupTitle: title, popupDesc: content, useMarkerDefaultIcon: false });
+    }
+
     this.view.catalogForPopup.addSources(marker);
+
+    this.view.overlayForPopup.show();
     this.view.catalogForPopup.show();
 
     this.view.popup.setTitle(title);
@@ -1704,7 +1720,7 @@ Aladin.prototype.displayJPG = Aladin.prototype.displayPNG = function (url, optio
         } else {
             options.body = JSON.stringify( params );
         }
-        
+
         return fetch( url, options ).then( response => response.json() );
     };
     const get = ( url, params ) => request( url, params, 'GET' );

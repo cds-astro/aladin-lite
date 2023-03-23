@@ -191,9 +191,12 @@ export let View = (function () {
         ctx.arc(12, 12, 8, 0, 2 * Math.PI, true);
         ctx.stroke();
         this.catalogForPopup = A.catalog({ shape: c, sourceSize: 24 });
-        //this.catalogForPopup = A.catalog({sourceSize: 18, shape: 'circle', color: '#c38'});
         this.catalogForPopup.hide();
         this.catalogForPopup.setView(this);
+        this.overlayForPopup = A.graphicOverlay({color: '#ee2345', lineWidth: 3});
+        this.overlayForPopup.hide();
+        this.overlayForPopup.setView(this);
+
         // overlays (footprints for instance)
         this.overlays = [];
         // MOCs
@@ -596,14 +599,14 @@ export let View = (function () {
                 view.setCursor('wait');
                 if (radec) {
                     // sky case
-                    if (view.aladin.getBaseImageLayer().properties.hipsBody === false) {
+                    if (view.aladin.getBaseImageLayer().properties.isPlanetaryBody === false) {
                         SimbadPointer.query(radec[0], radec[1], Math.min(1, 15 * view.fov / view.largestDim), view.aladin);
                     }
                     // planetary body case
                     else {
                         // TODO: replace with actual value
-                        const body = 'mars';
-                        PlanetaryFeaturesPointer.query(radec[0], radec[1], Math.min(80, view.fov / 10.0), body, view.aladin);
+                        const body = view.aladin.getBaseImageLayer().properties.hipsBody;
+                        PlanetaryFeaturesPointer.query(radec[0], radec[1], Math.min(80, view.fov / 20.0), body, view.aladin);
                     }
                 } else {
                     console.log("Cannot unproject at the location you clicked on")
@@ -1058,6 +1061,11 @@ export let View = (function () {
             }
 
             this.catalogForPopup.draw(catalogCtx, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor);
+
+            // draw popup overlay layer
+            if (this.overlayForPopup.isShowing) {
+                this.overlayForPopup.draw(catalogCtx, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor);
+            }
         }
 
         ////// 3. Draw overlays////////

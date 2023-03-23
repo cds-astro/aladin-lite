@@ -40,11 +40,23 @@ export let PlanetaryFeaturesPointer = (function() {
 
     // dict of radius (in meters) for some planetary bodies
     PlanetaryFeaturesPointer.PLANETS_RADIUS = {
-        'mercury': 2439400,
-        'venus':   6051000,
-        'earth':   6378137,
-        'mars':    3396190,
-        'moon':    1738100
+        'mercury':      2439400,
+        'venus':        6051000,
+        'earth':        6378137,
+        'mars':         3396190,
+        'moon':         1738100,
+        'ceres':         473000,
+        'titan':        2575000,
+        'titania':       788400,
+        'dione':         561400,
+        'enceladus':     252100,
+        'iapetus':       734500,
+        'mimas':         198200,
+        'rhea':          763800,
+        'tethys':        533000,
+        'callisto':     2410300,
+        'charon':        606000,
+        'triton':       1353000
     }
 
 
@@ -95,13 +107,10 @@ export let PlanetaryFeaturesPointer = (function() {
                     let radiusDeg = undefined;
                     try {
                         const diameter = parseFloat(values[fields.indexOf('diameter')]);
-                        console.log(diameter)
                         if (body in PlanetaryFeaturesPointer.PLANETS_RADIUS) {
                             const parallelLength = 2 * Math.PI * PlanetaryFeaturesPointer.PLANETS_RADIUS[body] * Math.cos(lat * Math.PI /  8180.0);
                             const radiusRadians = 2 * Math.PI * (1000 * diameter / 2) / parallelLength;
                             radiusDeg = 180 * radiusRadians / Math.PI;
-                            //radius = 1000.0 * 180.0 * diameter / (2 * Math.PI * PlanetaryFeaturesPointer.PLANETS_RADIUS[body] * Math.cos(lat * Math.PI / 180.0));
-                            console.log(radiusDeg);
                         }
                     } catch(e) {
                         console.error(e);

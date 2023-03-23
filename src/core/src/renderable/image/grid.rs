@@ -158,7 +158,7 @@ fn build_range_indices(it: impl Iterator<Item=(u64, f32)> + Clone) -> Vec<RangeI
 }
 
 #[allow(dead_code)]
-pub fn get_grid_vertices(xy_min: &(f64, f64), xy_max: &(f64, f64), max_tex_size: u64, num_tri_per_tex_patch: u64, camera: &CameraViewPort, wcs: &WCS, projection: &ProjectionType) -> (Vec<[f32; 2]>, Vec<[f32; 2]>, Vec<u32>, Vec<u32>) {    
+pub fn get_grid_vertices(xy_min: &(f64, f64), xy_max: &(f64, f64), max_tex_size: u64, num_tri_per_tex_patch: u64, camera: &CameraViewPort, wcs: &WCS, projection: &ProjectionType) -> (Vec<[f32; 2]>, Vec<[f32; 2]>, Vec<u16>, Vec<u32>) {    
     let (x_it, y_it) = get_grid_params(xy_min, xy_max, max_tex_size, num_tri_per_tex_patch);
 
     let idx_x_ranges = build_range_indices(x_it.clone());
@@ -255,7 +255,7 @@ impl<'a> BuildPatchIndicesIter<'a> {
 }
 
 impl<'a> Iterator for BuildPatchIndicesIter<'a> {
-    type Item = [(u32, u32, u32); 2];
+    type Item = [(u16, u16, u16); 2];
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.cur_idx_x == *self.idx_x_range.end() {
@@ -297,8 +297,8 @@ impl<'a> Iterator for BuildPatchIndicesIter<'a> {
                     self.next() // crossing projection tri
                 } else {
                     Some([
-                        (idx_tl as u32, idx_tr as u32, idx_bl as u32),
-                        (idx_tr as u32, idx_br as u32, idx_bl as u32)
+                        (idx_tl as u16, idx_tr as u16, idx_bl as u16),
+                        (idx_tr as u16, idx_br as u16, idx_bl as u16)
                     ])
                 }
             },

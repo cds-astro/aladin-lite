@@ -667,7 +667,7 @@ impl App {
             self.layers.refresh_views(&mut self.camera);
         }
 
-        if self.request_for_new_tiles && Time::now() - self.last_time_request_for_new_tiles > DeltaTime::from(500_f32) {
+        if self.request_for_new_tiles && Time::now() - self.last_time_request_for_new_tiles > DeltaTime::from(100_f32) {
             self.look_for_new_tiles()?;
 
             self.request_for_new_tiles = false;
@@ -932,117 +932,122 @@ impl App {
             let mut hdu_ext_idx = 0;
             let mut images_params = vec![];
 
-            if let Ok(image) = Image::from_fits_hdu_async(&gl, &mut hdu.0).await {   
-                let layer_ext = layer.clone();
-                let url_ext = url.clone();
-
-                let fits = ImageCfg {
-                    image: image,
-                    layer: layer_ext,
-                    url: url_ext,
-                    meta: meta.clone()
-                };
+            match Image::from_fits_hdu_async(&gl, &mut hdu.0).await {
+                Ok(image) => {
+                    let layer_ext = layer.clone();
+                    let url_ext = url.clone();
     
-                fits_sender.send(fits).await
-                    .unwrap();
-
-                // Wait for the ack here
-                let image_params = ack_recv.recv().await
-                    .map_err(|_| JsValue::from_str("Problem receiving fits"))?;
-
-                images_params.push(image_params);
-
-                let mut hdu_ext = hdu.next().await;
-
-                // Continue parsing the file extensions here
-                while let Ok(Some(mut xhdu)) = hdu_ext {
-                    match &mut xhdu {
-                        AsyncXtensionHDU::Image(xhdu_img) => {
-                            match Image::from_fits_hdu_async(&gl, xhdu_img).await {
-                                Ok(image) => {
-                                    let layer_ext = layer.clone() + "_ext_" + &format!("{hdu_ext_idx}");
-                                    let url_ext = url.clone() + "_ext_" + &format!("{hdu_ext_idx}");
-
-                                    let fits_ext = ImageCfg {
-                                        image: image,
-                                        layer: layer_ext,
-                                        url: url_ext,
-                                        meta: meta.clone()
-                                    };
-
-                                    fits_sender.send(fits_ext).await
-                                        .unwrap();
-    
-                                    let image_params = ack_recv.recv().await
-                                        .map_err(|_| JsValue::from_str("Problem receving fits"))?;
-
-                                    images_params.push(image_params);
-                                },
-                                Err(error) => {
-                                    al_core::log::console_warn(&
-                                        format!("The extension {hdu_ext_idx} has not been parsed, reason:")
-                                    );
-
-                                    al_core::log::console_warn(error);
-                                }
-                            }
-                        },
-                        _ => {
-                            al_core::log::console_warn(&
-                                format!("The extension {hdu_ext_idx} is a BinTable/AsciiTable and is thus discarded")
-                            );
-                        }
-                    }
-
-                    hdu_ext_idx += 1;
-
-                    hdu_ext = xhdu.next().await;
-                }
-            } else {
-                let mut hdu_ext = hdu.next().await;
-
-                while let Ok(Some(mut xhdu)) = hdu_ext {
-                    match &mut xhdu {
-                        AsyncXtensionHDU::Image(xhdu_img) => {
-                            match Image::from_fits_hdu_async(&gl, xhdu_img).await {
-                                Ok(image) => {
-                                    let layer_ext = layer.clone() + "_ext_" + &format!("{hdu_ext_idx}");
-                                    let url_ext = url.clone() + "_ext_" + &format!("{hdu_ext_idx}");
+                    let fits = ImageCfg {
+                        image: image,
+                        layer: layer_ext,
+                        url: url_ext,
+                        meta: meta.clone()
+                    };
         
-                                    let fits_ext = ImageCfg {
-                                        image: image,
-                                        layer: layer_ext,
-                                        url: url_ext,
-                                        meta: meta.clone()
-                                    };
-
-                                    fits_sender.send(fits_ext).await
-                                        .unwrap();
-
-                                    let image_params = ack_recv.recv().await
-                                        .map_err(|_| JsValue::from_str("Problem receving fits"))?;
-
-                                    images_params.push(image_params);
-                                },
-                                Err(error) => {
-                                    al_core::log::console_warn(&
-                                        format!("The extension {hdu_ext_idx} has not been parsed, reason:")
-                                    );
-
-                                    al_core::log::console_warn(error);
+                    fits_sender.send(fits).await
+                        .unwrap();
+    
+                    // Wait for the ack here
+                    let image_params = ack_recv.recv().await
+                        .map_err(|_| JsValue::from_str("Problem receiving fits"))?;
+    
+                    images_params.push(image_params);
+    
+                    let mut hdu_ext = hdu.next().await;
+    
+                    // Continue parsing the file extensions here
+                    while let Ok(Some(mut xhdu)) = hdu_ext {
+                        match &mut xhdu {
+                            AsyncXtensionHDU::Image(xhdu_img) => {
+                                match Image::from_fits_hdu_async(&gl, xhdu_img).await {
+                                    Ok(image) => {
+                                        let layer_ext = layer.clone() + "_ext_" + &format!("{hdu_ext_idx}");
+                                        let url_ext = url.clone() + "_ext_" + &format!("{hdu_ext_idx}");
+    
+                                        let fits_ext = ImageCfg {
+                                            image: image,
+                                            layer: layer_ext,
+                                            url: url_ext,
+                                            meta: meta.clone()
+                                        };
+    
+                                        fits_sender.send(fits_ext).await
+                                            .unwrap();
+        
+                                        let image_params = ack_recv.recv().await
+                                            .map_err(|_| JsValue::from_str("Problem receving fits"))?;
+    
+                                        images_params.push(image_params);
+                                    },
+                                    Err(error) => {
+                                        al_core::log::console_warn(&
+                                            format!("The extension {hdu_ext_idx} has not been parsed, reason:")
+                                        );
+    
+                                        al_core::log::console_warn(error);
+                                    }
                                 }
+                            },
+                            _ => {
+                                al_core::log::console_warn(&
+                                    format!("The extension {hdu_ext_idx} is a BinTable/AsciiTable and is thus discarded")
+                                );
                             }
-                        },
-                        _ => {
-                            al_core::log::console_warn(&
-                                format!("The extension {hdu_ext_idx} is a BinTable/AsciiTable and is thus discarded")
-                            );
                         }
+    
+                        hdu_ext_idx += 1;
+    
+                        hdu_ext = xhdu.next().await;
                     }
+                },
+                Err(error) => {
+                    al_core::log::console_warn(error);
 
-                    hdu_ext_idx += 1;
+                    let mut hdu_ext = hdu.next().await;
 
-                    hdu_ext = xhdu.next().await;
+                    while let Ok(Some(mut xhdu)) = hdu_ext {
+                        match &mut xhdu {
+                            AsyncXtensionHDU::Image(xhdu_img) => {
+                                match Image::from_fits_hdu_async(&gl, xhdu_img).await {
+                                    Ok(image) => {
+                                        let layer_ext = layer.clone() + "_ext_" + &format!("{hdu_ext_idx}");
+                                        let url_ext = url.clone() + "_ext_" + &format!("{hdu_ext_idx}");
+            
+                                        let fits_ext = ImageCfg {
+                                            image: image,
+                                            layer: layer_ext,
+                                            url: url_ext,
+                                            meta: meta.clone()
+                                        };
+    
+                                        fits_sender.send(fits_ext).await
+                                            .unwrap();
+    
+                                        let image_params = ack_recv.recv().await
+                                            .map_err(|_| JsValue::from_str("Problem receving fits"))?;
+    
+                                        images_params.push(image_params);
+                                    },
+                                    Err(error) => {
+                                        al_core::log::console_warn(&
+                                            format!("The extension {hdu_ext_idx} has not been parsed, reason:")
+                                        );
+    
+                                        al_core::log::console_warn(error);
+                                    }
+                                }
+                            },
+                            _ => {
+                                al_core::log::console_warn(&
+                                    format!("The extension {hdu_ext_idx} is a BinTable/AsciiTable and is thus discarded")
+                                );
+                            }
+                        }
+    
+                        hdu_ext_idx += 1;
+    
+                        hdu_ext = xhdu.next().await;
+                    }
                 }
             }
 
@@ -1096,7 +1101,6 @@ impl App {
         // Set the new meta
         let new_img_fmt = meta.img_format;
         self.layers.set_layer_cfg(layer.clone(), meta, &self.camera, &self.projection)?;
-
 
         if old_meta.img_format != new_img_fmt {
             // The image format has been changed

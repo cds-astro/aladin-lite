@@ -43,7 +43,7 @@ pub struct Image {
     /// The vertex array object of the screen in NDC
     vao: VertexArrayObject,
     num_indices: Vec<u32>,
-    indices: Vec<u32>,
+    indices: Vec<u16>,
     pos: Vec<f32>,
     uv: Vec<f32>,
 
@@ -84,8 +84,6 @@ impl Image {
 
         if naxis == 0 {
             return Err(JsValue::from_str("The fits is empty, NAXIS=0"));
-        } else if naxis != 2 {
-            return Err(JsValue::from_str("Multi dimentional cubes are not supported"))
         }
 
         let scale = header
@@ -202,7 +200,7 @@ impl Image {
                 // Set the element buffer
                 .add_element_buffer(
                     WebGl2RenderingContext::DYNAMIC_DRAW,
-                    VecData::<u32>(&indices),
+                    VecData::<u16>(&indices),
                 )
                 .unbind();
             #[cfg(feature = "webgl1")]
@@ -222,7 +220,7 @@ impl Image {
                 // Set the element buffer
                 .add_element_buffer(
                     WebGl2RenderingContext::DYNAMIC_DRAW,
-                    VecData::<u32>(&indices),
+                    VecData::<u16>(&indices),
                 )
                 .unbind();
 
@@ -417,7 +415,7 @@ impl Image {
             )
             .update_element_array(
                 WebGl2RenderingContext::DYNAMIC_DRAW,
-                VecData::<u32>(&self.indices),
+                VecData::<u16>(&self.indices),
             );
 
         Ok(())
@@ -464,8 +462,8 @@ impl Image {
                     .draw_elements_with_i32(
                         WebGl2RenderingContext::TRIANGLES,
                         Some(num_indices),
-                        WebGl2RenderingContext::UNSIGNED_INT,
-                        ((off_indices as usize) * std::mem::size_of::<u32>()) as i32,
+                        WebGl2RenderingContext::UNSIGNED_SHORT,
+                        ((off_indices as usize) * std::mem::size_of::<u16>()) as i32,
                     );
 
                     off_indices += self.num_indices[idx];

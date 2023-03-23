@@ -871,10 +871,10 @@ export let View = (function () {
                     // touchpad
                     newTime = new Date().getTime();
 
-                    if ( newTime - oldTime > 20 ) {
-                        triggerZoom(0.005);
+                    //if ( newTime - oldTime > 20 ) {
+                        triggerZoom(0.002);
                         oldTime = new Date().getTime();
-                    }
+                    //}
                 } else {
                     // mouse
                     triggerZoom(0.007);

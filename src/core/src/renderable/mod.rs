@@ -558,14 +558,31 @@ impl Layers {
         camera: &CameraViewPort,
         projection: &ProjectionType,
     ) -> Result<(), JsValue> {
-        if let Some(meta_old) = self.meta.get(&layer) {
+        let layer_ref = layer.as_str();
+
+        if let Some(meta_old) = self.meta.get(layer_ref) {
             if !meta_old.visible() && meta.visible() {
-                if let Some(survey) = self.get_mut_hips_from_layer(&layer) {
+                if let Some(survey) = self.get_mut_hips_from_layer(layer_ref) {
                     survey.recompute_vertices(camera, projection);
                 }
 
-                if let Some(image) = self.get_mut_image_from_layer(&layer) {
+                if let Some(image) = self.get_mut_image_from_layer(layer_ref) {
                     image.recompute_vertices(camera, projection)?;
+                }
+            } else if meta_old.visible() && !meta.visible() {
+                // There is an important point here, if we hide a specific layer
+                // then we must recompute the vertices of the layers underneath
+                let layer_idx = self.layers.iter().position(|l| l == layer_ref)
+                    .ok_or(JsValue::from_str("Expect the layer to be found!"))?;
+
+                for idx in 0..layer_idx {
+                    let cur_layer = self.layers[idx].clone();
+
+                    if let Some(survey) = self.get_mut_hips_from_layer(&cur_layer) {
+                        survey.recompute_vertices(camera, projection);
+                    } else if let Some(image) = self.get_mut_image_from_layer(&cur_layer) {
+                        image.recompute_vertices(camera, projection)?;
+                    }
                 }
             }
         }

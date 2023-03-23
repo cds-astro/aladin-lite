@@ -9,8 +9,6 @@ pub struct Fits<'a> {
 }
 
 use std::borrow::Cow;
-use std::io::BufReader;
-use std::io::Read;
 use std::fmt::Debug;
 #[derive(Debug)]
 pub enum Data<'a> {
@@ -19,88 +17,47 @@ pub enum Data<'a> {
     I32(Cow<'a, [i32]>),
     F32(Cow<'a, [f32]>),
 }
-use fitsrs::hdu::{AsyncHDU, HDU};
-use wasm_streams::readable::IntoAsyncRead;
-use futures::stream::StreamExt;
+use std::io::Cursor;
+use fitsrs::{
+    hdu::data::InMemData,
+    fits::Fits as FitsData,
+};
+
 impl<'a> Fits<'a> {
-    pub fn from_byte_slice(bytes: &'a [u8]) -> Result<Self, JsValue> {
-        let fitsrs::fits::Fits { hdu: HDU { data, header } } = fitsrs::fits::Fits::from_reader(bytes)
+    pub fn from_byte_slice(bytes_reader: &'a mut Cursor<&[u8]>) -> Result<Self, JsValue> {
+        let FitsData { hdu } = FitsData::from_reader(bytes_reader)
             .map_err(|_| {
                 JsValue::from_str(&"Parsing fits error")
             })?;
 
-        let width = header.get_axis_size(1)
+        let header = hdu.get_header();
+        let xtension = header.get_xtension();
+        let width = xtension.get_naxisn(1)
             .ok_or_else(|| JsValue::from_str("NAXIS1 not found in the fits"))?;
 
-        let height = header.get_axis_size(2)
+        let height = xtension.get_naxisn(2)
             .ok_or_else(|| JsValue::from_str("NAXIS2 not found in the fits"))?;
-            
-        let data = match data {
-            fitsrs::hdu::data::DataBorrowed::U8(slice) => {
+        
+        let data = hdu.get_data();
+        let data = match *data {
+            InMemData::U8(slice) => {
                 Data::U8(Cow::Borrowed(slice))
             },
-            fitsrs::hdu::data::DataBorrowed::I16(slice) => {
+            InMemData::I16(slice) => {
                 Data::I16(Cow::Borrowed(slice))
             },
-            fitsrs::hdu::data::DataBorrowed::I32(slice) => {
+            InMemData::I32(slice) => {
                 Data::I32(Cow::Borrowed(slice))
             },
-            fitsrs::hdu::data::DataBorrowed::I64(slice) => {
+            InMemData::I64(slice) => {
                 let data = slice.iter().map(|v| *v as i32).collect();
                 Data::I32(Cow::Owned(data))
             },
-            fitsrs::hdu::data::DataBorrowed::F32(slice) => {
+            InMemData::F32(slice) => {
                 Data::F32(Cow::Borrowed(slice))
             },
-            fitsrs::hdu::data::DataBorrowed::F64(slice) => {
+            InMemData::F64(slice) => {
                 let data = slice.iter().map(|v| *v as f32).collect();
-                Data::F32(Cow::Owned(data))
-            }
-        };
-
-        Ok(Self {
-            // Tile size
-            size: Vector2::new(*width as i32, *height as i32),
-
-            // Allocation info of the layout            
-            data
-        })
-    }
-
-    pub fn from_reader<R>(reader: BufReader<R>) -> Result<Self, JsValue>
-    where
-        R: Read + Debug
-    {
-        let fitsrs::fits::Fits { hdu: HDU { data, header } } = fitsrs::fits::Fits::from_reader(reader)
-            .map_err(|_| {
-                JsValue::from_str(&"Parsing fits error")
-            })?;
-
-        let width = header.get_axis_size(1)
-            .ok_or_else(|| JsValue::from_str("NAXIS1 not found in the fits"))?;
-
-        let height = header.get_axis_size(2)
-            .ok_or_else(|| JsValue::from_str("NAXIS2 not found in the fits"))?;
-
-        let data = match data {
-            fitsrs::hdu::data::DataOwned::U8(it) => {
-                Data::U8(Cow::Owned(it.collect()))
-            },
-            fitsrs::hdu::data::DataOwned::I16(it) => {
-                Data::I16(Cow::Owned(it.collect()))
-            },
-            fitsrs::hdu::data::DataOwned::I32(it) => {
-                Data::I32(Cow::Owned(it.collect()))
-            },
-            fitsrs::hdu::data::DataOwned::I64(it) => {
-                let data = it.map(|v| v as i32).collect();
-                Data::I32(Cow::Owned(data))
-            },
-            fitsrs::hdu::data::DataOwned::F32(it) => {
-                Data::F32(Cow::Owned(it.collect()))
-            },
-            fitsrs::hdu::data::DataOwned::F64(it) => {
-                let data = it.map(|v| v as f32).collect();
                 Data::F32(Cow::Owned(data))
             }
         };
@@ -119,7 +76,7 @@ impl<'a> Fits<'a> {
     }
 }
 
-impl Fits<'static> {
+/*impl Fits<'static> {
     pub async fn from_async_reader(reader: IntoAsyncRead<'static>) -> Result<Self, JsValue> {
         let fitsrs::fits::AsyncFits { hdu: AsyncHDU { data, header } } = fitsrs::fits::AsyncFits::from_reader(futures::io::BufReader::new(reader))
             .await
@@ -168,7 +125,8 @@ impl Fits<'static> {
             data
         })
     }
-}
+}*/
+
 use crate::Texture2DArray;
 use crate::image::Image;
 impl Image for Fits<'_> {

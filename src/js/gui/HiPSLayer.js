@@ -160,7 +160,7 @@ export class HiPSLayer {
             let layer;
             
             // Max order is specific for surveys
-            if (!cfg.maxOrder) {
+            if (cfg.subtype === "fits") {
                 // FITS
                 layer = self.aladin.createImageFITS(
                     cfg.url,

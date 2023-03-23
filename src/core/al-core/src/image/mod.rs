@@ -211,7 +211,7 @@ where
     }
 }
 
-use std::rc::Rc;
+use std::{rc::Rc, io::Cursor};
 impl<I> Image for Rc<I>
 where
     I: Image,
@@ -304,7 +304,8 @@ impl Image for ImageType {
                 unsafe { raw_bytes.set_len(num_bytes); }
                 raw_bytes_buf.copy_to(&mut raw_bytes[..]);
 
-                let fits_img = Fits::from_byte_slice(raw_bytes.as_slice())?;
+                let mut bytes_reader = Cursor::new(raw_bytes.as_slice());
+                let fits_img = Fits::from_byte_slice(&mut bytes_reader)?;
                 fits_img.tex_sub_image_3d(textures, offset)?
             },
             ImageType::Canvas { canvas } => canvas.tex_sub_image_3d(textures, offset)?,

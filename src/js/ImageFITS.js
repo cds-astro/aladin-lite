@@ -165,7 +165,7 @@ export let ImageFITS = (function () {
             // There is at least one entry in imageParams
             self.added = true;
             self.children = [];
-            
+
             let hduIdx = 0;
             imagesParams.forEach((imageParams) => {
                 // This fits has HDU extensions

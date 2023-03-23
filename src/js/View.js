@@ -22,21 +22,21 @@
 
 /******************************************************************************
  * Aladin Lite project
- * 
+ *
  * File View.js
- * 
+ *
  * Author: Thomas Boch[CDS]
- * 
+ *
  *****************************************************************************/
 
 import { Aladin } from "./Aladin.js";
 import { Popup } from "./Popup.js";
 import { HealpixGrid } from "./HealpixGrid.js";
 import { ProjectionEnum } from "./ProjectionEnum.js";
-import { Projection } from "./libs/astro/projection.js";
 import { AladinUtils } from "./AladinUtils.js";
-import { Utils } from "./Utils.js";
+import { Utils, dropHandler } from "./Utils.js";
 import { SimbadPointer } from "./SimbadPointer.js";
+import { PlanetaryFeaturesPointer } from "./PlanetaryFeaturesPointer.js";
 import { Stats } from "./libs/Stats.js";
 import { Footprint } from "./Footprint.js";
 import { Circle } from "./Circle.js";
@@ -45,7 +45,7 @@ import { requestAnimFrame } from "./libs/RequestAnimationFrame.js";
 import { WebGLCtx } from "./WebGL.js";
 import { Logger } from "./Logger.js";
 import { ALEvent } from "./events/ALEvent.js";
-import { HpxImageSurvey } from "./HpxImageSurvey.js";
+import { ColorCfg } from "./ColorCfg.js";
 
 import $ from 'jquery';
 
@@ -59,16 +59,20 @@ export let View = (function () {
         this.aladinDiv = this.aladin.aladinDiv;
         this.popup = new Popup(this.aladinDiv, this);
         this.createCanvases();
+        this.loadingState = false;
+
+        let self = this;
         // Init the WebGL context
         // At this point, the view has been created so the image canvas too
         try {
             // Start our Rust application. You can find `WebClient` in `src/lib.rs`
             // The Rust part should also create a new WebGL2 or WebGL1 context depending on the WebGL2 brower support.
-            const webglCtx = new WebGLCtx(Aladin.wasmLibs.webgl, this.aladinDiv.id);
-            this.aladin.webglAPI = webglCtx.webclient;
+            const webglCtx = new WebGLCtx(Aladin.wasmLibs.core, this.aladinDiv.id);
+            this.aladin.wasm = webglCtx.webclient;
+            this.wasm = this.aladin.wasm;
 
             // Retrieve all the possible colormaps
-            HpxImageSurvey.COLORMAPS = this.aladin.webglAPI.getAvailableColormapList();
+            ColorCfg.COLORMAPS = this.wasm.getAvailableColormapList();
         } catch (e) {
             // For browsers not supporting WebGL2:
             // 1. Print the original exception message in the console
@@ -77,10 +81,58 @@ export let View = (function () {
             alert("Problem initializing Aladin Lite. Please contact the support by contacting Matthieu Baumann (baumannmatthieu0@gmail.com) or Thomas Boch (thomas.boch@astro.unistra.fr). You can also open an issue on the Aladin Lite github repository here: https://github.com/cds-astro/aladin-lite. Message error:" + e)
         }
 
+        // Attach the drag and drop events to the view
+        this.aladinDiv.ondrop = (event) => {
+            const files = Utils.getDroppedFilesHandler(event);
+
+            files.forEach((file) => {
+                /*const reader = new FileReader();
+                reader.readAsArrayBuffer(file);
+
+                reader.addEventListener("load", () => {
+                    // The file has been loaded
+                    const url = URL.createObjectURL(file);
+                    console.log(file.name)
+                    try {
+                        const imageFITS = self.aladin.createImageFITS(url, file.name, undefined, undefined, undefined);
+                        self.setOverlayImageLayer(imageFITS, Utils.uuidv4())
+                    } catch(e) {
+                        console.error("Only valid fits files supported (i.e. containig a WCS)", e)
+                        throw e;
+                    }
+                }, false);
+
+                reader.addEventListener('error', (event) => {
+                    console.error(event.target.error);
+                });*/
+
+                const url = URL.createObjectURL(file);
+
+                try {
+                    const image = self.aladin.createImageFITS(
+                        url,
+                        file.name,
+                        undefined,
+                        (ra, dec, fov, _) => {
+                            // Center the view around the new fits object
+                            aladin.gotoRaDec(ra, dec);
+                            aladin.setFoV(fov * 1.1);
+                        },
+                        undefined
+                    );
+                    self.setOverlayImageLayer(image, Utils.uuidv4())
+                } catch(e) {
+                    console.error("Only valid fits files supported (i.e. containig a WCS)", e)
+                    throw e;
+                }
+            })
+        };
+
+        this.aladinDiv.ondragover = Utils.dragOverHandler;
+
         this.location = location;
         this.fovDiv = fovDiv;
         this.mustClearCatalog = true;
-        //this.imageSurveysToSet = [];
         this.mode = View.PAN;
 
         this.minFOV = this.maxFOV = null; // by default, no restriction
@@ -92,11 +144,8 @@ export let View = (function () {
         lon = lat = 0;
         this.projection = ProjectionEnum.SIN;
 
-        //this.zoomLevel = 0;
         // Prev time of the last frame
-        this.prev = 0;
-        //this.zoomFactor = this.computeZoomFactor(this.zoomLevel);
-        this.zoomFactor = this.aladin.webglAPI.getClipZoomFactor();
+        this.zoomFactor = this.wasm.getClipZoomFactor();
 
         this.viewCenter = { lon: lon, lat: lat }; // position of center of view
 
@@ -122,9 +171,7 @@ export let View = (function () {
         };
         this.setZoom(initialFov);
         // current reference image survey displayed
-        this.imageSurveys = new Map();
-        this.imageSurveysWaitingList = new Map();
-        this.imageSurveysIdx = new Map();
+        this.imageLayers = new Map();
 
         this.overlayLayers = [];
         // current catalogs displayed
@@ -144,23 +191,27 @@ export let View = (function () {
         ctx.arc(12, 12, 8, 0, 2 * Math.PI, true);
         ctx.stroke();
         this.catalogForPopup = A.catalog({ shape: c, sourceSize: 24 });
-        //this.catalogForPopup = A.catalog({sourceSize: 18, shape: 'circle', color: '#c38'});
         this.catalogForPopup.hide();
         this.catalogForPopup.setView(this);
+        this.overlayForPopup = A.graphicOverlay({color: '#ee2345', lineWidth: 3});
+        this.overlayForPopup.hide();
+        this.overlayForPopup.setView(this);
+
         // overlays (footprints for instance)
         this.overlays = [];
         // MOCs
         this.mocs = [];
         // reference to all overlay layers (= catalogs + overlays + mocs)
         this.allOverlayLayers = []
-        //console.log("alv3 starting...")
 
+        this.empty = true;
 
         //this.fixLayoutDimensions();
-
+        this.promises = [];
         this.firstHiPS = true;
         this.curNorder = 1;
         this.realNorder = 1;
+        this.imageLayersBeingQueried = new Map();
 
         // some variables for mouse handling
         this.dragging = false;
@@ -168,7 +219,7 @@ export let View = (function () {
         this.dragy = null;
         this.rightclickx = null;
         this.rightclicky = null;
-        this.selectedSurveyLayer = 'base';
+        this.selectedLayer = 'base';
 
         this.needRedraw = true;
 
@@ -185,13 +236,12 @@ export let View = (function () {
         init(this);
         // listen to window resize and reshape canvases
         this.resizeTimer = null;
-        var self = this;
-        let resizeObserver = new ResizeObserver(() => { 
+        let resizeObserver = new ResizeObserver(() => {
             self.fixLayoutDimensions();
             self.requestRedraw();
         });
 
-        resizeObserver.observe(this.aladinDiv); 
+        resizeObserver.observe(this.aladinDiv);
         //$(window).resize(() => {
             self.fixLayoutDimensions();
             //self.requestRedraw();
@@ -222,7 +272,7 @@ export let View = (function () {
     View.TOOL_SIMBAD_POINTER = 2;
 
 
-    // TODO: should be put as an option at layer level    
+    // TODO: should be put as an option at layer level
     View.DRAW_SOURCES_WHILE_DRAGGING = true;
     View.DRAW_MOCS_WHILE_DRAGGING = true;
 
@@ -266,7 +316,7 @@ export let View = (function () {
         //this.aladinDiv.style.width = this.width + "px";
         //this.aladinDiv.style.height = this.height + "px";
 
-        this.aladin.webglAPI.resize(this.width, this.height);
+        this.wasm.resize(this.width, this.height);
 
         this.catalogCtx = this.catalogCanvas.getContext("2d");
 
@@ -291,7 +341,6 @@ export let View = (function () {
         }
 
         this.computeNorder();
-
         this.redraw();
     };
 
@@ -330,13 +379,11 @@ export let View = (function () {
         this.catalogCanvas.style.cursor = cursor;
     };
 
-
-
     /**
      * return dataURL string corresponding to the current view
      */
     View.prototype.getCanvasDataURL = async function (imgType, width, height) {
-        const asyncImageLoader = function (url) {
+        const loadImage = function (url) {
             return new Promise((resolve, reject) => {
                 var image = new Image()
                 image.src = url
@@ -345,17 +392,19 @@ export let View = (function () {
             })
         }
 
-        const buildingCanvasDataURL = asyncImageLoader("data:image/png;base64,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")
+        return loadImage("data:image/png;base64,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")
             .then((img) => {
                 imgType = imgType || "image/png";
+
+                const canvas = this.wasm.canvas();
+
                 var c = document.createElement('canvas');
-                width = width || this.width;
-                height = height || this.height;
-                c.width = width;
-                c.height = height;
+                let dpi = window.devicePixelRatio;
+                c.width = width || (this.width * dpi);
+                c.height = height || (this.height * dpi);
+
                 var ctx = c.getContext('2d');
 
-                const canvas = this.aladin.webglAPI.canvas();
                 ctx.drawImage(canvas, 0, 0, c.width, c.height);
                 ctx.drawImage(this.catalogCanvas, 0, 0, c.width, c.height);
 
@@ -365,16 +414,14 @@ export let View = (function () {
 
                 return c.toDataURL(imgType);
             });
-        return buildingCanvasDataURL;
     };
 
 
     View.prototype.setActiveHiPSLayer = function (layer) {
-        if (!this.imageSurveys.has(layer)) {
+        if (!this.imageLayers.has(layer)) {
             throw layer + ' does not exists. So cannot be selected';
         }
-
-        this.selectedSurveyLayer = layer;
+        this.selectedLayer = layer;
     };
 
     var createListeners = function (view) {
@@ -388,8 +435,8 @@ export let View = (function () {
             var xymouse = view.imageCanvas.relMouseCoords(e);
 
             try {
-                const lonlat = view.aladin.webglAPI.screenToWorld(xymouse.x, xymouse.y);
-                var radec = view.aladin.webglAPI.viewToICRSJ2000CooSys(lonlat[0], lonlat[1]);
+                const lonlat = view.wasm.screenToWorld(xymouse.x, xymouse.y);
+                var radec = view.wasm.viewToICRSJ2000CooSys(lonlat[0], lonlat[1]);
                 view.pointTo(radec[0], radec[1], { forceAnimation: true });
             }
             catch (err) {
@@ -402,7 +449,7 @@ export let View = (function () {
         }
 
         $(view.catalogCanvas).bind("contextmenu", function (e) {
-            // do something here... 
+            // do something here...
             e.preventDefault();
         }, false);
 
@@ -420,23 +467,18 @@ export let View = (function () {
                 view.rightclickx = xymouse.x;
                 view.rightclicky = xymouse.y;
 
-                const survey = view.imageSurveys.get(view.selectedSurveyLayer);
-                if (survey) {
+                const imageLayer = view.imageLayers.get(view.selectedLayer);
+                if (imageLayer) {
                     // Take as start cut values what is inside the properties
                     // If the cuts are not defined in the metadata of the survey
                     // then we take what has been defined by the user
-                    //if (!survey.colored) {
-                        if (survey.fits) {
-                            // properties default cuts always refers to fits tiles
-                            cutMinInit = survey.properties.minCutout || survey.options.minCut;
-                            cutMaxInit = survey.properties.maxCutout || survey.options.maxCut;
-                        } else {
-                            cutMinInit = survey.options.minCut;
-                            cutMaxInit = survey.options.maxCut;
-                        }
-                    //} else {
-                        // todo: contrast
-                    //}
+                    if (imageLayer.imgFormat === "fits") {
+                        cutMinInit = imageLayer.properties.minCutout || imageLayer.getColorCfg().minCut || 0.0;
+                        cutMaxInit = imageLayer.properties.maxCutout || imageLayer.getColorCfg().maxCut || 1.0;
+                    } else {
+                        cutMinInit = imageLayer.getColorCfg().minCut || 0.0;
+                        cutMaxInit = imageLayer.getColorCfg().maxCut || 1.0;
+                    }
                 }
 
                 return;
@@ -449,11 +491,11 @@ export let View = (function () {
                 view.pinchZoomParameters.isPinching = true;
                 //var fov = view.aladin.getFov();
                 //view.pinchZoomParameters.initialFov = Math.max(fov[0], fov[1]);
-                var fov = view.aladin.webglAPI.getFieldOfView();
+                var fov = view.wasm.getFieldOfView();
                 view.pinchZoomParameters.initialFov = fov;
                 view.pinchZoomParameters.initialDistance = Math.sqrt(Math.pow(e.originalEvent.targetTouches[0].clientX - e.originalEvent.targetTouches[1].clientX, 2) + Math.pow(e.originalEvent.targetTouches[0].clientY - e.originalEvent.targetTouches[1].clientY, 2));
 
-                view.fingersRotationParameters.initialViewAngleFromCenter = view.aladin.webglAPI.getRotationAroundCenter();
+                view.fingersRotationParameters.initialViewAngleFromCenter = view.wasm.getRotationAroundCenter();
                 view.fingersRotationParameters.initialFingerAngle = Math.atan2(e.originalEvent.targetTouches[1].clientY - e.originalEvent.targetTouches[0].clientY, e.originalEvent.targetTouches[1].clientX - e.originalEvent.targetTouches[0].clientX) * 180.0 / Math.PI;
 
                 return;
@@ -470,7 +512,7 @@ export let View = (function () {
                 view.selectStartCoo = { x: view.dragx, y: view.dragy };
             }
 
-            view.aladin.webglAPI.pressLeftMouseButton(view.dragx, view.dragy);
+            view.wasm.pressLeftMouseButton(view.dragx, view.dragy);
             return false; // to disable text selection
         });
 
@@ -484,7 +526,7 @@ export let View = (function () {
             }
         });
 
-        $(view.catalogCanvas).bind("click mouseout touchend", function (e) { // reacting on 'click' rather on 'mouseup' is more reliable when panning the view                 
+        $(view.catalogCanvas).bind("click mouseout touchend", function (e) { // reacting on 'click' rather on 'mouseup' is more reliable when panning the view
             if (e.type === 'touchend' && view.pinchZoomParameters.isPinching) {
                 view.pinchZoomParameters.isPinching = false;
                 view.pinchZoomParameters.initialFov = view.pinchZoomParameters.initialDistance = undefined;
@@ -551,12 +593,21 @@ export let View = (function () {
                 let radec = view.aladin.pix2world(xymouse.x, xymouse.y);
 
                 // Convert from view to ICRSJ2000
-                radec = view.aladin.webglAPI.viewToICRSJ2000CooSys(radec[0], radec[1]);
+                radec = view.wasm.viewToICRSJ2000CooSys(radec[0], radec[1]);
 
                 view.setMode(View.PAN);
                 view.setCursor('wait');
                 if (radec) {
-                    SimbadPointer.query(radec[0], radec[1], Math.min(1, 15 * view.fov / view.largestDim), view.aladin);
+                    // sky case
+                    if (view.aladin.getBaseImageLayer().properties.isPlanetaryBody === false) {
+                        SimbadPointer.query(radec[0], radec[1], Math.min(1, 15 * view.fov / view.largestDim), view.aladin);
+                    }
+                    // planetary body case
+                    else {
+                        // TODO: replace with actual value
+                        const body = view.aladin.getBaseImageLayer().properties.hipsBody;
+                        PlanetaryFeaturesPointer.query(radec[0], radec[1], Math.min(80, view.fov / 20.0), body, view.aladin);
+                    }
                 } else {
                     console.log("Cannot unproject at the location you clicked on")
                 }
@@ -625,7 +676,7 @@ export let View = (function () {
             view.refreshProgressiveCats();
 
             //view.requestRedraw();
-            view.aladin.webglAPI.releaseLeftButtonMouse();
+            view.wasm.releaseLeftButtonMouse();
         });
         var lastHoveredObject; // save last object hovered by mouse
         var lastMouseMovePos = null;
@@ -633,28 +684,25 @@ export let View = (function () {
             e.preventDefault();
             var xymouse = view.imageCanvas.relMouseCoords(e);
 
-            if (view.rightClick && view.selectedSurveyLayer) {
-                let selectedSurvey = view.imageSurveys.get(view.selectedSurveyLayer);
-                //if (!selectedSurvey.colored) {
-                    // we try to match DS9 contrast adjustment behaviour with right click
-                    const cs = {
-                        x: view.catalogCanvas.clientWidth * 0.5,
-                        y: view.catalogCanvas.clientHeight * 0.5,
-                    };
-                    const cx = (xymouse.x - cs.x) / view.catalogCanvas.clientWidth;
-                    const cy = -(xymouse.y - cs.y) / view.catalogCanvas.clientHeight;
+            if (view.rightClick && view.selectedLayer) {
+                let selectedLayer = view.imageLayers.get(view.selectedLayer);
+                // We try to match DS9 contrast adjustment behaviour with right click
+                const cs = {
+                    x: view.catalogCanvas.clientWidth * 0.5,
+                    y: view.catalogCanvas.clientHeight * 0.5,
+                };
+                const cx = (xymouse.x - cs.x) / view.catalogCanvas.clientWidth;
+                const cy = -(xymouse.y - cs.y) / view.catalogCanvas.clientHeight;
 
-                    const offset = (cutMaxInit - cutMinInit) * cx;
+                const offset = (cutMaxInit - cutMinInit) * cx;
 
-                    const lr = offset + (1.0 - 2.0 * cy) * cutMinInit;
-                    const rr = offset + (1.0 + 2.0 * cy) * cutMaxInit;
+                const lr = offset + (1.0 - 2.0 * cy) * cutMinInit;
+                const rr = offset + (1.0 + 2.0 * cy) * cutMaxInit;
 
-                    if (lr <= rr) {
-                        selectedSurvey.setCuts([lr, rr])
-                    }
-
-                    return;
-                //}
+                if (lr <= rr) {
+                    selectedLayer.setCuts(lr, rr)
+                }
+                return;
             }
 
             if (e.type === 'touchmove' && view.pinchZoomParameters.isPinching && e.originalEvent && e.originalEvent.touches && e.originalEvent.touches.length == 2) {
@@ -670,14 +718,14 @@ export let View = (function () {
 
                 if (view.fingersRotationParameters.rotationInitiated) {
                     let rotation = view.fingersRotationParameters.initialViewAngleFromCenter;
-                    if (!view.aladin.webglAPI.getLongitudeReversed()) {
+                    if (!view.wasm.getLongitudeReversed()) {
                         // spatial survey case
                         rotation += fingerAngleDiff;
                     } else {
                         // planetary survey case
                         rotation -= fingerAngleDiff;
                     }
-                    view.aladin.webglAPI.setRotationAroundCenter(rotation);
+                    view.wasm.setRotationAroundCenter(rotation);
                 }
 
                 // zoom
@@ -755,10 +803,9 @@ export let View = (function () {
 
             view.realDragging = true;
 
-            //webglAPI.goFromTo(pos1[0], pos1[1], pos2[0], pos2[1]);
-            view.aladin.webglAPI.goFromTo(s1.x, s1.y, s2.x, s2.y);
-            //webglAPI.setCenter(pos2[0], pos2[1]);
-            const [ra, dec] = view.aladin.webglAPI.getCenter();
+            view.wasm.goFromTo(s1.x, s1.y, s2.x, s2.y);
+
+            const [ra, dec] = view.wasm.getCenter();
             view.viewCenter.lon = ra;
             view.viewCenter.lat = dec;
             if (view.viewCenter.lon < 0.0) {
@@ -818,18 +865,18 @@ export let View = (function () {
                     view.decreaseZoom(amount);
                 }
             };
-            
+
             if (isTouchPadDefined) {
                 if (isTouchPad) {
                     // touchpad
                     newTime = new Date().getTime();
 
-                    if ( newTime - oldTime > 20 ) {
-                        triggerZoom(0.003);
+                    //if ( newTime - oldTime > 20 ) {
+                        triggerZoom(0.002);
                         oldTime = new Date().getTime();
-                    }
+                    //}
                 } else {
-                    // mouse 
+                    // mouse
                     triggerZoom(0.007);
                 }
             }
@@ -861,16 +908,20 @@ export let View = (function () {
         view.executeCallbacksThrottled = Utils.throttle(
             function () {
                 var pos = view.aladin.pix2world(view.width / 2, view.height / 2);
+
                 var fov = view.fov;
+
                 if (pos === undefined || fov === undefined) {
                     return;
                 }
 
                 var ra = pos[0];
                 var dec = pos[1];
+
                 // trigger callback only if position has changed !
                 if (ra !== this.ra || dec !== this.dec) {
                     var posChangedFn = view.aladin.callbacksByEventName['positionChanged'];
+
                     (typeof posChangedFn === 'function') && posChangedFn({ ra: ra, dec: dec, dragging: true });
 
                     // finally, save ra and dec value
@@ -886,13 +937,11 @@ export let View = (function () {
                     // finally, save fov value
                     this.old_fov = fov;
                 }
-
             },
             View.CALLBACKS_THROTTLE_TIME_MS);
 
 
         view.displayHpxGrid = false;
-        view.displaySurvey = true;
         view.displayCatalog = false;
         view.displayReticle = true;
 
@@ -904,10 +953,10 @@ export let View = (function () {
 
     View.prototype.updateLocation = function (mouseX, mouseY, isViewCenterPosition) {
         if (isViewCenterPosition) {
-            //const [ra, dec] = this.aladin.webglAPI.ICRSJ2000ToViewCooSys(this.viewCenter.lon, this.viewCenter.lat);
+            //const [ra, dec] = this.wasm.ICRSJ2000ToViewCooSys(this.viewCenter.lon, this.viewCenter.lat);
             this.location.update(this.viewCenter.lon, this.viewCenter.lat, this.cooFrame, true);
         } else {
-            let radec = this.aladin.webglAPI.screenToWorld(mouseX, mouseY); // This is given in the frame of the view
+            let radec = this.wasm.screenToWorld(mouseX, mouseY); // This is given in the frame of the view
             if (radec) {
                 if (radec[0] < 0) {
                     radec = [radec[0] + 360.0, radec[1]];
@@ -921,34 +970,6 @@ export let View = (function () {
     View.prototype.requestRedrawAtDate = function (date) {
         this.dateRequestDraw = date;
     };
-
-    /**
-     * Return the color of the lowest intensity pixel 
-     * in teh current color map of the current background image HiPS
-     */
-    /*View.prototype.getBackgroundColor = function () {
-        var white = 'rgb(255, 255, 255)';
-        var black = 'rgb(0, 0, 0)';
-
-        if (!this.imageSurvey) {
-            return black;
-        }
-
-        var cm = this.imageSurvey.getColorMap();
-        if (!cm) {
-            return black;
-        }
-        if (cm.mapName == 'native' || cm.mapName == 'grayscale') {
-            return cm.reversed ? white : black;
-        }
-
-        var idx = cm.reversed ? 255 : 0;
-        var r = ColorMap.MAPS[cm.mapName].r[idx];
-        var g = ColorMap.MAPS[cm.mapName].g[idx];
-        var b = ColorMap.MAPS[cm.mapName].b[idx];
-
-        return 'rgb(' + r + ',' + g + ',' + b + ')';
-    };*/
 
     View.prototype.getViewParams = function () {
         var resolution = this.width > this.height ? this.fov / this.width : this.fov / this.height;
@@ -980,21 +1001,21 @@ export let View = (function () {
 
             // Drawing code
             try {
-                this.aladin.webglAPI.update(elapsedTime);
+                this.wasm.update(elapsedTime);
             } catch (e) {
                 console.warn(e)
             }
 
             // check whether a catalog has been parsed and
             // is ready to be plot
-            /*let catReady = this.aladin.webglAPI.isCatalogLoaded();
+            /*let catReady = this.wasm.isCatalogLoaded();
             if (catReady) {
                 var callbackFn = this.aladin.callbacksByEventName['catalogReady'];
                 (typeof callbackFn === 'function') && callbackFn();
             }*/
 
             ////// 2. Draw catalogues////////
-            const isViewRendering = this.aladin.webglAPI.isRendering();
+            const isViewRendering = this.wasm.isRendering();
             if (isViewRendering || this.needRedraw) {
                 this.drawAllOverlays();
             }
@@ -1040,6 +1061,11 @@ export let View = (function () {
             }
 
             this.catalogForPopup.draw(catalogCtx, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor);
+
+            // draw popup overlay layer
+            if (this.overlayForPopup.isShowing) {
+                this.overlayForPopup.draw(catalogCtx, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor);
+            }
         }
 
         ////// 3. Draw overlays////////
@@ -1167,18 +1193,14 @@ export let View = (function () {
 
     View.prototype.getVisiblePixList = function (norder) {
         var pixList = [];
-        let centerWorldPosition = this.aladin.webglAPI.screenToWorld(this.cx, this.cy);
-        const [lon, lat] = this.aladin.webglAPI.viewToICRSJ2000CooSys(centerWorldPosition[0], centerWorldPosition[1]);
+        let centerWorldPosition = this.wasm.screenToWorld(this.cx, this.cy);
+        const [lon, lat] = this.wasm.viewToICRSJ2000CooSys(centerWorldPosition[0], centerWorldPosition[1]);
 
         var radius = this.fov * 0.5 * this.ratio;
-        this.aladin.webglAPI.queryDisc(norder, lon, lat, radius).forEach(x => pixList.push(Number(x)));
+        this.wasm.queryDisc(norder, lon, lat, radius).forEach(x => pixList.push(Number(x)));
 
         return pixList;
     };
-
-    View.prototype.setAngleRotation = function (theta) {
-
-    }
 
     // TODO: optimize this method !!
     View.prototype.getVisibleCells = function (norder) {
@@ -1187,7 +1209,7 @@ export let View = (function () {
         var nside = Math.pow(2, norder); // TODO : to be modified
         var npix = 12 * nside * nside;
         var ipixCenter = null;
-        
+
         // build list of pixels
         var pixList = this.getVisiblePixList(norder)
         var ipix;
@@ -1195,17 +1217,17 @@ export let View = (function () {
         var corners;
         for (var ipixIdx=0, len=pixList.length; ipixIdx<len; ipixIdx++) {
             ipix = pixList[ipixIdx];
-            if (ipix==ipixCenter && ipixIdx>0) { 
+            if (ipix==ipixCenter && ipixIdx>0) {
                 continue;
             }
             var cornersXYView = [];
             //corners = HealpixCache.corners_nest(ipix, nside);
-            corners = this.aladin.webglAPI.hpxNestedVertices(Math.log2(nside), ipix);
+            corners = this.wasm.hpxNestedVertices(Math.log2(nside), ipix);
 
             for (var k=0; k<4; k++) {
                 const lon = corners[k*2];
                 const lat = corners[k*2 + 1];
-                cornersXY[k] = this.aladin.webglAPI.worldToScreen(lon, lat);
+                cornersXY[k] = this.wasm.worldToScreen(lon, lat);
             }
 
             if (cornersXY[0] == null ||  cornersXY[1] == null  ||  cornersXY[2] == null ||  cornersXY[3] == null ) {
@@ -1243,7 +1265,7 @@ export let View = (function () {
                 !AladinUtils.counterClockwiseTriangle(cornersXYView[0].vx, cornersXYView[0].vy, cornersXYView[2].vx, cornersXYView[2].vy, cornersXYView[3].vx, cornersXYView[3].vy)) {
                 continue;
             }
-            
+
             if (this.projection == ProjectionEnum.HPX) {
                 const triIdxInCollignonZone = ((p) => {
                     const x = ((p.vx / this.catalogCanvas.clientWidth) - 0.5) * this.zoomFactor;
@@ -1266,20 +1288,19 @@ export let View = (function () {
                     }
                 }
             }
-            
+
             cornersXYView.ipix = ipix;
             cells.push(cornersXYView);
         }
-        
-        return cells;*/
 
-        return this.aladin.webglAPI.getVisibleCells(norder);
+        return cells;*/
+        return this.wasm.getVisibleCells(norder);
     };
 
     // Called for touchmove events
     // initialAccDelta must be consistent with fovDegrees here
     View.prototype.setZoom = function (fovDegrees) {
-        this.aladin.webglAPI.setFieldOfView(fovDegrees);
+        this.wasm.setFieldOfView(fovDegrees);
         this.updateZoomState();
     };
 
@@ -1319,17 +1340,15 @@ export let View = (function () {
     }
 
     View.prototype.setRotation = function(rotation) {
-        this.aladin.webglAPI.setRotationAroundCenter(rotation);
+        this.wasm.setRotationAroundCenter(rotation);
     }
 
     View.prototype.setGridConfig = function (gridCfg) {
-        this.aladin.webglAPI.setGridConfig(gridCfg);
+        this.wasm.setGridConfig(gridCfg);
 
         // send events
         if (gridCfg) {
             if (gridCfg.hasOwnProperty('enabled')) {
-                this.showCooGrid = true;
-
                 if (gridCfg.enabled === true) {
                     ALEvent.COO_GRID_ENABLED.dispatchedTo(this.aladinDiv);
                 }
@@ -1347,8 +1366,8 @@ export let View = (function () {
 
     View.prototype.updateZoomState = function () {
         // Get the new zoom values from the backend
-        this.zoomFactor = this.aladin.webglAPI.getClipZoomFactor();
-        let fov = this.aladin.webglAPI.getFieldOfView();
+        this.zoomFactor = this.wasm.getClipZoomFactor();
+        let fov = this.wasm.getFieldOfView();
 
         // Update the pinch zoom parameters consequently
         const si = 500000.0;
@@ -1390,76 +1409,12 @@ export let View = (function () {
      * compute and set the norder corresponding to the current view resolution
      */
     View.prototype.computeNorder = function () {
-        /*var resolution = this.fov / this.largestDim; // in degree/pixel
-        var tileSize = 512; // TODO : read info from HpxImageSurvey.tileSize
-        const calculateNSide = (pixsize) => {
-            const NS_MAX = 536870912;
-            const ORDER_MAX = 29;
-        
-            // Available nsides ..always power of 2 ..
-            const NSIDELIST = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048,
-                4096, 8192, 16384, 32768, 65536, 131072, 262144, 524288,
-                                       1048576, 2097152, 4194304, 8388608, 16777216, 33554432,
-                                       67108864, 134217728,  268435456, 536870912];
-
-            let res = 0;
-            const pixelArea = pixsize * pixsize;
-            const degrad = 180. / Math.PI;
-            const skyArea = 4. * Math.PI * degrad * degrad * 3600. * 3600.;
-            const castToInt = function (x) {
-                if (x > 0) {
-                    return Math.floor(x);
-                }
-                else {
-                    return Math.ceil(x);
-                }
-            };
-            const npixels = castToInt(skyArea / pixelArea);
-            const nsidesq = npixels / 12;
-            const nside_req = Math.sqrt(nsidesq);
-            var mindiff = NS_MAX;
-            var indmin = 0;
-            for (var i = 0; i < NSIDELIST.length; i++) {
-                if (Math.abs(nside_req - NSIDELIST[i]) <= mindiff) {
-                    mindiff = Math.abs(nside_req - NSIDELIST[i]);
-                    res = NSIDELIST[i];
-                    indmin = i;
-                }
-                if ((nside_req > res) && (nside_req < NS_MAX))
-                    res = NSIDELIST[indmin + 1];
-                if (nside_req > NS_MAX) {
-                    console.log("nside cannot be bigger than " + NS_MAX);
-                    return NS_MAX;
-                }
-    
-            }
-            return res;
-        };*/
-
-        //var nside = calculateNSide(3600*tileSize*resolution); // 512 = size of a "tile" image
-        //var norder = Math.log(nside)/Math.log(2);
-        //norder = Math.max(norder, 1);
-
-        var norder = this.aladin.webglAPI.getNOrder();
+        var norder = this.wasm.getNOrder();
 
         this.realNorder = norder;
         // here, we force norder to 3 (otherwise, the display is "blurry" for too long when zooming in)
         if (this.fov <= 50 && norder <= 2) {
             norder = 3;
-        }
-
-        // that happens if we do not wish to display tiles coming from Allsky.[jpg|png]
-        if (this.imageSurvey && norder <= 2 && this.imageSurvey.minOrder > 2) {
-            norder = this.imageSurvey.minOrder;
-        }
-
-        if (this.imageSurvey && norder > this.imageSurvey.maxOrder) {
-            norder = this.imageSurvey.maxOrder;
-        }
-
-        // should never happen, as calculateNSide will return something <=HealpixIndex.ORDER_MAX
-        if (norder > 29) {
-            norder = 29;
         }
 
         this.curNorder = norder;
@@ -1471,189 +1426,210 @@ export let View = (function () {
         this.fixLayoutDimensions();
     };
 
-    View.prototype.setBaseImageLayer = function (baseSurveyPromise) {
-        this.setOverlayImageSurvey(baseSurveyPromise, "base");
+    View.prototype.setOverlayImageLayer = function (imageLayer, layer = "overlay") {
+        // register its promise
+        this.imageLayersBeingQueried.set(layer, imageLayer);
+
+        this.addImageLayer(imageLayer, layer);
+
+        return imageLayer;
     };
 
-    View.prototype.setOverlayImageSurvey = function (survey, layer = "overlay") {
-        const surveyIdx = this.imageSurveysIdx.get(layer) || 0;
-        const newSurveyIdx = surveyIdx + 1;
-        this.imageSurveysIdx.set(layer, newSurveyIdx);
-        survey.orderIdx = newSurveyIdx;
-
+    View.prototype.addLayer = function(imageLayer) {
+        const layerName = imageLayer.layer;
         // Check whether this layer already exist
-        const idxOverlaySurveyFound = this.overlayLayers.findIndex(overlayLayer => overlayLayer == layer);
-
-        if (idxOverlaySurveyFound == -1) {
-            if (layer === "base") {
-                // insert at the beginning
-                this.overlayLayers.splice(0, 0, layer);
-            } else {
-                this.overlayLayers.push(layer);
-            }
-        } else {
-            // find the survey by layer and erase it by the new value
-            this.overlayLayers[idxOverlaySurveyFound] = layer;
+        const idxOverlayLayer = this.overlayLayers.findIndex(overlayLayer => overlayLayer == layerName);
+        if (idxOverlayLayer == -1) {
+            this.overlayLayers.push(layerName);
         }
 
-        /// async part
-        if (this.options.log && survey.properties) {
-            Logger.log("setImageLayer", survey.properties.url);
+        if (this.options.log) {
+            Logger.log("setImageLayer", imageLayer.url);
         }
 
-        survey.added = true;
-        survey.layer = layer;
-        survey.existedBefore = false;
+        // Find the toppest layer
+        const toppestLayer = this.overlayLayers[this.overlayLayers.length - 1];
+        this.selectedLayer = toppestLayer;
 
-        const pastSurvey = this.imageSurveys.get(layer);
-        if (pastSurvey && pastSurvey.ready && pastSurvey.added) {
-            survey.existedBefore = true;
+        // Remove the existant layer if there is one
+        let existantImageLayer = this.imageLayers.get(layerName);
+        if (existantImageLayer) {
+            existantImageLayer.added = false;
         }
 
-        this.imageSurveys.set(layer, survey);
+        this.imageLayers.set(layerName, imageLayer);
 
-        if (survey.ready) {
-            this.commitSurveysToBackend(survey, layer);
-        }
-    };
-
-    View.prototype.buildSortedImageSurveys = function () {
-        let sortedImageSurveys = [];
-
-        this.overlayLayers.forEach((overlaidLayer) => {
-            sortedImageSurveys.push(
-                this.imageSurveys.get(overlaidLayer)
-            );
-        });
-
-        return sortedImageSurveys;
+        ALEvent.HIPS_LAYER_ADDED.dispatchedTo(this.aladinDiv, { layer: imageLayer });
     }
 
-    View.prototype.updateImageLayerStack = function () {
-        let surveys = this.buildSortedImageSurveys()
-            .filter(s => s !== undefined && s.properties)
-            .map(s => {
-                //let {backend, ...survey} = s;
-                //return survey;
-                return {
-                    layer: s.layer,
-                    properties: s.properties,
-                    meta: s.meta,
-                    // rust accepts it in upper case whereas the js API handles 'jpeg', 'png' or 'fits' in lower case
-                    imgFormat: s.options.imgFormat,
-                };
-            });
-        this.aladin.empty = false;
-        this.aladin.webglAPI.setImageSurveys(surveys);
+    View.prototype.addImageLayer = function (imageLayer, layer) {
+        let self = this;
+        // start the query
+        const imageLayerPromise = imageLayer.query;
 
-        //const fov = this.aladin.webglAPI.getCenter();
-        this.setZoom(this.aladin.webglAPI.getFieldOfView());
-    };
+        this.promises.push(imageLayerPromise);
 
-    View.prototype.removeImageSurvey = function (layer) {
-        this.imageSurveys.delete(layer);
+        // All image layer promises must be completed (fullfilled or rejected)
+        Promise.allSettled(this.promises)
+            .then(() => imageLayerPromise)
+            // The promise is resolved and we now have access
+            // to the image layer objet (whether it is an ImageSurvey or an ImageFITS)
+            .then((imageLayer) => {
+                // Add to the backend
+                const promise = imageLayer.add(layer);
 
-        const idxOverlaidSurveyFound = this.overlayLayers.findIndex(overlaidLayer => overlaidLayer == layer);
-        if (idxOverlaidSurveyFound == -1) {
+                self.loadingState = true;
+                ALEvent.LOADING_STATE.dispatchedTo(this.aladinDiv, { loading: true });
+
+                return promise;
+            })
+            .then((imageLayer) => {
+                this.empty = false;
+
+                if (imageLayer.children) {
+                    imageLayer.children.forEach((imageLayer) => {
+                        this.addLayer(imageLayer);
+                    })
+                } else {
+                    this.addLayer(imageLayer);
+                }
+            })
+            .catch((e) => {
+                throw e;
+            })
+            .finally(() => {
+                // Loading state is over
+                self.loadingState = false;
+                ALEvent.LOADING_STATE.dispatchedTo(this.aladinDiv, { loading: false });
+
+                self.imageLayersBeingQueried.delete(layer);
+
+                // Remove the settled promise
+                let idx = this.promises.findIndex(p => p == imageLayerPromise);
+                this.promises.splice(idx, 1);
+
+                const noMoreLayersToWaitFor = this.promises.length === 0;
+                if (noMoreLayersToWaitFor) {
+                    if (self.empty) {
+                        // no promises to launch!
+                        const idxServiceUrl = Math.round(Math.random());
+                        const dssUrl = Aladin.DEFAULT_OPTIONS.surveyUrl[idxServiceUrl]
+
+                        self.aladin.setBaseImageLayer(dssUrl);
+                    } else {
+                        // there is surveys that have been queried
+                        // rename the first overlay layer to "base"
+                        self.renameLayer(this.overlayLayers[0], "base");
+                    }
+                }
+            })
+    }
+
+    // The survey at layer must have been added to the view!
+    View.prototype.renameLayer = function(layer, newLayer) {
+        if (layer === newLayer) {
+            return;
+        }
+
+        // Throw an exception if either the first or the second layers are not in the stack
+        this.wasm.renameLayer(layer, newLayer);
+
+        let imageLayer = this.imageLayers.get(layer);
+        imageLayer.layer = newLayer;
+
+        // Change in overlaylayers
+        const idx = this.overlayLayers.findIndex(overlayLayer => overlayLayer == layer);
+        this.overlayLayers[idx] = newLayer;
+        // Change in imageLayers
+        this.imageLayers.delete(layer);
+        this.imageLayers.set(newLayer, imageLayer);
+
+        // Change the selected layer if this is the one renamed
+        if (this.selectedLayer === layer) {
+            this.selectedLayer = newLayer;
+        }
+
+        // Tell the layer hierarchy has changed
+        ALEvent.HIPS_LAYER_RENAMED.dispatchedTo(this.aladinDiv, { layer: layer, newLayer: newLayer });
+    }
+
+    View.prototype.swapLayers = function(firstLayer, secondLayer) {
+        // Throw an exception if either the first or the second layers are not in the stack
+        this.wasm.swapLayers(firstLayer, secondLayer);
+
+        // Swap in overlaylayers
+        const idxFirstLayer = this.overlayLayers.findIndex(overlayLayer => overlayLayer == firstLayer);
+        const idxSecondLayer = this.overlayLayers.findIndex(overlayLayer => overlayLayer == secondLayer);
+
+        const tmp = this.overlayLayers[idxFirstLayer];
+        this.overlayLayers[idxFirstLayer] = this.overlayLayers[idxSecondLayer];
+        this.overlayLayers[idxSecondLayer] = tmp;
+
+        // Tell the layer hierarchy has changed
+        ALEvent.HIPS_LAYER_SWAP.dispatchedTo(this.aladinDiv, { firstLayer: firstLayer, secondLayer: secondLayer });
+    }
+
+    View.prototype.removeImageLayer = function (layer) {
+        // Get the survey to remove to dissociate it from the view
+        let imageLayer = this.imageLayers.get(layer);
+        // Update the backend
+        if (imageLayer.added) {
+            this.wasm.removeLayer(layer);
+        }
+
+        // Get the survey to remove to dissociate it from the view
+        imageLayer.added = false;
+
+        const idxOverlaidLayer = this.overlayLayers.findIndex(overlaidLayer => overlaidLayer == layer);
+        if (idxOverlaidLayer == -1) {
             // layer not found
             return;
         }
 
+        // Delete it
+        this.imageLayers.delete(layer);
+
         // Remove it from the layer stack
-        this.overlayLayers.splice(idxOverlaidSurveyFound, 1);
+        this.overlayLayers.splice(idxOverlaidLayer, 1);
 
-        // Update the backend
-        this.updateImageLayerStack();
-
-        if (this.selectedSurveyLayer === layer) {
-            this.selectedSurveyLayer = null;
+        if (this.overlayLayers.length === 0) {
+            this.empty = true;
+            this.selectedLayer = "base";
+        } else {
+            // find the toppest layer
+            if (this.selectedLayer === layer) {
+                const toppestLayer = this.overlayLayers[this.overlayLayers.length - 1];
+                this.selectedLayer = toppestLayer;
+            }
         }
 
         ALEvent.HIPS_LAYER_REMOVED.dispatchedTo(this.aladinDiv, { layer: layer });
+
+        // check if there are no more surveys
+        const noMoreLayersToWaitFor = this.promises.length === 0;
+        if (noMoreLayersToWaitFor && this.empty) {
+            // no promises to launch!
+            const idxServiceUrl = Math.round(Math.random());
+            const dssUrl = Aladin.DEFAULT_OPTIONS.surveyUrl[idxServiceUrl]
+
+            this.aladin.setBaseImageLayer(dssUrl);
+        }
     };
 
-    View.prototype.commitSurveysToBackend = function (survey, layer = "base") {
+    View.prototype.setHiPSUrl = function (pastUrl, newUrl) {
         try {
-            this.updateImageLayerStack();
-
-            if (survey.existedBefore) {
-                ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.aladinDiv, { survey: survey });
-            } else {
-                survey.existedBefore = true;
-                ALEvent.HIPS_LAYER_ADDED.dispatchedTo(this.aladinDiv, { survey: survey });
-            }
-        } catch (e) {
-            // En error occured while loading the HiPS
-            // Remove it from the View
-            // - First, from the image dict
-            this.imageSurveys.delete(layer);
-
-            // Tell the survey object that it is not linked to the view anymore
-            survey.added = false;
-
-            // Finally delete the layer
-            const idxOverlaidSurveyFound = this.overlayLayers.findIndex(overlaidLayer => overlaidLayer == layer);
-            if (idxOverlaidSurveyFound >= 0) {
-                // Remove it from the layer stack
-                this.overlayLayers.splice(idxOverlaidSurveyFound, 1);
-            }
-
-            // Check if it concerns the base layer
-            if (layer === "base") {
-                // If so, tell that the aladin lite view is empty
-                // It will be set to display the default DSS color survey
-                this.aladin.empty = true;
-            }
-
-            // Throw the full error message for the user
-            throw 'Error loading the HiPS ' + survey.id + ':\n' + e;
+            this.wasm.setHiPSUrl(pastUrl, newUrl);
+        } catch(e) {
+            console.error(e)
         }
     }
 
-    View.prototype.getImageSurvey = function (layer = "base") {
-        const survey = this.imageSurveys.get(layer);
-        return survey;
+    View.prototype.getImageLayer = function (layer = "base") {
+        let imageLayerQueried = this.imageLayersBeingQueried.get(layer);
+        let imageLayer = this.imageLayers.get(layer);
+
+        return imageLayerQueried || imageLayer;
     };
-
-    View.prototype.getImageSurveyMeta = function (layer = "base") {
-        try {
-            return this.aladin.webglAPI.getImageSurveyMeta(layer);
-        } catch (e) {
-            console.error(e);
-        }
-    };
-
-    View.prototype.setImageSurveyMeta = function (layer = "base", meta) {
-        try {
-            this.aladin.webglAPI.setImageSurveyMeta(layer, meta);
-        } catch (e) {
-            console.error(e);
-        }
-    };
-
-    /*View.prototype.setImageSurveysLayer = function(surveys, layer) {
-        this.imageSurveys.set(layer, new Map());
-
-        surveys.forEach(survey => {
-            const url = survey.properties.url;
-            survey.layer = layer;
-            
-            this.imageSurveys.get(layer).set(url, survey);
-        });
-
-        // Then we send the current surveys to the backend
-        this.setHiPS();
-    };*/
-
-    /*View.prototype.removeImageSurveysLayer = function (layer) {
-        this.imageSurveys.delete(layer);
-
-        this.setHiPS();
-    };*/
-
-    /*View.prototype.moveImageSurveysLayerForward = function(layer) {
-        this.aladin.webglAPI.moveImageSurveysLayerForward(layer);
-    }*/
 
     View.prototype.requestRedraw = function () {
         this.needRedraw = true;
@@ -1662,10 +1638,10 @@ export let View = (function () {
     View.prototype.setProjection = function (projectionName) {
         this.fovLimit = 1000.0;
         /*
-            TAN: {id: 1, fov: 180},	  
-            STG: {id: 2, fov: 360},	  
-            SIN: {id: 3, fov: 180},	  
-            ZEA: {id: 4, fov: 360},	 
+            TAN: {id: 1, fov: 180},
+            STG: {id: 2, fov: 360},
+            SIN: {id: 3, fov: 180},
+            ZEA: {id: 4, fov: 360},
             FEYE: {id: 5, fov: 190},
             AIR: {id: 6, fov: 360},
             //AZP: {fov: 180},
@@ -1753,10 +1729,10 @@ export let View = (function () {
                 this.fovLimit = 360.0;
                 break;
             default:
-                break;  
+                break;
         }
         // Change the projection here
-        this.aladin.webglAPI.setProjection(projectionName);
+        this.wasm.setProjection(projectionName);
         this.updateZoomState();
 
         this.requestRedraw();
@@ -1767,14 +1743,14 @@ export let View = (function () {
 
         // Set the new frame to the backend
         if (this.cooFrame.system == CooFrameEnum.SYSTEMS.GAL) {
-            this.aladin.webglAPI.setCooSystem(Aladin.wasmLibs.webgl.CooSystem.GAL);
+            this.wasm.setCooSystem(Aladin.wasmLibs.core.CooSystem.GAL);
         }
         else if (this.cooFrame.system == CooFrameEnum.SYSTEMS.J2000) {
-            this.aladin.webglAPI.setCooSystem(Aladin.wasmLibs.webgl.CooSystem.ICRSJ2000);
+            this.wasm.setCooSystem(Aladin.wasmLibs.core.CooSystem.ICRSJ2000);
         }
 
         // Get the new view center position (given in icrsj2000)
-        let [ra, dec] = this.aladin.webglAPI.getCenter();
+        let [ra, dec] = this.wasm.getCenter();
         this.viewCenter.lon = ra;
         this.viewCenter.lat = dec;
         if (this.viewCenter.lon < 0.0) {
@@ -1796,7 +1772,7 @@ export let View = (function () {
     };
 
     View.prototype.showSurvey = function (show) {
-        this.displaySurvey = show;
+        this.getImageLayer().setAlpha(show ? 1.0 : 0.0);
 
         this.requestRedraw();
     };
@@ -1821,13 +1797,13 @@ export let View = (function () {
     };
 
     /**
-     * 
+     *
      * @API Point to a specific location in ICRSJ2000
-     * 
+     *
      * @param ra ra expressed in ICRS J2000 frame
      * @param dec dec expressed in ICRS J2000 frame
      * @param options
-     *   
+     *
      */
     View.prototype.pointTo = function (ra, dec, options) {
         options = options || {};
@@ -1845,7 +1821,7 @@ export let View = (function () {
         this.location.update(this.viewCenter.lon, this.viewCenter.lat, this.cooFrame, true);
 
         // Put a javascript code here to do some animation
-        this.aladin.webglAPI.setCenter(this.viewCenter.lon, this.viewCenter.lat);
+        this.wasm.setCenter(this.viewCenter.lon, this.viewCenter.lat);
 
         this.requestRedraw();
 
@@ -1962,7 +1938,7 @@ export let View = (function () {
 
     };
 
-    // update objLookup, lookup table 
+    // update objLookup, lookup table
     View.prototype.updateObjectsLookup = function () {
         this.objLookup = [];
 

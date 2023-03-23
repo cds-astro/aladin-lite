@@ -15,7 +15,6 @@
         <link rel="stylesheet" href="https://unpkg.com/purecss@2.0.3/build/buttons.css">
         <link rel="stylesheet" href="https://unpkg.com/purecss@2.0.3/build/buttons-core.css">
     
-        <link rel="stylesheet" href="https://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.css">
         <!--meta name="viewport" content="initial-scale=1.0, user-scalable=no"-->
         <meta name="viewport" content="viewport-fit=cover, width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
     </head>
@@ -233,8 +232,8 @@
     A.init.then(() => {
         var hipsDir="http://alasky.u-strasbg.fr/CDS_P_Coronelli";
         aladin = A.aladin("#aladin-lite-div", {showSimbadPointerControl: true, realFullscreen: true, fov: 100, allowFullZoomout: true, showReticle: false });
-        aladin.createImageSurvey('illenoroC', 'illenoroC', hipsDir, 'equatorial', 4, {imgFormat: 'jpg', longitudeReversed: false, minOrder: 3});
-        aladin.createImageSurvey('Coronelli', 'Coronelli', hipsDir, 'equatorial', 4, {imgFormat: 'jpg', longitudeReversed: true, minOrder: 3});
+        aladin.createImageSurvey('illenoroC', 'illenoroC', hipsDir, 'equatorial', 4, {imgFormat: 'jpg', longitudeReversed: false});
+        aladin.createImageSurvey('Coronelli', 'Coronelli', hipsDir, 'equatorial', 4, {imgFormat: 'jpg', longitudeReversed: true});
         aladin.setImageSurvey('Coronelli');
 
         $('#layersControlLeft').show();
@@ -289,8 +288,8 @@
         if (!$(this).hasClass("selected")) {
             $('.img-hips').removeClass("selected pure-button-active");
             $(this).addClass("selected pure-button-active");
-            aladin.setOverlayImageLayer(this.id);
-            aladin.getOverlayImageLayer().setAlpha(0.75);
+            let survey = aladin.setOverlayImageLayer(this.id);
+            survey.setAlpha(0.75);
             $('#opacity-slider').val(0.75);
         }
         else {
@@ -377,7 +376,6 @@
             curSelectedSource = source;
             html += '<tbody>';
             if (source.catalog.name == 'Simbad') {
-                console.log(source.data);
                 html += '<h3>Simbad object <em>' + source.data.main_id + '</em></h3>';
                 html += '<tr class="pure-table-odd"><td><b>ra</b></td><td>' + source.data.ra + '</td><td><em>deg</em></td></tr>';
                 html += '<tr><td><b>dec</b></td><td>' + source.data.dec + '</td><td><em>deg</em></td></tr>';

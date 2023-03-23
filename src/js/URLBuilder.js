@@ -51,7 +51,6 @@ export let URLBuilder = (function() {
         },
 
         buildVizieRCSURL: function(vizCatId, target, radiusDegrees, options) {
-            console.log(target)
             if (target && (typeof target  === "object")) {
                 if ('ra' in target && 'dec' in target) {
                     var coo = new Coo(target.ra, target.dec, 7);
@@ -64,7 +63,9 @@ export let URLBuilder = (function() {
             if (options && options.hasOwnProperty('limit') && Utils.isNumber(options.limit)) {
                 maxNbSources = parseInt(options.limit);
             }
-            return 'https://vizier.unistra.fr/viz-bin/votable?-source=' + vizCatId + '&-c=' + encodeURIComponent(target) + '&-out.max=' + maxNbSources + '&-c.rd=' + radiusDegrees;
+            return 'https://vizier.unistra.fr/viz-bin/votable/A?-source=' + vizCatId + '&-c=' + encodeURIComponent(target) + '&-out.max=' + maxNbSources + '&-c.rd=' + radiusDegrees;
+            //return 'https://vizier.unistra.fr/viz-bin/conesearch/' + vizCatId + '?ra=' + target.ra + '&dec=' + target.dec + '&sr=' + radiusDegrees;
+
         },
 
         buildSkyBotCSURL: function(ra, dec, radius, epoch, queryOptions) {

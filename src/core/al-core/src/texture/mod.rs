@@ -3,12 +3,38 @@ pub use texture_array::Texture2DArray;
 
 pub mod pixel;
 pub use pixel::*;
+use web_sys::HtmlCanvasElement;
 
 use crate::webgl_ctx::WebGlContext;
 use crate::webgl_ctx::WebGlRenderingCtx;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::HtmlImageElement;
+
+/// Some GPU texture relative:
+// * The maximum size of a texture supported by most of platforms
+pub const MAX_TEX_SIZE: usize = 4096;
+// * Usual texture parameters when defining a texture
+pub const TEX_PARAMS: &'static [(u32, u32); 4] = &[
+    (
+        WebGlRenderingCtx::TEXTURE_MIN_FILTER,
+        WebGlRenderingCtx::NEAREST,
+    ),
+    (
+        WebGlRenderingCtx::TEXTURE_MAG_FILTER,
+        WebGlRenderingCtx::NEAREST,
+    ),
+    // Prevents s-coordinate wrapping (repeating)
+    (
+        WebGlRenderingCtx::TEXTURE_WRAP_S,
+        WebGlRenderingCtx::CLAMP_TO_EDGE,
+    ),
+    // Prevents t-coordinate wrapping (repeating)
+    (
+        WebGlRenderingCtx::TEXTURE_WRAP_T,
+        WebGlRenderingCtx::CLAMP_TO_EDGE,
+    ),
+];
 
 pub static mut CUR_IDX_TEX_UNIT: u8 = 0;
 
@@ -24,12 +50,19 @@ struct Texture2DMeta {
 }
 
 use web_sys::WebGlTexture;
+#[derive(Clone)]
 pub struct Texture2D {
     pub texture: Option<WebGlTexture>,
 
     gl: WebGlContext,
 
     metadata: Option<Rc<RefCell<Texture2DMeta>>>,
+}
+
+pub enum SamplerType {
+    Float,
+    Integer,
+    Unsigned
 }
 
 use crate::image::format::ImageFormat;
@@ -204,7 +237,7 @@ impl Texture2D {
             None,
         )
         .expect("Texture 2D");
-        //gl.generate_mipmap(WebGl2RenderingContext::TEXTURE_2D);
+        //gl.generate_mipmap(WebGlRenderingCtx::TEXTURE_2D);
 
         let gl = gl.clone();
         let metadata = Some(Rc::new(RefCell::new(Texture2DMeta {
@@ -384,14 +417,9 @@ use crate::Abort;
 
 pub struct Texture2DBound<'a> {
     texture_2d: &'a Texture2D,
-    //idx_tex_unit: u8
 }
 
 impl<'a> Texture2DBound<'a> {
-    /*pub fn get_idx_sampler(&self) -> i32 {
-        self.idx_tex_unit as i32
-    }*/
-
     pub fn tex_sub_image_2d_with_u32_and_u32_and_html_image_element(
         &self,
         dx: i32,
@@ -424,6 +452,43 @@ impl<'a> Texture2DBound<'a> {
                 metadata.format,
                 metadata.type_,
                 image,
+            )
+            .expect("Sub texture 2d");
+        //self.texture_2d.gl.flush();
+    }
+
+    pub fn tex_sub_image_2d_with_u32_and_u32_and_html_canvas_element(
+        &self,
+        dx: i32,
+        dy: i32,
+        canvas: &HtmlCanvasElement,
+    ) {
+        let metadata = self.texture_2d.metadata.as_ref().unwrap_abort().borrow();
+
+        #[cfg(feature = "webgl2")]
+        self.texture_2d
+            .gl
+            .tex_sub_image_2d_with_u32_and_u32_and_html_canvas_element(
+                WebGlRenderingCtx::TEXTURE_2D,
+                0,
+                dx,
+                dy,
+                metadata.format,
+                metadata.type_,
+                canvas,
+            )
+            .expect("Sub texture 2d");
+        #[cfg(feature = "webgl1")]
+        self.texture_2d
+            .gl
+            .tex_sub_image_2d_with_u32_and_u32_and_canvas(
+                WebGlRenderingCtx::TEXTURE_2D,
+                0,
+                dx,
+                dy,
+                metadata.format,
+                metadata.type_,
+                canvas,
             )
             .expect("Sub texture 2d");
         //self.texture_2d.gl.flush();
@@ -560,5 +625,31 @@ impl<'a> Texture2DBoundMut<'a> {
             width: width as u32,
             height: height as u32,
         })));
+    }
+
+    pub fn tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_array_buffer_view(
+        &self,
+        dx: i32,
+        dy: i32,
+        width: i32,  // Width of the image
+        height: i32, // Height of the image
+        image: Option<&js_sys::Object>,
+    ) {
+        let metadata = self.texture_2d.metadata.as_ref().unwrap_abort().borrow();
+
+        self.texture_2d
+            .gl
+            .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_array_buffer_view(
+                WebGlRenderingCtx::TEXTURE_2D,
+                0,
+                dx,
+                dy,
+                width,
+                height,
+                metadata.format,
+                metadata.type_,
+                image,
+            )
+            .expect("Sub texture 2d");
     }
 }

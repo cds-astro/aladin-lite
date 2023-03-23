@@ -1,27 +1,22 @@
 use crate::{healpix::cell::HEALPixCell};
-use al_api::coo_system::CooSystem;
-use al_core::image::format::{ImageFormatType, RGB8U, RGBA8U};
+use al_core::image::format::{ChannelType, ImageFormatType, RGBA8U, RGB8U};
 
-use crate::downloader::{query};
-use al_core::image::{
-    //bitmap::Bitmap,
-    //raw::ImageBuffer,
-    ImageType
-};
+use crate::downloader::query;
+use al_core::image::ImageType;
 
 use super::{Request, RequestType};
 use crate::downloader::query::Query;
 use crate::downloader::QueryId;
 
 pub struct TileRequest {
-    pub cell: HEALPixCell,
-    pub hips_url: Url,
-    pub url: Url,
     pub id: QueryId,
-    pub system: CooSystem,
+
+    cell: HEALPixCell,
+    hips_url: Url,
+    url: Url,
+    format: ImageFormatType,
 
     request: Request<ImageType>,
-    pub is_root: bool,
 }
 
 impl From<TileRequest> for RequestType {
@@ -29,11 +24,35 @@ impl From<TileRequest> for RequestType {
         RequestType::Tile(request)
     }
 }
+
+async fn query_html_image(url: &str) -> Result<HtmlImageElement, JsValue> {
+    let image = web_sys::HtmlImageElement::new().unwrap_abort();
+    let image_cloned = image.clone();
+
+    let html_img_elt_promise = js_sys::Promise::new(
+        &mut (Box::new(move |resolve, reject| {
+            // Ask for CORS permissions
+            image_cloned.set_cross_origin(Some(""));
+            image_cloned.set_onload(
+                Some(&resolve)
+            );
+            image_cloned.set_onerror(
+                Some(&reject)
+            );
+            image_cloned.set_src(&url);
+        }) as Box<dyn FnMut(js_sys::Function, js_sys::Function)>)
+    );
+
+    let _ = JsFuture::from(html_img_elt_promise).await?;
+
+    Ok(image)
+}
+
 use al_core::image::html::HTMLImage;
 use wasm_bindgen::JsValue;
 use crate::renderable::Url;
 use wasm_bindgen_futures::JsFuture;
-use web_sys::{RequestInit, RequestMode, Response};
+use web_sys::{RequestInit, RequestMode, Response, HtmlImageElement};
 use wasm_bindgen::JsCast;
 impl From<query::Tile> for TileRequest {
     // Create a tile request associated to a HiPS
@@ -45,15 +64,14 @@ impl From<query::Tile> for TileRequest {
             cell,
             url,
             hips_url,
-            system,
-            is_root,
         } = query;
 
         let url_clone = url.clone();
+        let channel = format.get_channel();
 
         let window = web_sys::window().unwrap_abort();
-        let request = match format {
-            ImageFormatType::RGB8U => Request::new(async move {
+        let request = match channel {
+            ChannelType::RGB8U => Request::new(async move {
                 /*let mut opts = RequestInit::new();
                 opts.method("GET");
                 opts.mode(RequestMode::Cors);
@@ -83,29 +101,11 @@ impl From<query::Tile> for TileRequest {
                 Ok(ImageType::RawRgb8u { image })
                 */
                 // HTMLImageElement
-                //let blob = JsFuture::from(resp.blob()?).await?.into();
-                let image = web_sys::HtmlImageElement::new().unwrap_abort();
-                let image_cloned = image.clone();
-
-                let html_img_elt_promise = js_sys::Promise::new(
-                    &mut (Box::new(move |resolve, reject| {
-                       // let url = web_sys::Url::create_object_url_with_blob(&blob).unwrap_abort();
-                        image_cloned.set_cross_origin(Some(""));
-                        image_cloned.set_onload(
-                            Some(&resolve)
-                        );
-                        image_cloned.set_onerror(
-                            Some(&reject)
-                        );
-                        image_cloned.set_src(&url_clone);
-                    }) as Box<dyn FnMut(js_sys::Function, js_sys::Function)>)
-                );
-
-                let _ = JsFuture::from(html_img_elt_promise).await?;
+                let image = query_html_image(&url_clone).await?;
                 // The image has been resolved
-                Ok(ImageType::JpgHTMLImageRgb8u { image: HTMLImage::<RGB8U>::new(image) })
+                Ok(ImageType::HTMLImageRgb8u { image: HTMLImage::<RGB8U>::new(image) })
             }),
-            ImageFormatType::RGBA8U => Request::new(async move {
+            ChannelType::RGBA8U => Request::new(async move {
                 /*let mut opts = RequestInit::new();
                 opts.method("GET");
                 opts.mode(RequestMode::Cors);
@@ -135,29 +135,11 @@ impl From<query::Tile> for TileRequest {
                 Ok(ImageType::RawRgba8u { image })
                 */
                 // HTMLImageElement
-                //let blob = JsFuture::from(resp.blob()?).await?.into();
-                let image = web_sys::HtmlImageElement::new().unwrap_abort();
-                let image_cloned = image.clone();
-
-                let html_img_elt_promise = js_sys::Promise::new(
-                    &mut (Box::new(move |resolve, reject| {
-                        //let url = web_sys::Url::create_object_url_with_blob(&blob).unwrap_abort();
-                        image_cloned.set_cross_origin(Some(""));
-                        image_cloned.set_onload(
-                            Some(&resolve)
-                        );
-                        image_cloned.set_onerror(
-                            Some(&reject)
-                        );
-                        image_cloned.set_src(&url_clone);
-                    }) as Box<dyn FnMut(js_sys::Function, js_sys::Function)>)
-                );
-
-                let _ = JsFuture::from(html_img_elt_promise).await?;
+                let image = query_html_image(&url_clone).await?;
                 // The image has been resolved
-                Ok(ImageType::PngHTMLImageRgba8u { image: HTMLImage::<RGBA8U>::new(image) })
+                Ok(ImageType::HTMLImageRgba8u { image: HTMLImage::<RGBA8U>::new(image) })
             }),
-            ImageFormatType::R32F | ImageFormatType::R64F | ImageFormatType::R32I | ImageFormatType::R16I | ImageFormatType::R8UI => Request::new(async move {
+            ChannelType::R32F | ChannelType::R64F | ChannelType::R32I | ChannelType::R16I | ChannelType::R8UI => Request::new(async move {
                 let mut opts = RequestInit::new();
                 opts.method("GET");
                 opts.mode(RequestMode::Cors);
@@ -189,12 +171,11 @@ impl From<query::Tile> for TileRequest {
 
         Self {
             cell,
+            format,
             id,
             hips_url,
             url,
             request,
-            system,
-            is_root
         }
     }
 }
@@ -205,10 +186,9 @@ pub struct Tile {
     pub image: Arc<Mutex<Option<ImageType>>>,
     pub time_req: Time,
     pub cell: HEALPixCell,
+    pub format: ImageFormatType,
     hips_url: Url,
     url: Url,
-    pub system: CooSystem,
-    pub is_root: bool,
 }
 
 use crate::Abort;
@@ -224,6 +204,10 @@ impl Tile {
     pub fn get_url(&self) -> &Url {
         &self.url
     }
+
+    pub fn cell(&self) -> &HEALPixCell {
+        &self.cell
+    }
 }
 
 impl<'a> From<&'a TileRequest> for Option<Tile> {
@@ -233,8 +217,7 @@ impl<'a> From<&'a TileRequest> for Option<Tile> {
             request,
             hips_url,
             url,
-            system,
-            is_root,
+            format,
             ..
         } = request;
         if request.is_resolved() {
@@ -242,14 +225,13 @@ impl<'a> From<&'a TileRequest> for Option<Tile> {
                 time_request, data, ..
             } = request;
             Some(Tile {
-                is_root: *is_root,
                 cell: *cell,
                 time_req: *time_request,
                 // This is a clone on a Arc, it is supposed to be fast
                 image: data.clone(),
                 hips_url: hips_url.clone(),
                 url: url.clone(),
-                system: *system,
+                format: *format,
             })
         } else {
             None

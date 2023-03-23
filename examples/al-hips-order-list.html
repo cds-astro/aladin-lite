@@ -1,9 +1,6 @@
 <!doctype html>
 <html>
 <head>
-
-<link rel="stylesheet" href="https://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.css" />
-<!--<link rel="stylesheet" href="./layers.css" />-->
 </head>
 <body>
 
@@ -18,7 +15,7 @@
         aladin = A.aladin('#aladin-lite-div', {survey: 'http://alasky.cds.unistra.fr/ancillary/GaiaDR2/hips-density-map/', target: 'galactic center'});
 
         const fluxMap = aladin.createImageSurvey('gdr3-color-flux-map', 'Gaia DR3 flux map', 'https://alasky.u-strasbg.fr/ancillary/GaiaEDR3/color-Rp-G-Bp-flux-map', 'equatorial', 7);
-        const densityMap = aladin.createImageSurvey('gdr3-density-map', 'Gaia DR3 density map', 'https://alasky.u-strasbg.fr/ancillary/GaiaEDR3/density-map', 'equatorial', 7, {imgFormat: 'fits'});
+        const densityMap = aladin.createImageSurvey('gdr3-density-map', 'Gaia DR3 density map', 'sdfsg', 'equatorial', 7, {imgFormat: 'fits'});
         const decaps = aladin.createImageSurvey("decaps", "DECaPS DR1", "http://alasky.u-strasbg.fr/DECaPS/DR1/color/", "equatorial", 11, {imgFormat: 'png'});
         const panstarrs = aladin.createImageSurvey("panstarrs", "PanSTARRS", "http://alasky.u-strasbg.fr/Pan-STARRS/DR1/color-i-r-g/", "equatorial", 11, {imgFormat: 'jpg'});
 

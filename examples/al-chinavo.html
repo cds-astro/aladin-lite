@@ -1,8 +1,6 @@
 <!doctype html>
 <html>
 <head>
-
-<link rel="stylesheet" href="https://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.css" />
 </head>
 <body>
 
@@ -17,7 +15,7 @@
       // Start up Aladin Lite
       aladin = A.aladin('#aladin-lite-div', {target: 'M81', fov: 360, showCooGrid: true});
       aladin.setImageSurvey(
-        aladin.newImageSurvey('https://hips.china-vo.org/change2-moon-7m-dom', {imgFormat: 'fits', colormap: "redtemperature"})
+        aladin.newImageSurvey('https://hips.china-vo.org/change2-moon-7m-dom', {imgFormat: 'png', colormap: "redtemperature"})
       );
   });
 </script>

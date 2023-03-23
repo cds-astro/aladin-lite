@@ -2,6 +2,7 @@ pub mod bitmap;
 pub mod fits;
 pub mod format;
 pub mod html;
+pub mod canvas;
 pub mod raw;
 
 pub trait ArrayBuffer: AsRef<js_sys::Object> + std::fmt::Debug {
@@ -179,6 +180,7 @@ impl ArrayBuffer for ArrayF64 {
 }
 
 use self::html::HTMLImage;
+use self::canvas::Canvas;
 use wasm_bindgen::JsValue;
 use super::Texture2DArray;
 pub trait Image {
@@ -209,7 +211,7 @@ where
     }
 }
 
-use std::rc::Rc;
+use std::{rc::Rc, io::Cursor};
 impl<I> Image for Rc<I>
 where
     I: Image,
@@ -260,10 +262,11 @@ use raw::ImageBuffer;
 #[cfg(feature = "webgl2")]
 pub enum ImageType {
     FitsImage { raw_bytes: js_sys::Uint8Array },
-    PngImageRgba8u { image: Bitmap<RGBA8U> },
-    JpgImageRgb8u { image: Bitmap<RGB8U> },
-    PngHTMLImageRgba8u { image: HTMLImage<RGBA8U> },
-    JpgHTMLImageRgb8u { image: HTMLImage<RGB8U> },
+    Canvas { canvas: Canvas<RGBA8U> },
+    ImageRgba8u { image: Bitmap<RGBA8U> },
+    ImageRgb8u { image: Bitmap<RGB8U> },
+    HTMLImageRgba8u { image: HTMLImage<RGBA8U> },
+    HTMLImageRgb8u { image: HTMLImage<RGB8U> },
     RawRgb8u { image: ImageBuffer<RGB8U> },
     RawRgba8u { image: ImageBuffer<RGBA8U> },
     RawR32f { image: ImageBuffer<R32F> },
@@ -275,6 +278,7 @@ pub enum ImageType {
 #[cfg(feature = "webgl1")]
 pub enum ImageType {
     FitsImage { raw_bytes: js_sys::Uint8Array },
+    Canvas { canvas: Canvas<RGBA8U> },
     PngHTMLImageRgba8u { image: HTMLImage<RGBA8U> },
     JpgHTMLImageRgb8u { image: HTMLImage<RGB8U> },
     PngImageRgba8u { image: Bitmap<RGBA8U> },
@@ -300,13 +304,15 @@ impl Image for ImageType {
                 unsafe { raw_bytes.set_len(num_bytes); }
                 raw_bytes_buf.copy_to(&mut raw_bytes[..]);
 
-                let fits_img = Fits::from_byte_slice(raw_bytes.as_slice())?;
+                let mut bytes_reader = Cursor::new(raw_bytes.as_slice());
+                let fits_img = Fits::from_byte_slice(&mut bytes_reader)?;
                 fits_img.tex_sub_image_3d(textures, offset)?
             },
-            ImageType::PngImageRgba8u { image } => image.tex_sub_image_3d(textures, offset)?,
-            ImageType::JpgImageRgb8u { image } => image.tex_sub_image_3d(textures, offset)?,
-            ImageType::PngHTMLImageRgba8u { image } => image.tex_sub_image_3d(textures, offset)?,
-            ImageType::JpgHTMLImageRgb8u { image } => image.tex_sub_image_3d(textures, offset)?,
+            ImageType::Canvas { canvas } => canvas.tex_sub_image_3d(textures, offset)?,
+            ImageType::ImageRgba8u { image } => image.tex_sub_image_3d(textures, offset)?,
+            ImageType::ImageRgb8u { image } => image.tex_sub_image_3d(textures, offset)?,
+            ImageType::HTMLImageRgba8u { image } => image.tex_sub_image_3d(textures, offset)?,
+            ImageType::HTMLImageRgb8u { image } => image.tex_sub_image_3d(textures, offset)?,
             ImageType::RawRgb8u { image } => image.tex_sub_image_3d(textures, offset)?,
             ImageType::RawRgba8u { image } => image.tex_sub_image_3d(textures, offset)?,
             ImageType::RawR32f { image } => image.tex_sub_image_3d(textures, offset)?,

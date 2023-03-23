@@ -1,9 +1,6 @@
 <!doctype html>
 <html>
 <head>
-
-<link rel="stylesheet" href="https://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.css" />
-<!--<link rel="stylesheet" href="./layers.css" />-->
 </head>
 <body>
 <div id="aladin-lite-div" style="width: 1024px; height: 768px"></div>
@@ -15,8 +12,8 @@
     let aladin;
     A.init.then(() => {
         aladin = A.aladin('#aladin-lite-div', {cooFrame: 'galactic', target: 'galactic center', survey: 'P/Finkbeiner'});
-        // possible values are 'blues', 'cividis', 'cubehelix', 'eosb', 'grayscale', 'inferno', 'magma', 'native', 'parula', 'plasma', 'rainbow',
-        // 'rdbu', 'rdyibu', 'redtemperature', 'spectral', 'summer', 'viridis', 'yignbu' and 'yiorbr'
+        // possible values are 'blues', 'cividis', 'cubehelix', 'eosb', 'grayscale', 'inferno', 'magma', 'native', 'parula', 'plasma',
+        // 'rdbu', 'rdylbu', 'redtemperature', 'sinebow', 'spectral', 'summer', 'viridis', 'ylgnbu' and 'ylorbr'
         aladin.getBaseImageLayer().setColormap("cubehelix");
         //aladin.getBaseImageLayer().setColor([1.0, 0.0, 1.0, 1.0], { tf: 'Linear'} );
     });

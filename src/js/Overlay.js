@@ -21,13 +21,13 @@
 
 /******************************************************************************
  * Aladin Lite project
- * 
+ *
  * File Overlay
  *
  * Description: a plane holding overlays (footprints, polylines, circles)
- * 
+ *
  * Author: Thomas Boch[CDS]
- * 
+ *
  *****************************************************************************/
 
 import { AladinUtils } from "./AladinUtils.js";
@@ -44,20 +44,20 @@ export let Overlay = (function() {
 
     	this.name = options.name || "overlay";
     	this.color = options.color || Color.getNextColor();
-        
+
     	this.lineWidth = options["lineWidth"] || 2;
-    	
+
     	//this.indexationNorder = 5; // at which level should we index overlays?
     	this.overlays = [];
     	this.overlay_items = []; // currently Circle or Polyline
     	//this.hpxIdx = new HealpixIndex(this.indexationNorder);
     	//this.hpxIdx.init();
-    	
+
     	this.isShowing = true;
     };
-    
 
-    // TODO : show/hide methods should be integrated in a parent class 
+
+    // TODO : show/hide methods should be integrated in a parent class
     Overlay.prototype.show = function() {
         if (this.isShowing) {
             return;
@@ -65,7 +65,7 @@ export let Overlay = (function() {
         this.isShowing = true;
         this.reportChange();
     };
-    
+
     Overlay.prototype.hide = function() {
         if (! this.isShowing) {
             return;
@@ -73,7 +73,7 @@ export let Overlay = (function() {
         this.isShowing = false;
         this.reportChange();
     };
-    
+
     // return an array of Footprint from a STC-S string
     Overlay.parseSTCS = function(stcs) {
         var footprints = [];
@@ -111,7 +111,7 @@ export let Overlay = (function() {
                     dec = parseFloat(parts[k+2]);
                     radiusDegrees = parseFloat(parts[k+3]);
 
-                    footprints.push(A.circle(ra, dec, radiusDegrees)); 
+                    footprints.push(A.circle(ra, dec, radiusDegrees));
 
                     k += 3;
                 }
@@ -122,7 +122,7 @@ export let Overlay = (function() {
 
         return footprints;
     };
-    
+
     // ajout d'un tableau d'overlays (= objets Footprint, Circle ou Polyline)
     Overlay.prototype.addFootprints = function(overlaysToAdd) {
     	for (var k=0, len=overlaysToAdd.length; k<len; k++) {
@@ -143,13 +143,13 @@ export let Overlay = (function() {
             this.overlay_items.push(item);
         }
         item.setOverlay(this);
-        
+
         if (requestRedraw) {
             this.view.requestRedraw();
         }
     };
 
-    
+
     // return a footprint by index
    Overlay.prototype.getFootprint = function(idx) {
         if (idx<this.footprints.length) {
@@ -159,27 +159,27 @@ export let Overlay = (function() {
             return null;
         }
     };
-    
+
     Overlay.prototype.setView = function(view) {
         this.view = view;
     };
-    
+
     Overlay.prototype.removeAll = function() {
         // TODO : RAZ de l'index
         this.overlays = [];
         this.overlay_items = [];
     };
-    
+
     Overlay.prototype.draw = function(ctx, frame, width, height, largestDim, zoomFactor) {
         if (!this.isShowing) {
             return;
         }
-        
+
         // simple drawing
         ctx.strokeStyle= this.color;
 
         // 1. Drawing polygons
-        
+
         // TODO: les overlay polygons devrait se tracer lui meme (methode draw)
         ctx.lineWidth = this.lineWidth;
     	ctx.beginPath();
@@ -198,10 +198,10 @@ export let Overlay = (function() {
                 continue;
             }
             this.drawFootprintSelected(ctx, xyviews[k]);
-            
+
         }
     	ctx.stroke();
-    	
+
         // 2. Circle and polylines drawing
     	for (var k=0; k<this.overlay_items.length; k++) {
     	    this.overlay_items[k].draw(ctx, this.view, frame, width, height, largestDim, zoomFactor);
@@ -226,8 +226,8 @@ export let Overlay = (function() {
                 ((0|(1<<8) + g + (256 - g) * percent / 100).toString(16)).substr(1) +
                 ((0|(1<<8) + b + (256 - b) * percent / 100).toString(16)).substr(1);
     };
-    
-    
+
+
     Overlay.prototype.drawFootprint = function(f, ctx, frame, width, height, largestDim, zoomFactor) {
         if (! f.isShowing) {
             return null;
@@ -261,7 +261,7 @@ export let Overlay = (function() {
 
         /*ctx.moveTo(xyviewArray[0][0], xyviewArray[0][1]);
         for (var k=0, len=xyviewArray.length-1; k<len; k++) {
-            
+
             if (line.isInsideView(width, height)) {
                 ctx.lineTo(xyviewArray[k+1][0], xyviewArray[k+1][1]);
             } else {
@@ -290,10 +290,10 @@ export let Overlay = (function() {
     };
 
 
-    
+
     // callback function to be called when the status of one of the footprints has changed
     Overlay.prototype.reportChange = function() {
-        this.view.requestRedraw();
+        this.view && this.view.requestRedraw();
     };
 
     return Overlay;

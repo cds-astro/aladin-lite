@@ -108,7 +108,7 @@ impl PropertiesParsed {
 use egui::{Color32, InnerResponse, Response};
 use wasm_bindgen::prelude::*;
 
-#[wasm_bindgen(module = "/js/hpxImageSurvey.js")]
+#[wasm_bindgen(module = "/js/ImageSurvey.js")]
 extern "C" {
     #[wasm_bindgen(catch, js_name = fetchSurveyMetadata)]
     async fn fetch_survey_metadata(url: String) -> Result<JsValue, JsValue>;
@@ -193,7 +193,7 @@ pub struct SurveyWidget {
 }
 
 use al_api::coo_system::CooSystem;
-use al_api::hips::HiPSTileFormat;
+use al_api::hips::ImageFormat;
 
 use cgmath::num_traits::Pow;
 
@@ -302,15 +302,15 @@ impl SurveyWidget {
         let mut formats = vec![];
 
         if self.properties.hips_tile_format.contains("fits") {
-            formats.push(HiPSTileFormat::FITS);
+            formats.push(ImageFormat::FITS);
         }
 
         if self.properties.hips_tile_format.contains("png") {
-            formats.push(HiPSTileFormat::PNG);
+            formats.push(ImageFormat::PNG);
         }
 
         if self.properties.hips_tile_format.contains("jpeg") {
-            formats.push(HiPSTileFormat::JPEG);
+            formats.push(ImageFormat::JPEG);
         }
 
         let opacity = if !self.visible { 0.0 } else { self.opacity };
@@ -535,7 +535,7 @@ impl SurveyWidget {
                                 .selectable_value(&mut self.colormap, Colormap::Plasma, "plasma")
                                 .clicked();
                             *ui_changed |= ui
-                                .selectable_value(&mut self.colormap, Colormap::Rainbow, "rainbow")
+                                .selectable_value(&mut self.colormap, Colormap::Rainbow, "sinebow")
                                 .clicked();
                             *ui_changed |= ui
                                 .selectable_value(&mut self.colormap, Colormap::Rdbu, "rdbu")

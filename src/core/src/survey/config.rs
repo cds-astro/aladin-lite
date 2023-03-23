@@ -1,5 +1,7 @@
 
 use al_core::{image::format::ImageFormat, image::raw::ImageBuffer};
+use al_api::hips::ImageExt;
+
 #[derive(Debug)]
 pub struct EmptyTileImage {
     inner: ImageType,
@@ -7,10 +9,10 @@ pub struct EmptyTileImage {
 
 use al_core::{image::ImageType, pixel::Pixel};
 impl EmptyTileImage {
-    fn new(size: i32, format: ImageFormatType) -> EmptyTileImage {
+    fn new(size: i32, channel: ChannelType) -> EmptyTileImage {
         debug_assert!(math::utils::is_power_of_two(size));
-        let inner = match format {
-            ImageFormatType::RGBA8U => {
+        let inner = match channel {
+            ChannelType::RGBA8U => {
                 let image = ImageBuffer::<RGBA8U>::allocate(
                     &<<RGBA8U as ImageFormat>::P as Pixel>::BLACK,
                     size,
@@ -18,7 +20,7 @@ impl EmptyTileImage {
                 );
                 ImageType::RawRgba8u { image }
             }
-            ImageFormatType::RGB8U => {
+            ChannelType::RGB8U => {
                 let image = ImageBuffer::<RGB8U>::allocate(
                     &<<RGB8U as ImageFormat>::P as Pixel>::BLACK,
                     size,
@@ -26,7 +28,7 @@ impl EmptyTileImage {
                 );
                 ImageType::RawRgb8u { image }
             }
-            ImageFormatType::R32F => {
+            ChannelType::R32F => {
                 let image = ImageBuffer::<R32F>::allocate(
                     &<<R32F as ImageFormat>::P as Pixel>::BLACK,
                     size,
@@ -34,7 +36,7 @@ impl EmptyTileImage {
                 );
                 ImageType::RawR32f { image }
             }
-            ImageFormatType::R64F => {
+            ChannelType::R64F => {
                 let image = ImageBuffer::<R32F>::allocate(
                     &<<R32F as ImageFormat>::P as Pixel>::BLACK,
                     size,
@@ -43,7 +45,7 @@ impl EmptyTileImage {
                 ImageType::RawR32f { image }
             }
             #[cfg(feature = "webgl2")]
-            ImageFormatType::R8UI => {
+            ChannelType::R8UI => {
                 let image = ImageBuffer::<R8UI>::allocate(
                     &<<R8UI as ImageFormat>::P as Pixel>::BLACK,
                     size,
@@ -52,7 +54,7 @@ impl EmptyTileImage {
                 ImageType::RawR8ui { image }
             }
             #[cfg(feature = "webgl2")]
-            ImageFormatType::R16I => {
+            ChannelType::R16I => {
                 let image = ImageBuffer::<R16I>::allocate(
                     &<<R16I as ImageFormat>::P as Pixel>::BLACK,
                     size,
@@ -61,7 +63,7 @@ impl EmptyTileImage {
                 ImageType::RawR16i { image }
             }
             #[cfg(feature = "webgl2")]
-            ImageFormatType::R32I => {
+            ChannelType::R32I => {
                 let image = ImageBuffer::<R32I>::allocate(
                     &<<R32I as ImageFormat>::P as Pixel>::BLACK,
                     size,
@@ -99,7 +101,7 @@ impl Image for EmptyTileImage {
     }
 }
 
-use al_core::image::format::{ImageFormatType, RGB8U, RGBA8U};
+use al_core::image::format::{ImageFormatType, RGB8U, RGBA8U, ChannelType};
 
 //use super::TileArrayBuffer;
 
@@ -171,12 +173,13 @@ pub struct HiPSConfig {
     pub frame: CooSystem,
     pub bitpix: Option<i32>,
     format: ImageFormatType,
+    dataproduct_subtype: Option<Vec<String>>,
+    colored: bool,
 }
 
 use crate::math;
 use crate::HiPSProperties;
 use al_api::coo_system::CooSystem;
-use al_api::hips::HiPSTileFormat;
 use wasm_bindgen::JsValue;
 
 impl HiPSConfig {
@@ -188,7 +191,7 @@ impl HiPSConfig {
     /// * `img_format` - Image format wanted by the user
     pub fn new(
         properties: &HiPSProperties,
-        img_format: HiPSTileFormat,
+        img_ext: ImageExt,
     ) -> Result<HiPSConfig, JsValue> {
         let root_url = properties.get_url();
         // Define the size of the 2d texture array depending on the
@@ -211,59 +214,75 @@ impl HiPSConfig {
 
         let mut tex_storing_fits = false;
 
-        if !properties.get_formats().contains(&img_format) {
+        if !properties.get_formats().contains(&img_ext) {
             return Err(js_sys::Error::new("HiPS format not available").into());
         }
 
-        let format = match img_format {
-            HiPSTileFormat::Fits => {
+        let format = match img_ext {
+            ImageExt::Fits => {
                 // Check the bitpix to determine the internal format of the tiles
                 if let Some(bitpix) = bitpix {
-                    match bitpix {
+                    let channel = (match bitpix {
                         #[cfg(feature = "webgl2")]
                         8 => {
                             tex_storing_fits = true;
                             tex_storing_unsigned_int = true;
-                            Ok(ImageFormatType::R8UI)
+                            Ok(ChannelType::R8UI)
                         }
                         #[cfg(feature = "webgl2")]
                         16 => {
                             tex_storing_fits = true;
                             tex_storing_integers = true;
-                            Ok(ImageFormatType::R16I)
+                            Ok(ChannelType::R16I)
                         }
                         #[cfg(feature = "webgl2")]
                         32 => {
                             tex_storing_fits = true;
                             tex_storing_integers = true;
-                            Ok(ImageFormatType::R32I)
+                            Ok(ChannelType::R32I)
                         }
                         -32 => {
                             tex_storing_fits = true;
                             tex_storing_integers = false;
-                            Ok(ImageFormatType::R32F)
+                            Ok(ChannelType::R32F)
                         }
                         -64 => {
                             tex_storing_fits = true;
                             tex_storing_integers = false;
                             //Err(JsValue::from_str("f64 FITS files not supported"))
-                            Ok(ImageFormatType::R64F)
+                            Ok(ChannelType::R64F)
                         }
                         _ => Err(JsValue::from_str(
                             "Fits tiles exists but the BITPIX is not correct in the property file",
                         )),
-                    }
+                    })?;
+
+                    Ok(ImageFormatType {
+                        ext: img_ext,
+                        channel,
+                    })
                 } else {
                     Err(JsValue::from_str(
                         "Fits tiles exists but the BITPIX is not found",
                     ))
                 }
             }
-            HiPSTileFormat::Png => Ok(ImageFormatType::RGBA8U),
-            HiPSTileFormat::Jpeg => Ok(ImageFormatType::RGB8U),
+            ImageExt::Png | ImageExt::Webp => Ok(ImageFormatType { ext: img_ext, channel: ChannelType::RGBA8U }),
+            ImageExt::Jpeg => Ok(ImageFormatType { ext: img_ext, channel: ChannelType::RGB8U }),
         }?;
 
-        let empty_image = EmptyTileImage::new(tile_size, format);
+        let dataproduct_subtype = properties.get_dataproduct_subtype().clone();
+        let colored = if tex_storing_fits {
+            false
+        } else {
+            if let Some(subtypes) = &dataproduct_subtype {
+                subtypes.iter().any(|subtype| subtype == "color")
+            } else {
+                false
+            }
+        };
+
+        let empty_image = EmptyTileImage::new(tile_size, format.get_channel());
 
         let texture_size = std::cmp::min(512, tile_size << max_depth_tile);
         //let texture_size = tile_size;
@@ -276,13 +295,15 @@ impl HiPSConfig {
         let size_tile_uv = 1_f32 / ((8 << delta_depth) as f32);
 
         let frame = properties.get_frame();
-        let is_allsky = properties.get_sky_fraction() >= 1.0;
+        let sky_fraction = properties.get_sky_fraction().unwrap_or(1.0);
+
+        let is_allsky = sky_fraction >= 1.0;
 
         let min_depth_texture = properties.get_min_order();
-        let min_depth_tile = min_depth_texture;
+        let min_depth_tile = min_depth_texture.unwrap_or(0);
         let hips_config = HiPSConfig {
             // HiPS name
-            root_url,
+            root_url: root_url.to_string(),
             // Tile size & blank tile data
             empty_image,
             // Texture config
@@ -316,79 +337,98 @@ impl HiPSConfig {
             bitpix,
             format,
             tile_size,
+            dataproduct_subtype,
+            colored
         };
 
         Ok(hips_config)
     }
 
-    /*#[inline]
-    pub fn is_opaque(&self) -> bool {
-        self.blank.is_nan()
-    }*/
-
-    pub fn set_image_fmt(&mut self, fmt: HiPSTileFormat) -> Result<(), JsValue> {
-        let format = match fmt {
-            HiPSTileFormat::Fits => {
+    pub fn set_image_fmt(&mut self, ext: ImageExt) -> Result<(), JsValue> {
+        let format = match ext {
+            ImageExt::Fits => {
                 // Check the bitpix to determine the internal format of the tiles
                 if let Some(bitpix) = self.bitpix {
-                    match bitpix {
+                    let channel = (match bitpix {
                         #[cfg(feature = "webgl2")]
                         8 => {
                             self.tex_storing_fits = true;
                             self.tex_storing_unsigned_int = true;
-                            Ok(ImageFormatType::R8UI)
+                            Ok(ChannelType::R8UI)
                         }
                         #[cfg(feature = "webgl2")]
                         16 => {
                             self.tex_storing_fits = true;
                             self.tex_storing_integers = true;
-                            Ok(ImageFormatType::R16I)
+                            Ok(ChannelType::R16I)
                         }
                         #[cfg(feature = "webgl2")]
                         32 => {
                             self.tex_storing_fits = true;
                             self.tex_storing_integers = true;
-                            Ok(ImageFormatType::R32I)
+                            Ok(ChannelType::R32I)
                         }
                         -32 => {
                             self.tex_storing_fits = true;
                             self.tex_storing_integers = false;
-                            Ok(ImageFormatType::R32F)
+                            Ok(ChannelType::R32F)
                         }
                         -64 => {
                             self.tex_storing_fits = true;
                             self.tex_storing_integers = false;
                             //Err(JsValue::from_str("f64 FITS files not supported"))
-                            Ok(ImageFormatType::R64F)
+                            Ok(ChannelType::R64F)
                         }
                         _ => Err(JsValue::from_str(
                             "Fits tiles exists but the BITPIX is not correct in the property file",
                         )),
-                    }
+                    })?;
+
+                    Ok(ImageFormatType {
+                        ext,
+                        channel,
+                    })
                 } else {
                     Err(JsValue::from_str(
                         "Fits tiles exists but the BITPIX is not found",
                     ))
                 }
             }
-            HiPSTileFormat::Png => {
+            ImageExt::Png | ImageExt::Webp => {
                 self.tex_storing_fits = false;
                 self.tex_storing_unsigned_int = false;
                 self.tex_storing_integers = false;
-                Ok(ImageFormatType::RGBA8U)
+                Ok(ImageFormatType {
+                    ext,
+                    channel: ChannelType::RGBA8U,
+                })
             },
-            HiPSTileFormat::Jpeg => {
+            ImageExt::Jpeg => {
                 self.tex_storing_fits = false;
                 self.tex_storing_unsigned_int = false;
                 self.tex_storing_integers = false;
-                Ok(ImageFormatType::RGB8U)
+                Ok(ImageFormatType {
+                    ext,
+                    channel: ChannelType::RGB8U,
+                })
             }
         }?;
 
         self.format = format;
 
         // Recompute the empty image
-        self.empty_image = EmptyTileImage::new(self.tile_size, self.format);
+        self.empty_image = EmptyTileImage::new(self.tile_size, self.format.get_channel());
+
+        // Recompute if the survey will be colored or not
+        self.colored = if self.tex_storing_fits {
+            false
+        } else {
+            if let Some(subtypes) = &self.dataproduct_subtype {
+                subtypes.iter().any(|subtype| subtype == "color")
+            } else {
+                false
+            }
+        };
 
         Ok(())
     }
@@ -478,6 +518,11 @@ impl HiPSConfig {
     #[inline]
     pub fn get_format(&self) -> ImageFormatType {
         self.format
+    }
+
+    #[inline]
+    pub fn is_colored(&self) -> bool {
+        self.colored
     }
 
     #[inline]

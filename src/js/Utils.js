@@ -41,13 +41,7 @@ Utils.HTTPS_WHITELIST = ['alasky.u-strasbg.fr', 'alaskybis.u-strasbg.fr', 'alask
 
 Utils.cssScale = undefined;
 // adding relMouseCoords to HTMLCanvasElement prototype (see http://stackoverflow.com/questions/55677/how-do-i-get-the-coordinates-of-a-mouse-click-on-a-canvas-element ) 
-function relMouseCoords(event) {
-    var totalOffsetX = 0;
-    var totalOffsetY = 0;
-    var canvasX = 0;
-    var canvasY = 0;
-    var currentElement = this;
-   
+function relMouseCoords(event) {   
     if (event.offsetX) {
         return {x: event.offsetX, y: event.offsetY};
     } 
@@ -317,12 +311,20 @@ Utils.getAjaxObject = function(url, method, dataType, useProxy) {
 
 // return true if script is executed in a HTTPS context
 // return false otherwise
+Utils.isFileContext = function() {
+    return ( window.location.protocol === 'file:' );
+};
+
 Utils.isHttpsContext = function() {
     return ( window.location.protocol === 'https:' );
 };
 
+Utils.isHttpContext = function() {
+    return ( window.location.protocol === 'http:' );
+};
+
 Utils.fixURLForHTTPS = function(url) {
-    const switchToHttps = Utils.isHttpsContext() && Utils.HTTPS_WHITELIST.some(element => {
+    const switchToHttps = Utils.HTTPS_WHITELIST.some(element => {
         return url.includes(element);
     });
 
@@ -368,3 +370,37 @@ Utils.clone = function(instance) {
     );
 }
 
+Utils.getDroppedFilesHandler = function(ev) {
+    // Prevent default behavior (Prevent file from being opened)
+    ev.preventDefault();
+
+    let items;
+    if (ev.dataTransfer.items) {
+        // Use DataTransferItemList interface to access the file(s)
+        items = [...ev.dataTransfer.items];
+    } else {
+        // Use DataTransfer interface to access the file(s)
+        items = [...ev.dataTransfer.files];
+    }
+
+    const files = items.filter((item) => {
+        // If dropped items aren't files, reject them
+        return item.kind === 'file';
+    })
+    .map((item) => item.getAsFile());
+
+    return files;
+}
+
+Utils.dragOverHandler = function(ev) {  
+    // Prevent default behavior (Prevent file from being opened)
+    ev.preventDefault();
+}
+
+Utils.requestCORSIfNotSameOrigin = function(url) {
+    return (new URL(url, window.location.href)).origin !== window.location.origin;
+}
+
+Utils.deepCopy = function(orig) {
+    return Object.assign(Object.create(Object.getPrototypeOf(orig)), orig);
+}

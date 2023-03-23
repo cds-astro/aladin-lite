@@ -1,10 +1,29 @@
 {
-  "homepage": "https://bmatthieu3.github.io/hips_webgl_renderer/",
-  "name": "hips_webgl_renderer",
+  "homepage": "https://aladin.u-strasbg.fr/",
+  "name": "aladin-lite",
+  "version": "3.1.0",
+  "description": "An astronomical HiPS visualizer in the browser",
+  "author": "Thomas Boch and Matthieu Baumann",
+  "license": "GPL-3",
+  "main": "dist/aladin.js",
+  "files": [
+    "dist/*"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cds-astro/aladin-lite"
+  },
+  "keywords": [
+    "astronomy",
+    "visualization",
+    "rust",
+    "webgl",
+    "HiPS"
+  ],
   "scripts": {
-    "predeploy": "npm run build",
-    "package-tar": "npm run predeploy && tar -zcvf AladinLiteSrc.tar.gz dist/*",
-    "deploy": "npm run package-tar && ./deploy-dbg.sh",
+    "package-tar": "tar -zcvf AladinLiteAssets.tar.gz dist/*",
+    "predeploy": "npm run build && npm run package-tar",
+    "deploy": "./deploy-dbg.sh",
     "build": "webpack && sed \"s/\\\\.\\\\/\\\\.\\\\.\\\\/aladin\\\\.js/https:\\\\/\\\\/aladin.cds.unistra.fr\\\\/AladinLite\\\\/api\\\\/v3\\\\/latest\\\\/aladin.js/g\" examples/index.html > dist/index.html",
     "serve": "webpack-dev-server"
   },

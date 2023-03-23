@@ -45,6 +45,21 @@ pub unsafe fn transmute_boxed_slice<I, O>(s: Box<[I]>) -> Box<[O]> {
     Box::from_raw(out_slice_ptr)
 }
 
+#[allow(dead_code)]
+pub unsafe fn transmute_vec_to_u8<I>(mut s: Vec<I>) -> Vec<u8> {
+    s.set_len(std::mem::size_of_val(&s[..]));
+    std::mem::transmute(s)
+}
+
+pub unsafe fn transmute_vec<I, O>(mut s: Vec<I>) -> Result<Vec<O>, &'static str> {
+    if std::mem::size_of::<I>() % std::mem::size_of::<O>() > 0 {
+        Err("The input type is not a multiple of the output type")
+    } else {
+        s.set_len(s.len() * (std::mem::size_of::<I>() / std::mem::size_of::<O>()));
+        Ok(std::mem::transmute(s))
+    }
+}
+
 /// Select the kth smallest element in a slice
 /// 
 /// This is a basic implementation of quickselect algorithm: https://fr.wikipedia.org/wiki/Quickselect
@@ -59,6 +74,7 @@ pub unsafe fn transmute_boxed_slice<I, O>(s: Box<[I]>) -> Box<[O]> {
 /// * `r` - the last index of the slice (inclusive) for which the algorithm is applied
 /// * `k` - the index number to find
 use rand::Rng;
+#[allow(dead_code)]
 pub fn select_kth_smallest<T: PartialOrd + Copy>(v: &mut [T], mut l: usize, mut r: usize, k: usize) -> T {
     let mut rng = rand::thread_rng();
     while l < r {
@@ -77,6 +93,7 @@ pub fn select_kth_smallest<T: PartialOrd + Copy>(v: &mut [T], mut l: usize, mut 
     v[l]
 }
 
+#[allow(dead_code)]
 fn partition<T: PartialOrd + Copy>(v: &mut [T], l: usize, r: usize, pivot: usize) -> usize {
     v.swap(pivot, r);
     let pivot = v[r];

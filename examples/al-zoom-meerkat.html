@@ -1,9 +1,6 @@
 <!doctype html>
 <html>
 <head>
-
-<link rel="stylesheet" href="https://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.css" />
-<!--<link rel="stylesheet" href="./layers.css" />-->
 </head>
 <body>
 <div id="aladin-lite-div" style="width: 1024px; height: 768px"></div>
@@ -34,7 +31,7 @@
 
             let cut0 = -0.0004 * lambda + (1 - lambda) * -0.00132;
             let cut1 = 0.005 * lambda + (1 - lambda) * 0.05759;
-            meerkat.setCuts([cut0, cut1]);
+            meerkat.setCuts(cut0, cut1);
         })
     });
 </script>

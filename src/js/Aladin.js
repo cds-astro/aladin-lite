@@ -20,12 +20,12 @@
 
 /******************************************************************************
  * Aladin Lite project
- * 
+ *
  * File Aladin.js (main class)
  * Facade to expose Aladin Lite methods
- * 
+ *
  * Author: Thomas Boch[CDS]
- * 
+ *
  *****************************************************************************/
 
 import { View } from "./View.js";
@@ -44,7 +44,7 @@ import { CooFrameEnum } from "./CooFrameEnum.js";
 import { MeasurementTable } from "./MeasurementTable.js";
 import { Location } from "./Location.js";
 import { Source } from "./Source.js";
-import { HpxImageSurvey } from "./HpxImageSurvey.js";
+import { ImageSurvey } from "./ImageSurvey.js";
 import { Coo } from "./libs/astro/coo.js";
 import { CooConversion } from "./CooConversion.js";
 import { URLBuilder } from "./URLBuilder.js";
@@ -55,14 +55,16 @@ import { Stack } from "./gui/Stack.js";
 import { CooGrid } from "./gui/CooGrid.js";
 import { ALEvent } from "./events/ALEvent.js";
 import { Color } from './Color.js';
+import { ColorCfg } from './ColorCfg.js';
+import { ImageFITS } from "./ImageFITS.js";
 
 import $ from 'jquery';
 
 // Import aladin css inside the project
 import './../css/aladin.css';
 
-export let Aladin = (function () {
 
+export let Aladin = (function () {
 
 
 
@@ -72,7 +74,7 @@ export let Aladin = (function () {
         if ($(aladinDiv).length == 0) {
             return;
         }
-        this.webglAPI = null;
+        this.wasm = null;
         var self = this;
 
         // if not options was set, try to retrieve them from the query string
@@ -103,8 +105,6 @@ export let Aladin = (function () {
                 options[key] = requestedOptions[key];
             }
         }
-
-        this.empty = true;
 
         this.options = options;
 
@@ -223,10 +223,7 @@ export let Aladin = (function () {
         });
 
         if (options && options.showCooGrid) {
-            this.view.setGridConfig({
-                enabled: true,
-            });
-            this.view.showCooGrid = true;
+            this.showCooGrid();
         }
 
         if (options && (options.showProjectionControl === undefined || options.showProjectionControl === true)) {
@@ -242,6 +239,18 @@ export let Aladin = (function () {
 
         // layers control panel
         // TODO : valeur des checkbox en fonction des options
+        ALEvent.LOADING_STATE.listenedBy(aladinDiv, function (e) {
+            let layerControl = aladinDiv.querySelector(".aladin-layersControl");
+
+            if (layerControl) {
+                if (e.detail.loading) {
+                    layerControl.style.backgroundImage = 'url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBzdGFuZGFsb25lPSJubyI/Pgo8IURPQ1RZUEUgc3ZnIFBVQkxJQyAiLS8vVzNDLy9EVEQgU1ZHIDEuMS8vRU4iICJodHRwOi8vd3d3LnczLm9yZy9HcmFwaGljcy9TVkcvMS4xL0RURC9zdmcxMS5kdGQiPgo8c3ZnIHdpZHRoPSI0MHB4IiBoZWlnaHQ9IjQwcHgiIHZpZXdCb3g9IjAgMCA0MCA0MCIgdmVyc2lvbj0iMS4xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB4bWw6c3BhY2U9InByZXNlcnZlIiBzdHlsZT0iZmlsbC1ydWxlOmV2ZW5vZGQ7Y2xpcC1ydWxlOmV2ZW5vZGQ7c3Ryb2tlLWxpbmVqb2luOnJvdW5kO3N0cm9rZS1taXRlcmxpbWl0OjEuNDE0MjE7IiB4PSIwcHgiIHk9IjBweCI+CiAgICA8ZGVmcz4KICAgICAgICA8c3R5bGUgdHlwZT0idGV4dC9jc3MiPjwhW0NEQVRBWwogICAgICAgICAgICBALXdlYmtpdC1rZXlmcmFtZXMgc3BpbiB7CiAgICAgICAgICAgICAgZnJvbSB7CiAgICAgICAgICAgICAgICAtd2Via2l0LXRyYW5zZm9ybTogcm90YXRlKDBkZWcpCiAgICAgICAgICAgICAgfQogICAgICAgICAgICAgIHRvIHsKICAgICAgICAgICAgICAgIC13ZWJraXQtdHJhbnNmb3JtOiByb3RhdGUoLTM1OWRlZykKICAgICAgICAgICAgICB9CiAgICAgICAgICAgIH0KICAgICAgICAgICAgQGtleWZyYW1lcyBzcGluIHsKICAgICAgICAgICAgICBmcm9tIHsKICAgICAgICAgICAgICAgIHRyYW5zZm9ybTogcm90YXRlKDBkZWcpCiAgICAgICAgICAgICAgfQogICAgICAgICAgICAgIHRvIHsKICAgICAgICAgICAgICAgIHRyYW5zZm9ybTogcm90YXRlKC0zNTlkZWcpCiAgICAgICAgICAgICAgfQogICAgICAgICAgICB9CiAgICAgICAgICAgIHN2ZyB7CiAgICAgICAgICAgICAgICAtd2Via2l0LXRyYW5zZm9ybS1vcmlnaW46IDUwJSA1MCU7CiAgICAgICAgICAgICAgICAtd2Via2l0LWFuaW1hdGlvbjogc3BpbiAxLjVzIGxpbmVhciBpbmZpbml0ZTsKICAgICAgICAgICAgICAgIC13ZWJraXQtYmFja2ZhY2UtdmlzaWJpbGl0eTogaGlkZGVuOwogICAgICAgICAgICAgICAgYW5pbWF0aW9uOiBzcGluIDEuNXMgbGluZWFyIGluZmluaXRlOwogICAgICAgICAgICB9CiAgICAgICAgXV0+PC9zdHlsZT4KICAgIDwvZGVmcz4KICAgIDxnIGlkPSJvdXRlciI+CiAgICAgICAgPGc+CiAgICAgICAgICAgIDxwYXRoIGQ9Ik0yMCwwQzIyLjIwNTgsMCAyMy45OTM5LDEuNzg4MTMgMjMuOTkzOSwzLjk5MzlDMjMuOTkzOSw2LjE5OTY4IDIyLjIwNTgsNy45ODc4MSAyMCw3Ljk4NzgxQzE3Ljc5NDIsNy45ODc4MSAxNi4wMDYxLDYuMTk5NjggMTYuMDA2MSwzLjk5MzlDMTYuMDA2MSwxLjc4ODEzIDE3Ljc5NDIsMCAyMCwwWiIgc3R5bGU9ImZpbGw6YmxhY2s7Ii8+CiAgICAgICAgPC9nPgogICAgICAgIDxnPgogICAgICAgICAgICA8cGF0aCBkPSJNNS44NTc4Niw1Ljg1Nzg2QzcuNDE3NTgsNC4yOTgxNSA5Ljk0NjM4LDQuMjk4MTUgMTEuNTA2MSw1Ljg1Nzg2QzEzLjA2NTgsNy40MTc1OCAxMy4wNjU4LDkuOTQ2MzggMTEuNTA2MSwxMS41MDYxQzkuOTQ2MzgsMTMuMDY1OCA3LjQxNzU4LDEzLjA2NTggNS44NTc4NiwxMS41MDYxQzQuMjk4MTUsOS45NDYzOCA0LjI5ODE1LDcuNDE3NTggNS44NTc4Niw1Ljg1Nzg2WiIgc3R5bGU9ImZpbGw6cmdiKDIxMCwyMTAsMjEwKTsiLz4KICAgICAgICA8L2c+CiAgICAgICAgPGc+CiAgICAgICAgICAgIDxwYXRoIGQ9Ik0yMCwzMi4wMTIyQzIyLjIwNTgsMzIuMDEyMiAyMy45OTM5LDMzLjgwMDMgMjMuOTkzOSwzNi4wMDYxQzIzLjk5MzksMzguMjExOSAyMi4yMDU4LDQwIDIwLDQwQzE3Ljc5NDIsNDAgMTYuMDA2MSwzOC4yMTE5IDE2LjAwNjEsMzYuMDA2MUMxNi4wMDYxLDMzLjgwMDMgMTcuNzk0MiwzMi4wMTIyIDIwLDMyLjAxMjJaIiBzdHlsZT0iZmlsbDpyZ2IoMTMwLDEzMCwxMzApOyIvPgogICAgICAgIDwvZz4KICAgICAgICA8Zz4KICAgICAgICAgICAgPHBhdGggZD0iTTI4LjQ5MzksMjguNDkzOUMzMC4wNTM2LDI2LjkzNDIgMzIuNTgyNCwyNi45MzQyIDM0LjE0MjEsMjguNDkzOUMzNS43MDE5LDMwLjA1MzYgMzUuNzAxOSwzMi41ODI0IDM0LjE0MjEsMzQuMTQyMUMzMi41ODI0LDM1LjcwMTkgMzAuMDUzNiwzNS43MDE5IDI4LjQ5MzksMzQuMTQyMUMyNi45MzQyLDMyLjU4MjQgMjYuOTM0MiwzMC4wNTM2IDI4LjQ5MzksMjguNDkzOVoiIHN0eWxlPSJmaWxsOnJnYigxMDEsMTAxLDEwMSk7Ii8+CiAgICAgICAgPC9nPgogICAgICAgIDxnPgogICAgICAgICAgICA8cGF0aCBkPSJNMy45OTM5LDE2LjAwNjFDNi4xOTk2OCwxNi4wMDYxIDcuOTg3ODEsMTcuNzk0MiA3Ljk4NzgxLDIwQzcuOTg3ODEsMjIuMjA1OCA2LjE5OTY4LDIzLjk5MzkgMy45OTM5LDIzLjk5MzlDMS43ODgxMywyMy45OTM5IDAsMjIuMjA1OCAwLDIwQzAsMTcuNzk0MiAxLjc4ODEzLDE2LjAwNjEgMy45OTM5LDE2LjAwNjFaIiBzdHlsZT0iZmlsbDpyZ2IoMTg3LDE4NywxODcpOyIvPgogICAgICAgIDwvZz4KICAgICAgICA8Zz4KICAgICAgICAgICAgPHBhdGggZD0iTTUuODU3ODYsMjguNDkzOUM3LjQxNzU4LDI2LjkzNDIgOS45NDYzOCwyNi45MzQyIDExLjUwNjEsMjguNDkzOUMxMy4wNjU4LDMwLjA1MzYgMTMuMDY1OCwzMi41ODI0IDExLjUwNjEsMzQuMTQyMUM5Ljk0NjM4LDM1LjcwMTkgNy40MTc1OCwzNS43MDE5IDUuODU3ODYsMzQuMTQyMUM0LjI5ODE1LDMyLjU4MjQgNC4yOTgxNSwzMC4wNTM2IDUuODU3ODYsMjguNDkzOVoiIHN0eWxlPSJmaWxsOnJnYigxNjQsMTY0LDE2NCk7Ii8+CiAgICAgICAgPC9nPgogICAgICAgIDxnPgogICAgICAgICAgICA8cGF0aCBkPSJNMzYuMDA2MSwxNi4wMDYxQzM4LjIxMTksMTYuMDA2MSA0MCwxNy43OTQyIDQwLDIwQzQwLDIyLjIwNTggMzguMjExOSwyMy45OTM5IDM2LjAwNjEsMjMuOTkzOUMzMy44MDAzLDIzLjk5MzkgMzIuMDEyMiwyMi4yMDU4IDMyLjAxMjIsMjBDMzIuMDEyMiwxNy43OTQyIDMzLjgwMDMsMTYuMDA2MSAzNi4wMDYxLDE2LjAwNjFaIiBzdHlsZT0iZmlsbDpyZ2IoNzQsNzQsNzQpOyIvPgogICAgICAgIDwvZz4KICAgICAgICA8Zz4KICAgICAgICAgICAgPHBhdGggZD0iTTI4LjQ5MzksNS44NTc4NkMzMC4wNTM2LDQuMjk4MTUgMzIuNTgyNCw0LjI5ODE1IDM0LjE0MjEsNS44NTc4NkMzNS43MDE5LDcuNDE3NTggMzUuNzAxOSw5Ljk0NjM4IDM0LjE0MjEsMTEuNTA2MUMzMi41ODI0LDEzLjA2NTggMzAuMDUzNiwxMy4wNjU4IDI4LjQ5MzksMTEuNTA2MUMyNi45MzQyLDkuOTQ2MzggMjYuOTM0Miw3LjQxNzU4IDI4LjQ5MzksNS44NTc4NloiIHN0eWxlPSJmaWxsOnJnYig1MCw1MCw1MCk7Ii8+CiAgICAgICAgPC9nPgogICAgPC9nPgo8L3N2Zz4K)';
+                } else {
+                    layerControl.style.backgroundImage = 'url("data:image/gif;base64,R0lGODlhGQAcAMIAAAAAADQ0NKahocvFxf///wAAAAAAAAAAACH5BAEKAAcALAAAAAAZABwAAANneLoH/hCwyaJ1dDrCuydY1gBfyYUaaZqosq0r+sKxNNP1pe98Hy2OgXBILLZGxWRSBlA6iZjgczrwWa9WIEDA7Xq/R8d3PGaSz97oFs0WYN9wiDZAr9vvYcB9v2fy/3ZqgIN0cYZYCQA7")';
+                }
+            }
+        });
+
         if (options.showLayersControl) {
             // button to show Stack interface
             var d = $('<div class="aladin-layersControl-container" style="top: ' + top_px + 'px" title="Manage layers"><div class="aladin-layersControl"></div></div>');
@@ -311,12 +320,45 @@ export let Aladin = (function () {
 
         // Coo grid pointer tool
         if (options.showCooGridControl) {
-            var d = $('<div class="aladin-cooGridControl-container" style="top: ' + top_px + 'px" title="Coo grid"><div class="aladin-cooGridControl"></div></div>');
+            var d = $('<div class="aladin-cooGridControl-container" style="top: ' + top_px + 'px" title="Coo grid. Keep the mouse down to see the option panel"><div class="aladin-cooGridControl"></div></div>');
             d.appendTo(aladinDiv);
 
-            d.click(function () {
-                self.hideBoxes(); self.showCooGridBox(); return false;
+            let mousedown = false;
+            let startMouseDown;
+            let interval;
+            let disableClick = false;
+            d.on("mousedown", function () {
+                mousedown = true;
+                startMouseDown = new Date();
+
+                interval = setInterval(() => {
+                    if (mousedown && (new Date() - startMouseDown) > 500) {
+                        disableClick = true;
+                        self.hideBoxes(); self.showCooGridBox();
+                        return false;
+                    }
+                }, 50);
             });
+
+            d.on("mouseup", function () {
+                mousedown = false;
+                clearInterval(interval);
+                if ((new Date() - startMouseDown) < 500) {
+                    disableClick = false;
+                }
+            });
+            d.on("click", function() {
+                if (!disableClick) {
+                    let coogridContainer = d[0];
+                    if (self.cooGridEnabled) {
+                        self.hideCooGrid();
+                        coogridContainer.style.background = "rgba(250, 250, 250, 0.8)";
+                    } else {
+                        self.showCooGrid();
+                        coogridContainer.style.background = "rgba(250, 250, 250, 1)";
+                    }
+                }
+            })
             top_px += 38;
         }
 
@@ -367,14 +409,14 @@ export let Aladin = (function () {
             }
         }
 
-        
+
         // Add the image layers
         // For that we check the survey key of options
         // It can be given as a single string or an array of strings
         // for multiple blending surveys
+
         if (options.survey) {
             if (Array.isArray(options.survey)) {
-
                 let i = 0;
                 options.survey.forEach((rootURLOrId) => {
                     if (i == 0) {
@@ -389,11 +431,11 @@ export let Aladin = (function () {
             }
         } else {
             const idxServiceUrl = Math.round(Math.random());
-            const dssUrl = DEFAULT_OPTIONS.surveyUrl[idxServiceUrl]
+            const dssUrl = Aladin.DEFAULT_OPTIONS.surveyUrl[idxServiceUrl]
 
             this.setBaseImageLayer(dssUrl);
         }
-        
+
         this.view.showCatalog(options.showCatalog);
 
         var aladin = this;
@@ -467,7 +509,6 @@ export let Aladin = (function () {
         showShareControl: false,
         showCatalog: true, // TODO: still used ??
         showFrame: true,
-        showCooGrid: false,
         fullScreen: false,
         reticleColor: "rgb(178, 50, 178)",
         reticleSize: 22,
@@ -480,7 +521,7 @@ export let Aladin = (function () {
         pixelateCanvas: true
     };
 
-    // realFullscreen: AL div expands not only to the size of its parent, but takes the whole available screen estate 
+    // realFullscreen: AL div expands not only to the size of its parent, but takes the whole available screen estate
     Aladin.prototype.toggleFullscreen = function (realFullscreen) {
         let self = this;
 
@@ -530,7 +571,7 @@ export let Aladin = (function () {
                 }
             }
         }
-        
+
         // Delay the fixLayoutDimensions layout for firefox
         setTimeout(function () {
             self.view.fixLayoutDimensions();
@@ -559,7 +600,7 @@ export let Aladin = (function () {
             options.frame = requestedFrame;
         }
         var requestedSurveyId = $.urlParam('survey');
-        if (requestedSurveyId && HpxImageSurvey.getSurveyInfoFromId(requestedSurveyId)) {
+        if (requestedSurveyId && ImageSurvey.getSurveyInfoFromId(requestedSurveyId)) {
             options.survey = requestedSurveyId;
         }
         var requestedZoom = $.urlParam('zoom');
@@ -680,7 +721,7 @@ export let Aladin = (function () {
 
             coo.parse(targetName);
             // Convert from view coo sys to icrsj2000
-            const [ra, dec] = this.view.aladin.webglAPI.viewToICRSJ2000CooSys(coo.lon, coo.lat);
+            const [ra, dec] = this.wasm.viewToICRSJ2000CooSys(coo.lon, coo.lat);
             this.view.pointTo(ra, dec, options);
 
             (typeof successCallback === 'function') && successCallback(this.getRaDec());
@@ -710,7 +751,7 @@ export let Aladin = (function () {
 
     /**
      * go to a given position, expressed in the current coordinate frame
-     * 
+     *
      * @API
      */
     Aladin.prototype.gotoPosition = function (lon, lat) {
@@ -732,7 +773,7 @@ export let Aladin = (function () {
             return;
         }
         var now = new Date().getTime();
-        // this is the animation end: set the view to the end position, and call complete callback 
+        // this is the animation end: set the view to the end position, and call complete callback
         if (now > params['end']) {
             aladin.gotoRaDec(params['raEnd'], params['decEnd']);
 
@@ -773,13 +814,13 @@ export let Aladin = (function () {
 
     /*
      * animate smoothly from the current position to the given ra, dec
-     * 
+     *
      * the total duration (in seconds) of the animation can be given (otherwise set to 5 seconds by default)
-     * 
+     *
      * complete: a function to call once the animation has completed
-     * 
+     *
      * @API
-     * 
+     *
      */
     Aladin.prototype.animateToRaDec = function (ra, dec, duration, complete) {
         duration = duration || 5;
@@ -808,7 +849,7 @@ export let Aladin = (function () {
             return;
         }
         var now = new Date().getTime();
-        // this is the zoom animation end: set the view to the end fov, and call complete callback 
+        // this is the zoom animation end: set the view to the end fov, and call complete callback
         if (now > params['end']) {
             aladin.setFoV(params['fovEnd']);
 
@@ -829,13 +870,13 @@ export let Aladin = (function () {
     };
     /*
      * zoom smoothly from the current FoV to the given new fov to the given ra, dec
-     * 
+     *
      * the total duration (in seconds) of the animation can be given (otherwise set to 5 seconds by default)
-     * 
+     *
      * complete: a function to call once the animation has completed
-     * 
+     *
      * @API
-     * 
+     *
      */
     Aladin.prototype.zoomToFoV = function (fov, duration, complete) {
         duration = duration || 5;
@@ -899,7 +940,7 @@ export let Aladin = (function () {
 
     /**
      * get current [ra, dec] position of the center of the view
-     * 
+     *
      * @API
      */
     Aladin.prototype.getRaDec = function () {
@@ -911,9 +952,9 @@ export let Aladin = (function () {
             return radec;
 
         }*/
-        let radec = this.webglAPI.getCenter(); // This is given in the frame of the view
+        let radec = this.wasm.getCenter(); // This is given in the frame of the view
         // We must convert it to ICRSJ2000
-        const radec_j2000 = this.view.aladin.webglAPI.viewToICRSJ2000CooSys(radec[0], radec[1]);
+        const radec_j2000 = this.wasm.viewToICRSJ2000CooSys(radec[0], radec[1]);
 
         if (radec_j2000[0]<0) {
             return [radec_j2000[0] + 360.0, radec_j2000[1]];
@@ -924,7 +965,7 @@ export let Aladin = (function () {
 
     /**
      * point to a given position, expressed as a ra,dec coordinate
-     * 
+     *
      * @API
      */
     Aladin.prototype.gotoRaDec = function (ra, dec) {
@@ -954,7 +995,7 @@ export let Aladin = (function () {
         this.view.addCatalog(catalog);
 
         ALEvent.GRAPHIC_OVERLAY_LAYER_ADDED.dispatchedTo(this.aladinDiv, {layer: catalog});
-        
+
     };
     Aladin.prototype.addOverlay = function (overlay) {
         this.view.addOverlay(overlay);
@@ -984,47 +1025,84 @@ export let Aladin = (function () {
     Aladin.prototype.createImageSurvey = function(id, name, rootUrl, cooFrame, maxOrder, options = {}) {
         let cfg = this.cacheSurveys.get(id);
         if (!cfg) {
+            // Add the cooFrame and maxOrder given by the user
+            // to the list of options passed to the ImageSurvey constructor
             if (cooFrame) {
                 options.cooFrame = cooFrame;
             }
-    
-            this.cacheSurveys.set(id, {id, name, rootUrl, options});
-            return new HpxImageSurvey(id, name, rootUrl, this.view, options);
+
+            if (maxOrder) {
+                options.maxOrder = maxOrder;
+            }
+
+            cfg = {id, name, rootUrl, options};
+            this.cacheSurveys.set(id, cfg);
         } else {
             cfg = Utils.clone(cfg)
-            return new HpxImageSurvey(cfg.id, cfg.name, cfg.rootUrl, this.view, cfg.options);
         }
+
+        return new ImageSurvey(cfg.id, cfg.name, cfg.rootUrl, this.view, cfg.options);
+    };
+
+    Aladin.prototype.createImageFITS = function(url, name, options = {}, successCallback = undefined, errorCallback = undefined) {
+        try {
+            url = new URL(url);
+        } catch(e) {
+            // The url could be created
+            url = Utils.getAbsoluteURL(url)
+            url = new URL(url);
+        }
+
+        // Check the protocol, for http ones, use a CORS compatible proxy
+        if (Utils.requestCORSIfNotSameOrigin(url)) {
+            // http(s) protocols and not in localhost
+            let proxiedUrl = new URL(Aladin.JSONP_PROXY);
+            proxiedUrl.searchParams.append("url", url);
+
+            url = proxiedUrl;
+        }
+
+        let cfg = this.cacheSurveys.get(url);
+        if (!cfg) {
+            cfg = {url, name, options, successCallback, errorCallback}
+            this.cacheSurveys.set(url, cfg);
+        } else {
+            cfg = Utils.clone(cfg)
+        }
+
+        return new ImageFITS(cfg.url, cfg.name, this.view, cfg.options, cfg.successCallback, cfg.errorCallback);
     };
 
     Aladin.prototype.newImageSurvey = function(rootUrlOrId, options) {
         const idOrUrl = rootUrlOrId;
         // Check if the survey has already been added
-        // Create a new HpxImageSurvey
-        let isUrl = false;
-        if (idOrUrl.includes("http")) {
-            isUrl = true;
-        }
+        // Create a new ImageSurvey
         const name = idOrUrl;
-        if (isUrl) {
-            const url = idOrUrl;
+
+        try {
+            const url = new URL(rootUrlOrId).toString()
+
+            // Valid URL case
             const id = url;
-            // Url
             return this.createImageSurvey(id, name, url, null, null, options);
-        } else {
+        } catch (e) {
+            // Valid ID case
             const id = idOrUrl;
-            // ID
             return this.createImageSurvey(id, name, undefined, null, null, options);
         }
     }
 
-    // @param imageSurvey : HpxImageSurvey object or image survey identifier
+    // @param imageSurvey : ImageSurvey object or image survey identifier
     // @api
     // @old
-    Aladin.prototype.setImageSurvey = function(imageSurvey) {
-        this.setBaseImageLayer(imageSurvey);
+
+    Aladin.prototype.setImageLayer = function(imageLayer) {
+        this.setBaseImageLayer(imageLayer);
     };
 
-    // @param imageSurvey : HpxImageSurvey object or image survey identifier
+    Aladin.prototype.setImageSurvey = Aladin.prototype.setImageLayer;
+
+    // @param imageSurvey : ImageSurvey object or image survey identifier
     // @api
     // @old
     Aladin.prototype.setBackgroundColor = function(rgb) {
@@ -1040,37 +1118,32 @@ export let Aladin = (function () {
         } else {
             color = rgb;
         }
-        this.webglAPI.setBackgroundColor(color);
+        this.wasm.setBackgroundColor(color);
     };
 
     // @api
-    Aladin.prototype.removeImageSurvey = function(layer) {
-        if (layer === "base") {
-            throw 'Cannot remove base survey layer.';
-        }
-
-        this.view.removeImageSurvey(layer);
+    Aladin.prototype.removeImageLayer = function(layer) {
+        this.view.removeImageLayer(layer);
     };
 
     // @api
     Aladin.prototype.setBaseImageLayer = function(idOrSurvey) {
-        this.setOverlayImageLayer(idOrSurvey, "base");
+        return this.setOverlayImageLayer(idOrSurvey, "base");
     };
 
     // @api
     Aladin.prototype.getBaseImageLayer = function () {
-        return this.view.getImageSurvey("base");
+        return this.view.getImageLayer("base");
     };
 
     // @api
-    Aladin.prototype.setOverlayImageLayer = function (idOrUrlOrSurvey, layer = "overlay") {
-        let survey = null;
-
+    Aladin.prototype.setOverlayImageLayer = function (idOrUrlOrImageLayer, layer = "overlay") {
+        let imageLayer;
         // 1. User gives an ID
-        if (typeof idOrUrlOrSurvey === "string") {
-            const idOrUrl = idOrUrlOrSurvey;
+        if (typeof idOrUrlOrImageLayer === "string") {
+            const idOrUrl = idOrUrlOrImageLayer;
             // Check if the survey has already been added
-            // Create a new HpxImageSurvey
+            // Create a new ImageSurvey
             let isUrl = false;
             if (idOrUrl.includes("http")) {
                 isUrl = true;
@@ -1081,33 +1154,24 @@ export let Aladin = (function () {
                 const url = idOrUrl;
                 const id = url;
                 // Url
-                survey = this.createImageSurvey(id, name, url, null, null);
+                imageLayer = this.createImageSurvey(id, name, url, null, null);
             } else {
                 const id = idOrUrl;
                 // ID
-                survey = this.createImageSurvey(id, name, undefined, null, null);
+                imageLayer = this.createImageSurvey(id, name, undefined, null, null);
             }
         // 2. User gives a non resolved promise
         } else {
-            survey = idOrUrlOrSurvey;
+            imageLayer = idOrUrlOrImageLayer;
         }
 
-        this.view.setOverlayImageSurvey(survey, layer);
+        return this.view.setOverlayImageLayer(imageLayer, layer);
     };
 
     // @api
     Aladin.prototype.getOverlayImageLayer = function(layer = "overlay") {
-        const survey = this.view.getImageSurvey(layer);
+        const survey = this.view.getImageLayer(layer);
         return survey;
-    };
-
-    // new!
-    Aladin.prototype.getImageSurveyMeta = function(layer = "base") {
-        return this.view.getImageSurveyMeta(layer);
-    };
-
-    Aladin.prototype.setImageSurveyMeta = function(meta, layer = "base") {
-        return this.view.setImageSurveyMeta(layer, meta);
     };
 
     // @api
@@ -1128,6 +1192,33 @@ export let Aladin = (function () {
     // Rightclicking for changing the cuts is done the targeted layer
     Aladin.prototype.setActiveHiPSLayer = function (layer) {
         this.view.setActiveHiPSLayer(layer);
+    }
+
+    Aladin.prototype.getActiveHiPSLayer = function () {
+        return this.view.selectedLayer;
+    }
+
+    // Get the list of image layer overlays
+    Aladin.prototype.getImageOverlays = function () {
+        return this.view.overlayLayers;
+    }
+
+    // Get the list of overlays
+    Aladin.prototype.getOverlays = function () {
+        return this.view.allOverlayLayers;
+    }
+
+    // Get the list of overlays
+    Aladin.prototype.getImageOverlays = function () {
+        return this.view.overlayLayers;
+    }
+
+    Aladin.prototype.isHpxGridDisplayed = function () {
+        return this.view.displayHpxGrid;
+    }
+
+    Aladin.prototype.isReticleDisplayed = function () {
+        return this.view.displayReticle;
     }
 
     Aladin.prototype.createProgressiveCatalog = function (url, frame, maxOrder, options) {
@@ -1191,6 +1282,16 @@ export let Aladin = (function () {
         this.coogrid.show();
     };
 
+    Aladin.prototype.showCooGrid = function () {
+        this.view.setGridConfig({enabled: true});
+        this.cooGridEnabled = true;
+    };
+
+    Aladin.prototype.hideCooGrid = function() {
+        this.view.setGridConfig({enabled: false});
+        this.cooGridEnabled = false;
+    }
+
     Aladin.prototype.layerByName = function (name) {
         var c = this.view.allOverlayLayers;
         for (var k = 0; k < c.length; k++) {
@@ -1202,10 +1303,10 @@ export let Aladin = (function () {
     };
 
     // TODO : integrate somehow into API ?
-    Aladin.prototype.exportAsPNG = function (imgFormat) {
+    Aladin.prototype.exportAsPNG = function () {
         (async () => {
             var w = window.open();
-            w.document.write('<img src="' + await this.getViewDataURL() + '">');
+            w.document.write('<img src="' + await this.getViewDataURL() + '" width="' + this.view.width + 'px">');
             w.document.title = 'Aladin Lite snapshot';
         })();
     };
@@ -1278,16 +1379,16 @@ export let Aladin = (function () {
 
     /**
      * Transform pixel coordinates to world coordinates
-     * 
+     *
      * Origin (0,0) of pixel coordinates is at top left corner of Aladin Lite view
-     * 
+     *
      * @API
-     * 
+     *
      * @param x
      * @param y
-     * 
+     *
      * @return a [ra, dec] array with world coordinates in degrees. Returns undefined is something went wrong
-     * 
+     *
      */
     Aladin.prototype.pix2world = function (x, y) {
         // this might happen at early stage of initialization
@@ -1296,7 +1397,7 @@ export let Aladin = (function () {
         }
 
         try {
-            const [ra, dec] = this.view.aladin.webglAPI.screenToWorld(x, y);
+            const [ra, dec] = this.wasm.screenToWorld(x, y);
 
             if (ra < 0) {
                 return [ra + 360.0, dec];
@@ -1310,14 +1411,14 @@ export let Aladin = (function () {
 
     /**
      * Transform world coordinates to pixel coordinates in the view
-     * 
+     *
      * @API
-     * 
-     * @param ra  
+     *
+     * @param ra
      * @param dec
-     * 
+     *
      * @return a [x, y] array with pixel coordinates in the view. Returns null if the projection failed somehow
-     *   
+     *
      */
     Aladin.prototype.world2pix = function (ra, dec) {
         // this might happen at early stage of initialization
@@ -1326,21 +1427,21 @@ export let Aladin = (function () {
         }
 
         try {
-            return this.view.aladin.webglAPI.worldToScreen(ra, dec);
+            return this.wasm.worldToScreen(ra, dec);
         } catch (e) {
             return undefined;
         }
     };
 
     /**
-     * 
+     *
      * @API
-     * 
-     * @param ra  
+     *
+     * @param ra
      * @param nbSteps the number of points to return along each side (the total number of points returned is 4*nbSteps)
-     * 
+     *
      * @return set of points along the current FoV with the following format: [[ra1, dec1], [ra2, dec2], ..., [ra_n, dec_n]]
-     *   
+     *
      */
     Aladin.prototype.getFovCorners = function (nbSteps) {
         // default value: 1
@@ -1357,7 +1458,7 @@ export let Aladin = (function () {
             y2 = (k == 1 || k == 2) ? this.view.height - 1 : 0;
 
             for (var step = 0; step < nbSteps; step++) {
-                let radec = this.webglAPI.screenToWorld(x1 + step / nbSteps * (x2 - x1), y1 + step / nbSteps * (y2 - y1));
+                let radec = this.wasm.screenToWorld(x1 + step / nbSteps * (x2 - x1), y1 + step / nbSteps * (y2 - y1));
                 points.push(radec);
             }
         }
@@ -1368,7 +1469,7 @@ export let Aladin = (function () {
 
     /**
      * @API
-     * 
+     *
      * @return the current FoV size in degrees as a 2-elements array
      */
     Aladin.prototype.getFov = function () {
@@ -1384,7 +1485,7 @@ export let Aladin = (function () {
 
     /**
      * @API
-     * 
+     *
      * @return the size in pixels of the Aladin Lite view
      */
     Aladin.prototype.getSize = function () {
@@ -1393,7 +1494,7 @@ export let Aladin = (function () {
 
     /**
      * @API
-     * 
+     *
      * @return the jQuery object representing the DIV element where the Aladin Lite instance lies
      */
     Aladin.prototype.getParentDiv = function () {
@@ -1407,8 +1508,9 @@ export let Aladin = (function () {
 /////// Aladin Lite API ///////
 ///////////////////////////////
 let A = {};
+
 //// New API ////
-// For developers using Aladin lite: all objects should be created through the API, 
+// For developers using Aladin lite: all objects should be created through the API,
 // rather than creating directly the corresponding JS objects
 // This facade allows for more flexibility as objects can be updated/renamed harmlessly
 
@@ -1453,15 +1555,15 @@ A.circle = function (ra, dec, radiusDeg, options) {
 };
 
 /**
- * 
+ *
  * @API
- * 
- * @param ra 
+ *
+ * @param ra
  * @param dec
  * @param radiusRaDeg the radius along the ra axis in degrees
  * @param radiusDecDeg the radius along the dec axis in degrees
  * @param rotationDeg the rotation angle in degrees
- *   
+ *
  */
 A.ellipse = function (ra, dec, radiusRaDeg, radiusDecDeg, rotationDeg, options) {
     return new Ellipse([ra, dec], radiusRaDeg, radiusDecDeg, rotationDeg, options);
@@ -1496,11 +1598,27 @@ Aladin.prototype.box = function (options) {
 // @API
 /*
  * show popup at ra, dec position with given title and content
+ *
+ * If circleRadius, the corresponding circle will also be plotted
  */
-Aladin.prototype.showPopup = function (ra, dec, title, content) {
+Aladin.prototype.showPopup = function (ra, dec, title, content, circleRadius) {
     this.view.catalogForPopup.removeAll();
-    var marker = A.marker(ra, dec, { popupTitle: title, popupDesc: content, useMarkerDefaultIcon: false });
+    this.view.overlayForPopup.removeAll();
+
+    console.log(circleRadius)
+
+    let marker;
+    if (circleRadius !== undefined) {
+        this.view.overlayForPopup.add(A.circle(ra, dec, circleRadius, {fillColor: 'rgba(255, 0, 0, 0.2)'}));
+         marker = A.marker(ra, dec, { popupTitle: title, popupDesc: content, useMarkerDefaultIcon: true });
+    }
+    else {
+         marker = A.marker(ra, dec, { popupTitle: title, popupDesc: content, useMarkerDefaultIcon: false });
+    }
+
     this.view.catalogForPopup.addSources(marker);
+
+    this.view.overlayForPopup.show();
     this.view.catalogForPopup.show();
 
     this.view.popup.setTitle(title);
@@ -1528,7 +1646,7 @@ Aladin.prototype.getShareURL = function () {
     coo.lon = radec[0];
     coo.lat = radec[1];
 
-    return Aladin.URL_PREVIEWER + encodeURIComponent(coo.format('s')) +
+    return Aladin.URL_PREVIEWER + '?target=' + encodeURIComponent(coo.format('s')) +
         '&fov=' + this.getFov()[0].toFixed(2) + '&survey=' + encodeURIComponent(this.getBaseImageLayer().id || this.getBaseImageLayer().rootUrl);
 };
 
@@ -1560,79 +1678,9 @@ Aladin.prototype.getEmbedCode = function () {
 /*
  * Creates remotely a HiPS from a FITS image URL and displays it
  */
-Aladin.prototype.displayFITS = function (url, options, successCallback, errorCallback) {
-    options = options || {};
-
-    var data = { url: url };
-    if (options.color) {
-        data.color = true;
-    }
-    if (options.outputFormat) {
-        data.format = options.outputFormat;
-    }
-    if (options.order) {
-        data.order = options.order;
-    }
-    if (options.nocache) {
-        data.nocache = options.nocache;
-    }
-    let self = this;
-
-    const request = ( url, params = {}, method = 'GET' ) => {
-        let options = {
-            method
-        };
-        if ( 'GET' === method ) {
-            url += '?' + ( new URLSearchParams( params ) ).toString();
-        } else {
-            options.body = JSON.stringify( params );
-        }
-        
-        return fetch( url, options ).then( response => response.json() );
-    };
-    const get = ( url, params ) => request( url, params, 'GET' );
-
-    get('https://alasky.unistra.fr/cgi/fits2HiPS', data)
-        .then(async (response) => {
-            if (response.status != 'success') {
-                console.error('An error occured: ' + response.message);
-                if (errorCallback) {
-                    errorCallback(response.message);
-                }
-                return;
-            }
-            var label = options.label || "FITS image";
-            var meta = response.data.meta;
-
-            const survey = self.createImageSurvey(response.data.url, label);
-            self.setOverlayImageLayer(survey, "overlay");
-
-            var transparency = (options && options.transparency) || 1.0;
-
-            var executeDefaultSuccessAction = true;
-            if (successCallback) {
-                executeDefaultSuccessAction = successCallback(meta.ra, meta.dec, meta.fov);
-            }
-            if (executeDefaultSuccessAction === true) {
-                self.webglAPI.setCenter(meta.ra, meta.dec);
-                self.setFoV(meta.fov);
-            }
-
-            // TODO! set an image survey once the already loaded surveys
-            // are READY! Otherwise it can lead to some congestion and avoid
-            // downloading the base tiles of the other surveys loading!
-            // This has to be fixed in the backend but a fast fix is just to wait
-            // before setting a new image survey
-        });
-
-    /*fetch(url)
-        .then((resp) => resp.arrayBuffer())
-        .then((arrayBuffer) => {
-            console.log('received fits', arrayBuffer)
-            self.view.aladin.webglAPI.addFITSImage(new Uint8Array(arrayBuffer));
-            console.log("parsed")
-        });
-    */
+Aladin.prototype.displayFITS = function (url, options, successCallback, errorCallback, layer = "base") {
+    const imageFits = this.createImageFITS(url, url, options, successCallback, errorCallback);
+    this.setOverlayImageLayer(imageFits, layer)
 };
 
 // @API
@@ -1672,7 +1720,7 @@ Aladin.prototype.displayJPG = Aladin.prototype.displayPNG = function (url, optio
         } else {
             options.body = JSON.stringify( params );
         }
-        
+
         return fetch( url, options ).then( response => response.json() );
     };
     const get = ( url, params ) => request( url, params, 'GET' );
@@ -1699,7 +1747,7 @@ Aladin.prototype.displayJPG = Aladin.prototype.displayPNG = function (url, optio
                 executeDefaultSuccessAction = successCallback(meta.ra, meta.dec, meta.fov);
             }
             if (executeDefaultSuccessAction === true) {
-                self.webglAPI.setCenter(meta.ra, meta.dec);
+                self.wasm.setCenter(meta.ra, meta.dec);
                 self.setFoV(meta.fov);
             }
 
@@ -1803,7 +1851,6 @@ A.catalogFromVizieR = function (vizCatId, target, radius, options, successCallba
         options['name'] = 'VizieR:' + vizCatId;
     }
     var url = URLBuilder.buildVizieRCSURL(vizCatId, target, radius, options);
-    console.log(url);
     return A.catalogFromURL(url, options, successCallback, false);
 };
 
@@ -1823,7 +1870,7 @@ A.hipsDefinitionFromURL = function(url, successCallback) {
 };
 
 A.getAvailableListOfColormaps = function() {
-    return HpxImageSurvey.COLORMAPS;
+    return ColorCfg.COLORMAPS;
 };
 
 A.init = (async () => {
@@ -1834,7 +1881,7 @@ A.init = (async () => {
     // Check for webgl2 support
     if (isWebGL2Supported) {
         const module = await import('./../../pkg-webgl2');
-        Aladin.wasmLibs.webgl = module;
+        Aladin.wasmLibs.core = module;
     } else {
         // WebGL1 not supported
         // According to caniuse, https://caniuse.com/webgl2, webgl2 is supported by 89% of users

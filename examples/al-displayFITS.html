@@ -2,8 +2,6 @@
 <!doctype html>
 <html>
 <head>
-<!-- <link rel="stylesheet" href="../distrib/latest/aladin.min.css" /> -->
-<!--<link rel="stylesheet" href="https://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.css" /> -->
 </head>
 <body>
 
@@ -14,17 +12,23 @@
 <script type="text/javascript">
     let aladin;
     A.init.then(() => {
-        aladin = A.aladin('#aladin-lite-div', {target: "m51", cooFrame: "icrs"});
+        aladin = A.aladin('#aladin-lite-div', {cooFrame: "icrs", fullScreen: true});
 
         aladin.displayFITS(
-            './fits/HorseHead.fits'
-            //'./fits/neowise.fits'
-            //'./fits/M81_Ha_GaiaHduImg1.fits'
-            //'./fits/irac.fits'
-            //'./fits/cutout-CDS_P_HST_PHAT_F475W.fits',
-            //'./fits/FOCx38i0101t_c0f.fits'
-            //'./fits/ngc1316o.fits'
-            //'./fits/panstarrs-rotated-around-orion.fits'
+            'http://data.astropy.org/tutorials/FITS-images/HorseHead.fits', // url of the fits file
+            //'fits/HorseHead.fits',
+            //'fits/neowise.fits',
+            //'fits/irac.fits',
+            //'fits/FOCx38i0101t_c0f.fits',
+            {
+                minCut: 5000,
+                maxCut: 17000,
+            }, // no optional params
+            (ra, dec, fov, image) => { // ra, dec and fov are centered around the fits image
+                image.setColormap("magma", {stretch: "asinh"});
+                aladin.gotoRaDec(ra, dec);
+                aladin.setFoV(fov);
+            }
         );
     });
 </script>

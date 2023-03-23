@@ -16,10 +16,6 @@
 //extern crate itertools_num;
 //extern crate num;
 //extern crate num_traits;
-extern crate wasm_streams;
-extern crate console_error_panic_hook;
-extern crate mapproj;
-extern crate wcs;
 use std::panic;
 
 pub trait Abort {
@@ -75,7 +71,6 @@ mod app;
 pub mod async_task;
 mod camera;
 
-mod colormap;
 mod coosys;
 mod downloader;
 mod healpix;
@@ -89,7 +84,7 @@ mod time;
 mod fifo_cache;
 
 use crate::{
-    camera::CameraViewPort, colormap::Colormaps, math::lonlat::LonLatT, shader::ShaderManager, time::DeltaTime,
+    camera::CameraViewPort, math::lonlat::LonLatT, shader::ShaderManager, time::DeltaTime,
     healpix::coverage::HEALPixCoverage,
 };
 use crate::downloader::request::moc::from_fits_hpx;
@@ -99,10 +94,15 @@ use moclib::deser::fits;
 
 use std::io::Cursor;
 
-use al_api::hips::{HiPSColor, HiPSProperties, SimpleHiPS};
-use al_core::{WebGlContext};
-
+use al_api::hips::HiPSProperties;
 use al_api::coo_system::CooSystem;
+use al_api::color::{Color, ColorRGBA};
+use al_api::hips::FITSCfg;
+
+use al_core::Colormap;
+use al_core::{WebGlContext};
+use al_core::colormap::Colormaps;
+
 
 use app::App;
 use cgmath::{Vector2};
@@ -120,7 +120,7 @@ pub struct WebClient {
     dt: DeltaTime,
 }
 
-use al_api::hips::ImageSurveyMeta;
+use al_api::hips::ImageMetadata;
 use std::convert::TryInto;
 
 #[wasm_bindgen]
@@ -266,7 +266,7 @@ impl WebClient {
     /// # Examples
     ///
     /// ```javascript
-    /// let al = new Aladin.wasmLibs.webgl.WebClient(...);
+    /// let al = new Aladin.wasmLibs.core.WebClient(...);
     /// const panstarrs = {
     ///     properties: {
     ///         url: "http://alasky.u-strasbg.fr/Pan-STARRS/DR1/r",
@@ -299,41 +299,58 @@ impl WebClient {
     /// * If the number of surveys is greater than 4. For the moment, due to the limitations
     ///   of WebGL2 texture units on some architectures, the total number of surveys rendered is
     ///   limited to 4.
-    #[wasm_bindgen(js_name = setImageSurveys)]
-    pub fn set_image_surveys(&mut self, surveys: Vec<JsValue>) -> Result<(), JsValue> {
+    #[wasm_bindgen(js_name = addImageSurvey)]
+    pub fn add_image_survey(&mut self, hips: JsValue) -> Result<(), JsValue> {
         // Deserialize the survey objects that compose the survey
-        let surveys: Result<Vec<SimpleHiPS>, serde_wasm_bindgen::Error> = surveys
-            .into_iter()
-            .map(|h| {
-                serde_wasm_bindgen::from_value(h)
-            })
-            .collect::<Result<Vec<_>, _>>();
-
-        //let surveys: Vec<SimpleHiPS> = surveys.iter().map(SimpleHiPS::from).collect::<Vec<_>>();
-        let surveys = surveys?;
-        self.app.set_image_surveys(surveys)?;
+        let hips = serde_wasm_bindgen::from_value(hips)?;
+        self.app.add_image_survey(hips)?;
 
         Ok(())
     }
 
-    #[wasm_bindgen(js_name = getImageSurveyMeta)]
-    pub fn get_layer_cfg(&self, layer: String) -> Result<ImageSurveyMeta, JsValue> {
+    #[wasm_bindgen(js_name = addImageFITS)]
+    pub fn add_image_fits(&mut self, fits_cfg: JsValue) -> Result<js_sys::Promise, JsValue> {
+        let fits_cfg: FITSCfg = serde_wasm_bindgen::from_value(fits_cfg)?;
+
+        self.app.add_image_fits(fits_cfg)
+    }
+
+    #[wasm_bindgen(js_name = removeLayer)]
+    pub fn remove_layer(&mut self, layer: String) -> Result<(), JsValue> {
+        // Deserialize the survey objects that compose the survey
+        self.app.remove_layer(&layer)?;
+
+        Ok(())
+    }
+
+    #[wasm_bindgen(js_name = renameLayer)]
+    pub fn rename_layer(&mut self, layer: String, new_layer: String) -> Result<(), JsValue> {
+        // Deserialize the survey objects that compose the survey
+        self.app.rename_layer(&layer, &new_layer)
+    }
+
+    #[wasm_bindgen(js_name = swapLayers)]
+    pub fn swap_layers(&mut self, first_layer: String, second_layer: String) -> Result<(), JsValue> {
+        // Deserialize the survey objects that compose the survey
+        self.app.swap_layers(&first_layer, &second_layer)
+    }
+
+    #[wasm_bindgen(js_name = setHiPSUrl)]
+    pub fn set_hips_url(&mut self, past_url: String, new_url: String) -> Result<(), JsValue> {
+        self.app.set_hips_url(past_url, new_url)
+    }
+
+    #[wasm_bindgen(js_name = getImageMetadata)]
+    pub fn get_layer_cfg(&self, layer: String) -> Result<ImageMetadata, JsValue> {
         self.app.get_layer_cfg(&layer)
     }
 
     // Set a new color associated with a layer
-    #[wasm_bindgen(js_name = setImageSurveyMeta)]
+    #[wasm_bindgen(js_name = setImageMetadata)]
     pub fn set_survey_color_cfg(&mut self, layer: String, meta: JsValue) -> Result<(), JsValue> {
         let meta = serde_wasm_bindgen::from_value(meta)?;
 
         self.app.set_image_survey_color_cfg(layer, meta)
-    }
-
-    #[wasm_bindgen(js_name = setImageSurveyImageFormat)]
-    pub fn set_image_survey_img_format(&mut self, layer: String, format: JsValue) -> Result<(), JsValue> {
-        let format = serde_wasm_bindgen::from_value(format)?;
-
-        self.app.set_image_survey_img_format(layer, format)
     }
 
     #[wasm_bindgen(js_name = setImageSurveyUrl)]
@@ -707,12 +724,41 @@ impl WebClient {
     /// in core/img/colormaps/colormaps.png
     #[wasm_bindgen(js_name = getAvailableColormapList)]
     pub fn get_available_colormap_list(&self) -> Result<Vec<JsValue>, JsValue> {
-        let colormaps = Colormaps::get_list_available_colormaps()
+        let colormaps = self.app.get_colormaps()
+            .get_list_available_colormaps()
             .iter()
-            .map(|&s| JsValue::from_str(s))
+            .map(|s| JsValue::from_str(s))
             .collect::<Vec<_>>();
 
         Ok(colormaps)
+    }
+
+    #[wasm_bindgen(js_name = createCustomColormap)]
+    pub fn add_custom_colormap(&mut self, label: String, hex_colors: Vec<JsValue>) -> Result<(), JsValue> {
+        let rgba_colors: Result<Vec<_>, JsValue> = hex_colors
+            .into_iter()
+            .map(|hex_color| {
+                let hex_color = serde_wasm_bindgen::from_value(hex_color)?;
+                let color = Color::hexToRgba(hex_color);
+                let color_rgba: ColorRGBA = color.try_into()?;
+            
+                Ok(colorgrad::Color::new(
+                    color_rgba.r as f64,
+                    color_rgba.g as f64,
+                    color_rgba.b as f64,
+                    color_rgba.a as f64)
+                )
+            })
+            .collect();
+
+        let grad = colorgrad::CustomGradient::new()
+            .colors(&rgba_colors?)
+            .build()
+            .map_err(|err| JsValue::from_str(&format!("{:?}", err)))?;
+
+        let cmap = Colormap::new(&label, grad);
+        self.app.add_cmap(label, cmap)?;
+        Ok(())
     }
 
     /// Get the image canvas where the webgl rendering is done
@@ -781,13 +827,6 @@ impl WebClient {
         }?;
 
         self.app.add_moc(params.clone(), HEALPixCoverage(moc))?;
-
-        Ok(())
-    }
-
-    #[wasm_bindgen(js_name = addFITSImage)]
-    pub fn add_fits_image(&mut self, raw_bytes: &[u8]) -> Result<(), JsValue> {
-        self.app.add_fits_image(raw_bytes)?;
 
         Ok(())
     }

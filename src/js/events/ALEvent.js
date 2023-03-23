@@ -31,14 +31,18 @@
  *****************************************************************************/
 
  export class ALEvent {
+    static LOADING_STATE = new ALEvent("AL:Layer.loading");
+
     static COO_GRID_ENABLED  = new ALEvent("AL:cooGrid.enabled");
     static COO_GRID_DISABLED = new ALEvent("AL:cooGrid.disabled");
     static COO_GRID_UPDATED  = new ALEvent("AL:cooGrid.updated");
 
     static PROJECTION_CHANGED  = new ALEvent("AL:projection.changed");
 
-    static HIPS_LAYER_ADDED  = new ALEvent("AL:HiPSLayer.added");
-    static HIPS_LAYER_REMOVED  = new ALEvent("AL:HiPSLayer.removed");
+    static HIPS_LAYER_ADDED   = new ALEvent("AL:HiPSLayer.added");
+    static HIPS_LAYER_REMOVED = new ALEvent("AL:HiPSLayer.removed");
+    static HIPS_LAYER_RENAMED = new ALEvent("AL:HiPSLayer.renamed");
+    static HIPS_LAYER_SWAP = new ALEvent("AL:HiPSLayer.swap");
 
     static HIPS_LAYER_CHANGED  = new ALEvent("AL:HiPSLayer.changed");
 

@@ -1,7 +1,6 @@
 use crate::{
     async_task::{BuildCatalogIndex, ParseTableTask, TaskExecutor, TaskResult, TaskType},
     camera::CameraViewPort,
-    colormap::Colormaps,
     downloader::Downloader,
     math::{
         self,
@@ -12,7 +11,7 @@ use crate::{
         catalog::{Manager, Source},
         grid::ProjetedGrid,
         moc::MOC,
-        image::FitsImage,
+        ImageCfg,
     },
     healpix::coverage::HEALPixCoverage,
     shader::ShaderManager,
@@ -21,27 +20,33 @@ use crate::{
     time::DeltaTime,
 };
 
+use wasm_bindgen::prelude::*;
+
 use al_core::WebGlContext;
+use al_core::colormap::{Colormap, Colormaps};
 
 use al_api::{
     coo_system::CooSystem,
     grid::GridCfg,
-    hips::{ImageSurveyMeta, SimpleHiPS},
+    hips::{ImageMetadata, HiPSCfg, FITSCfg},
 };
+use wasm_bindgen_futures::JsFuture;
+use fitsrs::{fits::AsyncFits, hdu::{extension::AsyncXtensionHDU}};
 use crate::Abort;
 use super::coosys;
 use cgmath::Vector4;
 
-use wasm_bindgen::prelude::*;
 use web_sys::WebGl2RenderingContext;
 
-use std::cell::RefCell;
+use std::{cell::RefCell};
 use std::rc::Rc;
 
 use std::collections::HashSet;
 
 use crate::renderable::final_pass::RenderPass;
 use al_core::FrameBufferObject;
+
+use al_api::image::ImageParams;
 
 pub struct App {
     pub gl: WebGlContext,
@@ -71,6 +76,7 @@ pub struct App {
     //move_animation: Option<MoveAnimation>,
     //zoom_animation: Option<ZoomAnimation>,
     inertial_move_animation: Option<InertiaAnimation>,
+    disable_inertia: Rc<RefCell<bool>>,
     prev_cam_position: Vector3<f64>,
     prev_center: Vector3<f64>,
     out_of_fov: bool,
@@ -88,17 +94,16 @@ pub struct App {
 
     projection: ProjectionType,
 
-    images: Vec<FitsImage>,
+    // Async data receivers
+    fits_send: async_channel::Sender<ImageCfg>,
+    fits_recv: async_channel::Receiver<ImageCfg>,
+
+    ack_send: async_channel::Sender<ImageParams>,
+    ack_recv: async_channel::Receiver<ImageParams>,
 }
 
 use cgmath::{Vector2, Vector3};
-use futures::stream::StreamExt; // for `next`
-
-/*struct MoveAnimation {
-    start_anim_rot: Rotation<f64>,
-    goal_anim_rot: Rotation<f64>,
-    time_start_anim: Time,
-}*/
+use futures::{stream::StreamExt, io::BufReader}; // for `next`
 
 /// State for inertia
 struct InertiaAnimation {
@@ -174,6 +179,8 @@ impl App {
 
         // Variable storing the location to move to
         let inertial_move_animation = None;
+        let disable_inertia = Rc::new(RefCell::new(false));
+
         //let tasks_finished = false;
         let request_redraw = false;
         let rendering = true;
@@ -182,7 +189,7 @@ impl App {
         let out_of_fov = false;
         let catalog_loaded = false;
 
-        let colormaps = Colormaps::new(&gl, &resources)?;
+        let colormaps = Colormaps::new(&gl)?;
 
         let _final_rendering_pass = RenderPass::new(&gl)?;
         let tile_fetcher = TileFetcherQueue::new();
@@ -197,7 +204,9 @@ impl App {
 
         gl.clear_color(0.15, 0.15, 0.15, 1.0);
 
-        let images = vec![];
+        let (fits_send, fits_recv) = async_channel::unbounded::<ImageCfg>();
+        let (ack_send, ack_recv) = async_channel::unbounded::<ImageParams>();
+
         Ok(App {
             gl,
             start_time_frame,
@@ -228,6 +237,7 @@ impl App {
             _final_rendering_pass,
 
             inertial_move_animation,
+            disable_inertia,
             prev_cam_position,
             out_of_fov,
 
@@ -238,7 +248,11 @@ impl App {
 
             colormaps,
             projection,
-            images,
+
+            fits_send,
+            fits_recv,
+            ack_send,
+            ack_recv
         })
     }
 
@@ -383,7 +397,6 @@ impl App {
     }*/
 }
 
-use al_api::hips::HiPSTileFormat;
 use al_api::cell::HEALPixCellProjeted;
 use crate::downloader::request::Resource;
 
@@ -399,9 +412,11 @@ impl App {
 
     pub(crate) fn get_visible_cells(&self, depth: u8) -> Box<[HEALPixCellProjeted]> {
         let coverage = crate::survey::view::compute_view_coverage(&self.camera, depth, &CooSystem::ICRSJ2000);
+
         let cells: Vec<_> = coverage.flatten_to_fixed_depth_cells()
             .filter_map(|ipix| {
                 let cell = HEALPixCell(depth, ipix);
+
                 if let Ok(v) = crate::survey::view::vertices(&cell, &self.camera, &self.projection) {
                     let vx = [v[0].x, v[1].x, v[2].x, v[3].x];
                     let vy = [v[0].y, v[1].y, v[2].y, v[3].y];
@@ -452,12 +467,6 @@ impl App {
         self.moc.set_params(params, &self.camera, &self.projection)
             .ok_or_else(|| JsValue::from_str("MOC not found"))?;
         self.request_redraw = true;
-
-        Ok(())
-    }
-
-    pub(crate) fn add_fits_image(&mut self, raw_bytes: &[u8]) -> Result<(), JsValue> {
-        self.images.push(FitsImage::new(&self.gl, raw_bytes)?);
 
         Ok(())
     }
@@ -516,41 +525,14 @@ impl App {
                 if !has_camera_moved || (Time::now() - self.start_time_frame < DeltaTime::from(24.0)) || !tile_copied {
                     match rsc {
                         Resource::Tile(tile) => {
-                            let is_tile_root = tile.is_root;
+                            let is_tile_root = tile.cell().is_root();
 
-                            if let Some(survey) = self.layers.get_mut_hips(&tile.get_hips_url()) {
-                                if is_tile_root {
-                                    let is_missing = tile.missing();
-                                    let Tile {
-                                        cell,
-                                        image,
-                                        time_req,
-                                        ..
-                                    } = tile;
-        
-                                    let image = if is_missing {
-                                        // Otherwise we push nothing, it is probably the case where:
-                                        // - an request error occured on a valid tile
-                                        // - the tile is not present, e.g. chandra HiPS have not the 0, 1 and 2 order tiles
-                                        None
-                                    } else {
-                                        Some(image)
-                                    };
-                                    survey.add_tile(&cell, image, time_req)?;
-                                    tile_copied = true;
+                            if let Some(survey) = self.layers.get_mut_hips_from_url(&tile.get_hips_url()) {
+                                let cfg = survey.get_config();
+                                if cfg.get_format() == tile.format {
+                                    // If the format of the survey has changed then we discard tiles of the previous format
 
-                                    self.request_redraw = true;
-                                } else {
-                                    let cfg = survey.get_config();
-                                    let fov_coverage = survey.get_view().get_coverage();
-                                    let texture_cell = tile.cell.get_texture_cell(cfg);
-                                    let included_or_near_coverage = texture_cell.get_tile_cells(cfg)
-                                        .any(|neighbor_tile_cell| {
-                                            fov_coverage.contains(&neighbor_tile_cell)
-                                        });
-
-                                    // do not perform tex_sub costly GPU calls while the camera is moving
-                                    if included_or_near_coverage && !has_camera_moved {
+                                    if is_tile_root {
                                         let is_missing = tile.missing();
                                         let Tile {
                                             cell,
@@ -567,23 +549,54 @@ impl App {
                                         } else {
                                             Some(image)
                                         };
-
                                         survey.add_tile(&cell, image, time_req)?;
                                         tile_copied = true;
 
                                         self.request_redraw = true;
                                     } else {
-                                        self.downloader.cache_rsc(Resource::Tile(tile));
+                                        let fov_coverage = survey.get_view().get_coverage();
+                                        let texture_cell = tile.cell().get_texture_cell(cfg);
+                                        let included_or_near_coverage = texture_cell.get_tile_cells(cfg)
+                                            .any(|neighbor_tile_cell| {
+                                                fov_coverage.contains(&neighbor_tile_cell)
+                                            });
+
+                                        // do not perform tex_sub costly GPU calls while the camera is moving
+                                        if included_or_near_coverage && !has_camera_moved {
+                                            let is_missing = tile.missing();
+                                            let Tile {
+                                                cell,
+                                                image,
+                                                time_req,
+                                                ..
+                                            } = tile;
+
+                                            let image = if is_missing {
+                                                // Otherwise we push nothing, it is probably the case where:
+                                                // - an request error occured on a valid tile
+                                                // - the tile is not present, e.g. chandra HiPS have not the 0, 1 and 2 order tiles
+                                                None
+                                            } else {
+                                                Some(image)
+                                            };
+
+                                            survey.add_tile(&cell, image, time_req)?;
+                                            tile_copied = true;
+
+                                            self.request_redraw = true;
+                                        } else {
+                                            self.downloader.cache_rsc(Resource::Tile(tile));
+                                        }
                                     }
                                 }
                             }
-    
+
                             num_tile_received += 1;
                         }
                         Resource::Allsky(allsky) => {
                             let hips_url = allsky.get_hips_url();
-    
-                            if let Some(survey) = self.layers.get_mut_hips(hips_url) {
+
+                            if let Some(survey) = self.layers.get_mut_hips_from_url(hips_url) {
                                 let is_missing = allsky.missing();
                                 if is_missing {
                                     // The allsky image is missing so we donwload all the tiles contained into
@@ -606,7 +619,7 @@ impl App {
                             }
                         },
                         Resource::PixelMetadata(metadata) => {
-                            if let Some(hips) = self.layers.get_mut_hips(&metadata.hips_url) {
+                            if let Some(hips) = self.layers.get_mut_hips_from_url(&metadata.hips_url) {
                                 let mut cfg = hips.get_config_mut();
 
                                 if let Some(metadata) = *metadata.value.lock().unwrap_abort() {
@@ -619,7 +632,7 @@ impl App {
                         Resource::Moc(moc) => {
                             let moc_url = moc.get_url();
                             let url = &moc_url[..moc_url.find("/Moc.fits").unwrap_abort()];
-                            if let Some(hips) = self.layers.get_mut_hips(url) {
+                            if let Some(hips) = self.layers.get_mut_hips_from_url(url) {
                                 let request::moc::Moc {
                                     moc,
                                     ..
@@ -654,7 +667,7 @@ impl App {
             self.layers.refresh_views(&mut self.camera);
         }
 
-        if self.request_for_new_tiles && Time::now() - self.last_time_request_for_new_tiles > DeltaTime::from(500_f32) {
+        if self.request_for_new_tiles && Time::now() - self.last_time_request_for_new_tiles > DeltaTime::from(100_f32) {
             self.look_for_new_tiles()?;
 
             self.request_for_new_tiles = false;
@@ -703,6 +716,20 @@ impl App {
             }
         }*/
 
+        // Check for async retrieval
+        if let Ok(fits) = self.fits_recv.try_recv() {
+            let params = fits.get_params();
+            self.layers.add_image_fits(fits, &mut self.camera, &self.projection)?;
+            self.request_redraw = true;
+
+            // Send the ack to the js promise so that she finished
+            let ack_send = self.ack_send.clone();
+            wasm_bindgen_futures::spawn_local(async move {
+                ack_send.send(params).await
+                    .unwrap_throw();
+            })
+        }
+
         self.draw(false)?;
 
         Ok(())
@@ -717,13 +744,15 @@ impl App {
         self.set_center(&self.get_center());
     }
 
-    pub(crate) fn read_pixel(&self, pos: &Vector2<f64>, layer_id: &str) -> Result<JsValue, JsValue> {
+    pub(crate) fn read_pixel(&self, pos: &Vector2<f64>, layer: &str) -> Result<JsValue, JsValue> {
         if let Some(lonlat) = self.screen_to_world(pos) {
-            let survey = self.layers
-                .get_hips_from_layer(layer_id)
-                .ok_or_else(|| JsValue::from_str("Survey not found"))?;
-
-            survey.read_pixel(&lonlat, &self.camera)
+            if let Some(survey) = self.layers.get_hips_from_layer(layer) {
+                survey.read_pixel(&lonlat, &self.camera)
+            } else if let Some(_image) = self.layers.get_image_from_layer(layer) {
+                Err(JsValue::from_str("TODO: read pixel value"))
+            } else {
+                Err(JsValue::from_str("Survey not found"))
+            }
         } else {
             Err(JsValue::from_str(&"position is out of projection"))
         }
@@ -797,23 +826,19 @@ impl App {
         if scene_redraw {
             let shaders = &mut self.shaders;
 
-            let grid = &mut self.grid;
-            let layers = &mut self.layers;
             //let catalogs = &self.manager;
-            let colormaps = &self.colormaps;
-            let camera = &self.camera;
             // Render the scene
             // Clear all the screen first (only the region set by the scissor)
             self.gl.clear(web_sys::WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
-            layers.draw(camera, shaders, colormaps, &self.projection)?;
-            self.moc.draw(shaders, camera);
+            self.layers.draw(&self.camera, shaders, &self.colormaps, &self.projection)?;
+            self.moc.draw(shaders, &self.camera);
 
             // Draw the catalog
             //let fbo_view = &self.fbo_view;
             //catalogs.draw(&gl, shaders, camera, colormaps, fbo_view)?;
             //catalogs.draw(&gl, shaders, camera, colormaps, None, self.projection)?;
-            grid.draw(camera, shaders)?;
+            self.grid.draw(&self.camera, shaders)?;
 
             //let dpi  = self.camera.get_dpi();
             //ui.draw(&gl, dpi)?;
@@ -830,87 +855,266 @@ impl App {
         Ok(())
     }
 
-    pub(crate) fn set_image_surveys(&mut self, hipses: Vec<SimpleHiPS>) -> Result<(), JsValue> {
-        self.layers.set_image_surveys(hipses, &self.gl, &mut self.camera, &self.projection)?;
+    pub(crate) fn remove_layer(&mut self, layer: &str) -> Result<(), JsValue> {
+        self.layers.remove_layer(layer, &mut self.camera, &self.projection)?;
 
-        for hips in self.layers.values_hips() {
-            let cfg = hips.get_config();
-            // Request for the allsky first
-            // The allsky is not mandatory present in a HiPS service but it is better to first try to search for it
-            self.downloader.fetch(query::PixelMetadata::new(cfg));
-            // Try to fetch the MOC
-            self.downloader.fetch(query::Moc::new(format!("{}/Moc.fits", cfg.get_root_url()), al_api::moc::MOC::default()));
-
-            let tile_size = cfg.get_tile_size();
-            //Request the allsky for the small tile size or if base tiles are not available
-            if tile_size <= 128 || cfg.get_min_depth_tile() > 0 {
-                // Request the allsky
-                self.downloader.fetch(query::Allsky::new(cfg));
-            } else {
-                for texture_cell in crate::healpix::cell::ALLSKY_HPX_CELLS_D0 {
-                    for cell in texture_cell.get_tile_cells(cfg) {
-                        let query = query::Tile::new(&cell, cfg);
-                        self.tile_fetcher
-                            .append_base_tile(query, &mut self.downloader);
-                    }
-                }
-            }
-        }
-
-        // Once its added, request the tiles in the view (unless the viewer is at depth 0)
-        self.request_for_new_tiles = true;
         self.request_redraw = true;
-        self.grid.update(&self.camera, &self.projection);
 
         Ok(())
     }
 
-    pub(crate) fn get_layer_cfg(&self, layer: &str) -> Result<ImageSurveyMeta, JsValue> {
+    pub(crate) fn rename_layer(&mut self, layer: &str, new_layer: &str) -> Result<(), JsValue> {
+        self.layers.rename_layer(&layer, &new_layer)
+    }
+
+    pub(crate) fn swap_layers(&mut self, first_layer: &str, second_layer: &str) -> Result<(), JsValue> {
+        self.layers.swap_layers(first_layer, second_layer)?;
+
+        self.request_redraw = true;
+
+        Ok(())
+    }
+
+    pub(crate) fn add_image_survey(&mut self, hips_cfg: HiPSCfg) -> Result<(), JsValue> {
+        let hips = self.layers.add_image_survey(&self.gl, hips_cfg, &mut self.camera, &self.projection)?;
+        self.tile_fetcher.launch_starting_hips_requests(hips, &mut self.downloader);
+
+        // Once its added, request the tiles in the view (unless the viewer is at depth 0)
+        self.request_for_new_tiles = true;
+        self.request_redraw = true;
+        //self.grid.update(&self.camera, &self.projection);
+
+        Ok(())
+    }
+
+    pub(crate) fn add_image_fits(&mut self, cfg: FITSCfg) -> Result<js_sys::Promise, JsValue> {
+        let FITSCfg { layer, url, meta } = cfg;
+        let gl = self.gl.clone();
+
+        let fits_sender = self.fits_send.clone();
+        let ack_recv = self.ack_recv.clone();
+        // Stop the current inertia
+        self.inertial_move_animation = None;
+        // And disable it while the fits has not been loaded
+        let disable_inertia = self.disable_inertia.clone();
+        *(disable_inertia.borrow_mut()) = true;
+
+        let fut = async move {
+            use wasm_streams::ReadableStream;
+            use js_sys::Uint8Array;
+            use web_sys::Response;
+            use web_sys::window;
+            use crate::renderable::image::Image;
+            use futures::TryStreamExt;
+
+            let window = window().unwrap();
+            let resp_value = JsFuture::from(window.fetch_with_str(&url))
+                .await?;
+            let resp: Response = resp_value.dyn_into()?;
+
+            // Get the response's body as a JS ReadableStream
+            let raw_body = resp.body().unwrap();
+            let body = ReadableStream::from_raw(raw_body.dyn_into()?);
+
+            // Convert the JS ReadableStream to a Rust stream
+            let bytes_reader = body
+                .into_stream()
+                .map_ok(|js_value| js_value.dyn_into::<Uint8Array>().unwrap_throw().to_vec())
+                .map_err(|_js_error| std::io::Error::new(std::io::ErrorKind::Other, "failed to read"))
+                .into_async_read();
+            let mut reader = BufReader::new(bytes_reader);
+
+            let AsyncFits { mut hdu } = AsyncFits::from_reader(&mut reader).await
+                .map_err(|e| {
+                    JsValue::from_str(&format!("Fits file parsing: reason: {}", e))
+                })?;
+
+            let mut hdu_ext_idx = 0;
+            let mut images_params = vec![];
+
+            match Image::from_fits_hdu_async(&gl, &mut hdu.0).await {
+                Ok(image) => {
+                    let layer_ext = layer.clone();
+                    let url_ext = url.clone();
+    
+                    let fits = ImageCfg {
+                        image: image,
+                        layer: layer_ext,
+                        url: url_ext,
+                        meta: meta.clone()
+                    };
+        
+                    fits_sender.send(fits).await
+                        .unwrap();
+    
+                    // Wait for the ack here
+                    let image_params = ack_recv.recv().await
+                        .map_err(|_| JsValue::from_str("Problem receiving fits"))?;
+    
+                    images_params.push(image_params);
+    
+                    let mut hdu_ext = hdu.next().await;
+    
+                    // Continue parsing the file extensions here
+                    while let Ok(Some(mut xhdu)) = hdu_ext {
+                        match &mut xhdu {
+                            AsyncXtensionHDU::Image(xhdu_img) => {
+                                match Image::from_fits_hdu_async(&gl, xhdu_img).await {
+                                    Ok(image) => {
+                                        let layer_ext = layer.clone() + "_ext_" + &format!("{hdu_ext_idx}");
+                                        let url_ext = url.clone() + "_ext_" + &format!("{hdu_ext_idx}");
+    
+                                        let fits_ext = ImageCfg {
+                                            image: image,
+                                            layer: layer_ext,
+                                            url: url_ext,
+                                            meta: meta.clone()
+                                        };
+    
+                                        fits_sender.send(fits_ext).await
+                                            .unwrap();
+        
+                                        let image_params = ack_recv.recv().await
+                                            .map_err(|_| JsValue::from_str("Problem receving fits"))?;
+    
+                                        images_params.push(image_params);
+                                    },
+                                    Err(error) => {
+                                        al_core::log::console_warn(&
+                                            format!("The extension {hdu_ext_idx} has not been parsed, reason:")
+                                        );
+    
+                                        al_core::log::console_warn(error);
+                                    }
+                                }
+                            },
+                            _ => {
+                                al_core::log::console_warn(&
+                                    format!("The extension {hdu_ext_idx} is a BinTable/AsciiTable and is thus discarded")
+                                );
+                            }
+                        }
+    
+                        hdu_ext_idx += 1;
+    
+                        hdu_ext = xhdu.next().await;
+                    }
+                },
+                Err(error) => {
+                    al_core::log::console_warn(error);
+
+                    let mut hdu_ext = hdu.next().await;
+
+                    while let Ok(Some(mut xhdu)) = hdu_ext {
+                        match &mut xhdu {
+                            AsyncXtensionHDU::Image(xhdu_img) => {
+                                match Image::from_fits_hdu_async(&gl, xhdu_img).await {
+                                    Ok(image) => {
+                                        let layer_ext = layer.clone() + "_ext_" + &format!("{hdu_ext_idx}");
+                                        let url_ext = url.clone() + "_ext_" + &format!("{hdu_ext_idx}");
+            
+                                        let fits_ext = ImageCfg {
+                                            image: image,
+                                            layer: layer_ext,
+                                            url: url_ext,
+                                            meta: meta.clone()
+                                        };
+    
+                                        fits_sender.send(fits_ext).await
+                                            .unwrap();
+    
+                                        let image_params = ack_recv.recv().await
+                                            .map_err(|_| JsValue::from_str("Problem receving fits"))?;
+    
+                                        images_params.push(image_params);
+                                    },
+                                    Err(error) => {
+                                        al_core::log::console_warn(&
+                                            format!("The extension {hdu_ext_idx} has not been parsed, reason:")
+                                        );
+    
+                                        al_core::log::console_warn(error);
+                                    }
+                                }
+                            },
+                            _ => {
+                                al_core::log::console_warn(&
+                                    format!("The extension {hdu_ext_idx} is a BinTable/AsciiTable and is thus discarded")
+                                );
+                            }
+                        }
+    
+                        hdu_ext_idx += 1;
+    
+                        hdu_ext = xhdu.next().await;
+                    }
+                }
+            }
+
+            if !images_params.is_empty() {
+                serde_wasm_bindgen::to_value(&images_params).map_err(|e| e.into())
+            } else {
+                Err(JsValue::from_str("The fits file has no extension that had been parsed"))
+            }
+        };
+        
+        let reenable_inertia = Closure::new(move || {
+            // renable inertia again
+            *(disable_inertia.borrow_mut()) = false;
+        });
+
+        let promise = wasm_bindgen_futures::future_to_promise(fut)
+            // Reenable inertia independantly from whether the
+            // fits has been correctly parsed or not
+            .finally(
+                &reenable_inertia
+            );
+
+        // forget the closure, it is not very proper to do this as
+        // it won't be deallocated
+        reenable_inertia.forget();
+
+        Ok(promise)
+    }
+
+    pub(crate) fn get_layer_cfg(&self, layer: &str) -> Result<ImageMetadata, JsValue> {
         self.layers.get_layer_cfg(layer)
+    }
+
+    pub(crate) fn set_hips_url(&mut self, past_url: String, new_url: String) -> Result<(), JsValue> {
+        self.layers.set_survey_url(past_url, new_url.clone())?;
+
+        let hips = self.layers.get_hips_from_url(&new_url).unwrap_abort();
+        // Relaunch the base tiles for the survey to be ready with the new url
+        self.tile_fetcher.launch_starting_hips_requests(hips, &mut self.downloader);
+
+        Ok(())
     }
 
     pub(crate) fn set_image_survey_color_cfg(
         &mut self,
         layer: String,
-        meta: ImageSurveyMeta,
+        meta: ImageMetadata,
     ) -> Result<(), JsValue> {
-        self.request_redraw = true;
 
-        self.layers.set_layer_cfg(layer, meta, &self.camera, &self.projection)
-    }
+        let old_meta = self.layers.get_layer_cfg(&layer)?;
+        // Set the new meta
+        let new_img_fmt = meta.img_format;
+        self.layers.set_layer_cfg(layer.clone(), meta, &self.camera, &self.projection)?;
 
-    pub(crate) fn set_image_survey_img_format(&mut self, layer: String, format: HiPSTileFormat) -> Result<(), JsValue> {
-        let survey = self.layers.get_mut_hips_from_layer(&layer)
-            .ok_or_else(|| JsValue::from_str("Layer not found"))?;
-        survey.set_img_format(format)?;
-        // Request for the allsky first
-        // The allsky is not mandatory present in a HiPS service but it is better to first try to search for it
-        let cfg = survey.get_config();
+        if old_meta.img_format != new_img_fmt {
+            // The image format has been changed
+            let hips = self.layers
+                .get_mut_hips_from_layer(&layer)
+                .ok_or_else(|| JsValue::from_str("Layer not found"))?;
+            hips.set_img_format(new_img_fmt)?;
 
-        //Request the allsky for the small tile size
-        let tile_size = cfg.get_tile_size();
+            // Relaunch the base tiles for the survey to be ready with the new url
+            self.tile_fetcher.launch_starting_hips_requests(hips, &mut self.downloader);     
 
-        // The allsky is not mandatory present in a HiPS service but it is better to first try to search for it
-        self.downloader.fetch(query::PixelMetadata::new(cfg));
-        // Try to fetch the MOC
-        self.downloader.fetch(query::Moc::new(format!("{}/Moc.fits", cfg.get_root_url()), al_api::moc::MOC::default()));
-        //Request the allsky for the small tile size
-        if tile_size <= 128 || cfg.get_min_depth_tile() > 0 {
-            // Request the allsky
-            self.downloader.fetch(query::Allsky::new(cfg));
-        } else {
-            for texture_cell in crate::healpix::cell::ALLSKY_HPX_CELLS_D0 {
-                for cell in texture_cell.get_tile_cells(cfg) {
-                    let query = query::Tile::new(&cell, cfg);
-                    self.tile_fetcher
-                        .append_base_tile(query, &mut self.downloader);
-                }
-            }
+            // Once its added, request the tiles in the view (unless the viewer is at depth 0)
+            self.request_for_new_tiles = true;
         }
-        
-
-        // Once its added, request the tiles in the view (unless the viewer is at depth 0)
-        self.request_for_new_tiles = true;
 
         self.request_redraw = true;
 
@@ -940,10 +1144,9 @@ impl App {
         self.camera.get_longitude_reversed()
     }
 
-    pub(crate) fn add_catalog(&mut self, name: String, table: JsValue, colormap: String) {
+    pub(crate) fn add_catalog(&mut self, name: String, table: JsValue, _colormap: String) {
         let mut exec_ref = self.exec.borrow_mut();
         let table = table;
-        let c = self.colormaps.get(&colormap);
 
         exec_ref
             .spawner()
@@ -965,7 +1168,6 @@ impl App {
                 TaskResult::TableParsed {
                     name,
                     sources: results.into_boxed_slice(),
-                    colormap: c,
                 }
             });
     }
@@ -1101,23 +1303,22 @@ impl App {
             return;
         }
 
-        /*if self.ui.lock().pos_over_ui() {
-            return;
-        }*/
+        let disable_inertia: bool = *(self.disable_inertia.borrow_mut());
         // Start inertia here
+        if !disable_inertia {
+            // Angular distance between the previous and current
+            // center position
+            let axis = self.prev_cam_position.cross(center).normalize();
 
-        // Angular distance between the previous and current
-        // center position
-        let axis = self.prev_cam_position.cross(center).normalize();
+            let delta_time = ((now - time_of_last_move).0 as f64).max(1.0);
+            let delta_angle = math::vector::angle3(&self.prev_cam_position, &center);
 
-        let delta_time = ((now - time_of_last_move).0 as f64).max(1.0);
-        let delta_angle = math::vector::angle3(&self.prev_cam_position, &center);
-
-        self.inertial_move_animation = Some(InertiaAnimation {
-            d0: delta_angle * 3.0 / delta_time,
-            axis,
-            time_start_anim: Time::now(),
-        });
+            self.inertial_move_animation = Some(InertiaAnimation {
+                d0: delta_angle * 3.0 / delta_time,
+                axis,
+                time_start_anim: Time::now(),
+            })
+        }
     }
 
     /*fn start_moving_to(&mut self, lonlat: &LonLatT<f64>) {
@@ -1189,13 +1390,17 @@ impl App {
         self.out_of_fov = true;
     }
 
+    pub(crate) fn add_cmap(&mut self, label: String, cmap: Colormap) -> Result<(), JsValue> {
+        self.colormaps.add_cmap(label, cmap)
+    }
+
     // Accessors
     pub(crate) fn get_center(&self) -> LonLatT<f64> {
         self.camera.get_center().lonlat()
     }
 
     pub(crate) fn get_norder(&self) -> i32 {
-        self.layers.get_depth() as i32
+        self.camera.get_tile_depth() as i32
     }
 
     pub(crate) fn get_clip_zoom_factor(&self) -> f64 {
@@ -1205,6 +1410,10 @@ impl App {
     pub(crate) fn get_fov(&self) -> f64 {
         let deg: ArcDeg<f64> = self.camera.get_aperture().into();
         deg.0
+    }
+
+    pub(crate) fn get_colormaps(&self) -> &Colormaps {
+        &self.colormaps
     }
 
     pub(crate) fn get_gl_canvas(&self) -> Option<js_sys::Object> {

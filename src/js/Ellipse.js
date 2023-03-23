@@ -207,8 +207,8 @@ export let Ellipse = (function() {
         let toNorth = [this.centerRaDec[0], this.centerRaDec[1] + 1e-3];
 
         // 2. Project it to the screen
-        let originScreen = this.overlay.view.aladin.webglAPI.worldToScreen(origin[0], origin[1]);
-        let toNorthScreen = this.overlay.view.aladin.webglAPI.worldToScreen(toNorth[0], toNorth[1]);
+        let originScreen = this.overlay.view.wasm.worldToScreen(origin[0], origin[1]);
+        let toNorthScreen = this.overlay.view.wasm.worldToScreen(toNorth[0], toNorth[1]);
 
         // 3. normalize this vector
         let toNorthVec = [toNorthScreen[0] - originScreen[0], toNorthScreen[1] - originScreen[1]];

@@ -14,6 +14,8 @@ pub mod webgl_ctx;
 #[macro_use]
 pub mod log;
 pub use log::log;
+pub mod colormap;
+pub use colormap::{Colormap, Colormaps};
 
 pub use texture::pixel;
 pub use texture::{Texture2D, Texture2DBound};

@@ -14,22 +14,18 @@ use al_core::image::format::ImageFormatType;
 pub struct Tile {
     pub cell: HEALPixCell,
     pub format: ImageFormatType,
-    pub system: CooSystem,
     // The root url of the HiPS
     pub hips_url: Url,
     // The total url of the query
     pub url: Url,
-    pub is_root: bool,
 }
 
 use crate::{healpix::cell::HEALPixCell, survey::config::HiPSConfig};
-use al_api::coo_system::CooSystem;
 impl Tile {
     pub fn new(cell: &HEALPixCell, cfg: &HiPSConfig) -> Self {
         let hips_url = cfg.get_root_url().clone();
         let format = cfg.get_format();
         let ext = format.get_ext_file();
-        let system = cfg.get_frame();
 
         let HEALPixCell(depth, idx) = *cell;
 
@@ -41,21 +37,19 @@ impl Tile {
         );
 
         // Check if this is a root tile
-        let delta_depth = cfg.delta_depth();
+        /*let delta_depth = cfg.delta_depth();
         let texture_depth = if depth > delta_depth {
             depth - delta_depth
         } else {
             0
         };
-        let is_root = texture_depth == 0;
+        let is_root = texture_depth == 0;*/
 
         Tile {
             hips_url,
             url,
             cell: *cell,
             format,
-            system,
-            is_root,
         }
     }
 }

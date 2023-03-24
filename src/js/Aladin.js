@@ -40,6 +40,7 @@ import { Logger } from "./Logger.js";
 import { Catalog } from "./Catalog.js";
 import { ProgressiveCat } from "./ProgressiveCat.js";
 import { Sesame } from "./Sesame.js";
+import { PlanetaryFeaturesNameResolver } from "./PlanetaryFeaturesNameResolver.js";
 import { CooFrameEnum } from "./CooFrameEnum.js";
 import { MeasurementTable } from "./MeasurementTable.js";
 import { Location } from "./Location.js";
@@ -729,21 +730,42 @@ export let Aladin = (function () {
         // ask resolution by Sesame
         else {
             var self = this;
-            Sesame.resolve(targetName,
-                function (data) { // success callback
-                    // Location given in icrs at J2000
-                    const coo = data.Target.Resolver;
-                    self.view.pointTo(coo.jradeg, coo.jdedeg, options);
+            // sky case
+            if (this.getBaseImageLayer().properties.isPlanetaryBody === false) {
+                Sesame.resolve(targetName,
+                    function (data) { // success callback
+                        // Location given in icrs at J2000
+                        const coo = data.Target.Resolver;
+                        self.view.pointTo(coo.jradeg, coo.jdedeg, options);
 
-                    (typeof successCallback === 'function') && successCallback(self.getRaDec());
-                },
-                function (data) { // errror callback
-                    if (console) {
-                        console.log("Could not resolve object name " + targetName);
-                        console.log(data);
-                    }
-                    (typeof errorCallback === 'function') && errorCallback();
+                        (typeof successCallback === 'function') && successCallback(self.getRaDec());
+                    },
+                    function (data) { // errror callback
+                        if (console) {
+                            console.log("Could not resolve object name " + targetName);
+                            console.log(data);
+                        }
+                        (typeof errorCallback === 'function') && errorCallback();
                 });
+            }
+            // planetary case
+            else {
+                const body = this.getBaseImageLayer().properties.hipsBody;
+                PlanetaryFeaturesNameResolver.resolve(targetName, body,
+                    function (data) { // success callback
+                        console.log(data);
+                        self.view.pointTo(data.lon, data.lat, options);
+
+                        (typeof successCallback === 'function') && successCallback(self.getRaDec());
+                    },
+                    function (data) { // errror callback
+                        if (console) {
+                            console.log("Could not resolve object name " + targetName);
+                            console.log(data);
+                        }
+                        (typeof errorCallback === 'function') && errorCallback();
+                });
+            }
         }
     };
 

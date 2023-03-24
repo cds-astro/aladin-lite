@@ -99,7 +99,8 @@ export let PlanetaryFeaturesPointer = (function() {
                     const title = '<div class="aladin-sp-title"><a target="_blank" href="https://planetarynames.wr.usgs.gov/Feature/' + featureId + '">' + featureName + '</a></div>';
                     const featureType = values[fields.indexOf('feature_type')]
                     let content = '<div class="aladin-sp-content">' + ' ' + '</div>';
-                    content += '<em>Type: </em>' + featureType + '<br>';
+                    content += '<em>Type: </em>' + featureType + '<br><br>';
+                    content += '<a target="_blank" href="https://planetarynames.wr.usgs.gov/Feature/' + featureId + '">' + 'More info' + '</a>';
 
                     const lon = parseFloat(values[lonFieldIdx]);
                     const lat = parseFloat(values[latFieldIdx]);

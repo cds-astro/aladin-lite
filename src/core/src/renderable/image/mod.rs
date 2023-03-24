@@ -186,7 +186,7 @@ impl Image {
                     .filter_map(|v| if v == (blank as i32) {
                         None
                     } else {
-                        Some(v as f32)
+                        Some(v)
                     })
                     .collect::<Vec<_>>();
 
@@ -208,7 +208,7 @@ impl Image {
                     .filter_map(|v| if v == (blank as i32) {
                         None
                     } else {
-                        Some(v as f32)
+                        Some(v as i32)
                     })
                     .collect::<Vec<_>>();
 
@@ -248,7 +248,7 @@ impl Image {
 
                 let mut samples = samples
                     .into_iter()
-                    .filter_map(|v| if v == blank || v.is_nan() {
+                    .filter_map(|v| if v == blank || v.is_nan() || v.is_zero() {
                         None
                     } else {
                         Some(v)

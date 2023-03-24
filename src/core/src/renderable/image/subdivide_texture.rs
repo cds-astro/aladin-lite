@@ -53,6 +53,7 @@ where
         } else {
             max_tex_size
         };
+
         let num_bytes_to_read = (num_pixels_to_read as usize) * std::mem::size_of::<<F::P as Pixel>::Item>();
         reader.read_exact(&mut buf[..num_bytes_to_read])
             .await

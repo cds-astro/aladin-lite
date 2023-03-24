@@ -56,6 +56,10 @@ export let ImageFITS = (function () {
         this.successCallback = successCallback;
         this.errorCallback = errorCallback;
         // initialize the color meta data here
+        // set a asinh stretch by default if there is none
+        if (options) {
+            options.stretch = options.stretch || "asinh";
+        }
         this.colorCfg = new ColorCfg(options);
 
         let self = this;
@@ -183,6 +187,8 @@ export let ImageFITS = (function () {
                 image.added = true;
                 // deep copy of the color object of self
                 image.colorCfg = Utils.deepCopy(self.colorCfg);
+                // Set the automatic computed cuts
+                image.setCuts(imageParams.automatic_min_cut, imageParams.automatic_max_cut);
 
                 image.ra = imageParams.centered_fov.ra;
                 image.dec = imageParams.centered_fov.dec;

@@ -2,7 +2,6 @@ use wasm_bindgen::JsValue;
 
 use futures::AsyncReadExt;
 
-use al_core::texture::MAX_TEX_SIZE;
 use al_core::texture::TEX_PARAMS;
 use al_core::texture::{
     pixel::Pixel,
@@ -13,24 +12,30 @@ use al_core::image::format::ImageFormat;
 
 
 
-pub async fn build<'a, F, R>(gl: &WebGlContext, width: u64, height: u64, mut reader: R) -> Result<Vec<Texture2D>, JsValue>
+pub async fn build<'a, F, R>(gl: &WebGlContext, width: u64, height: u64, mut reader: R, max_tex_size: usize) -> Result<(Vec<Texture2D>, Vec< <F::P as Pixel>::Item >), JsValue>
 where
     F: ImageFormat,
     R: AsyncReadExt + Unpin
 {
-    let mut buf = vec![0; MAX_TEX_SIZE * std::mem::size_of::<<F::P as Pixel>::Item>()];
-    let max_tex_size = MAX_TEX_SIZE as u64;
+    let mut buf = vec![0; max_tex_size * std::mem::size_of::<<F::P as Pixel>::Item>()];
+    let max_tex_size = max_tex_size as u64;
 
     // Subdivision
     let num_textures = ((width / max_tex_size) + 1) * ((height / max_tex_size) + 1);
 
     let mut tex_chunks = vec![];
     for _ in 0..num_textures {
-        tex_chunks.push(Texture2D::create_from_raw_pixels::<F>(gl, MAX_TEX_SIZE as i32, MAX_TEX_SIZE as i32, TEX_PARAMS, None)?);
+        tex_chunks.push(Texture2D::create_from_raw_pixels::<F>(gl, max_tex_size as i32, max_tex_size as i32, TEX_PARAMS, None)?);
     }
 
     let mut pixels_written = 0;
     let num_pixels = width * height;
+    let step_x_cut = (width / 50) as usize;
+    let step_y_cut = (height / 50) as usize;
+
+    let mut samples = vec![];
+
+    let step_cut = step_x_cut.max(step_y_cut) + 1;
 
     let num_texture_x = (width / max_tex_size) + 1;
     let num_texture_y = (height / max_tex_size) + 1;
@@ -62,6 +67,21 @@ where
                 buf[..num_bytes_to_read].as_ptr() as *const <F::P as Pixel>::Item,
                 num_pixels_to_read as usize
             );
+
+            // fill the samples buffer
+            if (pixels_written / width) % (step_cut as u64) == 0 {
+                // We are in a good line
+                let xmin = pixels_written % width;
+    
+                for i in (0..width).step_by(step_cut) {
+                    if (xmin..(xmin + num_pixels_to_read)).contains(&i) {
+                        let j = (i - xmin) as usize;
+    
+                        samples.push(slice[j]);
+                    }
+                }
+            }
+
             F::view(slice)
         };
 
@@ -78,5 +98,5 @@ where
         pixels_written += num_pixels_to_read;
     }
 
-    Ok(tex_chunks)
+    Ok((tex_chunks, samples))
 }

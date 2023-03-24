@@ -92,6 +92,8 @@ impl ImageCfg {
             layer: self.layer.clone(),
             url: self.url.clone(),
             centered_fov: self.image.get_centered_fov().clone(),
+            automatic_min_cut: self.image.cuts.start,
+            automatic_max_cut: self.image.cuts.end,
         }
     }
 }

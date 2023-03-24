@@ -4,9 +4,8 @@ pub mod subdivide_texture;
 use std::vec;
 use std::marker::Unpin;
 use std::fmt::Debug;
-//use std::io::Cursor;
 
-use al_core::texture::MAX_TEX_SIZE;
+use cgmath::Zero;
 use futures::stream::{TryStreamExt};
 use futures::AsyncRead;
 
@@ -36,6 +35,8 @@ use crate::ShaderManager;
 use crate::Colormaps;
 use crate::math::lonlat::LonLat;
 
+use std::ops::Range;
+
 pub struct Image {
     /// A reference to the GL context
     gl: WebGlContext,
@@ -52,6 +53,7 @@ pub struct Image {
     blank: f32,
     scale: f32,
     offset: f32,
+    pub cuts: Range<f32>,
 
     /// The center of the fits
     centered_fov: CenteredFoV,
@@ -62,11 +64,27 @@ pub struct Image {
     textures: Vec<Texture2D>,
     /// Texture indices that must be drawn
     idx_tex: Vec<usize>,
+    /// The maximum webgl supported texture size
+    max_tex_size: usize,
 }
 
 use futures::io::BufReader;
 use fitsrs::hdu::AsyncHDU;
 use fitsrs::hdu::header::extension;
+
+pub fn compute_automatic_cuts<T>(slice: &mut [T], first_percent: i32, second_percent: i32) -> Range<T>
+where
+    T: PartialOrd + Copy,
+{
+    let n = slice.len();
+    let first_pct_idx = ((first_percent as f32) * 0.01 * (n as f32)) as usize;
+    let last_pct_idx = ((second_percent as f32) * 0.01 * (n as f32)) as usize;
+
+    let min_val = crate::utils::select_kth_smallest(slice, 0, n - 1, first_pct_idx);
+    let max_val = crate::utils::select_kth_smallest(slice, 0, n - 1, last_pct_idx);
+
+    min_val..max_val
+}
 
 impl Image {
     pub async fn from_fits_hdu_async<'a, R>(
@@ -85,6 +103,8 @@ impl Image {
         if naxis == 0 {
             return Err(JsValue::from_str("The fits is empty, NAXIS=0"));
         }
+        let max_tex_size = WebGl2RenderingContext::get_parameter(gl, WebGl2RenderingContext::MAX_TEXTURE_SIZE)?
+            .as_f64().unwrap_or(4096.0) as usize;
 
         let scale = header
             .get_parsed::<f64>(b"BSCALE  ")
@@ -109,7 +129,7 @@ impl Image {
 
         let data = hdu.get_data_mut();
         
-        let (textures, channel) = match data {
+        let (textures, channel, cuts) = match data {
             stream::Data::U8(data) => {
                 let reader = data
                     .map_ok(|v| {
@@ -117,8 +137,19 @@ impl Image {
                     })
                     .into_async_read();
 
-                let textures = subdivide_texture::build::<R8UI, _>(gl, w, h, reader).await?;
-                (textures, ChannelType::R8UI)
+                let (textures, samples) = subdivide_texture::build::<R8UI, _>(gl, w, h, reader, max_tex_size).await?;
+
+                let mut samples = samples
+                    .into_iter()
+                    .filter_map(|v| if v == (blank as u8) {
+                        None
+                    } else {
+                        Some(v)
+                    })
+                    .collect::<Vec<_>>();
+
+                let cuts = compute_automatic_cuts(&mut samples, 1, 99);
+                (textures, ChannelType::R8UI, (cuts.start as f32)..(cuts.end as f32))
             },
             stream::Data::I16(data) => {
                 let reader = data
@@ -127,8 +158,19 @@ impl Image {
                     })
                     .into_async_read();
 
-                let textures = subdivide_texture::build::<R16I, _>(gl, w, h, reader).await?;
-                (textures, ChannelType::R16I)
+                let (textures, samples) = subdivide_texture::build::<R16I, _>(gl, w, h, reader, max_tex_size).await?;
+
+                let mut samples = samples
+                    .into_iter()
+                    .filter_map(|v| if v == (blank as i16) {
+                        None
+                    } else {
+                        Some(v)
+                    })
+                    .collect::<Vec<_>>();
+
+                let cuts = compute_automatic_cuts(&mut samples, 1, 99);
+                (textures, ChannelType::R16I, (cuts.start as f32)..(cuts.end as f32))
             },
             stream::Data::I32(data) => {
                 let reader = data
@@ -137,8 +179,19 @@ impl Image {
                     })
                     .into_async_read();
 
-                let textures = subdivide_texture::build::<R32I, _>(gl, w, h, reader).await?;
-                (textures, ChannelType::R32I)
+                let (textures, samples) = subdivide_texture::build::<R32I, _>(gl, w, h, reader, max_tex_size).await?;
+
+                let mut samples = samples
+                    .into_iter()
+                    .filter_map(|v| if v == (blank as i32) {
+                        None
+                    } else {
+                        Some(v as f32)
+                    })
+                    .collect::<Vec<_>>();
+
+                let cuts = compute_automatic_cuts(&mut samples, 1, 99);
+                (textures, ChannelType::R32I, (cuts.start as f32)..(cuts.end as f32))
             },
             stream::Data::I64(data) => {
                 let reader = data
@@ -148,8 +201,19 @@ impl Image {
                     })
                     .into_async_read();
 
-                let textures = subdivide_texture::build::<R32I, _>(gl, w, h, reader).await?;
-                (textures, ChannelType::R32I)
+                let (textures, samples) = subdivide_texture::build::<R32I, _>(gl, w, h, reader, max_tex_size).await?;
+
+                let mut samples = samples
+                    .into_iter()
+                    .filter_map(|v| if v == (blank as i32) {
+                        None
+                    } else {
+                        Some(v as f32)
+                    })
+                    .collect::<Vec<_>>();
+
+                let cuts = compute_automatic_cuts(&mut samples, 1, 99);
+                (textures, ChannelType::R32I, (cuts.start as f32)..(cuts.end as f32))
             },
             stream::Data::F32(data) => {
                 let reader = data
@@ -158,8 +222,19 @@ impl Image {
                     })
                     .into_async_read();
 
-                let textures = subdivide_texture::build::<R32F, _>(gl, w, h, reader).await?;
-                (textures, ChannelType::R32F)
+                let (textures, samples) = subdivide_texture::build::<R32F, _>(gl, w, h, reader, max_tex_size).await?;
+
+                let mut samples = samples
+                    .into_iter()
+                    .filter_map(|v| if v == blank || v.is_nan() || v.is_zero() {
+                        None
+                    } else {
+                        Some(v)
+                    })
+                    .collect::<Vec<_>>();
+
+                let cuts = compute_automatic_cuts(&mut samples, 1, 99);
+                (textures, ChannelType::R32F, cuts)
             },
             stream::Data::F64(data) => {
                 let reader = data
@@ -169,8 +244,20 @@ impl Image {
                     })
                     .into_async_read();
 
-                let textures = subdivide_texture::build::<R32F, _>(gl, w, h, reader).await?;
-                (textures, ChannelType::R32F)
+                let (textures, samples) = subdivide_texture::build::<R32F, _>(gl, w, h, reader, max_tex_size).await?;
+
+                let mut samples = samples
+                    .into_iter()
+                    .filter_map(|v| if v == blank || v.is_nan() {
+                        None
+                    } else {
+                        Some(v)
+                    })
+                    .collect::<Vec<_>>();
+
+                let cuts = compute_automatic_cuts(&mut samples, 1, 99);
+
+                (textures, ChannelType::R32F, cuts)
             },
         };
 
@@ -256,20 +343,6 @@ impl Image {
 
         let idx_tex = (0..textures.len()).collect();
 
-        // Automatic methods to compute the min and max cut values
-        /*let mut values = values.into_iter()
-            .filter(|x| !x.is_nan() && *x != blank)
-            .collect::<Vec<_>>();
-        
-        let n = values.len();
-        let first_pct_idx = (0.05 * (n as f32)) as usize;
-        let last_pct_idx = (0.95 * (n as f32)) as usize;
-
-        let min_val = crate::utils::select_kth_smallest(&mut values[..], 0, n - 1, first_pct_idx);
-        let max_val = crate::utils::select_kth_smallest(&mut values[..], 0, n - 1, last_pct_idx);
-        */
-        //al_core::log(&format!("values: {} {}", min_val, max_val));
-
         let image = Image {
             gl,
 
@@ -292,6 +365,8 @@ impl Image {
             // Texture parameters
             channel,
             textures,
+            cuts,
+            max_tex_size,
             // Indices of textures that must be drawn
             idx_tex,
         };
@@ -353,13 +428,13 @@ impl Image {
                     let y_mesh_range = y_fov_proj_range.start.max(0.0)..y_fov_proj_range.end.min(height);
 
                     // Select the textures overlapping the fov
-                    let id_min_tx = (x_mesh_range.start as u64) / (MAX_TEX_SIZE as u64);
-                    let id_min_ty = (y_mesh_range.start as u64) / (MAX_TEX_SIZE as u64);
+                    let id_min_tx = (x_mesh_range.start as u64) / (self.max_tex_size as u64);
+                    let id_min_ty = (y_mesh_range.start as u64) / (self.max_tex_size as u64);
 
-                    let id_max_tx = (x_mesh_range.end as u64) / (MAX_TEX_SIZE as u64);
-                    let id_max_ty = (y_mesh_range.end as u64) / (MAX_TEX_SIZE as u64);
+                    let id_max_tx = (x_mesh_range.end as u64) / (self.max_tex_size as u64);
+                    let id_max_ty = (y_mesh_range.end as u64) / (self.max_tex_size as u64);
 
-                    let num_texture_y = (((height as i32) / (MAX_TEX_SIZE as i32)) + 1) as u64;
+                    let num_texture_y = (((height as i32) / (self.max_tex_size as i32)) + 1) as u64;
 
                     self.idx_tex = (id_min_tx..=id_max_tx)
                         .flat_map(|id_tx| {
@@ -388,7 +463,7 @@ impl Image {
         let (pos, uv, indices, num_indices) = grid::get_grid_vertices(
             &(x_mesh_range.start, y_mesh_range.start),
             &(x_mesh_range.end.ceil(), y_mesh_range.end.ceil()),
-            MAX_TEX_SIZE as u64,
+            self.max_tex_size as u64,
             num_vertices,
             camera,
             &self.wcs,

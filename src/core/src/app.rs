@@ -936,7 +936,7 @@ impl App {
                 Ok(image) => {
                     let layer_ext = layer.clone();
                     let url_ext = url.clone();
-    
+
                     let fits = ImageCfg {
                         image: image,
                         layer: layer_ext,
@@ -963,7 +963,7 @@ impl App {
                                     Ok(image) => {
                                         let layer_ext = layer.clone() + "_ext_" + &format!("{hdu_ext_idx}");
                                         let url_ext = url.clone() + "_ext_" + &format!("{hdu_ext_idx}");
-    
+
                                         let fits_ext = ImageCfg {
                                             image: image,
                                             layer: layer_ext,
@@ -1012,7 +1012,7 @@ impl App {
                                     Ok(image) => {
                                         let layer_ext = layer.clone() + "_ext_" + &format!("{hdu_ext_idx}");
                                         let url_ext = url.clone() + "_ext_" + &format!("{hdu_ext_idx}");
-            
+
                                         let fits_ext = ImageCfg {
                                             image: image,
                                             layer: layer_ext,

@@ -907,6 +907,9 @@ export let View = (function () {
 
         view.executeCallbacksThrottled = Utils.throttle(
             function () {
+                if (view.aladin.callbacksByEventName === undefined) {
+                    return;
+                }
                 var pos = view.aladin.pix2world(view.width / 2, view.height / 2);
 
                 var fov = view.fov;

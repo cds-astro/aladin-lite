@@ -470,6 +470,7 @@ export let Aladin = (function () {
         });
 
         this.callbacksByEventName = {}; // we store the callback functions (on 'zoomChanged', 'positionChanged', ...) here
+console.log('CALLBACKS DONE')
 
         // initialize the Vue components
         //if (typeof Vue != "undefined") {
@@ -731,7 +732,7 @@ export let Aladin = (function () {
         else {
             var self = this;
             // sky case
-            if (this.getBaseImageLayer().properties.isPlanetaryBody === false) {
+            if (this.getBaseImageLayer()===undefined || this.getBaseImageLayer().properties.isPlanetaryBody === false) {
                 Sesame.resolve(targetName,
                     function (data) { // success callback
                         // Location given in icrs at J2000

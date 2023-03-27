@@ -56,7 +56,8 @@ export let PlanetaryFeaturesPointer = (function() {
         'tethys':        533000,
         'callisto':     2410300,
         'charon':        606000,
-        'triton':       1353000
+        'triton':       1353000,
+        'pluto':        1188300
     }
 
 

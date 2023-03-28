@@ -71,8 +71,18 @@ export let PlanetaryFeaturesNameResolver = (function() {
                     const values = csvToArray(lines[1])[0];
                     const lonFieldIdx = fields.findIndex((element) => element. includes('longitude'));
                     const latFieldIdx = fields.findIndex((element) => element. includes('latitude'));
-                    const lon = parseFloat(values[lonFieldIdx]);
+                    let lon = parseFloat(values[lonFieldIdx]);
                     const lat = parseFloat(values[latFieldIdx]);
+                    let eastIncreasing = true;
+                    const coordinateSystemIdx = fields.indexOf('coordinate_system');
+                    if (coordinateSystemIdx>0 && values[coordinateSystemIdx].includes("+West")) {
+                         eastIncreasing = false;
+                    }
+
+                    if (! eastIncreasing) {
+                        lon = 360 - lon;
+                    }
+
                     callbackFunctionSuccess({lon: lon, lat: lat});
                 }
                 else {

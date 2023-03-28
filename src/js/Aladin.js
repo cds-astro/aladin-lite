@@ -470,7 +470,6 @@ export let Aladin = (function () {
         });
 
         this.callbacksByEventName = {}; // we store the callback functions (on 'zoomChanged', 'positionChanged', ...) here
-console.log('CALLBACKS DONE')
 
         // initialize the Vue components
         //if (typeof Vue != "undefined") {
@@ -754,7 +753,6 @@ console.log('CALLBACKS DONE')
                 const body = this.getBaseImageLayer().properties.hipsBody;
                 PlanetaryFeaturesNameResolver.resolve(targetName, body,
                     function (data) { // success callback
-                        console.log(data);
                         self.view.pointTo(data.lon, data.lat, options);
 
                         (typeof successCallback === 'function') && successCallback(self.getRaDec());
@@ -1627,8 +1625,6 @@ Aladin.prototype.box = function (options) {
 Aladin.prototype.showPopup = function (ra, dec, title, content, circleRadius) {
     this.view.catalogForPopup.removeAll();
     this.view.overlayForPopup.removeAll();
-
-    console.log(circleRadius)
 
     let marker;
     if (circleRadius !== undefined) {

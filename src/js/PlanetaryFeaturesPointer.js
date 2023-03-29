@@ -60,7 +60,7 @@ export let PlanetaryFeaturesPointer = (function() {
         'pluto':        1188300
     }
 
-    // list of planetary bodies with west
+    // list of planetary bodies with west increasing longitudes
     PlanetaryFeaturesPointer.HAS_WEST_INCREASING_LONGITUDES = ['amalthea', 'callisto', 'deimos', 'dione', 'enceladus', 'epimetheus', 'eros', 'europa', 'ganymede', 'gaspra', 'hyperion', 'iapetus', 'io', 'janus', 'mathilde', 'mercury', 'mimas', 'phobos', 'phoebe', 'proteus', 'rhea', 'tethys', 'thebe', 'titan'];
 
 

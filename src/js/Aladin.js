@@ -54,10 +54,15 @@ import { AladinLogo } from "./gui/AladinLogo.js";
 import { ProjectionSelector } from "./gui/ProjectionSelector";
 import { Stack } from "./gui/Stack.js";
 import { CooGrid } from "./gui/CooGrid.js";
+import { ContextMenu } from "./gui/ContextMenu";
 import { ALEvent } from "./events/ALEvent.js";
 import { Color } from './Color.js';
 import { ColorCfg } from './ColorCfg.js';
 import { ImageFITS } from "./ImageFITS.js";
+import { SimbadPointer } from "./SimbadPointer.js";
+import { PlanetaryFeaturesPointer } from "./PlanetaryFeaturesPointer.js";
+
+
 
 import $ from 'jquery';
 
@@ -76,7 +81,7 @@ export let Aladin = (function () {
             return;
         }
         this.wasm = null;
-        var self = this;
+        const self = this;
 
         // if not options was set, try to retrieve them from the query string
         if (requestedOptions === undefined) {
@@ -483,6 +488,44 @@ export let Aladin = (function () {
             // strange behaviour to wait for a sec
             self.toggleFullscreen(self.options.realFullscreen);
         }
+
+        // set right click context menu
+        this.contextMenu = new ContextMenu();
+        this.contextMenu.attachTo(this.view.catalogCanvas, [
+            {
+                label: "Take snapshot", action(o) { self.exportAsPNG(); }
+            },
+            {
+                label: "Add", action(o) { console.log(o) },
+                subMenu: [
+                    {
+                        label: 'New image layer', action(o) {
+                            self.addNewImageLayer();
+                            console.log(o)
+                        }
+                    },
+                    { label: 'New catalogue layer', action(o) { console.log(o) } }
+                ]
+            },
+            {
+                label: "What is this?", action(e) {
+                    const xymouse = self.view.imageCanvas.relMouseCoords(e);
+                    let radec = self.wasm.screenToWorld(xymouse.x, xymouse.y);
+                    if (radec) {
+                        // sky case
+                        if (self.getBaseImageLayer().properties.isPlanetaryBody === false) {
+                            SimbadPointer.query(radec[0], radec[1], Math.min(1, 15 * self.view.fov / self.view.largestDim), self);
+                        }
+                        // planetary body case
+                        else {
+                            // TODO: replace with actual value
+                            const body = self.getBaseImageLayer().properties.hipsBody;
+                            PlanetaryFeaturesPointer.query(radec[0], radec[1], Math.min(80, self.view.fov / 20.0), body, self);
+                        }
+                    }
+                }
+            },
+        ]);
     };
 
     /**** CONSTANTS ****/
@@ -1111,6 +1154,12 @@ export let Aladin = (function () {
             const id = idOrUrl;
             return this.createImageSurvey(id, name, undefined, null, null, options);
         }
+    }
+
+    Aladin.prototype.addNewImageLayer = function() {
+        let layerName = Utils.uuidv4();
+        // A HIPS_LAYER_ADDED will be called after the hips is added to the view
+        this.setOverlayImageLayer('CDS/P/DSS2/color', layerName);
     }
 
     // @param imageSurvey : ImageSurvey object or image survey identifier

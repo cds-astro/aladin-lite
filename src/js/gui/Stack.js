@@ -20,12 +20,12 @@
 
 /******************************************************************************
  * Aladin Lite project
- * 
+ *
  * File gui/Stack.js
  *
- * 
+ *
  * Author: Thomas Boch[CDS]
- * 
+ *
  *****************************************************************************/
 
 import { AladinUtils } from "../AladinUtils.js";
@@ -112,9 +112,7 @@ export class Stack {
             '<button class="aladin-btn add-layer-hips" type="button">Add survey</button>'
         );
         $(this.mainDiv).find('.add-layer-hips').click(function () {
-            let layerName = Utils.uuidv4();
-            // A HIPS_LAYER_ADDED will be called after the hips is added to the view
-            self.aladin.setOverlayImageLayer('CDS/P/DSS2/color', layerName);
+            self.aladin.addNewImageLayer();
         });
 
         if (this.imgLayers.size > 1) {

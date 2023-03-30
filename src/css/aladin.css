@@ -750,6 +750,76 @@ canvas {
 
 /* *********************************************** */
 
+/* Context menu */
+
+.aladin-context-sub-menu,
+.aladin-context-menu {
+  position: fixed;
+  background: #fff;
+  z-index: 9999999;
+  width: 120px;
+  margin: 0;
+  padding: 5px 0;
+  border-radius: 2px;
+  box-shadow: 0 0 6px rgba(0,0,0,0.2);
+  font-size: 12px;
+  font-family: Verdana, Geneva, Tahoma, sans-serif;
+}
+
+.aladin-context-menu .aladin-context-menu-item {
+  height: 30px;
+  display: flex;
+  align-items: center;
+  padding: 6px 10px;
+  cursor: pointer;
+  position: relative;
+  border-bottom: 1px solid #f2f2f2;
+}
+
+.aladin-context-menu .aladin-context-menu-item span {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.aladin-context-menu-item:last-of-type {
+  border-bottom: none;
+}
+
+.aladin-context-menu .context-menu-item:hover {
+  background: #f2f2f2;
+}
+
+.aladin-context-menu .aladin-context-sub-menu {
+  position: absolute;
+  top: 0;
+  left: 100%;
+  display: none;
+  width: 100px;
+}
+
+.aladin-context-menu .aladin-context-menu-item:hover > .aladin-context-sub-menu {
+  display: block;
+}
+
+.aladin-context-menu.left .aladin-context-sub-menu {
+  left: 0;
+  transform: translateX(-100%);
+}
+
+.aladin-context-menu.top .aladin-context-sub-menu {
+  top: 100%;
+  transform: translateY(-100%);
+}
+
+.aladin-context-menu.left.top .aladin-context-sub-menu {
+  transform: translate(-100%, -100%);
+}
+
+
+/* *********************************************** */
+
 /* Cursors */
 
 /* Simbad pointer cursor */

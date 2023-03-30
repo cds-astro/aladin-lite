@@ -452,6 +452,7 @@ export let View = (function () {
             // do something here...
             e.preventDefault();
         }, false);
+        
 
         let cutMinInit = null
         let cutMaxInit = null;
@@ -464,6 +465,7 @@ export let View = (function () {
 
             if (e.which === 3 || e.button === 2) {
                 view.rightClick = true;
+                view.rightClickTimeStart = Date.now();
                 view.rightclickx = xymouse.x;
                 view.rightclicky = xymouse.y;
 
@@ -518,9 +520,18 @@ export let View = (function () {
 
         $(view.catalogCanvas).bind("mouseup", function (e) {
             if (view.rightClick) {
+
+                const rightClickDurationMs = Date.now() - view.rightClickTimeStart;
+                if (rightClickDurationMs<300) {
+                    view.aladin.contextMenu._showMenu(e);
+                }
+
+
                 view.rightClick = false;
                 view.rightclickx = null;
                 view.rightclicky = null;
+                view.rightClickTimeStart = undefined;
+
 
                 return;
             }
@@ -685,6 +696,7 @@ export let View = (function () {
             var xymouse = view.imageCanvas.relMouseCoords(e);
 
             if (view.rightClick && view.selectedLayer) {
+                
                 let selectedLayer = view.imageLayers.get(view.selectedLayer);
                 // We try to match DS9 contrast adjustment behaviour with right click
                 const cs = {

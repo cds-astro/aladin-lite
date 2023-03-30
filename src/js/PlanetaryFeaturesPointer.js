@@ -55,6 +55,7 @@ export let PlanetaryFeaturesPointer = (function() {
         'rhea':          763800,
         'tethys':        533000,
         'callisto':     2410300,
+        'ariel':         578900,
         'charon':        606000,
         'triton':       1353000,
         'pluto':        1188300

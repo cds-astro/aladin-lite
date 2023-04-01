@@ -32,7 +32,6 @@ import { View } from "./View.js";
 import { MOC } from "./MOC.js";
 import { Utils } from "./Utils.js";
 import { Overlay } from "./Overlay.js";
-import { Footprint } from "./Footprint.js";
 import { Circle } from "./Circle.js";
 import { Ellipse } from "./Ellipse.js";
 import { Polyline } from "./Polyline.js";
@@ -63,8 +62,7 @@ import { ImageFITS } from "./ImageFITS.js";
 import { SimbadPointer } from "./SimbadPointer.js";
 import { PlanetaryFeaturesPointer } from "./PlanetaryFeaturesPointer.js";
 import { DefaultActionsForContextMenu } from "./DefaultActionsForContextMenu.js";
-
-
+import { Obscore } from "./vo/Obscore.js";
 
 import $ from 'jquery';
 
@@ -1288,6 +1286,7 @@ export let Aladin = (function () {
         return new Overlay(options);
     };
 
+    // Select corresponds to rectangular selection
     Aladin.AVAILABLE_CALLBACKS = ['select', 'objectClicked', 'objectHovered', 'footprintClicked', 'footprintHovered', 'positionChanged', 'zoomChanged', 'click', 'mouseMove', 'fullScreenToggled', 'catalogReady'];
     // API
     //
@@ -1591,15 +1590,26 @@ A.marker = function (ra, dec, options, data) {
 };
 
 // @API
-A.polygon = function (raDecArray) {
-    var l = raDecArray.length;
-    if (l > 0) {
-        // close the polygon if needed
-        if (raDecArray[0][0] != raDecArray[l - 1][0] || raDecArray[0][1] != raDecArray[l - 1][1]) {
-            raDecArray.push([raDecArray[0][0], raDecArray[0][1]]);
-        }
+A.polygon = function (raDecArray, options) {
+    const numVertices = raDecArray.length;
+
+    if (numVertices < 3) {
+        // Cannot define a polygon from that
+        throw 'Cannot define a polygon from less than 3 vertices';
     }
-    return new Footprint(raDecArray);
+
+    const lastVertexIdx = numVertices - 1;
+
+    // User gave a closed polygon, so we remove the last vertex
+    if (raDecArray[0][0] == raDecArray[lastVertexIdx][0] && raDecArray[0][1] == raDecArray[lastVertexIdx][1]) {
+        raDecArray.pop()
+        // but declare the polygon as closed
+    }
+
+    options = options || {};
+    options.closed = true;
+
+    return new Polyline(raDecArray, options);
 };
 
 //@API
@@ -1737,7 +1747,7 @@ Aladin.prototype.getEmbedCode = function () {
  */
 Aladin.prototype.displayFITS = function (url, options, successCallback, errorCallback, layer = "base") {
     const imageFits = this.createImageFITS(url, url, options, successCallback, errorCallback);
-    this.setOverlayImageLayer(imageFits, layer)
+    return this.setOverlayImageLayer(imageFits, layer);
 };
 
 // @API
@@ -1849,15 +1859,35 @@ A.MOCFromJSON = function (jsonMOC, options) {
 // API
 A.catalogFromURL = function (url, options, successCallback, useProxy) {
     var catalog = A.catalog(options);
-    // TODO: should be self-contained in Catalog class
-    Catalog.parseVOTable(url, function (sources) {
-        catalog.addSources(sources);
-        if (successCallback) {
-            successCallback(sources);
-        }
-    },
-        catalog.maxNbSources, useProxy,
+    Catalog.parseVOTable(
+        url,
+        function (sources) {
+            catalog.addSources(sources);
+            if (successCallback) {
+                successCallback(sources);
+            }
+        },
+        catalog.maxNbSources,
+        useProxy,
         catalog.raField, catalog.decField
+    );
+
+    return catalog;
+};
+
+A.obscoreFromURL = function (url, options, successCallback, useProxy) {
+    options = options.color || Obscore.COLOR;
+    let catalog = A.catalog(options);
+
+    Obscore.parseVOTable(
+        url,
+        function (sources) {
+            catalog.addSources(sources);
+
+            if (successCallback) {
+                successCallback(sources);
+            }
+        }
     );
 
     return catalog;

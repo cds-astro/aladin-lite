@@ -57,6 +57,19 @@ export let Ellipse = (function() {
         this.overlay = overlay;
     };
     
+    Ellipse.prototype.dispatchClickEvent = function() {
+        if (this.overlay) {
+            // footprint selection code adapted from Fabrizio Giordano dev. from Serco for ESA/ESDC
+            //window.dispatchEvent(new CustomEvent("footprintClicked", {
+            this.overlay.view.aladinDiv.dispatchEvent(new CustomEvent("footprintClicked", {
+                detail: {
+                    footprintId: this.id,
+                    overlayName: this.overlay.name
+                }
+            }));
+        }
+    };
+
     Ellipse.prototype.show = function() {
         if (this.isShowing) {
             return;
@@ -151,7 +164,7 @@ export let Ellipse = (function() {
     };
 
     // TODO
-    Ellipse.prototype.draw = function(ctx, view, frame, width, height, largestDim, zoomFactor, noStroke) {
+    Ellipse.prototype.draw = function(ctx, view, noStroke) {
         if (! this.isShowing) {
             return;
         }

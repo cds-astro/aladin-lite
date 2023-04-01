@@ -37,36 +37,101 @@ export let MeasurementTable = (function() {
     // constructor
     function MeasurementTable(aladinLiteDiv) {
         this.isShowing = false;
-
         this.divEl = $('<div class="aladin-measurement-div"></div>');
-        
+
+        this.curPage = 1;
+        this.numPages = 1;
+        this.numRowsByPage = 5;
+
         $(aladinLiteDiv).append(this.divEl);
     }
 
+    MeasurementTable.updateBodyTable = function(rows) {
+        let tbody = '<tbody class="content">';
+        rows.forEach(row => {
+            tbody += '<tr>'
+            for (let key in row.data) {
+                tbody += '<td>' + row.data[key] + '</td>';
+            }
+            tbody += '</tr>';
+        });
+        tbody += '</tbody>';
+
+        return tbody;
+    }
+
+    MeasurementTable.prototype.renderTable = function(fullRows) {
+        // idx of the first row to draw
+        let rowIdxStart = (this.curPage - 1) * this.numRowsByPage;
+        // update the content
+        let tbody = this.divEl[0].querySelector(".content");
+        tbody.innerHTML = MeasurementTable.updateBodyTable(fullRows.slice(rowIdxStart, rowIdxStart + this.numRowsByPage));
+    
+        // recompute page idx
+        let pageIdxElt = this.divEl[0].querySelector("#pageIdx");
+        pageIdxElt.innerHTML = '<p id="pageIdx" style="display: inline-block; margin: 0">' + this.curPage + '/' + this.numPages + '</p>';
+    }
+
     // show measurement associated with a given source
-    MeasurementTable.prototype.showMeasurement = function(source) {
-        this.divEl.empty();
-        var header = '<thead><tr>';
-        var content = '<tr>';
-        for (let key in source.data) {
-            header += '<th>' + key + '</th>';
-            content += '<td>' + source.data[key] + '</td>';
+    MeasurementTable.prototype.showMeasurement = function(rows) {
+        // compute the number of pages
+        this.numPages = Math.floor(rows.length / this.numRowsByPage);
+        if (rows.length % this.numRowsByPage > 0) {
+             // handles rows leftovers in a last page
+            this.numPages++;
         }
-        header += '</tr></thead>';
-        content += '</tr>';
-        this.divEl.append('<table>' + header + content + '</table>');
+        
+        this.divEl.empty();
+        var thead = '<thead><tr>';
+        for (let key in rows[0].data) {
+            thead += '<th>' + key + '</th>';
+        }
+        thead += '</tr></thead>';
+
+        let tbody = MeasurementTable.updateBodyTable(rows.slice(0, this.numRowsByPage));
+        
+        this.divEl.append('<table>' + thead + tbody + '</table>');
+
+        if (this.numPages > 1) {
+            this.divEl.append('<div class="footer"><button id="prevButton" style="display: inline-block">Previous</button><button id="nextButton" style="display: inline-block">Next</button><p id="pageIdx" style="display: inline-block; margin: 0">' + this.curPage + '/' + this.numPages + '</p></div>');
+
+            document.querySelector('#nextButton').addEventListener(
+                'click',
+                () => {
+                    this.curPage++;
+                    if (this.curPage >= this.numPages) {
+                        this.curPage = this.numPages;
+                    }
+    
+                    this.renderTable(rows)
+                }
+                ,false
+            );
+            document.querySelector('#prevButton').addEventListener(
+                'click',
+                () => {
+                    this.curPage--;
+                    if (this.curPage < 1) {
+                        this.curPage = 1;
+                    }
+
+                    this.renderTable(rows)
+                }
+                ,false
+            );
+        }
+
         this.show();
     };
 
     MeasurementTable.prototype.show = function() {
         this.divEl.show();
     };
-    
+
     MeasurementTable.prototype.hide = function() {
         this.divEl.hide();
     };
-    
-    
+
     return MeasurementTable;
 })();
 

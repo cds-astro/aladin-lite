@@ -30,46 +30,48 @@
  * 
  *****************************************************************************/
 
- export class ALEvent {
-    static LOADING_STATE = new ALEvent("AL:Layer.loading");
+export class ALEvent {
+  static AL_USE_WASM = new ALEvent("AL:Wasm");
 
-    static COO_GRID_ENABLED  = new ALEvent("AL:cooGrid.enabled");
-    static COO_GRID_DISABLED = new ALEvent("AL:cooGrid.disabled");
-    static COO_GRID_UPDATED  = new ALEvent("AL:cooGrid.updated");
+  static LOADING_STATE = new ALEvent("AL:Layer.loading");
 
-    static PROJECTION_CHANGED  = new ALEvent("AL:projection.changed");
+  static COO_GRID_ENABLED  = new ALEvent("AL:cooGrid.enabled");
+  static COO_GRID_DISABLED = new ALEvent("AL:cooGrid.disabled");
+  static COO_GRID_UPDATED  = new ALEvent("AL:cooGrid.updated");
 
-    static HIPS_LAYER_ADDED   = new ALEvent("AL:HiPSLayer.added");
-    static HIPS_LAYER_REMOVED = new ALEvent("AL:HiPSLayer.removed");
-    static HIPS_LAYER_RENAMED = new ALEvent("AL:HiPSLayer.renamed");
-    static HIPS_LAYER_SWAP = new ALEvent("AL:HiPSLayer.swap");
+  static PROJECTION_CHANGED  = new ALEvent("AL:projection.changed");
 
-    static HIPS_LAYER_CHANGED  = new ALEvent("AL:HiPSLayer.changed");
+  static HIPS_LAYER_ADDED   = new ALEvent("AL:HiPSLayer.added");
+  static HIPS_LAYER_REMOVED = new ALEvent("AL:HiPSLayer.removed");
+  static HIPS_LAYER_RENAMED = new ALEvent("AL:HiPSLayer.renamed");
+  static HIPS_LAYER_SWAP = new ALEvent("AL:HiPSLayer.swap");
 
-    static GRAPHIC_OVERLAY_LAYER_ADDED  = new ALEvent("AL:GraphicOverlayLayer.added");
-    static GRAPHIC_OVERLAY_LAYER_REMOVED  = new ALEvent("AL:GraphicOverlayLayer.removed");
+  static HIPS_LAYER_CHANGED  = new ALEvent("AL:HiPSLayer.changed");
 
-    static GRAPHIC_OVERLAY_LAYER_CHANGED  = new ALEvent("AL:GraphicOverlayLayer.changed");
-  
-    constructor(name) {
-      this.name = name;
+  static GRAPHIC_OVERLAY_LAYER_ADDED  = new ALEvent("AL:GraphicOverlayLayer.added");
+  static GRAPHIC_OVERLAY_LAYER_REMOVED  = new ALEvent("AL:GraphicOverlayLayer.removed");
+
+  static GRAPHIC_OVERLAY_LAYER_CHANGED  = new ALEvent("AL:GraphicOverlayLayer.changed");
+
+  constructor(name) {
+    this.name = name;
+  }
+
+  dispatchedTo(domEl, options) {
+    if (options) {
+      domEl.dispatchEvent(new CustomEvent(this.name, {detail: options}));
     }
-
-    dispatchedTo(domEl, options) {
-        if (options) {
-          domEl.dispatchEvent(new CustomEvent(this.name, {detail: options}));
-        }
-        else {
-          domEl.dispatchEvent(new CustomEvent(this.name));
-        }
-    }
-
-    listenedBy(domEl, fn) {
-        domEl.addEventListener(this.name, fn);
-    }
-
-    remove(domEl, fn) {
-      domEl.removeEventListener(this.name, fn);
+    else {
+      domEl.dispatchEvent(new CustomEvent(this.name));
     }
   }
+
+  listenedBy(domEl, fn) {
+    domEl.addEventListener(this.name, fn);
+  }
+
+  remove(domEl, fn) {
+    domEl.removeEventListener(this.name, fn);
+  }
+}
   

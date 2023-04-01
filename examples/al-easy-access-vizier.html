@@ -7,12 +7,14 @@
 <div id="aladin-lite-div" style="width: 500px; height: 400px"></div>
 <div id='aladin-statsDiv'></div>
 <script type="text/javascript" src="./../aladin.js" charset="utf-8"></script>
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
 
 <script type="text/javascript">
     let aladin;
     A.init.then(() => {
         aladin = A.aladin('#aladin-lite-div', {target: 'M 45', fov: 5});
-        aladin.addCatalog(A.catalogFromVizieR('I/311/hip2', 'M 45', 5, {onClick: 'showTable'}));
+        const cat = A.catalogFromVizieR('I/311/hip2', 'M 45', 5, {onClick: 'showTable'});
+        aladin.addCatalog(cat);
     });
 </script>
 </body>

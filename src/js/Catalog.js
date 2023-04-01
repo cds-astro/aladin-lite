@@ -34,6 +34,8 @@ import { Color } from "./Color.js"
 import { Utils } from "./Utils.js";
 import { AladinUtils } from "./AladinUtils.js";
 import { Coo } from "./libs/astro/coo.js";
+import { ALEvent } from "./events/ALEvent.js";
+import { VOTable } from "./vo/VOTable.js";
 
 import $ from 'jquery';
 
@@ -41,6 +43,7 @@ import $ from 'jquery';
 export let Catalog = (function() {
 
    function Catalog(options) {
+        let self = this;
         options = options || {};
 
         this.uuid = Utils.uuidv4();
@@ -49,6 +52,7 @@ export let Catalog = (function() {
     	this.color = options.color || Color.getNextColor();
     	this.sourceSize = options.sourceSize || 8;
     	this.markerSize = options.sourceSize || 12;
+        this.selectSize = this.sourceSize;
     	this.shape = options.shape || "square";
         this.maxNbSources = options.limit || undefined;
         this.onClick = options.onClick || undefined;
@@ -58,6 +62,7 @@ export let Catalog = (function() {
 
     	this.indexationNorder = 5; // à quel niveau indexe-t-on les sources
     	this.sources = [];
+        this.footprints = [];
     	//this.hpxIdx = new HealpixIndex(this.indexationNorder);
     	//this.hpxIdx.init();
 
@@ -98,7 +103,6 @@ export let Catalog = (function() {
         cacheMarkerCtx.lineWidth = 2;
         cacheMarkerCtx.strokeStyle = '#ccc';
         cacheMarkerCtx.stroke();
-        
 
         this.isShowing = true;
     };
@@ -160,7 +164,6 @@ export let Catalog = (function() {
         }
         
         return c;
-        
     };
     
 
@@ -263,11 +266,10 @@ export let Catalog = (function() {
         };
         
     
-    
     // return an array of Source(s) from a VOTable url
     // callback function is called each time a TABLE element has been parsed
     Catalog.parseVOTable = function(url, callback, maxNbSources, useProxy, raField, decField) {
-
+        /*
         // adapted from votable.js
         function getPrefix($xml) {
             var prefix;
@@ -329,40 +331,82 @@ export let Catalog = (function() {
             var coo = new Coo();
             var ra, dec;
             $xml.find(prefix + "TR").each(function() {
-               var mesures = {};
-               var k = 0;
-               $(this).find(prefix + "TD").each(function() {
-                   var key = fields[k].name ? fields[k].name : fields[k].id;
-                   mesures[key] = $(this).text();
-                   k++;
-               });
-               var keyRa = fields[raFieldIdx].name ? fields[raFieldIdx].name : fields[raFieldIdx].id;
-               var keyDec = fields[decFieldIdx].name ? fields[decFieldIdx].name : fields[decFieldIdx].id;
+                var mesures = {};
+                var k = 0;
+                $(this).find(prefix + "TD").each(function() {
+                    var key = fields[k].name ? fields[k].name : fields[k].id;
+                    mesures[key] = $(this).text();
+                    k++;
+                });
+                var keyRa = fields[raFieldIdx].name ? fields[raFieldIdx].name : fields[raFieldIdx].id;
+                var keyDec = fields[decFieldIdx].name ? fields[decFieldIdx].name : fields[decFieldIdx].id;
 
-               if (Utils.isNumber(mesures[keyRa]) && Utils.isNumber(mesures[keyDec])) {
-                   ra = parseFloat(mesures[keyRa]);
-                   dec = parseFloat(mesures[keyDec]);
-               }
-               else {
-                   coo.parse(mesures[keyRa] + " " + mesures[keyDec]);
-                   ra = coo.lon;
-                   dec = coo.lat;
-               }
-               sources.push(new Source(ra, dec, mesures));
-               if (maxNbSources && sources.length==maxNbSources) {
-                   return false; // break the .each loop
-               }
-                
+                if (Utils.isNumber(mesures[keyRa]) && Utils.isNumber(mesures[keyDec])) {
+                    ra = parseFloat(mesures[keyRa]);
+                    dec = parseFloat(mesures[keyDec]);
+                } else {
+                    coo.parse(mesures[keyRa] + " " + mesures[keyDec]);
+                    ra = coo.lon;
+                    dec = coo.lat;
+                }
+                sources.push(new Source(ra, dec, mesures));
+                if (maxNbSources && sources.length == maxNbSources) {
+                    return false; // break the .each loop
+                }
             });
             if (callback) {
                 callback(sources);
             }
         }
-        
-        var ajax = Utils.getAjaxObject(url, 'GET', 'text', useProxy);
-        ajax.done(function(xml) {
-            doParseVOTable(xml, callback);
-        });
+        */
+
+        new VOTable(url, (votable) => {
+            let sources = [];
+            votable.votable.get("resources")
+                .forEach((resource) => {
+                    let tables = resource.get("tables")
+                    tables.forEach((table) => {
+                        let fields = table.get("elems")
+                            .map((field) => {
+                                // convert a map into a javascript object
+                                return Object.fromEntries(field);
+                            })
+
+                        var raDecFieldIdxes = findRADecFields(fields, raField, decField);
+                        const raFieldIdx = raDecFieldIdxes[0];
+                        const decFieldIdx = raDecFieldIdxes[1];
+
+                        let data = table.get("data");
+                        let rows = data.get("rows");
+
+                        rows.every(row => {
+                            var mesures = {};
+
+                            let idxField = 0;
+                            for (const field of fields) {
+                                var key = field.name ? field.name : field.id;
+
+                                mesures[key] = row[idxField];
+                                idxField += 1;
+                            }
+
+                            const ra = row[raFieldIdx];
+                            const dec = row[decFieldIdx];
+
+                            sources.push(new Source(ra, dec, mesures));
+                            if (maxNbSources && sources.length == maxNbSources) {
+                                return false;
+                            }
+
+                            return true;
+                        })
+                    })
+                });
+
+            if (callback) {
+                callback(sources);
+            }
+        })
     };
 
     // API
@@ -386,6 +430,15 @@ export let Catalog = (function() {
     	this.sources = this.sources.concat(sourcesToAdd);
     	for (var k=0, len=sourcesToAdd.length; k<len; k++) {
     	    sourcesToAdd[k].setCatalog(this);
+    	}
+        this.reportChange();
+    };
+
+    Catalog.prototype.addFootprints = function(footprintsToAdd) {
+        footprintsToAdd = [].concat(footprintsToAdd); // make sure we have an array and not an individual footprints
+    	this.footprints = this.footprints.concat(footprintsToAdd);
+    	for (var k=0, len=footprintsToAdd.length; k<len; k++) {
+    	    footprintsToAdd[k].setOverlay(this);
     	}
         this.reportChange();
     };
@@ -497,7 +550,7 @@ export let Catalog = (function() {
             return;
         }
         // tracé simple
-        //ctx.strokeStyle= this.color;
+        ctx.strokeStyle= this.color;
 
         //ctx.lineWidth = 1;
     	//ctx.beginPath();
@@ -511,151 +564,90 @@ export let Catalog = (function() {
                 sourcesInView.push(this.sources[k]);
             }
         }*/
-        const sourcesInView = Catalog.drawSources(this, this.sources, ctx, width, height);
+        const sourcesInView = this.drawSources(ctx, width, height);
+
         if (this._shapeIsFunction) {
             ctx.restore();
         }
-        //ctx.stroke();
-
-    	// tracé sélection
-        ctx.strokeStyle= this.selectionColor;
-        //ctx.beginPath();
-        var source;
-        for (var k=0, len = sourcesInView.length; k<len; k++) {
-            source = sourcesInView[k];
-
-            if (! source.isSelected) {
-                continue;
-            }
-            Catalog.drawSourceSelection(this, source, ctx);
-            
-        }
-        // NEEDED ?
-    	//ctx.stroke();
 
         // tracé label
         if (this.displayLabel) {
             ctx.fillStyle = this.labelColor;
             ctx.font = this.labelFont;
-            for (var k=0, len = sourcesInView.length; k<len; k++) {
-                Catalog.drawSourceLabel(this, sourcesInView[k], ctx);
-            }
+            sourcesInView.forEach((s) => {
+                Catalog.drawSourceLabel(this, s, ctx);
+            })
         }
     };
     
-    Catalog.drawSources = function(catalogInstance, sources, ctx, width, height) {
-        /*if (!s.isShowing) {
-            return;
-        }*/
-        var sourceSize = catalogInstance.sourceSize;
-        //console.log('COMPUTE', aladin.wasm.worldToScreen(s.ra, s.dec));
-        //console.log(sources)
+    Catalog.prototype.drawSources = function(ctx, width, height) {
         let sourcesInView = [];
 
-        var s;
-        for(var i = 0; i < sources.length; i++) {
-            s = sources[i];
-            var xy = AladinUtils.radecToViewXy(s.ra, s.dec, catalogInstance.view);
-
-            if(xy) {
-                //var xyview = AladinUtils.xyToView(xy.X, xy.Y, width, height, largestDim, zoomFactor, true);
-                var xyview = {vx: xy[0], vy: xy[1]};
-                var max = s.popup ? 100 : s.sourceSize;
-                if (xyview) {
-                    // TODO : index sources by HEALPix cells at level 3, 4 ?
-    
-                    // check if source is visible in view
-                    if (xyview.vx>(width+max)  || xyview.vx<(0-max) ||
-                        xyview.vy>(height+max) || xyview.vy<(0-max)) {
-                        s.x = s.y = undefined;
-                    } else {
-                        s.x = xyview.vx;
-                        s.y = xyview.vy;
-                        if (catalogInstance._shapeIsFunction) {
-                            catalogInstance.shape(s, ctx, catalogInstance.view.getViewParams());
-                        }
-                        else if (s.marker && s.useMarkerDefaultIcon) {
-                            ctx.drawImage(catalogInstance.cacheMarkerCanvas, s.x-sourceSize/2, s.y-sourceSize/2);
-                        }
-                        else {
-                            ctx.drawImage(catalogInstance.cacheCanvas, s.x-catalogInstance.cacheCanvas.width/2, s.y-catalogInstance.cacheCanvas.height/2);
-                        }
-        
-                        // has associated popup ?
-                        if (s.popup) {
-                            s.popup.setPosition(s.x, s.y);
-                        }
-                    }
-                }
-    
+        this.sources.forEach((s) => {
+            if (this.drawSource(s, ctx, width, height)) {
                 sourcesInView.push(s);
             }
-        }
+        });
 
         return sourcesInView;
     };
 
-    Catalog.drawSource = function(catalogInstance, s, ctx, width, height) {
-        if (! s.isShowing) {
+    Catalog.prototype.drawSource = function(s, ctx, width, height) {
+        if (!s.isShowing) {
             return false;
         }
-        var sourceSize = catalogInstance.sourceSize;
-        //console.log('COMPUTE', aladin.wasm.worldToScreen(s.ra, s.dec));
-        var xy = AladinUtils.radecToViewXy(s.ra, s.dec, catalogInstance.view);
+
+        var xy = AladinUtils.radecToViewXy(s.ra, s.dec, this.view);
 
         if (xy) {
-            //var xyview = AladinUtils.xyToView(xy.X, xy.Y, width, height, largestDim, zoomFactor, true);
-            var xyview = {vx: xy[0], vy: xy[1]};
-            var max = s.popup ? 100 : s.sourceSize;
-            if (xyview) {
-                // TODO : index sources by HEALPix cells at level 3, 4 ?
+            var max = s.popup ? 100 : this.sourceSize;
+            // TODO : index sources by HEALPix cells at level 3, 4 ?
 
-                // check if source is visible in view
-                if (xyview.vx>(width+max)  || xyview.vx<(0-max) ||
-                    xyview.vy>(height+max) || xyview.vy<(0-max)) {
-                    s.x = s.y = undefined;
-                    return false;
-                }
+            // check if source is visible in view
+            if (xy[0]>(width+max) || xy[0]<(0-max) ||
+                xy[1]>(height+max) || xy[1]<(0-max)) {
+                s.x = s.y = undefined;
 
-                s.x = xyview.vx;
-                s.y = xyview.vy;
-                if (catalogInstance._shapeIsFunction) {
-                    catalogInstance.shape(s, ctx, catalogInstance.view.getViewParams());
+                return false;
+            } else {
+                s.x = xy[0];
+                s.y = xy[1];
+                if (this._shapeIsFunction) {
+                    this.shape(s, ctx, this.view.getViewParams());
                 }
                 else if (s.marker && s.useMarkerDefaultIcon) {
-                    ctx.drawImage(catalogInstance.cacheMarkerCanvas, s.x-sourceSize/2, s.y-sourceSize/2);
+                    ctx.drawImage(this.cacheMarkerCanvas, s.x-this.sourceSize/2, s.y-this.sourceSize/2);
+                }
+                else if (s.isSelected) {
+                    ctx.drawImage(this.cacheSelectCanvas, s.x-this.selectSize/2, s.y-this.selectSize/2);
                 }
                 else {
-                    ctx.drawImage(catalogInstance.cacheCanvas, s.x-catalogInstance.cacheCanvas.width/2, s.y-catalogInstance.cacheCanvas.height/2);
+                    ctx.drawImage(this.cacheCanvas, s.x-this.cacheCanvas.width/2, s.y-this.cacheCanvas.height/2);
                 }
 
                 // has associated popup ?
                 if (s.popup) {
                     s.popup.setPosition(s.x, s.y);
                 }
+
+                // Draw the source footprint if there is any
+                if (s.footprint) {
+                    s.footprint.draw(ctx, this.view);
+                }
+
+                return true;
             }
-            return true;
         }
-        else {
-            return false;
-        }
-    };
-    
-    Catalog.drawSourceSelection = function(catalogInstance, s, ctx) {
-        if (!s || !s.isShowing || !s.x || !s.y) {
-            return;
-        }
-        var sourceSize = catalogInstance.selectSize;
-        
-        ctx.drawImage(catalogInstance.cacheSelectCanvas, s.x-sourceSize/2, s.y-sourceSize/2);
+
+        return false;
     };
 
-    Catalog.drawSourceLabel = function(catalogInstance, s, ctx) {
+    Catalog.prototype.drawSourceLabel = function(s, ctx) {
         if (!s || !s.isShowing || !s.x || !s.y) {
             return;
         }
 
-        var label = s.data[catalogInstance.labelColumn];
+        var label = s.data[this.labelColumn];
         if (!label) {
             return;
         }

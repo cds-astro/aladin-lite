@@ -35,7 +35,7 @@ export let Source = (function() {
     	this.dec = dec;
     	this.data = data;
     	this.catalog = null;
-    	
+
         this.marker = (options && options.marker) || false;
         if (this.marker) {
             this.popupTitle = (options && options.popupTitle) ? options.popupTitle : '';
@@ -43,14 +43,16 @@ export let Source = (function() {
             this.useMarkerDefaultIcon = (options && options.useMarkerDefaultIcon!==undefined) ? options.useMarkerDefaultIcon : true;
         }
 
+        this.footprint = (options && options.footprint) || undefined;
+
     	this.isShowing = true;
     	this.isSelected = false;
     };
-    
+
     Source.prototype.setCatalog = function(catalog) {
         this.catalog = catalog;
     };
-    
+
     Source.prototype.show = function() {
         if (this.isShowing) {
             return;
@@ -60,7 +62,7 @@ export let Source = (function() {
             this.catalog.reportChange();
         }
     };
-    
+
     Source.prototype.hide = function() {
         if (! this.isShowing) {
             return;
@@ -70,7 +72,7 @@ export let Source = (function() {
             this.catalog.reportChange();
         }
     };
-    
+
     Source.prototype.select = function() {
         if (this.isSelected) {
             return;
@@ -80,7 +82,7 @@ export let Source = (function() {
             this.catalog.reportChange();
         }
     };
-    
+
     Source.prototype.deselect = function() {
         if (! this.isSelected) {
             return;
@@ -95,11 +97,13 @@ export let Source = (function() {
     Source.prototype.actionClicked = function() {
         if (this.catalog && this.catalog.onClick) {
             var view = this.catalog.view;
+
             if (this.catalog.onClick=='showTable') {
-                view.aladin.measurementTable.showMeasurement(this);
                 this.select();
+                view.aladin.measurementTable.showMeasurement([this]);
             }
             else if (this.catalog.onClick=='showPopup') {
+
                 view.popup.setTitle('<br><br>');
                 var m = '<div class="aladin-marker-measurement">';
                 m += '<table>';
@@ -120,7 +124,6 @@ export let Source = (function() {
         }
     };
 
-    
     Source.prototype.actionOtherObjectClicked = function() {
         if (this.catalog && this.catalog.onClick) {
             this.deselect();

@@ -65,6 +65,7 @@ pub fn unwrap_abort<T>(o: Option<T>) -> T {
 mod utils;
 
 use math::projection::*;
+use votable::votable::VOTableWrapper;
 use wasm_bindgen::prelude::*;
 
 mod app;
@@ -814,6 +815,17 @@ impl WebClient {
         self.app.add_moc(params.clone(), HEALPixCoverage(moc))?;
 
         Ok(())
+    }
+
+    #[wasm_bindgen(js_name = parseVOTable)]
+    pub fn parse_votable(&mut self, s: &str) -> Result<JsValue, JsValue> {
+        let votable: VOTableWrapper<votable::impls::mem::InMemTableDataRows> = votable::votable::VOTableWrapper::from_ivoa_xml_str(s)
+            .map_err(|_| JsValue::from_str("Error parsing votable"))?;
+
+        let votable = serde_wasm_bindgen::to_value(&votable)
+            .map_err(|_| JsValue::from_str("cannot convert votable to js type"))?;
+
+        Ok(votable)
     }
 
     #[wasm_bindgen(js_name = addFITSMoc)]

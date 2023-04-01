@@ -367,27 +367,23 @@ export let ProgressiveCat = (function() {
             }
         },
         drawSources: function(sources, ctx, width, height) {
-            if (! sources) {
+            if (!sources) {
                 return;
             }
-            var s;
-            for (var k=0, len = sources.length; k<len; k++) {
-                s = sources[k];
+
+            sources.forEach((s) => {
                 if (!this.filterFn || this.filterFn(s)) {
-                    Catalog.drawSource(this, s, ctx, width, height);
+                    if (this.isSelected) {
+                        this.drawSourceSelection(s, ctx);
+                    } else {
+                        this.drawSource(s, ctx, width, height);
+                    }
                 }
-            }
-            var s;
-            for (var k=0, len = sources.length; k<len; k++) {
-                s = sources[k];
-                if (! s.isSelected) {
-                    continue;
-                }
-                if (!this.filterFn || this.filterFn(s)) {
-                    Catalog.drawSourceSelection(this, s, ctx);
-                }
-            }
+            })
         },
+
+        drawSource: Catalog.prototype.drawSource,
+        drawSourceSelection: Catalog.prototype.drawSourceSelection,
 
         getSources: function() {
             var ret = [];

@@ -572,12 +572,13 @@ export let View = (function () {
                     view.dragy - view.selectStartCoo.y
                 );
 
-                selectedObjects.forEach((obj) => {
-                    obj.select()
-                });
-                console.log(selectedObjects)
-                view.aladin.measurementTable.showMeasurement(selectedObjects);
+                selectedObjects.forEach((obj) => obj.select());
 
+                if (selectedObjects.length > 0) {
+                    let table = selectedObjects[0].catalog;
+                    view.aladin.measurementTable.showMeasurement(selectedObjects, table);
+                }
+                
                 view.selectedObjects = selectedObjects;
 
                 view.aladin.fire(

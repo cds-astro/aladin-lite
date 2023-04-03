@@ -43,6 +43,8 @@ export let MeasurementTable = (function() {
         this.numPages = 1;
         this.numRowsByPage = 5;
 
+        this.columnClickAction = {};
+
         $(aladinLiteDiv).append(this.divEl);
     }
 
@@ -51,7 +53,21 @@ export let MeasurementTable = (function() {
         rows.forEach(row => {
             tbody += '<tr>'
             for (let key in row.data) {
-                tbody += '<td>' + row.data[key] + '</td>';
+                // check the type here
+                const val = row.data[key];
+                tbody += '<td class="' + key + '">'
+                if (typeof(val) === "string") {
+                    try {
+                        let url = new URL(val);
+                        let link = '<a href=' + url + '>' + url + '</a>';
+                        tbody += link;
+                    } catch(e) {
+                        tbody += val
+                    }
+                } else {
+                    tbody += val
+                }
+                tbody += '</td>'
             }
             tbody += '</tr>';
         });
@@ -67,13 +83,27 @@ export let MeasurementTable = (function() {
         let tbody = this.divEl[0].querySelector(".content");
         tbody.innerHTML = MeasurementTable.updateBodyTable(fullRows.slice(rowIdxStart, rowIdxStart + this.numRowsByPage));
     
+        if (this.fieldsClickCallbacks) {
+            Object.entries(this.fieldsClickCallbacks)
+            .forEach(([key, callback]) => {
+                this.divEl[0].querySelectorAll("." + key).forEach((e) => {
+                    e.addEventListener('click', (e) => {
+                        callback(e.target.innerText)
+
+                        e.preventDefault();
+                    }, false)
+                })
+            });
+        }
+
         // recompute page idx
         let pageIdxElt = this.divEl[0].querySelector("#pageIdx");
         pageIdxElt.innerHTML = '<p id="pageIdx" style="display: inline-block; margin: 0">' + this.curPage + '/' + this.numPages + '</p>';
     }
 
     // show measurement associated with a given source
-    MeasurementTable.prototype.showMeasurement = function(rows) {
+    MeasurementTable.prototype.showMeasurement = function(rows, table) {
+        this.fieldsClickCallbacks = table.fieldsClickCallbacks;
         // compute the number of pages
         this.numPages = Math.floor(rows.length / this.numRowsByPage);
         if (rows.length % this.numRowsByPage > 0) {
@@ -89,13 +119,25 @@ export let MeasurementTable = (function() {
         thead += '</tr></thead>';
 
         let tbody = MeasurementTable.updateBodyTable(rows.slice(0, this.numRowsByPage));
-        
         this.divEl.append('<table>' + thead + tbody + '</table>');
+        // Add the callbacks to the cells
+        if (this.fieldsClickCallbacks) {
+            Object.entries(this.fieldsClickCallbacks)
+            .forEach(([key, callback]) => {
+                this.divEl[0].querySelectorAll("." + key).forEach((e) => {
+                    e.addEventListener('click', (e) => {
+                        callback(e.target.innerText)
+
+                        e.preventDefault();
+                    }, false)
+                })
+            });
+        }
 
         if (this.numPages > 1) {
             this.divEl.append('<div class="footer"><button id="prevButton" style="display: inline-block">Previous</button><button id="nextButton" style="display: inline-block">Next</button><p id="pageIdx" style="display: inline-block; margin: 0">' + this.curPage + '/' + this.numPages + '</p></div>');
 
-            document.querySelector('#nextButton').addEventListener(
+            this.divEl[0].querySelector('#nextButton').addEventListener(
                 'click',
                 () => {
                     this.curPage++;
@@ -107,7 +149,8 @@ export let MeasurementTable = (function() {
                 }
                 ,false
             );
-            document.querySelector('#prevButton').addEventListener(
+
+            this.divEl[0].querySelector('#prevButton').addEventListener(
                 'click',
                 () => {
                     this.curPage--;

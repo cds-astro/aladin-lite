@@ -74,7 +74,9 @@ export let Overlay = (function() {
     };
 
     // return an array of Footprint from a STC-S string
-    Overlay.parseSTCS = function(stcs) {
+    Overlay.parseSTCS = function(stcs, options) {
+        options = options || {};
+
         var footprints = [];
         var parts = stcs.match(/\S+/g);
         var k = 0, len = parts.length;
@@ -99,7 +101,9 @@ export let Overlay = (function() {
                         curPolygon.push([ra, dec]);
                         k += 2;
                     }
-                    footprints.push(A.polygon(curPolygon, {closed: true}));
+
+                    options.closed = true;
+                    footprints.push(A.polygon(curPolygon, options));
                 }
             }
             else if (s=='circle') {
@@ -114,7 +118,7 @@ export let Overlay = (function() {
                     dec = parseFloat(parts[k+2]);
                     radiusDegrees = parseFloat(parts[k+3]);
 
-                    footprints.push(A.circle(ra, dec, radiusDegrees));
+                    footprints.push(A.circle(ra, dec, radiusDegrees, options));
 
                     k += 3;
                 }

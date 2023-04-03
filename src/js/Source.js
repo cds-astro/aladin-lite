@@ -43,8 +43,6 @@ export let Source = (function() {
             this.useMarkerDefaultIcon = (options && options.useMarkerDefaultIcon!==undefined) ? options.useMarkerDefaultIcon : true;
         }
 
-        this.footprint = (options && options.footprint) || undefined;
-
     	this.isShowing = true;
     	this.isSelected = false;
     };
@@ -100,7 +98,7 @@ export let Source = (function() {
 
             if (this.catalog.onClick=='showTable') {
                 this.select();
-                view.aladin.measurementTable.showMeasurement([this]);
+                view.aladin.measurementTable.showMeasurement([this], this.catalog);
             }
             else if (this.catalog.onClick=='showPopup') {
 

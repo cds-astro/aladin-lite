@@ -68,6 +68,7 @@ import $ from 'jquery';
 
 // Import aladin css inside the project
 import './../css/aladin.css';
+import { VOTable } from "./vo/VOTable.js";
 
 
 export let Aladin = (function () {
@@ -1832,8 +1833,8 @@ Aladin.prototype.setReduceDeformations = function (reduce) {
 }
 
 // API
-A.footprintsFromSTCS = function (stcs) {
-    var footprints = Overlay.parseSTCS(stcs);
+A.footprintsFromSTCS = function (stcs, options) {
+    var footprints = Overlay.parseSTCS(stcs, options);
 
     return footprints;
 }
@@ -1861,8 +1862,25 @@ A.catalogFromURL = function (url, options, successCallback, useProxy) {
     var catalog = A.catalog(options);
     Catalog.parseVOTable(
         url,
-        function (sources) {
+        function (sources, footprints, fields) {
+            if (fields["access_url"]) {
+                // It is an obsore table pointing to a datalink table
+                catalog.addFieldClickCallback("access_url", (url) => {
+                    VOTable.parse(
+                        "./examples/datalink.xml",
+                        (fields, rows) => {
+                            let sources = [];
+                            let footprints = [];
+
+                            console.log(fields, rows)
+                        }
+                    )
+                });
+            }
+
+            catalog.addFootprints(footprints)
             catalog.addSources(sources);
+
             if (successCallback) {
                 successCallback(sources);
             }
@@ -1870,24 +1888,6 @@ A.catalogFromURL = function (url, options, successCallback, useProxy) {
         catalog.maxNbSources,
         useProxy,
         catalog.raField, catalog.decField
-    );
-
-    return catalog;
-};
-
-A.obscoreFromURL = function (url, options, successCallback, useProxy) {
-    options = options.color || Obscore.COLOR;
-    let catalog = A.catalog(options);
-
-    Obscore.parseVOTable(
-        url,
-        function (sources) {
-            catalog.addSources(sources);
-
-            if (successCallback) {
-                successCallback(sources);
-            }
-        }
     );
 
     return catalog;

@@ -2,9 +2,11 @@
 	position: relative;
 	border: 1px solid #ddd;
     height: 100%;
-    /*overflow: hidden;*/
-}
 
+    /* disable x swipe on chrome, firefox */
+    /* see. https://stackoverflow.com/questions/30636930/disable-web-page-navigation-on-swipeback-and-forward */
+    overscroll-behavior-x: none;
+}
 
 .aladin-imageCanvas {
 	position: absolute;
@@ -89,19 +91,31 @@
 }
 
 .aladin-measurement-div {
+    background-color: rgba(255, 255, 255, 0.8);
+
 	z-index: 77;
 	position:absolute;
     bottom: 20px;
-	background-color: rgba(255, 255, 255, 0.8);
     font-family: monospace;
 	font-size: 12px;
     display: none;
     width: 100%;
     overflow: auto;
+    /* Allow scrolling but disable scroll bar */
+    -ms-overflow-style: none; /* for Internet Explorer, Edge */
+    scrollbar-width: none; /* for Firefox */
+    overflow-y: scroll; 
+
+    /* disable x swipe on chrome, firefox */
+    overscroll-behavior-x: none;
+}
+
+.aladin-measurement-div::-webkit-scrollbar {
+    display: none; /* for Chrome, Safari, and Opera */
 }
 
 .aladin-measurement-div table {
-	padding: 2px 4px 2px 4px;
+
     table-layout: fixed;
     white-space: nowrap;
 }
@@ -219,10 +233,6 @@ word-wrap:break-word;
     padding: 4px 4px;
     max-height: 90%;
     overflow-y: auto;
-}
-
-element {
-
 }
 
 .aladin-box {

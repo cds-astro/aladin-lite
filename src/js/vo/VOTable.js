@@ -26,6 +26,8 @@
  * 
  *****************************************************************************/
 import { ALEvent } from "../events/ALEvent.js";
+import { Catalog } from "../Catalog.js";
+import { Obscore } from "./Obscore.js";
 
 export let VOTable = (function() {
 
@@ -39,6 +41,42 @@ export let VOTable = (function() {
                 }});
             })
     };
+
+    VOTable.parse = function (url, callback, raField, decField) {
+        fetch(url)
+            .then((response) => response.text())
+            .then((xml) => {
+                ALEvent.AL_USE_WASM.dispatchedTo(document.body, {callback: (wasm) => {
+                    let votable = wasm.parseVOTable(xml);
+
+                    votable.votable.get("resources")
+                        .forEach((resource) => {
+                            let tables = resource.get("tables")
+                            tables.forEach((table) => {
+                                let fields = table.get("elems")
+                                    .map((field) => {
+                                        // convert a map into a javascript object
+                                        return Object.fromEntries(field);
+                                    })
+        
+                                try {
+                                    fields = Obscore.parseFields(fields);
+                                } catch(e) {
+                                    // It is not an obscore table
+                                    fields = Catalog.parseFields(fields, raField, decField);
+                                }
+
+                                let data = table.get("data");
+                                let rows = data.get("rows");
+
+                                callback(fields, rows)
+                            })
+                        })
+                    }
+                })
+            })
+    };
+
     // return an array of Source(s) from a VOTable url
     // callback function is called each time a TABLE element has been parsed
 

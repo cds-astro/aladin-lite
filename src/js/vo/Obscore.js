@@ -71,79 +71,56 @@
         'instrument_name': { name: 'instrument_name', ucd: 'meta.id;instr', utype: 'Provenance.ObsConfig.Instrument.name', units: null },
     }
 
+    Obscore.clickOnAccessUrlAction = function(accessUrl) {
+        // Parse the datalink as a votable
+        VOTable.parse(accessUrl, (fields, rows) => {
+            console.log(fields)
+        })
+    }
+
     Obscore.COLOR = '#004500'
 
     function Obscore() {};
 
-    Obscore.parseVOTable = function(url, callback) {
-        new VOTable(url, (votable) => {
-            votable.votable.get("resources")
-                .forEach((resource) => {
-                    let tables = resource.get("tables")
-                    tables.forEach((table) => {
-                        let fields = table.get("elems")
-                            .map((field) => {
-                                // convert a map into a javascript object
-                                return Object.fromEntries(field);
-                            })
+    Obscore.parseFields = function(fields) {
+        let parsedFields = {};
 
-                        let obsCoreFieldIndices = {};
-                        // Check for mandatory fields
-                        ['s_ra', 's_dec', 'access_url', 's_region']
-                            .map((mandatoryFieldName) => {
-                                const mandatoryField = Obscore.MANDATORY_FIELDS[mandatoryFieldName];
+        const raField = Obscore.MANDATORY_FIELDS['s_ra'];
+        const decField = Obscore.MANDATORY_FIELDS['s_dec'];
+        const regionField = Obscore.MANDATORY_FIELDS['s_region'];
+        const accessUrlField = Obscore.MANDATORY_FIELDS['access_url'];
 
-                                const fieldIdx = Obscore.findMandatoryField(fields,
-                                    mandatoryField.name,
-                                    mandatoryField.ucd,
-                                    mandatoryField.utype
-                                );
+        let raFieldIdx = Obscore.findMandatoryField(fields, raField.name, raField.ucd, raField.utype);
+        let decFieldIdx = Obscore.findMandatoryField(fields, decField.name, decField.ucd, decField.utype);
+        let regionFieldIdx = Obscore.findMandatoryField(fields, regionField.name, regionField.ucd, regionField.utype);
+        let accessUrlFieldIdx = Obscore.findMandatoryField(fields, accessUrlField.name, accessUrlField.ucd, accessUrlField.utype);
 
-                                let field = fields[fieldIdx];
-                                let key = field.name ? field.name : field.id;
+        let fieldIdx = 0;
+        fields.forEach((field) => {
+            let key = field.name ? field.name : field.id;
 
-                                obsCoreFieldIndices[mandatoryFieldName] = {
-                                    columnName: key,
-                                    idx: fieldIdx,
-                                };
-                            })
+            let nameField;
+            if (fieldIdx == raFieldIdx) {
+                nameField = 's_ra';
+            } else if (fieldIdx == decFieldIdx) {
+                nameField = 's_dec';
+            } else if (fieldIdx == regionFieldIdx) {
+                nameField = 's_region';
+            } else if (fieldIdx == accessUrlFieldIdx) {
+                nameField = 'access_url';
+            } else {
+                nameField = key;
+            }
 
-                        // At this point we sure know we have an obscore table
-                        let rows = table.get("data").get("rows");
-                        // We compute the obscore sources
-                        let sources = [];
-                        let footprints = [];
-                        const raFieldIdx = obsCoreFieldIndices['s_ra'].idx;
-                        const decFieldIdx = obsCoreFieldIndices['s_dec'].idx;
-                        const sRegionIdx = obsCoreFieldIndices['s_region'].idx;
-                        
+            parsedFields[nameField] = {
+                name: key,
+                idx: fieldIdx,
+            };
 
-                        rows.forEach(row => {
-                            var mesures = {};
-
-                            let idxField = 0;
-                            for (const field of fields) {
-                                var key = field.name ? field.name : field.id;
-
-                                mesures[key] = row[idxField];
-                                idxField += 1;
-                            }
-
-                            const ra = row[raFieldIdx];
-                            const dec = row[decFieldIdx];
-                            const region = row[sRegionIdx];
-                            let footprint = A.footprintsFromSTCS(region)[0];
-
-                            sources.push(new Source(ra, dec, mesures, {footprint: footprint}));
-                        })
-
-                        // Give the source list and a table of correspondance of mandatory obscore fields to source fields
-                        if (callback) {
-                            callback(sources, footprints)
-                        }
-                    })
-                });
+            fieldIdx++;
         })
+
+        return parsedFields;
     };
 
 

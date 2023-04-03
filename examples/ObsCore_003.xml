@@ -1,0 +1,212 @@
+<?xml version="1.0"?>
+<VOTABLE xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.3"
+    xmlns="http://www.ivoa.net/xml/VOTable/v1.1"
+    xsi:schemaLocation="http://www.ivoa.net/xml/VOTable/v1.1 http://www.ivoa.net/xml/VOTable/v1.1">
+    <DESCRIPTION>Mockup SKA discovery service response VOTable</DESCRIPTION>
+    <COOSYS ID="J2000" equinox="2000." epoch="2000" system="eq_FK5" />
+    <RESOURCE name="ska.srcnet.org.resp" type="results">
+        <DESCRIPTION>ska.srcnet.resp/sia~1 SKA data discovery service from Italian node</DESCRIPTION>
+        <TABLE name="ska.scrnet.org/italy/galacticCenter">
+            <FIELD ID="calib_level" name="calib_level" ucd="meta.code;obs.calib" utype="obscore:ObsDataset.calibLevel"
+                datatype="int">
+                <DESCRIPTION>calibration level (0,1,2,3)</DESCRIPTION>
+            </FIELD>
+            <FIELD ID="s_ra" name="s_ra" unit="deg" ucd="pos.eq.ra"
+                utype="obscore:Char.SpatialAxis.Coverage.Location.Coord.Position2D.Value2.C1" datatype="double">
+                <DESCRIPTION>RA of central coordinates</DESCRIPTION>
+            </FIELD>
+            <FIELD ID="s_dec" name="s_dec" unit="deg" ucd="pos.eq.dec"
+                utype="obscore:Char.SpatialAxis.Coverage.Location.Coord.Position2D.Value2.C2" datatype="double">
+                <DESCRIPTION>DEC of central coordinates</DESCRIPTION>
+            </FIELD>
+            <FIELD ID="s_fov" name="s_fov" unit="deg" ucd="phys.angSize;instr.fov"
+                utype="obscore:Char.SpatialAxis.Coverage.Bounds.Extent.diameter" datatype="double">
+                <DESCRIPTION>size of the region covered (~diameter of minimum bounding circle)</DESCRIPTION>
+            </FIELD>
+            <FIELD ID="s_region" name="s_region" ucd="pos.outline;obs.field"
+                utype="obscore:Char.SpatialAxis.Coverage.Support.Area" datatype="char" arraysize="*">
+                <DESCRIPTION>region bounded by observation</DESCRIPTION>
+            </FIELD>
+            <FIELD ID="obs_publisher_did" name="obs_publisher_did" ucd="meta.ref.ivoid"
+                utype="obscore:Curation.PublisherDID" datatype="char" arraysize="256*">
+                <DESCRIPTION>publisher dataset identifier</DESCRIPTION>
+            </FIELD>
+            <FIELD ID="obs_collection" name="obs_collection" ucd="meta.id" utype="obscore:DataID.Collection"
+                datatype="char" arraysize="128*">
+                <DESCRIPTION>short name for the data colection</DESCRIPTION>
+            </FIELD>
+            <FIELD ID="facility_name" name="facility_name" ucd="meta.id;instr.tel"
+                utype="obscore:Provenance.ObsConfig.Facility.name" datatype="char" arraysize="128*">
+                <DESCRIPTION>telescope name</DESCRIPTION>
+            </FIELD>
+            <FIELD ID="instrument_name" name="instrument_name" ucd="meta.id;instr"
+                utype="obscore:Provenance.ObsConfig.Instrument.name" datatype="char" arraysize="128*">
+                <DESCRIPTION>instrument name</DESCRIPTION>
+            </FIELD>
+            <FIELD ID="obs_id" name="obs_id" ucd="meta.id" utype="obscore:DataID.observationID" datatype="char"
+                arraysize="128*">
+                <DESCRIPTION>internal dataset identifier</DESCRIPTION>
+            </FIELD>
+            <FIELD ID="dataproduct_type" name="dataproduct_type" ucd="meta.code.class"
+                utype="obscore:ObsDataset.dataProductType" datatype="char" arraysize="128*">
+                <DESCRIPTION>type of product</DESCRIPTION>
+            </FIELD>
+            <FIELD ID="dataproduct_subtype" name="dataproduct_subtype" ucd="meta.code.class"
+                utype="obscore:ObsDataset.dataProductSubType" datatype="char" arraysize="128*">
+                <DESCRIPTION>free sub type of product</DESCRIPTION>
+            </FIELD>
+            <FIELD ID="obs_release_date" name="obs_release_date" ucd="time.release" utype="obscore:Curation.releaseDate"
+                datatype="char" arraysize="23*">
+                <DESCRIPTION>timestamp of date the data becomes publicly available</DESCRIPTION>
+            </FIELD>
+            <FIELD ID="target_name" name="target_name" ucd="meta.id;src" utype="obscore:Target.Name" datatype="char"
+                arraysize="32*">
+                <DESCRIPTION>name of intended target</DESCRIPTION>
+            </FIELD>
+            <FIELD ID="s_resolution" name="s_resolution" unit="arcsec" ucd="pos.angResolution"
+                utype="obscore:Char.SpatialAxis.Resolution.refval.value" datatype="double">
+                <DESCRIPTION>typical spatial resolution</DESCRIPTION>
+            </FIELD>
+            <FIELD ID="s_xel1" name="s_xel1" ucd="meta.number" utype="obscore:Char.SpatialAxis.numBins1"
+                datatype="long">
+                <DESCRIPTION>dimensions (number of pixels) along one spatial axis</DESCRIPTION>
+            </FIELD>
+            <FIELD ID="s_xel2" name="s_xel2" ucd="meta.number" utype="obscore:Char.SpatialAxis.numBins2"
+                datatype="long">
+                <DESCRIPTION>dimensions (number of pixels) along the other spatial axis</DESCRIPTION>
+            </FIELD>
+            <FIELD ID="t_min" name="t_min" unit="d" ucd="time.start;obs.exposure"
+                utype="obscore:Char.TimeAxis.Coverage.Bounds.Limits.StartTime" datatype="double">
+                <DESCRIPTION>start time of observation (MJD)</DESCRIPTION>
+            </FIELD>
+            <FIELD ID="t_max" name="t_max" unit="d" ucd="time.end;obs.exposure"
+                utype="obscore:Char.TimeAxis.Coverage.Bounds.Limits.StopTime" datatype="double">
+                <DESCRIPTION>end time of observation (MJD)</DESCRIPTION>
+            </FIELD>
+            <FIELD ID="t_exptime" name="t_exptime" unit="s" ucd="time.duration;obs.exposure"
+                utype="obscore:Char.TimeAxis.Coverage.Support.Extent" datatype="double">
+                <DESCRIPTION>exposure time of observation</DESCRIPTION>
+            </FIELD>
+            <FIELD ID="t_resolution" name="t_resolution" unit="s" ucd="time.resolution"
+                utype="obscore:Char.TimeAxis.Resolution.refval.value" datatype="double">
+                <DESCRIPTION>typical temporal resolution</DESCRIPTION>
+            </FIELD>
+            <FIELD ID="t_xel" name="t_xel" ucd="meta.number" utype="obscore:Char.TimeAxis.numBins" datatype="long">
+                <DESCRIPTION>dimensions (number of pixels) along the time axis</DESCRIPTION>
+            </FIELD>
+            <FIELD ID="em_min" name="em_min" unit="m" ucd="em.wl;stat.min"
+                utype="obscore:Char.SpectralAxis.Coverage.Bounds.Limits.LoLimit" datatype="double">
+                <DESCRIPTION>start spectral coordinate value</DESCRIPTION>
+            </FIELD>
+            <FIELD ID="em_max" name="em_max" unit="m" ucd="em.wl;stat.max"
+                utype="obscore:Char.SpectralAxis.Coverage.Bounds.Limits.HiLimit" datatype="double">
+                <DESCRIPTION>stop spectral coordinate value</DESCRIPTION>
+            </FIELD>
+            <FIELD ID="em_res_power" name="em_res_power" ucd="spect.resolution"
+                utype="obscore:Char.SpectralAxis.Resolution.ResolPower.refval" datatype="double">
+                <DESCRIPTION>typical spectral resolution</DESCRIPTION>
+            </FIELD>
+            <FIELD ID="em_xel" name="em_xel" ucd="meta.number" utype="obscore:Char.SpectralAxis.numBins"
+                datatype="long">
+                <DESCRIPTION>dimensions (number of pixels) along the energy axis</DESCRIPTION>
+            </FIELD>
+            <FIELD ID="pol_xel" name="pol_xel" ucd="meta.number" utype="obscore:Char.PolarizationAxis.numBins"
+                datatype="long">
+                <DESCRIPTION>dimensions (number of pixels) along the polarization axis</DESCRIPTION>
+            </FIELD>
+            <FIELD ID="access_url" name="access_url" ucd="meta.ref.url" utype="obscore:Access.Reference" datatype="char"
+                arraysize="*">
+                <DESCRIPTION>URL to download the data</DESCRIPTION>
+            </FIELD>
+            <FIELD ID="access_estsize" name="access_estsize" unit="kbyte" ucd="phys.size;meta.file"
+                utype="obscore:Access.Size" datatype="long">
+                <DESCRIPTION>estimated size of the download</DESCRIPTION>
+            </FIELD>
+ 
+            <FIELD ID="pol_states" name="pol_states" ucd="meta.code;phys.polarization"
+                utype="obscore:Char.PolarizationAxis.stateList" datatype="char" arraysize="32*">
+                <DESCRIPTION>polarization states present in the data</DESCRIPTION>
+            </FIELD>
+            <FIELD ID="o_ucd" name="o_ucd" ucd="meta.ucd" utype="obscore:Char.ObservableAxis.ucd" datatype="char"
+                arraysize="32*">
+                <DESCRIPTION>UCD describing the observable axis (pixel values)</DESCRIPTION>
+            </FIELD>
+            <FIELD ID="access_format" name="access_format" ucd="meta.code.mime" utype="obscore:Access.Format"
+                datatype="char" arraysize="128*">
+                <DESCRIPTION>format of the data file(s)</DESCRIPTION>
+            </FIELD>
+            <DATA>
+                <TABLEDATA>
+                    <TR>
+                        <TD>3</TD>
+                        <TD>214.9</TD>
+                        <TD>56.7</TD>
+                        <TD>0.2</TD>
+                        <TD>polygon 215.92 56.25 214.03 56.25 214.03 57.34 215.92 57.34</TD>
+			<TD>ivo://SKA/SrcNet/APERTIF_DR1/200110007_AP_B037/HI_image_cube3</TD>
+                        <TD>APERTIF_DR1</TD>
+                        <TD>wsrt</TD>
+                        <TD>Apertif</TD>
+                        <TD>200104010</TD>
+                        <TD>cube</TD>
+                        <TD>HI_spectral_cubes</TD>
+                        <TD>2020-01-04T06:38:21Z</TD>
+                        <TD>NGC 5585</TD>
+                        <TD>0.4</TD>
+                        <TD>661</TD>
+                        <TD>661</TD>
+                        <TD>61416.3556875</TD>
+                        <TD>61416.356376527775</TD>
+                        <TD>59.575</TD>
+                        <TD>0.1</TD>
+                        <TD>1218</TD>
+                        <TD>0.211</TD>
+                        <TD>0.217</TD>
+                        <TD>7000000</TD>
+                        <TD>100000</TD>
+                        <TD>4</TD>
+                        <TD>https://raw.githubusercontent.com/VisIVOLab/SKA-Discovery-Service-Mockup/main/DataLink/DataLink_003.xml</TD>
+                        <TD>2128688640</TD>
+                        <TD>I Q U V</TD>
+                        <TD>phot.flux.density;phys.polarization</TD>
+                        <TD>application/x-votable+xml;content=datalink</TD>
+                    </TR>
+                                        <TR>
+                        <TD>3</TD>
+                        <TD>214.9</TD>
+                        <TD>56.7</TD>
+                        <TD>0.2</TD>
+                        <TD>polygon 215.92 56.25 214.03 56.25 214.03 57.34 215.92 57.34</TD>
+			<TD>ivo://SKA/SrcNet/APERTIF_DR1/200110007_AP_B037/HI_image_cube3</TD>
+                        <TD>APERTIF_DR1</TD>
+                        <TD>wsrt</TD>
+                        <TD>Apertif</TD>
+                        <TD>200104010</TD>
+                        <TD>cube</TD>
+                        <TD>HI_spectral_cubes</TD>
+                        <TD>2020-01-04T06:38:21Z</TD>
+                        <TD>NGC 5585</TD>
+                        <TD>0.4</TD>
+                        <TD>661</TD>
+                        <TD>661</TD>
+                        <TD>61416.3556875</TD>
+                        <TD>61416.356376527775</TD>
+                        <TD>59.575</TD>
+                        <TD>0.1</TD>
+                        <TD>1218</TD>
+                        <TD>0.211</TD>
+                        <TD>0.217</TD>
+                        <TD>7000000</TD>
+                        <TD>100000</TD>
+                        <TD>4</TD>
+                        <TD>https://raw.githubusercontent.com/VisIVOLab/SKA-Discovery-Service-Mockup/main/DataLink/DataLink_003.xml</TD>
+                        <TD>2128688640</TD>
+                        <TD>I Q U V</TD>
+                        <TD>phot.flux.density;phys.polarization</TD>
+                        <TD>application/x-votable+xml;content=datalink</TD>
+                    </TR>
+                </TABLEDATA>
+        </DATA>
+       </TABLE>
+    </RESOURCE>
+</VOTABLE>

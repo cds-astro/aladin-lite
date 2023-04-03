@@ -35,6 +35,7 @@ import { Utils } from "./Utils.js";
 import { AladinUtils } from "./AladinUtils.js";
 import { Coo } from "./libs/astro/coo.js";
 import { ALEvent } from "./events/ALEvent.js";
+import { Obscore } from "./vo/Obscore.js";
 import { VOTable } from "./vo/VOTable.js";
 
 import $ from 'jquery';
@@ -60,11 +61,11 @@ export let Catalog = (function() {
         this.raField = options.raField || undefined; // ID or name of the field holding RA
         this.decField = options.decField || undefined; // ID or name of the field holding dec
 
+        this.fieldsClickCallbacks = {}; // callbacks when the user clicks on a cell in the measurement table associated
+
     	this.indexationNorder = 5; // à quel niveau indexe-t-on les sources
     	this.sources = [];
         this.footprints = [];
-    	//this.hpxIdx = new HealpixIndex(this.indexationNorder);
-    	//this.hpxIdx.init();
 
         this.displayLabel = options.displayLabel || false;
         this.labelColor = options.labelColor || this.color;
@@ -266,148 +267,91 @@ export let Catalog = (function() {
         };
         
     
+    Catalog.parseFields = function(fields, raField, decField) {
+        // This votable is not an obscore one
+        let [raFieldIdx, decFieldIdx] = findRADecFields(fields, raField, decField);
+
+        let parsedFields = {};
+        let fieldIdx = 0;
+        fields.forEach((field) => {
+            let key = field.name ? field.name : field.id;
+
+            let nameField;
+            if (fieldIdx == raFieldIdx) {
+                nameField = 'ra';
+            } else if (fieldIdx == decFieldIdx) {
+                nameField = 'dec';
+            } else {
+                nameField = key;
+            }
+
+            parsedFields[nameField] = {
+                name: key,
+                idx: fieldIdx,
+            };
+
+            fieldIdx++;
+        })
+
+        return parsedFields;
+    };
+
     // return an array of Source(s) from a VOTable url
     // callback function is called each time a TABLE element has been parsed
     Catalog.parseVOTable = function(url, callback, maxNbSources, useProxy, raField, decField) {
-        /*
-        // adapted from votable.js
-        function getPrefix($xml) {
-            var prefix;
-            // If Webkit chrome/safari/... (no need prefix)
-            if($xml.find('RESOURCE').length>0) {
-                prefix = '';
-            }
-            else {
-                // Select all data in the document
-                prefix = $xml.find("*").first();
+        VOTable.parse(
+            url,
+            (fields, rows) => {
+                let sources = [];
+                let footprints = [];
 
-                if (prefix.length==0) {
-                    return '';
-                }
+                rows.every(row => {
+                    let ra, dec, region;
+                    var mesures = {};
 
-                // get name of the first tag
-                prefix = prefix.prop("tagName");
+                    for (const [fieldName, field] of Object.entries(fields)) {
+                        if (fieldName === 's_region') {
+                            // Obscore s_region param
+                            region = row[field.idx];
+                        } else if (fieldName === 'ra' || fieldName === 's_ra') {
+                            ra = row[field.idx]
+                        } else if (fieldName === 'dec' || fieldName === 's_dec') {
+                            dec = row[field.idx]
+                        }
 
-                var idx = prefix.indexOf(':');
-
-                prefix = prefix.substring(0, idx) + "\\:";
-
-
-            }
-
-            return prefix;
-        }
-
-        function doParseVOTable(xml, callback) {
-            xml = xml.replace(/^\s+/g, ''); // we need to trim whitespaces at start of document
-            var attributes = ["name", "ID", "ucd", "utype", "unit", "datatype", "arraysize", "width", "precision"];
-            
-            var fields = [];
-            var k = 0;
-            var $xml = $($.parseXML(xml));
-            var prefix = getPrefix($xml);
-            $xml.find(prefix + "FIELD").each(function() {
-                var f = {};
-                for (var i=0; i<attributes.length; i++) {
-                    var attribute = attributes[i];
-                    if ($(this).attr(attribute)) {
-                        f[attribute] = $(this).attr(attribute);
+                        var key = field.name;
+                        mesures[key] = row[field.idx];
                     }
+
+                    if (ra && dec) {
+                        const source = new Source(ra, dec, mesures);
+                        
+                        sources.push(source);
+                        if (maxNbSources && sources.length == maxNbSources) {
+                            return false;
+                        }
+                    }
+
+                    if (region) {
+                        let footprint = A.footprintsFromSTCS(region, {lineWidth: 2});
+                        footprints = footprints.concat(footprint);
+                    }
+
+                    return true;
+                })
+
+                if (callback) {
+                    callback(sources, footprints, fields);
                 }
-                if ( ! f.ID) {
-                    f.ID = "col_" + k;
-                }
-                fields.push(f);
-                k++;
-            });
-                
-            var raDecFieldIdxes = findRADecFields(fields, raField, decField);
-            var raFieldIdx,  decFieldIdx;
-            raFieldIdx = raDecFieldIdxes[0];
-            decFieldIdx = raDecFieldIdxes[1];
-
-            var sources = [];
-            
-            var coo = new Coo();
-            var ra, dec;
-            $xml.find(prefix + "TR").each(function() {
-                var mesures = {};
-                var k = 0;
-                $(this).find(prefix + "TD").each(function() {
-                    var key = fields[k].name ? fields[k].name : fields[k].id;
-                    mesures[key] = $(this).text();
-                    k++;
-                });
-                var keyRa = fields[raFieldIdx].name ? fields[raFieldIdx].name : fields[raFieldIdx].id;
-                var keyDec = fields[decFieldIdx].name ? fields[decFieldIdx].name : fields[decFieldIdx].id;
-
-                if (Utils.isNumber(mesures[keyRa]) && Utils.isNumber(mesures[keyDec])) {
-                    ra = parseFloat(mesures[keyRa]);
-                    dec = parseFloat(mesures[keyDec]);
-                } else {
-                    coo.parse(mesures[keyRa] + " " + mesures[keyDec]);
-                    ra = coo.lon;
-                    dec = coo.lat;
-                }
-                sources.push(new Source(ra, dec, mesures));
-                if (maxNbSources && sources.length == maxNbSources) {
-                    return false; // break the .each loop
-                }
-            });
-            if (callback) {
-                callback(sources);
-            }
-        }
-        */
-
-        new VOTable(url, (votable) => {
-            let sources = [];
-            votable.votable.get("resources")
-                .forEach((resource) => {
-                    let tables = resource.get("tables")
-                    tables.forEach((table) => {
-                        let fields = table.get("elems")
-                            .map((field) => {
-                                // convert a map into a javascript object
-                                return Object.fromEntries(field);
-                            })
-
-                        var raDecFieldIdxes = findRADecFields(fields, raField, decField);
-                        const raFieldIdx = raDecFieldIdxes[0];
-                        const decFieldIdx = raDecFieldIdxes[1];
-
-                        let data = table.get("data");
-                        let rows = data.get("rows");
-
-                        rows.every(row => {
-                            var mesures = {};
-
-                            let idxField = 0;
-                            for (const field of fields) {
-                                var key = field.name ? field.name : field.id;
-
-                                mesures[key] = row[idxField];
-                                idxField += 1;
-                            }
-
-                            const ra = row[raFieldIdx];
-                            const dec = row[decFieldIdx];
-
-                            sources.push(new Source(ra, dec, mesures));
-                            if (maxNbSources && sources.length == maxNbSources) {
-                                return false;
-                            }
-
-                            return true;
-                        })
-                    })
-                });
-
-            if (callback) {
-                callback(sources);
-            }
-        })
+            },
+            raField,
+            decField
+        )
     };
+
+    Catalog.prototype.addFieldClickCallback = function(field, callback) {
+        this.fieldsClickCallbacks[field] = callback;
+    }
 
     // API
     Catalog.prototype.updateShape = function(options) {
@@ -557,13 +501,7 @@ export let Catalog = (function() {
         if (this._shapeIsFunction) {
             ctx.save();
         }
-        /*var sourcesInView = [];
- 	    for (var k=0, len = this.sources.length; k<len; k++) {
-		    var inView = Catalog.drawSource(this, this.sources[k], ctx, frame, width, height, largestDim, zoomFactor);
-            if (inView) {
-                sourcesInView.push(this.sources[k]);
-            }
-        }*/
+
         const sourcesInView = this.drawSources(ctx, width, height);
 
         if (this._shapeIsFunction) {
@@ -578,6 +516,9 @@ export let Catalog = (function() {
                 Catalog.drawSourceLabel(this, s, ctx);
             })
         }
+
+        // Draw the footprints
+        this.drawFootprints(ctx);
     };
     
     Catalog.prototype.drawSources = function(ctx, width, height) {
@@ -630,11 +571,6 @@ export let Catalog = (function() {
                     s.popup.setPosition(s.x, s.y);
                 }
 
-                // Draw the source footprint if there is any
-                if (s.footprint) {
-                    s.footprint.draw(ctx, this.view);
-                }
-
                 return true;
             }
         }
@@ -655,7 +591,13 @@ export let Catalog = (function() {
         ctx.fillText(label, s.x, s.y);
     };
 
-    
+    Catalog.prototype.drawFootprints = function(ctx) {
+        this.footprints.forEach((f) => {
+            f.draw(ctx, this.view)
+        });
+    };
+
+
     // callback function to be called when the status of one of the sources has changed
     Catalog.prototype.reportChange = function() {
         this.view && this.view.requestRedraw();

@@ -569,9 +569,9 @@ impl WebClient {
     /// * `lon` - A longitude in degrees
     /// * `lat` - A latitude in degrees
     #[wasm_bindgen(js_name = worldToScreen)]
-    pub fn world_to_screen(&self, lon: f64, lat: f64) -> Option<Box<[f64]>> {
+    pub fn world_to_screen(&self, lon: f64, lat: f64) -> Option<Box<[i32]>> {
         self.app.world_to_screen(lon, lat)
-            .map(|v| Box::new([v.x, v.y]) as Box<[f64]>)
+            .map(|v| Box::new([v.x as i32, v.y as i32]) as Box<[i32]>)
     }
 
     /// Screen to world unprojection
@@ -820,7 +820,7 @@ impl WebClient {
     #[wasm_bindgen(js_name = parseVOTable)]
     pub fn parse_votable(&mut self, s: &str) -> Result<JsValue, JsValue> {
         let votable: VOTableWrapper<votable::impls::mem::InMemTableDataRows> = votable::votable::VOTableWrapper::from_ivoa_xml_str(s)
-            .map_err(|_| JsValue::from_str("Error parsing votable"))?;
+            .map_err(|err| JsValue::from_str(&format!("Error parsing votable: {:?}", err)))?;
 
         let votable = serde_wasm_bindgen::to_value(&votable)
             .map_err(|_| JsValue::from_str("cannot convert votable to js type"))?;

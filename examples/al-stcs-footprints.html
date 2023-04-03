@@ -18,6 +18,8 @@
 
         aladin.addCatalog(A.catalogFromURL('https://aladin.cds.unistra.fr/AladinLite/doc/API/examples/data/alma-footprints.xml', {}, function(sources) {
             sources.forEach(source => {
+                console.log(A.footprintsFromSTCS(source.data['s_region']))
+
                 overlay.addFootprints(A.footprintsFromSTCS(source.data['s_region']))
             });
         }));

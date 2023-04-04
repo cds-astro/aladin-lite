@@ -61,6 +61,7 @@ import { ColorCfg } from './ColorCfg.js';
 import { ImageFITS } from "./ImageFITS.js";
 import { SimbadPointer } from "./SimbadPointer.js";
 import { PlanetaryFeaturesPointer } from "./PlanetaryFeaturesPointer.js";
+import { DefaultActionsForContextMenu } from "./DefaultActionsForContextMenu.js";
 
 
 
@@ -136,19 +137,7 @@ export let Aladin = (function () {
         const copyCoo = locationDiv.find('.aladin-clipboard');
         copyCoo.hide();
         copyCoo.click(function() {
-            let copyTextEl = locationDiv[0].querySelector('.aladin-location-text');
-            var r = document.createRange();
-            r.selectNode(copyTextEl);
-            window.getSelection().removeAllRanges();
-            window.getSelection().addRange(r);
-            try {
-                let successful = document.execCommand('copy');
-                let msg = successful ? 'successful' : 'unsuccessful';
-                console.log('Copying text command was ' + msg);
-            } catch (err) {
-                console.log('Oops, unable to copy');
-            }
-            window.getSelection().removeAllRanges();
+            self.copyCoordinatesToClipboard();
         });
         locationDiv.mouseenter(function() {
             copyCoo.show();
@@ -490,42 +479,10 @@ export let Aladin = (function () {
         }
 
         // set right click context menu
-        this.contextMenu = new ContextMenu();
-        this.contextMenu.attachTo(this.view.catalogCanvas, [
-            {
-                label: "Take snapshot", action(o) { self.exportAsPNG(); }
-            },
-            {
-                label: "Add", action(o) { console.log(o) },
-                subMenu: [
-                    {
-                        label: 'New image layer', action(o) {
-                            self.addNewImageLayer();
-                            console.log(o)
-                        }
-                    },
-                    { label: 'New catalogue layer', action(o) { console.log(o) } }
-                ]
-            },
-            {
-                label: "What is this?", action(e) {
-                    const xymouse = self.view.imageCanvas.relMouseCoords(e);
-                    let radec = self.wasm.screenToWorld(xymouse.x, xymouse.y);
-                    if (radec) {
-                        // sky case
-                        if (self.getBaseImageLayer().properties.isPlanetaryBody === false) {
-                            SimbadPointer.query(radec[0], radec[1], Math.min(1, 15 * self.view.fov / self.view.largestDim), self);
-                        }
-                        // planetary body case
-                        else {
-                            // TODO: replace with actual value
-                            const body = self.getBaseImageLayer().properties.hipsBody;
-                            PlanetaryFeaturesPointer.query(radec[0], radec[1], Math.min(80, self.view.fov / 20.0), body, self);
-                        }
-                    }
-                }
-            },
-        ]);
+        if (options.showContextMenu) {
+            this.contextMenu = new ContextMenu(this);
+            this.contextMenu.attachTo(this.view.catalogCanvas, DefaultActionsForContextMenu.getDefaultActions(this));
+        }
     };
 
     /**** CONSTANTS ****/
@@ -551,6 +508,7 @@ export let Aladin = (function () {
         showGotoControl: true,
         showSimbadPointerControl: false,
         showShareControl: false,
+        showContextMenu: false,
         showCatalog: true, // TODO: still used ??
         showFrame: true,
         fullScreen: false,
@@ -564,6 +522,22 @@ export let Aladin = (function () {
         allskyRingWidth: 8,
         pixelateCanvas: true
     };
+
+    Aladin.prototype.copyCoordinatesToClipboard = function() {
+        let copyTextEl = this.view.location.$div[0];
+        var r = document.createRange();
+        r.selectNode(copyTextEl);
+        window.getSelection().removeAllRanges();
+        window.getSelection().addRange(r);
+        try {
+            let successful = document.execCommand('copy');
+            let msg = successful ? 'successful' : 'unsuccessful';
+            console.log('Copying text command was ' + msg);
+        } catch (err) {
+            console.log('Oops, unable to copy');
+        }
+        window.getSelection().removeAllRanges();
+    }
 
     // realFullscreen: AL div expands not only to the size of its parent, but takes the whole available screen estate
     Aladin.prototype.toggleFullscreen = function (realFullscreen) {

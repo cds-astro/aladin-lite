@@ -448,6 +448,7 @@ export let View = (function () {
             $(view.catalogCanvas).dblclick(onDblClick);
         }
 
+        // prevent default context menu from appearing (potential clash with right-click cuts control)
         $(view.catalogCanvas).bind("contextmenu", function (e) {
             // do something here...
             e.preventDefault();
@@ -523,7 +524,7 @@ export let View = (function () {
 
                 const rightClickDurationMs = Date.now() - view.rightClickTimeStart;
                 if (rightClickDurationMs<300) {
-                    view.aladin.contextMenu._showMenu(e);
+                    view.aladin.contextMenu && view.aladin.contextMenu._showMenu(e);
                 }
 
 

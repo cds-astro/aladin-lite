@@ -30,9 +30,13 @@
  * 
  *****************************************************************************/
 
+import { Coo }            from "../libs/astro/coo.js";
+import { CooFrameEnum }   from "../CooFrameEnum.js";
+
 export class ContextMenu {
 
-    constructor() {
+    constructor(aladin) {
+        this.aladin = aladin;
         this.isShowing = false;
     }
 
@@ -50,15 +54,37 @@ export class ContextMenu {
         this._hideMenu(true);
     }
 
-    _attachOption(target, opt) {
+    _attachOption(target, opt, xymouse) {
         const item = document.createElement('li');
         item.className = 'aladin-context-menu-item';
-        item.innerHTML = `<span>${opt.label}</span>`;
+        if (opt.label=='Copy position') {
+            const pos = this.aladin.pix2world(xymouse.x, xymouse.y);
+            var coo = new Coo(pos[0], pos[1], 6);
+            let posStr;
+            if (this.aladin.view.cooFrame == CooFrameEnum.J2000) {
+                posStr = coo.format('s/');
+            }
+            else if (this.aladin.view.cooFrame == CooFrameEnum.J2000d) {
+                posStr = coo.format('d/');
+            }
+            else {
+                posStr = coo.format('d/');
+            }
+            item.innerHTML = '<span>' + posStr + '</span>';
+        }
+        else {
+            item.innerHTML = '<span>' + opt.label + '</span>';
+        }
+
+        if (opt.subMenu && opt.subMenu.length>0) {
+            item.innerHTML += '<span style="position: absolute; right: 4px;">▶</span>';
+        }
+
         const self = this;
         item.addEventListener('click', e => {
             e.stopPropagation();
             if (!opt.subMenu || opt.subMenu.length === 0) {
-                opt.action(self.event);
+                opt.action(e);
                 self._hideMenu(true);
             }
         });
@@ -78,7 +104,10 @@ export class ContextMenu {
 
         this.contextMenuUl.className = 'aladin-context-menu';
         this.contextMenuUl.innerHTML = '';
-        this.menuOptions.forEach(opt => this._attachOption(this.contextMenuUl, opt))
+
+        const xymouse = this.aladin.view.imageCanvas.relMouseCoords(e);
+
+        this.menuOptions.forEach(opt => this._attachOption(this.contextMenuUl, opt, xymouse))
         document.body.appendChild(this.contextMenuUl);
 
         const { innerWidth, innerHeight } = window;

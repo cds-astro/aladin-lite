@@ -84,7 +84,12 @@ export class ContextMenu {
         item.addEventListener('click', e => {
             e.stopPropagation();
             if (!opt.subMenu || opt.subMenu.length === 0) {
-                opt.action(e);
+                if (opt.label=='Copy position') {
+                    opt.action(e);
+                }
+                else {
+                    opt.action(this.event);
+                }
                 self._hideMenu(true);
             }
         });

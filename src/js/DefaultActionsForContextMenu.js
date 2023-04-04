@@ -123,6 +123,11 @@ export let DefaultActionsForContextMenu = (function () {
                     }
                 }
             },
+            {
+                label: "Select sources", action(o) {
+                    aladinInstance.select();
+                }
+            },
         ]
     }
 

@@ -98,7 +98,15 @@ export let Source = (function() {
 
             if (this.catalog.onClick=='showTable') {
                 this.select();
-                view.aladin.measurementTable.showMeasurement([this], this.catalog);
+
+                let singleSourceTable = {
+                    'rows': [this],
+                    'fields': this.catalog.fields,
+                    'fieldsClickedActions': this.catalog.fieldsClickedActions,
+                    'name': this.catalog.name,
+                    'color': this.catalog.color
+                };
+                view.aladin.measurementTable.showMeasurement([singleSourceTable]);
             }
             else if (this.catalog.onClick=='showPopup') {
 

@@ -92,8 +92,10 @@ export let View = (function () {
             const files = Utils.getDroppedFilesHandler(event);
 
             files.forEach((file) => {
+                console.log(file.name)
                 const url = URL.createObjectURL(file);
 
+                // Consider other cases
                 try {
                     const image = self.aladin.createImageFITS(
                         url,
@@ -108,6 +110,9 @@ export let View = (function () {
                     );
                     self.setOverlayImageLayer(image, file.name)
                 } catch(e) {
+                    let moc = A.MOCFromURL(url);
+                    self.aladin.addMOC(moc);
+
                     console.error("Only valid fits files supported (i.e. containig a WCS)", e)
                     throw e;
                 }
@@ -572,13 +577,28 @@ export let View = (function () {
                     view.dragy - view.selectStartCoo.y
                 );
 
-                selectedObjects.forEach((obj) => obj.select());
+                selectedObjects.forEach((objListPerCatalog) => {
+                    objListPerCatalog.forEach((obj) => obj.select())
+                });
 
                 if (selectedObjects.length > 0) {
-                    let table = selectedObjects[0].catalog;
-                    view.aladin.measurementTable.showMeasurement(selectedObjects, table);
+                    console.log(selectedObjects)
+                    let tables = selectedObjects.map((objList) => {
+                        // Get the catalog containing that list of objects
+                        let catalog = objList[0].catalog;
+                        let table = {
+                            'name': catalog.name,
+                            'color': catalog.color,
+                            'rows': objList,
+                            'fields': catalog.fields,
+                            'fieldsClickedActions': catalog.fieldsClickedActions,
+                        };
+                        return table;
+                    })
+
+                    view.aladin.measurementTable.showMeasurement(tables);
                 }
-                
+
                 view.selectedObjects = selectedObjects;
 
                 view.aladin.fire(
@@ -638,18 +658,13 @@ export let View = (function () {
 
             // popup to show ?
             var objs = view.closestObjects(xymouse.x, xymouse.y, 5);
-
             if (!wasDragging && objs) {
                 view.deselectObjects();
 
                 var o = objs[0];
 
                 // footprint selection code adapted from Fabrizio Giordano dev. from Serco for ESA/ESDC
-                if (o instanceof Circle || o instanceof Polyline || o instanceof Ellipse) {
-                    o.dispatchClickEvent();
-                }
-                // display marker
-                else if (o.marker) {
+                if (o.marker) {
                     // could be factorized in Source.actionClicked
                     view.popup.setTitle(o.popupTitle);
                     view.popup.setText(o.popupDesc);
@@ -796,15 +811,22 @@ export let View = (function () {
                             var ret = objHoveredFunction(closest[0]);
                         }
                         lastHoveredObject = closest[0];
-
                     }
                     else {
                         view.setCursor('default');
                         var objHoveredFunction = view.aladin.callbacksByEventName['objectHovered'];
-                        if (typeof objHoveredFunction === 'function' && lastHoveredObject) {
+                        if (lastHoveredObject) {
+                            // Redraw the scene if the lastHoveredObject is a footprint (e.g. circle or polygon)
+                            if (lastHoveredObject instanceof Circle || lastHoveredObject instanceof Polyline || lastHoveredObject instanceof Ellipse) {
+                                view.requestRedraw();
+                            }
+
                             lastHoveredObject = null;
-                            // call callback function to notify we left the hovered object
-                            var ret = objHoveredFunction(null);
+
+                            if (typeof objHoveredFunction === 'function') {
+                                // call callback function to notify we left the hovered object
+                                var ret = objHoveredFunction(null);
+                            }
                         }
                     }
                 }
@@ -1227,8 +1249,8 @@ export let View = (function () {
 
     View.prototype.deselectObjects = function() {
         if (this.selectedObjects) {
-            this.selectedObjects.forEach((o) => {
-                o.deselect()
+            this.selectedObjects.forEach((objList) => {
+                objList.forEach((o) => o.deselect())
             });
             this.aladin.measurementTable.hide();
 
@@ -1606,6 +1628,11 @@ export let View = (function () {
     View.prototype.removeImageLayer = function (layer) {
         // Get the survey to remove to dissociate it from the view
         let imageLayer = this.imageLayers.get(layer);
+        if (imageLayer === undefined) {
+            // there is nothing to remove
+            return;
+        }
+
         // Update the backend
         if (imageLayer.added) {
             this.wasm.removeLayer(layer);
@@ -1951,6 +1978,7 @@ export let View = (function () {
         }
         var objList = [];
         var cat, sources, s;
+        var objListPerCatalog = [];
         if (this.catalogs) {
             for (var k = 0; k < this.catalogs.length; k++) {
                 cat = this.catalogs[k];
@@ -1964,9 +1992,13 @@ export let View = (function () {
                         continue;
                     }
                     if (s.x >= x && s.x <= x + w && s.y >= y && s.y <= y + h) {
-                        objList.push(s);
+                        objListPerCatalog.push(s);
                     }
                 }
+                if (objListPerCatalog.length > 0) {
+                    objList.push(objListPerCatalog);
+                }
+                objListPerCatalog = [];
             }
         }
         return objList;
@@ -2014,12 +2046,12 @@ export let View = (function () {
         var canvas = this.catalogCanvas;
         var ctx = canvas.getContext("2d");
         // this makes footprint selection easier as the catch-zone is larger
-        /*
+        
         ctx.lineWidth = 6;
         if (this.overlays) {
             for (var k = 0; k < this.overlays.length; k++) {
                 overlay = this.overlays[k];
-
+                /*
                 // test polygons first
                 for (var i = 0; i < overlay.overlays.length; i++) {
                     var footprint = overlay.overlays[i];
@@ -2043,7 +2075,7 @@ export let View = (function () {
                             return [closest];
                         }
                     }
-                }
+                }*/
 
                 // test Circles
                 for (var i = 0; i < overlay.overlayItems.length; i++) {
@@ -2057,10 +2089,7 @@ export let View = (function () {
                     }
                 }
             }
-
-            this.requestRedraw();
-        }*/
-
+        }
 
         if (!this.objLookup) {
             return null;

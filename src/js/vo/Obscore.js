@@ -23,19 +23,19 @@
 /******************************************************************************
  * Aladin Lite project
  * 
- * File Obscore
+ * File ObsCore
  * 
  * Author: Matthieu Baumann[CDS]
  * 
  *****************************************************************************/
  import { VOTable } from "./VOTable.js";
- import { Utils } from './../Utils.js';
- import { Source } from './../Source.js';
+ import { Datalink } from "./Datalink.js";
+ import { Utils } from '../Utils.js';
 
- export let Obscore = (function() {
+ export let ObsCore = (function() {
 
-    // dict of mandatory obscore fields
-    Obscore.MANDATORY_FIELDS = {
+    // dict of mandatory ObsCore fields
+    ObsCore.MANDATORY_FIELDS = {
         'dataproduct_type': { name: 'dataproduct_type', ucd: 'meta.id', utype: 'ObsDataset.dataProductType', units: null },
         'calib_level': { name: 'calib_level', ucd: 'meta.code;obs.calib', utype: 'ObsDataset.calibLevel', units: null },
         'obs_collection': { name: 'obs_collection', ucd: 'meta.id', utype: 'DataID.collection', units: null },
@@ -71,29 +71,31 @@
         'instrument_name': { name: 'instrument_name', ucd: 'meta.id;instr', utype: 'Provenance.ObsConfig.Instrument.name', units: null },
     }
 
-    Obscore.clickOnAccessUrlAction = function(accessUrl) {
+    ObsCore.clickOnAccessUrlAction = function(accessUrl) {
         // Parse the datalink as a votable
         VOTable.parse(accessUrl, (fields, rows) => {
             console.log(fields)
         })
     }
 
-    Obscore.COLOR = '#004500'
+    ObsCore.COLOR = '#004500'
 
-    function Obscore() {};
+    function ObsCore() {};
 
-    Obscore.parseFields = function(fields) {
+    ObsCore.parseFields = function(fields) {
         let parsedFields = {};
 
-        const raField = Obscore.MANDATORY_FIELDS['s_ra'];
-        const decField = Obscore.MANDATORY_FIELDS['s_dec'];
-        const regionField = Obscore.MANDATORY_FIELDS['s_region'];
-        const accessUrlField = Obscore.MANDATORY_FIELDS['access_url'];
+        const raField = ObsCore.MANDATORY_FIELDS['s_ra'];
+        const decField = ObsCore.MANDATORY_FIELDS['s_dec'];
+        const regionField = ObsCore.MANDATORY_FIELDS['s_region'];
+        const accessUrlField = ObsCore.MANDATORY_FIELDS['access_url'];
+        const accessFormat = ObsCore.MANDATORY_FIELDS['access_format'];
 
-        let raFieldIdx = Obscore.findMandatoryField(fields, raField.name, raField.ucd, raField.utype);
-        let decFieldIdx = Obscore.findMandatoryField(fields, decField.name, decField.ucd, decField.utype);
-        let regionFieldIdx = Obscore.findMandatoryField(fields, regionField.name, regionField.ucd, regionField.utype);
-        let accessUrlFieldIdx = Obscore.findMandatoryField(fields, accessUrlField.name, accessUrlField.ucd, accessUrlField.utype);
+        let raFieldIdx = ObsCore.findMandatoryField(fields, raField.name, raField.ucd, raField.utype);
+        let decFieldIdx = ObsCore.findMandatoryField(fields, decField.name, decField.ucd, decField.utype);
+        let regionFieldIdx = ObsCore.findMandatoryField(fields, regionField.name, regionField.ucd, regionField.utype);
+        let accessUrlFieldIdx = ObsCore.findMandatoryField(fields, accessUrlField.name, accessUrlField.ucd, accessUrlField.utype);
+        let accessFormatFieldIdx = ObsCore.findMandatoryField(fields, accessFormat.name, accessFormat.ucd, accessFormat.utype);
 
         let fieldIdx = 0;
         fields.forEach((field) => {
@@ -108,6 +110,8 @@
                 nameField = 's_region';
             } else if (fieldIdx == accessUrlFieldIdx) {
                 nameField = 'access_url';
+            } else if (fieldIdx == accessFormatFieldIdx) {
+                nameField = 'access_format';
             } else {
                 nameField = key;
             }
@@ -131,7 +135,7 @@
     // @param ucdField:  ucd of the targeted column (might be undefined)
     // @param possibleNames:  possible names of the targeted columns (might be undefined)
     //
-    Obscore.findMandatoryField = function(fields, nameField = null, ucdField = null, utypeField = null) {
+    ObsCore.findMandatoryField = function(fields, nameField = null, ucdField = null, utypeField = null) {
         if (Utils.isInt(nameField) && nameField < fields.length) {
             // nameField can be given as an index
             return nameField;
@@ -183,7 +187,46 @@
 
         throw 'Mandatory field ' + nameField + ' not found';
     };
+
+    ObsCore.handleActions = function(obsCoreCatalog) {
+        // Get the ObsCore fields
+        let fields = obsCoreCatalog.fields;
+        // And the aladin lite instance
+        let aladinInstance = obsCoreCatalog.view.aladin;
+
+        obsCoreCatalog.addFieldClickCallback("access_url", (row) => {
+            let accessUrlFieldName = fields["access_url"].name;
+            let accessFormatFieldName = fields["access_format"].name;
+
+            let url = row[accessUrlFieldName];
+            let accessFormat = row[accessFormatFieldName];
+
+            switch (accessFormat) {
+                // A datalink response containing links to datasets or services attached to the current dataset
+                case 'application/x-votable+xml;content=datalink':
+                    //Datalink.handleActions(url)
+                    console.log("jjj")
+                    Datalink.handleActions("datalink.xml", aladinInstance);
+                break;
+                // Any multidimensional regularly sampled FITS image or cube
+                case 'image/fits':
+                    aladinInstance.setOverlayImageLayer(aladinInstance.createImageFITS(url), Utils.uuidv4())
+                break;
+                // Any generic FITS file
+                case 'application/fits':
+                    aladinInstance.setOverlayImageLayer(aladinInstance.createImageFITS(url), Utils.uuidv4())
+                break;
+                // A FITS multi-extension file (multiple extensions)
+                case 'application/x-fits-mef':
+                    aladinInstance.setOverlayImageLayer(aladinInstance.createImageFITS(url), Utils.uuidv4())
+                break;
+                default:
+                    console.warn("Access format {access_format} not yet implemented")
+                    break;
+            }
+        });
+    }
  
-    return Obscore;
+    return ObsCore;
 })();
  

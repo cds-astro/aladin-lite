@@ -996,14 +996,6 @@ export let Aladin = (function () {
      * @API
      */
     Aladin.prototype.getRaDec = function () {
-        /*if (this.view.cooFrame.system == CooFrameEnum.SYSTEMS.J2000) {
-            return [this.view.viewCenter.lon, this.view.viewCenter.lat];
-        }
-        else {
-            var radec = CooConversion.GalacticToJ2000([this.view.viewCenter.lon, this.view.viewCenter.lat]);
-            return radec;
-
-        }*/
         let radec = this.wasm.getCenter(); // This is given in the frame of the view
         // We must convert it to ICRSJ2000
         const radec_j2000 = this.wasm.viewToICRSJ2000CooSys(radec[0], radec[1]);
@@ -1105,14 +1097,7 @@ export let Aladin = (function () {
             url = new URL(url);
         }
 
-        // Check the protocol, for http ones, use a CORS compatible proxy
-        if (Utils.requestCORSIfNotSameOrigin(url)) {
-            // http(s) protocols and not in localhost
-            let proxiedUrl = new URL(Aladin.JSONP_PROXY);
-            proxiedUrl.searchParams.append("url", url);
-
-            url = proxiedUrl;
-        }
+        url = Utils.handleCORSNotSameOrigin(url);
 
         let cfg = this.cacheSurveys.get(url);
         if (!cfg) {
@@ -1863,19 +1848,14 @@ A.catalogFromURL = function (url, options, successCallback, useProxy) {
     Catalog.parseVOTable(
         url,
         function (sources, footprints, fields) {
-            if (fields["access_url"]) {
-                // It is an obsore table pointing to a datalink table
-                catalog.addFieldClickCallback("access_url", (url) => {
-                    VOTable.parse(
-                        "./examples/datalink.xml",
-                        (fields, rows) => {
-                            let sources = [];
-                            let footprints = [];
+            catalog.setFields(fields);
 
-                            console.log(fields, rows)
-                        }
-                    )
-                });
+            if (fields.subtype === "ObsCore") {
+                // The fields corresponds to obscore ones
+                // Set the name of the catalog to be ObsCore:<catalog name>
+                catalog.name = "ObsCore:" + url;
+
+                ObsCore.handleActions(catalog);
             }
 
             catalog.addFootprints(footprints)

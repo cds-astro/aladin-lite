@@ -569,9 +569,9 @@ impl WebClient {
     /// * `lon` - A longitude in degrees
     /// * `lat` - A latitude in degrees
     #[wasm_bindgen(js_name = worldToScreen)]
-    pub fn world_to_screen(&self, lon: f64, lat: f64) -> Option<Box<[i32]>> {
+    pub fn world_to_screen(&self, lon: f64, lat: f64) -> Option<Box<[f64]>> {
         self.app.world_to_screen(lon, lat)
-            .map(|v| Box::new([v.x as i32, v.y as i32]) as Box<[i32]>)
+            .map(|v| Box::new([v.x, v.y]) as Box<[f64]>)
     }
 
     /// Screen to world unprojection

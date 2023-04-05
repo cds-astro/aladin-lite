@@ -30,149 +30,160 @@
  * 
  *****************************************************************************/
 
-import $ from 'jquery';
+import { Color } from "./Color.js"
 
 export let MeasurementTable = (function() {
 
     // constructor
     function MeasurementTable(aladinLiteDiv) {
         this.isShowing = false;
-        this.divEl = $('<div class="aladin-measurement-div"></div>');
 
-        this.curPage = 1;
-        this.numPages = 1;
-        this.numRowsByPage = 5;
-
-        this.columnClickAction = {};
-
-        $(aladinLiteDiv).append(this.divEl);
+        let mainDiv = document.createElement('div');
+        mainDiv.setAttribute("class", "aladin-measurement-div");
+        this.element = mainDiv;
+        aladinLiteDiv.appendChild(this.element);
     }
 
-    MeasurementTable.updateBodyTable = function(rows) {
-        let tbody = '<tbody class="content">';
-        rows.forEach(row => {
-            tbody += '<tr>'
+    MeasurementTable.prototype.updateRows = function() {
+        let tbody = this.element.querySelector('tbody');
+        
+        tbody.innerHTML = "";
+
+        let table = this.tables[this.curTableIdx];
+
+        let result = '';
+        table["rows"].forEach((row) => {
+            result += '<tr>'
             for (let key in row.data) {
                 // check the type here
                 const val = row.data[key];
-                tbody += '<td class="' + key + '">'
+                result += '<td class="' + key + '">'
                 if (typeof(val) === "string") {
                     try {
                         let url = new URL(val);
-                        let link = '<a href=' + url + '>' + url + '</a>';
-                        tbody += link;
+                        let link = '<a href=' + url + ' target="_blank">' + url + '</a>';
+                        result += link;
                     } catch(e) {
-                        tbody += val
+                        result += val
                     }
                 } else {
-                    tbody += val
+                    result += val
                 }
-                tbody += '</td>'
+                result += '</td>'
             }
-            tbody += '</tr>';
+            result += '</tr>';
         });
-        tbody += '</tbody>';
 
-        return tbody;
-    }
+        tbody.innerHTML = result;
 
-    MeasurementTable.prototype.renderTable = function(fullRows) {
-        // idx of the first row to draw
-        let rowIdxStart = (this.curPage - 1) * this.numRowsByPage;
-        // update the content
-        let tbody = this.divEl[0].querySelector(".content");
-        tbody.innerHTML = MeasurementTable.updateBodyTable(fullRows.slice(rowIdxStart, rowIdxStart + this.numRowsByPage));
-    
-        if (this.fieldsClickCallbacks) {
-            Object.entries(this.fieldsClickCallbacks)
-            .forEach(([key, callback]) => {
-                this.divEl[0].querySelectorAll("." + key).forEach((e) => {
+        if (table["fieldsClickedActions"]) {
+            for (let key in table["fieldsClickedActions"]) {
+                tbody.querySelectorAll("." + key).forEach(function(e, index) {
                     e.addEventListener('click', (e) => {
-                        callback(e.target.innerText)
+                        let callback = table["fieldsClickedActions"][key];
+                        callback(table["rows"][index].data)
 
                         e.preventDefault();
                     }, false)
                 })
-            });
+            }
         }
-
-        // recompute page idx
-        let pageIdxElt = this.divEl[0].querySelector("#pageIdx");
-        pageIdxElt.innerHTML = '<p id="pageIdx" style="display: inline-block; margin: 0">' + this.curPage + '/' + this.numPages + '</p>';
     }
 
     // show measurement associated with a given source
-    MeasurementTable.prototype.showMeasurement = function(rows, table) {
-        this.fieldsClickCallbacks = table.fieldsClickCallbacks;
-        // compute the number of pages
-        this.numPages = Math.floor(rows.length / this.numRowsByPage);
-        if (rows.length % this.numRowsByPage > 0) {
-             // handles rows leftovers in a last page
-            this.numPages++;
-        }
-        
-        this.divEl.empty();
-        var thead = '<thead><tr>';
-        for (let key in rows[0].data) {
-            thead += '<th>' + key + '</th>';
-        }
-        thead += '</tr></thead>';
-
-        let tbody = MeasurementTable.updateBodyTable(rows.slice(0, this.numRowsByPage));
-        this.divEl.append('<table>' + thead + tbody + '</table>');
-        // Add the callbacks to the cells
-        if (this.fieldsClickCallbacks) {
-            Object.entries(this.fieldsClickCallbacks)
-            .forEach(([key, callback]) => {
-                this.divEl[0].querySelectorAll("." + key).forEach((e) => {
-                    e.addEventListener('click', (e) => {
-                        callback(e.target.innerText)
-
-                        e.preventDefault();
-                    }, false)
-                })
-            });
+    MeasurementTable.prototype.showMeasurement = function(tables) {
+        if (tables.length === 0) {
+            return;
         }
 
-        if (this.numPages > 1) {
-            this.divEl.append('<div class="footer"><button id="prevButton" style="display: inline-block">Previous</button><button id="nextButton" style="display: inline-block">Next</button><p id="pageIdx" style="display: inline-block; margin: 0">' + this.curPage + '/' + this.numPages + '</p></div>');
+        this.tables = tables;
+        this.curTableIdx = 0;
 
-            this.divEl[0].querySelector('#nextButton').addEventListener(
-                'click',
-                () => {
-                    this.curPage++;
-                    if (this.curPage >= this.numPages) {
-                        this.curPage = this.numPages;
-                    }
-    
-                    this.renderTable(rows)
-                }
-                ,false
-            );
+        let table = tables[this.curTableIdx];
+        this.element.innerHTML = "";
 
-            this.divEl[0].querySelector('#prevButton').addEventListener(
-                'click',
-                () => {
-                    this.curPage--;
-                    if (this.curPage < 1) {
-                        this.curPage = 1;
-                    }
+        /// Create tabs element
+        let tabsElement = this.createTabs();
+        this.element.appendChild(tabsElement);
 
-                    this.renderTable(rows)
-                }
-                ,false
-            );
-        }
+        /// Create table element
+        let tableElement = document.createElement('table');
+        tableElement.style.borderColor = table['color'];
+
+        // table header creation
+        const thead = MeasurementTable.createTableHeader(table);
+        // table body creation
+        const tbody = document.createElement('tbody');
+
+        tableElement.appendChild(thead);
+        tableElement.appendChild(tbody);
+        this.element.appendChild(tableElement);
+
+        this.updateRows();
 
         this.show();
     };
 
+    MeasurementTable.prototype.createTabs = function() {
+        let tabsElement = document.createElement('div')
+        tabsElement.setAttribute('class', 'tabs');
+
+        let tabsButtonElement = [];
+
+        let self = this;
+        this.tables.forEach(function(table, index) {
+            let tabButtonElement = document.createElement("button");
+            tabButtonElement.innerText = table["name"];
+
+            tabButtonElement.addEventListener(
+                'click',
+                () => {
+                    self.curTableIdx = index;
+
+                    let tableElement = self.element.querySelector('table');
+                    tableElement.style.borderColor = table["color"]
+
+                    self.updateRows()
+                }
+                ,false
+            );
+
+            tabButtonElement.style.backgroundColor = table["color"];
+
+            let hexStdColor = Color.standardizeColor(table["color"]);
+            let rgbColor = Color.hexToRgb(hexStdColor);
+            rgbColor = 'rgb(' + rgbColor.r + ', ' + rgbColor.g + ', ' + rgbColor.b + ')';
+
+            let labelColor = Color.getLabelColorForBackground(rgbColor);
+            tabButtonElement.style.color = labelColor
+
+            tabsButtonElement.push(tabButtonElement);
+            tabsElement.appendChild(tabButtonElement);
+        });
+
+        return tabsElement;
+    }
+
+    MeasurementTable.createTableHeader = function(table) {
+        let theadElement = document.createElement('thead');
+        var content = '<tr>';
+
+        for (let [_, field] of Object.entries(table["fields"])) {
+            content += '<th>' + field.name + '</th>';
+        }
+        content += '</thead>';
+
+        theadElement.innerHTML = content;
+
+        return theadElement;
+    }
+
     MeasurementTable.prototype.show = function() {
-        this.divEl.show();
+        this.element.style.visibility = "visible";
     };
 
     MeasurementTable.prototype.hide = function() {
-        this.divEl.hide();
+        this.element.style.visibility = "hidden";
     };
 
     return MeasurementTable;

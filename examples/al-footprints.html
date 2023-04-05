@@ -23,6 +23,12 @@
         ]);
         overlay.add(A.circle(83.66067, 22.03081, 0.04, {color: 'cyan'})); // radius in degrees
 
+        aladin.on("footprintClicked", (e) => {
+            console.log("footprint clicked catched")
+        })
+        aladin.on("objectClicked", (e) => {
+            console.log("object clicked catched")
+        })
     });
 </script>
 </body>

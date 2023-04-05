@@ -35,7 +35,7 @@ import { Utils } from "./Utils.js";
 import { AladinUtils } from "./AladinUtils.js";
 import { Coo } from "./libs/astro/coo.js";
 import { ALEvent } from "./events/ALEvent.js";
-import { Obscore } from "./vo/Obscore.js";
+import { Obscore } from "./vo/ObsCore.js";
 import { VOTable } from "./vo/VOTable.js";
 
 import $ from 'jquery';
@@ -61,7 +61,8 @@ export let Catalog = (function() {
         this.raField = options.raField || undefined; // ID or name of the field holding RA
         this.decField = options.decField || undefined; // ID or name of the field holding dec
 
-        this.fieldsClickCallbacks = {}; // callbacks when the user clicks on a cell in the measurement table associated
+        this.fieldsClickedActions = {}; // callbacks when the user clicks on a cell in the measurement table associated
+        this.fields = undefined;
 
     	this.indexationNorder = 5; // à quel niveau indexe-t-on les sources
     	this.sources = [];
@@ -301,9 +302,11 @@ export let Catalog = (function() {
     Catalog.parseVOTable = function(url, callback, maxNbSources, useProxy, raField, decField) {
         VOTable.parse(
             url,
-            (fields, rows) => {
+            (fields, rows, type) => {
                 let sources = [];
                 let footprints = [];
+
+                var coo = new Coo();
 
                 rows.every(row => {
                     let ra, dec, region;
@@ -324,6 +327,12 @@ export let Catalog = (function() {
                     }
 
                     if (ra && dec) {
+                        if (!Utils.isNumber(ra) || !Utils.isNumber(dec)) {
+                            coo.parse(ra + " " + dec);
+                            ra = coo.lon;
+                            dec = coo.lat;
+                        }
+
                         const source = new Source(ra, dec, mesures);
                         
                         sources.push(source);
@@ -350,7 +359,7 @@ export let Catalog = (function() {
     };
 
     Catalog.prototype.addFieldClickCallback = function(field, callback) {
-        this.fieldsClickCallbacks[field] = callback;
+        this.fieldsClickedActions[field] = callback;
     }
 
     // API
@@ -386,6 +395,10 @@ export let Catalog = (function() {
     	}
         this.reportChange();
     };
+
+    Catalog.prototype.setFields = function(fields) {
+        this.fields = fields;
+    }
 
     // API
     //

@@ -77,19 +77,6 @@ export let Circle = (function() {
         }
     };
 
-    Circle.prototype.dispatchClickEvent = function() {
-        if (this.overlay) {
-            // footprint selection code adapted from Fabrizio Giordano dev. from Serco for ESA/ESDC
-            //window.dispatchEvent(new CustomEvent("footprintClicked", {
-            this.overlay.view.aladinDiv.dispatchEvent(new CustomEvent("footprintClicked", {
-                detail: {
-                    footprintId: this.id,
-                    overlayName: this.overlay.name
-                }
-            }));
-        }
-    };
-
     Circle.prototype.select = function() {
         if (this.isSelected) {
             return;

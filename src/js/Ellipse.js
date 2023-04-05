@@ -56,19 +56,6 @@ export let Ellipse = (function() {
     Ellipse.prototype.setOverlay = function(overlay) {
         this.overlay = overlay;
     };
-    
-    Ellipse.prototype.dispatchClickEvent = function() {
-        if (this.overlay) {
-            // footprint selection code adapted from Fabrizio Giordano dev. from Serco for ESA/ESDC
-            //window.dispatchEvent(new CustomEvent("footprintClicked", {
-            this.overlay.view.aladinDiv.dispatchEvent(new CustomEvent("footprintClicked", {
-                detail: {
-                    footprintId: this.id,
-                    overlayName: this.overlay.name
-                }
-            }));
-        }
-    };
 
     Ellipse.prototype.show = function() {
         if (this.isShowing) {
@@ -90,34 +77,12 @@ export let Ellipse = (function() {
         }
     };
     
-    Ellipse.prototype.dispatchClickEvent = function() {
-        if (this.overlay) {
-            // footprint selection code adapted from Fabrizio Giordano dev. from Serco for ESA/ESDC
-            //window.dispatchEvent(new CustomEvent("footprintClicked", {
-            this.overlay.view.aladinDiv.dispatchEvent(new CustomEvent("footprintClicked", {
-                detail: {
-                    footprintId: this.id,
-                    overlayName: this.overlay.name
-                }
-            }));
-        }
-    };
-    
     Ellipse.prototype.select = function() {
         if (this.isSelected) {
             return;
         }
         this.isSelected = true;
         if (this.overlay) {
-/*
-            this.overlay.view.aladinDiv.dispatchEvent(new CustomEvent("footprintClicked", {
-                detail: {
-                    footprintId: this.id,
-                    overlayName: this.overlay.name
-                }
-            }));
-*/
-
             this.overlay.reportChange();
         }
     };

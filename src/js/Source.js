@@ -106,7 +106,15 @@ export let Source = (function() {
                     'name': this.catalog.name,
                     'color': this.catalog.color
                 };
-                view.aladin.measurementTable.showMeasurement([singleSourceTable]);
+
+                let options = {};
+                if (this.catalog.isObsCore()) {
+                    // If the source is obscore, save the table state inside the measurement table
+                    // This is used to go back from a possible datalink table to the obscore one
+                    options["save"] = true;
+                }
+
+                view.aladin.measurementTable.showMeasurement([singleSourceTable], options);
             }
             else if (this.catalog.onClick=='showPopup') {
 

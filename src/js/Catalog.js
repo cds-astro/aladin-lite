@@ -34,8 +34,6 @@ import { Color } from "./Color.js"
 import { Utils } from "./Utils.js";
 import { AladinUtils } from "./AladinUtils.js";
 import { Coo } from "./libs/astro/coo.js";
-import { ALEvent } from "./events/ALEvent.js";
-import { Obscore } from "./vo/ObsCore.js";
 import { VOTable } from "./vo/VOTable.js";
 
 import $ from 'jquery';
@@ -398,6 +396,10 @@ export let Catalog = (function() {
 
     Catalog.prototype.setFields = function(fields) {
         this.fields = fields;
+    }
+
+    Catalog.prototype.isObsCore = function() {
+        return this.fields.subtype === "ObsCore";
     }
 
     // API

@@ -92,7 +92,6 @@ export let View = (function () {
             const files = Utils.getDroppedFilesHandler(event);
 
             files.forEach((file) => {
-                console.log(file.name)
                 const url = URL.createObjectURL(file);
 
                 // Consider other cases
@@ -570,6 +569,8 @@ export let View = (function () {
             } // end of "if (view.dragging) ... "
 
             if (selectionHasEnded) {
+                view.deselectObjects()
+
                 const selectedObjects = view.getObjectsInBBox(
                     view.selectStartCoo.x,
                     view.selectStartCoo.y,
@@ -582,7 +583,6 @@ export let View = (function () {
                 });
 
                 if (selectedObjects.length > 0) {
-                    console.log(selectedObjects)
                     let tables = selectedObjects.map((objList) => {
                         // Get the catalog containing that list of objects
                         let catalog = objList[0].catalog;

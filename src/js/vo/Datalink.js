@@ -78,14 +78,29 @@ export let Datalink = (function() {
                                     aladinInstance.setOverlayImageLayer(image, Utils.uuidv4())
                                 } else if (contentQualifier === "cube") {
                                     // fits cube
-                                    console.warn("Cube not handled")
+                                    console.warn("Cube not handled, only first slice downloaded")
+                                    let image = aladinInstance.createImageFITS(url);
+                                    aladinInstance.setOverlayImageLayer(image, Utils.uuidv4())
                                 }
                             } 
                         }
                     }
                 }
 
-                aladinInstance.measurementTable.showMeasurement([datalinkTable]);
+                aladinInstance.measurementTable.showMeasurement([datalinkTable], { save: true });
+
+                aladinInstance.contextMenu.attachTo(aladinInstance.measurementTable.element, [
+                    {
+                        label: "Go back", action(o) {
+                            aladinInstance.measurementTable.showPreviousMeasurement()
+                        }
+                    },
+                    {
+                        label: "Go Next", action(o) {
+                            aladinInstance.measurementTable.showNextMeasurement()
+                        }
+                    },
+                ]);
             }
         )
     };

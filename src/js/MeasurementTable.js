@@ -41,6 +41,10 @@ export let MeasurementTable = (function() {
         let mainDiv = document.createElement('div');
         mainDiv.setAttribute("class", "aladin-measurement-div");
         this.element = mainDiv;
+
+        this.savedTablesIdx = 0;
+        this.savedTables = [];
+
         aladinLiteDiv.appendChild(this.element);
     }
 
@@ -90,13 +94,101 @@ export let MeasurementTable = (function() {
         }
     }
 
+    MeasurementTable.prototype.showPreviousMeasurement = function() {
+        this.savedTablesIdx--;
+        if (this.savedTablesIdx < 0) {
+            this.savedTablesIdx = 0;
+        }
+
+        let tables = this.savedTables[this.savedTablesIdx];
+
+        if (tables) {
+            this.update(tables);
+            this.updateStateNavigation();
+        }
+    }
+
+    MeasurementTable.prototype.showNextMeasurement = function() {
+        this.savedTablesIdx++;
+        if (this.savedTablesIdx >= this.savedTables.length) {
+            this.savedTablesIdx = this.savedTables.length - 1;
+        }
+
+        let tables = this.savedTables[this.savedTablesIdx];
+
+        if (tables) {
+            this.update(tables);
+            this.updateStateNavigation();
+        }
+    }
+
     // show measurement associated with a given source
-    MeasurementTable.prototype.showMeasurement = function(tables) {
+    MeasurementTable.prototype.showMeasurement = function(tables, options) {
         if (tables.length === 0) {
             return;
         }
 
+        this.update(tables);
+
+        if (options && options["save"]) {
+            this.saveState();
+
+            this.updateStateNavigation();
+        }
+    };
+
+    MeasurementTable.prototype.updateStateNavigation = function() {
+        // update the previous/next buttons
+        let tabsElement = this.element.querySelector(".tabs");
+        if (this.savedTables.length >= 2) {
+            /// Create previous tab
+            let prevTableElement = document.createElement('button');
+            prevTableElement.setAttribute('title', 'go to the previous table')
+            if (this.savedTablesIdx == 0) {
+                prevTableElement.disabled = true;
+            }
+
+            prevTableElement.addEventListener(
+                'click', () => this.showPreviousMeasurement(), false
+            );
+
+            prevTableElement.innerText = '<';
+            tabsElement.appendChild(prevTableElement);
+
+            /// Create next tab
+            let nextTableElement = document.createElement('button');
+            nextTableElement.setAttribute('title', 'go to the next table')
+
+            if (this.savedTables.length == 0 || this.savedTablesIdx == this.savedTables.length - 1) {
+                nextTableElement.disabled = true;
+            }
+
+            nextTableElement.addEventListener(
+                'click', () => this.showNextMeasurement(), false
+            );
+
+            nextTableElement.innerText = '>';
+            tabsElement.appendChild(nextTableElement);
+        }
+    };
+
+    MeasurementTable.prototype.saveState = function() {
+        if (this.savedTables.length === 0) {
+            this.savedTables.push(this.tables);
+        } else {
+            if (this.tables !== this.savedTables[this.savedTablesIdx]) {
+                // Remove all the tables past to the current one
+                this.savedTables = this.savedTables.slice(0, this.savedTablesIdx + 1);
+                // Save the current tables
+                this.savedTables.push(this.tables);
+                this.savedTablesIdx = this.savedTables.length - 1;
+            }
+        }
+    }
+
+    MeasurementTable.prototype.update = function(tables) {
         this.tables = tables;
+
         this.curTableIdx = 0;
 
         let table = tables[this.curTableIdx];
@@ -122,12 +214,13 @@ export let MeasurementTable = (function() {
         this.updateRows();
 
         this.show();
-    };
+    }
 
     MeasurementTable.prototype.createTabs = function() {
         let tabsElement = document.createElement('div')
         tabsElement.setAttribute('class', 'tabs');
 
+        /// Create catalog tabs
         let tabsButtonElement = [];
 
         let self = this;
@@ -183,6 +276,10 @@ export let MeasurementTable = (function() {
     };
 
     MeasurementTable.prototype.hide = function() {
+        this.savedTables = [];
+        this.savedTablesIdx = 0;
+        this.curTableIdx = 0;
+
         this.element.style.visibility = "hidden";
     };
 

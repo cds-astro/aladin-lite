@@ -62,18 +62,14 @@ import { ImageFITS } from "./ImageFITS.js";
 import { SimbadPointer } from "./SimbadPointer.js";
 import { PlanetaryFeaturesPointer } from "./PlanetaryFeaturesPointer.js";
 import { DefaultActionsForContextMenu } from "./DefaultActionsForContextMenu.js";
-import { Obscore } from "./vo/Obscore.js";
+import { ObsCore } from "./vo/ObsCore.js";
 
 import $ from 'jquery';
 
 // Import aladin css inside the project
 import './../css/aladin.css';
-import { VOTable } from "./vo/VOTable.js";
-
 
 export let Aladin = (function () {
-
-
 
     // Constructor
     var Aladin = function (aladinDiv, requestedOptions) {
@@ -1850,7 +1846,7 @@ A.catalogFromURL = function (url, options, successCallback, useProxy) {
         function (sources, footprints, fields) {
             catalog.setFields(fields);
 
-            if (fields.subtype === "ObsCore") {
+            if (catalog.isObsCore()) { 
                 // The fields corresponds to obscore ones
                 // Set the name of the catalog to be ObsCore:<catalog name>
                 catalog.name = "ObsCore:" + url;

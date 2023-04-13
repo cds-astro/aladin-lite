@@ -52,6 +52,7 @@ import { URLBuilder } from "./URLBuilder.js";
 import { HiPSDefinition } from "./HiPSDefinition.js";
 import { AladinLogo } from "./gui/AladinLogo.js";
 import { ProjectionSelector } from "./gui/ProjectionSelector";
+import { ProjectionEnum } from "./ProjectionEnum";
 import { Stack } from "./gui/Stack.js";
 import { CooGrid } from "./gui/CooGrid.js";
 import { ContextMenu } from "./gui/ContextMenu";
@@ -706,6 +707,20 @@ export let Aladin = (function () {
         }
         this.view.setProjection(projection);
         ALEvent.PROJECTION_CHANGED.dispatchedTo(this.aladinDiv, {projection: projection});
+    };
+
+    Aladin.prototype.getProjectionName = function() {
+        const self = this;
+
+        let projName = undefined;
+        for (let key in ProjectionEnum) {
+            if (ProjectionEnum[key].id == self.view.projection.id) {
+                projName = key;
+                break;
+            }
+        };
+
+        return projName;
     };
 
     /** point view to a given object (resolved by Sesame) or position

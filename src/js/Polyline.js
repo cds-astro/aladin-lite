@@ -21,16 +21,16 @@
 
 /******************************************************************************
  * Aladin Lite project
- * 
+ *
  * Class Polyline
- * 
+ *
  * A Polyline is a graphical overlay made of several connected points
- * 
+ *
  * TODO: Polyline and Circle should derive from a common base class
- * TODO: index polyline, Circle in HEALPix pixels to avoid unneeded calls to draw 
- * 
+ * TODO: index polyline, Circle in HEALPix pixels to avoid unneeded calls to draw
+ *
  * Author: Thomas Boch[CDS]
- * 
+ *
  *****************************************************************************/
 
 import { AladinUtils } from './AladinUtils.js';
@@ -40,20 +40,20 @@ export let Polyline= (function() {
     // constructor
     let Polyline = function(radecArray, options) {
         options = options || {};
-        this.color = options['color'] || "white";
+        this.color = options['color'] || undefined;
         this.lineWidth = options["lineWidth"] || 2;
-        
+
         this.radecArray = radecArray;
         this.overlay = null;
-    	
+
     	this.isShowing = true;
     	this.isSelected = false;
     };
-    
+
     Polyline.prototype.setOverlay = function(overlay) {
         this.overlay = overlay;
     };
-    
+
     Polyline.prototype.show = function() {
         if (this.isShowing) {
             return;
@@ -63,7 +63,7 @@ export let Polyline= (function() {
             this.overlay.reportChange();
         }
     };
-    
+
     Polyline.prototype.hide = function() {
         if (! this.isShowing) {
             return;
@@ -73,7 +73,7 @@ export let Polyline= (function() {
             this.overlay.reportChange();
         }
     };
-    
+
     Polyline.prototype.select = function() {
         if (this.isSelected) {
             return;
@@ -83,7 +83,7 @@ export let Polyline= (function() {
             this.overlay.reportChange();
         }
     };
-    
+
     Polyline.prototype.deselect = function() {
         if (! this.isSelected) {
             return;
@@ -109,7 +109,7 @@ export let Polyline= (function() {
         this.color = color;
         this.overlay.reportChange();
     };
-    
+
     Polyline.prototype.draw = function(ctx, view, frame, width, height, largestDim, zoomFactor) {
         if (! this.isShowing) {
             return;
@@ -132,7 +132,7 @@ export let Polyline= (function() {
 
             xyviewArray.push(xyview);
         }
-        
+
         ctx.lineWidth = this.lineWidth;
         ctx.beginPath();
         ctx.moveTo(xyviewArray[0][0], xyviewArray[0][1]);

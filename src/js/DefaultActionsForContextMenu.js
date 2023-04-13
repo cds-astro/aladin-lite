@@ -21,11 +21,11 @@
 
 /******************************************************************************
  * Aladin Lite project
- * 
+ *
  * File DefaultActionsForContextMenu
- * 
+ *
  * Author: Thomas Boch[CDS]
- * 
+ *
  *****************************************************************************/
 
 import { SimbadPointer } from "./SimbadPointer.js";
@@ -57,15 +57,18 @@ export let DefaultActionsForContextMenu = (function () {
                 label: "Take snapshot", action(o) { aladinInstance.exportAsPNG(); }
             },
             {
-                label: "Add", action(o) { console.log(o) },
+                label: "Add",
                 subMenu: [
                     {
                         label: 'New image layer', action(o) {
                             aladinInstance.addNewImageLayer();
-                            console.log(o)
                         }
                     },
-                    { label: 'New catalogue layer', action(o) { console.log(o) } }
+                    {
+                        label: 'New catalogue layer', action(o) {
+                            aladinInstance.stack._onAddCatalogue();
+                        }
+                    },
                 ]
             },
             {

@@ -96,6 +96,39 @@ export class Stack {
         this._addListeners();
     }
 
+    _onAddCatalogue() {
+        if (!this.catalogSelector) {
+            let fnIdSelected = function(type, params) {
+                if (type=='coneSearch') {
+                    let catalogLayer = undefined;
+                    if (params.baseURL.includes('/vizier.')) {
+                        catalogLayer = A.catalogFromVizieR(params.id.replace('CDS/', ''), params.ra + ' ' + params.dec,
+                                                           params.radiusDeg, {limit: params.limit, onClick: 'showTable'});
+                    }
+                    else {
+                        let url = params.baseURL;
+                        if (! url.endsWith('?')) {
+                            url += '?';
+                        }
+                        url += 'RA=' + params.ra + '&DEC=' + params.dec + '&SR=' + params.radiusDeg;
+                        catalogLayer = A.catalogFromURL(url, {limit: params.limit, onClick: 'showTable'});
+                    }
+                    this.aladin.addCatalog(catalogLayer);
+                }
+                else if (type=='hips') {
+                    const hips = A.catalogHiPS(params.hipsURL, {onClick: 'showTable', name: params.id});
+                    this.aladin.addCatalog(hips);
+                }
+                else if(type=='votable') {
+                    let catalogLayer = A.catalogFromURL(params.url, {onClick: 'showTable'});
+                    this.aladin.addCatalog(catalogLayer);
+                }
+            };
+             this.catalogSelector = new CatalogSelector(this.aladinDiv, this.aladin, fnIdSelected);
+        }
+        this.catalogSelector.show();
+    }
+
     _createComponent() {
         let self = this;
 
@@ -196,40 +229,8 @@ export class Stack {
             self.aladin.removeLayer(layerToDelete);
         });
 
-        let searchCatalogBtn = layerBox.find('.catalogue-selector');
-        searchCatalogBtn.on("click", function () {
-            if (!self.catalogSelector) {
-                let fnIdSelected = function(type, params) {
-                    if (type=='coneSearch') {
-                        let catalogLayer = undefined;
-                        if (params.baseURL.includes('/vizier.')) {
-                            catalogLayer = A.catalogFromVizieR(params.id.replace('CDS/', ''), params.ra + ' ' + params.dec,
-                                                               params.radiusDeg, {limit: params.limit, onClick: 'showTable'});
-                        }
-                        else {
-                            let url = params.baseURL;
-                            if (! url.endsWith('?')) {
-                                url += '?';
-                            }
-                            url += 'RA=' + params.ra + '&DEC=' + params.dec + '&SR=' + params.radiusDeg;
-                            catalogLayer = A.catalogFromURL(url, {limit: params.limit, onClick: 'showTable'});
-                        }
-                        self.aladin.addCatalog(catalogLayer);
-                    }
-                    else if (type=='hips') {
-                        const hips = A.catalogHiPS(params.hipsURL, {onClick: 'showTable', name: params.id});
-                        self.aladin.addCatalog(hips);
-                    }
-                    else if(type=='votable') {
-                        let catalogLayer = A.catalogFromURL(params.url, {onClick: 'showTable'});
-                        self.aladin.addCatalog(catalogLayer);
-                    }
-                };
-
-                self.catalogSelector = new CatalogSelector(self.aladinDiv, self.aladin, fnIdSelected);
-            }
-            self.catalogSelector.show();
-        });
+        let addCatalogBtn = layerBox.find('.catalogue-selector');
+        addCatalogBtn.on("click", () => self._onAddCatalogue());
 
         layerBox.append('<div class="aladin-blank-separator"></div>');
 

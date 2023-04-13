@@ -20,14 +20,14 @@
 
 /******************************************************************************
  * Aladin Lite project
- * 
+ *
  * File gui/ContextMenu.js
- * 
+ *
  * A context menu that shows when the user right clicks, or long touch on touch device
  *
- * 
+ *
  * Author: Thomas Boch[CDS]
- * 
+ *
  *****************************************************************************/
 
 import { Coo }            from "../libs/astro/coo.js";
@@ -58,19 +58,24 @@ export class ContextMenu {
         const item = document.createElement('li');
         item.className = 'aladin-context-menu-item';
         if (opt.label=='Copy position') {
-            const pos = this.aladin.pix2world(xymouse.x, xymouse.y);
-            var coo = new Coo(pos[0], pos[1], 6);
-            let posStr;
-            if (this.aladin.view.cooFrame == CooFrameEnum.J2000) {
-                posStr = coo.format('s/');
+            try {
+                const pos = this.aladin.pix2world(xymouse.x, xymouse.y);
+                const coo = new Coo(pos[0], pos[1], 6);
+                let posStr;
+                if (this.aladin.view.cooFrame == CooFrameEnum.J2000) {
+                    posStr = coo.format('s/');
+                }
+                else if (this.aladin.view.cooFrame == CooFrameEnum.J2000d) {
+                    posStr = coo.format('d/');
+                }
+                else {
+                    posStr = coo.format('d/');
+                }
+                item.innerHTML = '<span>' + posStr + '</span>';
             }
-            else if (this.aladin.view.cooFrame == CooFrameEnum.J2000d) {
-                posStr = coo.format('d/');
+            catch(e) {
+                item.innerHTML = '<span></span>';
             }
-            else {
-                posStr = coo.format('d/');
-            }
-            item.innerHTML = '<span>' + posStr + '</span>';
         }
         else {
             item.innerHTML = '<span>' + opt.label + '</span>';

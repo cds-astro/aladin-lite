@@ -205,7 +205,7 @@
                 // A datalink response containing links to datasets or services attached to the current dataset
                 case 'application/x-votable+xml;content=datalink':
                     //Datalink.handleActions(url)
-                    Datalink.handleActions("datalink.xml", aladinInstance);
+                    Datalink.handleActions(url, aladinInstance);
                 break;
                 // Any multidimensional regularly sampled FITS image or cube
                 case 'image/fits':

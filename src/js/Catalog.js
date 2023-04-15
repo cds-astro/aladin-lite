@@ -64,6 +64,8 @@ export let Catalog = (function() {
 
     	this.indexationNorder = 5; // à quel niveau indexe-t-on les sources
     	this.sources = [];
+        this.ra = [];
+        this.dec = [];
         this.footprints = [];
 
         this.displayLabel = options.displayLabel || false;
@@ -80,7 +82,7 @@ export let Catalog = (function() {
             this.sourceSize = this.shape.width;
         }
         this._shapeIsFunction = false; // if true, the shape is a function drawing on the canvas
-        if ($.isFunction(this.shape)) {
+        if (typeof this.shape === 'function') {
             this._shapeIsFunction = true;
         }
         
@@ -356,10 +358,6 @@ export let Catalog = (function() {
         )
     };
 
-    Catalog.prototype.addFieldClickCallback = function(field, callback) {
-        this.fieldsClickedActions[field] = callback;
-    }
-
     // API
     Catalog.prototype.updateShape = function(options) {
         options = options || {};
@@ -374,14 +372,21 @@ export let Catalog = (function() {
 
         this.reportChange();
     };
-    
+
     // API
     Catalog.prototype.addSources = function(sourcesToAdd) {
         sourcesToAdd = [].concat(sourcesToAdd); // make sure we have an array and not an individual source
     	this.sources = this.sources.concat(sourcesToAdd);
     	for (var k=0, len=sourcesToAdd.length; k<len; k++) {
     	    sourcesToAdd[k].setCatalog(this);
+
+            // Create columns oriented ra and dec
+            this.ra.push(sourcesToAdd[k].ra);
+            this.dec.push(sourcesToAdd[k].dec);
     	}
+
+        this.view.wasm.setCatalog(this);
+
         this.reportChange();
     };
 
@@ -396,11 +401,16 @@ export let Catalog = (function() {
 
     Catalog.prototype.setFields = function(fields) {
         this.fields = fields;
-    }
+    };
+
+    /// This add a callback when the user clicks on the field column in the measurementTable
+    Catalog.prototype.addFieldClickCallback = function(field, callback) {
+        this.fieldsClickedActions[field] = callback;
+    };
 
     Catalog.prototype.isObsCore = function() {
         return this.fields.subtype === "ObsCore";
-    }
+    };
 
     // API
     //
@@ -417,7 +427,6 @@ export let Catalog = (function() {
         var raFieldIdx,  decFieldIdx;
         raFieldIdx = raDecFieldIdxes[0];
         decFieldIdx = raDecFieldIdxes[1];
-
 
         var newSources = [];
         var coo = new Coo();
@@ -444,12 +453,12 @@ export let Catalog = (function() {
 
         this.addSources(newSources);
     };
-    
+
     // return the current list of Source objects
     Catalog.prototype.getSources = function() {
         return this.sources;
     };
-    
+
     // TODO : fonction générique traversant la liste des sources
     Catalog.prototype.selectAll = function() {
         if (! this.sources) {
@@ -460,17 +469,17 @@ export let Catalog = (function() {
             this.sources[k].select();
         }
     };
-    
+
     Catalog.prototype.deselectAll = function() {
         if (! this.sources) {
             return;
         }
-        
+
         for (var k=0; k<this.sources.length; k++) {
             this.sources[k].deselect();
         }
     };
-    
+
     // return a source by index
     Catalog.prototype.getSource = function(idx) {
         if (idx<this.sources.length) {
@@ -480,7 +489,7 @@ export let Catalog = (function() {
             return null;
         }
     };
-    
+
     Catalog.prototype.setView = function(view) {
         this.view = view;
         this.reportChange();
@@ -496,14 +505,19 @@ export let Catalog = (function() {
         this.sources[idx].deselect();
         this.sources.splice(idx, 1);
 
+        this.ra.splice(idx, 1);
+        this.dec.splice(idx, 1);
+
         this.reportChange();
     };
-    
+
     Catalog.prototype.removeAll = Catalog.prototype.clear = function() {
         // TODO : RAZ de l'index
         this.sources = [];
+        this.ra = [];
+        this.dec = [];
     };
-    
+
     Catalog.prototype.draw = function(ctx, frame, width, height, largestDim, zoomFactor) {
         if (! this.isShowing) {
             return;
@@ -512,7 +526,7 @@ export let Catalog = (function() {
         ctx.strokeStyle= this.color;
 
         //ctx.lineWidth = 1;
-    	//ctx.beginPath();
+        //ctx.beginPath();
         if (this._shapeIsFunction) {
             ctx.save();
         }
@@ -523,7 +537,7 @@ export let Catalog = (function() {
             ctx.restore();
         }
 
-        // tracé label
+        // Draw labels
         if (this.displayLabel) {
             ctx.fillStyle = this.labelColor;
             ctx.font = this.labelFont;
@@ -535,17 +549,32 @@ export let Catalog = (function() {
         // Draw the footprints
         this.drawFootprints(ctx);
     };
-    
+
     Catalog.prototype.drawSources = function(ctx, width, height) {
-        let sourcesInView = [];
+        if (!this.sources) {
+            return;
+        }
 
-        this.sources.forEach((s) => {
-            if (this.drawSource(s, ctx, width, height)) {
-                sourcesInView.push(s);
+        //let sourcesInsideView = [];
+        let xy = this.view.wasm.worldToScreenVec(this.ra, this.dec);
+
+        let self = this;
+        this.sources.forEach(function(s, idx) {
+            if (xy[2*idx] && xy[2*idx + 1]) {
+                if (!self.filterFn || self.filterFn(s)) {
+                    s.x = xy[2*idx];
+                    s.y = xy[2*idx + 1];
+
+                    self.drawSource(s, ctx, width, height)
+                }
             }
+            //if (this.drawSource(s, ctx, width, height)) {
+            //    sourcesInsideView.push(s);
+            //}
         });
+        //this.view.wasm.drawSources(this.sources, ctx);
 
-        return sourcesInView;
+        //return sourcesInsideView;
     };
 
     Catalog.prototype.drawSource = function(s, ctx, width, height) {
@@ -553,42 +582,39 @@ export let Catalog = (function() {
             return false;
         }
 
-        var xy = AladinUtils.radecToViewXy(s.ra, s.dec, this.view);
+        let xy = AladinUtils.radecToViewXy(s.ra, s.dec, this.view);
 
-        if (xy) {
-            var max = s.popup ? 100 : this.sourceSize;
+        //if (xy) {
+        //    [s.x, s.y] = xy;
+            //var max = s.popup ? 100 : this.sourceSize;
             // TODO : index sources by HEALPix cells at level 3, 4 ?
 
             // check if source is visible in view
-            if (xy[0]>(width+max) || xy[0]<(0-max) ||
-                xy[1]>(height+max) || xy[1]<(0-max)) {
-                s.x = s.y = undefined;
-
-                return false;
-            } else {
-                s.x = xy[0];
-                s.y = xy[1];
-                if (this._shapeIsFunction) {
-                    this.shape(s, ctx, this.view.getViewParams());
-                }
-                else if (s.marker && s.useMarkerDefaultIcon) {
-                    ctx.drawImage(this.cacheMarkerCanvas, s.x-this.sourceSize/2, s.y-this.sourceSize/2);
-                }
-                else if (s.isSelected) {
-                    ctx.drawImage(this.cacheSelectCanvas, s.x-this.selectSize/2, s.y-this.selectSize/2);
-                }
-                else {
-                    ctx.drawImage(this.cacheCanvas, s.x-this.cacheCanvas.width/2, s.y-this.cacheCanvas.height/2);
-                }
-
-                // has associated popup ?
-                if (s.popup) {
-                    s.popup.setPosition(s.x, s.y);
-                }
-
-                return true;
+            //if (xy[0]>(width+max) || xy[0]<(0-max) ||
+            //    xy[1]>(height+max) || xy[1]<(0-max)) {
+            
+        if (s.x <= width && s.x >= 0 && s.y <= height && s.y >= 0) {
+            if (this._shapeIsFunction) {
+                this.shape(s, ctx, this.view.getViewParams());
             }
+            else if (s.marker && s.useMarkerDefaultIcon) {
+                ctx.drawImage(this.cacheMarkerCanvas, s.x-this.sourceSize/2, s.y-this.sourceSize/2);
+            }
+            else if (s.isSelected) {
+                ctx.drawImage(this.cacheSelectCanvas, s.x-this.selectSize/2, s.y-this.selectSize/2);
+            }
+            else {
+                ctx.drawImage(this.cacheCanvas, s.x-this.cacheCanvas.width/2, s.y-this.cacheCanvas.height/2);
+            }
+
+            // has associated popup ?
+            if (s.popup) {
+                s.popup.setPosition(s.x, s.y);
+            }
+
+            return true;
         }
+        //}
 
         return false;
     };

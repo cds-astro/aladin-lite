@@ -88,8 +88,7 @@ export let Datalink = (function() {
                 }
 
                 aladinInstance.measurementTable.showMeasurement([datalinkTable], { save: true });
-
-                aladinInstance.contextMenu.attachTo(aladinInstance.measurementTable.element, [
+                /*aladinInstance.contextMenu.attachTo(aladinInstance.measurementTable.element, [
                     {
                         label: "Go back", action(o) {
                             aladinInstance.measurementTable.showPreviousMeasurement()
@@ -100,7 +99,7 @@ export let Datalink = (function() {
                             aladinInstance.measurementTable.showNextMeasurement()
                         }
                     },
-                ]);
+                ]);*/
             }
         )
     };

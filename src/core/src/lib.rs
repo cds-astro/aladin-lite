@@ -61,6 +61,12 @@ pub fn unwrap_abort<T>(o: Option<T>) -> T {
     }
 }
 
+#[wasm_bindgen]
+extern "C" {
+    #[derive(Debug)]
+    pub type Catalog;
+}
+
 #[macro_use]
 mod utils;
 
@@ -103,7 +109,6 @@ use al_api::hips::FITSCfg;
 use al_core::Colormap;
 use al_core::{WebGlContext};
 use al_core::colormap::Colormaps;
-
 
 use app::App;
 use cgmath::{Vector2};
@@ -572,6 +577,28 @@ impl WebClient {
     pub fn world_to_screen(&self, lon: f64, lat: f64) -> Option<Box<[f64]>> {
         self.app.world_to_screen(lon, lat)
             .map(|v| Box::new([v.x, v.y]) as Box<[f64]>)
+    }
+
+    #[wasm_bindgen(js_name = worldToScreenVec)]
+    pub fn world_to_screen_vec(&self, lon: &[f64], lat: &[f64]) -> Box<[f64]> {
+        let vertices = lon.iter()
+            .zip(lat.iter())
+            .map(|(&lon, &lat)| {
+                let xy = self.app.world_to_screen(lon, lat)
+                    .map(|v| [v.x, v.y])
+                    .unwrap_or([0.0, 0.0]);
+                
+                xy
+            })
+            .flatten()
+            .collect::<Vec<_>>();
+
+        vertices.into_boxed_slice()
+    }
+
+    #[wasm_bindgen(js_name = setCatalog)]
+    pub fn set_catalog(&self, catalog: &Catalog) {
+        
     }
 
     /// Screen to world unprojection

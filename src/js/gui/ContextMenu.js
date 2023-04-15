@@ -157,7 +157,6 @@ export class ContextMenu {
 
     attachTo(el, options) {
         this.contextMenuUl = document.createElement('ul');
-        this.el = el;
         this.menuOptions = options;
 
         const self = this;

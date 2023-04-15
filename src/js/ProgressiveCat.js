@@ -370,20 +370,36 @@ export let ProgressiveCat = (function() {
             if (!sources) {
                 return;
             }
-
+            let ra = [], dec = [];
             sources.forEach((s) => {
-                if (!this.filterFn || this.filterFn(s)) {
-                    if (this.isSelected) {
-                        this.drawSourceSelection(s, ctx);
-                    } else {
-                        this.drawSource(s, ctx, width, height);
+                ra.push(s.ra);
+                dec.push(s.dec);
+            });
+
+            let xy = this.view.wasm.worldToScreenVec(ra, dec);
+            let self = this;
+            sources.forEach(function(s, idx) {
+                if (xy[2*idx] && xy[2*idx + 1]) {
+                    if (!self.filterFn || self.filterFn(s)) {
+                        s.x = xy[2*idx];
+                        s.y = xy[2*idx + 1];
+    
+                        self.drawSource(s, ctx, width, height)
                     }
                 }
-            })
+                //if (this.drawSource(s, ctx, width, height)) {
+                //    sourcesInsideView.push(s);
+                //}
+            });
+
+            /*sources.forEach((s) => {
+                if (!this.filterFn || this.filterFn(s)) {
+                    this.drawSource(s, ctx, width, height);
+                }
+            })*/
         },
 
         drawSource: Catalog.prototype.drawSource,
-        drawSourceSelection: Catalog.prototype.drawSourceSelection,
 
         getSources: function() {
             var ret = [];

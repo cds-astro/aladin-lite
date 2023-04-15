@@ -113,7 +113,7 @@ export let Source = (function() {
                     // This is used to go back from a possible datalink table to the obscore one
                     options["save"] = true;
                 }
-
+                view.aladin.measurementTable.hide();
                 view.aladin.measurementTable.showMeasurement([singleSourceTable], options);
             }
             else if (this.catalog.onClick=='showPopup') {

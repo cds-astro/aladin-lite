@@ -521,12 +521,10 @@ export let View = (function () {
                     view.aladin.contextMenu && view.aladin.contextMenu._showMenu(e);
                 }
 
-
                 view.rightClick = false;
                 view.rightclickx = null;
                 view.rightclicky = null;
                 view.rightClickTimeStart = undefined;
-
 
                 return;
             }
@@ -1067,9 +1065,9 @@ export let View = (function () {
             this.needRedraw = false;
 
             // objects lookup
-            if (!this.dragging) {
-                this.updateObjectsLookup();
-            }
+            //if (!this.dragging) {
+            //    this.updateObjectsLookup();
+            //}
 
             // execute 'positionChanged' and 'zoomChanged' callbacks
             this.executeCallbacksThrottled();
@@ -2104,13 +2102,9 @@ export let View = (function () {
                 for (var dy = -maxRadius; dy <= maxRadius; dy++) {
                     if (this.objLookup[x + dx][y + dy]) {
                         var d = dx * dx + dy * dy;
-                        if (!closest) {
+                        if (!closest || d < dist) {
                             closest = this.objLookup[x + dx][y + dy];
                             dist = d;
-                        }
-                        else if (d < dist) {
-                            dist = d;
-                            closest = this.objLookup[x + dx][y + dy];
                         }
                     }
                 }

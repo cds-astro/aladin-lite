@@ -1035,7 +1035,6 @@ export let Aladin = (function () {
         this.view.addCatalog(catalog);
 
         ALEvent.GRAPHIC_OVERLAY_LAYER_ADDED.dispatchedTo(this.aladinDiv, {layer: catalog});
-
     };
     Aladin.prototype.addOverlay = function (overlay) {
         this.view.addOverlay(overlay);

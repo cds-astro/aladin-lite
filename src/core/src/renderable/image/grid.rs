@@ -248,9 +248,9 @@ impl<'a> BuildPatchIndicesIter<'a> {
         idx_x + idx_y * self.num_x_vertices
     }
 
-    fn invalid_tri(&self, tri_ccw: bool) -> bool {
+    fn valid_tri(&self, tri_ccw: bool) -> bool {
         let reversed_longitude = self.camera.get_longitude_reversed();
-        (!reversed_longitude && !tri_ccw) || (reversed_longitude && tri_ccw)
+        (!reversed_longitude && tri_ccw) || (reversed_longitude && !tri_ccw)
     }
 }
 
@@ -278,22 +278,18 @@ impl<'a> Iterator for BuildPatchIndicesIter<'a> {
         let ndc_tr = &self.ndc[idx_tr];
         let ndc_bl = &self.ndc[idx_bl];
         let ndc_br = &self.ndc[idx_br];
+
         match (ndc_tl, ndc_tr, ndc_bl, ndc_br) {
-            (Some(ndc_tl), Some(ndc_tr), Some(ndc_bl), Some(ndc_br)) => {    
+            (Some(ndc_tl), Some(ndc_tr), Some(ndc_bl), Some(ndc_br)) => {
                 let ndc_tl = Vector2::new(ndc_tl[0] as f64, ndc_tl[1] as f64);
                 let ndc_tr = Vector2::new(ndc_tr[0] as f64, ndc_tr[1] as f64);
                 let ndc_bl = Vector2::new(ndc_bl[0] as f64, ndc_bl[1] as f64);
                 let ndc_br = Vector2::new(ndc_br[0] as f64, ndc_br[1] as f64);
 
-                let c_tl = crate::math::projection::ndc_to_screen_space(&ndc_tl, self.camera);
-                let c_tr = crate::math::projection::ndc_to_screen_space(&ndc_tr, self.camera);
-                let c_bl = crate::math::projection::ndc_to_screen_space(&ndc_bl, self.camera);
-                let c_br = crate::math::projection::ndc_to_screen_space(&ndc_br, self.camera);
+                let tri_ccw_1 = crate::math::vector::ccw_tri(&ndc_tl, &ndc_tr, &ndc_bl);
+                let tri_ccw_2 = crate::math::vector::ccw_tri(&ndc_tr, &ndc_br, &ndc_bl);
 
-                let tri_ccw_1 = !crate::math::vector::ccw_tri(&c_tl, &c_tr, &c_bl);
-                let tri_ccw_2 = !crate::math::vector::ccw_tri(&c_tr, &c_br, &c_bl);
-
-                if self.invalid_tri(tri_ccw_1) || self.invalid_tri(tri_ccw_2) {
+                if !self.valid_tri(tri_ccw_1) || !self.valid_tri(tri_ccw_2) {
                     self.next() // crossing projection tri
                 } else {
                     Some([

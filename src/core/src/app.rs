@@ -906,6 +906,7 @@ impl App {
             use web_sys::window;
             use crate::renderable::image::Image;
             use futures::TryStreamExt;
+            use futures::future::Either;
 
             let window = window().unwrap();
             let resp_value = JsFuture::from(window.fetch_with_str(&url))
@@ -917,11 +918,17 @@ impl App {
             let body = ReadableStream::from_raw(raw_body.dyn_into()?);
 
             // Convert the JS ReadableStream to a Rust stream
-            let bytes_reader = body
-                .into_stream()
-                .map_ok(|js_value| js_value.dyn_into::<Uint8Array>().unwrap_throw().to_vec())
-                .map_err(|_js_error| std::io::Error::new(std::io::ErrorKind::Other, "failed to read"))
-                .into_async_read();
+            let bytes_reader = match body.try_into_async_read() {
+                Ok(async_read) => Either::Left(async_read),
+                Err((_err, body)) => Either::Right(
+                    body
+                        .into_stream()
+                        .map_ok(|js_value| js_value.dyn_into::<Uint8Array>().unwrap_throw().to_vec())
+                        .map_err(|_js_error| std::io::Error::new(std::io::ErrorKind::Other, "failed to read"))
+                        .into_async_read(),
+                ),
+            };
+
             let mut reader = BufReader::new(bytes_reader);
 
             let AsyncFits { mut hdu } = AsyncFits::from_reader(&mut reader).await

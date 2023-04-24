@@ -518,6 +518,8 @@ impl Image {
             _ => return Err(JsValue::from_str("Image format type not supported"))
         };
 
+        self.gl.disable(WebGl2RenderingContext::CULL_FACE);
+
         // 2. Draw it if its opacity is not null
         blend_cfg.enable(&self.gl, || {
             let mut off_indices = 0;
@@ -546,6 +548,8 @@ impl Image {
 
             Ok(())
         })?;
+
+        self.gl.enable(WebGl2RenderingContext::CULL_FACE);
 
         self.gl.disable(WebGl2RenderingContext::BLEND);
 

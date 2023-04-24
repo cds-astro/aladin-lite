@@ -782,6 +782,10 @@ export let View = (function () {
                 return;
             }
 
+            if (!view.dragging && !view.moving) {
+                view.updateObjectsLookup();
+            }
+
             if (!view.dragging || hasTouchEvents) {
                 // update location box
                 view.updateLocation(xymouse.x, xymouse.y, false);
@@ -1052,7 +1056,7 @@ export let View = (function () {
 
             // Drawing code
             try {
-                this.wasm.update(elapsedTime);
+                this.moving = this.wasm.update(elapsedTime);
             } catch (e) {
                 console.warn(e)
             }
@@ -1063,11 +1067,6 @@ export let View = (function () {
                 this.drawAllOverlays();
             }
             this.needRedraw = false;
-
-            // objects lookup
-            //if (!this.dragging) {
-            //    this.updateObjectsLookup();
-            //}
 
             // execute 'positionChanged' and 'zoomChanged' callbacks
             this.executeCallbacksThrottled();
@@ -2092,6 +2091,7 @@ export let View = (function () {
         if (!this.objLookup) {
             return null;
         }
+
         var closest, dist;
         for (var r = 0; r <= maxRadius; r++) {
             closest = dist = null;

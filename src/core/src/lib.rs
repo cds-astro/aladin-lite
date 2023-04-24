@@ -171,7 +171,10 @@ impl WebClient {
     /// * `dt` - The time elapsed from the last frame update
     /// * `force` - This parameter ensures to force the update of some elements
     ///   even if the camera has not moved
-    pub fn update(&mut self, dt: f32) -> Result<(), JsValue> {
+    /// 
+    /// # Return
+    /// Whether the view is moving or not
+    pub fn update(&mut self, dt: f32) -> Result<bool, JsValue> {
         // dt refers to the time taking (in ms) rendering the previous frame
         self.dt = DeltaTime::from_millis(dt);
 

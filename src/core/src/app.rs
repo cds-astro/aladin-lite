@@ -471,7 +471,7 @@ impl App {
         Ok(())
     }
 
-    pub(crate) fn update(&mut self, _dt: DeltaTime) -> Result<(), JsValue> {
+    pub(crate) fn update(&mut self, _dt: DeltaTime) -> Result<bool, JsValue> {
         //let available_tiles = self.run_tasks(dt)?;
         if let Some(InertiaAnimation {
             time_start_anim,
@@ -703,19 +703,6 @@ impl App {
             self.moc.update(&self.camera, &self.projection);
         }
 
-        /*{
-            let events = self.ui.lock().update();
-            let mut events = events.lock().unwrap_abort();
-
-            for event in events.drain(..) {
-                match event {
-                    al_ui::Event::ImageSurveys(surveys) => self.set_image_surveys(surveys)?,
-                    _ => { todo!() }
-                    //al_ui::Event::ReverseLongitude(longitude_reversed) => { self.set_longitude_reversed(longitude_reversed)? }
-                }
-            }
-        }*/
-
         // Check for async retrieval
         if let Ok(fits) = self.fits_recv.try_recv() {
             let params = fits.get_params();
@@ -732,7 +719,7 @@ impl App {
 
         self.draw(false)?;
 
-        Ok(())
+        Ok(has_camera_moved)
     }
 
     pub(crate) fn reset_north_orientation(&mut self) {

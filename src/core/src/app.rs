@@ -898,7 +898,7 @@ impl App {
 
             let mut opts = RequestInit::new();
             opts.method("GET");
-            opts.mode(RequestMode::Cors);
+            //opts.mode(RequestMode::Cors);
 
             let window = window().unwrap();
             let request = Request::new_with_str_and_init(&url, &opts)?;

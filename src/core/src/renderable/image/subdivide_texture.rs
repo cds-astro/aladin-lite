@@ -30,7 +30,6 @@ where
 
     let mut pixels_written = 0;
     let num_pixels = width * height;
-    al_core::log(&format!("pixels written {:?}, num pixels {:?}", pixels_written, num_pixels));
 
     let step_x_cut = (width / 50) as usize;
     let step_y_cut = (height / 50) as usize;
@@ -57,7 +56,6 @@ where
         };
 
         let num_bytes_to_read = (num_pixels_to_read as usize) * std::mem::size_of::<<F::P as Pixel>::Item>();
-        al_core::log(&format!("max tex size {:?} written {:?}, {:?}", max_tex_size, pixels_written, num_pixels));
         if let Ok(()) = reader.read_exact(&mut buf[..num_bytes_to_read]).await {
             // Tell where the data must go inside the texture
             let off_y_px = id_ty * max_tex_size;

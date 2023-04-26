@@ -98,8 +98,6 @@ impl Image {
         // Load the fits file
         let header = hdu.get_header();
 
-        al_core::log(&format!("header: {:?}", header));
-
         let naxis = header.get_xtension().get_naxis();
 
         if naxis == 0 {
@@ -223,7 +221,6 @@ impl Image {
                         v[0].to_le_bytes()
                     })
                     .into_async_read();
-                //al_core::log(&format!("{:?}", ))
                 let (textures, samples) = subdivide_texture::build::<R32F, _>(gl, w, h, reader, max_tex_size).await?;
 
                 let mut samples = samples

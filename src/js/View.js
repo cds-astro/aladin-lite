@@ -581,6 +581,8 @@ export let View = (function () {
                 });
 
                 if (selectedObjects.length > 0) {
+                    let options = {};
+
                     let tables = selectedObjects.map((objList) => {
                         // Get the catalog containing that list of objects
                         let catalog = objList[0].catalog;
@@ -591,10 +593,17 @@ export let View = (function () {
                             'fields': catalog.fields,
                             'fieldsClickedActions': catalog.fieldsClickedActions,
                         };
+
+                        if (catalog.isObsCore()) {
+                            // If the source is obscore, save the table state inside the measurement table
+                            // This is used to go back from a possible datalink table to the obscore one
+                            options["save"] = true;
+                        }
+
                         return table;
                     })
 
-                    view.aladin.measurementTable.showMeasurement(tables);
+                    view.aladin.measurementTable.showMeasurement(tables, options);
                 }
 
                 view.selectedObjects = selectedObjects;
@@ -1538,7 +1547,6 @@ export let View = (function () {
             })
             .then((imageLayer) => {
                 this.empty = false;
-
                 if (imageLayer.children) {
                     imageLayer.children.forEach((imageLayer) => {
                         this.addLayer(imageLayer);
@@ -1570,6 +1578,8 @@ export let View = (function () {
 
                         self.aladin.setBaseImageLayer(dssUrl);
                     } else {
+                        console.log("not empty")
+
                         // there is surveys that have been queried
                         // rename the first overlay layer to "base"
                         self.renameLayer(this.overlayLayers[0], "base");
@@ -1665,6 +1675,7 @@ export let View = (function () {
 
         // check if there are no more surveys
         const noMoreLayersToWaitFor = this.promises.length === 0;
+        console.log("np more", noMoreLayersToWaitFor)
         if (noMoreLayersToWaitFor && this.empty) {
             // no promises to launch!
             const idxServiceUrl = Math.round(Math.random());

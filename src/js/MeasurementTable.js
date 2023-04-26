@@ -143,7 +143,7 @@ export let MeasurementTable = (function() {
         if (this.savedTables.length >= 2) {
             /// Create previous tab
             let prevTableElement = document.createElement('button');
-            prevTableElement.setAttribute('title', 'go to the previous table')
+            prevTableElement.setAttribute('title', 'Go back to the previous table')
             if (this.savedTablesIdx == 0) {
                 prevTableElement.disabled = true;
             }
@@ -157,7 +157,7 @@ export let MeasurementTable = (function() {
 
             /// Create next tab
             let nextTableElement = document.createElement('button');
-            nextTableElement.setAttribute('title', 'go to the next table')
+            nextTableElement.setAttribute('title', 'Go to the next table')
 
             if (this.savedTables.length == 0 || this.savedTablesIdx == this.savedTables.length - 1) {
                 nextTableElement.disabled = true;

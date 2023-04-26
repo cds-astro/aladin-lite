@@ -894,7 +894,7 @@ impl App {
             use crate::renderable::image::Image;
             use futures::TryStreamExt;
             use futures::future::Either;
-            use web_sys::{Request, RequestInit, RequestMode, Headers};
+            use web_sys::{Request, RequestInit};
 
             let mut opts = RequestInit::new();
             opts.method("GET");
@@ -1055,7 +1055,7 @@ impl App {
             if !images_params.is_empty() {
                 serde_wasm_bindgen::to_value(&images_params).map_err(|e| e.into())
             } else {
-                Err(JsValue::from_str("The fits file has no extension that had been parsed"))
+                Err(JsValue::from_str("The fits could not be parsed"))
             }
         };
         

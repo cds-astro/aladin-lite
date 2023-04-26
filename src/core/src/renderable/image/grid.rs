@@ -158,7 +158,7 @@ fn build_range_indices(it: impl Iterator<Item=(u64, f32)> + Clone) -> Vec<RangeI
 }
 
 #[allow(dead_code)]
-pub fn get_grid_vertices(xy_min: &(f64, f64), xy_max: &(f64, f64), max_tex_size: u64, num_tri_per_tex_patch: u64, camera: &CameraViewPort, wcs: &WCS, projection: &ProjectionType) -> (Vec<[f32; 2]>, Vec<[f32; 2]>, Vec<u16>, Vec<u32>) {    
+pub fn get_grid_vertices(xy_min: &(f64, f64), xy_max: &(f64, f64), max_tex_size: u64, num_tri_per_tex_patch: u64, camera: &CameraViewPort, wcs: &WCS, image_coo_sys: &CooSystem, projection: &ProjectionType) -> (Vec<[f32; 2]>, Vec<[f32; 2]>, Vec<u16>, Vec<u32>) {    
     let (x_it, y_it) = get_grid_params(xy_min, xy_max, max_tex_size, num_tri_per_tex_patch);
 
     let idx_x_ranges = build_range_indices(x_it.clone());
@@ -173,7 +173,7 @@ pub fn get_grid_vertices(xy_min: &(f64, f64), xy_max: &(f64, f64), max_tex_size:
                 let lat = lonlat.lat();
     
                 let xyzw = crate::math::lonlat::radec_to_xyzw(lon.to_angle(), lat.to_angle());
-                let xyzw = crate::coosys::apply_coo_system(&CooSystem::ICRSJ2000, camera.get_system(), &xyzw);
+                let xyzw = crate::coosys::apply_coo_system(&image_coo_sys, camera.get_system(), &xyzw);
     
                 projection.model_to_normalized_device_space(&xyzw, camera)
                     .map(|v| [v.x as f32, v.y as f32])

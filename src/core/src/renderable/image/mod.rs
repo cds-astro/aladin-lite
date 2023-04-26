@@ -5,6 +5,7 @@ use std::vec;
 use std::marker::Unpin;
 use std::fmt::Debug;
 
+use al_api::coo_system::CooSystem;
 use cgmath::Zero;
 use futures::stream::{TryStreamExt};
 use futures::AsyncRead;
@@ -50,6 +51,7 @@ pub struct Image {
 
     /// Parameters extracted from the fits
     wcs: WCS,
+    image_coo_sys: CooSystem,
     blank: f32,
     scale: f32,
     offset: f32,
@@ -122,6 +124,11 @@ impl Image {
         // Create a WCS from a specific header unit
         let wcs = WCS::new(&header)
             .map_err(|e| JsValue::from_str(&format!("WCS parsing error: reason: {}", e)))?;
+
+        let image_coo_sys = match wcs.coo_system() {
+            wcs::coo_system::CooSystem::GALACTIC => CooSystem::GAL,
+            _ => CooSystem::ICRSJ2000,
+        };
 
         let (w, h) = wcs.img_dimensions();
         let width = w as f64;
@@ -338,6 +345,15 @@ impl Image {
 
         let half_fov = half_fov1.max(half_fov2);
 
+
+        // ra and dec must be given in ICRS coo system
+        let center = {
+            use crate::LonLatT;
+            let center: LonLatT<_> = center.into();
+            let center = crate::coosys::apply_coo_system(&image_coo_sys, &CooSystem::ICRSJ2000, &center.vector());
+            center.lonlat()
+        };
+
         let centered_fov = CenteredFoV {
             ra: center.lon().to_degrees(),
             dec: center.lat().to_degrees(),
@@ -358,6 +374,8 @@ impl Image {
 
             // Metadata extracted from the fits
             wcs,
+            // CooSystem of the wcs, this should belong to the WCS
+            image_coo_sys,
             scale,
             offset,
             blank,
@@ -396,7 +414,9 @@ impl Image {
             let (mut x_fov_proj_range, mut y_fov_proj_range) = (std::f64::INFINITY..std::f64::NEG_INFINITY, std::f64::INFINITY..std::f64::NEG_INFINITY);
             
             for vertex in vertices.iter() {
-                let lonlat = vertex.lonlat();
+                let xyzw = crate::coosys::apply_coo_system(camera.get_system(), &self.image_coo_sys, vertex);
+
+                let lonlat = xyzw.lonlat();
 
                 let lon = lonlat.lon();
                 let lat = lonlat.lat();
@@ -470,6 +490,7 @@ impl Image {
             num_vertices,
             camera,
             &self.wcs,
+            &self.image_coo_sys,
             projection
         );
         self.pos = unsafe { crate::utils::transmute_vec(pos).map_err(|s| JsValue::from_str(s))? };

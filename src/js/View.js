@@ -1578,7 +1578,7 @@ export let View = (function () {
 
                         self.aladin.setBaseImageLayer(dssUrl);
                     } else {
-                        console.log("not empty")
+                        //console.log("not empty")
 
                         // there is surveys that have been queried
                         // rename the first overlay layer to "base"
@@ -1675,7 +1675,7 @@ export let View = (function () {
 
         // check if there are no more surveys
         const noMoreLayersToWaitFor = this.promises.length === 0;
-        console.log("np more", noMoreLayersToWaitFor)
+
         if (noMoreLayersToWaitFor && this.empty) {
             // no promises to launch!
             const idxServiceUrl = Math.round(Math.random());

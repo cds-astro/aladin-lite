@@ -216,6 +216,8 @@ export let ImageFITS = (function () {
             return self;
         }).catch((e) => {
             console.error(e)
+            window.alert(e + ".See the console for more logging details")
+
             if (self.errorCallback) {
                 self.errorCallback()
             }
@@ -223,7 +225,6 @@ export let ImageFITS = (function () {
             // This error result from a promise
             // If I throw it, it will not be catched because
             // it is run async
-            console.log("remove image layer")
             self.view.removeImageLayer(layer)
         });
 

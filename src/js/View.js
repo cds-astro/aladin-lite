@@ -652,8 +652,6 @@ export let View = (function () {
                 return; // when in TOOL_SIMBAD_POINTER mode, we do not call the listeners
             }
 
-           
-
             // popup to show ?
             var objs = view.closestObjects(xymouse.x, xymouse.y, 5);
             if (!wasDragging && objs) {
@@ -674,6 +672,9 @@ export let View = (function () {
                     if (view.lastClickedObject) {
                         view.lastClickedObject.actionOtherObjectClicked && view.lastClickedObject.actionOtherObjectClicked();
                     }
+                }
+
+                if (o.actionClicked) {
                     o.actionClicked();
                 }
 
@@ -681,7 +682,6 @@ export let View = (function () {
                 var objClickedFunction = view.aladin.callbacksByEventName['objectClicked'];
                 (typeof objClickedFunction === 'function') && objClickedFunction(o);
             } else {
-
                 if (!wasDragging) {
                     // Deselect objects if any
                     view.deselectObjects();

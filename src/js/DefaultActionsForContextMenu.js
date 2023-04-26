@@ -138,13 +138,13 @@ export let DefaultActionsForContextMenu = (function () {
                     window.open(hips2fitsUrl, '_blank');
                 }
             },
-            /*
             {
                 label: "Select sources", action(o) {
-                    aladinInstance.select();
+                    const a = aladinInstance;
+
+                    a.select();
                 }
             },
-            */
         ]
     }
 

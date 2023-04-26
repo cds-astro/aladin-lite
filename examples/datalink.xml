@@ -18,8 +18,8 @@
                     <TR>
                         <TD>ivo://SKA/SrcNet/APERTIF_DR1/200110007_AP_B037/HI_image_cube3</TD>
                         <TD>https://vo.astron.nl/getproduct/APERTIF_DR1/200110007_AP_B037/HI_image_cube3.fits</TD>
-                        <TD>a</TD>
-                        <TD>a</TD>
+                        <TD></TD>
+                        <TD></TD>
                         <TD>#this</TD>
                         <TD>The full dataset</TD>
                         <TD>image/fits</TD>
@@ -29,8 +29,8 @@
                     <TR>
 			            <TD>ivo://SKA/SrcNet/APERTIF_DR1/200110007_AP_B037/HI_image_cube3</TD>
                         <TD>https://alasky.cds.unistra.fr/hips-cube-services/compute/hips:httpsalasky.cds.unistra.fr;SKA-demo;hips;APERTIF;HiPS_APERTIF_cube_NGC5585-cubic-tiles%7Cexpr:s0_1211</TD>
-                        <TD>a</TD>
-                        <TD>a</TD>
+                        <TD></TD>
+                        <TD></TD>
                         <TD>#derived</TD>
                         <TD>Moment zero map of the cube (in HiPS format)</TD>
                         <TD>application/hips</TD>
@@ -40,8 +40,8 @@
                     <TR>
 			            <TD>ivo://SKA/SrcNet/APERTIF_DR1/200110007_AP_B037/HI_image_cube3</TD>
                         <TD>https://alasky.cds.unistra.fr/hips-cube-services/compute/hips:httpsalasky.cds.unistra.fr;SKA-demo;hips;APERTIF;HiPS_APERTIF_cube_NGC5585-cubic-tiles%7Cexpr:s345_410-(s0_1211;24)</TD>
-                        <TD>a</TD>
-                        <TD>a</TD>
+                        <TD></TD>
+                        <TD></TD>
                         <TD>#derived</TD>
                         <TD>HI Line map derived from the cube (in HiPS format)</TD>
                         <TD>application/hips</TD>
@@ -51,8 +51,8 @@
                     <TR>
 			            <TD>ivo://SKA/SrcNet/APERTIF_DR1/200110007_AP_B037/HI_image_cube3</TD>
                         <TD>https://alasky.cds.unistra.fr/hips-cube-services/color/hips:httpsalasky.cds.unistra.fr;SKA-demo;hips;APERTIF;HiPS_APERTIF_cube_NGC5585%7Cblue:345-365%7Cgreen:365-385%7Cred:385-405</TD>
-                        <TD>a</TD>
-                        <TD>a</TD>
+                        <TD></TD>
+                        <TD></TD>
                         <TD>#derived</TD>
                         <TD>velocity variation color map derived from the cube (in HiPS format)</TD>
                         <TD>application/hips</TD>
@@ -61,36 +61,36 @@
                     </TR>
                     <TR>
                         <TD>ivo://SKA/SrcNet/APERTIF_DR1/200110007_AP_B037/HI_image_cube3</TD>
-                        <TD>a</TD>
+                        <TD></TD>
                         <TD>soda-HiPS</TD>
-                        <TD>a</TD>
+                        <TD></TD>
                         <TD>#cutout</TD>
 			            <TD>SODA-HiPS cutout of moment zero map of  ivo://SKA/SrcNet/APERTIF_DR1/200110007_AP_B037/HI_image_cube3</TD>
                         <TD>image/fits</TD>
                         <TD>0</TD>
-                        <TD>a</TD>
+                        <TD></TD>
                     </TR>
                     <TR>
                         <TD>ivo://SKA/SrcNet/APERTIF_DR1/200110007_AP_B037/HI_image_cube3</TD>
-                        <TD>a</TD>
+                        <TD></TD>
                         <TD>soda-sync</TD>
-                        <TD>a</TD>
+                        <TD></TD>
                         <TD>#cutout</TD>
                         <TD>SODA-sync cutout of ivo://SKA/SrcNet/APERTIF_DR1/200110007_AP_B037/HI_image_cube3</TD>
                         <TD>image/fits</TD>
                         <TD>0</TD>
-                        <TD>a</TD>
+                        <TD></TD>
                     </TR>
                     <TR>
                         <TD>ivo://SKA/SrcNet/APERTIF_DR1/200110007_AP_B037/HI_image_cube3</TD>
-                        <TD>a</TD>
+                        <TD></TD>
                         <TD>soda-async</TD>
-                        <TD>a</TD>
+                        <TD></TD>
                         <TD>#cutout</TD>
                         <TD>SODA-async cutout of ivo://SKA/SrcNet/APERTIF_DR1/200110007_AP_B037/HI_image_cube3</TD>
                         <TD>image/fits</TD>
                         <TD>0</TD>
-                        <TD>a</TD>
+                        <TD></TD>
                     </TR>
                 </TABLEDATA>
             </DATA>

@@ -98,6 +98,8 @@ impl Image {
         // Load the fits file
         let header = hdu.get_header();
 
+        al_core::log(&format!("header: {:?}", header));
+
         let naxis = header.get_xtension().get_naxis();
 
         if naxis == 0 {
@@ -129,7 +131,7 @@ impl Image {
 
         let data = hdu.get_data_mut();
         
-        let (textures, channel, cuts) = match data {
+        let (textures, channel, mut cuts) = match data {
             stream::Data::U8(data) => {
                 let reader = data
                     .map_ok(|v| {
@@ -221,7 +223,7 @@ impl Image {
                         v[0].to_le_bytes()
                     })
                     .into_async_read();
-
+                //al_core::log(&format!("{:?}", ))
                 let (textures, samples) = subdivide_texture::build::<R32F, _>(gl, w, h, reader, max_tex_size).await?;
 
                 let mut samples = samples
@@ -313,6 +315,10 @@ impl Image {
 
             vao
         };
+
+        // apply bscale to the cuts
+        cuts.start = cuts.start * scale + offset;
+        cuts.end = cuts.end * scale + offset;
 
         let gl = gl.clone();
 

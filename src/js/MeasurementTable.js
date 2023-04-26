@@ -226,7 +226,15 @@ export let MeasurementTable = (function() {
         let self = this;
         this.tables.forEach(function(table, index) {
             let tabButtonElement = document.createElement("button");
+            tabButtonElement.setAttribute('title', table["name"])
+
             tabButtonElement.innerText = table["name"];
+            tabButtonElement.style.overflow = 'hidden';
+            tabButtonElement.style.textOverflow = 'ellipsis';
+            tabButtonElement.style.whiteSpace = 'nowrap';
+            tabButtonElement.style.maxWidth = '20%';
+
+            tabButtonElement
 
             tabButtonElement.addEventListener(
                 'click',

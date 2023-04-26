@@ -56,22 +56,29 @@ export let VOTable = (function() {
                             let tables = resource.get("tables")
                             if (tables) {
                                 tables.forEach((table) => {
+                                    console.log(table.get("elems"))
+
                                     let fields = table.get("elems")
+                                        .filter((elem) => {
+                                            const elemType = elem["elem_type"] || elem.get("elem_type")
+                                            return elemType === "Field";
+                                        })
                                         .map((field) => {
                                             // convert a map into a javascript object
                                             return Object.fromEntries(field);
                                         })
-    
+
                                     try {
                                         fields = ObsCore.parseFields(fields);
+
                                         fields.subtype = "ObsCore";
+                                        console.log("obscore")
                                     } catch(e) {
                                         // It is not an ObsCore table
                                         fields = Catalog.parseFields(fields, raField, decField);
                                     }
     
                                     let data = table.get("data");
-    
                                     if (data) {
                                         let rows = data.get("rows");
     

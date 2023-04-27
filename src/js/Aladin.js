@@ -1193,11 +1193,11 @@ export let Aladin = (function () {
                 const url = idOrUrl;
                 const id = url;
                 // Url
-                imageLayer = this.createImageSurvey(id, name, url, null, null);
+                imageLayer = this.createImageSurvey(idOrUrl, name, idOrUrl, null, null);
             } else {
                 const id = idOrUrl;
                 // ID
-                imageLayer = this.createImageSurvey(id, name, undefined, null, null);
+                imageLayer = this.createImageSurvey(idOrUrl, name, idOrUrl, null, null);
             }
         // 2. User gives a non resolved promise
         } else {
@@ -1727,7 +1727,17 @@ Aladin.prototype.getEmbedCode = function () {
 /*
  * Creates remotely a HiPS from a FITS image URL and displays it
  */
-Aladin.prototype.displayFITS = function (url, options, successCallback, errorCallback, layer = "base") {
+Aladin.prototype.displayFITS = function (
+    url,
+    options,
+    successCallback,
+    errorCallback,
+    layer = "base"
+) {
+    successCallback = successCallback || ((ra, dec, fov, _) => {
+        this.gotoRaDec(ra, dec);
+        this.setFoV(fov);
+    });
     const imageFits = this.createImageFITS(url, url, options, successCallback, errorCallback);
     return this.setOverlayImageLayer(imageFits, layer);
 };
@@ -1786,7 +1796,7 @@ Aladin.prototype.displayJPG = Aladin.prototype.displayPNG = function (url, optio
             var label = options.label || "FITS image";
             var meta = response.data.meta;
 
-            const survey = self.createImageSurvey(response.data.url, label);
+            const survey = self.createImageSurvey(response.data.url, label, response.data.url);
             self.setOverlayImageLayer(survey, "overlay");
 
             var transparency = (options && options.transparency) || 1.0;

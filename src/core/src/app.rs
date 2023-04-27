@@ -894,11 +894,11 @@ impl App {
             use crate::renderable::image::Image;
             use futures::TryStreamExt;
             use futures::future::Either;
-            use web_sys::{Request, RequestInit};
+            use web_sys::{Request, RequestInit, RequestMode};
 
             let mut opts = RequestInit::new();
             opts.method("GET");
-            //opts.mode(RequestMode::Cors);
+            opts.mode(RequestMode::Cors);
 
             let window = window().unwrap();
             let request = Request::new_with_str_and_init(&url, &opts)?;

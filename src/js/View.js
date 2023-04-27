@@ -594,7 +594,7 @@ export let View = (function () {
                             'fieldsClickedActions': catalog.fieldsClickedActions,
                         };
 
-                        if (catalog.isObsCore()) {
+                        if (catalog.isObsCore && catalog.isObsCore()) {
                             // If the source is obscore, save the table state inside the measurement table
                             // This is used to go back from a possible datalink table to the obscore one
                             options["save"] = true;
@@ -1675,12 +1675,11 @@ export let View = (function () {
 
         // check if there are no more surveys
         const noMoreLayersToWaitFor = this.promises.length === 0;
-
-        if (noMoreLayersToWaitFor && this.empty) {
+        if (noMoreLayersToWaitFor && this.empty || layer === "base") {
             // no promises to launch!
             const idxServiceUrl = Math.round(Math.random());
             const dssUrl = Aladin.DEFAULT_OPTIONS.surveyUrl[idxServiceUrl]
-
+            console.log(idxServiceUrl)
             this.aladin.setBaseImageLayer(dssUrl);
         }
     };
@@ -1819,7 +1818,6 @@ export let View = (function () {
         }
 
         // Set the grid label format
-        console.log("lavel", this.cooFrame.label)
         if (this.cooFrame.label == "J2000d") {
             this.setGridConfig({fmt: "HMS"});
         }

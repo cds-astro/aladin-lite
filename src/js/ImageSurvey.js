@@ -153,7 +153,14 @@ export let ImageSurvey = (function () {
             let maxOrder, frame, tileSize, formats, minCutout, maxCutout, bitpix, skyFraction, minOrder, initialFov, initialRa, initialDec, hipsBody, isPlanetaryBody, dataproductSubtype;
 
             try {
-                const properties = await HiPSProperties.fetch(url || id);
+                let properties;
+                try {
+                    properties = await HiPSProperties.fetchFromUrl(url)
+                        .catch(async (e) => {
+                            // url not valid
+                            return await HiPSProperties.fetchFromID(id);
+                        })
+                } catch(e) {}
 
                 // Give a better name if we have the HiPS metadata
                 self.name = self.name || properties.obs_title;

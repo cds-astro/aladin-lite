@@ -56,8 +56,6 @@ export let VOTable = (function() {
                             let tables = resource.get("tables")
                             if (tables) {
                                 tables.forEach((table) => {
-                                    console.log(table.get("elems"))
-
                                     let fields = table.get("elems")
                                         .filter((elem) => {
                                             const elemType = elem["elem_type"] || elem.get("elem_type")

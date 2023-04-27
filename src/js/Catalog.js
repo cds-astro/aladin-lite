@@ -35,6 +35,7 @@ import { Utils } from "./Utils.js";
 import { AladinUtils } from "./AladinUtils.js";
 import { Coo } from "./libs/astro/coo.js";
 import { VOTable } from "./vo/VOTable.js";
+import { ALEvent } from "./events/ALEvent.js";
 
 import $ from 'jquery';
 
@@ -385,9 +386,14 @@ export let Catalog = (function() {
             this.dec.push(sourcesToAdd[k].dec);
     	}
 
-        this.view.wasm.setCatalog(this);
+        ALEvent.AL_USE_WASM.dispatchedTo(document.body, {
+            callback: (wasm) => {
+                wasm.setCatalog(this);
+                this.reportChange();
 
-        this.reportChange();
+            }
+        });
+
     };
 
     Catalog.prototype.addFootprints = function(footprintsToAdd) {
@@ -409,7 +415,7 @@ export let Catalog = (function() {
     };
 
     Catalog.prototype.isObsCore = function() {
-        return this.fields.subtype === "ObsCore";
+        return this.fields && this.fields.subtype === "ObsCore";
     };
 
     // API

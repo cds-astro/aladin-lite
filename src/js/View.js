@@ -429,7 +429,7 @@ export let View = (function () {
 
             try {
                 const lonlat = view.wasm.screenToWorld(xymouse.x, xymouse.y);
-                var radec = view.wasm.viewToICRSJ2000CooSys(lonlat[0], lonlat[1]);
+                var radec = view.wasm.viewToICRSCooSys(lonlat[0], lonlat[1]);
                 view.pointTo(radec[0], radec[1], { forceAnimation: true });
             }
             catch (err) {
@@ -638,8 +638,8 @@ export let View = (function () {
             if (view.mode == View.TOOL_SIMBAD_POINTER) {
                 let radec = view.aladin.pix2world(xymouse.x, xymouse.y);
 
-                // Convert from view to ICRSJ2000
-                radec = view.wasm.viewToICRSJ2000CooSys(radec[0], radec[1]);
+                // Convert from view to ICRS
+                radec = view.wasm.viewToICRSCooSys(radec[0], radec[1]);
 
                 view.setMode(View.PAN);
                 view.setCursor('wait');
@@ -1017,7 +1017,7 @@ export let View = (function () {
 
     View.prototype.updateLocation = function (mouseX, mouseY, isViewCenterPosition) {
         if (isViewCenterPosition) {
-            //const [ra, dec] = this.wasm.ICRSJ2000ToViewCooSys(this.viewCenter.lon, this.viewCenter.lat);
+            //const [ra, dec] = this.wasm.ICRSToViewCooSys(this.viewCenter.lon, this.viewCenter.lat);
             this.location.update(this.viewCenter.lon, this.viewCenter.lat, this.cooFrame, true);
         } else {
             let radec = this.wasm.screenToWorld(mouseX, mouseY); // This is given in the frame of the view
@@ -1245,7 +1245,7 @@ export let View = (function () {
     View.prototype.getVisiblePixList = function (norder) {
         var pixList = [];
         let centerWorldPosition = this.wasm.screenToWorld(this.cx, this.cy);
-        const [lon, lat] = this.wasm.viewToICRSJ2000CooSys(centerWorldPosition[0], centerWorldPosition[1]);
+        const [lon, lat] = this.wasm.viewToICRSCooSys(centerWorldPosition[0], centerWorldPosition[1]);
 
         var radius = this.fov * 0.5 * this.ratio;
         this.wasm.queryDisc(norder, lon, lat, radius).forEach(x => pixList.push(Number(x)));
@@ -1815,10 +1815,19 @@ export let View = (function () {
             this.wasm.setCooSystem(Aladin.wasmLibs.core.CooSystem.GAL);
         }
         else if (this.cooFrame.system == CooFrameEnum.SYSTEMS.J2000) {
-            this.wasm.setCooSystem(Aladin.wasmLibs.core.CooSystem.ICRSJ2000);
+            this.wasm.setCooSystem(Aladin.wasmLibs.core.CooSystem.ICRS);
         }
 
-        // Get the new view center position (given in icrsj2000)
+        // Set the grid label format
+        console.log("lavel", this.cooFrame.label)
+        if (this.cooFrame.label == "J2000d") {
+            this.setGridConfig({fmt: "HMS"});
+        }
+        else {
+            this.setGridConfig({fmt: "DMS"});
+        }
+
+        // Get the new view center position (given in icrs)
         let [ra, dec] = this.wasm.getCenter();
         this.viewCenter.lon = ra;
         this.viewCenter.lat = dec;
@@ -1867,7 +1876,7 @@ export let View = (function () {
 
     /**
      *
-     * @API Point to a specific location in ICRSJ2000
+     * @API Point to a specific location in ICRS
      *
      * @param ra ra expressed in ICRS J2000 frame
      * @param dec dec expressed in ICRS J2000 frame

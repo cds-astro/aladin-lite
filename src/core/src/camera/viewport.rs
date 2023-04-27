@@ -400,12 +400,12 @@ impl CameraViewPort {
     }
 
     pub fn set_center(&mut self, lonlat: &LonLatT<f64>, system: &CooSystem, projection: &ProjectionType) {
-        let icrsj2000_pos: Vector4<_> = lonlat.vector();
+        let icrs_pos: Vector4<_> = lonlat.vector();
 
         let view_pos = coosys::apply_coo_system(
             system,
             self.get_system(),
-            &icrsj2000_pos,
+            &icrs_pos,
         );
         let rot = Rotation::from_sky_position(&view_pos);
 

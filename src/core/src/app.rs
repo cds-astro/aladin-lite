@@ -160,7 +160,7 @@ impl App {
         // The tile buffer responsible for the tile requests
         let downloader = Downloader::new();
 
-        let camera = CameraViewPort::new(&gl, CooSystem::ICRSJ2000, &projection);
+        let camera = CameraViewPort::new(&gl, CooSystem::ICRS, &projection);
         let screen_size = &camera.get_screen_size();
 
         let _fbo_view = FrameBufferObject::new(&gl, screen_size.x as usize, screen_size.y as usize)?;
@@ -411,7 +411,7 @@ impl App {
     }
 
     pub(crate) fn get_visible_cells(&self, depth: u8) -> Box<[HEALPixCellProjeted]> {
-        let coverage = crate::survey::view::compute_view_coverage(&self.camera, depth, &CooSystem::ICRSJ2000);
+        let coverage = crate::survey::view::compute_view_coverage(&self.camera, depth, &CooSystem::ICRS);
 
         let cells: Vec<_> = coverage.flatten_to_fixed_depth_cells()
             .filter_map(|ipix| {
@@ -1242,25 +1242,25 @@ impl App {
         self.projection.screen_to_model_space(pos, &self.camera).map(|model_pos| model_pos.lonlat())
     }
 
-    pub(crate) fn view_to_icrsj2000_coosys(&self, lonlat: &LonLatT<f64>) -> LonLatT<f64> {
-        let icrsj2000_pos: Vector4<_> = lonlat.vector();
+    pub(crate) fn view_to_icrs_coosys(&self, lonlat: &LonLatT<f64>) -> LonLatT<f64> {
+        let icrs_pos: Vector4<_> = lonlat.vector();
         let view_system = self.camera.get_system();
         let (ra, dec) = math::lonlat::xyzw_to_radec(&coosys::apply_coo_system(
             view_system,
-            &CooSystem::ICRSJ2000,
-            &icrsj2000_pos,
+            &CooSystem::ICRS,
+            &icrs_pos,
         ));
 
         LonLatT::new(ra, dec)
     }
 
-    pub(crate) fn icrsj2000_to_view_coosys(&self, lonlat: &LonLatT<f64>) -> LonLatT<f64> {
-        let icrsj2000_pos: Vector4<_> = lonlat.vector();
+    pub(crate) fn icrs_to_view_coosys(&self, lonlat: &LonLatT<f64>) -> LonLatT<f64> {
+        let icrs_pos: Vector4<_> = lonlat.vector();
         let view_system = self.camera.get_system();
         let (ra, dec) = math::lonlat::xyzw_to_radec(&coosys::apply_coo_system(
-            &CooSystem::ICRSJ2000,
+            &CooSystem::ICRS,
             view_system,
-            &icrsj2000_pos,
+            &icrs_pos,
         ));
 
         LonLatT::new(ra, dec)
@@ -1268,7 +1268,7 @@ impl App {
 
     pub(crate) fn set_center(&mut self, lonlat: &LonLatT<f64>) {
         self.prev_cam_position = self.camera.get_center().truncate();
-        self.camera.set_center(lonlat, &CooSystem::ICRSJ2000, &self.projection);
+        self.camera.set_center(lonlat, &CooSystem::ICRS, &self.projection);
         self.request_for_new_tiles = true;
 
         // And stop the current inertia as well if there is one

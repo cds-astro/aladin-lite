@@ -35,7 +35,7 @@ mod tests {
 
         let lonlat: LonLatT<f64> = LonLatT::new(ArcDeg(0.0).into(), ArcDeg(0.0).into());
         let gal_lonlat =
-            super::apply_coo_system(&CooSystem::ICRSJ2000, &CooSystem::GAL, &lonlat.vector())
+            super::apply_coo_system(&CooSystem::ICRS, &CooSystem::GAL, &lonlat.vector())
                 .lonlat();
 
         let gal_lon_deg = gal_lonlat.lon().0 * 360.0 / (2.0 * std::f64::consts::PI);
@@ -54,7 +54,7 @@ mod tests {
 
         let lonlat: LonLatT<f64> = LonLatT::new(ArcDeg(0.0).into(), ArcDeg(0.0).into());
         let j2000_lonlat =
-            super::apply_coo_system(&CooSystem::GAL, &CooSystem::ICRSJ2000, &lonlat.vector())
+            super::apply_coo_system(&CooSystem::GAL, &CooSystem::ICRS, &lonlat.vector())
                 .lonlat();
         let j2000_lon_deg = j2000_lonlat.lon().0 * 360.0 / (2.0 * std::f64::consts::PI);
         let j2000_lat_deg = j2000_lonlat.lat().0 * 360.0 / (2.0 * std::f64::consts::PI);
@@ -72,11 +72,11 @@ mod tests {
 
         let gal_lonlat: LonLatT<f64> = LonLatT::new(ArcDeg(0.0).into(), ArcDeg(0.0).into());
 
-        let icrsj2000_pos =
-            super::apply_coo_system(&CooSystem::GAL, &CooSystem::ICRSJ2000, &gal_lonlat.vector());
+        let icrs_pos =
+            super::apply_coo_system(&CooSystem::GAL, &CooSystem::ICRS, &gal_lonlat.vector());
 
         let gal_lonlat =
-            super::apply_coo_system(&CooSystem::ICRSJ2000, &CooSystem::GAL, &icrsj2000_pos);
+            super::apply_coo_system(&CooSystem::ICRS, &CooSystem::GAL, &icrs_pos);
 
         let gal_lon_deg = gal_lonlat.lon().0 * 360.0 / (2.0 * std::f64::consts::PI);
         let gal_lat_deg = gal_lonlat.lat().0 * 360.0 / (2.0 * std::f64::consts::PI);

@@ -53,11 +53,11 @@ PropertyParser.frame = function(options, properties = {}) {
     let frame = (options && options.cooFrame) || (properties.hips_body && "ICRSd") || properties.hips_frame;
 
     if (frame == "ICRS" || frame == "ICRSd" || frame == "equatorial" || frame == "j2000") {
-        frame = "ICRSJ2000";
+        frame = "ICRS";
     } else if (frame == "galactic") {
         frame = "GAL";
     } else if (frame === undefined) {
-        frame = "ICRSJ2000";
+        frame = "ICRS";
         console.warn('No cooframe given. Coordinate systems supported: "ICRS", "ICRSd", "j2000" or "galactic". ICRS is chosen by default');
     } else {
         frame = "ICRSd";

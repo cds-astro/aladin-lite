@@ -692,6 +692,7 @@ export let Aladin = (function () {
         }
 
         this.view.changeFrame(newFrame);
+
         // màj select box
         $(this.aladinDiv).find('.aladin-frameChoice').val(newFrame.label);
     };
@@ -748,8 +749,8 @@ export let Aladin = (function () {
             var coo = new Coo();
 
             coo.parse(targetName);
-            // Convert from view coo sys to icrsj2000
-            const [ra, dec] = this.wasm.viewToICRSJ2000CooSys(coo.lon, coo.lat);
+            // Convert from view coo sys to icrs
+            const [ra, dec] = this.wasm.viewToICRSCooSys(coo.lon, coo.lat);
             this.view.pointTo(ra, dec, options);
 
             (typeof successCallback === 'function') && successCallback(this.getRaDec());
@@ -993,8 +994,8 @@ export let Aladin = (function () {
      */
     Aladin.prototype.getRaDec = function () {
         let radec = this.wasm.getCenter(); // This is given in the frame of the view
-        // We must convert it to ICRSJ2000
-        const radec_j2000 = this.wasm.viewToICRSJ2000CooSys(radec[0], radec[1]);
+        // We must convert it to ICRS
+        const radec_j2000 = this.wasm.viewToICRSCooSys(radec[0], radec[1]);
 
         if (radec_j2000[0]<0) {
             return [radec_j2000[0] + 360.0, radec_j2000[1]];

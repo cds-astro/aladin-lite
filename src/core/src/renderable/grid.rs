@@ -1,4 +1,3 @@
-
 use web_sys::WebGl2RenderingContext;
 
 use crate::math::angle;
@@ -32,6 +31,7 @@ pub struct ProjetedGrid {
 
     // Render Text Manager
     text_renderer: TextRenderManager,
+    fmt: angle::SerializeFmt,
 }
 
 use crate::shader::ShaderManager;
@@ -91,6 +91,8 @@ impl ProjetedGrid {
         let enabled = false;
         let label_scale = 1.0;
 
+        let fmt = angle::SerializeFmt::DMS;
+
         let mut grid = ProjetedGrid {
             color,
             opacity,
@@ -109,6 +111,7 @@ impl ProjetedGrid {
             gl,
 
             text_renderer,
+            fmt,
         };
         // Initialize the vertices & labels
         grid.force_update(camera, projection);
@@ -123,6 +126,7 @@ impl ProjetedGrid {
             show_labels,
             label_size,
             enabled,
+            fmt,
         } = new_cfg;
 
         if let Some(color) = color {
@@ -137,6 +141,10 @@ impl ProjetedGrid {
             self.show_labels = show_labels;
         }
 
+        if let Some(fmt) = fmt {
+            self.fmt = fmt.into();
+        }
+
         if let Some(enabled) = enabled {
             self.enabled = enabled;
             if enabled {
@@ -146,8 +154,6 @@ impl ProjetedGrid {
 
         if let Some(label_size) = label_size {
             self.label_scale = label_size;
-
-            //self.text_renderer.set_text_size(label_size)?;
         }
 
         self.text_renderer.begin_frame();
@@ -160,13 +166,14 @@ impl ProjetedGrid {
         }
         self.text_renderer.end_frame();
 
+
         Ok(())
     }
 
     fn force_update(&mut self, camera: &CameraViewPort, projection: &ProjectionType) {
         self.text_renderer.begin_frame();
         //let text_height = text_renderer.text_size();
-        let lines = lines(camera, &self.text_renderer, projection);
+        let lines = lines(camera, &self.text_renderer, projection, &self.fmt);
 
         self.offsets.clear();
         self.sizes.clear();
@@ -314,6 +321,7 @@ impl Label {
         sp: Option<&Vector2<f64>>,
         text_renderer: &TextRenderManager,
         projection: &ProjectionType,
+        fmt: &angle::SerializeFmt
     ) -> Option<Self> {
         let LonLatT(.., lat) = camera.get_center().lonlat();
         // Do not plot meridian labels when the center of fov
@@ -369,7 +377,7 @@ impl Label {
 
         let ds = (s2 - s1).normalize();
 
-        let content = Angle(lon).to_string::<angle::DMS>();
+        let content = fmt.to_string(Angle(lon));
         let position = if !fov.is_allsky() {
             //let dim = ctx2d.measure_text(&content).unwrap_abort();
             let dim = text_renderer.get_width_pixel_size(&content);
@@ -414,7 +422,8 @@ impl Label {
         camera: &CameraViewPort,
         // in pixels
         text_renderer: &TextRenderManager,
-        projection: &ProjectionType
+        projection: &ProjectionType,
+        fmt: &angle::SerializeFmt
     ) -> Option<Self> {
         let mut d = Vector3::new(-m1.z, 0.0, m1.x).normalize();
         let _system = camera.get_system();
@@ -434,7 +443,7 @@ impl Label {
 
         let ds = (s2 - s1).normalize();
 
-        let content = Angle(lat).to_string::<angle::DMS>();
+        let content = fmt.to_string(Angle(lat));
         let position = if !fov.is_allsky() && !fov.contains_pole() {
             let dim = text_renderer.get_width_pixel_size(&content);
             let k = ds * (dim * 0.5 + 10.0);
@@ -452,6 +461,7 @@ impl Label {
         } else {
             -ds.x.acos()
         };
+
         let rot = if ds.y > 0.0 {
             if rot > HALF_PI {
                 -PI + rot
@@ -495,11 +505,10 @@ struct GridLine {
     label: Option<Label>,
 }
 use cgmath::{Rad, Vector3};
-use math::angle::SerializeToString;
+//use math::angle::SerializeToString;
 const PI: f64 = std::f64::consts::PI;
 const HALF_PI: f64 = 0.5 * PI;
 use crate::math::{
-    self,
     angle::ArcDeg,
     lonlat::{LonLat, LonLatT},
 };
@@ -512,7 +521,8 @@ impl GridLine {
         camera: &CameraViewPort,
         //text_height: f64,
         text_renderer: &TextRenderManager,
-        projection: &ProjectionType
+        projection: &ProjectionType,
+        fmt: &angle::SerializeFmt
     ) -> Option<Self> {
         let fov = camera.get_field_of_view();
         if let Some(p) = fov.intersect_meridian(Rad(lon), camera) {
@@ -523,7 +533,7 @@ impl GridLine {
                 projection,
             );
 
-            let label = Label::meridian(fov, lon, &p, camera, sp, text_renderer, projection);
+            let label = Label::meridian(fov, lon, &p, camera, sp, text_renderer, projection, fmt);
 
             Some(GridLine { vertices, label })
         } else {
@@ -536,7 +546,8 @@ impl GridLine {
         lat: f64,
         camera: &CameraViewPort,
         text_renderer: &TextRenderManager,
-        projection: &ProjectionType
+        projection: &ProjectionType,
+        fmt: &angle::SerializeFmt
     ) -> Option<Self> {
         let fov = camera.get_field_of_view();
 
@@ -548,7 +559,7 @@ impl GridLine {
                 projection,
             );
 
-            let label = Label::parallel(fov, lat, &p, camera, text_renderer, projection);
+            let label = Label::parallel(fov, lat, &p, camera, text_renderer, projection, fmt);
 
             Some(GridLine { vertices, label })
         } else {
@@ -599,7 +610,8 @@ fn lines(
     camera: &CameraViewPort,
     //text_height: f64,
     text_renderer: &TextRenderManager,
-    projection: &ProjectionType
+    projection: &ProjectionType,
+    fmt: &angle::SerializeFmt,
 ) -> Vec<GridLine> {
     // Get the screen position of the nearest pole
     let _system = camera.get_system();
@@ -657,7 +669,7 @@ fn lines(
 
     while theta < stop_theta {
         if let Some(line) =
-            GridLine::meridian(theta, &bbox.get_lat(), sp.as_ref(), camera, text_renderer, projection)
+            GridLine::meridian(theta, &bbox.get_lat(), sp.as_ref(), camera, text_renderer, projection, fmt)
         {
             lines.push(line);
         }
@@ -676,7 +688,7 @@ fn lines(
         stop_alpha -= 1e-3;
     }*/
     while alpha < stop_alpha {
-        if let Some(line) = GridLine::parallel(&bbox.get_lon(), alpha, camera, text_renderer, projection) {
+        if let Some(line) = GridLine::parallel(&bbox.get_lon(), alpha, camera, text_renderer, projection, fmt) {
             lines.push(line);
         }
         alpha += step_lat;

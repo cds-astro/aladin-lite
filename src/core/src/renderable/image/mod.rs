@@ -127,7 +127,7 @@ impl Image {
 
         let image_coo_sys = match wcs.coo_system() {
             wcs::coo_system::CooSystem::GALACTIC => CooSystem::GAL,
-            _ => CooSystem::ICRSJ2000,
+            _ => CooSystem::ICRS,
         };
 
         let (w, h) = wcs.img_dimensions();
@@ -350,7 +350,7 @@ impl Image {
         let center = {
             use crate::LonLatT;
             let center: LonLatT<_> = center.into();
-            let center = crate::coosys::apply_coo_system(&image_coo_sys, &CooSystem::ICRSJ2000, &center.vector());
+            let center = crate::coosys::apply_coo_system(&image_coo_sys, &CooSystem::ICRS, &center.vector());
             center.lonlat()
         };
 

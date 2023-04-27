@@ -542,7 +542,7 @@ export let Catalog = (function() {
             ctx.fillStyle = this.labelColor;
             ctx.font = this.labelFont;
             sourcesInView.forEach((s) => {
-                Catalog.drawSourceLabel(this, s, ctx);
+                this.drawSourceLabel(s, ctx);
             })
         }
 
@@ -555,7 +555,7 @@ export let Catalog = (function() {
             return;
         }
 
-        //let sourcesInsideView = [];
+        let sourcesInsideView = [];
         let xy = this.view.wasm.worldToScreenVec(this.ra, this.dec);
 
         let self = this;
@@ -566,15 +566,17 @@ export let Catalog = (function() {
                     s.y = xy[2*idx + 1];
 
                     self.drawSource(s, ctx, width, height)
+                    sourcesInsideView.push(s);
                 }
             }
+
             //if (this.drawSource(s, ctx, width, height)) {
             //    sourcesInsideView.push(s);
             //}
         });
         //this.view.wasm.drawSources(this.sources, ctx);
 
-        //return sourcesInsideView;
+        return sourcesInsideView;
     };
 
     Catalog.prototype.drawSource = function(s, ctx, width, height) {

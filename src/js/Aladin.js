@@ -1112,7 +1112,7 @@ export let Aladin = (function () {
         // Create a new ImageSurvey
         const name = idOrUrl;
 
-        try {
+        /*try {
             const url = new URL(rootUrlOrId).toString()
 
             // Valid URL case
@@ -1122,7 +1122,8 @@ export let Aladin = (function () {
             // Valid ID case
             const id = idOrUrl;
             return this.createImageSurvey(id, name, undefined, null, null, options);
-        }
+        }*/
+        return this.createImageSurvey(idOrUrl, name, idOrUrl, null, null, options);
     }
 
     Aladin.prototype.addNewImageLayer = function() {
@@ -1183,7 +1184,7 @@ export let Aladin = (function () {
             const idOrUrl = idOrUrlOrImageLayer;
             // Check if the survey has already been added
             // Create a new ImageSurvey
-            let isUrl = false;
+            /*let isUrl = false;
             if (idOrUrl.includes("http")) {
                 isUrl = true;
             }
@@ -1198,7 +1199,9 @@ export let Aladin = (function () {
                 const id = idOrUrl;
                 // ID
                 imageLayer = this.createImageSurvey(idOrUrl, name, idOrUrl, null, null);
-            }
+            }*/
+            const name = idOrUrl;
+            imageLayer = this.createImageSurvey(idOrUrl, name, idOrUrl, null, null);
         // 2. User gives a non resolved promise
         } else {
             imageLayer = idOrUrlOrImageLayer;

@@ -444,10 +444,20 @@ canvas {
     margin: 0;
     padding-left: 4px;
     list-style: none;
+    /*max-width: 200px; */
+    /* max-width: 150px; */
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.aladin-cb-list ul li {
+    flex: 1 1 100%;
+    text-align: left;
 }
 
 .aladin-cb-list label {
-	display: inline;
+    display: inline-block;
 }
 
 .aladin-cb-list input[type="checkbox"] {
@@ -703,6 +713,9 @@ canvas {
     border-top-right-radius:    8px;
     cursor: pointer;
     user-select: none;
+
+    white-space: nowrap;
+    max-width: 150px;
 }
 
 .aladin-sp-title a {

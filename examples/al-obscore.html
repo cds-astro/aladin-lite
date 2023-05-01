@@ -13,13 +13,8 @@
     A.init.then(() => {
         aladin = A.aladin('#aladin-lite-div', {target: '14 18 16.868 +56 44 29.37', fov: 5, showContextMenu: true});
 
-        const c1 = A.catalogFromURL('./ObsCore_003.xml', {onClick: 'showTable'});
-        //const catalog = A.catalogFromURL('https://vo.astron.nl/tap/sync?REQUEST=doQuery&LANG=ADQL&MAXREC=20000000&QUERY=SELECT+TOP+9999+*+FROM+ivoa.obscore+WHERE+CONTAINS%28POINT%28%27ICRS%27%2C+s_ra%2C+s_dec%29%2C+CIRCLE%28%27ICRS%27%2C+214.92068%2C+56.81529%2C+3.03%29%29+%3D+1+', {onClick: 'showTable'});
-        //const c2 = A.catalogFromURL('http://archive.eso.org/tap_obs/sync?REQUEST=doQuery&LANG=ADQL&MAXREC=20000000&QUERY=SELECT+TOP+9999+*+FROM+ivoa.ObsCore+WHERE+CONTAINS%28POINT%28%27ICRS%27%2C+s_ra%2C+s_dec%29%2C+CIRCLE%28%27ICRS%27%2C+83.82184%2C+-5.38635%2C+0.14798%29%29+%3D+1+AND+obs_collection+%3D+%27MUSE%27+', {onClick: 'showTable'});
-
-        //aladin.addCatalog(catalog);
+        const c1 = A.catalogFromURL('https://raw.githubusercontent.com/bmatthieu3/SKA-Discovery-Service-Mockup/aladin/ObsCore/ObsCore_003.xml', {onClick: 'showTable'});
         aladin.addCatalog(c1);
-
     });
 </script>
 </body>

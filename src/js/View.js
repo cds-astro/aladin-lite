@@ -1546,6 +1546,7 @@ export let View = (function () {
                 return promise;
             })
             .then((imageLayer) => {
+                // If the image layer has successfuly been added
                 this.empty = false;
                 if (imageLayer.children) {
                     imageLayer.children.forEach((imageLayer) => {
@@ -1570,6 +1571,7 @@ export let View = (function () {
                 this.promises.splice(idx, 1);
 
                 const noMoreLayersToWaitFor = this.promises.length === 0;
+
                 if (noMoreLayersToWaitFor) {
                     if (self.empty) {
                         // no promises to launch!
@@ -1675,11 +1677,10 @@ export let View = (function () {
 
         // check if there are no more surveys
         const noMoreLayersToWaitFor = this.promises.length === 0;
-        if (noMoreLayersToWaitFor && this.empty || layer === "base") {
+        if (noMoreLayersToWaitFor && this.empty) {
             // no promises to launch!
             const idxServiceUrl = Math.round(Math.random());
             const dssUrl = Aladin.DEFAULT_OPTIONS.surveyUrl[idxServiceUrl]
-            console.log(idxServiceUrl)
             this.aladin.setBaseImageLayer(dssUrl);
         }
     };

@@ -31,6 +31,7 @@ import { ALEvent } from "./events/ALEvent.js";
 import { ColorCfg } from "./ColorCfg.js";
 import { ImageLayer } from "./ImageLayer.js";
 import { Utils } from "./Utils.js";
+import { Aladin } from "./Aladin.js";
 
 export let ImageFITS = (function () {
 
@@ -215,8 +216,7 @@ export let ImageFITS = (function () {
 
             return self;
         }).catch((e) => {
-            console.error(e)
-            window.alert(e + ".See the console for more logging details")
+            window.alert(e + ". See the console for more logging details")
 
             if (self.errorCallback) {
                 self.errorCallback()
@@ -226,6 +226,8 @@ export let ImageFITS = (function () {
             // If I throw it, it will not be catched because
             // it is run async
             self.view.removeImageLayer(layer)
+
+            return Promise.reject(e);
         });
 
         return promise;

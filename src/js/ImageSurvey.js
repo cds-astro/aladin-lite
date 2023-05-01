@@ -157,10 +157,16 @@ export let ImageSurvey = (function () {
                 try {
                     properties = await HiPSProperties.fetchFromUrl(url)
                         .catch(async (e) => {
-                            // url not valid
-                            return await HiPSProperties.fetchFromID(id);
+                            // url not valid so we try with the id
+                            try {
+                                return await HiPSProperties.fetchFromID(id);
+                            } catch(e) {
+                                throw e;
+                            }
                         })
-                } catch(e) {}
+                } catch(e) {
+                    throw e;
+                }
 
                 // Give a better name if we have the HiPS metadata
                 self.name = self.name || properties.obs_title;
@@ -232,8 +238,8 @@ export let ImageSurvey = (function () {
                     }
                 }
             } catch (e) {
-                console.error("Could not fetch properties for the survey ", self.id, " with the error:\n", e)
-                if (!options.maxOrder) {
+                //console.error("Could not fetch properties for the survey ", self.id, " with the error:\n", e)
+                /*if (!options.maxOrder) {
                     throw "The max order is mandatory for a HiPS."
                 }
 
@@ -256,7 +262,9 @@ export let ImageSurvey = (function () {
                 minOrder = PropertyParser.minOrder(options);
 
                 // Frame
-                frame = PropertyParser.frame(options);
+                frame = PropertyParser.frame(options);*/
+
+                throw e;
             }
 
             self.properties = {

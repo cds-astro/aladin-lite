@@ -13,7 +13,6 @@ A.init.then(() => {
 
     let hscGreenSurvey = aladin.getBaseImageLayer();
     hscGreenSurvey.setImageFormat("fits");
-    console.log(hscGreenSurvey)
     hscGreenSurvey.setColormap("green", { stretch: "asinh" });
     hscGreenSurvey.setCuts(-0.2186, 5.30322);
 

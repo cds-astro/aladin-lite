@@ -340,6 +340,7 @@ export class Stack {
 
         ALEvent.HIPS_LAYER_REMOVED.listenedBy(this.aladin.aladinDiv, function (e) {
             const layer = e.detail.layer;
+
             let hipsLayer = self.imgLayers.get(layer);
 
             if(hipsLayer.children) {
@@ -356,7 +357,9 @@ export class Stack {
 
             self._createComponent();
 
-            self.updateSelectedLayer();
+            if (self.imgLayers.length > 0) {
+                self.updateSelectedLayer();
+            }
         });
 
         ALEvent.GRAPHIC_OVERLAY_LAYER_ADDED.listenedBy(this.aladin.aladinDiv, function (e) {

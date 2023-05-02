@@ -1,0 +1,56 @@
+hips_initial_fov     = 140
+hips_initial_ra      = 266.4168330
+hips_initial_dec     = -29.0078
+creator_did          = ivo://CDS/P/DM/radial-velocity/I/345/gaia2
+hips_creator         = Thomas Boch
+#hips_copyright      = Copyright mention of the HiPS
+obs_title            = Radial velocity map for I/345/gaia2 (Gaia DR2)
+#obs_collection      = Dataset collection name
+#obs_description     = Dataset text description
+#obs_ack             = Acknowledgement mention
+#prov_progenitor     = Provenance of the original data (free text)
+#bib_reference       = Bibcode for bibliographic reference
+#bib_reference_url   = URL to bibliographic reference
+#obs_copyright       = Copyright mention of the original data
+#obs_copyright_url   = URL to copyright page of the original data
+#t_min               = Start time in MJD ( =(Unixtime/86400)+40587  or https://heasarc.gsfc.nasa.gov/cgi-bin/Tools/xTime/xTime.pl)
+#t_max               = Stop time in MJD
+#obs_regime          = Waveband keyword (Radio Infrared Optical UV X-ray Gamma-ray)
+#em_min              = Start in spectral coordinates in meters ( =2.998E8/freq in Hz, or =1.2398841929E-12*energy in MeV )
+#em_max              = Stop in spectral coordinates in meters
+prov_did             = ivo://CDS/I/345/gaia2
+hips_builder         = Aladin/HipsGen v12.033
+hips_version         = 1.4
+hips_release_date    = 2023-02-02T14:40Z
+hips_frame           = equatorial
+hips_order           = 3
+hips_tile_width      = 32
+#hips_service_url    = ex: http://yourHipsServer/DM radial-velocity I 345 gaia2
+hips_status          = public master clonableOnce
+hips_tile_format     = jpeg
+hips_pixel_bitpix    = -32
+hips_pixel_cut       = -55 60
+hips_data_range      = -422.4 473.9
+hips_pixel_scale     = 0.01431
+dataproduct_type     = image
+client_category      = Ancillary/GaiaDR2
+moc_sky_fraction     = 1
+hips_estsize         = 9841
+hipsgen_date         = 2018-04-26T21:33Z
+hipsgen_params       = in=density-maps/param-weighted/gaia-DR2-radial-velocity-map.hpx out=density-maps/param-weighted/hips-gaia-DR2-radial-velocity -creator_did=ivo://CDS/P/DM/radial-velocity/I/345/gaia2 "-hips_pixel_cut=0 100000 sqrt" -method=mean MAPTILES
+hips_creation_date   = 2018-04-26T21:33Z
+hipsgen_date_1       = 2018-04-26T21:40Z
+hipsgen_params_1     = in=density-maps/param-weighted/gaia-DR2-radial-velocity-map.hpx out=density-maps/param-weighted/hips-gaia-DR2-radial-velocity -creator_did=ivo://CDS/P/DM/radial-velocity/I/345/gaia2 "-hips_pixel_cut=0 100000 sqrt" -method=mean allsky
+hipsgen_date_2       = 2018-04-26T21:58Z
+hipsgen_params_2     = in=density-maps/param-weighted/gaia-DR2-radial-velocity-map.hpx out=density-maps/param-weighted/hips-gaia-DR2-radial-velocity -creator_did=ivo://CDS/P/DM/radial-velocity/I/345/gaia2 "-hips_pixel_cut=-55 60" -method=mean MAPTILES JPEG
+hips_order_min       = 0
+hipsgen_date_3       = 2018-04-26T21:58Z
+hipsgen_params_3     = in=density-maps/param-weighted/gaia-DR2-radial-velocity-map.hpx out=density-maps/param-weighted/hips-gaia-DR2-radial-velocity -creator_did=ivo://CDS/P/DM/radial-velocity/I/345/gaia2 "-hips_pixel_cut=-55 60" -method=mean MAPTILES JPEG
+hipsgen_date_4       = 2018-04-26T22:03Z
+hipsgen_params_4     = in=density-maps/param-weighted/gaia-DR2-radial-velocity-map.hpx out=density-maps/param-weighted/hips-gaia-DR2-radial-velocity -creator_did=ivo://CDS/P/DM/radial-velocity/I/345/gaia2 "-hips_pixel_cut=-55 60" -method=mean MAPTILES JPEG
+hipsgen_date_5       = 2018-04-26T22:03Z
+hipsgen_params_5     = in=density-maps/param-weighted/gaia-DR2-radial-velocity-map.hpx out=density-maps/param-weighted/hips-gaia-DR2-radial-velocity -creator_did=ivo://CDS/P/DM/radial-velocity/I/345/gaia2 "-hips_pixel_cut=-55 60" -method=mean MAPTILES JPEG
+hipsgen_date_6       = 2019-05-21T08:58Z
+hipsgen_params_6     = out=/asd-volumes/sc1-asd-volume6/ancillary/GaiaDR2/radial-velocity-map UPDATE
+hips_nb_tiles        = 1790
+hips_check_code      = jpg:3331457867 fits:3549065153

@@ -1017,7 +1017,6 @@ export let View = (function () {
 
     View.prototype.updateLocation = function (mouseX, mouseY, isViewCenterPosition) {
         if (isViewCenterPosition) {
-            //const [ra, dec] = this.wasm.ICRSToViewCooSys(this.viewCenter.lon, this.viewCenter.lat);
             this.location.update(this.viewCenter.lon, this.viewCenter.lat, this.cooFrame, true);
         } else {
             let radec = this.wasm.screenToWorld(mouseX, mouseY); // This is given in the frame of the view

@@ -1254,18 +1254,6 @@ impl App {
         LonLatT::new(ra, dec)
     }
 
-    pub(crate) fn icrs_to_view_coosys(&self, lonlat: &LonLatT<f64>) -> LonLatT<f64> {
-        let icrs_pos: Vector4<_> = lonlat.vector();
-        let view_system = self.camera.get_system();
-        let (ra, dec) = math::lonlat::xyzw_to_radec(&coosys::apply_coo_system(
-            &CooSystem::ICRS,
-            view_system,
-            &icrs_pos,
-        ));
-
-        LonLatT::new(ra, dec)
-    }
-
     pub(crate) fn set_center(&mut self, lonlat: &LonLatT<f64>) {
         self.prev_cam_position = self.camera.get_center().truncate();
         self.camera.set_center(lonlat, &CooSystem::ICRS, &self.projection);

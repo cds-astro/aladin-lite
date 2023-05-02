@@ -42,7 +42,7 @@ mapproj = "0.3.0"
 wcs = "0.2.6"
 colorgrad = "0.6.2"
 image-decoder = { package = "image", version = "0.24.2", default-features = false, features = ["jpeg", "png"] }
-votable = "0.2.2"
+votable = "0.2.3"
 
 [features]
 webgl1 = [

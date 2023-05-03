@@ -423,7 +423,6 @@ impl Label {
         // in pixels
         text_renderer: &TextRenderManager,
         projection: &ProjectionType,
-        fmt: &angle::SerializeFmt
     ) -> Option<Self> {
         let mut d = Vector3::new(-m1.z, 0.0, m1.x).normalize();
         let _system = camera.get_system();
@@ -443,7 +442,7 @@ impl Label {
 
         let ds = (s2 - s1).normalize();
 
-        let content = fmt.to_string(Angle(lat));
+        let content = angle::SerializeFmt::DMS.to_string(Angle(lat));
         let position = if !fov.is_allsky() && !fov.contains_pole() {
             let dim = text_renderer.get_width_pixel_size(&content);
             let k = ds * (dim * 0.5 + 10.0);
@@ -547,7 +546,6 @@ impl GridLine {
         camera: &CameraViewPort,
         text_renderer: &TextRenderManager,
         projection: &ProjectionType,
-        fmt: &angle::SerializeFmt
     ) -> Option<Self> {
         let fov = camera.get_field_of_view();
 
@@ -559,7 +557,7 @@ impl GridLine {
                 projection,
             );
 
-            let label = Label::parallel(fov, lat, &p, camera, text_renderer, projection, fmt);
+            let label = Label::parallel(fov, lat, &p, camera, text_renderer, projection);
 
             Some(GridLine { vertices, label })
         } else {
@@ -688,7 +686,7 @@ fn lines(
         stop_alpha -= 1e-3;
     }*/
     while alpha < stop_alpha {
-        if let Some(line) = GridLine::parallel(&bbox.get_lon(), alpha, camera, text_renderer, projection, fmt) {
+        if let Some(line) = GridLine::parallel(&bbox.get_lon(), alpha, camera, text_renderer, projection) {
             lines.push(line);
         }
         alpha += step_lat;

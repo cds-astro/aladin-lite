@@ -21,6 +21,9 @@ where
     fn truncate(&mut self) {
         *self = Self((*self).trunc());
     }
+    /*fn round(&mut self) {
+        *self = Self((*self).round());
+    }*/
 }
 
 use cgmath::{Deg, Rad};
@@ -66,57 +69,6 @@ where
     }
 }
 
-// ArcHour wrapper structure
-#[derive(Clone, Copy)]
-pub struct ArcHour<T: BaseFloat>(pub T);
-
-impl<T> ArcHour<T>
-where
-    T: BaseFloat,
-{
-    fn get_frac_minutes(&self) -> ArcMin<T> {
-        let hour = *self;
-
-        let frac = hour.fract();
-        let minutes_per_hour = T::from(60_f64).unwrap_abort();
-        ArcMin(minutes_per_hour * frac)
-    }
-}
-
-impl<T> From<Rad<T>> for ArcHour<T>
-where
-    T: BaseFloat,
-{
-    fn from(angle: Rad<T>) -> Self {
-        let deg: Deg<T> = angle.into();
-
-        let degrees_per_hour = T::from(15.0).unwrap_abort();
-        let hours = deg.0 / degrees_per_hour;
-
-        ArcHour(hours)
-    }
-}
-
-impl<T> Deref for ArcHour<T>
-where
-    T: BaseFloat,
-{
-    type Target = T;
-
-    fn deref(&'_ self) -> &'_ Self::Target {
-        &self.0
-    }
-}
-
-impl<T> ToString for ArcHour<T>
-where
-    T: BaseFloat + ToString,
-{
-    fn to_string(&self) -> String {
-        self.0.to_string()
-    }
-}
-
 // ArcMin wrapper structure
 #[derive(Clone, Copy)]
 pub struct ArcMin<T: BaseFloat>(pub T);
@@ -126,12 +78,16 @@ where
     T: BaseFloat,
 {
     fn get_frac_seconds(&self) -> ArcSec<T> {
-        let min: ArcMin<T> = *self;
+        let min = *self;
 
         let frac = min.fract();
-        let seconds_per_min = T::from(60_f64).unwrap_abort();
-        ArcSec(seconds_per_min * frac)
+        let seconds_per_minute = T::from(60_f64).unwrap_abort();
+        ArcSec(seconds_per_minute * frac)
     }
+
+    /*fn truncate(&mut self) {
+        *self = Self((*self).trunc());
+    }*/
 }
 
 // Convert a Rad<T> to an ArcMin<T>
@@ -182,6 +138,7 @@ where
 }
 
 // ArcSec wrapper structure
+
 #[derive(Clone, Copy)]
 pub struct ArcSec<T: BaseFloat>(pub T);
 
@@ -240,38 +197,8 @@ where
     }
 }
 
-pub enum SerializeFmt {
-    DMS,
-    HMS,
-    DMM,
-    DD
-}
-
-use al_api::angle_fmt::AngleSerializeFmt;
-impl From<AngleSerializeFmt> for SerializeFmt {
-    fn from(value: AngleSerializeFmt) -> Self {
-        match value {
-            AngleSerializeFmt::DMS => SerializeFmt::DMS,
-            AngleSerializeFmt::HMS => SerializeFmt::HMS,
-            AngleSerializeFmt::DMM => SerializeFmt::DMM,
-            AngleSerializeFmt::DD => SerializeFmt::DD,
-        }
-    }
-}
-
-impl SerializeFmt {
-    pub fn to_string<S: BaseFloat + ToString>(&self, angle: Angle<S>) -> String {
-        match &self {
-            Self::DMS => DMS::to_string(angle),
-            Self::HMS => HMS::to_string(angle),
-            Self::DMM => DMM::to_string(angle),
-            Self::DD => DD::to_string(angle),
-        }
-    }
-}
-
-/*pub trait SerializeToString {
-    fn to_string(&self) -> String;
+pub trait SerializeToString {
+    fn to_string<F: FormatType>(&self) -> String;
 }
 
 impl<S> SerializeToString for Angle<S>
@@ -281,16 +208,13 @@ where
     fn to_string<F: FormatType>(&self) -> String {
         F::to_string(*self)
     }
-}*/
-
+}
 pub struct DMS;
-pub struct HMS;
 pub struct DMM;
 pub struct DD;
 pub trait FormatType {
     fn to_string<S: BaseFloat + ToString>(angle: Angle<S>) -> String;
 }
-
 impl FormatType for DD {
     fn to_string<S: BaseFloat + ToString>(angle: Angle<S>) -> String {
         let angle = Rad(angle.0);
@@ -322,37 +246,13 @@ impl FormatType for DMS {
         let minutes = degrees.get_frac_minutes();
         let seconds = minutes.get_frac_seconds();
 
-        let num_sec_per_minutes = S::from(60).unwrap_abort();
+        let num_per_sec_per_minutes = S::from(60).unwrap_abort();
 
-        let degrees = degrees.trunc();
-        let minutes = minutes.trunc() % num_sec_per_minutes;
-        let seconds = seconds.trunc() % num_sec_per_minutes;
+        let degrees = degrees.round();
+        let minutes = minutes.round() % num_per_sec_per_minutes;
+        let seconds = seconds.round() % num_per_sec_per_minutes;
 
         let mut result = degrees.to_string() + "°";
-        result += &minutes.to_string();
-        result += "\'";
-        result += &seconds.to_string();
-        result += "\'\'";
-
-        result
-    }
-}
-
-impl FormatType for HMS {
-    fn to_string<S: BaseFloat + ToString>(angle: Angle<S>) -> String {
-        let angle = Rad(angle.0);
-
-        let hours: ArcHour<S> = angle.into();
-        let minutes = hours.get_frac_minutes();
-        let seconds = minutes.get_frac_seconds();
-
-        let num_sec_per_minutes = S::from(60).unwrap_abort();
-
-        let hours = hours.trunc();
-        let minutes = minutes.trunc() % num_sec_per_minutes;
-        let seconds = seconds.trunc() % num_sec_per_minutes;
-
-        let mut result = hours.to_string() + "h";
         result += &minutes.to_string();
         result += "\'";
         result += &seconds.to_string();

@@ -79,7 +79,7 @@ pub fn compute_view_coverage(camera: &CameraViewPort, depth: u8, dst_frame: &Coo
     } else {
         if let Some(vertices) = camera.get_vertices() {
             // The vertices coming from the camera are in a specific coo sys
-            // but cdshealpix accepts them to be given in ICRS coo sys
+            // but cdshealpix accepts them to be given in ICRSJ2000 coo sys
             let camera_frame = camera.get_system();
             let vertices = vertices
                 .iter()
@@ -162,7 +162,7 @@ impl HEALPixCellsInView {
         let coverage = HEALPixCoverage::allsky(0);
 
         let view_unchanged = false;
-        let frame = CooSystem::ICRS;
+        let frame = CooSystem::ICRSJ2000;
         Self {
             cells,
             prev_depth: 0,

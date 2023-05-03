@@ -39,7 +39,7 @@
          this.aladin = aladin;
  
          this.mainDiv = document.createElement('div');
-         this.mainDiv.classList.add('aladin-projection-select');
+         this.mainDiv.classList.add('aladin-projSelection');
  
          parentDiv.appendChild(this.mainDiv);
          

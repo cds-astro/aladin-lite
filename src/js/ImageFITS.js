@@ -31,7 +31,6 @@ import { ALEvent } from "./events/ALEvent.js";
 import { ColorCfg } from "./ColorCfg.js";
 import { ImageLayer } from "./ImageLayer.js";
 import { Utils } from "./Utils.js";
-import { Aladin } from "./Aladin.js";
 
 export let ImageFITS = (function () {
 
@@ -57,10 +56,6 @@ export let ImageFITS = (function () {
         this.successCallback = successCallback;
         this.errorCallback = errorCallback;
         // initialize the color meta data here
-        // set a asinh stretch by default if there is none
-        if (options) {
-            options.stretch = options.stretch || "asinh";
-        }
         this.colorCfg = new ColorCfg(options);
 
         let self = this;
@@ -188,8 +183,6 @@ export let ImageFITS = (function () {
                 image.added = true;
                 // deep copy of the color object of self
                 image.colorCfg = Utils.deepCopy(self.colorCfg);
-                // Set the automatic computed cuts
-                image.setCuts(imageParams.automatic_min_cut, imageParams.automatic_max_cut);
 
                 image.ra = imageParams.centered_fov.ra;
                 image.dec = imageParams.centered_fov.dec;
@@ -216,8 +209,7 @@ export let ImageFITS = (function () {
 
             return self;
         }).catch((e) => {
-            window.alert(e + ". See the console for more logging details. It may be possible CORS headers have not been set in the server where you want to download the file. If it is the case, try to manually download the FITS file first and then open it into aladin lite (e.g. by a drag and drop)")
-
+            console.error(e)
             if (self.errorCallback) {
                 self.errorCallback()
             }
@@ -226,8 +218,6 @@ export let ImageFITS = (function () {
             // If I throw it, it will not be catched because
             // it is run async
             self.view.removeImageLayer(layer)
-
-            return Promise.reject(e);
         });
 
         return promise;

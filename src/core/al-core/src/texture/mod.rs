@@ -12,6 +12,8 @@ use wasm_bindgen::JsCast;
 use web_sys::HtmlImageElement;
 
 /// Some GPU texture relative:
+// * The maximum size of a texture supported by most of platforms
+pub const MAX_TEX_SIZE: usize = 4096;
 // * Usual texture parameters when defining a texture
 pub const TEX_PARAMS: &'static [(u32, u32); 4] = &[
     (

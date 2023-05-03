@@ -38,8 +38,8 @@ fn path_along_edge(cell: &HEALPixCell, n_segment_by_side: usize, camera: &Camera
         .iter()
         .filter_map(|(lon, lat)| {
             let xyzw = crate::math::lonlat::radec_to_xyzw(Angle(*lon), Angle(*lat));
-            let xyzw = crate::coosys::apply_coo_system(&CooSystem::ICRS, camera.get_system(), &xyzw);
-
+            let xyzw = crate::coosys::apply_coo_system(&CooSystem::ICRSJ2000, camera.get_system(), &xyzw);
+            
             projection.model_to_normalized_device_space(&xyzw, camera)
                 .map(|v| [v.x as f32, v.y as f32])
         })
@@ -105,7 +105,7 @@ pub fn rasterize_hpx_cell(cell: &HEALPixCell, n_segment_by_side: usize, camera: 
         .iter()
         .filter_map(|(lon, lat)| {
             let xyzw = crate::math::lonlat::radec_to_xyzw(Angle(*lon), Angle(*lat));
-            let xyzw = crate::coosys::apply_coo_system(&CooSystem::ICRS, camera.get_system(), &xyzw);
+            let xyzw = crate::coosys::apply_coo_system(&CooSystem::ICRSJ2000, camera.get_system(), &xyzw);
 
             projection.model_to_normalized_device_space(&xyzw, camera)
                 .map(|v| {
@@ -281,7 +281,7 @@ impl MOC {
         let view_depth = self.view.get_depth();
         let depth = view_depth + 6;
 
-        let fov_moc = crate::survey::view::compute_view_coverage(camera, view_depth, &CooSystem::ICRS);
+        let fov_moc = crate::survey::view::compute_view_coverage(camera, view_depth, &CooSystem::ICRSJ2000);
         self.adaptative_mocs = self.layers.iter()
             .map(|layer| {
                 let params = self.params.get(layer).unwrap_abort();
@@ -495,7 +495,7 @@ impl MOC {
         }
 
         // Compute or retrieve the mocs to render
-        self.view.refresh(camera.get_tile_depth(), CooSystem::ICRS, camera);
+        self.view.refresh(camera.get_tile_depth(), CooSystem::ICRSJ2000, camera);
 
         if self.view.has_view_changed() {
             self.recompute_draw_mocs(camera);

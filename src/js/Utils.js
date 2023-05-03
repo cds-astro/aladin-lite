@@ -401,19 +401,6 @@ Utils.requestCORSIfNotSameOrigin = function(url) {
     return (new URL(url, window.location.href)).origin !== window.location.origin;
 }
 
-// Check the protocol, for http ones, use a CORS compatible proxy
-Utils.handleCORSNotSameOrigin = function(url) {
-    if (Utils.requestCORSIfNotSameOrigin(url)) {
-        // http(s) protocols and not in localhost
-        let proxiedUrl = new URL(Aladin.JSONP_PROXY);
-        proxiedUrl.searchParams.append("url", url);
-
-        url = proxiedUrl;
-    }
-
-    return url;
-}
-
 Utils.deepCopy = function(orig) {
     return Object.assign(Object.create(Object.getPrototypeOf(orig)), orig);
 }

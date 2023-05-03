@@ -12,7 +12,7 @@
 <script type="text/javascript">
     let aladin;
     A.init.then(() => {
-        aladin = A.aladin('#aladin-lite-div', {target: 'LMC', fov: 55, showContextMenu: true});
+        aladin = A.aladin('#aladin-lite-div', {target: 'LMC', fov: 55});
         var hips = A.catalogHiPS('https://axel.u-strasbg.fr/HiPSCatService/Simbad', {onClick: 'showTable', name: 'Simbad'});
         aladin.addCatalog(hips);
     });

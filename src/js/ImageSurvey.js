@@ -53,11 +53,11 @@ PropertyParser.frame = function(options, properties = {}) {
     let frame = (options && options.cooFrame) || (properties.hips_body && "ICRSd") || properties.hips_frame;
 
     if (frame == "ICRS" || frame == "ICRSd" || frame == "equatorial" || frame == "j2000") {
-        frame = "ICRS";
+        frame = "ICRSJ2000";
     } else if (frame == "galactic") {
         frame = "GAL";
     } else if (frame === undefined) {
-        frame = "ICRS";
+        frame = "ICRSJ2000";
         console.warn('No cooframe given. Coordinate systems supported: "ICRS", "ICRSd", "j2000" or "galactic". ICRS is chosen by default');
     } else {
         frame = "ICRSd";
@@ -153,20 +153,7 @@ export let ImageSurvey = (function () {
             let maxOrder, frame, tileSize, formats, minCutout, maxCutout, bitpix, skyFraction, minOrder, initialFov, initialRa, initialDec, hipsBody, isPlanetaryBody, dataproductSubtype;
 
             try {
-                let properties;
-                try {
-                    properties = await HiPSProperties.fetchFromUrl(url)
-                        .catch(async (e) => {
-                            // url not valid so we try with the id
-                            try {
-                                return await HiPSProperties.fetchFromID(id);
-                            } catch(e) {
-                                throw e;
-                            }
-                        })
-                } catch(e) {
-                    throw e;
-                }
+                const properties = await HiPSProperties.fetch(url || id);
 
                 // Give a better name if we have the HiPS metadata
                 self.name = self.name || properties.obs_title;
@@ -238,8 +225,8 @@ export let ImageSurvey = (function () {
                     }
                 }
             } catch (e) {
-                //console.error("Could not fetch properties for the survey ", self.id, " with the error:\n", e)
-                /*if (!options.maxOrder) {
+                console.error("Could not fetch properties for the survey ", self.id, " with the error:\n", e)
+                if (!options.maxOrder) {
                     throw "The max order is mandatory for a HiPS."
                 }
 
@@ -262,9 +249,7 @@ export let ImageSurvey = (function () {
                 minOrder = PropertyParser.minOrder(options);
 
                 // Frame
-                frame = PropertyParser.frame(options);*/
-
-                throw e;
+                frame = PropertyParser.frame(options);
             }
 
             self.properties = {

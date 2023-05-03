@@ -283,9 +283,9 @@ impl SurveyWidget {
     pub fn get_hips_config(&self) -> SimpleHiPS {
         let max_order = self.properties.hips_order;
         let frame = match &self.properties.hips_frame.as_str() {
-            &"equatorial" => CooSystem::ICRS,
+            &"equatorial" => CooSystem::ICRSJ2000,
             &"galactic" => CooSystem::GAL,
-            _ => CooSystem::ICRS,
+            _ => CooSystem::ICRSJ2000,
         };
         let tile_size = self.properties.hips_tile_width;
         let bitpix = self.properties.hips_pixel_bitpix;

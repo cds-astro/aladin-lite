@@ -206,6 +206,6 @@ ImageLayer.LAYERS = [
     },
 ];
 
-ImageLayer.getAvailableLayers = function () {
+ImageLayer.getAvailableSurveys = function () {
     return ImageLayer.LAYERS;
 };

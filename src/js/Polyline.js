@@ -21,49 +21,39 @@
 
 /******************************************************************************
  * Aladin Lite project
- *
+ * 
  * Class Polyline
- *
+ * 
  * A Polyline is a graphical overlay made of several connected points
- *
+ * 
  * TODO: Polyline and Circle should derive from a common base class
- * TODO: index polyline, Circle in HEALPix pixels to avoid unneeded calls to draw
- *
+ * TODO: index polyline, Circle in HEALPix pixels to avoid unneeded calls to draw 
+ * 
  * Author: Thomas Boch[CDS]
- *
+ * 
  *****************************************************************************/
 
 import { AladinUtils } from './AladinUtils.js';
 import { Line } from './Line.js';
-import { Utils } from './Utils.js';
 
 export let Polyline= (function() {
     // constructor
     let Polyline = function(radecArray, options) {
         options = options || {};
-        this.color     = options['color']     || undefined;
+        this.color = options['color'] || "white";
         this.lineWidth = options["lineWidth"] || 2;
-
-        if (options["closed"]) {
-            this.closed = options["closed"];
-        } else {
-            this.closed = false;
-        }
-
-        // All graphics overlay have an id
-        this.id = 'polyline-' + Utils.uuidv4();
-
+        
         this.radecArray = radecArray;
         this.overlay = null;
-
+    	
     	this.isShowing = true;
     	this.isSelected = false;
     };
-
+    
     Polyline.prototype.setOverlay = function(overlay) {
         this.overlay = overlay;
     };
-
+    
     Polyline.prototype.show = function() {
         if (this.isShowing) {
             return;
@@ -73,7 +63,7 @@ export let Polyline= (function() {
             this.overlay.reportChange();
         }
     };
-
+    
     Polyline.prototype.hide = function() {
         if (! this.isShowing) {
             return;
@@ -83,7 +73,7 @@ export let Polyline= (function() {
             this.overlay.reportChange();
         }
     };
-
+    
     Polyline.prototype.select = function() {
         if (this.isSelected) {
             return;
@@ -93,7 +83,7 @@ export let Polyline= (function() {
             this.overlay.reportChange();
         }
     };
-
+    
     Polyline.prototype.deselect = function() {
         if (! this.isSelected) {
             return;
@@ -120,7 +110,7 @@ export let Polyline= (function() {
         this.overlay.reportChange();
     };
     
-    Polyline.prototype.draw = function(ctx, view) {
+    Polyline.prototype.draw = function(ctx, view, frame, width, height, largestDim, zoomFactor) {
         if (! this.isShowing) {
             return;
         }
@@ -129,19 +119,8 @@ export let Polyline= (function() {
             return;
         }
 
-        var baseColor = this.color;
-        if (! baseColor && this.overlay) {
-            baseColor = this.overlay.color;
-        }
-        if (! baseColor) {
-            baseColor = '#ff0000';
-        }
-
-        if (this.isSelected) {
-            ctx.strokeStyle= Overlay.increaseBrightness(baseColor, 50);
-        }
-        else {
-            ctx.strokeStyle= baseColor;
+        if (this.color) {
+            ctx.strokeStyle= this.color;
         }
 
         var xyviewArray = [];
@@ -153,34 +132,18 @@ export let Polyline= (function() {
 
             xyviewArray.push(xyview);
         }
-
+        
         ctx.lineWidth = this.lineWidth;
         ctx.beginPath();
-
-        const lastVertexIdx = xyviewArray.length-1;
         ctx.moveTo(xyviewArray[0][0], xyviewArray[0][1]);
-        for (var k=0, len=lastVertexIdx; k<len; k++) {
+        for (var k=0, len=xyviewArray.length-1; k<len; k++) {
             const line = new Line(xyviewArray[k][0], xyviewArray[k][1], xyviewArray[k+1][0], xyviewArray[k+1][1]);
-            if (line.isInsideView(view.width, view.height)) {
+            if (line.isInsideView(width, height)) {
                 ctx.lineTo(xyviewArray[k+1][0], xyviewArray[k+1][1]);
             } else {
                 ctx.moveTo(xyviewArray[k+1][0], xyviewArray[k+1][1]);
             }
         }
-
-        if (this.closed) {
-            const line = new Line(
-                xyviewArray[lastVertexIdx][0],
-                xyviewArray[lastVertexIdx][1],
-                xyviewArray[0][0],
-                xyviewArray[0][1]
-            );
-
-            if (line.isInsideView(view.width, view.height)) {
-                line.draw(ctx);
-            }
-        }
-
         ctx.stroke();
     };
 

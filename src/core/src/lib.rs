@@ -61,17 +61,10 @@ pub fn unwrap_abort<T>(o: Option<T>) -> T {
     }
 }
 
-#[wasm_bindgen]
-extern "C" {
-    #[derive(Debug)]
-    pub type Catalog;
-}
-
 #[macro_use]
 mod utils;
 
 use math::projection::*;
-use votable::votable::VOTableWrapper;
 use wasm_bindgen::prelude::*;
 
 mod app;
@@ -109,6 +102,7 @@ use al_api::hips::FITSCfg;
 use al_core::Colormap;
 use al_core::{WebGlContext};
 use al_core::colormap::Colormaps;
+
 
 use app::App;
 use cgmath::{Vector2};
@@ -171,10 +165,7 @@ impl WebClient {
     /// * `dt` - The time elapsed from the last frame update
     /// * `force` - This parameter ensures to force the update of some elements
     ///   even if the camera has not moved
-    /// 
-    /// # Return
-    /// Whether the view is moving or not
-    pub fn update(&mut self, dt: f32) -> Result<bool, JsValue> {
+    pub fn update(&mut self, dt: f32) -> Result<(), JsValue> {
         // dt refers to the time taking (in ms) rendering the previous frame
         self.dt = DeltaTime::from_millis(dt);
 
@@ -472,7 +463,7 @@ impl WebClient {
         Ok(self.app.get_clip_zoom_factor())
     }
 
-    /// Set the center of the view in ICRS coosys
+    /// Set the center of the view in ICRSJ2000 coosys
     ///
     /// The core works in ICRS system so
     /// the location must be given in this system
@@ -536,11 +527,31 @@ impl WebClient {
     ///
     /// * `lon` - A longitude in degrees
     /// * `lat` - A latitude in degrees
-    #[wasm_bindgen(js_name = viewToICRSCooSys)]
-    pub fn view_to_icrs_coosys(&self, lon: f64, lat: f64) -> Box<[f64]> {
+    #[wasm_bindgen(js_name = viewToICRSJ2000CooSys)]
+    pub fn view_to_icrsj2000_coosys(&self, lon: f64, lat: f64) -> Box<[f64]> {
         let lonlat = LonLatT::new(ArcDeg(lon).into(), ArcDeg(lat).into());
 
-        let res = self.app.view_to_icrs_coosys(&lonlat);
+        let res = self.app.view_to_icrsj2000_coosys(&lonlat);
+
+        let lon_deg: ArcDeg<f64> = res.lon().into();
+        let lat_deg: ArcDeg<f64> = res.lat().into();
+
+        Box::new([lon_deg.0, lat_deg.0])
+    }
+
+    /// ICRS/J2000 to view frame coosys conversion
+    ///
+    /// Coordinates must be given in the ICRS coo system
+    ///
+    /// # Arguments
+    ///
+    /// * `lon` - A longitude in degrees
+    /// * `lat` - A latitude in degrees
+    #[wasm_bindgen(js_name = ICRSJ2000ToViewCooSys)]
+    pub fn icrsj2000_to_view_coosys(&self, lon: f64, lat: f64) -> Box<[f64]> {
+        let lonlat = LonLatT::new(ArcDeg(lon).into(), ArcDeg(lat).into());
+
+        let res = self.app.icrsj2000_to_view_coosys(&lonlat);
 
         let lon_deg: ArcDeg<f64> = res.lon().into();
         let lat_deg: ArcDeg<f64> = res.lat().into();
@@ -560,28 +571,6 @@ impl WebClient {
     pub fn world_to_screen(&self, lon: f64, lat: f64) -> Option<Box<[f64]>> {
         self.app.world_to_screen(lon, lat)
             .map(|v| Box::new([v.x, v.y]) as Box<[f64]>)
-    }
-
-    #[wasm_bindgen(js_name = worldToScreenVec)]
-    pub fn world_to_screen_vec(&self, lon: &[f64], lat: &[f64]) -> Box<[f64]> {
-        let vertices = lon.iter()
-            .zip(lat.iter())
-            .map(|(&lon, &lat)| {
-                let xy = self.app.world_to_screen(lon, lat)
-                    .map(|v| [v.x, v.y])
-                    .unwrap_or([0.0, 0.0]);
-                
-                xy
-            })
-            .flatten()
-            .collect::<Vec<_>>();
-
-        vertices.into_boxed_slice()
-    }
-
-    #[wasm_bindgen(js_name = setCatalog)]
-    pub fn set_catalog(&self, catalog: &Catalog) {
-        
     }
 
     /// Screen to world unprojection
@@ -825,17 +814,6 @@ impl WebClient {
         self.app.add_moc(params.clone(), HEALPixCoverage(moc))?;
 
         Ok(())
-    }
-
-    #[wasm_bindgen(js_name = parseVOTable)]
-    pub fn parse_votable(&mut self, s: &str) -> Result<JsValue, JsValue> {
-        let votable: VOTableWrapper<votable::impls::mem::InMemTableDataRows> = votable::votable::VOTableWrapper::from_ivoa_xml_str(s)
-            .map_err(|err| JsValue::from_str(&format!("Error parsing votable: {:?}", err)))?;
-
-        let votable = serde_wasm_bindgen::to_value(&votable)
-            .map_err(|_| JsValue::from_str("cannot convert votable to js type"))?;
-
-        Ok(votable)
     }
 
     #[wasm_bindgen(js_name = addFITSMoc)]

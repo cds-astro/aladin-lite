@@ -8,8 +8,7 @@ impl Time {
         let start_time = Time::now();
         let r = f()?;
         let duration = Time::now() - start_time;
-        // print the duration in the console
-        al_core::log(&format!("duration: {:?}", duration));
+        al_core::log(&format!("duration: {}", duration.as_millis()));
 
         Ok(r)
     }

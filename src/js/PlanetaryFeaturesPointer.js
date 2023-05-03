@@ -55,23 +55,13 @@ export let PlanetaryFeaturesPointer = (function() {
         'rhea':          763800,
         'tethys':        533000,
         'callisto':     2410300,
-        'ariel':         578900,
         'charon':        606000,
-        'triton':       1353000,
-        'pluto':        1188300
+        'triton':       1353000
     }
-
-    // list of planetary bodies with west increasing longitudes
-    PlanetaryFeaturesPointer.HAS_WEST_INCREASING_LONGITUDES = ['amalthea', 'callisto', 'deimos', 'dione', 'enceladus', 'epimetheus', 'eros', 'europa', 'ganymede', 'gaspra', 'hyperion', 'iapetus', 'io', 'janus', 'mathilde', 'mercury', 'mimas', 'phobos', 'phoebe', 'proteus', 'rhea', 'tethys', 'thebe', 'titan'];
 
 
     PlanetaryFeaturesPointer.query = function(ra, dec, radiusDegrees, body, aladinInstance) {
-        let lon = ra;
-        const lat = dec;
-        if (PlanetaryFeaturesPointer.HAS_WEST_INCREASING_LONGITUDES.includes(body)) {
-            lon = 360 - lon;
-        }
-        const params = {"lon": lon, "lat": lat, "SR": radiusDegrees, "format": "csv", "body": body};
+        const params = {"lon": ra, "lat": dec, "SR": radiusDegrees, "format": "csv", "body": body};
 
         function csvToArray(text) {
             let p = '', row = [''], ret = [row], i = 0, r = 0, s = !0, l;
@@ -98,33 +88,21 @@ export let PlanetaryFeaturesPointer = (function() {
                 const fields = csvToArray(lines[0])[0];
 
                 if (lines.length>1 && lines[1].length>0) {
-                    const values = csvToArray(lines[1])[0];
-
 
                     const lonFieldIdx = fields.findIndex((element) => element.includes('longitude'));
                     const latFieldIdx = fields.findIndex((element) => element.includes('latitude'));
 
                     const featureFieldIdx = fields.findIndex((element) => element.includes('feature_name'));
+                    const values = csvToArray(lines[1])[0];
                     const featureName = values[featureFieldIdx];
                     const featureId = values[fields.indexOf('feature_id')]
                     const title = '<div class="aladin-sp-title"><a target="_blank" href="https://planetarynames.wr.usgs.gov/Feature/' + featureId + '">' + featureName + '</a></div>';
                     const featureType = values[fields.indexOf('feature_type')]
                     let content = '<div class="aladin-sp-content">' + ' ' + '</div>';
-                    content += '<em>Type: </em>' + featureType + '<br><br>';
-                    content += '<a target="_blank" href="https://planetarynames.wr.usgs.gov/Feature/' + featureId + '">' + 'More info' + '</a>';
+                    content += '<em>Type: </em>' + featureType + '<br>';
 
-                    let lon = parseFloat(values[lonFieldIdx]);
+                    const lon = parseFloat(values[lonFieldIdx]);
                     const lat = parseFloat(values[latFieldIdx]);
-
-                    let eastIncreasing = true;
-                    const coordinateSystemIdx = fields.indexOf('coordinate_system');
-                if (coordinateSystemIdx>0 && values[coordinateSystemIdx].includes("+West")) {
-                        eastIncreasing = false;
-                    }
-
-                    if (! eastIncreasing) {
-                        lon = 360 - lon;
-                    }
 
                     let radiusDeg = undefined;
                     try {
@@ -137,6 +115,7 @@ export let PlanetaryFeaturesPointer = (function() {
                     } catch(e) {
                         console.error(e);
                     }
+
                     aladinInstance.showPopup(lon, lat, title, content, radiusDeg);
                 }
                 else {

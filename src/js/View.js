@@ -33,14 +33,13 @@ import { Aladin } from "./Aladin.js";
 import { Popup } from "./Popup.js";
 import { HealpixGrid } from "./HealpixGrid.js";
 import { ProjectionEnum } from "./ProjectionEnum.js";
-import { Utils } from "./Utils.js";
+import { AladinUtils } from "./AladinUtils.js";
+import { Utils, dropHandler } from "./Utils.js";
 import { SimbadPointer } from "./SimbadPointer.js";
 import { PlanetaryFeaturesPointer } from "./PlanetaryFeaturesPointer.js";
 import { Stats } from "./libs/Stats.js";
+import { Footprint } from "./Footprint.js";
 import { Circle } from "./Circle.js";
-import { Ellipse } from "./Ellipse";
-import { Polyline } from "./Polyline.js";
-
 import { CooFrameEnum } from "./CooFrameEnum.js";
 import { requestAnimFrame } from "./libs/RequestAnimationFrame.js";
 import { WebGLCtx } from "./WebGL.js";
@@ -72,11 +71,6 @@ export let View = (function () {
             this.aladin.wasm = webglCtx.webclient;
             this.wasm = this.aladin.wasm;
 
-            ALEvent.AL_USE_WASM.listenedBy(document.body, function (e) {
-                let callback = e.detail.callback;
-                callback(self.wasm);
-            });
-
             // Retrieve all the possible colormaps
             ColorCfg.COLORMAPS = this.wasm.getAvailableColormapList();
         } catch (e) {
@@ -92,9 +86,28 @@ export let View = (function () {
             const files = Utils.getDroppedFilesHandler(event);
 
             files.forEach((file) => {
+                /*const reader = new FileReader();
+                reader.readAsArrayBuffer(file);
+
+                reader.addEventListener("load", () => {
+                    // The file has been loaded
+                    const url = URL.createObjectURL(file);
+                    console.log(file.name)
+                    try {
+                        const imageFITS = self.aladin.createImageFITS(url, file.name, undefined, undefined, undefined);
+                        self.setOverlayImageLayer(imageFITS, Utils.uuidv4())
+                    } catch(e) {
+                        console.error("Only valid fits files supported (i.e. containig a WCS)", e)
+                        throw e;
+                    }
+                }, false);
+
+                reader.addEventListener('error', (event) => {
+                    console.error(event.target.error);
+                });*/
+
                 const url = URL.createObjectURL(file);
 
-                // Consider other cases
                 try {
                     const image = self.aladin.createImageFITS(
                         url,
@@ -107,11 +120,8 @@ export let View = (function () {
                         },
                         undefined
                     );
-                    self.setOverlayImageLayer(image, file.name)
+                    self.setOverlayImageLayer(image, Utils.uuidv4())
                 } catch(e) {
-                    let moc = A.MOCFromURL(url);
-                    self.aladin.addMOC(moc);
-
                     console.error("Only valid fits files supported (i.e. containig a WCS)", e)
                     throw e;
                 }
@@ -424,12 +434,9 @@ export let View = (function () {
         let onDblClick = function (e) {
             var xymouse = view.imageCanvas.relMouseCoords(e);
 
-            // deselect all the selected sources with Select panel
-            view.deselectObjects()
-
             try {
                 const lonlat = view.wasm.screenToWorld(xymouse.x, xymouse.y);
-                var radec = view.wasm.viewToICRSCooSys(lonlat[0], lonlat[1]);
+                var radec = view.wasm.viewToICRSJ2000CooSys(lonlat[0], lonlat[1]);
                 view.pointTo(radec[0], radec[1], { forceAnimation: true });
             }
             catch (err) {
@@ -441,12 +448,10 @@ export let View = (function () {
             $(view.catalogCanvas).dblclick(onDblClick);
         }
 
-        // prevent default context menu from appearing (potential clash with right-click cuts control)
         $(view.catalogCanvas).bind("contextmenu", function (e) {
             // do something here...
             e.preventDefault();
         }, false);
-        
 
         let cutMinInit = null
         let cutMaxInit = null;
@@ -459,7 +464,6 @@ export let View = (function () {
 
             if (e.which === 3 || e.button === 2) {
                 view.rightClick = true;
-                view.rightClickTimeStart = Date.now();
                 view.rightclickx = xymouse.x;
                 view.rightclicky = xymouse.y;
 
@@ -509,22 +513,14 @@ export let View = (function () {
             }
 
             view.wasm.pressLeftMouseButton(view.dragx, view.dragy);
-
             return false; // to disable text selection
         });
 
         $(view.catalogCanvas).bind("mouseup", function (e) {
             if (view.rightClick) {
-
-                const rightClickDurationMs = Date.now() - view.rightClickTimeStart;
-                if (rightClickDurationMs<300) {
-                    view.aladin.contextMenu && view.aladin.contextMenu._showMenu(e);
-                }
-
                 view.rightClick = false;
                 view.rightclickx = null;
                 view.rightclicky = null;
-                view.rightClickTimeStart = undefined;
 
                 return;
             }
@@ -567,51 +563,9 @@ export let View = (function () {
             } // end of "if (view.dragging) ... "
 
             if (selectionHasEnded) {
-                view.deselectObjects()
-
-                const selectedObjects = view.getObjectsInBBox(
-                    view.selectStartCoo.x,
-                    view.selectStartCoo.y,
-                    view.dragx - view.selectStartCoo.x,
-                    view.dragy - view.selectStartCoo.y
-                );
-
-                selectedObjects.forEach((objListPerCatalog) => {
-                    objListPerCatalog.forEach((obj) => obj.select())
-                });
-
-                if (selectedObjects.length > 0) {
-                    let options = {};
-
-                    let tables = selectedObjects.map((objList) => {
-                        // Get the catalog containing that list of objects
-                        let catalog = objList[0].catalog;
-                        let table = {
-                            'name': catalog.name,
-                            'color': catalog.color,
-                            'rows': objList,
-                            'fields': catalog.fields,
-                            'fieldsClickedActions': catalog.fieldsClickedActions,
-                        };
-
-                        if (catalog.isObsCore && catalog.isObsCore()) {
-                            // If the source is obscore, save the table state inside the measurement table
-                            // This is used to go back from a possible datalink table to the obscore one
-                            options["save"] = true;
-                        }
-
-                        return table;
-                    })
-
-                    view.aladin.measurementTable.showMeasurement(tables, options);
-                }
-
-                view.selectedObjects = selectedObjects;
-
-                view.aladin.fire(
-                    'selectend',
-                    selectedObjects
-                );
+                view.aladin.fire('selectend',
+                    view.getObjectsInBBox(view.selectStartCoo.x, view.selectStartCoo.y,
+                        view.dragx - view.selectStartCoo.x, view.dragy - view.selectStartCoo.y));
 
                 view.requestRedraw();
 
@@ -638,8 +592,8 @@ export let View = (function () {
             if (view.mode == View.TOOL_SIMBAD_POINTER) {
                 let radec = view.aladin.pix2world(xymouse.x, xymouse.y);
 
-                // Convert from view to ICRS
-                radec = view.wasm.viewToICRSCooSys(radec[0], radec[1]);
+                // Convert from view to ICRSJ2000
+                radec = view.wasm.viewToICRSJ2000CooSys(radec[0], radec[1]);
 
                 view.setMode(View.PAN);
                 view.setCursor('wait');
@@ -664,12 +618,15 @@ export let View = (function () {
             // popup to show ?
             var objs = view.closestObjects(xymouse.x, xymouse.y, 5);
             if (!wasDragging && objs) {
-                view.deselectObjects();
-
                 var o = objs[0];
 
                 // footprint selection code adapted from Fabrizio Giordano dev. from Serco for ESA/ESDC
-                if (o.marker) {
+                if (o instanceof Footprint || o instanceof Circle) {
+                    o.dispatchClickEvent();
+                }
+
+                // display marker
+                else if (o.marker) {
                     // could be factorized in Source.actionClicked
                     view.popup.setTitle(o.popupTitle);
                     view.popup.setText(o.popupDesc);
@@ -681,37 +638,27 @@ export let View = (function () {
                     if (view.lastClickedObject) {
                         view.lastClickedObject.actionOtherObjectClicked && view.lastClickedObject.actionOtherObjectClicked();
                     }
-                }
-
-                if (o.actionClicked) {
                     o.actionClicked();
                 }
-
                 view.lastClickedObject = o;
                 var objClickedFunction = view.aladin.callbacksByEventName['objectClicked'];
                 (typeof objClickedFunction === 'function') && objClickedFunction(o);
-            } else {
-                if (!wasDragging) {
-                    // Deselect objects if any
-                    view.deselectObjects();
+            }
+            else {
+                if (view.lastClickedObject && !wasDragging) {
+                    view.aladin.measurementTable.hide();
+                    view.popup.hide();
 
-                    // If there is a past clicked object
-                    if (view.lastClickedObject) {
-                        view.aladin.measurementTable.hide();
-                        view.popup.hide();
-    
-                        // Deselect the last clicked object
-                        if (view.lastClickedObject instanceof Ellipse || view.lastClickedObject instanceof Circle || view.lastClickedObject instanceof Polyline) {
-                            view.lastClickedObject.deselect();
-                        } else {
-                            // Case where lastClickedObject is a Source
-                            view.lastClickedObject.actionOtherObjectClicked();
-                        }
-    
-                        view.lastClickedObject = null;
-                        var objClickedFunction = view.aladin.callbacksByEventName['objectClicked'];
-                        (typeof objClickedFunction === 'function') && objClickedFunction(null);
+                    if (view.lastClickedObject instanceof Footprint) {
+                        //view.lastClickedObject.deselect();
                     }
+                    else {
+                        view.lastClickedObject.actionOtherObjectClicked();
+                    }
+
+                    view.lastClickedObject = null;
+                    var objClickedFunction = view.aladin.callbacksByEventName['objectClicked'];
+                    (typeof objClickedFunction === 'function') && objClickedFunction(null);
                 }
             }
 
@@ -731,7 +678,6 @@ export let View = (function () {
             //view.requestRedraw();
             view.wasm.releaseLeftButtonMouse();
         });
-
         var lastHoveredObject; // save last object hovered by mouse
         var lastMouseMovePos = null;
         $(view.catalogCanvas).bind("mousemove touchmove", function (e) {
@@ -739,7 +685,6 @@ export let View = (function () {
             var xymouse = view.imageCanvas.relMouseCoords(e);
 
             if (view.rightClick && view.selectedLayer) {
-                
                 let selectedLayer = view.imageLayers.get(view.selectedLayer);
                 // We try to match DS9 contrast adjustment behaviour with right click
                 const cs = {
@@ -791,10 +736,6 @@ export let View = (function () {
                 return;
             }
 
-            if (!view.dragging && !view.moving) {
-                view.updateObjectsLookup();
-            }
-
             if (!view.dragging || hasTouchEvents) {
                 // update location box
                 view.updateLocation(xymouse.x, xymouse.y, false);
@@ -822,22 +763,15 @@ export let View = (function () {
                             var ret = objHoveredFunction(closest[0]);
                         }
                         lastHoveredObject = closest[0];
+
                     }
                     else {
                         view.setCursor('default');
                         var objHoveredFunction = view.aladin.callbacksByEventName['objectHovered'];
-                        if (lastHoveredObject) {
-                            // Redraw the scene if the lastHoveredObject is a footprint (e.g. circle or polygon)
-                            if (lastHoveredObject instanceof Circle || lastHoveredObject instanceof Polyline || lastHoveredObject instanceof Ellipse) {
-                                view.requestRedraw();
-                            }
-
+                        if (typeof objHoveredFunction === 'function' && lastHoveredObject) {
                             lastHoveredObject = null;
-
-                            if (typeof objHoveredFunction === 'function') {
-                                // call callback function to notify we left the hovered object
-                                var ret = objHoveredFunction(null);
-                            }
+                            // call callback function to notify we left the hovered object
+                            var ret = objHoveredFunction(null);
                         }
                     }
                 }
@@ -854,6 +788,11 @@ export let View = (function () {
             s1 = { x: view.dragx, y: view.dragy };
             s2 = { x: xymouse.x, y: xymouse.y };
 
+            // TODO : faut il faire ce test ??
+            //            var distSquared = xoffset*xoffset+yoffset*yoffset;
+            //            if (distSquared<3) {
+            //                return;
+            //            }
             view.dragx = xymouse.x;
             view.dragy = xymouse.y;
 
@@ -968,9 +907,6 @@ export let View = (function () {
 
         view.executeCallbacksThrottled = Utils.throttle(
             function () {
-                if (view.aladin.callbacksByEventName === undefined) {
-                    return;
-                }
                 var pos = view.aladin.pix2world(view.width / 2, view.height / 2);
 
                 var fov = view.fov;
@@ -1017,6 +953,7 @@ export let View = (function () {
 
     View.prototype.updateLocation = function (mouseX, mouseY, isViewCenterPosition) {
         if (isViewCenterPosition) {
+            //const [ra, dec] = this.wasm.ICRSJ2000ToViewCooSys(this.viewCenter.lon, this.viewCenter.lat);
             this.location.update(this.viewCenter.lon, this.viewCenter.lat, this.cooFrame, true);
         } else {
             let radec = this.wasm.screenToWorld(mouseX, mouseY); // This is given in the frame of the view
@@ -1064,10 +1001,18 @@ export let View = (function () {
 
             // Drawing code
             try {
-                this.moving = this.wasm.update(elapsedTime);
+                this.wasm.update(elapsedTime);
             } catch (e) {
                 console.warn(e)
             }
+
+            // check whether a catalog has been parsed and
+            // is ready to be plot
+            /*let catReady = this.wasm.isCatalogLoaded();
+            if (catReady) {
+                var callbackFn = this.aladin.callbacksByEventName['catalogReady'];
+                (typeof callbackFn === 'function') && callbackFn();
+            }*/
 
             ////// 2. Draw catalogues////////
             const isViewRendering = this.wasm.isRendering();
@@ -1075,6 +1020,11 @@ export let View = (function () {
                 this.drawAllOverlays();
             }
             this.needRedraw = false;
+
+            // objects lookup
+            if (!this.dragging) {
+                this.updateObjectsLookup();
+            }
 
             // execute 'positionChanged' and 'zoomChanged' callbacks
             this.executeCallbacksThrottled();
@@ -1127,7 +1077,7 @@ export let View = (function () {
             }
 
             for (var i = 0; i < this.overlays.length; i++) {
-                this.overlays[i].draw(overlayCtx);
+                this.overlays[i].draw(overlayCtx, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor);
             }
         }
 
@@ -1244,24 +1194,13 @@ export let View = (function () {
     View.prototype.getVisiblePixList = function (norder) {
         var pixList = [];
         let centerWorldPosition = this.wasm.screenToWorld(this.cx, this.cy);
-        const [lon, lat] = this.wasm.viewToICRSCooSys(centerWorldPosition[0], centerWorldPosition[1]);
+        const [lon, lat] = this.wasm.viewToICRSJ2000CooSys(centerWorldPosition[0], centerWorldPosition[1]);
 
         var radius = this.fov * 0.5 * this.ratio;
         this.wasm.queryDisc(norder, lon, lat, radius).forEach(x => pixList.push(Number(x)));
 
         return pixList;
     };
-
-    View.prototype.deselectObjects = function() {
-        if (this.selectedObjects) {
-            this.selectedObjects.forEach((objList) => {
-                objList.forEach((o) => o.deselect())
-            });
-            this.aladin.measurementTable.hide();
-
-            this.selectedObjects = null;
-        }
-    }
 
     // TODO: optimize this method !!
     View.prototype.getVisibleCells = function (norder) {
@@ -1545,8 +1484,8 @@ export let View = (function () {
                 return promise;
             })
             .then((imageLayer) => {
-                // If the image layer has successfuly been added
                 this.empty = false;
+
                 if (imageLayer.children) {
                     imageLayer.children.forEach((imageLayer) => {
                         this.addLayer(imageLayer);
@@ -1570,7 +1509,6 @@ export let View = (function () {
                 this.promises.splice(idx, 1);
 
                 const noMoreLayersToWaitFor = this.promises.length === 0;
-
                 if (noMoreLayersToWaitFor) {
                     if (self.empty) {
                         // no promises to launch!
@@ -1579,8 +1517,6 @@ export let View = (function () {
 
                         self.aladin.setBaseImageLayer(dssUrl);
                     } else {
-                        //console.log("not empty")
-
                         // there is surveys that have been queried
                         // rename the first overlay layer to "base"
                         self.renameLayer(this.overlayLayers[0], "base");
@@ -1636,11 +1572,6 @@ export let View = (function () {
     View.prototype.removeImageLayer = function (layer) {
         // Get the survey to remove to dissociate it from the view
         let imageLayer = this.imageLayers.get(layer);
-        if (imageLayer === undefined) {
-            // there is nothing to remove
-            return;
-        }
-
         // Update the backend
         if (imageLayer.added) {
             this.wasm.removeLayer(layer);
@@ -1680,6 +1611,7 @@ export let View = (function () {
             // no promises to launch!
             const idxServiceUrl = Math.round(Math.random());
             const dssUrl = Aladin.DEFAULT_OPTIONS.surveyUrl[idxServiceUrl]
+
             this.aladin.setBaseImageLayer(dssUrl);
         }
     };
@@ -1814,18 +1746,10 @@ export let View = (function () {
             this.wasm.setCooSystem(Aladin.wasmLibs.core.CooSystem.GAL);
         }
         else if (this.cooFrame.system == CooFrameEnum.SYSTEMS.J2000) {
-            this.wasm.setCooSystem(Aladin.wasmLibs.core.CooSystem.ICRS);
+            this.wasm.setCooSystem(Aladin.wasmLibs.core.CooSystem.ICRSJ2000);
         }
 
-        // Set the grid label format
-        if (this.cooFrame.label == "J2000d") {
-            this.setGridConfig({fmt: "HMS"});
-        }
-        else {
-            this.setGridConfig({fmt: "DMS"});
-        }
-
-        // Get the new view center position (given in icrs)
+        // Get the new view center position (given in icrsj2000)
         let [ra, dec] = this.wasm.getCenter();
         this.viewCenter.lon = ra;
         this.viewCenter.lat = dec;
@@ -1874,7 +1798,7 @@ export let View = (function () {
 
     /**
      *
-     * @API Point to a specific location in ICRS
+     * @API Point to a specific location in ICRSJ2000
      *
      * @param ra ra expressed in ICRS J2000 frame
      * @param dec dec expressed in ICRS J2000 frame
@@ -1969,7 +1893,6 @@ export let View = (function () {
             catalog.init(this);
         }
     };
-
     View.prototype.addOverlay = function (overlay) {
         overlay.name = this.makeUniqLayerName(overlay.name);
         this.overlays.push(overlay);
@@ -1993,7 +1916,6 @@ export let View = (function () {
         }
         var objList = [];
         var cat, sources, s;
-        var objListPerCatalog = [];
         if (this.catalogs) {
             for (var k = 0; k < this.catalogs.length; k++) {
                 cat = this.catalogs[k];
@@ -2007,13 +1929,9 @@ export let View = (function () {
                         continue;
                     }
                     if (s.x >= x && s.x <= x + w && s.y >= y && s.y <= y + h) {
-                        objListPerCatalog.push(s);
+                        objList.push(s);
                     }
                 }
-                if (objListPerCatalog.length > 0) {
-                    objList.push(objListPerCatalog);
-                }
-                objListPerCatalog = [];
             }
         }
         return objList;
@@ -2061,14 +1979,14 @@ export let View = (function () {
         var canvas = this.catalogCanvas;
         var ctx = canvas.getContext("2d");
         // this makes footprint selection easier as the catch-zone is larger
-        
         ctx.lineWidth = 6;
+
         if (this.overlays) {
             for (var k = 0; k < this.overlays.length; k++) {
                 overlay = this.overlays[k];
-                /*
-                // test polygons first
                 for (var i = 0; i < overlay.overlays.length; i++) {
+
+                    // test polygons first
                     var footprint = overlay.overlays[i];
                     var pointXY = [];
                     for (var j = 0; j < footprint.polygons.length; j++) {
@@ -2082,6 +2000,7 @@ export let View = (function () {
                         });
                     }
                     for (var l = 0; l < pointXY.length - 1; l++) {
+
                         ctx.beginPath();                        // new segment
                         ctx.moveTo(pointXY[l].x, pointXY[l].y);     // start is current point
                         ctx.lineTo(pointXY[l + 1].x, pointXY[l + 1].y); // end point is next
@@ -2090,15 +2009,15 @@ export let View = (function () {
                             return [closest];
                         }
                     }
-                }*/
+                }
 
                 // test Circles
-                for (var i = 0; i < overlay.overlayItems.length; i++) {
-                    if (overlay.overlayItems[i] instanceof Circle) {
-                        if (ctx.isPointInStroke(x, y)) {
-                            overlay.overlayItems[i].draw(ctx, this);
+                for (var i = 0; i < overlay.overlay_items.length; i++) {
+                    if (overlay.overlay_items[i] instanceof Circle) {
+                        overlay.overlay_items[i].draw(ctx, this, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor, true);
 
-                            closest = overlay.overlayItems[i];
+                        if (ctx.isPointInStroke(x, y)) {
+                            closest = overlay.overlay_items[i];
                             return [closest];
                         }
                     }
@@ -2109,7 +2028,6 @@ export let View = (function () {
         if (!this.objLookup) {
             return null;
         }
-
         var closest, dist;
         for (var r = 0; r <= maxRadius; r++) {
             closest = dist = null;
@@ -2120,9 +2038,13 @@ export let View = (function () {
                 for (var dy = -maxRadius; dy <= maxRadius; dy++) {
                     if (this.objLookup[x + dx][y + dy]) {
                         var d = dx * dx + dy * dy;
-                        if (!closest || d < dist) {
+                        if (!closest) {
                             closest = this.objLookup[x + dx][y + dy];
                             dist = d;
+                        }
+                        else if (d < dist) {
+                            dist = d;
+                            closest = this.objLookup[x + dx][y + dy];
                         }
                     }
                 }

@@ -61,7 +61,7 @@ export let CooFrameEnum = (function() {
             }
         }
     };
-    
+ 
 })();
 
 

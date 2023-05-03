@@ -98,7 +98,7 @@ use wasm_bindgen::prelude::*;
 #[wasm_bindgen]
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Deserialize, Hash)]
 pub enum CooSystem {
-    ICRS = 0,
+    ICRSJ2000 = 0,
     GAL = 1,
 }
 
@@ -111,8 +111,8 @@ impl CooSystem {
         S: BaseFloat + CooBaseFloat,
     {
         match (self, coo_system) {
-            (CooSystem::GAL, CooSystem::ICRS) => S::GALACTIC_TO_J2000,
-            (CooSystem::ICRS, CooSystem::GAL) => S::J2000_TO_GALACTIC,
+            (CooSystem::GAL, CooSystem::ICRSJ2000) => S::GALACTIC_TO_J2000,
+            (CooSystem::ICRSJ2000, CooSystem::GAL) => S::J2000_TO_GALACTIC,
             (_, _) => S::ID,
         }
     }

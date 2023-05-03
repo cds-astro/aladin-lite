@@ -34,8 +34,6 @@ import { Color } from "./Color.js"
 import { Utils } from "./Utils.js";
 import { AladinUtils } from "./AladinUtils.js";
 import { Coo } from "./libs/astro/coo.js";
-import { VOTable } from "./vo/VOTable.js";
-import { ALEvent } from "./events/ALEvent.js";
 
 import $ from 'jquery';
 
@@ -43,7 +41,6 @@ import $ from 'jquery';
 export let Catalog = (function() {
 
    function Catalog(options) {
-        let self = this;
         options = options || {};
 
         this.uuid = Utils.uuidv4();
@@ -52,7 +49,6 @@ export let Catalog = (function() {
     	this.color = options.color || Color.getNextColor();
     	this.sourceSize = options.sourceSize || 8;
     	this.markerSize = options.sourceSize || 12;
-        this.selectSize = this.sourceSize;
     	this.shape = options.shape || "square";
         this.maxNbSources = options.limit || undefined;
         this.onClick = options.onClick || undefined;
@@ -60,14 +56,10 @@ export let Catalog = (function() {
         this.raField = options.raField || undefined; // ID or name of the field holding RA
         this.decField = options.decField || undefined; // ID or name of the field holding dec
 
-        this.fieldsClickedActions = {}; // callbacks when the user clicks on a cell in the measurement table associated
-        this.fields = undefined;
-
     	this.indexationNorder = 5; // à quel niveau indexe-t-on les sources
     	this.sources = [];
-        this.ra = [];
-        this.dec = [];
-        this.footprints = [];
+    	//this.hpxIdx = new HealpixIndex(this.indexationNorder);
+    	//this.hpxIdx.init();
 
         this.displayLabel = options.displayLabel || false;
         this.labelColor = options.labelColor || this.color;
@@ -83,7 +75,7 @@ export let Catalog = (function() {
             this.sourceSize = this.shape.width;
         }
         this._shapeIsFunction = false; // if true, the shape is a function drawing on the canvas
-        if (typeof this.shape === 'function') {
+        if ($.isFunction(this.shape)) {
             this._shapeIsFunction = true;
         }
         
@@ -106,6 +98,7 @@ export let Catalog = (function() {
         cacheMarkerCtx.lineWidth = 2;
         cacheMarkerCtx.strokeStyle = '#ccc';
         cacheMarkerCtx.stroke();
+        
 
         this.isShowing = true;
     };
@@ -167,6 +160,7 @@ export let Catalog = (function() {
         }
         
         return c;
+        
     };
     
 
@@ -269,94 +263,106 @@ export let Catalog = (function() {
         };
         
     
-    Catalog.parseFields = function(fields, raField, decField) {
-        // This votable is not an obscore one
-        let [raFieldIdx, decFieldIdx] = findRADecFields(fields, raField, decField);
-
-        let parsedFields = {};
-        let fieldIdx = 0;
-        fields.forEach((field) => {
-            let key = field.name ? field.name : field.id;
-
-            let nameField;
-            if (fieldIdx == raFieldIdx) {
-                nameField = 'ra';
-            } else if (fieldIdx == decFieldIdx) {
-                nameField = 'dec';
-            } else {
-                nameField = key;
-            }
-
-            parsedFields[nameField] = {
-                name: key,
-                idx: fieldIdx,
-            };
-
-            fieldIdx++;
-        })
-
-        return parsedFields;
-    };
-
+    
     // return an array of Source(s) from a VOTable url
     // callback function is called each time a TABLE element has been parsed
     Catalog.parseVOTable = function(url, callback, maxNbSources, useProxy, raField, decField) {
-        VOTable.parse(
-            url,
-            (fields, rows, type) => {
-                let sources = [];
-                let footprints = [];
 
-                var coo = new Coo();
+        // adapted from votable.js
+        function getPrefix($xml) {
+            var prefix;
+            // If Webkit chrome/safari/... (no need prefix)
+            if($xml.find('RESOURCE').length>0) {
+                prefix = '';
+            }
+            else {
+                // Select all data in the document
+                prefix = $xml.find("*").first();
 
-                rows.every(row => {
-                    let ra, dec, region;
-                    var mesures = {};
-
-                    for (const [fieldName, field] of Object.entries(fields)) {
-                        if (fieldName === 's_region') {
-                            // Obscore s_region param
-                            region = row[field.idx];
-                        } else if (fieldName === 'ra' || fieldName === 's_ra') {
-                            ra = row[field.idx]
-                        } else if (fieldName === 'dec' || fieldName === 's_dec') {
-                            dec = row[field.idx]
-                        }
-
-                        var key = field.name;
-                        mesures[key] = row[field.idx];
-                    }
-
-                    if (ra && dec) {
-                        if (!Utils.isNumber(ra) || !Utils.isNumber(dec)) {
-                            coo.parse(ra + " " + dec);
-                            ra = coo.lon;
-                            dec = coo.lat;
-                        }
-
-                        const source = new Source(ra, dec, mesures);
-                        
-                        sources.push(source);
-                        if (maxNbSources && sources.length == maxNbSources) {
-                            return false;
-                        }
-                    }
-
-                    if (region) {
-                        let footprint = A.footprintsFromSTCS(region, {lineWidth: 2});
-                        footprints = footprints.concat(footprint);
-                    }
-
-                    return true;
-                })
-
-                if (callback) {
-                    callback(sources, footprints, fields);
+                if (prefix.length==0) {
+                    return '';
                 }
-            },
-            raField,
-            decField
-        )
+
+                // get name of the first tag
+                prefix = prefix.prop("tagName");
+
+                var idx = prefix.indexOf(':');
+
+                prefix = prefix.substring(0, idx) + "\\:";
+
+
+            }
+
+            return prefix;
+        }
+
+        function doParseVOTable(xml, callback) {
+            xml = xml.replace(/^\s+/g, ''); // we need to trim whitespaces at start of document
+            var attributes = ["name", "ID", "ucd", "utype", "unit", "datatype", "arraysize", "width", "precision"];
+            
+            var fields = [];
+            var k = 0;
+            var $xml = $($.parseXML(xml));
+            var prefix = getPrefix($xml);
+            $xml.find(prefix + "FIELD").each(function() {
+                var f = {};
+                for (var i=0; i<attributes.length; i++) {
+                    var attribute = attributes[i];
+                    if ($(this).attr(attribute)) {
+                        f[attribute] = $(this).attr(attribute);
+                    }
+                }
+                if ( ! f.ID) {
+                    f.ID = "col_" + k;
+                }
+                fields.push(f);
+                k++;
+            });
+                
+            var raDecFieldIdxes = findRADecFields(fields, raField, decField);
+            var raFieldIdx,  decFieldIdx;
+            raFieldIdx = raDecFieldIdxes[0];
+            decFieldIdx = raDecFieldIdxes[1];
+
+            var sources = [];
+            
+            var coo = new Coo();
+            var ra, dec;
+            $xml.find(prefix + "TR").each(function() {
+               var mesures = {};
+               var k = 0;
+               $(this).find(prefix + "TD").each(function() {
+                   var key = fields[k].name ? fields[k].name : fields[k].id;
+                   mesures[key] = $(this).text();
+                   k++;
+               });
+               var keyRa = fields[raFieldIdx].name ? fields[raFieldIdx].name : fields[raFieldIdx].id;
+               var keyDec = fields[decFieldIdx].name ? fields[decFieldIdx].name : fields[decFieldIdx].id;
+
+               if (Utils.isNumber(mesures[keyRa]) && Utils.isNumber(mesures[keyDec])) {
+                   ra = parseFloat(mesures[keyRa]);
+                   dec = parseFloat(mesures[keyDec]);
+               }
+               else {
+                   coo.parse(mesures[keyRa] + " " + mesures[keyDec]);
+                   ra = coo.lon;
+                   dec = coo.lat;
+               }
+               sources.push(new Source(ra, dec, mesures));
+               if (maxNbSources && sources.length==maxNbSources) {
+                   return false; // break the .each loop
+               }
+                
+            });
+            if (callback) {
+                callback(sources);
+            }
+        }
+        
+        var ajax = Utils.getAjaxObject(url, 'GET', 'text', useProxy);
+        ajax.done(function(xml) {
+            doParseVOTable(xml, callback);
+        });
     };
 
     // API
@@ -373,49 +379,15 @@ export let Catalog = (function() {
 
         this.reportChange();
     };
-
+    
     // API
     Catalog.prototype.addSources = function(sourcesToAdd) {
         sourcesToAdd = [].concat(sourcesToAdd); // make sure we have an array and not an individual source
     	this.sources = this.sources.concat(sourcesToAdd);
     	for (var k=0, len=sourcesToAdd.length; k<len; k++) {
     	    sourcesToAdd[k].setCatalog(this);
-
-            // Create columns oriented ra and dec
-            this.ra.push(sourcesToAdd[k].ra);
-            this.dec.push(sourcesToAdd[k].dec);
-    	}
-
-        ALEvent.AL_USE_WASM.dispatchedTo(document.body, {
-            callback: (wasm) => {
-                wasm.setCatalog(this);
-                this.reportChange();
-
-            }
-        });
-
-    };
-
-    Catalog.prototype.addFootprints = function(footprintsToAdd) {
-        footprintsToAdd = [].concat(footprintsToAdd); // make sure we have an array and not an individual footprints
-    	this.footprints = this.footprints.concat(footprintsToAdd);
-    	for (var k=0, len=footprintsToAdd.length; k<len; k++) {
-    	    footprintsToAdd[k].setOverlay(this);
     	}
         this.reportChange();
-    };
-
-    Catalog.prototype.setFields = function(fields) {
-        this.fields = fields;
-    };
-
-    /// This add a callback when the user clicks on the field column in the measurementTable
-    Catalog.prototype.addFieldClickCallback = function(field, callback) {
-        this.fieldsClickedActions[field] = callback;
-    };
-
-    Catalog.prototype.isObsCore = function() {
-        return this.fields && this.fields.subtype === "ObsCore";
     };
 
     // API
@@ -433,6 +405,7 @@ export let Catalog = (function() {
         var raFieldIdx,  decFieldIdx;
         raFieldIdx = raDecFieldIdxes[0];
         decFieldIdx = raDecFieldIdxes[1];
+
 
         var newSources = [];
         var coo = new Coo();
@@ -459,12 +432,12 @@ export let Catalog = (function() {
 
         this.addSources(newSources);
     };
-
+    
     // return the current list of Source objects
     Catalog.prototype.getSources = function() {
         return this.sources;
     };
-
+    
     // TODO : fonction générique traversant la liste des sources
     Catalog.prototype.selectAll = function() {
         if (! this.sources) {
@@ -475,17 +448,17 @@ export let Catalog = (function() {
             this.sources[k].select();
         }
     };
-
+    
     Catalog.prototype.deselectAll = function() {
         if (! this.sources) {
             return;
         }
-
+        
         for (var k=0; k<this.sources.length; k++) {
             this.sources[k].deselect();
         }
     };
-
+    
     // return a source by index
     Catalog.prototype.getSource = function(idx) {
         if (idx<this.sources.length) {
@@ -495,7 +468,7 @@ export let Catalog = (function() {
             return null;
         }
     };
-
+    
     Catalog.prototype.setView = function(view) {
         this.view = view;
         this.reportChange();
@@ -511,128 +484,178 @@ export let Catalog = (function() {
         this.sources[idx].deselect();
         this.sources.splice(idx, 1);
 
-        this.ra.splice(idx, 1);
-        this.dec.splice(idx, 1);
-
         this.reportChange();
     };
-
+    
     Catalog.prototype.removeAll = Catalog.prototype.clear = function() {
         // TODO : RAZ de l'index
         this.sources = [];
-        this.ra = [];
-        this.dec = [];
     };
-
+    
     Catalog.prototype.draw = function(ctx, frame, width, height, largestDim, zoomFactor) {
         if (! this.isShowing) {
             return;
         }
         // tracé simple
-        ctx.strokeStyle= this.color;
+        //ctx.strokeStyle= this.color;
 
         //ctx.lineWidth = 1;
-        //ctx.beginPath();
+    	//ctx.beginPath();
         if (this._shapeIsFunction) {
             ctx.save();
         }
-
-        const sourcesInView = this.drawSources(ctx, width, height);
-
+        /*var sourcesInView = [];
+ 	    for (var k=0, len = this.sources.length; k<len; k++) {
+		    var inView = Catalog.drawSource(this, this.sources[k], ctx, frame, width, height, largestDim, zoomFactor);
+            if (inView) {
+                sourcesInView.push(this.sources[k]);
+            }
+        }*/
+        const sourcesInView = Catalog.drawSources(this, this.sources, ctx, width, height);
         if (this._shapeIsFunction) {
             ctx.restore();
         }
+        //ctx.stroke();
 
-        // Draw labels
+    	// tracé sélection
+        ctx.strokeStyle= this.selectionColor;
+        //ctx.beginPath();
+        var source;
+        for (var k=0, len = sourcesInView.length; k<len; k++) {
+            source = sourcesInView[k];
+
+            if (! source.isSelected) {
+                continue;
+            }
+            Catalog.drawSourceSelection(this, source, ctx);
+            
+        }
+        // NEEDED ?
+    	//ctx.stroke();
+
+        // tracé label
         if (this.displayLabel) {
             ctx.fillStyle = this.labelColor;
             ctx.font = this.labelFont;
-            sourcesInView.forEach((s) => {
-                this.drawSourceLabel(s, ctx);
-            })
-        }
-
-        // Draw the footprints
-        this.drawFootprints(ctx);
-    };
-
-    Catalog.prototype.drawSources = function(ctx, width, height) {
-        if (!this.sources) {
-            return;
-        }
-
-        let sourcesInsideView = [];
-        let xy = this.view.wasm.worldToScreenVec(this.ra, this.dec);
-
-        let self = this;
-        this.sources.forEach(function(s, idx) {
-            if (xy[2*idx] && xy[2*idx + 1]) {
-                if (!self.filterFn || self.filterFn(s)) {
-                    s.x = xy[2*idx];
-                    s.y = xy[2*idx + 1];
-
-                    self.drawSource(s, ctx, width, height)
-                    sourcesInsideView.push(s);
-                }
+            for (var k=0, len = sourcesInView.length; k<len; k++) {
+                Catalog.drawSourceLabel(this, sourcesInView[k], ctx);
             }
+        }
+    };
+    
+    Catalog.drawSources = function(catalogInstance, sources, ctx, width, height) {
+        /*if (!s.isShowing) {
+            return;
+        }*/
+        var sourceSize = catalogInstance.sourceSize;
+        //console.log('COMPUTE', aladin.wasm.worldToScreen(s.ra, s.dec));
+        //console.log(sources)
+        let sourcesInView = [];
 
-            //if (this.drawSource(s, ctx, width, height)) {
-            //    sourcesInsideView.push(s);
-            //}
-        });
-        //this.view.wasm.drawSources(this.sources, ctx);
+        var s;
+        for(var i = 0; i < sources.length; i++) {
+            s = sources[i];
+            var xy = AladinUtils.radecToViewXy(s.ra, s.dec, catalogInstance.view);
 
-        return sourcesInsideView;
+            if(xy) {
+                //var xyview = AladinUtils.xyToView(xy.X, xy.Y, width, height, largestDim, zoomFactor, true);
+                var xyview = {vx: xy[0], vy: xy[1]};
+                var max = s.popup ? 100 : s.sourceSize;
+                if (xyview) {
+                    // TODO : index sources by HEALPix cells at level 3, 4 ?
+    
+                    // check if source is visible in view
+                    if (xyview.vx>(width+max)  || xyview.vx<(0-max) ||
+                        xyview.vy>(height+max) || xyview.vy<(0-max)) {
+                        s.x = s.y = undefined;
+                    } else {
+                        s.x = xyview.vx;
+                        s.y = xyview.vy;
+                        if (catalogInstance._shapeIsFunction) {
+                            catalogInstance.shape(s, ctx, catalogInstance.view.getViewParams());
+                        }
+                        else if (s.marker && s.useMarkerDefaultIcon) {
+                            ctx.drawImage(catalogInstance.cacheMarkerCanvas, s.x-sourceSize/2, s.y-sourceSize/2);
+                        }
+                        else {
+                            ctx.drawImage(catalogInstance.cacheCanvas, s.x-catalogInstance.cacheCanvas.width/2, s.y-catalogInstance.cacheCanvas.height/2);
+                        }
+        
+                        // has associated popup ?
+                        if (s.popup) {
+                            s.popup.setPosition(s.x, s.y);
+                        }
+                    }
+                }
+    
+                sourcesInView.push(s);
+            }
+        }
+
+        return sourcesInView;
     };
 
-    Catalog.prototype.drawSource = function(s, ctx, width, height) {
-        if (!s.isShowing) {
+    Catalog.drawSource = function(catalogInstance, s, ctx, width, height) {
+        if (! s.isShowing) {
             return false;
         }
+        var sourceSize = catalogInstance.sourceSize;
+        //console.log('COMPUTE', aladin.wasm.worldToScreen(s.ra, s.dec));
+        var xy = AladinUtils.radecToViewXy(s.ra, s.dec, catalogInstance.view);
 
-        let xy = AladinUtils.radecToViewXy(s.ra, s.dec, this.view);
+        if (xy) {
+            //var xyview = AladinUtils.xyToView(xy.X, xy.Y, width, height, largestDim, zoomFactor, true);
+            var xyview = {vx: xy[0], vy: xy[1]};
+            var max = s.popup ? 100 : s.sourceSize;
+            if (xyview) {
+                // TODO : index sources by HEALPix cells at level 3, 4 ?
 
-        //if (xy) {
-        //    [s.x, s.y] = xy;
-            //var max = s.popup ? 100 : this.sourceSize;
-            // TODO : index sources by HEALPix cells at level 3, 4 ?
+                // check if source is visible in view
+                if (xyview.vx>(width+max)  || xyview.vx<(0-max) ||
+                    xyview.vy>(height+max) || xyview.vy<(0-max)) {
+                    s.x = s.y = undefined;
+                    return false;
+                }
 
-            // check if source is visible in view
-            //if (xy[0]>(width+max) || xy[0]<(0-max) ||
-            //    xy[1]>(height+max) || xy[1]<(0-max)) {
-            
-        if (s.x <= width && s.x >= 0 && s.y <= height && s.y >= 0) {
-            if (this._shapeIsFunction) {
-                this.shape(s, ctx, this.view.getViewParams());
-            }
-            else if (s.marker && s.useMarkerDefaultIcon) {
-                ctx.drawImage(this.cacheMarkerCanvas, s.x-this.sourceSize/2, s.y-this.sourceSize/2);
-            }
-            else if (s.isSelected) {
-                ctx.drawImage(this.cacheSelectCanvas, s.x-this.selectSize/2, s.y-this.selectSize/2);
-            }
-            else {
-                ctx.drawImage(this.cacheCanvas, s.x-this.cacheCanvas.width/2, s.y-this.cacheCanvas.height/2);
-            }
+                s.x = xyview.vx;
+                s.y = xyview.vy;
+                if (catalogInstance._shapeIsFunction) {
+                    catalogInstance.shape(s, ctx, catalogInstance.view.getViewParams());
+                }
+                else if (s.marker && s.useMarkerDefaultIcon) {
+                    ctx.drawImage(catalogInstance.cacheMarkerCanvas, s.x-sourceSize/2, s.y-sourceSize/2);
+                }
+                else {
+                    ctx.drawImage(catalogInstance.cacheCanvas, s.x-catalogInstance.cacheCanvas.width/2, s.y-catalogInstance.cacheCanvas.height/2);
+                }
 
-            // has associated popup ?
-            if (s.popup) {
-                s.popup.setPosition(s.x, s.y);
+                // has associated popup ?
+                if (s.popup) {
+                    s.popup.setPosition(s.x, s.y);
+                }
             }
-
             return true;
         }
-        //}
-
-        return false;
+        else {
+            return false;
+        }
+    };
+    
+    Catalog.drawSourceSelection = function(catalogInstance, s, ctx) {
+        if (!s || !s.isShowing || !s.x || !s.y) {
+            return;
+        }
+        var sourceSize = catalogInstance.selectSize;
+        
+        ctx.drawImage(catalogInstance.cacheSelectCanvas, s.x-sourceSize/2, s.y-sourceSize/2);
     };
 
-    Catalog.prototype.drawSourceLabel = function(s, ctx) {
+    Catalog.drawSourceLabel = function(catalogInstance, s, ctx) {
         if (!s || !s.isShowing || !s.x || !s.y) {
             return;
         }
 
-        var label = s.data[this.labelColumn];
+        var label = s.data[catalogInstance.labelColumn];
         if (!label) {
             return;
         }
@@ -640,13 +663,7 @@ export let Catalog = (function() {
         ctx.fillText(label, s.x, s.y);
     };
 
-    Catalog.prototype.drawFootprints = function(ctx) {
-        this.footprints.forEach((f) => {
-            f.draw(ctx, this.view)
-        });
-    };
-
-
+    
     // callback function to be called when the status of one of the sources has changed
     Catalog.prototype.reportChange = function() {
         this.view && this.view.requestRedraw();

@@ -33,99 +33,83 @@ import { MocServer } from "./MocServer.js";
 
 export let HiPSProperties = {};
 
-HiPSProperties.fetchFromID = async function(ID) {
-    // Use the MOCServer to retrieve the properties
-    const params = {
-        get: "record",
-        fmt: "json",
-        ID: "*" + ID + "*",
-    };
-
-    let metadata = await Utils.loadFromMirrors(MocServer.MIRRORS_HTTPS, {
-        data: params,
-    }).then(response => response.json());
-
-    // We get the property here
-    // 1. Ensure there is exactly one survey matching
-    if (!metadata || metadata.length == 0) {
-        throw 'No surveys matching have been found for the id: ' + ID;
-    } else {
-        let result;
-
-        if (metadata.length > 1) {
-            let matching = metadata.find((m) => m.ID === ID);
-            if (matching) {
-                result = matching;
-            } else {
-                result = metadata[0];
-                console.warn("Multiple surveys are matching, please choose one. The chosen one is: " + result);
-            }
-        } else {
-            // Exactly one matching
-            result = metadata[0];
-        }
-
-        return result;
-    }
-}
-
-HiPSProperties.fetchFromUrl = async function(urlOrId) {
+HiPSProperties.fetch = async function(urlOrId) {
     try {
         urlOrId = new URL(urlOrId);
-    } catch (e) {
-        // Relative path
-        try {
-            urlOrId = Utils.getAbsoluteURL(urlOrId)
-            urlOrId = new URL(urlOrId);
-        } catch(e) {
-            throw e;
+    } catch (e) {}
+
+    let result = {};
+    if (!(urlOrId instanceof URL)) {
+        // Use the MOCServer to retrieve the
+        // properties
+        const ID = urlOrId;
+        const params = {
+            get: "record",
+            fmt: "json",
+            ID: "*" + ID + "*",
+        };
+
+        let metadata = await Utils.loadFromMirrors(MocServer.MIRRORS_HTTPS, {
+            data: params,
+        }).then(response => response.json());
+
+        // We get the property here
+        // 1. Ensure there is exactly one survey matching
+        if (!metadata || metadata.length == 0) {
+            throw 'No surveys matching have been found for the id: ' + ID;
+        } else {
+            if (metadata.length > 1) {
+                let matching = metadata.find((m) => m.ID === ID);
+                if (matching) {
+                    result = matching;
+                } else {
+                    result = metadata[0];
+                    console.warn("Multiple surveys are matching, please choose one. The chosen one is: " + result);
+                }
+            } else {
+                // Exactly one matching
+                result = metadata[0];
+            }
         }
+    } else {
+        // Fetch the properties of the survey
+        const HiPSServiceUrl = urlOrId.toString();
+        
+        let url = HiPSServiceUrl;
+        // Use the url for retrieving the HiPS properties
+        // remove final slash
+        if (url.slice(-1) === '/') {
+            url = url.substr(0, url.length - 1);
+        }
+        url = url + '/properties';
+
+        // make URL absolute
+        url = Utils.getAbsoluteURL(url);
+        // fix for HTTPS support --> will work for all HiPS served by CDS
+        url = Utils.fixURLForHTTPS(url)
+
+        let init = {};
+        if (Utils.requestCORSIfNotSameOrigin(url)) {
+            init = { mode: 'cors' };
+        }
+
+        result = await fetch(url, init)
+            .then((response) => response.text())
+            .then((response) => {
+                // We get the property here
+                let metadata = HiPSDefinition.parseHiPSProperties(response);
+
+                // 1. Ensure there is exactly one survey matching
+                if (metadata) {
+                    // Set the service url if not found
+                    metadata.hips_service_url = HiPSServiceUrl;
+                } else {
+                    throw 'No surveys matching at this url: ' + rootURL;
+                }
+
+                return metadata;
+            });
     }
-
-    // Fetch the properties of the survey
-    const HiPSServiceUrl = urlOrId.toString();
-    
-    let url = HiPSServiceUrl;
-    // Use the url for retrieving the HiPS properties
-    // remove final slash
-    if (url.slice(-1) === '/') {
-        url = url.substr(0, url.length - 1);
-    }
-    url = url + '/properties';
-
-    // make URL absolute
-    url = Utils.getAbsoluteURL(url);
-    // fix for HTTPS support --> will work for all HiPS served by CDS
-    url = Utils.fixURLForHTTPS(url)
-
-    let init = {};
-    if (Utils.requestCORSIfNotSameOrigin(url)) {
-        init = { mode: 'cors' };
-    }
-    
-    let result = await fetch(url, init)
-        .then((response) => {
-            if (response.status == 404) {
-                return Promise.reject("Url points to nothing")
-            } else {
-                return response.text();
-            }
-        })
-        .then((response) => {
-
-            // We get the property here
-            let metadata = HiPSDefinition.parseHiPSProperties(response);
-
-            // 1. Ensure there is exactly one survey matching
-            if (metadata) {
-                // Set the service url if not found
-                metadata.hips_service_url = HiPSServiceUrl;
-            } else {
-                throw 'No surveys matching at this url: ' + rootURL;
-            }
-
-            return metadata;
-        })
 
     return result;
 }

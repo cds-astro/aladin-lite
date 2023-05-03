@@ -2,11 +2,9 @@
 	position: relative;
 	border: 1px solid #ddd;
     height: 100%;
-
-    /* disable x swipe on chrome, firefox */
-    /* see. https://stackoverflow.com/questions/30636930/disable-web-page-navigation-on-swipeback-and-forward */
-    overscroll-behavior-x: none;
+    /*overflow: hidden;*/
 }
+
 
 .aladin-imageCanvas {
 	position: absolute;
@@ -69,7 +67,7 @@
 	font-size: 11px;
 }
 
-.aladin-projection-select {
+.aladin-projSelection {
 	z-index: 20;
 	position:absolute;
     top: 0px;
@@ -91,68 +89,38 @@
 }
 
 .aladin-measurement-div {
-    z-index: 77;
-    width: 100%;
-    position: absolute;
+	z-index: 77;
+	position:absolute;
     bottom: 20px;
+	background-color: rgba(255, 255, 255, 0.8);
     font-family: monospace;
-    font-size: 12px;
-    max-height: 20%;
-    display: flex;
-    flex-direction: column;
-    flex-wrap: nowrap;
+	font-size: 12px;
+    display: none;
+    width: 100%;
+    overflow: auto;
 }
 
 .aladin-measurement-div table {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-
-    overflow-y: scroll;
-    overscroll-behavior-x: none;
-    background-color: rgba(255, 255, 255, 0.8);
-    border-collapse: collapse;
+	padding: 2px 4px 2px 4px;
     table-layout: fixed;
     white-space: nowrap;
-    height: 100%;
-    display: block;
-
-    border: 2px solid black;
 }
 
-.aladin-measurement-div .tabs button {
-    background-color: rgba(255, 255, 255, 0.8);
-
-    border-radius: 4px 4px 0px 0px;
-    float: left;
-    border: none;
-    outline: none;
-    cursor: pointer;
-
-    font-family: monospace;
-	font-size: 13px;
-
-    text-overflow: ellipsis;
-    text-align: left;
-}
-
-.aladin-measurement-div table::-webkit-scrollbar {
-    display: none; /* for Chrome, Safari, and Opera */
-}
-
-.aladin-measurement-div table thead {
-    position: sticky;
-    top: 0;
+.aladin-measurement-div thead {
     background-color: #e0e0e0;
     color: #000;
 }
 
-.aladin-measurement-div table td, .aladin-measurement-div table th {
+.aladin-measurement-div td, .aladin-measurement-div th {
+    /*
+    border-left-color: #cbcbcb;
+    border-left-style: solid;
+    */
     padding: 0.3em 0.3em;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     text-align: left;
-    color: #000;
 }
 
 .aladin-marker-measurement {
@@ -251,6 +219,10 @@ word-wrap:break-word;
     padding: 4px 4px;
     max-height: 90%;
     overflow-y: auto;
+}
+
+element {
+
 }
 
 .aladin-box {
@@ -444,20 +416,10 @@ canvas {
     margin: 0;
     padding-left: 4px;
     list-style: none;
-    /*max-width: 200px; */
-    /* max-width: 150px; */
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-}
-
-.aladin-cb-list ul li {
-    flex: 1 1 100%;
-    text-align: left;
 }
 
 .aladin-cb-list label {
-    display: inline-block;
+	display: inline;
 }
 
 .aladin-cb-list input[type="checkbox"] {
@@ -713,9 +675,6 @@ canvas {
     border-top-right-radius:    8px;
     cursor: pointer;
     user-select: none;
-
-    white-space: nowrap;
-    max-width: 150px;
 }
 
 .aladin-sp-title a {
@@ -786,80 +745,6 @@ canvas {
 
 .down-triangle:before {
     content: '\25bc';
-}
-
-
-/* *********************************************** */
-
-/* Context menu */
-
-.aladin-context-sub-menu,
-.aladin-context-menu {
-  position: fixed;
-  background: #fff;
-  z-index: 9999999;
-  width: 150px;
-  margin: 0;
-  padding: 2px 0;
-  border-radius: 2px;
-  box-shadow: 0 0 6px rgba(0,0,0,0.2);
-  font-size: 12px;
-  font-family: Verdana, Geneva, Tahoma, sans-serif;
-}
-
-.aladin-context-menu .aladin-context-menu-item {
-  height: 22px;
-  display: flex;
-  align-items: center;
-  padding: 4px 8px;
-  cursor: pointer;
-  position: relative;
-  border-bottom: 1px solid #f2f2f2;
-}
-
-.aladin-context-menu-item:hover {
-    background: rgb(212, 231, 250);
-}
-
-.aladin-context-menu .aladin-context-menu-item span {
-  display: block;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.aladin-context-menu-item:last-of-type {
-  border-bottom: none;
-}
-
-.aladin-context-menu .context-menu-item:hover {
-  background: #f2f2f2;
-}
-
-.aladin-context-menu .aladin-context-sub-menu {
-  position: absolute;
-  top: 0;
-  left: 100%;
-  display: none;
-  width: 150px;
-}
-
-.aladin-context-menu .aladin-context-menu-item:hover > .aladin-context-sub-menu {
-  display: block;
-}
-
-.aladin-context-menu.left .aladin-context-sub-menu {
-  left: 0;
-  transform: translateX(-100%);
-}
-
-.aladin-context-menu.top .aladin-context-sub-menu {
-  top: 100%;
-  transform: translateY(-100%);
-}
-
-.aladin-context-menu.left.top .aladin-context-sub-menu {
-  transform: translate(-100%, -100%);
 }
 
 

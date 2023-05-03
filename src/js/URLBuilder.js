@@ -63,7 +63,7 @@ export let URLBuilder = (function() {
             if (options && options.hasOwnProperty('limit') && Utils.isNumber(options.limit)) {
                 maxNbSources = parseInt(options.limit);
             }
-            return 'https://vizier.unistra.fr/viz-bin/votable?-source=' + vizCatId + '&-c=' + encodeURIComponent(target) + '&-out.max=' + maxNbSources + '&-c.rd=' + radiusDegrees;
+            return 'https://vizier.unistra.fr/viz-bin/votable/A?-source=' + vizCatId + '&-c=' + encodeURIComponent(target) + '&-out.max=' + maxNbSources + '&-c.rd=' + radiusDegrees;
             //return 'https://vizier.unistra.fr/viz-bin/conesearch/' + vizCatId + '?ra=' + target.ra + '&dec=' + target.dec + '&sr=' + radiusDegrees;
 
         },

@@ -2,10 +2,7 @@ use wasm_bindgen::prelude::*;
 
 use serde::{Deserialize, Serialize};
 
-use crate::angle_fmt::AngleSerializeFmt;
-
 use super::color::ColorRGB;
-
 #[wasm_bindgen]
 #[derive(Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -19,8 +16,6 @@ pub struct GridCfg {
     pub label_size: Option<f32>,
     #[serde(default = "default_enabled")]
     pub enabled: Option<bool>,
-    #[serde(default = "default_fmt")]
-    pub fmt: Option<AngleSerializeFmt>,
 }
 
 fn default_labels() -> Option<bool> {
@@ -36,9 +31,5 @@ fn default_color() -> Option<ColorRGB> {
 }
 
 fn default_label_size() -> Option<f32> {
-    None
-}
-
-fn default_fmt() -> Option<AngleSerializeFmt> {
     None
 }

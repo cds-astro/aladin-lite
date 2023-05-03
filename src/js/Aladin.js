@@ -484,7 +484,7 @@ export let Aladin = (function () {
     /**** CONSTANTS ****/
     Aladin.VERSION = "3.0-beta0";
 
-    Aladin.JSONP_PROXY = "https://alasky.cds.unistra.fr/cgi/JSONProxy";
+    Aladin.JSONP_PROXY = "https://alaskybis.cds.unistra.fr/cgi/JSONProxy";
     //Aladin.JSONP_PROXY = "https://alaskybis.unistra.fr/cgi/JSONProxy";
 
     Aladin.URL_PREVIEWER = 'https://aladin.cds.unistra.fr/AladinLite/';
@@ -1093,7 +1093,8 @@ export let Aladin = (function () {
             url = new URL(url);
         }
 
-        url = Utils.handleCORSNotSameOrigin(url);
+        // Do not use proxy with CORS headers until we solve that: https://github.com/MattiasBuelens/wasm-streams/issues/20
+        //url = Utils.handleCORSNotSameOrigin(url);
 
         let cfg = this.cacheSurveys.get(url);
         if (!cfg) {
@@ -1551,6 +1552,7 @@ export let Aladin = (function () {
 /////// Aladin Lite API ///////
 ///////////////////////////////
 export let A = {};
+export default A;
 
 //// New API ////
 // For developers using Aladin lite: all objects should be created through the API,

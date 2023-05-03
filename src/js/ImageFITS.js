@@ -216,7 +216,7 @@ export let ImageFITS = (function () {
 
             return self;
         }).catch((e) => {
-            window.alert(e + ". See the console for more logging details")
+            window.alert(e + ". See the console for more logging details. It may be possible CORS headers have not been set in the server where you want to download the file. If it is the case, try to manually download the FITS file first and then open it into aladin lite (e.g. by a drag and drop)")
 
             if (self.errorCallback) {
                 self.errorCallback()

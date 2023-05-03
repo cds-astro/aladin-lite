@@ -2,7 +2,6 @@ use wasm_bindgen::JsValue;
 
 use futures::AsyncReadExt;
 
-use al_core::texture::MAX_TEX_SIZE;
 use al_core::texture::TEX_PARAMS;
 use al_core::texture::{
     pixel::Pixel,
@@ -13,24 +12,31 @@ use al_core::image::format::ImageFormat;
 
 
 
-pub async fn build<'a, F, R>(gl: &WebGlContext, width: u64, height: u64, mut reader: R) -> Result<Vec<Texture2D>, JsValue>
+pub async fn build<'a, F, R>(gl: &WebGlContext, width: u64, height: u64, mut reader: R, max_tex_size: usize) -> Result<(Vec<Texture2D>, Vec< <F::P as Pixel>::Item >), JsValue>
 where
     F: ImageFormat,
     R: AsyncReadExt + Unpin
 {
-    let mut buf = vec![0; MAX_TEX_SIZE * std::mem::size_of::<<F::P as Pixel>::Item>()];
-    let max_tex_size = MAX_TEX_SIZE as u64;
+    let mut buf = vec![0; max_tex_size * std::mem::size_of::<<F::P as Pixel>::Item>()];
+    let max_tex_size = max_tex_size as u64;
 
     // Subdivision
     let num_textures = ((width / max_tex_size) + 1) * ((height / max_tex_size) + 1);
 
     let mut tex_chunks = vec![];
     for _ in 0..num_textures {
-        tex_chunks.push(Texture2D::create_from_raw_pixels::<F>(gl, MAX_TEX_SIZE as i32, MAX_TEX_SIZE as i32, TEX_PARAMS, None)?);
+        tex_chunks.push(Texture2D::create_from_raw_pixels::<F>(gl, max_tex_size as i32, max_tex_size as i32, TEX_PARAMS, None)?);
     }
 
     let mut pixels_written = 0;
     let num_pixels = width * height;
+
+    let step_x_cut = (width / 50) as usize;
+    let step_y_cut = (height / 50) as usize;
+
+    let mut samples = vec![];
+
+    let step_cut = step_x_cut.max(step_y_cut) + 1;
 
     let num_texture_x = (width / max_tex_size) + 1;
     let num_texture_y = (height / max_tex_size) + 1;
@@ -48,35 +54,51 @@ where
         } else {
             max_tex_size
         };
+
         let num_bytes_to_read = (num_pixels_to_read as usize) * std::mem::size_of::<<F::P as Pixel>::Item>();
-        reader.read_exact(&mut buf[..num_bytes_to_read])
-            .await
-            .map_err(|_| JsValue::from_str("Read some bytes error"))?;
+        if let Ok(()) = reader.read_exact(&mut buf[..num_bytes_to_read]).await {
+            // Tell where the data must go inside the texture
+            let off_y_px = id_ty * max_tex_size;
 
-        // Tell where the data must go inside the texture
-        let off_y_px = id_ty * max_tex_size;
+            let dy = (pixels_written / width) - off_y_px;
+            let view = unsafe {
+                let slice = std::slice::from_raw_parts(
+                    buf[..num_bytes_to_read].as_ptr() as *const <F::P as Pixel>::Item,
+                    num_pixels_to_read as usize
+                );
 
-        let dy = (pixels_written / width) - off_y_px;
-        let view = unsafe {
-            let slice = std::slice::from_raw_parts(
-                buf[..num_bytes_to_read].as_ptr() as *const <F::P as Pixel>::Item,
-                num_pixels_to_read as usize
-            );
-            F::view(slice)
-        };
+                // fill the samples buffer
+                if (pixels_written / width) % (step_cut as u64) == 0 {
+                    // We are in a good line
+                    let xmin = pixels_written % width;
 
-        (&mut tex_chunks[id_t as usize])
-            .bind()
-            .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_array_buffer_view(
-                0,
-                dy as i32,
-                num_pixels_to_read as i32,
-                1,
-                Some(view.as_ref())
-            );
+                    for i in (0..width).step_by(step_cut) {
+                        if (xmin..(xmin + num_pixels_to_read)).contains(&i) {
+                            let j = (i - xmin) as usize;
 
-        pixels_written += num_pixels_to_read;
+                            samples.push(slice[j]);
+                        }
+                    }
+                }
+
+                F::view(slice)
+            };
+
+            (&mut tex_chunks[id_t as usize])
+                .bind()
+                .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_array_buffer_view(
+                    0,
+                    dy as i32,
+                    num_pixels_to_read as i32,
+                    1,
+                    Some(view.as_ref())
+                );
+
+            pixels_written += num_pixels_to_read;
+        } else {
+            pixels_written = num_pixels;
+        }
     }
 
-    Ok(tex_chunks)
+    Ok((tex_chunks, samples))
 }

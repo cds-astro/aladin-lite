@@ -160,7 +160,7 @@ impl App {
         // The tile buffer responsible for the tile requests
         let downloader = Downloader::new();
 
-        let camera = CameraViewPort::new(&gl, CooSystem::ICRSJ2000, &projection);
+        let camera = CameraViewPort::new(&gl, CooSystem::ICRS, &projection);
         let screen_size = &camera.get_screen_size();
 
         let _fbo_view = FrameBufferObject::new(&gl, screen_size.x as usize, screen_size.y as usize)?;
@@ -411,7 +411,7 @@ impl App {
     }
 
     pub(crate) fn get_visible_cells(&self, depth: u8) -> Box<[HEALPixCellProjeted]> {
-        let coverage = crate::survey::view::compute_view_coverage(&self.camera, depth, &CooSystem::ICRSJ2000);
+        let coverage = crate::survey::view::compute_view_coverage(&self.camera, depth, &CooSystem::ICRS);
 
         let cells: Vec<_> = coverage.flatten_to_fixed_depth_cells()
             .filter_map(|ipix| {
@@ -471,7 +471,7 @@ impl App {
         Ok(())
     }
 
-    pub(crate) fn update(&mut self, _dt: DeltaTime) -> Result<(), JsValue> {
+    pub(crate) fn update(&mut self, _dt: DeltaTime) -> Result<bool, JsValue> {
         //let available_tiles = self.run_tasks(dt)?;
         if let Some(InertiaAnimation {
             time_start_anim,
@@ -703,19 +703,6 @@ impl App {
             self.moc.update(&self.camera, &self.projection);
         }
 
-        /*{
-            let events = self.ui.lock().update();
-            let mut events = events.lock().unwrap_abort();
-
-            for event in events.drain(..) {
-                match event {
-                    al_ui::Event::ImageSurveys(surveys) => self.set_image_surveys(surveys)?,
-                    _ => { todo!() }
-                    //al_ui::Event::ReverseLongitude(longitude_reversed) => { self.set_longitude_reversed(longitude_reversed)? }
-                }
-            }
-        }*/
-
         // Check for async retrieval
         if let Ok(fits) = self.fits_recv.try_recv() {
             let params = fits.get_params();
@@ -732,7 +719,7 @@ impl App {
 
         self.draw(false)?;
 
-        Ok(())
+        Ok(has_camera_moved)
     }
 
     pub(crate) fn reset_north_orientation(&mut self) {
@@ -906,9 +893,17 @@ impl App {
             use web_sys::window;
             use crate::renderable::image::Image;
             use futures::TryStreamExt;
+            use futures::future::Either;
+            use web_sys::{Request, RequestInit, RequestMode};
+
+            let mut opts = RequestInit::new();
+            opts.method("GET");
+            opts.mode(RequestMode::Cors);
 
             let window = window().unwrap();
-            let resp_value = JsFuture::from(window.fetch_with_str(&url))
+            let request = Request::new_with_str_and_init(&url, &opts)?;
+
+            let resp_value = JsFuture::from(window.fetch_with_request(&request))
                 .await?;
             let resp: Response = resp_value.dyn_into()?;
 
@@ -917,11 +912,17 @@ impl App {
             let body = ReadableStream::from_raw(raw_body.dyn_into()?);
 
             // Convert the JS ReadableStream to a Rust stream
-            let bytes_reader = body
-                .into_stream()
-                .map_ok(|js_value| js_value.dyn_into::<Uint8Array>().unwrap_throw().to_vec())
-                .map_err(|_js_error| std::io::Error::new(std::io::ErrorKind::Other, "failed to read"))
-                .into_async_read();
+            let bytes_reader = match body.try_into_async_read() {
+                Ok(async_read) => Either::Left(async_read),
+                Err((_err, body)) => Either::Right(
+                    body
+                        .into_stream()
+                        .map_ok(|js_value| js_value.dyn_into::<Uint8Array>().unwrap_throw().to_vec())
+                        .map_err(|_js_error| std::io::Error::new(std::io::ErrorKind::Other, "failed to read"))
+                        .into_async_read(),
+                ),
+            };
+
             let mut reader = BufReader::new(bytes_reader);
 
             let AsyncFits { mut hdu } = AsyncFits::from_reader(&mut reader).await
@@ -936,7 +937,7 @@ impl App {
                 Ok(image) => {
                     let layer_ext = layer.clone();
                     let url_ext = url.clone();
-    
+
                     let fits = ImageCfg {
                         image: image,
                         layer: layer_ext,
@@ -963,7 +964,7 @@ impl App {
                                     Ok(image) => {
                                         let layer_ext = layer.clone() + "_ext_" + &format!("{hdu_ext_idx}");
                                         let url_ext = url.clone() + "_ext_" + &format!("{hdu_ext_idx}");
-    
+
                                         let fits_ext = ImageCfg {
                                             image: image,
                                             layer: layer_ext,
@@ -1012,7 +1013,7 @@ impl App {
                                     Ok(image) => {
                                         let layer_ext = layer.clone() + "_ext_" + &format!("{hdu_ext_idx}");
                                         let url_ext = url.clone() + "_ext_" + &format!("{hdu_ext_idx}");
-            
+
                                         let fits_ext = ImageCfg {
                                             image: image,
                                             layer: layer_ext,
@@ -1054,7 +1055,7 @@ impl App {
             if !images_params.is_empty() {
                 serde_wasm_bindgen::to_value(&images_params).map_err(|e| e.into())
             } else {
-                Err(JsValue::from_str("The fits file has no extension that had been parsed"))
+                Err(JsValue::from_str("The fits could not be parsed"))
             }
         };
         
@@ -1241,25 +1242,13 @@ impl App {
         self.projection.screen_to_model_space(pos, &self.camera).map(|model_pos| model_pos.lonlat())
     }
 
-    pub(crate) fn view_to_icrsj2000_coosys(&self, lonlat: &LonLatT<f64>) -> LonLatT<f64> {
-        let icrsj2000_pos: Vector4<_> = lonlat.vector();
+    pub(crate) fn view_to_icrs_coosys(&self, lonlat: &LonLatT<f64>) -> LonLatT<f64> {
+        let icrs_pos: Vector4<_> = lonlat.vector();
         let view_system = self.camera.get_system();
         let (ra, dec) = math::lonlat::xyzw_to_radec(&coosys::apply_coo_system(
             view_system,
-            &CooSystem::ICRSJ2000,
-            &icrsj2000_pos,
-        ));
-
-        LonLatT::new(ra, dec)
-    }
-
-    pub(crate) fn icrsj2000_to_view_coosys(&self, lonlat: &LonLatT<f64>) -> LonLatT<f64> {
-        let icrsj2000_pos: Vector4<_> = lonlat.vector();
-        let view_system = self.camera.get_system();
-        let (ra, dec) = math::lonlat::xyzw_to_radec(&coosys::apply_coo_system(
-            &CooSystem::ICRSJ2000,
-            view_system,
-            &icrsj2000_pos,
+            &CooSystem::ICRS,
+            &icrs_pos,
         ));
 
         LonLatT::new(ra, dec)
@@ -1267,7 +1256,7 @@ impl App {
 
     pub(crate) fn set_center(&mut self, lonlat: &LonLatT<f64>) {
         self.prev_cam_position = self.camera.get_center().truncate();
-        self.camera.set_center(lonlat, &CooSystem::ICRSJ2000, &self.projection);
+        self.camera.set_center(lonlat, &CooSystem::ICRS, &self.projection);
         self.request_for_new_tiles = true;
 
         // And stop the current inertia as well if there is one

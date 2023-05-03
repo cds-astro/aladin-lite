@@ -253,7 +253,7 @@ impl ProjectionType {
         camera: &CameraViewPort,
     ) -> Option<Vector2<f64>> {
         let view_coosys = camera.get_system();
-        let c = CooSystem::ICRSJ2000.to::<f64>(view_coosys);
+        let c = CooSystem::ICRS.to::<f64>(view_coosys);
 
         let m2w = camera.get_m2w();
         let pos_world_space = m2w * c * pos_view_space;
@@ -266,7 +266,7 @@ impl ProjectionType {
         camera: &CameraViewPort,
     ) -> Vector2<f64> {
         let view_coosys = camera.get_system();
-        let c = CooSystem::ICRSJ2000.to::<f64>(view_coosys);
+        let c = CooSystem::ICRS.to::<f64>(view_coosys);
 
         let m2w = camera.get_m2w();
         let pos_world_space = m2w * c * pos_view_space;

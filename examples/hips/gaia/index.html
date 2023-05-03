@@ -1,0 +1,63 @@
+
+<HTML>
+   <HEAD>
+      <script type="text/javascript" src="https://code.jquery.com/jquery-1.10.1.min.js"></script>
+      <script type="text/javascript">var jqMenu = jQuery.noConflict();</script>
+      <script type="text/javascript">
+   var hipsDir=null;</script>
+   </HEAD>
+   <H1>"DM radial-velocity I 345 gaia2" progressive survey</H1>
+   This Web resource contains HiPS(*) components for <B>DM radial-velocity I 345 gaia2</B> progressive survey.
+   <script type="text/javascript">
+   hipsDir = location.href;
+   hipsDir = hipsDir.substring(0,hipsDir.lastIndexOf("/",hipsDir.length));
+   console.log(hipsDir)
+   </script>
+   <TABLE>
+   <TR>
+   <TD>
+      <script type="text/javascript" src="https://aladin.u-strasbg.fr/AladinLite/api/v3/beta/aladin.js" charset="utf-8"></script>
+   <div id="aladin-lite-div" style="width:70vw;height:70vh;"></div>
+   <script type="text/javascript">
+   //var hipsDir = location.href;
+   //hipsDir = hipsDir.substring(0,hipsDir.lastIndexOf("/",hipsDir.length));
+   let aladin;
+   A.init.then(() => {
+      aladin = A.aladin("#aladin-lite-div", {showSimbadPointerControl: true });
+      let survey = aladin.createImageSurvey('DM radial-velocity I 345 gaia2', 'DM radial-velocity I 345 gaia2', hipsDir, 'ICRSJ2000', 3, {tileSize: 32, imgFormat: 'jpeg'});
+      console.log(survey)
+      aladin.setImageSurvey(survey);
+   });
+   </script>    
+   </TD>
+   <TD>
+   <UL>
+      <LI> <B>Label:</B> DM radial-velocity I 345 gaia2
+      <LI> <B>Type:</B> HiPS image
+      <LI> <B>Best pixel angular resolution:</B> 51.53"
+      <LI> <B>Max tile order:</B> 3 (NSIDE=8)
+      <LI> <B>Available encoding tiles:</B> jpeg fits
+      <LI> <B>Tile size:</B> 512x512
+      <LI> <B>FITS tile BITPIX:</B> -32
+      <LI> <B>Processing date:</B> 2019-05-21T08:58Z
+      <LI> <B>HiPS builder:</B> Aladin/HipsGen v10.125
+      <LI> <B>Coordinate frame:</B> equatorial
+      <LI> <B>Sky area:</B> 100.0% of sky => 41253Â°^2
+      <LI> <B>Associated coverage map:</B> <A HREF="Moc.fits">MOC</A>
+      <LI> <B>Property file:</B> <A HREF="properties">properties</A>
+      <LI> <B>Base URL:<p id="hipsBase"></p></B> 
+   </UL>
+   </TD>
+   </TR>
+   </TABLE>
+   This survey can be displayed by <A HREF="https://aladin.u-strasbg.fr/AladinLite">Aladin Lite</A> (see above), 
+   by <A HREF="https://aladin.u-strasbg.fr/java/nph-aladin.pl?frame=downloading">Aladin Desktop</A> client
+   (just open the base URL)<BR>or any other HiPS aware clients.
+   <HR>
+   <I>(*) HiPS is a recommended <A HREF="www.ivoa.net">International Virtual Observatory Alliance</A> standard:<A HREF="www.ivoa.net/documents/HiPS">HiPS REC</A>. 
+   The HiPS technology allows a dedicated client to access an astronomical survey at any location and at any scale. 
+   HiPS has been invented by <A HREF="https://aladin.u-strasbg.fr/hips">CDS-Universit&eacute; de Strasbourg/CNRS</A> (<A HREF="http://cdsads.u-strasbg.fr/abs/2015A%26A...578A.114F">2015A&amp;A...578A.114F</A>). It is based on HEALPix sky tessellation and it is designed for astronomical scientifical usages (low distorsion, true pixel values...).</I><script type="text/javascript">
+   document.getElementById("hipsBase").innerHTML=hipsDir;
+   </script>
+   </HTML>
+   

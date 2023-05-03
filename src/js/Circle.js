@@ -77,34 +77,12 @@ export let Circle = (function() {
         }
     };
 
-    Circle.prototype.dispatchClickEvent = function() {
-        if (this.overlay) {
-            // footprint selection code adapted from Fabrizio Giordano dev. from Serco for ESA/ESDC
-            //window.dispatchEvent(new CustomEvent("footprintClicked", {
-            this.overlay.view.aladinDiv.dispatchEvent(new CustomEvent("footprintClicked", {
-                detail: {
-                    footprintId: this.id,
-                    overlayName: this.overlay.name
-                }
-            }));
-        }
-    };
-
     Circle.prototype.select = function() {
         if (this.isSelected) {
             return;
         }
         this.isSelected = true;
         if (this.overlay) {
-/*
-            this.overlay.view.aladinDiv.dispatchEvent(new CustomEvent("footprintClicked", {
-                detail: {
-                    footprintId: this.id,
-                    overlayName: this.overlay.name
-                }
-            }));
-*/
-
             this.overlay.reportChange();
         }
     };
@@ -136,11 +114,11 @@ export let Circle = (function() {
     };
 
     // TODO
-    Circle.prototype.draw = function(ctx, view, frame, width, height, largestDim, zoomFactor, noStroke) {
+    Circle.prototype.draw = function(ctx, view/*, noStroke*/) {
         if (! this.isShowing) {
             return;
         }
-        noStroke = noStroke===true || false;
+        //noStroke = noStroke===true || false;
 
         var centerXyview = AladinUtils.radecToViewXy(this.centerRaDec[0], this.centerRaDec[1], view);
         if (!centerXyview) {
@@ -172,21 +150,23 @@ export let Circle = (function() {
         }
 
         if (this.isSelected) {
-            ctx.strokeStyle= Overlay.increaseBrightness(baseColor, 50);
+            ctx.strokeStyle = Overlay.increaseBrightness(baseColor, 50);
         }
         else {
-            ctx.strokeStyle= baseColor;
+            ctx.strokeStyle = baseColor;
         }
 
         ctx.beginPath();
         ctx.arc(centerXyview[0], centerXyview[1], radiusInPix, 0, 2*Math.PI, false);
-        if (!noStroke) {
+        /*if (!noStroke) {
             if (this.fillColor) {
                 ctx.fillStyle = this.fillColor;
                 ctx.fill();
             }
             ctx.stroke();
-        }
+        }*/
+        ctx.stroke();
+
     };
 
     return Circle;

@@ -158,7 +158,7 @@ fn build_range_indices(it: impl Iterator<Item=(u64, f32)> + Clone) -> Vec<RangeI
 }
 
 #[allow(dead_code)]
-pub fn get_grid_vertices(xy_min: &(f64, f64), xy_max: &(f64, f64), max_tex_size: u64, num_tri_per_tex_patch: u64, camera: &CameraViewPort, wcs: &WCS, projection: &ProjectionType) -> (Vec<[f32; 2]>, Vec<[f32; 2]>, Vec<u16>, Vec<u32>) {    
+pub fn get_grid_vertices(xy_min: &(f64, f64), xy_max: &(f64, f64), max_tex_size: u64, num_tri_per_tex_patch: u64, camera: &CameraViewPort, wcs: &WCS, image_coo_sys: &CooSystem, projection: &ProjectionType) -> (Vec<[f32; 2]>, Vec<[f32; 2]>, Vec<u16>, Vec<u32>) {    
     let (x_it, y_it) = get_grid_params(xy_min, xy_max, max_tex_size, num_tri_per_tex_patch);
 
     let idx_x_ranges = build_range_indices(x_it.clone());
@@ -173,7 +173,7 @@ pub fn get_grid_vertices(xy_min: &(f64, f64), xy_max: &(f64, f64), max_tex_size:
                 let lat = lonlat.lat();
     
                 let xyzw = crate::math::lonlat::radec_to_xyzw(lon.to_angle(), lat.to_angle());
-                let xyzw = crate::coosys::apply_coo_system(&CooSystem::ICRSJ2000, camera.get_system(), &xyzw);
+                let xyzw = crate::coosys::apply_coo_system(&image_coo_sys, camera.get_system(), &xyzw);
     
                 projection.model_to_normalized_device_space(&xyzw, camera)
                     .map(|v| [v.x as f32, v.y as f32])
@@ -248,9 +248,9 @@ impl<'a> BuildPatchIndicesIter<'a> {
         idx_x + idx_y * self.num_x_vertices
     }
 
-    fn invalid_tri(&self, tri_ccw: bool) -> bool {
+    fn valid_tri(&self, tri_ccw: bool) -> bool {
         let reversed_longitude = self.camera.get_longitude_reversed();
-        (!reversed_longitude && !tri_ccw) || (reversed_longitude && tri_ccw)
+        (!reversed_longitude && tri_ccw) || (reversed_longitude && !tri_ccw)
     }
 }
 
@@ -278,22 +278,18 @@ impl<'a> Iterator for BuildPatchIndicesIter<'a> {
         let ndc_tr = &self.ndc[idx_tr];
         let ndc_bl = &self.ndc[idx_bl];
         let ndc_br = &self.ndc[idx_br];
+
         match (ndc_tl, ndc_tr, ndc_bl, ndc_br) {
-            (Some(ndc_tl), Some(ndc_tr), Some(ndc_bl), Some(ndc_br)) => {    
+            (Some(ndc_tl), Some(ndc_tr), Some(ndc_bl), Some(ndc_br)) => {
                 let ndc_tl = Vector2::new(ndc_tl[0] as f64, ndc_tl[1] as f64);
                 let ndc_tr = Vector2::new(ndc_tr[0] as f64, ndc_tr[1] as f64);
                 let ndc_bl = Vector2::new(ndc_bl[0] as f64, ndc_bl[1] as f64);
                 let ndc_br = Vector2::new(ndc_br[0] as f64, ndc_br[1] as f64);
 
-                let c_tl = crate::math::projection::ndc_to_screen_space(&ndc_tl, self.camera);
-                let c_tr = crate::math::projection::ndc_to_screen_space(&ndc_tr, self.camera);
-                let c_bl = crate::math::projection::ndc_to_screen_space(&ndc_bl, self.camera);
-                let c_br = crate::math::projection::ndc_to_screen_space(&ndc_br, self.camera);
+                let tri_ccw_1 = crate::math::vector::ccw_tri(&ndc_tl, &ndc_tr, &ndc_bl);
+                let tri_ccw_2 = crate::math::vector::ccw_tri(&ndc_tr, &ndc_br, &ndc_bl);
 
-                let tri_ccw_1 = !crate::math::vector::ccw_tri(&c_tl, &c_tr, &c_bl);
-                let tri_ccw_2 = !crate::math::vector::ccw_tri(&c_tr, &c_br, &c_bl);
-
-                if self.invalid_tri(tri_ccw_1) || self.invalid_tri(tri_ccw_2) {
+                if !self.valid_tri(tri_ccw_1) || !self.valid_tri(tri_ccw_2) {
                     self.next() // crossing projection tri
                 } else {
                     Some([

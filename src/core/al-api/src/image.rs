@@ -12,4 +12,7 @@ pub struct ImageParams {
     pub layer: String,
     // and its url
     pub url: String,
+
+    pub automatic_min_cut: f32,
+    pub automatic_max_cut: f32,
 }

@@ -35,7 +35,7 @@ export let Source = (function() {
     	this.dec = dec;
     	this.data = data;
     	this.catalog = null;
-    	
+
         this.marker = (options && options.marker) || false;
         if (this.marker) {
             this.popupTitle = (options && options.popupTitle) ? options.popupTitle : '';
@@ -46,11 +46,11 @@ export let Source = (function() {
     	this.isShowing = true;
     	this.isSelected = false;
     };
-    
+
     Source.prototype.setCatalog = function(catalog) {
         this.catalog = catalog;
     };
-    
+
     Source.prototype.show = function() {
         if (this.isShowing) {
             return;
@@ -60,7 +60,7 @@ export let Source = (function() {
             this.catalog.reportChange();
         }
     };
-    
+
     Source.prototype.hide = function() {
         if (! this.isShowing) {
             return;
@@ -70,7 +70,7 @@ export let Source = (function() {
             this.catalog.reportChange();
         }
     };
-    
+
     Source.prototype.select = function() {
         if (this.isSelected) {
             return;
@@ -80,7 +80,7 @@ export let Source = (function() {
             this.catalog.reportChange();
         }
     };
-    
+
     Source.prototype.deselect = function() {
         if (! this.isSelected) {
             return;
@@ -95,11 +95,29 @@ export let Source = (function() {
     Source.prototype.actionClicked = function() {
         if (this.catalog && this.catalog.onClick) {
             var view = this.catalog.view;
+
             if (this.catalog.onClick=='showTable') {
-                view.aladin.measurementTable.showMeasurement(this);
                 this.select();
+
+                let singleSourceTable = {
+                    'rows': [this],
+                    'fields': this.catalog.fields,
+                    'fieldsClickedActions': this.catalog.fieldsClickedActions,
+                    'name': this.catalog.name,
+                    'color': this.catalog.color
+                };
+
+                let options = {};
+                if (this.catalog.isObsCore && this.catalog.isObsCore()) {
+                    // If the source is obscore, save the table state inside the measurement table
+                    // This is used to go back from a possible datalink table to the obscore one
+                    options["save"] = true;
+                }
+                view.aladin.measurementTable.hide();
+                view.aladin.measurementTable.showMeasurement([singleSourceTable], options);
             }
             else if (this.catalog.onClick=='showPopup') {
+
                 view.popup.setTitle('<br><br>');
                 var m = '<div class="aladin-marker-measurement">';
                 m += '<table>';
@@ -120,7 +138,6 @@ export let Source = (function() {
         }
     };
 
-    
     Source.prototype.actionOtherObjectClicked = function() {
         if (this.catalog && this.catalog.onClick) {
             this.deselect();

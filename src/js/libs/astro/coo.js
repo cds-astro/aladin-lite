@@ -466,3 +466,37 @@ Numbers.toSexagesimal = function(num, prec, plus) {
 			return sign+Numbers.format(n, 1);
 	}
 }
+
+/**
+ * @function degreesToString
+ * Convert a number in degrees into a string<br>
+ *
+ * @param numberDegrees number in degrees (integer or decimal)
+ * @return a formattes string
+ * 
+ * @example <caption> Result in degrees </caption>
+ * // returns "1°"
+ * Numbers.degreesToString(1)
+ * @example <caption> Result in arcminutes </caption>
+ * // returns "6 arcmin"
+ * Numbers.degreesToString(0.1);
+ * @example <caption> Result in arcseconds </caption>
+ * // returns "36 arcsec"
+ * Numbers.degreesToString(0.01);
+ */
+Coo.degreesToString = function(numberDegrees) {
+	let setPrecision = 3
+	let degrees = numberDegrees | 0;
+    let minutes = Math.abs(numberDegrees - degrees) * 60 | 0;
+    let seconds = ((Math.abs(numberDegrees - degrees) * 60 - minutes) *60).toPrecision(setPrecision);
+    if (degrees!=0) {
+		return numberDegrees.toPrecision(setPrecision) + '°';
+	}
+    else if (minutes!=0){
+        return  (Math.abs(numberDegrees - degrees) * 60).toPrecision(setPrecision) + " arcmin";
+    }
+    else if (seconds!=0){
+        return seconds + " arcsec";
+    }
+}
+				

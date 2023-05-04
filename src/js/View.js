@@ -34,8 +34,7 @@ import { Popup } from "./Popup.js";
 import { HealpixGrid } from "./HealpixGrid.js";
 import { ProjectionEnum } from "./ProjectionEnum.js";
 import { Utils } from "./Utils.js";
-import { SimbadPointer } from "./SimbadPointer.js";
-import { PlanetaryFeaturesPointer } from "./PlanetaryFeaturesPointer.js";
+import { GenericPointer } from "./GenericPointer.js";
 import { Stats } from "./libs/Stats.js";
 import { Circle } from "./Circle.js";
 import { Ellipse } from "./Ellipse";
@@ -636,27 +635,8 @@ export let View = (function () {
             }
 
             if (view.mode == View.TOOL_SIMBAD_POINTER) {
-                let radec = view.aladin.pix2world(xymouse.x, xymouse.y);
-
-                // Convert from view to ICRS
-                radec = view.wasm.viewToICRSCooSys(radec[0], radec[1]);
-
-                view.setMode(View.PAN);
-                view.setCursor('wait');
-                if (radec) {
-                    // sky case
-                    if (view.aladin.getBaseImageLayer().properties.isPlanetaryBody === false) {
-                        SimbadPointer.query(radec[0], radec[1], Math.min(1, 15 * view.fov / view.largestDim), view.aladin);
-                    }
-                    // planetary body case
-                    else {
-                        // TODO: replace with actual value
-                        const body = view.aladin.getBaseImageLayer().properties.hipsBody;
-                        PlanetaryFeaturesPointer.query(radec[0], radec[1], Math.min(80, view.fov / 20.0), body, view.aladin);
-                    }
-                } else {
-                    console.log("Cannot unproject at the location you clicked on")
-                }
+                // call Simbad pointer or Planetary features
+                GenericPointer(view, e);
 
                 return; // when in TOOL_SIMBAD_POINTER mode, we do not call the listeners
             }

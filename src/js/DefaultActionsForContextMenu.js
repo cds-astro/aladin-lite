@@ -28,8 +28,7 @@
  *
  *****************************************************************************/
 
-import { SimbadPointer } from "./SimbadPointer.js";
-import { PlanetaryFeaturesPointer } from "./PlanetaryFeaturesPointer.js";
+import { GenericPointer } from "./GenericPointer.js";
 
 export let DefaultActionsForContextMenu = (function () {
 
@@ -110,20 +109,7 @@ export let DefaultActionsForContextMenu = (function () {
             },
             {
                 label: "What is this?", action(e) {
-                    const xymouse = aladinInstance.view.imageCanvas.relMouseCoords(e);
-                    let radec = aladinInstance.wasm.screenToWorld(xymouse.x, xymouse.y);
-                    if (radec) {
-                        // sky case
-                        if (aladinInstance.getBaseImageLayer().properties.isPlanetaryBody === false) {
-                            SimbadPointer.query(radec[0], radec[1], Math.min(1, 15 * aladinInstance.view.fov / aladinInstance.view.largestDim), aladinInstance);
-                        }
-                        // planetary body case
-                        else {
-                            // TODO: replace with actual value
-                            const body = aladinInstance.getBaseImageLayer().properties.hipsBody;
-                            PlanetaryFeaturesPointer.query(radec[0], radec[1], Math.min(80, aladinInstance.view.fov / 20.0), body, aladinInstance);
-                        }
-                    }
+                    GenericPointer(aladinInstance.view, e);
                 }
             },
             {

@@ -111,7 +111,7 @@ export let PlanetaryFeaturesPointer = (function() {
                     const featureType = values[fields.indexOf('feature_type')]
                     let content = '<div class="aladin-sp-content">' + ' ' + '</div>';
                     content += '<em>Type: </em>' + featureType + '<br><br>';
-                    content += '<a target="_blank" href="https://planetarynames.wr.usgs.gov/Feature/' + featureId + '">' + 'More info' + '</a>';
+                    content += '<a target="_blank" href="https://planetarynames.wr.usgs.gov/Feature/' + featureId + '">More information</a>';
 
                     let lon = parseFloat(values[lonFieldIdx]);
                     const lat = parseFloat(values[latFieldIdx]);
@@ -140,10 +140,15 @@ export let PlanetaryFeaturesPointer = (function() {
                     aladinInstance.showPopup(lon, lat, title, content, radiusDeg);
                 }
                 else {
-                    aladinInstance.hidePopup();
+                    let no_match_title =  '<div class="aladin-sp-title">Ohoh</div>';
+                    let formattedRadiusString = Coo.degreesToString(radiusDegrees);
+                    let no_match_content = '<div class="aladin-sp-content">No match was found on <a href="https://planetarynames.wr.usgs.gov">planetarynames.wr.usgs.gov</a> in ' + formattedRadiusString + ' around this point.';
+                    no_match_content += '</div>';
+                    aladinInstance.showPopup(ra, dec, no_match_title, no_match_content);
                 }
             })
             .catch((e) => {
+                
                 aladinInstance.view.setCursor('pointer');
                 aladinInstance.hidePopup();
             })

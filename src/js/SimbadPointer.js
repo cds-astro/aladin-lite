@@ -32,6 +32,7 @@
  *****************************************************************************/
 import { Coo }            from "./libs/astro/coo.js";
 import { Utils }          from "./Utils.js";
+import { AladinUtils } from "./AladinUtils.js";
 
 export let SimbadPointer = (function() {
     const SimbadPointer = {};
@@ -67,7 +68,7 @@ export let SimbadPointer = (function() {
                 }
                 else {
                     let no_match_title = '<div class="aladin-sp-title">Ohoh</div>';
-                    let formattedRadiusString = Coo.degreesToString(radiusDegrees);
+                    let formattedRadiusString = AladinUtils.degreesToString(radiusDegrees);
                     let no_match_content = '<div class="aladin-sp-content">No match was found on <a href="https://simbad.cds.unistra.fr/simbad">Simbad</a> in ' + formattedRadiusString + ' around this point.</div>';
                     aladinInstance.showPopup(coo.lon, coo.lat, no_match_title, no_match_content);
                 }

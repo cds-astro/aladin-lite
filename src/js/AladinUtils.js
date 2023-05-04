@@ -232,9 +232,41 @@ export let AladinUtils = (function() {
             CATALOG: '<svg xmlns="http://www.w3.org/2000/svg"><polygon points="1,0,5,0,5,3,1,3"  fill="FILLCOLOR" /><polygon points="7,0,9,0,9,3,7,3"  fill="FILLCOLOR" /><polygon points="10,0,12,0,12,3,10,3"  fill="FILLCOLOR" /><polygon points="13,0,15,0,15,3,13,3"  fill="FILLCOLOR" /><polyline points="1,5,5,9"  stroke="FILLCOLOR" /><polyline points="1,9,5,5" stroke="FILLCOLOR" /><line x1="7" y1="7" x2="15" y2="7" stroke="FILLCOLOR" stroke-width="2" /><polyline points="1,11,5,15"  stroke="FILLCOLOR" /><polyline points="1,15,5,11"  stroke="FILLCOLOR" /><line x1="7" y1="13" x2="15" y2="13" stroke="FILLCOLOR" stroke-width="2" /></svg>',
             MOC: '<svg xmlns="http://www.w3.org/2000/svg"><polyline points="0.5,7,2.5,7,2.5,5,7,5,7,3,10,3,10,5,13,5,13,7,15,7,15,9,13,9,13,12,10,12,10,14,7,14,7,12,2.5,12,2.5,10,0.5,10,0.5,7" stroke-width="1" stroke="FILLCOLOR" fill="transparent" /><line x1="1" y1="10" x2="6" y2="5" stroke="FILLCOLOR" stroke-width="0.5" /><line x1="2" y1="12" x2="10" y2="4" stroke="FILLCOLOR" stroke-width="0.5" /><line x1="5" y1="12" x2="12" y2="5" stroke="FILLCOLOR" stroke-width="0.5" /><line x1="7" y1="13" x2="13" y2="7" stroke="FILLCOLOR" stroke-width="0.5" /><line x1="10" y1="13" x2="13" y2="10" stroke="FILLCOLOR" stroke-width="0.5" /></svg>',
             OVERLAY: '<svg xmlns="http://www.w3.org/2000/svg"><polygon points="10,5,10,1,14,1,14,14,2,14,2,9,6,9,6,5" fill="transparent" stroke="FILLCOLOR" stroke-width="2"/></svg>'
+        },
+
+        /**
+        * @function degreesToString
+        * Convert a number in degrees into a string<br>
+        *
+        * @param numberDegrees number in degrees (integer or decimal)
+        * @return a formattes string
+        * 
+        * @example <caption> Result in degrees </caption>
+        * // returns "1°"
+        * Numbers.degreesToString(1)
+        * @example <caption> Result in arcminutes </caption>
+        * // returns "6 arcmin"
+        * Numbers.degreesToString(0.1);
+        * @example <caption> Result in arcseconds </caption>
+        * // returns "36 arcsec"
+        * Numbers.degreesToString(0.01);
+        */
+        degreesToString: function(numberDegrees) {
+            let setPrecision = 3
+            let degrees = numberDegrees | 0;
+            let minutes = Math.abs(numberDegrees - degrees) * 60 | 0;
+            let seconds = ((Math.abs(numberDegrees - degrees) * 60 - minutes) *60).toPrecision(setPrecision);
+            if (degrees!=0) {
+                return numberDegrees.toPrecision(setPrecision) + '°';
+            }
+            else if (minutes!=0){
+                return  (Math.abs(numberDegrees - degrees) * 60).toPrecision(setPrecision) + " arcmin";
+            }
+            else if (seconds!=0){
+                return seconds + " arcsec";
+            }
         }
  
     };
 
 })();
-

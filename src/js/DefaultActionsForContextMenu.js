@@ -74,7 +74,37 @@ export let DefaultActionsForContextMenu = (function () {
                 label: "Load local file",
                 subMenu: [
                     {
-                        label: 'Load FITS MOC', action(o) {
+                        label: 'FITS image', action(o) {
+                            let input = document.createElement('input');
+                            input.type = 'file';
+                            input.onchange = _ => {
+                                let files = Array.from(input.files);
+
+                                files.forEach(file => {
+                                    const url = URL.createObjectURL(file);
+                                    const name = file.name;
+
+                                    // Consider other cases
+                                    const image = aladinInstance.createImageFITS(
+                                        url,
+                                        name,
+                                        undefined,
+                                        (ra, dec, fov, _) => {
+                                            // Center the view around the new fits object
+                                            aladinInstance.gotoRaDec(ra, dec);
+                                            aladinInstance.setFoV(fov * 1.1);
+                                        },
+                                        undefined
+                                    );
+
+                                    aladinInstance.setOverlayImageLayer(image, name)
+                                });
+                            };
+                            input.click();
+                        }
+                    },
+                    {
+                        label: 'FITS MOC', action(o) {
                             let input = document.createElement('input');
                             input.type = 'file';
                             input.onchange = _ => {
@@ -90,7 +120,7 @@ export let DefaultActionsForContextMenu = (function () {
                         }
                     },
                     {
-                        label: 'Load VOTable', action(o) {
+                        label: 'VOTable', action(o) {
                             let input = document.createElement('input');
                             input.type = 'file';
                             input.onchange = _ => {

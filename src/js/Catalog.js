@@ -390,10 +390,8 @@ export let Catalog = (function() {
             callback: (wasm) => {
                 wasm.setCatalog(this);
                 this.reportChange();
-
             }
         });
-
     };
 
     Catalog.prototype.addFootprints = function(footprintsToAdd) {
@@ -429,10 +427,13 @@ export let Catalog = (function() {
         for (var colIdx=0 ; colIdx<columnNames.length; colIdx++) {
             fields.push({name: columnNames[colIdx]});
         }
-        var raDecFieldIdxes = findRADecFields(fields, this.raField, this.decField);
+
+        fields = Catalog.parseFields(fields, this.raField, this.decField);
+        this.setFields(fields)
+
         var raFieldIdx,  decFieldIdx;
-        raFieldIdx = raDecFieldIdxes[0];
-        decFieldIdx = raDecFieldIdxes[1];
+        raFieldIdx = fields["ra"].idx;
+        decFieldIdx = fields["dec"].idx;
 
         var newSources = [];
         var coo = new Coo();

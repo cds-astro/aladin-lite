@@ -68,7 +68,6 @@ export let VOTable = (function() {
 
                                     try {
                                         fields = ObsCore.parseFields(fields);
-
                                         fields.subtype = "ObsCore";
                                     } catch(e) {
                                         // It is not an ObsCore table

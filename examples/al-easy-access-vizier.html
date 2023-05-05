@@ -13,7 +13,7 @@
     let aladin;
     A.init.then(() => {
         aladin = A.aladin('#aladin-lite-div', {target: 'M 45', fov: 5});
-        const cat = A.catalogFromVizieR('I/311/hip2', 'M 45', 5, {onClick: 'showPopup'});
+        const cat = A.catalogFromVizieR('I/311/hip2', 'M 45', 5, {onClick: 'showTable'});
         aladin.addCatalog(cat);
     });
 </script>

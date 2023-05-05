@@ -60,7 +60,7 @@ export let MeasurementTable = (function() {
             result += '<tr>'
             for (let key in row.data) {
                 // check the type here
-                const val = row.data[key];
+                const val = row.data[key] || '--';
                 result += '<td class="' + key + '">'
                 if (typeof(val) === "string") {
                     try {

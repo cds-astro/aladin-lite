@@ -375,15 +375,31 @@ export let Catalog = (function() {
     };
 
     // API
-    Catalog.prototype.addSources = function(sourcesToAdd) {
-        sourcesToAdd = [].concat(sourcesToAdd); // make sure we have an array and not an individual source
-    	this.sources = this.sources.concat(sourcesToAdd);
-    	for (var k=0, len=sourcesToAdd.length; k<len; k++) {
-    	    sourcesToAdd[k].setCatalog(this);
+    Catalog.prototype.addSources = function(sources) {
+        if (sources.length === 0) {
+            return;
+        }
+
+        if(!this.fields) {
+            // Case where we create a catalog from scratch
+            // We have to define its fields by looking at the source data
+            let fields = [];
+            for (var key in sources[0].data) {
+                fields.push({name: key});
+            }
+
+            fields = Catalog.parseFields(fields, this.raField, this.decField);
+            this.setFields(fields);
+        }
+
+        sources = [].concat(sources); // make sure we have an array and not an individual source
+    	this.sources = this.sources.concat(sources);
+    	for (var k=0, len=sources.length; k<len; k++) {
+    	    sources[k].setCatalog(this);
 
             // Create columns oriented ra and dec
-            this.ra.push(sourcesToAdd[k].ra);
-            this.dec.push(sourcesToAdd[k].dec);
+            this.ra.push(sources[k].ra);
+            this.dec.push(sources[k].dec);
     	}
 
         ALEvent.AL_USE_WASM.dispatchedTo(document.body, {

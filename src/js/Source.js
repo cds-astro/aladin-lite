@@ -34,6 +34,7 @@ export let Source = (function() {
     	this.ra = ra;
     	this.dec = dec;
     	this.data = data;
+
     	this.catalog = null;
 
         this.marker = (options && options.marker) || false;

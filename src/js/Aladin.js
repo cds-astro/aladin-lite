@@ -300,7 +300,7 @@ export let Aladin = (function () {
 
         // simbad pointer tool
         if (options.showSimbadPointerControl) {
-            var d = $('<div class="aladin-simbadPointerControl-container" style="top: ' + top_px + 'px" title="SIMBAD pointer"><div class="aladin-simbadPointerControl"></div></div>');
+            var d = $('<div class="aladin-simbadPointerControl-container" style="top: ' + top_px + 'px" title="What is this? Click on an object to identify it."><div class="aladin-simbadPointerControl"></div></div>');
             d.appendTo(aladinDiv);
 
             d.click(function () {

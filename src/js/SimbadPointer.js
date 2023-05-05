@@ -32,6 +32,7 @@
  *****************************************************************************/
 import { Coo }            from "./libs/astro/coo.js";
 import { Utils }          from "./Utils.js";
+import { AladinUtils } from "./AladinUtils.js";
 
 export let SimbadPointer = (function() {
     const SimbadPointer = {};
@@ -41,7 +42,7 @@ export let SimbadPointer = (function() {
 
     SimbadPointer.query = function(ra, dec, radiusDegrees, aladinInstance) {
         var coo = new Coo(ra, dec, 7);
-        var params = {"Ident": coo.format('s/'), "SR": radiusDegrees}
+        var params = {"Ident": coo.format('s/'), "SR": radiusDegrees};
 
         Utils.loadFromMirrors(SimbadPointer.MIRRORS, {contentType: "text/plain", data: params})
             .then((response) => response.text())
@@ -66,13 +67,17 @@ export let SimbadPointer = (function() {
                     aladinInstance.showPopup(objCoo.lon, objCoo.lat, title, content);
                 }
                 else {
-                    aladinInstance.hidePopup();
+                    let noMatchTitle = '<div class="aladin-sp-title">Ohoh</div>';
+                    let formattedRadiusString = AladinUtils.degreesToString(radiusDegrees);
+                    let noMatchContent = '<div class="aladin-sp-content">No match was found on <a href="https://simbad.cds.unistra.fr/simbad">Simbad</a> in ' + formattedRadiusString + ' around this point.</div>';
+                    aladinInstance.showPopup(coo.lon, coo.lat, noMatchTitle, noMatchContent);
                 }
             })
             .catch((e) => {
                 aladinInstance.view.setCursor('pointer');
                 aladinInstance.hidePopup();
-            })
+            }
+            )
     };
 
     return SimbadPointer;

@@ -254,16 +254,20 @@ export let AladinUtils = (function() {
         degreesToString: function(numberDegrees) {
             let setPrecision = 3
             let degrees = numberDegrees | 0;
-            let minutes = Math.abs(numberDegrees - degrees) * 60 | 0;
-            let seconds = ((Math.abs(numberDegrees - degrees) * 60 - minutes) *60).toPrecision(setPrecision);
+            let notDegrees = Math.abs(numberDegrees - degrees);
+            let minutes = notDegrees * 60 | 0;
+            let seconds = ((notDegrees* 60 - minutes) *60).toPrecision(setPrecision);
             if (degrees!=0) {
                 return numberDegrees.toPrecision(setPrecision) + '°';
             }
             else if (minutes!=0){
-                return  (Math.abs(numberDegrees - degrees) * 60).toPrecision(setPrecision) + " arcmin";
+                return  (notDegrees * 60).toPrecision(setPrecision) + " arcmin";
             }
             else if (seconds!=0){
                 return seconds + " arcsec";
+            }
+            else {
+                return "0°";
             }
         }
  

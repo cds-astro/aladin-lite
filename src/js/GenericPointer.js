@@ -26,7 +26,7 @@ export let GenericPointer = (function (view, e) {
             PlanetaryFeaturesPointer.query(radec[0], radec[1], Math.min(80, view.fov / 20.0), body, view.aladin);
         }
     } else {
-            console.log("Cannot unproject at the location you clicked on");
+            console.log("The location you clicked on is out of the view.");
         }
 }
 )

@@ -591,17 +591,6 @@ export let Catalog = (function() {
             return false;
         }
 
-        let xy = AladinUtils.radecToViewXy(s.ra, s.dec, this.view);
-
-        //if (xy) {
-        //    [s.x, s.y] = xy;
-            //var max = s.popup ? 100 : this.sourceSize;
-            // TODO : index sources by HEALPix cells at level 3, 4 ?
-
-            // check if source is visible in view
-            //if (xy[0]>(width+max) || xy[0]<(0-max) ||
-            //    xy[1]>(height+max) || xy[1]<(0-max)) {
-            
         if (s.x <= width && s.x >= 0 && s.y <= height && s.y >= 0) {
             if (this._shapeIsFunction) {
                 this.shape(s, ctx, this.view.getViewParams());
@@ -623,7 +612,6 @@ export let Catalog = (function() {
 
             return true;
         }
-        //}
 
         return false;
     };

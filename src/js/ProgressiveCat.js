@@ -81,9 +81,6 @@ export let ProgressiveCat = (function() {
 
         this.updateShape(options);
 
-
-
-
         this.maxOrderAllsky = 2;
         this.isReady = false;
     };
@@ -493,11 +490,19 @@ export let ProgressiveCat = (function() {
             if (norder > this.maxOrder) {
                 norder = this.maxOrder;
             }
+
+            var cells = this.view.getVisibleCells(norder);
+            // Limit the number of cells to fetch by looking for smaller orders
+            let customNorder = norder;
+            while (cells.length > 12 && customNorder > this.maxOrderAllsky) {
+                customNorder--;
+                cells = this.view.getVisibleCells(customNorder);
+            }
+
+            norder = customNorder;
             if (norder<=this.maxOrderAllsky) {
                 return; // nothing to do, hurrayh !
             }
-
-            var cells = this.view.getVisibleCells(norder);
 
             var ipixList, ipix;
             for (var curOrder=3; curOrder<=norder; curOrder++) {
@@ -516,7 +521,6 @@ export let ProgressiveCat = (function() {
             }
             
             var t, key;
-            var self = this;
             for (var k=0; k<this.tilesInView.length; k++) {
                 t = this.tilesInView[k];
                 key = t[0] + '-' + t[1]; // t[0] is norder, t[1] is ipix

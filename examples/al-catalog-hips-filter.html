@@ -37,7 +37,7 @@ Show sources with proper motion greater than:
             return totalPm>pmThreshold;
         }
         
-        aladin = A.aladin('#aladin-lite-div', {target: 'gal center',fov: 150});
+        aladin = A.aladin('#aladin-lite-div', {target: 'gal center',fov: 150, showContextMenu: true});
         var hips = A.catalogHiPS('http://axel.u-strasbg.fr/HiPSCatService/I/345/gaia2', {onClick: 'showTable', color: 'orange', name: 'Gaia', filter: myFilterFunction});
          aladin.addCatalog(hips);
         

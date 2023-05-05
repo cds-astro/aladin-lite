@@ -1,0 +1,44 @@
+<!doctype html>
+<html>
+<head>
+</head>
+<body>
+
+<div id="aladin-lite-div" style="width: 1024px; height: 768px"></div>
+
+<div id='aladin-statsDiv'></div>
+<script type="text/javascript" src="./../aladin.js" charset="utf-8"></script>
+
+<script type="text/javascript">
+    let aladin;
+    A.init.then(() => {
+        aladin = A.aladin('#aladin-lite-div', {target: 'LMC', fov: 55, showContextMenu: true});
+        // define custom draw function
+        var drawFunction = function(source, canvasCtx, viewParams) {
+            canvasCtx.beginPath();
+            canvasCtx.arc(source.x, source.y, source.data['coo_err_min'] * 5, 0, 2 * Math.PI, false);
+            canvasCtx.closePath();
+            canvasCtx.strokeStyle = '#c38';
+            canvasCtx.lineWidth = 3;
+            canvasCtx.globalAlpha = 0.7,
+            canvasCtx.stroke();
+            var fov = Math.max(viewParams['fov'][0], viewParams['fov'][1]);
+
+            // object name is displayed only if fov<10°
+            if (fov>10) {
+                return;
+            }
+
+            canvasCtx.globalAlpha = 0.9;
+            canvasCtx.globalAlpha = 1;
+        };
+
+        var hips = A.catalogHiPS('https://axel.u-strasbg.fr/HiPSCatService/Simbad', {onClick: 'showTable', name: 'Simbad', shape: drawFunction});
+        aladin.addCatalog(hips);
+    });
+</script>
+
+</body>
+</html>
+
+

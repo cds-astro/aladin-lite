@@ -79,10 +79,21 @@ export let ProgressiveCat = (function() {
         // we cache the list of sources in each healpix tile. Key of the cache is norder+'-'+npix
         this.sourcesCache = new Utils.LRUCache(256);
 
+        //added to allow hips catalogue to also use shape functions
+        if (this.shape instanceof Image || this.shape instanceof HTMLCanvasElement) {
+            this.sourceSize = this.shape.width;
+        }
+        this._shapeIsFunction = false; // if true, the shape is a function drawing on the canvas
+        if (typeof this.shape === 'function') {
+            this._shapeIsFunction = true;
+        }
+
         this.updateShape(options);
 
         this.maxOrderAllsky = 2;
         this.isReady = false;
+
+        this.tilesInView = [];
     };
 
     // TODO: to be put higher in the class diagram, in a HiPS generic class
@@ -211,8 +222,6 @@ export let ProgressiveCat = (function() {
         }
         return sources;
     };
-
-    //ProgressiveCat.prototype.updateShape = Catalog.prototype.updateShape;
 
     ProgressiveCat.prototype = {
 
@@ -345,13 +354,13 @@ export let ProgressiveCat = (function() {
                 return;
             }
 
+            if (this._shapeIsFunction) {
+                ctx.save();
+            }
+
             this.drawSources(this.order1Sources, ctx, width, height);
             this.drawSources(this.order2Sources, ctx, width, height);
             this.drawSources(this.order3Sources, ctx, width, height);
-            
-            if (!this.tilesInView) {
-                return;
-            }
 
             var sources, key, t;
             for (var k=0; k<this.tilesInView.length; k++) {
@@ -361,6 +370,10 @@ export let ProgressiveCat = (function() {
                 if (sources) {
                     this.drawSources(sources, ctx, width, height);
                 }
+            }
+
+            if (this._shapeIsFunction) {
+                ctx.restore();
             }
         },
         drawSources: function(sources, ctx, width, height) {

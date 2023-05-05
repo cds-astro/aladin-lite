@@ -576,12 +576,7 @@ export let Catalog = (function() {
                     sourcesInsideView.push(s);
                 }
             }
-
-            //if (this.drawSource(s, ctx, width, height)) {
-            //    sourcesInsideView.push(s);
-            //}
         });
-        //this.view.wasm.drawSources(this.sources, ctx);
 
         return sourcesInsideView;
     };

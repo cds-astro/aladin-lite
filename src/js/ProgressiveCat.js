@@ -84,15 +84,16 @@ export let ProgressiveCat = (function() {
             this.sourceSize = this.shape.width;
         }
         this._shapeIsFunction = false; // if true, the shape is a function drawing on the canvas
-        if ($.isFunction(this.shape)) {
+        if (typeof this.shape === 'function') {
             this._shapeIsFunction = true;
         }
-
 
         this.updateShape(options);
 
         this.maxOrderAllsky = 2;
         this.isReady = false;
+
+        this.tilesInView = [];
     };
 
     // TODO: to be put higher in the class diagram, in a HiPS generic class
@@ -221,8 +222,6 @@ export let ProgressiveCat = (function() {
         }
         return sources;
     };
-
-    //ProgressiveCat.prototype.updateShape = Catalog.prototype.updateShape;
 
     ProgressiveCat.prototype = {
 
@@ -362,13 +361,6 @@ export let ProgressiveCat = (function() {
             this.drawSources(this.order1Sources, ctx, width, height);
             this.drawSources(this.order2Sources, ctx, width, height);
             this.drawSources(this.order3Sources, ctx, width, height);
-            if (this._shapeIsFunction) {
-                ctx.restore();
-            }
-            
-            if (!this.tilesInView) {
-                return;
-            }
 
             var sources, key, t;
             for (var k=0; k<this.tilesInView.length; k++) {
@@ -378,6 +370,10 @@ export let ProgressiveCat = (function() {
                 if (sources) {
                     this.drawSources(sources, ctx, width, height);
                 }
+            }
+
+            if (this._shapeIsFunction) {
+                ctx.restore();
             }
         },
         drawSources: function(sources, ctx, width, height) {

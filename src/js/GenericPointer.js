@@ -14,7 +14,7 @@ export let GenericPointer = (function (view, e) {
     let radec = view.wasm.screenToWorld(xymouse.x, xymouse.y);
     if (radec) {
         // sky case
-        if (view.aladin.getBaseImageLayer().properties.isPlanetaryBody === false) {
+        if (view.aladin.getBaseImageLayer().isPlanetaryBody() === false) {
             const queryRadius = Math.min(1, 15 * view.fov / view.largestDim);
             console.log('queryRadius "generic pointer": ', queryRadius);
             SimbadPointer.query(radec[0], radec[1], queryRadius, view.aladin);

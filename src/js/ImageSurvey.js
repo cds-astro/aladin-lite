@@ -370,6 +370,10 @@ export let ImageSurvey = (function () {
         }
     }
 
+    ImageSurvey.prototype.isPlanetaryBody = function() {
+        return this.properties.isPlanetaryBody;
+    }
+
     // @api
     // TODO: include imgFormat inside the ImageSurvey's meta attribute
     ImageSurvey.prototype.setImageFormat = function (format) {

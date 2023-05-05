@@ -242,6 +242,11 @@ export let ImageFITS = (function () {
         }
     };
 
+    // FITS images does not mean to be used for storing planetary data
+    ImageFITS.prototype.isPlanetaryBody = function() {
+        return false;
+    }
+
     // @api
     ImageFITS.prototype.focusOn = function () {
         // ensure the fits have been parsed

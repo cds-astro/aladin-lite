@@ -358,19 +358,29 @@ export let ProgressiveCat = (function() {
                 ctx.save();
             }
 
+            // Order must be >= 0
             this.drawSources(this.order1Sources, ctx, width, height);
-            this.drawSources(this.order2Sources, ctx, width, height);
-            this.drawSources(this.order3Sources, ctx, width, height);
 
-            var sources, key, t;
-            for (var k=0; k<this.tilesInView.length; k++) {
-                t = this.tilesInView[k];
-                key = t[0] + '-' + t[1];
+            if (this.view.realNorder >= 1) {
+                this.drawSources(this.order2Sources, ctx, width, height);
+            }
+
+            // For old allsky, tilesInView refers to tiles at orders 4..
+            // For new allsky, tilesInView will contains order3 sources
+            if (this.maxOrderAllsky === 3) {
+                if (this.view.realNorder >= 2) {
+                    this.drawSources(this.order3Sources, ctx, width, height);
+                }
+            }
+
+            let key, sources;
+            this.tilesInView.forEach((tile) => {
+                key = tile[0] + '-' + tile[1];
                 sources = this.sourcesCache.get(key);
                 if (sources) {
                     this.drawSources(sources, ctx, width, height);
                 }
-            }
+            });
 
             if (this._shapeIsFunction) {
                 ctx.restore();
@@ -397,16 +407,7 @@ export let ProgressiveCat = (function() {
                         self.drawSource(s, ctx, width, height)
                     }
                 }
-                //if (this.drawSource(s, ctx, width, height)) {
-                //    sourcesInsideView.push(s);
-                //}
             });
-
-            /*sources.forEach((s) => {
-                if (!this.filterFn || this.filterFn(s)) {
-                    this.drawSource(s, ctx, width, height);
-                }
-            })*/
         },
 
         drawSource: Catalog.prototype.drawSource,
@@ -505,6 +506,7 @@ export let ProgressiveCat = (function() {
             }
 
             var cells = this.view.getVisibleCells(norder);
+            
             // Limit the number of cells to fetch by looking for smaller orders
             let customNorder = norder;
             while (cells.length > 12 && customNorder > this.maxOrderAllsky) {
@@ -518,7 +520,7 @@ export let ProgressiveCat = (function() {
             }
 
             var ipixList, ipix;
-            for (var curOrder=3; curOrder<=norder; curOrder++) {
+            for (var curOrder=this.maxOrderAllsky+1; curOrder<=norder; curOrder++) {
                 ipixList = [];
                 for (var k=0; k<cells.length; k++) {
                     ipix = Math.floor(cells[k].ipix / Math.pow(4, norder - curOrder));

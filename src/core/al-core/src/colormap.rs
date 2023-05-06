@@ -89,7 +89,7 @@ impl Colormaps {
         let labels: Vec<_> = [
             "blues", "cividis", "cubehelix", "eosb",
             "grayscale", "inferno", "magma", "native",
-            "parula", "plasma", "rdbu",
+            "parula", "plasma", "rainbow", "rdbu",
             "rdylbu", "redtemperature", "sinebow", "spectral", "summer",
             "viridis", "ylgnbu", "ylorbr", "red", "green", "blue"
         ]
@@ -135,6 +135,23 @@ impl Colormaps {
                     .map_err(|err| JsValue::from_str(&format!("{:?}", err)))?
             }),
             Colormap::new("plasma", colorgrad::plasma()),
+            Colormap::new("rainbow", {
+                colorgrad::CustomGradient::new()
+                    .colors(&[
+                        Color::from_rgba8(127, 0, 255, 255),
+                        Color::from_rgba8(0, 0, 255, 255),
+                        Color::from_rgba8(0, 127, 255, 255),
+                        Color::from_rgba8(0, 255, 255, 255),
+                        Color::from_rgba8(0, 255, 127, 255),
+                        Color::from_rgba8(0, 255, 0, 255),
+                        Color::from_rgba8(127, 255, 0, 255),
+                        Color::from_rgba8(255, 255, 0, 255),
+                        Color::from_rgba8(255, 127, 0, 255),
+                        Color::from_rgba8(255, 0, 0, 255),
+                    ])
+                    .build()
+                    .map_err(|err| JsValue::from_str(&format!("{:?}", err)))?
+            }),
             Colormap::new("rdbu", colorgrad::rd_bu()),
             Colormap::new("rdylbu", colorgrad::rd_yl_bu()),
             Colormap::new("redtemperature", {

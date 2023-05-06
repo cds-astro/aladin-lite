@@ -141,15 +141,14 @@ export class Stack {
         )
 
         layerBox.append('<div class="aladin-box-separator"></div>' +
-            '<div class="aladin-label">Image layers</div>' +
-            '<button class="aladin-btn add-layer-hips" type="button">Add survey</button>'
-        );
-        $(this.mainDiv).find('.add-layer-hips').click(function () {
-            self.aladin.addNewImageLayer();
-        });
+            '<div class="aladin-label">Image layers</div>');
+
 
         if (this.imgLayers.size > 1) {
-            layerBox.append('<div class="aladin-label">Overlay layers</div>')
+            layerBox.append(
+                '<div class="aladin-label" style="font-size: 12px">Overlays</div>'
+            );
+
             Array.from(self.aladin.getImageOverlays()).reverse().forEach((layer) => {
                 let imgLayer = self.imgLayers.get(layer);
 
@@ -158,24 +157,49 @@ export class Stack {
                 }
             });
         }
+        layerBox.append(
+            '<div class="aladin-label" style="font-size: 12px">Base</div>'
+        );
 
-        layerBox.append('<div class="aladin-label">Base layer</div>');
         if (this.imgLayers.has("base")) {
             this.imgLayers.get("base").attachTo(layerBox);
         }
 
-        layerBox.append('<div class="aladin-label">Background color</div>');
+        layerBox.append(
+            '<button class="aladin-btn add-layer-hips" type="button" title="Add a full survey (i.e. HiPS)">Add survey</button>' +
+            '<button class="aladin-btn add-layer-image" type="button" title="Add a single image (only FITS file supported)">Open image 📂</button>'
+        );
 
-        let backgroundColorInput = $('<input type="color">');
-        layerBox.append(backgroundColorInput);
+        $(this.mainDiv).find('.add-layer-hips').on('click', function () {
+            self.aladin.addNewImageLayer();
+        });
+        $(this.mainDiv).find('.add-layer-image').on('click', function () {
+            let input = document.createElement('input');
+            input.type = 'file';
+            input.onchange = _ => {
+                let files = Array.from(input.files);
 
-        // Set a default background color
-        backgroundColorInput.val(this.backgroundColor);
-        self.aladin.setBackgroundColor(Color.hexToRgb(this.backgroundColor));
+                files.forEach(file => {
+                    const url = URL.createObjectURL(file);
+                    const name = file.name;
 
-        backgroundColorInput.on('input', () => {
-            self.backgroundColor = backgroundColorInput.val();
-            self.aladin.setBackgroundColor(Color.hexToRgb(self.backgroundColor));
+                    // Consider other cases
+                    const image = self.aladin.createImageFITS(
+                        url,
+                        name,
+                        undefined,
+                        (ra, dec, fov, _) => {
+                            // Center the view around the new fits object
+                            self.aladin.gotoRaDec(ra, dec);
+                            self.aladin.setFoV(fov * 1.1);
+                        },
+                        undefined
+                    );
+
+                    self.aladin.setOverlayImageLayer(image, name)
+                });
+            };
+            input.click();
         });
 
         layerBox.append('<div class="aladin-box-separator"></div>' +
@@ -254,6 +278,21 @@ export class Stack {
         layerBox.append(hpxGridCb).append('<label for="displayHpxGrid">HEALPix grid</label><br/>');
         hpxGridCb.change(function () {
             self.aladin.showHealpixGrid($(this).is(':checked'));
+        });
+
+        layerBox.append('<div class="aladin-box-separator"></div>' +
+        '<div class="aladin-label">Background color</div>');
+
+        let backgroundColorInput = $('<input type="color">');
+        layerBox.append(backgroundColorInput);
+
+        // Set a default background color
+        backgroundColorInput.val(this.backgroundColor);
+        self.aladin.setBackgroundColor(Color.hexToRgb(this.backgroundColor));
+
+        backgroundColorInput.on('input', () => {
+            self.backgroundColor = backgroundColorInput.val();
+            self.aladin.setBackgroundColor(Color.hexToRgb(self.backgroundColor));
         });
 
         layerBox.append('<div class="aladin-box-separator"></div>' +

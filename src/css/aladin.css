@@ -737,11 +737,6 @@ canvas {
     width: 8em;
 }
 
-.add-layer-hips {
-    margin-top: 0.2em;
-}
-
-
 /* Icons figuring layers in the Stack */
 .aladin-stack-icon {
 	width: 16px;
@@ -776,6 +771,15 @@ canvas {
 }
 
 .indicator {
+    border-radius: 2px;
+    border: 1px solid transparent;
+    background-color: #428bca;
+    color: #161618;
+    border-color: #357ebd;
+    padding: 0.2em;
+    margin-left: 0.2em;
+    margin-right: 0.2em;
+
     font-family: monospace;
     cursor: pointer;
 }

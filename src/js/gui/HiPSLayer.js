@@ -47,7 +47,7 @@ export class HiPSLayer {
         this.headerDiv = $(
             '<div class="aladin-layer">' +
                 '<div class="aladin-layer-header" style="border-radius: 4px">' +
-                    '<span class="indicator right-triangle">&nbsp;</span>' +
+                    '<span class="indicator right-triangle" title="Open the color panel"></span>' +
                     '<select class="aladin-layerSelection"></select>' +
                     '<button class="aladin-btn-small aladin-layer-hide" type="button" title="Hide this layer">👁️</button>' +
                     '<button class="aladin-btn-small aladin-HiPSSelector" type="button" title="Search for a specific HiPS">🔍</button>' +

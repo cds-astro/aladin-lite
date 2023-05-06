@@ -1866,8 +1866,11 @@ A.catalogFromURL = function (url, options, successCallback, useProxy) {
                 // Set the name of the catalog to be ObsCore:<catalog name>
                 catalog.name = "ObsCore:" + url;
 
-                ObsCore.handleActions(catalog);
             }
+
+            // Even if the votable is not a proper ObsCore one, try to see if specific columns are given
+            // e.g. access_format and access_url
+            ObsCore.handleActions(catalog);
 
             catalog.addFootprints(footprints)
             catalog.addSources(sources);

@@ -417,3 +417,9 @@ Utils.handleCORSNotSameOrigin = function(url) {
 Utils.deepCopy = function(orig) {
     return Object.assign(Object.create(Object.getPrototypeOf(orig)), orig);
 }
+
+Utils.download = function(url) {
+    const a = document.createElement('a')
+    a.href = url
+    a.click()
+}

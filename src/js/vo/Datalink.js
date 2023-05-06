@@ -65,41 +65,49 @@ export let Datalink = (function() {
                             let contentType = row['content_type'];
                             let contentQualifier = row['content_qualifier'];
 
-                            if (contentType === "application/hips") {
-                                // Clic on a HiPS
-                                let survey = aladinInstance.newImageSurvey(url);
-                                aladinInstance.setOverlayImageLayer(survey, Utils.uuidv4())
-                            }
+                            let processImageFitsClick = () => {
+                                var successCallback = ((ra, dec, fov, _) => {
+                                    aladinInstance.gotoRaDec(ra, dec);
+                                    aladinInstance.setFoV(fov);
+                                });
+                
+                                let image = aladinInstance.createImageFITS(url, url, {}, successCallback);
+                                aladinInstance.setOverlayImageLayer(image, Utils.uuidv4())
+                            };
 
-                            if (contentType === "image/fits") {
-                                if (contentQualifier === "image") {
-                                    // fits image
-                                    let image = aladinInstance.createImageFITS(url);
-                                    aladinInstance.setOverlayImageLayer(image, Utils.uuidv4())
-                                } else if (contentQualifier === "cube") {
-                                    // fits cube
-                                    console.warn("Cube not handled, only first slice downloaded")
-                                    let image = aladinInstance.createImageFITS(url);
-                                    aladinInstance.setOverlayImageLayer(image, Utils.uuidv4())
-                                }
-                            } 
+                            switch (contentType) {
+                                case 'application/hips':
+                                    // Clic on a HiPS
+                                    let survey = aladinInstance.newImageSurvey(url);
+                                    aladinInstance.setOverlayImageLayer(survey, Utils.uuidv4())
+                                    break;
+                                // Any generic FITS file
+                                case 'application/fits':
+                                    if (contentQualifier === "cube") {
+                                        // fits cube
+                                        console.warn("Cube not handled, only first slice downloaded")
+                                    }
+
+                                    processImageFitsClick();
+                                    break;
+                                case 'image/fits':
+                                    if (contentQualifier === "cube") {
+                                        // fits cube
+                                        console.warn("Cube not handled, only first slice downloaded")
+                                    }
+
+                                    processImageFitsClick();
+                                    break;
+                                default:
+                                    // When all has been done, download what's under the link
+                                    Utils.download(url);
+                                    break;
+                            }
                         }
                     }
                 }
 
                 aladinInstance.measurementTable.showMeasurement([datalinkTable], { save: true });
-                /*aladinInstance.contextMenu.attachTo(aladinInstance.measurementTable.element, [
-                    {
-                        label: "Go back", action(o) {
-                            aladinInstance.measurementTable.showPreviousMeasurement()
-                        }
-                    },
-                    {
-                        label: "Go Next", action(o) {
-                            aladinInstance.measurementTable.showNextMeasurement()
-                        }
-                    },
-                ]);*/
             }
         )
     };

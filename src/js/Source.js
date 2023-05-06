@@ -109,11 +109,11 @@ export let Source = (function() {
                 };
 
                 let options = {};
-                if (this.catalog.isObsCore && this.catalog.isObsCore()) {
+                //if (this.catalog.isObsCore && this.catalog.isObsCore()) {
                     // If the source is obscore, save the table state inside the measurement table
                     // This is used to go back from a possible datalink table to the obscore one
                     options["save"] = true;
-                }
+                //}
                 view.aladin.measurementTable.hide();
                 view.aladin.measurementTable.showMeasurement([singleSourceTable], options);
             }

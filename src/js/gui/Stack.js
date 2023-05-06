@@ -166,7 +166,7 @@ export class Stack {
         }
 
         layerBox.append(
-            '<button class="aladin-btn add-layer-hips" type="button" title="Add a full survey (i.e. HiPS)">Add survey</button>' +
+            '<button class="aladin-btn add-layer-hips" type="button" title="Add a full survey (i.e. a HiPS)">Add survey</button>' +
             '<button class="aladin-btn add-layer-image" type="button" title="Add a single image (only FITS file supported)">Open image 📂</button>'
         );
 

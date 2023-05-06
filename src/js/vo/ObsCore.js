@@ -201,6 +201,18 @@
             let url = row[accessUrlFieldName];
             let accessFormat = row[accessFormatFieldName];
 
+            let processImageFitsClick = () => {
+                var obsId = fields['obs_id'] && row[fields['obs_id'].name];
+                var name = obsId || url;
+                var successCallback = ((ra, dec, fov, _) => {
+                    aladinInstance.gotoRaDec(ra, dec);
+                    aladinInstance.setFoV(fov);
+                });
+
+                let image = aladinInstance.createImageFITS(url, name, {}, successCallback);
+                aladinInstance.setOverlayImageLayer(image, Utils.uuidv4())
+            };
+
             switch (accessFormat) {
                 // A datalink response containing links to datasets or services attached to the current dataset
                 case 'application/x-votable+xml;content=datalink':
@@ -209,18 +221,19 @@
                 break;
                 // Any multidimensional regularly sampled FITS image or cube
                 case 'image/fits':
-                    aladinInstance.setOverlayImageLayer(aladinInstance.createImageFITS(url), Utils.uuidv4())
-                break;
+                    processImageFitsClick();
+                    break;
                 // Any generic FITS file
                 case 'application/fits':
-                    aladinInstance.setOverlayImageLayer(aladinInstance.createImageFITS(url), Utils.uuidv4())
-                break;
+                    processImageFitsClick();
+                    break;
                 // A FITS multi-extension file (multiple extensions)
                 case 'application/x-fits-mef':
-                    aladinInstance.setOverlayImageLayer(aladinInstance.createImageFITS(url), Utils.uuidv4())
-                break;
+                    processImageFitsClick();
+                    break;
                 default:
-                    console.warn("Access format {access_format} not yet implemented")
+                    console.warn("Access format ", accessFormat, " not yet implemented or not recognized. Download the file triggered")
+                    Utils.download(url)
                     break;
             }
         });

@@ -770,7 +770,7 @@ canvas {
   transform: rotate(270deg);
 }
 
-.indicator {
+.aladin-layer .aladin-layer-header .indicator {
     border-radius: 2px;
     border: 1px solid transparent;
     background-color: #428bca;

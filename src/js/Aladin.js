@@ -1931,6 +1931,7 @@ A.catalogFromVizieR = function (vizCatId, target, radius, options, successCallba
     if (!('name' in options)) {
         options['name'] = 'VizieR:' + vizCatId;
     }
+
     var url = URLBuilder.buildVizieRCSURL(vizCatId, target, radius, options);
     return A.catalogFromURL(url, options, successCallback, false);
 };

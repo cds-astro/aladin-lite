@@ -63,9 +63,16 @@ export let URLBuilder = (function() {
             if (options && options.hasOwnProperty('limit') && Utils.isNumber(options.limit)) {
                 maxNbSources = parseInt(options.limit);
             }
-            return 'https://vizier.unistra.fr/viz-bin/votable?-source=' + vizCatId + '&-c=' + encodeURIComponent(target) + '&-out.max=' + maxNbSources + '&-c.rd=' + radiusDegrees;
-            //return 'https://vizier.unistra.fr/viz-bin/conesearch/' + vizCatId + '?ra=' + target.ra + '&dec=' + target.dec + '&sr=' + radiusDegrees;
 
+            let url = 'https://vizier.unistra.fr/viz-bin/votable?-source=' + vizCatId + '&-c=' + encodeURIComponent(target)+ '&-out.max=' + maxNbSources + '&-c.rd=' + radiusDegrees;
+
+            // Option to tell if we want all the columns
+            if (options && options.hasOwnProperty('all') && options.all === true) {
+                url = url + '&-out.all';
+            }
+
+            return url;
+            //return 'https://vizier.unistra.fr/viz-bin/conesearch/' + vizCatId + '?ra=' + target.ra + '&dec=' + target.dec + '&sr=' + radiusDegrees;
         },
 
         buildSkyBotCSURL: function(ra, dec, radius, epoch, queryOptions) {

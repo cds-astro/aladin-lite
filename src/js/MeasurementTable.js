@@ -244,6 +244,10 @@ export let MeasurementTable = (function() {
                     let tableElement = self.element.querySelector('table');
                     tableElement.style.borderColor = table["color"]
 
+                    let thead = self.element.querySelector("thead");
+                    // replace the old header with the one of the current table
+                    thead.parentNode.replaceChild(MeasurementTable.createTableHeader(table), thead);
+
                     self.updateRows()
                 }
                 ,false

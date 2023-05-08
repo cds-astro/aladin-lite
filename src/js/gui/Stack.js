@@ -62,10 +62,10 @@ export class Stack {
                     let selectedHipsLayer = self.imgLayers.get(layer);
 
                     let layerElement = selectedHipsLayer.headerDiv[0];
-                    layerElement.style.backgroundColor = "gainsboro";
+                    layerElement.style.backgroundColor = "#f2f2f2";
 
                     let headerLayerElement = layerElement.querySelector(".aladin-layer-header")
-                    headerLayerElement.style.backgroundColor = "gainsboro";
+                    headerLayerElement.style.backgroundColor = "#f2f2f2";
                 })
         };
 
@@ -74,10 +74,10 @@ export class Stack {
             const layer = hipsLayer.layer.layer;
 
             let layerElement = hipsLayer.headerDiv[0];
-            layerElement.style.backgroundColor = "darkgray";
+            layerElement.style.backgroundColor = "lightgray";
 
             let headerLayerElement = layerElement.querySelector(".aladin-layer-header")
-            headerLayerElement.style.backgroundColor = "gray";
+            headerLayerElement.style.backgroundColor = "lightgray";
 
             // Set the active hips layer
             self.aladin.setActiveHiPSLayer(layer);
@@ -207,7 +207,7 @@ export class Stack {
 
         // loop over all overlay layers
         var layers = this.aladin.getOverlays();
-        var str = '<ul>';
+        var str = '<ul class="aladin-overlay-list">';
         for (var k = layers.length - 1; k >= 0; k--) {
             var layer = layers[k];
             var name = layer.name;
@@ -239,7 +239,7 @@ export class Stack {
             // retrieve SVG icon, and apply the layer color
             var svgBase64 = window.btoa(iconSvg.replace(/FILLCOLOR/g, layer.color));
             str += '<li><div class="aladin-stack-icon" style=\'background-image: url("data:image/svg+xml;base64,' + svgBase64 + '");\'></div>';
-            str += '<input type="checkbox" ' + checked + ' id="aladin_lite_' + layer.uuid + '"></input><label for="aladin_lite_' + layer.uuid + '" class="aladin-layer-label" style="background: ' + layer.color + '; color:' + labelColor + ';" title="' + tooltipText + '">' + name + '</label>';
+            str += '<input class="aladin-input" type="checkbox" ' + checked + ' id="aladin_lite_' + layer.uuid + '"></input><label for="aladin_lite_' + layer.uuid + '" class="aladin-layer-label" style="background: ' + layer.color + '; color:' + labelColor + ';" title="' + tooltipText + '">' + name + '</label>';
             str += ' <button class="aladin-btn-small aladin-delete-graphic-layer" type="button" title="Delete this layer" data-uuid="' + layer.uuid + '" style="font-size: 10px!important; vertical-align: text-bottom!important; background-color: unset!important;">❌</button>';
             str += '</li>';
         }
@@ -263,7 +263,7 @@ export class Stack {
         if (self.aladin.isReticleDisplayed()) {
             checked = 'checked="checked"';
         }
-        var reticleCb = $('<input type="checkbox" ' + checked + ' id="displayReticle" />');
+        var reticleCb = $('<input class="aladin-input" type="checkbox" ' + checked + ' id="displayReticle" />');
         layerBox.append(reticleCb).append('<label for="displayReticle">Reticle</label><br/>');
         reticleCb.change(function () {
             self.aladin.showReticle($(this).is(':checked'));
@@ -274,7 +274,7 @@ export class Stack {
         if (self.aladin.isHpxGridDisplayed()) {
             checked = 'checked="checked"';
         }
-        var hpxGridCb = $('<input type="checkbox" ' + checked + ' id="displayHpxGrid"/>');
+        var hpxGridCb = $('<input class="aladin-input" type="checkbox" ' + checked + ' id="displayHpxGrid"/>');
         layerBox.append(hpxGridCb).append('<label for="displayHpxGrid">HEALPix grid</label><br/>');
         hpxGridCb.change(function () {
             self.aladin.showHealpixGrid($(this).is(':checked'));

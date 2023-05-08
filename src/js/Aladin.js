@@ -122,7 +122,7 @@ export let Aladin = (function () {
 
         // locationDiv is the div where we write the position
         const locationDiv = $('<div class="aladin-location">'
-            + (options.showFrame ? '<select class="aladin-frameChoice"><option value="' + CooFrameEnum.J2000.label + '" '
+            + (options.showFrame ? '<select class="aladin-selector aladin-frameChoice"><option value="' + CooFrameEnum.J2000.label + '" '
                 + (cooFrame == CooFrameEnum.J2000 ? 'selected="selected"' : '') + '>J2000</option><option value="' + CooFrameEnum.J2000d.label + '" '
                 + (cooFrame == CooFrameEnum.J2000d ? 'selected="selected"' : '') + '>J2000d</option><option value="' + CooFrameEnum.GAL.label + '" '
                 + (cooFrame == CooFrameEnum.GAL ? 'selected="selected"' : '') + '>GAL</option></select>' : '')
@@ -268,9 +268,8 @@ export let Aladin = (function () {
 
             var gotoBox =
                 $('<div class="aladin-box aladin-gotoBox">' +
-                    '<a class="aladin-closeBtn">&times;</a>' +
-                    '<div style="clear: both;"></div>' +
-                    '<form class="aladin-target-form">Go to: <input type="text" placeholder="Object name/position" /></form></div>');
+                    '<a class="aladin-closeBtn" style="display: inline-block">&times;</a>' +
+                    '<form class="aladin-target-form" style="display: inline-block">Go to: <input class="aladin-input" type="text" placeholder="Object name/position" /></form></div>');
             gotoBox.appendTo(aladinDiv);
             this.boxes.push(gotoBox);
 
@@ -363,7 +362,7 @@ export let Aladin = (function () {
                     '<a class="aladin-closeBtn">&times;</a>' +
                     '<div style="clear: both;"></div>' +
                     'Link to previewer: <span class="info"></span>' +
-                    '<input type="text" class="aladin-shareInput" />' +
+                    '<input type="text" class="aladin-input aladin-shareInput" />' +
                     '</div>');
             shareBox.appendTo(aladinDiv);
             this.boxes.push(shareBox);

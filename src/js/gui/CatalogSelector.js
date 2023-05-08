@@ -57,10 +57,10 @@ import $ from 'jquery';
             '<div class="aladin-box-title">Select Catalogue:</div>' +
             '<div class="aladin-box-content">' +
                 '<div class="aladin-label" for="' + autocompleteId + '">By ID, title, keyword</div>' +
-                '<input style="width:100%;" name="' + autocompleteId + '" id="' + autocompleteId + '" type="text" placeholder="Type keyword or VOTable URL" />' +
+                '<input class="aladin-input" style="width:100%;" name="' + autocompleteId + '" id="' + autocompleteId + '" type="text" placeholder="Type keyword or VOTable URL" />' +
                 '<div class="aladin-row cone-search" style="font-size: 12px;">' +
-                    '<div><input type="number" value="1.0" style="width: 4em;" maxlength="5" size="5"> <select style="padding: 4px 0!important;"><option>deg<option>arcmin<option>arcsec</select> around view center</div>' +
-                    '<div>Limit to <input type="number" min="1" max="10000" value="1000" style="width: 5em;"> sources</div>' +
+                    '<div><input class="aladin-input" type="number" value="1.0" style="width: 4em;" maxlength="5" size="5"> <select class="aladin-selector" style="padding: 4px 0!important;"><option>deg<option>arcmin<option>arcsec</select> around view center</div>' +
+                    '<div>Limit to <input class="aladin-input" type="number" min="1" max="10000" value="1000" style="width: 5em;"> sources</div>' +
                 '</div>' +
                 '<div class="aladin-row">' +
                     '<div class="aladin-col">' +
@@ -70,7 +70,7 @@ import $ from 'jquery';
                 '</div>' +
                 '<div class="aladin-box-separator"></div>' +
                 '<div class="aladin-label" for="' + autocompleteId + '">By VOTable URL</div>' +
-                '<input style="width:100%;" name="' + autocompleteId + '" id="' + autocompleteId + '" type="text" placeholder="Enter VOTable URL" />' +
+                '<input class="aladin-input" style="width:100%;" name="' + autocompleteId + '" id="' + autocompleteId + '" type="text" placeholder="Enter VOTable URL" />' +
                 '<div class="votable"><button class="aladin-btn">Load VOTable</button></div>' +
             '</div>'
         );

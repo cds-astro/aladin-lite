@@ -47,8 +47,8 @@ export class HiPSLayer {
         this.headerDiv = $(
             '<div class="aladin-layer">' +
                 '<div class="aladin-layer-header" style="border-radius: 4px">' +
-                    '<span class="indicator right-triangle" title="Open the color panel"></span>' +
-                    '<select class="aladin-layerSelection"></select>' +
+                    '<button class="aladin-btn-small aladin-indicatorBtn right-triangle" title="Open the color panel"></button>' +
+                    '<select class="aladin-selector aladin-layerSelection"></select>' +
                     '<button class="aladin-btn-small aladin-layer-hide" type="button" title="Hide this layer">👁️</button>' +
                     '<button class="aladin-btn-small aladin-HiPSSelector" type="button" title="Search for a specific HiPS">🔍</button>' +
                     '<button class="aladin-btn-small aladin-delete-layer" type="button" title="Delete this layer">❌</button>' +
@@ -86,21 +86,21 @@ export class HiPSLayer {
         this.mainDiv = $('<div class="aladin-frame" style="display:none; padding: 0px 4px">' +
             '<div class="aladin-options">' +
             // colormap
-            '  <div class="row"><div class="col-label">Colormap</div><div class="col-input"><select class="colormap-selector">' + cmListStr + '</select></div></div>' +
-            '  <label><div class="row"><div class="col-label">Reverse</div><div class="col-input"><input type="checkbox" class="reversed"></div></div></label>' +
-            '  <div class="row"><div class="col-label"><label>Stretch</label></div><div class="col-input"><select class="stretch"><option>pow2</option><option selected>linear</option><option>sqrt</option><option>asinh</option><option>log</option></select></div></div>' +
-            '  <div class="row"><div class="col-label"><label>Format</label></div><div class="col-input"><select class="format"></select></div></div>' +
-            '  <div class="row"><div class="col-label"><label>Min cut</label></div><div class="col-input"><input type="number" class="min-cut"></div></div>' +
-            '  <div class="row"><div class="col-label"><label>Max cut</label></div><div class="col-input"><input type="number" class="max-cut"></div></div>' +
+            '  <div class="row"><div class="col-label">Colormap</div><div class="col-input"><select class="aladin-selector colormap-selector">' + cmListStr + '</select></div></div>' +
+            '  <label><div class="row"><div class="col-label">Reverse</div><div class="col-input"><input type="checkbox" class="reversed aladin-input"></div></div></label>' +
+            '  <div class="row"><div class="col-label"><label>Stretch</label></div><div class="col-input"><select class="aladin-selector stretch"><option>pow2</option><option selected>linear</option><option>sqrt</option><option>asinh</option><option>log</option></select></div></div>' +
+            '  <div class="row"><div class="col-label"><label>Format</label></div><div class="col-input"><select class="aladin-selector format"></select></div></div>' +
+            '  <div class="row"><div class="col-label"><label>Min cut</label></div><div class="col-input"><input type="number" class="aladin-input min-cut"></div></div>' +
+            '  <div class="row"><div class="col-label"><label>Max cut</label></div><div class="col-input"><input type="number" class="aladin-input max-cut"></div></div>' +
             // tonal corrections
-            '  <div class="row"><div class="col-label"><label>Gamma</label></div><div class="col-input"><input class="gamma" type="number" value="1.0" min="0.1" max="10.0" step="0.01"></div></div>' +
-            '  <div class="row"><div class="col-label"><label>Color Sat.</label></div><div class="col-input"><input class="saturation" type="range" value="0.0" min="-1.0" max="1.0" step="0.01"></div></div>' +
-            '  <div class="row"><div class="col-label"><label>Contrast</label></div><div class="col-input"><input class="contrast" type="range" value="0.0" min="-1.0" max="1.0" step="0.01"></div></div>' +
-            '  <div class="row"><div class="col-label"><label>Brightness</label></div><div class="col-input"><input class="brightness" type="range" value="0.0" min="-1.0" max="1.0" step="0.01"></div></div>' +
+            '  <div class="row"><div class="col-label"><label>Gamma</label></div><div class="col-input"><input class="aladin-input gamma" type="number" value="1.0" min="0.1" max="10.0" step="0.01"></div></div>' +
+            '  <div class="row"><div class="col-label"><label>Color Sat.</label></div><div class="col-input"><input class="aladin-input saturation" type="range" value="0.0" min="-1.0" max="1.0" step="0.01"></div></div>' +
+            '  <div class="row"><div class="col-label"><label>Contrast</label></div><div class="col-input"><input class="aladin-input contrast" type="range" value="0.0" min="-1.0" max="1.0" step="0.01"></div></div>' +
+            '  <div class="row"><div class="col-label"><label>Brightness</label></div><div class="col-input"><input class="aladin-input brightness" type="range" value="0.0" min="-1.0" max="1.0" step="0.01"></div></div>' +
             // blending mode
-            '  <div class="row"><div class="col-label"><label>Blending mode</label></div><div class="col-input"><select class="blending"><option>additive</option><option selected>default</option></select></div></div>' +
+            '  <div class="row"><div class="col-label"><label>Blending mode</label></div><div class="col-input"><select class="aladin-selector blending"><option>additive</option><option selected>default</option></select></div></div>' +
             // opacity
-            '  <div class="row"><div class="col-label"><label>Opacity</label></div><div class="col-input"><input class="opacity" type="range" min="0" max="1" step="0.01"></div></div>' +
+            '  <div class="row"><div class="col-label"><label>Opacity</label></div><div class="col-input"><input class="aladin-input opacity" type="range" min="0" max="1" step="0.01"></div></div>' +
             '</div> ' +
         '</div>');
 
@@ -128,7 +128,7 @@ export class HiPSLayer {
         const self = this;
         // HEADER DIV listeners
         // Click opener
-        const clickOpener = this.headerDiv.find('.indicator');
+        const clickOpener = this.headerDiv.find('.aladin-indicatorBtn');
         clickOpener.off("click");
         clickOpener.on("click", function () {
             if (clickOpener.hasClass('right-triangle')) {

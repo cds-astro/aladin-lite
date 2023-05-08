@@ -48,7 +48,7 @@
      }
  
      _createComponent() {
-        $(this.mainDiv).append('<select title="Projection"></select>');
+        $(this.mainDiv).append('<select title="Projection" class="aladin-selector"></select>');
 
         this.selectProjection = $(this.mainDiv).find('select');
 

@@ -59,7 +59,7 @@ import $ from 'jquery';
           '<div class="aladin-box-content">' +
 
                 '<div class="aladin-label" for="' + autocompleteId + '">By ID, title, keyword or URL</div>' +
-                '<input name="' + autocompleteId + '" id="' + autocompleteId + '" type="text" placeholder="Type ID, title, keyword or URL" /><br>' +
+                '<input class="aladin-input" style="width:100%" name="' + autocompleteId + '" id="' + autocompleteId + '" type="text" placeholder="Type ID, title, keyword or URL" /><br>' +
 
             '<div>' +
                 '<button class="aladin-btn">Select HiPS</button>' +

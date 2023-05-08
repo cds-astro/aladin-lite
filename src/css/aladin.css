@@ -714,7 +714,11 @@ canvas {
     cursor: pointer;
     user-select: none;
 
+    overflow: hidden;
+    text-overflow: ellipsis;
     white-space: nowrap;
+    vertical-align: text-top;
+
     max-width: 150px;
 }
 

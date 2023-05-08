@@ -376,6 +376,9 @@ export let Catalog = (function() {
 
     // API
     Catalog.prototype.addSources = function(sources) {
+        // make sure we have an array and not an individual source
+        sources = [].concat(sources);
+
         if (sources.length === 0) {
             return;
         }
@@ -392,7 +395,6 @@ export let Catalog = (function() {
             this.setFields(fields);
         }
 
-        sources = [].concat(sources); // make sure we have an array and not an individual source
     	this.sources = this.sources.concat(sources);
     	for (var k=0, len=sources.length; k<len; k++) {
     	    sources[k].setCatalog(this);

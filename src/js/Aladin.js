@@ -1298,7 +1298,25 @@ export let Aladin = (function () {
     };
 
     // Select corresponds to rectangular selection
-    Aladin.AVAILABLE_CALLBACKS = ['select', 'objectClicked', 'objectHovered', 'footprintClicked', 'footprintHovered', 'positionChanged', 'zoomChanged', 'click', 'mouseMove', 'fullScreenToggled', 'catalogReady', 'cooFrameChanged'];
+    Aladin.AVAILABLE_CALLBACKS = [
+        'select',
+
+        'objectClicked',
+        'objectHovered',
+        'objectHoveredStop',
+
+        'footprintClicked',
+        'footprintHovered',
+
+        'positionChanged',
+        'zoomChanged',
+
+        'click',
+        'mouseMove',
+
+        'fullScreenToggled',
+        'cooFrameChanged'
+    ];
     // API
     //
     // setting callbacks

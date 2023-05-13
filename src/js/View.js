@@ -873,6 +873,8 @@ export let View = (function () {
                                     var ret = objHoveredFunction(null);
                                 }
                             }
+
+                            lastHoveredObject = null;
                         }
                     }
                 }

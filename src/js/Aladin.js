@@ -191,9 +191,16 @@ export let Aladin = (function () {
         // set different options
         this.view = new View(this, location, fovDiv, cooFrame, options.fov);
         this.cacheSurveys = new Map();
+
         // Stack GUI
         this.stack = new Stack(this.aladinDiv, this, this.view);
         this.coogrid = new CooGrid(this.aladinDiv, this, this.view);
+
+        // Background color
+        if (options.backgroundColor) {
+            this.backgroundColor = options.backgroundColor;
+            this.setBackgroundColor(this.backgroundColor)
+        }
 
         this.boxes.push(this.stack);
         this.boxes.push(this.coogrid);
@@ -496,6 +503,7 @@ export let Aladin = (function () {
         target: "0 +0",
         cooFrame: "J2000",
         fov: 60,
+        backgroundColor: "rgb(0, 0, 0)",
         showReticle: true,
         showZoomControl: true,
         showFullscreenControl: true,
@@ -1158,7 +1166,17 @@ export let Aladin = (function () {
         } else {
             color = rgb;
         }
-        this.wasm.setBackgroundColor(color);
+        this.backgroundColor = color;
+        // Once the wasm is ready, send the color to change it
+
+        ALEvent.AL_USE_WASM.dispatchedTo(document.body, {callback: (wasm) => {
+            wasm.setBackgroundColor(this.backgroundColor);
+            ALEvent.BACKGROUND_COLOR_CHANGED.dispatchedTo(this.aladinDiv, {color: this.backgroundColor});
+        }})
+    };
+
+    Aladin.prototype.getBackgroundColor = function() {
+        return this.backgroundColor;
     };
 
     // @api

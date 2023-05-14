@@ -35,6 +35,8 @@ export class ALEvent {
 
   static LOADING_STATE = new ALEvent("AL:Layer.loading");
 
+  static BACKGROUND_COLOR_CHANGED = new ALEvent("AL:BackgroundColor.changed")
+
   static COO_GRID_ENABLED  = new ALEvent("AL:cooGrid.enabled");
   static COO_GRID_DISABLED = new ALEvent("AL:cooGrid.disabled");
   static COO_GRID_UPDATED  = new ALEvent("AL:cooGrid.updated");

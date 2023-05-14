@@ -5,6 +5,7 @@ pub mod labels;
 pub mod moc;
 pub mod image;
 pub mod hips;
+pub mod utils;
 
 use crate::renderable::image::Image;
 

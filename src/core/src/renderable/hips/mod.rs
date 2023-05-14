@@ -15,14 +15,17 @@ use al_core::image::format::ChannelType;
 use al_core::colormap::Colormaps;
 use al_core::webgl_ctx::GlWrapper;
 
+
 use crate::ProjectionType;
 use crate::math::{vector::dist2, angle::Angle};
+
 use crate::camera::CameraViewPort;
 use crate::{shader::ShaderManager, survey::config::HiPSConfig};
 use crate::{
     math::lonlat::LonLatT,
     utils,
 };
+use crate::renderable::utils::BuildPatchIndicesIter;
 
 use crate::math::lonlat::LonLat;
 use crate::downloader::request::allsky::Allsky;
@@ -38,7 +41,7 @@ use crate::survey::view::HEALPixCellsInView;
 use raytracing::RayTracer;
 use uv::{TileCorner, TileUVW};
 
-use cgmath::{Matrix, Matrix4, Vector4, Vector2};
+use cgmath::{Matrix, Matrix4};
 use web_sys::{WebGl2RenderingContext};
 use std::fmt::Debug;
 use wasm_bindgen::JsValue;
@@ -613,13 +616,11 @@ impl HiPS {
         let selected_frame = camera.get_system();
         let channel = cfg.get_format().get_channel();
         let hips_frame = cfg.get_frame();
-        let c = selected_frame.to(&hips_frame);
 
         // Retrieve the model and inverse model matrix
-        let w2v = c * (*camera.get_w2m());
-        let v2w = w2v.transpose();
 
-        let longitude_reversed = camera.get_longitude_reversed();
+        let mut off_indices = 0;
+
         for cell in self.view.get_cells() {
             // filter textures that are not in the moc
             let cell = if let Some(moc) = self.footprint_moc.as_ref() {
@@ -687,95 +688,91 @@ impl HiPS {
                     let num_subdivision = num_subdivision(cell, camera, projection);
 
                     let n_segments_by_side: usize = 1 << (num_subdivision as usize);
-                    let n_vertices_per_segment = n_segments_by_side + 1;
-
-                    // Indices overwritten
-                    let off_idx_vertices = (self.position.len() / 2) as u16;
-
-                    let ll = crate::healpix::utils::grid_lonlat::<f64>(cell, n_segments_by_side as u16);
                     let n_segments_by_side_f32 = n_segments_by_side as f32;
 
-                    for i in 0..n_vertices_per_segment {
-                        for j in 0..n_vertices_per_segment {
-                            let id_vertex_0 = (j + i * n_vertices_per_segment) as usize;
-                            let world_pos: Vector4<f64> = v2w * ll[id_vertex_0].vector::<Vector4<f64>>();
+                    let n_vertices_per_segment = n_segments_by_side + 1;
 
-                            let ndc_pos = if let Some(ndc_pos) = projection.world_to_normalized_device_space(&world_pos, camera) {
-                                ndc_pos
-                            } else {
-                                Vector2::new(0.0, 0.0)
-                            };
+                    let mut pos = vec![];
+                    for (idx, lonlat) in crate::healpix::utils::grid_lonlat::<f64>(cell, n_segments_by_side as u16)
+                        .iter()
+                        .enumerate() {
+                        let lon = lonlat.lon();
+                        let lat = lonlat.lat();
 
-                                self.position.push(ndc_pos.x as f32);
-                                self.position.push(ndc_pos.y as f32);
+                        let xyzw = crate::math::lonlat::radec_to_xyzw(lon, lat);
+                        let xyzw = crate::coosys::apply_coo_system(&hips_frame, &selected_frame, &xyzw);
             
-                                let hj0 = (j as f32) / n_segments_by_side_f32;
-                                let hi0 = (i as f32) / n_segments_by_side_f32;
-            
-                                let d01s = uv_0[TileCorner::BottomRight].x - uv_0[TileCorner::BottomLeft].x;
-                                let d02s = uv_0[TileCorner::TopLeft].y - uv_0[TileCorner::BottomLeft].y;
-                                let d01e = uv_1[TileCorner::BottomRight].x - uv_1[TileCorner::BottomLeft].x;
-                                let d02e = uv_1[TileCorner::TopLeft].y - uv_1[TileCorner::BottomLeft].y;
-            
-                                self.uv_start.push(uv_0[TileCorner::BottomLeft].x + hj0 * d01s);
-                                self.uv_start.push(uv_0[TileCorner::BottomLeft].y + hi0 * d02s);
-                                self.uv_start.push(uv_0[TileCorner::BottomLeft].z);
+                        let ndc = projection.model_to_normalized_device_space(&xyzw, camera)
+                            .map(|v| [v.x as f32, v.y as f32]);
+
+                        let i: usize = idx / n_vertices_per_segment;
+                        let j: usize = idx % n_vertices_per_segment;
+
+                        let hj0 = (j as f32) / n_segments_by_side_f32;
+                        let hi0 = (i as f32) / n_segments_by_side_f32;
     
-                                self.uv_end.push(uv_1[TileCorner::BottomLeft].x + hj0 * d01e);
-                                self.uv_end.push(uv_1[TileCorner::BottomLeft].y + hi0 * d02e);
-                                self.uv_end.push(uv_1[TileCorner::BottomLeft].z);
+                        let d01s = uv_0[TileCorner::BottomRight].x - uv_0[TileCorner::BottomLeft].x;
+                        let d02s = uv_0[TileCorner::TopLeft].y - uv_0[TileCorner::BottomLeft].y;
+                        let d01e = uv_1[TileCorner::BottomRight].x - uv_1[TileCorner::BottomLeft].x;
+                        let d02e = uv_1[TileCorner::TopLeft].y - uv_1[TileCorner::BottomLeft].y;
     
-                                self.time_tile_received.push(start_time);
-                                self.m0.push(miss_0);
-                                self.m1.push(miss_1);
-    
-                                // push to idx_vertices
-                                if i > 0 && j > 0 {
-                                    let idx_0 = (j - 1 + (i - 1) * n_vertices_per_segment) as u16;
-                                    let idx_1 = (j + (i - 1) * n_vertices_per_segment) as u16;
-                                    let idx_2 = (j - 1 + i * n_vertices_per_segment) as u16;
-                                    let idx_3 = (j + i * n_vertices_per_segment) as u16;
-                
-                                    let i0 = 2*(idx_0 + off_idx_vertices) as usize;
-                                    let i1 = 2*(idx_1 + off_idx_vertices) as usize;
-                                    let i2 = 2*(idx_2 + off_idx_vertices) as usize;
-                                    let i3 = 2*(idx_3 + off_idx_vertices) as usize;
-                
-                                    let c0 = Vector2::new(self.position[i0], self.position[i0 + 1]);
-                                    let c1 = Vector2::new(self.position[i1], self.position[i1 + 1]);
-                                    let c2 = Vector2::new(self.position[i2], self.position[i2 + 1]);
-                                    let c3 = Vector2::new(self.position[i3], self.position[i3 + 1]);
-                            
-                                    let first_tri_ccw = crate::math::vector::ccw_tri(&c0, &c1, &c2);
-                                    let second_tri_ccw = crate::math::vector::ccw_tri(&c1, &c3, &c2);
-                
-                                    if (!longitude_reversed && first_tri_ccw) || (longitude_reversed && !first_tri_ccw) {
-                                        self.idx_vertices.push(off_idx_vertices + idx_0);
-                                        self.idx_vertices.push(off_idx_vertices + idx_1);
-                                        self.idx_vertices.push(off_idx_vertices + idx_2);
-                                    }
-                
-                                    if (!longitude_reversed && second_tri_ccw) || (longitude_reversed && !second_tri_ccw) {
-                                        self.idx_vertices.push(off_idx_vertices + idx_1);
-                                        self.idx_vertices.push(off_idx_vertices + idx_3);
-                                        self.idx_vertices.push(off_idx_vertices + idx_2);
-                                    }
-                                }
-                            
-                        }
+                        let uv_start = [
+                            uv_0[TileCorner::BottomLeft].x + hj0 * d01s,
+                            uv_0[TileCorner::BottomLeft].y + hi0 * d02s,
+                            uv_0[TileCorner::BottomLeft].z
+                        ];
+
+                        let uv_end = [
+                            uv_1[TileCorner::BottomLeft].x + hj0 * d01e,
+                            uv_1[TileCorner::BottomLeft].y + hi0 * d02e,
+                            uv_1[TileCorner::BottomLeft].z
+                        ];
+
+                        self.uv_start.extend(uv_start);
+                        self.uv_end.extend(uv_end);
+                        self.m0.push(miss_0);
+                        self.m1.push(miss_1);
+                        self.time_tile_received.push(start_time);
+
+                        pos.push(ndc);
                     }
+
+                    let patch_indices = BuildPatchIndicesIter::new(
+                            &(0..=n_segments_by_side),
+                            &(0..=n_segments_by_side),
+                            n_vertices_per_segment,
+                            &pos,
+                            camera
+                        ).flatten()
+                        .map(|indices| [
+                            indices.0 + off_indices,
+                            indices.1 + off_indices,
+                            indices.2 + off_indices
+                        ])
+                        .flatten()
+                        .collect::<Vec<_>>();
+
+                    off_indices += pos.len() as u16;
+
+                    // Replace options with an arbitrary vertex
+                    let position = pos.into_iter()
+                        .map(|ndc| {
+                            if let Some(ndc) = ndc {
+                                ndc
+                            } else {
+                                [0.0, 0.0]
+                            }
+                        })
+                        .flatten()
+                        .collect::<Vec<_>>();
+
+                    self.position.extend(position);
+                    self.idx_vertices.extend(patch_indices);
                 }
             }
         }
 
         self.num_idx = self.idx_vertices.len();
-        /*self.position.shrink_to_fit();
-        self.uv_start.shrink_to_fit();
-        self.uv_end.shrink_to_fit();
-        self.time_tile_received.shrink_to_fit();
-        self.m0.shrink_to_fit();
-        self.m1.shrink_to_fit();
-        self.idx_vertices.shrink_to_fit();*/
 
         let mut vao = self.vao.bind_for_update();
         vao.update_array(

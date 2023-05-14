@@ -1,4 +1,3 @@
-//use num_traits::Float;
 #[inline]
 pub fn asinc_positive(x: f64) -> f64 {
     debug_assert!(x >= 0.0);
@@ -102,4 +101,15 @@ pub fn lambert_wm1(x: f32) -> f32 {
     -1.0 - s
         - (2.0 / m1)
             * (1.0 - 1.0 / (1.0 + ((m1 * s_div_2_root) / (1.0 + m2 * s * (m3 * s_root).exp()))))
+}
+
+
+#[inline]
+pub fn ccw_tri(a: &[f32; 2], b: &[f32; 2], c: &[f32; 2]) -> bool {
+    // From: https://math.stackexchange.com/questions/1324179/how-to-tell-if-3-connected-points-are-connected-clockwise-or-counter-clockwise
+    // | x1, y1, 1 |
+    // | x2, y2, 1 | > 0 => the triangle is given in anticlockwise order
+    // | x3, y3, 1 |
+
+    a[0]*b[1] + a[1]*c[0] + b[0]*c[1] - c[0]*b[1] - c[1]*a[0] - b[0]*a[1] >= 0.0
 }

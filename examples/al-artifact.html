@@ -1,0 +1,31 @@
+<!doctype html>
+<html>
+<head>
+</head>
+<body>
+
+<div id="aladin-lite-div" style="width: 1024px; height: 768px"></div>
+
+<div id='aladin-statsDiv'></div>
+<script type="text/javascript" src="./../aladin.js" charset="utf-8"></script>
+
+<script type="text/javascript">
+    let aladin;
+    A.init.then(() => {
+        var aladin = A.aladin(
+            '#aladin-lite-div',
+            {
+                survey: 'https://alasky.cds.unistra.fr/Pan-STARRS/DR1/color-z-zg-g/', // set initial image survey
+                projection: 'SIN', // set a projection
+                fov: 114.19, // initial field of view in degrees
+                target: '19 24 51.556 +45 16 44.36', // initial target
+                cooFrame: 'equatorial', // set galactic frame
+                showCooGrid: true, // set the grid
+                fullScreen: true,
+            }
+        );
+    });
+</script>
+
+</body>
+</html>

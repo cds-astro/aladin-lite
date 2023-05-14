@@ -33,7 +33,7 @@ use crate::Abort;
 pub fn grid_lonlat<S: BaseFloat>(cell: &HEALPixCell, n_segments_by_side: u16) -> Vec<LonLatT<S>> {
     debug_assert!(n_segments_by_side > 0);
     cdshealpix::nested::grid(cell.depth(), cell.idx(), n_segments_by_side)
-        .iter()
+        .into_iter()
         .map(|(lon, lat)| {
             // Risky wrapping here
             let lon = S::from(*lon).unwrap_abort();

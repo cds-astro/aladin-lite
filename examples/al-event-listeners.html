@@ -12,7 +12,7 @@
 
 <script type="text/javascript">
     A.init.then(() => {
-        var aladin = A.aladin('#aladin-lite-div', {target: '05 37 58 +08 17 35', fov: 12});
+        var aladin = A.aladin('#aladin-lite-div', {target: '05 37 58 +08 17 35', fov: 12, backgroundColor: 'rgb(120, 0, 0)'});
         var cat = A.catalog({sourceSize: 20});
         aladin.addCatalog(cat);
         cat.addSources([A.source(83.784490, 09.934156, {name: 'Meissa'}), A.source(88.792939, 7.407064, {name: 'Betelgeuse'}), A.source(81.282764, 6.349703, {name: 'Bellatrix'})]);

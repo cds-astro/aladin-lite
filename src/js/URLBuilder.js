@@ -65,11 +65,9 @@ export let URLBuilder = (function() {
             }
 
             let url = 'https://vizier.unistra.fr/viz-bin/votable?-source=' + vizCatId + '&-c=' + encodeURIComponent(target)+ '&-out.max=' + maxNbSources + '&-c.rd=' + radiusDegrees;
-
-            // Option to tell if we want all the columns
-            if (options && options.hasOwnProperty('all') && options.all === true) {
-                url = url + '&-out.all';
-            }
+            
+            // request the `s_region` column usually found in ObsCore tables
+            url = url + '&-out.add=s_region';
 
             return url;
             //return 'https://vizier.unistra.fr/viz-bin/conesearch/' + vizCatId + '?ra=' + target.ra + '&dec=' + target.dec + '&sr=' + radiusDegrees;

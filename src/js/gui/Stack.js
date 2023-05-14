@@ -33,7 +33,6 @@ import { Color } from "../Color.js";
 import { ALEvent } from "../events/ALEvent.js";
 import { CatalogSelector } from "./CatalogSelector.js";
 import { HiPSLayer } from "./HiPSLayer.js";
-import { Utils } from "../Utils.js";
 
 import $ from 'jquery';
 
@@ -47,13 +46,14 @@ export class Stack {
         this.mainDiv = document.createElement('div');
         this.mainDiv.style.display = 'none';
         this.mainDiv.classList.add('aladin-box', 'aladin-layerBox', 'aladin-cb-list');
+        this.backgroundColorInput = $('<input type="color">');
 
         this.aladinDiv = parentDiv;
         parentDiv.appendChild(this.mainDiv);
 
         this.imgLayers = new Map();
 
-        this.backgroundColor = '#6699ff';
+        this.backgroundColor = this.aladin.getBackgroundColor();
         let self = this;
 
         this.unselectAllLayers = () => {
@@ -283,15 +283,10 @@ export class Stack {
         layerBox.append('<div class="aladin-box-separator"></div>' +
         '<div class="aladin-label">Background color</div>');
 
-        let backgroundColorInput = $('<input type="color">');
-        layerBox.append(backgroundColorInput);
+        layerBox.append(this.backgroundColorInput);
 
-        // Set a default background color
-        backgroundColorInput.val(this.backgroundColor);
-        self.aladin.setBackgroundColor(Color.hexToRgb(this.backgroundColor));
-
-        backgroundColorInput.on('input', () => {
-            self.backgroundColor = backgroundColorInput.val();
+        this.backgroundColorInput.on('input', () => {
+            self.backgroundColor = this.backgroundColorInput.val();
             self.aladin.setBackgroundColor(Color.hexToRgb(self.backgroundColor));
         });
 
@@ -337,6 +332,16 @@ export class Stack {
         });
 
         // Events coming from the AL core
+        ALEvent.BACKGROUND_COLOR_CHANGED.listenedBy(this.aladin.aladinDiv, function (e) {
+            const color = e.detail.color;
+
+            let inputColor = self.mainDiv.querySelector('input[type="color"]');
+            let hexColor = Color.rgbToHex(color.r, color.g, color.b);
+            inputColor.value = hexColor;
+
+            self.backgroundColor = color;
+        });
+
         ALEvent.HIPS_LAYER_ADDED.listenedBy(this.aladin.aladinDiv, function (e) {
             const layer = e.detail.layer;
 

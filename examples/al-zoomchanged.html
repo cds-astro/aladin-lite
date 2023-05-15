@@ -20,6 +20,10 @@
         aladin.on("positionChanged", ({ra, dec, dragging}) => {
             console.log("positionChanged", ra, dec)
         })
+
+        aladin.on('rightClickMove', (x, y) => {
+            console.log("right click move", x, y)
+        })
     });
 </script>
 

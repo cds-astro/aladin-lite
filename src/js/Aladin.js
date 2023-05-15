@@ -772,8 +772,11 @@ export let Aladin = (function () {
             var self = this;
             // sky case
             (async () => {
-                const baseImageLayer = await this.getBaseImageLayer().query;
-                if (baseImageLayer.properties.isPlanetaryBody === false) {
+                let baseImageLayer;
+                if (this.getBaseImageLayer()) {
+                    baseImageLayer = await this.getBaseImageLayer().query;
+                }
+                if (this.getBaseImageLayer() === undefined || !baseImageLayer.isPlanetaryBody()) {
                     Sesame.resolve(targetName,
                         function (data) { // success callback
                             // Location given in icrs at J2000
@@ -788,7 +791,8 @@ export let Aladin = (function () {
                                 console.log(data);
                             }
                             (typeof errorCallback === 'function') && errorCallback();
-                    });
+                        }
+                    );
                 }
                 // planetary case
                 else {
@@ -805,7 +809,8 @@ export let Aladin = (function () {
                                 console.log(data);
                             }
                             (typeof errorCallback === 'function') && errorCallback();
-                    });
+                        }
+                    );
                 }
             })();
         }
@@ -1312,6 +1317,7 @@ export let Aladin = (function () {
         'zoomChanged',
 
         'click',
+        'rightClickMove',
         'mouseMove',
 
         'fullScreenToggled',

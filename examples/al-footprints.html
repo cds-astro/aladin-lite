@@ -32,6 +32,9 @@
         aladin.on("footprintHovered", (footprint) => {
             console.log("footprint hovered catched", footprint)
         })
+        aladin.on("objectHoveredStop", (object) => {
+            console.log("Object hovered stopped", object)
+        })
 
         const cat = A.catalogFromVizieR('B/assocdata/obscore', 'M 1', 100, {onClick: 'showTable', limit: 1000});
         aladin.addCatalog(cat);

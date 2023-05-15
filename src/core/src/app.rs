@@ -664,7 +664,7 @@ impl App {
             self.layers.refresh_views(&mut self.camera);
         }
 
-        if self.request_for_new_tiles && Time::now() - self.last_time_request_for_new_tiles > DeltaTime::from(100_f32) {
+        if self.request_for_new_tiles && Time::now() - self.last_time_request_for_new_tiles > DeltaTime::from(200.0) {
             self.look_for_new_tiles()?;
 
             self.request_for_new_tiles = false;

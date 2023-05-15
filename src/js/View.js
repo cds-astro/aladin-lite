@@ -761,25 +761,35 @@ export let View = (function () {
             e.preventDefault();
             var xymouse = view.imageCanvas.relMouseCoords(e);
 
-            if (view.rightClick && view.selectedLayer) {
-                
-                let selectedLayer = view.imageLayers.get(view.selectedLayer);
-                // We try to match DS9 contrast adjustment behaviour with right click
-                const cs = {
-                    x: view.catalogCanvas.clientWidth * 0.5,
-                    y: view.catalogCanvas.clientHeight * 0.5,
-                };
-                const cx = (xymouse.x - cs.x) / view.catalogCanvas.clientWidth;
-                const cy = -(xymouse.y - cs.y) / view.catalogCanvas.clientHeight;
+            if (view.rightClick) {
+                var onRightClickMoveFunction = view.aladin.callbacksByEventName['rightClickMove'];
+                if (typeof onRightClickMoveFunction === 'function') {                    
+                    onRightClickMoveFunction(xymouse.x, xymouse.y);
 
-                const offset = (cutMaxInit - cutMinInit) * cx;
-
-                const lr = offset + (1.0 - 2.0 * cy) * cutMinInit;
-                const rr = offset + (1.0 + 2.0 * cy) * cutMaxInit;
-
-                if (lr <= rr) {
-                    selectedLayer.setCuts(lr, rr)
+                    // do not process further
+                    return;
                 }
+
+                if(view.selectedLayer) {
+                    let selectedLayer = view.imageLayers.get(view.selectedLayer);
+                    // We try to match DS9 contrast adjustment behaviour with right click
+                    const cs = {
+                        x: view.catalogCanvas.clientWidth * 0.5,
+                        y: view.catalogCanvas.clientHeight * 0.5,
+                    };
+                    const cx = (xymouse.x - cs.x) / view.catalogCanvas.clientWidth;
+                    const cy = -(xymouse.y - cs.y) / view.catalogCanvas.clientHeight;
+    
+                    const offset = (cutMaxInit - cutMinInit) * cx;
+    
+                    const lr = offset + (1.0 - 2.0 * cy) * cutMinInit;
+                    const rr = offset + (1.0 + 2.0 * cy) * cutMaxInit;
+    
+                    if (lr <= rr) {
+                        selectedLayer.setCuts(lr, rr)
+                    }
+                }
+
                 return;
             }
 
@@ -859,18 +869,16 @@ export let View = (function () {
                             lastHoveredObject = o;
                         } else {
                             view.setCursor('default');
-                            var objHoveredFunction = view.aladin.callbacksByEventName['objectHovered'];
+                            var objHoveredStopFunction = view.aladin.callbacksByEventName['objectHoveredStop'];
                             if (lastHoveredObject) {
                                 // Redraw the scene if the lastHoveredObject is a footprint (e.g. circle or polygon)
                                 if (lastHoveredObject.isFootprint()) {
                                     view.requestRedraw();
                                 }
-    
-                                lastHoveredObject = null;
-    
-                                if (typeof objHoveredFunction === 'function') {
+        
+                                if (typeof objHoveredStopFunction === 'function') {
                                     // call callback function to notify we left the hovered object
-                                    var ret = objHoveredFunction(null);
+                                    var ret = objHoveredStopFunction(lastHoveredObject);
                                 }
                             }
 

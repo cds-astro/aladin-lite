@@ -89,6 +89,7 @@ mod survey;
 mod tile_fetcher;
 mod time;
 mod fifo_cache;
+mod inertia;
 
 use crate::{
     camera::CameraViewPort, math::lonlat::LonLatT, shader::ShaderManager, time::DeltaTime,
@@ -151,10 +152,14 @@ impl WebClient {
         let gl = WebGlContext::new(aladin_div_name)?;
 
         let shaders = ShaderManager::new(&gl, shaders).unwrap_abort();
+
+        // Event listeners callbacks
+        let callback_position_changed = js_sys::Function::new_no_args("");
         let app = App::new(
             &gl,
             shaders,
             resources,
+            callback_position_changed,
         )?;
 
         let dt = DeltaTime::zero();
@@ -162,6 +167,11 @@ impl WebClient {
         let webclient = WebClient { app, dt };
 
         Ok(webclient)
+    }
+
+    #[wasm_bindgen(js_name = setCallbackPositionChanged)]
+    pub fn set_callback_position_changed(&mut self, callback: js_sys::Function) {
+        self.app.set_callback_position_changed(callback);
     }
 
     /// Update the view

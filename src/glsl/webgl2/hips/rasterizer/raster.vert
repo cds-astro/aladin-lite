@@ -30,7 +30,7 @@ void main() {
 
     frag_uv_start = uv_start;
     frag_uv_end = uv_end;
-    frag_blending_factor = min((current_time - time_tile_received) / 100.0, 1.0);
+    frag_blending_factor = min((current_time - time_tile_received) / 200.0, 1.0);
     m_start = m0;
     m_end = m1;
 }

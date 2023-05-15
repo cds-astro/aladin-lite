@@ -83,7 +83,7 @@ pub fn subdivide_along_longitude_and_latitudes(
     let lon_m = (lon_s + lon_e)*0.5;
     let lat_m = (lat_s + lat_e)*0.5;
 
-    if let Some(p_m) = crate::math::lonlat::proj(LonLatT(lon_m.to_angle(), lat_m.to_angle()), projection, camera) {
+    if let Some(p_m) = crate::math::lonlat::proj(LonLatT::new(lon_m.to_angle(), lat_m.to_angle()), projection, camera) {
         let ab = p_m - p_s;
         let bc = p_e - p_m;
         let ab_l = ab.magnitude2();

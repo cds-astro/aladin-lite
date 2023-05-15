@@ -18,6 +18,7 @@ use crate::{
     renderable::Layers,
     tile_fetcher::TileFetcherQueue,
     time::DeltaTime,
+    inertia::Inertia,
 };
 
 use wasm_bindgen::prelude::*;
@@ -73,9 +74,7 @@ pub struct App {
     // Task executor
     exec: Rc<RefCell<TaskExecutor>>,
 
-    //move_animation: Option<MoveAnimation>,
-    //zoom_animation: Option<ZoomAnimation>,
-    inertial_move_animation: Option<InertiaAnimation>,
+    inertia: Option<Inertia>,
     disable_inertia: Rc<RefCell<bool>>,
     prev_cam_position: Vector3<f64>,
     prev_center: Vector3<f64>,
@@ -100,30 +99,16 @@ pub struct App {
 
     ack_send: async_channel::Sender<ImageParams>,
     ack_recv: async_channel::Receiver<ImageParams>,
+
+    // callbacks
+    callback_position_changed: js_sys::Function,
 }
 
 use cgmath::{Vector2, Vector3};
 use futures::{stream::StreamExt, io::BufReader}; // for `next`
 
-/// State for inertia
-struct InertiaAnimation {
-    // Initial angular distance
-    d0: Angle<f64>,
-    // Vector of rotation
-    axis: Vector3<f64>,
-    // The time when the inertia begins
-    time_start_anim: Time,
-}
-/*
-struct ZoomAnimation {
-    time_start_anim: Time,
-    start_fov: Angle<f64>,
-    goal_fov: Angle<f64>,
-    w0: f64,
-}
-*/
 use crate::math::projection::*;
-pub const BLENDING_ANIM_DURATION: f32 = 100.0; // in ms
+pub const BLENDING_ANIM_DURATION: f32 = 200.0; // in ms
                                                //use crate::buffer::Tile;
 use crate::time::Time;
 use cgmath::InnerSpace;
@@ -137,6 +122,8 @@ impl App {
         gl: &WebGlContext,
         mut shaders: ShaderManager,
         resources: Resources,
+        // Callbacks
+        callback_position_changed: js_sys::Function,
     ) -> Result<Self, JsValue> {
         let gl = gl.clone();
         let exec = Rc::new(RefCell::new(TaskExecutor::new()));
@@ -153,7 +140,6 @@ impl App {
         // When it will be supported nearly everywhere, we will need to uncomment this line to
         // enable it
         //gl.enable(WebGl2RenderingContext::SCISSOR_TEST);
-
         gl.enable(WebGl2RenderingContext::CULL_FACE);
         gl.cull_face(WebGl2RenderingContext::BACK);
 
@@ -178,7 +164,7 @@ impl App {
         let grid = ProjetedGrid::new(&gl, &camera, &resources, &projection)?;
 
         // Variable storing the location to move to
-        let inertial_move_animation = None;
+        let inertia = None;
         let disable_inertia = Rc::new(RefCell::new(false));
 
         //let tasks_finished = false;
@@ -236,7 +222,7 @@ impl App {
             _fbo_ui,
             _final_rendering_pass,
 
-            inertial_move_animation,
+            inertia,
             disable_inertia,
             prev_cam_position,
             out_of_fov,
@@ -252,7 +238,9 @@ impl App {
             fits_send,
             fits_recv,
             ack_send,
-            ack_recv
+            ack_recv,
+
+            callback_position_changed
         })
     }
 
@@ -471,38 +459,46 @@ impl App {
         Ok(())
     }
 
+    pub(crate) fn set_callback_position_changed(&mut self, callback: js_sys::Function) {
+        self.callback_position_changed = callback;
+    }
+
     pub(crate) fn update(&mut self, _dt: DeltaTime) -> Result<bool, JsValue> {
         //let available_tiles = self.run_tasks(dt)?;
-        if let Some(InertiaAnimation {
-            time_start_anim,
-            d0,
-            axis,
-        }) = self.inertial_move_animation
-        {
-            let t = ((Time::now() - time_start_anim).as_millis() / 1000.0) as f64;
+        if let Some(inertia) = self.inertia.as_mut() {
+            inertia.apply(&mut self.camera);
+            // Always request for new tiles while moving
+            self.request_for_new_tiles = true;
 
-            // Undamped angular frequency of the oscillator
-            // From wiki: https://en.wikipedia.org/wiki/Harmonic_oscillator
-            //
-            // In a damped harmonic oscillator system: w0 = sqrt(k / m)
-            // where:
-            // * k is the stiffness of the ressort
-            // * m is its mass
-            let w0 = 5.0;
-            // The angular distance goes from d0 to 0.0
-            let d = d0 * ((-w0 * t).exp());
-            /*let alpha = 1_f32 + (0_f32 - 1_f32) * (10_f32 * t + 1_f32) * (-10_f32 * t).exp();
-            let alpha = alpha * alpha;
-            let fov = start_fov * (1_f32 - alpha) + goal_fov * alpha;*/
-            self.camera.rotate(&axis, d, &self.projection);
             // The threshold stopping criteria must be dependant
             // of the zoom level, in this case the initial angular distance
             // speed
-            let thresh: Angle<f64> = d0 * 1e-3;
-            if d < thresh {
-                self.inertial_move_animation = None;
-                // When the inertia is stopped we can look for new tiles
-                self.request_for_new_tiles = true;
+            let thresh_speed = inertia.get_start_ampl() * 1e-3;
+            let cur_speed = inertia.get_cur_speed();
+
+            // Create the javascript object to pass to the callback
+            let args: js_sys::Object = js_sys::Object::new();
+            let center = self.camera.get_center().lonlat();
+            js_sys::Reflect::set(
+                &args,
+                &"ra".into(),
+                &JsValue::from_f64(center.lon().to_degrees()),
+            )?;
+            js_sys::Reflect::set(
+                &args,
+                &"dec".into(),
+                &JsValue::from_f64(center.lat().to_degrees()),
+            )?;
+            js_sys::Reflect::set(
+                &args,
+                &"dragging".into(),
+                &JsValue::from_bool(false),
+            )?;
+            // Position has changed, we call the callback
+            self.callback_position_changed.call1(&JsValue::null(), &args)?;
+
+            if cur_speed < thresh_speed {
+                self.inertia = None;
             }
         }
 
@@ -707,7 +703,7 @@ impl App {
         // Check for async retrieval
         if let Ok(fits) = self.fits_recv.try_recv() {
             let params = fits.get_params();
-            self.layers.add_image_fits(fits, &mut self.camera, &self.projection)?;
+            self.layers.add_image_fits(fits, &mut self.camera)?;
             self.request_redraw = true;
 
             // Send the ack to the js promise so that she finished
@@ -725,7 +721,7 @@ impl App {
 
     pub(crate) fn reset_north_orientation(&mut self) {
         // Reset the rotation around the center if there is one
-        self.camera.set_rotation_around_center(Angle(0.0), &self.projection);
+        self.camera.set_rotation_around_center(Angle(0.0));
         // Reset the camera position to its current position
         // this will keep the current position but reset the orientation
         // so that the north pole is at the top of the center.
@@ -844,7 +840,7 @@ impl App {
     }
 
     pub(crate) fn remove_layer(&mut self, layer: &str) -> Result<(), JsValue> {
-        self.layers.remove_layer(layer, &mut self.camera, &self.projection)?;
+        self.layers.remove_layer(layer, &mut self.camera)?;
 
         self.request_redraw = true;
 
@@ -864,7 +860,7 @@ impl App {
     }
 
     pub(crate) fn add_image_survey(&mut self, hips_cfg: HiPSCfg) -> Result<(), JsValue> {
-        let hips = self.layers.add_image_survey(&self.gl, hips_cfg, &mut self.camera, &self.projection)?;
+        let hips = self.layers.add_image_survey(&self.gl, hips_cfg, &mut self.camera)?;
         self.tile_fetcher.launch_starting_hips_requests(hips, &mut self.downloader);
 
         // Once its added, request the tiles in the view (unless the viewer is at depth 0)
@@ -882,7 +878,7 @@ impl App {
         let fits_sender = self.fits_send.clone();
         let ack_recv = self.ack_recv.clone();
         // Stop the current inertia
-        self.inertial_move_animation = None;
+        self.inertia = None;
         // And disable it while the fits has not been loaded
         let disable_inertia = self.disable_inertia.clone();
         *(disable_inertia.borrow_mut()) = true;
@@ -1225,7 +1221,7 @@ impl App {
     }
 
     pub(crate) fn set_coo_system(&mut self, coo_system: CooSystem) {
-        self.camera.set_coo_system(coo_system, &self.projection);
+        self.camera.set_coo_system(coo_system);
         self.request_for_new_tiles = true;
 
         self.request_redraw = true;
@@ -1257,16 +1253,17 @@ impl App {
 
     pub(crate) fn set_center(&mut self, lonlat: &LonLatT<f64>) {
         self.prev_cam_position = self.camera.get_center().truncate();
-        self.camera.set_center(lonlat, &CooSystem::ICRS, &self.projection);
+        self.camera.set_center(lonlat, &CooSystem::ICRS);
         self.request_for_new_tiles = true;
 
         // And stop the current inertia as well if there is one
-        self.inertial_move_animation = None;
+        self.inertia = None;
     }
 
     pub(crate) fn press_left_button_mouse(&mut self, _sx: f32, _sy: f32) {
         self.prev_center = self.camera.get_center().truncate();
-        self.inertial_move_animation = None;
+
+        self.inertia = None;
         self.request_for_new_tiles = true;
         self.out_of_fov = false;
     }
@@ -1302,33 +1299,14 @@ impl App {
 
             let delta_time = ((now - time_of_last_move).0 as f64).max(1.0);
             let delta_angle = math::vector::angle3(&self.prev_cam_position, &center);
+            let ampl = delta_angle * 3.0 / delta_time;
 
-            self.inertial_move_animation = Some(InertiaAnimation {
-                d0: delta_angle * 3.0 / delta_time,
-                axis,
-                time_start_anim: Time::now(),
-            })
+            self.inertia = Some(Inertia::new(ampl.to_radians(), axis))
         }
     }
 
-    /*fn start_moving_to(&mut self, lonlat: &LonLatT<f64>) {
-        // Get the XYZ cartesian position from the lonlat
-        let goal_pos: Vector4<f64> = lonlat.vector();
-
-        // Convert these positions to rotations
-        let start_anim_rot = *self.camera.get_rotation();
-        let goal_anim_rot = Rotation::from_sky_position(&goal_pos);
-
-        // Set the moving animation object
-        self.move_animation = Some(MoveAnimation {
-            time_start_anim: Time::now(),
-            start_anim_rot,
-            goal_anim_rot,
-        });
-    }*/
-
     pub(crate) fn rotate_around_center(&mut self, theta: ArcDeg<f64>) {
-        self.camera.set_rotation_around_center(theta.into(), &self.projection);
+        self.camera.set_rotation_around_center(theta.into());
         // New tiles can be needed and some tiles can be removed
         self.request_for_new_tiles = true;
 
@@ -1370,7 +1348,7 @@ impl App {
 
                     // Apply the rotation to the camera to
                     // go from the current pos to the next position
-                    self.camera.rotate(&(-axis), d, &self.projection);
+                    self.camera.rotate(&(-axis), d);
                     self.request_for_new_tiles = true;
                 }
                 return;

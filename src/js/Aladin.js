@@ -1326,6 +1326,19 @@ export let Aladin = (function () {
         }
 
         this.callbacksByEventName[what] = myFunction;
+
+        if (what === "positionChanged") {
+            // tell the backend about that callback
+            // because it needs to be called when the inertia is done
+            ALEvent.AL_USE_WASM.dispatchedTo(document.body, {callback: (wasm) => {
+                let myFunctionThrottled = Utils.throttle(
+                    myFunction,
+                    View.CALLBACKS_THROTTLE_TIME_MS,
+                );
+
+                wasm.setCallbackPositionChanged(myFunctionThrottled);
+            }})
+        }
     };
 
     Aladin.prototype.addListener = function(alEventName, customFn) {

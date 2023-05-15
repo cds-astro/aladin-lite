@@ -17,8 +17,8 @@
         aladin.on("zoomChanged", () => {
             console.log("zoomChanged")
         })
-        aladin.on("positionChanged", () => {
-            console.log("positionChanged")
+        aladin.on("positionChanged", ({ra, dec, dragging}) => {
+            console.log("positionChanged", ra, dec)
         })
     });
 </script>

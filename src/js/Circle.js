@@ -114,11 +114,11 @@ export let Circle = (function() {
     };
 
     // TODO
-    Circle.prototype.draw = function(ctx, view/*, noStroke*/) {
+    Circle.prototype.draw = function(ctx, view, noStroke) {
         if (! this.isShowing) {
             return;
         }
-        //noStroke = noStroke===true || false;
+        noStroke = noStroke===true || false;
 
         var centerXyview = AladinUtils.radecToViewXy(this.centerRaDec[0], this.centerRaDec[1], view);
         if (!centerXyview) {
@@ -158,15 +158,13 @@ export let Circle = (function() {
 
         ctx.beginPath();
         ctx.arc(centerXyview[0], centerXyview[1], radiusInPix, 0, 2*Math.PI, false);
-        /*if (!noStroke) {
+        if (!noStroke) {
             if (this.fillColor) {
                 ctx.fillStyle = this.fillColor;
                 ctx.fill();
             }
             ctx.stroke();
-        }*/
-        ctx.stroke();
-
+        }
     };
 
     return Circle;

@@ -65,9 +65,15 @@ export let Line = (function() {
         return false;
     };
 
-    Line.prototype.draw = function(ctx) {
+    Line.prototype.draw = function(ctx, noStroke) {
+        noStroke = noStroke===true || false;
+
         ctx.moveTo(this.x1, this.y1);
         ctx.lineTo(this.x2, this.y2);
+
+        if (!noStroke) {
+            ctx.stroke();
+        }
     };
 
     Line.intersectLine = function(x1, y1, x2, y2, x3, y3, x4, y4) {

@@ -120,7 +120,7 @@ export let Polyline= (function() {
         this.overlay.reportChange();
     };
     
-    Polyline.prototype.draw = function(ctx, view) {
+    Polyline.prototype.draw = function(ctx, view, noStroke) {
         if (! this.isShowing) {
             return;
         }
@@ -128,6 +128,8 @@ export let Polyline= (function() {
         if (! this.radecArray || this.radecArray.length<2) {
             return;
         }
+
+        noStroke = noStroke===true || false;
 
         var baseColor = this.color;
         if (! baseColor && this.overlay) {
@@ -159,12 +161,11 @@ export let Polyline= (function() {
 
         const lastVertexIdx = xyviewArray.length-1;
         ctx.moveTo(xyviewArray[0][0], xyviewArray[0][1]);
+
         for (var k=0, len=lastVertexIdx; k<len; k++) {
             const line = new Line(xyviewArray[k][0], xyviewArray[k][1], xyviewArray[k+1][0], xyviewArray[k+1][1]);
             if (line.isInsideView(view.width, view.height)) {
-                ctx.lineTo(xyviewArray[k+1][0], xyviewArray[k+1][1]);
-            } else {
-                ctx.moveTo(xyviewArray[k+1][0], xyviewArray[k+1][1]);
+                line.draw(ctx);
             }
         }
 
@@ -181,7 +182,9 @@ export let Polyline= (function() {
             }
         }
 
-        ctx.stroke();
+        if (!noStroke) {
+            ctx.stroke();
+        }
     };
 
     return Polyline;

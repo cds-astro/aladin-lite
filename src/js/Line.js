@@ -72,6 +72,7 @@ export let Line = (function() {
     Line.prototype.draw = function(ctx, noStroke) {
         noStroke = noStroke===true || false;
 
+        ctx.beginPath();
         ctx.moveTo(this.x1, this.y1);
         ctx.lineTo(this.x2, this.y2);
 
@@ -90,6 +91,15 @@ export let Line = (function() {
             return true;
         }
         return false;
+    };
+
+    Line.prototype.isInStroke = function(ctx, view, x, y) {
+        this.draw(ctx, view, true);
+        return ctx.isPointInStroke(x, y);
+    };
+
+    Line.prototype.intersectsBBox = function(x, y, w, h) {
+        // todo
     };
 
     return Line;

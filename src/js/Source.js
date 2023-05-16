@@ -52,6 +52,10 @@ export let Source = (function() {
         this.catalog = catalog;
     };
 
+    Source.prototype.getCatalog = function() {
+        return this.catalog;
+    };
+
     Source.prototype.show = function() {
         if (this.isShowing) {
             return;
@@ -135,7 +139,6 @@ export let Source = (function() {
                 this.catalog.onClick(this);
                 view.lastClickedObject = this;
             }
-
         }
     };
 

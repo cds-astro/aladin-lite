@@ -32,10 +32,10 @@
 import { Source } from "./Source.js"
 import { Color } from "./Color.js"
 import { Utils } from "./Utils.js";
-import { AladinUtils } from "./AladinUtils.js";
 import { Coo } from "./libs/astro/coo.js";
 import { VOTable } from "./vo/VOTable.js";
 import { ALEvent } from "./events/ALEvent.js";
+import { Footprint } from "./Footprint.js";
 
 import $ from 'jquery';
 
@@ -308,7 +308,6 @@ export let Catalog = (function() {
                 let footprints = [];
 
                 var coo = new Coo();
-
                 rows.every(row => {
                     let ra, dec, region;
                     var mesures = {};
@@ -327,6 +326,7 @@ export let Catalog = (function() {
                         mesures[key] = row[field.idx];
                     }
 
+                    let source = null;
                     if (ra && dec) {
                         if (!Utils.isNumber(ra) || !Utils.isNumber(dec)) {
                             coo.parse(ra + " " + dec);
@@ -334,17 +334,22 @@ export let Catalog = (function() {
                             dec = coo.lat;
                         }
 
-                        const source = new Source(ra, dec, mesures);
-                        
+                        source = new Source(ra, dec, mesures);
+                    }
+
+                    let footprint = null;
+                    if (region) {
+                        let shapes = A.footprintsFromSTCS(region, {lineWidth: 2})
+                        footprint = new Footprint(shapes, source);
+                    }
+
+                    if (footprint) {
+                        footprints.push(footprint);
+                    } else if(source) {
                         sources.push(source);
                         if (maxNbSources && sources.length == maxNbSources) {
                             return false;
                         }
-                    }
-
-                    if (region) {
-                        let footprint = A.footprintsFromSTCS(region, {lineWidth: 2});
-                        footprints = footprints.concat(footprint);
                     }
 
                     return true;
@@ -418,7 +423,9 @@ export let Catalog = (function() {
         footprintsToAdd = [].concat(footprintsToAdd); // make sure we have an array and not an individual footprints
     	this.footprints = this.footprints.concat(footprintsToAdd);
     	for (var k=0, len=footprintsToAdd.length; k<len; k++) {
-    	    footprintsToAdd[k].setOverlay(this);
+    	    footprintsToAdd[k].setCatalog(this);
+            footprintsToAdd[k].setColor(this.color);
+            footprintsToAdd[k].setSelectionColor(this.selectionColor);
     	}
         this.reportChange();
     };
@@ -486,6 +493,10 @@ export let Catalog = (function() {
         return this.sources;
     };
 
+    Catalog.prototype.getFootprints = function() {
+        return this.footprints;
+    };
+
     // TODO : fonction générique traversant la liste des sources
     Catalog.prototype.selectAll = function() {
         if (! this.sources) {
@@ -543,6 +554,7 @@ export let Catalog = (function() {
         this.sources = [];
         this.ra = [];
         this.dec = [];
+        this.footprints = [];
     };
 
     Catalog.prototype.draw = function(ctx, frame, width, height, largestDim, zoomFactor) {

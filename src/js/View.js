@@ -49,6 +49,7 @@ import { ColorCfg } from "./ColorCfg.js";
 
 import $ from 'jquery';
 import { Line } from "./Line.js";
+import { Footprint } from "./Footprint.js";
 
 export let View = (function () {
 
@@ -585,11 +586,19 @@ export let View = (function () {
 
                     let tables = selectedObjects.map((objList) => {
                         // Get the catalog containing that list of objects
-                        let catalog = objList[0].catalog;
+                        let catalog = objList[0].getCatalog();
+                        
+                        let rows = objList.map((o) => {
+                            if (o instanceof Footprint) {
+                                return o.source;
+                            } else {
+                                return o;
+                            }
+                        });
                         let table = {
                             'name': catalog.name,
                             'color': catalog.color,
-                            'rows': objList,
+                            'rows': rows,
                             'fields': catalog.fields,
                             'fieldsClickedActions': catalog.fieldsClickedActions,
                         };
@@ -657,13 +666,13 @@ export let View = (function () {
                     view.popup.setSource(o);
                     view.popup.show();
                 }
-                // show measurements
                 else {
                     if (view.lastClickedObject) {
                         view.lastClickedObject.actionOtherObjectClicked && view.lastClickedObject.actionOtherObjectClicked();
                     }
                 }
 
+                // show measurements
                 if (o.actionClicked) {
                     o.actionClicked();
                 }
@@ -1993,6 +2002,7 @@ export let View = (function () {
         }
         var objList = [];
         var cat, sources, s;
+        var footprints, f;
         var objListPerCatalog = [];
         if (this.catalogs) {
             for (var k = 0; k < this.catalogs.length; k++) {
@@ -2010,6 +2020,17 @@ export let View = (function () {
                         objListPerCatalog.push(s);
                     }
                 }
+                // footprints
+                footprints = cat.getFootprints();
+                if (footprints) {
+                    for (var l = 0; l < footprints.length; l++) {
+                        f = footprints[l];
+                        if (f.intersectsBBox(x, y, w, h, this)) {
+                            objListPerCatalog.push(f);
+                        }
+                    }
+                }
+
                 if (objListPerCatalog.length > 0) {
                     objList.push(objListPerCatalog);
                 }
@@ -2054,59 +2075,20 @@ export let View = (function () {
     };
 
     View.prototype.closestFootprints = function (footprints, ctx, x, y) {
+        if (!footprints) {
+            return null;
+        }
+
         let closest = null;
         
         footprints.forEach((footprint) => {
-            if (footprint instanceof Circle || footprint instanceof Ellipse || footprint instanceof Line) {
-                footprint.draw(ctx, this, true);
-
-                if (ctx.isPointInStroke(x, y)) {
-                    closest = footprint;
-                    return;
-                }
-            } else if (footprint instanceof Polyline) {
-                let pointXY = [];
-                for (var j = 0; j < footprint.radecArray.length; j++) {
-                    var xy = AladinUtils.radecToViewXy(footprint.radecArray[j][0], footprint.radecArray[j][1], this);
-                    if (!xy) {
-                        continue;
-                    }
-                    pointXY.push({
-                        x: xy[0],
-                        y: xy[1]
-                    });
-                }
-
-                const lastPointIdx = pointXY.length - 1;
-                for (var l = 0; l < lastPointIdx; l++) {
-                    const line = new Line(pointXY[l].x, pointXY[l].y, pointXY[l + 1].x, pointXY[l + 1].y);                                   // new segment
-                    ctx.beginPath();
-                    line.draw(ctx, true);
-
-                    if (ctx.isPointInStroke(x, y)) {                    // x,y is on line?
-                        closest = footprint;
-                        return;
-                    }
-                }
-
-                if(footprint.closed) {
-                    const line = new Line(pointXY[lastPointIdx].x, pointXY[lastPointIdx].y, pointXY[0].x, pointXY[0].y);                                   // new segment
-                    ctx.beginPath();
-
-                    line.draw(ctx, true);
-                    
-                    if (ctx.isPointInStroke(x, y)) {                    // x,y is on line?
-                        closest = footprint;
-                        return;
-                    }
-                }
+            if (footprint.isInStroke(ctx, this, x, y)) {
+                closest = footprint;
+                return;
             }
-            // Other cases not handled
         })
 
-        if (closest) {
-            return closest;
-        }
+        return closest;
     };
 
     // return closest object within a radius of maxRadius pixels. maxRadius is an integer

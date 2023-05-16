@@ -13,7 +13,7 @@
     let aladin;
     A.init.then(() => {
         // Start up Aladin Lite
-        aladin = A.aladin('#aladin-lite-div', {survey: "CDS/P/DSS2/color", target: 'M 1', fov: 0.2});
+        aladin = A.aladin('#aladin-lite-div', {survey: "CDS/P/DSS2/color", target: 'M 1', fov: 0.2, showContextMenu: true, fullScreen: true});
         var overlay = A.graphicOverlay({color: '#ee2345', lineWidth: 3});
         aladin.addOverlay(overlay);
         overlay.addFootprints([
@@ -33,7 +33,7 @@
             console.log("footprint hovered catched", footprint)
         })
 
-        const cat = A.catalogFromVizieR('B/assocdata/obscore', 'M 1', 1, {onClick: 'showTable'});
+        const cat = A.catalogFromVizieR('B/assocdata/obscore', 'M 1', 100, {onClick: 'showTable', limit: 1000});
         aladin.addCatalog(cat);
     });
 </script>

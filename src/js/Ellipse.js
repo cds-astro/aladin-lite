@@ -30,8 +30,7 @@
 
 import { Utils } from "./Utils.js";
 import { AladinUtils } from "./AladinUtils.js";
-import { CooFrameEnum } from "./CooFrameEnum.js";
-import { Aladin } from "./Aladin.js";
+import { Overlay } from "./Overlay.js";
 
 // TODO : Ellipse, Circle and Footprint should inherit from the same root object
 export let Ellipse = (function() {
@@ -220,7 +219,16 @@ export let Ellipse = (function() {
             }
             ctx.stroke();
         }
-    }; 
+    };
+
+    Ellipse.prototype.isInStroke = function(ctx, view, x, y) {
+        this.draw(ctx, view, true);
+        return ctx.isPointInStroke(x, y);
+    };
+
+    Ellipse.prototype.intersectsBBox = function(x, y, w, h) {
+        // todo
+    };
     
     return Ellipse;
 })();

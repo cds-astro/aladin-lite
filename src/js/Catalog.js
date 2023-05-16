@@ -300,10 +300,10 @@ export let Catalog = (function() {
 
     // return an array of Source(s) from a VOTable url
     // callback function is called each time a TABLE element has been parsed
-    Catalog.parseVOTable = function(url, callback, maxNbSources, useProxy, raField, decField) {
+    Catalog.parseVOTable = function(url, successCallback, errorCallback, maxNbSources, useProxy, raField, decField) {
         VOTable.parse(
             url,
-            (fields, rows, type) => {
+            (fields, rows) => {
                 let sources = [];
                 let footprints = [];
 
@@ -350,10 +350,12 @@ export let Catalog = (function() {
                     return true;
                 })
 
-                if (callback) {
-                    callback(sources, footprints, fields);
+                if (successCallback) {
+                    successCallback(sources, footprints, fields);
                 }
             },
+            errorCallback,
+            useProxy,
             raField,
             decField
         )

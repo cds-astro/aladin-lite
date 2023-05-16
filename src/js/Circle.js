@@ -97,7 +97,9 @@ export let Circle = (function() {
         }
     };
 
-
+    Circle.prototype.isFootprint = function() {
+        return true;
+    }
 
     Circle.prototype.setCenter = function(centerRaDec) {
         this.centerRaDec = centerRaDec;

@@ -65,6 +65,10 @@ export let Line = (function() {
         return false;
     };
 
+    Line.prototype.isFootprint = function() {
+        return false;
+    }
+
     Line.prototype.draw = function(ctx, noStroke) {
         noStroke = noStroke===true || false;
 

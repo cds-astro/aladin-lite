@@ -668,9 +668,18 @@ export let View = (function () {
                     o.actionClicked();
                 }
 
-                view.lastClickedObject = o;
                 var objClickedFunction = view.aladin.callbacksByEventName['objectClicked'];
                 (typeof objClickedFunction === 'function') && objClickedFunction(o);
+
+
+                if (o.isFootprint()) {
+                    var footprintClickedFunction = view.aladin.callbacksByEventName['footprintClicked'];
+                    if (typeof footprintClickedFunction === 'function' && o != view.lastClickedObject) {
+                        var ret = footprintClickedFunction(o);
+                    }
+                }
+
+                view.lastClickedObject = o;
             } else {
                 if (!wasDragging) {
                     // Deselect objects if any
@@ -689,9 +698,10 @@ export let View = (function () {
                             view.lastClickedObject.actionOtherObjectClicked();
                         }
     
-                        view.lastClickedObject = null;
                         var objClickedFunction = view.aladin.callbacksByEventName['objectClicked'];
                         (typeof objClickedFunction === 'function') && objClickedFunction(null);
+
+                        view.lastClickedObject = null;
                     }
                 }
             }
@@ -797,19 +807,28 @@ export let View = (function () {
                     // objects under the mouse ?
                     var closest = view.closestObjects(xymouse.x, xymouse.y, 5);
                     if (closest) {
+                        let o = closest[0];
                         view.setCursor('pointer');
                         var objHoveredFunction = view.aladin.callbacksByEventName['objectHovered'];
-                        if (typeof objHoveredFunction === 'function' && closest[0] != lastHoveredObject) {
-                            var ret = objHoveredFunction(closest[0]);
+                        if (typeof objHoveredFunction === 'function' && o != lastHoveredObject) {
+                            var ret = objHoveredFunction(o);
                         }
-                        lastHoveredObject = closest[0];
+
+                        if (o.isFootprint()) {
+                            var footprintHoveredFunction = view.aladin.callbacksByEventName['footprintHovered'];
+                            if (typeof footprintHoveredFunction === 'function' && o != lastHoveredObject) {
+                                var ret = footprintHoveredFunction(o);
+                            }
+                        }
+
+                        lastHoveredObject = o;
                     }
                     else {
                         view.setCursor('default');
                         var objHoveredFunction = view.aladin.callbacksByEventName['objectHovered'];
                         if (lastHoveredObject) {
                             // Redraw the scene if the lastHoveredObject is a footprint (e.g. circle or polygon)
-                            if (lastHoveredObject instanceof Circle || lastHoveredObject instanceof Polyline || lastHoveredObject instanceof Ellipse) {
+                            if (lastHoveredObject.isFootprint()) {
                                 view.requestRedraw();
                             }
 
@@ -2034,6 +2053,62 @@ export let View = (function () {
         }
     };
 
+    View.prototype.closestFootprints = function (footprints, ctx, x, y) {
+        let closest = null;
+        
+        footprints.forEach((footprint) => {
+            if (footprint instanceof Circle || footprint instanceof Ellipse || footprint instanceof Line) {
+                footprint.draw(ctx, this, true);
+
+                if (ctx.isPointInStroke(x, y)) {
+                    closest = footprint;
+                    return;
+                }
+            } else if (footprint instanceof Polyline) {
+                let pointXY = [];
+                for (var j = 0; j < footprint.radecArray.length; j++) {
+                    var xy = AladinUtils.radecToViewXy(footprint.radecArray[j][0], footprint.radecArray[j][1], this);
+                    if (!xy) {
+                        continue;
+                    }
+                    pointXY.push({
+                        x: xy[0],
+                        y: xy[1]
+                    });
+                }
+
+                const lastPointIdx = pointXY.length - 1;
+                for (var l = 0; l < lastPointIdx; l++) {
+                    const line = new Line(pointXY[l].x, pointXY[l].y, pointXY[l + 1].x, pointXY[l + 1].y);                                   // new segment
+                    ctx.beginPath();
+                    line.draw(ctx, true);
+
+                    if (ctx.isPointInStroke(x, y)) {                    // x,y is on line?
+                        closest = footprint;
+                        return;
+                    }
+                }
+
+                if(footprint.closed) {
+                    const line = new Line(pointXY[lastPointIdx].x, pointXY[lastPointIdx].y, pointXY[0].x, pointXY[0].y);                                   // new segment
+                    ctx.beginPath();
+
+                    line.draw(ctx, true);
+                    
+                    if (ctx.isPointInStroke(x, y)) {                    // x,y is on line?
+                        closest = footprint;
+                        return;
+                    }
+                }
+            }
+            // Other cases not handled
+        })
+
+        if (closest) {
+            return closest;
+        }
+    };
+
     // return closest object within a radius of maxRadius pixels. maxRadius is an integer
     View.prototype.closestObjects = function (x, y, maxRadius) {
         // footprint selection code adapted from Fabrizio Giordano dev. from Serco for ESA/ESDC
@@ -2043,58 +2118,25 @@ export let View = (function () {
         // this makes footprint selection easier as the catch-zone is larger
         let pastLineWidth = ctx.lineWidth;
         ctx.lineWidth = 6.0;
+
         if (this.overlays) {
             for (var k = 0; k < this.overlays.length; k++) {
                 overlay = this.overlays[k];
 
-                overlay.overlayItems.forEach((footprint) => {
-                    if (footprint instanceof Circle || footprint instanceof Ellipse || footprint instanceof Line) {
-                        footprint.draw(ctx, this, true);
+                let closest = this.closestFootprints(overlay.overlayItems, ctx, x, y);
+                if (closest) {
+                    ctx.lineWidth = pastLineWidth;
+                    return [closest];
+                }
+            }
+        }
 
-                        if (ctx.isPointInStroke(x, y)) {
-                            closest = footprint;
-                            return;
-                        }
-                    } else if (footprint instanceof Polyline) {
-                        let pointXY = [];
-                        for (var j = 0; j < footprint.radecArray.length; j++) {
-                            var xy = AladinUtils.radecToViewXy(footprint.radecArray[j][0], footprint.radecArray[j][1], this);
-                            if (!xy) {
-                                continue;
-                            }
-                            pointXY.push({
-                                x: xy[0],
-                                y: xy[1]
-                            });
-                        }
-
-                        const lastPointIdx = pointXY.length - 1;
-                        for (var l = 0; l < lastPointIdx; l++) {
-                            const line = new Line(pointXY[l].x, pointXY[l].y, pointXY[l + 1].x, pointXY[l + 1].y);                                   // new segment
-                            ctx.beginPath();
-                            line.draw(ctx, true);
-
-                            if (ctx.isPointInStroke(x, y)) {                    // x,y is on line?
-                                closest = footprint;
-                                return;
-                            }
-                        }
-
-                        if(footprint.closed) {
-                            const line = new Line(pointXY[lastPointIdx].x, pointXY[lastPointIdx].y, pointXY[0].x, pointXY[0].y);                                   // new segment
-                            ctx.beginPath();
-
-                            line.draw(ctx, true);
-                            
-                            if (ctx.isPointInStroke(x, y)) {                    // x,y is on line?
-                                closest = footprint;
-                                return;
-                            }
-                        }
-                    }
-                    // Other cases not handled
-                })
-
+        // Catalogs can also have footprints
+        if (this.catalogs) {
+            for (var k = 0; k < this.catalogs.length; k++) {
+                let catalog = this.catalogs[k];
+                
+                let closest = this.closestFootprints(catalog.footprints, ctx, x, y);
                 if (closest) {
                     ctx.lineWidth = pastLineWidth;
                     return [closest];

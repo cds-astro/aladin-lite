@@ -120,6 +120,11 @@ export let Polyline= (function() {
         this.overlay.reportChange();
     };
     
+    Polyline.prototype.isFootprint = function() {
+        // The polyline is a footprint if it describes a polygon (i.e. a closed polyline)
+        return this.closed;
+    }
+
     Polyline.prototype.draw = function(ctx, view, noStroke) {
         if (! this.isShowing) {
             return;

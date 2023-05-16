@@ -23,12 +23,18 @@
         ]);
         overlay.add(A.circle(83.66067, 22.03081, 0.04, {color: 'cyan'})); // radius in degrees
 
-        aladin.on("footprintClicked", (e) => {
-            console.log("footprint clicked catched")
+        aladin.on("footprintClicked", (footprint) => {
+            console.log("footprint clicked catched", footprint)
         })
-        aladin.on("objectClicked", (e) => {
-            console.log("object clicked catched")
+        aladin.on("objectClicked", (object) => {
+            console.log("object clicked catched", object)
         })
+        aladin.on("footprintHovered", (footprint) => {
+            console.log("footprint hovered catched", footprint)
+        })
+
+        const cat = A.catalogFromVizieR('B/assocdata/obscore', 'M 1', 1, {onClick: 'showTable'});
+        aladin.addCatalog(cat);
     });
 </script>
 </body>

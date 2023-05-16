@@ -139,6 +139,10 @@ export let Source = (function() {
         }
     };
 
+    Source.prototype.isFootprint = function() {
+        return false;
+    }
+
     Source.prototype.actionOtherObjectClicked = function() {
         if (this.catalog && this.catalog.onClick) {
             this.deselect();

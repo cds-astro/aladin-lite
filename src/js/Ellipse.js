@@ -129,6 +129,10 @@ export let Ellipse = (function() {
         }
     };
 
+    Ellipse.prototype.isFootprint = function() {
+        return true;
+    }
+
     // TODO
     Ellipse.prototype.draw = function(ctx, view, noStroke) {
         if (! this.isShowing) {

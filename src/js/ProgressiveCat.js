@@ -494,6 +494,11 @@ export let ProgressiveCat = (function() {
             return this.rootUrl + "/" + "Norder" + norder + "/Dir" + dirIdx + "/Npix" + npix + ".tsv";
         },
     
+        // todo, allow HiPS cats to support footprints 
+        getFootprints: function() {
+            return null;
+        },
+
         loadNeededTiles: function() {
             if ( ! this.isShowing) {
                 return;

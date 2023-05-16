@@ -39,7 +39,7 @@ import { Stats } from "./libs/Stats.js";
 import { Circle } from "./Circle.js";
 import { Ellipse } from "./Ellipse";
 import { Polyline } from "./Polyline.js";
-
+import { AladinUtils } from "./AladinUtils.js";
 import { CooFrameEnum } from "./CooFrameEnum.js";
 import { requestAnimFrame } from "./libs/RequestAnimationFrame.js";
 import { WebGLCtx } from "./WebGL.js";
@@ -48,6 +48,8 @@ import { ALEvent } from "./events/ALEvent.js";
 import { ColorCfg } from "./ColorCfg.js";
 
 import $ from 'jquery';
+import { Line } from "./Line.js";
+import { Footprint } from "./Footprint.js";
 
 export let View = (function () {
 
@@ -584,11 +586,19 @@ export let View = (function () {
 
                     let tables = selectedObjects.map((objList) => {
                         // Get the catalog containing that list of objects
-                        let catalog = objList[0].catalog;
+                        let catalog = objList[0].getCatalog();
+                        
+                        let rows = objList.map((o) => {
+                            if (o instanceof Footprint) {
+                                return o.source;
+                            } else {
+                                return o;
+                            }
+                        });
                         let table = {
                             'name': catalog.name,
                             'color': catalog.color,
-                            'rows': objList,
+                            'rows': rows,
                             'fields': catalog.fields,
                             'fieldsClickedActions': catalog.fieldsClickedActions,
                         };
@@ -656,20 +666,29 @@ export let View = (function () {
                     view.popup.setSource(o);
                     view.popup.show();
                 }
-                // show measurements
                 else {
                     if (view.lastClickedObject) {
                         view.lastClickedObject.actionOtherObjectClicked && view.lastClickedObject.actionOtherObjectClicked();
                     }
                 }
 
+                // show measurements
                 if (o.actionClicked) {
                     o.actionClicked();
                 }
 
-                view.lastClickedObject = o;
                 var objClickedFunction = view.aladin.callbacksByEventName['objectClicked'];
                 (typeof objClickedFunction === 'function') && objClickedFunction(o);
+
+
+                if (o.isFootprint()) {
+                    var footprintClickedFunction = view.aladin.callbacksByEventName['footprintClicked'];
+                    if (typeof footprintClickedFunction === 'function' && o != view.lastClickedObject) {
+                        var ret = footprintClickedFunction(o);
+                    }
+                }
+
+                view.lastClickedObject = o;
             } else {
                 if (!wasDragging) {
                     // Deselect objects if any
@@ -688,9 +707,10 @@ export let View = (function () {
                             view.lastClickedObject.actionOtherObjectClicked();
                         }
     
-                        view.lastClickedObject = null;
                         var objClickedFunction = view.aladin.callbacksByEventName['objectClicked'];
                         (typeof objClickedFunction === 'function') && objClickedFunction(null);
+
+                        view.lastClickedObject = null;
                     }
                 }
             }
@@ -796,19 +816,28 @@ export let View = (function () {
                     // objects under the mouse ?
                     var closest = view.closestObjects(xymouse.x, xymouse.y, 5);
                     if (closest) {
+                        let o = closest[0];
                         view.setCursor('pointer');
                         var objHoveredFunction = view.aladin.callbacksByEventName['objectHovered'];
-                        if (typeof objHoveredFunction === 'function' && closest[0] != lastHoveredObject) {
-                            var ret = objHoveredFunction(closest[0]);
+                        if (typeof objHoveredFunction === 'function' && o != lastHoveredObject) {
+                            var ret = objHoveredFunction(o);
                         }
-                        lastHoveredObject = closest[0];
+
+                        if (o.isFootprint()) {
+                            var footprintHoveredFunction = view.aladin.callbacksByEventName['footprintHovered'];
+                            if (typeof footprintHoveredFunction === 'function' && o != lastHoveredObject) {
+                                var ret = footprintHoveredFunction(o);
+                            }
+                        }
+
+                        lastHoveredObject = o;
                     }
                     else {
                         view.setCursor('default');
                         var objHoveredFunction = view.aladin.callbacksByEventName['objectHovered'];
                         if (lastHoveredObject) {
                             // Redraw the scene if the lastHoveredObject is a footprint (e.g. circle or polygon)
-                            if (lastHoveredObject instanceof Circle || lastHoveredObject instanceof Polyline || lastHoveredObject instanceof Ellipse) {
+                            if (lastHoveredObject.isFootprint()) {
                                 view.requestRedraw();
                             }
 
@@ -1973,6 +2002,7 @@ export let View = (function () {
         }
         var objList = [];
         var cat, sources, s;
+        var footprints, f;
         var objListPerCatalog = [];
         if (this.catalogs) {
             for (var k = 0; k < this.catalogs.length; k++) {
@@ -1990,6 +2020,17 @@ export let View = (function () {
                         objListPerCatalog.push(s);
                     }
                 }
+                // footprints
+                footprints = cat.getFootprints();
+                if (footprints) {
+                    for (var l = 0; l < footprints.length; l++) {
+                        f = footprints[l];
+                        if (f.intersectsBBox(x, y, w, h, this)) {
+                            objListPerCatalog.push(f);
+                        }
+                    }
+                }
+
                 if (objListPerCatalog.length > 0) {
                     objList.push(objListPerCatalog);
                 }
@@ -2033,62 +2074,64 @@ export let View = (function () {
         }
     };
 
+    View.prototype.closestFootprints = function (footprints, ctx, x, y) {
+        if (!footprints) {
+            return null;
+        }
+
+        let closest = null;
+        
+        footprints.forEach((footprint) => {
+            if (footprint.isInStroke(ctx, this, x, y)) {
+                closest = footprint;
+                return;
+            }
+        })
+
+        return closest;
+    };
+
     // return closest object within a radius of maxRadius pixels. maxRadius is an integer
     View.prototype.closestObjects = function (x, y, maxRadius) {
-
         // footprint selection code adapted from Fabrizio Giordano dev. from Serco for ESA/ESDC
         var overlay;
         var canvas = this.catalogCanvas;
         var ctx = canvas.getContext("2d");
         // this makes footprint selection easier as the catch-zone is larger
-        
-        ctx.lineWidth = 6;
+        let pastLineWidth = ctx.lineWidth;
+        ctx.lineWidth = 6.0;
+
         if (this.overlays) {
             for (var k = 0; k < this.overlays.length; k++) {
                 overlay = this.overlays[k];
-                /*
-                // test polygons first
-                for (var i = 0; i < overlay.overlays.length; i++) {
-                    var footprint = overlay.overlays[i];
-                    var pointXY = [];
-                    for (var j = 0; j < footprint.polygons.length; j++) {
-                        var xy = AladinUtils.radecToViewXy(footprint.polygons[j][0], footprint.polygons[j][1], this);
-                        if (!xy) {
-                            continue;
-                        }
-                        pointXY.push({
-                            x: xy[0],
-                            y: xy[1]
-                        });
-                    }
-                    for (var l = 0; l < pointXY.length - 1; l++) {
-                        ctx.beginPath();                        // new segment
-                        ctx.moveTo(pointXY[l].x, pointXY[l].y);     // start is current point
-                        ctx.lineTo(pointXY[l + 1].x, pointXY[l + 1].y); // end point is next
-                        if (ctx.isPointInStroke(x, y)) {        // x,y is on line?
-                            closest = footprint;
-                            return [closest];
-                        }
-                    }
-                }*/
 
-                // test Circles
-                for (var i = 0; i < overlay.overlayItems.length; i++) {
-                    if (overlay.overlayItems[i] instanceof Circle) {
-                        if (ctx.isPointInStroke(x, y)) {
-                            overlay.overlayItems[i].draw(ctx, this);
+                let closest = this.closestFootprints(overlay.overlayItems, ctx, x, y);
+                if (closest) {
+                    ctx.lineWidth = pastLineWidth;
+                    return [closest];
+                }
+            }
+        }
 
-                            closest = overlay.overlayItems[i];
-                            return [closest];
-                        }
-                    }
+        // Catalogs can also have footprints
+        if (this.catalogs) {
+            for (var k = 0; k < this.catalogs.length; k++) {
+                let catalog = this.catalogs[k];
+                
+                let closest = this.closestFootprints(catalog.footprints, ctx, x, y);
+                if (closest) {
+                    ctx.lineWidth = pastLineWidth;
+                    return [closest];
                 }
             }
         }
 
         if (!this.objLookup) {
+            ctx.lineWidth = pastLineWidth;
             return null;
         }
+
+        ctx.lineWidth = pastLineWidth;
 
         var closest, dist;
         for (var r = 0; r <= maxRadius; r++) {

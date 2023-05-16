@@ -30,8 +30,7 @@
 
 import { Utils } from "./Utils.js";
 import { AladinUtils } from "./AladinUtils.js";
-import { CooFrameEnum } from "./CooFrameEnum.js";
-import { Aladin } from "./Aladin.js";
+import { Overlay } from "./Overlay.js";
 
 // TODO : Circle and Footprint should inherit from the same root object
 export let Circle = (function() {
@@ -51,6 +50,27 @@ export let Circle = (function() {
 
     	this.isShowing = true;
     	this.isSelected = false;
+        this.selectionColor = undefined;
+    };
+
+    Circle.prototype.setColor = function(color) {
+        if (this.color == color) {
+            return;
+        }
+        this.color = color;
+        if (this.overlay) {
+            this.overlay.reportChange();
+        }
+    };
+
+    Circle.prototype.setSelectionColor = function(color) {
+        if (this.selectionColor == color) {
+            return;
+        }
+        this.selectionColor = color;
+        if (this.overlay) {
+            this.overlay.reportChange();
+        }
     };
 
     Circle.prototype.setOverlay = function(overlay) {
@@ -97,7 +117,9 @@ export let Circle = (function() {
         }
     };
 
-
+    Circle.prototype.isFootprint = function() {
+        return true;
+    }
 
     Circle.prototype.setCenter = function(centerRaDec) {
         this.centerRaDec = centerRaDec;
@@ -114,11 +136,11 @@ export let Circle = (function() {
     };
 
     // TODO
-    Circle.prototype.draw = function(ctx, view/*, noStroke*/) {
+    Circle.prototype.draw = function(ctx, view, noStroke) {
         if (! this.isShowing) {
             return;
         }
-        //noStroke = noStroke===true || false;
+        noStroke = noStroke===true || false;
 
         var centerXyview = AladinUtils.radecToViewXy(this.centerRaDec[0], this.centerRaDec[1], view);
         if (!centerXyview) {
@@ -126,6 +148,10 @@ export let Circle = (function() {
             // we do not draw it
             return;
         }
+        this.center = {
+            x: centerXyview[0],
+            y: centerXyview[1],
+        };
         // compute value of radius in pixels in current projection
         var ra = this.centerRaDec[0];
         var dec = this.centerRaDec[1] + (ra>0 ? - this.radiusDegrees : this.radiusDegrees);
@@ -136,9 +162,9 @@ export let Circle = (function() {
             // we do not draw it
             return;
         }
-        var dx = circlePtXyView[0] - centerXyview[0];
-        var dy = circlePtXyView[1] - centerXyview[1];
-        var radiusInPix = Math.sqrt(dx*dx + dy*dy);
+        var dx = circlePtXyView[0] - this.center.x;
+        var dy = circlePtXyView[1] - this.center.y;
+        this.radius = Math.sqrt(dx*dx + dy*dy);
 
         // TODO : check each 4 point until show
         var baseColor = this.color;
@@ -150,24 +176,51 @@ export let Circle = (function() {
         }
 
         if (this.isSelected) {
-            ctx.strokeStyle = Overlay.increaseBrightness(baseColor, 50);
+            if(this.selectionColor) {
+                ctx.strokeStyle = this.selectionColor;
+            } else {
+                ctx.strokeStyle = Overlay.increaseBrightness(baseColor, 50);
+            }
         }
         else {
             ctx.strokeStyle = baseColor;
         }
 
         ctx.beginPath();
-        ctx.arc(centerXyview[0], centerXyview[1], radiusInPix, 0, 2*Math.PI, false);
-        /*if (!noStroke) {
+        ctx.arc(this.center.x, this.center.y, this.radius, 0, 2*Math.PI, false);
+        if (!noStroke) {
             if (this.fillColor) {
                 ctx.fillStyle = this.fillColor;
                 ctx.fill();
             }
             ctx.stroke();
-        }*/
-        ctx.stroke();
-
+        }
     };
+
+    Circle.prototype.isInStroke = function(ctx, view, x, y) {
+        this.draw(ctx, view, true);
+        return ctx.isPointInStroke(x, y);
+    };
+
+    // From StackOverflow: https://stackoverflow.com/questions/401847/circle-rectangle-collision-detection-intersection
+    Circle.prototype.intersectsBBox = function(x, y, w, h) {
+        const circleDistance = {
+            x: abs(this.center.x - x),
+            y: abs(this.center.y - y)
+        };
+
+        if (circleDistance.x > (w/2 + this.radius)) { return false; }
+        if (circleDistance.y > (h/2 + this.radius)) { return false; }
+
+        if (circleDistance.x <= (w/2)) { return true; } 
+        if (circleDistance.y <= (h/2)) { return true; }
+
+        const dx = circleDistance.x - w/2;
+        const dy = circleDistance.y - h/2;
+
+        const cornerDistanceSquared = dx*dx + dy*dy;
+        return (cornerDistanceSquared <= (this.radius*this.radius));
+    }
 
     return Circle;
 })();

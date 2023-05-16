@@ -36,6 +36,7 @@
 import { AladinUtils } from './AladinUtils.js';
 import { Line } from './Line.js';
 import { Utils } from './Utils.js';
+import { Overlay } from "./Overlay.js";
 
 export let Polyline= (function() {
     // constructor
@@ -58,6 +59,8 @@ export let Polyline= (function() {
 
     	this.isShowing = true;
     	this.isSelected = false;
+
+        this.selectionColor = undefined;
     };
 
     Polyline.prototype.setOverlay = function(overlay) {
@@ -109,7 +112,9 @@ export let Polyline= (function() {
             return;
         }
         this.lineWidth = lineWidth;
-        this.overlay.reportChange();
+        if (this.overlay) {
+            this.overlay.reportChange();
+        }
     };
 
     Polyline.prototype.setColor = function(color) {
@@ -117,10 +122,27 @@ export let Polyline= (function() {
             return;
         }
         this.color = color;
-        this.overlay.reportChange();
+        if (this.overlay) {
+            this.overlay.reportChange();
+        }
+    };
+
+    Polyline.prototype.setSelectionColor = function(color) {
+        if (this.selectionColor == color) {
+            return;
+        }
+        this.selectionColor = color;
+        if (this.overlay) {
+            this.overlay.reportChange();
+        }
     };
     
-    Polyline.prototype.draw = function(ctx, view) {
+    Polyline.prototype.isFootprint = function() {
+        // The polyline is a footprint if it describes a polygon (i.e. a closed polyline)
+        return this.closed;
+    }
+
+    Polyline.prototype.draw = function(ctx, view, noStroke) {
         if (! this.isShowing) {
             return;
         }
@@ -128,6 +150,8 @@ export let Polyline= (function() {
         if (! this.radecArray || this.radecArray.length<2) {
             return;
         }
+
+        noStroke = noStroke===true || false;
 
         var baseColor = this.color;
         if (! baseColor && this.overlay) {
@@ -138,7 +162,11 @@ export let Polyline= (function() {
         }
 
         if (this.isSelected) {
-            ctx.strokeStyle= Overlay.increaseBrightness(baseColor, 50);
+            if(this.selectionColor) {
+                ctx.strokeStyle = this.selectionColor;
+            } else {
+                ctx.strokeStyle = Overlay.increaseBrightness(baseColor, 50);
+            }
         }
         else {
             ctx.strokeStyle= baseColor;
@@ -159,12 +187,11 @@ export let Polyline= (function() {
 
         const lastVertexIdx = xyviewArray.length-1;
         ctx.moveTo(xyviewArray[0][0], xyviewArray[0][1]);
+
         for (var k=0, len=lastVertexIdx; k<len; k++) {
             const line = new Line(xyviewArray[k][0], xyviewArray[k][1], xyviewArray[k+1][0], xyviewArray[k+1][1]);
             if (line.isInsideView(view.width, view.height)) {
-                ctx.lineTo(xyviewArray[k+1][0], xyviewArray[k+1][1]);
-            } else {
-                ctx.moveTo(xyviewArray[k+1][0], xyviewArray[k+1][1]);
+                line.draw(ctx);
             }
         }
 
@@ -181,7 +208,48 @@ export let Polyline= (function() {
             }
         }
 
-        ctx.stroke();
+        if (!noStroke) {
+            ctx.stroke();
+        }
+    };
+
+    Polyline.prototype.isInStroke = function(ctx, view, x, y) {
+        let pointXY = [];
+        for (var j = 0; j < this.radecArray.length; j++) {
+            var xy = AladinUtils.radecToViewXy(this.radecArray[j][0], this.radecArray[j][1], view);
+            if (!xy) {
+                return false;
+            }
+            pointXY.push({
+                x: xy[0],
+                y: xy[1]
+            });
+        }
+
+        const lastPointIdx = pointXY.length - 1;
+        for (var l = 0; l < lastPointIdx; l++) {
+            const line = new Line(pointXY[l].x, pointXY[l].y, pointXY[l + 1].x, pointXY[l + 1].y);                                   // new segment
+            line.draw(ctx, true);
+
+            if (ctx.isPointInStroke(x, y)) {                    // x,y is on line?
+                return true;
+            }
+        }
+
+        if(this.closed) {
+            const line = new Line(pointXY[lastPointIdx].x, pointXY[lastPointIdx].y, pointXY[0].x, pointXY[0].y);                                   // new segment
+            line.draw(ctx, true);
+            
+            if (ctx.isPointInStroke(x, y)) {                    // x,y is on line?
+                return true;
+            }
+        }
+
+        return false;
+    };
+
+    Polyline.prototype.intersectsBBox = function(x, y, w, h) {
+        // todo
     };
 
     return Polyline;

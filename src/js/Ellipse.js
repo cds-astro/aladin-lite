@@ -30,8 +30,7 @@
 
 import { Utils } from "./Utils.js";
 import { AladinUtils } from "./AladinUtils.js";
-import { CooFrameEnum } from "./CooFrameEnum.js";
-import { Aladin } from "./Aladin.js";
+import { Overlay } from "./Overlay.js";
 
 // TODO : Ellipse, Circle and Footprint should inherit from the same root object
 export let Ellipse = (function() {
@@ -40,6 +39,7 @@ export let Ellipse = (function() {
         options = options || {};
 
         this.color = options['color'] || undefined;
+        this.fillColor = options['fillColor'] || undefined;
 
         // TODO : all graphic overlays should have an id
         this.id = 'ellipse-' + Utils.uuidv4();
@@ -128,12 +128,15 @@ export let Ellipse = (function() {
         }
     };
 
+    Ellipse.prototype.isFootprint = function() {
+        return true;
+    }
+
     // TODO
     Ellipse.prototype.draw = function(ctx, view, noStroke) {
         if (! this.isShowing) {
             return;
         }
-        noStroke = noStroke===true || false;
 
         var centerXyview = AladinUtils.radecToViewXy(this.centerRaDec[0], this.centerRaDec[1], view);
         if (!centerXyview) {
@@ -164,6 +167,8 @@ export let Ellipse = (function() {
             // We do not draw it
             return;
         }
+        noStroke = noStroke===true || false;
+
         // TODO : check each 4 point until show
         var baseColor = this.color;
         if (! baseColor && this.overlay) {
@@ -208,9 +213,22 @@ export let Ellipse = (function() {
         ctx.beginPath();
         ctx.ellipse(centerXyview[0], centerXyview[1], radiusInPixX, radiusInPixY, theta, 0, 2*Math.PI, false);
         if (!noStroke) {
+            if (this.fillColor) {
+                ctx.fillStyle = this.fillColor;
+                ctx.fill();
+            }
             ctx.stroke();
         }
-    }; 
+    };
+
+    Ellipse.prototype.isInStroke = function(ctx, view, x, y) {
+        this.draw(ctx, view, true);
+        return ctx.isPointInStroke(x, y);
+    };
+
+    Ellipse.prototype.intersectsBBox = function(x, y, w, h) {
+        // todo
+    };
     
     return Ellipse;
 })();

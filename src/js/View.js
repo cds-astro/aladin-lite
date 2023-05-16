@@ -2082,7 +2082,8 @@ export let View = (function () {
         let closest = null;
         
         footprints.forEach((footprint) => {
-            if (footprint.isInStroke(ctx, this, x, y)) {
+            // Hidden footprints are not considered
+            if (footprint.isShowing && footprint.isInStroke(ctx, this, x, y)) {
                 closest = footprint;
                 return;
             }

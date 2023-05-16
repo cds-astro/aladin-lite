@@ -673,6 +673,11 @@ export let Catalog = (function() {
             return;
         }
         this.isShowing = true;
+        // Dispatch to the footprints
+        if (this.footprints) {
+            this.footprints.forEach((f) => f.show())
+        }
+
         this.reportChange();
     };
     
@@ -683,6 +688,10 @@ export let Catalog = (function() {
         this.isShowing = false;
         if (this.view && this.view.popup && this.view.popup.source && this.view.popup.source.catalog==this) {
             this.view.popup.hide();
+        }
+        // Dispatch to the footprints
+        if (this.footprints) {
+            this.footprints.forEach((f) => f.hide())
         }
 
         this.reportChange();

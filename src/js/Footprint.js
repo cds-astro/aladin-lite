@@ -44,19 +44,31 @@ export let Footprint= (function() {
 
         this.source = source;
         this.shapes = shapes;
+
+        this.isShowing = true;
     };
 
     Footprint.prototype.setCatalog = function(catalog) {
         if (this.source) {
             this.source.setCatalog(catalog);
         }
-    };
+    };    
 
     Footprint.prototype.show = function() {
+        if (this.isShowing) {
+            return;
+        }
+
+        this.isShowing = true;
         this.shapes.forEach((shape) => shape.show())
     };
 
     Footprint.prototype.hide = function() {
+        if (!this.isShowing) {
+            return;
+        }
+
+        this.isShowing = false;
         this.shapes.forEach((shape) => shape.hide())
     };
 
@@ -121,9 +133,9 @@ export let Footprint= (function() {
                 return false;
             }
 
-            let footprintCenter = null;
+            let c = null;
             if (s.x && s.y) {
-                footprintCenter = {
+                c = {
                     x: s.x,
                     y: s.y,
                 };
@@ -133,13 +145,13 @@ export let Footprint= (function() {
                     return false;
                 }
 
-                footprintCenter = {
+                c = {
                     x: xy[0],
                     y: xy[1],
                 };
             }
 
-            if (footprintCenter.x >= x && footprintCenter.x <= x + w && footprintCenter.y >= y && footprintCenter.y <= y + h) {
+            if (c.x >= x && c.x <= x + w && c.y >= y && c.y <= y + h) {
                 return true;
             }
         }

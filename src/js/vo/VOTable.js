@@ -32,19 +32,23 @@ import { Utils } from "./../Utils.js";
 
 export let VOTable = (function() {
 
-   function VOTable(url, callback) {
+    function VOTable(url, successCallback, errorCallback) {
         fetch(url)
             .then((response) => response.text())
             .then((xml) => {
                 ALEvent.AL_USE_WASM.dispatchedTo(document.body, {callback: (wasm) => {
                     let votable = wasm.parseVOTable(xml);
-                    callback(votable);
+
+                    successCallback(votable);
                 }});
             })
+            .catch((e) => errorCallback(e))
     };
 
-    VOTable.parse = function (url, callback, raField, decField) {
-        url = Utils.handleCORSNotSameOrigin(url);
+    VOTable.parse = function (url, successCallback, errorCallback, useProxy, raField, decField) {
+        if(useProxy) {
+            url = Utils.handleCORSNotSameOrigin(url);
+        }
 
         fetch(url)
             .then((response) => response.text())
@@ -79,7 +83,7 @@ export let VOTable = (function() {
                                         let rows = data.get("rows");
     
                                         if (rows) {
-                                            callback(fields, rows)
+                                            successCallback(fields, rows)
                                         }
                                     }
                                 })
@@ -87,6 +91,13 @@ export let VOTable = (function() {
                         })
                     }
                 })
+            })
+            .catch((e) => {
+                if (errorCallback) {
+                    errorCallback(e);
+                } else {
+                    throw e;
+                }
             })
     };
 

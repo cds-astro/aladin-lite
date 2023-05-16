@@ -1871,7 +1871,7 @@ A.MOCFromJSON = function (jsonMOC, options) {
 
 // TODO: try first without proxy, and then with, if param useProxy not set
 // API
-A.catalogFromURL = function (url, options, successCallback, useProxy) {
+A.catalogFromURL = function (url, options, successCallback, errorCallback, useProxy) {
     var catalog = A.catalog(options);
     Catalog.parseVOTable(
         url,
@@ -1896,6 +1896,7 @@ A.catalogFromURL = function (url, options, successCallback, useProxy) {
                 successCallback(sources);
             }
         },
+        errorCallback,
         catalog.maxNbSources,
         useProxy,
         catalog.raField, catalog.decField
@@ -1906,17 +1907,17 @@ A.catalogFromURL = function (url, options, successCallback, useProxy) {
 
 // API
 // @param target: can be either a string representing a position or an object name, or can be an object with keys 'ra' and 'dec' (values being in decimal degrees)
-A.catalogFromSimbad = function (target, radius, options, successCallback) {
+A.catalogFromSimbad = function (target, radius, options, successCallback, errorCallback) {
     options = options || {};
     if (!('name' in options)) {
         options['name'] = 'Simbad';
     }
     var url = URLBuilder.buildSimbadCSURL(target, radius);
-    return A.catalogFromURL(url, options, successCallback, false);
+    return A.catalogFromURL(url, options, successCallback, errorCallback, false);
 };
 
 // API
-A.catalogFromNED = function (target, radius, options, successCallback) {
+A.catalogFromNED = function (target, radius, options, successCallback, errorCallback) {
     options = options || {};
     if (!('name' in options)) {
         options['name'] = 'NED';
@@ -1939,29 +1940,29 @@ A.catalogFromNED = function (target, radius, options, successCallback) {
         }
     }
 
-    return A.catalogFromURL(url, options, successCallback);
+    return A.catalogFromURL(url, options, successCallback, errorCallback, true);
 };
 
 // API
-A.catalogFromVizieR = function (vizCatId, target, radius, options, successCallback) {
+A.catalogFromVizieR = function (vizCatId, target, radius, options, successCallback, errorCallback) {
     options = options || {};
     if (!('name' in options)) {
         options['name'] = 'VizieR:' + vizCatId;
     }
 
     var url = URLBuilder.buildVizieRCSURL(vizCatId, target, radius, options);
-    return A.catalogFromURL(url, options, successCallback, false);
+    return A.catalogFromURL(url, options, successCallback, errorCallback, false);
 };
 
 // API
-A.catalogFromSkyBot = function (ra, dec, radius, epoch, queryOptions, options, successCallback) {
+A.catalogFromSkyBot = function (ra, dec, radius, epoch, queryOptions, options, successCallback, errorCallback) {
     queryOptions = queryOptions || {};
     options = options || {};
     if (!('name' in options)) {
         options['name'] = 'SkyBot';
     }
     var url = URLBuilder.buildSkyBotCSURL(ra, dec, radius, epoch, queryOptions);
-    return A.catalogFromURL(url, options, successCallback, false);
+    return A.catalogFromURL(url, options, successCallback, errorCallback, false);
 };
 
 A.hipsDefinitionFromURL = function(url, successCallback) {

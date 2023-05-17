@@ -49,6 +49,8 @@ pub struct CameraViewPort {
 
     // A flag telling whether the camera has been moved during the frame
     moved: bool,
+    // A flag telling whether the camera has zoomed during the frame
+    zoomed: bool,
 
     // Tag the last action done by the user
     last_user_action: UserAction,
@@ -92,6 +94,7 @@ impl CameraViewPort {
         let center = Vector4::new(0.0, 0.0, 1.0, 1.0);
 
         let moved = false;
+        let zoomed = false;
 
         let w2m_rot = Rotation::zero();
         let final_rot = Rotation::zero();
@@ -156,6 +159,8 @@ impl CameraViewPort {
             vertices,
             // A flag telling whether the camera has been moved during the frame
             moved,
+            // A flag telling if the camera has zoomed during the frame
+            zoomed,
 
             // Tag the last action done by the user
             last_user_action,
@@ -251,9 +256,6 @@ impl CameraViewPort {
         // Compute the new clip zoom factor
         self.compute_ndc_to_clip_factor(projection);
 
-        //self.moved = true;
-        //self.last_user_action = UserAction::Starting;
-
         self.vertices.set_fov(
             &self.ndc_to_clip,
             self.clip_zoom_factor,
@@ -343,6 +345,7 @@ impl CameraViewPort {
 
         // Project this vertex into the screen
         self.moved = true;
+        self.zoomed = true;
 
         self.vertices.set_fov(
             &self.ndc_to_clip,
@@ -391,15 +394,15 @@ impl CameraViewPort {
         self.tile_depth
     }
 
-    pub fn rotate(&mut self, axis: &cgmath::Vector3<f64>, angle: Angle<f64>, projection: &ProjectionType) {
+    pub fn rotate(&mut self, axis: &cgmath::Vector3<f64>, angle: Angle<f64>) {
         // Rotate the axis:
         let drot = Rotation::from_axis_angle(axis, angle);
         self.w2m_rot = drot * self.w2m_rot;
 
-        self.update_rot_matrices(projection);
+        self.update_rot_matrices();
     }
 
-    pub fn set_center(&mut self, lonlat: &LonLatT<f64>, system: &CooSystem, projection: &ProjectionType) {
+    pub fn set_center(&mut self, lonlat: &LonLatT<f64>, system: &CooSystem) {
         let icrs_pos: Vector4<_> = lonlat.vector();
 
         let view_pos = coosys::apply_coo_system(
@@ -411,13 +414,13 @@ impl CameraViewPort {
 
         // Apply the rotation to the camera to go
         // to the next lonlat
-        self.set_rotation(&rot, projection);
+        self.set_rotation(&rot);
     }
 
-    fn set_rotation(&mut self, rot: &Rotation<f64>, projection: &ProjectionType) {
+    fn set_rotation(&mut self, rot: &Rotation<f64>) {
         self.w2m_rot = *rot;
 
-        self.update_rot_matrices(projection);
+        self.update_rot_matrices();
     }
 
     pub fn get_field_of_view(&self) -> &FieldOfViewType {
@@ -428,22 +431,22 @@ impl CameraViewPort {
         self.vertices.get_coverage(&self.system, hips_frame, &self.center)
     }*/
 
-    pub fn set_coo_system(&mut self, new_system: CooSystem, projection: &ProjectionType) {
+    pub fn set_coo_system(&mut self, new_system: CooSystem) {
         // Compute the center position according to the new coordinate frame system
         let new_center = coosys::apply_coo_system(&self.system, &new_system, &self.center);
         // Create a rotation object from that position
         let new_rotation = Rotation::from_sky_position(&new_center);
         // Apply it to the center of the view
-        self.set_rotation(&new_rotation, projection);
+        self.set_rotation(&new_rotation);
 
         // Record the new system
         self.system = new_system;
     }
 
-    pub fn set_longitude_reversed(&mut self, reversed_longitude: bool, projection: &ProjectionType) {
+    pub fn set_longitude_reversed(&mut self, reversed_longitude: bool) {
         if self.reversed_longitude != reversed_longitude {
             self.rotation_center_angle = -self.rotation_center_angle;
-            self.update_rot_matrices(projection);
+            self.update_rot_matrices();
         }
         self.reversed_longitude = reversed_longitude;
 
@@ -516,9 +519,14 @@ impl CameraViewPort {
         self.moved
     }
 
+    pub fn has_zoomed(&self) -> bool {
+        self.zoomed
+    }
+
     // Reset moving flag
     pub fn reset(&mut self) {
         self.moved = false;
+        self.zoomed = false;
     }
 
     pub fn get_aperture(&self) -> Angle<f64> {
@@ -545,9 +553,9 @@ impl CameraViewPort {
         &self.system
     }
 
-    pub fn set_rotation_around_center(&mut self, theta: Angle<f64>, projection: &ProjectionType) {
+    pub fn set_rotation_around_center(&mut self, theta: Angle<f64>) {
         self.rotation_center_angle = theta;
-        self.update_rot_matrices(projection);
+        self.update_rot_matrices();
     }
 
     pub fn get_rotation_around_center(&self) -> &Angle<f64> {
@@ -559,12 +567,12 @@ use crate::ProjectionType;
 //use crate::coo_conversion::CooBaseFloat;
 impl CameraViewPort {
     // private methods
-    fn update_rot_matrices(&mut self, projection: &ProjectionType) {
+    fn update_rot_matrices(&mut self) {
         self.w2m = (&(self.w2m_rot)).into();
         self.m2w = self.w2m.transpose();
 
         // Update the center with the new rotation
-        self.update_center(projection);
+        self.update_center();
 
         // Rotate the fov vertices
         self.vertices
@@ -575,13 +583,9 @@ impl CameraViewPort {
         self.moved = true;
     }
 
-    fn update_center(&mut self, projection: &ProjectionType) {
-        // update the center position
-        let center_world_space = projection.clip_to_world_space(&Vector2::new(0.0, 0.0)).unwrap_abort();
-        // Change from galactic to icrs if necessary
-
-        // Change to model space
-        self.center = self.w2m * center_world_space;
+    fn update_center(&mut self) {
+        // The center position is on the 3rd column of the w2m matrix
+        self.center = self.w2m.z;
 
         let axis = &self.center.truncate();
         let center_rot = Rotation::from_axis_angle(axis, self.rotation_center_angle);

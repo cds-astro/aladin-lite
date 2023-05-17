@@ -319,7 +319,7 @@ impl Layers {
         Ok(())
     }
 
-    pub fn remove_layer(&mut self, layer: &str, camera: &mut CameraViewPort, projection: &ProjectionType) -> Result<usize, JsValue> {
+    pub fn remove_layer(&mut self, layer: &str, camera: &mut CameraViewPort) -> Result<usize, JsValue> {
         let err_layer_not_found = JsValue::from_str(&format!("Layer {:?} not found, so cannot be removed.", layer));
         // Color configs, and urls are indexed by layer
         self.meta.remove(layer)
@@ -338,7 +338,7 @@ impl Layers {
                 meta.longitude_reversed
             });
 
-        camera.set_longitude_reversed(longitude_reversed, projection);
+        camera.set_longitude_reversed(longitude_reversed);
 
         // Check if the url is still used
         let url_still_used = self.urls.values().any(|rem_url| rem_url == &url);
@@ -406,7 +406,6 @@ impl Layers {
         gl: &WebGlContext,
         hips: HiPSCfg,
         camera: &mut CameraViewPort,
-        projection: &ProjectionType
     ) -> Result<&HiPS, JsValue> {
         let HiPSCfg {
             layer,
@@ -421,7 +420,7 @@ impl Layers {
             });
 
         let idx = if layer_already_found {
-            let idx = self.remove_layer(&layer, camera, projection)?;
+            let idx = self.remove_layer(&layer, camera)?;
             idx
         } else {
             self.layers.len()
@@ -445,7 +444,7 @@ impl Layers {
 
             /*if let Some(initial_ra) = properties.get_initial_ra() {
                 if let Some(initial_dec) = properties.get_initial_dec() {
-                    camera.set_center::<P>(&LonLatT(Angle((initial_ra).to_radians()), Angle((initial_dec).to_radians())), &properties.get_frame());
+                    camera.set_center::<P>(&LonLatT::new(initial_ra.to_radians().to_angle()), initial_dec.to_radians().to_angle())), &properties.get_frame());
                 }
             }
 
@@ -468,7 +467,7 @@ impl Layers {
                 meta.longitude_reversed
             });
 
-        camera.set_longitude_reversed(longitude_reversed, projection);
+        camera.set_longitude_reversed(longitude_reversed);
 
         // Refresh the views of all the surveys
         // this is necessary to compute the max depth between the surveys
@@ -482,7 +481,6 @@ impl Layers {
         &mut self,
         image: ImageCfg,
         camera: &mut CameraViewPort,
-        projection: &ProjectionType
     ) -> Result<&Image, JsValue> {
         let ImageCfg {
             layer,
@@ -498,7 +496,7 @@ impl Layers {
             });
 
         let idx = if layer_already_found {
-            let idx = self.remove_layer(&layer, camera, projection)?;
+            let idx = self.remove_layer(&layer, camera)?;
             idx
         } else {
             self.layers.len()
@@ -515,7 +513,7 @@ impl Layers {
                 meta.longitude_reversed
             });
 
-        camera.set_longitude_reversed(longitude_reversed, projection);
+        camera.set_longitude_reversed(longitude_reversed);
 
         // 3. Add the fits image
         // The layer does not already exist
@@ -530,7 +528,7 @@ impl Layers {
             // The fits has not been loaded yet
             /*if let Some(initial_ra) = properties.get_initial_ra() {
                 if let Some(initial_dec) = properties.get_initial_dec() {
-                    camera.set_center::<P>(&LonLatT(Angle((initial_ra).to_radians()), Angle((initial_dec).to_radians())), &properties.get_frame());
+                    camera.set_center::<P>(&LonLatT::new(Angle((initial_ra).to_radians()), Angle((initial_dec).to_radians())), &properties.get_frame());
                 }
             }
 

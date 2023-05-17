@@ -5,6 +5,7 @@
 </head>
 <body>
 <div id="aladin-lite-div" style="width: 500px; height: 400px"></div>
+
 <script type="text/javascript" src="./../aladin.js" charset="utf-8"></script>
 
 <script type="text/javascript">
@@ -16,8 +17,12 @@
         aladin.on("zoomChanged", () => {
             console.log("zoomChanged")
         })
-        aladin.on("positionChanged", () => {
-            console.log("positionChanged")
+        aladin.on("positionChanged", ({ra, dec, dragging}) => {
+            console.log("positionChanged", ra, dec)
+        })
+
+        aladin.on('rightClickMove', (x, y) => {
+            console.log("right click move", x, y)
         })
     });
 </script>

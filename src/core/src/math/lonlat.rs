@@ -1,4 +1,6 @@
 use cgmath::{BaseFloat, Rad, Vector3, Vector4, Matrix3};
+use crate::Abort;
+use crate::math::TWICE_PI;
 
 pub trait LonLat<S: BaseFloat> {
     fn lon(&self) -> Angle<S>;
@@ -9,7 +11,7 @@ pub trait LonLat<S: BaseFloat> {
 
 use crate::math::angle::Angle;
 #[derive(Clone, Copy, Debug)]
-pub struct LonLatT<S: BaseFloat>(pub Angle<S>, pub Angle<S>);
+pub struct LonLatT<S: BaseFloat>(Angle<S>, Angle<S>);
 
 impl<S> LonLatT<S>
 where
@@ -21,12 +23,16 @@ where
     ///
     /// * ``lon`` - Longitude
     /// * ``lat`` - Latitude
-    pub fn new(lon: Angle<S>, lat: Angle<S>) -> LonLatT<S> {
+    pub fn new(mut lon: Angle<S>, lat: Angle<S>) -> LonLatT<S> {
+        if lon.0 < S::zero() {
+            lon.0 = lon.0 + S::from(TWICE_PI).unwrap_abort();
+        }
+
         LonLatT(lon, lat)
     }
 
     pub fn from_radians(lon: Rad<S>, lat: Rad<S>) -> LonLatT<S> {
-        LonLatT(lon.into(), lat.into())
+        LonLatT::new(lon.into(), lat.into())
     }
 
     #[inline]
@@ -97,7 +103,7 @@ where
         let lon = Rad(self.x.atan2(self.z));
         let lat = Rad(self.y.atan2((self.x * self.x + self.z * self.z).sqrt()));
 
-        LonLatT(Angle::new(lon), Angle::new(lat))
+        LonLatT::new(Angle::new(lon), Angle::new(lat))
     }
 
     #[inline]
@@ -131,10 +137,10 @@ where
 
     #[inline]
     fn lonlat(&self) -> LonLatT<S> {
-        let lon = Rad(self.x.atan2(self.z));
-        let lat = Rad(self.y.atan2((self.x * self.x + self.z * self.z).sqrt()));
+        let lon = self.x.atan2(self.z);
+        let lat = self.y.atan2((self.x * self.x + self.z * self.z).sqrt());
 
-        LonLatT(Angle::new(lon), Angle::new(lat))
+        LonLatT::new(lon.to_angle(), lat.to_angle())
     }
 
     #[inline]

@@ -48,7 +48,7 @@ impl Source {
 
     pub fn lonlat(&self) -> (f32, f32) {
         let lonlat = Vector3::new(self.x, self.y, self.z).lonlat();
-        (lonlat.0 .0, lonlat.1 .0)
+        (lonlat.lon().to_radians(), lonlat.lat().to_radians())
     }
 }
 

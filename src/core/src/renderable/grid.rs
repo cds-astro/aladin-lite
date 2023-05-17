@@ -323,7 +323,7 @@ impl Label {
         projection: &ProjectionType,
         fmt: &angle::SerializeFmt
     ) -> Option<Self> {
-        let LonLatT(.., lat) = camera.get_center().lonlat();
+        let lat = camera.get_center().lonlat().lat();
         // Do not plot meridian labels when the center of fov
         // is above 80deg
         if fov.is_allsky() {
@@ -509,7 +509,7 @@ const PI: f64 = std::f64::consts::PI;
 const HALF_PI: f64 = 0.5 * PI;
 use crate::math::{
     angle::ArcDeg,
-    lonlat::{LonLat, LonLatT},
+    lonlat::LonLat,
 };
 
 impl GridLine {

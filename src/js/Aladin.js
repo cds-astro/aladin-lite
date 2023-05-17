@@ -700,6 +700,11 @@ export let Aladin = (function () {
 
         this.view.changeFrame(newFrame);
 
+        var frameChangedFunction = this.view.aladin.callbacksByEventName['cooFrameChanged'];
+        if (typeof frameChangedFunction === 'function') {
+            frameChangedFunction(newFrame.label);
+        }
+
         // màj select box
         $(this.aladinDiv).find('.aladin-frameChoice').val(newFrame.label);
     };
@@ -767,8 +772,11 @@ export let Aladin = (function () {
             var self = this;
             // sky case
             (async () => {
-                const baseImageLayer = await this.getBaseImageLayer().query;
-                if (baseImageLayer.properties.isPlanetaryBody === false) {
+                let baseImageLayer;
+                if (this.getBaseImageLayer()) {
+                    baseImageLayer = await this.getBaseImageLayer().query;
+                }
+                if (this.getBaseImageLayer() === undefined || !baseImageLayer.isPlanetaryBody()) {
                     Sesame.resolve(targetName,
                         function (data) { // success callback
                             // Location given in icrs at J2000
@@ -783,7 +791,8 @@ export let Aladin = (function () {
                                 console.log(data);
                             }
                             (typeof errorCallback === 'function') && errorCallback();
-                    });
+                        }
+                    );
                 }
                 // planetary case
                 else {
@@ -800,7 +809,8 @@ export let Aladin = (function () {
                                 console.log(data);
                             }
                             (typeof errorCallback === 'function') && errorCallback();
-                    });
+                        }
+                    );
                 }
             })();
         }
@@ -1293,7 +1303,26 @@ export let Aladin = (function () {
     };
 
     // Select corresponds to rectangular selection
-    Aladin.AVAILABLE_CALLBACKS = ['select', 'objectClicked', 'objectHovered', 'footprintClicked', 'footprintHovered', 'positionChanged', 'zoomChanged', 'click', 'mouseMove', 'fullScreenToggled', 'catalogReady'];
+    Aladin.AVAILABLE_CALLBACKS = [
+        'select',
+
+        'objectClicked',
+        'objectHovered',
+        'objectHoveredStop',
+
+        'footprintClicked',
+        'footprintHovered',
+
+        'positionChanged',
+        'zoomChanged',
+
+        'click',
+        'rightClickMove',
+        'mouseMove',
+
+        'fullScreenToggled',
+        'cooFrameChanged'
+    ];
     // API
     //
     // setting callbacks
@@ -1303,6 +1332,19 @@ export let Aladin = (function () {
         }
 
         this.callbacksByEventName[what] = myFunction;
+
+        if (what === "positionChanged") {
+            // tell the backend about that callback
+            // because it needs to be called when the inertia is done
+            ALEvent.AL_USE_WASM.dispatchedTo(document.body, {callback: (wasm) => {
+                let myFunctionThrottled = Utils.throttle(
+                    myFunction,
+                    View.CALLBACKS_THROTTLE_TIME_MS,
+                );
+
+                wasm.setCallbackPositionChanged(myFunctionThrottled);
+            }})
+        }
     };
 
     Aladin.prototype.addListener = function(alEventName, customFn) {

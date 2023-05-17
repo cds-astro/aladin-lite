@@ -15,7 +15,6 @@ use crate::LonLatT;
 use crate::math::PI;
 use crate::math::{
     rotation::Rotation,
-    angle::Angle,
     HALF_PI
 };
 use cgmath::Vector2;
@@ -603,7 +602,7 @@ impl Projection for ProjectionType {
             ProjectionType::Cod(cod) => {
                 cod.clip_to_world_space(xy)
                     .map(|xyzw| {
-                        let rot = Rotation::from_sky_position(&LonLatT(Angle(0.0_f64), Angle(HALF_PI * 0.5)).vector());
+                        let rot = Rotation::from_sky_position(&LonLatT::new(0.0_f64.to_angle(), (HALF_PI * 0.5).to_angle()).vector());
                         rot.inv_rotate(&xyzw)
                     })
             },
@@ -659,7 +658,7 @@ impl Projection for ProjectionType {
             // COD,                                 */
             ProjectionType::Cod(cod) => {
                 // The Cod projection is centered on (0, 45 deg)
-                let rot = Rotation::from_sky_position(&LonLatT(Angle(0.0_f64), Angle(HALF_PI * 0.5)).vector());
+                let rot = Rotation::from_sky_position(&LonLatT::new(0.0_f64.to_angle(), (HALF_PI * 0.5).to_angle()).vector());
                 cod.world_to_clip_space(&rot.rotate(&xyzw))
             },
             // HEALPix hybrid projection
@@ -689,6 +688,8 @@ pub trait Projection {
 use mapproj::ProjXY;
 
 use self::coo_space::XYNDC;
+
+use super::angle::ToAngle;
 impl<'a, P> Projection for &'a P
 where
     P: CanonicalProjection

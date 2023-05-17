@@ -232,9 +232,41 @@ export let View = (function () {
             self.requestRedraw();
         });
 
+        this.throttledPositionChanged = Utils.throttle(
+            () => {
+                var posChangedFn = this.aladin.callbacksByEventName['positionChanged'];
+                if (typeof posChangedFn === 'function') {
+                    var pos = this.aladin.pix2world(this.width / 2, this.height / 2);
+                    if (pos !== undefined) {
+                        posChangedFn({
+                            ra: pos[0],
+                            dec: pos[1],
+                            dragging: true
+                        });
+                    }
+                }
+            },
+            View.CALLBACKS_THROTTLE_TIME_MS,
+        );
+
+        this.throttledZoomChanged = Utils.throttle(
+            () => {
+                const fov = this.fov;
+                // trigger callback only if FoV (zoom) has changed !
+                if (fov !== this.oldFov) {
+                    const fovChangedFn = this.aladin.callbacksByEventName['zoomChanged'];
+                    (typeof fovChangedFn === 'function') && fovChangedFn(fov);
+    
+                    // finally, save fov value
+                    this.oldFov = fov;
+                }
+            },
+            View.CALLBACKS_THROTTLE_TIME_MS,
+        );
+
         resizeObserver.observe(this.aladinDiv);
         //$(window).resize(() => {
-            self.fixLayoutDimensions();
+        self.fixLayoutDimensions();
             //self.requestRedraw();
         //});
         // in some contexts (Jupyter notebook for instance), the parent div changes little time after Aladin Lite creation
@@ -555,15 +587,6 @@ export let View = (function () {
 
                 if (wasDragging) {
                     view.realDragging = false;
-
-                    // call positionChanged one last time after dragging, with dragging: false
-                    var posChangedFn = view.aladin.callbacksByEventName['positionChanged'];
-                    if (typeof posChangedFn === 'function') {
-                        var pos = view.aladin.pix2world(view.width / 2, view.height / 2);
-                        if (pos !== undefined) {
-                            posChangedFn({ ra: pos[0], dec: pos[1], dragging: false });
-                        }
-                    }
                 }
             } // end of "if (view.dragging) ... "
 
@@ -738,25 +761,35 @@ export let View = (function () {
             e.preventDefault();
             var xymouse = view.imageCanvas.relMouseCoords(e);
 
-            if (view.rightClick && view.selectedLayer) {
-                
-                let selectedLayer = view.imageLayers.get(view.selectedLayer);
-                // We try to match DS9 contrast adjustment behaviour with right click
-                const cs = {
-                    x: view.catalogCanvas.clientWidth * 0.5,
-                    y: view.catalogCanvas.clientHeight * 0.5,
-                };
-                const cx = (xymouse.x - cs.x) / view.catalogCanvas.clientWidth;
-                const cy = -(xymouse.y - cs.y) / view.catalogCanvas.clientHeight;
+            if (view.rightClick) {
+                var onRightClickMoveFunction = view.aladin.callbacksByEventName['rightClickMove'];
+                if (typeof onRightClickMoveFunction === 'function') {                    
+                    onRightClickMoveFunction(xymouse.x, xymouse.y);
 
-                const offset = (cutMaxInit - cutMinInit) * cx;
-
-                const lr = offset + (1.0 - 2.0 * cy) * cutMinInit;
-                const rr = offset + (1.0 + 2.0 * cy) * cutMaxInit;
-
-                if (lr <= rr) {
-                    selectedLayer.setCuts(lr, rr)
+                    // do not process further
+                    return;
                 }
+
+                if(view.selectedLayer) {
+                    let selectedLayer = view.imageLayers.get(view.selectedLayer);
+                    // We try to match DS9 contrast adjustment behaviour with right click
+                    const cs = {
+                        x: view.catalogCanvas.clientWidth * 0.5,
+                        y: view.catalogCanvas.clientHeight * 0.5,
+                    };
+                    const cx = (xymouse.x - cs.x) / view.catalogCanvas.clientWidth;
+                    const cy = -(xymouse.y - cs.y) / view.catalogCanvas.clientHeight;
+    
+                    const offset = (cutMaxInit - cutMinInit) * cx;
+    
+                    const lr = offset + (1.0 - 2.0 * cy) * cutMinInit;
+                    const rr = offset + (1.0 + 2.0 * cy) * cutMaxInit;
+    
+                    if (lr <= rr) {
+                        selectedLayer.setCuts(lr, rr)
+                    }
+                }
+
                 return;
             }
 
@@ -815,42 +848,41 @@ export let View = (function () {
                 if (!view.dragging && !view.mode == View.SELECT) {
                     // closestObjects is very costly, we would like to not do it
                     // especially if the objectHovered function is not defined.
-                    var objHoveredFunction = view.aladin.callbacksByEventName['objectHovered'];
-                    var footprintHoveredFunction = view.aladin.callbacksByEventName['footprintHovered'];
+                    var closest = view.closestObjects(xymouse.x, xymouse.y, 5);
 
-                    if (objHoveredFunction || footprintHoveredFunction) {
-                        var closest = view.closestObjects(xymouse.x, xymouse.y, 5);
-                        if (closest) {
-                            let o = closest[0];
-                            view.setCursor('pointer');
-                            if (typeof objHoveredFunction === 'function' && o != lastHoveredObject) {
-                                var ret = objHoveredFunction(o);
-                            }
-    
-                            if (o.isFootprint()) {
-                                if (typeof footprintHoveredFunction === 'function' && o != lastHoveredObject) {
-                                    var ret = footprintHoveredFunction(o);
-                                }
-                            }
-    
-                            lastHoveredObject = o;
-                        } else {
-                            view.setCursor('default');
-                            var objHoveredFunction = view.aladin.callbacksByEventName['objectHovered'];
-                            if (lastHoveredObject) {
-                                // Redraw the scene if the lastHoveredObject is a footprint (e.g. circle or polygon)
-                                if (lastHoveredObject.isFootprint()) {
-                                    view.requestRedraw();
-                                }
-    
-                                lastHoveredObject = null;
-    
-                                if (typeof objHoveredFunction === 'function') {
-                                    // call callback function to notify we left the hovered object
-                                    var ret = objHoveredFunction(null);
-                                }
+                    if (closest) {
+                        let o = closest[0];
+                        var objHoveredFunction = view.aladin.callbacksByEventName['objectHovered'];
+                        var footprintHoveredFunction = view.aladin.callbacksByEventName['footprintHovered'];
+
+                        view.setCursor('pointer');
+                        if (typeof objHoveredFunction === 'function' && o != lastHoveredObject) {
+                            var ret = objHoveredFunction(o);
+                        }
+
+                        if (o.isFootprint()) {
+                            if (typeof footprintHoveredFunction === 'function' && o != lastHoveredObject) {
+                                var ret = footprintHoveredFunction(o);
                             }
                         }
+
+                        lastHoveredObject = o;
+                    } else {
+                        view.setCursor('default');
+                        var objHoveredStopFunction = view.aladin.callbacksByEventName['objectHoveredStop'];
+                        if (lastHoveredObject) {
+                            // Redraw the scene if the lastHoveredObject is a footprint (e.g. circle or polygon)
+                            if (lastHoveredObject.isFootprint()) {
+                                view.requestRedraw();
+                            }
+    
+                            if (typeof objHoveredStopFunction === 'function') {
+                                // call callback function to notify we left the hovered object
+                                var ret = objHoveredStopFunction(lastHoveredObject);
+                            }
+                        }
+
+                        lastHoveredObject = null;
                     }
                 }
                 if (!hasTouchEvents) {
@@ -884,6 +916,9 @@ export let View = (function () {
             if (view.viewCenter.lon < 0.0) {
                 view.viewCenter.lon += 360.0;
             }
+
+            // Apply position changed callback after the move
+            view.throttledPositionChanged();
         }); //// endof mousemove ////
 
         // disable text selection on IE
@@ -961,7 +996,9 @@ export let View = (function () {
                     self.drawAllOverlays();
                 }, 300);
             }
+
             view.debounceProgCatOnZoom();
+            view.throttledZoomChanged();
 
             return false;
         });
@@ -978,53 +1015,9 @@ export let View = (function () {
 
         createListeners(view);
 
-        view.executeCallbacksThrottled = Utils.throttle(
-            function () {
-                if (view.aladin.callbacksByEventName === undefined) {
-                    return;
-                }
-                var pos = view.aladin.pix2world(view.width / 2, view.height / 2);
-
-                var fov = view.fov;
-
-                if (pos === undefined || fov === undefined) {
-                    return;
-                }
-
-                var ra = pos[0];
-                var dec = pos[1];
-
-                // trigger callback only if position has changed !
-                if (ra !== this.ra || dec !== this.dec) {
-                    var posChangedFn = view.aladin.callbacksByEventName['positionChanged'];
-
-                    (typeof posChangedFn === 'function') && posChangedFn({ ra: ra, dec: dec, dragging: true });
-
-                    // finally, save ra and dec value
-                    this.ra = ra;
-                    this.dec = dec;
-                }
-
-                // trigger callback only if FoV (zoom) has changed !
-                if (fov !== this.old_fov) {
-                    var fovChangedFn = view.aladin.callbacksByEventName['zoomChanged'];
-                    (typeof fovChangedFn === 'function') && fovChangedFn(fov);
-
-                    // finally, save fov value
-                    this.old_fov = fov;
-                }
-            },
-            View.CALLBACKS_THROTTLE_TIME_MS);
-
-
         view.displayHpxGrid = false;
         view.displayCatalog = false;
         view.displayReticle = true;
-
-        // initial draw
-        //view.fov = computeFov(view);
-        //updateFovDiv(view);
-        //view.redraw();
     };
 
     View.prototype.updateLocation = function (mouseX, mouseY, isViewCenterPosition) {
@@ -1087,9 +1080,6 @@ export let View = (function () {
                 this.drawAllOverlays();
             }
             this.needRedraw = false;
-
-            // execute 'positionChanged' and 'zoomChanged' callbacks
-            this.executeCallbacksThrottled();
         }
     };
 

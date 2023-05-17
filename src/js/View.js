@@ -813,39 +813,42 @@ export let View = (function () {
                 }
 
                 if (!view.dragging && !view.mode == View.SELECT) {
-                    // objects under the mouse ?
-                    var closest = view.closestObjects(xymouse.x, xymouse.y, 5);
-                    if (closest) {
-                        let o = closest[0];
-                        view.setCursor('pointer');
-                        var objHoveredFunction = view.aladin.callbacksByEventName['objectHovered'];
-                        if (typeof objHoveredFunction === 'function' && o != lastHoveredObject) {
-                            var ret = objHoveredFunction(o);
-                        }
+                    // closestObjects is very costly, we would like to not do it
+                    // especially if the objectHovered function is not defined.
+                    var objHoveredFunction = view.aladin.callbacksByEventName['objectHovered'];
+                    var footprintHoveredFunction = view.aladin.callbacksByEventName['footprintHovered'];
 
-                        if (o.isFootprint()) {
-                            var footprintHoveredFunction = view.aladin.callbacksByEventName['footprintHovered'];
-                            if (typeof footprintHoveredFunction === 'function' && o != lastHoveredObject) {
-                                var ret = footprintHoveredFunction(o);
+                    if (objHoveredFunction || footprintHoveredFunction) {
+                        var closest = view.closestObjects(xymouse.x, xymouse.y, 5);
+                        if (closest) {
+                            let o = closest[0];
+                            view.setCursor('pointer');
+                            if (typeof objHoveredFunction === 'function' && o != lastHoveredObject) {
+                                var ret = objHoveredFunction(o);
                             }
-                        }
-
-                        lastHoveredObject = o;
-                    }
-                    else {
-                        view.setCursor('default');
-                        var objHoveredFunction = view.aladin.callbacksByEventName['objectHovered'];
-                        if (lastHoveredObject) {
-                            // Redraw the scene if the lastHoveredObject is a footprint (e.g. circle or polygon)
-                            if (lastHoveredObject.isFootprint()) {
-                                view.requestRedraw();
+    
+                            if (o.isFootprint()) {
+                                if (typeof footprintHoveredFunction === 'function' && o != lastHoveredObject) {
+                                    var ret = footprintHoveredFunction(o);
+                                }
                             }
-
-                            lastHoveredObject = null;
-
-                            if (typeof objHoveredFunction === 'function') {
-                                // call callback function to notify we left the hovered object
-                                var ret = objHoveredFunction(null);
+    
+                            lastHoveredObject = o;
+                        } else {
+                            view.setCursor('default');
+                            var objHoveredFunction = view.aladin.callbacksByEventName['objectHovered'];
+                            if (lastHoveredObject) {
+                                // Redraw the scene if the lastHoveredObject is a footprint (e.g. circle or polygon)
+                                if (lastHoveredObject.isFootprint()) {
+                                    view.requestRedraw();
+                                }
+    
+                                lastHoveredObject = null;
+    
+                                if (typeof objHoveredFunction === 'function') {
+                                    // call callback function to notify we left the hovered object
+                                    var ret = objHoveredFunction(null);
+                                }
                             }
                         }
                     }

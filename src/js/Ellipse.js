@@ -40,6 +40,7 @@ export let Ellipse = (function() {
 
         this.color = options['color'] || undefined;
         this.fillColor = options['fillColor'] || undefined;
+        this.lineWidth = options["lineWidth"] || 2;
 
         // TODO : all graphic overlays should have an id
         this.id = 'ellipse-' + Utils.uuidv4();
@@ -51,6 +52,38 @@ export let Ellipse = (function() {
     	
     	this.isShowing = true;
         this.isSelected = false;
+
+        this.selectionColor = '#00ff00';
+    };
+
+    Ellipse.prototype.setColor = function(color) {
+        if (this.color == color) {
+            return;
+        }
+        this.color = color;
+        if (this.overlay) {
+            this.overlay.reportChange();
+        }
+    };
+
+    Ellipse.prototype.setSelectionColor = function(color) {
+        if (this.selectionColor == color) {
+            return;
+        }
+        this.selectionColor = color;
+        if (this.overlay) {
+            this.overlay.reportChange();
+        }
+    };
+
+    Ellipse.prototype.setLineWidth = function(lineWidth) {
+        if (this.lineWidth == lineWidth) {
+            return;
+        }
+        this.lineWidth = lineWidth;
+        if (this.overlay) {
+            this.overlay.reportChange();
+        }
     };
 
     Ellipse.prototype.setOverlay = function(overlay) {
@@ -179,10 +212,14 @@ export let Ellipse = (function() {
         }
         
         if (this.isSelected) {
-            ctx.strokeStyle= Overlay.increaseBrightness(baseColor, 50);
+            if(this.selectionColor) {
+                ctx.strokeStyle = this.selectionColor;
+            } else {
+                ctx.strokeStyle = Overlay.increaseBrightness(baseColor, 50);
+            }
         }
         else {
-            ctx.strokeStyle= baseColor;
+            ctx.strokeStyle = baseColor;
         }
 
         // 1. Find the spherical tangent vector going to the north

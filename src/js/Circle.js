@@ -40,6 +40,7 @@ export let Circle = (function() {
 
         this.color     = options['color']     || undefined;
         this.fillColor = options['fillColor'] || undefined;
+        this.lineWidth = options["lineWidth"] || 2;
 
         // TODO : all graphic overlays should have an id
         this.id = 'circle-' + Utils.uuidv4();
@@ -50,7 +51,7 @@ export let Circle = (function() {
 
     	this.isShowing = true;
     	this.isSelected = false;
-        this.selectionColor = undefined;
+        this.selectionColor = '#00ff00';
     };
 
     Circle.prototype.setColor = function(color) {
@@ -68,6 +69,16 @@ export let Circle = (function() {
             return;
         }
         this.selectionColor = color;
+        if (this.overlay) {
+            this.overlay.reportChange();
+        }
+    };
+
+    Circle.prototype.setLineWidth = function(lineWidth) {
+        if (this.lineWidth == lineWidth) {
+            return;
+        }
+        this.lineWidth = lineWidth;
         if (this.overlay) {
             this.overlay.reportChange();
         }
@@ -186,6 +197,7 @@ export let Circle = (function() {
             ctx.strokeStyle = baseColor;
         }
 
+        ctx.lineWidth = this.lineWidth;
         ctx.beginPath();
         ctx.arc(this.center.x, this.center.y, this.radius, 0, 2*Math.PI, false);
         if (!noStroke) {

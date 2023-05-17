@@ -848,42 +848,41 @@ export let View = (function () {
                 if (!view.dragging && !view.mode == View.SELECT) {
                     // closestObjects is very costly, we would like to not do it
                     // especially if the objectHovered function is not defined.
-                    var objHoveredFunction = view.aladin.callbacksByEventName['objectHovered'];
-                    var footprintHoveredFunction = view.aladin.callbacksByEventName['footprintHovered'];
+                    var closest = view.closestObjects(xymouse.x, xymouse.y, 5);
 
-                    if (objHoveredFunction || footprintHoveredFunction) {
-                        var closest = view.closestObjects(xymouse.x, xymouse.y, 5);
-                        if (closest) {
-                            let o = closest[0];
-                            view.setCursor('pointer');
-                            if (typeof objHoveredFunction === 'function' && o != lastHoveredObject) {
-                                var ret = objHoveredFunction(o);
-                            }
-    
-                            if (o.isFootprint()) {
-                                if (typeof footprintHoveredFunction === 'function' && o != lastHoveredObject) {
-                                    var ret = footprintHoveredFunction(o);
-                                }
-                            }
-    
-                            lastHoveredObject = o;
-                        } else {
-                            view.setCursor('default');
-                            var objHoveredStopFunction = view.aladin.callbacksByEventName['objectHoveredStop'];
-                            if (lastHoveredObject) {
-                                // Redraw the scene if the lastHoveredObject is a footprint (e.g. circle or polygon)
-                                if (lastHoveredObject.isFootprint()) {
-                                    view.requestRedraw();
-                                }
-        
-                                if (typeof objHoveredStopFunction === 'function') {
-                                    // call callback function to notify we left the hovered object
-                                    var ret = objHoveredStopFunction(lastHoveredObject);
-                                }
-                            }
+                    if (closest) {
+                        let o = closest[0];
+                        var objHoveredFunction = view.aladin.callbacksByEventName['objectHovered'];
+                        var footprintHoveredFunction = view.aladin.callbacksByEventName['footprintHovered'];
 
-                            lastHoveredObject = null;
+                        view.setCursor('pointer');
+                        if (typeof objHoveredFunction === 'function' && o != lastHoveredObject) {
+                            var ret = objHoveredFunction(o);
                         }
+
+                        if (o.isFootprint()) {
+                            if (typeof footprintHoveredFunction === 'function' && o != lastHoveredObject) {
+                                var ret = footprintHoveredFunction(o);
+                            }
+                        }
+
+                        lastHoveredObject = o;
+                    } else {
+                        view.setCursor('default');
+                        var objHoveredStopFunction = view.aladin.callbacksByEventName['objectHoveredStop'];
+                        if (lastHoveredObject) {
+                            // Redraw the scene if the lastHoveredObject is a footprint (e.g. circle or polygon)
+                            if (lastHoveredObject.isFootprint()) {
+                                view.requestRedraw();
+                            }
+    
+                            if (typeof objHoveredStopFunction === 'function') {
+                                // call callback function to notify we left the hovered object
+                                var ret = objHoveredStopFunction(lastHoveredObject);
+                            }
+                        }
+
+                        lastHoveredObject = null;
                     }
                 }
                 if (!hasTouchEvents) {

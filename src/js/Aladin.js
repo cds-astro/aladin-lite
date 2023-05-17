@@ -766,40 +766,43 @@ export let Aladin = (function () {
         else {
             var self = this;
             // sky case
-            if (this.getBaseImageLayer()===undefined || this.getBaseImageLayer().properties.isPlanetaryBody === false) {
-                Sesame.resolve(targetName,
-                    function (data) { // success callback
-                        // Location given in icrs at J2000
-                        const coo = data.Target.Resolver;
-                        self.view.pointTo(coo.jradeg, coo.jdedeg, options);
-
-                        (typeof successCallback === 'function') && successCallback(self.getRaDec());
-                    },
-                    function (data) { // errror callback
-                        if (console) {
-                            console.log("Could not resolve object name " + targetName);
-                            console.log(data);
-                        }
-                        (typeof errorCallback === 'function') && errorCallback();
-                });
-            }
-            // planetary case
-            else {
-                const body = this.getBaseImageLayer().properties.hipsBody;
-                PlanetaryFeaturesNameResolver.resolve(targetName, body,
-                    function (data) { // success callback
-                        self.view.pointTo(data.lon, data.lat, options);
-
-                        (typeof successCallback === 'function') && successCallback(self.getRaDec());
-                    },
-                    function (data) { // errror callback
-                        if (console) {
-                            console.log("Could not resolve object name " + targetName);
-                            console.log(data);
-                        }
-                        (typeof errorCallback === 'function') && errorCallback();
-                });
-            }
+            (async () => {
+                const baseImageLayer = await this.getBaseImageLayer().query;
+                if (baseImageLayer.properties.isPlanetaryBody === false) {
+                    Sesame.resolve(targetName,
+                        function (data) { // success callback
+                            // Location given in icrs at J2000
+                            const coo = data.Target.Resolver;
+                            self.view.pointTo(coo.jradeg, coo.jdedeg, options);
+    
+                            (typeof successCallback === 'function') && successCallback(self.getRaDec());
+                        },
+                        function (data) { // errror callback
+                            if (console) {
+                                console.log("Could not resolve object name " + targetName);
+                                console.log(data);
+                            }
+                            (typeof errorCallback === 'function') && errorCallback();
+                    });
+                }
+                // planetary case
+                else {
+                    const body = baseImageLayer.properties.hipsBody;
+                    PlanetaryFeaturesNameResolver.resolve(targetName, body,
+                        function (data) { // success callback
+                            self.view.pointTo(data.lon, data.lat, options);
+    
+                            (typeof successCallback === 'function') && successCallback(self.getRaDec());
+                        },
+                        function (data) { // errror callback
+                            if (console) {
+                                console.log("Could not resolve object name " + targetName);
+                                console.log(data);
+                            }
+                            (typeof errorCallback === 'function') && errorCallback();
+                    });
+                }
+            })();
         }
     };
 

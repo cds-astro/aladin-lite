@@ -172,40 +172,92 @@ export let Polyline= (function() {
             ctx.strokeStyle= baseColor;
         }
 
+        // 1. project the vertices into the screen
+        //    and computes a BBox
         var xyviewArray = [];
-        for (var k=0, len=this.radecArray.length; k<len; k++) {
+        let len = this.radecArray.length;
+
+        let xmin = Number.POSITIVE_INFINITY
+        let xmax = Number.NEGATIVE_INFINITY
+        let ymin = Number.POSITIVE_INFINITY
+        let ymax = Number.NEGATIVE_INFINITY;
+        for (var k=0; k<len; k++) {
             var xyview = AladinUtils.radecToViewXy(this.radecArray[k][0], this.radecArray[k][1], view);
             if (!xyview) {
                 return;
             }
 
-            xyviewArray.push(xyview);
+            xyviewArray.push({x: xyview[0], y: xyview[1]});
+
+            xmin = Math.min(xmin, xyview[0]);
+            ymin = Math.min(ymin, xyview[1]);
+            xmax = Math.max(xmax, xyview[0]);
+            ymax = Math.max(ymax, xyview[1]);
         }
 
-        ctx.lineWidth = this.lineWidth;
-        ctx.beginPath();
+        // 2. do not draw the polygon if it lies in less than 1 pixel
+        if ((xmax - xmin) < 1 || (ymax - ymin) < 1) {
+            return;
+        }
 
-        const lastVertexIdx = xyviewArray.length-1;
-        ctx.moveTo(xyviewArray[0][0], xyviewArray[0][1]);
+        let drawLine = (v0, v1) => {
+            const line = new Line(v0.x, v0.y, v1.x, v1.y);
 
-        for (var k=0, len=lastVertexIdx; k<len; k++) {
-            const line = new Line(xyviewArray[k][0], xyviewArray[k][1], xyviewArray[k+1][0], xyviewArray[k+1][1]);
             if (line.isInsideView(view.width, view.height)) {
                 line.draw(ctx);
             }
-        }
+        };
+
+        let ccwOrder = function(a, b, c) {
+            return a.x*b.y + a.y*c.x + b.x*c.y - c.x*b.y - c.y*a.x - b.x*a.y >= 0.0;
+        };
+
+        // 3. Check whether the polygon do not cross the view
+        let nSegment = this.closed ? len : len - 1;
+
+        let v0 = 0;
+        let v1 = 1;
+        let v2 = 2;
 
         if (this.closed) {
-            const line = new Line(
-                xyviewArray[lastVertexIdx][0],
-                xyviewArray[lastVertexIdx][1],
-                xyviewArray[0][0],
-                xyviewArray[0][1]
-            );
+            v0 = len - 1;
+            v1 = 0;
+            v2 = 1;
+        }
 
-            if (line.isInsideView(view.width, view.height)) {
-                line.draw(ctx);
+        let drawPolygon = true;
+        for (var k = 0; k < nSegment; k++) {
+            if (ccwOrder(xyviewArray[v0], xyviewArray[v1], xyviewArray[v2])) {
+                // if it cross the view, we end up here
+                drawPolygon = false;
+                return;
             }
+
+            v0 = v1;
+            v1 = v2;
+            v2 = (v2 + 1) % len;
+        }
+
+        if (!drawPolygon) {
+            return;
+        }
+
+        // 4. Finally, draw all the polygon, segment by segment
+        v0 = 0;
+        v1 = 1;
+
+        if (this.closed) {
+            v0 = len - 1;
+            v1 = 0;
+        }
+        ctx.lineWidth = this.lineWidth;
+        ctx.beginPath();
+        
+        for (var k = 0; k < nSegment; k++) {
+            drawLine(xyviewArray[v0], xyviewArray[v1])
+
+            v0 = v1;
+            v1 = v1 + 1;
         }
 
         if (!noStroke) {

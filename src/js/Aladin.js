@@ -1083,8 +1083,8 @@ export let Aladin = (function () {
 
     // @oldAPI
     Aladin.prototype.createImageSurvey = function(id, name, rootUrl, cooFrame, maxOrder, options = {}) {
-        let cfg = this.cacheSurveys.get(id);
-        if (!cfg) {
+        let survey = this.cacheSurveys.get(id);
+        if (!survey) {
             // Add the cooFrame and maxOrder given by the user
             // to the list of options passed to the ImageSurvey constructor
             if (cooFrame) {
@@ -1095,13 +1095,13 @@ export let Aladin = (function () {
                 options.maxOrder = maxOrder;
             }
 
-            cfg = {id, name, rootUrl, options};
-            this.cacheSurveys.set(id, cfg);
-        } else {
-            cfg = Utils.clone(cfg)
+            const cfg = {id, name, rootUrl, options};
+            survey = new ImageSurvey(cfg.id, cfg.name, cfg.rootUrl, this.view, cfg.options);
+
+            this.cacheSurveys.set(id, survey);
         }
 
-        return new ImageSurvey(cfg.id, cfg.name, cfg.rootUrl, this.view, cfg.options);
+        return survey;
     };
 
     Aladin.prototype.createImageFITS = function(url, name, options = {}, successCallback = undefined, errorCallback = undefined) {
@@ -1116,15 +1116,15 @@ export let Aladin = (function () {
         // Do not use proxy with CORS headers until we solve that: https://github.com/MattiasBuelens/wasm-streams/issues/20
         //url = Utils.handleCORSNotSameOrigin(url);
 
-        let cfg = this.cacheSurveys.get(url);
-        if (!cfg) {
-            cfg = {url, name, options, successCallback, errorCallback}
-            this.cacheSurveys.set(url, cfg);
-        } else {
-            cfg = Utils.clone(cfg)
+        let image = this.cacheSurveys.get(url);
+        if (!image) {
+            const cfg = {url, name, options, successCallback, errorCallback};
+
+            image = new ImageFITS(cfg.url, cfg.name, this.view, cfg.options, cfg.successCallback, cfg.errorCallback)
+            this.cacheSurveys.set(url, image);
         }
 
-        return new ImageFITS(cfg.url, cfg.name, this.view, cfg.options, cfg.successCallback, cfg.errorCallback);
+        return image;
     };
 
     Aladin.prototype.newImageSurvey = function(rootUrlOrId, options) {
@@ -1615,6 +1615,7 @@ export let Aladin = (function () {
 ///////////////////////////////
 export let A = {};
 export default A;
+//module.exports = A;
 
 //// New API ////
 // For developers using Aladin lite: all objects should be created through the API,

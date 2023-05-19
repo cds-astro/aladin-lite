@@ -16,6 +16,7 @@ module.exports = {
         filename: 'aladin.js',
         // Keep in dist/ only files used 
         clean: true,
+        //publicPath: '',
     },
     resolve: {
         extensions: ['.js', '.glsl', '.vert', '.frag'],

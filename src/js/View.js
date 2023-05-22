@@ -918,9 +918,6 @@ export let View = (function () {
             const [ra, dec] = view.wasm.getCenter();
             view.viewCenter.lon = ra;
             view.viewCenter.lat = dec;
-            //if (view.viewCenter.lon < 0.0) {
-            //    view.viewCenter.lon += 360.0;
-            //}
 
             // Apply position changed callback after the move
             view.throttledPositionChanged();
@@ -1836,9 +1833,6 @@ export let View = (function () {
         let [ra, dec] = this.wasm.getCenter();
         this.viewCenter.lon = ra;
         this.viewCenter.lat = dec;
-        //if (this.viewCenter.lon < 0.0) {
-        //    this.viewCenter.lon += 360.0;
-        //}
         this.location.update(this.viewCenter.lon, this.viewCenter.lat, this.cooFrame, true);
 
         this.requestRedraw();
@@ -1898,9 +1892,6 @@ export let View = (function () {
         }
         this.viewCenter.lon = ra;
         this.viewCenter.lat = dec;
-        //if (this.viewCenter.lon < 0.0) {
-        //    this.viewCenter.lon += 360.0;
-        //}
         this.location.update(this.viewCenter.lon, this.viewCenter.lat, this.cooFrame, true);
 
         // Put a javascript code here to do some animation

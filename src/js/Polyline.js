@@ -172,22 +172,35 @@ export let Polyline= (function() {
             ctx.strokeStyle= baseColor;
         }
 
+        // 0. Determine the clockwise order of the vertices given in the
+        // space
+        let ccwOrder = function(a, b, c) {
+            return a.x*b.y + a.y*c.x + b.x*c.y - c.x*b.y - c.y*a.x - b.x*a.y > 0.0;
+        };
+
+        const ccwGoodOrder = ccwOrder(
+            {x: this.radecArray[0][0], y: this.radecArray[0][1]},
+            {x: this.radecArray[1][0], y: this.radecArray[1][1]},
+            {x: this.radecArray[2][0], y: this.radecArray[2][1]},
+        );
+
         // 1. project the vertices into the screen
         //    and computes a BBox
-        var xyviewArray = [];
+        let xyView = [];
         let len = this.radecArray.length;
 
         let xmin = Number.POSITIVE_INFINITY
         let xmax = Number.NEGATIVE_INFINITY
         let ymin = Number.POSITIVE_INFINITY
         let ymax = Number.NEGATIVE_INFINITY;
+
         for (var k=0; k<len; k++) {
             var xyview = AladinUtils.radecToViewXy(this.radecArray[k][0], this.radecArray[k][1], view);
             if (!xyview) {
                 return;
             }
 
-            xyviewArray.push({x: xyview[0], y: xyview[1]});
+            xyView.push({x: xyview[0], y: xyview[1]});
 
             xmin = Math.min(xmin, xyview[0]);
             ymin = Math.min(ymin, xyview[1]);
@@ -208,26 +221,18 @@ export let Polyline= (function() {
             }
         };
 
-        let ccwOrder = function(a, b, c) {
-            return a.x*b.y + a.y*c.x + b.x*c.y - c.x*b.y - c.y*a.x - b.x*a.y >= 0.0;
-        };
-
         // 3. Check whether the polygon do not cross the view
         let nSegment = this.closed ? len : len - 1;
 
-        let v0 = 0;
-        let v1 = 1;
-        let v2 = 2;
-
-        if (this.closed) {
-            v0 = len - 1;
-            v1 = 0;
-            v2 = 1;
-        }
+        let v0 = this.closed ? len - 1 : 0;
+        let v1 = this.closed ? 0 : 1;
+        let v2 = this.closed ? 1 : 2;
 
         let drawPolygon = true;
         for (var k = 0; k < nSegment; k++) {
-            if (ccwOrder(xyviewArray[v0], xyviewArray[v1], xyviewArray[v2])) {
+            let ccwTriOrder = ccwOrder(xyView[v0], xyView[v1], xyView[v2])
+
+            if (ccwGoodOrder != ccwTriOrder) {
                 // if it cross the view, we end up here
                 drawPolygon = false;
                 return;
@@ -243,18 +248,14 @@ export let Polyline= (function() {
         }
 
         // 4. Finally, draw all the polygon, segment by segment
-        v0 = 0;
-        v1 = 1;
+        v0 = this.closed ? len - 1 : 0;
+        v1 = this.closed ? 0 : 1;
 
-        if (this.closed) {
-            v0 = len - 1;
-            v1 = 0;
-        }
         ctx.lineWidth = this.lineWidth;
         ctx.beginPath();
         
         for (var k = 0; k < nSegment; k++) {
-            drawLine(xyviewArray[v0], xyviewArray[v1])
+            drawLine(xyView[v0], xyView[v1])
 
             v0 = v1;
             v1 = v1 + 1;

@@ -1,3 +1,5 @@
+import A from "./A.js";
+
 export let DiscoveryTree = (function () {
     // Constructor
     var DiscoveryTree = function (aladin) {

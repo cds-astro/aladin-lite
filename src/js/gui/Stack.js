@@ -33,6 +33,7 @@ import { Color } from "../Color.js";
 import { ALEvent } from "../events/ALEvent.js";
 import { CatalogSelector } from "./CatalogSelector.js";
 import { HiPSLayer } from "./HiPSLayer.js";
+import A from "../A.js";
 
 import $ from 'jquery';
 

@@ -36,6 +36,7 @@ import { Coo } from "./libs/astro/coo.js";
 import { VOTable } from "./vo/VOTable.js";
 import { ALEvent } from "./events/ALEvent.js";
 import { Footprint } from "./Footprint.js";
+import A from "./A.js";
 
 import $ from 'jquery';
 
@@ -292,7 +293,6 @@ export let Catalog = (function() {
     // return an array of Source(s) from a VOTable url
     // callback function is called each time a TABLE element has been parsed
     Catalog.parseVOTable = function(url, successCallback, errorCallback, maxNbSources, useProxy, raField, decField) {
-        console.log(url)
         VOTable.parse(
             url,
             (fields, rows) => {

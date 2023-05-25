@@ -5,10 +5,8 @@
 <body>
 <div id="aladin-lite-div" style="width: 1024px; height: 768px"></div>
 
-<div id='aladin-statsDiv'></div>
-<script type="text/javascript" src="./../aladin.js" charset="utf-8"></script>
-
-<script type="text/javascript">
+<script type="module">
+    import A from '../src/js/A.js';
     let aladin;
     A.init.then(() => {
         aladin = A.aladin('#aladin-lite-div', {fullScreen: true, survey: ['P/DM/vizMine', 'P/HST/GOODS/color', 'P/MATLAS/g'], target: '0 0', showCooGrid: true, fov: 180});

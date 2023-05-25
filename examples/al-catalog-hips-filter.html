@@ -12,10 +12,8 @@ Show sources with proper motion greater than:
 <input id='slider' style='vertical-align:middle;width:60vw;' step='1' min='0' max='500' type='range' value='0'>
 <span id='pmVal'  >0 mas/yr</span><br><br><div id='aladin-lite-div' style='width: 500px;height: 500px;'></div>
 
-<div id='aladin-statsDiv'></div>
-<script type="text/javascript" src="./../aladin.js" charset="utf-8"></script>
-
-<script type="text/javascript">
+<script type="module">
+    import A from '../src/js/A.js';
     let aladin;
     A.init.then(() => {
         var pmThreshold = 0;

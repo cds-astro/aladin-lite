@@ -7,10 +7,8 @@
 <script src="https://code.jquery.com/jquery-1.10.1.min.js"></script>
 <div id='infoDiv'>&nbsp; </div>
 <div id="aladin-lite-div" style="width: 500px; height: 400px"></div>
-<div id='aladin-statsDiv'></div>
-<script type="text/javascript" src="./../aladin.js" charset="utf-8"></script>
-
-<script type="text/javascript">
+<script type="module">
+    import A from '../src/js/A.js';
     A.init.then(() => {
         var aladin = A.aladin('#aladin-lite-div', {target: '05 37 58 +08 17 35', fov: 12, backgroundColor: 'rgb(120, 0, 0)'});
         var cat = A.catalog({sourceSize: 20});

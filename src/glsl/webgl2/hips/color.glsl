@@ -17,10 +17,10 @@ uniform float size_tile_uv;
 
 uniform int tex_storing_fits;
 
-@include "../colormaps/colormap.glsl"
-@include "./transfer_funcs.glsl"
-@include "./tonal_corrections.glsl"
-@include "./hsv.glsl"
+#include ../colormaps/colormap.glsl;
+#include ./transfer_funcs.glsl;
+#include ./tonal_corrections.glsl;
+#include ./hsv.glsl;
 
 vec4 get_pixels(vec3 uv) {
     int idx_texture = int(uv.z);

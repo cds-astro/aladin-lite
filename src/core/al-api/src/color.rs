@@ -1,6 +1,6 @@
 use wasm_bindgen::prelude::*;
 
-#[wasm_bindgen(raw_module = "../src/js/Color")]
+#[wasm_bindgen(raw_module = "../../js/Color")]
 extern "C" {
     pub type Color;
 

@@ -135,7 +135,6 @@ impl App {
             WebGl2RenderingContext::ONE,
             WebGl2RenderingContext::ONE,
         );
-
         // TODO: https://caniuse.com/?search=scissor is not supported for safari <= 14.1
         // When it will be supported nearly everywhere, we will need to uncomment this line to
         // enable it

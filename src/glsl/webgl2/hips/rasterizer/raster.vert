@@ -23,7 +23,7 @@ uniform float czf;
 // current time in ms
 uniform float current_time;
 
-@include "../projection.glsl"
+#include ../projection.glsl;
 
 void main() {
     gl_Position = vec4(ndc_pos, 0.0, 1.0);

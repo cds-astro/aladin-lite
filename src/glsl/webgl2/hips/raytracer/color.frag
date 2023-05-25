@@ -19,8 +19,8 @@ struct Tile {
 uniform Tile textures_tiles[12];
 uniform int num_tiles;
 
-@include "../color.glsl"
-@include "./healpix.glsl"
+#include ../color.glsl;
+#include ./healpix.glsl;
 
 uniform float opacity;
 

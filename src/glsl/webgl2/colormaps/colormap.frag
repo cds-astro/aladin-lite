@@ -8,7 +8,7 @@ out vec4 color;
 uniform sampler2D texture_fbo;
 uniform float alpha;
 
-@include "./colormap.glsl"
+#include ./colormap.glsl;
 
 void main() {
     float opacity = texture(texture_fbo, out_uv).r;

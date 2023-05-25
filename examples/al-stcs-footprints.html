@@ -5,11 +5,10 @@
 </head>
 <body>
 <div id="aladin-lite-div" style="width: 500px; height: 400px"></div>
-<div id='aladin-statsDiv'></div>
-<script type="text/javascript" src="./../aladin.js" charset="utf-8"></script>
 
-<script type="text/javascript">
-    let aladin;
+<script type="module">
+    import A from '../src/js/A.js';
+
     A.init.then(() => {
         // Start up Aladin Lite
         aladin = A.aladin('#aladin-lite-div', {survey: "CDS/P/DSS2/color", target: 'Sgr a*', fov: 0.5});

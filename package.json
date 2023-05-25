@@ -9,7 +9,9 @@
   "module": "./dist/aladin.js",
   "main": "./dist/aladin.js",
   "files": [
-    "dist"
+    "dist/aladin.js",
+    "dist/aladin.umd.cjs",
+    "dist/index.html"
   ],
   "exports": {
     ".": {
@@ -33,7 +35,7 @@
     "package-tar": "tar -zcvf AladinLiteAssets.tar.gz dist/aladin.js",
     "predeploy": "npm run build && npm run package-tar",
     "deploy": "./deploy-dbg.sh",
-    "build": "npm run wasm && vite build && sed \"s/\\\\.\\\\/\\\\.\\\\.\\\\/aladin\\\\.js/https:\\\\/\\\\/aladin.cds.unistra.fr\\\\/AladinLite\\\\/api\\\\/v3\\\\/latest\\\\/aladin.js/g\" examples/index.html > dist/index.html",
+    "build": "npm run wasm && vite build && cp examples/index.html dist/index.html",
     "dev": "npm run build && vite",
     "serve": "npm run dev",
     "preview": "vite preview",

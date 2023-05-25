@@ -12,7 +12,7 @@ in float m_end;
 
 out vec4 out_frag_color;
 
-@include "../color.glsl"
+#include ../color.glsl;
 
 uniform float opacity;
 

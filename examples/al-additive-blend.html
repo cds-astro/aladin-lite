@@ -4,10 +4,8 @@
 </head>
 <body>
     <div id="aladin-lite-div" style="width: 1024px; height: 768px"></div>
-<div id='aladin-statsDiv'></div>
-<script type="text/javascript" src="./../aladin.js" charset="utf-8"></script>
-
-<script type="text/javascript">
+<script type="module">
+    import A from '../src/js/A.js';
 A.init.then(() => {
     let aladin = A.aladin('#aladin-lite-div', {projection: "TAN", survey: "P/HSC/DR2/deep/g", target: '02 21 36.529 -05 31 20.16', fov: 0.1});
 

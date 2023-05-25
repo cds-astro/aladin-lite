@@ -11,7 +11,7 @@ in vec2 frag_uv;
 uniform isampler2D tex;
 uniform float opacity;
 
-@include "../hips/color.glsl"
+#include ../hips/color.glsl;
 
 void main() {
     ivec4 color = texture(tex, frag_uv);

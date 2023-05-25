@@ -30,6 +30,7 @@
  *****************************************************************************/
 
 import { Aladin } from "./Aladin.js";
+import A from "./A.js";
 import { Popup } from "./Popup.js";
 import { HealpixGrid } from "./HealpixGrid.js";
 import { ProjectionEnum } from "./ProjectionEnum.js";
@@ -39,7 +40,6 @@ import { Stats } from "./libs/Stats.js";
 import { Circle } from "./Circle.js";
 import { Ellipse } from "./Ellipse";
 import { Polyline } from "./Polyline.js";
-import { AladinUtils } from "./AladinUtils.js";
 import { CooFrameEnum } from "./CooFrameEnum.js";
 import { requestAnimFrame } from "./libs/RequestAnimationFrame.js";
 import { WebGLCtx } from "./WebGL.js";
@@ -48,7 +48,6 @@ import { ALEvent } from "./events/ALEvent.js";
 import { ColorCfg } from "./ColorCfg.js";
 
 import $ from 'jquery';
-import { Line } from "./Line.js";
 import { Footprint } from "./Footprint.js";
 
 export let View = (function () {
@@ -75,6 +74,7 @@ export let View = (function () {
 
             ALEvent.AL_USE_WASM.listenedBy(document.body, function (e) {
                 let callback = e.detail.callback;
+
                 callback(self.wasm);
             });
 
@@ -1267,98 +1267,7 @@ export let View = (function () {
         }
     }
 
-    // TODO: optimize this method !!
     View.prototype.getVisibleCells = function (norder) {
-        /*var cells = []; // array to be returned
-        var cornersXY = [];
-        var nside = Math.pow(2, norder); // TODO : to be modified
-        var npix = 12 * nside * nside;
-        var ipixCenter = null;
-
-        // build list of pixels
-        var pixList = this.getVisiblePixList(norder)
-        var ipix;
-        var lon, lat;
-        var corners;
-        for (var ipixIdx=0, len=pixList.length; ipixIdx<len; ipixIdx++) {
-            ipix = pixList[ipixIdx];
-            if (ipix==ipixCenter && ipixIdx>0) {
-                continue;
-            }
-            var cornersXYView = [];
-            //corners = HealpixCache.corners_nest(ipix, nside);
-            corners = this.wasm.hpxNestedVertices(Math.log2(nside), ipix);
-
-            for (var k=0; k<4; k++) {
-                const lon = corners[k*2];
-                const lat = corners[k*2 + 1];
-                cornersXY[k] = this.wasm.worldToScreen(lon, lat);
-            }
-
-            if (cornersXY[0] == null ||  cornersXY[1] == null  ||  cornersXY[2] == null ||  cornersXY[3] == null ) {
-                continue;
-            }
-
-            for (var k=0; k<4; k++) {
-                //cornersXYView[k] = AladinUtils.xyToView(cornersXY[k].X, cornersXY[k].Y, this.width, this.height, this.largestDim, this.zoomFactor);
-                cornersXYView[k] = {
-                    vx: cornersXY[k][0],
-                    vy: cornersXY[k][1],
-                };
-            }
-
-            // detect pixels outside view. Could be improved !
-            // we minimize here the number of cells returned
-            if( cornersXYView[0].vx<0 && cornersXYView[1].vx<0 && cornersXYView[2].vx<0 &&cornersXYView[3].vx<0) {
-                continue;
-            }
-            if( cornersXYView[0].vy<0 && cornersXYView[1].vy<0 && cornersXYView[2].vy<0 &&cornersXYView[3].vy<0) {
-                continue;
-            }
-            if( cornersXYView[0].vx>=this.width && cornersXYView[1].vx>=this.width && cornersXYView[2].vx>=this.width &&cornersXYView[3].vx>=this.width) {
-                continue;
-            }
-            if( cornersXYView[0].vy>=this.height && cornersXYView[1].vy>=this.height && cornersXYView[2].vy>=this.height &&cornersXYView[3].vy>=this.height) {
-                continue;
-            }
-
-            // New faster approach: when a vertex from a cell gets to the other side of the projection
-            // its vertices order change from counter-clockwise to clockwise!
-            // So if the vertices describing a cell are given in clockwise order
-            // we know it crosses the projection, so we do not plot them!
-            if (!AladinUtils.counterClockwiseTriangle(cornersXYView[0].vx, cornersXYView[0].vy, cornersXYView[1].vx, cornersXYView[1].vy, cornersXYView[2].vx, cornersXYView[2].vy) ||
-                !AladinUtils.counterClockwiseTriangle(cornersXYView[0].vx, cornersXYView[0].vy, cornersXYView[2].vx, cornersXYView[2].vy, cornersXYView[3].vx, cornersXYView[3].vy)) {
-                continue;
-            }
-
-            if (this.projection == ProjectionEnum.HPX) {
-                const triIdxInCollignonZone = ((p) => {
-                    const x = ((p.vx / this.catalogCanvas.clientWidth) - 0.5) * this.zoomFactor;
-                    const y = ((p.vy / this.catalogCanvas.clientHeight) - 0.5) * this.zoomFactor;
-
-                    const xZone = Math.floor((x + 0.5) * 4);
-                    return xZone + 4 * (y > 0.0);
-                });
-
-                const isInCollignon = ((p) => {
-                    const y = ((p.vy / this.catalogCanvas.clientHeight) - 0.5) * this.zoomFactor;
-
-                    return y < -0.25 || y > 0.25;
-                });
-
-                if (isInCollignon(cornersXYView[0]) && isInCollignon(cornersXYView[1]) && isInCollignon(cornersXYView[2]) && isInCollignon(cornersXYView[3])) {
-                    const allVerticesInSameCollignonRegion = (triIdxInCollignonZone(cornersXYView[0]) == triIdxInCollignonZone(cornersXYView[1])) && (triIdxInCollignonZone(cornersXYView[0]) == triIdxInCollignonZone(cornersXYView[2])) && (triIdxInCollignonZone(cornersXYView[0]) == triIdxInCollignonZone(cornersXYView[3]));
-                    if (!allVerticesInSameCollignonRegion) {
-                        continue;
-                    }
-                }
-            }
-
-            cornersXYView.ipix = ipix;
-            cells.push(cornersXYView);
-        }
-
-        return cells;*/
         return this.wasm.getVisibleCells(norder);
     };
 

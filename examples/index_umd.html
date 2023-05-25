@@ -5,12 +5,11 @@
 </head>
 <body>
 <div id="aladin-lite-div" style="width: 500px; height: 400px"></div>
+<script type="text/javascript" src="./../dist/aladin.umd.cjs" charset="utf-8"></script>
 
-<script type="module">
-    import A from '../src/js/A.js';
-    var aladin;
+<script type="text/javascript">
     A.init.then(() => {
-        aladin = A.aladin('#aladin-lite-div', {fov: 360, projection: "AIT", fullScreen: true, expandLayersControl: true, cooFrame: 'equatorial', showProjectionControl: true, showCooGridControl: true, showSimbadPointerControl: true, showCooGrid: false, showContextMenu: true});
+        let aladin = A.aladin('#aladin-lite-div', {fov: 360, projection: "AIT", fullScreen: true, expandLayersControl: true, cooFrame: 'equatorial', showProjectionControl: true, showCooGridControl: true, showSimbadPointerControl: true, showCooGrid: false, showContextMenu: true});
 
         // manage URL parameters
         const searchParams = new URL(document.location).searchParams;

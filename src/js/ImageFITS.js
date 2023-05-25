@@ -31,7 +31,6 @@ import { ALEvent } from "./events/ALEvent.js";
 import { ColorCfg } from "./ColorCfg.js";
 import { ImageLayer } from "./ImageLayer.js";
 import { Utils } from "./Utils.js";
-import { Aladin } from "./Aladin.js";
 
 export let ImageFITS = (function () {
 

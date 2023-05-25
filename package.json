@@ -1,14 +1,21 @@
 {
   "homepage": "https://aladin.u-strasbg.fr/",
   "name": "aladin-lite",
+  "type": "module",
   "version": "3.1.0",
   "description": "An astronomical HiPS visualizer in the browser",
   "author": "Thomas Boch and Matthieu Baumann",
   "license": "GPL-3",
-  "main": "dist/aladin.js",
+  "module": "./dist/aladin.js",
+  "main": "./dist/aladin.js",
   "files": [
-    "dist/*"
+    "dist"
   ],
+  "exports": {
+    ".": {
+      "import": "./dist/aladin.js"
+    }
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/cds-astro/aladin-lite"
@@ -21,32 +28,26 @@
     "HiPS"
   ],
   "scripts": {
+    "wasm": "wasm-pack build ./src/core --target web --release --out-name core -- --features webgl2",
     "package-tar": "tar -zcvf AladinLiteAssets.tar.gz dist/*",
     "predeploy": "npm run build && npm run package-tar",
     "deploy": "./deploy-dbg.sh",
-    "build": "webpack && sed \"s/\\\\.\\\\/\\\\.\\\\.\\\\/aladin\\\\.js/https:\\\\/\\\\/aladin.cds.unistra.fr\\\\/AladinLite\\\\/api\\\\/v3\\\\/latest\\\\/aladin.js/g\" examples/index.html > dist/index.html",
-    "serve": "webpack-dev-server"
+    "build": "npm run wasm && vite build && sed \"s/\\\\.\\\\/\\\\.\\\\.\\\\/aladin\\\\.js/https:\\\\/\\\\/aladin.cds.unistra.fr\\\\/AladinLite\\\\/api\\\\/v3\\\\/latest\\\\/aladin.js/g\" examples/index.html > dist/index.html",
+    "dev": "npm run build && vite",
+    "preview": "vite preview"
   },
   "devDependencies": {
-    "@babel/core": "^7.18.5",
-    "@babel/preset-env": "^7.18.2",
-    "@wasm-tool/wasm-pack-plugin": "^1.6.0",
-    "babel-loader": "^8.2.5",
     "npm": "^8.19.2",
-    "terser-webpack-plugin": "^5.3.3",
-    "webpack": "^5.74.0",
-    "webpack-cli": "^4.9.0",
-    "webpack-dev-server": "^4.7.4",
-    "webpack-glsl-loader": "^1.0.1",
-    "webpack-glsl-minify": "^1.5.0"
+    "terser": "^5.17.6",
+    "vite": "^4.3.8",
+    "vite-plugin-css-injected-by-js": "^3.1.1",
+    "vite-plugin-glsl": "^1.1.2",
+    "vite-plugin-top-level-await": "^1.3.1",
+    "vite-plugin-wasm": "^3.2.2",
+    "vite-plugin-wasm-pack": "^0.1.12"
   },
   "dependencies": {
     "autocompleter": "^6.1.3",
-    "babel-preset-es2015": "^6.24.1",
-    "css-loader": "^5.0.1",
-    "file-loader": "^6.1.0",
-    "jquery": "^3.6.1",
-    "style-loader": "^3.3.1",
-    "wasm-pack": "^0.10.3"
+    "jquery": "^3.6.1"
   }
 }

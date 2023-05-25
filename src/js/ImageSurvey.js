@@ -158,6 +158,7 @@ export let ImageSurvey = (function () {
                     properties = await HiPSProperties.fetchFromUrl(url)
                         .catch(async (e) => {
                             // url not valid so we try with the id
+
                             try {
                                 return await HiPSProperties.fetchFromID(id);
                             } catch(e) {

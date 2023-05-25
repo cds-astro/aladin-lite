@@ -16,10 +16,8 @@
     </div>
 </div>
 
-<script type="text/javascript" src="./../aladin.js" charset="utf-8"></script>
-<!-- <script type="text/javascript" src="https://aladin.u-strasbg.fr/AladinLite/api/v3/latest/aladin.js" charset="utf-8"></script> -->
-
-<script type="text/javascript">
+<script type="module">
+    import A from '../src/js/A.js';
     let aladin;
     A.init.then(() => {
         aladin = A.aladin('#aladin-lite-div', {cooFrame: 'galactic', fov: 400, fullScreen: true, showCooGrid: false, showReticle: false})

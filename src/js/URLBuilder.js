@@ -65,9 +65,11 @@ export let URLBuilder = (function() {
             }
 
             let url = 'https://vizier.unistra.fr/viz-bin/votable?-source=' + vizCatId + '&-c=' + encodeURIComponent(target)+ '&-out.max=' + maxNbSources + '&-c.rd=' + radiusDegrees;
-            
+
             // request the `s_region` column usually found in ObsCore tables
             url = url + '&-out.add=s_region';
+            // request the `s_fov` column usually found in ObsCore tables
+            url = url + '&-out.add=s_fov';
 
             return url;
             //return 'https://vizier.unistra.fr/viz-bin/conesearch/' + vizCatId + '?ra=' + target.ra + '&dec=' + target.dec + '&sr=' + radiusDegrees;
@@ -90,8 +92,6 @@ export let URLBuilder = (function() {
 
             return url;
         }
-    
-
     };
 
     return URLBuilder;

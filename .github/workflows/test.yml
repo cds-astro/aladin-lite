@@ -21,12 +21,13 @@ jobs:
       - name: "Install the rust compiler"
         run: |
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          source "$HOME/.cargo/env"
       - name: "Install wasm-pack"
         run: |
           curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh -s -- -y
       - name: "Install dependencies"
         run: |
-          npm ci
+          npm install
       - name: "Build Aladin Lite"
         run: |
           npm run build

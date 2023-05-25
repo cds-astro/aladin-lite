@@ -93,7 +93,7 @@ npm install
 After that you are supposed to have the Rust toolchain installed
 to compile the core project into WebAssembly.
 Follow the steps from the Rust official website [here](https://www.rust-lang.org/learn/get-started)
-
+You will also need [wasm-pack](https://rustwasm.github.io/wasm-pack/), a tool helping compiling rust into a proper .wasm file.
 
 Once it's installed you can only build the project:
 ```bash

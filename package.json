@@ -29,11 +29,12 @@
   ],
   "scripts": {
     "wasm": "wasm-pack build ./src/core --target web --release --out-name core -- --features webgl2",
-    "package-tar": "tar -zcvf AladinLiteAssets.tar.gz dist/*",
+    "package-tar": "tar -zcvf AladinLiteAssets.tar.gz dist/aladin.js",
     "predeploy": "npm run build && npm run package-tar",
     "deploy": "./deploy-dbg.sh",
     "build": "npm run wasm && vite build && sed \"s/\\\\.\\\\/\\\\.\\\\.\\\\/aladin\\\\.js/https:\\\\/\\\\/aladin.cds.unistra.fr\\\\/AladinLite\\\\/api\\\\/v3\\\\/latest\\\\/aladin.js/g\" examples/index.html > dist/index.html",
     "dev": "npm run build && vite",
+    "serve": "npm run dev",
     "preview": "vite preview"
   },
   "devDependencies": {

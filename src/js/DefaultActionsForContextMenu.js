@@ -29,6 +29,7 @@
  *****************************************************************************/
 
 import { GenericPointer } from "./GenericPointer.js";
+import A from "./A.js";
 
 export let DefaultActionsForContextMenu = (function () {
 

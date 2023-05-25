@@ -17,6 +17,7 @@
 //    along with Aladin Lite.
 //
 
+import A from "../A.js";
 import { MocServer } from "../MocServer";
 import { Utils } from "../Utils";
 import  autocomplete from 'autocompleter';

@@ -1,0 +1,58 @@
+# This workflow will run tests using node and then publish a package to GitHub Packages when a release is created
+# For more information see: https://docs.github.com/en/actions/publishing-packages/publishing-nodejs-packages
+
+name: publish to node
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout branch ${{ github.head_ref }}"
+        uses: actions/checkout@v3
+      - name: "Setup node"
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+      - name: "Install the rust compiler"
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+      - name: "Install wasm-pack"
+        run: |
+          curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh -s -- -y
+      - name: "Install dependencies"
+        run: |
+          npm ci
+      - name: "Build Aladin Lite"
+        run: |
+          npm run build
+      - name: "Run some tests"
+        run: npm test
+
+  publish-npm:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16
+          registry-url: https://registry.npmjs.org/
+      - name: "Install the rust compiler"
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+      - name: "Install wasm-pack"
+        run: |
+          curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh -s -- -y
+      - name: "Install dependencies"
+        run: |
+          npm ci
+      - name: "Build Aladin Lite"
+        run: |
+          npm run build
+      - run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.npm_token}}

@@ -37,7 +37,7 @@
     "dev": "npm run build && vite",
     "serve": "npm run dev",
     "preview": "vite preview",
-    "test": "cd src/core && cargo test --features webgl2"
+    "test": "cd src/core && cargo test --release --features webgl2"
   },
   "devDependencies": {
     "npm": "^8.19.2",

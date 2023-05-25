@@ -36,7 +36,8 @@
     "build": "npm run wasm && vite build && sed \"s/\\\\.\\\\/\\\\.\\\\.\\\\/aladin\\\\.js/https:\\\\/\\\\/aladin.cds.unistra.fr\\\\/AladinLite\\\\/api\\\\/v3\\\\/latest\\\\/aladin.js/g\" examples/index.html > dist/index.html",
     "dev": "npm run build && vite",
     "serve": "npm run dev",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "cd src/core && cargo test --features webgl2"
   },
   "devDependencies": {
     "npm": "^8.19.2",

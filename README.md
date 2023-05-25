@@ -47,7 +47,8 @@ Please include [the javascript script of Aladin Lite v3](https://aladin.cds.unis
 
 ### Using the aladin lite NPM package
 
-First, install it with npm
+First, install it with npm:
+
 ```npm i aladin-lite```
 
 Second, you can use it that way:
@@ -98,7 +99,6 @@ Second, you can use it that way:
 ## Source code
 
 Source code is available in the ``src`` directory.
-Precisely, the core is implemented in Rust and can be found in ``src/core``.
 
 ## Licence
 
@@ -152,7 +152,7 @@ and run the tests
 
 ```bash
 cd src/core
-cargo test
+cargo test --features webgl2
 ```
 
 To generate the Rust backend API documentation

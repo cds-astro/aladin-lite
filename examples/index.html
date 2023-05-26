@@ -6,8 +6,8 @@
 <body>
 <div id="aladin-lite-div" style="width: 500px; height: 400px"></div>
 
-<script type="module">
-    import A from '../src/js/A.js';
+<script type="text/javascript" src="./../dist/aladin.umd.cjs" charset="utf-8"></script>
+<script type="text/javascript">
     var aladin;
     A.init.then(() => {
         aladin = A.aladin('#aladin-lite-div', {fov: 360, projection: "AIT", fullScreen: true, expandLayersControl: true, cooFrame: 'equatorial', showProjectionControl: true, showCooGridControl: true, showSimbadPointerControl: true, showCooGrid: false, showContextMenu: true});

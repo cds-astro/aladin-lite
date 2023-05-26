@@ -15,7 +15,8 @@
   ],
   "exports": {
     ".": {
-      "import": "./dist/aladin.js"
+      "import": "./dist/aladin.js",
+      "require": "./dist/aladin.umd.cjs"
     }
   },
   "repository": {

@@ -21,6 +21,7 @@ export default defineConfig({
             // Could also be a dictionary or array of multiple entry points
             entry: resolve(__dirname, 'src/js/A.js'),
             name: 'A',
+            formats: ["umd", "es"],
             // the proper extensions will be added
             fileName: 'aladin',
         },

@@ -6,7 +6,7 @@ pub mod moc;
 pub mod image;
 pub mod hips;
 pub mod utils;
-
+pub mod line;
 use crate::renderable::image::Image;
 
 use al_core::image::format::ChannelType;

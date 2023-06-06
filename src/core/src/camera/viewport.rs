@@ -6,10 +6,10 @@ pub enum UserAction {
     Starting = 4,
 }
 
-use super::fov::FieldOfViewVertices;
+use super::fov::FieldOfView;
 use crate::math::{
     projection::coo_space::XYZWModel,
-    spherical::BoundingBox,
+    sph_geom::bbox::BoundingBox,
     projection::domain::sdf::ProjDef
 };
 use cgmath::{Matrix4, Vector2};
@@ -45,7 +45,7 @@ pub struct CameraViewPort {
     // The vertices in model space of the camera
     // This is useful for computing views according
     // to different image surveys
-    vertices: FieldOfViewVertices,
+    fov: FieldOfView,
 
     // A flag telling whether the camera has been moved during the frame
     moved: bool,
@@ -71,7 +71,7 @@ use al_core::WebGlContext;
 
 use crate::{
     coosys,
-    math::{angle::Angle, projection::Projection, rotation::Rotation, spherical::FieldOfViewType},
+    math::{angle::Angle, projection::Projection, rotation::Rotation},
 };
 
 use crate::LonLatT;
@@ -120,7 +120,7 @@ impl CameraViewPort {
         let ndc_to_clip = Vector2::new(1.0, (height as f64) / (width as f64));
         let clip_zoom_factor = 1.0;
 
-        let vertices = FieldOfViewVertices::new(&ndc_to_clip, clip_zoom_factor, &w2m, &center, projection);
+        let fov = FieldOfView::new(&ndc_to_clip, clip_zoom_factor, &w2m, projection);
         let gl = gl.clone();
 
         let is_allsky = true;
@@ -153,10 +153,8 @@ impl CameraViewPort {
             // Internal variable used for projection purposes
             ndc_to_clip,
             clip_zoom_factor,
-            // The vertices in model space of the camera
-            // This is useful for computing views according
-            // to different image surveys
-            vertices,
+            // The field of view
+            fov,
             // A flag telling whether the camera has been moved during the frame
             moved,
             // A flag telling if the camera has zoomed during the frame
@@ -227,10 +225,6 @@ impl CameraViewPort {
         self.gl.viewport(0, 0, self.width as i32, self.height as i32);
     }
 
-    pub fn contains_pole(&self) -> bool {
-        self.vertices.contains_pole()
-    }
-
     pub fn set_screen_size(&mut self, width: f32, height: f32, projection: &ProjectionType) {
         let canvas = self
             .gl
@@ -256,11 +250,10 @@ impl CameraViewPort {
         // Compute the new clip zoom factor
         self.compute_ndc_to_clip_factor(projection);
 
-        self.vertices.set_fov(
+        self.fov.set_aperture(
             &self.ndc_to_clip,
             self.clip_zoom_factor,
             &self.w2m,
-            &self.center,
             projection,
         );
         let proj_area = projection.get_area();
@@ -347,11 +340,10 @@ impl CameraViewPort {
         self.moved = true;
         self.zoomed = true;
 
-        self.vertices.set_fov(
+        self.fov.set_aperture(
             &self.ndc_to_clip,
             self.clip_zoom_factor,
             &self.w2m,
-            &self.center,
             proj
         );
         let proj_area = proj.get_area();
@@ -423,13 +415,9 @@ impl CameraViewPort {
         self.update_rot_matrices();
     }
 
-    pub fn get_field_of_view(&self) -> &FieldOfViewType {
-        self.vertices._type()
+    pub fn get_field_of_view(&self) -> &FieldOfView {
+        &self.fov
     }
-
-    /*pub fn get_coverage(&mut self, hips_frame: &CooSystem) -> &HEALPixCoverage {
-        self.vertices.get_coverage(&self.system, hips_frame, &self.center)
-    }*/
 
     pub fn set_coo_system(&mut self, new_system: CooSystem) {
         // Compute the center position according to the new coordinate frame system
@@ -492,7 +480,7 @@ impl CameraViewPort {
     }
 
     pub fn get_vertices(&self) -> Option<&Vec<XYZWModel>> {
-        self.vertices.get_vertices()
+        self.fov.get_vertices()
     }
 
     pub fn get_screen_size(&self) -> Vector2<f32> {
@@ -537,10 +525,6 @@ impl CameraViewPort {
         &self.center
     }
 
-    pub fn get_bounding_box(&self) -> &BoundingBox {
-        self.vertices.get_bounding_box()
-    }
-
     pub fn is_allsky(&self) -> bool {
         self.is_allsky
     }
@@ -575,8 +559,7 @@ impl CameraViewPort {
         self.update_center();
 
         // Rotate the fov vertices
-        self.vertices
-            .set_rotation(&self.w2m, &self.center);
+        self.fov.set_rotation(&self.w2m);
 
         self.time_last_move = Time::now();
         self.last_user_action = UserAction::Moving;

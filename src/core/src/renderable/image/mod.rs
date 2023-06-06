@@ -4,6 +4,7 @@ pub mod subdivide_texture;
 use std::vec;
 use std::marker::Unpin;
 use std::fmt::Debug;
+use std::cmp::Ordering;
 
 use al_api::coo_system::CooSystem;
 use cgmath::Zero;
@@ -82,8 +83,18 @@ where
     let first_pct_idx = ((first_percent as f32) * 0.01 * (n as f32)) as usize;
     let last_pct_idx = ((second_percent as f32) * 0.01 * (n as f32)) as usize;
 
-    let min_val = crate::utils::select_kth_smallest(slice, 0, n - 1, first_pct_idx);
-    let max_val = crate::utils::select_kth_smallest(slice, 0, n - 1, last_pct_idx);
+    let min_val = {
+        let (_, min_val, _) = slice.select_nth_unstable_by(first_pct_idx, |a, b| {
+            b.partial_cmp(a).unwrap_or(Ordering::Greater)
+        });
+        *min_val
+    };
+    let max_val = {
+        let (_, max_val, _) = slice.select_nth_unstable_by(last_pct_idx, |a, b| {
+            b.partial_cmp(a).unwrap_or(Ordering::Greater)
+        });
+        *max_val
+    };
 
     min_val..max_val
 }

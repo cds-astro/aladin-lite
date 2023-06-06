@@ -81,7 +81,6 @@ mod camera;
 mod coosys;
 mod downloader;
 mod healpix;
-pub mod line;
 pub mod math;
 pub mod renderable;
 mod shader;

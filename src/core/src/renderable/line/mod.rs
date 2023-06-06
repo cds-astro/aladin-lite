@@ -1,19 +1,24 @@
-use al_core::webgl_ctx::WebGl2Context;
+/// This module handles the lines rendering code
+pub mod meridian;
+pub mod parallel;
+pub mod great_circle_arc;
+
+use al_core::WebGlContext;
 use al_core::VertexArrayObject;
 use al_core::shader::Shader;
-
-
-use super::RenderManager;
+use crate::Abort;
+use crate::math::projection::coo_space::XYNDC;
+use al_api::color::ColorRGBA;
 
 struct LineMeta {
-    color: Color,
+    color: ColorRGBA,
     thickness: f32,
     off_idx: usize,
     num_idx: usize,
 }
 
 pub struct RasterizedLinesRenderManager {
-    gl: WebGl2Context,
+    gl: WebGlContext,
     shader: Shader,
     vao: VertexArrayObject,
 
@@ -28,69 +33,61 @@ use web_sys::WebGl2RenderingContext;
 use crate::Color;
 use crate::camera::CameraViewPort;
 
-
 use lyon::math::point;
 use lyon::path::Path;
 use lyon::tessellation::*;
 
 impl RasterizedLinesRenderManager {
     /// Init the buffers, VAO and shader
-    pub fn new(gl: WebGl2Context, camera: &CameraViewPort) -> Result<Self, JsValue> {
+    pub fn new(gl: WebGlContext, camera: &CameraViewPort) -> Result<Self, JsValue> {
+        let vertices = vec![];
+        let indices = vec![];
         // Create the VAO for the screen
-        #[cfg(feature = "webgl1")]
         let shader = Shader::new(
             &gl,
-            include_str!("../shaders/webgl1/line/line_vertex.glsl"),
-            include_str!("../shaders/webgl1/line/line_frag.glsl")
-        )?;
-        #[cfg(feature = "webgl2")]
-        let shader = Shader::new(
-            &gl,
-            include_str!("../shaders/webgl2/line/line_vertex.glsl"),
-            include_str!("../shaders/webgl2/line/line_frag.glsl")
+            include_str!("../../../../glsl/webgl2/line/line_vertex.glsl"),
+            include_str!("../../../../glsl/webgl2/line/line_frag.glsl")
         )?;
         let mut vao = VertexArrayObject::new(&gl);
 
-        shader
-            .bind(&gl)
-                .bind_vertex_array_object(&mut vao)
-                    .add_array_buffer(
-                        2 * std::mem::size_of::<f32>(),
-                        &[2],
-                        &[0],
-                        WebGl2RenderingContext::STREAM_DRAW,
-                        VecData::<f32>(&vec![]),
-                    )
-                    // Set the element buffer
-                    .add_element_buffer(
-                        WebGl2RenderingContext::STREAM_DRAW,
-                        VecData::<u16>(&vec![]),
-                    )
-                // Unbind the buffer
-                .unbind();
+        vao
+            .bind_for_update()
+                .add_array_buffer(
+                    "ndc_pos",
+                    2 * std::mem::size_of::<f32>(),
+                    &[2],
+                    &[0],
+                    WebGl2RenderingContext::STREAM_DRAW,
+                    VecData::<f32>(&vertices),
+                )
+                // Set the element buffer
+                .add_element_buffer(
+                    WebGl2RenderingContext::STREAM_DRAW,
+                    VecData::<u16>(&indices),
+                )
+            .unbind();
+
         let meta = vec![];
-        Ok(
-            Self {
-                gl,
-                shader,
-                vao,
-                meta,
-                vertices: vec![],
-                indices: vec![],
-            }
-        )
+        Ok(Self {
+            gl,
+            shader,
+            vao,
+            meta,
+            vertices,
+            indices
+        })
     }
 
-    pub fn add_path(&mut self, path: &[Vector2<f32>], thickness: f32, color: &Color) {
+    pub fn add_path(&mut self, path: &[XYNDC], thickness: f32, color: &ColorRGBA) {
         let mut builder = Path::builder();
         if path.is_empty() {
             return;
         }
 
-        builder.begin(point(path[0].x, path[0].y));
+        builder.begin(point(path[0].x as f32, path[0].y as f32));
 
         for p in path.iter().skip(1) {
-            builder.line_to(point(p.x, p.y));
+            builder.line_to(point(p.x as f32, p.y as f32));
         }
 
         builder.end(true);
@@ -129,9 +126,8 @@ impl RasterizedLinesRenderManager {
             }
         );
     }
-}
 
-impl RenderManager for RasterizedLinesRenderManager {
+
     fn begin_frame(&mut self) {
         self.vertices.clear();
         self.indices.clear();
@@ -142,7 +138,7 @@ impl RenderManager for RasterizedLinesRenderManager {
     fn end_frame(&mut self) {
         // update to the GPU
         self.vao.bind_for_update()
-            .update_array(0, WebGl2RenderingContext::STREAM_DRAW, VecData(&self.vertices))
+            .update_array("ndc_pos", WebGl2RenderingContext::STREAM_DRAW, VecData(&self.vertices))
             .update_element_array(WebGl2RenderingContext::STREAM_DRAW, VecData(&self.indices));
     }
 

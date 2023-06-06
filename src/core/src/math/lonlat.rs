@@ -45,8 +45,8 @@ where
         self.1
     }
 
-    pub fn vector<VectorT: LonLat<S>>(&self) -> VectorT {
-        VectorT::from_lonlat(self)
+    pub fn vector<T: LonLat<S>>(&self) -> T {
+        T::from_lonlat(self)
     }
 }
 
@@ -224,7 +224,7 @@ use crate::ProjectionType;
 
 use super::projection::coo_space::XYNDC;
 #[inline]
-pub fn proj(lonlat: LonLatT<f64>, projection: &ProjectionType, camera: &CameraViewPort) -> Option<XYNDC> {
+pub fn proj(lonlat: &LonLatT<f64>, projection: &ProjectionType, camera: &CameraViewPort) -> Option<XYNDC> {
     let xyzw = lonlat.vector();
     projection.model_to_normalized_device_space(&xyzw, camera)
 }

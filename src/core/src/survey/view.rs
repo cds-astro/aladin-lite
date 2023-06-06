@@ -88,7 +88,7 @@ pub fn compute_view_coverage(camera: &CameraViewPort, depth: u8, dst_frame: &Coo
 
             // Check if the polygon is too small with respect to the angular size
             // of a cell at depth order
-            let fov_bbox = camera.get_bounding_box();
+            let fov_bbox = camera.get_field_of_view().get_bounding_box();
             let d_lon = fov_bbox.get_lon_size();
             let d_lat = fov_bbox.get_lat_size();
 

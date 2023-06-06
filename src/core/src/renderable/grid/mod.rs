@@ -1,10 +1,20 @@
+use crate::math::lonlat::LonLat;
+use crate::math::projection::coo_space::XYNDC;
+use crate::math::sph_geom::region::Intersection;
+use cdshealpix::nested::center;
 use web_sys::WebGl2RenderingContext;
+use cdshealpix::sph_geom::coo3d::{Coo3D};
 
+use al_core::{log, inforec, info};
+
+use crate::math::TWICE_PI;
 use crate::math::angle;
 use cgmath::Vector4;
 
 use crate::camera::CameraViewPort;
 use crate::ProjectionType;
+use crate::LonLatT;
+use crate::math::angle::ToAngle;
 
 use al_api::grid::GridCfg;
 use al_core::VertexArrayObject;
@@ -42,6 +52,7 @@ use wasm_bindgen::JsValue;
 use super::labels::RenderManager;
 
 use super::TextRenderManager;
+use super::line;
 
 use al_api::resources::Resources;
 impl ProjetedGrid {
@@ -209,17 +220,6 @@ impl ProjetedGrid {
         //self.lines = lines;
         self.num_vertices = vertices.len() >> 1;
 
-        /*let vertices = unsafe {
-            let len = vertices.len() << 1;
-            let cap = len;
-
-            Vec::from_raw_parts(vertices.as_mut_ptr() as *mut f32, len, cap)
-        };*/
-        /*let vertices = unsafe {
-            vertices.set_len(self.num_vertices << 1);
-            std::mem::transmute::<_, Vec<f32>>(vertices)
-        };*/
-
         #[cfg(feature = "webgl2")]
         self.vao.bind_for_update().update_array(
             "ndc_pos",
@@ -297,11 +297,12 @@ impl ProjetedGrid {
 use crate::shader::ShaderId;
 
 use std::borrow::Cow;
+use std::path::is_separator;
 
 use crate::math::{
     angle::Angle,
-    spherical::FieldOfViewType,
 };
+use crate::camera::fov::FieldOfView;
 use cgmath::InnerSpace;
 use cgmath::Vector2;
 use core::ops::Range;
@@ -314,8 +315,8 @@ struct Label {
 }
 impl Label {
     fn meridian(
-        fov: &FieldOfViewType,
-        lon: f64,
+        fov: &FieldOfView,
+        mut lon: f64,
         m1: &Vector3<f64>,
         camera: &CameraViewPort,
         sp: Option<&Vector2<f64>>,
@@ -348,35 +349,15 @@ impl Label {
 
         //let s1 = projection.model_to_screen_space(&(system.to_icrs_j2000::<f64>() * m1), camera, reversed_longitude)?;
         let s1 = projection.model_to_screen_space(&m1.extend(1.0), camera)?;
-
-        if !fov.is_allsky() && fov.contains_pole() {
-            // If a pole is contained in the view
-            // we will have its screen projected position
-            if let Some(sp) = sp {
-                // Distance factor between the label position
-                // and the nearest pole position
-                let dy = sp.y - s1.y;
-                let dx = sp.x - s1.x;
-                let dd2 = dx * dx + dy * dy;
-                let ss = camera.get_screen_size();
-                let ds2 = (ss.x * ss.x + ss.y * ss.y) as f64;
-                // This distance is divided by the size of the
-                // screen diagonal to be pixel agnostic
-                let fdd2 = dd2 / ds2;
-                if fdd2 < 0.004 {
-                    return None;
-                }
-            } else {
-                return None;
-            }
-        }
-
         let s2 = projection.model_to_screen_space(&m2, camera)?;
 
         //let s2 = projection.model_to_screen_space(&(system.to_icrs_j2000::<f64>() * m2), camera, reversed_longitude)?;
 
         let ds = (s2 - s1).normalize();
 
+        if lon < 0.0 {
+            lon += TWICE_PI;
+        }
         let content = fmt.to_string(Angle(lon));
         let position = if !fov.is_allsky() {
             //let dim = ctx2d.measure_text(&content).unwrap_abort();
@@ -416,7 +397,7 @@ impl Label {
     }
 
     fn parallel(
-        fov: &FieldOfViewType,
+        fov: &FieldOfView,
         lat: f64,
         m1: &Vector3<f64>,
         camera: &CameraViewPort,
@@ -479,28 +460,11 @@ impl Label {
             rot,
         })
     }
-
-    /*fn size(camera: &CameraViewPort) -> f64 {
-        let ndc1 =
-            crate::projection::clip_to_ndc_space(&Vector2::new(-1.0, 0.0), camera);
-        let ndc2 =
-            crate::projection::clip_to_ndc_space(&Vector2::new(1.0, 0.0), camera);
-
-        let dx = ndc2.x - ndc1.x;
-        let allsky = dx < 2.0;
-
-        if allsky {
-            let dw = dx / 2.0; // [0..1]
-            dw.max(0.75)
-        } else {
-            1.0
-        }
-    }*/
 }
 
 #[derive(Debug)]
 struct GridLine {
-    vertices: Vec<Vector2<f64>>,
+    vertices: Vec<XYNDC>,
     label: Option<Label>,
 }
 use cgmath::{Rad, Vector3};
@@ -509,11 +473,10 @@ const PI: f64 = std::f64::consts::PI;
 const HALF_PI: f64 = 0.5 * PI;
 use crate::math::{
     angle::ArcDeg,
-    lonlat::LonLat,
 };
 
 impl GridLine {
-    fn meridian(
+    /*fn meridian(
         lon: f64,
         lat: &Range<f64>,
         sp: Option<&Vector2<f64>>,
@@ -524,44 +487,170 @@ impl GridLine {
         fmt: &angle::SerializeFmt
     ) -> Option<Self> {
         let fov = camera.get_field_of_view();
-        if let Some(p) = fov.intersect_meridian(Rad(lon), camera) {
-            let vertices = crate::line::project_along_longitudes_and_latitudes(
-                lon, lat.start,
-                lon, lat.end,
-                camera,
-                projection,
-            );
+        match fov { 
+            FieldOfViewType::Polygon { poly, .. } => {
+                // Polygon case
+                let lon = if lon < 0.0 { lon + TWICE_PI } else { lon };
 
-            let label = Label::meridian(fov, lon, &p, camera, sp, text_renderer, projection, fmt);
+                // The arc length must be < PI, so we create an arc from [(lon, -PI/2); (lon, PI/2)[
+                // see the cdshealpix doc:
+                // https://docs.rs/cdshealpix/latest/cdshealpix/sph_geom/struct.Polygon.html#method.intersect_great_circle_arc
+                let a = Coo3D::from_sph_coo(lon, -HALF_PI);
+                let b = Coo3D::from_sph_coo(lon, HALF_PI - 1e-6);
 
-            Some(GridLine { vertices, label })
-        } else {
-            None
+                // For those intersecting, perform the intersection
+                let inter_vertices = poly.intersect_great_circle_arc(&a, &b)
+                    .iter()
+                    .map(|v| Vector3::new(v.y(), v.z(), v.x()))
+                    .collect::<Vec<_>>();
+
+                if fov.contains_both_poles() {
+                    // Like the allsky case, we draw all the meridians
+                    let n_pole_lonlat = LonLatT::new(Angle(lon), Angle(HALF_PI));
+                    let s_pole_lonlat = LonLatT::new(Angle(lon), Angle(-HALF_PI));
+    
+                    let vertices = SmallCircle::new(&n_pole_lonlat, &s_pole_lonlat).project(camera, projection);
+    
+                    // Allsky case
+                    // We do an approx saying allsky fovs intersect all meridian
+                    // but this is not true for example for the orthographic projection
+                    // Some meridians may not be visible
+                    let center_lat = camera.get_center().lat();
+                    let pos_label: Vector3<f64> = LonLatT::new(Angle(lon), center_lat).vector();
+                    let label = Label::meridian(fov, lon, &pos_label, camera, sp, text_renderer, projection, fmt);
+    
+                    Some(GridLine { vertices, label })
+                } else if fov.contains_north_pole() {
+                    // Only one intersection
+                    let n_pole_lonlat = LonLatT::new(Angle(lon), Angle(HALF_PI));
+                    let i_lonlat = inter_vertices[0].lonlat();
+
+                    let vertices = SmallCircle::new(&n_pole_lonlat, &i_lonlat).project(camera, projection);
+
+                    let pos_label = &inter_vertices[0];
+                    let label = Label::meridian(fov, lon, pos_label, camera, sp, text_renderer, projection, fmt);
+
+                    Some(GridLine { vertices, label })
+                } else if fov.contains_south_pole() {
+                    // Only one intersection
+                    let i_lonlat = inter_vertices[0].lonlat();
+                    let s_pole_lonlat = LonLatT::new(Angle(lon), Angle(-HALF_PI));
+
+                    let vertices = SmallCircle::new(&i_lonlat, &s_pole_lonlat).project(camera, projection);
+
+                    let pos_label = &inter_vertices[0];
+                    let label = Label::meridian(fov, lon, pos_label, camera, sp, text_renderer, projection, fmt);
+
+                    Some(GridLine { vertices, label })
+                } else {
+                    if inter_vertices.len() >= 2 {
+                        // There must be at least 2 points intersecting the fov
+                        let i1_lonlat = inter_vertices[0].lonlat();
+                        let i2_lonlat = inter_vertices[1].lonlat();
+
+                        let vertices = SmallCircle::new(&i1_lonlat, &i2_lonlat).project(camera, projection);
+
+                        let pos_label = &inter_vertices[0];
+                        let label = Label::meridian(fov, lon, pos_label, camera, sp, text_renderer, projection, fmt);
+
+                        Some(GridLine { vertices, label })
+                    } else {
+                        None
+                    }
+                }
+            },
+            FieldOfViewType::Allsky => {
+                let n_pole_lonlat = LonLatT::new(Angle(lon), Angle(HALF_PI));
+                let s_pole_lonlat = LonLatT::new(Angle(lon), Angle(-HALF_PI));
+
+                let vertices = SmallCircle::new(&s_pole_lonlat, &n_pole_lonlat).project(camera, projection);
+
+                // Allsky case
+                // We do an approx saying allsky fovs intersect all meridian
+                // but this is not true for example for the orthographic projection
+                // Some meridians may not be visible
+                let center_lat = camera.get_center().lat();
+                let pos_label: Vector3<f64> = LonLatT::new(Angle(lon), center_lat).vector();
+                let label = Label::meridian(fov, lon, &pos_label, camera, sp, text_renderer, projection, fmt);
+
+                Some(GridLine { vertices, label })
+            }
         }
-    }
+    }*/
 
     fn parallel(
-        lon: &Range<f64>,
         lat: f64,
         camera: &CameraViewPort,
         text_renderer: &TextRenderManager,
         projection: &ProjectionType,
     ) -> Option<Self> {
         let fov = camera.get_field_of_view();
+        if fov.get_bounding_box().get_lon_size() > PI {
+            // Longitude fov >= PI
+            let camera_center = camera.get_center();
+            let center_lon = camera_center.lon();
+            let label_vertex = LonLatT::new(
+                center_lon,
+                lat.to_angle()
+            ).vector();
 
-        if let Some(p) = fov.intersect_parallel(Rad(lat), camera) {
-            let vertices = crate::line::project_along_longitudes_and_latitudes(
-                lon.start, lat,
-                lon.end, lat,
-                camera,
-                projection,
-            );
+            let label = Label::parallel(fov, lat, &label_vertex, camera, text_renderer, projection);
 
-            let label = Label::parallel(fov, lat, &p, camera, text_renderer, projection);
-
+            // Draw the full parallel
+            let vertices = crate::renderable::line::parallel::project(lat, center_lon.to_radians(), center_lon.to_radians() + TWICE_PI, camera, projection);
             Some(GridLine { vertices, label })
         } else {
-            None
+            // Longitude fov < PI
+            let i = fov.intersects_parallel(lat);
+            match i {
+                Intersection::Included => {
+                    let camera_center = camera.get_center();
+                    let center_lon = camera_center.lon();
+                    let label_vertex = LonLatT::new(
+                        center_lon,
+                        lat.to_angle()
+                    ).vector();
+
+                    let label = Label::parallel(fov, lat, &label_vertex, camera, text_renderer, projection);
+
+                    // Draw the full parallel
+                    let vertices = crate::renderable::line::parallel::project(lat, center_lon.to_radians(), center_lon.to_radians() + TWICE_PI, camera, projection);
+                    Some(GridLine { vertices, label })
+                },
+                Intersection::Intersect { vertices: inter_vertices } => {
+                    let is_intersecting_zero_meridian = fov.is_intersecting_zero_meridian();
+
+                    let lonlat1 = inter_vertices[0].lonlat();
+                    let lonlat2 = inter_vertices[1].lonlat();
+
+                    let center_lonlat = camera.get_center().lonlat();
+                    let lon0 = center_lonlat.lon().to_radians();
+                    let mut lon1 = lonlat1.lon().to_radians();
+                    let mut lon2 = lonlat2.lon().to_radians();
+
+                    let lon_len = if lon1 > lon2 {
+                        lon2 + TWICE_PI - lon1
+                    } else {
+                        lon2 - lon1
+                    };
+
+                    // The fov should be contained into PI length
+                    if lon_len >= PI {
+                        std::mem::swap(&mut lon1, &mut lon2);
+                    }
+
+                    let lat_deg = lat.to_degrees();
+                    al_core::info!(lat_deg, ":", lon0, lon1, lon2);
+
+                    let vertices = crate::renderable::line::parallel::project(lat, lon1, lon2, camera, projection);
+                    let label = Label::parallel(fov, lat, &inter_vertices[0].truncate(), camera, text_renderer, projection);
+    
+                    Some(GridLine { vertices, label })
+                },
+                Intersection::Empty => {
+                    None
+                },
+            }
         }
     }
 }
@@ -637,15 +726,7 @@ fn lines(
         None
     };
 
-    let bbox = camera.get_bounding_box();
-
-    /*let step_lon = select_grid_step(
-        bbox,
-        bbox.get_lon_size() as f64,
-        //(NUM_LINES_LATITUDES as f64 * (camera.get_aspect() as f64)) as usize,
-        //((NUM_LINES_LATITUDES as f64) * fs.0) as usize
-        NUM_LINES,
-    );*/
+    let bbox = camera.get_field_of_view().get_bounding_box();
 
     let max_dim_px = camera.get_width().max(camera.get_height()) as f64;
     let step_line_px =  max_dim_px * 0.2;
@@ -665,14 +746,14 @@ fn lines(
         stop_theta -= 1e-3;
     }
 
-    while theta < stop_theta {
+    /*while theta < stop_theta {
         if let Some(line) =
             GridLine::meridian(theta, &bbox.get_lat(), sp.as_ref(), camera, text_renderer, projection, fmt)
         {
             lines.push(line);
         }
         theta += step_lon;
-    }
+    }*/
 
     // Add parallels
     //let step_lat = select_grid_step(bbox, bbox.get_lat_size() as f64, NUM_LINES);
@@ -686,7 +767,7 @@ fn lines(
         stop_alpha -= 1e-3;
     }*/
     while alpha < stop_alpha {
-        if let Some(line) = GridLine::parallel(&bbox.get_lon(), alpha, camera, text_renderer, projection) {
+        if let Some(line) = GridLine::parallel(alpha, camera, text_renderer, projection) {
             lines.push(line);
         }
         alpha += step_lat;

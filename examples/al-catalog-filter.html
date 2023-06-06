@@ -1,0 +1,45 @@
+<!doctype html>
+<html>
+<head>
+</head>
+<body>
+
+<script src="https://code.jquery.com/jquery-1.10.1.min.js"></script>
+
+<div id="aladin-lite-div" style="width: 1024px; height: 768px"></div>
+
+Show sources with proper motion greater than:
+<input id='slider' style='vertical-align:middle;width:60vw;' step='1' min='0' max='10' type='range' value='0'>
+<span id='pmVal'  >0 mas/yr</span><br><br><div id='aladin-lite-div' style='width: 500px;height: 500px;'></div>
+
+<script type="module">
+    import A from '../src/js/A.js';
+    let aladin;
+    A.init.then(() => {
+        var pmThreshold = 0;
+
+        var slider = document.getElementById('slider');
+        slider.oninput = function() {
+            pmThreshold = this.value;
+            $('#pmVal').html(pmThreshold + ' mas/yr');
+            cat.reportChange();
+        }
+
+        var myFilterFunction = function(source) {
+            var hpmag  = parseFloat(source.data['Hpmag']);
+            if (isNaN(hpmag)) {
+                return false;
+            }
+            return hpmag>pmThreshold;
+        }
+
+        aladin = A.aladin('#aladin-lite-div', {target: 'M 45', fov: 5});
+        var cat = A.catalogFromVizieR('I/311/hip2', 'M 45', 5, {onClick: 'showTable', filter: myFilterFunction});
+        aladin.addCatalog(cat);
+    });
+</script>
+
+</body>
+</html>
+
+

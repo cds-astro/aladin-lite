@@ -61,6 +61,9 @@ export let Catalog = (function() {
         this.raField = options.raField || undefined; // ID or name of the field holding RA
         this.decField = options.decField || undefined; // ID or name of the field holding dec
 
+        // allows for filtering of sources
+        this.filterFn = options.filter || undefined; // TODO: do the same for catalog
+
         this.fieldsClickedActions = {}; // callbacks when the user clicks on a cell in the measurement table associated
         this.fields = undefined;
 

@@ -1,7 +1,6 @@
 /// This module handles the lines rendering code
-pub mod meridian;
-pub mod parallel;
 pub mod great_circle_arc;
+pub mod parallel_arc;
 
 use al_core::WebGlContext;
 use al_core::VertexArrayObject;

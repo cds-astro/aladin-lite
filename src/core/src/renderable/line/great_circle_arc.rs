@@ -1,140 +1,217 @@
-use crate::{math::{lonlat::LonLatT, projection::{ProjectionType, coo_space::XYNDC}}, camera::CameraViewPort};
 use crate::math::angle::Angle;
+use crate::math::projection::coo_space::XYZWModel;
 use cgmath::Vector2;
+use cgmath::Vector3;
+use crate::ProjectionType;
+use crate::CameraViewPort;
 use cgmath::Zero;
 use cgmath::InnerSpace;
 use crate::math::angle::ToAngle;
+use crate::math::lonlat::LonLat;
 use al_core::{log, info, inforec};
-use crate::coo_space::XYZWModel;
+use crate::coo_space::XYNDC;
+use crate::coo_space::XYZModel;
 use crate::math::{TWICE_PI, PI};
-
 use crate::ArcDeg;
-const MAX_ANGLE_BEFORE_SUBDIVISION: Angle<f64> = Angle(0.10943951023); // 12 degrees
-const MAX_ITERATION: usize = 3;
+use crate::LonLatT;
+const MAX_ANGLE_BEFORE_SUBDIVISION: f64 = 0.1;
+const MAX_ITERATION: usize = 5;
 
-pub fn project(lonlat1: &LonLatT<f64>, lonlat2: &LonLatT<f64>, camera: &CameraViewPort, projection: &ProjectionType) -> Vec<XYNDC> {
-    // First longitude between [0; 2*pi[
-    let mut lon1 = lonlat1.lon().to_radians();
-    // Parallel latitude between [-0.5*pi; 0.5*pi]
-    let lat1 = lonlat1.lat().to_radians();
-    // Second longitude between [0; 2*pi[
-    let mut lon2 = lonlat2.lon().to_radians();
-    // Parallel latitude between [-0.5*pi; 0.5*pi]
-    let lat2 = lonlat2.lat().to_radians();
-    let is_intersecting_zero_meridian = lon1 > lon2;
+// Requirement:
+// * Latitudes between [-0.5*pi; 0.5*pi]
+// * Longitudes between [0; 2\pi[
+// * (lon1 - lon2).abs() < PI so that is can only either cross the preimary meridian or opposite primary meridian
+//   (the latest is handled because of the longitudes intervals)
+pub fn project(lon1: f64, lat1: f64, lon2: f64, lat2: f64, camera: &CameraViewPort, projection: &ProjectionType) -> Vec<XYNDC> {
+    let mut vertices = vec![];
 
-    if is_intersecting_zero_meridian {
-        // Make the longitudes lie between [-PI; PI];
-        if lon1 > PI {
-            lon1 -= TWICE_PI;
-        }
+    let lonlat1 = LonLatT::new(lon1.to_angle(), lat1.to_angle());
+    let lonlat2 = LonLatT::new(lon2.to_angle(), lat2.to_angle());
 
-        if lon2 > PI {
-            lon2 -= TWICE_PI;
+    let v1: Vector3<_> = lonlat1.vector();
+    let v2: Vector3<_> = lonlat2.vector();
+
+    let p1 = projection.model_to_normalized_device_space(&v1.extend(1.0), camera);
+    let p2 = projection.model_to_normalized_device_space(&v2.extend(1.0), camera);
+
+    match (p1, p2) {
+        (Some(_), Some(_)) => {
+            project_line(&mut vertices, &v1, &v2, camera, projection, 0);
+        },
+        (None, Some(_)) => {
+            let (v1, v2) = sub_valid_domain(v2, v1, projection, camera);
+            project_line(&mut vertices, &v1, &v2, camera, projection, 0);
+        },
+        (Some(_), None) => {
+            let (v1, v2) = sub_valid_domain(v1, v2, projection, camera);
+            project_line(&mut vertices, &v1, &v2, camera, projection, 0);
+        },
+        (None, None) => {
+            
         }
     }
 
-    let mut ndc_vertices: Vec<XYNDC> = vec![];
-
-    let start_world_vertex = LonLatT::new(lon1.to_angle(), lat1.to_angle()).vector();
-    let end_world_vertex = LonLatT::new(lon2.to_angle(), lat2.to_angle()).vector();
-
-    let ndc_v1 = projection.model_to_normalized_device_space(&start_world_vertex, camera);
-    let ndc_v2 = projection.model_to_normalized_device_space(&end_world_vertex, camera);
-
-    if let (Some(start_ndc_vertex), Some(end_ndc_vertex)) = (ndc_v1, ndc_v2) {
-        subdivide(
-            &mut ndc_vertices,
-            start_world_vertex,
-            start_ndc_vertex,
-            end_world_vertex,
-            end_ndc_vertex,
-            camera,
-            projection,
-            0
-        );
-    }
-
-    ndc_vertices
+    vertices
 }
 
-fn subdivide(
-    ndc_vertices: &mut Vec<XYNDC>,
-    start_world_vertex: XYZWModel,
-    start_ndc_vertex: XYNDC,
+// Precondition:
+// * angular distance between valid_lon and invalid_lon is < PI
+// * valid_lon and invalid_lon are well defined, i.e. they can be between [-PI; PI] or [0, 2PI] depending
+//   whether they cross or not the zero meridian
+fn sub_valid_domain(valid_v: XYZModel, invalid_v: XYZModel, projection: &ProjectionType, camera: &CameraViewPort) -> (XYZModel, XYZModel) {
+    let d_alpha = camera.get_aperture().to_radians() * 0.02;
 
-    end_world_vertex: XYZWModel,
-    end_ndc_vertex: XYNDC,
-
-    camera: &CameraViewPort,
-    projection: &ProjectionType,
-
-    iter: usize,
-) {
-    if iter > MAX_ITERATION {
-        ndc_vertices.push(start_ndc_vertex);
-        ndc_vertices.push(end_ndc_vertex);
-        return;
+    let mut vv = valid_v;
+    let mut vi = invalid_v;
+    while crate::math::vector::angle3(&vv, &vi).to_radians() > d_alpha {
+        let vm = (vv + vi).normalize();
+        // check whether is it defined or not
+        if let Some(_) = projection.model_to_normalized_device_space(&vm.extend(1.0), camera) {
+            vv = vm;
+        } else {
+            vi = vm;
+        }
     }
 
-    // Project them. We are always facing the camera
-    let mid_world_vertex = (start_world_vertex + end_world_vertex).normalize();
+    // Return the valid interval found by dichotomy
+    (vv, valid_v)
+}
 
-    if let Some(mid_ndc_vertex) = projection.model_to_normalized_device_space(&mid_world_vertex, camera) {
-        let ab = mid_ndc_vertex - start_ndc_vertex;
-        let bc = end_ndc_vertex - mid_ndc_vertex;
+fn project_line(
+    vertices: &mut Vec<XYNDC>,
+    v1: &XYZModel,
+    v2: &XYZModel,
+    camera: &CameraViewPort,
+    projection: &ProjectionType,
+    iter: usize,
+) -> bool {
+    let p1 = projection.model_to_normalized_device_space(&v1.extend(1.0), camera);
+    let p2 = projection.model_to_normalized_device_space(&v2.extend(1.0), camera);
 
-        let ab_l = ab.magnitude2();
-        let bc_l = bc.magnitude2();
+    if iter < MAX_ITERATION {
+        // Project them. We are always facing the camera
+        let vm = (v1 + v2).normalize();
+        let pm = projection.model_to_normalized_device_space(&vm.extend(1.0), camera);
+    
+        match (p1, pm, p2) {
+            (Some(p1), Some(pm), Some(p2)) => {
+                let d12 = crate::math::vector::angle3(v1, v2).to_radians();
 
-        let ab = ab.normalize();
-        let bc = bc.normalize();
-        let theta = crate::math::vector::angle2(&ab, &bc);
+                // Subdivide when until it is > 30 degrees
+                if d12 > 30.0_f64.to_radians() {
+                    subdivide(
+                        vertices,
+                        v1,
+                        v2,
+                        &vm,
+                        p1,
+                        p2,
+                        pm,
+                        camera,
+                        projection,
+                        iter
+                    );
+                } else {
+                    // enough to stop the recursion
+                    let ab = pm - p1;
+                    let bc = p2 - pm;
 
-        // nearly colinear vectors
-        if theta.abs() < MAX_ANGLE_BEFORE_SUBDIVISION {
-            if crate::math::vector::det(&ab, &bc).abs() < 1e-2 {
-                ndc_vertices.push(start_ndc_vertex);
-                ndc_vertices.push(end_ndc_vertex);
-            } else {
-                // not colinear
-                ndc_vertices.push(start_ndc_vertex);
-                ndc_vertices.push(mid_ndc_vertex);
+                    let ab_u = ab.normalize();
+                    let bc_u = bc.normalize();
 
-                ndc_vertices.push(mid_ndc_vertex);
-                ndc_vertices.push(end_ndc_vertex);
-            }
-        } else if ab_l.min(bc_l) / ab_l.max(bc_l) < 0.1 {
-            if ab_l < bc_l {
-                ndc_vertices.push(start_ndc_vertex);
-                ndc_vertices.push(mid_ndc_vertex);
-            } else {
-                ndc_vertices.push(mid_ndc_vertex);
-                ndc_vertices.push(end_ndc_vertex);
-            }
-        } else {
-            // Subdivide a->b and b->c
-            subdivide(
-                ndc_vertices,
-                start_world_vertex,
-                start_ndc_vertex,
-                mid_world_vertex,
-                mid_ndc_vertex,
-                camera,
-                projection,
-                iter + 1
-            );
+                    let dot_abbc = crate::math::vector::dot(&ab_u, &bc_u);
+                    let theta_abbc = dot_abbc.acos();
 
-            subdivide(
-                ndc_vertices,
-                mid_world_vertex,
-                mid_ndc_vertex,
-                end_world_vertex,
-                end_ndc_vertex,
-                camera,
-                projection,
-                iter + 1
-            );
+                    if theta_abbc.abs() < 5.0_f64.to_radians() {
+                        let det_abbc = crate::math::vector::det(&ab_u, &bc_u);
+
+                        if det_abbc.abs() < 1e-2 {
+                            vertices.push(p1);
+                            vertices.push(p2);
+                        } else {
+                            // not colinear but enough to stop
+                            vertices.push(p1);
+                            vertices.push(pm);
+            
+                            vertices.push(pm);
+                            vertices.push(p2);
+                        }
+                    } else {
+                        let ab_l = ab.magnitude2();
+                        let bc_l = bc.magnitude2();
+
+                        let r = (ab_l - bc_l).abs() / (ab_l + bc_l);
+
+                        if r > 0.8 {
+                            if ab_l < bc_l {
+                                vertices.push(p1);
+                                vertices.push(pm);
+                            } else {
+                                vertices.push(pm);
+                                vertices.push(p2);
+                            }
+                        } else {
+                            // Subdivide a->b and b->c
+                            subdivide(
+                                vertices,
+                                v1,
+                                v2,
+                                &vm,
+                                p1,
+                                p2,
+                                pm,
+                                camera,
+                                projection,
+                                iter
+                            );
+                        }
+                    }
+                }
+
+                true
+            },
+            _ => false
         }
+    } else {
+        false
+    }
+}
+
+
+fn subdivide(
+    vertices: &mut Vec<XYNDC>,
+    v1: &XYZModel,
+    v2: &XYZModel,
+    vm: &XYZModel,
+    p1: XYNDC,
+    p2: XYNDC,
+    pm: XYNDC,
+    camera: &CameraViewPort,
+    projection: &ProjectionType,
+    iter: usize
+) {
+    // Subdivide a->b and b->c
+    if !project_line(
+        vertices,
+        v1,
+        vm,
+        camera,
+        projection,
+        iter + 1
+    ) {
+        vertices.push(p1);
+        vertices.push(pm);
+    }
+
+    if !project_line(
+        vertices,
+        vm,
+        v2,
+        camera,
+        projection,
+        iter + 1
+    ) {
+        vertices.push(pm);
+        vertices.push(p2);
     }
 }

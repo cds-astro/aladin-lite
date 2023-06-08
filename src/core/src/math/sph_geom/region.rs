@@ -6,6 +6,7 @@ use cdshealpix::sph_geom::coo3d::Coo3D;
 use cdshealpix::sph_geom::coo3d::Vec3;
 use cdshealpix::sph_geom::ContainsSouthPoleMethod;
 use crate::math::angle::ToAngle;
+use al_core::{inforec, info, log};
 
 pub enum Region {
     AllSky,
@@ -30,6 +31,7 @@ pub enum PoleContained {
 }
 
 
+#[derive(Debug)]
 pub enum Intersection {
     // The segment is fully included into the region
     Included,
@@ -87,13 +89,19 @@ impl Region {
     }
 
     pub fn intersects_parallel(&self, lat: f64) -> Intersection {
+        use crate::math::lonlat::LonLat;
         match self {
             // The polygon is included inside the region
             Region::AllSky => Intersection::Included,
             Region::Polygon { polygon, .. } => {
                 let vertices = polygon.intersect_parallel(lat)
                     .iter()
-                    .map(|v| XYZWModel::new(v.y(), v.z(), v.x(), 1.0))
+                    .map(|v| {
+                        let v = XYZWModel::new(v.y(), v.z(), v.x(), 1.0);
+                        let l = v.lonlat();
+                        al_core::info!(l);
+                        v
+                    })
                     .collect::<Vec<_>>();
 
                 if !vertices.is_empty() {
@@ -134,8 +142,8 @@ impl Region {
     }
 
     pub fn intersects_meridian(&self, lon: f64) -> Intersection {
-        let n_pole_lonlat = LonLatT::new(HALF_PI.to_angle(), lon.to_angle());
-        let s_pole_lonlat = LonLatT::new(MINUS_HALF_PI.to_angle(), lon.to_angle());
+        let n_pole_lonlat = LonLatT::new(lon.to_angle(), (HALF_PI - 1e-4).to_angle());
+        let s_pole_lonlat = LonLatT::new(lon.to_angle(), (MINUS_HALF_PI + 1e-4).to_angle());
 
         self.intersects_great_circle_arc(&s_pole_lonlat, &n_pole_lonlat)
     }

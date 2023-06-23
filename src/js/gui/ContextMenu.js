@@ -30,8 +30,8 @@
  *
  *****************************************************************************/
 
-import { Coo }            from "../libs/astro/coo.js";
-import { CooFrameEnum }   from "../CooFrameEnum.js";
+import { Coo } from '../libs/astro/coo.js';
+import { CooFrameEnum } from '../CooFrameEnum.js';
 import { Utils } from '../Utils.js';
 
 export class ContextMenu {
@@ -43,11 +43,11 @@ export class ContextMenu {
 
     _hideMenu(e) {
         //if (e === true || !this.contextMenuUl.contains(e.target)) {
-            this.contextMenuUl.remove();
-            document.removeEventListener('click', this._hideMenu);
-            window.removeEventListener('resize', this._hideOnResize);
+        this.contextMenuUl.remove();
+        document.removeEventListener('click', this._hideMenu);
+        window.removeEventListener('resize', this._hideOnResize);
 
-            this.isShowing = false;
+        this.isShowing = false;
         //}
     }
 
@@ -58,31 +58,27 @@ export class ContextMenu {
     _attachOption(target, opt, xymouse) {
         const item = document.createElement('li');
         item.className = 'aladin-context-menu-item';
-        if (opt.label=='Copy position') {
+        if (opt.label == 'Copy position') {
             try {
                 const pos = this.aladin.pix2world(xymouse.x, xymouse.y);
                 const coo = new Coo(pos[0], pos[1], 6);
                 let posStr;
                 if (this.aladin.view.cooFrame == CooFrameEnum.J2000) {
                     posStr = coo.format('s/');
-                }
-                else if (this.aladin.view.cooFrame == CooFrameEnum.J2000d) {
+                } else if (this.aladin.view.cooFrame == CooFrameEnum.J2000d) {
                     posStr = coo.format('d/');
-                }
-                else {
+                } else {
                     posStr = coo.format('d/');
                 }
                 item.innerHTML = '<span>' + posStr + '</span>';
-            }
-            catch(e) {
+            } catch (e) {
                 item.innerHTML = '<span></span>';
             }
-        }
-        else {
+        } else {
             item.innerHTML = '<span>' + opt.label + '</span>';
         }
 
-        if (opt.subMenu && opt.subMenu.length>0) {
+        if (opt.subMenu && opt.subMenu.length > 0) {
             item.innerHTML += '<span style="position: absolute; right: 4px;">▶</span>';
         }
 
@@ -90,10 +86,9 @@ export class ContextMenu {
         item.addEventListener('click', e => {
             e.stopPropagation();
             if (!opt.subMenu || opt.subMenu.length === 0) {
-                if (opt.label=='Copy position') {
+                if (opt.label == 'Copy position') {
                     opt.action(e);
-                }
-                else {
+                } else {
                     opt.action(this.event);
                 }
                 self._hideMenu(true);
@@ -106,7 +101,7 @@ export class ContextMenu {
             const subMenu = document.createElement('ul');
             subMenu.className = 'aladin-context-sub-menu';
             item.appendChild(subMenu);
-            opt.subMenu.forEach(subOpt => this._attachOption(subMenu, subOpt))
+            opt.subMenu.forEach(subOpt => this._attachOption(subMenu, subOpt));
         }
     }
 
@@ -118,7 +113,7 @@ export class ContextMenu {
 
         const xymouse = Utils.relMouseCoords(e);
 
-        this.menuOptions.forEach(opt => this._attachOption(this.contextMenuUl, opt, xymouse))
+        this.menuOptions.forEach(opt => this._attachOption(this.contextMenuUl, opt, xymouse));
         document.body.appendChild(this.contextMenuUl);
 
         const { innerWidth, innerHeight } = window;
@@ -153,7 +148,6 @@ export class ContextMenu {
 
         this.isShowing = true;
     }
-
 
 
     attachTo(el, options) {

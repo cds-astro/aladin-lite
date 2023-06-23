@@ -32,6 +32,7 @@
 
 import { Coo }            from "../libs/astro/coo.js";
 import { CooFrameEnum }   from "../CooFrameEnum.js";
+import { Utils } from '../Utils.js';
 
 export class ContextMenu {
 
@@ -115,7 +116,7 @@ export class ContextMenu {
         this.contextMenuUl.className = 'aladin-context-menu';
         this.contextMenuUl.innerHTML = '';
 
-        const xymouse = this.aladin.view.imageCanvas.relMouseCoords(e);
+        const xymouse = Utils.relMouseCoords(e);
 
         this.menuOptions.forEach(opt => this._attachOption(this.contextMenuUl, opt, xymouse))
         document.body.appendChild(this.contextMenuUl);

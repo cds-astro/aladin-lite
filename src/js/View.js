@@ -455,7 +455,7 @@ export let View = (function () {
 
         // various listeners
         let onDblClick = function (e) {
-            var xymouse = view.imageCanvas.relMouseCoords(e);
+            var xymouse = Utils.relMouseCoords(e);
 
             // deselect all the selected sources with Select panel
             view.deselectObjects()
@@ -488,7 +488,7 @@ export let View = (function () {
             e.preventDefault();
             e.stopPropagation();
 
-            var xymouse = view.imageCanvas.relMouseCoords(e);
+            var xymouse = Utils.relMouseCoords(e);
 
             if (e.which === 3 || e.button === 2) {
                 view.rightClick = true;
@@ -654,7 +654,7 @@ export let View = (function () {
 
             view.mustClearCatalog = true;
             view.dragx = view.dragy = null;
-            const xymouse = view.imageCanvas.relMouseCoords(e);
+            const xymouse = Utils.relMouseCoords(e);
 
             if (e.type === "mouseout" || e.type === "touchend" || e.type === "touchcancel") {
                 view.updateLocation(xymouse.x, xymouse.y, true);
@@ -760,7 +760,7 @@ export let View = (function () {
         var lastMouseMovePos = null;
         $(view.catalogCanvas).bind("mousemove touchmove", function (e) {
             e.preventDefault();
-            var xymouse = view.imageCanvas.relMouseCoords(e);
+            var xymouse = Utils.relMouseCoords(e);
 
             if (view.rightClick) {
                 var onRightClickMoveFunction = view.aladin.callbacksByEventName['rightClickMove'];

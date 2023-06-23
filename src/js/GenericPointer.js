@@ -7,10 +7,11 @@
 
 import { SimbadPointer } from "./SimbadPointer.js";
 import { PlanetaryFeaturesPointer } from "./PlanetaryFeaturesPointer.js";
+import { Utils } from './Utils';
 
 // allow to call either Simbad or Planetary features Pointers
 export let GenericPointer = (function (view, e) {
-    const xymouse = view.imageCanvas.relMouseCoords(e);
+    const xymouse = Utils.relMouseCoords(e);
     let radec = view.wasm.screenToWorld(xymouse.x, xymouse.y);
     if (radec) {
         // sky case

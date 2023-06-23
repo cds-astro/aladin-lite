@@ -225,6 +225,7 @@
 
 <script type="module">
     import A from '../src/js/A.js';
+    import {Utils} from '../src/js/Utils'
 
     let aladin;
     A.init.then(() => {
@@ -495,7 +496,7 @@
                     deleteOverlayTimeout = undefined;
                 }
                 isDrawing = true;
-                points.push([drawOverlayCanvas.relMouseCoords(e)]);
+                points.push([Utils.relMouseCoords(e)]);
             });
 
 
@@ -504,7 +505,7 @@
             e.preventDefault();
 
                 drawOverlayCtx.clearRect(0, 0, drawOverlayCtx.canvas.width, drawOverlayCtx.canvas.height);
-                points[points.length-1].push(drawOverlayCanvas.relMouseCoords(e));
+                points[points.length-1].push(Utils.relMouseCoords(e));
 
                 drawOverlayCtx.beginPath();
                 

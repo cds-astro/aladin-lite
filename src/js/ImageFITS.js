@@ -30,7 +30,7 @@
 import { ALEvent } from "./events/ALEvent.js";
 import { ColorCfg } from "./ColorCfg.js";
 import { ImageLayer } from "./ImageLayer.js";
-import { Utils } from "./Utils.js";
+import { Utils } from "./Utils";
 
 export let ImageFITS = (function () {
 

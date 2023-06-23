@@ -28,7 +28,7 @@
  * 
  *****************************************************************************/
 import { Coo } from './libs/astro/coo.js';
-import { Utils } from './Utils.js';
+import { Utils } from './Utils';
 export let URLBuilder = (function() {    
 
     let URLBuilder = {

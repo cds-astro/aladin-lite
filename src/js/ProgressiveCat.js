@@ -31,7 +31,7 @@ import { Catalog } from "./Catalog.js";
 import { Source } from "./Source.js";
 import { Color } from "./Color.js";
 import { Coo } from "./libs/astro/coo.js";
-import { Utils } from "./Utils.js";
+import { Utils } from "./Utils";
 import { CooFrameEnum } from "./CooFrameEnum.js";
 
 import $ from 'jquery';

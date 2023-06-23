@@ -35,7 +35,7 @@
 
 import { AladinUtils } from './AladinUtils.js';
 import { Line } from './Line.js';
-import { Utils } from './Utils.js';
+import { Utils } from './Utils';
 import { Overlay } from "./Overlay.js";
 
 export let Polyline= (function() {

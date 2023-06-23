@@ -28,7 +28,7 @@
 import { ALEvent } from "../events/ALEvent.js";
 import { Catalog } from "../Catalog.js";
 import { ObsCore } from "./ObsCore.js";
-import { Utils } from "./../Utils.js";
+import { Utils } from "./../Utils";
 
 export let VOTable = (function() {
 

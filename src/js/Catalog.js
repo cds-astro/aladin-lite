@@ -31,7 +31,7 @@
 
 import { Source } from "./Source.js"
 import { Color } from "./Color.js"
-import { Utils } from "./Utils.js";
+import { Utils } from "./Utils";
 import { Coo } from "./libs/astro/coo.js";
 import { VOTable } from "./vo/VOTable.js";
 import { ALEvent } from "./events/ALEvent.js";

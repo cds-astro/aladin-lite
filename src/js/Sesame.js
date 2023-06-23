@@ -28,7 +28,7 @@
  * 
  *****************************************************************************/
 
-import { Utils } from "./Utils.js";
+import { Utils } from "./Utils";
 
 import $ from 'jquery';
 

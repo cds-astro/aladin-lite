@@ -27,7 +27,7 @@
  * Authors: Thomas Boch & Matthieu Baumann [CDS]
  *
  *****************************************************************************/
-import { Utils } from "./Utils.js";
+import { Utils } from "./Utils";
 import { ALEvent } from "./events/ALEvent.js";
 import { CooFrameEnum } from "./CooFrameEnum.js"
 import { ColorCfg } from "./ColorCfg.js";

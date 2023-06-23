@@ -30,7 +30,7 @@
  * Author: Thomas Boch [CDS]
  *
  *****************************************************************************/
-import { Utils }          from "./Utils.js";
+import { Utils }          from "./Utils";
 import { AladinUtils } from "./AladinUtils.js";
 
 export let PlanetaryFeaturesPointer = (function() {

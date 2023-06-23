@@ -30,7 +30,7 @@
  *
  *****************************************************************************/
 
-import { Utils } from './Utils.js';
+import { Utils } from './Utils';
 import A from "./A.js";
 
 

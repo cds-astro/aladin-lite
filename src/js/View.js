@@ -34,7 +34,7 @@ import A from "./A.js";
 import { Popup } from "./Popup.js";
 import { HealpixGrid } from "./HealpixGrid.js";
 import { ProjectionEnum } from "./ProjectionEnum.js";
-import { Utils } from "./Utils.js";
+import { Utils } from "./Utils";
 import { GenericPointer } from "./GenericPointer.js";
 import { Stats } from "./libs/Stats.js";
 import { Circle } from "./Circle.js";

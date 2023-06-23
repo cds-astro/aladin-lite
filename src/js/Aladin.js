@@ -29,15 +29,14 @@
  *****************************************************************************/
 
 import { View } from "./View.js";
-import { Utils } from "./Utils.js";
+import { Utils } from "./Utils";
 import { Overlay } from "./Overlay.js";
 import { Logger } from "./Logger.js";
 import { ProgressiveCat } from "./ProgressiveCat.js";
 import { Sesame } from "./Sesame.js";
 import { PlanetaryFeaturesNameResolver } from "./PlanetaryFeaturesNameResolver.js";
 import { CooFrameEnum } from "./CooFrameEnum.js";
-import { MeasurementTable } from "./MeasurementTable.js";
-import { Location } from "./Location.js";
+import { MeasurementTable } from "./MeasurementTable.js";import { Location } from "./Location.js";
 import { ImageSurvey } from "./ImageSurvey.js";
 import { Coo } from "./libs/astro/coo.js";
 import { CooConversion } from "./CooConversion.js";

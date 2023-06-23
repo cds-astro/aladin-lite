@@ -30,7 +30,7 @@
  *****************************************************************************/
 
 import { VOTable } from "./VOTable.js";
-import { Utils } from './../Utils.js';
+import { Utils } from './../Utils';
 
 export let Datalink = (function() {
 

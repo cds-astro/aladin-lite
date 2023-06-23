@@ -30,7 +30,7 @@
  *****************************************************************************/
  import { VOTable } from "./VOTable.js";
  import { Datalink } from "./Datalink.js";
- import { Utils } from '../Utils.js';
+ import { Utils } from '../Utils';
 
  export let ObsCore = (function() {
 
@@ -241,4 +241,3 @@
  
     return ObsCore;
 })();
- 

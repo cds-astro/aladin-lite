@@ -34,7 +34,7 @@
  *****************************************************************************/
 
 import { AladinUtils } from './AladinUtils.js';
-import { Utils } from './Utils.js';
+import { Utils } from './Utils';
 
 export let Footprint= (function() {
     // constructor

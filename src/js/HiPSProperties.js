@@ -27,7 +27,7 @@
  * Authors: Thomas Boch & Matthieu Baumann [CDS]
  * 
  *****************************************************************************/
-import { Utils } from "./Utils.js";
+import { Utils } from "./Utils";
 import { HiPSDefinition } from "./HiPSDefinition.js";
 import { MocServer } from "./MocServer.js";
 

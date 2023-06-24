@@ -1,0 +1,23 @@
+<!doctype html>
+<html>
+<head>
+</head>
+<body>
+
+<div id="aladin-lite-div" style="width: 500px; height: 400px"></div>
+
+<script type="module">
+    import A from '../src/js/A.js';
+    var vmc_cepheids = 'https://archive.eso.org/tap_cat/sync?REQUEST=doQuery&LANG=ADQL&MAXREC=401&FORMAT=votable&QUERY=SELECT%20*%20from%20vmc_er4_yjks_cepheidCatMetaData_fits_V3%20where%20%20CONTAINS(POINT(%27%27,RA2000,DEC2000),%20CIRCLE(%27%27,80.894167,-69.756111,2.7))=1';
+    var pessto = 'https://archive.eso.org/tap_cat/sync?REQUEST=doQuery&LANG=ADQL&MAXREC=3&FORMAT=votable&QUERY=SELECT%20*%20from%20safcat.PESSTO_TRAN_CAT_V3%20where%20CONTAINS(POINT(%27%27,TRANSIENT_RAJ2000,TRANSIENT_DECJ2000),%20CIRCLE(%27%27,80.894167,-69.756111,2.7))=1';
+
+    var aladin;
+    A.init.then(() => {
+        aladin = A.aladin('#aladin-lite-div', {survey: 'P/DSS2/red', target: 'LMC', fov: 5});
+        aladin.addCatalog(A.catalogFromURL('https://vizier.u-strasbg.fr/viz-bin/votable?-source=HIP2&-c=LMC&-out.add=_RAJ,_DEJ&-oc.form=dm&-out.meta=DhuL&-out.max=9999&-c.rm=180', {sourceSize:12, color: '#f08080'}));
+        aladin.addCatalog(A.catalogFromURL(vmc_cepheids, {onClick: 'showTable', sourceSize:14, color: '#fff080'}));
+        aladin.addCatalog(A.catalogFromURL(pessto, {onClick: 'showPopup', sourceSize:14, color: '#00f080'}), undefined, true);
+    });
+</script>
+</body>
+</html>

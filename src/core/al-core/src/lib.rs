@@ -4,8 +4,6 @@ extern crate serde_json;
 extern crate futures;
 extern crate wasm_streams;
 
-pub mod text;
-
 pub mod image;
 mod object;
 pub mod shader;

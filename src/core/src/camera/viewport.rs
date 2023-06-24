@@ -175,7 +175,7 @@ impl CameraViewPort {
             // a flag telling if the viewport has a reversed longitude axis
             reversed_longitude,
         };
-        camera.set_canvas_size();
+        //camera.set_canvas_size();
 
         camera
     }
@@ -212,29 +212,22 @@ impl CameraViewPort {
         self.gl.scissor((tl_s.x as i32).max(0), (tl_s.y as i32).max(0), w as i32, h as i32);
     }
 
-    fn set_canvas_size(&self) {
+    fn set_canvas_size(&self, width: f32, height: f32) {
         let canvas = self.gl
             .canvas()
             .unwrap_abort()
             .dyn_into::<web_sys::HtmlCanvasElement>()
             .unwrap_abort();
 
-        canvas.set_width(self.width as u32);
-        canvas.set_height(self.height as u32);
-        // Once the canvas size is changed, we have to set the viewport as well
-        self.gl.viewport(0, 0, self.width as i32, self.height as i32);
-    }
-
-    pub fn set_screen_size(&mut self, width: f32, height: f32, projection: &ProjectionType) {
-        let canvas = self
-            .gl
-            .canvas()
+        // grid canvas
+        let document = web_sys::window().unwrap_abort().document().unwrap_abort();
+        let grid_canvas = document
+            // Inside it, retrieve the canvas
+            .get_elements_by_class_name("aladin-gridCanvas")
+            .get_with_index(0)
             .unwrap_abort()
             .dyn_into::<web_sys::HtmlCanvasElement>()
             .unwrap_abort();
-
-        self.width = (width as f32) * self.dpi;
-        self.height = (height as f32) * self.dpi;
 
         canvas
             .style()
@@ -244,6 +237,27 @@ impl CameraViewPort {
             .style()
             .set_property("height", &format!("{}px", height))
             .unwrap_abort();
+        grid_canvas
+            .style()
+            .set_property("width", &format!("{}px", width))
+            .unwrap_abort();
+        grid_canvas
+            .style()
+            .set_property("height", &format!("{}px", height))
+            .unwrap_abort();
+
+        canvas.set_width(self.width as u32);
+        canvas.set_height(self.height as u32);
+        grid_canvas.set_width(self.width as u32);
+        grid_canvas.set_height(self.height as u32);
+
+        // Once the canvas size is changed, we have to set the viewport as well
+        self.gl.viewport(0, 0, self.width as i32, self.height as i32);
+    }
+
+    pub fn set_screen_size(&mut self, width: f32, height: f32, projection: &ProjectionType) {
+        self.width = (width as f32) * self.dpi;
+        self.height = (height as f32) * self.dpi;
 
         self.aspect = width / height;
 
@@ -262,7 +276,7 @@ impl CameraViewPort {
             self,
         ));
         // Update the size of the canvas
-        self.set_canvas_size();
+        self.set_canvas_size(width, height);
         // Once it is done, recompute the scissor
         self.recompute_scissor();
     }

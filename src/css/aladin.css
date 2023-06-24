@@ -15,6 +15,13 @@
 	top: 0;
 }
 
+.aladin-gridCanvas {
+	position: absolute;
+    z-index: 1;
+	left: 0;
+	top: 0;
+}
+
 .aladin-catalogCanvas {
     position: absolute;
     z-index: 2;

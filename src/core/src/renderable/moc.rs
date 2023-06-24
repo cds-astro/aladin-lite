@@ -6,8 +6,13 @@ use al_core::{WebGlContext, VertexArrayObject, VecData};
 use moclib::{moc::{RangeMOCIterator, RangeMOCIntoIterator}, elem::cell::Cell};
 use std::{borrow::Cow, collections::HashMap};
 use web_sys::WebGl2RenderingContext;
+use crate::renderable::line::RasterizedLineRenderer;
+use crate::math::angle::ToAngle;
+use crate::math::lonlat::LonLatT;
+use cgmath::InnerSpace;
 
-use al_api::coo_system::CooSystem;
+use al_api::{coo_system::CooSystem, color::ColorRGBA};
+use std::ops::Range;
 
 type MOCIdx = String;
 use crate::Abort;
@@ -176,33 +181,37 @@ pub fn rasterize_hpx_cell(cell: &HEALPixCell, n_segment_by_side: usize, camera: 
 }
 
 struct HierarchicalHpxCoverage {
-    full_moc: HEALPixCoverage,
-    partially_degraded_moc: HEALPixCoverage,
+    full_res_depth: u8,
+    hierarchy: Vec<HEALPixCoverage>,
 }
-
 impl HierarchicalHpxCoverage {
-    fn new(full_moc: HEALPixCoverage) -> Self {
-        let partially_degraded_moc = HEALPixCoverage(full_moc.degraded(full_moc.depth_max() >> 1));
+    fn new(moc: HEALPixCoverage) -> Self {
+        let hierarchy = (0..=moc.depth()).map(|d| {
+            HEALPixCoverage(moc.degraded(d))
+        })
+        .collect();
+
+        let full_res_depth = moc.depth();
 
         Self {
-            full_moc,
-            partially_degraded_moc
+            hierarchy,
+            full_res_depth,
         }
     }
 
     fn get(&self, depth: u8) -> &HEALPixCoverage {
-        if depth <= self.partially_degraded_moc.depth_max() {
-            &self.partially_degraded_moc
-        } else {
-            &self.full_moc
-        }
+        // retrieve the full moc
+        let depth = self.full_res_depth.min(depth);
+        &self.hierarchy[depth as usize]
     }
 
     fn get_full_moc(&self) -> &HEALPixCoverage {
-        &self.full_moc
+        &self.hierarchy[self.full_res_depth as usize]
     }
 }
 use crate::ProjectionType;
+
+use super::line;
 impl MOC {
     pub fn new(gl: &WebGlContext) -> Self {
         let mut vao = VertexArrayObject::new(gl);
@@ -292,7 +301,7 @@ impl MOC {
                 } else {
                     let moc = if params.is_adaptative_display() {
                         let partially_degraded_moc = coverage.get(depth);
-                        fov_moc.intersection(partially_degraded_moc).degraded(depth)
+                        fov_moc.intersection(partially_degraded_moc)
                     } else {
                         let full_moc = coverage.get_full_moc();
                         fov_moc.intersection(full_moc)
@@ -303,7 +312,6 @@ impl MOC {
 
                 (layer.clone(), moc)
             }).collect();
-        
     }
 
     pub fn insert(&mut self, moc: HEALPixCoverage, params: al_api::moc::MOC, camera: &CameraViewPort, projection: &ProjectionType) {
@@ -314,7 +322,7 @@ impl MOC {
         self.layers.push(key);
 
         self.recompute_draw_mocs(camera);
-        self.update_buffers(camera, projection);
+        //self.update(camera, projection, line_renderer);
         // Compute or retrieve the mocs to render
     }
 
@@ -324,7 +332,8 @@ impl MOC {
         self.mocs.remove(key);
         let moc = self.params.remove(key);
 
-        if let Some(index) = self.layers.iter().position(|x| x == key) {
+        moc
+        /*if let Some(index) = self.layers.iter().position(|x| x == key) {
             self.layers.remove(index);
             self.num_indices.remove(index);
             self.first_idx.remove(index);
@@ -333,15 +342,15 @@ impl MOC {
             moc
         } else {
             None
-        }
+        }*/
     }
 
-    pub fn set_params(&mut self, params: al_api::moc::MOC, camera: &CameraViewPort, projection: &ProjectionType) -> Option<al_api::moc::MOC> {
+    pub fn set_params(&mut self, params: al_api::moc::MOC, camera: &CameraViewPort, projection: &ProjectionType, line_renderer: &mut RasterizedLineRenderer) -> Option<al_api::moc::MOC> {
         let key = params.get_uuid().clone();
         let old_params = self.params.insert(key, params);
 
         self.recompute_draw_mocs(camera);
-        self.update_buffers(camera, projection);
+        self.update(camera, projection, line_renderer);
 
         old_params
     }
@@ -351,11 +360,18 @@ impl MOC {
         self.mocs.get(key).map(|coverage| coverage.get_full_moc())
     }
 
-    fn update_buffers(&mut self, camera: &CameraViewPort, projection: &ProjectionType) {
-        self.indices.clear();
+    fn update(&mut self, camera: &CameraViewPort, projection: &ProjectionType, line_renderer: &mut RasterizedLineRenderer) {
+        // Compute or retrieve the mocs to render
+        self.view.refresh(camera.get_tile_depth(), CooSystem::ICRS, camera);
+
+        if self.view.has_view_changed() {
+            self.recompute_draw_mocs(camera);
+        }
+
+        /*self.indices.clear();
         self.position.clear();
         self.num_indices.clear();
-        self.first_idx.clear();
+        self.first_idx.clear();*/
 
         let mut idx_off = 0;
 
@@ -364,13 +380,57 @@ impl MOC {
             let params = self.params.get(layer).unwrap_abort();
 
             if let Some(moc) = moc {
+                let mut indices: Vec<Range<usize>> = vec![];
+                let vertices: Vec<_> = moc.border_elementary_edges()
+                    .filter_map(|((ra1, dec1), (ra2, dec2))| {
+                        //let vert = crate::renderable::line::great_circle_arc::project(ra1, dec1, ra2, dec2, camera, projection);           
+                        let u = crate::math::lonlat::proj(&LonLatT::new(ra1.to_angle(), dec1.to_angle()), projection, camera);
+                        let v = crate::math::lonlat::proj(&LonLatT::new(ra2.to_angle(), dec2.to_angle()), projection, camera);
+                        if let (Some(u), Some(v)) = (u, v) {
+                            let uv = v - u;
+                            let uv_mag2 = uv.dot(uv);
+                            // Do not draw to long lines on the NDC space
+                            if uv_mag2 >= 0.04 {
+                                None
+                            } else {
+                                let off = if indices.is_empty() {
+                                    0
+                                } else {
+                                    (*(indices.last().unwrap())).end
+                                };
+                                indices.push(off..(off + 2));
+                                
+                                Some(vec![
+                                    [u.x as f32, u.y as f32],
+                                    [v.x as f32, v.y as f32]
+                                ])
+                            }
+                        } else {
+                            None
+                        }
+                    })
+                    .flatten()
+                    .collect();
+
+                if !vertices.is_empty() {
+                    let paths = indices.iter().map(|r| {
+                        &vertices[r.start..r.end]
+                    });
+                    line_renderer.add_paths(paths, 0.005, params.get_color(), &line::Style::None);
+                }
+            } else {
+                self.first_idx.push(self.indices.len());
+                self.num_indices.push(0);
+            }
+            /*
+            if let Some(moc) = moc {
                 let depth_max = moc.depth();
                 let mut indices_moc = vec![];
                 if params.get_opacity() == 1.0 {
                     let positions_moc = (&(moc.0)).into_range_moc_iter()
                         .cells()
                         .filter_map(|Cell { depth, idx, .. }| {
-                            let delta_depth = depth_max - depth;
+                            let delta_depth = ((depth_max - depth) as i32 - 2).max(0) as u8;
                             let n_segment_by_side = (1 << delta_depth) as usize;
     
                             let cell = HEALPixCell(depth, idx);
@@ -475,9 +535,11 @@ impl MOC {
                 self.first_idx.push(self.indices.len());
                 self.num_indices.push(0);
             }
+            */
+
         }
 
-        self.vao.bind_for_update()
+        /*self.vao.bind_for_update()
             .update_array(
                 "ndc_pos",
                 WebGl2RenderingContext::DYNAMIC_DRAW,
@@ -486,22 +548,7 @@ impl MOC {
             .update_element_array(
                 WebGl2RenderingContext::DYNAMIC_DRAW,
                 VecData::<u32>(&self.indices),
-            );
-    }
-
-    pub fn update(&mut self, camera: &CameraViewPort, projection: &ProjectionType) {
-        if self.is_empty() {
-            return;
-        }
-
-        // Compute or retrieve the mocs to render
-        self.view.refresh(camera.get_tile_depth(), CooSystem::ICRS, camera);
-
-        if self.view.has_view_changed() {
-            self.recompute_draw_mocs(camera);
-        }
-
-        self.update_buffers(camera, projection);
+            );*/
     }
     
     pub fn is_empty(&self) -> bool {
@@ -509,15 +556,19 @@ impl MOC {
     } 
 
     pub fn draw(
-        &self,
+        &mut self,
         shaders: &mut ShaderManager,
         camera: &CameraViewPort,
+        projection: &ProjectionType,
+        line_renderer: &mut RasterizedLineRenderer
     ) {
         if self.is_empty() {
             return;
         }
 
-        self.gl.blend_func_separate(
+        self.update(camera, projection, line_renderer);
+
+        /*self.gl.blend_func_separate(
             WebGl2RenderingContext::SRC_ALPHA,
             WebGl2RenderingContext::ONE_MINUS_SRC_ALPHA,
             WebGl2RenderingContext::ONE,
@@ -557,6 +608,6 @@ impl MOC {
             //}
         }
 
-        self.gl.disable(WebGl2RenderingContext::BLEND);
+        self.gl.disable(WebGl2RenderingContext::BLEND);*/
     }
 }

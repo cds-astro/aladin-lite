@@ -1,4 +1,3 @@
-use super::source::Source;
 use crate::ShaderManager;
 
 use al_api::resources::Resources;
@@ -163,7 +162,7 @@ impl Manager {
     pub fn add_catalog<P: Projection>(
         &mut self,
         name: String,
-        sources: Box<[Source]>,
+        sources: Box<[LonLatT<f32>]>,
         colormap: Colormap,
         _shaders: &mut ShaderManager,
         _camera: &CameraViewPort,
@@ -248,16 +247,16 @@ impl Manager {
     }
 }
 
-use super::index::SourceIndices;
+use super::index::CooIdxVec;
+use crate::LonLatT;
 
 pub struct Catalog {
     colormap: Colormap,
     num_instances: i32,
-    indices: SourceIndices,
+    indices: CooIdxVec,
     alpha: f32,
     strength: f32,
-    current_sources: Vec<f32>,
-    sources: Box<[f32]>,
+    sources: Box<[LonLatT<f32>]>,
     vertex_array_object_catalog: VertexArrayObject,
 }
 use crate::healpix::cell::HEALPixCell;
@@ -273,14 +272,14 @@ impl Catalog {
     fn new<P: Projection>(
         gl: &WebGlContext,
         colormap: Colormap,
-        sources: Box<[Source]>,
+        sources: Box<[LonLatT<f32>]>,
     ) -> Catalog {
         let alpha = 1_f32;
         let strength = 1_f32;
-        let indices = SourceIndices::new(&sources);
+        let indices = CooIdxVec::new(&sources);
         let num_instances = sources.len() as i32;
 
-        let sources = unsafe { utils::transmute_boxed_slice(sources) };
+        //let sources = unsafe { utils::transmute_boxed_slice(sources) };
 
         let vertex_array_object_catalog = {
             #[cfg(feature = "webgl2")]
@@ -320,7 +319,7 @@ impl Catalog {
                     &[3],
                     &[0],
                     WebGl2RenderingContext::DYNAMIC_DRAW,
-                    SliceData(sources.as_ref()),
+                    SliceData(&[]),
                 )
                 // Set the element buffer
                 .add_element_buffer(
@@ -335,7 +334,7 @@ impl Catalog {
                     3,
                     "center",
                     WebGl2RenderingContext::DYNAMIC_DRAW,
-                    SliceData(sources.as_ref()),
+                    SliceData(&[]),
                 )
                 // Store the UV and the offsets of the billboard in a VBO
                 .add_array_buffer(
@@ -361,14 +360,12 @@ impl Catalog {
 
             vao
         };
-        let current_sources = vec![];
         Self {
             alpha,
             strength,
             colormap,
             num_instances,
             indices,
-            current_sources,
             sources,
 
             vertex_array_object_catalog,
@@ -402,7 +399,7 @@ impl Catalog {
     fn update(&mut self, cells: &[HEALPixCell]) {
         let num_sources_in_fov = self.get_total_num_sources_in_fov(cells) as f32;
         // reset the sources in the frame
-        self.current_sources.clear();
+        let mut sources: Vec<_> = vec![];
         // depth < 7
         for cell in cells {
             let delta_depth = (7_i8 - cell.depth() as i8).max(0);
@@ -416,26 +413,24 @@ impl Catalog {
                     let num_sources = ((num_sources_in_kernel_cell as f32) / num_sources_in_fov)
                         * MAX_SOURCES_PER_CATALOG;
 
-                    let sources =
-                        self.indices
-                            .get_k_sources(&self.sources, &c, num_sources as usize, 0);
-                    self.current_sources.extend(sources);
+                    let k_sources = self.indices.get_k_sources(&self.sources, &c, num_sources as usize, 0);
+                    sources.extend(k_sources);
                 }
             }
         }
-        //self.current_sources.shrink_to_fit();
+        self.num_instances = sources.len() as i32;
+        let sources = unsafe { utils::transmute_vec::<LonLatT<f32>, f32>(sources).unwrap() };
 
         // Update the vertex buffer
-        self.num_instances = (self.current_sources.len() / Source::num_f32()) as i32;
         #[cfg(feature = "webgl1")]
         self.vertex_array_object_catalog
             .bind_for_update()
-            .update_instanced_array("center", VecData(&self.current_sources));
+            .update_instanced_array("center", VecData(&sources));
 
         #[cfg(feature = "webgl2")]
         self.vertex_array_object_catalog
             .bind_for_update()
-            .update_instanced_array("center", VecData(&self.current_sources));
+            .update_instanced_array("center", VecData(&sources));
     }
 
     fn draw(

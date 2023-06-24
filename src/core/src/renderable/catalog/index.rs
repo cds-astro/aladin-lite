@@ -1,40 +1,42 @@
+use cgmath::BaseFloat;
+
 use crate::healpix::cell::HEALPixCell;
 
 use std::ops::Range;
-pub struct SourceIndices(Box<[Range<u32>]>);
+pub struct CooIdxVec([(u32, u32); 196608]);
 
-use super::source::Source;
+use crate::math::lonlat::LonLat;
+impl CooIdxVec {
+    /// Build a coordinate index vector from a list of sky coordinates sorted by HEALPix value
+    pub fn new<T>(coo: &[T]) -> Self
+    where
+        T: LonLat<f32>
+    {
+        let mut coo_idx_vector: [(u32, u32); 196608] = [(u32::MAX, u32::MAX); 196608];
 
-impl SourceIndices {
-    pub fn new(sources: &[Source]) -> Self {
-        let mut healpix_idx: Box<[Option<Range<u32>>]> = vec![None; 196608].into_boxed_slice();
+        for (idx, s) in coo.iter().enumerate() {
+            let lonlat = s.lonlat();
+            let hash = cdshealpix::nested::hash(7, lonlat.lon().to_radians() as f64, lonlat.lat().to_radians() as f64) as usize;
 
-        for (idx_source, s) in sources.iter().enumerate() {
-            let (lon, lat) = s.lonlat();
-            let idx = cdshealpix::nested::hash(7, lon as f64, lat as f64) as usize;
-
-            if let Some(ref mut healpix_idx) = &mut healpix_idx[idx] {
-                healpix_idx.end += 1;
+            if coo_idx_vector[hash].0 == u32::MAX {
+                let idx_u32 = idx as u32;
+                coo_idx_vector[hash] = (idx_u32, idx_u32 + 1);
             } else {
-                healpix_idx[idx] = Some((idx_source as u32)..((idx_source + 1) as u32));
+                coo_idx_vector[hash].1 += 1;
             }
         }
+
         let mut idx_source = 0;
 
-        let healpix_idx = healpix_idx
-            .iter()
-            .map(|idx| {
-                if let Some(r) = idx {
-                    idx_source = r.end;
+        for coo_idx in coo_idx_vector.iter_mut() {
+            if coo_idx.0 == u32::MAX {
+                *coo_idx = (idx_source, idx_source);
+            } else {
+                idx_source = coo_idx.1;
+            }
+        }
 
-                    r.start..r.end
-                } else {
-                    idx_source..idx_source
-                }
-            })
-            .collect::<Vec<_>>();
-
-        SourceIndices(healpix_idx.into_boxed_slice())
+        CooIdxVec(coo_idx_vector)
     }
 
     pub fn get_source_indices(&self, cell: &HEALPixCell) -> Range<u32> {
@@ -46,8 +48,8 @@ impl SourceIndices {
             let healpix_idx_start = (idx << off) as usize;
             let healpix_idx_end = ((idx + 1) << off) as usize;
 
-            let idx_start_sources = self.0[healpix_idx_start].start;
-            let idx_end_sources = self.0[healpix_idx_end - 1].end;
+            let idx_start_sources = self.0[healpix_idx_start].0;
+            let idx_end_sources = self.0[healpix_idx_end - 1].1;
 
             idx_start_sources..idx_end_sources
         } else {
@@ -56,21 +58,25 @@ impl SourceIndices {
             let off = 2 * (depth - 7);
             let idx_start = (idx >> off) as usize;
 
-            let idx_start_sources = self.0[idx_start].start;
-            let idx_end_sources = self.0[idx_start].end;
+            let idx_start_sources = self.0[idx_start].0;
+            let idx_end_sources = self.0[idx_start].1;
 
             idx_start_sources..idx_end_sources
         }
     }
 
     // Returns k sources from a cell having depth <= 7
-    pub fn get_k_sources<'a>(
+    pub fn get_k_sources<'a, S, T>(
         &self,
-        sources: &'a [f32],
+        sources: &'a [T],
         cell: &HEALPixCell,
         k: usize,
         offset: usize,
-    ) -> &'a [f32] {
+    ) -> &'a [T]
+    where
+        S: BaseFloat,
+        T: LonLat<S>
+    {
         let HEALPixCell(depth, idx) = *cell;
 
         debug_assert!(depth <= 7);
@@ -79,8 +85,8 @@ impl SourceIndices {
         let healpix_idx_start = (idx << off) as usize;
         let healpix_idx_end = ((idx + 1) << off) as usize;
 
-        let idx_start_sources = self.0[healpix_idx_start].start as usize;
-        let idx_end_sources = self.0[healpix_idx_end - 1].end as usize;
+        let idx_start_sources = self.0[healpix_idx_start].0 as usize;
+        let idx_end_sources = self.0[healpix_idx_end - 1].1 as usize;
 
         let num_sources = idx_end_sources - idx_start_sources;
 
@@ -90,8 +96,6 @@ impl SourceIndices {
             idx_start_sources..idx_end_sources
         };
 
-        let idx_f32 =
-            (idx_sources.start * Source::num_f32())..(idx_sources.end * Source::num_f32());
-        &sources[idx_f32]
+        &sources[idx_sources]
     }
 }

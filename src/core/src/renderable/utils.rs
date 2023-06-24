@@ -83,7 +83,7 @@ impl<'a> Iterator for BuildPatchIndicesIter<'a> {
     }
 }
 
-struct Triangle<'a> {
+pub struct Triangle<'a> {
     v1: &'a [f32; 2],
     v2: &'a [f32; 2],
     v3: &'a [f32; 2],

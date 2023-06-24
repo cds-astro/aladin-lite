@@ -2,7 +2,6 @@
 precision highp float;
 layout (location = 0) in vec2 ndc_pos;
 
-uniform vec2 u_screen_size;
 uniform vec4 u_color;
 
 out vec4 v_rgba;

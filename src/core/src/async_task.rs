@@ -6,11 +6,13 @@
 use al_task_exec::Executor;
 pub type TaskExecutor = Executor<TaskType, TaskResult>;
 
-pub use crate::renderable::catalog::Source;
+use crate::math::lonlat::LonLat;
+use crate::math::lonlat::LonLatT;
+
 pub enum TaskResult {
     TableParsed {
         name: String,
-        sources: Box<[Source]>,
+        sources: Box<[LonLatT<f32>]>,
     },
     /*TileSentToGPU {
         tile: Tile,
@@ -55,6 +57,7 @@ where
 }
 
 use serde::de::DeserializeOwned;
+use std::ops::DerefMut;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 impl<T> Stream for ParseTableTask<T>
@@ -93,19 +96,25 @@ where
 /*use rand::rngs::StdRng;
 use rand::Rng;
 use rand::SeedableRng;*/
-pub struct BuildCatalogIndex {
-    pub sources: Vec<Source>,
+pub struct BuildCatalogIndex<T>
+where
+    T: LonLat<f32> + Clone
+{
+    pub sources: Vec<T>,
     num_sorted_sources: usize,
     i: usize,
     j: usize,
     merging: bool,
-    new_sorted_sources: Vec<Source>,
+    new_sorted_sources: Vec<T>,
     ready: bool,
     chunk_size: usize,
     prev_num_sorted_sources: usize,
 }
-impl BuildCatalogIndex {
-    pub fn new(sources: Vec<Source>) -> Self {
+impl<T> BuildCatalogIndex<T>
+where
+    T: LonLat<f32> + Clone 
+{
+    pub fn new(sources: Vec<T>) -> Self {
         let num_sorted_sources = 0;
         let merging = false;
         let new_sorted_sources = vec![];
@@ -130,7 +139,15 @@ impl BuildCatalogIndex {
 const CHUNK_OF_SOURCES_TO_SORT: usize = 1000;
 const CHUNK_OF_SORTED_SOURCES_TO_MERGE: usize = 20000;
 use crate::Abort;
-impl Stream for BuildCatalogIndex {
+impl<T> Unpin for BuildCatalogIndex<T>
+where
+    T: LonLat<f32> + Clone
+{}
+
+impl<T> Stream for BuildCatalogIndex<T>
+where
+    T: LonLat<f32> + Clone
+{
     type Item = ();
 
     /// Attempt to resolve the next item in the stream.
@@ -149,8 +166,11 @@ impl Stream for BuildCatalogIndex {
                 //let mut rng = StdRng::seed_from_u64(0);
                 // Get the chunk to sort
                 (&mut self.sources[a..b]).sort_unstable_by(|s1, s2| {
-                    let (s1_lon, s1_lat) = s1.lonlat();
-                    let (s2_lon, s2_lat) = s2.lonlat();
+                    let s1_lonlat = s1.lonlat();
+                    let s2_lonlat = s2.lonlat();
+
+                    let (s1_lon, s1_lat) = (s1_lonlat.lon().to_radians(), s1_lonlat.lat().to_radians());
+                    let (s2_lon, s2_lat) = (s2_lonlat.lon().to_radians(), s2_lonlat.lat().to_radians());
 
                     let idx1 = cdshealpix::nested::hash(7, s1_lon as f64, s1_lat as f64);
                     let idx2 = cdshealpix::nested::hash(7, s2_lon as f64, s2_lat as f64);
@@ -197,8 +217,11 @@ impl Stream for BuildCatalogIndex {
                     } else {
                         let s1 = &self.sources[self.j];
                         let s2 = &self.sources[self.i];
-                        let (s1_lon, s1_lat) = s1.lonlat();
-                        let (s2_lon, s2_lat) = s2.lonlat();
+                        let s1_lonlat = s1.lonlat();
+                        let s2_lonlat = s2.lonlat();
+    
+                        let (s1_lon, s1_lat) = (s1_lonlat.lon().to_radians(), s1_lonlat.lat().to_radians());
+                        let (s2_lon, s2_lat) = (s2_lonlat.lon().to_radians(), s2_lonlat.lat().to_radians());
 
                         let p1 = cdshealpix::nested::hash(7, s1_lon as f64, s1_lat as f64);
                         let p2 = cdshealpix::nested::hash(7, s2_lon as f64, s2_lat as f64);

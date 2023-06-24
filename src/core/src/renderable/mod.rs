@@ -1,20 +1,18 @@
 pub mod catalog;
 pub mod final_pass;
-pub mod grid;
-pub mod labels;
 pub mod moc;
 pub mod image;
 pub mod hips;
 pub mod utils;
 pub mod line;
+pub mod text;
+
 use crate::renderable::image::Image;
 
 use al_core::image::format::ChannelType;
 pub use hips::HiPS;
 
-pub use labels::TextRenderManager;
 pub use catalog::Manager;
-pub use grid::ProjetedGrid;
 
 use al_api::hips::ImageMetadata;
 use al_api::color::ColorRGB;
@@ -42,6 +40,11 @@ use web_sys::{WebGl2RenderingContext};
 use wasm_bindgen::JsValue;
 use std::borrow::Cow;
 use std::collections::HashMap;
+
+pub trait Renderer {
+    fn begin(&mut self);
+    fn end(&mut self);
+}
 
 pub(crate) type Url = String;
 type LayerId = String;

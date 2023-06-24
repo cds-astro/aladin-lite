@@ -8,6 +8,8 @@ extern "C" {
     pub fn hexToRgb(hex: String) -> JsValue;
     #[wasm_bindgen(static_method_of = Color)]
     pub fn hexToRgba(hex: String) -> JsValue;
+    #[wasm_bindgen(static_method_of = Color)]
+    pub fn rgbToHex(r: u8, g: u8, b: u8) -> String;
 }
 
 #[derive(Debug, Clone, Copy)]

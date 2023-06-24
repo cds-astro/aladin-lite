@@ -198,7 +198,7 @@ export let Aladin = (function () {
             opacity = options.gridOptions.opacity;
         } else {
             color = {r:0.0, g:1.0, b:0.0};
-            opacity = 1.0;
+            opacity = 0.5;
         }
 
         this.view.setGridConfig({

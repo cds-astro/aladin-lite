@@ -151,9 +151,6 @@ pub struct HiPSConfig {
     // Max depth of the current HiPS tiles
     max_depth_texture: u8,
     max_depth_tile: u8,
-    num_textures_by_side_slice: i32,
-    num_textures_by_slice: i32,
-    num_slices: i32,
     num_textures: usize,
 
     pub is_allsky: bool,
@@ -182,6 +179,10 @@ use crate::HiPSProperties;
 use al_api::coo_system::CooSystem;
 use wasm_bindgen::JsValue;
 
+const NUM_TEXTURES_BY_SIDE_SLICE: i32 = 8;
+const NUM_TEXTURES_BY_SLICE: i32 = NUM_TEXTURES_BY_SIDE_SLICE * NUM_TEXTURES_BY_SIDE_SLICE;
+const NUM_SLICES: i32 = 1;
+
 impl HiPSConfig {
     /// Define a HiPS configuration
     ///
@@ -196,10 +197,7 @@ impl HiPSConfig {
         let root_url = properties.get_url();
         // Define the size of the 2d texture array depending on the
         // characterics of the client
-        let num_textures_by_side_slice = 8;
-        let num_textures_by_slice = num_textures_by_side_slice * num_textures_by_side_slice;
-        let num_slices = 2;
-        let num_textures = (num_textures_by_slice * num_slices) as usize;
+        let num_textures = (NUM_TEXTURES_BY_SLICE * NUM_SLICES) as usize;
 
         let max_depth_tile = properties.get_max_order();
         let tile_size = properties.get_tile_size();
@@ -317,9 +315,6 @@ impl HiPSConfig {
             max_depth_texture,
             max_depth_tile,
             min_depth_tile,
-            num_textures_by_side_slice,
-            num_textures_by_slice,
-            num_slices,
             num_textures,
 
             is_allsky,
@@ -502,17 +497,17 @@ impl HiPSConfig {
 
     #[inline]
     pub fn num_textures_by_side_slice(&self) -> i32 {
-        self.num_textures_by_side_slice
+        NUM_TEXTURES_BY_SIDE_SLICE
     }
 
     #[inline]
     pub fn num_textures_by_slice(&self) -> i32 {
-        self.num_textures_by_slice
+        NUM_TEXTURES_BY_SLICE
     }
 
     #[inline]
     pub fn num_slices(&self) -> i32 {
-        self.num_slices
+        NUM_SLICES
     }
 
     #[inline]

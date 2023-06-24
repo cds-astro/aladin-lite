@@ -14,12 +14,16 @@ use crate::LonLatT;
 const MAX_ANGLE_BEFORE_SUBDIVISION: Angle<f64> = Angle(0.10);
 const MAX_ITERATION: usize = 4;
 
-// Requirement:
-// * Parallel latitude between [-0.5*pi; 0.5*pi]
-// * First longitude between [0; 2\pi[
-// * Second lon length between [0; 2\pi[
-// * (lon1 - lon2).abs() < PI
-pub fn project(lat: f64, mut lon1: f64, mut lon2: f64, camera: &CameraViewPort, projection: &ProjectionType) -> Vec<XYNDC> {
+// * Remark
+// 
+// - Parallel latitude between [-0.5*pi; 0.5*pi]
+// - First longitude between [0; 2\pi[
+// - Second lon length between [0; 2\pi[
+// - (lon1 - lon2).abs() < PI
+//
+// * Returns
+// A list of lines vertices
+pub fn project(lat: f64, mut lon1: f64, mut lon2: f64, camera: &CameraViewPort, projection: &ProjectionType) -> Vec<[f32; 2]> {
     let mut vertices = vec![];
 
     let lon_len = crate::math::sph_geom::distance_from_two_lon(lon1, lon2);
@@ -84,7 +88,7 @@ fn sub_valid_domain(lat: f64, mut valid_lon: f64, mut invalid_lon: f64, projecti
 }
 
 fn subdivide_multi(
-    vertices: &mut Vec<XYNDC>,
+    vertices: &mut Vec<[f32; 2]>,
     lat: f64,
 
     lon_s: f64,
@@ -103,13 +107,12 @@ fn subdivide_multi(
     }
 }
 
-
 fn subdivide(
-    vertices: &mut Vec<XYNDC>,
+    vertices: &mut Vec<[f32; 2]>,
     lat: f64,
 
     lon1: f64,
-    lon2: f64, 
+    lon2: f64,
 
     camera: &CameraViewPort,
     projection: &ProjectionType,
@@ -127,64 +130,70 @@ fn subdivide(
             (Some(p1), Some(pm), Some(p2)) => {
                 let ab = pm - p1;
                 let bc = p2 - pm;
-                let ab_l = ab.magnitude2();
-                let bc_l = bc.magnitude2();
-        
-                let ab = ab.normalize();
-                let bc = bc.normalize();
-                let theta = crate::math::vector::angle2(&ab, &bc);
-                let vectors_nearly_colinear = theta.abs() < MAX_ANGLE_BEFORE_SUBDIVISION;
-        
-                if vectors_nearly_colinear {
-                    // Check if ab and bc are colinear
-                    if crate::math::vector::det(&ab, &bc).abs() < 1e-2 {
-                        vertices.push(p1);
-                        vertices.push(p2);
+
+                let ab_u = ab.normalize();
+                let bc_u = bc.normalize();
+
+                let dot_abbc = crate::math::vector::dot(&ab_u, &bc_u);
+                let theta_abbc = dot_abbc.acos();
+
+                if theta_abbc.abs() < 5.0_f64.to_radians() {
+                    let det_abbc = crate::math::vector::det(&ab_u, &bc_u);
+
+                    if det_abbc.abs() < 1e-2 {
+                        vertices.push([p1.x as f32, p1.y as f32]);
+                        vertices.push([p2.x as f32, p2.y as f32]);
                     } else {
-                        // not colinear
-                        vertices.push(p1);
-                        vertices.push(pm);
+                        // not colinear but enough to stop
+                        vertices.push([p1.x as f32, p1.y as f32]);
+                        vertices.push([pm.x as f32, pm.y as f32]);
         
-                        vertices.push(pm);
-                        vertices.push(p2);
-                    }
-                } else if ab_l.min(bc_l) / ab_l.max(bc_l) < 0.1 {
-                    if ab_l < bc_l {
-                        vertices.push(p1);
-                        vertices.push(pm);
-                    } else {
-                        vertices.push(pm);
-                        vertices.push(p2);
+                        vertices.push([pm.x as f32, pm.y as f32]);
+                        vertices.push([p2.x as f32, p2.y as f32]);
                     }
                 } else {
-                    // Subdivide a->b and b->c
-                    if !subdivide(
-                        vertices,
-                        lat,
-                        lon1,
-                        lon0,
-                        camera,
-                        projection,
-                        iter + 1
-                    ) {
-                        vertices.push(p1);
-                        vertices.push(pm);
-                    }
-        
-                    if !subdivide(
-                        vertices,
-                        lat,
-                        lon0,
-                        lon2,
-                        camera,
-                        projection,
-                        iter + 1
-                    ) {
-                        vertices.push(pm);
-                        vertices.push(p2);
+                    let ab_l = ab.magnitude2();
+                    let bc_l = bc.magnitude2();
+
+                    let r = (ab_l - bc_l).abs() / (ab_l + bc_l);
+
+                    if r > 0.8 {
+                        if ab_l < bc_l {
+                            vertices.push([p1.x as f32, p1.y as f32]);
+                            vertices.push([pm.x as f32, pm.y as f32]);
+                        } else {
+                            vertices.push([pm.x as f32, pm.y as f32]);
+                            vertices.push([p2.x as f32, p2.y as f32]);
+                        }
+                    } else {
+                        // Subdivide a->b and b->c
+                        if !subdivide(
+                            vertices,
+                            lat,
+                            lon1,
+                            lon0,
+                            camera,
+                            projection,
+                            iter + 1
+                        ) {
+                            vertices.push([p1.x as f32, p1.y as f32]);
+                            vertices.push([pm.x as f32, pm.y as f32]);
+                        }
+
+                        if !subdivide(
+                            vertices,
+                            lat,
+                            lon0,
+                            lon2,
+                            camera,
+                            projection,
+                            iter + 1
+                        ) {
+                            vertices.push([pm.x as f32, pm.y as f32]);
+                            vertices.push([p2.x as f32, p2.y as f32]);
+                        }
                     }
                 }
-
                 true
             },
             _ => false

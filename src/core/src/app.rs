@@ -4,15 +4,17 @@ use crate::{
     downloader::Downloader,
     math::{
         self,
-        angle::{Angle, ArcDeg},
+        angle::{Angle, ArcDeg, ToAngle},
         lonlat::{LonLat, LonLatT},
     },
     renderable::{
-        catalog::{Manager, Source},
-        grid::ProjetedGrid,
+        catalog::Manager,
         moc::MOC,
         ImageCfg,
+        line::RasterizedLineRenderer,
+        Renderer,
     },
+    grid::ProjetedGrid,
     healpix::coverage::HEALPixCoverage,
     shader::ShaderManager,
     renderable::Layers,
@@ -20,6 +22,8 @@ use crate::{
     time::DeltaTime,
     inertia::Inertia,
 };
+
+use crate::coo_space::XYNDC;
 
 use wasm_bindgen::prelude::*;
 
@@ -29,7 +33,7 @@ use al_core::colormap::{Colormap, Colormaps};
 use al_api::{
     coo_system::CooSystem,
     grid::GridCfg,
-    hips::{ImageMetadata, HiPSCfg, FITSCfg},
+    hips::{ImageMetadata, HiPSCfg, FITSCfg}, color::ColorRGBA,
 };
 use wasm_bindgen_futures::JsFuture;
 use fitsrs::{fits::AsyncFits, hdu::{extension::AsyncXtensionHDU}};
@@ -88,6 +92,7 @@ pub struct App {
     _final_rendering_pass: RenderPass,
     _fbo_view: FrameBufferObject,
     _fbo_ui: FrameBufferObject,
+    line_renderer: RasterizedLineRenderer,
 
     colormaps: Colormaps,
 
@@ -192,6 +197,8 @@ impl App {
         let (fits_send, fits_recv) = async_channel::unbounded::<ImageCfg>();
         let (ack_send, ack_recv) = async_channel::unbounded::<ImageParams>();
 
+        let line_renderer = RasterizedLineRenderer::new(&gl)?;
+
         Ok(App {
             gl,
             start_time_frame,
@@ -220,6 +227,8 @@ impl App {
             _fbo_view,
             _fbo_ui,
             _final_rendering_pass,
+
+            line_renderer,
 
             inertia,
             disable_inertia,
@@ -439,6 +448,7 @@ impl App {
 
     pub(crate) fn add_moc(&mut self, params: al_api::moc::MOC, moc: HEALPixCoverage) -> Result<(), JsValue> {
         self.moc.insert(moc, params, &self.camera, &self.projection);
+        self.request_redraw = true;
 
         Ok(())
     }
@@ -447,11 +457,13 @@ impl App {
         self.moc.remove(params, &self.camera)
             .ok_or_else(|| JsValue::from_str("MOC not found"))?;
 
+        self.request_redraw = true;
+
         Ok(())
     }
 
     pub(crate) fn set_moc_params(&mut self, params: al_api::moc::MOC) -> Result<(), JsValue> {
-        self.moc.set_params(params, &self.camera, &self.projection)
+        self.moc.set_params(params, &self.camera, &self.projection, &mut self.line_renderer)
             .ok_or_else(|| JsValue::from_str("MOC not found"))?;
         self.request_redraw = true;
 
@@ -689,15 +701,12 @@ impl App {
         self.request_redraw = false;
 
         // Finally update the camera that reset the flag camera changed
-        if has_camera_moved {
+        //if has_camera_moved {
             // Catalogues update
             /*if let Some(view) = self.layers.get_view() {
                 self.manager.update(&self.camera, view);
             }*/
-            self.grid.update(&self.camera, &self.projection);
-            // MOCs update
-            self.moc.update(&self.camera, &self.projection);
-        }
+        //}
 
         // Check for async retrieval
         if let Ok(fits) = self.fits_recv.try_recv() {
@@ -815,13 +824,17 @@ impl App {
             self.gl.clear(web_sys::WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
             self.layers.draw(&self.camera, shaders, &self.colormaps, &self.projection)?;
-            self.moc.draw(shaders, &self.camera);
 
             // Draw the catalog
             //let fbo_view = &self.fbo_view;
             //catalogs.draw(&gl, shaders, camera, colormaps, fbo_view)?;
             //catalogs.draw(&gl, shaders, camera, colormaps, None, self.projection)?;
-            self.grid.draw(&self.camera, shaders)?;
+            self.line_renderer.begin();
+            self.grid.draw(&self.camera, shaders, &self.projection, &mut self.line_renderer)?;
+            self.moc.draw(shaders, &self.camera, &self.projection, &mut self.line_renderer);
+            self.line_renderer.end();
+
+            self.line_renderer.draw(&self.camera)?;
 
             //let dpi  = self.camera.get_dpi();
             //ui.draw(&gl, dpi)?;
@@ -1149,11 +1162,10 @@ impl App {
             .spawner()
             .spawn(TaskType::ParseTableTask, async move {
                 let mut stream = ParseTableTask::<[f32; 2]>::new(table);
-                let mut results: Vec<Source> = vec![];
+                let mut results: Vec<LonLatT<f32>> = vec![];
 
                 while let Some(item) = stream.next().await {
-                    let item: &[f32] = item.as_ref();
-                    results.push(item.into());
+                    results.push(LonLatT::new(item[0].to_angle(), item[1].to_angle()));
                 }
 
                 let mut stream_sort = BuildCatalogIndex::new(results);
@@ -1213,7 +1225,7 @@ impl App {
     }
 
     pub(crate) fn set_grid_cfg(&mut self, cfg: GridCfg) -> Result<(), JsValue> {
-        self.grid.set_cfg(cfg, &self.camera, &self.projection)?;
+        self.grid.set_cfg(cfg, &self.camera, &self.projection, &mut self.line_renderer)?;
         self.request_redraw = true;
 
         Ok(())

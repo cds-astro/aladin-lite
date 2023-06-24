@@ -31,10 +31,6 @@ where
         LonLatT(lon, lat)
     }
 
-    pub fn from_radians(lon: Rad<S>, lat: Rad<S>) -> LonLatT<S> {
-        LonLatT::new(lon.into(), lat.into())
-    }
-
     #[inline]
     pub fn lon(&self) -> Angle<S> {
         self.0

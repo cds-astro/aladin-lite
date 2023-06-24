@@ -96,12 +96,7 @@ impl Region {
             Region::Polygon { polygon, .. } => {
                 let vertices = polygon.intersect_parallel(lat)
                     .iter()
-                    .map(|v| {
-                        let v = XYZWModel::new(v.y(), v.z(), v.x(), 1.0);
-                        let l = v.lonlat();
-                        al_core::info!(l);
-                        v
-                    })
+                    .map(|v| XYZWModel::new(v.y(), v.z(), v.x(), 1.0))
                     .collect::<Vec<_>>();
 
                 if !vertices.is_empty() {

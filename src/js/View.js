@@ -306,10 +306,13 @@ export let View = (function () {
     View.prototype.createCanvases = function () {
         var a = $(this.aladinDiv);
         a.find('.aladin-imageCanvas').remove();
+        a.find('.aladin-gridCanvas').remove();
         a.find('.aladin-catalogCanvas').remove();
 
         // canvas to draw the images
         this.imageCanvas = $("<canvas class='aladin-imageCanvas'></canvas>").appendTo(this.aladinDiv)[0];
+        this.gridCanvas = $("<canvas class='aladin-gridCanvas'></canvas>").appendTo(this.aladinDiv)[0];
+
         // canvas to draw the catalogs
         this.catalogCanvas = $("<canvas class='aladin-catalogCanvas'></canvas>").appendTo(this.aladinDiv)[0];
     };
@@ -342,9 +345,12 @@ export let View = (function () {
         this.wasm.resize(this.width, this.height);
 
         this.catalogCtx = this.catalogCanvas.getContext("2d");
-
         this.catalogCtx.canvas.width = this.width;
         this.catalogCtx.canvas.height = this.height;
+
+        /*this.gridCtx = this.gridCanvas.getContext("2d");
+        this.gridCtx.canvas.width = this.width;
+        this.gridCtx.canvas.height = this.height;*/
 
         pixelateCanvasContext(this.imageCtx, this.aladin.options.pixelateCanvas);
 
@@ -1050,7 +1056,7 @@ export let View = (function () {
         };
     };
 
-    View.FPS_INTERVAL = 1000 / 100;
+    View.FPS_INTERVAL = 1000 / 140;
 
     /**
      * redraw the whole view

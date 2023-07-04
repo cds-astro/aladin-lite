@@ -807,6 +807,7 @@ canvas {
 .aladin-context-menu {
   position: fixed;
   background: #fff;
+  color: #000;
   z-index: 9999999;
   width: 150px;
   margin: 0;
@@ -815,7 +816,6 @@ canvas {
   box-shadow: 0 0 6px rgba(0,0,0,0.2);
   font-size: 12px;
   font-family: Verdana, Geneva, Tahoma, sans-serif;
-  ;
 }
 
 .aladin-context-menu .aladin-context-menu-item {

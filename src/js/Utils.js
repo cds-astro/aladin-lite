@@ -418,8 +418,11 @@ Utils.deepCopy = function(orig) {
     return Object.assign(Object.create(Object.getPrototypeOf(orig)), orig);
 }
 
-Utils.download = function(url) {
+Utils.download = function(url, name = undefined) {
     const a = document.createElement('a')
     a.href = url
+    if (name) {
+        a.download = name;
+    }
     a.click()
 }

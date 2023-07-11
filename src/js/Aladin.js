@@ -1394,12 +1394,20 @@ export let Aladin = (function () {
         return null;
     };
 
+
+
     // TODO : integrate somehow into API ?
-    Aladin.prototype.exportAsPNG = function () {
+    Aladin.prototype.exportAsPNG = function (downloadFile = false) {
         (async () => {
-            var w = window.open();
-            w.document.write('<img src="' + await this.getViewDataURL() + '" width="' + this.view.width + 'px">');
-            w.document.title = 'Aladin Lite snapshot';
+            const url = await this.getViewDataURL();
+            if (downloadFile) {
+                Utils.download(url, "screenshot");
+            } else {
+                // open a new window
+                var w = window.open();
+                w.document.write('<img src="' + url + '" width="' + this.view.width + 'px">');
+                w.document.title = 'Aladin Lite snapshot';
+            }
         })();
     };
 

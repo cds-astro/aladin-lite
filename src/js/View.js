@@ -488,7 +488,7 @@ export let View = (function () {
             e.preventDefault();
             e.stopPropagation();
 
-            var xymouse = Utils.relMouseCoords(e);
+            const xymouse = Utils.relMouseCoords(view.imageCanvas, e);
 
             if (e.which === 3 || e.button === 2) {
                 view.rightClick = true;

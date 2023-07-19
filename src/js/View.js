@@ -760,7 +760,7 @@ export let View = (function () {
         var lastMouseMovePos = null;
         $(view.catalogCanvas).bind("mousemove touchmove", function (e) {
             e.preventDefault();
-            var xymouse = Utils.relMouseCoords(e);
+            const xymouse = Utils.relMouseCoords(view.imageCanvas, e);
 
             if (view.rightClick) {
                 var onRightClickMoveFunction = view.aladin.callbacksByEventName['rightClickMove'];

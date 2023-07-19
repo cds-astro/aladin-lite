@@ -111,7 +111,7 @@ export class ContextMenu {
         this.contextMenuUl.className = 'aladin-context-menu';
         this.contextMenuUl.innerHTML = '';
 
-        const xymouse = Utils.relMouseCoords(e);
+            const xymouse = Utils.relMouseCoords(view.imageCanvas, e);
 
         this.menuOptions.forEach(opt => this._attachOption(this.contextMenuUl, opt, xymouse));
         document.body.appendChild(this.contextMenuUl);

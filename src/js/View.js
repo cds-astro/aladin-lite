@@ -654,7 +654,7 @@ export let View = (function () {
 
             view.mustClearCatalog = true;
             view.dragx = view.dragy = null;
-            const xymouse = Utils.relMouseCoords(e);
+            const xymouse = Utils.relMouseCoords(view.imageCanvas, e);
 
             if (e.type === "mouseout" || e.type === "touchend" || e.type === "touchcancel") {
                 view.updateLocation(xymouse.x, xymouse.y, true);

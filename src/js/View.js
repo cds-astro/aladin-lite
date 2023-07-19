@@ -455,7 +455,7 @@ export let View = (function () {
 
         // various listeners
         let onDblClick = function (e) {
-            var xymouse = Utils.relMouseCoords(e);
+            const xymouse = Utils.relMouseCoords(view.imageCanvas, e);
 
             // deselect all the selected sources with Select panel
             view.deselectObjects()

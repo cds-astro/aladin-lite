@@ -48,37 +48,43 @@ impl RenderMode for Fill {
 
                 match cell.depth() {
                     0 => {
-                        cell.get_children_cells(2 - cell.depth())
+                        let n_seg_sw = (n_seg_sw >> 2).max(1);
+                        let n_seg_se = (n_seg_se >> 2).max(1);
+                        let n_seg_nw = (n_seg_nw >> 2).max(1);
+                        let n_seg_ne = (n_seg_ne >> 2).max(1);
+
+                        cell.get_children_cells(2)
                             .map(|child_cell| {
                                 let mut edges = OrdinalMap::new();
 
                                 let off = child_cell.idx() - (cell.idx() << 4);
+
                                 match off {
                                     // S
                                     0 => {
                                         edges.put(Ordinal::NW, 1);
                                         edges.put(Ordinal::NE, 1);
-                                        edges.put(Ordinal::SW, n_seg_sw >> 2);
-                                        edges.put(Ordinal::SE, n_seg_se >> 2);
+                                        edges.put(Ordinal::SW, n_seg_sw);
+                                        edges.put(Ordinal::SE, n_seg_se);
                                     }
                                     // W
                                     10 => {
-                                        edges.put(Ordinal::NW, n_seg_nw >> 2);
+                                        edges.put(Ordinal::NW, n_seg_nw);
                                         edges.put(Ordinal::NE, 1);
-                                        edges.put(Ordinal::SW, n_seg_sw >> 2);
+                                        edges.put(Ordinal::SW, n_seg_sw);
                                         edges.put(Ordinal::SE, 1);
                                     }
                                     // E
                                     5 => {
                                         edges.put(Ordinal::NW, 1);
-                                        edges.put(Ordinal::NE, n_seg_ne >> 2);
+                                        edges.put(Ordinal::NE, n_seg_ne);
                                         edges.put(Ordinal::SW, 1);
-                                        edges.put(Ordinal::SE, n_seg_se >> 2);
+                                        edges.put(Ordinal::SE, n_seg_se);
                                     }
                                     // N
                                     15 => {
-                                        edges.put(Ordinal::NW, n_seg_nw >> 2);
-                                        edges.put(Ordinal::NE, n_seg_ne >> 2);
+                                        edges.put(Ordinal::NW, n_seg_nw);
+                                        edges.put(Ordinal::NE, n_seg_ne);
                                         edges.put(Ordinal::SW, 1);
                                         edges.put(Ordinal::SE, 1);
                                     }
@@ -87,18 +93,18 @@ impl RenderMode for Fill {
                                         edges.put(Ordinal::NW, 1);
                                         edges.put(Ordinal::NE, 1);
                                         edges.put(Ordinal::SW, 1);
-                                        edges.put(Ordinal::SE, n_seg_se >> 2);
+                                        edges.put(Ordinal::SE, n_seg_se);
                                     }
                                     // SW
                                     2 | 8 => {
                                         edges.put(Ordinal::NW, 1);
                                         edges.put(Ordinal::NE, 1);
-                                        edges.put(Ordinal::SW, n_seg_sw >> 2);
+                                        edges.put(Ordinal::SW, n_seg_sw);
                                         edges.put(Ordinal::SE, 1);
                                     }
                                     // NW
                                     11 | 14 => {
-                                        edges.put(Ordinal::NW, n_seg_nw >> 2);
+                                        edges.put(Ordinal::NW, n_seg_nw);
                                         edges.put(Ordinal::NE, 1);
                                         edges.put(Ordinal::SW, 1);
                                         edges.put(Ordinal::SE, 1);
@@ -106,7 +112,7 @@ impl RenderMode for Fill {
                                     // NE
                                     7 | 13 => {
                                         edges.put(Ordinal::NW, 1);
-                                        edges.put(Ordinal::NE, n_seg_ne >> 2);
+                                        edges.put(Ordinal::NE, n_seg_ne);
                                         edges.put(Ordinal::SW, 1);
                                         edges.put(Ordinal::SE, 1);
                                     }
@@ -126,7 +132,12 @@ impl RenderMode for Fill {
                             .collect()
                     }
                     1 => {
-                        cell.get_children_cells(2 - cell.depth())
+                        let n_seg_sw = (n_seg_sw >> 1).max(1);
+                        let n_seg_se = (n_seg_se >> 1).max(1);
+                        let n_seg_nw = (n_seg_nw >> 1).max(1);
+                        let n_seg_ne = (n_seg_ne >> 1).max(1);
+
+                        cell.get_children_cells(1)
                             .map(|child_cell| {
                                 let mut edges = OrdinalMap::new();
 
@@ -136,27 +147,27 @@ impl RenderMode for Fill {
                                     0 => {
                                         edges.put(Ordinal::NW, 1);
                                         edges.put(Ordinal::NE, 1);
-                                        edges.put(Ordinal::SW, n_seg_sw >> 1);
-                                        edges.put(Ordinal::SE, n_seg_se >> 1);
+                                        edges.put(Ordinal::SW, n_seg_sw);
+                                        edges.put(Ordinal::SE, n_seg_se);
                                     }
                                     // W
-                                    3 => {
-                                        edges.put(Ordinal::NW, n_seg_nw >> 1);
+                                    2 => {
+                                        edges.put(Ordinal::NW, n_seg_nw);
                                         edges.put(Ordinal::NE, 1);
-                                        edges.put(Ordinal::SW, n_seg_sw >> 1);
+                                        edges.put(Ordinal::SW, n_seg_sw);
                                         edges.put(Ordinal::SE, 1);
                                     }
                                     // E
                                     1 => {
                                         edges.put(Ordinal::NW, 1);
-                                        edges.put(Ordinal::NE, n_seg_ne >> 1);
+                                        edges.put(Ordinal::NE, n_seg_ne);
                                         edges.put(Ordinal::SW, 1);
-                                        edges.put(Ordinal::SE, n_seg_se >> 1);
+                                        edges.put(Ordinal::SE, n_seg_se);
                                     }
                                     // N
                                     3 => {
-                                        edges.put(Ordinal::NW, n_seg_nw >> 1);
-                                        edges.put(Ordinal::NE, n_seg_ne >> 1);
+                                        edges.put(Ordinal::NW, n_seg_nw);
+                                        edges.put(Ordinal::NE, n_seg_ne);
                                         edges.put(Ordinal::SW, 1);
                                         edges.put(Ordinal::SE, 1);
                                     }

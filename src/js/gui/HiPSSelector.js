@@ -185,7 +185,7 @@ import $ from 'jquery';
             }
             url = Utils.fixURLForHTTPS(url);
 
-            const moc = A.MOCFromURL(url, {lineWidth: 5, opacity: 0.3, fillColor: 'magenta', perimeter: true});
+            const moc = A.MOCFromURL(url, {lineWidth: 5, opacity: 0.3, fillColor: 'magenta', fill: true});
             self.aladin.addMOC(moc);
         });
 

@@ -1,51 +1,27 @@
 use crate::{
-    healpix::{
-        cell::{HEALPixCell, ALLSKY_HPX_CELLS_D0},
-        coverage::HEALPixCoverage,
-        index_vector::IdxVec,
-    },
+    healpix::{cell::HEALPixCell, coverage::HEALPixCoverage, index_vector::IdxVec},
     math::angle::Angle,
     CameraViewPort, ShaderManager,
 };
 
-use moc::RenderModeType;
-
 mod graph;
 pub mod mode;
-use al_core::{VecData, VertexArrayObject, WebGlContext};
-use std::collections::HashSet;
+
 pub mod hierarchy;
 pub mod moc;
 
-use crate::math::TWICE_PI;
-use al_core::{info, inforec, log};
-
-use crate::math::angle::ToAngle;
-use crate::math::lonlat::LonLatT;
 use crate::renderable::line::RasterizedLineRenderer;
-use al_core::shader::Shader;
-use moclib::elem::cell::Cell;
-use moclib::elemset::range::MocRanges;
-use moclib::moc::range::RangeMOC;
-use moclib::moc::{RangeMOCIntoIterator, RangeMOCIterator};
-use moclib::ranges::Ranges;
-use std::{collections::HashMap, fmt::format};
+
 use wasm_bindgen::JsValue;
-use web_sys::WebGl2RenderingContext;
 
 use hierarchy::MOCHierarchy;
 
-use super::{line::PathVertices, utils::Triangle};
-
-use cgmath::InnerSpace;
+use super::utils::Triangle;
 
 use al_api::coo_system::CooSystem;
-use std::ops::Range;
 
 use al_api::moc::MOC as Cfg;
 
-type MOCIdx = String;
-use crate::Abort;
 pub struct MOCRenderer {
     mocs: Vec<MOCHierarchy>,
     cfgs: Vec<Cfg>,
@@ -324,7 +300,7 @@ impl MOCRenderer {
 
     pub fn draw(
         &mut self,
-        shaders: &mut ShaderManager,
+        _shaders: &mut ShaderManager,
         camera: &mut CameraViewPort,
         projection: &ProjectionType,
         line_renderer: &mut RasterizedLineRenderer,

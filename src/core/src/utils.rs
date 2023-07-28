@@ -38,6 +38,8 @@ pub fn unmortonize(mut x: u64) -> (u32, u32) {
     (x as u32, y as u32)
 }
 
+// Transmute utils functions
+#[allow(dead_code)]
 pub unsafe fn transmute_boxed_slice<I, O>(s: Box<[I]>) -> Box<[O]> {
     let len = s.len();
     let in_slice_ptr = Box::into_raw(s);

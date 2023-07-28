@@ -3,20 +3,19 @@ use super::Node;
 use super::RenderMode;
 
 use crate::HEALPixCoverage;
-use al_api::Abort;
+
 use healpix::{
-    compass_point::{Cardinal, MainWind, Ordinal, OrdinalMap, OrdinalSet},
-    nested::moc::HpxCell,
+    compass_point::{Ordinal, OrdinalMap},
 };
-use moclib::elem::cell::Cell;
-use moclib::moc::range::CellAndNeighs;
-use moclib::moc::RangeMOCIntoIterator;
-use moclib::moc::RangeMOCIterator;
-use moclib::qty::Hpx;
 
-use al_core::{info, inforec, log};
 
-use crate::healpix::cell::HEALPixCell;
+
+
+
+
+
+
+
 
 pub struct Edge;
 
@@ -32,7 +31,7 @@ impl RenderMode for Edge {
 
                 if let Some(edge_neigs) = &n.edge_neigs[Ordinal::NW as u8 as usize] {
                     // if the smallest neig for this edge is smaller than self
-                    let smallest_neig_depth = edge_neigs.max_depth_neig;
+                    let _smallest_neig_depth = edge_neigs.max_depth_neig;
 
                     let first_neig_idx = edge_neigs.neig_idx[0];
                     let neig_cell = &g.nodes()[first_neig_idx].cell;
@@ -62,7 +61,7 @@ impl RenderMode for Edge {
 
                 if let Some(edge_neigs) = &n.edge_neigs[Ordinal::SW as u8 as usize] {
                     // if the smallest neig for this edge is smaller than self
-                    let smallest_neig_depth = edge_neigs.max_depth_neig;
+                    let _smallest_neig_depth = edge_neigs.max_depth_neig;
 
                     let first_neig_idx = edge_neigs.neig_idx[0];
                     let neig_cell = &g.nodes()[first_neig_idx].cell;
@@ -92,7 +91,7 @@ impl RenderMode for Edge {
 
                 if let Some(edge_neigs) = &n.edge_neigs[Ordinal::SE as u8 as usize] {
                     // if the smallest neig for this edge is smaller than self
-                    let smallest_neig_depth = edge_neigs.max_depth_neig;
+                    let _smallest_neig_depth = edge_neigs.max_depth_neig;
 
                     let first_neig_idx = edge_neigs.neig_idx[0];
                     let neig_cell = &g.nodes()[first_neig_idx].cell;
@@ -121,7 +120,7 @@ impl RenderMode for Edge {
 
                 if let Some(edge_neigs) = &n.edge_neigs[Ordinal::NE as u8 as usize] {
                     // if the smallest neig for this edge is smaller than self
-                    let smallest_neig_depth = edge_neigs.max_depth_neig;
+                    let _smallest_neig_depth = edge_neigs.max_depth_neig;
 
                     let first_neig_idx = edge_neigs.neig_idx[0];
                     let neig_cell = &g.nodes()[first_neig_idx].cell;

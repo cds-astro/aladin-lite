@@ -1,22 +1,13 @@
+use crate::healpix::cell::HEALPixCell;
 use crate::healpix::cell::MAX_HPX_DEPTH;
-use crate::{coosys, healpix::cell::HEALPixCell};
-use std::collections::HashMap;
 
 use crate::camera::XYZWModel;
-use crate::math::angle::Angle;
-use crate::math::angle::ToAngle;
-use crate::math::projection::coo_space::XYScreen;
+
 use crate::math::projection::*;
-use crate::renderable::utils::Triangle;
+
 use crate::HEALPixCoverage;
-use crate::LonLatT;
-use cgmath::Vector2;
-use wasm_bindgen::JsValue;
 
-use crate::math::lonlat::LonLat;
 use std::ops::Range;
-
-use al_core::{info, inforec, log};
 
 use al_api::cell::HEALPixCellProjeted;
 
@@ -66,8 +57,6 @@ pub fn project(
         _ => Some(cell),
     }
 }
-
-use crate::healpix;
 
 pub(super) struct ViewHpxCells {
     hpx_cells: [HpxCells; NUM_COOSYSTEM],
@@ -174,7 +163,6 @@ impl Default for HpxCells {
 
 use crate::camera::CameraViewPort;
 use al_api::coo_system::{CooSystem, NUM_COOSYSTEM};
-use moclib::moc::range::RangeMOC;
 
 use super::FieldOfView;
 impl HpxCells {
@@ -227,8 +215,6 @@ impl HpxCells {
         self.idx_rng[camera_depth as usize] = Some(num_past..num_cur);
     }
 
-    fn append_depth_cells(&mut self, cells_iter: impl Iterator<Item = HEALPixCell>, depth: u8) {}
-
     // Accessors
     // depth MUST be < to camera tile depth
     pub fn get_cells<'a>(&'a mut self, depth: u8) -> impl Iterator<Item = &'a HEALPixCell> {
@@ -253,14 +239,16 @@ impl HpxCells {
         self.cells[start..end].iter()
     }
 
+    /*
     #[inline(always)]
-    pub fn num_of_cells(&self, depth: u8) -> usize {
-        if let Some(rng) = &self.idx_rng[depth as usize] {
-            rng.end - rng.start
-        } else {
-            0
+        pub fn num_of_cells(&self, depth: u8) -> usize {
+            if let Some(rng) = &self.idx_rng[depth as usize] {
+                rng.end - rng.start
+            } else {
+                0
+            }
         }
-    }
+     */
 
     /*#[inline]
     pub fn get_depth(&self) -> u8 {

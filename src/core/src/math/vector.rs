@@ -65,7 +65,7 @@ impl NormedVector2 {
     }
 }
 
-use std::borrow::Borrow;
+
 use std::ops::Deref;
 impl Deref for NormedVector2 {
     type Target = Vector2<f64>;

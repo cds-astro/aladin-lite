@@ -18,7 +18,7 @@ use crate::{
     tile_fetcher::TileFetcherQueue,
     time::DeltaTime,
 };
-use al_core::{info, inforec, log};
+
 use wasm_bindgen::prelude::*;
 
 use al_core::colormap::{Colormap, Colormaps};
@@ -29,7 +29,7 @@ use crate::Abort;
 use al_api::{
     coo_system::CooSystem,
     grid::GridCfg,
-    hips::{self, FITSCfg, HiPSCfg, ImageMetadata},
+    hips::{FITSCfg, HiPSCfg, ImageMetadata},
 };
 use cgmath::Vector4;
 use fitsrs::{fits::AsyncFits, hdu::extension::AsyncXtensionHDU};
@@ -80,7 +80,7 @@ pub struct App {
     dragging: bool,
 
     prev_cam_position: Vector3<f64>,
-    prev_center: Vector3<f64>,
+    //prev_center: Vector3<f64>,
     out_of_fov: bool,
     //tasks_finished: bool,
     catalog_loaded: bool,
@@ -175,7 +175,7 @@ impl App {
         let request_redraw = false;
         let rendering = true;
         let prev_cam_position = camera.get_center().truncate();
-        let prev_center = Vector3::new(0.0, 1.0, 0.0);
+        //let prev_center = Vector3::new(0.0, 1.0, 0.0);
         let out_of_fov = false;
         let catalog_loaded = false;
 
@@ -226,8 +226,7 @@ impl App {
             // The catalog renderable
             manager,
             exec,
-            prev_center,
-
+            //prev_center,
             _fbo_view,
             _fbo_ui,
             _final_rendering_pass,
@@ -567,7 +566,7 @@ impl App {
 
         //let has_camera_recently_moved =
         //    ;
-        let has_camera_zoomed = self.camera.has_zoomed();
+        let _has_camera_zoomed = self.camera.has_zoomed();
         {
             // Newly available tiles must lead to
             // 1. Surveys must be aware of the new available tiles
@@ -578,8 +577,8 @@ impl App {
             .get_resolved_tiles(/*&available_tiles, */&mut self.surveys);*/
             let rscs_received = self.downloader.get_received_resources();
 
-            let mut num_tile_handled = 0;
-            let mut tile_copied = false;
+            let _num_tile_handled = 0;
+            let _tile_copied = false;
             for rsc in rscs_received {
                 match rsc {
                     Resource::Tile(tile) => {
@@ -601,7 +600,7 @@ impl App {
                                         });
 
                                     let is_tile_root = tile.cell().depth() == delta_depth;
-                                    let depth = tile.cell().depth();
+                                    let _depth = tile.cell().depth();
                                     //al_core::info!("is root tile", depth, is_tile_root);
                                     // do not perform tex_sub costly GPU calls while the camera is zooming
                                     if is_tile_root || included_or_near_coverage {
@@ -655,7 +654,7 @@ impl App {
                                 // The allsky image is missing so we donwload all the tiles contained into
                                 // the 0's cell
                                 let cfg = survey.get_config();
-                                let delta_depth = cfg.delta_depth();
+                                let _delta_depth = cfg.delta_depth();
                                 let hips_url = cfg.get_root_url();
                                 let format = cfg.get_format();
                                 for texture_cell in crate::healpix::cell::ALLSKY_HPX_CELLS_D0 {
@@ -1382,7 +1381,7 @@ impl App {
         }
     }
 
-    pub(crate) fn press_left_button_mouse(&mut self, sx: f32, sy: f32) {
+    pub(crate) fn press_left_button_mouse(&mut self, _sx: f32, _sy: f32) {
         self.dist_dragging = 0.0;
         self.time_start_dragging = Time::now();
         self.dragging = true;
@@ -1396,7 +1395,7 @@ impl App {
         self.request_for_new_tiles = true;
 
         self.dragging = false;
-        let cur_mouse_pos = [sx, sy];
+        let _cur_mouse_pos = [sx, sy];
 
         // Check whether the center has moved
         // between the pressing and releasing
@@ -1427,7 +1426,7 @@ impl App {
         let dragging_duration = (now - self.time_start_dragging).as_secs();
         let dragging_vel = self.dist_dragging / dragging_duration;
 
-        let dist_dragging = self.dist_dragging;
+        let _dist_dragging = self.dist_dragging;
         // Detect if there has been a recent acceleration
         // It is also possible that the dragging time is too short and if it is the case, trigger the inertia
         let recent_acceleration = (Time::now() - self.time_mouse_high_vel).as_secs() < 0.1

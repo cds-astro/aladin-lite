@@ -1,12 +1,12 @@
-use crate::downloader::query::Query;
-use crate::downloader::request::tile::Tile;
+
+
 use crate::downloader::{query, Downloader};
 use crate::renderable::HiPS;
 use crate::Abort;
 
-use al_core::{info, inforec, log};
 
-use std::collections::{HashSet, VecDeque};
+
+use std::collections::{VecDeque};
 
 const MAX_NUM_TILE_FETCHING: isize = 8;
 const MAX_QUERY_QUEUE_LENGTH: usize = 100;
@@ -32,7 +32,7 @@ impl TileFetcherQueue {
         //self.query_set.clear();
     }
 
-    pub fn append(&mut self, query: query::Tile, downloader: &mut Downloader) {
+    pub fn append(&mut self, query: query::Tile, _downloader: &mut Downloader) {
         // Check if the query has already been done
         //if !self.query_set.contains(&query) {
         // discard too old tile queries
@@ -44,7 +44,7 @@ impl TileFetcherQueue {
     }
 
     // fetch the base tile
-    pub fn append_base_tile(&mut self, query: query::Tile, downloader: &mut Downloader) {
+    pub fn append_base_tile(&mut self, query: query::Tile, _downloader: &mut Downloader) {
         self.base_tile_queries.push(query);
     }
 

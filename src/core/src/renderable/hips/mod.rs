@@ -33,7 +33,7 @@ use crate::time::Time;
 
 use crate::survey::buffer::ImageSurveyTextures;
 use crate::survey::texture::Texture;
-use al_api::coo_system::CooSystem;
+
 use raytracing::RayTracer;
 use uv::{TileCorner, TileUVW};
 
@@ -508,8 +508,8 @@ impl HiPS {
         let textures = ImageSurveyTextures::new(gl, config)?;
 
         let gl = gl.clone();
-        let depth = 0;
-        let depth_tile = 0;
+        let _depth = 0;
+        let _depth_tile = 0;
 
         let footprint_moc = None;
         // request the allsky texture

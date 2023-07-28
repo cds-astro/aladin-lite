@@ -4,8 +4,6 @@ pub mod request;
 use crate::renderable::Url;
 use std::collections::HashSet;
 
-use al_core::{info, inforec, log};
-
 use query::QueryId;
 
 pub struct Downloader {
@@ -101,10 +99,6 @@ impl Downloader {
     /*pub fn cache_rsc(&mut self, rsc: Resource) {
         self.cache.insert(rsc.url().clone(), rsc);
     }*/
-
-    pub fn is_cached(&mut self, url: &Url) -> bool {
-        self.cache.contains(url)
-    }
 
     pub fn delay_rsc(&mut self, rsc: Resource) {
         self.queried_cached_urls.push(rsc.url().clone());

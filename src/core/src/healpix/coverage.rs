@@ -1,7 +1,7 @@
 use crate::math;
 use crate::math::lonlat::LonLatT;
 use crate::math::PI;
-use al_core::{info, inforec, log};
+
 use cgmath::{Vector3, Vector4};
 use moclib::{moc::range::RangeMOC, qty::Hpx, ranges::SNORanges};
 pub type Smoc = RangeMOC<u64, Hpx<u64>>;
@@ -10,7 +10,7 @@ use crate::healpix::cell::HEALPixCell;
 #[derive(Clone, Debug)]
 pub struct HEALPixCoverage(pub Smoc);
 
-use moclib::elemset::range::MocRanges;
+
 impl HEALPixCoverage {
     pub fn from_3d_coos<'a>(
         // The depth of the smallest HEALPix cells contained in it

@@ -1,10 +1,7 @@
-use cgmath::BaseFloat;
-
 use crate::{
     healpix::cell::HEALPixCell,
     math::sph_geom::great_circle_arc::{GreatCircleArc, HEALPixBBox},
 };
-use al_core::{info, inforec, log};
 
 use std::ops::Range;
 #[derive(Debug)]
@@ -67,11 +64,7 @@ impl IdxVec {
     }
 
     // Create an index vector from a list of segments
-    pub fn from_great_circle_arc<T1, T2>(arcs: &mut [GreatCircleArc<f32, T1, T2>]) -> Self
-    where
-        T1: LonLat<f32>,
-        T2: LonLat<f32>,
-    {
+    pub fn from_great_circle_arc(arcs: &mut [GreatCircleArc]) -> Self {
         arcs.sort_unstable_by(|a1, a2| {
             let bbox1 = a1.get_containing_hpx_cell();
             let bbox2 = a2.get_containing_hpx_cell();

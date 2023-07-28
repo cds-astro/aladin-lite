@@ -350,7 +350,7 @@ impl ProjectionType {
             ProjectionType::Sin(_)
             | ProjectionType::Tan(_)
             | ProjectionType::Feye(_)
-            | ProjectionType::Feye(_) => false,
+            | ProjectionType::Ncp(_) => false,
             _ => true,
         }
     }

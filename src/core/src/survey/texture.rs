@@ -1,5 +1,5 @@
 use crate::{healpix::cell::HEALPixCell, time::Time};
-use al_core::{info, inforec, log};
+
 use std::collections::HashSet;
 
 pub struct Texture {

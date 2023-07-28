@@ -17,7 +17,7 @@ use lyon::algorithms::{
     path::Path,
 };
 
-use al_core::{info, inforec, log};
+use al_core::{inforec, log};
 
 struct Meta {
     color: ColorRGBA,

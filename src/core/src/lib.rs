@@ -942,9 +942,9 @@ impl WebClient {
     #[wasm_bindgen(js_name = mocContains)]
     pub fn moc_contains(
         &mut self,
-        params: &al_api::moc::MOC,
-        lon: f64,
-        lat: f64,
+        _params: &al_api::moc::MOC,
+        _lon: f64,
+        _lat: f64,
     ) -> Result<bool, JsValue> {
         /*let moc = self.app.get_moc(params).ok_or_else(|| JsValue::from(js_sys::Error::new("MOC not found")))?;
         let location = LonLatT::new(ArcDeg(lon).into(), ArcDeg(lat).into());
@@ -954,7 +954,7 @@ impl WebClient {
     }
 
     #[wasm_bindgen(js_name = mocSkyFraction)]
-    pub fn moc_sky_fraction(&mut self, params: &al_api::moc::MOC) -> Result<f32, JsValue> {
+    pub fn moc_sky_fraction(&mut self, _params: &al_api::moc::MOC) -> Result<f32, JsValue> {
         //let moc = self.app.get_moc(params).ok_or_else(|| JsValue::from(js_sys::Error::new("MOC not found")))?;
         //Ok(moc.coverage_percentage() as f32)
 

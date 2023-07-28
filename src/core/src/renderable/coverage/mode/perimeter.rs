@@ -3,13 +3,12 @@ use super::RenderMode;
 use crate::healpix::cell::HEALPixCell;
 
 use healpix::{
-    compass_point::{Cardinal, MainWind, Ordinal, OrdinalMap, OrdinalSet},
-    nested::moc::HpxCell,
+    compass_point::{Ordinal, OrdinalMap},
 };
 use moclib::elem::cell::Cell;
-use moclib::moc::RangeMOCIntoIterator;
-use moclib::moc::RangeMOCIterator;
-use moclib::qty::Hpx;
+
+
+
 
 use crate::HEALPixCoverage;
 use moclib::moc::range::CellAndEdges;

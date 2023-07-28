@@ -7,7 +7,7 @@ use healpix::sph_geom::ContainsSouthPoleMethod;
 use healpix::sph_geom::Polygon;
 use mapproj::math::HALF_PI;
 
-use al_core::{info, inforec, log};
+
 
 pub enum Region {
     AllSky,

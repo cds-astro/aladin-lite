@@ -1,6 +1,6 @@
 use crate::ShaderManager;
 
-use al_api::coo_system;
+
 use al_api::coo_system::CooSystem;
 use al_api::resources::Resources;
 
@@ -11,7 +11,7 @@ use al_core::{Texture2D, VecData, VertexArrayObject, WebGlContext};
 
 use crate::ProjectionType;
 use std::collections::HashMap;
-use std::iter::FromIterator;
+
 use web_sys::WebGl2RenderingContext;
 
 #[derive(Debug)]
@@ -267,7 +267,7 @@ use crate::healpix::cell::HEALPixCell;
 use crate::{camera::CameraViewPort, math::projection::Projection, utils};
 use al_core::SliceData;
 use cgmath::Vector2;
-use std::collections::HashSet;
+
 const MAX_SOURCES_PER_CATALOG: f32 = 50000.0;
 
 use crate::Abort;

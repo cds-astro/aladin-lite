@@ -1,7 +1,6 @@
-use super::moc::{RenderModeType, MOC};
+use super::moc::MOC;
 use crate::{camera::CameraViewPort, HEALPixCoverage};
 use al_api::moc::MOC as Cfg;
-use al_core::{info, inforec, log};
 
 pub struct MOCHierarchy {
     full_res_depth: u8,
@@ -29,14 +28,11 @@ impl MOCHierarchy {
         const MAX_NUM_CELLS_TO_DRAW: usize = 1500;
 
         let mut d = self.full_res_depth as usize;
-        let mut num_cells = MAX_NUM_CELLS_TO_DRAW;
-
-        let tile_depth = camera.get_tile_depth();
 
         while d > 5 {
             self.mocs[d].cell_indices_in_view(camera);
 
-            num_cells = self.mocs[d].num_cells_in_view(camera);
+            let num_cells = self.mocs[d].num_cells_in_view(camera);
             if num_cells < MAX_NUM_CELLS_TO_DRAW {
                 break;
             }

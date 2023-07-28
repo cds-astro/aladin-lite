@@ -1,16 +1,15 @@
 use crate::healpix::coverage::HEALPixCoverage;
-use al_core::{info, inforec, log};
+use al_core::{inforec, log};
 use moclib::elem::cell::Cell;
 use moclib::moc::range::CellAndNeighs;
 use moclib::moc::RangeMOCIntoIterator;
 use moclib::moc::RangeMOCIterator;
-use web_sys::Node;
+
 
 use crate::renderable::coverage::HEALPixCell;
 
 use healpix::{
-    compass_point::{Cardinal, MainWind, Ordinal, OrdinalMap, OrdinalSet},
-    nested::moc::HpxCell,
+    compass_point::{MainWind, Ordinal},
 };
 #[derive(Debug)]
 pub(super) struct EdgeNeigs {

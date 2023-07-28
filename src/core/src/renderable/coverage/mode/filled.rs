@@ -3,19 +3,7 @@ use super::Node;
 use super::RenderMode;
 
 use crate::HEALPixCoverage;
-use healpix::{
-    compass_point::{Cardinal, MainWind, Ordinal, OrdinalMap, OrdinalSet},
-    nested::moc::HpxCell,
-};
-use moclib::elem::cell::Cell;
-use moclib::moc::range::CellAndNeighs;
-use moclib::moc::RangeMOCIntoIterator;
-use moclib::moc::RangeMOCIterator;
-use moclib::qty::Hpx;
-
-use al_core::{info, inforec, log};
-
-use crate::healpix::cell::HEALPixCell;
+use healpix::compass_point::{Ordinal, OrdinalMap};
 
 use super::super::graph::G;
 pub struct Fill;

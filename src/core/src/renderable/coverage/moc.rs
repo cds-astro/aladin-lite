@@ -1,37 +1,24 @@
 use al_api::moc::MOC as Cfg;
 use std::cmp::Ordering;
-use std::collections::HashSet;
+
 use std::ops::Range;
 use std::vec;
 
-use crate::camera;
 use crate::camera::CameraViewPort;
 use crate::healpix::cell::CellVertices;
 use crate::healpix::coverage::HEALPixCoverage;
 use crate::math::projection::ProjectionType;
 use crate::renderable::coverage::mode::RenderMode;
 use crate::renderable::coverage::Angle;
-use crate::renderable::coverage::HEALPixCell;
+
 use crate::renderable::coverage::IdxVec;
 use crate::renderable::line::PathVertices;
 use crate::renderable::line::RasterizedLineRenderer;
 use al_api::color::ColorRGBA;
 use al_api::coo_system::CooSystem;
 
-use al_api::Abort;
-use healpix::{
-    compass_point::{Cardinal, MainWind, Ordinal, OrdinalMap, OrdinalSet},
-    nested::moc::HpxCell,
-};
-use moclib::elem::cell::Cell;
-use moclib::moc::RangeMOCIntoIterator;
-use moclib::moc::RangeMOCIterator;
-use moclib::qty::Hpx;
-
 use super::mode::Node;
-use moclib::moc::range::CellAndNeighs;
 
-use al_core::{info, inforec, log};
 use cgmath::Vector2;
 
 pub struct MOC([Option<MOCIntern>; 3]);
@@ -53,7 +40,7 @@ impl MOC {
             },
             if cfg.filled {
                 // change color
-                let mut fill_color = cfg.fill_color;
+                let fill_color = cfg.fill_color;
                 // draw the edges
                 Some(MOCIntern::new(
                     moc,
@@ -94,7 +81,7 @@ impl MOC {
             .sum()
     }
 
-    pub(super) fn num_vertices_in_view(&self, camera: &mut CameraViewPort) -> usize {
+    /*pub(super) fn num_vertices_in_view(&self, camera: &mut CameraViewPort) -> usize {
         let mut num_vertices = 0;
         for render in &self.0 {
             if let Some(render) = render.as_ref() {
@@ -103,7 +90,7 @@ impl MOC {
         }
 
         num_vertices
-    }
+    }*/
 
     pub(super) fn draw(
         &self,
@@ -226,7 +213,7 @@ impl MOCIntern {
         self.indices = indices;
     }
 
-    fn num_vertices_in_view(&self, camera: &CameraViewPort) -> usize {
+    /*fn num_vertices_in_view(&self, camera: &CameraViewPort) -> usize {
         self.cells_in_view(camera)
             .filter_map(|n| n.vertices.as_ref())
             .map(|n_vertices| {
@@ -237,16 +224,16 @@ impl MOCIntern {
                     .sum::<usize>()
             })
             .sum()
-    }
+    }*/
 
-    fn num_cells_in_view(&self, camera: &CameraViewPort) -> usize {
+    fn num_cells_in_view(&self, _camera: &CameraViewPort) -> usize {
         self.indices
             .iter()
             .map(|range| range.end - range.start)
             .sum()
     }
 
-    fn cells_in_view<'a>(&'a self, camera: &CameraViewPort) -> impl Iterator<Item = &'a Node> {
+    fn cells_in_view<'a>(&'a self, _camera: &CameraViewPort) -> impl Iterator<Item = &'a Node> {
         let nodes = &self.nodes;
         self.indices
             .iter()
@@ -257,7 +244,7 @@ impl MOCIntern {
     fn vertices_in_view<'a>(
         &'a self,
         camera: &mut CameraViewPort,
-        projection: &ProjectionType,
+        _projection: &ProjectionType,
     ) -> impl Iterator<Item = &'a CellVertices> {
         self.cells_in_view(camera)
             .filter_map(move |node| node.vertices.as_ref())

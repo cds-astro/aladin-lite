@@ -1,4 +1,3 @@
-use al_core::{info, inforec, log};
 use std::cmp::Ordering;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -16,9 +15,7 @@ use healpix::compass_point::Cardinal;
 use healpix::compass_point::MainWind;
 use healpix::compass_point::Ordinal;
 use healpix::compass_point::OrdinalMap;
-use healpix::compass_point::OrdinalSet;
 
-use crate::survey::config::HiPSConfig;
 use crate::utils;
 use crate::Abort;
 impl HEALPixCell {
@@ -90,7 +87,7 @@ impl HEALPixCell {
     }
 
     #[inline(always)]
-    pub fn is_root(&self, delta_depth_to_texture: u8) -> bool {
+    pub fn is_root(&self, _delta_depth_to_texture: u8) -> bool {
         self.depth() == 0
     }
 
@@ -145,7 +142,7 @@ impl HEALPixCell {
 
                 smallest_ancestor
             }
-            (None, Some(c2)) => {
+            (None, Some(_c2)) => {
                 // cannot happen as there must be a first cell before any second one
                 // property of iterator
                 unreachable!();
@@ -465,6 +462,7 @@ impl Ord for HEALPixCell {
     }
 }
 
+#[test]
 mod tests {
     use super::HEALPixCell;
 

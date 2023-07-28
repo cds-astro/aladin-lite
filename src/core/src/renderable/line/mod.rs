@@ -165,7 +165,7 @@ impl RasterizedLineRenderer {
         self.vertices.extend(vertices.iter().flatten());
         self.indices.extend(indices.iter());
 
-        al_core::info!("num vertices fill", nv);
+        //al_core::info!("num vertices fill", nv);
 
         self.meta.push(Meta {
             off_indices,
@@ -210,7 +210,7 @@ impl RasterizedLineRenderer {
                     }
                 }
 
-                al_core::info!("num vertices", nv);
+                //al_core::info!("num vertices", nv);
             }
             Style::Dashed => {
                 for path in paths {

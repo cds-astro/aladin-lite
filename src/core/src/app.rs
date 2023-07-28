@@ -702,8 +702,6 @@ impl App {
                 }
             }
 
-            //al_core::info!("finished query", num_tile_handled);
-
             // We fetch when we does not move
             let has_not_moved_recently =
                 (Time::now() - self.camera.get_time_of_last_move()) > DeltaTime(100.0);
@@ -874,16 +872,16 @@ impl App {
             //catalogs.draw(&gl, shaders, camera, colormaps, fbo_view)?;
             //catalogs.draw(&gl, shaders, camera, colormaps, None, self.projection)?;
             self.line_renderer.begin();
-            Time::measure_perf("moc draw DESI", || {
-                self.moc.draw(
-                    &mut self.shaders,
-                    &mut self.camera,
-                    &self.projection,
-                    &mut self.line_renderer,
-                );
+            //Time::measure_perf("moc draw", || {
+            self.moc.draw(
+                &mut self.shaders,
+                &mut self.camera,
+                &self.projection,
+                &mut self.line_renderer,
+            );
 
-                Ok(())
-            })?;
+            //    Ok(())
+            //})?;
 
             self.grid.draw(
                 &self.camera,

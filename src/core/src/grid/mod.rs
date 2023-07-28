@@ -5,7 +5,6 @@ pub mod parallel;
 use crate::math::projection::coo_space::XYScreen;
 use crate::Abort;
 
-
 use crate::camera::CameraViewPort;
 use crate::math::angle;
 use crate::math::HALF_PI;
@@ -203,12 +202,9 @@ impl ProjetedGrid {
                     .map(|parallel| parallel.get_lines_vertices()),
             )
             .flatten()
-            .map(|vertices| {
-                //al_core::info!(vertices);
-                PathVertices {
-                    closed: false,
-                    vertices,
-                }
+            .map(|vertices| PathVertices {
+                closed: false,
+                vertices,
             });
 
         rasterizer.add_stroke_paths(

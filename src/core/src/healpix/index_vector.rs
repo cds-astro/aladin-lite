@@ -125,8 +125,6 @@ impl IdxVec {
             }
         }
 
-        //al_core::info!(hpx_idx_vector);
-
         IdxVec(hpx_idx_vector.into_boxed_slice())
     }
 

@@ -5,12 +5,9 @@ use moclib::moc::range::CellAndNeighs;
 use moclib::moc::RangeMOCIntoIterator;
 use moclib::moc::RangeMOCIterator;
 
-
 use crate::renderable::coverage::HEALPixCell;
 
-use healpix::{
-    compass_point::{MainWind, Ordinal},
-};
+use healpix::compass_point::{MainWind, Ordinal};
 #[derive(Debug)]
 pub(super) struct EdgeNeigs {
     // Indices of the neighbors in the stack
@@ -114,8 +111,6 @@ impl G {
             })
             .collect();
 
-        al_core::info!("end nodes collect");
-
         let find_cell_node_idx = |nodes: &[NodeEdgeNeigs], cell: &Cell<u64>| -> usize {
             let hpx_cell = HEALPixCell(cell.depth, cell.idx);
             let result = nodes.binary_search_by(|n| n.cell.cmp(&hpx_cell));
@@ -125,7 +120,6 @@ impl G {
             }
         };
 
-        al_core::info!("start build graph");
         // 1. Build the MOC graph structure
         for cell_and_neig in moc.0.all_cells_with_unidirectional_neigs() {
             let CellAndNeighs { cell, neigs } = cell_and_neig;
@@ -203,8 +197,6 @@ impl G {
                 nodes[small_node_idx].add_neig(Ordinal::SW, sw_neig_cell_idx, sw_neig_cell_d);
             }
         }
-        al_core::info!("end build graph");
-        al_core::info!("begin vertices computation");
 
         Self { nodes }
     }

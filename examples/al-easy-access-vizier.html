@@ -11,7 +11,7 @@
     import A from '../src/js/A.js';
     let aladin;
     A.init.then(() => {
-        aladin = A.aladin('#aladin-lite-div', {target: 'M 45', fov: 5});
+        aladin = A.aladin('#aladin-lite-div', {target: 'M 45', fov: 5, showContextMenu: true});
         const cat = A.catalogFromVizieR('I/311/hip2', 'M 45', 5, {onClick: 'showTable'});
         aladin.addCatalog(cat);
     });

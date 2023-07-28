@@ -14,10 +14,10 @@
         var cat = A.catalog({sourceSize: 20});
         aladin.addCatalog(cat);
         cat.addSources([A.source(83.784490, 9.934156, {name: 'Meissa'}), A.source(88.792939, 7.407064, {name: 'Betelgeuse'}), A.source(81.282764, 6.349703, {name: 'Bellatrix'})]);
+        var msg;
 
         // define function triggered when  a source is hovered
         aladin.on('objectHovered', function(object) {
-            var msg;
             if (object) {
                 msg = 'You hovered object ' + object.data.name + ' located at ' + object.ra + ', ' + object.dec;
             }
@@ -37,7 +37,6 @@
         // define function triggered when an object is clicked
         var objClicked;
         aladin.on('objectClicked', function(object) {
-            var msg;
             if (object) {
                 objClicked = object;
             object.select();

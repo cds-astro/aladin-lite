@@ -1,27 +1,33 @@
-use crate::math::angle::ToAngle;
-use crate::math::projection::ProjectionType;
 use super::label::Label;
-use crate::{CameraViewPort, camera};
+use crate::math::projection::ProjectionType;
 use crate::math::sph_geom::region::Intersection;
+use crate::CameraViewPort;
 
 use crate::math::lonlat::LonLat;
 use crate::math::{PI, TWICE_PI};
-use crate::LonLatT;
+
 use crate::renderable::line;
-use crate::grid::XYNDC;
-use wasm_bindgen::JsValue;
+
 use core::ops::Range;
 
-pub fn get_intersecting_parallel(lat: f64, camera: &CameraViewPort, projection: &ProjectionType) -> Option<Parallel> {
+pub fn get_intersecting_parallel(
+    lat: f64,
+    camera: &CameraViewPort,
+    projection: &ProjectionType,
+) -> Option<Parallel> {
     let fov = camera.get_field_of_view();
     if fov.get_bounding_box().get_lon_size() > PI {
         // Longitude fov >= PI
         let camera_center = camera.get_center();
         let lon_start = camera_center.lon().to_radians();
 
-        Some(
-            Parallel::new(lat, &(lon_start..(lon_start + TWICE_PI)), camera, LabelOptions::Centered, projection)
-        )
+        Some(Parallel::new(
+            lat,
+            &(lon_start..(lon_start + TWICE_PI)),
+            camera,
+            LabelOptions::Centered,
+            projection,
+        ))
     } else {
         // Longitude fov < PI
         let i = fov.intersects_parallel(lat);
@@ -29,9 +35,15 @@ pub fn get_intersecting_parallel(lat: f64, camera: &CameraViewPort, projection: 
             Intersection::Included => {
                 let camera_center = camera.get_center();
                 let lon_start = camera_center.lon().to_radians();
-        
-                Some(Parallel::new(lat, &(lon_start..(lon_start + TWICE_PI)), camera, LabelOptions::Centered, projection))
-            },
+
+                Some(Parallel::new(
+                    lat,
+                    &(lon_start..(lon_start + TWICE_PI)),
+                    camera,
+                    LabelOptions::Centered,
+                    projection,
+                ))
+            }
             Intersection::Intersect { vertices } => {
                 let v1 = &vertices[0];
                 let v2 = &vertices[1];
@@ -46,21 +58,20 @@ pub fn get_intersecting_parallel(lat: f64, camera: &CameraViewPort, projection: 
                     std::mem::swap(&mut lon1, &mut lon2);
                 }
 
-                Some(Parallel::new(lat, &(lon1..lon2), camera, LabelOptions::OnSide, projection))
-            },
-            Intersection::Empty => {
-                None
-            },
+                Some(Parallel::new(
+                    lat,
+                    &(lon1..lon2),
+                    camera,
+                    LabelOptions::OnSide,
+                    projection,
+                ))
+            }
+            Intersection::Empty => None,
         }
     }
 }
 
 pub struct Parallel {
-    // latitude of the parallel (in radians)
-    lat: f64,
-    // longitude ranges (in radians)
-    lon: Range<f64>,
-
     // List of vertices
     vertices: Vec<[f32; 2]>,
     // Line vertices indices
@@ -76,21 +87,27 @@ impl Parallel {
         lon: &Range<f64>,
         camera: &CameraViewPort,
         label_options: LabelOptions,
-        projection: &ProjectionType
+        projection: &ProjectionType,
     ) -> Self {
         let label = Label::from_parallel(lat, lon, label_options, camera, projection);
 
         // Draw the full parallel
         let vertices = if lon.end - lon.start > PI {
-            let mut vertices = line::parallel_arc::project(lat, lon.start, lon.start + PI, camera, projection);
-            vertices.append(&mut line::parallel_arc::project(lat, lon.start + PI, lon.end, camera, projection));
+            let mut vertices =
+                line::parallel_arc::project(lat, lon.start, lon.start + PI, camera, projection);
+            vertices.append(&mut line::parallel_arc::project(
+                lat,
+                lon.start + PI,
+                lon.end,
+                camera,
+                projection,
+            ));
 
             vertices
         } else {
             line::parallel_arc::project(lat, lon.start, lon.end, camera, projection)
         };
-        
-        
+
         /*let mut prev_v = [vertices[0].x as f32, vertices[0].y as f32];
         let vertices: Vec<_> = std::iter::once(prev_v)
             .chain(
@@ -112,10 +129,10 @@ impl Parallel {
         let mut start_idx = 0;
 
         let mut indices = if vertices.len() >= 3 {
-            let v_iter = (1..(vertices.len() - 1))
-                .map(|i| &vertices[i]);
+            let v_iter = (1..(vertices.len() - 1)).map(|i| &vertices[i]);
 
-            v_iter.clone()
+            v_iter
+                .clone()
                 .zip(v_iter.skip(1))
                 .enumerate()
                 .step_by(2)
@@ -139,8 +156,6 @@ impl Parallel {
             vertices,
             indices,
             label,
-            lat, 
-            lon: lon.clone()
         }
     }
 

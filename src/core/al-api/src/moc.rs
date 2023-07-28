@@ -6,55 +6,66 @@ use super::color::{Color, ColorRGBA};
 #[wasm_bindgen]
 pub struct MOC {
     uuid: String,
-    line_width: f32,
-    is_showing: bool,
-    color: ColorRGBA,
-    adaptative_display: bool,
+    pub line_width: f32,
+    pub perimeter: bool,
+    pub filled: bool,
+    pub edges: bool,
+    pub show: bool,
+
+    pub color: ColorRGBA,
+    pub fill_color: ColorRGBA,
+
+    pub adaptative_display: bool,
 }
+use crate::{color::ColorRGB, Abort};
 use std::convert::TryInto;
-use crate::{Abort, color::ColorRGB};
 #[wasm_bindgen]
 impl MOC {
     #[wasm_bindgen(constructor)]
-    pub fn new(uuid: String, opacity: f32, line_width: f32, is_showing: bool, hex_color: String, adaptative_display: bool) -> Self {
-        let color = Color::hexToRgb(hex_color);
-        let rgb: ColorRGB = color.try_into().unwrap_abort();
-        let rgba = ColorRGBA { r: rgb.r, g: rgb.g, b: rgb.b, a: opacity };
+    pub fn new(
+        uuid: String,
+        opacity: f32,
+        line_width: f32,
+        perimeter: bool,
+        filled: bool,
+        edges: bool,
+        show: bool,
+        hex_color: String,
+        fill_color: String,
+
+        adaptative_display: bool,
+    ) -> Self {
+        let parse_color = |color_hex_str: String, opacity: f32| -> ColorRGBA {
+            let rgb = Color::hexToRgb(color_hex_str);
+            let rgb: ColorRGB = rgb.try_into().unwrap_abort();
+            ColorRGBA {
+                r: rgb.r,
+                g: rgb.g,
+                b: rgb.b,
+                a: opacity,
+            }
+        };
+
+        let color = parse_color(hex_color, 1.0);
+        let fill_color = parse_color(fill_color, opacity);
 
         Self {
             uuid,
             line_width,
-            color: rgba,
-            is_showing,
-            adaptative_display
+            perimeter,
+            filled,
+            fill_color,
+            edges,
+            color,
+            show,
+            adaptative_display,
         }
-    }
-
-    #[wasm_bindgen(setter)]
-    pub fn set_is_showing(&mut self, is_showing: bool) {
-        self.is_showing = is_showing;
     }
 }
 
 impl MOC {
     pub fn get_uuid(&self) -> &String {
         &self.uuid
-    }
-
-    pub fn get_color(&self) -> &ColorRGBA {
-        &self.color
-    }
-    
-    pub fn get_line_width(&self) -> f32 {
-        self.line_width
-    }
-
-    pub fn is_showing(&self) -> bool {
-        self.is_showing
-    }
-
-    pub fn is_adaptative_display(&self) -> bool {
-        self.adaptative_display
     }
 }
 
@@ -63,8 +74,22 @@ impl Default for MOC {
         Self {
             uuid: String::from("moc"),
             line_width: 1.0,
-            is_showing: true,
-            color: ColorRGBA {r: 1.0, g: 0.0, b: 0.0, a: 1.0},
+            perimeter: false,
+            edges: true,
+            filled: false,
+            show: true,
+            color: ColorRGBA {
+                r: 1.0,
+                g: 0.0,
+                b: 0.0,
+                a: 1.0,
+            },
+            fill_color: ColorRGBA {
+                r: 1.0,
+                g: 0.0,
+                b: 0.0,
+                a: 1.0,
+            },
             adaptative_display: true,
         }
     }

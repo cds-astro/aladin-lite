@@ -1,23 +1,19 @@
-use cgmath::{Vector2, Vector4, Matrix4};
+use cgmath::{Matrix4, Vector2};
 
-use crate::math::projection::coo_space::{XYNDC, XYZWWorld, XYZWModel};
-use crate::math::sph_geom::bbox::ALLSKY_BBOX;
+use crate::math::projection::coo_space::{XYZWModel, XYZWWorld, XYNDC};
+
+use crate::math::sph_geom::region::{Intersection, PoleContained, Region};
 use crate::math::{projection::Projection, sph_geom::bbox::BoundingBox};
 use crate::LonLatT;
-use crate::math::sph_geom::region::{Region, PoleContained, Intersection};
 
-use std::iter;
 use crate::ProjectionType;
-use crate::math::HALF_PI;
-use cdshealpix::sph_geom::coo3d::Coo3D;
-use cdshealpix::sph_geom::Polygon;
-use cdshealpix::sph_geom::ContainsSouthPoleMethod;
+use std::iter;
 
 fn ndc_to_world(
     ndc_coo: &[XYNDC],
     ndc_to_clip: &Vector2<f64>,
     clip_zoom_factor: f64,
-    projection: &ProjectionType
+    projection: &ProjectionType,
 ) -> Option<Vec<XYZWWorld>> {
     // Deproject the FOV from ndc to the world space
     let mut world_coo = Vec::with_capacity(ndc_coo.len());
@@ -58,8 +54,8 @@ fn linspace(a: f64, b: f64, num: usize) -> Vec<f64> {
     res
 }
 
-const NUM_VERTICES_WIDTH: usize = 4;
-const NUM_VERTICES_HEIGHT: usize = 4;
+const NUM_VERTICES_WIDTH: usize = 3;
+const NUM_VERTICES_HEIGHT: usize = 3;
 const NUM_VERTICES: usize = 4 + 2 * NUM_VERTICES_WIDTH + 2 * NUM_VERTICES_HEIGHT;
 // This struct belongs to the CameraViewPort
 pub struct FieldOfView {
@@ -79,7 +75,7 @@ impl FieldOfView {
         // rotation
         rotation_mat: &Matrix4<f64>,
         // projection
-        projection: &ProjectionType
+        projection: &ProjectionType,
     ) -> Self {
         let mut x_ndc = linspace(-1., 1., NUM_VERTICES_WIDTH + 2);
 
@@ -122,16 +118,20 @@ impl FieldOfView {
         }
     }
 
-
     // Update the vertices
     pub fn set_aperture(
         &mut self,
         ndc_to_clip: &Vector2<f64>,
         clip_zoom_factor: f64,
         rotate_mat: &Matrix4<f64>,
-        projection: &ProjectionType
+        projection: &ProjectionType,
     ) {
-        self.world_vertices = ndc_to_world(&self.ndc_vertices, ndc_to_clip, clip_zoom_factor, projection);
+        self.world_vertices = ndc_to_world(
+            &self.ndc_vertices,
+            ndc_to_clip,
+            clip_zoom_factor,
+            projection,
+        );
         self.set_rotation(rotate_mat);
     }
 
@@ -162,7 +162,11 @@ impl FieldOfView {
         self.reg.intersects_meridian(lon)
     }
 
-    pub fn intersects_great_circle_arc(&self, lonlat1: &LonLatT<f64>, lonlat2: &LonLatT<f64>) -> Intersection {
+    pub fn intersects_great_circle_arc(
+        &self,
+        lonlat1: &LonLatT<f64>,
+        lonlat2: &LonLatT<f64>,
+    ) -> Intersection {
         self.reg.intersects_great_circle_arc(lonlat1, lonlat2)
     }
 
@@ -181,7 +185,10 @@ impl FieldOfView {
     pub fn is_intersecting_zero_meridian(&self) -> bool {
         match &self.reg {
             Region::AllSky => true,
-            Region::Polygon { is_intersecting_zero_meridian, .. } => *is_intersecting_zero_meridian,
+            Region::Polygon {
+                is_intersecting_zero_meridian,
+                ..
+            } => *is_intersecting_zero_meridian,
         }
     }
 
@@ -217,9 +224,7 @@ impl FieldOfView {
     pub fn contains_both_poles(&self) -> bool {
         match &self.reg {
             Region::AllSky => true,
-            Region::Polygon { poles, .. } => {
-                *poles == PoleContained::Both
-            }
+            Region::Polygon { poles, .. } => *poles == PoleContained::Both,
         }
     }
 }

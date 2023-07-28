@@ -1,12 +1,13 @@
-use crate::math::{projection::{coo_space::XYZWModel, domain::op::Inter}, lonlat::LonLatT, MINUS_HALF_PI};
-use cdshealpix::{sph_geom::Polygon, TWICE_PI};
-use mapproj::math::HALF_PI;
 use super::bbox::BoundingBox;
-use cdshealpix::sph_geom::coo3d::Coo3D;
-use cdshealpix::sph_geom::coo3d::Vec3;
-use cdshealpix::sph_geom::ContainsSouthPoleMethod;
 use crate::math::angle::ToAngle;
-use al_core::{inforec, info, log};
+use crate::math::{lonlat::LonLatT, projection::coo_space::XYZWModel, MINUS_HALF_PI};
+use healpix::sph_geom::coo3d::Coo3D;
+use healpix::sph_geom::coo3d::Vec3;
+use healpix::sph_geom::ContainsSouthPoleMethod;
+use healpix::sph_geom::Polygon;
+use mapproj::math::HALF_PI;
+
+use al_core::{info, inforec, log};
 
 pub enum Region {
     AllSky,
@@ -19,7 +20,7 @@ pub enum Region {
         poles: PoleContained,
 
         is_intersecting_zero_meridian: bool,
-    }
+    },
 }
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
@@ -30,7 +31,6 @@ pub enum PoleContained {
     Both,
 }
 
-
 #[derive(Debug)]
 pub enum Intersection {
     // The segment is fully included into the region
@@ -38,9 +38,7 @@ pub enum Intersection {
     // The segment does not intersect the region
     Empty,
     // The segment does intersect the region
-    Intersect {
-        vertices: Box<[XYZWModel]>
-    }
+    Intersect { vertices: Box<[XYZWModel]> },
 }
 
 impl Region {
@@ -48,7 +46,7 @@ impl Region {
         let (vertices, (lon, lat)): (Vec<_>, (Vec<_>, Vec<_>)) = vertices
             .iter()
             .map(|v| {
-                let coo = cdshealpix::sph_geom::coo3d::Coo3D::from_vec3(v.z, v.x, v.y);
+                let coo = healpix::sph_geom::coo3d::Coo3D::from_vec3(v.z, v.x, v.y);
                 let (lon, lat) = coo.lonlat();
 
                 (coo, (lon, lat))
@@ -57,7 +55,11 @@ impl Region {
 
         let polygon = Polygon::new_custom_vec3(
             vertices.into_boxed_slice(),
-            &ContainsSouthPoleMethod::ControlPointIn(Coo3D::from_vec3(control_point.z, control_point.x, control_point.y)),
+            &ContainsSouthPoleMethod::ControlPointIn(Coo3D::from_vec3(
+                control_point.z,
+                control_point.x,
+                control_point.y,
+            )),
         );
 
         let north_pole_coo = &Coo3D::from_sph_coo(0.0, HALF_PI);
@@ -84,23 +86,25 @@ impl Region {
             polygon,
             bbox,
             poles,
-            is_intersecting_zero_meridian
+            is_intersecting_zero_meridian,
         }
     }
 
     pub fn intersects_parallel(&self, lat: f64) -> Intersection {
-        use crate::math::lonlat::LonLat;
         match self {
             // The polygon is included inside the region
             Region::AllSky => Intersection::Included,
             Region::Polygon { polygon, .. } => {
-                let vertices = polygon.intersect_parallel(lat)
+                let vertices = polygon
+                    .intersect_parallel(lat)
                     .iter()
                     .map(|v| XYZWModel::new(v.y(), v.z(), v.x(), 1.0))
                     .collect::<Vec<_>>();
 
                 if !vertices.is_empty() {
-                    Intersection::Intersect { vertices: vertices.into_boxed_slice() }
+                    Intersection::Intersect {
+                        vertices: vertices.into_boxed_slice(),
+                    }
                 // test whether a point on the parallel is included
                 } else if self.contains(&LonLatT::new(0.0.to_angle(), lat.to_angle())) {
                     Intersection::Included
@@ -111,21 +115,30 @@ impl Region {
         }
     }
 
-    pub fn intersects_great_circle_arc(&self, lonlat1: &LonLatT<f64>, lonlat2: &LonLatT<f64>) -> Intersection {
+    pub fn intersects_great_circle_arc(
+        &self,
+        lonlat1: &LonLatT<f64>,
+        lonlat2: &LonLatT<f64>,
+    ) -> Intersection {
         match self {
             // The polygon is included inside the region
             Region::AllSky => Intersection::Included,
             Region::Polygon { polygon, .. } => {
-                let coo1 = Coo3D::from_sph_coo(lonlat1.lon().to_radians(), lonlat1.lat().to_radians());
-                let coo2 = Coo3D::from_sph_coo(lonlat2.lon().to_radians(), lonlat2.lat().to_radians());
+                let coo1 =
+                    Coo3D::from_sph_coo(lonlat1.lon().to_radians(), lonlat1.lat().to_radians());
+                let coo2 =
+                    Coo3D::from_sph_coo(lonlat2.lon().to_radians(), lonlat2.lat().to_radians());
 
-                let vertices: Vec<cgmath::Vector4<f64>> = polygon.intersect_great_circle_arc(&coo1, &coo2)
+                let vertices: Vec<cgmath::Vector4<f64>> = polygon
+                    .intersect_great_circle_arc(&coo1, &coo2)
                     .iter()
                     .map(|v| XYZWModel::new(v.y(), v.z(), v.x(), 1.0))
                     .collect::<Vec<_>>();
 
                 if !vertices.is_empty() {
-                    Intersection::Intersect { vertices: vertices.into_boxed_slice() }
+                    Intersection::Intersect {
+                        vertices: vertices.into_boxed_slice(),
+                    }
                 // test whether a point on the meridian is included
                 } else if self.contains(lonlat1) {
                     Intersection::Included
@@ -163,18 +176,22 @@ impl Region {
         match self {
             // The polygon is included inside the region
             Region::AllSky => true,
-            Region::Polygon { polygon, .. } => {
-                polygon.is_intersecting_parallel(lat)
-            }
+            Region::Polygon { polygon, .. } => polygon.is_intersecting_parallel(lat),
         }
     }
 
-    pub fn is_intersecting_great_circle_arc(&self, lonlat1: &LonLatT<f64>, lonlat2: &LonLatT<f64>) -> bool {
+    pub fn is_intersecting_great_circle_arc(
+        &self,
+        lonlat1: &LonLatT<f64>,
+        lonlat2: &LonLatT<f64>,
+    ) -> bool {
         match self {
             Region::AllSky => true,
             Region::Polygon { polygon, .. } => {
-                let coo1 = Coo3D::from_sph_coo(lonlat1.lon().to_radians(), lonlat1.lat().to_radians());
-                let coo2 = Coo3D::from_sph_coo(lonlat2.lon().to_radians(), lonlat2.lat().to_radians());
+                let coo1 =
+                    Coo3D::from_sph_coo(lonlat1.lon().to_radians(), lonlat1.lat().to_radians());
+                let coo2 =
+                    Coo3D::from_sph_coo(lonlat2.lon().to_radians(), lonlat2.lat().to_radians());
 
                 polygon.is_intersecting_great_circle_arc(&coo1, &coo2)
             }

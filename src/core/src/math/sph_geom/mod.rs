@@ -1,5 +1,6 @@
 pub mod bbox;
 pub mod region;
+pub mod great_circle_arc;
 
 use super::{PI, TWICE_PI};
 

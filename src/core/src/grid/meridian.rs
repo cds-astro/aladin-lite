@@ -1,33 +1,48 @@
-use crate::math::angle::ToAngle;
-use crate::renderable::utils::Triangle;
-use cgmath::Vector4;
-use crate::LonLatT;
 use super::label::{Label, LabelOptions};
-use crate::CameraViewPort;
 use crate::math::lonlat::LonLat;
 use crate::math::sph_geom::region::Intersection;
+use crate::CameraViewPort;
 use core::ops::Range;
-use crate::grid::XYNDC;
-use crate::math::{PI, TWICE_PI, MINUS_HALF_PI};
+
+use crate::math::MINUS_HALF_PI;
 use crate::ProjectionType;
-use wasm_bindgen::JsValue;
+
 use crate::grid::angle::SerializeFmt;
 use crate::math::HALF_PI;
-use al_core::{log, info, inforec};
+use al_core::{info, inforec, log};
 
-pub fn get_intersecting_meridian(lon: f64, camera: &CameraViewPort, projection: &ProjectionType, fmt: &SerializeFmt) -> Option<Meridian> {
+pub fn get_intersecting_meridian(
+    lon: f64,
+    camera: &CameraViewPort,
+    projection: &ProjectionType,
+    fmt: &SerializeFmt,
+) -> Option<Meridian> {
     let fov = camera.get_field_of_view();
-    if fov.contains_both_poles() {        
-        let meridian = Meridian::new(lon, &(-HALF_PI..HALF_PI), LabelOptions::Centered, camera, projection, fmt);
+    if fov.contains_both_poles() {
+        let meridian = Meridian::new(
+            lon,
+            &(-HALF_PI..HALF_PI),
+            LabelOptions::Centered,
+            camera,
+            projection,
+            fmt,
+        );
         Some(meridian)
     } else {
         let i = fov.intersects_meridian(lon);
         match i {
             Intersection::Included => {
                 // Longitude fov >= PI
-                let meridian = Meridian::new(lon, &(-HALF_PI..HALF_PI), LabelOptions::Centered, camera, projection, fmt);
+                let meridian = Meridian::new(
+                    lon,
+                    &(-HALF_PI..HALF_PI),
+                    LabelOptions::Centered,
+                    camera,
+                    projection,
+                    fmt,
+                );
                 Some(meridian)
-            },
+            }
             Intersection::Intersect { vertices } => {
                 let num_intersections = vertices.len();
                 let meridian = match num_intersections {
@@ -43,7 +58,7 @@ pub fn get_intersecting_meridian(lon: f64, camera: &CameraViewPort, projection: 
                         };
 
                         Meridian::new(lon, &lat, LabelOptions::OnSide, camera, projection, fmt)
-                    },
+                    }
                     2 => {
                         // full intersection
                         let v1 = &vertices[0];
@@ -52,8 +67,15 @@ pub fn get_intersecting_meridian(lon: f64, camera: &CameraViewPort, projection: 
                         let lat1 = v1.lat().to_radians();
                         let lat2 = v2.lat().to_radians();
 
-                        Meridian::new(lon, &(lat1..lat2), LabelOptions::OnSide, camera, projection, fmt)
-                    },
+                        Meridian::new(
+                            lon,
+                            &(lat1..lat2),
+                            LabelOptions::OnSide,
+                            camera,
+                            projection,
+                            fmt,
+                        )
+                    }
                     _ => {
                         /*let mut vertices = vertices.into_vec();
                         // One segment over two will be in the field of view
@@ -93,35 +115,31 @@ pub fn get_intersecting_meridian(lon: f64, camera: &CameraViewPort, projection: 
 
                         let label = Label::from_meridian(&v1.lonlat(), camera, projection, fmt);
                         */
-                        Meridian::new(lon, &(-HALF_PI..HALF_PI), LabelOptions::OnSide, camera, projection, fmt)
+                        Meridian::new(
+                            lon,
+                            &(-HALF_PI..HALF_PI),
+                            LabelOptions::OnSide,
+                            camera,
+                            projection,
+                            fmt,
+                        )
                     }
                 };
 
                 Some(meridian)
-            },
-            Intersection::Empty => {
-                None
-            },
+            }
+            Intersection::Empty => None,
         }
     }
 }
 
 pub struct Meridian {
-    // longitude of the meridian (in radians)
-    lon: f64,
-    // latitudes ranges (in radians)
-    lat: Range<f64>,
     // List of vertices
     vertices: Vec<[f32; 2]>,
     // Line vertices indices
     indices: Vec<Range<usize>>,
     label: Option<Label>,
 }
-
-use cgmath::{Rad, Vector3};
-use crate::math::{
-    angle::ArcDeg,
-};
 
 impl Meridian {
     pub fn new(
@@ -130,23 +148,25 @@ impl Meridian {
         label_options: LabelOptions,
         camera: &CameraViewPort,
         projection: &ProjectionType,
-        fmt: &SerializeFmt
+        fmt: &SerializeFmt,
     ) -> Self {
         let label = Label::from_meridian(lon, lat, label_options, camera, projection, fmt);
 
         // Draw the full parallel
-        let vertices = crate::renderable::line::great_circle_arc::project(lon, lat.start, lon, lat.end, camera, projection)
-            .into_iter()
-            .map(|v| [v.x as f32, v.y as f32])
-            .collect::<Vec<_>>();
+        let vertices = crate::renderable::line::great_circle_arc::project(
+            lon, lat.start, lon, lat.end, camera, projection,
+        )
+        .into_iter()
+        .map(|v| [v.x as f32, v.y as f32])
+        .collect::<Vec<_>>();
 
         let mut start_idx = 0;
 
         let mut indices = if vertices.len() >= 3 {
-            let v_iter = (1..(vertices.len() - 1))
-                .map(|i| &vertices[i]);
+            let v_iter = (1..(vertices.len() - 1)).map(|i| &vertices[i]);
 
-            v_iter.clone()
+            v_iter
+                .clone()
                 .zip(v_iter.skip(1))
                 .enumerate()
                 .step_by(2)
@@ -181,7 +201,7 @@ impl Meridian {
                     })
             )
             .collect();
-        
+
         // Create subsets of vertices referring to different lines
         let indices = if vertices.len() >= 3 {
             let mut indices = vec![];
@@ -206,7 +226,6 @@ impl Meridian {
             }
 
             //indices.push(start_line_i..vertices.len());
-            al_core::info!(indices);
             //vec![0..vertices.len()]
             vec![0..2]
         } else {
@@ -214,11 +233,9 @@ impl Meridian {
         };*/
 
         Self {
-            lat: lat.clone(),
             vertices,
             indices,
             label,
-            lon
         }
     }
 

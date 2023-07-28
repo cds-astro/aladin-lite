@@ -1,5 +1,5 @@
 #version 300 es
-precision highp float;
+precision lowp float;
 layout (location = 0) in vec2 ndc_pos;
 
 uniform vec4 u_color;

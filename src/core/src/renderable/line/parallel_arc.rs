@@ -1,17 +1,13 @@
-use crate::math::angle::Angle;
-use crate::math::projection::coo_space::XYZWModel;
-use cgmath::Vector2;
 use crate::ProjectionType;
 use crate::CameraViewPort;
-use cgmath::Zero;
+
 use cgmath::InnerSpace;
 use crate::math::angle::ToAngle;
-use crate::math::lonlat::LonLat;
-use crate::coo_space::XYNDC;
-use crate::math::{TWICE_PI, PI};
-use crate::ArcDeg;
+
+
+use crate::math::{TWICE_PI};
+
 use crate::LonLatT;
-const MAX_ANGLE_BEFORE_SUBDIVISION: Angle<f64> = Angle(0.10);
 const MAX_ITERATION: usize = 4;
 
 // * Remark
@@ -23,7 +19,7 @@ const MAX_ITERATION: usize = 4;
 //
 // * Returns
 // A list of lines vertices
-pub fn project(lat: f64, mut lon1: f64, mut lon2: f64, camera: &CameraViewPort, projection: &ProjectionType) -> Vec<[f32; 2]> {
+pub fn project(lat: f64, mut lon1: f64, lon2: f64, camera: &CameraViewPort, projection: &ProjectionType) -> Vec<[f32; 2]> {
     let mut vertices = vec![];
 
     let lon_len = crate::math::sph_geom::distance_from_two_lon(lon1, lon2);
@@ -42,14 +38,14 @@ pub fn project(lat: f64, mut lon1: f64, mut lon2: f64, camera: &CameraViewPort, 
     let v2 = crate::math::lonlat::proj(&LonLatT::new(lon2.to_angle(), lat.to_angle()), projection, camera);
 
     match (v1, v2) {
-        (Some(v1), Some(v2)) => {
+        (Some(_v1), Some(_v2)) => {
             subdivide_multi(&mut vertices, lat, lon1, lon2, camera, projection);
         },
-        (None, Some(v2)) => {
+        (None, Some(_v2)) => {
             let (lon1, lon2) = sub_valid_domain(lat, lon2, lon1, projection, camera);
             subdivide_multi(&mut vertices, lat, lon1, lon2, camera, projection);
         },
-        (Some(v1), None) => {
+        (Some(_v1), None) => {
             let (lon1, lon2) = sub_valid_domain(lat, lon1, lon2, projection, camera);
             subdivide_multi(&mut vertices, lat, lon1, lon2, camera, projection);
         },
@@ -63,7 +59,7 @@ pub fn project(lat: f64, mut lon1: f64, mut lon2: f64, camera: &CameraViewPort, 
 // * angular distance between valid_lon and invalid_lon is < PI
 // * valid_lon and invalid_lon are well defined, i.e. they can be between [-PI; PI] or [0, 2PI] depending
 //   whether they cross or not the zero meridian
-fn sub_valid_domain(lat: f64, mut valid_lon: f64, mut invalid_lon: f64, projection: &ProjectionType, camera: &CameraViewPort) -> (f64, f64) {
+fn sub_valid_domain(lat: f64, valid_lon: f64, invalid_lon: f64, projection: &ProjectionType, camera: &CameraViewPort) -> (f64, f64) {
     let d_alpha = camera.get_aperture().to_radians() * 0.02;
 
     let mut l_valid = valid_lon;

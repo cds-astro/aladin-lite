@@ -1,20 +1,19 @@
-use crate::math::angle::Angle;
-use crate::math::projection::coo_space::XYZWModel;
-use cgmath::Vector2;
+
+
+
 use cgmath::Vector3;
 use crate::ProjectionType;
 use crate::CameraViewPort;
-use cgmath::Zero;
+
 use cgmath::InnerSpace;
 use crate::math::angle::ToAngle;
-use crate::math::lonlat::LonLat;
-use al_core::{log, info, inforec};
+
+
 use crate::coo_space::XYNDC;
 use crate::coo_space::XYZModel;
-use crate::math::{TWICE_PI, PI};
-use crate::ArcDeg;
+
+
 use crate::LonLatT;
-const MAX_ANGLE_BEFORE_SUBDIVISION: f64 = 0.1;
 const MAX_ITERATION: usize = 5;
 
 // Requirement:

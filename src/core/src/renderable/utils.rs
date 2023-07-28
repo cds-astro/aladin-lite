@@ -1,4 +1,6 @@
 use std::ops::RangeInclusive;
+use cgmath::BaseFloat;
+
 use crate::CameraViewPort;
 
 // This iterator construct indices from a set of vertices defining
@@ -69,7 +71,7 @@ impl<'a> Iterator for BuildPatchIndicesIter<'a> {
                 let t1 = Triangle::new(&ndc_tl, &ndc_tr, &ndc_bl);
                 let t2 = Triangle::new(&ndc_tr, &ndc_br, &ndc_bl);
 
-                if !t1.is_valid(&self.camera) || !t2.is_valid(&self.camera) {
+                if !t1.is_invalid(&self.camera) || !t2.is_invalid(&self.camera) {
                     self.next() // crossing projection tri
                 } else {
                     Some([
@@ -83,18 +85,24 @@ impl<'a> Iterator for BuildPatchIndicesIter<'a> {
     }
 }
 
-pub struct Triangle<'a> {
-    v1: &'a [f32; 2],
-    v2: &'a [f32; 2],
-    v3: &'a [f32; 2],
+pub struct Triangle<'a, S>
+where
+    S: BaseFloat
+{
+    v1: &'a [S; 2],
+    v2: &'a [S; 2],
+    v3: &'a [S; 2],
 }
 
-impl<'a> Triangle<'a> {
-    pub fn new(v1: &'a [f32; 2], v2: &'a [f32; 2], v3: &'a [f32; 2]) -> Self {
+impl<'a, S> Triangle<'a, S>
+where
+    S: BaseFloat
+{
+    pub fn new(v1: &'a [S; 2], v2: &'a [S; 2], v3: &'a [S; 2]) -> Self {
         Self { v1, v2, v3 }
     }
 
-    pub fn is_valid(&self, camera: &CameraViewPort) -> bool {
+    pub fn is_invalid(&self, camera: &CameraViewPort) -> bool {
         let tri_ccw = self.is_ccw();
         let reversed_longitude = camera.get_longitude_reversed();
 

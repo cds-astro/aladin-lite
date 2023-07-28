@@ -1,42 +1,22 @@
-pub mod parallel;
-pub mod meridian;
 pub mod label;
+pub mod meridian;
+pub mod parallel;
 
-use crate::Abort;
-use crate::camera;
-
-use meridian::Meridian;
-use parallel::Parallel;
-use serde::Serialize;
-
-use crate::math::MINUS_HALF_PI;
-use crate::math::lonlat::LonLat;
-use crate::math::projection::coo_space::XYNDC;
 use crate::math::projection::coo_space::XYScreen;
-use crate::math::projection::coo_space::XYZWModel;
-use crate::math::sph_geom::region::Intersection;
-use cdshealpix::nested::center;
-use web_sys::WebGl2RenderingContext;
-use cdshealpix::sph_geom::coo3d::{Coo3D};
-use crate::renderable::line;
-use crate::renderable::Renderer;
-use al_api::color::ColorRGBA;
-use crate::math::HALF_PI;
-
-use al_core::{log, inforec, info};
-
-use crate::math::TWICE_PI;
-use crate::math::angle;
-use cgmath::Vector4;
+use crate::Abort;
+use al_core::{info, inforec, log};
 
 use crate::camera::CameraViewPort;
+use crate::math::angle;
+use crate::math::HALF_PI;
+use crate::renderable::line;
+use crate::renderable::line::PathVertices;
+use crate::renderable::Renderer;
 use crate::ProjectionType;
-use crate::LonLatT;
-use crate::math::angle::ToAngle;
+use al_api::color::ColorRGBA;
 
 use al_api::grid::GridCfg;
-use al_core::VertexArrayObject;
-use al_api::color::ColorRGB;
+
 use crate::grid::label::Label;
 pub struct ProjetedGrid {
     // Properties
@@ -46,8 +26,6 @@ pub struct ProjetedGrid {
     pub label_scale: f32,
     thickness: f32,
 
-    gl: WebGlContext,
-
     // Render Text Manager
     text_renderer: TextRenderManager,
     fmt: angle::SerializeFmt,
@@ -56,26 +34,21 @@ pub struct ProjetedGrid {
 }
 
 use crate::shader::ShaderManager;
-use al_core::VecData;
-use al_core::WebGlContext;
 use wasm_bindgen::JsValue;
 
-use crate::renderable::text::TextRenderManager;
 use crate::renderable::line::RasterizedLineRenderer;
+use crate::renderable::text::TextRenderManager;
 
-use al_api::resources::Resources;
 impl ProjetedGrid {
-    pub fn new(
-        gl: &WebGlContext,
-        camera: &CameraViewPort,
-        resources: &Resources,
-        projection: &ProjectionType,
-    ) -> Result<ProjetedGrid, JsValue> {
-        let gl = gl.clone();
+    pub fn new() -> Result<ProjetedGrid, JsValue> {
+        let text_renderer = TextRenderManager::new()?;
 
-        let text_renderer = TextRenderManager::new(&gl, camera)?;
-
-        let color = ColorRGBA { r: 0.0, g: 1.0, b: 0.0, a: 0.5 };
+        let color = ColorRGBA {
+            r: 0.0,
+            g: 1.0,
+            b: 0.0,
+            a: 0.5,
+        };
         let show_labels = true;
         let enabled = false;
         let label_scale = 1.0;
@@ -91,8 +64,6 @@ impl ProjetedGrid {
             label_scale,
             thickness,
 
-            gl,
-
             text_renderer,
             fmt,
         };
@@ -102,7 +73,12 @@ impl ProjetedGrid {
         Ok(grid)
     }
 
-    pub fn set_cfg(&mut self, new_cfg: GridCfg, camera: &CameraViewPort, projection: &ProjectionType, line_renderer: &mut RasterizedLineRenderer) -> Result<(), JsValue> {
+    pub fn set_cfg(
+        &mut self,
+        new_cfg: GridCfg,
+        _camera: &CameraViewPort,
+        _projection: &ProjectionType,
+    ) -> Result<(), JsValue> {
         let GridCfg {
             color,
             opacity,
@@ -114,7 +90,12 @@ impl ProjetedGrid {
         } = new_cfg;
 
         if let Some(color) = color {
-            self.color = ColorRGBA {r: color.r, g: color.g, b: color.b, a: self.color.a};
+            self.color = ColorRGBA {
+                r: color.r,
+                g: color.g,
+                b: color.b,
+                a: self.color.a,
+            };
             self.text_renderer.set_color(&color);
         }
 
@@ -152,29 +133,37 @@ impl ProjetedGrid {
     }
 
     // Update the grid whenever the camera moved
-    fn update(&mut self, camera: &CameraViewPort, projection: &ProjectionType, line_renderer: &mut RasterizedLineRenderer) -> Result<(), JsValue> {
+    fn update(
+        &mut self,
+        camera: &CameraViewPort,
+        projection: &ProjectionType,
+        rasterizer: &mut RasterizedLineRenderer,
+    ) -> Result<(), JsValue> {
         let fov = camera.get_field_of_view();
         let bbox = fov.get_bounding_box();
         let max_dim_px = camera.get_width().max(camera.get_height()) as f64;
-        let step_line_px =  max_dim_px * 0.2;
+        let step_line_px = max_dim_px * 0.2;
 
         // update meridians
         let meridians = {
             // Select the good step with a binary search
-            let step_lon_precised = (bbox.get_lon_size() as f64) * step_line_px / (camera.get_width() as f64);
+            let step_lon_precised =
+                (bbox.get_lon_size() as f64) * step_line_px / (camera.get_width() as f64);
             let step_lon = select_fixed_step(step_lon_precised);
-    
+
             // Add meridians
             let start_lon = bbox.lon_min() - (bbox.lon_min() % step_lon);
             let mut stop_lon = bbox.lon_max();
             if bbox.all_lon() {
                 stop_lon -= 1e-3;
             }
-        
+
             let mut meridians = vec![];
             let mut lon = start_lon;
             while lon < stop_lon {
-                if let Some(p) = meridian::get_intersecting_meridian(lon, camera, projection, &self.fmt) {
+                if let Some(p) =
+                    meridian::get_intersecting_meridian(lon, camera, projection, &self.fmt)
+                {
                     meridians.push(p);
                 }
                 lon += step_lon;
@@ -183,7 +172,8 @@ impl ProjetedGrid {
         };
 
         let parallels = {
-            let step_lat_precised = (bbox.get_lat_size() as f64) * step_line_px / (camera.get_height() as f64);
+            let step_lat_precised =
+                (bbox.get_lat_size() as f64) * step_line_px / (camera.get_height() as f64);
             let step_lat = select_fixed_step(step_lat_precised);
 
             let mut start_lat = bbox.lat_min() - (bbox.lat_min() % step_lat);
@@ -204,29 +194,48 @@ impl ProjetedGrid {
         };
 
         // update the line buffers
-        let paths = meridians.iter()
+        let paths = meridians
+            .iter()
             .map(|meridian| meridian.get_lines_vertices())
             .chain(
-                parallels.iter().map(|parallel| parallel.get_lines_vertices())
+                parallels
+                    .iter()
+                    .map(|parallel| parallel.get_lines_vertices()),
             )
-            .flatten();
+            .flatten()
+            .map(|vertices| {
+                //al_core::info!(vertices);
+                PathVertices {
+                    closed: false,
+                    vertices,
+                }
+            });
 
-        line_renderer.add_paths(paths, self.thickness * 2.0 / camera.get_width(), &self.color, &self.line_style);
+        rasterizer.add_stroke_paths(
+            paths,
+            self.thickness * 2.0 / camera.get_width(),
+            &self.color,
+            &self.line_style,
+        );
 
         // update labels
         {
-            let labels = meridians.iter().filter_map(|m| m.get_label())
+            let labels = meridians
+                .iter()
+                .filter_map(|m| m.get_label())
                 .chain(parallels.iter().filter_map(|p| p.get_label()));
-            
+
             let dpi = camera.get_dpi();
             self.text_renderer.begin();
-            for Label { content, position, rot } in labels {
+            for Label {
+                content,
+                position,
+                rot,
+            } in labels
+            {
                 let position = position.cast::<f32>().unwrap_abort() * dpi;
-                self.text_renderer.add_label(
-                    &content,
-                    &position,
-                    cgmath::Rad(*rot as f32),
-                )?;
+                self.text_renderer
+                    .add_label(&content, &position, cgmath::Rad(*rot as f32))?;
             }
             self.text_renderer.end();
         }
@@ -237,31 +246,17 @@ impl ProjetedGrid {
     pub fn draw(
         &mut self,
         camera: &CameraViewPort,
-        shaders: &mut ShaderManager,
+        _shaders: &mut ShaderManager,
         projection: &ProjectionType,
-        line_renderer: &mut RasterizedLineRenderer
+        rasterizer: &mut RasterizedLineRenderer,
     ) -> Result<(), JsValue> {
         if self.enabled {
-            self.update(camera, projection, line_renderer)?;
+            self.update(camera, projection, rasterizer)?;
         }
 
         Ok(())
     }
 }
-
-use crate::shader::ShaderId;
-
-use core::num;
-use std::borrow::Cow;
-use std::path::is_separator;
-
-use crate::math::{
-    angle::Angle,
-};
-use crate::camera::fov::FieldOfView;
-use cgmath::InnerSpace;
-use cgmath::Vector2;
-use core::ops::Range;
 
 const GRID_STEPS: &[f64] = &[
     0.0000000000048481367,
@@ -304,7 +299,8 @@ const GRID_STEPS: &[f64] = &[
 
 fn select_fixed_step(fov: f64) -> f64 {
     match GRID_STEPS.binary_search_by(|v| {
-        v.partial_cmp(&fov).expect("Couldn't compare values, maybe because the fov given is NaN")
+        v.partial_cmp(&fov)
+            .expect("Couldn't compare values, maybe because the fov given is NaN")
     }) {
         Ok(idx) => GRID_STEPS[idx],
         Err(idx) => {

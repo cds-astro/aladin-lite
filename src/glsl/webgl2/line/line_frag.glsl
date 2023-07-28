@@ -1,6 +1,6 @@
 #version 300 es
 
-precision highp float;
+precision lowp float;
 in vec4 v_rgba;
 
 out vec4 color;

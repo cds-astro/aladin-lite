@@ -219,6 +219,7 @@ use crate::CameraViewPort;
 use crate::ProjectionType;
 
 use super::projection::coo_space::XYNDC;
+use super::projection::coo_space::XYScreen;
 #[inline]
 pub fn proj(lonlat: &LonLatT<f64>, projection: &ProjectionType, camera: &CameraViewPort) -> Option<XYNDC> {
     let xyzw = lonlat.vector();
@@ -228,5 +229,17 @@ pub fn proj(lonlat: &LonLatT<f64>, projection: &ProjectionType, camera: &CameraV
 #[inline]
 pub fn unproj(ndc_xy: &XYNDC, projection: &ProjectionType, camera: &CameraViewPort) -> Option<LonLatT<f64>> {
     projection.normalized_device_to_model_space(&ndc_xy, camera)
+        .map(|model_pos| model_pos.lonlat())
+}
+
+#[inline]
+pub fn proj_to_screen(lonlat: &LonLatT<f64>, projection: &ProjectionType, camera: &CameraViewPort) -> Option<XYScreen> {
+    let xyzw = lonlat.vector();
+    projection.model_to_screen_space(&xyzw, camera)
+}
+
+#[inline]
+pub fn unproj_from_screen(xy: &XYScreen, projection: &ProjectionType, camera: &CameraViewPort) -> Option<LonLatT<f64>> {
+    projection.screen_to_model_space(&xy, camera)
         .map(|model_pos| model_pos.lonlat())
 }

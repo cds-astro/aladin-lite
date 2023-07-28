@@ -1,11 +1,11 @@
 pub mod catalog;
+pub mod coverage;
 pub mod final_pass;
-pub mod moc;
-pub mod image;
 pub mod hips;
-pub mod utils;
+pub mod image;
 pub mod line;
 pub mod text;
+pub mod utils;
 
 use crate::renderable::image::Image;
 
@@ -14,21 +14,21 @@ pub use hips::HiPS;
 
 pub use catalog::Manager;
 
-use al_api::hips::ImageMetadata;
 use al_api::color::ColorRGB;
 use al_api::hips::HiPSCfg;
+use al_api::hips::ImageMetadata;
 use al_api::image::ImageParams;
 
-use al_core::VertexArrayObject;
-use al_core::SliceData;
-use al_core::shader::Shader;
-use al_core::WebGlContext;
 use al_core::colormap::Colormaps;
+use al_core::shader::Shader;
+use al_core::SliceData;
+use al_core::VertexArrayObject;
+use al_core::WebGlContext;
 
-use crate::Abort;
-use crate::ProjectionType;
 use crate::camera::CameraViewPort;
 use crate::shader::ShaderId;
+use crate::Abort;
+use crate::ProjectionType;
 use crate::{shader::ShaderManager, survey::config::HiPSConfig};
 
 // Recursively compute the number of subdivision needed for a cell
@@ -36,10 +36,10 @@ use crate::{shader::ShaderManager, survey::config::HiPSConfig};
 
 use hips::raytracing::RayTracer;
 
-use web_sys::{WebGl2RenderingContext};
-use wasm_bindgen::JsValue;
 use std::borrow::Cow;
 use std::collections::HashMap;
+use wasm_bindgen::JsValue;
+use web_sys::WebGl2RenderingContext;
 
 pub trait Renderer {
     fn begin(&mut self);
@@ -68,17 +68,22 @@ pub struct Layers {
     gl: WebGlContext,
 }
 
-const DEFAULT_BACKGROUND_COLOR: ColorRGB = ColorRGB { r: 0.05, g: 0.05, b: 0.05 };
+const DEFAULT_BACKGROUND_COLOR: ColorRGB = ColorRGB {
+    r: 0.05,
+    g: 0.05,
+    b: 0.05,
+};
 
 fn get_backgroundcolor_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager) -> &'a Shader {
-    shaders.get(
-        gl,
-        &ShaderId(
-            Cow::Borrowed("RayTracerFontVS"),
-            Cow::Borrowed("RayTracerFontFS"),
-        ),
-    )
-    .unwrap_abort()
+    shaders
+        .get(
+            gl,
+            &ShaderId(
+                Cow::Borrowed("RayTracerFontVS"),
+                Cow::Borrowed("RayTracerFontFS"),
+            ),
+        )
+        .unwrap_abort()
 }
 
 pub struct ImageCfg {
@@ -103,10 +108,7 @@ impl ImageCfg {
 }
 
 impl Layers {
-    pub fn new(
-        gl: &WebGlContext,
-        projection: &ProjectionType
-    ) -> Result<Self, JsValue> {
+    pub fn new(gl: &WebGlContext, projection: &ProjectionType) -> Result<Self, JsValue> {
         let surveys = HashMap::new();
         let images = HashMap::new();
         let meta = HashMap::new();
@@ -123,38 +125,36 @@ impl Layers {
 
         let mut screen_vao = VertexArrayObject::new(&gl);
         #[cfg(feature = "webgl2")]
-        screen_vao.bind_for_update()
+        screen_vao
+            .bind_for_update()
             .add_array_buffer_single(
                 2,
                 "pos_clip_space",
                 WebGl2RenderingContext::STATIC_DRAW,
-                SliceData::<f32>(&[
-                    -1.0, -1.0,
-                    1.0, -1.0,
-                    1.0, 1.0,
-                    -1.0, 1.0,
-                ]),
+                SliceData::<f32>(&[-1.0, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0]),
             )
             // Set the element buffer
-            .add_element_buffer(WebGl2RenderingContext::STATIC_DRAW, SliceData::<u16>(&[0, 1, 2, 0, 2, 3]))
+            .add_element_buffer(
+                WebGl2RenderingContext::STATIC_DRAW,
+                SliceData::<u16>(&[0, 1, 2, 0, 2, 3]),
+            )
             // Unbind the buffer
             .unbind();
 
         #[cfg(feature = "webgl1")]
-        screen_vao.bind_for_update()
+        screen_vao
+            .bind_for_update()
             .add_array_buffer(
                 2,
                 "pos_clip_space",
                 WebGl2RenderingContext::STATIC_DRAW,
-                SliceData::<f32>(&[
-                    -1.0, -1.0,
-                    1.0, -1.0,
-                    1.0, 1.0,
-                    -1.0, 1.0,
-                ]),
+                SliceData::<f32>(&[-1.0, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0]),
             )
             // Set the element buffer
-            .add_element_buffer(WebGl2RenderingContext::STATIC_DRAW, SliceData::<u16>(&[0, 1, 2, 0, 2, 3]))
+            .add_element_buffer(
+                WebGl2RenderingContext::STATIC_DRAW,
+                SliceData::<u16>(&[0, 1, 2, 0, 2, 3]),
+            )
             // Unbind the buffer
             .unbind();
 
@@ -179,15 +179,14 @@ impl Layers {
     pub fn set_survey_url(&mut self, past_url: String, new_url: String) -> Result<(), JsValue> {
         if let Some(mut survey) = self.surveys.remove(&past_url) {
             // update the root_url
-            survey.get_config_mut()
-                .set_root_url(new_url.clone());
-            
+            survey.get_config_mut().set_root_url(new_url.clone());
+
             self.surveys.insert(new_url.clone(), survey);
 
             // update all the layer urls
             for url in self.urls.values_mut() {
                 if *url == past_url {
-                    *url = new_url.clone(); 
+                    *url = new_url.clone();
                 }
             }
 
@@ -197,11 +196,11 @@ impl Layers {
         }
     }
 
-    pub fn reset_frame(&mut self) {
+    /*pub fn reset_frame(&mut self) {
         for survey in self.surveys.values_mut() {
             survey.reset_frame();
         }
-    }
+    }*/
 
     pub fn set_projection(&mut self, projection: &ProjectionType) -> Result<(), JsValue> {
         // Recompute the raytracer
@@ -215,29 +214,29 @@ impl Layers {
 
     pub fn draw(
         &mut self,
-        camera: &CameraViewPort,
+        camera: &mut CameraViewPort,
         shaders: &mut ShaderManager,
         colormaps: &Colormaps,
-        projection: &ProjectionType
+        projection: &ProjectionType,
     ) -> Result<(), JsValue> {
         let raytracer = &self.raytracer;
-        let raytracing = raytracer.is_rendering(camera/* , depth_texture*/);
+        let raytracing = raytracer.is_rendering(camera /* , depth_texture*/);
 
         // Check whether a survey to plot is allsky
         // if neither are, we draw a font
         // if there are, we do not draw nothing
-        let render_background_color = !self.layers.iter()
-            .any(|layer| {
-                let meta = self.meta.get(layer).unwrap_abort();
-                let url = self.urls.get(layer).unwrap_abort();
-                if let Some(survey) = self.surveys.get(url) {
-                    let hips_cfg = survey.get_config();
-                    (survey.is_allsky() || hips_cfg.get_format().get_channel() == ChannelType::RGB8U) && meta.opacity == 1.0
-                } else {
-                    // image fits case
-                    false
-                }
-            });
+        let render_background_color = !self.layers.iter().any(|layer| {
+            let meta = self.meta.get(layer).unwrap_abort();
+            let url = self.urls.get(layer).unwrap_abort();
+            if let Some(survey) = self.surveys.get(url) {
+                let hips_cfg = survey.get_config();
+                (survey.is_allsky() || hips_cfg.get_format().get_channel() == ChannelType::RGB8U)
+                    && meta.opacity == 1.0
+            } else {
+                // image fits case
+                false
+            }
+        });
 
         // Need to render transparency font
         if render_background_color {
@@ -250,17 +249,18 @@ impl Layers {
                 &self.screen_vao
             };
 
-            get_backgroundcolor_shader(&self.gl, shaders).bind(&self.gl).attach_uniforms_from(camera)
+            get_backgroundcolor_shader(&self.gl, shaders)
+                .bind(&self.gl)
+                .attach_uniforms_from(camera)
                 .attach_uniform("color", &background_color)
                 .bind_vertex_array_object_ref(vao)
-                    .draw_elements_with_i32(
-                        WebGl2RenderingContext::TRIANGLES,
-                        None,
-                        WebGl2RenderingContext::UNSIGNED_SHORT,
-                        0,
-                    );
+                .draw_elements_with_i32(
+                    WebGl2RenderingContext::TRIANGLES,
+                    None,
+                    WebGl2RenderingContext::UNSIGNED_SHORT,
+                    0,
+                );
         }
-
 
         // The first layer must be paint independently of its alpha channel
         self.gl.enable(WebGl2RenderingContext::BLEND);
@@ -274,7 +274,9 @@ impl Layers {
             if let Some(survey) = self.surveys.get_mut(url) {
                 let hips_cfg = survey.get_config();
 
-                let fully_covering_survey = (survey.is_allsky() || hips_cfg.get_format().get_channel() == ChannelType::RGB8U) && meta.opacity == 1.0;
+                let fully_covering_survey = (survey.is_allsky()
+                    || hips_cfg.get_format().get_channel() == ChannelType::RGB8U)
+                    && meta.opacity == 1.0;
                 if fully_covering_survey {
                     idx_start_layer = idx_layer;
                 }
@@ -291,22 +293,12 @@ impl Layers {
                     survey.update(camera, projection);
 
                     // 2. Draw it if its opacity is not null
-                    survey.draw(
-                        shaders,
-                        colormaps,
-                        camera,
-                        raytracer,
-                        draw_opt
-                    )?;
+                    survey.draw(shaders, colormaps, camera, raytracer, draw_opt)?;
                 } else if let Some(image) = self.images.get_mut(url) {
                     image.update(camera, projection)?;
 
                     // 2. Draw it if its opacity is not null
-                    image.draw(
-                        shaders,
-                        colormaps,
-                        draw_opt,
-                    )?;
+                    image.draw(shaders, colormaps, draw_opt)?;
                 }
             }
         }
@@ -322,26 +314,32 @@ impl Layers {
         Ok(())
     }
 
-    pub fn remove_layer(&mut self, layer: &str, camera: &mut CameraViewPort) -> Result<usize, JsValue> {
-        let err_layer_not_found = JsValue::from_str(&format!("Layer {:?} not found, so cannot be removed.", layer));
+    pub fn remove_layer(
+        &mut self,
+        layer: &str,
+        camera: &mut CameraViewPort,
+        proj: &ProjectionType,
+    ) -> Result<usize, JsValue> {
+        let err_layer_not_found = JsValue::from_str(&format!(
+            "Layer {:?} not found, so cannot be removed.",
+            layer
+        ));
         // Color configs, and urls are indexed by layer
-        self.meta.remove(layer)
-            .ok_or(err_layer_not_found.clone())?;
+        self.meta.remove(layer).ok_or(err_layer_not_found.clone())?;
         let url = self.urls.remove(layer).ok_or(err_layer_not_found.clone())?;
         // layer from layers does also need to be removed
-        let id_layer = self.layers.iter()
+        let id_layer = self
+            .layers
+            .iter()
             .position(|l| layer == l)
             .ok_or(err_layer_not_found)?;
         self.layers.remove(id_layer);
 
         // Loop over all the meta for its longitude reversed property
         // and set the camera to it if there is at least one
-        let longitude_reversed = self.meta.values()
-            .any(|meta| {
-                meta.longitude_reversed
-            });
+        let longitude_reversed = self.meta.values().any(|meta| meta.longitude_reversed);
 
-        camera.set_longitude_reversed(longitude_reversed);
+        camera.set_longitude_reversed(longitude_reversed, proj);
 
         // Check if the url is still used
         let url_still_used = self.urls.values().any(|rem_url| rem_url == &url);
@@ -350,34 +348,41 @@ impl Layers {
             Ok(id_layer)
         } else {
             // Resource not needed anymore
-            if let Some(_) = self.surveys.remove(&url) {
+            if let Some(s) = self.surveys.remove(&url) {
                 // A HiPS has been found and removed
+                let hips_frame = s.get_config().get_frame();
+                // remove the frame
+                camera.unregister_view_frame(hips_frame, proj);
+
                 Ok(id_layer)
             } else if let Some(_) = self.images.remove(&url) {
                 // A FITS image has been found and removed
                 Ok(id_layer)
             } else {
-                Err(JsValue::from_str(&format!("Url found {:?} is associated to no surveys.", url)))
+                Err(JsValue::from_str(&format!(
+                    "Url found {:?} is associated to no surveys.",
+                    url
+                )))
             }
         }
     }
 
-    pub fn rename_layer(
-        &mut self,
-        layer: &str,
-        new_layer: &str,
-    ) -> Result<(), JsValue> {
-        let err_layer_not_found = JsValue::from_str(&format!("Layer {:?} not found, so cannot be removed.", layer));
+    pub fn rename_layer(&mut self, layer: &str, new_layer: &str) -> Result<(), JsValue> {
+        let err_layer_not_found = JsValue::from_str(&format!(
+            "Layer {:?} not found, so cannot be removed.",
+            layer
+        ));
 
         // layer from layers does also need to be removed
-        let id_layer = self.layers.iter()
+        let id_layer = self
+            .layers
+            .iter()
             .position(|l| layer == l)
             .ok_or(err_layer_not_found.clone())?;
-    
+
         self.layers[id_layer] = new_layer.to_string();
 
-        let meta = self.meta.remove(layer)
-            .ok_or(err_layer_not_found.clone())?;
+        let meta = self.meta.remove(layer).ok_or(err_layer_not_found.clone())?;
         let url = self.urls.remove(layer).ok_or(err_layer_not_found)?;
 
         // Add the new
@@ -387,17 +392,23 @@ impl Layers {
         Ok(())
     }
 
-    pub fn swap_layers(
-        &mut self,
-        first_layer: &str,
-        second_layer: &str,
-    ) -> Result<(), JsValue> {
-        let id_first_layer = self.layers.iter()
-            .position(|l| l == first_layer)
-            .ok_or(JsValue::from_str(&format!("Layer {:?} not found, so cannot be removed.", first_layer)))?;
-        let id_second_layer = self.layers.iter()
-            .position(|l| l == second_layer)
-            .ok_or(JsValue::from_str(&format!("Layer {:?} not found, so cannot be removed.", second_layer)))?;
+    pub fn swap_layers(&mut self, first_layer: &str, second_layer: &str) -> Result<(), JsValue> {
+        let id_first_layer =
+            self.layers
+                .iter()
+                .position(|l| l == first_layer)
+                .ok_or(JsValue::from_str(&format!(
+                    "Layer {:?} not found, so cannot be removed.",
+                    first_layer
+                )))?;
+        let id_second_layer =
+            self.layers
+                .iter()
+                .position(|l| l == second_layer)
+                .ok_or(JsValue::from_str(&format!(
+                    "Layer {:?} not found, so cannot be removed.",
+                    second_layer
+                )))?;
 
         self.layers.swap(id_first_layer, id_second_layer);
 
@@ -409,6 +420,7 @@ impl Layers {
         gl: &WebGlContext,
         hips: HiPSCfg,
         camera: &mut CameraViewPort,
+        proj: &ProjectionType,
     ) -> Result<&HiPS, JsValue> {
         let HiPSCfg {
             layer,
@@ -417,13 +429,10 @@ impl Layers {
         } = hips;
 
         // 1. Add the layer name
-        let layer_already_found = self.layers.iter()
-            .any(|l| {
-                l == &layer
-            });
+        let layer_already_found = self.layers.iter().any(|l| l == &layer);
 
         let idx = if layer_already_found {
-            let idx = self.remove_layer(&layer, camera)?;
+            let idx = self.remove_layer(&layer, camera, proj)?;
             idx
         } else {
             self.layers.len()
@@ -436,10 +445,7 @@ impl Layers {
         // The layer does not already exist
         // Let's check if no other hipses points to the
         // same url than `hips`
-        let url_already_found = self.surveys.keys()
-            .any(|hips_url| {
-                hips_url == &url
-            });
+        let url_already_found = self.surveys.keys().any(|hips_url| hips_url == &url);
 
         if !url_already_found {
             // The url is not processed yet
@@ -454,8 +460,11 @@ impl Layers {
             if let Some(initial_fov) = properties.get_initial_fov() {
                 camera.set_aperture::<P>(Angle((initial_fov).to_radians()));
             }*/
+            camera.register_view_frame(cfg.get_frame(), proj);
 
             let hips = HiPS::new(cfg, gl, camera)?;
+            // add the frame to the camera
+
             self.surveys.insert(url.clone(), hips);
         }
 
@@ -465,18 +474,14 @@ impl Layers {
         self.meta.insert(layer.clone(), meta);
         // Loop over all the meta for its longitude reversed property
         // and set the camera to it if there is at least one
-        let longitude_reversed = self.meta.values()
-            .any(|meta| {
-                meta.longitude_reversed
-            });
+        let longitude_reversed = self.meta.values().any(|meta| meta.longitude_reversed);
 
-        camera.set_longitude_reversed(longitude_reversed);
+        camera.set_longitude_reversed(longitude_reversed, proj);
 
-        // Refresh the views of all the surveys
-        // this is necessary to compute the max depth between the surveys
-        self.refresh_views(camera);
-
-        let hips = self.surveys.get(&url).ok_or(JsValue::from_str("HiPS not found"))?;
+        let hips = self
+            .surveys
+            .get(&url)
+            .ok_or(JsValue::from_str("HiPS not found"))?;
         Ok(hips)
     }
 
@@ -484,6 +489,7 @@ impl Layers {
         &mut self,
         image: ImageCfg,
         camera: &mut CameraViewPort,
+        proj: &ProjectionType,
     ) -> Result<&Image, JsValue> {
         let ImageCfg {
             layer,
@@ -493,13 +499,10 @@ impl Layers {
         } = image;
 
         // 1. Add the layer name
-        let layer_already_found = self.layers.iter()
-            .any(|s| {
-                s == &layer
-            });
+        let layer_already_found = self.layers.iter().any(|s| s == &layer);
 
         let idx = if layer_already_found {
-            let idx = self.remove_layer(&layer, camera)?;
+            let idx = self.remove_layer(&layer, camera, proj)?;
             idx
         } else {
             self.layers.len()
@@ -511,21 +514,15 @@ impl Layers {
         self.meta.insert(layer.clone(), meta);
         // Loop over all the meta for its longitude reversed property
         // and set the camera to it if there is at least one
-        let longitude_reversed = self.meta.values()
-            .any(|meta| {
-                meta.longitude_reversed
-            });
+        let longitude_reversed = self.meta.values().any(|meta| meta.longitude_reversed);
 
-        camera.set_longitude_reversed(longitude_reversed);
+        camera.set_longitude_reversed(longitude_reversed, proj);
 
         // 3. Add the fits image
         // The layer does not already exist
         // Let's check if no other hipses points to the
         // same url than `hips`
-        let fits_already_found = self.images.keys()
-            .any(|image_url| {
-                image_url == &url
-            });
+        let fits_already_found = self.images.keys().any(|image_url| image_url == &url);
 
         if !fits_already_found {
             // The fits has not been loaded yet
@@ -544,7 +541,10 @@ impl Layers {
 
         self.urls.insert(layer.clone(), url.clone());
 
-        let fits = self.images.get(&url).ok_or(JsValue::from_str("Fits image not found"))?;
+        let fits = self
+            .images
+            .get(&url)
+            .ok_or(JsValue::from_str("Fits image not found"))?;
         Ok(fits)
     }
 
@@ -559,7 +559,7 @@ impl Layers {
         &mut self,
         layer: String,
         meta: ImageMetadata,
-        camera: &CameraViewPort,
+        camera: &mut CameraViewPort,
         projection: &ProjectionType,
     ) -> Result<(), JsValue> {
         let layer_ref = layer.as_str();
@@ -576,7 +576,10 @@ impl Layers {
             } else if meta_old.visible() && !meta.visible() {
                 // There is an important point here, if we hide a specific layer
                 // then we must recompute the vertices of the layers underneath
-                let layer_idx = self.layers.iter().position(|l| l == layer_ref)
+                let layer_idx = self
+                    .layers
+                    .iter()
+                    .position(|l| l == layer_ref)
                     .ok_or(JsValue::from_str("Expect the layer to be found!"))?;
 
                 for idx in 0..layer_idx {
@@ -609,16 +612,17 @@ impl Layers {
         ready
     }
 
-    pub fn refresh_views(&mut self, camera: &mut CameraViewPort) {
+    pub fn update(&mut self, camera: &mut CameraViewPort, proj: &ProjectionType) {
         for survey in self.surveys.values_mut() {
-            survey.refresh_view(camera);
+            survey.update(camera, proj);
         }
     }
 
     // Accessors
     // HiPSes getters
     pub fn get_hips_from_layer(&self, layer: &str) -> Option<&HiPS> {
-        self.urls.get(layer)
+        self.urls
+            .get(layer)
             .map(|url| self.surveys.get(url))
             .flatten()
     }
@@ -657,10 +661,9 @@ impl Layers {
     }
 
     pub fn get_image_from_layer(&self, layer: &str) -> Option<&Image> {
-        self.urls.get(layer)
-            .map(|url| {
-                self.images.get(url)
-            }).flatten()
+        self.urls
+            .get(layer)
+            .map(|url| self.images.get(url))
+            .flatten()
     }
 }
-

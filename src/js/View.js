@@ -759,7 +759,7 @@ export let View = (function () {
             view.refreshProgressiveCats();
 
             //view.requestRedraw();
-            view.wasm.releaseLeftButtonMouse();
+            view.wasm.releaseLeftButtonMouse(xymouse.x, xymouse.y);
         });
 
         var lastHoveredObject; // save last object hovered by mouse
@@ -919,6 +919,7 @@ export let View = (function () {
 
             view.realDragging = true;
 
+            view.wasm.moveMouse(s1.x, s1.y, s2.x, s2.y);
             view.wasm.goFromTo(s1.x, s1.y, s2.x, s2.y);
 
             const [ra, dec] = view.wasm.getCenter();
@@ -1063,17 +1064,15 @@ export let View = (function () {
      */
     View.prototype.redraw = function () {
         // request another frame
-        requestAnimFrame(this.redraw.bind(this));
 
         // Elapsed time since last loop
         const now = Date.now();
         const elapsedTime = now - this.then;
 
         // If enough time has elapsed, draw the next frame
-        if (elapsedTime >= View.FPS_INTERVAL) {
+        //if (elapsedTime >= View.FPS_INTERVAL) {
             // Get ready for next frame by setting then=now, but also adjust for your
             // specified fpsInterval not being a multiple of RAF's interval (16.7ms)
-            this.then = now - elapsedTime % View.FPS_INTERVAL;
 
             // Drawing code
             try {
@@ -1088,7 +1087,11 @@ export let View = (function () {
                 this.drawAllOverlays();
             }
             this.needRedraw = false;
-        }
+
+            this.then = now;
+            //this.then = now % View.FPS_INTERVAL;
+            requestAnimFrame(this.redraw.bind(this));
+        //}
     };
 
     View.prototype.drawAllOverlays = function () {

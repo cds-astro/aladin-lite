@@ -1,17 +1,17 @@
 
-use crate::math::HALF_PI;
+
 use crate::math::PI;
 use cgmath::Vector3;
 use crate::ProjectionType;
 use crate::CameraViewPort;
 use crate::LonLatT;
 use cgmath::InnerSpace;
-use crate::Abort;
+
 use crate::math::angle::SerializeFmt;
 use crate::math::TWICE_PI;
 use crate::grid::XYScreen;
 use crate::math::lonlat::LonLat;
-use wasm_bindgen::JsValue;
+
 use crate::math::angle::ToAngle;
 use core::ops::Range;
 use cgmath::Vector2;

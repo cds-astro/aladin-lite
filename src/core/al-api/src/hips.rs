@@ -47,6 +47,7 @@ pub struct HiPSProperties {
     tile_size: i32,
     formats: Vec<ImageExt>,
     dataproduct_subtype: Option<Vec<String>>,
+
     is_planetary_body: Option<bool>,
 
     bitpix: Option<i32>,
@@ -63,62 +64,62 @@ pub struct HiPSProperties {
 }
 
 impl HiPSProperties {
-    #[inline]
+    #[inline(always)]
     pub fn get_url(&self) -> &str {
         &self.url
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn get_max_order(&self) -> u8 {
         self.max_order
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn get_min_order(&self) -> Option<u8> {
         self.min_order
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn get_bitpix(&self) -> Option<i32> {
         self.bitpix
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn get_formats(&self) -> &[ImageExt] {
         &self.formats[..]
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn get_tile_size(&self) -> i32 {
         self.tile_size
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn get_frame(&self) -> CooSystem {
         self.frame
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn get_sky_fraction(&self) -> Option<f32> {
         self.sky_fraction
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn get_initial_fov(&self) -> Option<f64> {
         self.hips_initial_fov
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn get_initial_ra(&self) -> Option<f64> {
         self.hips_initial_ra
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn get_initial_dec(&self) -> Option<f64> {
         self.hips_initial_dec
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn get_dataproduct_subtype(&self) -> &Option<Vec<String>> {
         &self.dataproduct_subtype
     }
@@ -131,7 +132,7 @@ pub enum ImageExt {
     Fits,
     Jpeg,
     Png,
-    Webp
+    Webp,
 }
 
 impl std::fmt::Display for ImageExt {
@@ -140,7 +141,7 @@ impl std::fmt::Display for ImageExt {
             ImageExt::Fits => write!(f, "fits"),
             ImageExt::Png => write!(f, "png"),
             ImageExt::Jpeg => write!(f, "jpg"),
-            ImageExt::Webp => write!(f, "webp")
+            ImageExt::Webp => write!(f, "webp"),
         }
     }
 }
@@ -192,7 +193,7 @@ use crate::colormap::CmapLabel;
 pub struct HiPSColor {
     // transfer function called before evaluating the colormap
     pub stretch: TransferFunction,
-    // low cut 
+    // low cut
     pub min_cut: Option<f32>,
     // high cut
     pub max_cut: Option<f32>,

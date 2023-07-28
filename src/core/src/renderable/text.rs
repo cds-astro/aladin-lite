@@ -1,36 +1,28 @@
-use al_core::shader::Shader;
-use al_core::texture::Texture2D;
-use al_core::webgl_ctx::WebGlContext;
-use al_core::VertexArrayObject;
 use web_sys::CanvasRenderingContext2d;
-
-use std::collections::HashMap;
-
 use super::Renderer;
 
 pub struct TextRenderManager {
-    gl: WebGlContext,
     // The text canvas
     canvas: HtmlCanvasElement,
     ctx: CanvasRenderingContext2d,
     color: JsValue,
     font_size: u32, 
 }
-use al_core::VecData;
+
 use cgmath::{Rad, Vector2};
 use wasm_bindgen::JsValue;
 
 use crate::camera::CameraViewPort;
 use al_api::color::{ColorRGBA, ColorRGB};
-use web_sys::{WebGl2RenderingContext, HtmlCanvasElement};
+use web_sys::{HtmlCanvasElement};
 
-use al_api::resources::Resources;
+
 use crate::Abort;
 use wasm_bindgen::JsCast;
 
 impl TextRenderManager {
     /// Init the buffers, VAO and shader
-    pub fn new(gl: &WebGlContext, camera: &CameraViewPort) -> Result<Self, JsValue> {
+    pub fn new() -> Result<Self, JsValue> {
         let document = web_sys::window().unwrap_abort().document().unwrap_abort();
         let canvas = document
             // Inside it, retrieve the canvas
@@ -45,12 +37,10 @@ impl TextRenderManager {
             .dyn_into::<web_sys::CanvasRenderingContext2d>().unwrap_abort();
         
         let color = JsValue::from_str("#00ff00");
-        let gl = gl.clone();
         let font_size = 30;
         Ok(Self {
             font_size,
             color,
-            gl,
             canvas,
             ctx,
         })
@@ -85,7 +75,7 @@ impl TextRenderManager {
         Ok(())
     }
 
-    pub fn draw(&mut self, camera: &CameraViewPort, color: &ColorRGBA, scale: f32) -> Result<(), JsValue> {
+    pub fn draw(&mut self, _camera: &CameraViewPort, _color: &ColorRGBA, _scale: f32) -> Result<(), JsValue> {
         Ok(())
     }
 

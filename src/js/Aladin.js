@@ -592,10 +592,6 @@ export let Aladin = (function () {
         (typeof fullScreenToggledFn === 'function') && fullScreenToggledFn(isInFullscreen);
     };
 
-    Aladin.prototype.setAngleRotation = function (theta) {
-        this.view.setAngleRotation(theta)
-    }
-
     Aladin.prototype.getOptionsFromQueryString = function () {
         var options = {};
         var requestedTarget = $.urlParam('target');

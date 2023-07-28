@@ -1,4 +1,5 @@
 use crate::{healpix::cell::HEALPixCell, time::Time};
+use al_core::{info, inforec, log};
 use std::collections::HashSet;
 
 pub struct Texture {
@@ -37,11 +38,7 @@ pub struct Texture {
 use super::config::HiPSConfig;
 
 impl Texture {
-    pub fn new(
-        texture_cell: &HEALPixCell,
-        idx: i32,
-        time_request: Time,
-    ) -> Texture {
+    pub fn new(texture_cell: &HEALPixCell, idx: i32, time_request: Time) -> Texture {
         let tiles = HashSet::new();
 
         let start_time = None;
@@ -68,23 +65,26 @@ impl Texture {
     // Panic if cell is not contained in the texture
     // Do nothing if the texture is full
     // Return true if the tile is newly added
-    pub fn append(&mut self, cell: &HEALPixCell, config: &HiPSConfig, missing: bool) {
-        let texture_cell = cell.get_texture_cell(config);
+    pub fn append(&mut self, cell: &HEALPixCell, cfg: &HiPSConfig, missing: bool) {
+        let texture_cell = cell.get_texture_cell(cfg.delta_depth());
         debug_assert!(texture_cell == self.texture_cell);
         debug_assert!(!self.full);
 
         self.missing &= missing;
         //self.start_time = Some(Time::now());
         //self.full = true;
-        let num_tiles_per_texture = config.num_tiles_per_texture();
-        if *cell == texture_cell {
+        let num_tiles_per_texture = cfg.num_tiles_per_texture();
+        let c = *cell;
+
+        if c == texture_cell {
             self.num_tiles_written = num_tiles_per_texture;
             self.full = true;
+
             self.start_time = Some(Time::now());
         } else {
             // Sub-tile appending. This code is called for tile size is < 512
             // Cell has the good ancestor for this texture
-            let new_tile = self.tiles.insert(*cell);
+            let new_tile = self.tiles.insert(c);
             // Ensures the tile was not already present in the buffer
             // This is the case because already contained cells do not
             // lead to new requests
@@ -139,11 +139,7 @@ impl Texture {
     }
 
     // Setter
-    pub fn replace(
-        &mut self,
-        texture_cell: &HEALPixCell,
-        time_request: Time,
-    ) {
+    pub fn replace(&mut self, texture_cell: &HEALPixCell, time_request: Time) {
         // Cancel the tasks copying the tiles contained in the texture
         // which have not yet been completed.
         //self.clear_tasks_in_progress(config, exec);

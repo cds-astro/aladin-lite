@@ -27,12 +27,42 @@ export let MOC = (function() {
 
         this.color = options.color || Color.getNextColor();
         this.color = Color.standardizeColor(this.color);
-        
+
+        this.fillColor = options.fillColor || this.color;
+        this.fillColor = Color.standardizeColor(this.fillColor);
+
+        if (options && options.perimeter) {
+            this.perimeter = true;
+        } else {
+            this.perimeter = false;
+        }
+        if (options && options.fill) {
+            this.fill = true;
+        } else {
+            this.fill = false;
+        }
+
+        if (options && options.edge) {
+            this.edge = true;
+        } else {
+            this.edge = false;
+        }
+
+        if (!this.fill && !this.perimeter && options && !options.edge) {
+            this.edge = true;
+        }
+
         this.opacity = options.opacity || 1;
 
         this.opacity = Math.max(0, Math.min(1, this.opacity)); // 0 <= this.opacity <= 1
         this.lineWidth = options["lineWidth"] || 1;
+        /*if (options && options.adaptativeDisplay) {
+            this.adaptativeDisplay = true;
+        } else {
+            this.adaptativeDisplay = false;
+        }*/
         this.adaptativeDisplay = options['adaptativeDisplay'] !== false;
+        console.log(this.adaptativeDisplay)
 
         //this.proxyCalled = false; // this is a flag to check whether we already tried to load the MOC through the proxy
 
@@ -71,7 +101,7 @@ export let MOC = (function() {
         let self = this;
 
         this.view = view;
-        this.mocParams = new Aladin.wasmLibs.core.MOC(this.uuid, this.opacity, this.lineWidth, this.isShowing, this.color, this.adaptativeDisplay);
+        this.mocParams = new Aladin.wasmLibs.core.MOC(this.uuid, this.opacity, this.lineWidth, this.perimeter, this.fill, this.edge, this.isShowing, this.color, this.fillColor, this.adaptativeDisplay);
 
         if (this.dataURL) {
             this.promiseFetchData
@@ -117,7 +147,7 @@ export let MOC = (function() {
     MOC.prototype.reportChange = function() {
         if (this.view) {
             // update the new moc params to the backend
-            this.mocParams = new Aladin.wasmLibs.core.MOC(this.uuid, this.opacity, this.lineWidth, this.isShowing, this.color, this.adaptativeDisplay);
+            this.mocParams = new Aladin.wasmLibs.core.MOC(this.uuid, this.opacity, this.lineWidth, this.perimeter, this.fill, this.edge, this.isShowing, this.color, this.fillColor, this.adaptativeDisplay);
             this.view.wasm.setMocParams(this.mocParams);
             this.view.requestRedraw();
         }

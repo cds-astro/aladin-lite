@@ -1,3 +1,6 @@
+use std::cmp::Ordering;
+use std::ops::Range;
+
 #[allow(unused_macros)]
 macro_rules! assert_delta {
     ($x:expr, $y:expr, $d:expr) => {
@@ -58,4 +61,34 @@ pub unsafe fn transmute_vec<I, O>(mut s: Vec<I>) -> Result<Vec<O>, &'static str>
         s.set_len(s.len() * (std::mem::size_of::<I>() / std::mem::size_of::<O>()));
         Ok(std::mem::transmute(s))
     }
+}
+
+pub(super) fn merge_overlapping_intervals(mut intervals: Vec<Range<usize>>) -> Vec<Range<usize>> {
+    intervals.sort_unstable_by(|a, b| {
+        let cmp = a.start.cmp(&b.start);
+        if let Ordering::Equal = cmp {
+            a.end.cmp(&b.end)
+        } else {
+            cmp
+        }
+    });
+
+    // Merge overlapping intervals in place
+    let mut j = 0;
+
+    for i in 1..intervals.len() {
+        // If this is not first Interval and overlaps
+        // with the previous one
+        if intervals[j].end >= intervals[i].start {
+            // Merge previous and current Intervals
+            intervals[j].end = intervals[j].end.max(intervals[i].end);
+        } else {
+            j += 1;
+            intervals[j] = intervals[i].clone();
+        }
+    }
+    // truncate the indices
+    intervals.truncate(j + 1);
+
+    intervals
 }

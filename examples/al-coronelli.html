@@ -496,7 +496,7 @@
                     deleteOverlayTimeout = undefined;
                 }
                 isDrawing = true;
-                points.push([Utils.relMouseCoords(e)]);
+                points.push([Utils.relMouseCoords(drawOverlayCanvas.imageCanvas, e)]);
             });
 
 
@@ -505,7 +505,7 @@
             e.preventDefault();
 
                 drawOverlayCtx.clearRect(0, 0, drawOverlayCtx.canvas.width, drawOverlayCtx.canvas.height);
-                points[points.length-1].push(Utils.relMouseCoords(e));
+                points[points.length-1].push(Utils.relMouseCoords(drawOverlayCanvas.imageCanvas, e));
 
                 drawOverlayCtx.beginPath();
                 

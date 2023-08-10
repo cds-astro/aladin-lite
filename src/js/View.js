@@ -38,7 +38,7 @@ import { Utils } from "./Utils.js";
 import { GenericPointer } from "./GenericPointer.js";
 import { Stats } from "./libs/Stats.js";
 import { Circle } from "./Circle.js";
-import { Ellipse } from "./Ellipse";
+import { Ellipse } from "./Ellipse.js";
 import { Polyline } from "./Polyline.js";
 import { CooFrameEnum } from "./CooFrameEnum.js";
 import { requestAnimFrame } from "./libs/RequestAnimationFrame.js";
@@ -1441,7 +1441,7 @@ export let View = (function () {
         }
 
         this.imageLayers.set(layerName, imageLayer);
-
+        console.log("layer", imageLayer)
         ALEvent.HIPS_LAYER_ADDED.dispatchedTo(this.aladinDiv, { layer: imageLayer });
     }
 

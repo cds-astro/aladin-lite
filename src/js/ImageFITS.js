@@ -166,6 +166,7 @@ export let ImageFITS = (function () {
             url: self.url,
             meta: self.metadata()
         }).then((imagesParams) => {
+            console.log(imagesParams)
             // There is at least one entry in imageParams
             self.added = true;
             self.children = [];
@@ -188,6 +189,7 @@ export let ImageFITS = (function () {
                 // deep copy of the color object of self
                 image.colorCfg = Utils.deepCopy(self.colorCfg);
                 // Set the automatic computed cuts
+                console.log(imageParams)
                 image.setCuts(imageParams.automatic_min_cut, imageParams.automatic_max_cut);
 
                 image.ra = imageParams.centered_fov.ra;

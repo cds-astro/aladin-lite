@@ -70,17 +70,22 @@ HiPSProperties.fetchFromID = async function(ID) {
 }
 
 HiPSProperties.fetchFromUrl = async function(urlOrId) {
+    let addTextExt = false;
     try {
         urlOrId = new URL(urlOrId);
     } catch (e) {
         // Relative path
         try {
             urlOrId = Utils.getAbsoluteURL(urlOrId)
+
             urlOrId = new URL(urlOrId);
+
+            addTextExt = true;
         } catch(e) {
             throw e;
         }
     }
+    console.log(urlOrId)
 
     // Fetch the properties of the survey
     const HiPSServiceUrl = urlOrId.toString();
@@ -93,6 +98,10 @@ HiPSProperties.fetchFromUrl = async function(urlOrId) {
     }
     url = url + '/properties';
 
+    if (addTextExt) {
+        url = url + '.txt';
+    }
+
     // make URL absolute
     url = Utils.getAbsoluteURL(url);
     // fix for HTTPS support --> will work for all HiPS served by CDS
@@ -102,7 +111,7 @@ HiPSProperties.fetchFromUrl = async function(urlOrId) {
     if (Utils.requestCORSIfNotSameOrigin(url)) {
         init = { mode: 'cors' };
     }
-    
+
     let result = await fetch(url, init)
         .then((response) => {
             if (response.status == 404) {
@@ -112,7 +121,7 @@ HiPSProperties.fetchFromUrl = async function(urlOrId) {
             }
         })
         .then((response) => {
-
+            console.log(response)
             // We get the property here
             let metadata = HiPSDefinition.parseHiPSProperties(response);
 

@@ -345,6 +345,7 @@ export class Stack {
 
         ALEvent.HIPS_LAYER_ADDED.listenedBy(this.aladin.aladinDiv, function (e) {
             const layer = e.detail.layer;
+            console.log("add layer", layer)
 
             const hipsLayer = new HiPSLayer(self.aladin, layer);
             self.imgLayers.set(layer.layer, hipsLayer);

@@ -85,13 +85,13 @@ where
 
     let min_val = {
         let (_, min_val, _) = slice.select_nth_unstable_by(first_pct_idx, |a, b| {
-            b.partial_cmp(a).unwrap_or(Ordering::Greater)
+            a.partial_cmp(b).unwrap_or(Ordering::Greater)
         });
         *min_val
     };
     let max_val = {
         let (_, max_val, _) = slice.select_nth_unstable_by(last_pct_idx, |a, b| {
-            b.partial_cmp(a).unwrap_or(Ordering::Greater)
+            a.partial_cmp(b).unwrap_or(Ordering::Greater)
         });
         *max_val
     };

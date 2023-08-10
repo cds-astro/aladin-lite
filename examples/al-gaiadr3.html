@@ -14,11 +14,11 @@
     <form class="pure-form pure-form-stacked">
         <fieldset>
           <label for="option-gdr3-flux-color-map" class="pure-radio">
-            <input id="option-gdr3-flux-color-map" type="radio" name="img-hips" value="CDS/P/DM/flux-color-Rp-G-Bp/I/350/gaiaedr3" checked>
+            <input id="option-gdr3-flux-color-map" type="radio" name="img-hips" value="CDS/P/DM/flux-color-Rp-G-Bp/I/350/gaiaedr3">
             Gaia DR3 flux map
           </label>
           <label for="option-gdr3-density-map" class="pure-radio">
-            <input id="option-gdr3-density-map" type="radio" name="img-hips" value="CDS/P/DM/I/350/gaiaedr3">
+            <input id="option-gdr3-density-map" type="radio" name="img-hips" value="CDS/P/DM/I/350/gaiaedr3" checked>
             Gaia DR3 density map
           </label>
           <label for="option-DSS-map" class="pure-radio">
@@ -50,7 +50,7 @@
         const fluxMap = aladin.createImageSurvey('gdr3-color-flux-map', 'Gaia DR3 flux map', 'https://alasky.u-strasbg.fr/ancillary/GaiaEDR3/color-Rp-G-Bp-flux-map', 'equatorial', 7);
         const densityMap = aladin.createImageSurvey('gdr3-density-map', 'Gaia DR3 density map', 'https://alasky.u-strasbg.fr/ancillary/GaiaEDR3/density-map', 'equatorial', 7, {imgFormat: 'fits'});
 
-        aladin.setImageSurvey(fluxMap);
+        aladin.setImageSurvey(densityMap);
 
         var hipsCats = {
             //'gdr3': A.catalogHiPS('https://axel.u-strasbg.fr/HiPSCatService/I/355/gaiadr3', { name: 'Gaia DR3 sources', shape: 'circle', sourceSize: 8, color: '#d66bae' }),

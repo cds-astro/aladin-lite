@@ -11,7 +11,7 @@
 
 import { Aladin }   from "./Aladin.js";
 import { Utils }   from "./Utils.js";
-import { Color } from "./Color";
+import { Color } from "./Color.js";
 import { ALEvent } from "./events/ALEvent.js";
 
 export let MOC = (function() {

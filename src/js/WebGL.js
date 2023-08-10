@@ -1,5 +1,4 @@
-//import { loadShadersWebGL1 } from "./ShadersWebGL1";
-import { loadShadersWebGL2 } from "./ShadersWebGL2";
+import { loadShadersWebGL2 } from "./ShadersWebGL2.js";
 // Import resources images
 import kernel from '../img/kernel.png';
 

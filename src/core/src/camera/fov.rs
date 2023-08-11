@@ -5,6 +5,7 @@ use crate::math::projection::coo_space::{XYZWModel, XYZWWorld, XYNDC};
 use crate::math::sph_geom::region::{Intersection, PoleContained, Region};
 use crate::math::{projection::Projection, sph_geom::bbox::BoundingBox};
 use crate::LonLatT;
+use cgmath::Vector3;
 
 use crate::ProjectionType;
 use std::iter;
@@ -160,6 +161,10 @@ impl FieldOfView {
 
     pub fn intersects_meridian(&self, lon: f64) -> Intersection {
         self.reg.intersects_meridian(lon)
+    }
+
+    pub fn intersects_great_circle(&self, n: &Vector3<f64>) -> Intersection {
+        self.reg.intersects_great_circle(n)
     }
 
     pub fn intersects_great_circle_arc(

@@ -401,7 +401,6 @@ export class HiPSLayer {
             }));
         });
 
-        console.log("aaa", this.layer.getColorCfg(), this.layer.properties)
         const colorCfg = this.layer.getColorCfg();
         const cmap = colorCfg.colormap;
         const reverse = colorCfg.reversed;
@@ -420,7 +419,6 @@ export class HiPSLayer {
         reverseTr[0].style.display = "flex";
         stretchTr[0].style.display = "flex";
 
-        console.log("color", colorCfg)
         if (colorCfg.minCut) {
             if (parseFloat(minCut.val()) != colorCfg.minCut) {
                 minCut.val(parseFloat(colorCfg.minCut.toFixed(5)));

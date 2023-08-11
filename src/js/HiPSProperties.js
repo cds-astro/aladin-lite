@@ -85,7 +85,6 @@ HiPSProperties.fetchFromUrl = async function(urlOrId) {
             throw e;
         }
     }
-    console.log(urlOrId)
 
     // Fetch the properties of the survey
     const HiPSServiceUrl = urlOrId.toString();
@@ -121,7 +120,6 @@ HiPSProperties.fetchFromUrl = async function(urlOrId) {
             }
         })
         .then((response) => {
-            console.log(response)
             // We get the property here
             let metadata = HiPSDefinition.parseHiPSProperties(response);
 

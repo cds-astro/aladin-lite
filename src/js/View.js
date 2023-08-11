@@ -1441,7 +1441,6 @@ export let View = (function () {
         }
 
         this.imageLayers.set(layerName, imageLayer);
-        console.log("layer", imageLayer)
         ALEvent.HIPS_LAYER_ADDED.dispatchedTo(this.aladinDiv, { layer: imageLayer });
     }
 
@@ -1501,8 +1500,6 @@ export let View = (function () {
 
                         self.aladin.setBaseImageLayer(dssUrl);
                     } else {
-                        //console.log("not empty")
-
                         // there is surveys that have been queried
                         // rename the first overlay layer to "base"
                         self.renameLayer(this.overlayLayers[0], "base");

@@ -62,7 +62,6 @@ export let MOC = (function() {
             this.adaptativeDisplay = false;
         }*/
         this.adaptativeDisplay = options['adaptativeDisplay'] !== false;
-        console.log(this.adaptativeDisplay)
 
         //this.proxyCalled = false; // this is a flag to check whether we already tried to load the MOC through the proxy
 

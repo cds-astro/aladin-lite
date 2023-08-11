@@ -1,13 +1,13 @@
 use super::bbox::BoundingBox;
 use crate::math::angle::ToAngle;
+use crate::math::projection::domain::op::Inter;
 use crate::math::{lonlat::LonLatT, projection::coo_space::XYZWModel, MINUS_HALF_PI};
-use healpix::sph_geom::coo3d::Coo3D;
+use cgmath::Vector3;
 use healpix::sph_geom::coo3d::Vec3;
+use healpix::sph_geom::coo3d::{Coo3D, UnitVect3};
 use healpix::sph_geom::ContainsSouthPoleMethod;
 use healpix::sph_geom::Polygon;
 use mapproj::math::HALF_PI;
-
-
 
 pub enum Region {
     AllSky,
@@ -91,25 +91,29 @@ impl Region {
     }
 
     pub fn intersects_parallel(&self, lat: f64) -> Intersection {
-        match self {
-            // The polygon is included inside the region
-            Region::AllSky => Intersection::Included,
-            Region::Polygon { polygon, .. } => {
-                let vertices = polygon
-                    .intersect_parallel(lat)
-                    .iter()
-                    .map(|v| XYZWModel::new(v.y(), v.z(), v.x(), 1.0))
-                    .collect::<Vec<_>>();
+        if lat == 0.0 {
+            self.intersects_great_circle(&Vector3::unit_y())
+        } else {
+            match self {
+                // The polygon is included inside the region
+                Region::AllSky => Intersection::Included,
+                Region::Polygon { polygon, .. } => {
+                    let vertices = polygon
+                        .intersect_parallel(lat)
+                        .iter()
+                        .map(|v| XYZWModel::new(v.y(), v.z(), v.x(), 1.0))
+                        .collect::<Vec<_>>();
 
-                if !vertices.is_empty() {
-                    Intersection::Intersect {
-                        vertices: vertices.into_boxed_slice(),
+                    if !vertices.is_empty() {
+                        Intersection::Intersect {
+                            vertices: vertices.into_boxed_slice(),
+                        }
+                    // test whether a point on the parallel is included
+                    } else if self.contains(&LonLatT::new(0.0.to_angle(), lat.to_angle())) {
+                        Intersection::Included
+                    } else {
+                        Intersection::Empty
                     }
-                // test whether a point on the parallel is included
-                } else if self.contains(&LonLatT::new(0.0.to_angle(), lat.to_angle())) {
-                    Intersection::Included
-                } else {
-                    Intersection::Empty
                 }
             }
         }
@@ -154,6 +158,29 @@ impl Region {
         let s_pole_lonlat = LonLatT::new(lon.to_angle(), (MINUS_HALF_PI + 1e-4).to_angle());
 
         self.intersects_great_circle_arc(&s_pole_lonlat, &n_pole_lonlat)
+    }
+
+    pub fn intersects_great_circle(&self, n: &Vector3<f64>) -> Intersection {
+        match self {
+            // The polygon is included inside the region
+            Region::AllSky => Intersection::Included,
+            Region::Polygon { polygon, .. } => {
+                let vertices: Vec<cgmath::Vector4<f64>> = polygon
+                    .intersect_great_circle(&UnitVect3::new_unsafe(n.z, n.x, n.y))
+                    .iter()
+                    .map(|v| XYZWModel::new(v.y(), v.z(), v.x(), 1.0))
+                    .collect::<Vec<_>>();
+
+                // Test whether a point on the meridian is included
+                match vertices.len() {
+                    0 => Intersection::Empty,
+                    1 => Intersection::Included,
+                    _ => Intersection::Intersect {
+                        vertices: vertices.into_boxed_slice(),
+                    },
+                }
+            }
+        }
     }
 
     pub fn contains(&self, lonlat: &LonLatT<f64>) -> bool {

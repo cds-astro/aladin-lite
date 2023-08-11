@@ -14,6 +14,8 @@ use crate::renderable::Renderer;
 use crate::ProjectionType;
 use al_api::color::ColorRGBA;
 
+use al_core::{info, inforec, log};
+
 use al_api::grid::GridCfg;
 
 use crate::grid::label::Label;

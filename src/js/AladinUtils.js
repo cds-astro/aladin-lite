@@ -96,6 +96,11 @@ export let AladinUtils = (function() {
             let xy = view.wasm.worldToScreen(ra, dec);
             return xy;
         },
+
+        viewXyToClipXy: function(x, y, view) {
+            let xy = view.wasm.screenToClip(x, y);
+            return xy;
+        },
     	
     	myRound: function(a) {
     		if (a<0) {

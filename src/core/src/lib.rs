@@ -609,6 +609,13 @@ impl WebClient {
             .map(|v| Box::new([v.x, v.y]) as Box<[f64]>)
     }
 
+    #[wasm_bindgen(js_name = screenToClip)]
+    pub fn screen_to_clip(&self, x: f64, y: f64) -> Box<[f64]> {
+        let v = self.app.screen_to_clip(&Vector2::new(x, y));
+
+        Box::new([v.x, v.y]) as Box<[f64]>
+    }
+
     #[wasm_bindgen(js_name = worldToScreenVec)]
     pub fn world_to_screen_vec(&self, lon: &[f64], lat: &[f64]) -> Box<[f64]> {
         let vertices = lon

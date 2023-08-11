@@ -1341,6 +1341,11 @@ impl App {
             .map(|model_pos| model_pos.lonlat())
     }
 
+    pub(crate) fn screen_to_clip(&self, pos: &Vector2<f64>) -> Vector2<f64> {
+        // Select the HiPS layer rendered lastly
+        crate::math::projection::screen_to_clip_space(pos, &self.camera)
+    }
+
     pub(crate) fn view_to_icrs_coosys(&self, lonlat: &LonLatT<f64>) -> LonLatT<f64> {
         let icrs_pos: Vector4<_> = lonlat.vector();
         let view_system = self.camera.get_coo_system();

@@ -14,8 +14,6 @@ pub struct MOC {
 
     pub color: ColorRGBA,
     pub fill_color: ColorRGBA,
-
-    pub adaptative_display: bool,
 }
 use crate::{color::ColorRGB, Abort};
 use std::convert::TryInto;
@@ -32,8 +30,6 @@ impl MOC {
         show: bool,
         hex_color: String,
         fill_color: String,
-
-        adaptative_display: bool,
     ) -> Self {
         let parse_color = |color_hex_str: String, opacity: f32| -> ColorRGBA {
             let rgb = Color::hexToRgb(color_hex_str);
@@ -58,7 +54,6 @@ impl MOC {
             edges,
             color,
             show,
-            adaptative_display,
         }
     }
 }
@@ -90,7 +85,6 @@ impl Default for MOC {
                 b: 0.0,
                 a: 1.0,
             },
-            adaptative_display: true,
         }
     }
 }

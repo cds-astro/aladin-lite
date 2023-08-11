@@ -56,12 +56,6 @@ export let MOC = (function() {
 
         this.opacity = Math.max(0, Math.min(1, this.opacity)); // 0 <= this.opacity <= 1
         this.lineWidth = options["lineWidth"] || 1;
-        /*if (options && options.adaptativeDisplay) {
-            this.adaptativeDisplay = true;
-        } else {
-            this.adaptativeDisplay = false;
-        }*/
-        this.adaptativeDisplay = options['adaptativeDisplay'] !== false;
 
         //this.proxyCalled = false; // this is a flag to check whether we already tried to load the MOC through the proxy
 
@@ -100,7 +94,7 @@ export let MOC = (function() {
         let self = this;
 
         this.view = view;
-        this.mocParams = new Aladin.wasmLibs.core.MOC(this.uuid, this.opacity, this.lineWidth, this.perimeter, this.fill, this.edge, this.isShowing, this.color, this.fillColor, this.adaptativeDisplay);
+        this.mocParams = new Aladin.wasmLibs.core.MOC(this.uuid, this.opacity, this.lineWidth, this.perimeter, this.fill, this.edge, this.isShowing, this.color, this.fillColor);
 
         if (this.dataURL) {
             this.promiseFetchData
@@ -146,7 +140,7 @@ export let MOC = (function() {
     MOC.prototype.reportChange = function() {
         if (this.view) {
             // update the new moc params to the backend
-            this.mocParams = new Aladin.wasmLibs.core.MOC(this.uuid, this.opacity, this.lineWidth, this.perimeter, this.fill, this.edge, this.isShowing, this.color, this.fillColor, this.adaptativeDisplay);
+            this.mocParams = new Aladin.wasmLibs.core.MOC(this.uuid, this.opacity, this.lineWidth, this.perimeter, this.fill, this.edge, this.isShowing, this.color, this.fillColor);
             this.view.wasm.setMocParams(this.mocParams);
             this.view.requestRedraw();
         }

@@ -167,17 +167,28 @@ export let Circle = (function() {
         var ra = this.centerRaDec[0];
         var dec = this.centerRaDec[1] + (ra>0 ? - this.radiusDegrees : this.radiusDegrees);
 
+        // First check, the point in the circle is defined
         let circlePtXyView = AladinUtils.radecToViewXy(ra, dec, view);
         if (!circlePtXyView) {
             // the circle border goes out of the projection
             // we do not draw it
             return;
         }
+
+        // Second check, the radius is not too big in the clipping space
+        let [x1c, y1c] = AladinUtils.viewXyToClipXy(this.center.x, this.center.y, view);
+        let [x2c, y2c] = AladinUtils.viewXyToClipXy(circlePtXyView[0], circlePtXyView[1], view);
+
+        let mag2 = (x1c - x2c)*(x1c - x2c) + (y1c - y2c)*(y1c - y2c);
+        if (mag2 > 0.2) {
+            return;
+        }
+
+        // Then we can draw
         var dx = circlePtXyView[0] - this.center.x;
         var dy = circlePtXyView[1] - this.center.y;
         this.radius = Math.sqrt(dx*dx + dy*dy);
 
-        // TODO : check each 4 point until show
         var baseColor = this.color;
         if (! baseColor && this.overlay) {
             baseColor = this.overlay.color;

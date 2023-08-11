@@ -57,15 +57,6 @@ pub fn get_intersecting_parallel(
                 // The fov should be contained into PI length
                 if lon_len >= PI {
                     std::mem::swap(&mut lon1, &mut lon2);
-                    let lon1_d = lon1.to_degrees();
-                    let lon2_d = lon2.to_degrees();
-
-                    al_core::info!("lon len >= PI", lat, lon1_d, lon2_d, len_vert);
-                } else {
-                    let lon1_d = lon1.to_degrees();
-                    let lon2_d = lon2.to_degrees();
-
-                    al_core::info!("lon len < PI", lat, lon1_d, lon2_d, len_vert);
                 }
 
                 Some(Parallel::new(

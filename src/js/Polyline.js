@@ -37,6 +37,8 @@ import { AladinUtils } from './AladinUtils.js';
 import { Line } from './Line.js';
 import { Utils } from './Utils';
 import { Overlay } from "./Overlay.js";
+import { ProjectionEnum, projectionNames } from "./ProjectionEnum.js";
+
 
 export let Polyline= (function() {
     // constructor
@@ -172,18 +174,6 @@ export let Polyline= (function() {
             ctx.strokeStyle= baseColor;
         }
 
-        // 0. Determine the clockwise order of the vertices given in the
-        // space
-        let ccwOrder = function(a, b, c) {
-            return a.x*b.y + a.y*c.x + b.x*c.y - c.x*b.y - c.y*a.x - b.x*a.y > 0.0;
-        };
-
-        const ccwGoodOrder = ccwOrder(
-            {x: this.radecArray[0][0], y: this.radecArray[0][1]},
-            {x: this.radecArray[1][0], y: this.radecArray[1][1]},
-            {x: this.radecArray[2][0], y: this.radecArray[2][1]},
-        );
-
         // 1. project the vertices into the screen
         //    and computes a BBox
         let xyView = [];
@@ -213,17 +203,37 @@ export let Polyline= (function() {
             return;
         }
 
-        let drawLine = (v0, v1) => {
-            const line = new Line(v0.x, v0.y, v1.x, v1.y);
-
-            if (line.isInsideView(view.width, view.height)) {
-                line.draw(ctx);
-            }
-        };
+        let drawLine;
+        
+        if (view.projection === ProjectionEnum.SIN) {
+            drawLine = (v0, v1) => {
+                const line = new Line(v0.x, v0.y, v1.x, v1.y);
+    
+                if (line.isInsideView(view.width, view.height)) {
+                    line.draw(ctx);
+                }
+            };
+        } else {
+            drawLine = (v0, v1) => {
+                const line = new Line(v0.x, v0.y, v1.x, v1.y);
+    
+                if (line.isInsideView(view.width, view.height)) {
+                    // check if the line is too big (in the clip space) to be drawn
+                    const [x1, y1] = AladinUtils.viewXyToClipXy(line.x1, line.y1, view);
+                    const [x2, y2] = AladinUtils.viewXyToClipXy(line.x2, line.y2, view);
+    
+                    const mag2 = (x1 - x2)*(x1 - x2) + (y1 - y2)*(y1 - y2);
+    
+                    if (mag2 < 0.1) {
+                        line.draw(ctx);
+                    }
+                }
+            };
+        }
 
         // 3. Check whether the polygon do not cross the view
         let nSegment = this.closed ? len : len - 1;
-
+        /*
         let v0 = this.closed ? len - 1 : 0;
         let v1 = this.closed ? 0 : 1;
         let v2 = this.closed ? 1 : 2;
@@ -235,6 +245,7 @@ export let Polyline= (function() {
             if (ccwGoodOrder != ccwTriOrder) {
                 // if it cross the view, we end up here
                 drawPolygon = false;
+
                 return;
             }
 
@@ -245,11 +256,11 @@ export let Polyline= (function() {
 
         if (!drawPolygon) {
             return;
-        }
+        }*/
 
         // 4. Finally, draw all the polygon, segment by segment
-        v0 = this.closed ? len - 1 : 0;
-        v1 = this.closed ? 0 : 1;
+        let v0 = this.closed ? len - 1 : 0;
+        let v1 = this.closed ? 0 : 1;
 
         ctx.lineWidth = this.lineWidth;
         ctx.beginPath();

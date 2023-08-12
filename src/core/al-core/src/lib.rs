@@ -4,8 +4,6 @@ extern crate serde_json;
 extern crate futures;
 extern crate wasm_streams;
 
-pub mod text;
-
 pub mod image;
 mod object;
 pub mod shader;
@@ -14,6 +12,7 @@ pub mod webgl_ctx;
 #[macro_use]
 pub mod log;
 pub use log::log;
+
 pub mod colormap;
 pub use colormap::{Colormap, Colormaps};
 

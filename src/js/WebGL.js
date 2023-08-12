@@ -1,23 +1,17 @@
-//import { loadShadersWebGL1 } from "./ShadersWebGL1";
-import { loadShadersWebGL2 } from "./ShadersWebGL2";
+import { loadShadersWebGL2 } from "./ShadersWebGL2.js";
 // Import resources images
 import kernel from '../img/kernel.png';
-import letters from '../img/letters.png';
-import lettersMetadata from '../img/letters.json';
 
 export let WebGLCtx = (function() {
     // constructor
     function WebGLCtx(ctx, div) {
         const shaders = loadShadersWebGL2();
-        const lettersMeta = JSON.stringify(lettersMetadata);
 
         this.webclient = new ctx.WebClient(
             div,
             shaders,
             {
                 'kernel': kernel,
-                'letters': letters,
-                'letters_metadata': lettersMeta,
             }
         );
     };

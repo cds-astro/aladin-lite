@@ -8,5 +8,6 @@ package-lock.json
 src/core/target/
 src/core/Cargo.lock
 
-AladinLiteAssets.tar.gz
+aladin-lite-3.1.0.tgz
 
+.vscode

@@ -12,6 +12,8 @@ use super::color::ColorRGB;
 pub struct GridCfg {
     #[serde(default = "default_color")]
     pub color: Option<ColorRGB>,
+    #[serde(default = "default_thickness")]
+    pub thickness: Option<f32>,
     pub opacity: Option<f32>,
     #[serde(default = "default_labels")]
     pub show_labels: Option<bool>,
@@ -36,6 +38,10 @@ fn default_color() -> Option<ColorRGB> {
 }
 
 fn default_label_size() -> Option<f32> {
+    None
+}
+
+fn default_thickness() -> Option<f32> {
     None
 }
 

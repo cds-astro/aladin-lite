@@ -42,11 +42,11 @@ import { ImageSurvey } from "./ImageSurvey.js";
 import { Coo } from "./libs/astro/coo.js";
 import { CooConversion } from "./CooConversion.js";
 import { AladinLogo } from "./gui/AladinLogo.js";
-import { ProjectionSelector } from "./gui/ProjectionSelector";
-import { ProjectionEnum } from "./ProjectionEnum";
+import { ProjectionSelector } from "./gui/ProjectionSelector.js";
+import { ProjectionEnum } from "./ProjectionEnum.js";
 import { Stack } from "./gui/Stack.js";
 import { CooGrid } from "./gui/CooGrid.js";
-import { ContextMenu } from "./gui/ContextMenu";
+import { ContextMenu } from "./gui/ContextMenu.js";
 import { ALEvent } from "./events/ALEvent.js";
 import { Color } from './Color.js';
 import { ImageFITS } from "./ImageFITS.js";
@@ -198,7 +198,7 @@ export let Aladin = (function () {
             opacity = options.gridOptions.opacity;
         } else {
             color = {r:0.0, g:1.0, b:0.0};
-            opacity = 1.0;
+            opacity = 0.5;
         }
 
         this.view.setGridConfig({
@@ -591,10 +591,6 @@ export let Aladin = (function () {
         var fullScreenToggledFn = self.callbacksByEventName['fullScreenToggled'];
         (typeof fullScreenToggledFn === 'function') && fullScreenToggledFn(isInFullscreen);
     };
-
-    Aladin.prototype.setAngleRotation = function (theta) {
-        this.view.setAngleRotation(theta)
-    }
 
     Aladin.prototype.getOptionsFromQueryString = function () {
         var options = {};

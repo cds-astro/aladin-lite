@@ -8,27 +8,18 @@
 
 // World space
 use crate::camera::CameraViewPort;
-use coo_space::XYZWModel;
 use crate::domain::sdf::ProjDefType;
 use crate::LonLatT;
+use coo_space::XYZWModel;
 //use crate::num_traits::FloatConst;
 use crate::math::PI;
-use crate::math::{
-    rotation::Rotation,
-    HALF_PI
-};
+use crate::math::{rotation::Rotation, HALF_PI};
 use cgmath::Vector2;
 
 pub mod coo_space;
 pub mod domain;
 
-use domain::{
-    full::FullScreen,
-    hpx::Hpx, 
-    par::Par,
-    cod::Cod,
-    basic,
-};
+use domain::{basic, cod::Cod, full::FullScreen, hpx::Hpx, par::Par};
 
 pub fn screen_to_ndc_space(
     pos_screen_space: &Vector2<f64>,
@@ -130,7 +121,7 @@ pub enum ProjectionType {
     Ncp(mapproj::zenithal::ncp::Ncp),
 
     // Pseudo-cylindrical projections
-    /* AIT,      Aitoff                     */                     
+    /* AIT,      Aitoff                     */
     Ait(mapproj::pseudocyl::ait::Ait),
     // MOL,      Mollweide                  */
     Mol(mapproj::pseudocyl::mol::Mol),
@@ -241,9 +232,7 @@ impl ProjectionType {
         camera: &CameraViewPort,
     ) -> Option<Vector2<f64>> {
         self.view_to_normalized_device_space(pos_model_space, camera)
-            .map(|ndc_pos| {
-                crate::ndc_to_screen_space(&ndc_pos, camera)
-            })
+            .map(|ndc_pos| crate::ndc_to_screen_space(&ndc_pos, camera))
     }
 
     pub fn view_to_normalized_device_space(
@@ -251,7 +240,7 @@ impl ProjectionType {
         pos_view_space: &Vector4<f64>,
         camera: &CameraViewPort,
     ) -> Option<Vector2<f64>> {
-        let view_coosys = camera.get_system();
+        let view_coosys = camera.get_coo_system();
         let c = CooSystem::ICRS.to::<f64>(view_coosys);
 
         let m2w = camera.get_m2w();
@@ -264,7 +253,7 @@ impl ProjectionType {
         pos_view_space: &Vector4<f64>,
         camera: &CameraViewPort,
     ) -> Vector2<f64> {
-        let view_coosys = camera.get_system();
+        let view_coosys = camera.get_coo_system();
         let c = CooSystem::ICRS.to::<f64>(view_coosys);
 
         let m2w = camera.get_m2w();
@@ -280,6 +269,16 @@ impl ProjectionType {
         let m2w = camera.get_m2w();
         let pos_world_space = m2w * pos_model_space;
         self.world_to_normalized_device_space(&pos_world_space, camera)
+    }
+
+    pub fn model_to_clip_space(
+        &self,
+        pos_model_space: &XYZWModel,
+        camera: &CameraViewPort,
+    ) -> Option<XYClip> {
+        let m2w = camera.get_m2w();
+        let pos_world_space = m2w * pos_model_space;
+        self.world_to_clip_space(&pos_world_space)
     }
 
     /// World to screen space projection
@@ -346,6 +345,16 @@ impl ProjectionType {
             .map(|pos_normalized_device| ndc_to_screen_space(&pos_normalized_device, camera))
     }
 
+    pub(crate) fn is_allsky(&self) -> bool {
+        match self {
+            ProjectionType::Sin(_)
+            | ProjectionType::Tan(_)
+            | ProjectionType::Feye(_)
+            | ProjectionType::Ncp(_) => false,
+            _ => true,
+        }
+    }
+
     pub fn bounds_size_ratio(&self) -> f64 {
         match self {
             // Zenithal projections
@@ -369,7 +378,7 @@ impl ProjectionType {
             ProjectionType::Ncp(_) => 1.0,
 
             // Pseudo-cylindrical projections
-            /* AIT,      Aitoff                     */                     
+            /* AIT,      Aitoff                     */
             ProjectionType::Ait(_) => 2.0,
             // MOL,      Mollweide                  */
             ProjectionType::Mol(_) => 2.0,
@@ -420,7 +429,7 @@ impl ProjectionType {
             ProjectionType::Ncp(_) => 180.0,
 
             // Pseudo-cylindrical projections
-            /* AIT,      Aitoff                     */                     
+            /* AIT,      Aitoff                     */
             ProjectionType::Ait(_) => 360.0,
             // MOL,      Mollweide                  */
             ProjectionType::Mol(_) => 360.0,
@@ -455,56 +464,56 @@ impl ProjectionType {
             ProjectionType::Tan(_) => {
                 const FULL_SCREEN: ProjDefType = ProjDefType::FullScreen(FullScreen);
                 &FULL_SCREEN
-            },
+            }
             /* STG,	     Stereographic projection   */
             ProjectionType::Stg(_) => {
                 const DISK: ProjDefType = ProjDefType::FullScreen(FullScreen);
                 &DISK
-            },
+            }
             /* SIN,	     Orthographic		        */
             ProjectionType::Sin(_) => {
                 const DISK: ProjDefType = ProjDefType::Disk(basic::disk::Disk { radius: 1.0 });
                 &DISK
-            },
+            }
             /* ZEA,	     Equal-area 		        */
             ProjectionType::Zea(_) => {
                 const DISK: ProjDefType = ProjDefType::Disk(basic::disk::Disk { radius: 1.0 });
                 &DISK
-            },
+            }
             /* FEYE,     Fish-eyes                  */
             ProjectionType::Feye(_) => {
                 const DISK: ProjDefType = ProjDefType::Disk(basic::disk::Disk { radius: 1.0 });
                 &DISK
-            },
+            }
             /* AIR,                                 */
             ProjectionType::Air(_) => {
                 const DISK: ProjDefType = ProjDefType::FullScreen(FullScreen);
                 &DISK
-            },
+            }
             //AZP: {fov: 180},
             //Azp(mapproj::zenithal::azp::Azp),
             /* ARC,                                 */
             ProjectionType::Arc(_) => {
                 const DISK: ProjDefType = ProjDefType::Disk(basic::disk::Disk { radius: 1.0 });
                 &DISK
-            },
+            }
             /* NCP,                                 */
             ProjectionType::Ncp(_) => {
                 const DISK: ProjDefType = ProjDefType::Disk(basic::disk::Disk { radius: 1.0 });
                 &DISK
-            },
+            }
 
             // Pseudo-cylindrical projections
-            /* AIT,      Aitoff                     */                     
+            /* AIT,      Aitoff                     */
             ProjectionType::Ait(_) => {
                 const ELLIPSE: ProjDefType = ProjDefType::Disk(basic::disk::Disk { radius: 1.0 });
                 &ELLIPSE
-            },
+            }
             // MOL,      Mollweide                  */
             ProjectionType::Mol(_) => {
                 const ELLIPSE: ProjDefType = ProjDefType::Disk(basic::disk::Disk { radius: 1.0 });
                 &ELLIPSE
-            },
+            }
             // PAR,                                 */
             ProjectionType::Par(_) => {
                 const PAR: ProjDefType = ProjDefType::Par(Par);
@@ -521,22 +530,22 @@ impl ProjectionType {
             ProjectionType::Mer(_) => {
                 const FULL_SCREEN: ProjDefType = ProjDefType::FullScreen(FullScreen);
                 &FULL_SCREEN
-            },
+            }
             // CAR,                                 */
             ProjectionType::Car(_) => {
                 const FULL_SCREEN: ProjDefType = ProjDefType::FullScreen(FullScreen);
                 &FULL_SCREEN
-            },
+            }
             // CEA,                                 */
             ProjectionType::Cea(_) => {
                 const FULL_SCREEN: ProjDefType = ProjDefType::FullScreen(FullScreen);
                 &FULL_SCREEN
-            },
+            }
             // CYP,                                 */
             ProjectionType::Cyp(_) => {
                 const FULL_SCREEN: ProjDefType = ProjDefType::FullScreen(FullScreen);
                 &FULL_SCREEN
-            },
+            }
 
             // Conic projections
             // COD,                                 */
@@ -578,7 +587,7 @@ impl Projection for ProjectionType {
             ProjectionType::Ncp(ncp) => ncp.clip_to_world_space(xy),
 
             // Pseudo-cylindrical projections
-            /* AIT,      Aitoff                     */                     
+            /* AIT,      Aitoff                     */
             ProjectionType::Ait(ait) => ait.clip_to_world_space(xy),
             // MOL,      Mollweide                  */
             ProjectionType::Mol(mol) => mol.clip_to_world_space(xy),
@@ -599,19 +608,18 @@ impl Projection for ProjectionType {
 
             // Conic projections
             // COD,                                 */
-            ProjectionType::Cod(cod) => {
-                cod.clip_to_world_space(xy)
-                    .map(|xyzw| {
-                        let rot = Rotation::from_sky_position(&LonLatT::new(0.0_f64.to_angle(), (HALF_PI * 0.5).to_angle()).vector());
-                        rot.inv_rotate(&xyzw)
-                    })
-            },
+            ProjectionType::Cod(cod) => cod.clip_to_world_space(xy).map(|xyzw| {
+                let rot = Rotation::from_sky_position(
+                    &LonLatT::new(0.0_f64.to_angle(), (HALF_PI * 0.5).to_angle()).vector(),
+                );
+                rot.inv_rotate(&xyzw)
+            }),
 
             // HEALPix hybrid projection
             ProjectionType::Hpx(hpx) => hpx.clip_to_world_space(xy),
         }
     }
-   
+
     // Projection
     fn world_to_clip_space(&self, xyzw: &XYZWWorld) -> Option<XYClip> {
         match self {
@@ -636,7 +644,7 @@ impl Projection for ProjectionType {
             ProjectionType::Ncp(ncp) => ncp.world_to_clip_space(xyzw),
 
             // Pseudo-cylindrical projections
-            /* AIT,      Aitoff                     */                     
+            /* AIT,      Aitoff                     */
             ProjectionType::Ait(ait) => ait.world_to_clip_space(xyzw),
             // MOL,      Mollweide                  */
             ProjectionType::Mol(mol) => mol.world_to_clip_space(xyzw),
@@ -658,9 +666,11 @@ impl Projection for ProjectionType {
             // COD,                                 */
             ProjectionType::Cod(cod) => {
                 // The Cod projection is centered on (0, 45 deg)
-                let rot = Rotation::from_sky_position(&LonLatT::new(0.0_f64.to_angle(), (HALF_PI * 0.5).to_angle()).vector());
+                let rot = Rotation::from_sky_position(
+                    &LonLatT::new(0.0_f64.to_angle(), (HALF_PI * 0.5).to_angle()).vector(),
+                );
                 cod.world_to_clip_space(&rot.rotate(&xyzw))
-            },
+            }
             // HEALPix hybrid projection
             ProjectionType::Hpx(hpx) => hpx.world_to_clip_space(xyzw),
         }
@@ -692,7 +702,7 @@ use self::coo_space::XYNDC;
 use super::angle::ToAngle;
 impl<'a, P> Projection for &'a P
 where
-    P: CanonicalProjection
+    P: CanonicalProjection,
 {
     /// Perform a clip to the world space deprojection
     ///
@@ -703,47 +713,29 @@ where
         let proj_bounds = self.bounds();
         // Scale the xy_clip space so that it maps the proj definition domain of mapproj
         let xy_mapproj = {
-            let x_proj_bounds = proj_bounds.x_bounds()
-                .as_ref()
-                .unwrap_or(&(-PI..=PI));
+            let x_proj_bounds = proj_bounds.x_bounds().as_ref().unwrap_or(&(-PI..=PI));
 
-            let y_proj_bounds = proj_bounds.y_bounds()
-                .as_ref()
-                .unwrap_or(&(-PI..=PI));
+            let y_proj_bounds = proj_bounds.y_bounds().as_ref().unwrap_or(&(-PI..=PI));
 
             let x_len = x_proj_bounds.end() - x_proj_bounds.start();
             let y_len = y_proj_bounds.end() - y_proj_bounds.start();
 
-            let y_mean = (y_proj_bounds.end() + y_proj_bounds.start())*0.5;
+            let y_mean = (y_proj_bounds.end() + y_proj_bounds.start()) * 0.5;
 
             let x_off = x_proj_bounds.start();
             let y_off = y_proj_bounds.start();
 
             ProjXY::new(
-                (xy_clip.x*0.5 + 0.5) * x_len + x_off,
-                (xy_clip.y*0.5 + 0.5) * y_len + y_off - y_mean,
+                (xy_clip.x * 0.5 + 0.5) * x_len + x_off,
+                (xy_clip.y * 0.5 + 0.5) * y_len + y_off - y_mean,
             )
-
-            /*let x_len = x_proj_bounds.end().abs().max(x_proj_bounds.start().abs());
-            let y_len = y_proj_bounds.end().abs().max(y_proj_bounds.start().abs());
-
-            ProjXY::new(
-                xy_clip.x * x_len,
-                xy_clip.y * y_len,
-            )*/
         };
-        self.unproj(&xy_mapproj)
-            .map(|xyz_mapproj| {
-                // Xmpp <-> Zal
-                // -Ympp <-> Xal
-                // Zmpp <-> Yal
-                Vector4::new(
-                    -xyz_mapproj.y(),
-                    xyz_mapproj.z(),
-                    xyz_mapproj.x(),
-                    1.0
-                )
-            })
+        self.unproj(&xy_mapproj).map(|xyz_mapproj| {
+            // Xmpp <-> Zal
+            // -Ympp <-> Xal
+            // Zmpp <-> Yal
+            Vector4::new(-xyz_mapproj.y(), xyz_mapproj.z(), xyz_mapproj.x(), 1.0)
+        })
     }
     /// World to the clipping space deprojection
     ///
@@ -760,31 +752,26 @@ where
             pos_world_space.y,
         );
 
-        self.proj(&xyz_mapproj)
-            .map(|xy_clip_mapproj| {
-                let proj_bounds = self.bounds();
-                // Scale the xy_clip space so that it maps the proj definition domain of mapproj
-                let x_proj_bounds = proj_bounds.x_bounds()
-                    .as_ref()
-                    .unwrap_or(&(-PI..=PI));
-    
-                let y_proj_bounds = proj_bounds.y_bounds()
-                    .as_ref()
-                    .unwrap_or(&(-PI..=PI));
+        self.proj(&xyz_mapproj).map(|xy_clip_mapproj| {
+            let proj_bounds = self.bounds();
+            // Scale the xy_clip space so that it maps the proj definition domain of mapproj
+            let x_proj_bounds = proj_bounds.x_bounds().as_ref().unwrap_or(&(-PI..=PI));
 
-                let x_len = x_proj_bounds.end() - x_proj_bounds.start();
-                let y_len = y_proj_bounds.end() - y_proj_bounds.start();
+            let y_proj_bounds = proj_bounds.y_bounds().as_ref().unwrap_or(&(-PI..=PI));
 
-                let x_off = x_proj_bounds.start();
-                let y_off = y_proj_bounds.start();
+            let x_len = x_proj_bounds.end() - x_proj_bounds.start();
+            let y_len = y_proj_bounds.end() - y_proj_bounds.start();
 
-                let y_mean = (y_proj_bounds.end() + y_proj_bounds.start())*0.5;
+            let x_off = x_proj_bounds.start();
+            let y_off = y_proj_bounds.start();
 
-                XYClip::new(
-                    ((( xy_clip_mapproj.x() - x_off ) / x_len ) - 0.5 ) * 2.0,
-                    ((( xy_clip_mapproj.y() - y_off + y_mean ) / y_len ) - 0.5 ) * 2.0
-                )
-            })
+            let y_mean = (y_proj_bounds.end() + y_proj_bounds.start()) * 0.5;
+
+            XYClip::new(
+                (((xy_clip_mapproj.x() - x_off) / x_len) - 0.5) * 2.0,
+                (((xy_clip_mapproj.y() - y_off + y_mean) / y_len) - 0.5) * 2.0,
+            )
+        })
     }
 }
 
@@ -825,28 +812,82 @@ mod tests {
         }
 
         // Zenithal
-        generate_projection_map("./../img/tan.png", ProjectionType::Tan(mapproj::zenithal::tan::Tan));
-        generate_projection_map("./../img/stg.png", ProjectionType::Stg(mapproj::zenithal::stg::Stg));
-        generate_projection_map("./../img/sin.png", ProjectionType::Sin(mapproj::zenithal::sin::Sin));
-        generate_projection_map("./../img/zea.png", ProjectionType::Zea(mapproj::zenithal::zea::Zea));
-        generate_projection_map("./../img/feye.png", ProjectionType::Feye(mapproj::zenithal::feye::Feye));
-        generate_projection_map("./../img/arc.png", ProjectionType::Arc(mapproj::zenithal::arc::Arc));
-        generate_projection_map("./../img/ncp.png", ProjectionType::Ncp(mapproj::zenithal::ncp::Ncp));
-        generate_projection_map("./../img/air.png", ProjectionType::Air(mapproj::zenithal::air::Air::new()));
+        generate_projection_map(
+            "./../img/tan.png",
+            ProjectionType::Tan(mapproj::zenithal::tan::Tan),
+        );
+        generate_projection_map(
+            "./../img/stg.png",
+            ProjectionType::Stg(mapproj::zenithal::stg::Stg),
+        );
+        generate_projection_map(
+            "./../img/sin.png",
+            ProjectionType::Sin(mapproj::zenithal::sin::Sin),
+        );
+        generate_projection_map(
+            "./../img/zea.png",
+            ProjectionType::Zea(mapproj::zenithal::zea::Zea),
+        );
+        generate_projection_map(
+            "./../img/feye.png",
+            ProjectionType::Feye(mapproj::zenithal::feye::Feye),
+        );
+        generate_projection_map(
+            "./../img/arc.png",
+            ProjectionType::Arc(mapproj::zenithal::arc::Arc),
+        );
+        generate_projection_map(
+            "./../img/ncp.png",
+            ProjectionType::Ncp(mapproj::zenithal::ncp::Ncp),
+        );
+        generate_projection_map(
+            "./../img/air.png",
+            ProjectionType::Air(mapproj::zenithal::air::Air::new()),
+        );
 
         // Cylindrical
-        generate_projection_map("./../img/mer.png", ProjectionType::Mer(mapproj::cylindrical::mer::Mer));
-        generate_projection_map("./../img/car.png", ProjectionType::Car(mapproj::cylindrical::car::Car));
-        generate_projection_map("./../img/cea.png", ProjectionType::Cea(mapproj::cylindrical::cea::Cea::new()));
-        generate_projection_map("./../img/cyp.png", ProjectionType::Cyp(mapproj::cylindrical::cyp::Cyp::new()));
+        generate_projection_map(
+            "./../img/mer.png",
+            ProjectionType::Mer(mapproj::cylindrical::mer::Mer),
+        );
+        generate_projection_map(
+            "./../img/car.png",
+            ProjectionType::Car(mapproj::cylindrical::car::Car),
+        );
+        generate_projection_map(
+            "./../img/cea.png",
+            ProjectionType::Cea(mapproj::cylindrical::cea::Cea::new()),
+        );
+        generate_projection_map(
+            "./../img/cyp.png",
+            ProjectionType::Cyp(mapproj::cylindrical::cyp::Cyp::new()),
+        );
         // Pseudo-cylindrical
-        generate_projection_map("./../img/mer.png", ProjectionType::Ait(mapproj::pseudocyl::ait::Ait));
-        generate_projection_map("./../img/car.png", ProjectionType::Par(mapproj::pseudocyl::par::Par));
-        generate_projection_map("./../img/cea.png", ProjectionType::Sfl(mapproj::pseudocyl::sfl::Sfl));
-        generate_projection_map("./../img/cyp.png", ProjectionType::Mol(mapproj::pseudocyl::mol::Mol::new()));
+        generate_projection_map(
+            "./../img/mer.png",
+            ProjectionType::Ait(mapproj::pseudocyl::ait::Ait),
+        );
+        generate_projection_map(
+            "./../img/car.png",
+            ProjectionType::Par(mapproj::pseudocyl::par::Par),
+        );
+        generate_projection_map(
+            "./../img/cea.png",
+            ProjectionType::Sfl(mapproj::pseudocyl::sfl::Sfl),
+        );
+        generate_projection_map(
+            "./../img/cyp.png",
+            ProjectionType::Mol(mapproj::pseudocyl::mol::Mol::new()),
+        );
         // Conic
-        generate_projection_map("./../img/cod.png", ProjectionType::Cod(mapproj::conic::cod::Cod::new()));
+        generate_projection_map(
+            "./../img/cod.png",
+            ProjectionType::Cod(mapproj::conic::cod::Cod::new()),
+        );
         // Hybrid
-        generate_projection_map("./../img/hpx.png", ProjectionType::Hpx(mapproj::hybrid::hpx::Hpx));
+        generate_projection_map(
+            "./../img/hpx.png",
+            ProjectionType::Hpx(mapproj::hybrid::hpx::Hpx),
+        );
     }
 }

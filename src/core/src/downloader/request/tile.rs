@@ -1,5 +1,5 @@
-use crate::{healpix::cell::HEALPixCell};
-use al_core::image::format::{ChannelType, ImageFormatType, RGBA8U, RGB8U};
+use crate::healpix::cell::HEALPixCell;
+use al_core::image::format::{ChannelType, ImageFormatType, RGB8U, RGBA8U};
 
 use crate::downloader::query;
 use al_core::image::ImageType;
@@ -33,14 +33,10 @@ async fn query_html_image(url: &str) -> Result<HtmlImageElement, JsValue> {
         &mut (Box::new(move |resolve, reject| {
             // Ask for CORS permissions
             image_cloned.set_cross_origin(Some(""));
-            image_cloned.set_onload(
-                Some(&resolve)
-            );
-            image_cloned.set_onerror(
-                Some(&reject)
-            );
+            image_cloned.set_onload(Some(&resolve));
+            image_cloned.set_onerror(Some(&reject));
             image_cloned.set_src(&url);
-        }) as Box<dyn FnMut(js_sys::Function, js_sys::Function)>)
+        }) as Box<dyn FnMut(js_sys::Function, js_sys::Function)>),
     );
 
     let _ = JsFuture::from(html_img_elt_promise).await?;
@@ -48,12 +44,12 @@ async fn query_html_image(url: &str) -> Result<HtmlImageElement, JsValue> {
     Ok(image)
 }
 
-use al_core::image::html::HTMLImage;
-use wasm_bindgen::JsValue;
 use crate::renderable::Url;
-use wasm_bindgen_futures::JsFuture;
-use web_sys::{RequestInit, RequestMode, Response, HtmlImageElement};
+use al_core::image::html::HTMLImage;
 use wasm_bindgen::JsCast;
+use wasm_bindgen::JsValue;
+use wasm_bindgen_futures::JsFuture;
+use web_sys::{HtmlImageElement, RequestInit, RequestMode, Response};
 impl From<query::Tile> for TileRequest {
     // Create a tile request associated to a HiPS
     fn from(query: query::Tile) -> Self {
@@ -82,7 +78,6 @@ impl From<query::Tile> for TileRequest {
                 debug_assert!(resp_value.is_instance_of::<Response>());
                 let resp: Response = resp_value.dyn_into()?;*/
 
-                
                 /*/// Bitmap version
                 let blob = JsFuture::from(resp.blob()?).await?.into();
                 let image = JsFuture::from(window.create_image_bitmap_with_blob(&blob)?)
@@ -93,7 +88,7 @@ impl From<query::Tile> for TileRequest {
                 Ok(ImageType::JpgImageRgb8u { image })*/
                 /*
                 /// Raw image decoding
-                
+
                 let buf = JsFuture::from(resp.array_buffer()?).await?;
                 let raw_bytes = js_sys::Uint8Array::new(&buf).to_vec();
                 let image = ImageBuffer::<RGB8U>::from_raw_bytes(&raw_bytes[..], 512, 512)?;
@@ -103,7 +98,9 @@ impl From<query::Tile> for TileRequest {
                 // HTMLImageElement
                 let image = query_html_image(&url_clone).await?;
                 // The image has been resolved
-                Ok(ImageType::HTMLImageRgb8u { image: HTMLImage::<RGB8U>::new(image) })
+                Ok(ImageType::HTMLImageRgb8u {
+                    image: HTMLImage::<RGB8U>::new(image),
+                })
             }),
             ChannelType::RGBA8U => Request::new(async move {
                 /*let mut opts = RequestInit::new();
@@ -116,7 +113,6 @@ impl From<query::Tile> for TileRequest {
                 debug_assert!(resp_value.is_instance_of::<Response>());
                 let resp: Response = resp_value.dyn_into()?;*/
 
-                
                 /*/// Bitmap version
                 let blob = JsFuture::from(resp.blob()?).await?.into();
                 let image = JsFuture::from(window.create_image_bitmap_with_blob(&blob)?)
@@ -125,7 +121,7 @@ impl From<query::Tile> for TileRequest {
 
                 let image = Bitmap::new(image);
                 Ok(ImageType::PngImageRgba8u { image })*/
-                
+
                 /*
                 /// Raw image decoding
                 let buf = JsFuture::from(resp.array_buffer()?).await?;
@@ -137,14 +133,21 @@ impl From<query::Tile> for TileRequest {
                 // HTMLImageElement
                 let image = query_html_image(&url_clone).await?;
                 // The image has been resolved
-                Ok(ImageType::HTMLImageRgba8u { image: HTMLImage::<RGBA8U>::new(image) })
+                Ok(ImageType::HTMLImageRgba8u {
+                    image: HTMLImage::<RGBA8U>::new(image),
+                })
             }),
-            ChannelType::R32F | ChannelType::R64F | ChannelType::R32I | ChannelType::R16I | ChannelType::R8UI => Request::new(async move {
+            ChannelType::R32F
+            | ChannelType::R64F
+            | ChannelType::R32I
+            | ChannelType::R16I
+            | ChannelType::R8UI => Request::new(async move {
                 let mut opts = RequestInit::new();
                 opts.method("GET");
                 opts.mode(RequestMode::Cors);
 
-                let request = web_sys::Request::new_with_str_and_init(&url_clone, &opts).unwrap_abort();
+                let request =
+                    web_sys::Request::new_with_str_and_init(&url_clone, &opts).unwrap_abort();
                 let resp_value = JsFuture::from(window.fetch_with_request(&request)).await?;
                 // `resp_value` is a `Response` object.
                 debug_assert!(resp_value.is_instance_of::<Response>());
@@ -163,7 +166,9 @@ impl From<query::Tile> for TileRequest {
 
                     Ok(ImageType::FitsImage { raw_bytes })
                 } else {
-                    Err(JsValue::from_str("Response status code not between 200-299."))
+                    Err(JsValue::from_str(
+                        "Response status code not between 200-299.",
+                    ))
                 }
             }),
             _ => todo!(),
@@ -193,20 +198,29 @@ pub struct Tile {
 
 use crate::Abort;
 impl Tile {
+    #[inline(always)]
     pub fn missing(&self) -> bool {
         self.image.lock().unwrap_abort().is_none()
     }
 
+    #[inline(always)]
     pub fn get_hips_url(&self) -> &Url {
         &self.hips_url
     }
 
+    #[inline(always)]
     pub fn get_url(&self) -> &Url {
         &self.url
     }
 
+    #[inline(always)]
     pub fn cell(&self) -> &HEALPixCell {
         &self.cell
+    }
+
+    #[inline(always)]
+    pub fn query(&self) -> query::Tile {
+        query::Tile::new(&self.cell, self.hips_url.clone(), self.format)
     }
 }
 

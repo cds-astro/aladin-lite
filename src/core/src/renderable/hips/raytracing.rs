@@ -1,5 +1,5 @@
-use crate::{camera::CameraViewPort, math::projection::Projection};
 use crate::domain::sdf::ProjDefType;
+use crate::{camera::CameraViewPort, math::projection::Projection};
 
 use al_core::VecData;
 use al_core::{shader::ShaderBound, Texture2D, VertexArrayObject, WebGlContext};
@@ -38,13 +38,11 @@ use cgmath::{InnerSpace, Vector2};
 const SIZE_POSITION_TEX: usize = 2048;
 fn generate_xyz_position(projection: &ProjectionType) -> Vec<f32> {
     let (w, h) = (SIZE_POSITION_TEX, SIZE_POSITION_TEX);
-    let mut data = Vec::with_capacity(SIZE_POSITION_TEX * SIZE_POSITION_TEX * 3);
-    unsafe { data.set_len(SIZE_POSITION_TEX * SIZE_POSITION_TEX * 3); }
-
+    let mut data = vec![0.0; SIZE_POSITION_TEX * SIZE_POSITION_TEX * 3];
     let mut set_pixel = |r: f32, g: f32, b: f32, x: usize, y: usize| {
-        data[3*(y*w + x)] = r;
-        data[3*(y*w + x) + 1] = g;
-        data[3*(y*w + x) + 2] = b;
+        data[3 * (y * w + x)] = r;
+        data[3 * (y * w + x) + 1] = g;
+        data[3 * (y * w + x) + 2] = b;
     };
 
     let mut t1 = 1.0;
@@ -66,25 +64,25 @@ fn generate_xyz_position(projection: &ProjectionType) -> Vec<f32> {
                 d |= ((pos.x * 0.5 + 0.5) * (1024.0 as f64)) as u32;
 
                 data.push(d);*/
-                
+
                 t1 = pos.x as f32;
                 t2 = pos.y as f32;
                 t3 = pos.z as f32;
                 set_pixel(t1, t2, t3, x, y);
                 if x > 0 {
-                    set_pixel(t1, t2, t3, x-1, y);
+                    set_pixel(t1, t2, t3, x - 1, y);
                 }
 
                 if y > 0 {
-                    set_pixel(t1, t2, t3, x, y-1);
+                    set_pixel(t1, t2, t3, x, y - 1);
                 }
 
                 if x < w - 1 {
-                    set_pixel(t1, t2, t3, x+1, y);
+                    set_pixel(t1, t2, t3, x + 1, y);
                 }
 
                 if y < h - 1 {
-                    set_pixel(t1, t2, t3, x, y+1);
+                    set_pixel(t1, t2, t3, x, y + 1);
                 }
             } else {
                 set_pixel(t1, t2, t3, x, y);

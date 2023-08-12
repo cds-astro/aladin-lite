@@ -20,7 +20,6 @@ use crate::fifo_cache::Cache;
 use query::Query;
 use request::{RequestType, Resource};
 
-
 impl Downloader {
     pub fn new() -> Downloader {
         let requests = Vec::with_capacity(32);
@@ -42,7 +41,7 @@ impl Downloader {
     {
         let url = query.url();
         if self.cache.contains(url) {
-            self.queried_cached_urls.push(url.clone());
+            //self.queried_cached_urls.push(url.clone());
             false
         } else {
             let query_id = query.id();
@@ -52,11 +51,11 @@ impl Downloader {
             // The cell is not already requested
             if not_already_requested {
                 self.queried_list.insert(query_id);
-    
+
                 let request = T::Request::from(query);
                 self.requests.push(request.into());
             }
-    
+
             not_already_requested
         }
     }
@@ -95,9 +94,11 @@ impl Downloader {
         rscs
     }
 
-    pub fn cache_rsc(&mut self, rsc: Resource) {
+    //pub fn get_cached_resources(&mut self) -> Vec<Resource> {}
+
+    /*pub fn cache_rsc(&mut self, rsc: Resource) {
         self.cache.insert(rsc.url().clone(), rsc);
-    }
+    }*/
 
     pub fn delay_rsc(&mut self, rsc: Resource) {
         self.queried_cached_urls.push(rsc.url().clone());

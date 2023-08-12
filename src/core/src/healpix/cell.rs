@@ -3,12 +3,24 @@ use std::cmp::Ordering;
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct HEALPixCell(pub u8, pub u64);
 
-use crate::survey::config::HiPSConfig;
-use crate::Abort;
+#[derive(Debug)]
+pub struct CellVertices {
+    pub vertices: Vec<Box<[(f64, f64)]>>,
+    pub closed: bool,
+}
+
+const BIT_MASK_ALL_ONE_EXCEPT_FIRST: u32 = !0x1;
+
+use healpix::compass_point::Cardinal;
+use healpix::compass_point::MainWind;
+use healpix::compass_point::Ordinal;
+use healpix::compass_point::OrdinalMap;
+
 use crate::utils;
+use crate::Abort;
 impl HEALPixCell {
     // Build the parent cell
-    #[inline]
+    #[inline(always)]
     pub fn parent(self) -> HEALPixCell {
         let depth = self.depth();
         if depth == 0 {
@@ -20,6 +32,7 @@ impl HEALPixCell {
         }
     }
 
+    #[inline(always)]
     pub fn ancestor(self, delta_depth: u8) -> HEALPixCell {
         let HEALPixCell(depth, idx) = self;
         let delta_depth = std::cmp::min(delta_depth, depth);
@@ -28,16 +41,18 @@ impl HEALPixCell {
     }
 
     // Get the texture cell in which the tile is
-    pub fn get_texture_cell(&self, config: &HiPSConfig) -> HEALPixCell {
-        let delta_depth_to_texture = config.delta_depth();
-
+    #[inline(always)]
+    pub fn get_texture_cell(&self, delta_depth_to_texture: u8) -> HEALPixCell {
         self.ancestor(delta_depth_to_texture)
     }
-    pub fn get_offset_in_texture_cell(&self, config: &HiPSConfig) -> (u32, u32) {
-        let texture_cell = self.get_texture_cell(config);
+
+    #[inline(always)]
+    pub fn get_offset_in_texture_cell(&self, delta_depth_to_texture: u8) -> (u32, u32) {
+        let texture_cell = self.get_texture_cell(delta_depth_to_texture);
         self.offset_in_parent(&texture_cell)
     }
 
+    #[inline(always)]
     pub fn offset_in_parent(&self, parent_cell: &HEALPixCell) -> (u32, u32) {
         let HEALPixCell(depth, idx) = *self;
         let HEALPixCell(parent_depth, parent_idx) = *parent_cell;
@@ -55,31 +70,92 @@ impl HEALPixCell {
         (x, y)
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn uniq(&self) -> i32 {
         let HEALPixCell(depth, idx) = *self;
         ((16 << (depth << 1)) | idx) as i32
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn idx(&self) -> u64 {
         self.1
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn depth(&self) -> u8 {
         self.0
     }
 
-    #[inline]
-    pub fn is_root(&self) -> bool {
+    #[inline(always)]
+    pub fn is_root(&self, _delta_depth_to_texture: u8) -> bool {
         self.depth() == 0
     }
 
-    // Returns the tile cells being contained into self
+    // Find the smallest HEALPix cell containing self and another cells
+    // Returns None if the 2 HEALPix cell are not located in the same base HEALPix cell
     #[inline]
-    pub fn get_tile_cells(&self, config: &HiPSConfig) -> impl Iterator<Item = HEALPixCell> {
-        let delta_depth = config.delta_depth();
+    pub fn smallest_common_ancestor(&self, other: &HEALPixCell) -> Option<HEALPixCell> {
+        // We want the common smallest ancestor between self and another HEALPix cell
+        // For this, we should find the number of bits to shift both the 29 order ipix so that
+        // they are equal
+
+        // First we compute both cells ipix number at order 29
+        let mut c1 = *self;
+        let mut c2 = *other;
+
+        if c1.depth() > c2.depth() {
+            std::mem::swap(&mut c1, &mut c2);
+        }
+
+        let HEALPixCell(d1, idx1) = c1;
+        let HEALPixCell(d2, idx2) = c2.ancestor(c2.depth() - d1);
+
+        // idx1 and idx2 belongs to the same order
+        // c1 and c2 does not belong to the same HEALPix 0 order cell
+        if idx1 >> (2 * d1) != idx2 >> (2 * d2) {
+            None
+        } else {
+            // Find all the equal bits
+            let xor = idx1 ^ idx2;
+
+            // Then we retrieve the position of the bit where the value ipixs values change. This is the number of bits
+            // we must right shift the ipix 29 order to find the common ipix value
+            let xor_lz = xor.leading_zeros() & BIT_MASK_ALL_ONE_EXCEPT_FIRST;
+            let msb = ((std::mem::size_of::<u64>() * 8) as u32 - xor_lz) as u8;
+            // There is a common ancestor
+            Some(HEALPixCell(d1 - (msb >> 1), idx1 >> msb))
+        }
+    }
+
+    #[inline]
+    pub fn smallest_common_ancestors<'a>(
+        mut cells: impl Iterator<Item = &'a HEALPixCell>,
+    ) -> Option<HEALPixCell> {
+        let (first_cell, second_cell) = (cells.next(), cells.next());
+        match (first_cell, second_cell) {
+            (Some(c1), Some(c2)) => {
+                let mut smallest_ancestor = c1.smallest_common_ancestor(c2);
+
+                while let (Some(ancestor), Some(cell)) = (smallest_ancestor, cells.next()) {
+                    smallest_ancestor = ancestor.smallest_common_ancestor(&cell);
+                }
+
+                smallest_ancestor
+            }
+            (None, Some(_c2)) => {
+                // cannot happen as there must be a first cell before any second one
+                // property of iterator
+                unreachable!();
+            }
+            (Some(c1), None) => Some(*c1),
+            (None, None) => None,
+        }
+    }
+
+    // Returns the tile cells being contained into self
+    // delta depth between texture stored and tile cells
+    #[inline]
+    pub fn get_tile_cells(&self, delta_depth: u8) -> impl Iterator<Item = HEALPixCell> {
         self.get_children_cells(delta_depth)
     }
 
@@ -99,68 +175,228 @@ impl HEALPixCell {
         (0_u64..(npix as u64)).map(move |pix| HEALPixCell(depth, pix))
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn center(&self) -> (f64, f64) {
-        cdshealpix::nested::center(self.0, self.1)
+        healpix::nested::center(self.0, self.1)
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn vertices(&self) -> [(f64, f64); 4] {
-        cdshealpix::nested::vertices(self.0, self.1)
+        healpix::nested::vertices(self.0, self.1)
     }
 
-    #[inline]
+    #[inline(always)]
+    pub fn neighbor(&self, wind: MainWind) -> Option<HEALPixCell> {
+        let HEALPixCell(d, idx) = *self;
+        healpix::nested::neighbours(d, idx, false)
+            .get(wind)
+            .map(|idx| HEALPixCell(d, *idx))
+    }
+
+    #[inline(always)]
     pub fn is_on_pole(&self) -> bool {
-        let two_times_depth = 2*self.depth();
-        let idx_d0 = self.idx() >> two_times_depth;
+        let HEALPixCell(depth, idx) = *self;
+
+        let two_times_depth = 2 * depth;
+        let idx_d0 = idx >> two_times_depth;
 
         match idx_d0 {
-            0..=3 => {
-                (((idx_d0 + 1) << two_times_depth) - 1) == self.idx()
-            },
+            0..=3 => (((idx_d0 + 1) << two_times_depth) - 1) == idx,
             4..=7 => false,
-            8..=11 => {
-                (idx_d0 << two_times_depth) == self.idx()
-            },
-            _ => unreachable!()
+            8..=11 => (idx_d0 << two_times_depth) == idx,
+            _ => unreachable!(),
         }
     }
 
     // Given in ICRS(J2000)
     #[inline]
     pub fn new(depth: u8, theta: f64, delta: f64) -> Self {
-        let pix = cdshealpix::nested::hash(depth, theta, delta);
+        let pix = healpix::nested::hash(depth, theta, delta);
 
         HEALPixCell(depth, pix)
     }
 
     #[inline]
-    pub fn path_along_cell_edge(
-        &self,
-        n_segments_by_side: u32
-    ) -> Box<[(f64, f64)]> {
-        cdshealpix::nested::path_along_cell_edge(
+    pub fn path_along_cell_edge(&self, n_segments_by_side: u32) -> Box<[(f64, f64)]> {
+        healpix::nested::path_along_cell_edge(
             self.depth(),
             self.idx(),
-            &cdshealpix::compass_point::Cardinal::S,
+            &healpix::compass_point::Cardinal::S,
             false,
-            n_segments_by_side
+            n_segments_by_side,
         )
     }
 
     #[inline]
-    pub fn grid(
+    pub fn path_along_cell_side(
         &self,
-        n_segments_by_side: u32
+        from_vertex: Cardinal,
+        to_vertex: Cardinal,
+        include_to_vertex: bool,
+        n_segments: u32,
     ) -> Box<[(f64, f64)]> {
-        cdshealpix::nested::grid(
+        healpix::nested::path_along_cell_side(
             self.depth(),
             self.idx(),
-            n_segments_by_side as u16
+            &from_vertex,
+            &to_vertex,
+            include_to_vertex,
+            n_segments,
         )
+    }
+
+    pub fn path_along_sides(&self, sides: &OrdinalMap<u32>) -> Option<CellVertices> {
+        let se = sides.get(Ordinal::SE);
+        let sw = sides.get(Ordinal::SW);
+        let ne = sides.get(Ordinal::NE);
+        let nw = sides.get(Ordinal::NW);
+
+        let chain_edge_vertices = |card: &[Cardinal], n_segments: &[u32]| -> Box<[(f64, f64)]> {
+            let mut vertices = vec![];
+            let num_edges = card.len() - 1;
+            for (idx, (from_vertex, to_vertex)) in
+                (card.iter().zip(card.iter().skip(1))).enumerate()
+            {
+                let mut edge_vertices = self
+                    .path_along_cell_side(
+                        *from_vertex,
+                        *to_vertex,
+                        num_edges - 1 == idx,
+                        n_segments[idx],
+                    )
+                    .into_vec();
+                vertices.append(&mut edge_vertices);
+            }
+
+            vertices.into_boxed_slice()
+        };
+
+        // N -> W, W -> S, S -> E, E -> N
+        match (nw, sw, se, ne) {
+            // all edges case
+            (Some(nw), Some(sw), Some(se), Some(ne)) => Some(CellVertices {
+                vertices: vec![
+                    self.path_along_cell_side(Cardinal::N, Cardinal::W, false, *nw),
+                    self.path_along_cell_side(Cardinal::W, Cardinal::S, false, *sw),
+                    self.path_along_cell_side(Cardinal::S, Cardinal::E, false, *se),
+                    self.path_along_cell_side(Cardinal::E, Cardinal::N, true, *ne),
+                ],
+                closed: true,
+            }),
+            // no edges
+            (None, None, None, None) => None,
+            // 1 edge found
+            (Some(s), None, None, None) => Some(CellVertices {
+                vertices: vec![self.path_along_cell_side(Cardinal::N, Cardinal::W, true, *s)],
+                closed: false,
+            }),
+            (None, Some(s), None, None) => Some(CellVertices {
+                vertices: vec![self.path_along_cell_side(Cardinal::W, Cardinal::S, true, *s)],
+                closed: false,
+            }),
+            (None, None, Some(s), None) => Some(CellVertices {
+                vertices: vec![self.path_along_cell_side(Cardinal::S, Cardinal::E, true, *s)],
+                closed: false,
+            }),
+            (None, None, None, Some(s)) => Some(CellVertices {
+                vertices: vec![self.path_along_cell_side(Cardinal::E, Cardinal::N, true, *s)],
+                closed: false,
+            }),
+            // 2 edges cases
+            (Some(nw), Some(sw), None, None) => Some(CellVertices {
+                vertices: vec![chain_edge_vertices(
+                    &[Cardinal::N, Cardinal::W, Cardinal::S],
+                    &[*nw, *sw],
+                )],
+                closed: false,
+            }),
+            (Some(nw), None, Some(se), None) => Some(CellVertices {
+                vertices: vec![
+                    self.path_along_cell_side(Cardinal::N, Cardinal::W, true, *nw),
+                    self.path_along_cell_side(Cardinal::S, Cardinal::E, true, *se),
+                ],
+                closed: false,
+            }),
+            (Some(nw), None, None, Some(ne)) => Some(CellVertices {
+                vertices: vec![chain_edge_vertices(
+                    &[Cardinal::E, Cardinal::N, Cardinal::W],
+                    &[*ne, *nw],
+                )],
+                closed: false,
+            }),
+            (None, Some(sw), Some(se), None) => Some(CellVertices {
+                vertices: vec![chain_edge_vertices(
+                    &[Cardinal::W, Cardinal::S, Cardinal::E],
+                    &[*sw, *se],
+                )],
+                closed: false,
+            }),
+            (None, Some(sw), None, Some(ne)) => Some(CellVertices {
+                vertices: vec![
+                    self.path_along_cell_side(Cardinal::W, Cardinal::S, true, *sw),
+                    self.path_along_cell_side(Cardinal::E, Cardinal::N, true, *ne),
+                ],
+                closed: false,
+            }),
+            (None, None, Some(se), Some(ne)) => Some(CellVertices {
+                vertices: vec![chain_edge_vertices(
+                    &[Cardinal::S, Cardinal::E, Cardinal::N],
+                    &[*se, *ne],
+                )],
+                closed: false,
+            }),
+            // 3 edges cases
+            (Some(nw), Some(sw), Some(se), None) => Some(CellVertices {
+                vertices: vec![chain_edge_vertices(
+                    &[Cardinal::N, Cardinal::W, Cardinal::S, Cardinal::E],
+                    &[*nw, *sw, *se],
+                )],
+                closed: false,
+            }),
+            (Some(nw), Some(sw), None, Some(ne)) => Some(CellVertices {
+                vertices: vec![chain_edge_vertices(
+                    &[Cardinal::E, Cardinal::N, Cardinal::W, Cardinal::S],
+                    &[*ne, *nw, *sw],
+                )],
+                closed: false,
+            }),
+            (Some(nw), None, Some(se), Some(ne)) => Some(CellVertices {
+                vertices: vec![chain_edge_vertices(
+                    &[Cardinal::S, Cardinal::E, Cardinal::N, Cardinal::W],
+                    &[*se, *ne, *nw],
+                )],
+                closed: false,
+            }),
+            (None, Some(sw), Some(se), Some(ne)) => Some(CellVertices {
+                vertices: vec![chain_edge_vertices(
+                    &[Cardinal::W, Cardinal::S, Cardinal::E, Cardinal::N],
+                    &[*sw, *se, *ne],
+                )],
+                closed: false,
+            }),
+        }
+    }
+
+    #[inline]
+    pub fn grid(&self, n_segments_by_side: u32) -> Box<[(f64, f64)]> {
+        healpix::nested::grid(self.depth(), self.idx(), n_segments_by_side as u16)
+    }
+
+    #[inline(always)]
+    pub fn z_29(&self) -> u64 {
+        self.1 << ((29 - self.0) << 1)
+    }
+
+    #[inline(always)]
+    pub fn z_29_rng(&self) -> Range<u64> {
+        let start = self.1 << ((29 - self.0) << 1);
+        let end = (self.1 + 1) << ((29 - self.0) << 1);
+
+        start..end
     }
 }
 
+pub const MAX_HPX_DEPTH: u8 = 29;
 pub const NUM_HPX_TILES_DEPTH_ZERO: usize = 12;
 pub const ALLSKY_HPX_CELLS_D0: &[HEALPixCell; NUM_HPX_TILES_DEPTH_ZERO] = &[
     HEALPixCell(0, 0),
@@ -214,16 +450,81 @@ impl Iterator for HEALPixTilesIter {
     }
 }
 
+// Follow the z-order curve
 impl PartialOrd for HEALPixCell {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        let n1 = self.1 << ((29 - self.0) << 1);
-        let n2 = other.1 << ((29 - other.0) << 1);
-
-        n1.partial_cmp(&n2)
+        self.z_29().partial_cmp(&other.z_29())
     }
 }
 impl Ord for HEALPixCell {
     fn cmp(&self, other: &Self) -> Ordering {
         self.partial_cmp(other).unwrap_abort()
+    }
+}
+
+mod tests {
+    use super::HEALPixCell;
+
+    fn test_ancestor(c1: HEALPixCell, c2: HEALPixCell) {
+        let test = dbg!(c1.smallest_common_ancestor(&c2));
+        let gnd_true = dbg!(get_common_ancestor(c1, c2));
+
+        assert_eq!(test, gnd_true);
+    }
+
+    fn get_common_ancestor(mut c1: HEALPixCell, mut c2: HEALPixCell) -> Option<HEALPixCell> {
+        if c1.depth() > c2.depth() {
+            std::mem::swap(&mut c1, &mut c2);
+        }
+
+        c2 = c2.ancestor(c2.depth() - c1.depth());
+
+        while c2 != c1 && c1.depth() > 0 {
+            c2 = c2.parent();
+            c1 = c1.parent();
+        }
+
+        if c1 == c2 {
+            Some(c1)
+        } else {
+            None
+        }
+    }
+
+    #[test]
+    fn test_smallest_common_ancestor() {
+        test_ancestor(HEALPixCell(1, 2), HEALPixCell(1, 3));
+        test_ancestor(HEALPixCell(3, 0), HEALPixCell(3, 192));
+        test_ancestor(HEALPixCell(5, 6814), HEALPixCell(11, 27910909));
+
+        test_ancestor(HEALPixCell(2, 41), HEALPixCell(2, 37));
+        assert_eq!(
+            HEALPixCell(2, 159).smallest_common_ancestor(&HEALPixCell(2, 144)),
+            Some(HEALPixCell(0, 9))
+        );
+        assert_eq!(
+            HEALPixCell(2, 144).smallest_common_ancestor(&HEALPixCell(2, 159)),
+            Some(HEALPixCell(0, 9))
+        );
+
+        assert_eq!(
+            HEALPixCell(3, 0).smallest_common_ancestor(&HEALPixCell(3, 192)),
+            None
+        );
+        test_ancestor(HEALPixCell(3, 0), HEALPixCell(3, 15));
+        test_ancestor(HEALPixCell(6, 27247), HEALPixCell(11, 27912704));
+        assert_eq!(
+            HEALPixCell(9, 1048575).smallest_common_ancestor(&HEALPixCell(9, 786432)),
+            Some(HEALPixCell(0, 3))
+        );
+        assert_eq!(
+            HEALPixCell(9, 786432).smallest_common_ancestor(&HEALPixCell(9, 1048575)),
+            Some(HEALPixCell(0, 3))
+        );
+
+        assert_eq!(
+            HEALPixCell(1, 0).smallest_common_ancestor(&HEALPixCell(1, 0)),
+            Some(HEALPixCell(1, 0))
+        );
     }
 }

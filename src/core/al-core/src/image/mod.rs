@@ -1,8 +1,8 @@
 pub mod bitmap;
+pub mod canvas;
 pub mod fits;
 pub mod format;
 pub mod html;
-pub mod canvas;
 pub mod raw;
 
 pub trait ArrayBuffer: AsRef<js_sys::Object> + std::fmt::Debug {
@@ -179,10 +179,10 @@ impl ArrayBuffer for ArrayF64 {
     }
 }
 
-use self::html::HTMLImage;
 use self::canvas::Canvas;
-use wasm_bindgen::JsValue;
+use self::html::HTMLImage;
 use super::Texture2DArray;
+use wasm_bindgen::JsValue;
 pub trait Image {
     fn tex_sub_image_3d(
         &self,
@@ -211,7 +211,7 @@ where
     }
 }
 
-use std::{rc::Rc, io::Cursor};
+use std::{io::Cursor, rc::Rc};
 impl<I> Image for Rc<I>
 where
     I: Image,
@@ -252,7 +252,7 @@ where
 }
 
 #[cfg(feature = "webgl2")]
-use crate::image::format::{R16I, R32I, R8UI, R64F};
+use crate::image::format::{R16I, R32I, R64F, R8UI};
 use crate::image::format::{R32F, RGB8U, RGBA8U};
 
 use bitmap::Bitmap;
@@ -298,16 +298,17 @@ impl Image for ImageType {
         offset: &Vector3<i32>,
     ) -> Result<(), JsValue> {
         match self {
-            ImageType::FitsImage { raw_bytes: raw_bytes_buf } => {
+            ImageType::FitsImage {
+                raw_bytes: raw_bytes_buf,
+            } => {
                 let num_bytes = raw_bytes_buf.length() as usize;
-                let mut raw_bytes = Vec::with_capacity(num_bytes);
-                unsafe { raw_bytes.set_len(num_bytes); }
+                let mut raw_bytes = vec![0; num_bytes];
                 raw_bytes_buf.copy_to(&mut raw_bytes[..]);
 
                 let mut bytes_reader = Cursor::new(raw_bytes.as_slice());
                 let fits_img = Fits::from_byte_slice(&mut bytes_reader)?;
                 fits_img.tex_sub_image_3d(textures, offset)?
-            },
+            }
             ImageType::Canvas { canvas } => canvas.tex_sub_image_3d(textures, offset)?,
             ImageType::ImageRgba8u { image } => image.tex_sub_image_3d(textures, offset)?,
             ImageType::ImageRgb8u { image } => image.tex_sub_image_3d(textures, offset)?,

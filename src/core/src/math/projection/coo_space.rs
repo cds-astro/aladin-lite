@@ -10,3 +10,4 @@ pub type XYClip = Vector2<f64>;
 pub type XYZWorld = Vector3<f64>;
 pub type XYZWWorld = Vector4<f64>;
 pub type XYZWModel = Vector4<f64>;
+pub type XYZModel = Vector3<f64>;

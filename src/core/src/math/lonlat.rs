@@ -31,10 +31,6 @@ where
         LonLatT(lon, lat)
     }
 
-    pub fn from_radians(lon: Rad<S>, lat: Rad<S>) -> LonLatT<S> {
-        LonLatT::new(lon.into(), lat.into())
-    }
-
     #[inline]
     pub fn lon(&self) -> Angle<S> {
         self.0
@@ -45,8 +41,8 @@ where
         self.1
     }
 
-    pub fn vector<VectorT: LonLat<S>>(&self) -> VectorT {
-        VectorT::from_lonlat(self)
+    pub fn vector<T: LonLat<S>>(&self) -> T {
+        T::from_lonlat(self)
     }
 }
 
@@ -223,8 +219,9 @@ use crate::CameraViewPort;
 use crate::ProjectionType;
 
 use super::projection::coo_space::XYNDC;
+use super::projection::coo_space::XYScreen;
 #[inline]
-pub fn proj(lonlat: LonLatT<f64>, projection: &ProjectionType, camera: &CameraViewPort) -> Option<XYNDC> {
+pub fn proj(lonlat: &LonLatT<f64>, projection: &ProjectionType, camera: &CameraViewPort) -> Option<XYNDC> {
     let xyzw = lonlat.vector();
     projection.model_to_normalized_device_space(&xyzw, camera)
 }
@@ -232,5 +229,17 @@ pub fn proj(lonlat: LonLatT<f64>, projection: &ProjectionType, camera: &CameraVi
 #[inline]
 pub fn unproj(ndc_xy: &XYNDC, projection: &ProjectionType, camera: &CameraViewPort) -> Option<LonLatT<f64>> {
     projection.normalized_device_to_model_space(&ndc_xy, camera)
+        .map(|model_pos| model_pos.lonlat())
+}
+
+#[inline]
+pub fn proj_to_screen(lonlat: &LonLatT<f64>, projection: &ProjectionType, camera: &CameraViewPort) -> Option<XYScreen> {
+    let xyzw = lonlat.vector();
+    projection.model_to_screen_space(&xyzw, camera)
+}
+
+#[inline]
+pub fn unproj_from_screen(xy: &XYScreen, projection: &ProjectionType, camera: &CameraViewPort) -> Option<LonLatT<f64>> {
+    projection.screen_to_model_space(&xy, camera)
         .map(|model_pos| model_pos.lonlat())
 }

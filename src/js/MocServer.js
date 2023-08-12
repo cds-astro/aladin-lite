@@ -17,7 +17,7 @@
 //    along with Aladin Lite.
 //
 
-import { Utils } from "./Utils";
+import { Utils } from "./Utils.js";
 
 
 /******************************************************************************

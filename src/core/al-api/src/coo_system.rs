@@ -106,7 +106,7 @@ pub const NUM_COOSYSTEM: usize = 2;
 
 impl CooSystem {
     #[inline]
-    pub fn to<S>(&self, coo_system: &Self) -> &Matrix4<S>
+    pub fn to<S>(&self, coo_system: Self) -> &Matrix4<S>
     where
         S: BaseFloat + CooBaseFloat,
     {

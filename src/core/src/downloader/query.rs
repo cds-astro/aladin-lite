@@ -1,6 +1,6 @@
 pub type Url = String;
 
-use super::request::{RequestType};
+use super::request::RequestType;
 pub trait Query: Sized {
     type Request: From<Self> + Into<RequestType>;
 
@@ -11,6 +11,7 @@ pub trait Query: Sized {
 pub type QueryId = (&'static str, Url);
 
 use al_core::image::format::ImageFormatType;
+#[derive(Eq, Hash, PartialEq, Clone)]
 pub struct Tile {
     pub cell: HEALPixCell,
     pub format: ImageFormatType,
@@ -22,9 +23,9 @@ pub struct Tile {
 
 use crate::{healpix::cell::HEALPixCell, survey::config::HiPSConfig};
 impl Tile {
-    pub fn new(cell: &HEALPixCell, cfg: &HiPSConfig) -> Self {
-        let hips_url = cfg.get_root_url().clone();
-        let format = cfg.get_format();
+    pub fn new(cell: &HEALPixCell, hips_url: String, format: ImageFormatType) -> Self {
+        //let hips_url = cfg.get_root_url().clone();
+        //let format = cfg.get_format();
         let ext = format.get_ext_file();
 
         let HEALPixCell(depth, idx) = *cell;
@@ -111,7 +112,6 @@ impl Query for Allsky {
     }
 }
 
-
 /* ---------------------------------- */
 pub struct PixelMetadata {
     pub format: ImageFormatType,
@@ -158,10 +158,7 @@ pub struct Moc {
 }
 impl Moc {
     pub fn new(url: String, params: al_api::moc::MOC) -> Self {
-        Moc {
-            url,
-            params,
-        }
+        Moc { url, params }
     }
 }
 

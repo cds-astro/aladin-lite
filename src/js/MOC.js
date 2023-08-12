@@ -10,7 +10,7 @@
  *****************************************************************************/
 
 import { Aladin }   from "./Aladin.js";
-import { Utils }   from "./Utils.js";
+import { Utils }   from "./Utils";
 import { Color } from "./Color.js";
 
 import { ALEvent } from "./events/ALEvent.js";

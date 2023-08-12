@@ -10,7 +10,7 @@ use super::{fov::FieldOfView, view_hpx_cells::ViewHpxCells};
 use crate::healpix::cell::HEALPixCell;
 use crate::healpix::coverage::HEALPixCoverage;
 use crate::math::{projection::coo_space::XYZWModel, projection::domain::sdf::ProjDef};
-use al_core::{info, inforec, log};
+
 
 use cgmath::{Matrix4, Vector2};
 pub struct CameraViewPort {

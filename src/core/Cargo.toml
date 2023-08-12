@@ -25,9 +25,9 @@ cgmath = "*"
 healpix = { package = "cdshealpix", git = "https://github.com/bmatthieu3/cds-healpix-rust", branch = "polygonIntersectVertices" }
 #moclib = { package = "moc", git = "https://github.com/cds-astro/cds-moc-rust", branch = "main" }
 moclib = { package = "moc", git = "https://github.com/bmatthieu3/cds-moc-rust", branch = "cellsWithUnidirectionalNeigs" }
-serde = { version = "^1.0.59", features = ["derive"] }
-serde_json = "1.0"
-serde-wasm-bindgen = "0.4"
+serde = { version = "^1.0.183", features = ["derive"] }
+serde_json = "1.0.104"
+serde-wasm-bindgen = "0.5"
 console_error_panic_hook = "0.1.7"
 enum_dispatch = "0.3.8"
 wasm-bindgen = "0.2.79"
@@ -41,7 +41,7 @@ fitsrs = "0.2.9"
 wcs = "0.2.8"
 colorgrad = "0.6.2"
 image-decoder = { package = "image", version = "0.24.2", default-features = false, features = ["jpeg", "png"] }
-votable = "0.2.3"
+votable = { package = "votable", git = "https://github.com/cds-astro/cds-votable-rust", branch = "main"}
 lyon = "1.0.1"
 
 [features]

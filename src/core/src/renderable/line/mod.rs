@@ -17,8 +17,6 @@ use lyon::algorithms::{
     path::Path,
 };
 
-use al_core::{inforec, log};
-
 struct Meta {
     color: ColorRGBA,
     off_indices: usize,
@@ -108,9 +106,6 @@ impl RasterizedLineRenderer {
     {
         let mut num_indices = 0;
         let off_indices = self.indices.len();
-
-        let mut nv = 0;
-
         let mut geometry: VertexBuffers<[f32; 2], u32> = VertexBuffers::new();
 
         let mut tessellator = FillTessellator::new();
@@ -122,7 +117,6 @@ impl RasterizedLineRenderer {
             let PathVertices { vertices, closed } = path;
 
             let line: &[[f32; 2]] = vertices.as_ref();
-            nv += line.len();
 
             if !line.is_empty() {
                 let v = &line[0];
@@ -189,14 +183,11 @@ impl RasterizedLineRenderer {
 
         match &style {
             Style::None => {
-                let mut nv = 0;
                 for path in paths {
                     let PathVertices { vertices, closed } = path;
 
                     let line: &[[f32; 2]] = vertices.as_ref();
                     if !line.is_empty() {
-                        nv += line.len();
-
                         //let v = clamp_ndc_vertex(&line[0]);
                         let v = &line[0];
                         path_builder.begin(point(v[0], v[1]));

@@ -1,6 +1,6 @@
 use super::bbox::BoundingBox;
 use crate::math::angle::ToAngle;
-use crate::math::projection::domain::op::Inter;
+
 use crate::math::{lonlat::LonLatT, projection::coo_space::XYZWModel, MINUS_HALF_PI};
 use cgmath::Vector3;
 use healpix::sph_geom::coo3d::Vec3;

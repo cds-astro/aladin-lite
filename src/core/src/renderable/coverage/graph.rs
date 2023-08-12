@@ -1,5 +1,5 @@
 use crate::healpix::coverage::HEALPixCoverage;
-use al_core::{inforec, log};
+
 use moclib::elem::cell::Cell;
 use moclib::moc::range::CellAndNeighs;
 use moclib::moc::RangeMOCIntoIterator;

@@ -462,7 +462,6 @@ impl Ord for HEALPixCell {
     }
 }
 
-#[test]
 mod tests {
     use super::HEALPixCell;
 

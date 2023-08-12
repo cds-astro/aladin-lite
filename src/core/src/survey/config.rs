@@ -1,6 +1,5 @@
-
-use al_core::{image::format::ImageFormat, image::raw::ImageBuffer};
 use al_api::hips::ImageExt;
+use al_core::{image::format::ImageFormat, image::raw::ImageBuffer};
 
 #[derive(Debug)]
 pub struct EmptyTileImage {
@@ -101,11 +100,9 @@ impl Image for EmptyTileImage {
     }
 }
 
-use al_core::image::format::{ImageFormatType, RGB8U, RGBA8U, ChannelType};
+use al_core::image::format::{ChannelType, ImageFormatType, RGB8U, RGBA8U};
 
 //use super::TileArrayBuffer;
-
-
 
 /*use super::{ArrayF32, ArrayF64, ArrayI16, ArrayI32, ArrayU8};
 fn create_black_tile(format: FormatImageType, width: i32, value: f32) -> TileArrayBufferImage {
@@ -151,9 +148,6 @@ pub struct HiPSConfig {
     // Max depth of the current HiPS tiles
     max_depth_texture: u8,
     max_depth_tile: u8,
-    num_textures_by_side_slice: i32,
-    num_textures_by_slice: i32,
-    num_slices: i32,
     num_textures: usize,
 
     pub is_allsky: bool,
@@ -182,6 +176,10 @@ use crate::HiPSProperties;
 use al_api::coo_system::CooSystem;
 use wasm_bindgen::JsValue;
 
+const NUM_TEXTURES_BY_SIDE_SLICE: i32 = 8;
+const NUM_TEXTURES_BY_SLICE: i32 = NUM_TEXTURES_BY_SIDE_SLICE * NUM_TEXTURES_BY_SIDE_SLICE;
+const NUM_SLICES: i32 = 1;
+
 impl HiPSConfig {
     /// Define a HiPS configuration
     ///
@@ -189,17 +187,11 @@ impl HiPSConfig {
     ///
     /// * `properties` - A description of the HiPS, its metadata, available formats  etc...
     /// * `img_format` - Image format wanted by the user
-    pub fn new(
-        properties: &HiPSProperties,
-        img_ext: ImageExt,
-    ) -> Result<HiPSConfig, JsValue> {
+    pub fn new(properties: &HiPSProperties, img_ext: ImageExt) -> Result<HiPSConfig, JsValue> {
         let root_url = properties.get_url();
         // Define the size of the 2d texture array depending on the
         // characterics of the client
-        let num_textures_by_side_slice = 8;
-        let num_textures_by_slice = num_textures_by_side_slice * num_textures_by_side_slice;
-        let num_slices = 2;
-        let num_textures = (num_textures_by_slice * num_slices) as usize;
+        let num_textures = (NUM_TEXTURES_BY_SLICE * NUM_SLICES) as usize;
 
         let max_depth_tile = properties.get_max_order();
         let tile_size = properties.get_tile_size();
@@ -267,8 +259,14 @@ impl HiPSConfig {
                     ))
                 }
             }
-            ImageExt::Png | ImageExt::Webp => Ok(ImageFormatType { ext: img_ext, channel: ChannelType::RGBA8U }),
-            ImageExt::Jpeg => Ok(ImageFormatType { ext: img_ext, channel: ChannelType::RGB8U }),
+            ImageExt::Png | ImageExt::Webp => Ok(ImageFormatType {
+                ext: img_ext,
+                channel: ChannelType::RGBA8U,
+            }),
+            ImageExt::Jpeg => Ok(ImageFormatType {
+                ext: img_ext,
+                channel: ChannelType::RGB8U,
+            }),
         }?;
 
         let dataproduct_subtype = properties.get_dataproduct_subtype().clone();
@@ -317,9 +315,6 @@ impl HiPSConfig {
             max_depth_texture,
             max_depth_tile,
             min_depth_tile,
-            num_textures_by_side_slice,
-            num_textures_by_slice,
-            num_slices,
             num_textures,
 
             is_allsky,
@@ -338,7 +333,7 @@ impl HiPSConfig {
             format,
             tile_size,
             dataproduct_subtype,
-            colored
+            colored,
         };
 
         Ok(hips_config)
@@ -384,10 +379,7 @@ impl HiPSConfig {
                         )),
                     })?;
 
-                    Ok(ImageFormatType {
-                        ext,
-                        channel,
-                    })
+                    Ok(ImageFormatType { ext, channel })
                 } else {
                     Err(JsValue::from_str(
                         "Fits tiles exists but the BITPIX is not found",
@@ -402,7 +394,7 @@ impl HiPSConfig {
                     ext,
                     channel: ChannelType::RGBA8U,
                 })
-            },
+            }
             ImageExt::Jpeg => {
                 self.tex_storing_fits = false;
                 self.tex_storing_unsigned_int = false;
@@ -433,99 +425,94 @@ impl HiPSConfig {
         Ok(())
     }
 
-    #[inline]
-    pub fn get_root_url(&self) -> &String {
+    #[inline(always)]
+    pub fn get_root_url(&self) -> &str {
         &self.root_url
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn set_root_url(&mut self, root_url: String) {
         self.root_url = root_url;
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn set_fits_metadata(&mut self, bscale: f32, bzero: f32, blank: f32) {
         self.scale = bscale;
         self.offset = bzero;
         self.blank = blank;
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn delta_depth(&self) -> u8 {
         self.delta_depth
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn num_tiles_per_texture(&self) -> usize {
         self.num_tiles_per_texture
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn get_texture_size(&self) -> i32 {
         self.texture_size
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn get_min_depth_tile(&self) -> u8 {
         self.min_depth_tile
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn get_tile_size(&self) -> i32 {
         self.tile_size
     }
-    /*
-        #[inline]
-        pub fn get_black_tile(&self) -> Rc<TileArrayBufferImage> {
-            self.tile_config.get_black_tile()
-        }
-    */
-    #[inline]
+
+    #[inline(always)]
     pub fn get_max_depth(&self) -> u8 {
         self.max_depth_texture
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn get_frame(&self) -> CooSystem {
         self.frame
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn get_max_tile_depth(&self) -> u8 {
         self.max_depth_tile
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn num_textures(&self) -> usize {
         self.num_textures
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn num_textures_by_side_slice(&self) -> i32 {
-        self.num_textures_by_side_slice
+        NUM_TEXTURES_BY_SIDE_SLICE
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn num_textures_by_slice(&self) -> i32 {
-        self.num_textures_by_slice
+        NUM_TEXTURES_BY_SLICE
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn num_slices(&self) -> i32 {
-        self.num_slices
+        NUM_SLICES
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn get_format(&self) -> ImageFormatType {
         self.format
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn is_colored(&self) -> bool {
         self.colored
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn get_default_image(&self) -> &EmptyTileImage {
         &self.empty_image
     }

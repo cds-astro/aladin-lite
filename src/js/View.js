@@ -38,7 +38,7 @@ import { Utils } from "./Utils.js";
 import { GenericPointer } from "./GenericPointer.js";
 import { Stats } from "./libs/Stats.js";
 import { Circle } from "./Circle.js";
-import { Ellipse } from "./Ellipse";
+import { Ellipse } from "./Ellipse.js";
 import { Polyline } from "./Polyline.js";
 import { CooFrameEnum } from "./CooFrameEnum.js";
 import { requestAnimFrame } from "./libs/RequestAnimationFrame.js";
@@ -306,10 +306,13 @@ export let View = (function () {
     View.prototype.createCanvases = function () {
         var a = $(this.aladinDiv);
         a.find('.aladin-imageCanvas').remove();
+        a.find('.aladin-gridCanvas').remove();
         a.find('.aladin-catalogCanvas').remove();
 
         // canvas to draw the images
         this.imageCanvas = $("<canvas class='aladin-imageCanvas'></canvas>").appendTo(this.aladinDiv)[0];
+        this.gridCanvas = $("<canvas class='aladin-gridCanvas'></canvas>").appendTo(this.aladinDiv)[0];
+
         // canvas to draw the catalogs
         this.catalogCanvas = $("<canvas class='aladin-catalogCanvas'></canvas>").appendTo(this.aladinDiv)[0];
     };
@@ -342,9 +345,12 @@ export let View = (function () {
         this.wasm.resize(this.width, this.height);
 
         this.catalogCtx = this.catalogCanvas.getContext("2d");
-
         this.catalogCtx.canvas.width = this.width;
         this.catalogCtx.canvas.height = this.height;
+
+        /*this.gridCtx = this.gridCanvas.getContext("2d");
+        this.gridCtx.canvas.width = this.width;
+        this.gridCtx.canvas.height = this.height;*/
 
         pixelateCanvasContext(this.imageCtx, this.aladin.options.pixelateCanvas);
 
@@ -753,7 +759,7 @@ export let View = (function () {
             view.refreshProgressiveCats();
 
             //view.requestRedraw();
-            view.wasm.releaseLeftButtonMouse();
+            view.wasm.releaseLeftButtonMouse(xymouse.x, xymouse.y);
         });
 
         var lastHoveredObject; // save last object hovered by mouse
@@ -913,6 +919,7 @@ export let View = (function () {
 
             view.realDragging = true;
 
+            view.wasm.moveMouse(s1.x, s1.y, s2.x, s2.y);
             view.wasm.goFromTo(s1.x, s1.y, s2.x, s2.y);
 
             const [ra, dec] = view.wasm.getCenter();
@@ -1050,24 +1057,22 @@ export let View = (function () {
         };
     };
 
-    View.FPS_INTERVAL = 1000 / 100;
+    View.FPS_INTERVAL = 1000 / 140;
 
     /**
      * redraw the whole view
      */
     View.prototype.redraw = function () {
         // request another frame
-        requestAnimFrame(this.redraw.bind(this));
 
         // Elapsed time since last loop
         const now = Date.now();
         const elapsedTime = now - this.then;
 
         // If enough time has elapsed, draw the next frame
-        if (elapsedTime >= View.FPS_INTERVAL) {
+        //if (elapsedTime >= View.FPS_INTERVAL) {
             // Get ready for next frame by setting then=now, but also adjust for your
             // specified fpsInterval not being a multiple of RAF's interval (16.7ms)
-            this.then = now - elapsedTime % View.FPS_INTERVAL;
 
             // Drawing code
             try {
@@ -1082,7 +1087,11 @@ export let View = (function () {
                 this.drawAllOverlays();
             }
             this.needRedraw = false;
-        }
+
+            this.then = now;
+            //this.then = now % View.FPS_INTERVAL;
+            requestAnimFrame(this.redraw.bind(this));
+        //}
     };
 
     View.prototype.drawAllOverlays = function () {
@@ -1432,7 +1441,6 @@ export let View = (function () {
         }
 
         this.imageLayers.set(layerName, imageLayer);
-
         ALEvent.HIPS_LAYER_ADDED.dispatchedTo(this.aladinDiv, { layer: imageLayer });
     }
 
@@ -1492,8 +1500,6 @@ export let View = (function () {
 
                         self.aladin.setBaseImageLayer(dssUrl);
                     } else {
-                        //console.log("not empty")
-
                         // there is surveys that have been queried
                         // rename the first overlay layer to "base"
                         self.renameLayer(this.overlayLayers[0], "base");

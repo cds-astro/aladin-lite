@@ -8,7 +8,7 @@ use al_api::coo_system::CooSystem;
 /// The core projections are always performed in icrs j2000
 /// so one must call these methods to convert them to icrs before.
 #[inline]
-pub fn apply_coo_system<S>(c1: &CooSystem, c2: &CooSystem, v1: &Vector4<S>) -> Vector4<S>
+pub fn apply_coo_system<S>(c1: CooSystem, c2: CooSystem, v1: &Vector4<S>) -> Vector4<S>
 where
     S: BaseFloat + CooBaseFloat,
 {
@@ -28,15 +28,14 @@ mod tests {
 
     #[test]
     fn j2000_to_gal() {
-        use crate::LonLatT;
-        use crate::ArcDeg;
-        use crate::math::lonlat::LonLat;
         use super::CooSystem;
+        use crate::math::lonlat::LonLat;
+        use crate::ArcDeg;
+        use crate::LonLatT;
 
         let lonlat: LonLatT<f64> = LonLatT::new(ArcDeg(0.0).into(), ArcDeg(0.0).into());
         let gal_lonlat =
-            super::apply_coo_system(&CooSystem::ICRS, &CooSystem::GAL, &lonlat.vector())
-                .lonlat();
+            super::apply_coo_system(CooSystem::ICRS, CooSystem::GAL, &lonlat.vector()).lonlat();
 
         let gal_lon_deg = gal_lonlat.lon().0 * 360.0 / (2.0 * std::f64::consts::PI);
         let gal_lat_deg = gal_lonlat.lat().0 * 360.0 / (2.0 * std::f64::consts::PI);
@@ -47,15 +46,14 @@ mod tests {
 
     #[test]
     fn gal_to_j2000() {
-        use crate::LonLatT;
-        use crate::ArcDeg;
-        use crate::math::lonlat::LonLat;
         use super::CooSystem;
+        use crate::math::lonlat::LonLat;
+        use crate::ArcDeg;
+        use crate::LonLatT;
 
         let lonlat: LonLatT<f64> = LonLatT::new(ArcDeg(0.0).into(), ArcDeg(0.0).into());
         let j2000_lonlat =
-            super::apply_coo_system(&CooSystem::GAL, &CooSystem::ICRS, &lonlat.vector())
-                .lonlat();
+            super::apply_coo_system(CooSystem::GAL, CooSystem::ICRS, &lonlat.vector()).lonlat();
         let j2000_lon_deg = j2000_lonlat.lon().0 * 360.0 / (2.0 * std::f64::consts::PI);
         let j2000_lat_deg = j2000_lonlat.lat().0 * 360.0 / (2.0 * std::f64::consts::PI);
 
@@ -65,18 +63,17 @@ mod tests {
 
     #[test]
     fn j2000_gal_roundtrip() {
-        use crate::LonLatT;
-        use crate::ArcDeg;
-        use crate::math::lonlat::LonLat;
         use super::CooSystem;
+        use crate::math::lonlat::LonLat;
+        use crate::ArcDeg;
+        use crate::LonLatT;
 
         let gal_lonlat: LonLatT<f64> = LonLatT::new(ArcDeg(0.0).into(), ArcDeg(0.0).into());
 
         let icrs_pos =
-            super::apply_coo_system(&CooSystem::GAL, &CooSystem::ICRS, &gal_lonlat.vector());
+            super::apply_coo_system(CooSystem::GAL, CooSystem::ICRS, &gal_lonlat.vector());
 
-        let gal_lonlat =
-            super::apply_coo_system(&CooSystem::ICRS, &CooSystem::GAL, &icrs_pos);
+        let gal_lonlat = super::apply_coo_system(CooSystem::ICRS, CooSystem::GAL, &icrs_pos);
 
         let gal_lon_deg = gal_lonlat.lon().0 * 360.0 / (2.0 * std::f64::consts::PI);
         let gal_lat_deg = gal_lonlat.lat().0 * 360.0 / (2.0 * std::f64::consts::PI);

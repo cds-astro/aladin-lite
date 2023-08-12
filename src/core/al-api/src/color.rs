@@ -1,6 +1,6 @@
 use wasm_bindgen::prelude::*;
 
-#[wasm_bindgen(raw_module = "../../js/Color")]
+#[wasm_bindgen(raw_module = "../../js/Color.js")]
 extern "C" {
     pub type Color;
 
@@ -8,10 +8,11 @@ extern "C" {
     pub fn hexToRgb(hex: String) -> JsValue;
     #[wasm_bindgen(static_method_of = Color)]
     pub fn hexToRgba(hex: String) -> JsValue;
+    #[wasm_bindgen(static_method_of = Color)]
+    pub fn rgbToHex(r: u8, g: u8, b: u8) -> String;
 }
 
-#[derive(Debug, Clone, Copy)]
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize)]
 #[wasm_bindgen]
 pub struct ColorRGB {
     pub r: f32,
@@ -20,8 +21,7 @@ pub struct ColorRGB {
 }
 
 use serde::{Deserialize, Serialize};
-#[derive(Debug, Clone, Copy)]
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 #[wasm_bindgen]
 pub struct ColorRGBA {
@@ -44,7 +44,6 @@ impl<'a> Mul<f32> for &'a ColorRGB {
         }
     }
 }
-
 
 /*
 #[wasm_bindgen]

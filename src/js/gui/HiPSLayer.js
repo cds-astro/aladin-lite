@@ -263,6 +263,7 @@ export class HiPSLayer {
 
             let minCut = 0;
             let maxCut = 1;
+
             if (imgFormat === "fits") {
                 // FITS format
                 minCut = self.layer.properties.minCutout;

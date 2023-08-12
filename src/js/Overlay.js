@@ -88,6 +88,7 @@ export let Overlay = (function() {
         var k = 0, len = parts.length;
         while(k<len) {
             var s = parts[k].toLowerCase();
+
             if(s=='polygon') {
                 var curPolygon = [];
                 k++;
@@ -116,6 +117,10 @@ export let Overlay = (function() {
                 var frame;
                 k++;
                 frame = parts[k].toLowerCase();
+                if (Utils.isNumber(frame)) {
+                    frame = 'icrs'
+                    k--;
+                }
 
                 if (frame=='icrs' || frame=='j2000' || frame=='fk5') {
                     var ra, dec, radiusDegrees;
@@ -123,7 +128,6 @@ export let Overlay = (function() {
                     ra = parseFloat(parts[k+1]);
                     dec = parseFloat(parts[k+2]);
                     radiusDegrees = parseFloat(parts[k+3]);
-
                     footprints.push(A.circle(ra, dec, radiusDegrees, options));
 
                     k += 3;

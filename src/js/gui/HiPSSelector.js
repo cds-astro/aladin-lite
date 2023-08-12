@@ -18,8 +18,8 @@
 //
 
 import A from "../A.js";
-import { MocServer } from "../MocServer";
-import { Utils } from "../Utils";
+import { MocServer } from "../MocServer.js";
+import { Utils } from "../Utils.js";
 import  autocomplete from 'autocompleter';
 
 import $ from 'jquery';
@@ -174,7 +174,7 @@ import $ from 'jquery';
             //self.hide();
         });
 
-        $(loadMOCBtn).click(function() {
+        $(loadMOCBtn).on("click", function() {
             let url;
             let byIdSelected = self.mainDiv.querySelectorAll('input')[0];
             if (byIdSelected.value.startsWith('http')) {
@@ -185,7 +185,7 @@ import $ from 'jquery';
             }
             url = Utils.fixURLForHTTPS(url);
 
-            const moc = A.MOCFromURL(url);
+            const moc = A.MOCFromURL(url, {lineWidth: 5, opacity: 0.3});
             self.aladin.addMOC(moc);
         });
 

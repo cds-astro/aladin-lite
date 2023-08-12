@@ -2,6 +2,7 @@ use cgmath::Vector3;
 
 use crate::camera::CameraViewPort;
 use crate::math::angle::ToAngle;
+use crate::math::projection::ProjectionType;
 use crate::time::Time;
 
 /// State for inertia
@@ -21,11 +22,11 @@ impl Inertia {
             time_start: Time::now(),
             ampl: ampl,
             speed: ampl,
-            axis: axis
+            axis: axis,
         }
     }
 
-    pub fn apply(&mut self, camera: &mut CameraViewPort) {
+    pub fn apply(&mut self, camera: &mut CameraViewPort, proj: &ProjectionType) {
         let t = ((Time::now() - self.time_start).as_millis() / 1000.0) as f64;
         // Undamped angular frequency of the oscillator
         // From wiki: https://en.wikipedia.org/wiki/Harmonic_oscillator
@@ -40,7 +41,7 @@ impl Inertia {
         /*let alpha = 1_f32 + (0_f32 - 1_f32) * (10_f32 * t + 1_f32) * (-10_f32 * t).exp();
         let alpha = alpha * alpha;
         let fov = start_fov * (1_f32 - alpha) + goal_fov * alpha;*/
-        camera.rotate(&self.axis, self.speed.to_angle())
+        camera.rotate(&self.axis, self.speed.to_angle(), proj)
     }
 
     pub fn get_start_ampl(&self) -> f64 {

@@ -113,7 +113,7 @@ export let DefaultActionsForContextMenu = (function () {
 
                                 files.forEach(file => {
                                     const url = URL.createObjectURL(file);
-                                    let moc = A.MOCFromURL(url, { name: file.name });
+                                    let moc = A.MOCFromURL(url, { name: file.name, fill: true, opacity: 0.4 });
                                     aladinInstance.addMOC(moc);
                                 });
                             };

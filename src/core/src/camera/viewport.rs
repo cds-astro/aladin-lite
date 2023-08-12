@@ -6,14 +6,13 @@ pub enum UserAction {
     Starting = 4,
 }
 
-use super::fov::FieldOfViewVertices;
-use crate::math::{
-    projection::coo_space::XYZWModel,
-    spherical::BoundingBox,
-    projection::domain::sdf::ProjDef
-};
-use cgmath::{Matrix4, Vector2};
+use super::{fov::FieldOfView, view_hpx_cells::ViewHpxCells};
+use crate::healpix::cell::HEALPixCell;
+use crate::healpix::coverage::HEALPixCoverage;
+use crate::math::{projection::coo_space::XYZWModel, projection::domain::sdf::ProjDef};
 
+
+use cgmath::{Matrix4, Vector2};
 pub struct CameraViewPort {
     // The field of view angle
     aperture: Angle<f64>,
@@ -45,7 +44,10 @@ pub struct CameraViewPort {
     // The vertices in model space of the camera
     // This is useful for computing views according
     // to different image surveys
-    vertices: FieldOfViewVertices,
+    fov: FieldOfView,
+    // A data structure storing HEALPix cells contained in the fov
+    // for different frame and depth
+    view_hpx_cells: ViewHpxCells,
 
     // A flag telling whether the camera has been moved during the frame
     moved: bool,
@@ -63,7 +65,7 @@ pub struct CameraViewPort {
 
     // A reference to the WebGL2 context
     gl: WebGlContext,
-    system: CooSystem,
+    coo_sys: CooSystem,
     reversed_longitude: bool,
 }
 use al_api::coo_system::CooSystem;
@@ -71,7 +73,7 @@ use al_core::WebGlContext;
 
 use crate::{
     coosys,
-    math::{angle::Angle, projection::Projection, rotation::Rotation, spherical::FieldOfViewType},
+    math::{angle::Angle, projection::Projection, rotation::Rotation},
 };
 
 use crate::LonLatT;
@@ -79,12 +81,16 @@ use cgmath::{SquareMatrix, Vector4};
 use wasm_bindgen::JsCast;
 
 const MAX_DPI_LIMIT: f32 = 3.0;
-use crate::Abort;
 use crate::math;
 use crate::time::Time;
+use crate::Abort;
 use crate::ArcDeg;
 impl CameraViewPort {
-    pub fn new(gl: &WebGlContext, system: CooSystem, projection: &ProjectionType) -> CameraViewPort {
+    pub fn new(
+        gl: &WebGlContext,
+        coo_sys: CooSystem,
+        projection: &ProjectionType,
+    ) -> CameraViewPort {
         let last_user_action = UserAction::Starting;
 
         let aperture = Angle(projection.aperture_start());
@@ -120,7 +126,7 @@ impl CameraViewPort {
         let ndc_to_clip = Vector2::new(1.0, (height as f64) / (width as f64));
         let clip_zoom_factor = 1.0;
 
-        let vertices = FieldOfViewVertices::new(&ndc_to_clip, clip_zoom_factor, &w2m, &center, projection);
+        let fov = FieldOfView::new(&ndc_to_clip, clip_zoom_factor, &w2m, projection);
         let gl = gl.clone();
 
         let is_allsky = true;
@@ -130,7 +136,8 @@ impl CameraViewPort {
 
         let tile_depth = 0;
 
-        let camera = CameraViewPort {
+        let view_hpx_cells = ViewHpxCells::new();
+        CameraViewPort {
             // The field of view angle
             aperture,
             center,
@@ -153,10 +160,9 @@ impl CameraViewPort {
             // Internal variable used for projection purposes
             ndc_to_clip,
             clip_zoom_factor,
-            // The vertices in model space of the camera
-            // This is useful for computing views according
-            // to different image surveys
-            vertices,
+            // The field of view
+            fov,
+            view_hpx_cells,
             // A flag telling whether the camera has been moved during the frame
             moved,
             // A flag telling if the camera has zoomed during the frame
@@ -173,13 +179,44 @@ impl CameraViewPort {
             // A reference to the WebGL2 context
             gl,
             // coo system
-            system,
+            coo_sys,
             // a flag telling if the viewport has a reversed longitude axis
             reversed_longitude,
-        };
-        camera.set_canvas_size();
+        }
+    }
 
-        camera
+    pub fn register_view_frame(&mut self, frame: CooSystem, proj: &ProjectionType) {
+        self.view_hpx_cells.register_frame(
+            self.tile_depth,
+            &self.fov,
+            &self.center,
+            self.coo_sys,
+            proj,
+            frame,
+        );
+    }
+
+    pub fn unregister_view_frame(&mut self, frame: CooSystem, proj: &ProjectionType) {
+        self.view_hpx_cells.unregister_frame(
+            self.tile_depth,
+            &self.fov,
+            &self.center,
+            self.coo_sys,
+            proj,
+            frame,
+        );
+    }
+
+    pub fn get_cov(&self, frame: CooSystem) -> &HEALPixCoverage {
+        self.view_hpx_cells.get_cov(frame)
+    }
+
+    pub fn get_hpx_cells<'a>(
+        &'a mut self,
+        depth: u8,
+        frame: CooSystem,
+    ) -> impl Iterator<Item = &'a HEALPixCell> {
+        self.view_hpx_cells.get_cells(depth, frame)
     }
 
     fn recompute_scissor(&self) {
@@ -211,27 +248,15 @@ impl CameraViewPort {
         let h = (br_s.y - tr_s.y).min(self.height as f64);
 
         // Specify a scissor here
-        self.gl.scissor((tl_s.x as i32).max(0), (tl_s.y as i32).max(0), w as i32, h as i32);
+        self.gl.scissor(
+            (tl_s.x as i32).max(0),
+            (tl_s.y as i32).max(0),
+            w as i32,
+            h as i32,
+        );
     }
 
-    fn set_canvas_size(&self) {
-        let canvas = self.gl
-            .canvas()
-            .unwrap_abort()
-            .dyn_into::<web_sys::HtmlCanvasElement>()
-            .unwrap_abort();
-
-        canvas.set_width(self.width as u32);
-        canvas.set_height(self.height as u32);
-        // Once the canvas size is changed, we have to set the viewport as well
-        self.gl.viewport(0, 0, self.width as i32, self.height as i32);
-    }
-
-    pub fn contains_pole(&self) -> bool {
-        self.vertices.contains_pole()
-    }
-
-    pub fn set_screen_size(&mut self, width: f32, height: f32, projection: &ProjectionType) {
+    fn set_canvas_size(&self, width: f32, height: f32) {
         let canvas = self
             .gl
             .canvas()
@@ -239,8 +264,15 @@ impl CameraViewPort {
             .dyn_into::<web_sys::HtmlCanvasElement>()
             .unwrap_abort();
 
-        self.width = (width as f32) * self.dpi;
-        self.height = (height as f32) * self.dpi;
+        // grid canvas
+        let document = web_sys::window().unwrap_abort().document().unwrap_abort();
+        let grid_canvas = document
+            // Inside it, retrieve the canvas
+            .get_elements_by_class_name("aladin-gridCanvas")
+            .get_with_index(0)
+            .unwrap_abort()
+            .dyn_into::<web_sys::HtmlCanvasElement>()
+            .unwrap_abort();
 
         canvas
             .style()
@@ -250,17 +282,38 @@ impl CameraViewPort {
             .style()
             .set_property("height", &format!("{}px", height))
             .unwrap_abort();
+        grid_canvas
+            .style()
+            .set_property("width", &format!("{}px", width))
+            .unwrap_abort();
+        grid_canvas
+            .style()
+            .set_property("height", &format!("{}px", height))
+            .unwrap_abort();
+
+        canvas.set_width(self.width as u32);
+        canvas.set_height(self.height as u32);
+        grid_canvas.set_width(self.width as u32);
+        grid_canvas.set_height(self.height as u32);
+
+        // Once the canvas size is changed, we have to set the viewport as well
+        self.gl
+            .viewport(0, 0, self.width as i32, self.height as i32);
+    }
+
+    pub fn set_screen_size(&mut self, width: f32, height: f32, projection: &ProjectionType) {
+        self.width = (width as f32) * self.dpi;
+        self.height = (height as f32) * self.dpi;
 
         self.aspect = width / height;
 
         // Compute the new clip zoom factor
         self.compute_ndc_to_clip_factor(projection);
 
-        self.vertices.set_fov(
+        self.fov.set_aperture(
             &self.ndc_to_clip,
             self.clip_zoom_factor,
             &self.w2m,
-            &self.center,
             projection,
         );
         let proj_area = projection.get_area();
@@ -269,22 +322,16 @@ impl CameraViewPort {
             self,
         ));
         // Update the size of the canvas
-        self.set_canvas_size();
+        self.set_canvas_size(width, height);
         // Once it is done, recompute the scissor
         self.recompute_scissor();
     }
 
     pub fn compute_ndc_to_clip_factor(&mut self, proj: &ProjectionType) {
         self.ndc_to_clip = if self.height < self.width {
-            Vector2::new(
-                1.0,
-                (self.height as f64) / (self.width as f64)
-            )
+            Vector2::new(1.0, (self.height as f64) / (self.width as f64))
         } else {
-            Vector2::new(
-                (self.width as f64) / (self.height as f64),
-                1.0,
-            )
+            Vector2::new((self.width as f64) / (self.height as f64), 1.0)
         };
 
         let bounds_size_ratio = proj.bounds_size_ratio();
@@ -310,8 +357,15 @@ impl CameraViewPort {
         };
 
         let can_unzoom_more = match proj {
-            ProjectionType::Tan(_) | ProjectionType::Mer(_) | ProjectionType::Air(_) | ProjectionType::Stg(_) | ProjectionType::Car(_) | ProjectionType::Cea(_) | ProjectionType::Cyp(_) | ProjectionType::Hpx(_) => false,
-            _ => true
+            ProjectionType::Tan(_)
+            | ProjectionType::Mer(_)
+            | ProjectionType::Air(_)
+            | ProjectionType::Stg(_)
+            | ProjectionType::Car(_)
+            | ProjectionType::Cea(_)
+            | ProjectionType::Cyp(_)
+            | ProjectionType::Hpx(_) => false,
+            _ => true,
         };
 
         let aperture_start: Angle<f64> = ArcDeg(proj.aperture_start()).into();
@@ -326,7 +380,7 @@ impl CameraViewPort {
 
             self.clip_zoom_factor = if let Some(p0) = proj.world_to_clip_space(&v0) {
                 if let Some(p1) = proj.world_to_clip_space(&v1) {
-                    (0.5*(p1.x - p0.x).abs()).min(1.0)
+                    (0.5 * (p1.x - p0.x).abs()).min(1.0)
                 } else {
                     (aperture / aperture_start).0
                 }
@@ -346,14 +400,10 @@ impl CameraViewPort {
         // Project this vertex into the screen
         self.moved = true;
         self.zoomed = true;
+        self.time_last_move = Time::now();
 
-        self.vertices.set_fov(
-            &self.ndc_to_clip,
-            self.clip_zoom_factor,
-            &self.w2m,
-            &self.center,
-            proj
-        );
+        self.fov
+            .set_aperture(&self.ndc_to_clip, self.clip_zoom_factor, &self.w2m, proj);
         let proj_area = proj.get_area();
         self.is_allsky = !proj_area.is_in(&math::projection::ndc_to_clip_space(
             &Vector2::new(-1.0, -1.0),
@@ -364,6 +414,15 @@ impl CameraViewPort {
 
         // recompute the scissor with the new aperture
         self.recompute_scissor();
+
+        // compute the hpx cells
+        self.view_hpx_cells.update(
+            self.tile_depth,
+            &self.fov,
+            &self.center,
+            self.get_coo_system(),
+            proj,
+        );
     }
 
     fn compute_tile_depth(&mut self) {
@@ -394,64 +453,70 @@ impl CameraViewPort {
         self.tile_depth
     }
 
-    pub fn rotate(&mut self, axis: &cgmath::Vector3<f64>, angle: Angle<f64>) {
+    pub fn rotate(
+        &mut self,
+        axis: &cgmath::Vector3<f64>,
+        angle: Angle<f64>,
+        proj: &ProjectionType,
+    ) {
         // Rotate the axis:
         let drot = Rotation::from_axis_angle(axis, angle);
         self.w2m_rot = drot * self.w2m_rot;
 
-        self.update_rot_matrices();
+        self.update_rot_matrices(proj);
     }
 
-    pub fn set_center(&mut self, lonlat: &LonLatT<f64>, system: &CooSystem) {
+    pub fn set_center(&mut self, lonlat: &LonLatT<f64>, coo_sys: CooSystem, proj: &ProjectionType) {
         let icrs_pos: Vector4<_> = lonlat.vector();
 
-        let view_pos = coosys::apply_coo_system(
-            system,
-            self.get_system(),
-            &icrs_pos,
-        );
+        let view_pos = coosys::apply_coo_system(coo_sys, self.get_coo_system(), &icrs_pos);
         let rot = Rotation::from_sky_position(&view_pos);
 
         // Apply the rotation to the camera to go
         // to the next lonlat
-        self.set_rotation(&rot);
+        self.set_rotation(&rot, proj);
     }
 
-    fn set_rotation(&mut self, rot: &Rotation<f64>) {
+    fn set_rotation(&mut self, rot: &Rotation<f64>, proj: &ProjectionType) {
         self.w2m_rot = *rot;
 
-        self.update_rot_matrices();
+        self.update_rot_matrices(proj);
     }
 
-    pub fn get_field_of_view(&self) -> &FieldOfViewType {
-        self.vertices._type()
+    pub fn get_field_of_view(&self) -> &FieldOfView {
+        &self.fov
     }
 
-    /*pub fn get_coverage(&mut self, hips_frame: &CooSystem) -> &HEALPixCoverage {
-        self.vertices.get_coverage(&self.system, hips_frame, &self.center)
-    }*/
-
-    pub fn set_coo_system(&mut self, new_system: CooSystem) {
+    pub fn set_coo_system(&mut self, new_coo_sys: CooSystem, proj: &ProjectionType) {
         // Compute the center position according to the new coordinate frame system
-        let new_center = coosys::apply_coo_system(&self.system, &new_system, &self.center);
+        let new_center = coosys::apply_coo_system(self.coo_sys, new_coo_sys, &self.center);
         // Create a rotation object from that position
         let new_rotation = Rotation::from_sky_position(&new_center);
         // Apply it to the center of the view
-        self.set_rotation(&new_rotation);
+        self.set_rotation(&new_rotation, proj);
+
+        // unregister the coo sys
+        //self.view_hpx_cells.unregister_frame(self.coo_sys);
+        // register the new one
+        //self.view_hpx_cells.register_frame(new_coo_sys);
+        // recompute the coverage if necessary
+        self.view_hpx_cells
+            .update(self.tile_depth, &self.fov, &self.center, new_coo_sys, proj);
 
         // Record the new system
-        self.system = new_system;
+        self.coo_sys = new_coo_sys;
     }
 
-    pub fn set_longitude_reversed(&mut self, reversed_longitude: bool) {
+    pub fn set_longitude_reversed(&mut self, reversed_longitude: bool, proj: &ProjectionType) {
         if self.reversed_longitude != reversed_longitude {
             self.rotation_center_angle = -self.rotation_center_angle;
-            self.update_rot_matrices();
+            self.update_rot_matrices(proj);
         }
         self.reversed_longitude = reversed_longitude;
 
         // The camera is reversed => it has moved
         self.moved = true;
+        self.time_last_move = Time::now();
     }
 
     pub fn get_longitude_reversed(&self) -> bool {
@@ -492,7 +557,7 @@ impl CameraViewPort {
     }
 
     pub fn get_vertices(&self) -> Option<&Vec<XYZWModel>> {
-        self.vertices.get_vertices()
+        self.fov.get_vertices()
     }
 
     pub fn get_screen_size(&self) -> Vector2<f32> {
@@ -537,10 +602,6 @@ impl CameraViewPort {
         &self.center
     }
 
-    pub fn get_bounding_box(&self) -> &BoundingBox {
-        self.vertices.get_bounding_box()
-    }
-
     pub fn is_allsky(&self) -> bool {
         self.is_allsky
     }
@@ -549,38 +610,45 @@ impl CameraViewPort {
         self.time_last_move
     }
 
-    pub fn get_system(&self) -> &CooSystem {
-        &self.system
+    pub fn get_coo_system(&self) -> CooSystem {
+        self.coo_sys
     }
 
-    pub fn set_rotation_around_center(&mut self, theta: Angle<f64>) {
+    pub fn set_rotation_around_center(&mut self, theta: Angle<f64>, proj: &ProjectionType) {
         self.rotation_center_angle = theta;
-        self.update_rot_matrices();
+        self.update_rot_matrices(proj);
     }
 
     pub fn get_rotation_around_center(&self) -> &Angle<f64> {
         &self.rotation_center_angle
     }
 }
-use cgmath::Matrix;
 use crate::ProjectionType;
+use cgmath::Matrix;
 //use crate::coo_conversion::CooBaseFloat;
 impl CameraViewPort {
     // private methods
-    fn update_rot_matrices(&mut self) {
+    fn update_rot_matrices(&mut self, proj: &ProjectionType) {
         self.w2m = (&(self.w2m_rot)).into();
-        self.m2w = self.w2m.transpose();
 
         // Update the center with the new rotation
         self.update_center();
 
         // Rotate the fov vertices
-        self.vertices
-            .set_rotation(&self.w2m, &self.center);
+        self.fov.set_rotation(&self.w2m);
 
         self.time_last_move = Time::now();
         self.last_user_action = UserAction::Moving;
         self.moved = true;
+
+        // compute the hpx cells
+        self.view_hpx_cells.update(
+            self.tile_depth,
+            &self.fov,
+            &self.center,
+            self.get_coo_system(),
+            proj,
+        );
     }
 
     fn update_center(&mut self) {
@@ -593,6 +661,7 @@ impl CameraViewPort {
         // Re-update the model matrix to take into account the rotation
         // by theta around the center axis
         self.final_rot = center_rot * self.w2m_rot;
+
         self.w2m = (&self.final_rot).into();
         self.m2w = self.w2m.transpose();
     }

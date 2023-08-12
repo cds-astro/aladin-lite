@@ -1,3 +1,6 @@
+use std::cmp::Ordering;
+use std::ops::Range;
+
 #[allow(unused_macros)]
 macro_rules! assert_delta {
     ($x:expr, $y:expr, $d:expr) => {
@@ -35,6 +38,8 @@ pub fn unmortonize(mut x: u64) -> (u32, u32) {
     (x as u32, y as u32)
 }
 
+// Transmute utils functions
+#[allow(dead_code)]
 pub unsafe fn transmute_boxed_slice<I, O>(s: Box<[I]>) -> Box<[O]> {
     let len = s.len();
     let in_slice_ptr = Box::into_raw(s);
@@ -60,66 +65,32 @@ pub unsafe fn transmute_vec<I, O>(mut s: Vec<I>) -> Result<Vec<O>, &'static str>
     }
 }
 
-/// Select the kth smallest element in a slice
-/// 
-/// This is a basic implementation of quickselect algorithm: https://fr.wikipedia.org/wiki/Quickselect
-/// Some features:
-/// * The pivot is chosen randomly between l and r
-/// * This does a partial sort of `v`
-/// * It performs in O(n) in mean time
-/// 
-/// # Params
-/// * `v` - the slice of values from which the kth smallest element will be found
-/// * `l` - the first index of the slice for which the algorithm is applied
-/// * `r` - the last index of the slice (inclusive) for which the algorithm is applied
-/// * `k` - the index number to find
-use rand::Rng;
-#[allow(dead_code)]
-pub fn select_kth_smallest<T: PartialOrd + Copy>(v: &mut [T], mut l: usize, mut r: usize, k: usize) -> T {
-    let mut rng = rand::thread_rng();
-    while l < r {
-        let pivot = rng.gen_range(l..=r);
-        let pivot = partition(v, l, r, pivot);
-
-        if k == pivot {
-            return v[k];
-        } else if k < pivot {
-            r = pivot - 1;
+pub(super) fn merge_overlapping_intervals(mut intervals: Vec<Range<usize>>) -> Vec<Range<usize>> {
+    intervals.sort_unstable_by(|a, b| {
+        let cmp = a.start.cmp(&b.start);
+        if let Ordering::Equal = cmp {
+            a.end.cmp(&b.end)
         } else {
-            l = pivot + 1;
+            cmp
         }
-    }
+    });
 
-    v[l]
-}
+    // Merge overlapping intervals in place
+    let mut j = 0;
 
-#[allow(dead_code)]
-fn partition<T: PartialOrd + Copy>(v: &mut [T], l: usize, r: usize, pivot: usize) -> usize {
-    v.swap(pivot, r);
-    let pivot = v[r];
-    let mut j = l;
-    for i in l..r {
-        if v[i] < pivot {
-            v.swap(i, j);
+    for i in 1..intervals.len() {
+        // If this is not first Interval and overlaps
+        // with the previous one
+        if intervals[j].end >= intervals[i].start {
+            // Merge previous and current Intervals
+            intervals[j].end = intervals[j].end.max(intervals[i].end);
+        } else {
             j += 1;
+            intervals[j] = intervals[i].clone();
         }
     }
+    // truncate the indices
+    intervals.truncate(j + 1);
 
-    // swap pivot value to values[j]
-    v.swap(r, j);
-    j
-}
-
-mod tests {
-    #[test]
-    fn test_select_kth_smallest() {
-        assert_eq!(super::select_kth_smallest(&mut [2, 4, 5, 9, -1, 5], 0, 5, 2), 4);
-        assert_eq!(super::select_kth_smallest(&mut [2], 0, 0, 0), 2);
-        assert_eq!(super::select_kth_smallest(&mut [2, 4, 5, 9, -1, 5], 0, 5, 3), 5);
-        assert_eq!(super::select_kth_smallest(&mut [2, 4, 5, 9, -1, 5], 0, 5, 4), 5);
-        assert_eq!(super::select_kth_smallest(&mut [2, 4, 5, 9, -1, 5], 0, 5, 5), 9);
-
-        assert_eq!(super::select_kth_smallest(&mut [0, 1, 2, 9, 11, 12], 0, 5, 5), 12);
-
-    }
+    intervals
 }

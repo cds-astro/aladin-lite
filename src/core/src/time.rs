@@ -4,12 +4,15 @@ pub struct Time(pub f32);
 use crate::utils;
 use wasm_bindgen::JsValue;
 impl Time {
-    pub fn measure_perf<T>(f: impl FnOnce() -> Result<T, JsValue>) -> Result<T, JsValue> {
+    pub fn measure_perf<T>(
+        label: &str,
+        f: impl FnOnce() -> Result<T, JsValue>,
+    ) -> Result<T, JsValue> {
         let start_time = Time::now();
         let r = f()?;
         let duration = Time::now() - start_time;
         // print the duration in the console
-        al_core::log(&format!("duration: {:?}", duration));
+        al_core::log(&format!("{:?} time: {:?}", label, duration));
 
         Ok(r)
     }
@@ -20,6 +23,10 @@ impl Time {
 
     pub fn as_millis(&self) -> f32 {
         self.0
+    }
+
+    pub fn as_secs(&self) -> f32 {
+        self.as_millis() / 1000.0
     }
 }
 
@@ -43,7 +50,7 @@ impl Sub for Time {
 pub struct DeltaTime(pub f32);
 
 impl DeltaTime {
-    pub fn from_millis(millis: f32) -> Self {
+    pub const fn from_millis(millis: f32) -> Self {
         DeltaTime(millis)
     }
 
@@ -53,6 +60,10 @@ impl DeltaTime {
 
     pub fn as_millis(&self) -> f32 {
         self.0
+    }
+
+    pub fn as_secs(&self) -> f32 {
+        self.as_millis() / 1000.0
     }
 }
 

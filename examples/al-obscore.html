@@ -12,7 +12,7 @@
     A.init.then(() => {
         aladin = A.aladin('#aladin-lite-div', {target: '14 18 16.868 +56 44 29.37', fov: 360, projection: 'AIT', showContextMenu: true});
 
-        const c1 = A.catalogFromURL('https://raw.githubusercontent.com/bmatthieu3/SKA-Discovery-Service-Mockup/aladin/ObsCore/ObsCore_003.xml', {onClick: 'showTable'});
+        const c1 = A.catalogFromURL('https://raw.githubusercontent.com/VisIVOLab/SKA-Discovery-Service-Mockup/main/ObsCore/ObsCore_003.xml', {onClick: 'showTable'});
         aladin.addCatalog(c1);
 
         const c2 = A.catalogFromVizieR('B/assocdata/obscore', '14 18 16.868 +56 44 29.37', 100, {onClick: 'showTable', limit: 1000});

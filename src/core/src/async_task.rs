@@ -6,11 +6,13 @@
 use al_task_exec::Executor;
 pub type TaskExecutor = Executor<TaskType, TaskResult>;
 
-pub use crate::renderable::catalog::Source;
+use crate::math::lonlat::LonLat;
+use crate::math::lonlat::LonLatT;
+
 pub enum TaskResult {
     TableParsed {
         name: String,
-        sources: Box<[Source]>,
+        sources: Box<[LonLatT<f32>]>,
     },
     /*TileSentToGPU {
         tile: Tile,
@@ -55,6 +57,7 @@ where
 }
 
 use serde::de::DeserializeOwned;
+
 use std::pin::Pin;
 use std::task::{Context, Poll};
 impl<T> Stream for ParseTableTask<T>
@@ -93,19 +96,25 @@ where
 /*use rand::rngs::StdRng;
 use rand::Rng;
 use rand::SeedableRng;*/
-pub struct BuildCatalogIndex {
-    pub sources: Vec<Source>,
+pub struct BuildCatalogIndex<T>
+where
+    T: LonLat<f32> + Clone,
+{
+    pub sources: Vec<T>,
     num_sorted_sources: usize,
     i: usize,
     j: usize,
     merging: bool,
-    new_sorted_sources: Vec<Source>,
+    new_sorted_sources: Vec<T>,
     ready: bool,
     chunk_size: usize,
     prev_num_sorted_sources: usize,
 }
-impl BuildCatalogIndex {
-    pub fn new(sources: Vec<Source>) -> Self {
+impl<T> BuildCatalogIndex<T>
+where
+    T: LonLat<f32> + Clone,
+{
+    pub fn new(sources: Vec<T>) -> Self {
         let num_sorted_sources = 0;
         let merging = false;
         let new_sorted_sources = vec![];
@@ -130,7 +139,12 @@ impl BuildCatalogIndex {
 const CHUNK_OF_SOURCES_TO_SORT: usize = 1000;
 const CHUNK_OF_SORTED_SOURCES_TO_MERGE: usize = 20000;
 use crate::Abort;
-impl Stream for BuildCatalogIndex {
+impl<T> Unpin for BuildCatalogIndex<T> where T: LonLat<f32> + Clone {}
+
+impl<T> Stream for BuildCatalogIndex<T>
+where
+    T: LonLat<f32> + Clone,
+{
     type Item = ();
 
     /// Attempt to resolve the next item in the stream.
@@ -149,11 +163,16 @@ impl Stream for BuildCatalogIndex {
                 //let mut rng = StdRng::seed_from_u64(0);
                 // Get the chunk to sort
                 (&mut self.sources[a..b]).sort_unstable_by(|s1, s2| {
-                    let (s1_lon, s1_lat) = s1.lonlat();
-                    let (s2_lon, s2_lat) = s2.lonlat();
+                    let s1_lonlat = s1.lonlat();
+                    let s2_lonlat = s2.lonlat();
 
-                    let idx1 = cdshealpix::nested::hash(7, s1_lon as f64, s1_lat as f64);
-                    let idx2 = cdshealpix::nested::hash(7, s2_lon as f64, s2_lat as f64);
+                    let (s1_lon, s1_lat) =
+                        (s1_lonlat.lon().to_radians(), s1_lonlat.lat().to_radians());
+                    let (s2_lon, s2_lat) =
+                        (s2_lonlat.lon().to_radians(), s2_lonlat.lat().to_radians());
+
+                    let idx1 = healpix::nested::hash(7, s1_lon as f64, s1_lat as f64);
+                    let idx2 = healpix::nested::hash(7, s2_lon as f64, s2_lat as f64);
 
                     let ordering = idx1.partial_cmp(&idx2).unwrap_abort();
                     match ordering {
@@ -197,11 +216,16 @@ impl Stream for BuildCatalogIndex {
                     } else {
                         let s1 = &self.sources[self.j];
                         let s2 = &self.sources[self.i];
-                        let (s1_lon, s1_lat) = s1.lonlat();
-                        let (s2_lon, s2_lat) = s2.lonlat();
+                        let s1_lonlat = s1.lonlat();
+                        let s2_lonlat = s2.lonlat();
 
-                        let p1 = cdshealpix::nested::hash(7, s1_lon as f64, s1_lat as f64);
-                        let p2 = cdshealpix::nested::hash(7, s2_lon as f64, s2_lat as f64);
+                        let (s1_lon, s1_lat) =
+                            (s1_lonlat.lon().to_radians(), s1_lonlat.lat().to_radians());
+                        let (s2_lon, s2_lat) =
+                            (s2_lonlat.lon().to_radians(), s2_lonlat.lat().to_radians());
+
+                        let p1 = healpix::nested::hash(7, s1_lon as f64, s1_lat as f64);
+                        let p2 = healpix::nested::hash(7, s2_lon as f64, s2_lat as f64);
                         if p1 <= p2 {
                             let v = self.sources[self.j].clone();
                             self.j += 1;
@@ -260,29 +284,29 @@ where
         texture: &Texture,
         image: I,
         texture_array: Rc<Texture2DArray>,
-        conf: &HiPSConfig,
+        cfg: &HiPSConfig,
     ) -> ImageTile2GpuTask<I> {
         // Index of the texture in the total set of textures
         let texture_idx = texture.idx();
         // Index of the slice of textures
-        let num_textures_by_slice = conf.num_textures_by_slice();
+        let num_textures_by_slice = cfg.num_textures_by_slice();
         let idx_slice = texture_idx / num_textures_by_slice;
         // Index of the texture in its slice
         let idx_in_slice = texture_idx % num_textures_by_slice;
 
         // Index of the column of the texture in its slice
-        let num_textures_by_side_slice = conf.num_textures_by_side_slice();
+        let num_textures_by_side_slice = cfg.num_textures_by_side_slice();
         let idx_col_in_slice = idx_in_slice / num_textures_by_side_slice;
         // Index of the row of the texture in its slice
         let idx_row_in_slice = idx_in_slice % num_textures_by_side_slice;
 
         // Row and column indexes of the tile in its texture
-        let (idx_col_in_tex, idx_row_in_tex) = cell.get_offset_in_texture_cell(conf);
+        let (idx_col_in_tex, idx_row_in_tex) = cell.get_offset_in_texture_cell(cfg.delta_depth());
 
         // The size of the global texture containing the tiles
-        let texture_size = conf.get_texture_size();
+        let texture_size = cfg.get_texture_size();
         // The size of a tile in its texture
-        let tile_size = conf.get_tile_size();
+        let tile_size = cfg.get_tile_size();
 
         // Offset in the slice in pixels
         let offset = Vector3::new(

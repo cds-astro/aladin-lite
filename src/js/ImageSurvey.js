@@ -109,7 +109,7 @@ PropertyParser.cutouts = function(options, properties = {}) {
     const minCutout = cuts && parseFloat(cuts[0]);
     const maxCutout = cuts && parseFloat(cuts[1]);
 
-    return [minCutout, maxCutout]
+    return [minCutout, maxCutout];
 }
 
 PropertyParser.bitpix = function(options, properties = {}) {
@@ -143,10 +143,8 @@ export let ImageSurvey = (function () {
         this.name = name;
         this.subtype = "survey";
 
-        // initialize the color meta data here
-        this.colorCfg = new ColorCfg(options);
-
         this.properties = {};
+        this.colorCfg = new ColorCfg(options);
 
         let self = this;
         self.query = (async () => {
@@ -158,7 +156,6 @@ export let ImageSurvey = (function () {
                     properties = await HiPSProperties.fetchFromUrl(url)
                         .catch(async (e) => {
                             // url not valid so we try with the id
-
                             try {
                                 return await HiPSProperties.fetchFromID(id);
                             } catch(e) {
@@ -342,6 +339,15 @@ export let ImageSurvey = (function () {
             }
 
             self.imgFormat = imgFormat;
+
+            // Initialize the color meta data here
+            if (imgFormat === "fits") {
+                // Take into account the default cuts given by the property file (this is true especially for FITS HiPSes)
+                const minCut = (options && options.minCut) || self.properties.minCutout || 0.0;
+                const maxCut = (options && options.maxCut) || self.properties.maxCutout || 1.0;
+    
+                this.colorCfg.setCuts(minCut, maxCut);
+            }
 
             // Color cuts
             //const lowCut = self.colorCfg.minCut || self.properties.minCutout || 0.0;

@@ -8,6 +8,6 @@ package-lock.json
 src/core/target/
 src/core/Cargo.lock
 
-aladin-lite-3.1.0.tgz
+aladin-lite*.tgz
 
 .vscode

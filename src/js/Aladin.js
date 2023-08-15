@@ -580,10 +580,10 @@ export let Aladin = (function () {
         }
 
         // Delay the fixLayoutDimensions layout for firefox
-        setTimeout(function () {
+        /*setTimeout(function () {
             self.view.fixLayoutDimensions();
         }, 1000);
-
+*/
         // force call to zoomChanged callback
         var fovChangedFn = self.callbacksByEventName['zoomChanged'];
         (typeof fovChangedFn === 'function') && fovChangedFn(self.view.fov);

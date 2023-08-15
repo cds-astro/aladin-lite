@@ -10,7 +10,7 @@ use super::{fov::FieldOfView, view_hpx_cells::ViewHpxCells};
 use crate::healpix::cell::HEALPixCell;
 use crate::healpix::coverage::HEALPixCoverage;
 use crate::math::{projection::coo_space::XYZWModel, projection::domain::sdf::ProjDef};
-
+use al_core::{info, inforec, log};
 
 use cgmath::{Matrix4, Vector2};
 pub struct CameraViewPort {
@@ -265,14 +265,14 @@ impl CameraViewPort {
             .unwrap_abort();
 
         // grid canvas
-        let document = web_sys::window().unwrap_abort().document().unwrap_abort();
+        /*let document = web_sys::window().unwrap_abort().document().unwrap_abort();
         let grid_canvas = document
             // Inside it, retrieve the canvas
             .get_elements_by_class_name("aladin-gridCanvas")
             .get_with_index(0)
             .unwrap_abort()
             .dyn_into::<web_sys::HtmlCanvasElement>()
-            .unwrap_abort();
+            .unwrap_abort();*/
 
         canvas
             .style()
@@ -282,19 +282,19 @@ impl CameraViewPort {
             .style()
             .set_property("height", &format!("{}px", height))
             .unwrap_abort();
-        grid_canvas
+        /*grid_canvas
             .style()
             .set_property("width", &format!("{}px", width))
             .unwrap_abort();
         grid_canvas
             .style()
             .set_property("height", &format!("{}px", height))
-            .unwrap_abort();
+            .unwrap_abort();*/
 
         canvas.set_width(self.width as u32);
         canvas.set_height(self.height as u32);
-        grid_canvas.set_width(self.width as u32);
-        grid_canvas.set_height(self.height as u32);
+        //grid_canvas.set_width(self.width as u32);
+        //grid_canvas.set_height(self.height as u32);
 
         // Once the canvas size is changed, we have to set the viewport as well
         self.gl
@@ -306,7 +306,6 @@ impl CameraViewPort {
         self.height = (height as f32) * self.dpi;
 
         self.aspect = width / height;
-
         // Compute the new clip zoom factor
         self.compute_ndc_to_clip_factor(projection);
 
@@ -316,11 +315,13 @@ impl CameraViewPort {
             &self.w2m,
             projection,
         );
+
         let proj_area = projection.get_area();
         self.is_allsky = !proj_area.is_in(&math::projection::ndc_to_clip_space(
             &Vector2::new(-1.0, -1.0),
             self,
         ));
+
         // Update the size of the canvas
         self.set_canvas_size(width, height);
         // Once it is done, recompute the scissor
@@ -404,6 +405,7 @@ impl CameraViewPort {
 
         self.fov
             .set_aperture(&self.ndc_to_clip, self.clip_zoom_factor, &self.w2m, proj);
+
         let proj_area = proj.get_area();
         self.is_allsky = !proj_area.is_in(&math::projection::ndc_to_clip_space(
             &Vector2::new(-1.0, -1.0),

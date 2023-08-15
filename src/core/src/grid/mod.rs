@@ -14,8 +14,6 @@ use crate::renderable::Renderer;
 use crate::ProjectionType;
 use al_api::color::ColorRGBA;
 
-
-
 use al_api::grid::GridCfg;
 
 use crate::grid::label::Label;
@@ -231,7 +229,7 @@ impl ProjetedGrid {
                 rot,
             } in labels
             {
-                let position = position.cast::<f32>().unwrap_abort() * dpi;
+                let position = position.cast::<f32>().unwrap_abort();
                 self.text_renderer
                     .add_label(&content, &position, cgmath::Rad(*rot as f32))?;
             }

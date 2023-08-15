@@ -6,7 +6,7 @@ ssh $USER_ALADIN@aladin 'sg hips -c "mkdir -p /home/matthieu.baumann/al-tmp && r
 # For compatibility with the docs, rename the UMD file into aladin.js
 scp dist/aladin.umd.cjs $USER_ALADIN@aladin:~/al-tmp/aladin.js
 # Copy the tgz
-cp aladin-l*.tgz aladin-lite.tgz
+mv aladin-l*.tgz aladin-lite.tgz
 scp aladin-lite.tgz $USER_ALADIN@aladin:~/al-tmp
 
 ssh $USER_ALADIN@aladin "sg hips -c 'rm -rf /home/thomas.boch/AladinLite/www/api/v3/$DATEUPLOAD && 

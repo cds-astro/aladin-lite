@@ -18,6 +18,7 @@ use crate::{
     tile_fetcher::TileFetcherQueue,
     time::DeltaTime,
 };
+use al_core::{info, inforec, log};
 
 use wasm_bindgen::prelude::*;
 
@@ -601,7 +602,6 @@ impl App {
 
                                     let is_tile_root = tile.cell().depth() == delta_depth;
                                     let _depth = tile.cell().depth();
-                                    //al_core::info!("is root tile", depth, is_tile_root);
                                     // do not perform tex_sub costly GPU calls while the camera is zooming
                                     if is_tile_root || included_or_near_coverage {
                                         let is_missing = tile.missing();
@@ -1258,6 +1258,7 @@ impl App {
 
     pub(crate) fn resize(&mut self, width: f32, height: f32) {
         self.camera.set_screen_size(width, height, &self.projection);
+
         self.camera
             .set_aperture(self.camera.get_aperture(), &self.projection);
         // resize the view fbo

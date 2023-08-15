@@ -348,9 +348,9 @@ export let View = (function () {
         this.catalogCtx.canvas.width = this.width;
         this.catalogCtx.canvas.height = this.height;
 
-        /*this.gridCtx = this.gridCanvas.getContext("2d");
+        this.gridCtx = this.gridCanvas.getContext("2d");
         this.gridCtx.canvas.width = this.width;
-        this.gridCtx.canvas.height = this.height;*/
+        this.gridCtx.canvas.height = this.height;
 
         pixelateCanvasContext(this.imageCtx, this.aladin.options.pixelateCanvas);
 

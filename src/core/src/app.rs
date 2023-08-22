@@ -1267,7 +1267,6 @@ impl App {
 
     pub(crate) fn resize(&mut self, width: f32, height: f32) {
         self.camera.set_screen_size(width, height, &self.projection);
-
         self.camera
             .set_aperture(self.camera.get_aperture(), &self.projection);
         // resize the view fbo
@@ -1445,7 +1444,7 @@ impl App {
         let recent_acceleration = (Time::now() - self.time_mouse_high_vel).as_secs() < 0.1
             || (Time::now() - self.time_start_dragging).as_secs() < 0.1;
 
-        if dragging_vel < 3000.0 && !recent_acceleration {
+        if dragging_vel < 2000.0 && !recent_acceleration {
             return;
         }
 

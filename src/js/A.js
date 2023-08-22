@@ -271,6 +271,27 @@ A.catalogFromNED = function (target, radius, options, successCallback, errorCall
     return A.catalogFromURL(url, options, successCallback, errorCallback, true);
 };
 
+A.catalogFromSKAORucio = function (target, radiusDegrees, options, successCallback, errorCallback) {
+    options = options || {};
+    if (!('name' in options)) {
+        options['name'] = 'SKAO';
+    }
+    var url = URLBuilder.buildSKAORucioCSURL(target, radiusDegrees);
+
+    return A.catalogFromURL(url, options, successCallback, errorCallback, true);
+};
+
+// API
+A.catalogFromVizieR = function (vizCatId, target, radius, options, successCallback, errorCallback) {
+    options = options || {};
+    if (!('name' in options)) {
+        options['name'] = 'VizieR:' + vizCatId;
+    }
+
+    var url = URLBuilder.buildVizieRCSURL(vizCatId, target, radius, options);
+    return A.catalogFromURL(url, options, successCallback, errorCallback, false);
+};
+
 // API
 A.catalogFromVizieR = function (vizCatId, target, radius, options, successCallback, errorCallback) {
     options = options || {};

@@ -71,12 +71,12 @@
         'instrument_name': { name: 'instrument_name', ucd: 'meta.id;instr', utype: 'Provenance.ObsConfig.Instrument.name', units: null },
     }
 
-    ObsCore.clickOnAccessUrlAction = function(accessUrl) {
+    /*ObsCore.clickOnAccessUrlAction = function(accessUrl) {
         // Parse the datalink as a votable
         VOTable.parse(accessUrl, (fields, rows) => {
             console.log(fields)
         })
-    }
+    }*/
 
     ObsCore.COLOR = '#004500'
 
@@ -218,7 +218,8 @@
                 // A datalink response containing links to datasets or services attached to the current dataset
                 case 'application/x-votable+xml;content=datalink':
                     //Datalink.handleActions(url)
-                    Datalink.handleActions(url, aladinInstance);
+                    let dl = new Datalink();
+                    dl.handleActions(url, aladinInstance);
                 break;
                 // Any multidimensional regularly sampled FITS image or cube
                 case 'image/fits':

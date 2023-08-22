@@ -47,6 +47,7 @@ import { ProjectionEnum } from "./ProjectionEnum.js";
 import { Stack } from "./gui/Stack.js";
 import { CooGrid } from "./gui/CooGrid.js";
 import { ContextMenu } from "./gui/ContextMenu.js";
+import { WindowForm } from "./gui/WindowForm.js";
 import { ALEvent } from "./events/ALEvent.js";
 import { Color } from './Color.js';
 import { ImageFITS } from "./ImageFITS.js";
@@ -161,6 +162,9 @@ export let Aladin = (function () {
                 (typeof fullScreenToggledFn === 'function') && fullScreenToggledFn(isInFullscreen);
             }
         });
+
+        // Aladin SODA form
+        this.form = new WindowForm(this);
 
         // Aladin logo
         new AladinLogo(aladinDiv);
@@ -591,8 +595,8 @@ export let Aladin = (function () {
         // Delay the fixLayoutDimensions layout for firefox
         /*setTimeout(function () {
             self.view.fixLayoutDimensions();
-        }, 1000);
-*/
+        }, 1000);*/
+
         // force call to zoomChanged callback
         var fovChangedFn = self.callbacksByEventName['zoomChanged'];
         (typeof fovChangedFn === 'function') && fovChangedFn(self.view.fov);

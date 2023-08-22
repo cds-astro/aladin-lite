@@ -45,7 +45,7 @@ export let VOTable = (function() {
             .catch((e) => errorCallback(e))
     };
 
-    VOTable.parse = function (url, successCallback, errorCallback, useProxy, raField, decField) {
+    VOTable.parse = function (url, successCallback, errorCallback, useProxy) {
         if(useProxy) {
             url = Utils.handleCORSNotSameOrigin(url);
         }
@@ -53,42 +53,11 @@ export let VOTable = (function() {
         fetch(url)
             .then((response) => response.text())
             .then((xml) => {
-                ALEvent.AL_USE_WASM.dispatchedTo(document.body, {callback: (wasm) => {
-                    let votable = wasm.parseVOTable(xml);
-                    votable.votable.get("resources")
-                        .forEach((resource) => {
-                            let tables = resource.get("tables")
-                            if (tables) {
-                                tables.forEach((table) => {
-                                    let fields = table.get("elems")
-                                        .filter((elem) => {
-                                            const elemType = elem["elem_type"] || elem.get("elem_type")
-                                            return elemType === "Field";
-                                        })
-                                        .map((field) => {
-                                            // convert a map into a javascript object
-                                            return Object.fromEntries(field);
-                                        })
-
-                                    try {
-                                        fields = ObsCore.parseFields(fields);
-                                        fields.subtype = "ObsCore";
-                                    } catch(e) {
-                                        // It is not an ObsCore table
-                                        fields = Catalog.parseFields(fields, raField, decField);
-                                    }
-    
-                                    let data = table.get("data");
-                                    if (data) {
-                                        let rows = data.get("rows");
-    
-                                        if (rows) {
-                                            successCallback(fields, rows)
-                                        }
-                                    }
-                                })
-                            }
-                        })
+                ALEvent.AL_USE_WASM.dispatchedTo(document.body, {
+                    callback: (wasm) => {
+                        let votable = wasm.parseVOTable(xml);
+                        votable.votable.get("resources")
+                            .forEach((rsc) => successCallback(rsc))
                     }
                 })
             })
@@ -99,6 +68,202 @@ export let VOTable = (function() {
                     throw e;
                 }
             })
+    };
+
+    VOTable.parseTableRsc = function (rsc, raField, decField) {
+        let tables = rsc.get("tables")
+        if (tables) {
+            // take only the first table
+            let table = tables[0];
+        
+            let fields = table.get("elems")
+                .filter((elem) => {
+                    const elemType = elem["elem_type"] || elem.get("elem_type")
+                    return elemType === "Field";
+                })
+                .map((field) => {
+                    // convert a map into a javascript object
+                    return Object.fromEntries(field);
+                });
+
+            try {
+                fields = ObsCore.parseFields(fields);
+                fields.subtype = "ObsCore";
+            } catch(e) {
+                // It is not an ObsCore table
+                fields = Catalog.parseFields(fields, raField, decField);
+            }
+
+            let data = table.get("data");
+            if (data) {
+                let rows;
+                if (data.get("data_type") === "TableData") {
+                    rows = data.get("rows");
+                } else if(data.get("data_type") === "Binary") {
+                    rows = data.get("stream")
+                        .get("rows");
+                } else {
+                    throw 'VOTable has data type not handled:' + data.get("data_type");
+                }
+
+                console.log(rows, fields)
+
+                return {fields: fields, rows: rows};
+            }
+        }
+    };
+
+    VOTable.parseSODAServiceRsc = function (rsc) {
+        let isSODAService = rsc.get("utype") === "adhoc:service";
+        if (isSODAService) {
+            let elems = rsc.get("elems");
+
+            if (rsc.get("ID").includes("async")) {
+                // First way to check if the resource refers to a async SODA service
+                return;
+            }
+
+            if (elems) {
+                let accessUrl;
+                let inputParams = [];
+    
+                elems.forEach((elem) => {
+                    let elemObj;
+                    if (elem instanceof Map) {
+                        elemObj = Object.fromEntries(elem.entries());
+                    } else {
+                        elemObj = elem;
+                    }
+
+                    // SODA access url
+                    if (elemObj["elem_type"] === "Param" && (elemObj["ucd"] === "meta.ref.url" || elemObj["name"] === "accessURL")) {
+                        accessUrl = elemObj["value"];
+                    } else if (elemObj["elem_type"] === "Param" && elemObj["name"] === "standardID") {
+                        // Check if it is the sync service
+                        // discard the async
+                        if (elemObj["value"].includes("async")) {
+                            return;
+                        }
+                    // Input params group
+                    } else if (elemObj["name"] === "inputParams") {
+                        elemObj["elems"].forEach((inputParam) => {
+                            let name = inputParam.get("name");
+                            let utype = inputParam.get("utype");
+                            let values;
+                            switch (name) {
+                                case 'ID':
+                                    inputParams.push({
+                                        name: 'ID',
+                                        type: 'group',
+                                        description: inputParam.get("description"),
+                                        value: [{
+                                            name: "ID",
+                                            type: "text",
+                                            value: inputParam.get("value")
+                                        }],
+                                    })
+                                    break;
+                                case 'CIRCLE':
+                                    values = inputParam.get("values")["max"]["value"].split(" ").map((v) => {return +v;});
+                                    inputParams.push({
+                                        name: 'CIRCLE',
+                                        type: 'group',
+                                        description: inputParam.get("description"),
+                                        value: [{
+                                            name: 'ra',
+                                            type: 'number',
+                                            maxVal: values[0],
+                                            value: values[0],
+                                            utype: utype
+                                        },
+                                        {
+                                            name: 'dec',
+                                            type: 'number',
+                                            maxVal: values[1],
+                                            value: values[1],
+                                            utype: utype
+                                        },
+                                        {
+                                            name: 'rad',
+                                            type: 'number',
+                                            maxVal: values[2],
+                                            value: values[2],
+                                            utype: utype
+                                        }]
+                                    });
+                                    break;
+                                case 'BAND':
+                                    values = inputParam.get("values")["max"]["value"].split(" ").map((v) => {return +v;});
+    
+                                    inputParams.push({
+                                        name: 'BAND',
+                                        type: 'group',
+                                        description: inputParam.get("description"),
+                                        value: [{
+                                            name: 'fmax',
+                                            type: 'number',
+                                            maxVal: values[0],
+                                            value: values[0],
+                                            utype: utype
+                                        },
+                                        {
+                                            name: 'fmin',
+                                            type: 'number',
+                                            maxVal: values[1],
+                                            value: values[1],
+                                            utype: utype
+                                        }]
+                                    });
+                                    break;
+                                case 'RANGE':
+                                    values = inputParam.get("values")["max"]["value"].split(" ").map((v) => {console.log(v); return +v;});
+    
+                                    inputParams.push({
+                                        name: 'RANGE',
+                                        type: 'group',
+                                        description: inputParam.get("description"),
+                                        value: [{
+                                            name: 'raMin',
+                                            type: 'number',
+                                            maxVal: values[0],
+                                            value: values[0],
+                                            utype: utype
+                                        },
+                                        {
+                                            name: 'raMax',
+                                            type: 'number',
+                                            maxVal: values[1],
+                                            value: values[1],
+                                            utype: utype
+                                        },
+                                        {
+                                            name: 'decMin',
+                                            type: 'number',
+                                            maxVal: values[2],
+                                            value: values[2],
+                                            utype: utype
+                                        },
+                                        {
+                                            name: 'decMax',
+                                            type: 'number',
+                                            maxVal: values[3],
+                                            value: values[3],
+                                            utype: utype
+                                        }]
+                                    });
+                                default:
+                                    break;
+                            }
+                        })
+                    }
+                })
+    
+                return {
+                    baseUrl: accessUrl,
+                    inputParams: inputParams,
+                }
+            }
+        }
     };
 
     // return an array of Source(s) from a VOTable url

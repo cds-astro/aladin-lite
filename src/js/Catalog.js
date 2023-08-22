@@ -22,11 +22,11 @@
 
 /******************************************************************************
  * Aladin Lite project
- * 
+ *
  * File Catalog
- * 
+ *
  * Author: Thomas Boch[CDS]
- * 
+ *
  *****************************************************************************/
 
 import { Source } from "./Source.js"
@@ -57,6 +57,7 @@ export let Catalog = (function() {
     	this.shape = options.shape || "square";
         this.maxNbSources = options.limit || undefined;
         this.onClick = options.onClick || undefined;
+        this.readOnly = options.readOnly || false;
 
         this.raField = options.raField || undefined; // ID or name of the field holding RA
         this.decField = options.decField || undefined; // ID or name of the field holding dec
@@ -82,10 +83,10 @@ export let Catalog = (function() {
                 this.displayLabel = false;
             }
         }
-        
+
     	this.selectionColor = '#00ff00';
-    	
-        // create this.cacheCanvas    	
+
+        // create this.cacheCanvas
     	// cacheCanvas permet de ne créer le path de la source qu'une fois, et de le réutiliser (cf. http://simonsarris.com/blog/427-increasing-performance-by-caching-paths-on-canvas)
         this.updateShape(options);
 
@@ -104,7 +105,7 @@ export let Catalog = (function() {
 
         this.isShowing = true;
     };
-    
+
     Catalog.createShape = function(shapeName, color, sourceSize) {
         if (shapeName instanceof Image || shapeName instanceof HTMLCanvasElement) { // in this case, the shape is already created
             return shapeName;
@@ -119,7 +120,7 @@ export let Catalog = (function() {
             ctx.moveTo(sourceSize/2., 0);
             ctx.lineTo(sourceSize/2., sourceSize);
             ctx.stroke();
-            
+
             ctx.moveTo(0, sourceSize/2.);
             ctx.lineTo(sourceSize, sourceSize/2.);
             ctx.stroke();
@@ -128,7 +129,7 @@ export let Catalog = (function() {
             ctx.moveTo(0, 0);
             ctx.lineTo(sourceSize-1, sourceSize-1);
             ctx.stroke();
-            
+
             ctx.moveTo(sourceSize-1, 0);
             ctx.lineTo(0, sourceSize-1);
             ctx.stroke();
@@ -160,10 +161,10 @@ export let Catalog = (function() {
             ctx.lineTo(1, 1);
             ctx.stroke();
         }
-        
+
         return c;
     };
-    
+
 
         // find RA, Dec fields among the given fields
         //
@@ -182,7 +183,7 @@ export let Catalog = (function() {
                     if (Utils.isInt(raField) && raField<fields.length) { // raField can be given as an index
                         raFieldIdx = raField;
                         break;
-                    } 
+                    }
                     if ( (field.ID && field.ID===raField) || (field.name && field.name===raField)) {
                         raFieldIdx = l;
                         break;
@@ -195,7 +196,7 @@ export let Catalog = (function() {
                     if (Utils.isInt(decField) && decField<fields.length) { // decField can be given as an index
                         decFieldIdx = decField;
                         break;
-                    } 
+                    }
                     if ( (field.ID && field.ID===decField) || (field.name && field.name===decField)) {
                         decFieldIdx = l;
                         break;
@@ -218,7 +219,7 @@ export let Catalog = (function() {
                         }
                     }
                 }
-                    
+
                 if ( ! decFieldIdx) {
                     if (field.ucd) {
                         var ucd = $.trim(field.ucd.toLowerCase());
@@ -236,7 +237,7 @@ export let Catalog = (function() {
                     var field = fields[l];
                     var name = field.name || field.ID || '';
                     name = name.toLowerCase();
-                    
+
                     if ( ! raFieldIdx) {
                         if (name.indexOf('ra')==0 || name.indexOf('_ra')==0 || name.indexOf('ra(icrs)')==0 || name.indexOf('_ra')==0 || name.indexOf('alpha')==0) {
                             raFieldIdx = l;
@@ -250,7 +251,7 @@ export let Catalog = (function() {
                             continue;
                         }
                     }
-                    
+
                 }
             }
 
@@ -262,8 +263,8 @@ export let Catalog = (function() {
 
             return [raFieldIdx, decFieldIdx];
         };
-        
-    
+
+
     Catalog.parseFields = function(fields, raField, decField) {
         // This votable is not an obscore one
         let [raFieldIdx, decFieldIdx] = findRADecFields(fields, raField, decField);
@@ -379,13 +380,13 @@ export let Catalog = (function() {
 
         this.selectSize = this.sourceSize + 2;
 
-        this.cacheCanvas = Catalog.createShape(this.shape, this.color, this.sourceSize); 
+        this.cacheCanvas = Catalog.createShape(this.shape, this.color, this.sourceSize);
         this.cacheSelectCanvas = Catalog.createShape(this.shape, this.selectionColor, this.selectSize);
         this.cacheHoverCanvas = Catalog.createShape(this.shape, this.hoverColor, this.sourceSize);
 
         this.reportChange();
     };
-    
+
     // API
     Catalog.prototype.addSources = function(sources) {
         // make sure we have an array and not an individual source
@@ -507,7 +508,7 @@ export let Catalog = (function() {
         if (! this.sources) {
             return;
         }
-        
+
         for (var k=0; k<this.sources.length; k++) {
             this.sources[k].select();
         }
@@ -702,7 +703,7 @@ export let Catalog = (function() {
     Catalog.prototype.reportChange = function() {
         this.view && this.view.requestRedraw();
     };
-    
+
     Catalog.prototype.show = function() {
         if (this.isShowing) {
             return;
@@ -715,7 +716,7 @@ export let Catalog = (function() {
 
         this.reportChange();
     };
-    
+
     Catalog.prototype.hide = function() {
         if (! this.isShowing) {
             return;

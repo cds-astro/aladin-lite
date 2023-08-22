@@ -1,0 +1,31 @@
+<!doctype html>
+<html>
+<head>
+<!--<link rel="stylesheet" href="./layers.css" />-->
+</head>
+<body>
+
+<div id="aladin-lite-div" style="width: 1024px; height: 768px"></div>
+
+<script type="module">
+    import A from '../src/js/A.js';
+    let aladin;
+    A.init.then(() => {
+        aladin = A.aladin('#aladin-lite-div', {survey: 'P/DSS2/red', target: 'M50', fov: 0.7});
+
+        var cat1 = A.catalog({readOnly: true});
+        aladin.addCatalog(cat1);
+        cat1.addSources(A.source(105.69239256, -8.45235969));
+        cat1.addSources(A.source(105.70779763, -8.31350997));
+        cat1.addSources(A.source(105.74242906, -8.34776709));
+
+        var cat2 = A.catalog({readOnly: false});
+        aladin.addCatalog(cat2);
+        cat2.addSources(A.source(105.79239256, -8.45235969));
+        cat2.addSources(A.source(105.90779763, -8.31350997));
+        cat2.addSources(A.source(105.54242906, -8.34776709));
+    });
+</script>
+
+</body>
+</html>

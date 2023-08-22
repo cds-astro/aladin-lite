@@ -709,7 +709,6 @@ export let View = (function () {
                 var objClickedFunction = view.aladin.callbacksByEventName['objectClicked'];
                 (typeof objClickedFunction === 'function') && objClickedFunction(o, xymouse);
 
-
                 if (o.isFootprint()) {
                     var footprintClickedFunction = view.aladin.callbacksByEventName['footprintClicked'];
                     if (typeof footprintClickedFunction === 'function' && o != view.lastClickedObject) {
@@ -726,6 +725,7 @@ export let View = (function () {
                     // If there is a past clicked object
                     if (view.lastClickedObject) {
                         view.aladin.measurementTable.hide();
+                        //view.aladin.sodaForm.hide();
                         view.popup.hide();
 
                         // Deselect the last clicked object

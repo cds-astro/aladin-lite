@@ -1,0 +1,20 @@
+<!doctype html>
+<html>
+<head>
+</head>
+<body>
+
+<div id="aladin-lite-div" style="width: 500px; height: 400px"></div>
+
+<script type="module">
+    import A from '../src/js/A.js';
+    let aladin;
+    A.init.then(() => {
+        aladin = A.aladin('#aladin-lite-div', {fullScreen: true, target: "12 26 14.618 -08 12 31.70", fov: 10, projection: 'SIN', showContextMenu: true});
+
+        const c1 = A.catalogFromURL('./eso.xml', {onClick: 'showTable', limit: 100});
+        aladin.addCatalog(c1);
+    });
+</script>
+</body>
+</html>

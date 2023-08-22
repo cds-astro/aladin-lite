@@ -50,6 +50,30 @@ export let URLBuilder = (function() {
                 return 'https://ned.ipac.caltech.edu/cgi-bin/nph-objsearch?search_type=Near+Name+Search&radius=' + (60 * radiusDegrees) + '&of=xml_main&objname=' + object;
         },
 
+        buildSKAORucioCSURL: function(target, radiusDegrees) {
+            let posParam;
+            if (target && (typeof target === "object")) {
+                if ('ra' in target && 'dec' in target) {
+                    posParam = encodeURIComponent(target.ra) + '%20' + encodeURIComponent(target.dec);
+                }
+            }
+            else {
+                var isObjectName = /[a-zA-Z]/.test(target);
+                if (isObjectName) {
+                    posParam = encodeURIComponent(target);
+                }
+                else {
+                    var coo = new Coo();
+                    coo.parse(target);
+                    posParam = encodeURIComponent(coo.lon) + '%20' + encodeURIComponent(coo.lat);
+                }
+            }
+
+            if (posParam) {
+                return 'https://ivoa.dachs.srcdev.skao.int/rucio/rucio/cone/form?__nevow_form__=genForm&hscs_pos=' + posParam + '&hscs_sr=' + encodeURIComponent(radiusDegrees * 60) + '&_DBOPTIONS_ORDER=_r&_DBOPTIONS_DIR=ASC&MAXREC=100&_FORMAT=VOTable&submit=Go';
+            }
+        },
+
         buildVizieRCSURL: function(vizCatId, target, radiusDegrees, options) {
             if (target && (typeof target  === "object")) {
                 if ('ra' in target && 'dec' in target) {

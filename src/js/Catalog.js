@@ -299,11 +299,13 @@ export let Catalog = (function() {
     Catalog.parseVOTable = function(url, successCallback, errorCallback, maxNbSources, useProxy, raField, decField) {
         VOTable.parse(
             url,
-            (fields, rows) => {
+            (rsc) => {
+                let { fields, rows } = VOTable.parseTableRsc(rsc, raField, decField)
                 let sources = [];
                 let footprints = [];
 
                 var coo = new Coo();
+                console.log(fields, rows);
                 rows.every(row => {
                     let ra, dec, region;
                     var mesures = {};
@@ -341,6 +343,9 @@ export let Catalog = (function() {
 
                     if (footprint) {
                         footprints.push(footprint);
+                        if (maxNbSources && footprints.length == maxNbSources) {
+                            return false;
+                        }
                     } else if(source) {
                         sources.push(source);
                         if (maxNbSources && sources.length == maxNbSources) {

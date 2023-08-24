@@ -160,7 +160,9 @@ export let DefaultActionsForContextMenu = (function () {
                 label: "Select sources", action(o) {
                     const a = aladinInstance;
 
-                    a.select();
+                    a.select('rect', (_) => {
+                        a.view.showSelectedObjects();
+                    })
                 }
             },
         ]

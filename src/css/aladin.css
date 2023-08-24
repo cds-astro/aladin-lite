@@ -160,6 +160,7 @@
     text-overflow: ellipsis;
     text-align: left;
     color: #000;
+    max-width: 150px;
 }
 
 .aladin-marker-measurement {

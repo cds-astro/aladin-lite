@@ -84,6 +84,10 @@ export let Circle = (function() {
         }
     };
 
+    Circle.prototype.getLineWidth = function() {
+        return this.lineWidth;
+    };
+
     Circle.prototype.setOverlay = function(overlay) {
         this.overlay = overlay;
     };

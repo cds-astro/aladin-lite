@@ -2,7 +2,7 @@ import {Utils} from '@/js/Utils.ts';
 
 describe('Utils.ts', () => {
     beforeEach(() => {
-        delete window.location;
+        //delete window.location;
         window.location = {href: {}, search: ''};
     });
 

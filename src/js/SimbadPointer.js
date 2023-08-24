@@ -44,7 +44,7 @@ export let SimbadPointer = (function() {
         var coo = new Coo(ra, dec, 7);
         var params = {"Ident": coo.format('s/'), "SR": radiusDegrees};
 
-        Utils.loadFromMirrors(SimbadPointer.MIRRORS, {contentType: "text/plain", data: params})
+        Utils.loadFromUrls(SimbadPointer.MIRRORS, {contentType: "text/plain", data: params})
             .then((response) => response.text())
             .then((result) => {
                 aladinInstance.view.setCursor('pointer');

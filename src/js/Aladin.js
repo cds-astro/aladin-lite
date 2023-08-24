@@ -47,7 +47,7 @@ import { ProjectionEnum } from "./ProjectionEnum.js";
 import { Stack } from "./gui/Stack.js";
 import { CooGrid } from "./gui/CooGrid.js";
 import { ContextMenu } from "./gui/ContextMenu.js";
-import { WindowForm } from "./gui/WindowForm.js";
+import { SODAQueryWindow } from "./gui/SODAQueryWindow";
 import { ALEvent } from "./events/ALEvent.js";
 import { Color } from './Color.js';
 import { ImageFITS } from "./ImageFITS.js";
@@ -164,7 +164,7 @@ export let Aladin = (function () {
         });
 
         // Aladin SODA form
-        this.form = new WindowForm(this);
+        this.sodaQueryWindow = new SODAQueryWindow(this);
 
         // Aladin logo
         new AladinLogo(aladinDiv);
@@ -1354,18 +1354,24 @@ export let Aladin = (function () {
         new ALEvent(alEventName).listenedBy(this.aladinDiv, customFn);
     };
 
-    Aladin.prototype.select = function () {
-        this.fire('selectstart');
+    // Possible values are 'rect' and 'circle'
+    // TODO: add a 'polygon' selection mode
+    Aladin.prototype.select = function (mode = 'rect', callbackFn) {
+        this.fire('selectstart', {mode: mode, callbackFn: callbackFn});
     };
 
     Aladin.prototype.fire = function (what, params) {
         if (what === 'selectstart') {
-            this.view.setMode(View.SELECT);
+            this.view.startSelection(params["mode"], params["callbackFn"]);
         }
         else if (what === 'selectend') {
-            this.view.setMode(View.PAN);
+            this.view.finishSelection();
+
             var callbackFn = this.callbacksByEventName['select'];
-            (typeof callbackFn === 'function') && callbackFn(params);
+            if (typeof callbackFn === "function") {
+                this.view.showSelectedObjects();
+                callbackFn(this.view.selectedObjects);
+            }
         }
     };
 
@@ -1613,6 +1619,35 @@ export let Aladin = (function () {
 
         try {
             return this.wasm.worldToScreen(ra, dec);
+        } catch (e) {
+            return undefined;
+        }
+    };
+
+        /**
+     * Transform world coordinates to pixel coordinates in the view
+     *
+     * @API
+     *
+     * @param ra
+     * @param dec
+     *
+     * @return a [x, y] array with pixel coordinates in the view. Returns null if the projection failed somehow
+     *
+     */
+        Aladin.prototype.angularDist = function (x1, y1, x2, y2) {
+        // this might happen at early stage of initialization
+        if (!this.view) {
+            return;
+        }
+
+        try {
+            const [ra1, dec1] = this.pix2world(x1, y1);
+            const [ra2, dec2] = this.pix2world(x2, y2);
+
+            console.log(ra1, dec1, ra2, dec2)
+
+            return this.wasm.angularDist(ra1, dec1, ra2, dec2);
         } catch (e) {
             return undefined;
         }

@@ -223,52 +223,61 @@ Utils.LRUCache.prototype = {
 
  A promise is returned. When all the urls fail, a rejected Promise is returned so that it can be catched afterwards
  */
-Utils.loadFromMirrors = function (urls, options) {
-    const contentType = options && options.contentType || 'application/json'
+Utils.loadFromUrls = function (urls, options) {
     const data = options && options.data || undefined
     const timeout = options && options.timeout || 5000
-
-    // Base case, when all urls have been fetched and failed
-    if (urls.length === 0) {
-        return Promise.reject('None of the urls given can be fetched!')
-    }
-
+    const mode = options && options.mode || 'cors';
+    const contentType = options && options.contentType || undefined;
+    
     // A controller that can abort the query when a timeout is reached
     const controller = new AbortController()
 
     // Launch a timemout that will interrupt the fetch if it has not yet succeded:
     const timeoutId = setTimeout(() => controller.abort(), timeout)
-    const init = {
+    let init = {
         // *GET, POST, PUT, DELETE, etc.
         method: 'GET',
-        headers: {
+        /*headers: {
             'Content-Type': contentType
-        },
+        },*/
         // no-cors, *cors, same-origin
-        mode: 'cors',
+        mode: mode,
         // *default, no-cache, reload, force-cache, only-if-cached
         cache: 'default',
-        // manual, *follow, error
-        redirect: 'follow',
         // Abort the request when a timeout exceeded
         signal: controller.signal,
     }
 
-    const url = urls[0] + '?' + new URLSearchParams(data)
+    if (contentType) {
+        init.headers = {
+            'Content-Type': contentType
+        };
+    }
+
+    let url = urls[0];
+    if (data) {
+        url += '?' + new URLSearchParams(data)
+    }
+
     return fetch(url, init)
         .then((response) => {
             // completed request before timeout fired
             clearTimeout(timeoutId)
-
             if (!response.ok) {
-                return Promise.reject('Url: ', urls[0], ' cannot be reached in some way.')
+                return Promise.reject(response)
             } else {
                 return response
             }
         })
         .catch((e) => {
             // The request aborted because it was to slow, fetch the next url given recursively
-            return Utils.loadFromMirrors(urls.slice(1), options)
+            // Base case, when all urls have been fetched and failed
+            if (urls && urls.length === 1) {
+                let errorMsg = "Status: "+ e.status +"\nMessage: " + e.statusText;
+                return Promise.reject(errorMsg);
+            } else {
+                return Utils.loadFromUrls(urls.slice(1), options);
+            }
         })
 }
 

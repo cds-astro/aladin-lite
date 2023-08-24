@@ -89,7 +89,7 @@ export let PlanetaryFeaturesPointer = (function() {
             return ret;
         };
 
-        Utils.loadFromMirrors(PlanetaryFeaturesPointer.MIRRORS, {contentType: "text/plain", data: params})
+        Utils.loadFromUrls(PlanetaryFeaturesPointer.MIRRORS, {contentType: "text/plain", data: params})
             .then((response) => response.text())
             .then((result) => {
                 aladinInstance.view.setCursor('pointer');

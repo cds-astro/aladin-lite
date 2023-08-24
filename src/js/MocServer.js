@@ -54,7 +54,7 @@ export class MocServer {
                     fields: "ID,hips_initial_fov,hips_initial_ra,hips_initial_dec,hips_pixel_bitpix,hips_creator,hips_copyright,hips_frame,hips_order,hips_order_min,hips_tile_width,hips_tile_format,hips_pixel_cut,obs_title,obs_description,obs_copyright,obs_regime,hips_data_range,hips_service_url",
                 };
 
-                this._allHiPSes = await Utils.loadFromMirrors(MocServer.MIRRORS_HTTPS, {
+                this._allHiPSes = await Utils.loadFromUrls(MocServer.MIRRORS_HTTPS, {
                     data: params,
                 }).then(response => response.json());
             })();
@@ -72,7 +72,7 @@ export class MocServer {
                     fmt: "json",
                     fields: "ID,hips_copyright,hips_order,hips_order_min,obs_title,obs_description,obs_copyright,obs_regime,cs_service_url,hips_service_url",
                 };
-                this._allCatalogHiPSes = await Utils.loadFromMirrors(MocServer.MIRRORS_HTTPS, {data: params})
+                this._allCatalogHiPSes = await Utils.loadFromUrls(MocServer.MIRRORS_HTTPS, {data: params})
                     .then(response => response.json());
             })();
         }

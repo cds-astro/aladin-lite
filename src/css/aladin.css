@@ -256,7 +256,7 @@ word-wrap:break-word;
 
 .aladin-layerBox {
     top: 30px;
-    padding: 4px 4px;
+    left: 40px;
     max-height: 90%;
     overflow-y: auto;
 }
@@ -265,11 +265,29 @@ word-wrap:break-word;
     padding-bottom: 4px;
 }
 
+.aladin-anchor-left {
+    top: 50%;
+    left: 0%;
+    transform: translate(0%,-50%);
+}
+
+.aladin-anchor-right {
+    top: 50%;
+    right: 0%;
+    transform: translate(0%,50%);
+}
+
+.aladin-anchor-center {
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%,-50%);
+}
+
 .aladin-box {
 	display: none;
     z-index: 30;
+    padding: 4px 4px;
     position: absolute;
-    left: 40px;
     background: whitesmoke;
     border-radius: 2px;
 
@@ -386,6 +404,7 @@ canvas {
 
 .aladin-gotoBox {
     top: 68px;
+    left: 40px;
     padding: 4px;
 }
 
@@ -440,6 +459,7 @@ canvas {
 .aladin-shareBox {
     bottom: 30px;
     padding: 4px;
+    left: 40px;
 }
 
 .aladin-shareInput {
@@ -592,7 +612,7 @@ canvas {
 
 .aladin-btn {
 	display: inline-block;
-    padding: 6px 8px;
+    padding: 8px;
     margin-bottom: 0;
     font-size: 12px;
     font-weight: normal;
@@ -623,6 +643,18 @@ canvas {
 .aladin-validBtn {
     background-color: #42c739;
     border-color: #38a730;
+}
+
+.aladin-selectBtn {
+    margin-right: 4px;
+    margin-left: 4px;
+
+    background-color: #bababa;
+    border-color: #484848;
+    background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAQAAAC1+jfqAAAAIGNIUk0AAHomAACAhAAA+gAAAIDoAAB1MAAA6mAAADqYAAAXcJy6UTwAAAACYktHRAD/h4/MvwAAAAd0SU1FB+cIFxEZCysdHKoAAAEcSURBVCjPhdG/K8QBGMfxlzul7iaLXNQNus6mszDI9zrKYjDouxjFYHSTut0/wGYTgxF/gMNwFzmrLs5AyYUSCl0MJz8H7+np83x6evp8+Eko/Cm0fk5tBmQESKgoe27K0Y91j7yEEi4cCIypufsy9Ji3pShjRJe6TbemnbhrGtrkbXkyp+rBpboph6pCexowrCBpWRqdOpG2JKlguHlhQklG1S4iXj27EZdyrF85KjSOnEdnIhaN2tcukNNiyFvEP7TakHDk2pMrLODevXPXzrzYiKAisCMrjZgY0rJ2ZFWaT14Zc+vQrLhAny6hVR16rWlE0VAzrWpbSk63mnUdJi2r0/IZ9YwHRYMoyYpZccqX4XtZxe9l/eZP3e+aWVQQn/7CMgAAACV0RVh0ZGF0ZTpjcmVhdGUAMjAyMy0wOC0yM1QxNzoyNDo0NiswMDowMJfQN1cAAAAldEVYdGRhdGU6bW9kaWZ5ADIwMjMtMDgtMjNUMTc6MjQ6NDYrMDA6MDDmjY/rAAAAKHRFWHRkYXRlOnRpbWVzdGFtcAAyMDIzLTA4LTIzVDE3OjI1OjExKzAwOjAw0x314AAAAABJRU5ErkJggg==');
+    background-size: contain;
+    background-repeat:  no-repeat;
+    background-position:center center;
 }
 
 .aladin-box-content > div {
@@ -660,16 +692,28 @@ canvas {
     margin-bottom: 5px;
 }
 
+.aladin-form-param {
+    display: flex;
+    align-items: center; 
+    margin-bottom: 7px;
+}
+.aladin-form-param .aladin-input {
+    width: 100%;
+}
+
+
 .aladin-form-param-group {
     border: 2px solid silver;
     padding: 5px;
 }
 
-.aladin-form-param-group > h1 {
-    position: relative;
+.aladin-form-param-group .aladin-form-group-header {
+    display: flex;
+    align-items: center; 
+
     top: 0px;
     margin: 0;
-    font-size: 11px;
+    font-size: 13px;
     font-family: Verdana, Geneva, Tahoma, sans-serif;
 
     cursor: pointer;
@@ -680,7 +724,7 @@ canvas {
 	position: absolute;
     left: 0;
     bottom: 300px;
-    width: 200px;
+    width: 250px;
     line-height: 1.3;
 }
 

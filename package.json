@@ -44,9 +44,8 @@
     "test:unit": "vitest run"
   },
   "devDependencies": {
-    "happy-dom": "^8.9.0",
+    "happy-dom": "^10.11.0",
     "npm": "^9.8.1",
-    "typescript": "^5.0.4",
     "vite": "^4.3.8",
     "vite-plugin-css-injected-by-js": "^3.1.1",
     "vite-plugin-glsl": "^1.1.2",

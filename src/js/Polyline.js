@@ -37,7 +37,7 @@ import { AladinUtils } from './AladinUtils.js';
 import { Line } from './Line.js';
 import { Utils } from './Utils';
 import { Overlay } from "./Overlay.js";
-import { ProjectionEnum, projectionNames } from "./ProjectionEnum.js";
+import { ProjectionEnum } from "./ProjectionEnum.js";
 
 
 export let Polyline= (function() {
@@ -146,10 +146,15 @@ export let Polyline= (function() {
         }
     };
 
+    Polyline.prototype.getLineWidth = function() {
+        return this.lineWidth;
+    };
+
     Polyline.prototype.setLineWidth = function(lineWidth) {
         if (this.lineWidth == lineWidth) {
             return;
         }
+
         this.lineWidth = lineWidth;
         if (this.overlay) {
             this.overlay.reportChange();
@@ -388,6 +393,8 @@ export let Polyline= (function() {
     };
 
     Polyline.prototype.isInStroke = function(ctx, view, x, y) {
+        ctx.lineWidth = this.lineWidth;
+
         let pointXY = [];
         for (var j = 0; j < this.radecArray.length; j++) {
             var xy = AladinUtils.radecToViewXy(this.radecArray[j][0], this.radecArray[j][1], view);

@@ -1221,16 +1221,18 @@ export let View = (function () {
     };
 
     View.prototype.hideSelectedObjects = function() {
+        this.aladin.measurementTable.hide();
+
         if (this.selectedObjects) {
             this.selectedObjects.forEach((objList) => {
                 objList.forEach((o) => o.deselect())
             });
-            this.aladin.measurementTable.hide();
 
             this.selectedObjects = null;
-
-            this.requestRedraw();
         }
+
+        this.requestRedraw();
+        //}
     }
 
     View.prototype.showSelectedObjects = function() {
@@ -1999,9 +2001,16 @@ export let View = (function () {
 
         footprints.forEach((footprint) => {
             // Hidden footprints are not considered
+            let lineWidth = footprint.getLineWidth();
+
+            footprint.setLineWidth(6.0);
             if (footprint.isShowing && footprint.isInStroke(ctx, this, x, y)) {
                 closest = footprint;
-                return;
+            }
+            footprint.setLineWidth(lineWidth);
+
+            if (closest) {
+                return closest;
             }
         })
 
@@ -2015,8 +2024,7 @@ export let View = (function () {
         var canvas = this.catalogCanvas;
         var ctx = canvas.getContext("2d");
         // this makes footprint selection easier as the catch-zone is larger
-        let pastLineWidth = ctx.lineWidth;
-        ctx.lineWidth = 6.0;
+        //let pastLineWidth = ctx.lineWidth;
 
         if (this.overlays) {
             for (var k = 0; k < this.overlays.length; k++) {
@@ -2024,7 +2032,7 @@ export let View = (function () {
 
                 let closest = this.closestFootprints(overlay.overlayItems, ctx, x, y);
                 if (closest) {
-                    ctx.lineWidth = pastLineWidth;
+                    //ctx.lineWidth = pastLineWidth;
                     return [closest];
                 }
             }
@@ -2037,18 +2045,18 @@ export let View = (function () {
 
                 let closest = this.closestFootprints(catalog.footprints, ctx, x, y);
                 if (closest) {
-                    ctx.lineWidth = pastLineWidth;
+                    //ctx.lineWidth = pastLineWidth;
                     return [closest];
                 }
             }
         }
 
         if (!this.objLookup) {
-            ctx.lineWidth = pastLineWidth;
+            //ctx.lineWidth = pastLineWidth;
             return null;
         }
 
-        ctx.lineWidth = pastLineWidth;
+        //ctx.lineWidth = pastLineWidth;
 
         var closest, dist;
         for (var r = 0; r <= maxRadius; r++) {

@@ -83,7 +83,13 @@ export let Footprint= (function() {
     };
 
     Footprint.prototype.setLineWidth = function(lineWidth) {
-        this.shapes.forEach((shape) => shape.setLineWidth())
+        this.shapes.forEach((shape) => shape.setLineWidth(lineWidth))
+    };
+
+    Footprint.prototype.getLineWidth = function() {
+        if (this.shapes && this.shapes.length > 0) {
+            return this.shapes[0].getLineWidth();
+        }
     };
 
     Footprint.prototype.setColor = function(color) {

@@ -86,6 +86,10 @@ export let Ellipse = (function() {
         }
     };
 
+    Ellipse.prototype.getLineWidth = function() {
+        return this.lineWidth;
+    };
+
     Ellipse.prototype.setOverlay = function(overlay) {
         this.overlay = overlay;
     };

@@ -106,8 +106,6 @@ export let VOTable = (function() {
                     throw 'VOTable has data type not handled:' + data.get("data_type");
                 }
 
-                console.log(rows, fields)
-
                 return {fields: fields, rows: rows};
             }
         }
@@ -117,8 +115,9 @@ export let VOTable = (function() {
         let isSODAService = rsc.get("utype") === "adhoc:service";
         if (isSODAService) {
             let elems = rsc.get("elems");
+            let id = rsc.get("ID");
 
-            if (rsc.get("ID").includes("async")) {
+            if (id && id.includes("async")) {
                 // First way to check if the resource refers to a async SODA service
                 return;
             }
@@ -128,25 +127,22 @@ export let VOTable = (function() {
                 let inputParams = [];
     
                 elems.forEach((elem) => {
-                    let elemObj;
                     if (elem instanceof Map) {
-                        elemObj = Object.fromEntries(elem.entries());
-                    } else {
-                        elemObj = elem;
+                        elem = Object.fromEntries(elem.entries());
                     }
 
                     // SODA access url
-                    if (elemObj["elem_type"] === "Param" && (elemObj["ucd"] === "meta.ref.url" || elemObj["name"] === "accessURL")) {
-                        accessUrl = elemObj["value"];
-                    } else if (elemObj["elem_type"] === "Param" && elemObj["name"] === "standardID") {
+                    if (elem["elem_type"] === "Param" && (elem["ucd"] === "meta.ref.url" || elem["name"] === "accessURL")) {
+                        accessUrl = elem["value"];
+                    } else if (elem["elem_type"] === "Param" && elem["name"] === "standardID") {
                         // Check if it is the sync service
                         // discard the async
-                        if (elemObj["value"].includes("async")) {
+                        if (elem["value"].includes("async")) {
                             return;
                         }
                     // Input params group
-                    } else if (elemObj["name"] === "inputParams") {
-                        elemObj["elems"].forEach((inputParam) => {
+                    } else if (elem["name"] === "inputParams") {
+                        elem["elems"].forEach((inputParam) => {
                             let name = inputParam.get("name");
                             let utype = inputParam.get("utype");
                             let values;
@@ -164,7 +160,10 @@ export let VOTable = (function() {
                                     })
                                     break;
                                 case 'CIRCLE':
-                                    values = inputParam.get("values")["max"]["value"].split(" ").map((v) => {return +v;});
+                                    if (inputParam.get("values")) {
+                                        values = inputParam.get("values")["max"]["value"].split(" ").map((v) => {return +v;});
+                                    }
+
                                     inputParams.push({
                                         name: 'CIRCLE',
                                         type: 'group',
@@ -172,52 +171,55 @@ export let VOTable = (function() {
                                         value: [{
                                             name: 'ra',
                                             type: 'number',
-                                            maxVal: values[0],
-                                            value: values[0],
+                                            maxVal: values && values[0],
+                                            value: values && values[0],
                                             utype: utype
                                         },
                                         {
                                             name: 'dec',
                                             type: 'number',
-                                            maxVal: values[1],
-                                            value: values[1],
+                                            maxVal: values && values[1],
+                                            value: values && values[1],
                                             utype: utype
                                         },
                                         {
                                             name: 'rad',
                                             type: 'number',
-                                            maxVal: values[2],
-                                            value: values[2],
+                                            maxVal: values && values[2],
+                                            value: values && values[2],
                                             utype: utype
                                         }]
                                     });
                                     break;
                                 case 'BAND':
-                                    values = inputParam.get("values")["max"]["value"].split(" ").map((v) => {return +v;});
+                                    if (inputParam.get("values")) {
+                                        values = inputParam.get("values")["max"]["value"].split(" ").map((v) => {return +v;});
+                                    }
     
                                     inputParams.push({
                                         name: 'BAND',
                                         type: 'group',
                                         description: inputParam.get("description"),
                                         value: [{
-                                            name: 'fmax',
+                                            name: 'fmin',
                                             type: 'number',
-                                            maxVal: values[0],
-                                            value: values[0],
+                                            maxVal: values && values[0],
+                                            value: values && values[0],
                                             utype: utype
                                         },
                                         {
-                                            name: 'fmin',
+                                            name: 'fmax',
                                             type: 'number',
-                                            maxVal: values[1],
-                                            value: values[1],
+                                            maxVal: values && values[1],
+                                            value: values && values[1],
                                             utype: utype
                                         }]
                                     });
                                     break;
                                 case 'RANGE':
-                                    values = inputParam.get("values")["max"]["value"].split(" ").map((v) => {console.log(v); return +v;});
-    
+                                    if (inputParam.get("values")) {
+                                        values = inputParam.get("values")["max"]["value"].split(" ").map((v) => {return +v;});
+                                    }    
                                     inputParams.push({
                                         name: 'RANGE',
                                         type: 'group',
@@ -225,29 +227,29 @@ export let VOTable = (function() {
                                         value: [{
                                             name: 'raMin',
                                             type: 'number',
-                                            maxVal: values[0],
-                                            value: values[0],
+                                            maxVal: values && values[0],
+                                            value: values && values[0],
                                             utype: utype
                                         },
                                         {
                                             name: 'raMax',
                                             type: 'number',
-                                            maxVal: values[1],
-                                            value: values[1],
+                                            maxVal: values && values[1],
+                                            value: values && values[1],
                                             utype: utype
                                         },
                                         {
                                             name: 'decMin',
                                             type: 'number',
-                                            maxVal: values[2],
-                                            value: values[2],
+                                            maxVal: values && values[2],
+                                            value: values && values[2],
                                             utype: utype
                                         },
                                         {
                                             name: 'decMax',
                                             type: 'number',
-                                            maxVal: values[3],
-                                            value: values[3],
+                                            maxVal: values && values[3],
+                                            value: values && values[3],
                                             utype: utype
                                         }]
                                     });

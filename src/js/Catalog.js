@@ -305,7 +305,7 @@ export let Catalog = (function() {
                 let footprints = [];
 
                 var coo = new Coo();
-                console.log(fields, rows);
+
                 rows.every(row => {
                     let ra, dec, region;
                     var mesures = {};

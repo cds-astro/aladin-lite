@@ -36,10 +36,12 @@ export let Datalink = (function() {
 
     let Datalink = function () {
         this.SODAServerParams = undefined;
-        this.form = undefined;
+        this.sodaQueryWindow = undefined;
     };
 
-    Datalink.prototype.handleActions = function(url, aladinInstance) {
+    Datalink.prototype.handleActions = function(obscoreRow, aladinInstance) {
+
+        const url = obscoreRow["access_url"];
         VOTable.parse(
             url,
             (rsc) => {
@@ -67,12 +69,12 @@ export let Datalink = (function() {
                         'fields': fields,
                         'fieldsClickedActions': {
                             'service_def': (row) => {
-                                let service = row['service_def'];
+                                const service = row['service_def'];
+
                                 if (service) {
-                                    aladinInstance.form.hide();
-                                    aladinInstance.form.setTitle("SODA Query form");
-                                    aladinInstance.form.setParams(this.SODAServerParams);
-                                    aladinInstance.form.show((baseUrl, SODAParams) => {
+                                    aladinInstance.sodaQueryWindow.hide();
+                                    aladinInstance.sodaQueryWindow.setParams(this.SODAServerParams);
+                                    aladinInstance.sodaQueryWindow.show((baseUrl, SODAParams) => {
                                         let url = new URL(baseUrl)
                                         SODAParams.forEach((param) => {
                                             let value;
@@ -81,32 +83,38 @@ export let Datalink = (function() {
                                             } else {
                                                 value = param.value;
                                             }
-                                            url.searchParams.append(param.name, value)
+                                            url.searchParams.append(param.name, value);
                                         });
 
                                         let spinnerEl = document.createElement('div');
                                         spinnerEl.classList.add("aladin-spinner");
                                         spinnerEl.innerText = "fetching...";
 
-                                        aladinInstance.form.mainEl.querySelector(".aladin-window .submit")
+                                        aladinInstance.sodaQueryWindow.mainEl.querySelector(".submit")
                                             .appendChild(spinnerEl);
 
-                                        // tackle cors problems
-                                        console.log(url)
-                                        url = Utils.handleCORSNotSameOrigin(url);
-                                        fetch(url)
-                                            .then((response) => {
-                                                if (response.status == 200) {
-                                                    return response;
-                                                } else {
-                                                    return Promise.reject("Error status code: " + response.status + ".\nStatus message: " + response.statusText);
+                                        let removeSpinner = () => {
+                                            aladinInstance.sodaQueryWindow.mainEl.querySelector(".aladin-spinner").remove();
+                                        };
+
+                                        let name = url.searchParams.toString();
+                                        // Tackle cors problems
+                                        Utils.loadFromUrls([url, Utils.handleCORSNotSameOrigin(url)], {timeout: 30000})
+                                            .then((response) => response.blob())
+                                            .then((blob) => {
+                                                const url = URL.createObjectURL(blob);
+                                                try {
+                                                    let image = aladinInstance.createImageFITS(url, name);   
+                                                    aladinInstance.setOverlayImageLayer(image, Utils.uuidv4())
+                                                } catch(e) {
+                                                    throw('Fail to interpret ' + url + ' as a fits file')
                                                 }
                                             })
                                             .catch((e) => {
                                                 window.alert(e)
                                             })
                                             .finally(() => {
-                                                aladinInstance.form.mainEl.querySelector(".aladin-spinner").remove();
+                                                removeSpinner();
                                             })
                                     });
                                 }
@@ -160,14 +168,57 @@ export let Datalink = (function() {
 
                     aladinInstance.measurementTable.showMeasurement([datalinkTable], { save: true });
                 } else {
-                    // resource meta
+                    // Try to parse a SODA service descriptor resource
                     let SODAServerParams = VOTable.parseSODAServiceRsc(rsc);
                     if (SODAServerParams) {
                         this.SODAServerParams = SODAServerParams;
+
+                        // Try to populate the SODA form fields with obscore values
+                        let populateSODAFields = (SODAParams) => {
+                            for (const inputParam of SODAParams.inputParams) {
+                                if (inputParam.type === "group") {
+                                    for (const param of inputParam.value) {
+                                        if (param.value) {
+                                            continue;
+                                        }
+
+                                        if (param.name === "ra") {
+                                            param.value = obscoreRow['s_ra'];
+                                        } else if (param.name === "dec") {
+                                            param.value = obscoreRow['s_dec'];
+                                        } else if (param.name === "fmin") {
+                                            param.value = obscoreRow['em_min'];
+                                        } else if (param.name === "fmax") {
+                                            param.value = obscoreRow['em_max'];
+                                        } else if (param.name === "rad") {
+                                            param.value = obscoreRow['s_fov'] / 2;
+                                        }
+                                    }
+                                }
+                            }
+                        };
+
+                        // Request the base url of the SODA server to check if there
+                        // is a self description VOTable
+                        VOTable.parse(this.SODAServerParams.baseUrl, (rsc) => {
+                            const SODAServerDesc = VOTable.parseSODAServiceRsc(rsc);
+
+                            for (const inputParam of SODAServerDesc.inputParams) {
+                                const inputParamAlreadyDefined = this.SODAServerParams.inputParams.some((inputParamFromDatalink) => inputParamFromDatalink.name === inputParam.name);
+                                if (!inputParamAlreadyDefined) {
+                                    this.SODAServerParams.inputParams.push(inputParam);
+                                }
+                            }
+
+                            populateSODAFields(this.SODAServerParams);
+                        }, undefined, true);
+
+                        populateSODAFields(this.SODAServerParams);
                     }
-                    console.log(this.SODAServerParams)
                 }
-            }
+            },
+            undefined,
+            true
         )
     };
 

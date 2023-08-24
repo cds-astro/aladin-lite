@@ -76,6 +76,8 @@ use math::projection::*;
 use votable::votable::VOTableWrapper;
 use wasm_bindgen::prelude::*;
 
+use crate::math::angle::ToAngle;
+
 mod app;
 pub mod async_task;
 mod camera;
@@ -607,6 +609,15 @@ impl WebClient {
         self.app
             .world_to_screen(lon, lat)
             .map(|v| Box::new([v.x, v.y]) as Box<[f64]>)
+    }
+
+    #[wasm_bindgen(js_name = angularDist)]
+    pub fn ang_dist(&self, lon1: f64, lat1: f64, lon2: f64, lat2: f64) -> f64 {
+        crate::math::lonlat::ang_between_lonlat(
+            LonLatT::new(lon1.to_radians().to_angle(), lat1.to_radians().to_angle()),
+            LonLatT::new(lon2.to_radians().to_angle(), lat2.to_radians().to_angle()),
+        )
+        .to_degrees()
     }
 
     #[wasm_bindgen(js_name = screenToClip)]

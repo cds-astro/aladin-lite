@@ -46,9 +46,9 @@ import { WebGLCtx } from "./WebGL.js";
 import { Logger } from "./Logger.js";
 import { ALEvent } from "./events/ALEvent.js";
 import { ColorCfg } from "./ColorCfg.js";
-
-import $ from 'jquery';
 import { Footprint } from "./Footprint.js";
+import { Selector } from "./Selector.js";
+import $ from 'jquery';
 
 export let View = (function () {
 
@@ -149,6 +149,10 @@ export let View = (function () {
         // Frame setting
         this.changeFrame(this.cooFrame);
 
+        this.selector = new Selector();
+        this.selectMode = 'rect';
+        this.selectCallbackFn = undefined;
+
         // Zoom starting setting
         const si = 500000.0;
         const alpha = 40.0;
@@ -206,8 +210,7 @@ export let View = (function () {
 
         // some variables for mouse handling
         this.dragging = false;
-        this.dragx = null;
-        this.dragy = null;
+        this.dragCoo = null;
         this.rightclickx = null;
         this.rightclicky = null;
         this.selectedLayer = 'base';
@@ -381,6 +384,16 @@ export let View = (function () {
         ctx.oImageSmoothingEnabled = enableSmoothing;
     }
 
+    View.prototype.startSelection = function(mode, callbackFn) {
+        this.setMode(View.SELECT);
+
+        this.selectMode = mode;
+        this.selectCallbackFn = callbackFn;
+    }
+
+    View.prototype.finishSelection = function() {
+        this.setMode(View.PAN);
+    }
 
     View.prototype.setMode = function (mode) {
         this.mode = mode;
@@ -463,7 +476,7 @@ export let View = (function () {
             const xymouse = Utils.relMouseCoords(view.imageCanvas, e);
 
             // deselect all the selected sources with Select panel
-            view.deselectObjects()
+            view.hideSelectedObjects()
 
             try {
                 const lonlat = view.wasm.screenToWorld(xymouse.x, xymouse.y);
@@ -535,18 +548,17 @@ export let View = (function () {
                 return;
             }
 
-            view.dragx = xymouse.x;
-            view.dragy = xymouse.y;
+            view.dragCoo = xymouse;
 
             view.dragging = true;
             if (view.mode == View.PAN) {
                 view.setCursor('move');
             }
             else if (view.mode == View.SELECT) {
-                view.selectStartCoo = { x: view.dragx, y: view.dragy };
+                view.selector.start(view.dragCoo, view.selectMode, view.selectCallbackFn);
             }
 
-            view.wasm.pressLeftMouseButton(view.dragx, view.dragy);
+            view.wasm.pressLeftMouseButton(view.dragCoo.x, view.dragCoo.y);
 
             // false disables default browser behaviour like possibility to touch hold for context menu.
             // To disable text selection use css user-select: none instead of putting this value to false
@@ -598,58 +610,10 @@ export let View = (function () {
             } // end of "if (view.dragging) ... "
 
             if (selectionHasEnded) {
-                view.deselectObjects()
-
-                const selectedObjects = view.getObjectsInBBox(
-                    view.selectStartCoo.x,
-                    view.selectStartCoo.y,
-                    view.dragx - view.selectStartCoo.x,
-                    view.dragy - view.selectStartCoo.y
-                );
-
-                selectedObjects.forEach((objListPerCatalog) => {
-                    objListPerCatalog.forEach((obj) => obj.select())
-                });
-
-                if (selectedObjects.length > 0) {
-                    let options = {};
-
-                    let tables = selectedObjects.map((objList) => {
-                        // Get the catalog containing that list of objects
-                        let catalog = objList[0].getCatalog();
-
-                        let rows = objList.map((o) => {
-                            if (o instanceof Footprint) {
-                                return o.source;
-                            } else {
-                                return o;
-                            }
-                        });
-                        let table = {
-                            'name': catalog.name,
-                            'color': catalog.color,
-                            'rows': rows,
-                            'fields': catalog.fields,
-                            'fieldsClickedActions': catalog.fieldsClickedActions,
-                        };
-
-                        if (catalog.isObsCore && catalog.isObsCore()) {
-                            // If the source is obscore, save the table state inside the measurement table
-                            // This is used to go back from a possible datalink table to the obscore one
-                            options["save"] = true;
-                        }
-
-                        return table;
-                    })
-
-                    view.aladin.measurementTable.showMeasurement(tables, options);
-                }
-
-                view.selectedObjects = selectedObjects;
+                view.selector.finish(view.dragCoo);
 
                 view.aladin.fire(
-                    'selectend',
-                    selectedObjects
+                    'selectend'
                 );
 
                 view.requestRedraw();
@@ -658,7 +622,7 @@ export let View = (function () {
             }
 
             view.mustClearCatalog = true;
-            view.dragx = view.dragy = null;
+            view.dragCoo = null;
             const xymouse = Utils.relMouseCoords(view.imageCanvas, e);
 
             if (e.type === "mouseout" || e.type === "touchend" || e.type === "touchcancel") {
@@ -683,7 +647,7 @@ export let View = (function () {
             // popup to show ?
             var objs = view.closestObjects(xymouse.x, xymouse.y, 5);
             if (!wasDragging && objs) {
-                view.deselectObjects();
+                view.hideSelectedObjects();
 
                 var o = objs[0];
 
@@ -720,11 +684,11 @@ export let View = (function () {
             } else {
                 if (!wasDragging) {
                     // Deselect objects if any
-                    view.deselectObjects();
+                    view.hideSelectedObjects();
 
                     // If there is a past clicked object
                     if (view.lastClickedObject) {
-                        view.aladin.measurementTable.hide();
+                        //view.aladin.measurementTable.hide();
                         //view.aladin.sodaForm.hide();
                         view.popup.hide();
 
@@ -903,13 +867,9 @@ export let View = (function () {
                 return;
             }
 
-            //var xoffset, yoffset;
-            var s1, s2;
-            s1 = { x: view.dragx, y: view.dragy };
-            s2 = { x: xymouse.x, y: xymouse.y };
-
-            view.dragx = xymouse.x;
-            view.dragy = xymouse.y;
+            var s1 = view.dragCoo, s2 = xymouse;
+            // update drag coo with the new position
+            view.dragCoo = xymouse;
 
             if (view.mode == View.SELECT) {
                 view.requestRedraw();
@@ -1181,11 +1141,7 @@ export let View = (function () {
                     catalogCanvasCleared = true;
                 }
 
-                reticleCtx.fillStyle = "rgba(100, 240, 110, 0.25)";
-                var w = this.dragx - this.selectStartCoo.x;
-                var h = this.dragy - this.selectStartCoo.y;
-
-                reticleCtx.fillRect(this.selectStartCoo.x, this.selectStartCoo.y, w, h);
+                this.selector.draw(reticleCtx, this.dragCoo)
             }
         } else {
             // Normal modes
@@ -1264,7 +1220,7 @@ export let View = (function () {
         return pixList;
     };
 
-    View.prototype.deselectObjects = function() {
+    View.prototype.hideSelectedObjects = function() {
         if (this.selectedObjects) {
             this.selectedObjects.forEach((objList) => {
                 objList.forEach((o) => o.deselect())
@@ -1272,6 +1228,52 @@ export let View = (function () {
             this.aladin.measurementTable.hide();
 
             this.selectedObjects = null;
+
+            this.requestRedraw();
+        }
+    }
+
+    View.prototype.showSelectedObjects = function() {
+        this.hideSelectedObjects();
+
+        this.selectedObjects = this.getSelectedObjects();
+
+        if (this.selectedObjects.length > 0) {
+            this.selectedObjects.forEach((objListPerCatalog) => {
+                objListPerCatalog.forEach((obj) => obj.select())
+            });
+
+            let saveTable = false;
+
+            let tables = this.selectedObjects.map((objList) => {
+                // Get the catalog containing that list of objects
+                let catalog = objList[0].getCatalog();
+                
+                let rows = objList.map((o) => {
+                    if (o instanceof Footprint) {
+                        return o.source;
+                    } else {
+                        return o;
+                    }
+                });
+                let table = {
+                    'name': catalog.name,
+                    'color': catalog.color,
+                    'rows': rows,
+                    'fields': catalog.fields,
+                    'fieldsClickedActions': catalog.fieldsClickedActions,
+                };
+
+                if (catalog.isObsCore && catalog.isObsCore()) {
+                    // If the source is obscore, save the table state inside the measurement table
+                    // This is used to go back from a possible datalink table to the obscore one
+                    saveTable = true;
+                }
+
+                return table;
+            })
+
+            this.aladin.measurementTable.showMeasurement(tables, {save: saveTable});
         }
     }
 
@@ -1903,7 +1905,9 @@ export let View = (function () {
         moc.setView(this);
     };
 
-    View.prototype.getObjectsInBBox = function (x, y, w, h) {
+    View.prototype.getSelectedObjects = function () {
+        let {x, y, w, h} = this.selector.getBBox(this.dragCoo);
+
         if (w < 0) {
             x = x + w;
             w = -w;

@@ -218,8 +218,7 @@
                 // A datalink response containing links to datasets or services attached to the current dataset
                 case 'application/x-votable+xml;content=datalink':
                     //Datalink.handleActions(url)
-                    let dl = new Datalink();
-                    dl.handleActions(url, aladinInstance);
+                    new Datalink().handleActions(row, aladinInstance);
                 break;
                 // Any multidimensional regularly sampled FITS image or cube
                 case 'image/fits':

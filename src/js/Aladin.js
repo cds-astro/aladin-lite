@@ -46,7 +46,7 @@ import { ProjectionSelector } from "./gui/ProjectionSelector.js";
 import { ProjectionEnum } from "./ProjectionEnum.js";
 import { Stack } from "./gui/Stack.js";
 import { CooGrid } from "./gui/CooGrid.js";
-import { ContextMenu } from "./gui/ContextMenu.js";
+import { ContextMenu } from "./gui/widgets/ContextMenu.js";
 import { SODAQueryWindow } from "./gui/SODAQueryWindow";
 import { ALEvent } from "./events/ALEvent.js";
 import { Color } from './Color.js';
@@ -474,7 +474,7 @@ export let Aladin = (function () {
         // set right click context menu
         if (options.showContextMenu) {
             this.contextMenu = new ContextMenu(this);
-            this.contextMenu.attachTo(this.view.catalogCanvas, DefaultActionsForContextMenu.getDefaultActions(this));
+            this.contextMenu.attachTo(DefaultActionsForContextMenu.getDefaultActions(this));
         }
 
         if (options.samp) {

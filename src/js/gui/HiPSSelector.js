@@ -51,7 +51,7 @@ import $ from 'jquery';
 
         this.mainDiv = document.createElement('div');
         this.mainDiv.style.display = 'block';
-        this.mainDiv.classList.add('aladin-dialog', 'aladin-layerBox', 'aladin-cb-list');
+        this.mainDiv.classList.add('aladin-dialog', 'aladin-layerBox');
 
         const autocompleteId = 'autocomplete-' + Utils.uuidv4();
         this.mainDiv.insertAdjacentHTML('afterbegin', 

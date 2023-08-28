@@ -30,9 +30,9 @@
  *
  *****************************************************************************/
 
-import { Coo } from '../libs/astro/coo.js';
-import { CooFrameEnum } from '../CooFrameEnum.js';
-import { Utils } from '../Utils';
+import { Coo } from '../../libs/astro/coo.js';
+import { CooFrameEnum } from '../../CooFrameEnum.js';
+import { Utils } from '../../Utils';
 
 export class ContextMenu {
 
@@ -41,14 +41,12 @@ export class ContextMenu {
         this.isShowing = false;
     }
 
-    _hideMenu(e) {
-        //if (e === true || !this.contextMenuUl.contains(e.target)) {
+    _hideMenu() {
         this.contextMenuUl.remove();
         document.removeEventListener('click', this._hideMenu);
         window.removeEventListener('resize', this._hideOnResize);
 
         this.isShowing = false;
-        //}
     }
 
     _hideOnResize() {
@@ -109,7 +107,7 @@ export class ContextMenu {
         this.contextMenuUl.className = 'aladin-context-menu';
         this.contextMenuUl.innerHTML = '';
 
-        const xymouse = Utils.relMouseCoords(this.aladin.view.imageCanvas, e);
+        const xymouse = Utils.relMouseCoords(e);
 
         this.menuOptions.forEach(opt => this._attachOption(this.contextMenuUl, opt, xymouse));
         document.body.appendChild(this.contextMenuUl);
@@ -120,7 +118,6 @@ export class ContextMenu {
         let y = 0;
 
         this.event = e;
-
 
         if (e.clientX >= (innerWidth / 2)) {
             this.contextMenuUl.classList.add('left');
@@ -147,23 +144,10 @@ export class ContextMenu {
         this.isShowing = true;
     }
 
-
-    attachTo(el, options) {
+    attachTo(options) {
         this.contextMenuUl = document.createElement('ul');
         this.menuOptions = options;
-
-        const self = this;
-        /*
-        el.addEventListener('contextmenu', function (e) {
-            e.preventDefault();
-            self._showMenu(e, options, el);
-
-            e.stopPropagation();
-        });
-        */
-
     }
-
 }
 
 

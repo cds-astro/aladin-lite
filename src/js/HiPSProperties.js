@@ -78,8 +78,6 @@ HiPSProperties.fetchFromUrl = async function(urlOrId) {
             urlOrId = Utils.getAbsoluteURL(urlOrId)
 
             urlOrId = new URL(urlOrId);
-
-
         } catch(e) {
             throw e;
         }

@@ -38,7 +38,7 @@ Utils.HTTPS_WHITELIST = ['alasky.u-strasbg.fr', 'alaskybis.u-strasbg.fr', 'alask
 
 Utils.cssScale = undefined
 
-Utils.relMouseCoords = function (canvas: HTMLCanvasElement, event: MouseEvent) {
+Utils.relMouseCoords = function (event: MouseEvent) {
     if (event.offsetX) {
         return {x: event.offsetX, y: event.offsetY}
     } else {

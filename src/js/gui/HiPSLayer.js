@@ -33,6 +33,7 @@ import { ALEvent } from "../events/ALEvent.js";
 import { HiPSSelector } from "./HiPSSelector.js";
 
 import $ from 'jquery';
+import { ActionButton } from "./widgets/ActionButton.js";
 
 export class HiPSLayer {
 
@@ -45,33 +46,109 @@ export class HiPSLayer {
 
         // HiPS header div
         this.headerDiv = $(
-            '<div class="aladin-layer">' +
-                '<div class="aladin-layer-header" style="border-radius: 4px">' +
-                    '<button class="aladin-btn-small aladin-indicatorBtn right-triangle" title="Open the color panel"></button>' +
-                    '<select class="aladin-selector aladin-layerSelection"></select>' +
-                    '<button class="aladin-btn-small aladin-layer-hide" type="button" title="Hide this layer">👁️</button>' +
-                    '<button class="aladin-btn-small aladin-HiPSSelector" type="button" title="Search for a specific HiPS">🔍</button>' +
-                    '<button class="aladin-btn-small aladin-delete-layer" type="button" title="Delete this layer">❌</button>' +
-                '</div>' +
+            '<div>' +
+                '<div class="aladin-layer-header aladin-horizontal-list"></div>' +
             '</div>'
         );
+
+        let layerHeaderEl = this.headerDiv[0].querySelector(".aladin-layer-header");
+
+        let self = this;
+    
+        let clickOpenerBtn = new ActionButton(layerHeaderEl, {
+            content: "▶",
+            backgroundColor: '#eaeaea',
+            color: 'black',
+            info: 'Open the survey edition panel',
+            action(e) {
+                if (clickOpenerBtn.opt.content === '▶') {
+                    clickOpenerBtn.attach({
+                        info: 'Close the survey edition panel',
+                        content: '▼',
+                    });
+                    self.mainDiv.slideDown(300);
+                }
+                else {
+                    clickOpenerBtn.attach({
+                        info: 'Open the survey edition panel',
+                        content: '▶',
+                    });
+                    self.mainDiv.slideUp(300);
+                }
+            }
+        });
+
+        layerHeaderEl.appendChild((() => {
+            let selector = $('<select class="aladin-input aladin-layerSelection"></select>');
+            return selector[0];
+        })());
+
+        let hideLayerBtn = new ActionButton(layerHeaderEl, {
+            content: "👁️",
+            backgroundColor: '#eaeaea',
+            info: 'Hide the layer',
+            action(e) {
+                self.hidden = !self.hidden;
+                let opacitySlider = self.mainDiv.find('.opacity').eq(0);
+
+                let newOpacity = 0.0;
+                if (self.hidden) {
+                    self.lastOpacity = self.layer.getOpacity();
+                    hideLayerBtn.attach({content: ' '});
+                } else {
+                    newOpacity = self.lastOpacity;
+                    hideLayerBtn.attach({content: '👁️'});
+                }
+                // Update the opacity slider
+                opacitySlider.val(newOpacity);
+                opacitySlider.get(0).disabled = self.hidden;
+
+                self.layer.setOpacity(newOpacity);
+            }
+        });
+
+        new ActionButton(layerHeaderEl, {
+            content: "🔍",
+            backgroundColor: '#eaeaea',
+            info: 'Search for a survey (HiPS)',
+            action(e) {
+                if (!self.hipsSelector) {
+                    self.hipsSelector = new HiPSSelector(self.aladin.aladinDiv, (IDOrURL) => {
+                        const layerName = self.layer.layer;
+                        self.aladin.setOverlayImageLayer(IDOrURL, layerName);
+                    }, self.aladin);
+                }
+        
+                self.hipsSelector.show();
+            }
+        });
+
+        let deleteLayerBtn = new ActionButton(layerHeaderEl, {
+            content: "❌",
+            backgroundColor: '#eaeaea',
+            info: 'Delete this layer',
+            action(e) {
+                self.aladin.aladinDiv.dispatchEvent(new CustomEvent('remove-layer', {
+                    detail: self.layer.layer
+                }));
+            }
+        });
 
         // Add a centered on button for images
         if (this.layer.subtype === "fits") {
             let layerSelector = this.headerDiv[0].querySelector(".aladin-layerSelection");
-            layerSelector.after($('<button class="aladin-btn-small aladin-layer-focuson" type="button" title="Focus on this layer">🎯</button>')[0]);
+            new ActionButton(layerSelector, {
+                content: "🎯",
+                backgroundColor: '#eaeaea',
+                info: 'Focus on the FITS',
+                action(e) {
+                    self.layer.focusOn();
+                }
+            }, 'afterend');
         }
 
         if (this.layer.layer === "base") {
-            let deleteLayerBtn = this.headerDiv[0].querySelector(".aladin-delete-layer");
-            deleteLayerBtn.disabled = true;
-            deleteLayerBtn.style.backgroundColor = 'lightgray';
-            deleteLayerBtn.style.borderColor = 'gray';
-
-            // This is how to color emojis:
-            // see: https://stackoverflow.com/questions/32413731/color-for-unicode-emoji
-            deleteLayerBtn.style.color = 'transparent';
-            deleteLayerBtn.style.textShadow = '0 0 0 gray';
+            deleteLayerBtn.attach({backgroundColor: 'lightgray', disable: true});
         }
 
         // HiPS main options div
@@ -83,31 +160,28 @@ export class HiPSLayer {
         this.cmap = "native";
         this.color = "#ff0000";
 
-        this.mainDiv = $('<div class="aladin-frame" style="display:none; padding: 0px 4px">' +
-            '<div class="aladin-options">' +
+        this.mainDiv = $('<div class="aladin-form-input-group" style="display:none; padding: 0px 4px">' +
             // colormap
-            '  <div class="row"><div class="col-label">Colormap</div><div class="col-input"><select class="aladin-selector colormap-selector">' + cmListStr + '</select></div></div>' +
-            '  <label><div class="row"><div class="col-label">Reverse</div><div class="col-input"><input type="checkbox" class="reversed aladin-input"></div></div></label>' +
-            '  <div class="row"><div class="col-label"><label>Stretch</label></div><div class="col-input"><select class="aladin-selector stretch"><option>pow2</option><option selected>linear</option><option>sqrt</option><option>asinh</option><option>log</option></select></div></div>' +
-            '  <div class="row"><div class="col-label"><label>Format</label></div><div class="col-input"><select class="aladin-selector format"></select></div></div>' +
-            '  <div class="row"><div class="col-label"><label>Min cut</label></div><div class="col-input"><input type="number" class="aladin-input min-cut"></div></div>' +
-            '  <div class="row"><div class="col-label"><label>Max cut</label></div><div class="col-input"><input type="number" class="aladin-input max-cut"></div></div>' +
+            '  <div class="aladin-form-input"><label>Colormap</label><select class="aladin-input colormap-selector">' + cmListStr + '</select></div>' +
+            '  <div class="aladin-form-input"><label>Reverse</label><input type="checkbox" class="reversed aladin-input" /></div>' +
+            '  <div class="aladin-form-input"><label>Stretch</label><select class="aladin-input stretch"><option>pow2</option><option selected>linear</option><option>sqrt</option><option>asinh</option><option>log</option></select></div>' +
+            '  <div class="aladin-form-input"><label>Format</label><select class="aladin-input format"></select></div>' +
+            '  <div class="aladin-form-input"><label>Min cut</label><input type="number" class="aladin-input min-cut"></div>' +
+            '  <div class="aladin-form-input"><label>Max cut</label><input type="number" class="aladin-input max-cut"></div>' +
             // tonal corrections
-            '  <div class="row"><div class="col-label"><label>Gamma</label></div><div class="col-input"><input class="aladin-input gamma" type="number" value="1.0" min="0.1" max="10.0" step="0.01"></div></div>' +
-            '  <div class="row"><div class="col-label"><label>Color Sat.</label></div><div class="col-input"><input class="aladin-input saturation" type="range" value="0.0" min="-1.0" max="1.0" step="0.01"></div></div>' +
-            '  <div class="row"><div class="col-label"><label>Contrast</label></div><div class="col-input"><input class="aladin-input contrast" type="range" value="0.0" min="-1.0" max="1.0" step="0.01"></div></div>' +
-            '  <div class="row"><div class="col-label"><label>Brightness</label></div><div class="col-input"><input class="aladin-input brightness" type="range" value="0.0" min="-1.0" max="1.0" step="0.01"></div></div>' +
+            '  <div class="aladin-form-input"><label>Gamma</label><input class="aladin-input gamma" type="number" value="1.0" min="0.1" max="10.0" step="0.01"></div>' +
+            '  <div class="aladin-form-input"><label>Color Sat.</label><input class="aladin-input saturation" type="range" value="0.0" min="-1.0" max="1.0" step="0.01"></div>' +
+            '  <div class="aladin-form-input"><label>Contrast</label><input class="aladin-input contrast" type="range" value="0.0" min="-1.0" max="1.0" step="0.01"></div>' +
+            '  <div class="aladin-form-input"><label>Brightness</label><input class="aladin-input brightness" type="range" value="0.0" min="-1.0" max="1.0" step="0.01"></div>' +
             // blending mode
-            '  <div class="row"><div class="col-label"><label>Blending mode</label></div><div class="col-input"><select class="aladin-selector blending"><option>additive</option><option selected>default</option></select></div></div>' +
+            '  <div class="aladin-form-input"><label>Blending mode</label><select class="aladin-input blending"><option>additive</option><option selected>default</option></select></div>' +
             // opacity
-            '  <div class="row"><div class="col-label"><label>Opacity</label></div><div class="col-input"><input class="aladin-input opacity" type="range" min="0" max="1" step="0.01"></div></div>' +
-            '</div> ' +
+            '  <div class="aladin-form-input"><label>Opacity</label><input class="aladin-input opacity" type="range" min="0" max="1" step="0.01"></div>' +
         '</div>');
 
         this._addListeners();
         this._updateHiPSLayerOptions();
 
-        let self = this;
         this.layerChangedListener = function(e) {
             const layer = e.detail.layer;
             if (layer.layer === self.layer.layer) {
@@ -127,21 +201,6 @@ export class HiPSLayer {
     _addListeners() {
         const self = this;
         // HEADER DIV listeners
-        // Click opener
-        const clickOpener = this.headerDiv.find('.aladin-indicatorBtn');
-        clickOpener.off("click");
-        clickOpener.on("click", function () {
-            if (clickOpener.hasClass('right-triangle')) {
-                clickOpener.removeClass('right-triangle');
-                clickOpener.addClass('down-triangle');
-                self.mainDiv.slideDown(300);
-            }
-            else {
-                clickOpener.removeClass('down-triangle');
-                clickOpener.addClass('right-triangle');
-                self.mainDiv.slideUp(300);
-            }
-        });
 
         this.headerDiv.off("click");
         this.headerDiv.on("click", () => {
@@ -185,61 +244,6 @@ export class HiPSLayer {
 
             self.aladin.setOverlayImageLayer(layer, self.layer.layer);
         });
-
-        // Search HiPS button
-        const hipsSelector = this.headerDiv.find('.aladin-HiPSSelector');
-        hipsSelector.off("click");
-        hipsSelector.on("click", function () {
-            if (!self.hipsSelector) {
-                self.hipsSelector = new HiPSSelector(self.aladin.aladinDiv, (IDOrURL) => {
-                    const layerName = self.layer.layer;
-                    self.aladin.setOverlayImageLayer(IDOrURL, layerName);
-                }, self.aladin);
-            }
-
-            self.hipsSelector.show();
-        });
-
-        // Delete HiPS button
-        const deleteLayer = this.headerDiv.find('.aladin-delete-layer');
-        deleteLayer.off("click");
-        deleteLayer.on("click", function () {
-            const removeLayerEvent = new CustomEvent('remove-layer', {
-                detail: self.layer.layer
-            });
-            self.aladin.aladinDiv.dispatchEvent(removeLayerEvent);
-        });
-
-        // Hide HiPS button
-        const hideLayer = this.headerDiv.find('.aladin-layer-hide');
-        hideLayer.off("click");
-        hideLayer.on("click", function () {
-            self.hidden = !self.hidden;
-            let opacitySlider = self.mainDiv.find('.opacity').eq(0);
-
-            let newOpacity = 0.0;
-            if (self.hidden) {
-                self.lastOpacity = self.layer.getOpacity();
-                hideLayer.text('');
-            } else {
-                newOpacity = self.lastOpacity;
-                hideLayer.text('👁️');
-            }
-            // Update the opacity slider
-            opacitySlider.val(newOpacity);
-            opacitySlider.get(0).disabled = self.hidden;
-
-            self.layer.setOpacity(newOpacity);
-        });
-
-        // Hide HiPS button
-        const focusOnLayer = this.headerDiv.find('.aladin-layer-focuson');
-        if (focusOnLayer) {
-            focusOnLayer.off("click");
-            focusOnLayer.on("click", function () {
-                self.layer.focusOn();
-            });
-        }
 
         // MAIN DIV listeners
         // blending method
@@ -371,13 +375,6 @@ export class HiPSLayer {
     }
 
     _updateHiPSLayerOptions() {
-        const colorMapTr = this.mainDiv.find('.row').eq(0);
-        const reverseTr = this.mainDiv.find('.row').eq(1);
-        const stretchTr = this.mainDiv.find('.row').eq(2);
-        const formatTr = this.mainDiv.find('.row').eq(3);
-        const minCutTr = this.mainDiv.find('.row').eq(4);
-        const maxCutTr = this.mainDiv.find('.row').eq(5);
-
         const reverseCmCb = this.mainDiv.find('.reversed').eq(0);
         const colorMapSelect4ImgLayer = this.mainDiv.find('.colormap-selector').eq(0);
         const stretchSelect4ImgLayer = this.mainDiv.find('.stretch').eq(0);
@@ -415,9 +412,9 @@ export class HiPSLayer {
         blendingSelect4ImgLayer.val(additive ? "additive" : "default");
 
         // cuts
-        colorMapTr[0].style.display = "flex";
-        reverseTr[0].style.display = "flex";
-        stretchTr[0].style.display = "flex";
+        //colorMapTr[0].style.display = "flex";
+        //reverseTr[0].style.display = "flex";
+        //stretchTr[0].style.display = "flex";
 
         if (colorCfg.minCut) {
             if (parseFloat(minCut.val()) != colorCfg.minCut) {
@@ -428,7 +425,7 @@ export class HiPSLayer {
             minCut.val(0.0);
         }
 
-        minCutTr[0].style.display = "flex";
+        //minCutTr[0].style.display = "flex";
 
         if (colorCfg.maxCut) {
             if (parseFloat(maxCut.val()) != colorCfg.maxCut) {
@@ -438,7 +435,7 @@ export class HiPSLayer {
         else {
             maxCut.val(0.0);
         }
-        maxCutTr[0].style.display = "flex";
+        //maxCutTr[0].style.display = "flex";
         // save opacity
         const opacity = colorCfg.getOpacity();
         opacity4ImgLayer.val(opacity);

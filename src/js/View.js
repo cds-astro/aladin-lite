@@ -473,7 +473,7 @@ export let View = (function () {
 
         // various listeners
         let onDblClick = function (e) {
-            const xymouse = Utils.relMouseCoords(view.imageCanvas, e);
+            const xymouse = Utils.relMouseCoords(e);
 
             // deselect all the selected sources with Select panel
             view.hideSelectedObjects()
@@ -506,7 +506,7 @@ export let View = (function () {
             e.preventDefault();
             e.stopPropagation();
 
-            const xymouse = Utils.relMouseCoords(view.imageCanvas, e);
+            const xymouse = Utils.relMouseCoords(e);
 
             if (e.which === 3 || e.button === 2) {
                 view.rightClick = true;
@@ -623,7 +623,7 @@ export let View = (function () {
 
             view.mustClearCatalog = true;
             view.dragCoo = null;
-            const xymouse = Utils.relMouseCoords(view.imageCanvas, e);
+            const xymouse = Utils.relMouseCoords(e);
 
             if (e.type === "mouseout" || e.type === "touchend" || e.type === "touchcancel") {
                 view.updateLocation(xymouse.x, xymouse.y, true);
@@ -729,7 +729,7 @@ export let View = (function () {
         var lastMouseMovePos = null;
         $(view.catalogCanvas).bind("mousemove touchmove", function (e) {
             e.preventDefault();
-            const xymouse = Utils.relMouseCoords(view.imageCanvas, e);
+            const xymouse = Utils.relMouseCoords(e);
 
             if (view.rightClick) {
                 var onRightClickMoveFunction = view.aladin.callbacksByEventName['rightClickMove'];
@@ -2003,7 +2003,7 @@ export let View = (function () {
             // Hidden footprints are not considered
             let lineWidth = footprint.getLineWidth();
 
-            footprint.setLineWidth(6.0);
+            footprint.setLineWidth(10.0);
             if (footprint.isShowing && footprint.isInStroke(ctx, this, x, y)) {
                 closest = footprint;
             }

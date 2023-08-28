@@ -46,7 +46,7 @@ export class Stack {
 
         this.mainDiv = document.createElement('div');
         this.mainDiv.style.display = 'none';
-        this.mainDiv.classList.add('aladin-box', 'aladin-layerBox', 'aladin-cb-list');
+        this.mainDiv.classList.add('aladin-box', 'aladin-layerBox');
         this.backgroundColorInput = $('<input type="color">');
 
         this.aladinDiv = parentDiv;
@@ -167,9 +167,11 @@ export class Stack {
         }
 
         layerBox.append(
+            '<div class="aladin-horizontal-list">' +
             '<button class="aladin-btn add-layer-hips" type="button" title="Add a full survey (i.e. a HiPS)">Add survey</button>' +
-            '<button class="aladin-btn add-layer-image" type="button" title="Add a single image (only FITS file supported)">Open image 📂</button>'
-        );
+            '<button class="aladin-btn add-layer-image" type="button" title="Add a single image (only FITS file supported)">Open image 📂</button>' +
+            '</div>'
+            );
 
         $(this.mainDiv).find('.add-layer-hips').on('click', function () {
             self.aladin.addNewImageLayer();
@@ -208,7 +210,7 @@ export class Stack {
 
         // loop over all overlay layers
         var layers = this.aladin.getOverlays();
-        var str = '<ul class="aladin-overlay-list">';
+        var str = '<ul class="aladin-list">';
         for (var k = layers.length - 1; k >= 0; k--) {
             var layer = layers[k];
             var name = layer.name;
@@ -239,9 +241,9 @@ export class Stack {
 
             // retrieve SVG icon, and apply the layer color
             var svgBase64 = window.btoa(iconSvg.replace(/FILLCOLOR/g, layer.color));
-            str += '<li><div class="aladin-stack-icon" style=\'background-image: url("data:image/svg+xml;base64,' + svgBase64 + '");\'></div>';
+            str += '<li class="aladin-horizontal-list"><div class="aladin-stack-icon" style=\'background-image: url("data:image/svg+xml;base64,' + svgBase64 + '");\'></div>';
             str += '<input class="aladin-input" type="checkbox" ' + checked + ' id="aladin_lite_' + layer.uuid + '"></input><label for="aladin_lite_' + layer.uuid + '" class="aladin-layer-label" style="background: ' + layer.color + '; color:' + labelColor + ';" title="' + tooltipText + '">' + name + '</label>';
-            str += ' <button class="aladin-btn-small aladin-delete-graphic-layer" type="button" title="Delete this layer" data-uuid="' + layer.uuid + '" style="font-size: 10px!important; vertical-align: text-bottom!important; background-color: unset!important;">❌</button>';
+            str += ' <button class="aladin-btn-24px-icon aladin-delete-graphic-layer" type="button" title="Delete this layer">❌</button>';
             str += '</li>';
         }
         str += '</ul>';

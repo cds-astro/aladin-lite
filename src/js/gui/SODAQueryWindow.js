@@ -33,6 +33,8 @@
 import { Coo } from '../libs/astro/coo.js';
 import { CooFrameEnum } from '../CooFrameEnum.js';
 import { Utils } from '../Utils';
+import { ActionButton } from './widgets/ActionButton.js';
+import targetIconImg from '../../../assets/icons/target.svg';
 
 export class SODAQueryWindow {
     constructor(aladin) {
@@ -60,7 +62,7 @@ export class SODAQueryWindow {
             labelEl.for = input.id;
 
             let divEl = document.createElement("div");
-            divEl.classList.add(labelEl.textContent, "aladin-form-param");
+            divEl.classList.add(labelEl.textContent, "aladin-form-input");
 
             divEl.appendChild(labelEl);
             divEl.appendChild(inputEl);
@@ -68,27 +70,31 @@ export class SODAQueryWindow {
             target.appendChild(divEl);
         } else if (input.type === "group") {
             let groupEl = document.createElement('div');
-            groupEl.classList.add(input.name, "aladin-form-param-group");
+            groupEl.classList.add(input.name, "aladin-form-input-group");
             groupEl.innerHTML = '<div class="aladin-form-group-header">' + input.name + '</div>';
 
             if (input.name === 'CIRCLE') {
-                let circleSelectBtnEl = document.createElement('div');
-                circleSelectBtnEl.classList.add('aladin-btn', 'aladin-selectBtn');
-                circleSelectBtnEl.addEventListener('click', (e) => {
-                    this.aladin.select('circle', (s) => {
-                        const {x, y, r} = s;
-
-                        const [ra, dec] = this.aladin.pix2world(x, y);
-                        const dist = this.aladin.angularDist(x, y, x + r, y);
-                        // find the children
-                        let [raInputEl, decInputEl, radiusInputEl] = groupEl.querySelectorAll(".aladin-form-param input");
-
-                        raInputEl.value = ra;
-                        decInputEl.value = dec;
-                        radiusInputEl.value = dist;
-                    });
+                let self = this;
+                new ActionButton(groupEl.querySelector(".aladin-form-group-header"), {
+                    iconURL: targetIconImg,
+                    backgroundColor: '#bababa',
+                    borderColor: '#484848',
+                    info: 'Circular selection\n<i><font size="-2">Click, drag and release to define the circle</font></i>',
+                    action(e) {
+                        self.aladin.select('circle', (s) => {
+                            const {x, y, r} = s;
+    
+                            const [ra, dec] = self.aladin.pix2world(x, y);
+                            const dist = self.aladin.angularDist(x, y, x + r, y);
+                            // find the children
+                            let [raInputEl, decInputEl, radiusInputEl] = groupEl.querySelectorAll(".aladin-form-input input");
+    
+                            raInputEl.value = ra;
+                            decInputEl.value = dec;
+                            radiusInputEl.value = dist;
+                        });
+                    }
                 });
-                groupEl.querySelector(".aladin-form-group-header").appendChild(circleSelectBtnEl);
             }
 
             input.value.forEach((subInput) => this._attachParam(groupEl, subInput));
@@ -123,11 +129,27 @@ export class SODAQueryWindow {
         this.mainEl.classList.add('aladin-box', 'aladin-anchor-left');
         this.mainEl.style.display = 'initial';
 
-        this.mainEl.innerHTML = '<div><a class="aladin-closeBtn">&times;</a><div class="aladin-box-title">Cutout Query Window</div></div>';
+        this.mainEl.innerHTML = '<a class="aladin-closeBtn">&times;</a><div class="aladin-horizontal-list"></div>';
 
-        console.log(this.mainEl);
-        let windowEl = this.mainEl.querySelector("div");
-        windowEl.appendChild(this.formEl);
+        const listOfInputParams = this.formParams["inputParams"].map((param) => param.name).join(', ');
+
+
+        let aladinTitleListEl = this.mainEl.querySelector('div');
+        new ActionButton(aladinTitleListEl, {
+            content: '📡',
+            backgroundColor: 'white',
+            borderColor: '#484848',
+            info: 'This is the form to request the SODA server located at: <a target="_blank" href="' + this.formParams["baseUrl"]  + '">' + this.formParams["baseUrl"] + '</a>\nThe list of input params is:\n' + listOfInputParams,
+            action(e) {}
+        });
+
+        let titleEl = document.createElement('div');
+        titleEl.textContent = 'Cutouts query form';
+        titleEl.classList.add('aladin-box-title');
+
+        aladinTitleListEl.appendChild(titleEl)
+
+        this.mainEl.appendChild(this.formEl);
 
         this.aladin.aladinDiv.appendChild(this.mainEl);
         this.mainEl.querySelector(".aladin-closeBtn")
@@ -148,17 +170,17 @@ export class SODAQueryWindow {
 
                 for (let child of this.formEl.children) {
                     let param;
-                    if (child.classList.contains("aladin-form-param")) {
+                    if (child.classList.contains("aladin-form-input")) {
                         // get the input
                         let input = child.querySelector("input");
                         param = {
                             name: input.name,
                             value: input.value
                         };
-                    } else if (child.classList.contains("aladin-form-param-group")) {
+                    } else if (child.classList.contains("aladin-form-input-group")) {
                         let values = [];
                         for (let formParam of child.children) {
-                            if (formParam.classList.contains("aladin-form-param")) {
+                            if (formParam.classList.contains("aladin-form-input")) {
                                 // get the input
                                 let input = formParam.querySelector("input");
                                 values.push(input.value);
@@ -185,6 +207,8 @@ export class SODAQueryWindow {
     setParams(params) {
         this.formParams = params;
     }
+
+
 }
 
 

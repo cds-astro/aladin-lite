@@ -256,7 +256,7 @@ export let View = (function () {
                 if (fov !== this.oldFov) {
                     const fovChangedFn = this.aladin.callbacksByEventName['zoomChanged'];
                     (typeof fovChangedFn === 'function') && fovChangedFn(fov);
-    
+
                     // finally, save fov value
                     this.oldFov = fov;
                 }
@@ -485,7 +485,7 @@ export let View = (function () {
             // do something here...
             e.preventDefault();
         }, false);
-        
+
 
         let cutMinInit = null
         let cutMaxInit = null;
@@ -618,7 +618,7 @@ export let View = (function () {
                     let tables = selectedObjects.map((objList) => {
                         // Get the catalog containing that list of objects
                         let catalog = objList[0].getCatalog();
-                        
+
                         let rows = objList.map((o) => {
                             if (o instanceof Footprint) {
                                 return o.source;
@@ -728,7 +728,7 @@ export let View = (function () {
                     if (view.lastClickedObject) {
                         view.aladin.measurementTable.hide();
                         view.popup.hide();
-    
+
                         // Deselect the last clicked object
                         if (view.lastClickedObject instanceof Ellipse || view.lastClickedObject instanceof Circle || view.lastClickedObject instanceof Polyline) {
                             view.lastClickedObject.deselect();
@@ -736,7 +736,7 @@ export let View = (function () {
                             // Case where lastClickedObject is a Source
                             view.lastClickedObject.actionOtherObjectClicked();
                         }
-    
+
                         var objClickedFunction = view.aladin.callbacksByEventName['objectClicked'];
                         (typeof objClickedFunction === 'function') && objClickedFunction(null);
 
@@ -770,7 +770,7 @@ export let View = (function () {
 
             if (view.rightClick) {
                 var onRightClickMoveFunction = view.aladin.callbacksByEventName['rightClickMove'];
-                if (typeof onRightClickMoveFunction === 'function') {                    
+                if (typeof onRightClickMoveFunction === 'function') {
                     onRightClickMoveFunction(xymouse.x, xymouse.y);
 
                     // do not process further
@@ -786,12 +786,12 @@ export let View = (function () {
                     };
                     const cx = (xymouse.x - cs.x) / view.catalogCanvas.clientWidth;
                     const cy = -(xymouse.y - cs.y) / view.catalogCanvas.clientHeight;
-    
+
                     const offset = (cutMaxInit - cutMinInit) * cx;
-    
+
                     const lr = offset + (1.0 - 2.0 * cy) * cutMinInit;
                     const rr = offset + (1.0 + 2.0 * cy) * cutMaxInit;
-    
+
                     if (lr <= rr) {
                         selectedLayer.setCuts(lr, rr)
                     }
@@ -885,7 +885,7 @@ export let View = (function () {
                             if (lastHoveredObject.isFootprint()) {
                                 view.requestRedraw();
                             }
-    
+
                             if (typeof objHoveredStopFunction === 'function') {
                                 // call callback function to notify we left the hovered object
                                 var ret = objHoveredStopFunction(lastHoveredObject);
@@ -1959,7 +1959,7 @@ export let View = (function () {
                 sources = cat.getSources();
                 for (var l = 0; l < sources.length; l++) {
                     s = sources[l];
-                    if (!s.isShowing || !s.x || !s.y) {
+                    if (!s.isShowing || !s.x || !s.y || cat.readOnly) {
                         continue;
                     }
 
@@ -1984,7 +1984,7 @@ export let View = (function () {
         }
 
         let closest = null;
-        
+
         footprints.forEach((footprint) => {
             // Hidden footprints are not considered
             if (footprint.isShowing && footprint.isInStroke(ctx, this, x, y)) {
@@ -2022,7 +2022,7 @@ export let View = (function () {
         if (this.catalogs) {
             for (var k = 0; k < this.catalogs.length; k++) {
                 let catalog = this.catalogs[k];
-                
+
                 let closest = this.closestFootprints(catalog.footprints, ctx, x, y);
                 if (closest) {
                     ctx.lineWidth = pastLineWidth;

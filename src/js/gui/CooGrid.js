@@ -43,7 +43,7 @@
 
         this.mainDiv = document.createElement('div');
         this.mainDiv.style.display = 'none';
-        this.mainDiv.classList.add('aladin-box', 'aladin-layerBox', 'aladin-cb-list');
+        this.mainDiv.classList.add('aladin-box', 'aladin-layerBox');
 
         this.aladinDiv = parentDiv;
         parentDiv.appendChild(this.mainDiv);

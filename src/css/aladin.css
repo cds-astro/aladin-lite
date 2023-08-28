@@ -306,6 +306,8 @@ word-wrap:break-word;
     -ms-overflow-style: none; /* for Internet Explorer, Edge */
     scrollbar-width: none; /* for Firefox */
     overflow-y: scroll; 
+
+    overflow-y: inherit;
 }
 
 .aladin-box::-webkit-scrollbar {
@@ -341,10 +343,6 @@ input[type=number] {
     color: #222;
     max-width: 500px;
     padding: 0.8em;
-}
-
-.aladin-layer .aladin-input, .aladin-layer .aladin-selector {
-    width: 100%;
 }
 
 .aladin-selector, .aladin-input {
@@ -474,28 +472,10 @@ canvas {
 	margin-left: 5px;
 }
 
-.aladin-cb-list ul {
+.aladin-list {
     margin: 0;
     padding-left: 4px;
     list-style: none;
-    /*max-width: 200px; */
-    /* max-width: 150px; */
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-}
-
-.aladin-cb-list ul li {
-    flex: 1 1 100%;
-    text-align: left;
-}
-
-.aladin-cb-list label {
-    display: inline-block;
-}
-
-.aladin-cb-list input[type="checkbox"] {
-    margin: 3px;
 }
 
 .aladin-indicatorBtn {
@@ -613,27 +593,32 @@ canvas {
 
 .aladin-btn {
 	display: inline-block;
-    padding: 8px;
     margin-bottom: 0;
+    margin: 0;
+
+    padding: 8px;
     font-size: 12px;
     font-weight: normal;
     text-align: center;
     white-space: nowrap;
     vertical-align: middle;
     cursor: pointer;
-    border: 1px solid transparent;
+    border: 1px solid #357ebd;
     border-radius: 3px;
     color: #ffffff;
     background-color: #428bca;
-    border-color: #357ebd;
-    margin-right: 4px;
 }
 
-.aladin-layer {
-    padding: 0px;
-    margin-bottom: 4px;
-    background-color: #f2f2f2;
-    border-radius: 2px;
+.aladin-24px-icon {
+    padding: 0;
+    border: 1px solid #AEAEAE;
+
+    width: 24px;
+    height: 24px;
+}
+
+.aladin-btn:hover {
+    filter: brightness(105%);
 }
 
 .aladin-cancelBtn {
@@ -646,27 +631,14 @@ canvas {
     border-color: #38a730;
 }
 
-.aladin-selectBtn {
-    margin-right: 4px;
-    margin-left: 4px;
-
-    background-color: #bababa;
-    border-color: #484848;
-    background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAQAAAC1+jfqAAAAIGNIUk0AAHomAACAhAAA+gAAAIDoAAB1MAAA6mAAADqYAAAXcJy6UTwAAAACYktHRAD/h4/MvwAAAAd0SU1FB+cIFxEZCysdHKoAAAEcSURBVCjPhdG/K8QBGMfxlzul7iaLXNQNus6mszDI9zrKYjDouxjFYHSTut0/wGYTgxF/gMNwFzmrLs5AyYUSCl0MJz8H7+np83x6evp8+Eko/Cm0fk5tBmQESKgoe27K0Y91j7yEEi4cCIypufsy9Ji3pShjRJe6TbemnbhrGtrkbXkyp+rBpboph6pCexowrCBpWRqdOpG2JKlguHlhQklG1S4iXj27EZdyrF85KjSOnEdnIhaN2tcukNNiyFvEP7TakHDk2pMrLODevXPXzrzYiKAisCMrjZgY0rJ2ZFWaT14Zc+vQrLhAny6hVR16rWlE0VAzrWpbSk63mnUdJi2r0/IZ9YwHRYMoyYpZccqX4XtZxe9l/eZP3e+aWVQQn/7CMgAAACV0RVh0ZGF0ZTpjcmVhdGUAMjAyMy0wOC0yM1QxNzoyNDo0NiswMDowMJfQN1cAAAAldEVYdGRhdGU6bW9kaWZ5ADIwMjMtMDgtMjNUMTc6MjQ6NDYrMDA6MDDmjY/rAAAAKHRFWHRkYXRlOnRpbWVzdGFtcAAyMDIzLTA4LTIzVDE3OjI1OjExKzAwOjAw0x314AAAAABJRU5ErkJggg==');
-    background-size: contain;
-    background-repeat:  no-repeat;
-    background-position:center center;
-}
-
 .aladin-box-content > div {
     margin: 10px 0px 0px 0px;
 }
 
-.aladin-btn-small {
+/*.aladin-btn-small {
 	display: inline-block;
     border-radius: 3px;
     margin-bottom: 0;
-    padding: 0;
     vertical-align: middle;
     cursor: pointer;
     border: 1px solid transparent;
@@ -675,9 +647,11 @@ canvas {
     background-color: #428bca;
     border-color: #357ebd;
     margin-left: 2px;
-    min-width: 1.5em;
-    min-height: 1.5em;
-}
+
+    background-size: 'contain';
+    background-repeat: 'no-repeat';
+    background-position: 'center center';
+}*/
 
 .aladin-button:hover {
 	color: #ffffff;
@@ -693,22 +667,41 @@ canvas {
     margin-bottom: 5px;
 }
 
-.aladin-form-param {
+.aladin-horizontal-list {
     display: flex;
+    align-items: center; 
+    list-style: none;
+
+    padding: 0;
+    margin: 0;
+}
+
+.aladin-horizontal-list > * {
+    vertical-align: middle;
+    margin-right: 2px;
+}
+
+.aladin-form-input {
+    display: flex;
+    justify-content: flex-end;
     align-items: center; 
     margin-bottom: 7px;
 }
-.aladin-form-param .aladin-input {
-    width: 100%;
+
+.aladin-form-input > label{
+    flex: 1;
 }
 
+.aladin-form-input .aladin-input {
+    flex: 2;
+}
 
-.aladin-form-param-group {
+.aladin-form-input-group {
     border: 2px solid silver;
     padding: 5px;
 }
 
-.aladin-form-param-group .aladin-form-group-header {
+.aladin-form-input-group .aladin-form-group-header {
     display: flex;
     align-items: center; 
 
@@ -716,8 +709,6 @@ canvas {
     margin: 0;
     font-size: 13px;
     font-family: Verdana, Geneva, Tahoma, sans-serif;
-
-    cursor: pointer;
 }
 
 .aladin-window-container {
@@ -785,7 +776,6 @@ canvas {
 */
 }
 
-
 .aladin-popupTitle {
     font-weight: bold;
 }
@@ -819,17 +809,13 @@ canvas {
 .aladin-layer-label {
 	padding: 0 4px 0 4px;
 	color: #ddd;
-    border-bottom-left-radius:  8px;
-    border-top-left-radius:     8px;
-    border-bottom-right-radius: 8px;
-    border-top-right-radius:    8px;
+    border-radius: 8px;
     cursor: pointer;
     user-select: none;
 
+    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
-    vertical-align: text-top;
 
     max-width: 150px;
 }
@@ -860,10 +846,7 @@ canvas {
     background-repeat:  no-repeat;
     background-position:center center;
     display: inline-block;
-    vertical-align: text-top;
 }
-
-
 
 .aladin-chevron {
   display: inline-block;
@@ -884,14 +867,6 @@ canvas {
 }
 .aladin-chevron-right {
   transform: rotate(270deg);
-}
-
-.aladin-layer .right-triangle:before {
-    content: '\25b6';
-}
-
-.aladin-layer .down-triangle:before {
-    content: '\25bc';
 }
 
 /* *********************************************** */
@@ -920,7 +895,6 @@ canvas {
   display: flex;
   align-items: center;
   padding: 4px 8px;
-  cursor: pointer;
   position: relative;
   border-bottom: 1px solid #f2f2f2;
 }
@@ -970,6 +944,27 @@ canvas {
   transform: translate(-100%, -100%);
 }
 
+/* *********************************************** */
+
+/* Tooltip */
+
+.aladin-tooltip-container .aladin-tooltip {
+    visibility: hidden;
+    background-color: black;
+    color: #fff;
+    text-align: center;
+    padding: 4px;
+    border-radius: 2px;
+ 
+    /* Position the tooltip text - see examples below! */
+    position: absolute;
+    z-index: 100;
+}
+
+/* Show the tooltip text when you mouse over the tooltip container */
+.aladin-tooltip-container:hover .aladin-tooltip {
+    visibility: visible;
+}
 
 /* *********************************************** */
 

@@ -48,7 +48,7 @@ import $ from 'jquery';
         const self = this;
 
         this.mainDiv = document.createElement('div');
-        this.mainDiv.classList.add('aladin-dialog', 'aladin-cb-list');
+        this.mainDiv.classList.add('aladin-dialog');
         this.mainDiv.style.display = 'block';
 
         const autocompleteId = 'autocomplete-' + Utils.uuidv4();

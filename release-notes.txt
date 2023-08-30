@@ -1,3 +1,7 @@
+unreleased
+- new method aladin.getCooFrame() that returns the name of the current coordinate system
+- `getViewWCS` now adapts to the `cooFrame` and the `projection`
+
 2020-08
 - polyline improvements (by @imbasimba)
 

@@ -713,6 +713,14 @@ export let Aladin = (function () {
         return projName;
     };
 
+    /** return the current coordinate system: possible values are 'J2000', 'J2000d', and 'Galactic' 
+     * @api
+     *
+     */
+    Aladin.prototype.getCooFrame = function() {
+        return this.view.cooFrame.label;
+    }
+
     /** point view to a given object (resolved by Sesame) or position
      * @api
      *
@@ -1437,23 +1445,36 @@ export let Aladin = (function () {
     Aladin.prototype.getViewWCS = function (options) {
         var raDec = this.getRaDec();
         var fov = this.getFov();
-        // TODO: support for other projection methods than SIN
+        var projectionName = this.getProjectionName();
+
+        // get the cootype prefix from the coordinate frame
+        switch (this.getCooFrame()) {
+            case "J2000":
+            case "J2000d":
+                var cooType1 = "RA---";
+                var cooType2 = "DEC---";
+                break;
+            case "Galactic":
+                var cooType1 = "GLON---";
+                var cooType2 = "GLAT---";
+        }
+
         return {
             NAXIS: 2,
             NAXIS1: this.view.width,
             NAXIS2: this.view.height,
-            RADECSYS: 'ICRS',
+            RADECSYS: "ICRS",
             CRPIX1: this.view.width / 2,
             CRPIX2: this.view.height / 2,
             CRVAL1: raDec[0],
             CRVAL2: raDec[1],
-            CTYPE1: 'RA---SIN',
-            CTYPE2: 'DEC--SIN',
+            CTYPE1: cooType1 + projectionName,
+            CTYPE2: cooType2 + projectionName,
             CD1_1: fov[0] / this.view.width,
             CD1_2: 0.0,
             CD2_1: 0.0,
             CD2_2: fov[1] / this.view.height
-        }
+        };
     }
 
     /** restrict FOV range

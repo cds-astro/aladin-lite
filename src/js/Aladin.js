@@ -1452,11 +1452,11 @@ export let Aladin = (function () {
             case "J2000":
             case "J2000d":
                 var cooType1 = "RA---";
-                var cooType2 = "DEC---";
+                var cooType2 = "DEC--";
                 break;
             case "Galactic":
-                var cooType1 = "GLON---";
-                var cooType2 = "GLAT---";
+                var cooType1 = "GLON-";
+                var cooType2 = "GLAT-";
         }
 
         return {

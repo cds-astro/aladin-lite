@@ -1593,9 +1593,8 @@ export let Aladin = (function () {
         var fovX = this.view.fov;
         var s = this.getSize();
         var fovY = s[1] / s[0] * fovX;
-        // TODO : take into account AITOFF projection where fov can be larger than 180
-        fovX = Math.min(fovX, 180);
-        fovY = Math.min(fovY, 180);
+        fovX = Math.min(fovX);
+        fovY = Math.min(fovY);
 
         return [fovX, fovY];
     };

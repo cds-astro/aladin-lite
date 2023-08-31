@@ -1470,7 +1470,7 @@ export let Aladin = (function () {
             CRVAL2: center[1],
             CTYPE1: cooType1 + projectionName,
             CTYPE2: cooType2 + projectionName,
-            CD1_1: fov[0] / this.view.width,
+            CD1_1: -fov[0] / this.view.width,
             CD1_2: 0.0,
             CD2_1: 0.0,
             CD2_2: fov[1] / this.view.height

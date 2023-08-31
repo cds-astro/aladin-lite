@@ -46,13 +46,15 @@ export let Footprint= (function() {
         this.shapes = shapes;
 
         this.isShowing = true;
+
+        this.overlay = null;
     };
 
     Footprint.prototype.setCatalog = function(catalog) {
         if (this.source) {
             this.source.setCatalog(catalog);
         }
-    };    
+    };
 
     Footprint.prototype.show = function() {
         if (this.isShowing) {
@@ -91,7 +93,7 @@ export let Footprint= (function() {
     Footprint.prototype.setSelectionColor = function(color) {
         this.shapes.forEach((shape) => shape.setSelectionColor(color))
     };
-    
+
     Footprint.prototype.isFootprint = function() {
         return true;
     }
@@ -123,6 +125,10 @@ export let Footprint= (function() {
 
     Footprint.prototype.getCatalog = function() {
         return this.source && this.source.catalog;
+    };
+
+    Footprint.prototype.setOverlay = function(overlay) {
+        this.overlay = overlay;
     };
 
     Footprint.prototype.intersectsBBox = function(x, y, w, h, view) {

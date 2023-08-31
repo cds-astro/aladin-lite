@@ -45,7 +45,7 @@ export let Polyline= (function() {
     let Polyline = function(radecArray, options) {
         options = options || {};
         this.color     = options['color']     || undefined;
-        this.lineWidth = options["lineWidth"] || 2;
+        this.lineWidth = options["lineWidth"] || undefined;
 
         if (options["closed"]) {
             this.closed = options["closed"];
@@ -138,7 +138,7 @@ export let Polyline= (function() {
             this.overlay.reportChange();
         }
     };
-    
+
     Polyline.prototype.isFootprint = function() {
         // The polyline is a footprint if it describes a polygon (i.e. a closed polyline)
         return this.closed;
@@ -161,6 +161,10 @@ export let Polyline= (function() {
         }
         if (! baseColor) {
             baseColor = '#ff0000';
+        }
+
+        if (!this.lineWidth) {
+            this.lineWidth = this.overlay.lineWidth || 2;
         }
 
         if (this.isSelected) {
@@ -204,11 +208,11 @@ export let Polyline= (function() {
         }
 
         let drawLine;
-        
+
         if (view.projection === ProjectionEnum.SIN) {
             drawLine = (v0, v1) => {
                 const line = new Line(v0.x, v0.y, v1.x, v1.y);
-    
+
                 if (line.isInsideView(view.width, view.height)) {
                     line.draw(ctx);
                 }
@@ -216,14 +220,14 @@ export let Polyline= (function() {
         } else {
             drawLine = (v0, v1) => {
                 const line = new Line(v0.x, v0.y, v1.x, v1.y);
-    
+
                 if (line.isInsideView(view.width, view.height)) {
                     // check if the line is too big (in the clip space) to be drawn
                     const [x1, y1] = AladinUtils.viewXyToClipXy(line.x1, line.y1, view);
                     const [x2, y2] = AladinUtils.viewXyToClipXy(line.x2, line.y2, view);
-    
+
                     const mag2 = (x1 - x2)*(x1 - x2) + (y1 - y2)*(y1 - y2);
-    
+
                     if (mag2 < 0.1) {
                         line.draw(ctx);
                     }
@@ -264,7 +268,7 @@ export let Polyline= (function() {
 
         ctx.lineWidth = this.lineWidth;
         ctx.beginPath();
-        
+
         for (var k = 0; k < nSegment; k++) {
             drawLine(xyView[v0], xyView[v1])
 
@@ -303,7 +307,7 @@ export let Polyline= (function() {
         if(this.closed) {
             const line = new Line(pointXY[lastPointIdx].x, pointXY[lastPointIdx].y, pointXY[0].x, pointXY[0].y);                                   // new segment
             line.draw(ctx, true);
-            
+
             if (ctx.isPointInStroke(x, y)) {                    // x,y is on line?
                 return true;
             }

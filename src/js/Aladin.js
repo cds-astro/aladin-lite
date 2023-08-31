@@ -1459,6 +1459,12 @@ export let Aladin = (function () {
                 var cooType2 = "GLAT-";
         }
 
+        // treat the planetary body case
+        if (this.getBaseImageLayer().isPlanetaryBody())
+            var cd11 = fov[0] / this.view.width;
+        else
+            var cd11 = -fov[0] / this.view.width;
+
         return {
             NAXIS: 2,
             NAXIS1: this.view.width,
@@ -1470,7 +1476,7 @@ export let Aladin = (function () {
             CRVAL2: center[1],
             CTYPE1: cooType1 + projectionName,
             CTYPE2: cooType2 + projectionName,
-            CD1_1: -fov[0] / this.view.width,
+            CD1_1: cd11,
             CD1_2: 0.0,
             CD2_1: 0.0,
             CD2_2: fov[1] / this.view.height

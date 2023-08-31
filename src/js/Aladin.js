@@ -1593,9 +1593,6 @@ export let Aladin = (function () {
         var fovX = this.view.fov;
         var s = this.getSize();
         var fovY = s[1] / s[0] * fovX;
-        fovX = Math.min(fovX);
-        fovY = Math.min(fovY);
-
         return [fovX, fovY];
     };
 

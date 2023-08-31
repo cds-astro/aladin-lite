@@ -1443,7 +1443,7 @@ export let Aladin = (function () {
      * @API
     */
     Aladin.prototype.getViewWCS = function (options) {
-        var raDec = this.getRaDec();
+        var center = this.wasm.getCenter();
         var fov = this.getFov();
         var projectionName = this.getProjectionName();
 
@@ -1466,8 +1466,8 @@ export let Aladin = (function () {
             RADECSYS: "ICRS",
             CRPIX1: this.view.width / 2,
             CRPIX2: this.view.height / 2,
-            CRVAL1: raDec[0],
-            CRVAL2: raDec[1],
+            CRVAL1: center[0],
+            CRVAL2: center[1],
             CTYPE1: cooType1 + projectionName,
             CTYPE2: cooType2 + projectionName,
             CD1_1: fov[0] / this.view.width,

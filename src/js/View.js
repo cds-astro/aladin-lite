@@ -1689,6 +1689,12 @@ export let View = (function () {
             case "AIT":
                 this.projection = ProjectionEnum.AIT;
                 break;
+            case "PAR":
+                this.projection = ProjectionEnum.PAR;
+                break;
+            case "SFL":
+                this.projection = ProjectionEnum.SFL;
+                break;
             // Cylindrical (MER, CAR, CEA, CYP)
             case "MER":
                 this.projection = ProjectionEnum.MER;

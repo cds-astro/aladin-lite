@@ -1,6 +1,7 @@
 unreleased
 - new method aladin.getFrame() that returns the name of the current coordinate system
 - `getViewWCS` now adapts to the `cooFrame` and the `projection`
+- `getFov` is no longer capped at 180°
 
 2020-08
 - polyline improvements (by @imbasimba)

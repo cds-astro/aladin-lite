@@ -717,7 +717,7 @@ export let Aladin = (function () {
      * @api
      *
      */
-    Aladin.prototype.getCooFrame = function() {
+    Aladin.prototype.getFrame = function() {
         return this.view.cooFrame.label;
     }
 
@@ -1448,7 +1448,7 @@ export let Aladin = (function () {
         var projectionName = this.getProjectionName();
 
         // get the cootype prefix from the coordinate frame
-        switch (this.getCooFrame()) {
+        switch (this.getFrame()) {
             case "J2000":
             case "J2000d":
                 var cooType1 = "RA---";

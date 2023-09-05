@@ -29,7 +29,7 @@
  *****************************************************************************/
 
  import { ALEvent } from "../events/ALEvent.js";
- import { projectionNames } from "../ProjectionEnum.js";
+ import { projectionNames, ProjectionEnum } from "../ProjectionEnum.js";
  import $ from 'jquery';
 
  export class ProjectionSelector {
@@ -55,7 +55,7 @@
         this.selectProjection.empty();
         
         projectionNames.forEach(p => {
-            this.selectProjection.append($("<option />").val(p).text(p));
+            this.selectProjection.append($("<option />").val(p).text(p).attr("title", ProjectionEnum[p].longName));
         });
         let self = this;
         this.selectProjection.change(function () {

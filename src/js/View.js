@@ -708,13 +708,13 @@ export let View = (function () {
                 }
 
                 var objClickedFunction = view.aladin.callbacksByEventName['objectClicked'];
-                (typeof objClickedFunction === 'function') && objClickedFunction(o);
+                (typeof objClickedFunction === 'function') && objClickedFunction(o, xymouse);
 
 
                 if (o.isFootprint()) {
                     var footprintClickedFunction = view.aladin.callbacksByEventName['footprintClicked'];
                     if (typeof footprintClickedFunction === 'function' && o != view.lastClickedObject) {
-                        var ret = footprintClickedFunction(o);
+                        var ret = footprintClickedFunction(o, xymouse);
                     }
                 }
 
@@ -738,7 +738,7 @@ export let View = (function () {
                         }
 
                         var objClickedFunction = view.aladin.callbacksByEventName['objectClicked'];
-                        (typeof objClickedFunction === 'function') && objClickedFunction(null);
+                        (typeof objClickedFunction === 'function') && objClickedFunction(null, xymouse);
 
                         view.lastClickedObject = null;
                     }
@@ -867,12 +867,12 @@ export let View = (function () {
 
                         view.setCursor('pointer');
                         if (typeof objHoveredFunction === 'function' && o != lastHoveredObject) {
-                            var ret = objHoveredFunction(o);
+                            var ret = objHoveredFunction(o, xymouse);
                         }
 
                         if (o.isFootprint()) {
                             if (typeof footprintHoveredFunction === 'function' && o != lastHoveredObject) {
-                                var ret = footprintHoveredFunction(o);
+                                var ret = footprintHoveredFunction(o, xymouse);
                             }
                         }
 
@@ -888,7 +888,7 @@ export let View = (function () {
 
                             if (typeof objHoveredStopFunction === 'function') {
                                 // call callback function to notify we left the hovered object
-                                var ret = objHoveredStopFunction(lastHoveredObject);
+                                var ret = objHoveredStopFunction(lastHoveredObject, xymouse);
                             }
                         }
 

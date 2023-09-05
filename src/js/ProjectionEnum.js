@@ -29,29 +29,29 @@
  *****************************************************************************/
 export let ProjectionEnum = {
    // Zenithal
-   TAN: {id: 1, fov: 180},	  /* Gnomonic projection      */
-   STG: {id: 2, fov: 360},	  /* Stereographic projection */
-   SIN: {id: 3, fov: 180},	  /* Orthographic		         */
-   ZEA: {id: 4, fov: 360},	  /* Equal-area 		         */
-   FEYE: {id: 5, fov: 190},
-   AIR: {id: 6, fov: 360},
+   TAN: {id: 1, fov: 180, longName: "gnomonic"},	  /* Gnomonic projection      */
+   STG: {id: 2, fov: 360, longName: "stereographic"},	  /* Stereographic projection */
+   SIN: {id: 3, fov: 180, longName: "orthographic"},	  /* Orthographic		         */
+   ZEA: {id: 4, fov: 360, longName: "zenital equal-area"},	  /* Equal-area 		         */
+   FEYE: {id: 5, fov: 190, longName: "fish eye"},
+   AIR: {id: 6, fov: 360, longName: "airy"},
    //AZP: {fov: 180},
-   ARC: {id: 7, fov: 360},
-   NCP: {id: 8, fov: 180},
+   ARC: {id: 7, fov: 360, longName: "zenital equidistant"},
+   NCP: {id: 8, fov: 180, longName: "north celestial pole"},
    // Cylindrical
-   MER: {id: 9, fov: 360},
-   CAR: {id: 10, fov: 360},
-   CEA: {id: 11, fov: 360},
-   CYP: {id: 12, fov: 360},
+   MER: {id: 9, fov: 360, longName: "mercator"},
+   CAR: {id: 10, fov: 360, longName: "plate carrée"},
+   CEA: {id: 11, fov: 360, longName: "cylindrical equal area"},
+   CYP: {id: 12, fov: 360, longName: "cylindrical perspective"},
    // Pseudo-cylindrical
-   AIT: {id: 13, fov: 360},
-   PAR: {id: 14, fov: 360},
-   SFL: {id: 15, fov: 360},
-   MOL: {id: 16, fov: 360},
+   AIT: {id: 13, fov: 360, longName: "hammer-aitoff"},
+   PAR: {id: 14, fov: 360, longName: "parabolic"},
+   SFL: {id: 15, fov: 360, longName: "sanson-flamsteed"},
+   MOL: {id: 16, fov: 360, longName: "mollweide"},
    // Conic
-   COD: {id: 17, fov: 360},
+   COD: {id: 17, fov: 360, longName: "conic equidistant"},
    // Hybrid
-   HPX: {id: 19, fov: 360},
+   HPX: {id: 19, fov: 360, longName: "healpix"},
 };
 
 export let projectionNames = [

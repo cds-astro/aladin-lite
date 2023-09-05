@@ -1440,53 +1440,102 @@ export let Aladin = (function () {
      * Return the current view WCS as a key-value dictionary
      * Can be useful in coordination with getViewDataURL
      *
+     * NOTE + TODO : Rotations are not implemented yet
+     * 
      * @API
     */
-    Aladin.prototype.getViewWCS = function (options) {
-        var center = this.wasm.getCenter();
-        var fov = this.getFov();
-        var projectionName = this.getProjectionName();
+    Aladin.prototype.getViewWCS = function () {
+        // get general view properties
+        const center = this.wasm.getCenter();
+        const fov = this.getFov();
+        const width = this.view.width;
+        const height = this.view.height;
 
-        // get the cootype prefix from the coordinate frame
-        switch (this.getFrame()) {
-            case "J2000":
-            case "J2000d":
-                var cooType1 = "RA---";
-                var cooType2 = "DEC--";
-                break;
-            case "Galactic":
-                var cooType1 = "GLON-";
-                var cooType2 = "GLAT-";
+        // get values common for all
+        let cdelt1 = fov[0] / width;
+        const cdelt2 = fov[1] / height;
+        const projectionName = this.getProjectionName();
+
+        if (projectionName == "FEYE")
+            return "Fish eye projection is not supported by WCS standards.";
+
+        // reversed longitude case
+        if (this.getBaseImageLayer().longitudeReversed) {
+            cdelt1 = -cdelt1;
         }
 
-        // treat the planetary body case
-        if (this.getBaseImageLayer().isPlanetaryBody())
-            var cd11 = fov[0] / this.view.width;
-        else
-            var cd11 = -fov[0] / this.view.width;
+        // solar system object dict from planetary fits standard
+        // https://agupubs.onlinelibrary.wiley.com/doi/10.1029/2018EA000388
+        const solarSystemObjects = {
+            "earth": "EA",
+            "moon": "SE",
+            "mercury": "ME",
+            "venus": "VE",
+            "mars": "MA",
+            "jupiter": "JU",
+            "saturn": "SA",
+            "uranus": "UR",
+            "neptune": "NE",
+            // satellites other than the Moon
+            "satellite": "ST" // not findable in the hips properties?
+        };
 
-        return {
+        // we define a generic LON LAT keyword for unknown body types
+        let cooType1 = "LON--";
+        let cooType2 = "LAT--";
+
+        // just in case it would be equatorial
+        let radecsys;
+
+        if (this.getBaseImageLayer().isPlanetaryBody()) {
+            const body = this.getBaseImageLayer().properties.hipsBody
+            if (body in solarSystemObjects) {
+                cooType1 = `${solarSystemObjects[body]}LN-`;
+                cooType2 = `${solarSystemObjects[body]}LT-`;
+            }
+           
+        } else {
+            switch (this.getFrame()) {
+                case "J2000":
+                case "J2000d":
+                    cooType1 = "RA---";
+                    cooType2 = "DEC--";
+                    radecsys = "ICRS    ";
+                    break;
+                case "Galactic":
+                    cooType1 = "GLON-";
+                    cooType2 = "GLAT-";
+            }
+        }
+
+        const WCS = {
             NAXIS: 2,
-            NAXIS1: this.view.width,
-            NAXIS2: this.view.height,
-            RADECSYS: "ICRS",
-            CRPIX1: this.view.width / 2,
-            CRPIX2: this.view.height / 2,
+            NAXIS1: width,
+            NAXIS2: height,
+            CRPIX1: width / 2 + 0.5,
+            CRPIX2: height / 2 + 0.5,
             CRVAL1: center[0],
             CRVAL2: center[1],
             CTYPE1: cooType1 + projectionName,
             CTYPE2: cooType2 + projectionName,
-            CD1_1: cd11,
-            CD1_2: 0.0,
-            CD2_1: 0.0,
-            CD2_2: fov[1] / this.view.height
+            CUNIT1: "deg     ",
+            CUNIT2: "deg     ",
+            CDELT1: cdelt1,
+            CDELT2: cdelt2
         };
+
+        // handle the case of equatorial coordinates that need 
+        // the radecsys keyword
+        if (radecsys == "ICRS    ")
+            WCS.RADECSYS = radecsys;
+
+        return WCS;
     }
 
     /** restrict FOV range
      * @API
      * @param minFOV in degrees when zoom in at max
-     * @param maxFOV in degreen when zoom out at max
+     * @param maxFOV in degrees when zoom out at max
     */
     Aladin.prototype.setFovRange = Aladin.prototype.setFOVRange = function (minFOV, maxFOV) {
         if (minFOV > maxFOV) {

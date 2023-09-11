@@ -124,7 +124,7 @@ export let VOTable = (function() {
 
             if (elems) {
                 let accessUrl;
-                let inputParams = [];
+                let inputParams = {};
     
                 elems.forEach((elem) => {
                     if (elem instanceof Map) {
@@ -148,111 +148,103 @@ export let VOTable = (function() {
                             let values;
                             switch (name) {
                                 case 'ID':
-                                    inputParams.push({
+                                    inputParams['ID'] = {
                                         name: 'ID',
                                         type: 'group',
                                         description: inputParam.get("description"),
-                                        value: [{
-                                            name: "ID",
+                                        subInputs: [{
+                                            label: "ID",
+                                            name: 'ID',
                                             type: "text",
                                             value: inputParam.get("value")
                                         }],
-                                    })
+                                    }
                                     break;
                                 case 'CIRCLE':
                                     if (inputParam.get("values")) {
                                         values = inputParam.get("values")["max"]["value"].split(" ").map((v) => {return +v;});
                                     }
 
-                                    inputParams.push({
+                                    inputParams['Circle'] = {
                                         name: 'CIRCLE',
                                         type: 'group',
                                         description: inputParam.get("description"),
-                                        value: [{
+                                        subInputs: [{
                                             name: 'ra',
+                                            label: 'ra[' + utype + ']',
                                             type: 'number',
-                                            maxVal: values && values[0],
                                             value: values && values[0],
-                                            utype: utype
                                         },
                                         {
                                             name: 'dec',
+                                            label: 'dec[' + utype + ']',
                                             type: 'number',
-                                            maxVal: values && values[1],
                                             value: values && values[1],
-                                            utype: utype
                                         },
                                         {
                                             name: 'rad',
+                                            label: 'rad[' + utype + ']',
                                             type: 'number',
-                                            maxVal: values && values[2],
                                             value: values && values[2],
-                                            utype: utype
                                         }]
-                                    });
+                                    };
                                     break;
                                 case 'BAND':
                                     if (inputParam.get("values")) {
                                         values = inputParam.get("values")["max"]["value"].split(" ").map((v) => {return +v;});
                                     }
-    
-                                    inputParams.push({
+
+                                    inputParams['Band'] = {
                                         name: 'BAND',
                                         type: 'group',
                                         description: inputParam.get("description"),
-                                        value: [{
+                                        subInputs: [{
                                             name: 'fmin',
+                                            label: 'fmin[' + utype + ']',
                                             type: 'number',
-                                            maxVal: values && values[0],
                                             value: values && values[0],
-                                            utype: utype
                                         },
                                         {
                                             name: 'fmax',
+                                            label: 'fmax[' + utype + ']',
                                             type: 'number',
-                                            maxVal: values && values[1],
                                             value: values && values[1],
-                                            utype: utype
                                         }]
-                                    });
+                                    };
                                     break;
                                 case 'RANGE':
                                     if (inputParam.get("values")) {
                                         values = inputParam.get("values")["max"]["value"].split(" ").map((v) => {return +v;});
                                     }    
-                                    inputParams.push({
+                                    inputParams['Range'] = {
                                         name: 'RANGE',
                                         type: 'group',
                                         description: inputParam.get("description"),
-                                        value: [{
-                                            name: 'raMin',
+                                        subInputs: [{
+                                            name: 'ramin',
+                                            label: 'ramin[' + utype + ']',
                                             type: 'number',
-                                            maxVal: values && values[0],
                                             value: values && values[0],
-                                            utype: utype
                                         },
                                         {
-                                            name: 'raMax',
+                                            name: 'ramax',
+                                            label: 'ramax[' + utype + ']',
                                             type: 'number',
-                                            maxVal: values && values[1],
                                             value: values && values[1],
-                                            utype: utype
                                         },
                                         {
-                                            name: 'decMin',
+                                            name: 'decmin',
+                                            label: 'decmin[' + utype + ']',
                                             type: 'number',
-                                            maxVal: values && values[2],
                                             value: values && values[2],
-                                            utype: utype
                                         },
                                         {
-                                            name: 'decMax',
+                                            name: 'decmax',
+                                            label: 'decmax[' + utype + ']',
                                             type: 'number',
-                                            maxVal: values && values[3],
                                             value: values && values[3],
-                                            utype: utype
                                         }]
-                                    });
+                                    };
                                 default:
                                     break;
                             }

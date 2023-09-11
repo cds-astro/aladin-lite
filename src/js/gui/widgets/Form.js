@@ -36,22 +36,26 @@ Exemple of layout object
 {
     name: 'ID',
     type: 'group',
-    headerEl: 'htmlCode' or DOM Element object,
-    subInputs: [{
-        label: "ID",
-        type: "text",
-        value: inputParam.get("value")
-    }
+    header: 'htmlCode' or DOM Element object,
+    cssStyle: {...}
+    subInputs: [
+        {
+            label: "ID",
+            type: "text",
+            value: "the placeholder value..."
+        },
+        ..
+    ]
 */
 export class Form extends Widget {
-    constructor(target, layout, opt, position = "beforeend") {
-        let el = this._createInput(layout);
+    constructor(layout, opt, target, position = "beforeend") {
+        let el = Form._createInput(layout);
 
         // add it to the dom
-        super(el, target, opt, position);
+        super(el, opt, target, position);
     }
 
-    _createInput(layout) {
+    static _createInput(layout) {
         if (layout.type === "text" || layout.type === "number") {
             let inputEl = document.createElement('input');
             inputEl.type = layout.type;
@@ -62,11 +66,12 @@ export class Form extends Widget {
             }
 
             inputEl.value = layout.value;
-            inputEl.name = layout.label;
+            inputEl.name = layout.name;
+            inputEl.id = layout.label;
 
             let labelEl = document.createElement('label');
             labelEl.textContent = layout.label;
-            labelEl.for = input.id;
+            labelEl.for = inputEl.id;
 
             let divEl = document.createElement("div");
             divEl.classList.add(labelEl.textContent, "aladin-form-input");
@@ -78,20 +83,49 @@ export class Form extends Widget {
         } else if (layout.type === "group") {
             let groupEl = document.createElement('div');
             groupEl.classList.add(layout.name, "aladin-form-input-group");
+            for (const property in layout.cssStyle) {
+                groupEl.style[property] = layout.cssStyle[property];
+            }
 
             if (layout.header instanceof Element) {
                 groupEl.innerHTML = '<div class="aladin-form-group-header"></div>';
                 groupEl.firstChild.appendChild(layout.header);
+            } else if (layout.header instanceof Widget) {
+                let el = layout.header.element();
+                groupEl.innerHTML = '<div class="aladin-form-group-header"></div>';
+                groupEl.firstChild.appendChild(el);
             } else {
-                groupEl.innerHTML = '<div class="aladin-form-group-header">' + input.header + '</div>';
+                groupEl.innerHTML = '<div class="aladin-form-group-header">' + layout.header + '</div>';
             }
 
             layout.subInputs.forEach((subInput) => {
-                let inputEl = this._createInput(subInput)
+                let inputEl = Form._createInput(subInput)
                 groupEl.appendChild(inputEl);
             });
 
             return groupEl;
+        }
+    }
+
+    values() {
+        let inputs = this.el.querySelectorAll('.aladin-input');
+
+        let values = {};
+        for (let input of inputs) {
+            values[input.name] = input.value;
+        }
+
+        return values;
+    }
+
+    set(name, value) {
+        let inputs = this.el.querySelectorAll('.aladin-input');
+        for (let input of inputs) {
+            if (input.name === name) {
+                input.value = value;
+
+                return;
+            }
         }
     }
 

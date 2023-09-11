@@ -29,29 +29,29 @@
  *****************************************************************************/
 export let ProjectionEnum = {
    // Zenithal
-   TAN: {id: 1, fov: 180, longName: "gnomonic"},	  /* Gnomonic projection      */
-   STG: {id: 2, fov: 360, longName: "stereographic"},	  /* Stereographic projection */
-   SIN: {id: 3, fov: 180, longName: "orthographic"},	  /* Orthographic		         */
-   ZEA: {id: 4, fov: 360, longName: "zenital equal-area"},	  /* Equal-area 		         */
-   FEYE: {id: 5, fov: 190, longName: "fish eye"},
-   AIR: {id: 6, fov: 360, longName: "airy"},
+   TAN: {id: 1, fov: 180, label: "gnomonic"},	  /* Gnomonic projection      */
+   STG: {id: 2, fov: 360, label: "stereographic"},	  /* Stereographic projection */
+   SIN: {id: 3, fov: 180, label: "orthographic"},	  /* Orthographic		         */
+   ZEA: {id: 4, fov: 360, label: "zenital equal-area"},	  /* Equal-area 		         */
+   FEYE: {id: 5, fov: 190, label: "fish eye"},
+   AIR: {id: 6, fov: 360, label: "airy"},
    //AZP: {fov: 180},
-   ARC: {id: 7, fov: 360, longName: "zenital equidistant"},
-   NCP: {id: 8, fov: 180, longName: "north celestial pole"},
+   ARC: {id: 7, fov: 360, label: "zenital equidistant"},
+   NCP: {id: 8, fov: 180, label: "north celestial pole"},
    // Cylindrical
-   MER: {id: 9, fov: 360, longName: "mercator"},
-   CAR: {id: 10, fov: 360, longName: "plate carrée"},
-   CEA: {id: 11, fov: 360, longName: "cylindrical equal area"},
-   CYP: {id: 12, fov: 360, longName: "cylindrical perspective"},
+   MER: {id: 9, fov: 360, label: "mercator"},
+   CAR: {id: 10, fov: 360, label: "plate carrée"},
+   CEA: {id: 11, fov: 360, label: "cylindrical equal area"},
+   CYP: {id: 12, fov: 360, label: "cylindrical perspective"},
    // Pseudo-cylindrical
-   AIT: {id: 13, fov: 360, longName: "hammer-aitoff"},
-   PAR: {id: 14, fov: 360, longName: "parabolic"},
-   SFL: {id: 15, fov: 360, longName: "sanson-flamsteed"},
-   MOL: {id: 16, fov: 360, longName: "mollweide"},
+   AIT: {id: 13, fov: 360, label: "hammer-aitoff"},
+   PAR: {id: 14, fov: 360, label: "parabolic"},
+   SFL: {id: 15, fov: 360, label: "sanson-flamsteed"},
+   MOL: {id: 16, fov: 360, label: "mollweide"},
    // Conic
-   COD: {id: 17, fov: 360, longName: "conic equidistant"},
+   COD: {id: 17, fov: 360, label: "conic equidistant"},
    // Hybrid
-   HPX: {id: 19, fov: 360, longName: "healpix"},
+   HPX: {id: 19, fov: 360, label: "healpix"},
 };
 
 export let projectionNames = [

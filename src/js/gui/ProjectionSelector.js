@@ -55,7 +55,7 @@
         this.selectProjection.empty();
         
         projectionNames.forEach(p => {
-            this.selectProjection.append($("<option />").val(p).text(p).attr("title", ProjectionEnum[p].longName));
+            this.selectProjection.append($("<option />").val(p).text(p).attr("title", ProjectionEnum[p].label));
         });
         let self = this;
         this.selectProjection.change(function () {

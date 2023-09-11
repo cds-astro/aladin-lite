@@ -17,59 +17,45 @@
 //    along with Aladin Lite.
 //
 
+import { Widget } from "../Widget";
+
 /******************************************************************************
  * Aladin Lite project
  *
- * File gui/ActionButton.js
+ * File gui/widgets/layout/Horizontal.js
  *
- * A context menu that shows when the user right clicks, or long touch on touch device
+ * A layout grouping widgets horizontaly
  *
  *
  * Author: Matthieu Baumann[CDS]
  *
  *****************************************************************************/
 
-export class Widget {
-    constructor(el, opt, target, position = 'beforeend') {
-        this.opt = opt;
+export class HorizontalLayout extends Widget {
+    constructor(widgets, opt, target, position = "beforeend") {
+        let el = document.createElement('div');
+        el.classList.add('aladin-horizontal-list');
 
-        if (target) {
-            if (target instanceof Widget) {
-                target = target.element();
+        let node;
+        for(let widget of widgets) {
+            if (widget instanceof Element) {
+                node = widget;
+            } else if (widget instanceof Widget) {
+                node = widget.element();
+            } else {
+                const placeholder = document.createElement("div");
+                placeholder.innerHTML = widget;
+                node = placeholder.firstElementChild;
             }
-            let insertedEl = target.insertAdjacentElement(position, el);
-            if (insertedEl) {
-                el = insertedEl;
-            }
+
+            el.appendChild(node);
         }
 
-        this.el = el;
-
-        this._show();
-    }
-
-    element() {
-        if (this.tooltip) {
-            return this.tooltip.el;
-        } else {
-            return this.el;
-        }
+        // add it to the dom
+        super(el, opt, target, position);
     }
 
     _show() {
-        // CSS style elements
-        for (const property in this.opt) {
-            this.el.style[property] = this.opt[property];
-        }
-    }
-
-    attach(opt) {
-        this.opt = {...this.opt, ...opt};
-
-        this._show();
-    }
-
-    remove() {
-        this.el.remove()
+        super._show();
     }
 }

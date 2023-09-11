@@ -9,7 +9,7 @@
 }
 
 .aladin-imageCanvas {
-	position: absolute;
+	position: relative;
     z-index: 1;
 	left: 0;
 	top: 0;
@@ -157,11 +157,51 @@
     padding: 0.3em 0.3em;
     white-space: nowrap;
     overflow: hidden;
-    text-overflow: ellipsis;
+
     text-align: left;
     color: #000;
     max-width: 150px;
+    text-overflow: ellipsis;
 }
+
+.aladin-measurement-div table td .aladin-href-td-container a:hover {
+    overflow: visible;
+    display: inline-block;
+    animation: leftright 5s infinite normal linear;
+}
+
+.aladin-measurement-div table td > a:hover {
+    background-color: #fff;
+}
+
+.aladin-measurement-div table td .aladin-href-td-container {
+    border: 1px solid #d2d2d2;
+    border-radius: 3px;
+    padding: 0.6em;
+
+    white-space: nowrap;
+    overflow: hidden;
+    text-align: center;
+    color: #000;
+    max-width: 150px;
+    text-overflow: ellipsis;
+}
+.aladin-measurement-div table td .aladin-href-td-container:hover {
+    background-color: #fff;
+}
+
+@keyframes leftright {
+    0%,
+    20% {
+      transform: translateX(0%);
+      left: 0%;
+    }
+    80%,
+    100% {
+      transform: translateX(-100%);
+      left: 100%;
+    }
+  }
 
 .aladin-marker-measurement {
     max-height: 130px;
@@ -258,8 +298,6 @@ word-wrap:break-word;
 .aladin-layerBox {
     top: 30px;
     left: 40px;
-    max-height: 90%;
-    overflow-y: auto;
 }
 
 .aladin-overlay-list {
@@ -288,9 +326,9 @@ word-wrap:break-word;
 	display: none;
     z-index: 30;
     padding: 4px 4px;
-    position: absolute;
     background: whitesmoke;
     border-radius: 2px;
+    position: absolute;
 
     font-size: 13px;
     font-family: Verdana, Geneva, Tahoma, sans-serif;
@@ -298,15 +336,12 @@ word-wrap:break-word;
 
     line-height: 1.3;
     color: #222;
-    /*padding: 0.8em;*/
-    border-radius: 2px;
     box-shadow: 0 0 6px rgba(0,0,0,0.2);
 
     /* Allow scrolling but disable scroll bar */
     -ms-overflow-style: none; /* for Internet Explorer, Edge */
     scrollbar-width: none; /* for Firefox */
-    overflow-y: scroll; 
-
+    /*overflow-y: auto;*/ 
     overflow-y: inherit;
 }
 
@@ -522,7 +557,7 @@ canvas {
 
 .aladin-box-separator {
 	height: 0;
-    border-top: 1px solid #f2f2f2;
+    border-top: 1px solid #d2d2d2;
     margin: 5px 0px 5px -4px;
 }
 
@@ -697,8 +732,8 @@ canvas {
 }
 
 .aladin-form-input-group {
-    border: 2px solid silver;
-    padding: 5px;
+    border-bottom: 1px solid #d2d2d2;
+    margin: 5px;
 }
 
 .aladin-form-input-group .aladin-form-group-header {
@@ -706,8 +741,8 @@ canvas {
     align-items: center; 
 
     top: 0px;
-    margin: 0;
-    font-size: 13px;
+    margin-bottom: 13px;
+    font-size: 14px;
     font-family: Verdana, Geneva, Tahoma, sans-serif;
 }
 
@@ -896,7 +931,7 @@ canvas {
   align-items: center;
   padding: 4px 8px;
   position: relative;
-  border-bottom: 1px solid #f2f2f2;
+  border-bottom: 1px solid #d2d2d2;
 }
 
 .aladin-context-menu-item:hover {
@@ -915,7 +950,7 @@ canvas {
 }
 
 .aladin-context-menu .context-menu-item:hover {
-  background: #f2f2f2;
+  background: #d2d2d2;
 }
 
 .aladin-context-menu .aladin-context-sub-menu {

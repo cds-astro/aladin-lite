@@ -21,12 +21,12 @@
 /******************************************************************************
  * Aladin Lite project
  *
- * File gui/ContextMenu.js
+ * File gui/SODAQueryWindow.js
  *
- * A context menu that shows when the user right clicks, or long touch on touch device
+ * A form window aiming to query a SODA service cutout
  *
  *
- * Author: Thomas Boch[CDS]
+ * Author: Matthieu Baumann [CDS]
  *
  *****************************************************************************/
 
@@ -35,72 +35,13 @@ import { CooFrameEnum } from '../CooFrameEnum.js';
 import { Utils } from '../Utils';
 import { ActionButton } from './widgets/ActionButton.js';
 import targetIconImg from '../../../assets/icons/target.svg';
+import { Form } from './widgets/Form.js';
+import { HorizontalLayout } from './widgets/layout/horizontal.js';
 
 export class SODAQueryWindow {
     constructor(aladin) {
         this.aladin = aladin;
         this.isShowing = false;
-    }
-
-    _attachParam(target, input) {
-        if (input.type === "text" || input.type === "number") {
-            let inputEl = document.createElement('input');
-            inputEl.type = input.type;
-            inputEl.classList.add('aladin-input');
-            if (input.type === "number") {
-                inputEl.step = "any";
-            }
-            inputEl.value = input.value;
-            inputEl.name = input.name;
-
-            let labelEl = document.createElement('label');
-            labelEl.textContent = input.name;
-
-            if (input.utype) {
-                labelEl.textContent = labelEl.textContent + "[" + input.utype + "]";
-            }
-            labelEl.for = input.id;
-
-            let divEl = document.createElement("div");
-            divEl.classList.add(labelEl.textContent, "aladin-form-input");
-
-            divEl.appendChild(labelEl);
-            divEl.appendChild(inputEl);
-
-            target.appendChild(divEl);
-        } else if (input.type === "group") {
-            let groupEl = document.createElement('div');
-            groupEl.classList.add(input.name, "aladin-form-input-group");
-            groupEl.innerHTML = '<div class="aladin-form-group-header">' + input.name + '</div>';
-
-            if (input.name === 'CIRCLE') {
-                let self = this;
-                new ActionButton(groupEl.querySelector(".aladin-form-group-header"), {
-                    iconURL: targetIconImg,
-                    backgroundColor: '#bababa',
-                    borderColor: '#484848',
-                    info: 'Circular selection\n<i><font size="-2">Click, drag and release to define the circle</font></i>',
-                    action(e) {
-                        self.aladin.select('circle', (s) => {
-                            const {x, y, r} = s;
-    
-                            const [ra, dec] = self.aladin.pix2world(x, y);
-                            const dist = self.aladin.angularDist(x, y, x + r, y);
-                            // find the children
-                            let [raInputEl, decInputEl, radiusInputEl] = groupEl.querySelectorAll(".aladin-form-input input");
-    
-                            raInputEl.value = ra;
-                            decInputEl.value = dec;
-                            radiusInputEl.value = dist;
-                        });
-                    }
-                });
-            }
-
-            input.value.forEach((subInput) => this._attachParam(groupEl, subInput));
-
-            target.appendChild(groupEl);
-        }
     }
 
     hide() {
@@ -111,45 +52,82 @@ export class SODAQueryWindow {
         this.isShowing = false;
     }
 
-    show(callbackValid) {
+    show(aladinInstance) {
         this.isShowing = true;
-
-        this.formEl = document.createElement('form');
-        this.formEl.className = "aladin-form";
-        // Add the form inputs
-        this.formParams["inputParams"].forEach((param) => this._attachParam(this.formEl, param));
-
-        let submitFormDiv = document.createElement('div');
-        submitFormDiv.className = 'submit';
-        submitFormDiv.innerHTML = '<button class="aladin-btn aladin-validBtn" type="submit">Submit</button>' + 
-        '   <button class="aladin-btn aladin-cancelBtn">Cancel</button>';
-        this.formEl.appendChild(submitFormDiv);
 
         this.mainEl = document.createElement('div');
         this.mainEl.classList.add('aladin-box', 'aladin-anchor-left');
         this.mainEl.style.display = 'initial';
+        this.mainEl.style.width = '230px';
 
         this.mainEl.innerHTML = '<a class="aladin-closeBtn">&times;</a><div class="aladin-horizontal-list"></div>';
 
-        const listOfInputParams = this.formParams["inputParams"].map((param) => param.name).join(', ');
 
+        let self = this;
+        for (const key in this.formParams.inputParams) {
+            let inputParam = this.formParams.inputParams[key];
 
-        let aladinTitleListEl = this.mainEl.querySelector('div');
-        new ActionButton(aladinTitleListEl, {
+            let header;
+            if (key === "Circle") {
+                const circleSelectBtn = new ActionButton({
+                    iconURL: targetIconImg,
+                    backgroundColor: '#bababa',
+                    borderColor: '#484848',
+                    info: 'Circular selection\n<i><font size="-2">Click, drag and release to define the circle</font></i>',
+                    action(e) {
+                        self.aladin.select('circle', (s) => {
+                            const {x, y, r} = s;
+        
+                            const [ra, dec] = self.aladin.pix2world(x, y);
+                            const dist = self.aladin.angularDist(x, y, x + r, y);
+        
+                            self.form.set('ra', ra);
+                            self.form.set('dec', dec);
+                            self.form.set('rad', dist);
+                        });
+                    }
+                });
+    
+                // Header of the CIRCLE form group
+                header = new HorizontalLayout(['<div>Circle</div>', circleSelectBtn]).element();
+            } else {
+                header = key;
+            }
+
+            inputParam.header = header;
+        }
+
+        const listOfInputParams = Object.keys(this.formParams["inputParams"]).map((name) => name).join(', ');
+
+        let infoBtn = new ActionButton({
             content: '📡',
             backgroundColor: 'white',
             borderColor: '#484848',
             info: 'This is the form to request the SODA server located at: <a target="_blank" href="' + this.formParams["baseUrl"]  + '">' + this.formParams["baseUrl"] + '</a>\nThe list of input params is:\n' + listOfInputParams,
             action(e) {}
         });
-
-        let titleEl = document.createElement('div');
-        titleEl.textContent = 'Cutouts query form';
-        titleEl.classList.add('aladin-box-title');
-
-        aladinTitleListEl.appendChild(titleEl)
-
-        this.mainEl.appendChild(this.formEl);
+        let layoutForm = {
+            name: 'header',
+            type: 'group',
+            header: new HorizontalLayout([infoBtn, '<div class="aladin-box-title">Cutout service form</div>']),
+            cssStyle: {
+                borderStyle: 'none',
+                margin: '0',
+            },
+            subInputs: []
+        };
+        for(const key in this.formParams.inputParams) {
+            let inputParam = this.formParams.inputParams[key];
+            layoutForm.subInputs.push(inputParam);
+        }
+        this.form = new Form(
+            layoutForm,
+            {},
+            this.mainEl,
+        );
+        
+        // Add the form inputs
+        let submitFormDiv = new HorizontalLayout(['<button class="aladin-btn aladin-validBtn" type="submit">Submit</button>', ' <button class="aladin-btn aladin-cancelBtn">Cancel</button>'], {}, this.mainEl);
 
         this.aladin.aladinDiv.appendChild(this.mainEl);
         this.mainEl.querySelector(".aladin-closeBtn")
@@ -157,64 +135,63 @@ export class SODAQueryWindow {
                 "click",
                 () => { this.hide(); }
             );
-        this.mainEl.querySelector(".submit .aladin-cancelBtn")
+        this.mainEl.querySelector(".aladin-cancelBtn")
             .addEventListener(
                 "click",
                 () => { this.hide(); }
             );
 
-        this.mainEl.querySelector(".submit .aladin-validBtn")
+        this.mainEl.querySelector(".aladin-validBtn")
             .addEventListener("click", (e) => {
                 e.preventDefault();
-                let params = [];
+                let params = this.form.values();
+                // Construct the SODA url
+                let url = new URL(this.formParams.baseUrl)
+                if (params['ra'] && params['dec'] && params['rad']) {
+                    url.searchParams.append('CIRCLE', params['ra'] + ' ' + params['dec'] + ' ' + params['rad']);
+                }
 
-                for (let child of this.formEl.children) {
-                    let param;
-                    if (child.classList.contains("aladin-form-input")) {
-                        // get the input
-                        let input = child.querySelector("input");
-                        param = {
-                            name: input.name,
-                            value: input.value
-                        };
-                    } else if (child.classList.contains("aladin-form-input-group")) {
-                        let values = [];
-                        for (let formParam of child.children) {
-                            if (formParam.classList.contains("aladin-form-input")) {
-                                // get the input
-                                let input = formParam.querySelector("input");
-                                values.push(input.value);
-                            }
+                if (params['ramin'] && params['ramax'] && params['decmin'] && params['decmax']) {
+                    url.searchParams.append('RANGE', params['ramin'] + ' ' + params['ramax'] + ' ' + params['decmin'] + ' ' + params['decmax']);
+                }
+
+                if (params['fmin'] && params['fmax']) {
+                    url.searchParams.append('BAND', params['fmin'] + ' ' + params['fmax']);
+                }
+
+                if (params['ID']) {
+                    url.searchParams.append('ID', params['ID']);
+                }
+
+                let loadingBtn = ActionButton.create(
+                    ActionButton.DEFAULT_BTN["loading"],
+                    'Waiting to get the image response...',
+                    submitFormDiv
+                );
+
+                let name = url.searchParams.toString();
+                // Tackle cors problems
+                Utils.loadFromUrls([url, Utils.handleCORSNotSameOrigin(url)], {timeout: 30000})
+                    .then((response) => response.blob())
+                    .then((blob) => {
+                        const url = URL.createObjectURL(blob);
+                        try {
+                            let image = aladinInstance.createImageFITS(url, name);   
+                            aladinInstance.setOverlayImageLayer(image, Utils.uuidv4())
+                        } catch(e) {
+                            throw('Fail to interpret ' + url + ' as a fits file')
                         }
-
-                        param = {
-                            name: child.classList[0],
-                            value: values
-                        };
-                    }
-
-                    if (param) {
-                        params.push(param);
-                    }
-                }
-
-                if (callbackValid) {
-                    callbackValid(this.formParams["baseUrl"], params);
-                }
+                    })
+                    .catch((e) => {
+                        window.alert(e)
+                    })
+                    .finally(() => {
+                        loadingBtn.remove();
+                    })
             });
     }
 
     setParams(params) {
         this.formParams = params;
     }
-
-
 }
-
-
-
-
-
-
-
-

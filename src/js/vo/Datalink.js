@@ -31,6 +31,7 @@
 
 import { VOTable } from "./VOTable.js";
 import { Utils } from './../Utils';
+import { ActionButton } from "../gui/widgets/ActionButton.js";
 
 export let Datalink = (function() {
 
@@ -40,7 +41,6 @@ export let Datalink = (function() {
     };
 
     Datalink.prototype.handleActions = function(obscoreRow, aladinInstance) {
-
         const url = obscoreRow["access_url"];
         VOTable.parse(
             url,
@@ -59,6 +59,16 @@ export let Datalink = (function() {
                             data[key] = row[field.idx];
                         }
 
+                        if (data['semantics'] === '#cutout') {
+                            data['service_def'] = new ActionButton({
+                                content: '📡',
+                                backgroundColor: 'white',
+                                borderColor: '#484848',
+                                info: 'Open the cutout service form',
+                                action(e) {}
+                            }, aladinInstance.measurementTable.element).element();
+                        }
+
                         measures.push({data: data})
                     })
 
@@ -74,53 +84,16 @@ export let Datalink = (function() {
                                 if (service) {
                                     aladinInstance.sodaQueryWindow.hide();
                                     aladinInstance.sodaQueryWindow.setParams(this.SODAServerParams);
-                                    aladinInstance.sodaQueryWindow.show((baseUrl, SODAParams) => {
-                                        let url = new URL(baseUrl)
-                                        SODAParams.forEach((param) => {
-                                            let value;
-                                            if (Array.isArray(param.value)) {
-                                                value = param.value.join(' ');
-                                            } else {
-                                                value = param.value;
-                                            }
-                                            url.searchParams.append(param.name, value);
-                                        });
-
-                                        let spinnerEl = document.createElement('div');
-                                        spinnerEl.classList.add("aladin-spinner");
-                                        spinnerEl.innerText = "fetching...";
-
-                                        aladinInstance.sodaQueryWindow.mainEl.querySelector(".submit")
-                                            .appendChild(spinnerEl);
-
-                                        let removeSpinner = () => {
-                                            aladinInstance.sodaQueryWindow.mainEl.querySelector(".aladin-spinner").remove();
-                                        };
-
-                                        let name = url.searchParams.toString();
-                                        // Tackle cors problems
-                                        Utils.loadFromUrls([url, Utils.handleCORSNotSameOrigin(url)], {timeout: 30000})
-                                            .then((response) => response.blob())
-                                            .then((blob) => {
-                                                const url = URL.createObjectURL(blob);
-                                                try {
-                                                    let image = aladinInstance.createImageFITS(url, name);   
-                                                    aladinInstance.setOverlayImageLayer(image, Utils.uuidv4())
-                                                } catch(e) {
-                                                    throw('Fail to interpret ' + url + ' as a fits file')
-                                                }
-                                            })
-                                            .catch((e) => {
-                                                window.alert(e)
-                                            })
-                                            .finally(() => {
-                                                removeSpinner();
-                                            })
-                                    });
+                                    aladinInstance.sodaQueryWindow.show(aladinInstance);
                                 }
                             },
                             'access_url': (row) => {
                                 let url = row['access_url'];
+                                console.log(url)
+                                if (url === '--') {
+                                    return;
+                                }
+
                                 let contentType = row['content_type'];
                                 let contentQualifier = row['content_qualifier'];
 
@@ -166,7 +139,7 @@ export let Datalink = (function() {
                         }
                     }
 
-                    aladinInstance.measurementTable.showMeasurement([datalinkTable], { save: true });
+                    aladinInstance.measurementTable.showMeasurement([datalinkTable]);
                 } else {
                     // Try to parse a SODA service descriptor resource
                     let SODAServerParams = VOTable.parseSODAServiceRsc(rsc);
@@ -175,9 +148,11 @@ export let Datalink = (function() {
 
                         // Try to populate the SODA form fields with obscore values
                         let populateSODAFields = (SODAParams) => {
-                            for (const inputParam of SODAParams.inputParams) {
+                            for (const name in SODAParams.inputParams) {
+                                let inputParam = SODAParams.inputParams[name];
+
                                 if (inputParam.type === "group") {
-                                    for (const param of inputParam.value) {
+                                    for (const param of inputParam.subInputs) {
                                         if (param.value) {
                                             continue;
                                         }
@@ -203,10 +178,14 @@ export let Datalink = (function() {
                         VOTable.parse(this.SODAServerParams.baseUrl, (rsc) => {
                             const SODAServerDesc = VOTable.parseSODAServiceRsc(rsc);
 
-                            for (const inputParam of SODAServerDesc.inputParams) {
-                                const inputParamAlreadyDefined = this.SODAServerParams.inputParams.some((inputParamFromDatalink) => inputParamFromDatalink.name === inputParam.name);
-                                if (!inputParamAlreadyDefined) {
-                                    this.SODAServerParams.inputParams.push(inputParam);
+                            if (SODAServerDesc) {
+                                console.log(rsc, "soda server", SODAServerDesc)
+
+                                for (const name in SODAServerDesc.inputParams) {
+                                    let inputParam = SODAServerDesc.inputParams[name];
+                                    if (!this.SODAServerParams.inputParams[name]) {
+                                        this.SODAServerParams.inputParams[name] = inputParam;
+                                    }
                                 }
                             }
 

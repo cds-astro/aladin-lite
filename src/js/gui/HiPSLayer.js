@@ -55,7 +55,7 @@ export class HiPSLayer {
 
         let self = this;
     
-        let clickOpenerBtn = new ActionButton(layerHeaderEl, {
+        let clickOpenerBtn = new ActionButton({
             content: "▶",
             backgroundColor: '#eaeaea',
             color: 'black',
@@ -76,14 +76,14 @@ export class HiPSLayer {
                     self.mainDiv.slideUp(300);
                 }
             }
-        });
+        }, layerHeaderEl);
 
         layerHeaderEl.appendChild((() => {
             let selector = $('<select class="aladin-input aladin-layerSelection"></select>');
             return selector[0];
         })());
 
-        let hideLayerBtn = new ActionButton(layerHeaderEl, {
+        let hideLayerBtn = new ActionButton({
             content: "👁️",
             backgroundColor: '#eaeaea',
             info: 'Hide the layer',
@@ -105,9 +105,9 @@ export class HiPSLayer {
 
                 self.layer.setOpacity(newOpacity);
             }
-        });
+        }, layerHeaderEl);
 
-        new ActionButton(layerHeaderEl, {
+        new ActionButton({
             content: "🔍",
             backgroundColor: '#eaeaea',
             info: 'Search for a survey (HiPS)',
@@ -121,9 +121,9 @@ export class HiPSLayer {
         
                 self.hipsSelector.show();
             }
-        });
+        }, layerHeaderEl);
 
-        let deleteLayerBtn = new ActionButton(layerHeaderEl, {
+        let deleteLayerBtn = new ActionButton({
             content: "❌",
             backgroundColor: '#eaeaea',
             info: 'Delete this layer',
@@ -132,19 +132,19 @@ export class HiPSLayer {
                     detail: self.layer.layer
                 }));
             }
-        });
+        }, layerHeaderEl);
 
         // Add a centered on button for images
         if (this.layer.subtype === "fits") {
             let layerSelector = this.headerDiv[0].querySelector(".aladin-layerSelection");
-            new ActionButton(layerSelector, {
+            new ActionButton({
                 content: "🎯",
                 backgroundColor: '#eaeaea',
                 info: 'Focus on the FITS',
                 action(e) {
                     self.layer.focusOn();
                 }
-            }, 'afterend');
+            }, layerSelector, 'afterend');
         }
 
         if (this.layer.layer === "base") {

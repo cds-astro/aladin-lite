@@ -42,9 +42,6 @@ export let MeasurementTable = (function() {
         mainDiv.setAttribute("class", "aladin-measurement-div");
         this.element = mainDiv;
 
-        this.savedTablesIdx = 0;
-        this.savedTables = [];
-
         aladinLiteDiv.appendChild(this.element);
     }
 
@@ -60,19 +57,22 @@ export let MeasurementTable = (function() {
             result += '<tr>'
             for (let key in row.data) {
                 // check the type here
-                const val = row.data[key] || '--';
+                let val = row.data[key] || '--';
+
+                if (val instanceof Element) {
+                    val = val.outerHTML;
+                }
+
                 result += '<td class="' + key + '">'
-                if (typeof(val) === "string") {
-                    try {
-                        let url = new URL(val);
-                        let link = '<a href=' + url + ' target="_blank">' + url + '</a>';
-                        result += link;
-                    } catch(e) {
-                        result += val
-                    }
-                } else {
+
+                try {
+                    let url = new URL(val);
+                    let link = '<div class="aladin-href-td-container"><a href=' + url + ' target="_blank">' + url + '</a></div>';
+                    result += link;
+                } catch(e) {
                     result += val
                 }
+
                 result += '</td>'
             }
             result += '</tr>';
@@ -85,40 +85,15 @@ export let MeasurementTable = (function() {
                 tbody.querySelectorAll("." + key).forEach(function(e, index) {
                     e.addEventListener('click', (e) => {
                         let callback = table["fieldsClickedActions"][key];
-                        callback(table["rows"][index].data)
+                        let fieldClickedVal = table["rows"][index].data[key];
+                        if (fieldClickedVal && fieldClickedVal !== '--') {
+                            callback(table["rows"][index].data)
+                        }
 
                         e.preventDefault();
                     }, false)
                 })
             }
-        }
-    }
-
-    MeasurementTable.prototype.showPreviousMeasurement = function() {
-        this.savedTablesIdx--;
-        if (this.savedTablesIdx < 0) {
-            this.savedTablesIdx = 0;
-        }
-
-        let tables = this.savedTables[this.savedTablesIdx];
-
-        if (tables) {
-            this.update(tables);
-            this.updateStateNavigation();
-        }
-    }
-
-    MeasurementTable.prototype.showNextMeasurement = function() {
-        this.savedTablesIdx++;
-        if (this.savedTablesIdx >= this.savedTables.length) {
-            this.savedTablesIdx = this.savedTables.length - 1;
-        }
-
-        let tables = this.savedTables[this.savedTablesIdx];
-
-        if (tables) {
-            this.update(tables);
-            this.updateStateNavigation();
         }
     }
 
@@ -129,62 +104,7 @@ export let MeasurementTable = (function() {
         }
 
         this.update(tables);
-
-        if (options && options["save"]) {
-            this.saveState();
-
-            this.updateStateNavigation();
-        }
     };
-
-    MeasurementTable.prototype.updateStateNavigation = function() {
-        // update the previous/next buttons
-        let tabsElement = this.element.querySelector(".tabs");
-        if (this.savedTables.length >= 2) {
-            /// Create previous tab
-            let prevTableElement = document.createElement('button');
-            prevTableElement.setAttribute('title', 'Go back to the previous table')
-            if (this.savedTablesIdx == 0) {
-                prevTableElement.disabled = true;
-            }
-
-            prevTableElement.addEventListener(
-                'click', () => this.showPreviousMeasurement(), false
-            );
-
-            prevTableElement.innerText = '<';
-            tabsElement.appendChild(prevTableElement);
-
-            /// Create next tab
-            let nextTableElement = document.createElement('button');
-            nextTableElement.setAttribute('title', 'Go to the next table')
-
-            if (this.savedTables.length == 0 || this.savedTablesIdx == this.savedTables.length - 1) {
-                nextTableElement.disabled = true;
-            }
-
-            nextTableElement.addEventListener(
-                'click', () => this.showNextMeasurement(), false
-            );
-
-            nextTableElement.innerText = '>';
-            tabsElement.appendChild(nextTableElement);
-        }
-    };
-
-    MeasurementTable.prototype.saveState = function() {
-        if (this.savedTables.length === 0) {
-            this.savedTables.push(this.tables);
-        } else {
-            if (this.tables !== this.savedTables[this.savedTablesIdx]) {
-                // Remove all the tables past to the current one
-                this.savedTables = this.savedTables.slice(0, this.savedTablesIdx + 1);
-                // Save the current tables
-                this.savedTables.push(this.tables);
-                this.savedTablesIdx = this.savedTables.length - 1;
-            }
-        }
-    }
 
     MeasurementTable.prototype.update = function(tables) {
         this.tables = tables;
@@ -288,8 +208,6 @@ export let MeasurementTable = (function() {
     };
 
     MeasurementTable.prototype.hide = function() {
-        this.savedTables = [];
-        this.savedTablesIdx = 0;
         this.curTableIdx = 0;
 
         this.element.style.visibility = "hidden";

@@ -104,7 +104,7 @@ HiPSProperties.fetchFromUrl = async function(urlOrId) {
         init = { mode: 'cors' };
     }
 
-    let result = await fetch(url, init)
+    let result = fetch(url, init)
         .then((response) => {
             if (response.status == 404) {
                 return Promise.reject("Url points to nothing")
@@ -120,11 +120,11 @@ HiPSProperties.fetchFromUrl = async function(urlOrId) {
             if (metadata) {
                 // Set the service url if not found
                 metadata.hips_service_url = HiPSServiceUrl;
+
+                return metadata;
             } else {
                 throw 'No surveys matching at this url: ' + rootURL;
             }
-
-            return metadata;
         })
 
     return result;

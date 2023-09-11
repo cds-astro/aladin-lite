@@ -14,7 +14,7 @@
         <!--link rel="stylesheet" href="css/grids-responsive-min.css"-->
         <link rel="stylesheet" href="https://unpkg.com/purecss@2.0.3/build/buttons.css">
         <link rel="stylesheet" href="https://unpkg.com/purecss@2.0.3/build/buttons-core.css">
-    
+
         <!--meta name="viewport" content="initial-scale=1.0, user-scalable=no"-->
         <meta name="viewport" content="viewport-fit=cover, width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
     </head>
@@ -81,15 +81,15 @@
 	<div id="coo_epoca">
             <a class="pure-button nav-button nav-goto" href="#">De Epoca</a><br>
             &nbsp;→&nbsp;<a class="pure-button nav-button nav-flyto" href="#">Move</a>
-	</div>	
+	</div>
 	<div id="coo_legende">
             <a class="pure-button nav-button nav-goto" href="#">Légende</a><br>
             &nbsp;→&nbsp;<a class="pure-button nav-button nav-flyto" href="#">Move</a>
-	</div>	
+	</div>
 	<div id="coo_orion">
             <a class="pure-button nav-button nav-goto" href="#">Orion</a><br>
             &nbsp;→&nbsp;<a class="pure-button nav-button nav-flyto" href="#">Move</a>
-	</div>	
+	</div>
 	<div id="coo_magellan">
             <a class="pure-button nav-button nav-goto" href="#">Magellan</a><br>
             &nbsp;→&nbsp;<a class="pure-button nav-button nav-flyto" href="#">Move</a>
@@ -97,7 +97,7 @@
 	<div id="coo_halley">
             <a class="pure-button nav-button nav-goto" href="#">Halley</a><br>
             &nbsp;→&nbsp;<a class="pure-button nav-button nav-flyto" href="#">Move</a>
-	</div>	
+	</div>
 </div>
 
 <style type="text/css"> .aladin-reticleColor { color: rgb(178, 50, 178); font-weight:bold;} </style>
@@ -106,27 +106,27 @@
     html, body {
         height: 100%;
     }
-    
+
     body {
         display: flex;
         flex-direction: column;
     }
-    
+
     .aladin-zoomControl {
         top: 10% !important;
         left: unset !important;
         right: 4px !important;
     }
-    
+
     .aladin-zoomControl a {
         font-size: 24px !important;
         padding: 22px !important;
     }
-    
+
     #aladin{
         flex: 1 1 0;
     }
-    
+
     #explain {
         padding: 4px;
         top: 30%;
@@ -134,51 +134,51 @@
         font-size: 11pt;
         overflow: scroll;
     }
-    
+
     #explain tbody tr:nth-child(even) {
         background-color: #ffffff;
     }
-    
+
     #explain tbody tr:nth-child(odd) {
         background-color: #ccdaeb;
     }
-    
+
     #layersControlLeft {
         padding: 10px;
         right: unset;
         left: 4px;
         top: 20vh;
     }
-    
+
     #layersCL2 {
         padding: 10px;
         right: unset;
         left: 4px;
         top: 90vh;
     }
-    
+
     #layersControlRight {
         padding: 4px;
         left: unset;
         right: 4px;
         top: 25vh;
     }
-    
+
     #layersControlLeft, #layersControlRight, #layersCL2 input {
         margin-right: 5px;
     }
-    
+
     .img-hips {
         padding: 5px;
         margin: 5px;
     }
-    
+
     #opacity-slider {
         -webkit-appearance: none !important;  /* Override default CSS styles */
         width: 220px;
         height: 25px;
     }
-    
+
     #opacity-slider::-webkit-slider-thumb {
       -webkit-appearance: none !important; /* Override default look */
       appearance: none;
@@ -187,18 +187,18 @@
       background: #4CAF50; /* Green background */
       cursor: pointer; /* Cursor on hover */
     }
-    
+
     #opacity-slider::-moz-range-thumb {
       width: 25px; /* Set a specific slider handle width */
       height: 25px; /* Slider handle height */
       background: #4CAF50; /* Green background */
       cursor: pointer; /* Cursor on hover */
     }
-    
+
     .aladin-box {
         font-size: 12px !important;
     }
-    
+
     #calibCircle {
         position: fixed;
         border: 8px solid red;
@@ -210,16 +210,16 @@
         z-index: 1000;
         pointer-events: none;
     }
-    
+
     .pure-table {
         font-size: small;
     }
-    
+
     .catcoro {
         display: inline;
         vertical-align: middle;
     }
-    
+
     .coro-star {
         vertical-align: middle;
     }
@@ -360,7 +360,7 @@
         });
 
         // listen to click on objects
-        aladin.on('objectClicked', function(source) {
+        aladin.on('objectClicked', function(source, xyMouseCoords) {
             var html = '<table class="pure-table">';
 
             if (curSelectedSource != null) {
@@ -509,7 +509,7 @@
                 points[points.length-1].push(Utils.relMouseCoords(drawOverlayCanvas.imageCanvas, e));
 
                 drawOverlayCtx.beginPath();
-                
+
                 for (var k=0; k<points.length; k++) {
                     drawOverlayCtx.moveTo(points[k][0].x, points[k][0].y);
                     for (var i = 1; i < points[k].length; i++) {

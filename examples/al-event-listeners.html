@@ -17,9 +17,10 @@
         var msg;
 
         // define function triggered when  a source is hovered
-        aladin.on('objectHovered', function(object) {
+        aladin.on('objectHovered', function(object, xyMouseCoords) {
             if (object) {
-                msg = 'You hovered object ' + object.data.name + ' located at ' + object.ra + ', ' + object.dec;
+                msg = 'You hovered object ' + object.data.name + ' located at ' + object.ra + ', ' + object.dec + '; mouse coords - x: '
+                    + xyMouseCoords.x + ', y: ' + xyMouseCoords.y;
             }
             else {
                 msg = 'No object hovered';
@@ -27,20 +28,22 @@
             $('#infoDiv').html(msg);
         });
 
-        aladin.on('objectHoveredStop', function(object) {
+        aladin.on('objectHoveredStop', function(object, xyMouseCoords) {
             if (object) {
-                msg = 'You stopped hove object ' + object.data.name + ' located at ' + object.ra + ', ' + object.dec;
+                msg = 'You stopped hove object ' + object.data.name + ' located at ' + object.ra + ', ' + object.dec + '; mouse coords - x: '
+                    + xyMouseCoords.x + ', y: ' + xyMouseCoords.y;
             }
             $('#infoDiv').html(msg);
         });
 
         // define function triggered when an object is clicked
         var objClicked;
-        aladin.on('objectClicked', function(object) {
+        aladin.on('objectClicked', function(object, xyMouseCoords) {
             if (object) {
                 objClicked = object;
-            object.select();
-                msg = 'You clicked object ' + object.data.name + ' located at ' + object.ra + ', ' + object.dec;
+                object.select();
+                msg = 'You clicked object ' + object.data.name + ' located at ' + object.ra + ', ' + object.dec + '; mouse coords - x: '
+                    + xyMouseCoords.x + ', y: ' + xyMouseCoords.y;
             }
             else {
                 objClicked.deselect();

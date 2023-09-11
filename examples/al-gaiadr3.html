@@ -88,7 +88,7 @@
         });
 
         // listen to click on objects
-        aladin.on('objectClicked', function (source) {
+        aladin.on('objectClicked', function (source, xyMouseCoords) {
             var html = '<table class="pure-table">';
 
             if (curSelectedSource != null) {

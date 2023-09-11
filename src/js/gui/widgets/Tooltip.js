@@ -39,26 +39,36 @@ export class Tooltip {
         let el = document.createElement('span');
         el.classList.add('aladin-tooltip');
 
+        let targetParent = target.parentNode;
+
         // Insert it into the DOM tree
         let wrapperEl = document.createElement('div');
         wrapperEl.classList.add('aladin-tooltip-container');
 
-        let targetParent = target.parentNode;
-        let targetIndex = Array.prototype.indexOf.call(targetParent.children, target);
-        
-        let element = targetParent.removeChild(target);
+        if (targetParent) {
+            let targetIndex = Array.prototype.indexOf.call(targetParent.children, target);
+            targetParent.removeChild(target);
 
-        wrapperEl.appendChild(element);
-        wrapperEl.appendChild(el);
+            wrapperEl.appendChild(target);
+            wrapperEl.appendChild(el);
 
-        targetParent.insertChildAtIndex(wrapperEl, targetIndex);
+            targetParent.insertChildAtIndex(wrapperEl, targetIndex);
+        } else {
+            wrapperEl.appendChild(target);
+            wrapperEl.appendChild(el);
+        }
 
-        this.el = el;
+        this.el = wrapperEl;
+        this.innerElement = target;
         this._show(innerHTML)
     }
 
+    innerElement() {
+        return this.innerElement;
+    }
+
     _show(innerHTML) {
-        this.el.innerHTML = innerHTML;
+        this.el.querySelector('.aladin-tooltip').innerHTML = innerHTML;
     }
 
     attach(innerHTML) {

@@ -275,20 +275,20 @@ export let View = (function () {
         // in some contexts (Jupyter notebook for instance), the parent div changes little time after Aladin Lite creation
         // this results in canvas dimension to be incorrect.
         // The following line tries to fix this issue
-        //setTimeout(function () {
-        //var computedWidth = $(self.aladinDiv).width();
-        //var computedHeight = $(self.aladinDiv).height();
+        /*setTimeout(function () {
+            var computedWidth = $(self.aladinDiv).width();
+            var computedHeight = $(self.aladinDiv).height();
 
-        //if (self.width !== computedWidth || self.height === computedHeight) {
-        //self.fixLayoutDimensions();
-        // As the WebGL backend has been resized correctly by
-        // the previous call, we can get the zoom factor from it
+            if (self.width !== computedWidth || self.height === computedHeight) {
+                self.fixLayoutDimensions();
+                // As the WebGL backend has been resized correctly by
+                // the previous call, we can get the zoom factor from it
 
-        //self.setZoom(self.fov); // needed to force recomputation of displayed FoV
-        //}
+                self.setZoom(self.fov); // needed to force recomputation of displayed FoV
+            }
 
-        self.requestRedraw();
-        //}, 1000);
+            self.requestRedraw();
+        }, 1000);*/
 
     };
 
@@ -1275,7 +1275,7 @@ export let View = (function () {
                 return table;
             })
 
-            this.aladin.measurementTable.showMeasurement(tables, {save: saveTable});
+            this.aladin.measurementTable.showMeasurement(tables);
         }
     }
 

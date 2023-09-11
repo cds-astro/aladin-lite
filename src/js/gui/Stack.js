@@ -171,7 +171,7 @@ export class Stack {
             '<button class="aladin-btn add-layer-hips" type="button" title="Add a full survey (i.e. a HiPS)">Add survey</button>' +
             '<button class="aladin-btn add-layer-image" type="button" title="Add a single image (only FITS file supported)">Open image 📂</button>' +
             '</div>'
-            );
+        );
 
         $(this.mainDiv).find('.add-layer-hips').on('click', function () {
             self.aladin.addNewImageLayer();
@@ -243,17 +243,17 @@ export class Stack {
             var svgBase64 = window.btoa(iconSvg.replace(/FILLCOLOR/g, layer.color));
             str += '<li class="aladin-horizontal-list"><div class="aladin-stack-icon" style=\'background-image: url("data:image/svg+xml;base64,' + svgBase64 + '");\'></div>';
             str += '<input class="aladin-input" type="checkbox" ' + checked + ' id="aladin_lite_' + layer.uuid + '"></input><label for="aladin_lite_' + layer.uuid + '" class="aladin-layer-label" style="background: ' + layer.color + '; color:' + labelColor + ';" title="' + tooltipText + '">' + name + '</label>';
-            str += ' <button class="aladin-btn-24px-icon aladin-delete-graphic-layer" type="button" title="Delete this layer">❌</button>';
+            str += ' <button class="aladin-btn aladin-24px-icon aladin-delete-graphic-layer" style="background-color: #eaeaea" type="button" title="Delete this layer">❌</button>';
             str += '</li>';
         }
         str += '</ul>';
 
-        str += '<button class="aladin-btn my-1 catalogue-selector" type="button">Add catalogue</button>';
+        str += '<button class="aladin-btn catalogue-selector" type="button">Add catalogue</button>';
         layerBox.append(str);
 
-        layerBox.find('.aladin-delete-graphic-layer').click(function() {
-            const layerToDelete = self.aladin.findLayerByUUID($(this).data('uuid'));
-            self.aladin.removeLayer(layerToDelete);
+        layerBox.find('.aladin-delete-graphic-layer').on('click', () => {
+            const layerToDelete = this.aladin.findLayerByUUID(layer.uuid);
+            this.aladin.removeLayer(layerToDelete);
         });
 
         let addCatalogBtn = layerBox.find('.catalogue-selector');

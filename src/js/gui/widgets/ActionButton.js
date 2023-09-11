@@ -33,12 +33,12 @@ import { Widget } from "./Widget";
  *****************************************************************************/
 
 export class ActionButton extends Widget {
-    constructor(target, opt, position = "beforeend") {
+    constructor(opt, target, position = "beforeend") {
         let el = document.createElement('button');
         el.classList.add('aladin-btn', 'aladin-24px-icon');
 
         // add it to the dom
-        super(el, target, opt, position);
+        super(el, opt, target, position);
 
         // add a tooltip on it
         this.tooltip = new Tooltip(this.el, this.opt.info);
@@ -78,6 +78,22 @@ export class ActionButton extends Widget {
 
         super._show();
     }
+
+    static create(opt, info, target) {
+        opt['info'] = info || undefined;
+
+        return new ActionButton(opt, target);
+    }
+
+    static DEFAULT_BTN = {
+        'loading': {
+            content: '⏳',
+            width: '28px',
+            height: '28px',
+            position: 'right',
+            backgroundColor: 'white',
+            borderColor: '#484848',
+            action(e) {}
+        }
+    }
 }
-
-

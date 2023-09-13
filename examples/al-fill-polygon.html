@@ -1,0 +1,24 @@
+
+<!doctype html>
+<html>
+<head>
+</head>
+<body>
+
+<div id="aladin-lite-div" style="width: 500px; height: 400px"></div>
+<script type="module">
+    import A from '../src/js/A.js';
+    let aladin;
+    A.init.then(() => {
+        // Start up Aladin Lite
+        aladin = A.aladin('#aladin-lite-div', {fov: 122, showContextMenu: true, fullScreen: true});
+        var overlay = A.graphicOverlay({color: '#ee2345', lineWidth: 3});
+        aladin.addOverlay(overlay);
+        overlay.addFootprints([A.polygon(
+            [[264.375,-24.624318352164085],[258.75,-30.000000000000018],[264.375,-35.68533471265207],[270,-30.000000000000018]],
+            {color: '#808080', fillColor: '#808080', opacity: .4, lineWidth: 1, fill: true})]);
+        aladin.gotoRaDec(264.375,-24.624318352164085);
+    });
+</script>
+</body>
+</html>

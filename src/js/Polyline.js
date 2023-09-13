@@ -41,10 +41,22 @@ import { ProjectionEnum, projectionNames } from "./ProjectionEnum.js";
 
 
 export let Polyline= (function() {
+    function _calculateMag2ForNoSinProjections(line, view) {
+        // check if the line is too big (in the clip space) to be drawn
+        const [x1, y1] = AladinUtils.viewXyToClipXy(line.x1, line.y1, view);
+        const [x2, y2] = AladinUtils.viewXyToClipXy(line.x2, line.y2, view);
+
+        const mag2 = (x1 - x2)*(x1 - x2) + (y1 - y2)*(y1 - y2);
+        return mag2;
+    }
+
     // constructor
     let Polyline = function(radecArray, options) {
         options = options || {};
         this.color     = options['color']     || undefined;
+        this.fill      = options['fill']      || false;
+        this.fillColor = options['fillColor'] || undefined;
+        this.opacity   = options['opacity']   || undefined;
         this.lineWidth = options["lineWidth"] || undefined;
 
         if (options["closed"]) {
@@ -208,6 +220,7 @@ export let Polyline= (function() {
         }
 
         let drawLine;
+        let fillPoly;
 
         if (view.projection === ProjectionEnum.SIN) {
             drawLine = (v0, v1) => {
@@ -217,22 +230,45 @@ export let Polyline= (function() {
                     line.draw(ctx);
                 }
             };
+            if (this.closed && this.fill) {
+                fillPoly = (v0, v1, index) => {
+                    const line = new Line(v0.x, v0.y, v1.x, v1.y);
+                    if (index === 0) {
+                        ctx.beginPath();
+                        ctx.moveTo(line.x1, line.y1);
+                    } else {
+                        ctx.lineTo(line.x1, line.y1);
+                    }
+                };
+            }
         } else {
             drawLine = (v0, v1) => {
                 const line = new Line(v0.x, v0.y, v1.x, v1.y);
 
                 if (line.isInsideView(view.width, view.height)) {
-                    // check if the line is too big (in the clip space) to be drawn
-                    const [x1, y1] = AladinUtils.viewXyToClipXy(line.x1, line.y1, view);
-                    const [x2, y2] = AladinUtils.viewXyToClipXy(line.x2, line.y2, view);
-
-                    const mag2 = (x1 - x2)*(x1 - x2) + (y1 - y2)*(y1 - y2);
+                    const mag2 = _calculateMag2ForNoSinProjections(line, view);
 
                     if (mag2 < 0.1) {
                         line.draw(ctx);
                     }
                 }
             };
+            if (this.closed && this.fill) {
+                fillPoly = (v0, v1, index) => {
+                    const line = new Line(v0.x, v0.y, v1.x, v1.y);
+
+                    const mag2 = _calculateMag2ForNoSinProjections(line, view);
+
+                    if (mag2 < 0.1) {
+                        if (index === 0) {
+                            ctx.beginPath();
+                            ctx.moveTo(line.x1, line.y1);
+                        } else {
+                            ctx.lineTo(line.x1, line.y1);
+                        }
+                    }
+                };
+            }
         }
 
         // 3. Check whether the polygon do not cross the view
@@ -270,7 +306,7 @@ export let Polyline= (function() {
         ctx.beginPath();
 
         for (var k = 0; k < nSegment; k++) {
-            drawLine(xyView[v0], xyView[v1])
+            drawLine(xyView[v0], xyView[v1]);
 
             v0 = v1;
             v1 = v1 + 1;
@@ -278,6 +314,23 @@ export let Polyline= (function() {
 
         if (!noStroke) {
             ctx.stroke();
+        }
+
+        if (this.fill && this.closed) {
+            v0 = len - 1;
+            v1 = 0;
+            for (var k = 0; k < nSegment; k++) {
+                fillPoly(xyView[v0], xyView[v1], k);
+
+                v0 = v1;
+                v1 = v1 + 1;
+            }
+            ctx.globalAlpha = 1;
+            ctx.save();
+            ctx.fillStyle = this.fillColor;
+            ctx.globalAlpha = this.opacity;
+            ctx.fill();
+            ctx.restore();
         }
     };
 

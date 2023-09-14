@@ -41,7 +41,9 @@ export class ActionButton extends Widget {
         super(el, opt, target, position);
 
         // add a tooltip on it
-        this.tooltip = new Tooltip(this.el, this.opt.info);
+        if (this.opt.info) {
+            this.tooltip = new Tooltip(this.el, this.opt.info);
+        }
     }
 
     _show() {

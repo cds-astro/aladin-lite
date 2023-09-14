@@ -36,6 +36,7 @@ import { Coo } from "./libs/astro/coo.js";
 import { VOTable } from "./vo/VOTable.js";
 import { ALEvent } from "./events/ALEvent.js";
 import { Footprint } from "./Footprint.js";
+import { ObsCore } from "./vo/ObsCore.js";
 import A from "./A.js";
 
 import $ from 'jquery';
@@ -65,7 +66,7 @@ export let Catalog = (function() {
         // allows for filtering of sources
         this.filterFn = options.filter || undefined; // TODO: do the same for catalog
 
-        this.fieldsClickedActions = {}; // callbacks when the user clicks on a cell in the measurement table associated
+        this.showFieldCallback = {}; // callbacks when the user clicks on a cell in the measurement table associated
         this.fields = undefined;
 
     	this.indexationNorder = 5; // à quel niveau indexe-t-on les sources
@@ -274,6 +275,8 @@ export let Catalog = (function() {
         fields.forEach((field) => {
             let key = field.name ? field.name : field.id;
 
+            key = key.split(' ').join('_')
+
             let nameField;
             if (fieldIdx == raFieldIdx) {
                 nameField = 'ra';
@@ -283,6 +286,7 @@ export let Catalog = (function() {
                 nameField = key;
             }
 
+            // remove the space character
             parsedFields[nameField] = {
                 name: key,
                 idx: fieldIdx,
@@ -300,7 +304,18 @@ export let Catalog = (function() {
         VOTable.parse(
             url,
             (rsc) => {
-                let { fields, rows } = VOTable.parseTableRsc(rsc, raField, decField)
+                let { fields, rows } = VOTable.parseTableRsc(rsc)
+                let type;
+                try {
+                    fields = ObsCore.parseFields(fields);
+                    //fields.subtype = "ObsCore";
+                    type = 'ObsCore';
+                } catch(e) {
+                    // It is not an ObsCore table
+                    fields = Catalog.parseFields(fields, raField, decField);
+                    type = 'sources';
+                }
+
                 let sources = [];
                 let footprints = [];
 
@@ -357,7 +372,12 @@ export let Catalog = (function() {
                 })
 
                 if (successCallback) {
-                    successCallback(sources, footprints, fields);
+                    successCallback({
+                        sources: sources,
+                        footprints: footprints,
+                        fields: fields,
+                        type: type
+                    });
                 }
             },
             errorCallback,
@@ -446,12 +466,8 @@ export let Catalog = (function() {
     };
 
     /// This add a callback when the user clicks on the field column in the measurementTable
-    Catalog.prototype.addFieldClickCallback = function(field, callback) {
-        this.fieldsClickedActions[field] = callback;
-    };
-
-    Catalog.prototype.isObsCore = function() {
-        return this.fields && this.fields.subtype === "ObsCore";
+    Catalog.prototype.addShowFieldCallback = function(field, callback) {
+        this.showFieldCallback[field] = callback;
     };
 
     // API

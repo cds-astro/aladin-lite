@@ -32,6 +32,8 @@
  import { Datalink } from "./Datalink.js";
  import { Utils } from '../Utils';
 
+ import { ActionButton } from "../gui/widgets/ActionButton.js";
+
  export let ObsCore = (function() {
 
     // dict of mandatory ObsCore fields
@@ -188,57 +190,79 @@
         throw 'Mandatory field ' + nameField + ' not found';
     };
 
-    ObsCore.handleActions = function(cat) {
-        // Get the ObsCore fields
-        let fields = cat.fields;
+    ObsCore.SHOW_CALLBACKS = function(aladinInstance) {
+        return {
+            "access_url": (data) => {
+                let url = data['access_url'];
+                let format = data['access_format'];
 
-        cat.addFieldClickCallback("access_url", (row) => {
-            // And the aladin lite instance
-            let aladinInstance = cat.view.aladin;
+                let accessUrlEl = document.createElement('div');
+                try {
+                    let _ = new URL(url);
+                    accessUrlEl.classList.add('aladin-href-td-container');
 
-            let accessUrlFieldName = fields["access_url"].name;
-            let accessFormatFieldName = fields["access_format"].name;
+                    accessUrlEl.innerHTML = '<a href=' + url + ' target="_blank">' + url + '</a>';
 
-            let url = row[accessUrlFieldName];
-            let accessFormat = row[accessFormatFieldName];
+                    accessUrlEl.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        let processImageFitsClick = () => {
+                            var name = data['obs_id'] || url;
+                            var successCallback = ((ra, dec, fov, _) => {
+                                aladinInstance.gotoRaDec(ra, dec);
+                                aladinInstance.setFoV(fov);
+                            });
+            
+                            let image = aladinInstance.createImageFITS(url, name, {}, successCallback);
 
-            let processImageFitsClick = () => {
-                var obsId = fields['obs_id'] && row[fields['obs_id'].name];
-                var name = obsId || url;
-                var successCallback = ((ra, dec, fov, _) => {
-                    aladinInstance.gotoRaDec(ra, dec);
-                    aladinInstance.setFoV(fov);
-                });
+                            aladinInstance.setOverlayImageLayer(image, Utils.uuidv4())
+                        };
+        
+                        switch (format) {
+                            // A datalink response containing links to datasets or services attached to the current dataset
+                            case 'application/x-votable+xml;content=datalink':
+                                new Datalink().handleActions(data, aladinInstance);
+                            break;
+                            // Any multidimensional regularly sampled FITS image or cube
+                            case 'image/fits':
+                                processImageFitsClick();
+                                break;
+                            // Any generic FITS file
+                            case 'application/fits':
+                                processImageFitsClick();
+                                break;
+                            // A FITS multi-extension file (multiple extensions)
+                            case 'application/x-fits-mef':
+                                processImageFitsClick();
+                                break;
+                            default:
+                                console.warn("Access format ", format, " not yet implemented or not recognized. Download the file triggered")
+                                Utils.download(url)
+                                break;
+                        }
+                    });
+                } catch(e) {
+                    accessUrlEl.innerText = '--';
+                }
 
-                let image = aladinInstance.createImageFITS(url, name, {}, successCallback);
-                aladinInstance.setOverlayImageLayer(image, Utils.uuidv4())
-            };
+                return accessUrlEl;
+            },
+            'access_format': (data) => {
+                let accessFormat = data['access_format'];
 
-            switch (accessFormat) {
-                // A datalink response containing links to datasets or services attached to the current dataset
-                case 'application/x-votable+xml;content=datalink':
-                    //Datalink.handleActions(url)
-                    new Datalink().handleActions(row, aladinInstance);
-                break;
-                // Any multidimensional regularly sampled FITS image or cube
-                case 'image/fits':
-                    processImageFitsClick();
-                    break;
-                // Any generic FITS file
-                case 'application/fits':
-                    processImageFitsClick();
-                    break;
-                // A FITS multi-extension file (multiple extensions)
-                case 'application/x-fits-mef':
-                    processImageFitsClick();
-                    break;
-                default:
-                    console.warn("Access format ", accessFormat, " not yet implemented or not recognized. Download the file triggered")
-                    Utils.download(url)
-                    break;
+                if (accessFormat && accessFormat.includes('datalink')) {
+                    return new ActionButton({
+                        content: '🔗',
+                        backgroundColor: 'white',
+                        borderColor: '#484848',
+                        info: accessFormat,
+                        action(e) {}
+                    }).element();
+                } else {
+                    return accessFormat;
+                }
             }
-        });
-    }
+        }
+    };
  
     return ObsCore;
 })();

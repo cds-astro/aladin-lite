@@ -180,7 +180,8 @@ A.MOCFromJSON = function (jsonMOC, options) {
 A.catalogFromURL = function (url, options, successCallback, errorCallback, useProxy) {
     var catalog = A.catalog(options);
 
-    const processVOTable = function (sources, footprints, fields) {
+    const processVOTable = function (table) {
+        let {sources, footprints, fields, type} = table;
         catalog.setFields(fields);
 
         if (catalog.isObsCore()) {
@@ -198,7 +199,7 @@ A.catalogFromURL = function (url, options, successCallback, errorCallback, usePr
 
         // Even if the votable is not a proper ObsCore one, try to see if specific columns are given
         // e.g. access_format and access_url
-        ObsCore.handleActions(catalog);
+        //ObsCore.handleActions(catalog);
     };
 
     if (useProxy !== undefined) {

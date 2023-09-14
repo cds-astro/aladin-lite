@@ -31,6 +31,7 @@
  *****************************************************************************/
 
 import { Color } from "./Color.js"
+import { ActionButton } from "./gui/widgets/ActionButton.js";
 
 export let MeasurementTable = (function() {
 
@@ -45,60 +46,44 @@ export let MeasurementTable = (function() {
         aladinLiteDiv.appendChild(this.element);
     }
 
-    MeasurementTable.prototype.updateRows = function() {
+    MeasurementTable.prototype.updateTableBody = function() {
         let tbody = this.element.querySelector('tbody');
-        
-        tbody.innerHTML = "";
+        tbody.innerHTML = '';
 
         let table = this.tables[this.curTableIdx];
 
-        let result = '';
         table["rows"].forEach((row) => {
-            result += '<tr>'
+            let trEl = document.createElement('tr');
+
             for (let key in row.data) {
                 // check the type here
-                let val = row.data[key] || '--';
 
-                if (val instanceof Element) {
-                    val = val.outerHTML;
+                let tdEl = document.createElement('td');
+                tdEl.classList.add(key);
+
+                if (table.showCallback && table.showCallback[key]) {
+                    let showFieldCallback = table.showCallback[key];
+
+                    let el = showFieldCallback(row.data);
+                    if (el instanceof Element) {
+                        tdEl.appendChild(el);
+                    } else {
+                        tdEl.innerHTML = el;
+                    }
+                } else {
+                    let val = row.data[key] || '--';
+                    tdEl.innerText = val;
                 }
 
-                result += '<td class="' + key + '">'
-
-                try {
-                    let url = new URL(val);
-                    let link = '<div class="aladin-href-td-container"><a href=' + url + ' target="_blank">' + url + '</a></div>';
-                    result += link;
-                } catch(e) {
-                    result += val
-                }
-
-                result += '</td>'
+                trEl.appendChild(tdEl);
             }
-            result += '</tr>';
+
+            tbody.appendChild(trEl);
         });
-
-        tbody.innerHTML = result;
-
-        if (table["fieldsClickedActions"]) {
-            for (let key in table["fieldsClickedActions"]) {
-                tbody.querySelectorAll("." + key).forEach(function(e, index) {
-                    e.addEventListener('click', (e) => {
-                        let callback = table["fieldsClickedActions"][key];
-                        let fieldClickedVal = table["rows"][index].data[key];
-                        if (fieldClickedVal && fieldClickedVal !== '--') {
-                            callback(table["rows"][index].data)
-                        }
-
-                        e.preventDefault();
-                    }, false)
-                })
-            }
-        }
     }
 
     // show measurement associated with a given source
-    MeasurementTable.prototype.showMeasurement = function(tables, options) {
+    MeasurementTable.prototype.showMeasurement = function(tables) {
         if (tables.length === 0) {
             return;
         }
@@ -126,12 +111,11 @@ export let MeasurementTable = (function() {
         const thead = MeasurementTable.createTableHeader(table);
         // table body creation
         const tbody = document.createElement('tbody');
-
         tableElement.appendChild(thead);
         tableElement.appendChild(tbody);
-        this.element.appendChild(tableElement);
 
-        this.updateRows();
+        this.element.appendChild(tableElement);
+        this.updateTableBody();
 
         this.show();
     }
@@ -154,8 +138,6 @@ export let MeasurementTable = (function() {
             tabButtonElement.style.whiteSpace = 'nowrap';
             tabButtonElement.style.maxWidth = '20%';
 
-            tabButtonElement
-
             tabButtonElement.addEventListener(
                 'click',
                 () => {
@@ -168,7 +150,7 @@ export let MeasurementTable = (function() {
                     // replace the old header with the one of the current table
                     thead.parentNode.replaceChild(MeasurementTable.createTableHeader(table), thead);
 
-                    self.updateRows()
+                    self.updateTableBody()
                 }
                 ,false
             );
@@ -194,9 +176,11 @@ export let MeasurementTable = (function() {
         var content = '<tr>';
 
         for (let [_, field] of Object.entries(table["fields"])) {
-            content += '<th>' + field.name + '</th>';
+            if (field.name) {
+                content += '<th>' + field.name + '</th>';
+            }
         }
-        content += '</thead>';
+        content += '</tr>';
 
         theadElement.innerHTML = content;
 

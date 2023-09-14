@@ -26,8 +26,6 @@
  * 
  *****************************************************************************/
 import { ALEvent } from "../events/ALEvent.js";
-import { Catalog } from "../Catalog.js";
-import { ObsCore } from "./ObsCore.js";
 import { Utils } from "./../Utils";
 
 export let VOTable = (function() {
@@ -70,7 +68,7 @@ export let VOTable = (function() {
             })
     };
 
-    VOTable.parseTableRsc = function (rsc, raField, decField) {
+    VOTable.parseTableRsc = function (rsc) {
         let tables = rsc.get("tables")
         if (tables) {
             // take only the first table
@@ -85,14 +83,6 @@ export let VOTable = (function() {
                     // convert a map into a javascript object
                     return Object.fromEntries(field);
                 });
-
-            try {
-                fields = ObsCore.parseFields(fields);
-                fields.subtype = "ObsCore";
-            } catch(e) {
-                // It is not an ObsCore table
-                fields = Catalog.parseFields(fields, raField, decField);
-            }
 
             let data = table.get("data");
             if (data) {

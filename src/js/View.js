@@ -49,6 +49,8 @@ import { ColorCfg } from "./ColorCfg.js";
 import { Footprint } from "./Footprint.js";
 import { Selector } from "./Selector.js";
 import $ from 'jquery';
+import { ActionButton } from "./gui/widgets/ActionButton.js";
+import { ObsCore } from "./vo/ObsCore.js";
 
 export let View = (function () {
 
@@ -1245,32 +1247,27 @@ export let View = (function () {
                 objListPerCatalog.forEach((obj) => obj.select())
             });
 
-            let saveTable = false;
-
             let tables = this.selectedObjects.map((objList) => {
                 // Get the catalog containing that list of objects
                 let catalog = objList[0].getCatalog();
                 
-                let rows = objList.map((o) => {
+                let source;
+                let sources = objList.map((o) => {
                     if (o instanceof Footprint) {
-                        return o.source;
+                        source = o.source;
                     } else {
-                        return o;
+                        source = o;
                     }
+
+                    return source;
                 });
                 let table = {
                     'name': catalog.name,
                     'color': catalog.color,
-                    'rows': rows,
+                    'rows': sources,
                     'fields': catalog.fields,
-                    'fieldsClickedActions': catalog.fieldsClickedActions,
+                    'showCallback': ObsCore.SHOW_CALLBACKS(this.aladin)
                 };
-
-                if (catalog.isObsCore && catalog.isObsCore()) {
-                    // If the source is obscore, save the table state inside the measurement table
-                    // This is used to go back from a possible datalink table to the obscore one
-                    saveTable = true;
-                }
 
                 return table;
             })

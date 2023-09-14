@@ -28,6 +28,11 @@
  * 
  *****************************************************************************/
 
+import { ActionButton } from "./gui/widgets/ActionButton";
+import { Datalink } from "./vo/Datalink";
+import { Utils } from "./Utils";
+import { ObsCore } from "./vo/ObsCore";
+
 export let Source = (function() {
     // constructor
     let Source = function(ra, dec, data, options) {
@@ -101,27 +106,22 @@ export let Source = (function() {
         if (this.catalog && this.catalog.onClick) {
             var view = this.catalog.view;
 
-            if (this.catalog.onClick=='showTable') {
+            if (this.catalog.onClick == 'showTable') {
                 this.select();
+
+                view.aladin.measurementTable.hide();
 
                 let singleSourceTable = {
                     'rows': [this],
                     'fields': this.catalog.fields,
-                    'fieldsClickedActions': this.catalog.fieldsClickedActions,
+                    'showCallback': ObsCore.SHOW_CALLBACKS(view.aladin),
                     'name': this.catalog.name,
                     'color': this.catalog.color
                 };
 
-                let options = {};
-                //if (this.catalog.isObsCore && this.catalog.isObsCore()) {
-                    // If the source is obscore, save the table state inside the measurement table
-                    // This is used to go back from a possible datalink table to the obscore one
-                    options["save"] = true;
-                //}
-                view.aladin.measurementTable.hide();
-                view.aladin.measurementTable.showMeasurement([singleSourceTable], options);
+                view.aladin.measurementTable.showMeasurement([singleSourceTable]);
             }
-            else if (this.catalog.onClick=='showPopup') {
+            else if (this.catalog.onClick == 'showPopup') {
 
                 view.popup.setTitle('<br><br>');
                 var m = '<div class="aladin-marker-measurement">';

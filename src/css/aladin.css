@@ -99,7 +99,7 @@
 
 .aladin-measurement-div {
     z-index: 77;
-    width: 100%;
+    max-width: 100%;
     position: absolute;
     bottom: 20px;
     font-family: monospace;
@@ -114,6 +114,7 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
 
+    position: relative;
     overflow-y: scroll;
     overscroll-behavior-x: none;
     background-color: rgba(255, 255, 255, 0.9);
@@ -148,6 +149,7 @@
 
 .aladin-measurement-div table thead {
     position: sticky;
+    width: 100%;
     top: 0;
     background-color: #fff;
     color: #000;
@@ -177,7 +179,7 @@
 .aladin-measurement-div table td .aladin-href-td-container {
     border: 1px solid #d2d2d2;
     border-radius: 3px;
-    padding: 0.6em;
+    padding: 0.4em;
 
     white-space: nowrap;
     overflow: hidden;
@@ -198,8 +200,9 @@
     }
     80%,
     100% {
-      transform: translateX(-100%);
-      left: 100%;
+      /* the max width is 150px and a padding of 0.8em is added for href link */
+      transform: translateX(calc(-100% + 150px - 0.8em));
+      left: calc(100% - 150px + 0.8em);
     }
   }
 
@@ -993,7 +996,7 @@ canvas {
  
     /* Position the tooltip text - see examples below! */
     position: absolute;
-    z-index: 100;
+    z-index: 10000;
 }
 
 /* Show the tooltip text when you mouse over the tooltip container */

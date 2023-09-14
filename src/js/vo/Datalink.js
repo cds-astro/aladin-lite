@@ -32,6 +32,7 @@
 import { VOTable } from "./VOTable.js";
 import { Utils } from './../Utils';
 import { ActionButton } from "../gui/widgets/ActionButton.js";
+import { Catalog } from "../Catalog.js";
 
 export let Datalink = (function() {
 
@@ -48,6 +49,8 @@ export let Datalink = (function() {
                 let table = VOTable.parseTableRsc(rsc);
 
                 if (table && table.fields && table.rows) {
+                    table.fields = Catalog.parseFields(table.fields);
+
                     // Get the fields and the rows
                     let measures = [];
                     const { fields, rows } = table;
@@ -59,82 +62,99 @@ export let Datalink = (function() {
                             data[key] = row[field.idx];
                         }
 
-                        if (data['semantics'] === '#cutout') {
-                            data['service_def'] = new ActionButton({
-                                content: '📡',
-                                backgroundColor: 'white',
-                                borderColor: '#484848',
-                                info: 'Open the cutout service form',
-                                action(e) {}
-                            }, aladinInstance.measurementTable.element).element();
-                        }
-
                         measures.push({data: data})
                     })
-
+                    let self = this;
                     let datalinkTable = {
                         'name': 'Datalink:' + url,
                         'color': 'purple',
                         'rows': measures,
                         'fields': fields,
-                        'fieldsClickedActions': {
-                            'service_def': (row) => {
-                                const service = row['service_def'];
+                        'showCallback': {
+                            'service_def': (data) => {
+                                const service = data['service_def'];
 
-                                if (service) {
-                                    aladinInstance.sodaQueryWindow.hide();
-                                    aladinInstance.sodaQueryWindow.setParams(this.SODAServerParams);
-                                    aladinInstance.sodaQueryWindow.show(aladinInstance);
+                                if (data['semantics'] === "#cutout") {
+                                    return new ActionButton({
+                                        content: '📡',
+                                        backgroundColor: 'white',
+                                        borderColor: '#484848',
+                                        info: 'Open the cutout service form',
+                                        action(e) {
+                                            aladinInstance.sodaQueryWindow.hide();
+                                            aladinInstance.sodaQueryWindow.setParams(self.SODAServerParams);
+                                            aladinInstance.sodaQueryWindow.show(aladinInstance);
+                                        }
+                                    }).element();
+                                } else {
+                                    return service || '--';
                                 }
                             },
-                            'access_url': (row) => {
-                                let url = row['access_url'];
-                                console.log(url)
-                                if (url === '--') {
-                                    return;
+                            'access_url': (data) => {
+                                let url = data['access_url'];
+
+                                let accessUrlEl = document.createElement('div');
+
+                                if (url) {
+                                    let contentType = data['content_type'];
+                                    let contentQualifier = data['content_qualifier'];
+    
+                                    try {
+                                        // Just create a URL object to verify it is a good url
+                                        // If not, it will throw an exception
+                                        let _ = new URL(url);
+                                        accessUrlEl.classList.add('aladin-href-td-container');
+                                        accessUrlEl.innerHTML = '<a href=' + url + ' target="_blank">' + url + '</a>';
+
+                                        accessUrlEl.addEventListener('click', (e) => {
+
+                                            let processImageFitsClick = () => {
+                                                var successCallback = ((ra, dec, fov, _) => {
+                                                    aladinInstance.gotoRaDec(ra, dec);
+                                                    aladinInstance.setFoV(fov);
+                                                });
+
+                                                let image = aladinInstance.createImageFITS(url, url, {}, successCallback);
+                                                aladinInstance.setOverlayImageLayer(image, Utils.uuidv4())
+                                            };
+
+                                            switch (contentType) {
+                                                case 'application/hips':
+                                                    // Clic on a HiPS
+                                                    let survey = aladinInstance.newImageSurvey(url);
+                                                    aladinInstance.setOverlayImageLayer(survey, Utils.uuidv4())
+                                                    break;
+                                                // Any generic FITS file
+                                                case 'application/fits':
+                                                    if (contentQualifier === "cube") {
+                                                        // fits cube
+                                                        console.warn("Cube not handled, only first slice downloaded")
+                                                    }
+            
+                                                    processImageFitsClick();
+                                                    break;
+                                                case 'image/fits':
+                                                    if (contentQualifier === "cube") {
+                                                        // fits cube
+                                                        console.warn("Cube not handled, only first slice downloaded")
+                                                    }
+            
+                                                    processImageFitsClick();
+                                                    break;
+                                                default:
+                                                    // When all has been done, download what's under the link
+                                                    //Utils.download(url);
+                                                    break;
+                                            }
+                                        });
+                                    } catch(e) {
+                                        accessUrlEl.innerText = '--';
+                                    }
+                                } else {
+                                    accessUrlEl.innerText = '--';
                                 }
 
-                                let contentType = row['content_type'];
-                                let contentQualifier = row['content_qualifier'];
-
-                                let processImageFitsClick = () => {
-                                    var successCallback = ((ra, dec, fov, _) => {
-                                        aladinInstance.gotoRaDec(ra, dec);
-                                        aladinInstance.setFoV(fov);
-                                    });
-                    
-                                    let image = aladinInstance.createImageFITS(url, url, {}, successCallback);
-                                    aladinInstance.setOverlayImageLayer(image, Utils.uuidv4())
-                                };
-
-                                switch (contentType) {
-                                    case 'application/hips':
-                                        // Clic on a HiPS
-                                        let survey = aladinInstance.newImageSurvey(url);
-                                        aladinInstance.setOverlayImageLayer(survey, Utils.uuidv4())
-                                        break;
-                                    // Any generic FITS file
-                                    case 'application/fits':
-                                        if (contentQualifier === "cube") {
-                                            // fits cube
-                                            console.warn("Cube not handled, only first slice downloaded")
-                                        }
-
-                                        processImageFitsClick();
-                                        break;
-                                    case 'image/fits':
-                                        if (contentQualifier === "cube") {
-                                            // fits cube
-                                            console.warn("Cube not handled, only first slice downloaded")
-                                        }
-
-                                        processImageFitsClick();
-                                        break;
-                                    default:
-                                        // When all has been done, download what's under the link
-                                        Utils.download(url);
-                                        break;
-                                }
+                                return accessUrlEl;
                             }
                         }
                     }
@@ -143,6 +163,7 @@ export let Datalink = (function() {
                 } else {
                     // Try to parse a SODA service descriptor resource
                     let SODAServerParams = VOTable.parseSODAServiceRsc(rsc);
+
                     if (SODAServerParams) {
                         this.SODAServerParams = SODAServerParams;
 
@@ -179,8 +200,6 @@ export let Datalink = (function() {
                             const SODAServerDesc = VOTable.parseSODAServiceRsc(rsc);
 
                             if (SODAServerDesc) {
-                                console.log(rsc, "soda server", SODAServerDesc)
-
                                 for (const name in SODAServerDesc.inputParams) {
                                     let inputParam = SODAServerDesc.inputParams[name];
                                     if (!this.SODAServerParams.inputParams[name]) {

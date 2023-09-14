@@ -163,31 +163,48 @@ export let Circle = (function() {
             x: centerXyview[0],
             y: centerXyview[1],
         };
-        // compute value of radius in pixels in current projection
-        var ra = this.centerRaDec[0];
-        var dec = this.centerRaDec[1] + (ra>0 ? - this.radiusDegrees : this.radiusDegrees);
 
-        // First check, the point in the circle is defined
-        let circlePtXyView = AladinUtils.radecToViewXy(ra, dec, view);
-        if (!circlePtXyView) {
-            // the circle border goes out of the projection
-            // we do not draw it
-            return;
+        let hidden = true;
+
+        var ra, dec, vertOnCircle, dx, dy;
+        if (view.fov > 90) {
+            this.radius = Number.POSITIVE_INFINITY;
+            
+            // Project 4 points lying on the circle and take the minimal dist with the center as radius
+            [[-1, 0], [1, 0], [0, -1], [0, 1]].forEach(([cardDirRa, cardDirDec]) => {
+                ra = this.centerRaDec[0] + cardDirRa * this.radiusDegrees;
+                dec = this.centerRaDec[1] + cardDirDec * this.radiusDegrees;
+
+                vertOnCircle = AladinUtils.radecToViewXy(ra, dec, view);
+
+                if (vertOnCircle) {
+                    dx = vertOnCircle[0] - this.center.x;
+                    dy = vertOnCircle[1] - this.center.y;
+
+                    this.radius = Math.min(Math.sqrt(dx*dx + dy*dy), this.radius);
+
+                    hidden = false;
+                }            
+            });
+        } else {
+            ra = this.centerRaDec[0] + this.radiusDegrees;
+            dec = this.centerRaDec[1];
+
+            vertOnCircle = AladinUtils.radecToViewXy(ra, dec, view);
+
+            if (vertOnCircle) {
+                dx = vertOnCircle[0] - this.center.x;
+                dy = vertOnCircle[1] - this.center.y;
+
+                this.radius = Math.sqrt(dx*dx + dy*dy);
+                hidden = false;
+            }
         }
 
-        // Second check, the radius is not too big in the clipping space
-        let [x1c, y1c] = AladinUtils.viewXyToClipXy(this.center.x, this.center.y, view);
-        let [x2c, y2c] = AladinUtils.viewXyToClipXy(circlePtXyView[0], circlePtXyView[1], view);
-
-        let mag2 = (x1c - x2c)*(x1c - x2c) + (y1c - y2c)*(y1c - y2c);
-        if (mag2 > 0.2) {
+        if (hidden) {
             return;
         }
-
         // Then we can draw
-        var dx = circlePtXyView[0] - this.center.x;
-        var dy = circlePtXyView[1] - this.center.y;
-        this.radius = Math.sqrt(dx*dx + dy*dy);
 
         var baseColor = this.color;
         if (! baseColor && this.overlay) {

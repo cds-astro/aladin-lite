@@ -50,6 +50,31 @@ export let Polyline= (function() {
         return mag2;
     }
 
+    function _isAcrossCollignonZoneForHpxProjection(line, view) {
+        const [x1, y1] = AladinUtils.viewXyToClipXy(line.x1, line.y1, view);
+        const [x2, y2] = AladinUtils.viewXyToClipXy(line.x2, line.y2, view);
+
+        // x, y, between -1 and 1
+        let triIdxCollignionZone = function(x, y) {
+            let xZone = Math.floor((x * 0.5 + 0.5) * 4.0);
+            return xZone + 4 * (y > 0.0);
+        };
+
+        let isInCollignionZone = function(x, y) {
+            return Math.abs(y) > 0.5;
+        };
+
+        if (isInCollignionZone(x1, y1) && isInCollignionZone(x2, y2)) {
+            if (triIdxCollignionZone(x1, y1) === triIdxCollignionZone(x2, y2)) {
+                return false;
+            } else {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     // constructor
     let Polyline = function(radecArray, options) {
         options = options || {};
@@ -230,6 +255,7 @@ export let Polyline= (function() {
                     line.draw(ctx);
                 }
             };
+
             if (this.closed && this.fill) {
                 fillPoly = (v0, v1, index) => {
                     const line = new Line(v0.x, v0.y, v1.x, v1.y);
@@ -238,6 +264,47 @@ export let Polyline= (function() {
                         ctx.moveTo(line.x1, line.y1);
                     } else {
                         ctx.lineTo(line.x1, line.y1);
+                    }
+                };
+            }
+        } else if (view.projection === ProjectionEnum.HPX) {
+            drawLine = (v0, v1) => {
+                const line = new Line(v0.x, v0.y, v1.x, v1.y);
+
+                if (_isAcrossCollignonZoneForHpxProjection(line, view)) {
+                    return;
+                } 
+
+                if (line.isInsideView(view.width, view.height)) {
+                    const mag2 = _calculateMag2ForNoSinProjections(line, view);
+
+                    if (mag2 < 0.1) {
+                        line.draw(ctx);
+                    }
+                }
+            };
+
+            if (this.closed && this.fill) {
+                fillPoly = (v0, v1, index) => {
+                    const line = new Line(v0.x, v0.y, v1.x, v1.y);
+
+                    if (_isAcrossCollignonZoneForHpxProjection(line, view)) {
+                        return;
+                    } 
+
+                    const mag2 = _calculateMag2ForNoSinProjections(line, view);
+
+                    if (mag2 < 0.1) {
+                        if (index === 0) {
+                            ctx.beginPath();
+                            ctx.moveTo(line.x1, line.y1);
+                        } else {
+                            ctx.lineTo(line.x1, line.y1);
+                        }
+
+                        return true;
+                    } else {
+                        return false;
                     }
                 };
             }
@@ -266,39 +333,18 @@ export let Polyline= (function() {
                         } else {
                             ctx.lineTo(line.x1, line.y1);
                         }
+
+                        return true;
+                    } else {
+                        return false;
                     }
                 };
             }
         }
 
-        // 3. Check whether the polygon do not cross the view
-        let nSegment = this.closed ? len : len - 1;
-        /*
-        let v0 = this.closed ? len - 1 : 0;
-        let v1 = this.closed ? 0 : 1;
-        let v2 = this.closed ? 1 : 2;
-
-        let drawPolygon = true;
-        for (var k = 0; k < nSegment; k++) {
-            let ccwTriOrder = ccwOrder(xyView[v0], xyView[v1], xyView[v2])
-
-            if (ccwGoodOrder != ccwTriOrder) {
-                // if it cross the view, we end up here
-                drawPolygon = false;
-
-                return;
-            }
-
-            v0 = v1;
-            v1 = v2;
-            v2 = (v2 + 1) % len;
-        }
-
-        if (!drawPolygon) {
-            return;
-        }*/
-
         // 4. Finally, draw all the polygon, segment by segment
+        let nSegment = this.closed ? len : len - 1;
+
         let v0 = this.closed ? len - 1 : 0;
         let v1 = this.closed ? 0 : 1;
 
@@ -319,12 +365,17 @@ export let Polyline= (function() {
         if (this.fill && this.closed) {
             v0 = len - 1;
             v1 = 0;
+
+            let n = 0;
             for (var k = 0; k < nSegment; k++) {
-                fillPoly(xyView[v0], xyView[v1], k);
+                if (fillPoly(xyView[v0], xyView[v1], n)) {
+                    n++;
+                }
 
                 v0 = v1;
                 v1 = v1 + 1;
             }
+
             ctx.globalAlpha = 1;
             ctx.save();
             ctx.fillStyle = this.fillColor;

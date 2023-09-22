@@ -265,6 +265,8 @@ export let Polyline= (function() {
                     } else {
                         ctx.lineTo(line.x1, line.y1);
                     }
+
+                    return true;
                 };
             }
         } else if (view.projection === ProjectionEnum.HPX) {
@@ -366,10 +368,10 @@ export let Polyline= (function() {
             v0 = len - 1;
             v1 = 0;
 
-            let n = 0;
+            let index = 0;
             for (var k = 0; k < nSegment; k++) {
-                if (fillPoly(xyView[v0], xyView[v1], n)) {
-                    n++;
+                if (fillPoly(xyView[v0], xyView[v1], index)) {
+                    index++;
                 }
 
                 v0 = v1;

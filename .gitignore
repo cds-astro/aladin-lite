@@ -11,3 +11,6 @@ src/core/Cargo.lock
 aladin-lite*.tgz
 
 .vscode
+
+./deploy.sh
+./deploy-beta.sh

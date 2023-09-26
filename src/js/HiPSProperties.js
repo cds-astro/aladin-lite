@@ -70,7 +70,6 @@ HiPSProperties.fetchFromID = async function(ID) {
 }
 
 HiPSProperties.fetchFromUrl = async function(urlOrId) {
-    let addTextExt = false;
     try {
         urlOrId = new URL(urlOrId);
     } catch (e) {
@@ -80,7 +79,7 @@ HiPSProperties.fetchFromUrl = async function(urlOrId) {
 
             urlOrId = new URL(urlOrId);
 
-            addTextExt = true;
+
         } catch(e) {
             throw e;
         }
@@ -96,10 +95,7 @@ HiPSProperties.fetchFromUrl = async function(urlOrId) {
         url = url.substr(0, url.length - 1);
     }
     url = url + '/properties';
-
-    if (addTextExt) {
-        url = url + '.txt';
-    }
+    console.log("rrr", url)
 
     // make URL absolute
     url = Utils.getAbsoluteURL(url);

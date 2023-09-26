@@ -1,12 +1,9 @@
-
-
 use crate::downloader::{query, Downloader};
 use crate::renderable::HiPS;
+use crate::time::{DeltaTime, Time};
 use crate::Abort;
 
-
-
-use std::collections::{VecDeque};
+use std::collections::VecDeque;
 
 const MAX_NUM_TILE_FETCHING: isize = 8;
 const MAX_QUERY_QUEUE_LENGTH: usize = 100;
@@ -15,15 +12,18 @@ pub struct TileFetcherQueue {
     // A stack of queries to fetch
     queries: VecDeque<query::Tile>,
     base_tile_queries: Vec<query::Tile>,
+    tiles_fetched_time: Time,
 }
 
 impl TileFetcherQueue {
     pub fn new() -> Self {
         let queries = VecDeque::new();
         let base_tile_queries = Vec::new();
+        let tiles_fetched_time = Time::now();
         Self {
             queries,
             base_tile_queries,
+            tiles_fetched_time,
         }
     }
 
@@ -48,8 +48,19 @@ impl TileFetcherQueue {
         self.base_tile_queries.push(query);
     }
 
-    pub fn notify(&mut self, downloader: &mut Downloader) {
-        self.fetch(downloader);
+    pub fn notify(&mut self, downloader: &mut Downloader, dt: Option<DeltaTime>) {
+        // notify all the x ms
+        let now = Time::now();
+
+        if let Some(dt) = dt {
+            if now - self.tiles_fetched_time >= dt {
+                self.tiles_fetched_time = now;
+                self.fetch(downloader);
+            }
+        } else {
+            self.tiles_fetched_time = now;
+            self.fetch(downloader);
+        }
     }
 
     fn fetch(&mut self, downloader: &mut Downloader) {

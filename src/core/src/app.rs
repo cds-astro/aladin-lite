@@ -630,18 +630,12 @@ impl App {
                                         survey.add_tile(&cell, image, time_req)?;
 
                                         self.request_redraw = true;
-                                        //} else {
-                                        //    self.downloader.delay_rsc(Resource::Tile(tile));
-                                        //}
-                                        //}
+
                                         self.time_start_blending = Time::now();
-                                        //self.tile_fetcher.notify(1, &mut self.downloader);
                                     }
                                 }
                             }
                         } else {
-                            //self.tile_fetcher
-                            //    .notify_tile(&tile, false, true, &mut self.downloader);
                             self.downloader.delay_rsc(Resource::Tile(tile));
                         }
                     }
@@ -703,11 +697,25 @@ impl App {
             }
 
             // We fetch when we does not move
-            let has_not_moved_recently =
+            /*let has_not_moved_recently =
                 (Time::now() - self.camera.get_time_of_last_move()) > DeltaTime(100.0);
             if has_not_moved_recently && self.inertia.is_none() {
                 // Triggers the fetching of new queued tiles
                 self.tile_fetcher.notify(&mut self.downloader);
+            }*/
+
+            // If there is inertia, we do not fetch any new tiles
+            if self.inertia.is_none() {
+                let has_not_moved_recently =
+                    (Time::now() - self.camera.get_time_of_last_move()) > DeltaTime(100.0);
+
+                let dt = if has_not_moved_recently {
+                    None
+                } else {
+                    Some(DeltaTime::from_millis(700.0))
+                };
+
+                self.tile_fetcher.notify(&mut self.downloader, dt);
             }
         }
 

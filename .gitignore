@@ -12,5 +12,5 @@ aladin-lite*.tgz
 
 .vscode
 
-./deploy.sh
-./deploy-beta.sh
+deploy.sh
+deploy-beta.sh

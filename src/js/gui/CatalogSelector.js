@@ -62,11 +62,9 @@ import $ from 'jquery';
                     '<div><input class="aladin-input" type="number" value="1.0" style="width: 4em;" maxlength="5" size="5"> <select class="aladin-selector" style="padding: 4px 0!important;"><option>deg<option>arcmin<option>arcsec</select> around view center</div>' +
                     '<div>Limit to <input class="aladin-input" type="number" min="1" max="10000" value="1000" style="width: 5em;"> sources</div>' +
                 '</div>' +
-                '<div class="aladin-row">' +
-                    '<div class="aladin-col">' +
-                        '<div><button class="aladin-btn">Load cone</button></div>' +
-                    '</div>' +
-                    '<div class="hips aladin-col"><button class="aladin-btn">Load catalogue HiPS</button></div>' +
+                '<div class="aladin-horizontal-list">' +
+                    '<button class="aladin-btn">Load cone</button>' +
+                    '<button class="hips aladin-btn">Load catalogue HiPS</button>' +
                 '</div>' +
                 '<div class="aladin-box-separator"></div>' +
                 '<div class="aladin-label" for="' + autocompleteId + '">By VOTable URL</div>' +

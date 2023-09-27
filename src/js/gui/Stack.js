@@ -36,6 +36,7 @@ import { HiPSLayer } from "./HiPSLayer.js";
 import A from "../A.js";
 
 import $ from 'jquery';
+import { ActionButton } from "./widgets/ActionButton.js";
 
 export class Stack {
 
@@ -242,7 +243,7 @@ export class Stack {
             // retrieve SVG icon, and apply the layer color
             var svgBase64 = window.btoa(iconSvg.replace(/FILLCOLOR/g, layer.color));
             str += '<li class="aladin-horizontal-list"><div class="aladin-stack-icon" style=\'background-image: url("data:image/svg+xml;base64,' + svgBase64 + '");\'></div>';
-            str += '<input class="aladin-input" type="checkbox" ' + checked + ' id="aladin_lite_' + layer.uuid + '"></input><label for="aladin_lite_' + layer.uuid + '" class="aladin-layer-label" style="background: ' + layer.color + '; color:' + labelColor + ';" title="' + tooltipText + '">' + name + '</label>';
+            str += '<input class="aladin-input" type="checkbox" ' + checked + ' id="' + layer.uuid + '"></input><label for="' + layer.uuid + '" class="aladin-layer-label" style="background: ' + layer.color + '; color:' + labelColor + ';" title="' + tooltipText + '">' + name + '</label>';
             str += ' <button class="aladin-btn aladin-24px-icon aladin-delete-graphic-layer" style="background-color: #eaeaea" type="button" title="Delete this layer">❌</button>';
             str += '</li>';
         }
@@ -251,8 +252,9 @@ export class Stack {
         str += '<button class="aladin-btn catalogue-selector" type="button">Add catalogue</button>';
         layerBox.append(str);
 
-        layerBox.find('.aladin-delete-graphic-layer').on('click', () => {
-            const layerToDelete = this.aladin.findLayerByUUID(layer.uuid);
+        layerBox.find('.aladin-delete-graphic-layer').on('click', (e) => {
+            let layerUuid = e.target.previousElementSibling.getAttribute("for");
+            const layerToDelete = this.aladin.findLayerByUUID(layerUuid);
             this.aladin.removeLayer(layerToDelete);
         });
 

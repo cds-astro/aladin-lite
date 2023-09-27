@@ -489,7 +489,7 @@ export let Aladin = (function () {
         target: "0 +0",
         cooFrame: "J2000",
         fov: 60,
-        backgroundColor: "rgb(0, 0, 0)",
+        backgroundColor: "rgb(60, 60, 60)",
         showReticle: true,
         showZoomControl: true,
         showFullscreenControl: true,

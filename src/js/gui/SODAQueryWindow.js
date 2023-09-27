@@ -36,7 +36,7 @@ import { Utils } from '../Utils';
 import { ActionButton } from './widgets/ActionButton.js';
 import targetIconImg from '../../../assets/icons/target.svg';
 import { Form } from './widgets/Form.js';
-import { HorizontalLayout } from './widgets/layout/horizontal.js';
+import { HorizontalLayout } from './widgets/layout/Horizontal.js';
 
 export class SODAQueryWindow {
     constructor(aladin) {

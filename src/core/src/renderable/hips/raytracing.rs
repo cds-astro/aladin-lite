@@ -242,6 +242,6 @@ impl RayTracer {
         // Check whether the tile depth is 0 for square projection
         // definition domains i.e. Mercator
         let depth = camera.get_tile_depth();
-        camera.is_allsky() || depth == 0
+        camera.is_allsky() || depth <= 1
     }
 }

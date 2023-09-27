@@ -290,7 +290,7 @@ impl Layers {
                 // 1. Update the survey if necessary
                 let url = self.urls.get(layer).expect("Url should be found");
                 if let Some(survey) = self.surveys.get_mut(url) {
-                    survey.update(camera, projection);
+                    survey.update(&self.raytracer, camera, projection);
 
                     // 2. Draw it if its opacity is not null
                     survey.draw(shaders, colormaps, camera, raytracer, draw_opt)?;
@@ -612,12 +612,6 @@ impl Layers {
             .fold(true, |acc, x| acc & x);
 
         ready
-    }
-
-    pub fn update(&mut self, camera: &mut CameraViewPort, proj: &ProjectionType) {
-        for survey in self.surveys.values_mut() {
-            survey.update(camera, proj);
-        }
     }
 
     // Accessors

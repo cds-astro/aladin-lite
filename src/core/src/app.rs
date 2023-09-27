@@ -721,7 +721,7 @@ impl App {
         }
 
         // The update from the camera
-        self.layers.update(&mut self.camera, &self.projection);
+        //self.layers.update(&mut self.camera, &self.projection);
 
         if self.request_for_new_tiles
             && Time::now() - self.last_time_request_for_new_tiles > DeltaTime::from(200.0)

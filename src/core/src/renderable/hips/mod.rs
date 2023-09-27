@@ -25,6 +25,7 @@ use crate::{shader::ShaderManager, survey::config::HiPSConfig};
 
 use crate::downloader::request::allsky::Allsky;
 use crate::healpix::{cell::HEALPixCell, coverage::HEALPixCoverage};
+use crate::math::angle::ToAngle;
 use crate::math::lonlat::LonLat;
 use crate::time::Time;
 
@@ -41,6 +42,8 @@ use cgmath::{Matrix, Matrix4};
 use std::fmt::Debug;
 use wasm_bindgen::JsValue;
 use web_sys::WebGl2RenderingContext;
+
+use super::utils::index_patch::CCWCheckPatchIndexIter;
 
 const M: f64 = 280.0 * 280.0;
 const N: f64 = 150.0 * 150.0;
@@ -586,11 +589,13 @@ impl HiPS {
         self.textures.contains_tile(cell)
     }
 
-    pub fn update(&mut self, camera: &mut CameraViewPort, projection: &ProjectionType) {
-        let raytracing = {
-            let depth = camera.get_tile_depth();
-            camera.is_allsky() || depth == 0
-        };
+    pub fn update(
+        &mut self,
+        raytracer: &RayTracer,
+        camera: &mut CameraViewPort,
+        projection: &ProjectionType,
+    ) {
+        let raytracing = raytracer.is_rendering(camera);
 
         let vertices_recomputation_needed =
             !raytracing && (self.textures.reset_available_tiles() | camera.has_moved());
@@ -814,10 +819,12 @@ impl HiPS {
                         pos.push(ndc);
                     }
 
-                    let patch_indices_iter = DefaultPatchIndexIter::new(
+                    let patch_indices_iter = CCWCheckPatchIndexIter::new(
                         &(0..=n_segments_by_side),
                         &(0..=n_segments_by_side),
                         n_vertices_per_segment,
+                        &pos,
+                        camera,
                     )
                     .flatten()
                     .map(|indices| {

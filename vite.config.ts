@@ -25,6 +25,7 @@ export default defineConfig({
         },
         rollupOptions: {},
         //formats: ["es"],
+        target: ["es2015", "chrome58", "edge16", "firefox57", "node12", "safari11"],
         //target: ["es2015"],
         // Relative to the root
         outDir: resolve(__dirname, 'dist'),

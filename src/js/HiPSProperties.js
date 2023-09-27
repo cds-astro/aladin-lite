@@ -95,7 +95,6 @@ HiPSProperties.fetchFromUrl = async function(urlOrId) {
         url = url.substr(0, url.length - 1);
     }
     url = url + '/properties';
-    console.log("rrr", url)
 
     // make URL absolute
     url = Utils.getAbsoluteURL(url);

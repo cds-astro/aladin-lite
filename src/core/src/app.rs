@@ -144,8 +144,9 @@ impl App {
         // When it will be supported nearly everywhere, we will need to uncomment this line to
         // enable it
         //gl.enable(WebGl2RenderingContext::SCISSOR_TEST);
-        gl.enable(WebGl2RenderingContext::CULL_FACE);
-        gl.cull_face(WebGl2RenderingContext::BACK);
+
+        //gl.enable(WebGl2RenderingContext::CULL_FACE);
+        //gl.cull_face(WebGl2RenderingContext::BACK);
 
         // The tile buffer responsible for the tile requests
         let downloader = Downloader::new();

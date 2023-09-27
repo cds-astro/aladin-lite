@@ -20,7 +20,6 @@ pub struct CameraViewPort {
     // The rotation of the camera
     rotation_center_angle: Angle<f64>,
     w2m_rot: Rotation<f64>,
-    final_rot: Rotation<f64>,
 
     w2m: Matrix4<f64>,
     m2w: Matrix4<f64>,
@@ -103,7 +102,6 @@ impl CameraViewPort {
         let zoomed = false;
 
         let w2m_rot = Rotation::zero();
-        let final_rot = Rotation::zero();
 
         // Get the initial size of the window
         let window = web_sys::window().unwrap_abort();
@@ -147,7 +145,6 @@ impl CameraViewPort {
             m2w,
 
             dpi,
-            final_rot,
             rotation_center_angle,
             // The width over height ratio
             aspect,
@@ -511,10 +508,11 @@ impl CameraViewPort {
 
     pub fn set_longitude_reversed(&mut self, reversed_longitude: bool, proj: &ProjectionType) {
         if self.reversed_longitude != reversed_longitude {
+            self.reversed_longitude = reversed_longitude;
+
             self.rotation_center_angle = -self.rotation_center_angle;
             self.update_rot_matrices(proj);
         }
-        self.reversed_longitude = reversed_longitude;
 
         // The camera is reversed => it has moved
         self.moved = true;
@@ -526,18 +524,6 @@ impl CameraViewPort {
     }
 
     // Accessors
-    pub fn get_rotation(&self) -> &Rotation<f64> {
-        &self.w2m_rot
-    }
-
-    // This rotation is the final rotation, i.e. a composite of
-    // two rotations:
-    // - The current rotation of the sphere
-    // - The rotation around the center axis of a specific angle
-    pub fn get_final_rotation(&self) -> &Rotation<f64> {
-        &self.final_rot
-    }
-
     pub fn get_w2m(&self) -> &cgmath::Matrix4<f64> {
         &self.w2m
     }
@@ -654,6 +640,11 @@ impl CameraViewPort {
     }
 
     fn update_center(&mut self) {
+        // Longitude reversed identity matrix
+        const ID_R: &Matrix4<f64> = &Matrix4::new(
+            -1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
+        );
+
         // The center position is on the 3rd column of the w2m matrix
         self.center = self.w2m.z;
 
@@ -662,9 +653,12 @@ impl CameraViewPort {
 
         // Re-update the model matrix to take into account the rotation
         // by theta around the center axis
-        self.final_rot = center_rot * self.w2m_rot;
+        let final_rot = center_rot * self.w2m_rot;
+        self.w2m = (&final_rot).into();
+        if self.reversed_longitude {
+            self.w2m = self.w2m * ID_R;
+        }
 
-        self.w2m = (&self.final_rot).into();
         self.m2w = self.w2m.transpose();
     }
 }

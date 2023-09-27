@@ -21,6 +21,7 @@ pub mod domain;
 
 use domain::{basic, cod::Cod, full::FullScreen, hpx::Hpx, par::Par};
 
+/* S <-> NDC space conversion methods */
 pub fn screen_to_ndc_space(
     pos_screen_space: &Vector2<f64>,
     camera: &CameraViewPort,
@@ -55,6 +56,7 @@ pub fn ndc_to_screen_space(
     pos_screen_space / dpi
 }
 
+/* NDC <-> CLIP space conversion methods */
 pub fn clip_to_ndc_space(pos_clip_space: &Vector2<f64>, camera: &CameraViewPort) -> Vector2<f64> {
     let ndc_to_clip = camera.get_ndc_to_clip();
     let clip_zoom_factor = camera.get_clip_zoom_factor();
@@ -65,6 +67,20 @@ pub fn clip_to_ndc_space(pos_clip_space: &Vector2<f64>, camera: &CameraViewPort)
     )
 }
 
+pub fn ndc_to_clip_space(
+    pos_normalized_device: &Vector2<f64>,
+    camera: &CameraViewPort,
+) -> Vector2<f64> {
+    let ndc_to_clip = camera.get_ndc_to_clip();
+    let clip_zoom_factor = camera.get_clip_zoom_factor();
+
+    Vector2::new(
+        pos_normalized_device.x * ndc_to_clip.x * clip_zoom_factor,
+        pos_normalized_device.y * ndc_to_clip.y * clip_zoom_factor,
+    )
+}
+
+/* S <-> CLIP space conversion methods */
 pub fn clip_to_screen_space(
     pos_clip_space: &Vector2<f64>,
     camera: &CameraViewPort,
@@ -79,19 +95,6 @@ pub fn screen_to_clip_space(
 ) -> Vector2<f64> {
     let pos_normalized_device = screen_to_ndc_space(pos_screen_space, camera);
     ndc_to_clip_space(&pos_normalized_device, camera)
-}
-
-pub fn ndc_to_clip_space(
-    pos_normalized_device: &Vector2<f64>,
-    camera: &CameraViewPort,
-) -> Vector2<f64> {
-    let ndc_to_clip = camera.get_ndc_to_clip();
-    let clip_zoom_factor = camera.get_clip_zoom_factor();
-
-    Vector2::new(
-        pos_normalized_device.x * ndc_to_clip.x * clip_zoom_factor,
-        pos_normalized_device.y * ndc_to_clip.y * clip_zoom_factor,
-    )
 }
 
 use al_api::coo_system::CooSystem;
@@ -167,21 +170,15 @@ impl ProjectionType {
         let pos_screen_space = *pos_screen_space;
         let pos_normalized_device = screen_to_ndc_space(&pos_screen_space, camera);
 
-        let ndc_to_clip = camera.get_ndc_to_clip();
-        let clip_zoom_factor = camera.get_clip_zoom_factor();
-
-        let pos_clip_space = Vector2::new(
-            pos_normalized_device.x * ndc_to_clip.x * clip_zoom_factor,
-            pos_normalized_device.y * ndc_to_clip.y * clip_zoom_factor,
-        );
+        let pos_clip_space = ndc_to_clip_space(&pos_normalized_device, camera);
         self.clip_to_world_space(&pos_clip_space)
-            .map(|mut pos_world_space| {
-                if camera.get_longitude_reversed() {
-                    pos_world_space.x = -pos_world_space.x;
-                }
+        /*.map(|mut pos_world_space| {
+            if camera.get_longitude_reversed() {
+                pos_world_space.x = -pos_world_space.x;
+            }
 
-                pos_world_space.normalize()
-            })
+            pos_world_space.normalize()
+        })*/
     }
 
     /// Screen to model space deprojection
@@ -198,10 +195,7 @@ impl ProjectionType {
         camera: &CameraViewPort,
     ) -> Option<Vector4<f64>> {
         self.screen_to_world_space(pos_screen_space, camera)
-            .map(|world_pos| {
-                let r = camera.get_final_rotation();
-                r.rotate(&world_pos)
-            })
+            .map(|world_pos| camera.get_w2m() * world_pos)
     }
 
     pub fn normalized_device_to_model_space(
@@ -210,10 +204,7 @@ impl ProjectionType {
         camera: &CameraViewPort,
     ) -> Option<XYZWModel> {
         self.normalized_device_to_world_space(ndc_pos, camera)
-            .map(|world_pos| {
-                let r = camera.get_final_rotation();
-                r.rotate(&world_pos)
-            })
+            .map(|world_pos| camera.get_w2m() * world_pos)
     }
 
     pub fn model_to_screen_space(
@@ -295,18 +286,7 @@ impl ProjectionType {
         camera: &CameraViewPort,
     ) -> Option<Vector2<f64>> {
         self.world_to_clip_space(pos_world_space)
-            .map(|mut pos_clip_space| {
-                if camera.get_longitude_reversed() {
-                    pos_clip_space.x = -pos_clip_space.x;
-                }
-                let ndc_to_clip = camera.get_ndc_to_clip();
-                let clip_zoom_factor = camera.get_clip_zoom_factor();
-
-                Vector2::new(
-                    pos_clip_space.x / (ndc_to_clip.x * clip_zoom_factor),
-                    pos_clip_space.y / (ndc_to_clip.y * clip_zoom_factor),
-                )
-            })
+            .map(|pos_clip_space| clip_to_ndc_space(&pos_clip_space, camera))
     }
 
     pub fn normalized_device_to_world_space(
@@ -317,24 +297,6 @@ impl ProjectionType {
         let clip_pos = ndc_to_clip_space(ndc_pos, camera);
         self.clip_to_world_space(&clip_pos)
     }
-
-    /*pub fn world_to_normalized_device_space_unchecked(
-        &self,
-        pos_world_space: &Vector4<f64>,
-        camera: &CameraViewPort,
-    ) -> Vector2<f64> {
-        let mut pos_clip_space = self.world_to_clip_space_unchecked(pos_world_space);
-        if camera.get_longitude_reversed() {
-            pos_clip_space.x = -pos_clip_space.x;
-        }
-        let ndc_to_clip = camera.get_ndc_to_clip();
-        let clip_zoom_factor = camera.get_clip_zoom_factor();
-
-        Vector2::new(
-            pos_clip_space.x / (ndc_to_clip.x * clip_zoom_factor),
-            pos_clip_space.y / (ndc_to_clip.y * clip_zoom_factor),
-        )
-    }*/
 
     pub fn world_to_screen_space(
         &self,

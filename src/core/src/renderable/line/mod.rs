@@ -286,7 +286,7 @@ impl RasterizedLineRenderer {
             WebGl2RenderingContext::ONE,
         );
 
-        self.gl.disable(WebGl2RenderingContext::CULL_FACE);
+        //self.gl.disable(WebGl2RenderingContext::CULL_FACE);
 
         let shader = self.shader.bind(&self.gl);
         for meta in self.meta.iter() {
@@ -301,7 +301,7 @@ impl RasterizedLineRenderer {
                 );
         }
 
-        self.gl.enable(WebGl2RenderingContext::CULL_FACE);
+        //self.gl.enable(WebGl2RenderingContext::CULL_FACE);
         self.gl.disable(WebGl2RenderingContext::BLEND);
 
         Ok(())

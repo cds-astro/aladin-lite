@@ -12,11 +12,10 @@ pub mod moc;
 
 use crate::renderable::line::RasterizedLineRenderer;
 
+use super::utils::triangle::Triangle;
 use wasm_bindgen::JsValue;
 
 use hierarchy::MOCHierarchy;
-
-use super::utils::Triangle;
 
 use al_api::coo_system::CooSystem;
 

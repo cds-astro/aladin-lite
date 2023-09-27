@@ -19,7 +19,7 @@ use crate::math::{angle::Angle, vector::dist2};
 use crate::ProjectionType;
 
 use crate::camera::CameraViewPort;
-use crate::renderable::utils::BuildPatchIndicesIter;
+use crate::renderable::utils::index_patch::DefaultPatchIndexIter;
 use crate::{math::lonlat::LonLatT, utils};
 use crate::{shader::ShaderManager, survey::config::HiPSConfig};
 
@@ -41,15 +41,6 @@ use cgmath::{Matrix, Matrix4};
 use std::fmt::Debug;
 use wasm_bindgen::JsValue;
 use web_sys::WebGl2RenderingContext;
-
-// Identity matrix
-const ID: &Matrix4<f64> = &Matrix4::new(
-    1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
-);
-// Longitude reversed identity matrix
-const ID_R: &Matrix4<f64> = &Matrix4::new(
-    -1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
-);
 
 const M: f64 = 280.0 * 280.0;
 const N: f64 = 150.0 * 150.0;
@@ -508,9 +499,6 @@ impl HiPS {
         let textures = ImageSurveyTextures::new(gl, config)?;
 
         let gl = gl.clone();
-        let _depth = 0;
-        let _depth_tile = 0;
-
         let footprint_moc = None;
         // request the allsky texture
         Ok(HiPS {
@@ -599,8 +587,13 @@ impl HiPS {
     }
 
     pub fn update(&mut self, camera: &mut CameraViewPort, projection: &ProjectionType) {
+        let raytracing = {
+            let depth = camera.get_tile_depth();
+            camera.is_allsky() || depth == 0
+        };
+
         let vertices_recomputation_needed =
-            self.textures.reset_available_tiles() | camera.has_moved();
+            !raytracing && (self.textures.reset_available_tiles() | camera.has_moved());
         if vertices_recomputation_needed {
             self.recompute_vertices(camera, projection);
         }
@@ -821,12 +814,10 @@ impl HiPS {
                         pos.push(ndc);
                     }
 
-                    let patch_indices_iter = BuildPatchIndicesIter::new(
+                    let patch_indices_iter = DefaultPatchIndexIter::new(
                         &(0..=n_segments_by_side),
                         &(0..=n_segments_by_side),
                         n_vertices_per_segment,
-                        &pos,
-                        camera,
                     )
                     .flatten()
                     .map(|indices| {
@@ -965,7 +956,6 @@ impl HiPS {
 
     pub fn draw(
         &self,
-        //switch_from_raytrace_to_raster: bool,
         shaders: &mut ShaderManager,
         colormaps: &Colormaps,
         camera: &CameraViewPort,
@@ -978,20 +968,11 @@ impl HiPS {
         let hips_frame = hips_cfg.get_frame();
         let c = selected_frame.to(hips_frame);
 
-        // Get whether the camera mode is longitude reversed
-        //let longitude_reversed = hips_cfg.longitude_reversed;
-        let rl = if camera.get_longitude_reversed() {
-            ID_R
-        } else {
-            ID
-        };
-
         // Retrieve the model and inverse model matrix
-        let w2v = c * (*camera.get_w2m()) * rl;
+        let w2v = c * (*camera.get_w2m());
         let v2w = w2v.transpose();
 
         let raytracing = raytracer.is_rendering(camera);
-        let longitude_reversed = camera.get_longitude_reversed();
         let config = self.get_config();
 
         self.gl.enable(WebGl2RenderingContext::BLEND);
@@ -1011,9 +992,6 @@ impl HiPS {
 
         blend_cfg.enable(&self.gl, || {
             if raytracing {
-                // Triangle are defined in CCW
-                self.gl.cull_face(WebGl2RenderingContext::BACK);
-
                 let shader = get_raytracer_shader(cmap, &self.gl, shaders, &config)?;
 
                 let shader = shader.bind(&self.gl);
@@ -1031,16 +1009,6 @@ impl HiPS {
 
                 raytracer.draw(&shader);
             } else {
-                // Depending on if the longitude is reversed, triangles are either defined in:
-                // - CCW for longitude_reversed = false
-                // - CW for longitude_reversed = true
-                // Get the reverse longitude flag
-                if longitude_reversed {
-                    self.gl.cull_face(WebGl2RenderingContext::FRONT);
-                } else {
-                    self.gl.cull_face(WebGl2RenderingContext::BACK);
-                }
-
                 // The rasterizer has a buffer containing:
                 // - The vertices of the HEALPix cells for the most refined survey
                 // - The starting and ending uv for the blending animation
@@ -1073,16 +1041,6 @@ impl HiPS {
                         WebGl2RenderingContext::UNSIGNED_SHORT,
                         0,
                     );
-            }
-
-            // Depending on if the longitude is reversed, triangles are either defined in:
-            // - CCW for longitude_reversed = false
-            // - CW for longitude_reversed = true
-            // Get the reverse longitude flag
-            if longitude_reversed {
-                self.gl.cull_face(WebGl2RenderingContext::FRONT);
-            } else {
-                self.gl.cull_face(WebGl2RenderingContext::BACK);
             }
 
             Ok(())

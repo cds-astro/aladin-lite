@@ -428,6 +428,8 @@ impl Layers {
             meta,
         } = hips;
 
+        let img_ext = meta.img_format;
+
         // 1. Add the layer name
         let layer_already_found = self.layers.iter().any(|l| l == &layer);
 
@@ -440,7 +442,15 @@ impl Layers {
 
         self.layers.insert(idx, layer.to_string());
 
-        // 2. Add the image survey
+        // 2. Add the meta information of the layer
+        self.meta.insert(layer.clone(), meta);
+        // Loop over all the meta for its longitude reversed property
+        // and set the camera to it if there is at least one
+        let longitude_reversed = self.meta.values().any(|meta| meta.longitude_reversed);
+
+        camera.set_longitude_reversed(longitude_reversed, proj);
+
+        // 3. Add the image survey
         let url = String::from(properties.get_url());
         // The layer does not already exist
         // Let's check if no other hipses points to the
@@ -449,7 +459,7 @@ impl Layers {
 
         if !url_already_found {
             // The url is not processed yet
-            let cfg = HiPSConfig::new(&properties, meta.img_format)?;
+            let cfg = HiPSConfig::new(&properties, img_ext)?;
 
             /*if let Some(initial_ra) = properties.get_initial_ra() {
                 if let Some(initial_dec) = properties.get_initial_dec() {
@@ -469,14 +479,6 @@ impl Layers {
         }
 
         self.urls.insert(layer.clone(), url.clone());
-
-        // 3. Add the meta information of the layer
-        self.meta.insert(layer.clone(), meta);
-        // Loop over all the meta for its longitude reversed property
-        // and set the camera to it if there is at least one
-        let longitude_reversed = self.meta.values().any(|meta| meta.longitude_reversed);
-
-        camera.set_longitude_reversed(longitude_reversed, proj);
 
         let hips = self
             .surveys

@@ -1,20 +1,19 @@
-
-
+use crate::math::HALF_PI;
 use crate::math::PI;
-use cgmath::Vector3;
-use crate::ProjectionType;
 use crate::CameraViewPort;
 use crate::LonLatT;
+use crate::ProjectionType;
 use cgmath::InnerSpace;
+use cgmath::Vector3;
 
-use crate::math::angle::SerializeFmt;
-use crate::math::TWICE_PI;
 use crate::grid::XYScreen;
+use crate::math::angle::SerializeFmt;
 use crate::math::lonlat::LonLat;
+use crate::math::TWICE_PI;
 
 use crate::math::angle::ToAngle;
-use core::ops::Range;
 use cgmath::Vector2;
+use core::ops::Range;
 
 const OFF_TANGENT: f64 = 35.0;
 const OFF_BI_TANGENT: f64 = 5.0;
@@ -40,7 +39,7 @@ impl Label {
         options: LabelOptions,
         camera: &CameraViewPort,
         projection: &ProjectionType,
-        fmt: &SerializeFmt
+        fmt: &SerializeFmt,
     ) -> Option<Self> {
         let fov = camera.get_field_of_view();
         let d = if fov.contains_north_pole() {
@@ -60,17 +59,15 @@ impl Label {
 
                 LonLatT::new(lon.to_angle(), lat.to_angle())
             }
-            LabelOptions::OnSide => LonLatT::new(lon.to_angle(), lat.start.to_angle())     
+            LabelOptions::OnSide => LonLatT::new(lon.to_angle(), lat.start.to_angle()),
         };
 
         let m1: Vector3<_> = lonlat.vector();
         let m2 = (m1 + d * 1e-3).normalize();
 
-        //let s1 = projection.model_to_screen_space(&(system.to_icrs_j2000::<f64>() * m1), camera, reversed_longitude)?;
         let d1 = projection.model_to_screen_space(&m1.extend(1.0), camera)?;
         let d2 = projection.model_to_screen_space(&m2.extend(1.0), camera)?;
 
-        //let s2 = projection.model_to_screen_space(&(system.to_icrs_j2000::<f64>() * m2), camera, reversed_longitude)?;
         let dt = (d2 - d1).normalize();
         let db = Vector2::new(dt.y.abs(), dt.x.abs());
 
@@ -108,7 +105,7 @@ impl Label {
                 let lon = camera.get_center().lon();
                 LonLatT::new(lon, lat.to_angle())
             }
-            LabelOptions::OnSide => LonLatT::new(lon.start.to_angle(), lat.to_angle())     
+            LabelOptions::OnSide => LonLatT::new(lon.start.to_angle(), lat.to_angle()),
         };
 
         let m1: Vector3<_> = lonlat.vector();
@@ -141,13 +138,17 @@ impl Label {
         };
 
         // rot is between -PI and +PI
-        let rot = dt.y.signum() * dt.x.acos() + PI;
+        let mut angle = dt.y.signum() * dt.x.acos();
 
+        // Detect if the label is upside-down fix the angle by adding PI
+        if angle.abs() >= HALF_PI {
+            angle += PI;
+        }
 
         Some(Label {
             position,
             content,
-            rot,
+            rot: angle,
         })
     }
 }

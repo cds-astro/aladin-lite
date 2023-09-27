@@ -4,7 +4,7 @@ use wcs::ImgXY;
 use crate::camera::CameraViewPort;
 use crate::math::angle::ToAngle;
 use crate::math::projection::ProjectionType;
-use crate::renderable::utils::BuildPatchIndicesIter;
+use crate::renderable::utils::index_patch::CCWCheckPatchIndexIter;
 use al_api::coo_system::CooSystem;
 use wcs::WCS;
 
@@ -215,7 +215,7 @@ pub fn get_grid_vertices(
     for idx_x_range in &idx_x_ranges {
         for idx_y_range in &idx_y_ranges {
             let build_indices_iter =
-                BuildPatchIndicesIter::new(idx_x_range, idx_y_range, num_x_vertices, &pos, camera);
+                CCWCheckPatchIndexIter::new(idx_x_range, idx_y_range, num_x_vertices, &pos, camera);
 
             let patch_indices = build_indices_iter
                 .flatten()

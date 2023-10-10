@@ -343,9 +343,14 @@ export let ImageSurvey = (function () {
             // Initialize the color meta data here
             if (imgFormat === "fits") {
                 // Take into account the default cuts given by the property file (this is true especially for FITS HiPSes)
-                const minCut = (options && options.minCut) || self.properties.minCutout || 0.0;
-                const maxCut = (options && options.maxCut) || self.properties.maxCutout || 1.0;
-    
+                const minCut = self.colorCfg.minCut || (options && options.minCut) || self.properties.minCutout || 0.0;
+                const maxCut = self.colorCfg.maxCut || (options && options.maxCut) || self.properties.maxCutout || 1.0;
+
+                this.colorCfg.setCuts(minCut, maxCut);
+            } else {
+                const minCut = self.colorCfg.minCut || (options && options.minCut) || 0.0;
+                const maxCut = self.colorCfg.maxCut || (options && options.maxCut) || 1.0;
+
                 this.colorCfg.setCuts(minCut, maxCut);
             }
 

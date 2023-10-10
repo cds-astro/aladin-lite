@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+<head>
+</head>
+<body>
+
+<div id="aladin-lite-div" style="width: 1024px; height: 768px"></div>
+
+<script type="module">
+  import A from '../src/js/A.js';
+  var aladin;
+    A.init.then(() => {
+    aladin = A.aladin('#aladin-lite-div', {projection: 'AIT', cooFrame: 'galactic', fov: 200, target: 'galactic center'});
+        let dss = aladin.createImageSurvey("DSS blue band", "Color DSS blue HiPS", "http://alasky.cds.unistra.fr/DSS/DSS2-blue-XJ-S/", "equatorial", 9, {imgFormat: 'fits'})
+        aladin.setBaseImageLayer(dss);
+
+        aladin.getBaseImageLayer().setCuts(2, 10000);
+
+    });
+</script>
+
+</body>
+</html>
+
+

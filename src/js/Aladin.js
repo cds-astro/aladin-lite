@@ -50,6 +50,7 @@ import { ContextMenu } from "./gui/ContextMenu.js";
 import { ALEvent } from "./events/ALEvent.js";
 import { Color } from './Color.js';
 import { ImageFITS } from "./ImageFITS.js";
+import { VRButton } from "./VRButton.js";
 import { DefaultActionsForContextMenu } from "./DefaultActionsForContextMenu.js";
 import A from "./A.js";
 
@@ -470,6 +471,12 @@ export let Aladin = (function () {
         if (options.showContextMenu) {
             this.contextMenu = new ContextMenu(this);
             this.contextMenu.attachTo(this.view.catalogCanvas, DefaultActionsForContextMenu.getDefaultActions(this));
+        }
+
+        // initialize the VR button
+        if (options.vr) {
+            console.log(options.vr);
+            aladin.aladinDiv.appendChild(VRButton.createButton(this.view));
         }
     };
 

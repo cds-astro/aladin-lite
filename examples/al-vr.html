@@ -2,30 +2,98 @@
 <html>
 <head>
 </head>
-<body>
-<div id="aladin-lite-div" style="width: 1024px; height: 768px"></div>
-
-<script type="module">
-    import A from '../src/js/A.js';
-    
-    let aladin;
-    A.init.then(() => {
-        aladin = A.aladin(
-            '#aladin-lite-div',
-            {
-                projection: 'AIT', // set a projection
-                fov: 0.1, // initial field of view in degrees
-                target: '338.98958 33.96', // initial target
-                cooFrame: 'equatorial', // set galactic frame
-                showCooGrid: true, // set the grid
-                fullScreen: true,
-                vr: "test",
-            }
-        );
-
-        aladin.setOverlayImageLayer("https://alasky.cds.unistra.fr/JWST/CDS_P_JWST_Stephans-Quintet_NIRCam+MIRI")
-    });
+<script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.157.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.157.0/examples/jsm/"
+      }
+    }
 </script>
+<body>
+
+    <div id="aladin-lite-div" style="width: 1024px; height: 768px"></div>
+    
+    <script type="module">
+        import A from '../src/js/A.js';
+        import * as THREE from 'three';
+
+        let aladin;
+        A.init.then(() => {
+            aladin = A.aladin(
+                '#aladin-lite-div',
+                {
+                    projection: 'TAN', // set a projection
+                    fov: 0.1, // initial field of view in degrees
+                    target: '338.98958 33.96', // initial target
+                    cooFrame: 'equatorial', // set galactic frame
+                    showCooGrid: true, // set the grid
+                    fullScreen: true,
+                    vr: {renderer: renderer, animation: animate},
+                }
+            );
+
+            aladin.setOverlayImageLayer("https://alasky.cds.unistra.fr/JWST/CDS_P_JWST_Stephans-Quintet_NIRCam+MIRI")
+            initScene();
+        });
+
+        let renderer = null;
+        let scene = null;
+        let camera = null;
+        let cube = null;
+        // let controls = null;
+
+        /**
+         * Initializes a 3D scene, camera, and renderer for virtual reality (VR).
+         *
+         * @param {HTMLCanvasElement} canvas - The HTML canvas element to render the
+         * 3D scene
+         */
+        function initScene(canvas) {
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(
+            75, window.innerWidth / window.innerHeight, 0.1, 1000);
+
+        renderer = new THREE.WebGLRenderer({canvas: canvas, antialias: true});
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.autoClear = false;
+        renderer.xr.enabled = true;
+
+        const geometry = new THREE.BoxGeometry(5, 5, 5);
+        const material = new THREE.MeshBasicMaterial({color: 0x00ff00});
+        cube = new THREE.Mesh(geometry, material);
+        cube.position.z = -10;
+        scene.add(cube);
+
+        scene.add(camera);
+        }
+        
+        /**
+         * Function to animate the 3D scene and rendering it.
+         */
+        function animate() {
+            cube.rotation.x += 0.01;
+            cube.rotation.y += 0.01;
+
+            renderer.render( scene, camera );
+        }
+
+        /**
+         * Initializes a WebGL2 context and handles potential errors.
+         */
+        function initWebGL2() {
+            // canvas = aladin.view.imageCanvas;
+            canvas = document.getElementById(aladin.view.imageCanvas);
+            // gl = canvas.getContext("webgl2", { alpha: true });
+            gl = canvas.getContext('webgl2');
+            if (!gl) { // If the gl didn't create properly
+                alert('This browser doesn\'t support WebGL2');
+                return;
+            }
+
+        }
+
+    </script>
 
 </body>
 </html>

@@ -176,6 +176,7 @@ export let Aladin = (function () {
         var location = new Location(locationDiv.find('.aladin-location-text'));
 
         // set different options
+        console.log('init view')
         this.view = new View(this, location, fovDiv, cooFrame, options.fov);
         this.cacheSurveys = new Map();
 
@@ -459,6 +460,7 @@ export let Aladin = (function () {
             //this.discoverytree = new DiscoveryTree(this);
         //}
 
+        // [ ] That might pose problems
         this.view.redraw();
 
         // go to full screen ?
@@ -475,8 +477,7 @@ export let Aladin = (function () {
 
         // initialize the VR button
         if (options.vr) {
-            console.log(options.vr);
-            aladin.aladinDiv.appendChild(VRButton.createButton(this.view));
+            this.aladinDiv.appendChild(VRButton.createButton(this.view));
         }
     };
 
@@ -677,6 +678,11 @@ export let Aladin = (function () {
             (typeof callback === 'function') && callback(fov);
         });
     };
+
+    // @API
+    Aladin.prototype.setRenderer = function(renderer) {
+        this.options.vr.renderer = renderer;
+    }
 
     Aladin.prototype.setFrame = function (frameName) {
         if (!frameName) {

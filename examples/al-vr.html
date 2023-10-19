@@ -24,7 +24,7 @@
                 '#aladin-lite-div',
                 {
                     projection: 'TAN', // set a projection
-                    fov: 0.1, // initial field of view in degrees
+                    fov: 70, // initial field of view in degrees
                     target: '338.98958 33.96', // initial target
                     cooFrame: 'equatorial', // set galactic frame
                     showCooGrid: true, // set the grid
@@ -34,7 +34,8 @@
             );
 
             aladin.setOverlayImageLayer("https://alasky.cds.unistra.fr/JWST/CDS_P_JWST_Stephans-Quintet_NIRCam+MIRI")
-            initScene();
+            initScene(aladin.view.imageCanvas);
+            aladin.setRenderer(renderer);
         });
 
         let renderer = null;
@@ -54,7 +55,7 @@
         camera = new THREE.PerspectiveCamera(
             75, window.innerWidth / window.innerHeight, 0.1, 1000);
 
-        renderer = new THREE.WebGLRenderer({canvas: canvas, antialias: true});
+        renderer = new THREE.WebGLRenderer({canvas: canvas, antialias: true, preserveDrawingBuffer: true});
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.autoClear = false;
         renderer.xr.enabled = true;
@@ -78,20 +79,20 @@
             renderer.render( scene, camera );
         }
 
-        /**
-         * Initializes a WebGL2 context and handles potential errors.
-         */
-        function initWebGL2() {
-            // canvas = aladin.view.imageCanvas;
-            canvas = document.getElementById(aladin.view.imageCanvas);
-            // gl = canvas.getContext("webgl2", { alpha: true });
-            gl = canvas.getContext('webgl2');
-            if (!gl) { // If the gl didn't create properly
-                alert('This browser doesn\'t support WebGL2');
-                return;
-            }
+        // /**
+        //  * Initializes a WebGL2 context and handles potential errors.
+        //  */
+        // function initWebGL2() {
+        //     // canvas = aladin.view.imageCanvas;
+        //     canvas = document.getElementById(aladin.view.imageCanvas);
+        //     // gl = canvas.getContext("webgl2", { alpha: true });
+        //     gl = canvas.getContext('webgl2');
+        //     if (!gl) { // If the gl didn't create properly
+        //         alert('This browser doesn\'t support WebGL2');
+        //         return;
+        //     }
 
-        }
+        // }
 
     </script>
 

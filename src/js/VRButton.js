@@ -38,7 +38,7 @@ class VRButton {
         await view.options.vr.renderer.xr.setSession(session);
         button.textContent = 'EXIT VR';
 
-        view.redrawVR();
+        view.options.vr.renderer.setAnimationLoop(view.redrawVR.bind(view));
 
         currentSession = session;
       }

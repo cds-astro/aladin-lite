@@ -1061,8 +1061,6 @@ export let View = (function () {
 
 
     View.prototype.redrawVR = function () {
-        console.log(this)
-        //FIXME this.then undefined
         // Elapsed time since last loop
         const now = Date.now();
         const elapsedTime = now - this.then;
@@ -1071,21 +1069,21 @@ export let View = (function () {
         //if (elapsedTime >= View.FPS_INTERVAL) {
         // Get ready for next frame by setting then=now, but also adjust for your
         // specified fpsInterval not being a multiple of RAF's interval (16.7ms)
-
+        
         // Drawing code
         try {
             this.moving = this.wasm.update(elapsedTime);
         } catch (e) {
             console.warn(e)
         }
-
+        
         ////// 2. Draw catalogues////////
         const isViewRendering = this.wasm.isRendering();
         if (isViewRendering || this.needRedraw) {
             this.drawAllOverlays();
         }
         this.needRedraw = false;
-
+        
         this.options.vr.animation();
     }
 

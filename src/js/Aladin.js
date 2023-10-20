@@ -176,7 +176,6 @@ export let Aladin = (function () {
         var location = new Location(locationDiv.find('.aladin-location-text'));
 
         // set different options
-        console.log('init view')
         this.view = new View(this, location, fovDiv, cooFrame, options.fov);
         this.cacheSurveys = new Map();
 

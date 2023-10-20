@@ -29,7 +29,7 @@
                     cooFrame: 'equatorial', // set galactic frame
                     showCooGrid: true, // set the grid
                     fullScreen: true,
-                    vr: {renderer: renderer, animation: animate},
+                    vr: {renderer: renderer, animation: animate.bind(renderer)},
                 }
             );
 
@@ -53,18 +53,17 @@
         function initScene(canvas) {
         scene = new THREE.Scene();
         camera = new THREE.PerspectiveCamera(
-            75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            70, window.innerWidth / window.innerHeight, 0.1, 1000);
 
-            
         renderer = new THREE.WebGLRenderer({canvas: canvas, antialias: true, preserveDrawingBuffer: true});
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.autoClear = false;
         renderer.xr.enabled = true;
 
-        const geometry = new THREE.BoxGeometry(5, 5, 5);
+        const geometry = new THREE.BoxGeometry(1, 1, 1);
         const material = new THREE.MeshBasicMaterial({color: 0x00ff00});
         cube = new THREE.Mesh(geometry, material);
-        cube.position.z = -10;
+        cube.position.z = -3;
         scene.add(cube);
 
         scene.add(camera);
@@ -74,8 +73,8 @@
          * Function to animate the 3D scene and rendering it.
          */
         function animate() {
-            cube.rotation.x += 0.01;
-            cube.rotation.y += 0.01;
+            cube.rotation.x += 0.001;
+            cube.rotation.y += 0.001;
 
             renderer.render( scene, camera );
         }

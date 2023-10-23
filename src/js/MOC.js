@@ -37,10 +37,17 @@ export let MOC = (function() {
         } else {
             this.perimeter = false;
         }
+
+        this.opacity = options.opacity || 1;
+        
         if (options && options.fill) {
             this.fill = true;
         } else {
             this.fill = false;
+        }
+
+        if (options && options.opacity) {
+            this.fill = true;
         }
 
         if (options && options.edge) {
@@ -52,8 +59,6 @@ export let MOC = (function() {
         if (!this.fill && !this.perimeter && options && !options.edge) {
             this.edge = true;
         }
-
-        this.opacity = options.opacity || 1;
 
         this.opacity = Math.max(0, Math.min(1, this.opacity)); // 0 <= this.opacity <= 1
         this.lineWidth = options["lineWidth"] || 1;

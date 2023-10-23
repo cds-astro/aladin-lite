@@ -167,8 +167,8 @@ export let Circle = (function() {
         let hidden = true;
 
         var ra, dec, vertOnCircle, dx, dy;
-        if (view.fov > 90) {
-            this.radius = Number.POSITIVE_INFINITY;
+        //if (this.radiusDegrees > 30) {
+            this.radius = Number.NEGATIVE_INFINITY;
             
             // Project 4 points lying on the circle and take the minimal dist with the center as radius
             [[-1, 0], [1, 0], [0, -1], [0, 1]].forEach(([cardDirRa, cardDirDec]) => {
@@ -181,12 +181,12 @@ export let Circle = (function() {
                     dx = vertOnCircle[0] - this.center.x;
                     dy = vertOnCircle[1] - this.center.y;
 
-                    this.radius = Math.min(Math.sqrt(dx*dx + dy*dy), this.radius);
+                    this.radius = Math.max(Math.sqrt(dx*dx + dy*dy), this.radius);
 
                     hidden = false;
                 }            
             });
-        } else {
+        /*} else {
             ra = this.centerRaDec[0] + this.radiusDegrees;
             dec = this.centerRaDec[1];
 
@@ -199,7 +199,7 @@ export let Circle = (function() {
                 this.radius = Math.sqrt(dx*dx + dy*dy);
                 hidden = false;
             }
-        }
+        }*/
 
         if (hidden) {
             return;

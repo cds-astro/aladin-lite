@@ -10,11 +10,14 @@
     import A from '../src/js/A.js';
     let aladin;
     A.init.then(() => {
-        // Start up Aladin Lite
-        aladin = A.aladin('#aladin-lite-div', {survey: "CDS/P/DSS2/color", target: 'M 1', fov: 0.2, showContextMenu: true, fullScreen: true});
+        aladin = A.aladin('#aladin-lite-div', {target: 'M 1', fov: 180});
+ 
         var overlay = A.graphicOverlay({color: '#ee2345', lineWidth: 3});
         aladin.addOverlay(overlay);
-        overlay.add(A.circle(83.66067, 22.03081, 40.0, {color: 'cyan'})); // radius in degrees
+        overlay.add(A.circle(83.66067, 0, 30, {color: 'cyan'})); // radius in degrees
+        var cat = A.catalog({name: 'Some markers', sourceSize: 18});
+        aladin.addCatalog(cat);
+        cat.addSources([A.marker(83, 29, {popupTitle: 'Point1', popupDesc: 'Does not show up in circle'})]);
 
         aladin.on("footprintClicked", (footprint) => {
             console.log("footprint clicked catched", footprint)

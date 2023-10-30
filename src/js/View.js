@@ -370,7 +370,7 @@ export let View = (function () {
         }
 
         this.computeNorder();
-        this.redraw();
+        //this.redraw();
     };
 
     var pixelateCanvasContext = function (ctx, pixelateFlag) {

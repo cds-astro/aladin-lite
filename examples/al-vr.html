@@ -57,7 +57,7 @@
             camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
             scene.add(camera);
 
-            renderer = new THREE.WebGLRenderer({canvas: canvas, antialias: true}); // NOTE Une différence ici
+            renderer = new THREE.WebGLRenderer({canvas: canvas, context: canvas.getContext('webgl2', {xrCompatible: true})}); // NOTE Une différence ici
             renderer.setPixelRatio(window.devicePixelRatio);
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.xr.enabled = true;

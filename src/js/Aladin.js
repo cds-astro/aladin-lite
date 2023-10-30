@@ -460,7 +460,7 @@ export let Aladin = (function () {
         //}
 
         // [ ] That might pose problems
-        this.view.redraw();
+        //this.view.redraw();
 
         // go to full screen ?
         if (options.fullScreen) {

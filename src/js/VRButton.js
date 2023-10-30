@@ -35,11 +35,22 @@ class VRButton {
       async function onSessionStarted(session) {
         session.addEventListener('end', onSessionEnded);
 
-        // TODO requestAnimationFrame
+        let gl = view.imageCanvas.getContext('webgl2');
+        await gl.makeXRCompatible();
+
+        session.updateRenderState({
+          baseLayer: new XRWebGLLayer(session, gl)
+        });
+
         await view.options.vr.renderer.xr.setSession(session);
         button.textContent = 'EXIT VR';
 
-        view.options.vr.renderer.setAnimationLoop(view.redrawVR.bind(view));
+        // view.options.vr.renderer.setAnimationLoop(view.redrawVR.bind(view));
+
+        session.requestReferenceSpace('local-floor').then((refSpace) => {
+          const xrRefSpace = refSpace;
+          session.requestAnimationFrame((t, frame) => {view.redrawVR(t, frame, xrRefSpace)});
+        });
 
         currentSession = session;
       }
@@ -47,11 +58,10 @@ class VRButton {
       /**
        * Function to render the whole scene
        */
-      function render() {
-        // TODO Aladin rendering
-
-        // External animation
-        animation();
+      // NOTE A supprimer
+      function onXRAnimationFrame(t, xrFrame) {
+        currentSession.requestAnimationFrame(onXRAnimationFrame);
+        view.redrawVR();
       }
 
       /**
@@ -93,7 +103,7 @@ class VRButton {
           // ('local' is always available for immersive sessions and doesn't
           // need to be requested separately.)
 
-          const sessionInit = {optionalFeatures: ['local-floor', 'layers']};
+          const sessionInit = {optionalFeatures: ['local-floor']};
           navigator.xr.requestSession(
               'immersive-vr', sessionInit).then(onSessionStarted);
         } else {

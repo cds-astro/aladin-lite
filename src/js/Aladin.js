@@ -60,9 +60,6 @@ export let Aladin = (function () {
 
     // Constructor
     var Aladin = function (aladinDiv, requestedOptions) {
-        this.samp = new SAMPConnector(this);
-
-
         // check that aladinDiv exists, stop immediately otherwise
         if ($(aladinDiv).length == 0) {
             return;
@@ -475,6 +472,13 @@ export let Aladin = (function () {
             this.contextMenu = new ContextMenu(this);
             this.contextMenu.attachTo(this.view.catalogCanvas, DefaultActionsForContextMenu.getDefaultActions(this));
         }
+
+        if (options.samp) {
+            this.samp = new SAMPConnector(this);
+            ALEvent.SAMP_AVAILABILITY.listenedBy(this.aladinDiv, function (e) {
+                console.log('is hub running samp', e.detail.isHubRunning)
+            });
+        }
     };
 
     /**** CONSTANTS ****/
@@ -508,6 +512,7 @@ export let Aladin = (function () {
         reticleColor: "rgb(178, 50, 178)",
         reticleSize: 22,
         log: true,
+        samp: true,
         allowFullZoomout: false,
         realFullscreen: false,
         showAllskyRing: false,

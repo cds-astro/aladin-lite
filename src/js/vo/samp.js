@@ -28,28 +28,11 @@
  *
  *****************************************************************************/
 
-import { samp } from "sampjs";
 import { ALEvent } from "../events/ALEvent";
+import { samp } from '../libs/samp';
 
 export class SAMPConnector {
     constructor(aladin) {
-        // Arrange for document to be adjusted for presence of hub every 2 sec.
-        this.connector = new samp.Connector("Aladin Lite", {
-            "samp.name": "Aladin Lite",
-            "samp.description": "Aladin Lite web visualizer SAMP connector"
-        });
-
-        window.addEventListener('load', (e) => {
-            this.connector.onHubAvailability((isHubRunning) => {
-                // Communicate to Aladin Lite
-                ALEvent.SAMP_AVAILABILITY.listenedBy(aladin.aladinDiv, { isHubRunning: isHubRunning } );
-            }, 2000);
-        });
-
-        window.addEventListener('unload', (e) => {
-            this.connector.unregister();
-        });
-
         // Define listeners
         let cc = new samp.ClientTracker();
         let callHandler = cc.callHandler;
@@ -57,6 +40,12 @@ export class SAMPConnector {
         callHandler["script.aladin.send"] = function(senderId, message, isCall) {
             var params = message["samp.params"];
             aladin.setBaseImageLayer(params["url"])
+        };
+
+        callHandler["coord.pointAt.sky"] = function(senderId, message, isCall) {
+            var params = message["samp.params"];
+
+            aladin.gotoRaDec(+params["ra"], +params["dec"])
         };
 
         callHandler["coverage.load.moc.fits"] = function(senderId, message, isCall) {
@@ -92,8 +81,26 @@ export class SAMPConnector {
             aladin.addCatalog(cat)
         };
 
+        let subs = cc.calculateSubscriptions();
+        let meta = {
+            "samp.name": "Aladin Lite",
+            "samp.description": "Aladin Lite web visualizer SAMP connector"
+        };
+        // Arrange for document to be adjusted for presence of hub every 2 sec.
+        this.connector = new samp.Connector("Aladin Lite", meta, cc, subs);
+        window.addEventListener('load', (e) => {
+            this.connector.onHubAvailability((isHubRunning) => {
+                // Communicate to Aladin Lite
+                ALEvent.SAMP_AVAILABILITY.dispatchedTo(aladin.aladinDiv, { isHubRunning: isHubRunning } );
+            }, 2000);
+        });
+
+        window.addEventListener('unload', (e) => {
+            this.connector.unregister();
+        });
+
+        // TODO put that in a button
         //this.connector.register();
-        //this.loadHiPS("https://alasky.cds.unistra.fr/NEOWISER/W1W2/")
     }
 
     // Broadcasts a message given a hub connection.
@@ -159,6 +166,15 @@ export class SAMPConnector {
     loadHiPS(url) {
         const cmd = 'load ' + url;
         this._send("script.aladin.send", { "script": cmd })
+    }
+
+    /**
+     * Send a ra, dec position to the hub
+     * @param {Float} ra - right ascension in degrees
+     * @param {Float} dec - declination in degrees
+     */
+    centerAtRaDec(ra, dec) {
+        this._send("coord.pointAt.sky", { "ra": ra.toString(), "dec": dec.toString() })
     }
 }
 

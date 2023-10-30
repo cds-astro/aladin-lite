@@ -165,8 +165,6 @@ A.MOCFromJSON = function (jsonMOC, options) {
 };
 
 
-// TODO: try first without proxy, and then with, if param useProxy not set
-// API
 A.catalogFromURL = function (url, options, successCallback, errorCallback, useProxy) {
     var catalog = A.catalog(options);
 

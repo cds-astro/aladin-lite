@@ -51,6 +51,7 @@ import { ALEvent } from "./events/ALEvent.js";
 import { Color } from './Color.js';
 import { ImageFITS } from "./ImageFITS.js";
 import { DefaultActionsForContextMenu } from "./DefaultActionsForContextMenu.js";
+import { SAMPConnector } from "./vo/samp.js";
 import A from "./A.js";
 
 import $ from 'jquery';
@@ -59,6 +60,9 @@ export let Aladin = (function () {
 
     // Constructor
     var Aladin = function (aladinDiv, requestedOptions) {
+        this.samp = new SAMPConnector(this);
+
+
         // check that aladinDiv exists, stop immediately otherwise
         if ($(aladinDiv).length == 0) {
             return;

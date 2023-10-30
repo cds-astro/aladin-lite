@@ -55,6 +55,8 @@ export class ALEvent {
 
   static GRAPHIC_OVERLAY_LAYER_CHANGED  = new ALEvent("AL:GraphicOverlayLayer.changed");
 
+  static SAMP_AVAILABILITY  = new ALEvent("AL:samp.started");
+
   constructor(name) {
     this.name = name;
   }

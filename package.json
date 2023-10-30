@@ -57,6 +57,7 @@
   },
   "dependencies": {
     "autocompleter": "^6.1.3",
-    "jquery": "^3.6.1"
+    "jquery": "^3.6.1",
+    "sampjs": "^1.0.3"
   }
 }

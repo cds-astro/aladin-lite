@@ -1047,7 +1047,8 @@ impl HiPS {
                         Some(self.num_idx as i32),
                         WebGl2RenderingContext::UNSIGNED_SHORT,
                         0,
-                    );
+                    )
+                    .unbind();
             }
 
             Ok(())

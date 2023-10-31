@@ -875,7 +875,7 @@ impl App {
                 &self.colormaps,
                 &self.projection,
             )?;
-
+            /*
             // Draw the catalog
             //let fbo_view = &self.fbo_view;
             //catalogs.draw(&gl, shaders, camera, colormaps, fbo_view)?;
@@ -903,7 +903,7 @@ impl App {
             self.line_renderer.draw(&self.camera)?;
             //let dpi  = self.camera.get_dpi();
             //ui.draw(&gl, dpi)?;
-
+            */
             // Reset the flags about the user action
             self.camera.reset();
 

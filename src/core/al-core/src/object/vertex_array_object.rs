@@ -9,8 +9,8 @@ pub mod vao {
     use crate::object::element_array_buffer::ElementArrayBuffer;
 
     use crate::webgl_ctx::WebGlContext;
-    use std::collections::HashMap;
     use crate::Abort;
+    use std::collections::HashMap;
 
     pub struct VertexArrayObject {
         array_buffer: HashMap<&'static str, ArrayBuffer>,
@@ -88,7 +88,10 @@ pub mod vao {
         }*/
 
         pub fn num_elements(&self) -> usize {
-            self.element_array_buffer.as_ref().unwrap_abort().num_elements()
+            self.element_array_buffer
+                .as_ref()
+                .unwrap_abort()
+                .num_elements()
         }
 
         pub fn num_instances(&self) -> i32 {
@@ -155,6 +158,7 @@ pub mod vao {
 
         pub fn unbind(&self) {
             self.vao.gl.bind_vertex_array(None);
+            self._shader.unbind(&self.vao.gl);
         }
     }
 
@@ -170,8 +174,9 @@ pub mod vao {
     }
 
     impl<'a, 'b> ShaderVertexArrayObjectBoundRef<'a, 'b> {
-        pub fn draw_arrays(&self, mode: u32, byte_offset: i32, size: i32) {
+        pub fn draw_arrays(&self, mode: u32, byte_offset: i32, size: i32) -> &Self {
             self.vao.gl.draw_arrays(mode, byte_offset, size);
+            self
         }
 
         pub fn draw_elements_with_i32(
@@ -180,11 +185,12 @@ pub mod vao {
             num_elements: Option<i32>,
             type_: u32,
             byte_offset: i32,
-        ) {
+        ) -> &Self {
             let num_elements = num_elements.unwrap_or(self.vao.num_elements() as i32);
             self.vao
                 .gl
                 .draw_elements_with_i32(mode, num_elements, type_, byte_offset);
+            self
         }
 
         pub fn draw_elements_instanced_with_i32(
@@ -192,7 +198,7 @@ pub mod vao {
             mode: u32,
             offset_element_idx: i32,
             num_instances: i32,
-        ) {
+        ) -> &Self {
             self.vao.gl.draw_elements_instanced_with_i32(
                 mode,
                 self.vao.num_elements() as i32,
@@ -200,10 +206,12 @@ pub mod vao {
                 offset_element_idx,
                 num_instances,
             );
+            self
         }
 
         pub fn unbind(&self) {
             self.vao.gl.bind_vertex_array(None);
+            self._shader.unbind(&self.vao.gl);
         }
     }
 
@@ -444,7 +452,10 @@ pub mod vao {
         }*/
 
         pub fn num_elements(&self) -> usize {
-            self.element_array_buffer.as_ref().unwrap_abort().num_elements()
+            self.element_array_buffer
+                .as_ref()
+                .unwrap_abort()
+                .num_elements()
         }
 
         pub fn num_instances(&self) -> i32 {
@@ -511,7 +522,8 @@ pub mod vao {
         }
 
         pub fn unbind(&self) {
-            //self.vao.gl.bind_vertex_array(None);
+            self.vao.gl.bind_vertex_array(None);
+            self._shader.unbind(&self.vao.gl);
         }
     }
 
@@ -528,13 +540,15 @@ pub mod vao {
     }
     use crate::object::array_buffer::VertexBufferObject;
     impl<'a, 'b> ShaderVertexArrayObjectBoundRef<'a, 'b> {
-        pub fn draw_arrays(&self, mode: u32, byte_offset: i32, size: i32) {
+        pub fn draw_arrays(&self, mode: u32, byte_offset: i32, size: i32) -> &Self {
             for (attr, buf) in self.vao.array_buffer.iter() {
                 buf.bind();
                 buf.set_vertex_attrib_pointer_by_name::<f32>(self.shader, attr);
             }
 
             self.vao.gl.draw_arrays(mode, byte_offset, size);
+
+            self
         }
 
         pub fn draw_elements_with_i32(
@@ -543,7 +557,7 @@ pub mod vao {
             num_elements: Option<i32>,
             type_: u32,
             byte_offset: i32,
-        ) {
+        ) -> &Self {
             for (attr, buf) in self.vao.array_buffer.iter() {
                 buf.bind();
                 buf.set_vertex_attrib_pointer_by_name::<f32>(self.shader, attr);
@@ -555,6 +569,7 @@ pub mod vao {
             self.vao
                 .gl
                 .draw_elements_with_i32(mode, num_elements, type_, byte_offset);
+            self
         }
 
         pub fn draw_elements_instanced_with_i32(
@@ -562,7 +577,7 @@ pub mod vao {
             mode: u32,
             offset_element_idx: i32,
             num_instances: i32,
-        ) {
+        ) -> &Self {
             for (attr, buf) in self.vao.array_buffer.iter() {
                 buf.bind();
                 buf.set_vertex_attrib_pointer_by_name::<f32>(self.shader, attr);
@@ -587,10 +602,12 @@ pub mod vao {
                     offset_element_idx,
                     num_instances,
                 );
+            self
         }
 
         pub fn unbind(&self) {
-            //self.vao.gl.bind_vertex_array(None);
+            self.vao.gl.bind_vertex_array(None);
+            self.shader.unbind(&self.vao.gl);
         }
     }
 
@@ -716,6 +733,9 @@ pub mod vao {
 
         pub fn unbind(&self) {
             //self.vao.gl.bind_vertex_array(None);
+
+            self.vao.gl.bind_vertex_array(None);
+            self.shader.unbind(&self.vao.gl);
         }
     }
 

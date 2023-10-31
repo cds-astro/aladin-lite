@@ -259,7 +259,8 @@ impl Layers {
                     None,
                     WebGl2RenderingContext::UNSIGNED_SHORT,
                     0,
-                );
+                )
+                .unbind();
         }
 
         // The first layer must be paint independently of its alpha channel

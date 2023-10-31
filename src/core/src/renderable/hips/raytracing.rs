@@ -225,7 +225,8 @@ impl RayTracer {
                 None,
                 WebGl2RenderingContext::UNSIGNED_SHORT,
                 0,
-            );
+            )
+            .unbind();
         #[cfg(feature = "webgl2")]
         shader
             .attach_uniform("position_tex", &self.position_tex)
@@ -236,6 +237,7 @@ impl RayTracer {
                 WebGl2RenderingContext::UNSIGNED_SHORT,
                 0,
             )
+            .unbind();
     }
 
     pub fn is_rendering(&self, camera: &CameraViewPort) -> bool {

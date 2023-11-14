@@ -612,7 +612,8 @@ impl Image {
                         Some(num_indices),
                         WebGl2RenderingContext::UNSIGNED_SHORT,
                         ((off_indices as usize) * std::mem::size_of::<u16>()) as i32,
-                    );
+                    )
+                    .unbind();
 
                 off_indices += self.num_indices[idx];
             }

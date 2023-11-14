@@ -370,7 +370,7 @@ export let View = (function () {
         }
 
         this.computeNorder();
-        this.redraw();
+        //this.redraw();
     };
 
     var pixelateCanvasContext = function (ctx, pixelateFlag) {
@@ -1058,6 +1058,41 @@ export let View = (function () {
     };
 
     View.FPS_INTERVAL = 1000 / 140;
+
+
+    View.prototype.redrawVR = function (t, frame, xrRefSpace) {
+        const session = frame.session;
+        session.requestAnimationFrame((t, frame) => {this.redrawVR(t, frame, xrRefSpace)});
+
+        let pose = frame.getViewerPose(xrRefSpace);
+
+        if (!pose) return;
+
+        // Elapsed time since last loop
+        const now = Date.now();
+        const elapsedTime = now - this.then;
+
+        // If enough time has elapsed, draw the next frame
+        //if (elapsedTime >= View.FPS_INTERVAL) {
+        // Get ready for next frame by setting then=now, but also adjust for your
+        // specified fpsInterval not being a multiple of RAF's interval (16.7ms)
+        
+        // Drawing code
+        try {
+            this.moving = this.wasm.update(elapsedTime);
+        } catch (e) {
+            console.warn(e)
+        }
+        
+        ////// 2. Draw catalogues////////
+        const isViewRendering = this.wasm.isRendering();
+        if (isViewRendering || this.needRedraw) {
+            this.drawAllOverlays();
+        }
+        this.needRedraw = false;
+        
+        this.options.vr.animation();
+    }
 
     /**
      * redraw the whole view

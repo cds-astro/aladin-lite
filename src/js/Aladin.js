@@ -50,6 +50,7 @@ import { ContextMenu } from "./gui/ContextMenu.js";
 import { ALEvent } from "./events/ALEvent.js";
 import { Color } from './Color.js';
 import { ImageFITS } from "./ImageFITS.js";
+import { VRButton } from "./VRButton.js";
 import { DefaultActionsForContextMenu } from "./DefaultActionsForContextMenu.js";
 import A from "./A.js";
 
@@ -458,7 +459,8 @@ export let Aladin = (function () {
             //this.discoverytree = new DiscoveryTree(this);
         //}
 
-        this.view.redraw();
+        // [ ] That might pose problems
+        //this.view.redraw();
 
         // go to full screen ?
         if (options.fullScreen) {
@@ -470,6 +472,11 @@ export let Aladin = (function () {
         if (options.showContextMenu) {
             this.contextMenu = new ContextMenu(this);
             this.contextMenu.attachTo(this.view.catalogCanvas, DefaultActionsForContextMenu.getDefaultActions(this));
+        }
+
+        // initialize the VR button
+        if (options.vr) {
+            this.aladinDiv.appendChild(VRButton.createButton(this.view));
         }
     };
 
@@ -670,6 +677,11 @@ export let Aladin = (function () {
             (typeof callback === 'function') && callback(fov);
         });
     };
+
+    // @API
+    Aladin.prototype.setRenderer = function(renderer) {
+        this.options.vr.renderer = renderer;
+    }
 
     Aladin.prototype.setFrame = function (frameName) {
         if (!frameName) {

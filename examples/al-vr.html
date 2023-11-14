@@ -1,0 +1,113 @@
+<!doctype html>
+<html>
+<head>
+</head>
+<script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.157.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.157.0/examples/jsm/"
+      }
+    }
+</script>
+<body>
+
+    <div id="aladin-lite-div" style="width: 1024px; height: 768px"></div>
+    
+    <script type="module">
+        import A from '../src/js/A.js';
+        import * as THREE from 'three';
+
+        let aladin;
+        A.init.then(() => {
+            aladin = A.aladin(
+                '#aladin-lite-div',
+                {
+                    survey: 'P/DSS2/color', // set a survey
+                    projection: 'TAN', // set a projection
+                    fov: 70, // initial field of view in degrees
+                    target: '338.98958 33.96', // initial target
+                    cooFrame: 'equatorial', // set galactic frame
+                    showCooGrid: true, // set the grid
+                    fullScreen: true,
+                    vr: {animation: animate.bind(renderer)},
+                }
+            );
+
+            //aladin.setOverlayImageLayer("https://alasky.cds.unistra.fr/JWST/CDS_P_JWST_Stephans-Quintet_NIRCam+MIRI")
+            initScene(aladin.view.imageCanvas);
+            aladin.setRenderer(renderer);
+        });
+
+        let renderer = null;
+        let scene = null;
+        let camera = null;
+        let cubeMesh = null;
+        // let controls = null;
+
+        /**
+         * Initializes a 3D scene, camera, and renderer for virtual reality (VR).
+         *
+         * @param {HTMLCanvasElement} canvas - The HTML canvas element to render the
+         * 3D scene
+         */
+        function initScene(canvas) {
+            scene = new THREE.Scene();
+
+            camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
+            scene.add(camera);
+
+            renderer = new THREE.WebGLRenderer({canvas: canvas, context: canvas.getContext('webgl2', {xrCompatible: true})}); // NOTE Une différence ici
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.xr.enabled = true;
+            // renderer.xr.setReferenceSpaceType('local');
+            renderer.autoClear = false;
+
+            const light = new THREE.PointLight(0xffffff, 10);
+            light.position.set(0, 2, 1);
+            scene.add(light);
+
+            const planeGeometry = new THREE.PlaneGeometry(10, 10);
+            const planeMaterial = new THREE.MeshPhongMaterial({ color: 0xff00ff });
+            const planeMesh = new THREE.Mesh(planeGeometry, planeMaterial);
+            planeMesh.position.set(0, -1, 0);
+            planeMesh.rotation.x = -Math.PI / 2;
+            scene.add(planeMesh);
+            
+            const cubeGeometry = new THREE.BoxGeometry(1, 1, 1);
+            const cubeMaterial = new THREE.MeshPhongMaterial({ color: 0x00ff00 });
+            cubeMesh = new THREE.Mesh(cubeGeometry, cubeMaterial);
+            cubeMesh.position.set(0, 0, -2);
+            scene.add(cubeMesh);
+        }
+        
+        /**
+         * Function to animate the 3D scene and rendering it.
+         */
+        function animate() {
+            cubeMesh.rotation.x += 0.001;
+            cubeMesh.rotation.y += 0.001;
+
+            renderer.render( scene, camera );
+        }
+
+        // /**
+        //  * Initializes a WebGL2 context and handles potential errors.
+        //  */
+        // function initWebGL2() {
+        //     // canvas = aladin.view.imageCanvas;
+        //     canvas = document.getElementById(aladin.view.imageCanvas);
+        //     // gl = canvas.getContext("webgl2", { alpha: true });
+        //     gl = canvas.getContext('webgl2');
+        //     if (!gl) { // If the gl didn't create properly
+        //         alert('This browser doesn\'t support WebGL2');
+        //         return;
+        //     }
+
+        // }
+
+    </script>
+
+</body>
+</html>

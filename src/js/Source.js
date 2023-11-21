@@ -28,7 +28,7 @@
  * 
  *****************************************************************************/
 
-import { ActionButton } from "./gui/widgets/ActionButton";
+import { ActionButton } from "./gui/Widgets/ActionButton";
 import { Datalink } from "./vo/Datalink";
 import { Utils } from "./Utils";
 import { ObsCore } from "./vo/ObsCore";

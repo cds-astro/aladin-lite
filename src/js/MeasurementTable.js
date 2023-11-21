@@ -31,22 +31,19 @@
  *****************************************************************************/
 
 import { Color } from "./Color.js"
-import { ActionButton } from "./gui/widgets/ActionButton.js";
+import { Layout } from "./gui/Layout.js";
+import { Tabs } from "./gui/Widgets/Tab.js";
+import { Table } from "./gui/Widgets/Table.js";
 
 export let MeasurementTable = (function() {
 
     // constructor
-    function MeasurementTable(aladinLiteDiv) {
-        this.isShowing = false;
-
-        let mainDiv = document.createElement('div');
-        mainDiv.setAttribute("class", "aladin-measurement-div");
-        this.element = mainDiv;
-
-        aladinLiteDiv.appendChild(this.element);
+    function MeasurementTable(target) {
+        //this.isShowing = false;
+        this.target = target;
     }
 
-    MeasurementTable.prototype.updateTableBody = function() {
+    /*MeasurementTable.prototype.updateTableBody = function() {
         let tbody = this.element.querySelector('tbody');
         tbody.innerHTML = '';
 
@@ -80,7 +77,7 @@ export let MeasurementTable = (function() {
 
             tbody.appendChild(trEl);
         });
-    }
+    }*/
 
     // show measurement associated with a given source
     MeasurementTable.prototype.showMeasurement = function(tables) {
@@ -88,113 +85,56 @@ export let MeasurementTable = (function() {
             return;
         }
 
-        this.update(tables);
-    };
+        let layout = tables.map((table) => {
+            let content = new Table(table);
 
-    MeasurementTable.prototype.update = function(tables) {
-        this.tables = tables;
-
-        this.curTableIdx = 0;
-
-        let table = tables[this.curTableIdx];
-        this.element.innerHTML = "";
-
-        /// Create tabs element
-        let tabsElement = this.createTabs();
-        this.element.appendChild(tabsElement);
-
-        /// Create table element
-        let tableElement = document.createElement('table');
-        tableElement.style.borderColor = table['color'];
-
-        // table header creation
-        const thead = MeasurementTable.createTableHeader(table);
-        // table body creation
-        const tbody = document.createElement('tbody');
-        tableElement.appendChild(thead);
-        tableElement.appendChild(tbody);
-
-        this.element.appendChild(tableElement);
-        this.updateTableBody();
-
-        this.show();
-    }
-
-    MeasurementTable.prototype.createTabs = function() {
-        let tabsElement = document.createElement('div')
-        tabsElement.setAttribute('class', 'tabs');
-
-        /// Create catalog tabs
-        let tabsButtonElement = [];
-
-        let self = this;
-        this.tables.forEach(function(table, index) {
-            let tabButtonElement = document.createElement("button");
-            tabButtonElement.setAttribute('title', table["name"])
-
-            tabButtonElement.innerText = table["name"];
-            tabButtonElement.style.overflow = 'hidden';
-            tabButtonElement.style.textOverflow = 'ellipsis';
-            tabButtonElement.style.whiteSpace = 'nowrap';
-            tabButtonElement.style.maxWidth = '20%';
-
-            tabButtonElement.addEventListener(
-                'click',
-                () => {
-                    self.curTableIdx = index;
-
-                    let tableElement = self.element.querySelector('table');
-                    tableElement.style.borderColor = table["color"]
-
-                    let thead = self.element.querySelector("thead");
-                    // replace the old header with the one of the current table
-                    thead.parentNode.replaceChild(MeasurementTable.createTableHeader(table), thead);
-
-                    self.updateTableBody()
-                }
-                ,false
-            );
-
-            tabButtonElement.style.backgroundColor = table["color"];
-
-            let hexStdColor = Color.standardizeColor(table["color"]);
+            //let backgroundColor = table["color"];
+            let hexStdColor = Color.standardizeColor(table.color);
             let rgbColor = Color.hexToRgb(hexStdColor);
             rgbColor = 'rgb(' + rgbColor.r + ', ' + rgbColor.g + ', ' + rgbColor.b + ')';
-
             let labelColor = Color.getLabelColorForBackground(rgbColor);
-            tabButtonElement.style.color = labelColor
 
-            tabsButtonElement.push(tabButtonElement);
-            tabsElement.appendChild(tabButtonElement);
+            let textContent = '<div style="overflow: hidden; text-overflow: ellipsis;white-space: nowrap;max-width: 20em;">' +
+            table.name + '</div>';
+
+            let label = Layout.horizontal({
+                layout: [
+                    '<div class="aladin-stack-icon" style="background-image: url(&quot;data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxwb2x5Z29uIHBvaW50cz0iMSwwLDUsMCw1LDMsMSwzIiAgZmlsbD0iIzk5Y2MwMCIgLz48cG9seWdvbiBwb2ludHM9IjcsMCw5LDAsOSwzLDcsMyIgIGZpbGw9IiM5OWNjMDAiIC8+PHBvbHlnb24gcG9pbnRzPSIxMCwwLDEyLDAsMTIsMywxMCwzIiAgZmlsbD0iIzk5Y2MwMCIgLz48cG9seWdvbiBwb2ludHM9IjEzLDAsMTUsMCwxNSwzLDEzLDMiICBmaWxsPSIjOTljYzAwIiAvPjxwb2x5bGluZSBwb2ludHM9IjEsNSw1LDkiICBzdHJva2U9IiM5OWNjMDAiIC8+PHBvbHlsaW5lIHBvaW50cz0iMSw5LDUsNSIgc3Ryb2tlPSIjOTljYzAwIiAvPjxsaW5lIHgxPSI3IiB5MT0iNyIgeDI9IjE1IiB5Mj0iNyIgc3Ryb2tlPSIjOTljYzAwIiBzdHJva2Utd2lkdGg9IjIiIC8+PHBvbHlsaW5lIHBvaW50cz0iMSwxMSw1LDE1IiAgc3Ryb2tlPSIjOTljYzAwIiAvPjxwb2x5bGluZSBwb2ludHM9IjEsMTUsNSwxMSIgIHN0cm9rZT0iIzk5Y2MwMCIgLz48bGluZSB4MT0iNyIgeTE9IjEzIiB4Mj0iMTUiIHkyPSIxMyIgc3Ryb2tlPSIjOTljYzAwIiBzdHJva2Utd2lkdGg9IjIiIC8+PC9zdmc+&quot;);"></div>',
+                    textContent
+                ]
+            });
+
+            return {
+                title: table.name,
+                label: label,
+                content: content,
+                cssStyle: {
+                    backgroundColor: rgbColor,
+                    color: labelColor,
+                    padding: '2px',
+                }
+            }
         });
 
-        return tabsElement;
-    }
-
-    MeasurementTable.createTableHeader = function(table) {
-        let theadElement = document.createElement('thead');
-        var content = '<tr>';
-
-        for (let [_, field] of Object.entries(table["fields"])) {
-            if (field.name) {
-                content += '<th>' + field.name + '</th>';
-            }
+        if (this.table) {
+            this.table.remove();
         }
-        content += '</tr>';
 
-        theadElement.innerHTML = content;
-
-        return theadElement;
-    }
-
-    MeasurementTable.prototype.show = function() {
-        this.element.style.visibility = "visible";
+        this.table = new Tabs({
+            layout: layout,
+            cssStyle: {
+                position: 'absolute',
+                bottom: '20px',
+                zIndex: 100,
+                maxWidth: '100%',
+            }
+        }, this.target);
     };
 
     MeasurementTable.prototype.hide = function() {
-        this.curTableIdx = 0;
-
-        this.element.style.visibility = "hidden";
+        if (this.table) {
+            this.table.remove();
+        }
     };
 
     return MeasurementTable;

@@ -250,10 +250,12 @@
                 let accessFormat = data['access_format'];
 
                 if (accessFormat && accessFormat.includes('datalink')) {
-                    return new ActionButton({
+                    return ActionButton.createIconBtn({
                         content: '🔗',
-                        backgroundColor: 'white',
-                        borderColor: '#484848',
+                        cssStyle: {
+                            backgroundColor: '#bababa',
+                            borderColor: '#484848',
+                        },
                         info: accessFormat,
                         action(e) {}
                     }).element();

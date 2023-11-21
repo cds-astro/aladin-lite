@@ -95,7 +95,7 @@ impl ProjetedGrid {
                 b: color.b,
                 a: self.color.a,
             };
-            self.text_renderer.set_color(&color);
+            self.text_renderer.set_color(&self.color);
         }
 
         if let Some(opacity) = opacity {

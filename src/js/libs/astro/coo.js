@@ -242,14 +242,8 @@ Coo.prototype = {
 		var strlon = "", strlat = "";
 		if (options.indexOf('d') >= 0) {
 			// decimal display
-			strlon = Numbers.format(this.lon, this.prec);
-			strlat = Numbers.format(this.lat, this.prec);
-            if (strlon.indexOf('0')==0) {
-                strlon = strlon.substr(1);
-            }
-            if (strlat.indexOf('0')==0) {
-                strlat = strlat.substr(1);
-            }
+			strlon = Numbers.toDecimal(this.lon, this.prec);
+			strlat = Numbers.toDecimal(this.lat, this.prec);
 		} else {
 			// sexagesimal display
 			var hlon = this.lon/15.0;
@@ -372,7 +366,7 @@ Strings.trim = function(str, c) {
 //================================
 // Class Numbers (static methods)
 //================================
-function Numbers() {}
+export function Numbers() {}
 //                0  1   2    3     4      5       6        7         8          9
 Numbers.pow10 = [ 1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000, 1000000000,
 //      10           11            12             13              14
@@ -428,7 +422,6 @@ Numbers.format = function(num, prec) {
  * @return a string with the formatted sexagesimal number
  */
 Numbers.toSexagesimal = function(num, prec, plus) {
-	var resu = "";
 	var sign = num < 0 ? '-' : (plus ? '+' : '');
 	var n = Math.abs(num);
 
@@ -466,4 +459,30 @@ Numbers.toSexagesimal = function(num, prec, plus) {
 			return sign+Numbers.format(n, 1);
 	}
 }
-				
+
+/**
+ * Convert a decimal coordinate into a decimal string, according to the given precision
+ * @param num number (integer or decimal)
+ * @param prec precision (= number of decimal digit to keep or append)
+ * @return a string with the formatted sexagesimal number
+ */
+Numbers.toDecimal = function(num, prec) {
+	let numStr = Math.abs(num).toString();
+	let p = numStr.indexOf('.');
+
+	if (p < 0) {
+		p = numStr.length;
+	}
+
+	let str = Numbers.format(num, (3 - p) + prec, false);
+
+	if (str.indexOf('0')==0) {
+		str = str.substr(1);
+	}
+
+	return str;
+}
+
+export function Format() {}
+Format.toDecimal = Numbers.toDecimal;
+Format.toSexagesimal = Numbers.toSexagesimal;

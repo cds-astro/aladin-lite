@@ -29,10 +29,10 @@
  *****************************************************************************/
 export let ProjectionEnum = {
    // Zenithal
-   TAN: {id: 1, fov: 180, label: "gnomonic"},	  /* Gnomonic projection      */
-   STG: {id: 2, fov: 360, label: "stereographic"},	  /* Stereographic projection */
-   SIN: {id: 3, fov: 180, label: "orthographic"},	  /* Orthographic		         */
-   ZEA: {id: 4, fov: 360, label: "zenital equal-area"},	  /* Equal-area 		         */
+   TAN: {id: 1, fov: 180, label: "gnomonic"},	         /* Gnomonic projection      */
+   STG: {id: 2, fov: 360, label: "stereographic"},	      /* Stereographic projection */
+   SIN: {id: 3, fov: 180, label: "orthographic"},	      /* Orthographic		         */
+   ZEA: {id: 4, fov: 360, label: "zenital equal-area"},	/* Equal-area 		         */
    FEYE: {id: 5, fov: 190, label: "fish eye"},
    AIR: {id: 6, fov: 360, label: "airy"},
    //AZP: {fov: 180},
@@ -54,12 +54,13 @@ export let ProjectionEnum = {
    HPX: {id: 19, fov: 360, label: "healpix"},
 };
 
+/*
 export let projectionNames = [
    // Zenithal
-   "SIN",	  /* Orthographic		         */
-   "TAN",	  /* Gnomonic projection      */
-   "STG",	  /* Stereographic projection */
-   "ZEA",	  /* Equal-area 		         */
+   "SIN",	  // Orthographic		         
+   "TAN",	  // Gnomonic projection      
+   "STG",	  // Stereographic projection 
+   "ZEA",	  // Equal-area 		         
    "FEYE",
    "AIR",
    //"AZP",
@@ -80,3 +81,4 @@ export let projectionNames = [
    // Hybrid
    "HPX"
 ]
+*/

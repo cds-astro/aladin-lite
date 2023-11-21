@@ -37,25 +37,24 @@ import { Sesame } from "./Sesame.js";
 import { PlanetaryFeaturesNameResolver } from "./PlanetaryFeaturesNameResolver.js";
 import { CooFrameEnum } from "./CooFrameEnum.js";
 import { MeasurementTable } from "./MeasurementTable.js";
-import { Location } from "./Location.js";
 import { ImageSurvey } from "./ImageSurvey.js";
 import { Coo } from "./libs/astro/coo.js";
 import { CooConversion } from "./CooConversion.js";
 import { AladinLogo } from "./gui/AladinLogo.js";
-import { ProjectionSelector } from "./gui/ProjectionSelector.js";
 import { ProjectionEnum } from "./ProjectionEnum.js";
-import { Stack } from "./gui/Stack.js";
-import { CooGrid } from "./gui/CooGrid.js";
-import { ContextMenu } from "./gui/widgets/ContextMenu.js";
+import { ContextMenu } from "./gui/Widgets/ContextMenu.js";
 import { SODAQueryWindow } from "./gui/SODAQueryWindow";
 import { ALEvent } from "./events/ALEvent.js";
 import { Color } from './Color.js';
 import { ImageFITS } from "./ImageFITS.js";
 import { DefaultActionsForContextMenu } from "./DefaultActionsForContextMenu.js";
 import { SAMPConnector } from "./vo/samp.js";
+import { Reticle } from "./Reticle.js";
+
 import A from "./A.js";
 
 import $ from 'jquery';
+import { Toolbar } from "./gui/Toolbar/Toolbar.js";
 
 export let Aladin = (function () {
 
@@ -99,69 +98,16 @@ export let Aladin = (function () {
 
         this.options = options;
 
-        $("<style type='text/css'> .aladin-reticleColor { color: " + this.options.reticleColor + "; font-weight:bold;} </style>").appendTo(aladinDiv);
-
         this.aladinDiv = aladinDiv;
 
         this.reduceDeformations = true;
         // parent div
         $(aladinDiv).addClass("aladin-container");
-        let cooFrame = CooFrameEnum.fromString(options.cooFrame, CooFrameEnum.J2000);
-
-        // locationDiv is the div where we write the position
-        const locationDiv = $('<div class="aladin-location">'
-            + (options.showFrame ? '<select class="aladin-selector aladin-frameChoice"><option value="' + CooFrameEnum.J2000.label + '" '
-                + (cooFrame == CooFrameEnum.J2000 ? 'selected="selected"' : '') + '>J2000</option><option value="' + CooFrameEnum.J2000d.label + '" '
-                + (cooFrame == CooFrameEnum.J2000d ? 'selected="selected"' : '') + '>J2000d</option><option value="' + CooFrameEnum.GAL.label + '" '
-                + (cooFrame == CooFrameEnum.GAL ? 'selected="selected"' : '') + '>GAL</option></select>' : '')
-            + '<span class="aladin-clipboard" title="Copy coordinates to clipboard"></span>'
-            + '<span class="aladin-location-text"></span>'
-            + '</div>')
-            .appendTo(aladinDiv);
-        const copyCoo = locationDiv.find('.aladin-clipboard');
-        copyCoo.hide();
-        copyCoo.click(function() {
-            self.copyCoordinatesToClipboard();
-        });
-        locationDiv.mouseenter(function() {
-            copyCoo.show();
-        });
-        locationDiv.mouseleave(function() {
-            copyCoo.hide();
-        });
-
-        // div where FoV value is written
-        var fovDiv = $('<div class="aladin-fov"></div>').appendTo(aladinDiv);
-
 
         // zoom control
         if (options.showZoomControl) {
             $('<div class="aladin-zoomControl"><a href="#" class="zoomPlus" title="Zoom in">+</a><a href="#" class="zoomMinus" title="Zoom out">&ndash;</a></div>').appendTo(aladinDiv);
         }
-
-        // maximize control
-        if (options.showFullscreenControl) {
-            $('<div class="aladin-fullscreenControl aladin-maximize" title="Full screen"></div>')
-                .appendTo(aladinDiv);
-        }
-        this.fullScreenBtn = $(aladinDiv).find('.aladin-fullscreenControl')
-        this.fullScreenBtn.click(function () {
-            self.toggleFullscreen(self.options.realFullscreen);
-        });
-        // react to fullscreenchange event to restore initial width/height (if user pressed ESC to go back from full screen)
-        $(document).on('fullscreenchange webkitfullscreenchange mozfullscreenchange MSFullscreenChange', function (e) {
-            var fullscreenElt = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
-            if (fullscreenElt === null || fullscreenElt === undefined) {
-                self.fullScreenBtn.removeClass('aladin-restore');
-                self.fullScreenBtn.addClass('aladin-maximize');
-                self.fullScreenBtn.attr('title', 'Full screen');
-                $(self.aladinDiv).removeClass('aladin-fullscreen');
-
-                var fullScreenToggledFn = self.callbacksByEventName['fullScreenToggled'];
-                var isInFullscreen = self.fullScreenBtn.hasClass('aladin-restore');
-                (typeof fullScreenToggledFn === 'function') && fullScreenToggledFn(isInFullscreen);
-            }
-        });
 
         // Aladin SODA form
         this.sodaQueryWindow = new SODAQueryWindow(this);
@@ -176,16 +122,15 @@ export let Aladin = (function () {
         this.measurementTable = new MeasurementTable(aladinDiv);
 
 
-
-        var location = new Location(locationDiv.find('.aladin-location-text'));
+        //var location = new Location(locationDiv.find('.aladin-location-text'));
 
         // set different options
-        this.view = new View(this, location, fovDiv, cooFrame, options.fov);
+        this.view = new View(this);
         this.cacheSurveys = new Map();
 
         // Stack GUI
-        this.stack = new Stack(this.aladinDiv, this, this.view);
-        this.coogrid = new CooGrid(this.aladinDiv, this, this.view);
+        //this.stack = new StackMenu(this);
+        //this.coogrid = new CooGrid(this.aladinDiv, this, this.view);
 
         // Background color
         if (options.backgroundColor) {
@@ -193,8 +138,9 @@ export let Aladin = (function () {
             this.setBackgroundColor(this.backgroundColor)
         }
 
-        this.boxes.push(this.stack);
-        this.boxes.push(this.coogrid);
+        //this.boxes.push(this.stack);
+        //this.boxes.push(this.coogrid);
+
 
         // Grid
         var color, opacity;
@@ -202,22 +148,17 @@ export let Aladin = (function () {
             color = options.gridOptions.color && Color.hexToRgb(options.gridOptions.color);
             opacity = options.gridOptions.opacity;
         } else {
-            color = {r:0.0, g:1.0, b:0.0};
-            opacity = 0.5;
+            color = Aladin.DEFAULT_OPTIONS.gridColor;
+            opacity = Aladin.DEFAULT_OPTIONS.gridOpacity;
         }
 
-        this.view.setGridConfig({
+        this.setCooGrid({
             color: color,
             opacity: opacity,
         });
 
         if (options && options.showCooGrid) {
             this.showCooGrid();
-        }
-
-        if (options && (options.showProjectionControl === undefined || options.showProjectionControl === true)) {
-            // Projection selector
-            new ProjectionSelector(aladinDiv, this);
         }
 
         // Set the projection
@@ -228,86 +169,35 @@ export let Aladin = (function () {
 
         // layers control panel
         // TODO : valeur des checkbox en fonction des options
-        ALEvent.LOADING_STATE.listenedBy(aladinDiv, function (e) {
+        ALEvent.LOADING_START.listenedBy(aladinDiv, function (e) {
             let layerControl = aladinDiv.querySelector(".aladin-layersControl");
 
             if (layerControl) {
-                if (e.detail.loading) {
-                    layerControl.style.backgroundImage = 'url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBzdGFuZGFsb25lPSJubyI/Pgo8IURPQ1RZUEUgc3ZnIFBVQkxJQyAiLS8vVzNDLy9EVEQgU1ZHIDEuMS8vRU4iICJodHRwOi8vd3d3LnczLm9yZy9HcmFwaGljcy9TVkcvMS4xL0RURC9zdmcxMS5kdGQiPgo8c3ZnIHdpZHRoPSI0MHB4IiBoZWlnaHQ9IjQwcHgiIHZpZXdCb3g9IjAgMCA0MCA0MCIgdmVyc2lvbj0iMS4xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB4bWw6c3BhY2U9InByZXNlcnZlIiBzdHlsZT0iZmlsbC1ydWxlOmV2ZW5vZGQ7Y2xpcC1ydWxlOmV2ZW5vZGQ7c3Ryb2tlLWxpbmVqb2luOnJvdW5kO3N0cm9rZS1taXRlcmxpbWl0OjEuNDE0MjE7IiB4PSIwcHgiIHk9IjBweCI+CiAgICA8ZGVmcz4KICAgICAgICA8c3R5bGUgdHlwZT0idGV4dC9jc3MiPjwhW0NEQVRBWwogICAgICAgICAgICBALXdlYmtpdC1rZXlmcmFtZXMgc3BpbiB7CiAgICAgICAgICAgICAgZnJvbSB7CiAgICAgICAgICAgICAgICAtd2Via2l0LXRyYW5zZm9ybTogcm90YXRlKDBkZWcpCiAgICAgICAgICAgICAgfQogICAgICAgICAgICAgIHRvIHsKICAgICAgICAgICAgICAgIC13ZWJraXQtdHJhbnNmb3JtOiByb3RhdGUoLTM1OWRlZykKICAgICAgICAgICAgICB9CiAgICAgICAgICAgIH0KICAgICAgICAgICAgQGtleWZyYW1lcyBzcGluIHsKICAgICAgICAgICAgICBmcm9tIHsKICAgICAgICAgICAgICAgIHRyYW5zZm9ybTogcm90YXRlKDBkZWcpCiAgICAgICAgICAgICAgfQogICAgICAgICAgICAgIHRvIHsKICAgICAgICAgICAgICAgIHRyYW5zZm9ybTogcm90YXRlKC0zNTlkZWcpCiAgICAgICAgICAgICAgfQogICAgICAgICAgICB9CiAgICAgICAgICAgIHN2ZyB7CiAgICAgICAgICAgICAgICAtd2Via2l0LXRyYW5zZm9ybS1vcmlnaW46IDUwJSA1MCU7CiAgICAgICAgICAgICAgICAtd2Via2l0LWFuaW1hdGlvbjogc3BpbiAxLjVzIGxpbmVhciBpbmZpbml0ZTsKICAgICAgICAgICAgICAgIC13ZWJraXQtYmFja2ZhY2UtdmlzaWJpbGl0eTogaGlkZGVuOwogICAgICAgICAgICAgICAgYW5pbWF0aW9uOiBzcGluIDEuNXMgbGluZWFyIGluZmluaXRlOwogICAgICAgICAgICB9CiAgICAgICAgXV0+PC9zdHlsZT4KICAgIDwvZGVmcz4KICAgIDxnIGlkPSJvdXRlciI+CiAgICAgICAgPGc+CiAgICAgICAgICAgIDxwYXRoIGQ9Ik0yMCwwQzIyLjIwNTgsMCAyMy45OTM5LDEuNzg4MTMgMjMuOTkzOSwzLjk5MzlDMjMuOTkzOSw2LjE5OTY4IDIyLjIwNTgsNy45ODc4MSAyMCw3Ljk4NzgxQzE3Ljc5NDIsNy45ODc4MSAxNi4wMDYxLDYuMTk5NjggMTYuMDA2MSwzLjk5MzlDMTYuMDA2MSwxLjc4ODEzIDE3Ljc5NDIsMCAyMCwwWiIgc3R5bGU9ImZpbGw6YmxhY2s7Ii8+CiAgICAgICAgPC9nPgogICAgICAgIDxnPgogICAgICAgICAgICA8cGF0aCBkPSJNNS44NTc4Niw1Ljg1Nzg2QzcuNDE3NTgsNC4yOTgxNSA5Ljk0NjM4LDQuMjk4MTUgMTEuNTA2MSw1Ljg1Nzg2QzEzLjA2NTgsNy40MTc1OCAxMy4wNjU4LDkuOTQ2MzggMTEuNTA2MSwxMS41MDYxQzkuOTQ2MzgsMTMuMDY1OCA3LjQxNzU4LDEzLjA2NTggNS44NTc4NiwxMS41MDYxQzQuMjk4MTUsOS45NDYzOCA0LjI5ODE1LDcuNDE3NTggNS44NTc4Niw1Ljg1Nzg2WiIgc3R5bGU9ImZpbGw6cmdiKDIxMCwyMTAsMjEwKTsiLz4KICAgICAgICA8L2c+CiAgICAgICAgPGc+CiAgICAgICAgICAgIDxwYXRoIGQ9Ik0yMCwzMi4wMTIyQzIyLjIwNTgsMzIuMDEyMiAyMy45OTM5LDMzLjgwMDMgMjMuOTkzOSwzNi4wMDYxQzIzLjk5MzksMzguMjExOSAyMi4yMDU4LDQwIDIwLDQwQzE3Ljc5NDIsNDAgMTYuMDA2MSwzOC4yMTE5IDE2LjAwNjEsMzYuMDA2MUMxNi4wMDYxLDMzLjgwMDMgMTcuNzk0MiwzMi4wMTIyIDIwLDMyLjAxMjJaIiBzdHlsZT0iZmlsbDpyZ2IoMTMwLDEzMCwxMzApOyIvPgogICAgICAgIDwvZz4KICAgICAgICA8Zz4KICAgICAgICAgICAgPHBhdGggZD0iTTI4LjQ5MzksMjguNDkzOUMzMC4wNTM2LDI2LjkzNDIgMzIuNTgyNCwyNi45MzQyIDM0LjE0MjEsMjguNDkzOUMzNS43MDE5LDMwLjA1MzYgMzUuNzAxOSwzMi41ODI0IDM0LjE0MjEsMzQuMTQyMUMzMi41ODI0LDM1LjcwMTkgMzAuMDUzNiwzNS43MDE5IDI4LjQ5MzksMzQuMTQyMUMyNi45MzQyLDMyLjU4MjQgMjYuOTM0MiwzMC4wNTM2IDI4LjQ5MzksMjguNDkzOVoiIHN0eWxlPSJmaWxsOnJnYigxMDEsMTAxLDEwMSk7Ii8+CiAgICAgICAgPC9nPgogICAgICAgIDxnPgogICAgICAgICAgICA8cGF0aCBkPSJNMy45OTM5LDE2LjAwNjFDNi4xOTk2OCwxNi4wMDYxIDcuOTg3ODEsMTcuNzk0MiA3Ljk4NzgxLDIwQzcuOTg3ODEsMjIuMjA1OCA2LjE5OTY4LDIzLjk5MzkgMy45OTM5LDIzLjk5MzlDMS43ODgxMywyMy45OTM5IDAsMjIuMjA1OCAwLDIwQzAsMTcuNzk0MiAxLjc4ODEzLDE2LjAwNjEgMy45OTM5LDE2LjAwNjFaIiBzdHlsZT0iZmlsbDpyZ2IoMTg3LDE4NywxODcpOyIvPgogICAgICAgIDwvZz4KICAgICAgICA8Zz4KICAgICAgICAgICAgPHBhdGggZD0iTTUuODU3ODYsMjguNDkzOUM3LjQxNzU4LDI2LjkzNDIgOS45NDYzOCwyNi45MzQyIDExLjUwNjEsMjguNDkzOUMxMy4wNjU4LDMwLjA1MzYgMTMuMDY1OCwzMi41ODI0IDExLjUwNjEsMzQuMTQyMUM5Ljk0NjM4LDM1LjcwMTkgNy40MTc1OCwzNS43MDE5IDUuODU3ODYsMzQuMTQyMUM0LjI5ODE1LDMyLjU4MjQgNC4yOTgxNSwzMC4wNTM2IDUuODU3ODYsMjguNDkzOVoiIHN0eWxlPSJmaWxsOnJnYigxNjQsMTY0LDE2NCk7Ii8+CiAgICAgICAgPC9nPgogICAgICAgIDxnPgogICAgICAgICAgICA8cGF0aCBkPSJNMzYuMDA2MSwxNi4wMDYxQzM4LjIxMTksMTYuMDA2MSA0MCwxNy43OTQyIDQwLDIwQzQwLDIyLjIwNTggMzguMjExOSwyMy45OTM5IDM2LjAwNjEsMjMuOTkzOUMzMy44MDAzLDIzLjk5MzkgMzIuMDEyMiwyMi4yMDU4IDMyLjAxMjIsMjBDMzIuMDEyMiwxNy43OTQyIDMzLjgwMDMsMTYuMDA2MSAzNi4wMDYxLDE2LjAwNjFaIiBzdHlsZT0iZmlsbDpyZ2IoNzQsNzQsNzQpOyIvPgogICAgICAgIDwvZz4KICAgICAgICA8Zz4KICAgICAgICAgICAgPHBhdGggZD0iTTI4LjQ5MzksNS44NTc4NkMzMC4wNTM2LDQuMjk4MTUgMzIuNTgyNCw0LjI5ODE1IDM0LjE0MjEsNS44NTc4NkMzNS43MDE5LDcuNDE3NTggMzUuNzAxOSw5Ljk0NjM4IDM0LjE0MjEsMTEuNTA2MUMzMi41ODI0LDEzLjA2NTggMzAuMDUzNiwxMy4wNjU4IDI4LjQ5MzksMTEuNTA2MUMyNi45MzQyLDkuOTQ2MzggMjYuOTM0Miw3LjQxNzU4IDI4LjQ5MzksNS44NTc4NloiIHN0eWxlPSJmaWxsOnJnYig1MCw1MCw1MCk7Ii8+CiAgICAgICAgPC9nPgogICAgPC9nPgo8L3N2Zz4K)';
-                } else {
-                    layerControl.style.backgroundImage = 'url("data:image/gif;base64,R0lGODlhGQAcAMIAAAAAADQ0NKahocvFxf///wAAAAAAAAAAACH5BAEKAAcALAAAAAAZABwAAANneLoH/hCwyaJ1dDrCuydY1gBfyYUaaZqosq0r+sKxNNP1pe98Hy2OgXBILLZGxWRSBlA6iZjgczrwWa9WIEDA7Xq/R8d3PGaSz97oFs0WYN9wiDZAr9vvYcB9v2fy/3ZqgIN0cYZYCQA7")';
-                }
+                layerControl.style.backgroundImage = 'url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBzdGFuZGFsb25lPSJubyI/Pgo8IURPQ1RZUEUgc3ZnIFBVQkxJQyAiLS8vVzNDLy9EVEQgU1ZHIDEuMS8vRU4iICJodHRwOi8vd3d3LnczLm9yZy9HcmFwaGljcy9TVkcvMS4xL0RURC9zdmcxMS5kdGQiPgo8c3ZnIHdpZHRoPSI0MHB4IiBoZWlnaHQ9IjQwcHgiIHZpZXdCb3g9IjAgMCA0MCA0MCIgdmVyc2lvbj0iMS4xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB4bWw6c3BhY2U9InByZXNlcnZlIiBzdHlsZT0iZmlsbC1ydWxlOmV2ZW5vZGQ7Y2xpcC1ydWxlOmV2ZW5vZGQ7c3Ryb2tlLWxpbmVqb2luOnJvdW5kO3N0cm9rZS1taXRlcmxpbWl0OjEuNDE0MjE7IiB4PSIwcHgiIHk9IjBweCI+CiAgICA8ZGVmcz4KICAgICAgICA8c3R5bGUgdHlwZT0idGV4dC9jc3MiPjwhW0NEQVRBWwogICAgICAgICAgICBALXdlYmtpdC1rZXlmcmFtZXMgc3BpbiB7CiAgICAgICAgICAgICAgZnJvbSB7CiAgICAgICAgICAgICAgICAtd2Via2l0LXRyYW5zZm9ybTogcm90YXRlKDBkZWcpCiAgICAgICAgICAgICAgfQogICAgICAgICAgICAgIHRvIHsKICAgICAgICAgICAgICAgIC13ZWJraXQtdHJhbnNmb3JtOiByb3RhdGUoLTM1OWRlZykKICAgICAgICAgICAgICB9CiAgICAgICAgICAgIH0KICAgICAgICAgICAgQGtleWZyYW1lcyBzcGluIHsKICAgICAgICAgICAgICBmcm9tIHsKICAgICAgICAgICAgICAgIHRyYW5zZm9ybTogcm90YXRlKDBkZWcpCiAgICAgICAgICAgICAgfQogICAgICAgICAgICAgIHRvIHsKICAgICAgICAgICAgICAgIHRyYW5zZm9ybTogcm90YXRlKC0zNTlkZWcpCiAgICAgICAgICAgICAgfQogICAgICAgICAgICB9CiAgICAgICAgICAgIHN2ZyB7CiAgICAgICAgICAgICAgICAtd2Via2l0LXRyYW5zZm9ybS1vcmlnaW46IDUwJSA1MCU7CiAgICAgICAgICAgICAgICAtd2Via2l0LWFuaW1hdGlvbjogc3BpbiAxLjVzIGxpbmVhciBpbmZpbml0ZTsKICAgICAgICAgICAgICAgIC13ZWJraXQtYmFja2ZhY2UtdmlzaWJpbGl0eTogaGlkZGVuOwogICAgICAgICAgICAgICAgYW5pbWF0aW9uOiBzcGluIDEuNXMgbGluZWFyIGluZmluaXRlOwogICAgICAgICAgICB9CiAgICAgICAgXV0+PC9zdHlsZT4KICAgIDwvZGVmcz4KICAgIDxnIGlkPSJvdXRlciI+CiAgICAgICAgPGc+CiAgICAgICAgICAgIDxwYXRoIGQ9Ik0yMCwwQzIyLjIwNTgsMCAyMy45OTM5LDEuNzg4MTMgMjMuOTkzOSwzLjk5MzlDMjMuOTkzOSw2LjE5OTY4IDIyLjIwNTgsNy45ODc4MSAyMCw3Ljk4NzgxQzE3Ljc5NDIsNy45ODc4MSAxNi4wMDYxLDYuMTk5NjggMTYuMDA2MSwzLjk5MzlDMTYuMDA2MSwxLjc4ODEzIDE3Ljc5NDIsMCAyMCwwWiIgc3R5bGU9ImZpbGw6YmxhY2s7Ii8+CiAgICAgICAgPC9nPgogICAgICAgIDxnPgogICAgICAgICAgICA8cGF0aCBkPSJNNS44NTc4Niw1Ljg1Nzg2QzcuNDE3NTgsNC4yOTgxNSA5Ljk0NjM4LDQuMjk4MTUgMTEuNTA2MSw1Ljg1Nzg2QzEzLjA2NTgsNy40MTc1OCAxMy4wNjU4LDkuOTQ2MzggMTEuNTA2MSwxMS41MDYxQzkuOTQ2MzgsMTMuMDY1OCA3LjQxNzU4LDEzLjA2NTggNS44NTc4NiwxMS41MDYxQzQuMjk4MTUsOS45NDYzOCA0LjI5ODE1LDcuNDE3NTggNS44NTc4Niw1Ljg1Nzg2WiIgc3R5bGU9ImZpbGw6cmdiKDIxMCwyMTAsMjEwKTsiLz4KICAgICAgICA8L2c+CiAgICAgICAgPGc+CiAgICAgICAgICAgIDxwYXRoIGQ9Ik0yMCwzMi4wMTIyQzIyLjIwNTgsMzIuMDEyMiAyMy45OTM5LDMzLjgwMDMgMjMuOTkzOSwzNi4wMDYxQzIzLjk5MzksMzguMjExOSAyMi4yMDU4LDQwIDIwLDQwQzE3Ljc5NDIsNDAgMTYuMDA2MSwzOC4yMTE5IDE2LjAwNjEsMzYuMDA2MUMxNi4wMDYxLDMzLjgwMDMgMTcuNzk0MiwzMi4wMTIyIDIwLDMyLjAxMjJaIiBzdHlsZT0iZmlsbDpyZ2IoMTMwLDEzMCwxMzApOyIvPgogICAgICAgIDwvZz4KICAgICAgICA8Zz4KICAgICAgICAgICAgPHBhdGggZD0iTTI4LjQ5MzksMjguNDkzOUMzMC4wNTM2LDI2LjkzNDIgMzIuNTgyNCwyNi45MzQyIDM0LjE0MjEsMjguNDkzOUMzNS43MDE5LDMwLjA1MzYgMzUuNzAxOSwzMi41ODI0IDM0LjE0MjEsMzQuMTQyMUMzMi41ODI0LDM1LjcwMTkgMzAuMDUzNiwzNS43MDE5IDI4LjQ5MzksMzQuMTQyMUMyNi45MzQyLDMyLjU4MjQgMjYuOTM0MiwzMC4wNTM2IDI4LjQ5MzksMjguNDkzOVoiIHN0eWxlPSJmaWxsOnJnYigxMDEsMTAxLDEwMSk7Ii8+CiAgICAgICAgPC9nPgogICAgICAgIDxnPgogICAgICAgICAgICA8cGF0aCBkPSJNMy45OTM5LDE2LjAwNjFDNi4xOTk2OCwxNi4wMDYxIDcuOTg3ODEsMTcuNzk0MiA3Ljk4NzgxLDIwQzcuOTg3ODEsMjIuMjA1OCA2LjE5OTY4LDIzLjk5MzkgMy45OTM5LDIzLjk5MzlDMS43ODgxMywyMy45OTM5IDAsMjIuMjA1OCAwLDIwQzAsMTcuNzk0MiAxLjc4ODEzLDE2LjAwNjEgMy45OTM5LDE2LjAwNjFaIiBzdHlsZT0iZmlsbDpyZ2IoMTg3LDE4NywxODcpOyIvPgogICAgICAgIDwvZz4KICAgICAgICA8Zz4KICAgICAgICAgICAgPHBhdGggZD0iTTUuODU3ODYsMjguNDkzOUM3LjQxNzU4LDI2LjkzNDIgOS45NDYzOCwyNi45MzQyIDExLjUwNjEsMjguNDkzOUMxMy4wNjU4LDMwLjA1MzYgMTMuMDY1OCwzMi41ODI0IDExLjUwNjEsMzQuMTQyMUM5Ljk0NjM4LDM1LjcwMTkgNy40MTc1OCwzNS43MDE5IDUuODU3ODYsMzQuMTQyMUM0LjI5ODE1LDMyLjU4MjQgNC4yOTgxNSwzMC4wNTM2IDUuODU3ODYsMjguNDkzOVoiIHN0eWxlPSJmaWxsOnJnYigxNjQsMTY0LDE2NCk7Ii8+CiAgICAgICAgPC9nPgogICAgICAgIDxnPgogICAgICAgICAgICA8cGF0aCBkPSJNMzYuMDA2MSwxNi4wMDYxQzM4LjIxMTksMTYuMDA2MSA0MCwxNy43OTQyIDQwLDIwQzQwLDIyLjIwNTggMzguMjExOSwyMy45OTM5IDM2LjAwNjEsMjMuOTkzOUMzMy44MDAzLDIzLjk5MzkgMzIuMDEyMiwyMi4yMDU4IDMyLjAxMjIsMjBDMzIuMDEyMiwxNy43OTQyIDMzLjgwMDMsMTYuMDA2MSAzNi4wMDYxLDE2LjAwNjFaIiBzdHlsZT0iZmlsbDpyZ2IoNzQsNzQsNzQpOyIvPgogICAgICAgIDwvZz4KICAgICAgICA8Zz4KICAgICAgICAgICAgPHBhdGggZD0iTTI4LjQ5MzksNS44NTc4NkMzMC4wNTM2LDQuMjk4MTUgMzIuNTgyNCw0LjI5ODE1IDM0LjE0MjEsNS44NTc4NkMzNS43MDE5LDcuNDE3NTggMzUuNzAxOSw5Ljk0NjM4IDM0LjE0MjEsMTEuNTA2MUMzMi41ODI0LDEzLjA2NTggMzAuMDUzNiwxMy4wNjU4IDI4LjQ5MzksMTEuNTA2MUMyNi45MzQyLDkuOTQ2MzggMjYuOTM0Miw3LjQxNzU4IDI4LjQ5MzksNS44NTc4NloiIHN0eWxlPSJmaWxsOnJnYig1MCw1MCw1MCk7Ii8+CiAgICAgICAgPC9nPgogICAgPC9nPgo8L3N2Zz4K)';
             }
         });
 
+        ALEvent.LOADING_STOP.listenedBy(aladinDiv, function (e) {
+            let layerControl = aladinDiv.querySelector(".aladin-layersControl");
+
+            if (layerControl) {
+                layerControl.style.backgroundImage = 'url("data:image/gif;base64,R0lGODlhGQAcAMIAAAAAADQ0NKahocvFxf///wAAAAAAAAAAACH5BAEKAAcALAAAAAAZABwAAANneLoH/hCwyaJ1dDrCuydY1gBfyYUaaZqosq0r+sKxNNP1pe98Hy2OgXBILLZGxWRSBlA6iZjgczrwWa9WIEDA7Xq/R8d3PGaSz97oFs0WYN9wiDZAr9vvYcB9v2fy/3ZqgIN0cYZYCQA7")';
+            }
+        });
+
+        this.toolbar = new Toolbar(this);
+
         if (options.showLayersControl) {
             // button to show Stack interface
-            var d = $('<div class="aladin-layersControl-container" style="top: ' + top_px + 'px" title="Manage layers"><div class="aladin-layersControl"></div></div>');
-            d.appendTo(aladinDiv);
 
             if (options.expandLayersControl) {
                 self.hideBoxes();
                 self.showLayerBox();
             }
-
-            // we return false so that the default event is not submitted, and to prevent event bubbling
-            d.click(function () {
-                self.hideBoxes();
-                self.showLayerBox();
-                return false;
-            });
-            top_px += 38;
-        }
-
-        // goto control panel
-        if (options.showGotoControl) {
-            var d = $('<div class="aladin-gotoControl-container" style="top: ' + top_px + 'px" title="Go to position"><div class="aladin-gotoControl"></div></div>');
-            d.appendTo(aladinDiv);
-
-            var gotoBox =
-                $('<div class="aladin-box aladin-gotoBox">' +
-                    '<a class="aladin-closeBtn" style="display: inline-block">&times;</a>' +
-                    '<form class="aladin-target-form" style="display: inline-block">Go to: <input class="aladin-input" type="text" placeholder="Object name/position" /></form></div>');
-            gotoBox.appendTo(aladinDiv);
-            this.boxes.push(gotoBox);
-
-            var input = gotoBox.find('.aladin-target-form input');
-            input.on("paste keydown", function () {
-                $(this).removeClass('aladin-unknownObject'); // remove red border
-            });
-
-            // Unfocus the keyboard on android devices (maybe it concerns all smartphones) when the user click on enter
-            input.on("change", function () {
-                input.blur();
-            });
-
-            // TODO : classe GotoBox
-            d.click(function () {
-                self.hideBoxes();
-                input.val('');
-                input.removeClass('aladin-unknownObject');
-                gotoBox.show();
-                input.blur();
-
-                return false;
-            });
-            gotoBox.find('.aladin-closeBtn').click(function () { self.hideBoxes(); input.blur(); return false; });
-            top_px += 38;
-        }
-
-        // simbad pointer tool
-        if (options.showSimbadPointerControl) {
-            var d = $('<div class="aladin-simbadPointerControl-container" style="top: ' + top_px + 'px" title="What is this? Click on an object to identify it."><div class="aladin-simbadPointerControl"></div></div>');
-            d.appendTo(aladinDiv);
-
-            d.click(function () {
-                self.view.setMode(View.TOOL_SIMBAD_POINTER);
-            });
-            top_px += 38;
         }
 
         // Coo grid pointer tool
-        if (options.showCooGridControl) {
+        /*if (options.showCooGridControl) {
             var d = $('<div class="aladin-cooGridControl-container" style="top: ' + top_px + 'px" title="Coo grid. Keep the mouse down to see the option panel"><div class="aladin-cooGridControl"></div></div>');
             d.appendTo(aladinDiv);
 
@@ -348,7 +238,7 @@ export let Aladin = (function () {
                 }
             })
             top_px += 38;
-        }
+        }*/
 
         // share control panel
         if (options.showShareControl) {
@@ -389,8 +279,6 @@ export let Aladin = (function () {
             Logger.log("startup", params);
         }
 
-        this.showReticle(options.showReticle);
-
         if (options.catalogUrls) {
             for (var k = 0, len = options.catalogUrls.length; k < len; k++) {
                 this.createCatalogFromVOTable(options.catalogUrls[k]);
@@ -427,16 +315,6 @@ export let Aladin = (function () {
         this.view.showCatalog(options.showCatalog);
 
         var aladin = this;
-        $(aladinDiv).find('.aladin-frameChoice').change(function () {
-            aladin.setFrame($(this).val());
-        });
-
-        $(aladinDiv).find('.aladin-target-form').submit(function () {
-            aladin.gotoObject($(this).find('input').val(), function () {
-                $(aladinDiv).find('.aladin-target-form input').addClass('aladin-unknownObject');
-            });
-            return false;
-        });
 
         var zoomPlus = $(aladinDiv).find('.zoomPlus');
         zoomPlus.click(function () {
@@ -458,23 +336,32 @@ export let Aladin = (function () {
 
         this.callbacksByEventName = {}; // we store the callback functions (on 'zoomChanged', 'positionChanged', ...) here
 
-        // initialize the Vue components
-        //if (typeof Vue != "undefined") {
-            //this.discoverytree = new DiscoveryTree(this);
-        //}
-
-        this.view.redraw();
-
+        // FullScreen toolbar icon
+        this.isInFullscreen = false;
         // go to full screen ?
         if (options.fullScreen) {
             // strange behaviour to wait for a sec
             self.toggleFullscreen(self.options.realFullscreen);
         }
 
+        // maximize control
+        if (options.showFullscreenControl) {
+            // react to fullscreenchange event to restore initial width/height (if user pressed ESC to go back from full screen)
+            $(document).on('fullscreenchange webkitfullscreenchange mozfullscreenchange MSFullscreenChange', function (e) {
+                var fullscreenElt = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
+                if (fullscreenElt === null || fullscreenElt === undefined) {
+                    $(self.aladinDiv).removeClass('aladin-fullscreen');
+    
+                    var fullScreenToggledFn = self.callbacksByEventName['fullScreenToggled'];
+                    (typeof fullScreenToggledFn === 'function') && fullScreenToggledFn(self.isInFullscreen);
+                }
+            });
+        }
+
         // set right click context menu
         if (options.showContextMenu) {
             this.contextMenu = new ContextMenu(this);
-            this.contextMenu.attachTo(DefaultActionsForContextMenu.getDefaultActions(this));
+            this.contextMenu.attach(DefaultActionsForContextMenu.getDefaultActions(this));
         }
 
         if (options.samp) {
@@ -483,6 +370,8 @@ export let Aladin = (function () {
                 console.log('is hub running samp', e.detail.isHubRunning)
             });
         }
+        // Reticle
+        this.reticle = new Reticle(this.options, this);
     };
 
     /**** CONSTANTS ****/
@@ -509,47 +398,33 @@ export let Aladin = (function () {
         showGotoControl: true,
         showSimbadPointerControl: false,
         showShareControl: false,
+        showCooGridControl: false,
+        showFrame: true,
         showContextMenu: false,
         showCatalog: true, // TODO: still used ??
-        showFrame: true,
         fullScreen: false,
         reticleColor: "rgb(178, 50, 178)",
         reticleSize: 22,
+        gridColor: "rgb(0, 255, 0)",
+        gridOpacity: 0.5,
         log: true,
         samp: true,
         allowFullZoomout: false,
         realFullscreen: false,
-        showAllskyRing: false,
-        allskyRingColor: '#c8c8ff',
-        allskyRingWidth: 8,
+        //showAllskyRing: false,
+        //allskyRingColor: '#c8c8ff',
+        //allskyRingWidth: 8,
         pixelateCanvas: true
     };
-
-    Aladin.prototype.copyCoordinatesToClipboard = function() {
-        let copyTextEl = this.view.location.$div[0];
-        var r = document.createRange();
-        r.selectNode(copyTextEl);
-        window.getSelection().removeAllRanges();
-        window.getSelection().addRange(r);
-        try {
-            let successful = document.execCommand('copy');
-            let msg = successful ? 'successful' : 'unsuccessful';
-            console.log('Copying text command was ' + msg);
-        } catch (err) {
-            console.log('Oops, unable to copy');
-        }
-        window.getSelection().removeAllRanges();
-    }
 
     // realFullscreen: AL div expands not only to the size of its parent, but takes the whole available screen estate
     Aladin.prototype.toggleFullscreen = function (realFullscreen) {
         let self = this;
 
         realFullscreen = Boolean(realFullscreen);
+        self.isInFullscreen = !self.isInFullscreen;
+        //this.fullScreenBtn.attr('title', isInFullscreen ? 'Restore original size' : 'Full screen');
 
-        this.fullScreenBtn.toggleClass('aladin-maximize aladin-restore');
-        var isInFullscreen = this.fullScreenBtn.hasClass('aladin-restore');
-        this.fullScreenBtn.attr('title', isInFullscreen ? 'Restore original size' : 'Full screen');
         //$(this.aladinDiv).toggleClass('aladin-fullscreen');
         if (this.aladinDiv.classList.contains('aladin-fullscreen')) {
             this.aladinDiv.classList.remove('aladin-fullscreen');
@@ -701,7 +576,7 @@ export let Aladin = (function () {
         }
 
         // màj select box
-        $(this.aladinDiv).find('.aladin-frameChoice').val(newFrame.label);
+        //$(this.aladinDiv).find('.aladin-frameChoice').val(newFrame.label);
     };
 
     Aladin.prototype.setProjection = function (projection) {
@@ -717,14 +592,14 @@ export let Aladin = (function () {
 
         let projName = undefined;
         for (let key in ProjectionEnum) {
-            if (ProjectionEnum[key].id == self.view.projection.id) {
+            if (ProjectionEnum[key] == self.view.projection) {
                 projName = key;
                 break;
             }
         };
 
         return projName;
-    };
+    };``
 
     /** return the current coordinate system: possible values are 'J2000', 'J2000d', and 'Galactic' 
      * @api
@@ -806,7 +681,7 @@ export let Aladin = (function () {
     
                             (typeof successCallback === 'function') && successCallback(self.getRaDec());
                         },
-                        function (data) { // errror callback
+                        function (data) { // error callback
                             if (console) {
                                 console.log("Could not resolve object name " + targetName);
                                 console.log(data);
@@ -1040,6 +915,10 @@ export let Aladin = (function () {
         this.view.showHealpixGrid(show);
     };
 
+    Aladin.prototype.healpixGrid = function () {
+        return this.view.displayHpxGrid;
+    };
+
     Aladin.prototype.showSurvey = function (show) {
         this.view.showSurvey(show);
     };
@@ -1047,9 +926,15 @@ export let Aladin = (function () {
         this.view.showCatalog(show);
     };
     Aladin.prototype.showReticle = function (show) {
-        this.view.showReticle(show);
-        $('#displayReticle').attr('checked', show);
+        console.log("show", show, this.reticle)
+        this.reticle.show(show)
+        //$('#displayReticle').attr('checked', show);
     };
+
+    Aladin.prototype.getReticle = function () {
+        return this.reticle;
+    };
+
     Aladin.prototype.removeLayers = function () {
         this.view.removeLayers();
     };
@@ -1170,19 +1055,9 @@ export let Aladin = (function () {
     // @api
     // @old
     Aladin.prototype.setBackgroundColor = function(rgb) {
-        let color;
-        if (typeof rgb === "string") {
-            var rgb = rgb.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
+        
 
-            var r = parseInt(rgb[1]);
-            var g = parseInt(rgb[2]);
-            var b = parseInt(rgb[3]);
-
-            color = { r: r, g: g, b: b };
-        } else {
-            color = rgb;
-        }
-        this.backgroundColor = color;
+        this.backgroundColor = new Color(rgb);
         // Once the wasm is ready, send the color to change it
 
         ALEvent.AL_USE_WASM.dispatchedTo(document.body, {callback: (wasm) => {
@@ -1272,11 +1147,6 @@ export let Aladin = (function () {
 
     Aladin.prototype.getActiveHiPSLayer = function () {
         return this.view.selectedLayer;
-    }
-
-    // Get the list of image layer overlays
-    Aladin.prototype.getImageOverlays = function () {
-        return this.view.overlayLayers;
     }
 
     // Get the list of overlays
@@ -1373,12 +1243,17 @@ export let Aladin = (function () {
                 callbackFn(this.view.selectedObjects);
             }
         }
+        else if (what === 'simbad') {
+            this.view.setMode(View.TOOL_SIMBAD_POINTER);
+        }
     };
 
     Aladin.prototype.hideBoxes = function () {
         if (this.boxes) {
             for (var k = 0; k < this.boxes.length; k++) {
-                this.boxes[k].hide();
+                if (typeof this.boxes[k].hide === "function") {
+                    this.boxes[k].hide();
+                }
             }
         }
     };
@@ -1390,12 +1265,34 @@ export let Aladin = (function () {
 
     // TODO : LayerBox (or Stack?) must be extracted as a separate object
     Aladin.prototype.showLayerBox = function () {
-        this.stack.show();
+        this.stack.showImageLayerBox();
     };
 
-    Aladin.prototype.showCooGridBox = function () {
+    /*Aladin.prototype.showCooGridBox = function () {
         this.coogrid.show();
-    };
+    };*/
+
+    /**
+     * Change the coo grid options
+     * @param {color: String | {r: Float, g: Float, b: Float}, labelSize: Float, thickness: Float, opacity: Float} options - Represents the structure of the Tabs
+     */
+    Aladin.prototype.setCooGrid = function(options) {
+        if (options.color) {
+            // 1. the user has maybe given some
+            options.color = new Color(options.color)
+            // 3. convert from 0-255 to 0-1
+            options.color.r /= 255;
+            options.color.g /= 255;
+            options.color.b /= 255;
+
+        }
+
+        this.view.setGridConfig(options);
+    }
+
+    Aladin.prototype.getGridOptions = function() {
+        return this.view.getGridConfig();
+    }
 
     Aladin.prototype.showCooGrid = function () {
         this.view.setGridConfig({enabled: true});
@@ -1693,9 +1590,17 @@ export let Aladin = (function () {
      * @return the current FoV size in degrees as a 2-elements array
      */
     Aladin.prototype.getFov = function () {
+        // can go up to 1000 deg
         var fovX = this.view.fov;
         var s = this.getSize();
+
+        // constrain to the projection definition domain
+        fovX = Math.min(fovX, this.view.projection.fov);
         var fovY = s[1] / s[0] * fovX;
+
+        fovY = Math.min(fovY, 180);
+        // TODO : take into account AITOFF projection where fov can be larger than 180
+
         return [fovX, fovY];
     };
 

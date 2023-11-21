@@ -208,10 +208,18 @@
         return this.colormap;
     };
 
+    ColorCfg.prototype.getReversed = function() {
+        return this.reversed;
+    };
+
     // @api
     ColorCfg.prototype.setCuts = function(lowCut, highCut) {
         this.minCut = lowCut;
         this.maxCut = highCut;
+    };
+
+    ColorCfg.prototype.getCuts = function() {
+        return [this.minCut, this.maxCut];
     };
 
     ColorCfg.COLORMAPS = [];

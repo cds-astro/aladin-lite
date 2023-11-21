@@ -18,43 +18,23 @@
 //
 
 
-
 /******************************************************************************
  * Aladin Lite project
- * 
- * File Location.js
- * 
- * Author: Thomas Boch[CDS]
- * 
+ *
+ * File gui/Stack/Menu.js
+ *
+ *
+ * Author: Matthieu Baumann [CDS, matthieu.baumann@astro.unistra.fr]
+ *
  *****************************************************************************/
 
-
-import { Coo }            from "./libs/astro/coo.js";
-import { CooFrameEnum }   from "./CooFrameEnum.js";
-
-import $ from 'jquery';
-
-export let Location = (function () {
-    // constructor
-    function Location(locationDiv) {
-        this.$div = $(locationDiv);
-    };
-
-    Location.prototype.update = function (lon, lat, cooFrame, isViewCenterPosition) {
-        var coo = new Coo(lon, lat, 7);
-        if (cooFrame == CooFrameEnum.J2000) {
-            this.$div.html(coo.format('s/'));
-        }
-        else if (cooFrame == CooFrameEnum.J2000d) {
-            this.$div.html(coo.format('d/'));
-        }
-        else {
-            this.$div.html(coo.format('d/'));
-        }
-
-        this.$div.toggleClass('aladin-reticleColor', isViewCenterPosition);
-    };
-
-    return Location;
-})();
-
+ import { DOMElement } from "../../Widgets/Widget.js";
+  
+ export class FullScreen extends DOMElement {
+     // Constructor
+     constructor(aladin) {
+        let el;
+        super(el);
+    }
+ }
+ 

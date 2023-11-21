@@ -33,29 +33,46 @@
 import { Coo } from '../../libs/astro/coo.js';
 import { CooFrameEnum } from '../../CooFrameEnum.js';
 import { Utils } from '../../Utils';
+import { DOMElement } from './Widget.js';
 
-export class ContextMenu {
+export class ContextMenu extends DOMElement {
 
-    constructor(aladin) {
+    constructor(aladin, options) {
+        let el = document.createElement('ul');
+        el.className = 'aladin-context-menu';
+
+        super(el);
+
         this.aladin = aladin;
-        this.isShowing = false;
+
+        this.cssStyleDefault = el.style;
+
+        if (!options || options.hideOnClick === undefined || options.hideOnClick === true) {
+            document.addEventListener('click', () => this._hide());
+        }
+
+        if (!options || options.hideOnResize === undefined || options.hideOnResize === true) {
+            window.addEventListener('resize', () => this._hide());
+        }
     }
 
-    _hideMenu() {
-        this.contextMenuUl.remove();
-        document.removeEventListener('click', this._hideMenu);
-        window.removeEventListener('resize', this._hideOnResize);
-
-        this.isShowing = false;
-    }
-
-    _hideOnResize() {
-        this._hideMenu(true);
+    _hide() {
+        super._hide()
+        super.remove()
     }
 
     _attachOption(target, opt, xymouse) {
         const item = document.createElement('li');
-        item.className = 'aladin-context-menu-item';
+        item.classList.add('aladin-context-menu-item');
+
+        if (opt.cssStyle) {
+            // add the css style to the item
+            // copied from widgets.js
+            for (const property in opt.cssStyle) {
+                item.style[property] = opt.cssStyle[property];
+            }
+        }
+
         if (opt.label == 'Copy position') {
             try {
                 const pos = this.aladin.pix2world(xymouse.x, xymouse.y);
@@ -73,26 +90,57 @@ export class ContextMenu {
                 item.innerHTML = '<span></span>';
             }
         } else {
-            item.innerHTML = '<span>' + opt.label + '</span>';
+            if (opt.label instanceof DOMElement) {
+                // And add it to the DOM
+                opt.label.attachTo(item);
+            } else if (opt.label instanceof Element) {                
+                item.insertAdjacentElement('beforeend', opt.label);
+            } else {
+                let wrapEl = document.createElement('div');
+                wrapEl.innerHTML = opt.label;
+                item.insertAdjacentElement('beforeend', wrapEl);
+            }
         }
 
         if (opt.subMenu && opt.subMenu.length > 0) {
-            item.innerHTML += '<span style="position: absolute; right: 4px;">▶</span>';
+            item.innerHTML += '<span style="position: absolute; right: 0px">▶</span>';
         }
 
         const self = this;
-        item.addEventListener('click', e => {
-            e.stopPropagation();
-            if (!opt.subMenu || opt.subMenu.length === 0) {
-                if (opt.label == 'Copy position') {
-                    opt.action(e);
-                } else {
-                    opt.action(this.event);
-                }
-                self._hideMenu(true);
-            }
-        });
+        if (opt.disabled && opt.disabled === true) {
+            item.classList.add('aladin-context-menu-item-disabled');
+        }
 
+        if (opt.selected && opt.selected === true) {
+            item.classList.add('aladin-context-menu-item-selected');
+        }
+
+        if (opt.action) {
+            item.addEventListener('click', e => {
+                e.stopPropagation();
+    
+                if (!opt.disabled || opt.disabled === false) {
+                    if (!opt.subMenu || opt.subMenu.length === 0) {
+                        opt.action(e);
+                        self._hide();
+                    }
+                }
+            });
+        }
+        
+        if (opt.hover) {
+            item.addEventListener('mouseover', e => {
+                e.stopPropagation();
+                opt.hover(e, item);
+            })
+        }
+        if (opt.unhover) {
+            item.addEventListener('mouseout', e => {
+                e.stopPropagation();
+                opt.unhover(e, item);
+            })
+        }
+        
         target.appendChild(item);
 
         if (opt.subMenu && opt.subMenu.length) {
@@ -103,50 +151,72 @@ export class ContextMenu {
         }
     }
 
-    _showMenu(e) {
-        this.contextMenuUl.className = 'aladin-context-menu';
-        this.contextMenuUl.innerHTML = '';
+    _subMenuDisplay(parent) {
+        for (let item of parent.children) {
+            // Display the submenu to evaluate its size
+            item.style.display = "block";
 
-        const xymouse = Utils.relMouseCoords(e);
+            if (item.className === 'aladin-context-sub-menu') {
+                let r = item.getBoundingClientRect();
 
-        this.menuOptions.forEach(opt => this._attachOption(this.contextMenuUl, opt, xymouse));
-        document.body.appendChild(this.contextMenuUl);
+                if (r.x + r.width >= innerWidth) {
+                    this.el.classList.add('left');
+                }
 
-        const { innerWidth, innerHeight } = window;
-        const { offsetWidth, offsetHeight } = this.contextMenuUl;
-        let x = 0;
-        let y = 0;
+                if (r.y + r.height >= innerHeight) {
+                    this.el.classList.add('top');
+                }
+            }
 
-        this.event = e;
+            this._subMenuDisplay(item)
 
-        if (e.clientX >= (innerWidth / 2)) {
-            this.contextMenuUl.classList.add('left');
+            // Hide the submenu
+            item.style.display = "";
         }
-
-        if (e.clientY >= (innerHeight / 2)) {
-            this.contextMenuUl.classList.add('top');
-        }
-
-        if (e.clientX >= (innerWidth - offsetWidth)) {
-            x = '-100%';
-        }
-
-        if (e.clientY >= (innerHeight - offsetHeight)) {
-            y = '-100%';
-        }
-
-        this.contextMenuUl.style.left = e.clientX + 'px';
-        this.contextMenuUl.style.top = e.clientY + 'px';
-        this.contextMenuUl.style.transform = `translate(${x}, ${y})`;
-        document.addEventListener('click', () => this._hideMenu(true));
-        window.addEventListener('resize', this._hideOnResize);
-
-        this.isShowing = true;
     }
 
-    attachTo(options) {
-        this.contextMenuUl = document.createElement('ul');
+    show(options) {
+        this.remove();
+
+        this.el.innerHTML = '';
+        this.el.style = this.cssStyleDefault
+        let xymouse;
+        if (options && options.e) {
+            xymouse = Utils.relMouseCoords(options.e);
+        }
+
+        this.menuOptions.forEach(opt => this._attachOption(this.el, opt, xymouse));
+
+        // Add it to the dom
+        this.attachTo(this.aladin.aladinDiv)
+
+        if (options && options.cssStyle) {
+            this.setCss(options.cssStyle);
+        }
+
+        // Set position
+        const position = options && options.position || (options && options.e && { left: options.e.clientX, top: options.e.clientY });
+        this.setPosition(position)
+
+        this.el.classList.remove('left')
+        this.el.classList.remove('top')
+        this._subMenuDisplay(this.el)
+
+        super._show()
+    }
+
+    attach(options) {
         this.menuOptions = options;
+    }
+
+    static menu = undefined;
+
+    static getInstance(aladin, options) {
+        if (!ContextMenu.menu) {
+            ContextMenu.menu = new ContextMenu(aladin, options);
+        }
+
+        return ContextMenu.menu;
     }
 }
 

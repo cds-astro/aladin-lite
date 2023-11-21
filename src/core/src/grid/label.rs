@@ -15,7 +15,7 @@ use crate::math::angle::ToAngle;
 use cgmath::Vector2;
 use core::ops::Range;
 
-const OFF_TANGENT: f64 = 35.0;
+const OFF_TANGENT: f64 = 70.0;
 const OFF_BI_TANGENT: f64 = 5.0;
 
 pub enum LabelOptions {
@@ -76,7 +76,9 @@ impl Label {
             lon += TWICE_PI;
         }
 
-        let content = fmt.to_string(lon.to_angle());
+        //let content = fmt.to_string(lon.to_angle());
+        let content = al_api::angle_fmt::Format::toSexagesimal(lon.to_degrees() / 15.0, 8, false);
+
         let position = if !fov.is_allsky() {
             d1 + OFF_TANGENT * dt - OFF_BI_TANGENT * db
         } else {
@@ -128,7 +130,8 @@ impl Label {
         let dt = (d2 - d1).normalize();
         let db = Vector2::new(dt.y.abs(), dt.x.abs());
 
-        let content = SerializeFmt::DMS.to_string(lonlat.lat());
+        //let content = SerializeFmt::DMS.to_string(lonlat.lat());
+        let content = al_api::angle_fmt::Format::toSexagesimal(lonlat.lat().to_degrees(), 7, false);
 
         let fov = camera.get_field_of_view();
         let position = if !fov.is_allsky() && !fov.contains_pole() {

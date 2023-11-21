@@ -49,13 +49,12 @@ import { ColorCfg } from "./ColorCfg.js";
 import { Footprint } from "./Footprint.js";
 import { Selector } from "./Selector.js";
 import $ from 'jquery';
-import { ActionButton } from "./gui/widgets/ActionButton.js";
 import { ObsCore } from "./vo/ObsCore.js";
 
 export let View = (function () {
 
     /** Constructor */
-    function View(aladin, location, fovDiv, cooFrame, zoom) {
+    function View(aladin) {
         this.aladin = aladin;
         // Add a reference to the WebGL API
         this.options = aladin.options;
@@ -65,6 +64,8 @@ export let View = (function () {
         this.loadingState = false;
 
         let self = this;
+
+        self.redrawClbk = this.redraw.bind(this);
         // Init the WebGL context
         // At this point, the view has been created so the image canvas too
         try {
@@ -123,8 +124,7 @@ export let View = (function () {
 
         this.aladinDiv.ondragover = Utils.dragOverHandler;
 
-        this.location = location;
-        this.fovDiv = fovDiv;
+        //this.location = location;
         this.mustClearCatalog = true;
         this.mode = View.PAN;
 
@@ -142,11 +142,7 @@ export let View = (function () {
 
         this.viewCenter = { lon: lon, lat: lat }; // position of center of view
 
-        if (cooFrame) {
-            this.cooFrame = cooFrame;
-        } else {
-            this.cooFrame = CooFrameEnum.GAL;
-        }
+        this.cooFrame = CooFrameEnum.fromString(this.options.cooFrame, CooFrameEnum.J2000);
 
         // Frame setting
         this.changeFrame(this.cooFrame);
@@ -159,7 +155,7 @@ export let View = (function () {
         const si = 500000.0;
         const alpha = 40.0;
         this.fovLimit = undefined;
-        let initialFov = zoom || 180.0;
+        let initialFov = this.options.fov || 180.0;
         this.pinchZoomParameters = {
             isPinching: false, // true if a pinch zoom is ongoing
             initialFov: undefined,
@@ -272,6 +268,7 @@ export let View = (function () {
         resizeObserver.observe(this.aladinDiv);
         //$(window).resize(() => {
         self.fixLayoutDimensions();
+        self.redraw()
             //self.requestRedraw();
         //});
         // in some contexts (Jupyter notebook for instance), the parent div changes little time after Aladin Lite creation
@@ -510,6 +507,17 @@ export let View = (function () {
 
             const xymouse = Utils.relMouseCoords(e);
 
+            ALEvent.CANVAS_EVENT.dispatchedTo(view.aladinDiv, {
+                state: {
+                    mode: view.mode,
+                    dragging: view.dragging,
+                    rightClickPressed: view.rightClick
+                },
+                type: e.type,
+                xy: xymouse,
+            });
+
+
             if (e.which === 3 || e.button === 2) {
                 view.rightClick = true;
                 view.rightClickTimeStart = Date.now();
@@ -568,11 +576,25 @@ export let View = (function () {
         });
 
         $(view.catalogCanvas).bind("mouseup", function (e) {
-            if (view.rightClick) {
+            e.preventDefault();
+            e.stopPropagation();
 
+            const xymouse = Utils.relMouseCoords(e);
+
+            ALEvent.CANVAS_EVENT.dispatchedTo(view.aladinDiv, {
+                state: {
+                    mode: view.mode,
+                    dragging: view.dragging,
+                    rightClickPressed: view.rightClick
+                },
+                xy: xymouse,
+                ev: e,
+            });
+
+            if (view.rightClick) {
                 const rightClickDurationMs = Date.now() - view.rightClickTimeStart;
-                if (rightClickDurationMs<300) {
-                    view.aladin.contextMenu && view.aladin.contextMenu._showMenu(e);
+                if (rightClickDurationMs < 300) {
+                    view.aladin.contextMenu && view.aladin.contextMenu.show({e: e});
                 }
 
                 view.rightClick = false;
@@ -583,8 +605,21 @@ export let View = (function () {
                 return;
             }
         });
+        
+        // reacting on 'click' rather on 'mouseup' is more reliable when panning the view
+        $(view.catalogCanvas).bind("click mouseout touchend touchcancel", function (e) {
+            const xymouse = Utils.relMouseCoords(e);
 
-        $(view.catalogCanvas).bind("click mouseout touchend touchcancel", function (e) { // reacting on 'click' rather on 'mouseup' is more reliable when panning the view
+            ALEvent.CANVAS_EVENT.dispatchedTo(view.aladinDiv, {
+                state: {
+                    mode: view.mode,
+                    dragging: view.dragging,
+                    rightClickPressed: view.rightClick
+                },
+                type: e.type,
+                ev: e,
+            });
+
             if ((e.type === 'touchend' || e.type === 'touchcancel') && view.pinchZoomParameters.isPinching) {
                 view.pinchZoomParameters.isPinching = false;
                 view.pinchZoomParameters.initialFov = view.pinchZoomParameters.initialDistance = undefined;
@@ -625,11 +660,8 @@ export let View = (function () {
 
             view.mustClearCatalog = true;
             view.dragCoo = null;
-            const xymouse = Utils.relMouseCoords(e);
 
             if (e.type === "mouseout" || e.type === "touchend" || e.type === "touchcancel") {
-                view.updateLocation(xymouse.x, xymouse.y, true);
-
                 if (e.type === "mouseout") {
                     if (view.mode === View.TOOL_SIMBAD_POINTER) {
                         view.setMode(View.PAN);
@@ -642,6 +674,8 @@ export let View = (function () {
             if (view.mode == View.TOOL_SIMBAD_POINTER) {
                 // call Simbad pointer or Planetary features
                 GenericPointer(view, e);
+                // exit the simbad pointer mode
+                view.setMode(View.PAN);
 
                 return; // when in TOOL_SIMBAD_POINTER mode, we do not call the listeners
             }
@@ -731,7 +765,18 @@ export let View = (function () {
         var lastMouseMovePos = null;
         $(view.catalogCanvas).bind("mousemove touchmove", function (e) {
             e.preventDefault();
+
             const xymouse = Utils.relMouseCoords(e);
+
+            ALEvent.CANVAS_EVENT.dispatchedTo(view.aladinDiv, {
+                state: {
+                    mode: view.mode,
+                    dragging: view.dragging,
+                    rightClickPressed: view.rightClick
+                },
+                type: e.type,
+                xy: xymouse,
+            });
 
             if (view.rightClick) {
                 var onRightClickMoveFunction = view.aladin.callbacksByEventName['rightClickMove'];
@@ -796,14 +841,14 @@ export let View = (function () {
                 return;
             }
 
-            if (!view.dragging && !view.moving) {
+            if (!view.dragging /*&& !view.moving*/) {
                 view.updateObjectsLookup();
             }
 
-            if (!view.dragging || hasTouchEvents) {
+            /*if (!view.dragging || hasTouchEvents) {
                 // update location box
-                view.updateLocation(xymouse.x, xymouse.y, false);
-            }
+                view.updateLocation({mouseX: xymouse.x, mouseY: xymouse.y});
+            }*/
 
             if (!view.dragging) {
                 // call listener of 'mouseMove' event
@@ -883,9 +928,9 @@ export let View = (function () {
             view.wasm.moveMouse(s1.x, s1.y, s2.x, s2.y);
             view.wasm.goFromTo(s1.x, s1.y, s2.x, s2.y);
 
-            const [ra, dec] = view.wasm.getCenter();
-            view.viewCenter.lon = ra;
-            view.viewCenter.lat = dec;
+            view.updateCenter();
+
+            ALEvent.POSITION_CHANGED.dispatchedTo(view.aladin.aladinDiv, view.viewCenter);
 
             // Apply position changed callback after the move
             view.throttledPositionChanged();
@@ -896,22 +941,32 @@ export let View = (function () {
         var eventCount = 0;
         var eventCountStart;
         var isTouchPad;
-        var oldTime = 0;
-        var newTime = 0;
 
-        $(view.catalogCanvas).on('wheel', function (event) {
-            event.preventDefault();
-            event.stopPropagation();
+        $(view.catalogCanvas).on('wheel', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const xymouse = Utils.relMouseCoords(e);
+
+            ALEvent.CANVAS_EVENT.dispatchedTo(view.aladinDiv, {
+                state: {
+                    mode: view.mode,
+                    dragging: view.dragging,
+                    rightClickPressed: view.rightClick
+                },
+                type: e.type,
+                xy: xymouse,
+            });
 
             if (view.rightClick) {
                 return;
             }
 
-            var delta = event.deltaY;
+            var delta = e.deltaY;
             // this seems to happen in context of Jupyter notebook --> we have to invert the direction of scroll
             // hope this won't trigger some side effects ...
-            if (event.hasOwnProperty('originalEvent')) {
-                delta = -event.originalEvent.deltaY;
+            if (e.hasOwnProperty('originalEvent')) {
+                delta = -e.originalEvent.deltaY;
             }
 
             // See https://stackoverflow.com/questions/10744645/detect-touchpad-vs-mouse-in-javascript
@@ -945,18 +1000,23 @@ export let View = (function () {
             };
 
             if (isTouchPadDefined) {
-                if (isTouchPad) {
-                    // touchpad
-                    newTime = new Date().getTime();
+                let dt = performance.now() - view.then
 
-                    //if ( newTime - oldTime > 20 ) {
-                        triggerZoom(0.002);
-                        oldTime = new Date().getTime();
-                    //}
+                let a0, a1;
+
+                // touchpad
+                if (isTouchPad) {
+                    a1 = 0.002;
+                    a0 = 0.00002;
                 } else {
-                    // mouse
-                    triggerZoom(0.007);
+                    a1 = 0.0025;
+                    a0 = 0.0001;
                 }
+
+                const alpha = Math.pow(view.fov / view.fovLimit, 0.3);
+
+                const lerp = a0 * alpha + a1 * (1.0 - alpha);
+                triggerZoom(lerp);
             }
 
             if (!view.debounceProgCatOnZoom) {
@@ -990,21 +1050,6 @@ export let View = (function () {
         view.displayReticle = true;
     };
 
-    View.prototype.updateLocation = function (mouseX, mouseY, isViewCenterPosition) {
-        if (isViewCenterPosition) {
-            this.location.update(this.viewCenter.lon, this.viewCenter.lat, this.cooFrame, true);
-        } else {
-            let radec = this.wasm.screenToWorld(mouseX, mouseY); // This is given in the frame of the view
-            if (radec) {
-                if (radec[0] < 0) {
-                    radec = [radec[0] + 360.0, radec[1]];
-                }
-
-                this.location.update(radec[0], radec[1], this.cooFrame, false);
-            }
-        }
-    }
-
     View.prototype.requestRedrawAtDate = function (date) {
         this.dateRequestDraw = date;
     };
@@ -1027,9 +1072,9 @@ export let View = (function () {
         // request another frame
 
         // Elapsed time since last loop
-        const now = Date.now();
+        const now = performance.now();
         const elapsedTime = now - this.then;
-
+        this.dt = elapsedTime;
         // If enough time has elapsed, draw the next frame
         //if (elapsedTime >= View.FPS_INTERVAL) {
             // Get ready for next frame by setting then=now, but also adjust for your
@@ -1051,7 +1096,7 @@ export let View = (function () {
 
             this.then = now;
             //this.then = now % View.FPS_INTERVAL;
-            requestAnimFrame(this.redraw.bind(this));
+            requestAnimFrame(this.redrawClbk);
         //}
     };
 
@@ -1133,8 +1178,8 @@ export let View = (function () {
 
         ////// 4. Draw reticle ///////
         // TODO: reticle should be placed in a static DIV, no need to waste a canvas
-        var reticleCtx = catalogCtx;
-        if (this.mode == View.SELECT) {
+        //var reticleCtx = catalogCtx;
+        /*if (this.mode == View.SELECT) {
             // VIEW mode, we do not want to display the reticle in this
             // but draw a selection box
             if (this.dragging) {
@@ -1179,10 +1224,10 @@ export let View = (function () {
                 }
                 reticleCtx.drawImage(this.reticleCache, this.width / 2 - this.reticleCache.width / 2, this.height / 2 - this.reticleCache.height / 2);
             }
-        }
+        }*/
 
-        ////// 5. Draw all-sky ring /////
-        if (this.projection == ProjectionEnum.SIN && this.fov >= 60 && this.aladin.options['showAllskyRing'] === true) {
+        ////// 5. Draw all-sky ring. This option is now disabled in v3, it is too projection dependant /////
+        /*if (this.projection == ProjectionEnum.SIN && this.fov >= 60 && this.aladin.options['showAllskyRing'] === true) {
             if (!catalogCanvasCleared) {
                 reticleCtx.clearRect(0, 0, this.width, this.height);
                 catalogCanvasCleared = true;
@@ -1196,7 +1241,7 @@ export let View = (function () {
             const radius = (maxCxCy - (ringWidth / 2.0) + 1) / this.zoomFactor;
             reticleCtx.arc(this.cx, this.cy, radius, 0, 2 * Math.PI, true);
             reticleCtx.stroke();
-        }
+        }*/
     };
 
     View.prototype.refreshProgressiveCats = function () {
@@ -1327,25 +1372,27 @@ export let View = (function () {
     }
 
     View.prototype.setGridConfig = function (gridCfg) {
-        this.wasm.setGridConfig(gridCfg);
+        this.gridCfg = {...this.gridCfg, ...gridCfg};
+        this.wasm.setGridConfig(this.gridCfg);
 
         // send events
-        if (gridCfg) {
-            if (gridCfg.hasOwnProperty('enabled')) {
-                if (gridCfg.enabled === true) {
-                    ALEvent.COO_GRID_ENABLED.dispatchedTo(this.aladinDiv);
-                }
-                else {
-                    ALEvent.COO_GRID_DISABLED.dispatchedTo(this.aladinDiv);
-                }
+        /*if (this.gridCfg.hasOwnProperty('enabled')) {
+            if (this.gridCfg.enabled === true) {
+                ALEvent.COO_GRID_ENABLED.dispatchedTo(this.aladinDiv);
             }
-            if (gridCfg.color) {
-                ALEvent.COO_GRID_UPDATED.dispatchedTo(this.aladinDiv, { color: gridCfg.color, opacity: gridCfg.opacity });
+            else {
+                ALEvent.COO_GRID_DISABLED.dispatchedTo(this.aladinDiv);
             }
-        }
+        }*/
+
+        ALEvent.COO_GRID_UPDATED.dispatchedTo(this.aladinDiv, this.gridCfg);
 
         this.requestRedraw();
     };
+
+    View.prototype.getGridConfig = function() {
+        return this.gridCfg;
+    }
 
     View.prototype.updateZoomState = function () {
         // Get the new zoom values from the backend
@@ -1361,31 +1408,12 @@ export let View = (function () {
         this.fov = fov;
         this.computeNorder();
 
-        // Update the lower left FoV div
-        if (isNaN(this.fov)) {
-            this.fovDiv.html("FoV:");
-            return;
-        }
-        var fovStr;
-        /*if (this.projection == ProjectionEnum.SIN && fov >= 180.0) {
-            fov = 180.0;
-        } else if (fov >= 360.0) {
-            fov = 360.0;
-        }*/
-        if (this.projection.fov <= fov) {
-            fov = this.projection.fov;
-        }
+        let fovX = this.fov;
+        let fovY = this.height / this.width * fovX;
+        fovX = Math.min(fovX, 360);
+        fovY = Math.min(fovY, 180);
 
-        if (fov > 1) {
-            fovStr = Math.round(fov * 100) / 100 + "°";
-        }
-        else if (fov * 60 > 1) {
-            fovStr = Math.round(fov * 60 * 100) / 100 + "'";
-        }
-        else {
-            fovStr = Math.round(fov * 3600 * 100) / 100 + '"';
-        }
-        this.fovDiv.html("FoV: " + fovStr);
+        ALEvent.ZOOM_CHANGED.dispatchedTo(this.aladinDiv, { fovX: fovX, fovY: fovY });
     };
 
     /**
@@ -1461,7 +1489,10 @@ export let View = (function () {
                 const promise = imageLayer.add(layer);
 
                 self.loadingState = true;
-                ALEvent.LOADING_STATE.dispatchedTo(this.aladinDiv, { loading: true });
+                ALEvent.LOADING_START.dispatchedTo(this.aladinDiv, {
+                    label: layer.layer,
+                    msg: 'Load the layer: ' + layer.name
+                });
 
                 return promise;
             })
@@ -1482,7 +1513,7 @@ export let View = (function () {
             .finally(() => {
                 // Loading state is over
                 self.loadingState = false;
-                ALEvent.LOADING_STATE.dispatchedTo(this.aladinDiv, { loading: false });
+                ALEvent.LOADING_STOP.dispatchedTo(this.aladinDiv, { label: layer.layer });
 
                 self.imageLayersBeingQueried.delete(layer);
 
@@ -1553,12 +1584,14 @@ export let View = (function () {
     }
 
     View.prototype.removeImageLayer = function (layer) {
+        console.log("remove image layer", layer)
         // Get the survey to remove to dissociate it from the view
         let imageLayer = this.imageLayers.get(layer);
         if (imageLayer === undefined) {
             // there is nothing to remove
             return;
         }
+        console.log("remove image layer", layer)
 
         // Update the backend
         if (imageLayer.added) {
@@ -1573,6 +1606,7 @@ export let View = (function () {
             // layer not found
             return;
         }
+        console.log("remove image layer", layer)
 
         // Delete it
         this.imageLayers.delete(layer);
@@ -1591,6 +1625,7 @@ export let View = (function () {
             }
         }
 
+        console.log("removed image layer", layer)
         ALEvent.HIPS_LAYER_REMOVED.dispatchedTo(this.aladinDiv, { layer: layer });
 
         // check if there are no more surveys
@@ -1622,110 +1657,35 @@ export let View = (function () {
         this.needRedraw = true;
     };
 
-    View.prototype.setProjection = function (projectionName) {
+    View.prototype.setProjection = function (projName) {
         this.fovLimit = 1000.0;
-        /*
-            TAN: {id: 1, fov: 180},
-            STG: {id: 2, fov: 360},
-            SIN: {id: 3, fov: 180},
-            ZEA: {id: 4, fov: 360},
-            FEYE: {id: 5, fov: 190},
-            AIR: {id: 6, fov: 360},
-            //AZP: {fov: 180},
-            ARC: {id: 7, fov: 360},
-            NCP: {id: 8, fov: 180},
-            // Cylindrical
-            MER: {id: 9, fov: 360},
-            CAR: {id: 10, fov: 360},
-            CEA: {id: 11, fov: 360},
-            CYP: {id: 12, fov: 360},
-            // Pseudo-cylindrical
-            AIT: {id: 13, fov: 360},
-            PAR: {id: 14, fov: 360},
-            SFL: {id: 15, fov: 360},
-            MOL: {id: 16, fov: 360},
-            // Conic
-            COD: {id: 17, fov: 360},
-            // Hybrid
-            HPX: {id: 19, fov: 360},
-        */
-        switch (projectionName) {
+        this.projection = ProjectionEnum[projName];
+        switch (projName) {
             // Zenithal (TAN, STG, SIN, ZEA, FEYE, AIR, AZP, ARC, NCP)
             case "TAN":
-                this.projection = ProjectionEnum.TAN;
-                this.fovLimit = 180.0;
+                this.fovLimit = 150.0;
                 break;
-            case "STG":
-                this.projection = ProjectionEnum.STG;
-                break;
-            case "SIN":
-                this.projection = ProjectionEnum.SIN;
-                break;
-            case "ZEA":
-                this.projection = ProjectionEnum.ZEA;
-                break;
-            case "FEYE":
-                this.projection = ProjectionEnum.FEYE;
-                break;
-            case "AIR":
-                this.projection = ProjectionEnum.AIR;
-                break;
-            case "ARC":
-                this.projection = ProjectionEnum.ARC;
-                break;
-            case "NCP":
-                this.projection = ProjectionEnum.NCP;
-                break;
-            case "ARC":
-                this.projection = ProjectionEnum.ARC;
-                break;
-            case "ZEA":
-                this.projection = ProjectionEnum.ZEA;
-                break;
-            // Pseudo-cylindrical (AIT, MOL, PAR, SFL)
-            case "MOL":
-                this.projection = ProjectionEnum.MOL;
-                break;
-            case "AIT":
-                this.projection = ProjectionEnum.AIT;
-                break;
-            case "PAR":
-                this.projection = ProjectionEnum.PAR;
-                break;
-            case "SFL":
-                this.projection = ProjectionEnum.SFL;
-                break;
-            // Cylindrical (MER, CAR, CEA, CYP)
             case "MER":
-                this.projection = ProjectionEnum.MER;
                 this.fovLimit = 360.0;
                 break;
             case "CAR":
-                this.projection = ProjectionEnum.CAR;
                 this.fovLimit = 360.0;
                 break;
             case "CEA":
-                this.projection = ProjectionEnum.CEA;
                 this.fovLimit = 360.0;
                 break;
             case "CYP":
-                this.projection = ProjectionEnum.CYP;
                 this.fovLimit = 360.0;
-                break;
-            // Conic
-            case "COD":
-                this.projection = ProjectionEnum.COD;
                 break;
             // Hybrid
             case "HPX":
-                this.projection = ProjectionEnum.HPX;
                 this.fovLimit = 360.0;
                 break;
             default:
                 break;
         }
         // Change the projection here
-        this.wasm.setProjection(projectionName);
+        this.wasm.setProjection(projName);
         this.updateZoomState();
 
         this.requestRedraw();
@@ -1751,13 +1711,18 @@ export let View = (function () {
         }
 
         // Get the new view center position (given in icrs)
-        let [ra, dec] = this.wasm.getCenter();
-        this.viewCenter.lon = ra;
-        this.viewCenter.lat = dec;
-        this.location.update(this.viewCenter.lon, this.viewCenter.lat, this.cooFrame, true);
+        this.updateCenter();
+
+        ALEvent.FRAME_CHANGED.dispatchedTo(this.aladinDiv, {cooFrame: this.cooFrame});
 
         this.requestRedraw();
     };
+
+    View.prototype.updateCenter = function() {
+        const [ra, dec] = this.wasm.getCenter();
+        this.viewCenter.lon = ra;
+        this.viewCenter.lat = dec;
+    }
 
     View.prototype.showHealpixGrid = function (show) {
         this.displayHpxGrid = show;
@@ -1813,16 +1778,17 @@ export let View = (function () {
         }
         this.viewCenter.lon = ra;
         this.viewCenter.lat = dec;
-        this.location.update(this.viewCenter.lon, this.viewCenter.lat, this.cooFrame, true);
+        //this.updateLocation({lon: this.viewCenter.lon, lat: this.viewCenter.lat});
 
         // Put a javascript code here to do some animation
         this.wasm.setCenter(this.viewCenter.lon, this.viewCenter.lat);
+
+        ALEvent.POSITION_CHANGED.dispatchedTo(this.aladin.aladinDiv, this.viewCenter);
 
         this.requestRedraw();
 
         var self = this;
         setTimeout(function () { self.refreshProgressiveCats(); }, 1000);
-
         // Apply position changed callback after the move
         self.throttledPositionChanged();
     };

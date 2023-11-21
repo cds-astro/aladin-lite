@@ -148,7 +148,7 @@ export let ImageSurvey = (function () {
 
         let self = this;
         self.query = (async () => {
-            let maxOrder, frame, tileSize, formats, minCutout, maxCutout, bitpix, skyFraction, minOrder, initialFov, initialRa, initialDec, hipsBody, isPlanetaryBody, dataproductSubtype;
+            let obsTitle, creatorDid, maxOrder, frame, tileSize, formats, minCutout, maxCutout, bitpix, skyFraction, minOrder, initialFov, initialRa, initialDec, hipsBody, isPlanetaryBody, dataproductSubtype;
 
             try {
                 let properties;
@@ -166,6 +166,8 @@ export let ImageSurvey = (function () {
                     throw e;
                 }
 
+                obsTitle = properties.obs_title;
+                creatorDid = properties.creator_did;
                 // Give a better name if we have the HiPS metadata
                 self.name = self.name || properties.obs_title;
                 // Set it to a default value
@@ -222,10 +224,8 @@ export let ImageSurvey = (function () {
                 if (properties.hips_body !== undefined) {
                     if (self.view.options.showFrame) {
                         self.view.aladin.setFrame('J2000d');
-                        let frameChoiceElt = document.querySelectorAll('.aladin-location > .aladin-frameChoice')[0];
-                        frameChoiceElt.innerHTML = '<option value="' + CooFrameEnum.J2000d.label + '" selected="selected">J2000d</option>';
                     }
-                } else {
+                } /*else {
                     if (self.view.options.showFrame) {
                         const cooFrame = CooFrameEnum.fromString(self.view.options.cooFrame, CooFrameEnum.J2000);
                         let frameChoiceElt = document.querySelectorAll('.aladin-location > .aladin-frameChoice')[0];
@@ -234,7 +234,7 @@ export let ImageSurvey = (function () {
                             + (cooFrame == CooFrameEnum.J2000d ? 'selected="selected"' : '') + '>J2000d</option><option value="' + CooFrameEnum.GAL.label + '" '
                             + (cooFrame == CooFrameEnum.GAL ? 'selected="selected"' : '') + '>GAL</option>';
                     }
-                }
+                }*/
             } catch (e) {
                 //console.error("Could not fetch properties for the survey ", self.id, " with the error:\n", e)
                 /*if (!options.maxOrder) {
@@ -266,6 +266,8 @@ export let ImageSurvey = (function () {
             }
 
             self.properties = {
+                creatorDid: creatorDid,
+                obsTitle: obsTitle,
                 url: url,
                 maxOrder: maxOrder,
                 frame: frame,
@@ -429,11 +431,25 @@ export let ImageSurvey = (function () {
                         throw self.id + " does not provide jpeg tiles";
                     }
 
+                    // Switch from png/webp/jpeg to fits
+                    if ((self.imgFormat === 'png' || self.imgFormat === "webp" || self.imgFormat === "jpeg") && imgFormat === 'fits') {
+                        if (self.properties.minCutout && self.properties.maxCutout) {
+                            self.setCuts(self.properties.minCutout, self.properties.maxCutout)
+                        }
+                    // Switch from fits to png/webp/jpeg
+                    } else if (self.imgFormat === "fits") {
+                        self.setCuts(0.0, 1.0);
+                    }
+
                     // Check if it is a fits
                     self.imgFormat = imgFormat;
                 });
             })
     };
+
+    ImageSurvey.prototype.getAvailableFormats = function() {
+        return this.properties.formats;
+    }
 
     // @api
     ImageSurvey.prototype.setOpacity = function (opacity) {

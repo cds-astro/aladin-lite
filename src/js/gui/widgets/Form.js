@@ -17,7 +17,8 @@
 //    along with Aladin Lite.
 //
 
-import { Widget } from "./Widget";
+import { Utils } from "../Utils";
+import { DOMElement } from "./Widget";
 
 /******************************************************************************
  * Aladin Lite project
@@ -35,29 +36,36 @@ import { Widget } from "./Widget";
 Exemple of layout object
 {
     name: 'ID',
-    type: 'group',
     header: 'htmlCode' or DOM Element object,
     cssStyle: {...}
+    submit(e) {},
     subInputs: [
         {
             label: "ID",
             type: "text",
-            value: "the placeholder value..."
+            value: "the placeholder value...",
         },
         ..
     ]
 */
-export class Form extends Widget {
-    constructor(layout, opt, target, position = "beforeend") {
-        let el = Form._createInput(layout);
+export class Form extends DOMElement {
+    constructor(options, target, position = "beforeend") {
+        let el = document.createElement('form');
+        el.className = "aladin-form";
 
-        // add it to the dom
-        super(el, opt, target, position);
+        let innerEl = Form._createInput(options, el);
+        el.appendChild(innerEl);
+
+        super(el, options);
+        this.attachTo(target, position)
     }
 
-    static _createInput(layout) {
-        if (layout.type === "text" || layout.type === "number") {
-            let inputEl = document.createElement('input');
+    static _createInput(layout, formEl) {
+        let isInput = false;
+        let inputEl, labelEl;
+
+        if (layout.type === "text" || layout.type === "number" || layout.type === "color") {
+            inputEl = document.createElement('input');
             inputEl.type = layout.type;
             inputEl.classList.add('aladin-input');
 
@@ -65,41 +73,103 @@ export class Form extends Widget {
                 inputEl.step = "any";
             }
 
-            inputEl.value = layout.value;
+            if (layout.value || layout.value === 0) {
+                inputEl.value = layout.value;
+            }
+
             inputEl.name = layout.name;
             inputEl.id = layout.label;
 
-            let labelEl = document.createElement('label');
-            labelEl.textContent = layout.label;
-            labelEl.for = inputEl.id;
+            if (layout.placeholder) {
+                inputEl.placeholder = layout.placeholder;
+            }
 
+            isInput = true;
+        } else if (layout.type === "checkbox") {
+            inputEl = document.createElement('input');
+            inputEl.type = "checkbox";
+            inputEl.classList.add('aladin-input');
+
+            inputEl.checked = layout.checked;
+            inputEl.name = layout.name;
+            inputEl.id = layout.label;
+
+            isInput = true;
+        } else if (layout.type === "select") {
+            inputEl = document.createElement('select');
+            inputEl.classList.add('aladin-input');
+            inputEl.id = layout.label;
+            inputEl.name = layout.name;
+
+            if (layout.options) {
+                let innerHTML = "";
+
+                for (const option of layout.options) {
+                    innerHTML += "<option>" + option + "</option>";
+                }
+                inputEl.innerHTML = innerHTML;
+            }
+
+            if (layout.value) {
+                inputEl.value = layout.value;
+            }
+
+            isInput = true;
+        }
+
+        labelEl = document.createElement('label');
+        if (layout.labelContent) {
+            DOMElement.appendTo(layout.labelContent, labelEl);
+        } else {
+            labelEl.textContent = layout.label;
+        }
+
+        if (inputEl) {
+            labelEl.for = inputEl.id;
+        }
+
+        if (layout.actions) {
+            for (const what in layout.actions) {
+                const actionFunc = layout.actions[what];
+                inputEl.addEventListener(what, (e) => actionFunc(e, inputEl));
+            }
+        }
+
+        if (isInput) {
             let divEl = document.createElement("div");
-            divEl.classList.add(labelEl.textContent, "aladin-form-input");
+            divEl.classList.add("aladin-form-input");
 
             divEl.appendChild(labelEl);
             divEl.appendChild(inputEl);
 
             return divEl;
-        } else if (layout.type === "group") {
+        }
+
+        if (layout.subInputs) {
             let groupEl = document.createElement('div');
-            groupEl.classList.add(layout.name, "aladin-form-input-group");
+            groupEl.classList.add("aladin-form-input-group");
             for (const property in layout.cssStyle) {
                 groupEl.style[property] = layout.cssStyle[property];
             }
 
-            if (layout.header instanceof Element) {
-                groupEl.innerHTML = '<div class="aladin-form-group-header"></div>';
-                groupEl.firstChild.appendChild(layout.header);
-            } else if (layout.header instanceof Widget) {
-                let el = layout.header.element();
-                groupEl.innerHTML = '<div class="aladin-form-group-header"></div>';
-                groupEl.firstChild.appendChild(el);
-            } else {
-                groupEl.innerHTML = '<div class="aladin-form-group-header">' + layout.header + '</div>';
+            if (layout.submit) {
+                formEl.addEventListener('submit', (e) => {
+                    e.preventDefault();
+
+                    layout.submit(e)
+                });
+            }
+
+            if (layout.header) {
+                let headerEl = document.createElement('div');
+                headerEl.className = "aladin-form-group-header";
+
+                Utils.appendTo(layout.header, headerEl);
+                Utils.appendTo(headerEl, groupEl);
             }
 
             layout.subInputs.forEach((subInput) => {
-                let inputEl = Form._createInput(subInput)
+                let inputEl = Form._createInput(subInput, formEl)
                 groupEl.appendChild(inputEl);
             });
 
@@ -120,16 +190,27 @@ export class Form extends Widget {
 
     set(name, value) {
         let inputs = this.el.querySelectorAll('.aladin-input');
+
         for (let input of inputs) {
             if (input.name === name) {
-                input.value = value;
+                if (input.type === "checkbox") {
+                    input.checked = value;
+                } else {
+                    input.value = value;
+                }
 
                 return;
             }
         }
     }
 
-    _show() {
-        super._show();
+    getInput(name) {
+        let inputs = this.el.querySelectorAll('.aladin-input');
+
+        for (let input of inputs) {
+            if (input.name === name) {
+                return input;
+            }
+        }
     }
 }

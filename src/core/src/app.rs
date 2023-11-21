@@ -113,7 +113,7 @@ use cgmath::{Vector2, Vector3};
 use futures::{io::BufReader, stream::StreamExt}; // for `next`
 
 use crate::math::projection::*;
-pub const BLENDING_ANIM_DURATION: DeltaTime = DeltaTime::from_millis(200.0); // in ms
+pub const BLENDING_ANIM_DURATION: DeltaTime = DeltaTime::from_millis(400.0); // in ms
                                                                              //use crate::buffer::Tile;
 use crate::time::Time;
 use cgmath::InnerSpace;
@@ -1276,7 +1276,7 @@ impl App {
 
         // launch the new tile requests
         self.request_for_new_tiles = true;
-        self.manager.set_kernel_size(&self.camera);
+        //self.manager.set_kernel_size(&self.camera);
 
         self.request_redraw = true;
     }

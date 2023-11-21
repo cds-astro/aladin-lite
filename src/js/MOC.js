@@ -93,6 +93,7 @@ export let MOC = (function() {
         this.dataURL = mocURL;
         this.promiseFetchData = fetch(this.dataURL)
             .then((resp) => resp.arrayBuffer());
+
         this.successCallback = successCallback;
     };
 

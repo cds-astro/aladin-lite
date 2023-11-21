@@ -188,13 +188,14 @@
         throw 'Mandatory field ' + nameField + ' not found';
     };
 
-    ObsCore.handleActions = function(obsCoreCatalog) {
+    ObsCore.handleActions = function(cat) {
         // Get the ObsCore fields
-        let fields = obsCoreCatalog.fields;
-        // And the aladin lite instance
-        let aladinInstance = obsCoreCatalog.view.aladin;
+        let fields = cat.fields;
 
-        obsCoreCatalog.addFieldClickCallback("access_url", (row) => {
+        cat.addFieldClickCallback("access_url", (row) => {
+            // And the aladin lite instance
+            let aladinInstance = cat.view.aladin;
+
             let accessUrlFieldName = fields["access_url"].name;
             let accessFormatFieldName = fields["access_format"].name;
 

@@ -129,8 +129,9 @@ export let DefaultActionsForContextMenu = (function () {
 
                                 files.forEach(file => {
                                     const url = URL.createObjectURL(file);
-                                    let catalogue = A.catalogFromURL(url, { name: file.name, onClick: 'showTable'}, null, false);
-                                    aladinInstance.addCatalog(catalogue);
+                                    A.catalogFromURL(url, { name: file.name, onClick: 'showTable'}, (catalog) => {
+                                        aladinInstance.addCatalog(catalog);
+                                    }, false);
                                 });
                             };
                             input.click();

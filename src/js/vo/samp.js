@@ -30,6 +30,7 @@
 
 import { ALEvent } from "../events/ALEvent";
 import { samp } from '../libs/samp';
+import A from "../A";
 
 export class SAMPConnector {
     constructor(aladin) {
@@ -45,22 +46,23 @@ export class SAMPConnector {
         callHandler["coord.pointAt.sky"] = function(senderId, message, isCall) {
             var params = message["samp.params"];
 
-            aladin.gotoRaDec(+params["ra"], +params["dec"])
+            const {ra, dec} = params;
+            aladin.gotoRaDec(+ra, +dec)
         };
 
         callHandler["coverage.load.moc.fits"] = function(senderId, message, isCall) {
             var params = message["samp.params"];
 
-            let name = params["name"];
-            let moc = A.MOCFromURL(params["url"], {name: name, lineWidth: 3});
+            const {url, name} = params;
+            let moc = A.MOCFromURL(url, {name, lineWidth: 3});
             aladin.addMOC(moc);
         };
 
         callHandler["image.load.fits"] = function(senderId, message, isCall) {
             let params = message["samp.params"];
 
-            let url = params["url"];
-            let name = params["name"];
+            const {url, name} = params;
+
             const image = aladin.createImageFITS(url, name, options, (e) => window.alert(e));
 
             aladin.setOverlayImageLayer(image, name);
@@ -69,16 +71,17 @@ export class SAMPConnector {
         callHandler["table.load.votable"] = function(senderId, message, isCall) {
             let params = message["samp.params"];
 
-            let url = params["url"];
-            let name = params["name"];
+            let {url, name} = params;
 
-            let cat = A.catalogFromURL(
+            A.catalogFromURL(
                 url,
-                {name: name, onClick: 'showTable'},
-                null,
+                {name, onClick: 'showTable'},
+                // Add the catalog if the query has succeded
+                (catalog) => {
+                    aladin.addCatalog(catalog)
+                },
                 (e) => window.alert(e)
             );
-            aladin.addCatalog(cat)
         };
 
         let subs = cc.calculateSubscriptions();

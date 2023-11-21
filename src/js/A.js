@@ -177,16 +177,16 @@ A.catalogFromURL = function (url, options, successCallback, errorCallback, usePr
             catalog.name = "ObsCore:" + url;
         }
 
-        // Even if the votable is not a proper ObsCore one, try to see if specific columns are given
-        // e.g. access_format and access_url
-        ObsCore.handleActions(catalog);
-
         catalog.addFootprints(footprints)
         catalog.addSources(sources);
 
         if (successCallback) {
-            successCallback(sources);
+            successCallback(catalog);
         }
+
+        // Even if the votable is not a proper ObsCore one, try to see if specific columns are given
+        // e.g. access_format and access_url
+        ObsCore.handleActions(catalog);
     };
 
     if (useProxy !== undefined) {
@@ -203,7 +203,6 @@ A.catalogFromURL = function (url, options, successCallback, errorCallback, usePr
             url,
             processVOTable,
             () => {
-                console.log("error cors")
                 Catalog.parseVOTable(
                     url,
                     processVOTable,

@@ -10,6 +10,8 @@ extern "C" {
     pub fn hexToRgba(hex: String) -> JsValue;
     #[wasm_bindgen(static_method_of = Color)]
     pub fn rgbToHex(r: u8, g: u8, b: u8) -> String;
+    #[wasm_bindgen(static_method_of = Color)]
+    pub fn rgbaToHex(r: u8, g: u8, b: u8, a: u8) -> String;
 }
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize)]

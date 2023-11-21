@@ -28,10 +28,39 @@
  * 
  *****************************************************************************/
 export let Color = (function() {
+    let Color = function(label) {
+      if (label.r && label.g && label.b) {
+        return label;
+      }
+      
+      // hex string form
+      if (label.match(/^#?[0-9A-Fa-f]{6}$/) || label.match(/^#?[0-9A-Fa-f]{3}$/)) {
+        // if it is hexadecimal already, return it in its actual form
+        return Color.hexToRgb(label);
+      }
 
+      // rgb string form
+      var rgb = label.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
+     
+      if (rgb) {
+        var r = parseInt(rgb[1]);
+        var g = parseInt(rgb[2]);
+        var b = parseInt(rgb[3]);
+        return {r: r, g: g, b: b}
+      }
+      
+      // fill style label
+      if (!Color.standardizedColors[label]) {
+        var ctx = document.createElement('canvas').getContext('2d');
+        ctx.fillStyle = label;
+        const colorHexa = ctx.fillStyle;
 
-    let Color = {};
-    
+        Color.standardizedColors[label] = colorHexa;
+      }
+
+      return Color.standardizedColors[label];
+    };
+
     Color.curIdx = 0;
     Color.colors = ['#ff0000', '#0000ff', '#99cc00', '#ffff00','#000066', '#00ffff', '#9900cc', '#0099cc', '#cc9900', '#cc0099', '#00cc99', '#663333', '#ffcc9a', '#ff9acc', '#ccff33', '#660000', '#ffcc33', '#ff00ff', '#00ff00', '#ffffff'];
     Color.standardizedColors = {};
@@ -60,7 +89,6 @@ export let Color = (function() {
         var g = parseInt(rgb[2]);
         var b = parseInt(rgb[3]);
         
-        var d = 0;
         // Counting the perceptive luminance - human eye favors green color... 
         var a = 1 - ( 0.299 * r + 0.587 * g + 0.114 * b) / 255;
 
@@ -106,6 +134,24 @@ export let Color = (function() {
 
     Color.rgbToHex = function (r, g, b) {
         return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+    }
+
+    Color.rgbaToHex = function (r, g, b, a) {
+        r = r.toString(16);
+        g = g.toString(16);
+        b = b.toString(16);
+        a = a.toString(16);
+      
+        if (r.length == 1)
+          r = "0" + r;
+        if (g.length == 1)
+          g = "0" + g;
+        if (b.length == 1)
+          b = "0" + b;
+        if (a.length == 1)
+          a = "0" + a;
+      
+        return "#" + r + g + b + a;
     }
 
     Color.standardizeColor = function(label) {

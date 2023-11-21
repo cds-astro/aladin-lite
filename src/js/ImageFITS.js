@@ -110,6 +110,10 @@ export let ImageFITS = (function () {
         });
     };
 
+    ImageFITS.prototype.getAvailableFormats = function() {
+        return this.properties.formats;
+    }
+
     // @api
     ImageFITS.prototype.setSaturation = function (saturation) {
         updateMetadata(this, () => {

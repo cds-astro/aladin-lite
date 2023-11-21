@@ -75,10 +75,12 @@ export let Datalink = (function() {
                                 const service = data['service_def'];
 
                                 if (data['semantics'] === "#cutout") {
-                                    return new ActionButton({
+                                    return ActionButton.createIconBtn({
                                         content: '📡',
-                                        backgroundColor: 'white',
-                                        borderColor: '#484848',
+                                        cssStyle: {
+                                            backgroundColor: '#bababa',
+                                            borderColor: '#484848',
+                                        },
                                         info: 'Open the cutout service form',
                                         action(e) {
                                             aladinInstance.sodaQueryWindow.hide();

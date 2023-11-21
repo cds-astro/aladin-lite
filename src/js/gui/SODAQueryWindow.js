@@ -30,13 +30,11 @@
  *
  *****************************************************************************/
 
-import { Coo } from '../libs/astro/coo.js';
-import { CooFrameEnum } from '../CooFrameEnum.js';
 import { Utils } from '../Utils';
-import { ActionButton } from './widgets/ActionButton.js';
+import { ActionButton } from './Widgets/ActionButton.js';
 import targetIconImg from '../../../assets/icons/target.svg';
-import { Form } from './widgets/Form.js';
-import { HorizontalLayout } from './widgets/layout/Horizontal.js';
+import { Form } from './Widgets/Form.js';
+import { Layout } from './Layout.js';
 
 export class SODAQueryWindow {
     constructor(aladin) {
@@ -69,10 +67,12 @@ export class SODAQueryWindow {
 
             let header;
             if (key === "Circle") {
-                const circleSelectBtn = new ActionButton({
+                const circleSelectBtn = ActionButton.createIconBtn({
                     iconURL: targetIconImg,
-                    backgroundColor: '#bababa',
-                    borderColor: '#484848',
+                    cssStyle: {
+                        backgroundColor: '#bababa',
+                        borderColor: '#484848',
+                    },
                     info: 'Circular selection\n<i><font size="-2">Click, drag and release to define the circle</font></i>',
                     action(e) {
                         self.aladin.select('circle', (s) => {
@@ -89,7 +89,7 @@ export class SODAQueryWindow {
                 });
     
                 // Header of the CIRCLE form group
-                header = new HorizontalLayout(['<div>Circle</div>', circleSelectBtn]).element();
+                header = Layout.horizontal({layout: ['<div>Circle</div>', circleSelectBtn]});
             } else {
                 header = key;
             }
@@ -99,17 +99,19 @@ export class SODAQueryWindow {
 
         const listOfInputParams = Object.keys(this.formParams["inputParams"]).map((name) => name).join(', ');
 
-        let infoBtn = new ActionButton({
+        let infoBtn = ActionButton.createIconBtn({
             content: '📡',
-            backgroundColor: 'white',
-            borderColor: '#484848',
+            cssStyle: {
+                backgroundColor: '#bababa',
+                borderColor: '#484848',
+            },
             info: 'This is the form to request the SODA server located at: <a target="_blank" href="' + this.formParams["baseUrl"]  + '">' + this.formParams["baseUrl"] + '</a>\nThe list of input params is:\n' + listOfInputParams,
             action(e) {}
         });
         let layoutForm = {
             name: 'header',
             type: 'group',
-            header: new HorizontalLayout([infoBtn, '<div class="aladin-box-title">Cutout service form</div>']),
+            header: Layout.horizontal({layout: [infoBtn, '<div class="aladin-box-title">Cutout service form</div>']}),
             cssStyle: {
                 borderStyle: 'none',
                 margin: '0',
@@ -120,14 +122,15 @@ export class SODAQueryWindow {
             let inputParam = this.formParams.inputParams[key];
             layoutForm.subInputs.push(inputParam);
         }
+
         this.form = new Form(
             layoutForm,
-            {},
             this.mainEl,
         );
-        
+
+
         // Add the form inputs
-        let submitFormDiv = new HorizontalLayout(['<button class="aladin-btn aladin-validBtn" type="submit">Submit</button>', ' <button class="aladin-btn aladin-cancelBtn">Cancel</button>'], {}, this.mainEl);
+        let submitFormDiv = Layout.horizontal({layout: ['<button class="aladin-btn aladin-validBtn" type="submit">Submit</button>', ' <button class="aladin-btn aladin-cancelBtn">Cancel</button>']}, this.mainEl);
 
         this.aladin.aladinDiv.appendChild(this.mainEl);
         this.mainEl.querySelector(".aladin-closeBtn")

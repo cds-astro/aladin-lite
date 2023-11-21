@@ -46,11 +46,12 @@ impl TextRenderManager {
         })
     }
 
-    pub fn set_color(&mut self, color: &ColorRGB) {
-        let hex = al_api::color::Color::rgbToHex(
+    pub fn set_color(&mut self, color: &ColorRGBA) {
+        let hex = al_api::color::Color::rgbaToHex(
             (color.r * 255.0) as u8,
             (color.g * 255.0) as u8,
             (color.b * 255.0) as u8,
+            (color.a * 255.0) as u8,
         );
         self.color = JsValue::from_str(&hex);
     }

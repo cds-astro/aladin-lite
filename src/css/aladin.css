@@ -65,15 +65,6 @@
     content: "";
     display: table;
     clear: both;
- }
-
-.aladin-location {
-	z-index: 20;
-	position:absolute;
-    top: 0px;
-	padding: 2px 4px 2px 4px;
-	background-color: rgba(255, 255, 255, 0.5);
-	font-size: 11px;
 }
 
 .aladin-projection-select {
@@ -86,12 +77,6 @@
 	font-size: 11px;
 }
 
-.aladin-location-text {
-    font-family: monospace;
-	font-size: 13px;
-    margin-left: 4px;
-}
-
 .aladin-clipboard::before {
     content: ' 📋';
     cursor:pointer;
@@ -99,48 +84,56 @@
 
 .aladin-measurement-div {
     z-index: 77;
-    max-width: 100%;
-    position: absolute;
-    bottom: 20px;
+
     font-family: monospace;
     font-size: 12px;
-    max-height: 20%;
     display: flex;
     flex-direction: column;
     flex-wrap: nowrap;
+
+    
 }
 
-.aladin-measurement-div table {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-
-    position: relative;
-    overflow-y: scroll;
-    overscroll-behavior-x: none;
-    background-color: rgba(255, 255, 255, 0.9);
-    border-collapse: collapse;
-    table-layout: fixed;
-    white-space: nowrap;
-    height: 100%;
-    display: block;
-
-    border: 2px solid black;
+.aladin-tabs .aladin-tabs-content {
+    float: left;
 }
 
-.aladin-measurement-div .tabs button {
-    background-color: rgba(255, 255, 255, 0.9);
+.aladin-tabs .aladin-tabs-head .aladin-tabs-head-tab {
+    background-color: #fff;
+    color: black;
 
     border-radius: 4px 4px 0px 0px;
     float: left;
     border: none;
-    outline: none;
     cursor: pointer;
 
-    font-family: monospace;
-	font-size: 13px;
-
+    font-size: 13px;
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+    
     text-overflow: ellipsis;
     text-align: left;
+}
+
+.aladin-tabs-head-tab.aladin-tabs-head-tab-selected, .aladin-tabs-content-option.aladin-tabs-content-option-selected {
+    filter: brightness(120%);
+}
+
+.aladin-measurement-div table {
+    background-color: rgba(255, 255, 255, 0.9);
+    border-collapse: collapse;
+    table-layout: fixed;
+    white-space: nowrap;
+
+    display: block;
+
+    max-height: 15em;
+    max-width: 100%;
+    -ms-overflow-style: none;
+    overscroll-behavior-x: none;
+    overflow-y: scroll;
+    scrollbar-width: none;
+
+    border: 2px solid black;
 }
 
 .aladin-measurement-div table::-webkit-scrollbar {
@@ -155,32 +148,21 @@
     color: #000;
 }
 
-.aladin-measurement-div table td, .aladin-measurement-div table th {
-    padding: 0.3em 0.3em;
-    white-space: nowrap;
-    overflow: hidden;
-
-    text-align: left;
-    color: #000;
-    max-width: 150px;
-    text-overflow: ellipsis;
-}
-
-.aladin-measurement-div table td .aladin-href-td-container a:hover {
+.aladin-measurement-div table td.aladin-href-td-container a:hover {
     overflow: visible;
     display: inline-block;
     animation: leftright 5s infinite normal linear;
 }
 
-.aladin-measurement-div table td > a:hover {
-    background-color: #fff;
+.aladin-measurement-div table th {
+    padding: 0.3em 0.5em;
 }
 
-.aladin-measurement-div table td .aladin-href-td-container {
+.aladin-measurement-div table td.aladin-href-td-container {
     border: 1px solid #d2d2d2;
     border-radius: 3px;
-    padding: 0.4em;
 
+    padding: 0.5em;
     white-space: nowrap;
     overflow: hidden;
     text-align: center;
@@ -188,7 +170,17 @@
     max-width: 150px;
     text-overflow: ellipsis;
 }
-.aladin-measurement-div table td .aladin-href-td-container:hover {
+
+.aladin-measurement-div table td.aladin-text-td-container {
+    padding: 0.5em;
+    white-space: nowrap;
+    overflow: hidden;
+    color: #000;
+    max-width: 150px;
+    text-overflow: ellipsis;
+}
+
+.aladin-measurement-div table td.aladin-href-td-container:hover {
     background-color: #fff;
 }
 
@@ -226,20 +218,6 @@ word-wrap:break-word;
 }
 .aladin-marker-measurement td:first-child {
     font-weight: bold;
-}
-
-.aladin-fov {
-    z-index: 20;
-    position: absolute;
-    padding: 0;
-    font-size: 12px;
-    font-weight: bold;
-    font-family: monospace;
-    bottom: 0px;
-    padding: 2px;
-    color: #321bdf;
-    /*text-shadow: 0 0 1px white, 0 0 1px white, 0 0 1px white, 0 0 1px white, 0 0 1px white;*/
-	background-color: rgba(255, 255, 255, 0.5);
 }
 
 /* maximize/restore size icons */
@@ -319,6 +297,12 @@ word-wrap:break-word;
     transform: translate(0%,50%);
 }
 
+.aladin-anchor-rb {
+    bottom: 0%;
+    right: 0%;
+    transform: translate(0%,0%);
+}
+
 .aladin-anchor-center {
     top: 50%;
     left: 50%;
@@ -332,6 +316,7 @@ word-wrap:break-word;
     background: whitesmoke;
     border-radius: 2px;
     position: absolute;
+    max-width: 15em;
 
     font-size: 13px;
     font-family: Verdana, Geneva, Tahoma, sans-serif;
@@ -339,13 +324,15 @@ word-wrap:break-word;
 
     line-height: 1.3;
     color: #222;
-    box-shadow: 0 0 6px rgba(0,0,0,0.2);
+    /*box-shadow: 0 0 6px rgba(0,0,0,0.2);*/
 
     /* Allow scrolling but disable scroll bar */
     -ms-overflow-style: none; /* for Internet Explorer, Edge */
     scrollbar-width: none; /* for Firefox */
     /*overflow-y: auto;*/ 
-    overflow-y: inherit;
+    overflow-y: none;
+    max-height: 500px;
+    max-width: fit-content;
 }
 
 .aladin-box::-webkit-scrollbar {
@@ -405,9 +392,9 @@ canvas {
 .aladin-box-title {
   font-size: 16px;
   font-family: Verdana, Geneva, Tahoma, sans-serif;
-  line-height: 2.0;
+  line-height: 1.5em;
   font-weight: bold;
-  cursor: pointer;
+  white-space: nowrap;
 }
 
 .aladin-box-content {
@@ -448,7 +435,6 @@ canvas {
 .aladin-target-form {
 	padding: 5px;
 }
-
 
 .aladin-simbadPointerControl-container {
     position: absolute;
@@ -534,7 +520,8 @@ canvas {
 }
 
 .aladin-closeBtn {
-	float:right;
+    position:absolute;
+    right: 4px;
     margin-top: 0 0 2px 0;
     cursor:pointer;
     color: #605F61;
@@ -543,7 +530,6 @@ canvas {
     background: #fff;
     font-size: 15px;
     font-weight: bold;
-    display: inline-block;
     line-height: 0px;
     padding: 8px 2px;       
 }
@@ -633,26 +619,78 @@ canvas {
 	display: inline-block;
     margin-bottom: 0;
     margin: 0;
-
     padding: 8px;
+
     font-size: 12px;
     font-weight: normal;
     text-align: center;
     white-space: nowrap;
     vertical-align: middle;
     cursor: pointer;
-    border: 1px solid #357ebd;
+    border: 1px solid #484848;
     border-radius: 3px;
-    color: #ffffff;
-    background-color: #428bca;
+    color: white;
+    background-color: #bababa;
+}
+
+.aladin-btn.toggled {
+    border: 2px solid greenyellow;
+}
+
+.aladin-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    width: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    height: 2.5em;
+    color: white;
+    align-content: stretch;
+    z-index: 9000;
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+    font-size: 12px;
+}
+.aladin-label-text {
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+    font-size: 12px;
+}
+
+.aladin-toolbar .aladin-base-survey {
+    position: absolute;
+    left: 50%;
+    transform: translate(-50%, 0%);
+}
+
+.aladin-toolbar .aladin-fov, .aladin-toolbar .aladin-location {
+    font-family: monospace;
+
+    border: 1px solid white;
+    border-radius: 3px;
+    height: 1.5em;
 }
 
 .aladin-24px-icon {
     padding: 0;
-    border: 1px solid #AEAEAE;
-
     width: 24px;
     height: 24px;
+}
+
+.aladin-horizontal-list.aladin-stack-item {
+    margin-bottom: 4px;
+
+    padding: 4px;
+    background-color: rgb(220, 220, 220);
+    border: 1px solid rgb(72, 72, 72);
+    border-radius: 3px;
+    text-align: center;
+    font-size: 12px;
+    font-weight: normal;
+    text-overflow: ellipsis;
+    vertical-align: middle;
 }
 
 .aladin-btn:hover {
@@ -705,41 +743,61 @@ canvas {
     margin-bottom: 5px;
 }
 
+.aladin-vertical-list {
+    display: flex;
+    align-items: center; 
+    list-style: none;
+    flex-direction: column;
+}
+
 .aladin-horizontal-list {
     display: flex;
     align-items: center; 
     list-style: none;
-
-    padding: 0;
-    margin: 0;
 }
 
 .aladin-horizontal-list > * {
     vertical-align: middle;
-    margin-right: 2px;
 }
 
-.aladin-form-input {
+.aladin-horizontal-list > *:last-of-type {
+    margin: 0;
+}
+
+
+.aladin-form .aladin-form-input {
     display: flex;
     justify-content: flex-end;
     align-items: center; 
     margin-bottom: 7px;
 }
 
-.aladin-form-input > label{
+.aladin-form .aladin-form-input:last-of-type {
+    margin-bottom: 0px;
+}
+
+.aladin-form .aladin-form-input select {
+    width: 100%;
+}
+
+.aladin-form .aladin-form-input > label{
     flex: 1;
 }
 
-.aladin-form-input .aladin-input {
+.aladin-form .aladin-form-input .aladin-input {
     flex: 2;
 }
 
-.aladin-form-input-group {
+.aladin-form .aladin-form-input-group {
     border-bottom: 1px solid #d2d2d2;
     margin: 5px;
 }
 
-.aladin-form-input-group .aladin-form-group-header {
+.aladin-form .aladin-form-input-group:last-of-type {
+    border-bottom: none;
+}
+
+.aladin-form .aladin-form-input-group .aladin-form-group-header {
     display: flex;
     align-items: center; 
 
@@ -912,33 +970,67 @@ canvas {
 /* *********************************************** */
 
 /* Context menu */
+.aladin-context-menu .aladin-context-sub-menu {
+    position: absolute;
+    top: 0;
+    left: 100%;
+    display: none;
+    width: max-content;
+}
 
 .aladin-context-sub-menu,
 .aladin-context-menu {
-  position: fixed;
-  background: #fff;
-  color: #000;
-  z-index: 9999999;
-  width: 150px;
-  margin: 0;
-  padding: 2px 0;
-  border-radius: 2px;
-  box-shadow: 0 0 6px rgba(0,0,0,0.2);
-  font-size: 12px;
-  font-family: Verdana, Geneva, Tahoma, sans-serif;
+    position: fixed;
+    background: #fff;
+    color: #000;
+    z-index: 100;
+    width: max-content;
+    margin: 0;
+    padding: 2px 0;
+    border-radius: 2px;
+    box-shadow: 0 0 8px rgba(0,0,0,0.2);
+    font-size: 12px;
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
 }
 
 .aladin-context-menu .aladin-context-menu-item {
-  height: 22px;
-  display: flex;
-  align-items: center;
-  padding: 4px 8px;
-  position: relative;
-  border-bottom: 1px solid #d2d2d2;
+    cursor: pointer;
+
+    height: 22px;
+    display: flex;
+    align-items: center;
+    padding: 4px 8px;
+    position: relative;
+    border-bottom: 1px solid #d2d2d2;
 }
 
+.aladin-context-menu .aladin-context-menu-item.aladin-context-menu-item-disabled {
+    cursor: not-allowed;
+    background: #eee;
+
+    z-index: 100;
+
+    height: 22px;
+    display: flex;
+    align-items: center;
+    padding: 4px 8px;
+    position: relative;
+    border-bottom: 1px solid #d2d2d2;
+}
+
+.aladin-context-menu .aladin-context-menu-item.aladin-context-menu-item-selected::after {
+    content: "✓";
+    margin-left: 2px;
+}
+
+
 .aladin-context-menu-item:hover {
-    background: rgb(212, 231, 250);
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+.aladin-survey-item:hover {
+    filter: brightness(150%);
+    z-index: 20; /* This is for the tooltip to appear outside the item, i.e. over the sibling item */
 }
 
 .aladin-context-menu .aladin-context-menu-item span {
@@ -956,14 +1048,6 @@ canvas {
   background: #d2d2d2;
 }
 
-.aladin-context-menu .aladin-context-sub-menu {
-  position: absolute;
-  top: 0;
-  left: 100%;
-  display: none;
-  width: 150px;
-}
-
 .aladin-context-menu .aladin-context-menu-item:hover > .aladin-context-sub-menu {
   display: block;
 }
@@ -974,35 +1058,175 @@ canvas {
 }
 
 .aladin-context-menu.top .aladin-context-sub-menu {
-  top: 100%;
-  transform: translateY(-100%);
+    top: 100%;
+    transform: translateY(-100%);
 }
 
 .aladin-context-menu.left.top .aladin-context-sub-menu {
-  transform: translate(-100%, -100%);
+    transform: translate(-100%, -100%);
+}
+
+.aladin-reticle {
+    position: absolute;
+    z-index: 20;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-size: contain;
+
+    visibility: hidden;
+
+    pointer-events: none;
 }
 
 /* *********************************************** */
 
+/* Frames */
+.aladin-input-color {
+    appearance: none;
+    -moz-appearance: none;
+    -webkit-appearance: none;
+    padding: 0;
+    border: none;
+    border-radius: 5px;
+    width: 30px;
+    height: 20px;
+    cursor: pointer;
+}
+
+.aladin-input-color::-webkit-color-swatch {
+    border: none;
+    border-radius: 5px;
+    padding: 0;
+}
+
+.aladin-input-color::-webkit-color-swatch-wrapper {
+    border: none;
+    border-radius: 5px;
+    padding: 0;
+}
+
+/********** Range Input Styles **********/
+/*Range Reset*/
+.aladin-input-range {
+    -webkit-appearance: none;
+     appearance: none;
+     background: transparent;
+     cursor: pointer;
+     width: 5em;
+ }
+ 
+ /* Removes default focus */
+ .aladin-input-range:focus {
+   outline: none;
+ }
+ 
+ /***** Chrome, Safari, Opera and Edge Chromium styles *****/
+ /* slider track */
+ .aladin-input-range::-webkit-slider-runnable-track {
+    background-color: #bababa;
+    border-radius: 0.1rem;
+    height: 0.1rem;  
+ }
+ 
+ /* slider thumb */
+ .aladin-input-range::-webkit-slider-thumb {
+   -webkit-appearance: none; /* Override default look */
+    appearance: none;
+    margin-top: -7px; /* Centers thumb on the track */
+ 
+    /*custom styles*/
+    background-color: #bababa;
+    height: 1rem;
+    width: 1rem;
+
+    border-radius: 0.5rem;
+ }
+ .aladin-input-range:hover::-webkit-slider-thumb {
+    filter: brightness(105%);
+ }
+
+ 
+ /******** Firefox styles ********/
+ /* slider track */
+ .aladin-input-range::-moz-range-track {
+    background-color: #bababa;
+    border-radius: 0.1rem;
+    height: 0.1rem;  
+ }
+ 
+ /* slider thumb */
+ .aladin-input-range::-moz-range-thumb {
+    border: none; /*Removes extra border that FF applies*/
+    border-radius: 0; /*Removes default border-radius that FF applies*/
+ 
+    /*custom styles*/
+    background-color: #bababa;
+    height: 1rem;
+    width: 1rem;
+
+    border-radius: 0.5rem;
+ }
+
+ .aladin-input-range:hover::-moz-range-thumb {
+    filter: brightness(105%);
+ }
+ 
+ 
+/* *********************************************** */
+
 /* Tooltip */
 
+.aladin-tooltip-container {
+    position: relative;
+    /* take the size of its inner div child */
+    
+    float: left;
+}
+
 .aladin-tooltip-container .aladin-tooltip {
+    pointer-events: none;
     visibility: hidden;
     background-color: black;
+
+    width: max-content; 
     color: #fff;
     text-align: center;
     padding: 4px;
     border-radius: 2px;
+
+    top:0%;
  
     /* Position the tooltip text - see examples below! */
     position: absolute;
     z-index: 10000;
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+    font-size: 12px;
 }
 
 /* Show the tooltip text when you mouse over the tooltip container */
 .aladin-tooltip-container:hover .aladin-tooltip {
     visibility: visible;
 }
+
+.aladin-tooltip-container.left .aladin-tooltip {
+    left: 0;
+    transform: translateX(-100%);
+}
+
+.aladin-tooltip-container.top .aladin-tooltip {
+    top: 0;
+    transform: translateY(-100%);
+}
+
+.aladin-tooltip-container.bottom .aladin-tooltip {
+    top: 100%;
+}
+
+.aladin-tooltip-container.right .aladin-tooltip {
+    left: 100%;
+}
+
 
 /* *********************************************** */
 

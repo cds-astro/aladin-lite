@@ -33,7 +33,8 @@
 export class ALEvent {
   static AL_USE_WASM = new ALEvent("AL:Wasm");
 
-  static LOADING_STATE = new ALEvent("AL:Layer.loading");
+  static LOADING_START = new ALEvent("AL:loading.started");
+  static LOADING_STOP = new ALEvent("AL:loading.stopped");
 
   static BACKGROUND_COLOR_CHANGED = new ALEvent("AL:BackgroundColor.changed")
 
@@ -42,6 +43,10 @@ export class ALEvent {
   static COO_GRID_UPDATED  = new ALEvent("AL:cooGrid.updated");
 
   static PROJECTION_CHANGED  = new ALEvent("AL:projection.changed");
+  static FRAME_CHANGED  = new ALEvent("AL:frame.changed");
+
+  static POSITION_CHANGED  = new ALEvent("AL:position.changed");
+  static ZOOM_CHANGED  = new ALEvent("AL:zoom.changed");
 
   static HIPS_LAYER_ADDED   = new ALEvent("AL:HiPSLayer.added");
   static HIPS_LAYER_REMOVED = new ALEvent("AL:HiPSLayer.removed");
@@ -56,6 +61,7 @@ export class ALEvent {
   static GRAPHIC_OVERLAY_LAYER_CHANGED  = new ALEvent("AL:GraphicOverlayLayer.changed");
 
   static SAMP_AVAILABILITY  = new ALEvent("AL:samp.started");
+  static CANVAS_EVENT  = new ALEvent("AL:Event");
 
   constructor(name) {
     this.name = name;

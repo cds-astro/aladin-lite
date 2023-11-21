@@ -17,9 +17,8 @@
 //    along with Aladin Lite.
 //
 
+import { DOMElement } from "./Widget";
 import { Tooltip } from "./Tooltip";
-import { Widget } from "./Widget";
-
 /******************************************************************************
  * Aladin Lite project
  *
@@ -32,59 +31,91 @@ import { Widget } from "./Widget";
  *
  *****************************************************************************/
 
-export class ActionButton extends Widget {
+export class ActionButton extends DOMElement {
     constructor(opt, target, position = "beforeend") {
         let el = document.createElement('button');
-        el.classList.add('aladin-btn', 'aladin-24px-icon');
+        el.classList.add('aladin-btn');
 
         // add it to the dom
-        super(el, opt, target, position);
+        super(el, opt);
+        this._show();
 
-        // add a tooltip on it
-        if (this.opt.info) {
-            this.tooltip = new Tooltip(this.el, this.opt.info);
-        }
+        this.attachTo(target, position)
     }
 
     _show() {
+        this.el.innerHTML = '';
         this.el.removeEventListener('click', this.action);
 
-        this.action = (e) => {
-            e.stopPropagation();
-            e.preventDefault();
+        if (this.options.toggled === true) {
+            this.addClass('toggled');
+        } else if (this.options.toggled === false) {
+            this.removeClass('toggled');
+        }
 
-            this.opt.action(e);
-        };
-        this.el.addEventListener('click', this.action);
+        if (this.options.action) {
+            this.action = (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+    
+                this.options.action(e, this);
+            };
 
-        if (this.opt.iconURL) {
+            this.el.addEventListener('click', this.action);
+        }
+
+        if (this.options.title) {
+            this.el.setAttribute('title', this.options.title);
+        }
+
+        if (this.options.iconURL) {
             let img = document.createElement('img');
-            img.src = this.opt.iconURL;
+            img.src = this.options.iconURL;
             img.style.objectFit = 'contain';
+            img.style.verticalAlign = 'middle';
+            img.style.width = '100%';
 
             this.el.appendChild(img);
         }
 
-        if (this.opt.content) {
-            this.el.textContent = this.opt.content;
-        }
-
-        if (this.opt.disable) {
+        if (this.options.disable) {
             this.el.disabled = true;
+            this.el.style.cursor = "not-allowed";
+            this.el.style.filter = 'brightness(70%)';
         } else {
             this.el.disabled = false;
+            this.el.style.cursor = 'pointer';
         }
 
-        if (this.tooltip)
-            this.tooltip.attach(this.opt.info);
+        // Add the content to the dom
+        // Content can be a DOM element, just plain text or another Widget instance
+        if (this.options.content) {
+            this.appendContent(this.options.content);
+        }
+
+        if (this.options.cssStyle) {
+            this.setCss(this.options.cssStyle);
+        }
+
+        // trigger el added
+        if (this.options.tooltip) {
+            Tooltip.add(this.options.tooltip, this)
+        }
 
         super._show();
     }
 
-    static create(opt, info, target) {
+    static createIconBtn(opt, target, position = 'beforeend') {
+        let btn = new ActionButton(opt, target, position);
+        btn.addClass('aladin-24px-icon');
+
+        return btn;
+    }
+
+    static create(opt, info, target, position = 'beforeend') {
         opt['info'] = info || undefined;
 
-        return new ActionButton(opt, target);
+        return new ActionButton(opt, target, position);
     }
 
     static DEFAULT_BTN = {
@@ -92,10 +123,11 @@ export class ActionButton extends Widget {
             content: '⏳',
             width: '28px',
             height: '28px',
-            position: 'right',
-            backgroundColor: 'white',
-            borderColor: '#484848',
+            cssStyle: {
+                backgroundColor: '#bababa',
+                borderColor: '#484848',
+            },
             action(e) {}
-        }
+        },
     }
 }

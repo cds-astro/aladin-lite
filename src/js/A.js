@@ -40,6 +40,8 @@ import { Coo } from "./libs/astro/coo.js";
 import { URLBuilder } from "./URLBuilder.js";
 import { HiPSDefinition } from "./HiPSDefinition.js";
 import { ColorCfg } from './ColorCfg.js';
+
+import { Footprint } from './Footprint.js';
 import { ObsCore } from "./vo/ObsCore.js";
 import { Aladin } from "./Aladin.js";
 // Wasm top level import
@@ -142,6 +144,16 @@ A.catalogHiPS = function (rootURL, options) {
 };
 
 // API
+A.coo = function (longitude, latitude, prec) {
+    return new Coo(longitude, latitude, prec);
+};
+
+// API
+A.footprint = function(shapes, source) {
+    return new Footprint(shapes, source);
+};
+
+// API
 A.footprintsFromSTCS = function (stcs, options) {
     var footprints = Overlay.parseSTCS(stcs, options);
 
@@ -171,7 +183,7 @@ A.catalogFromURL = function (url, options, successCallback, errorCallback, usePr
     const processVOTable = function (sources, footprints, fields) {
         catalog.setFields(fields);
 
-        if (catalog.isObsCore()) { 
+        if (catalog.isObsCore()) {
             // The fields corresponds to obscore ones
             // Set the name of the catalog to be ObsCore:<catalog name>
             catalog.name = "ObsCore:" + url;

@@ -1,5 +1,5 @@
+use crate::survey::texture::Texture;
 use crate::ShaderManager;
-
 
 use al_api::coo_system::CooSystem;
 use al_api::resources::Resources;
@@ -8,6 +8,8 @@ use al_core::colormap::Colormap;
 use al_core::Colormaps;
 use al_core::FrameBufferObject;
 use al_core::{Texture2D, VecData, VertexArrayObject, WebGlContext};
+
+use al_core::image::format::{R8UI, RGBA8U};
 
 use crate::ProjectionType;
 use std::collections::HashMap;
@@ -27,9 +29,10 @@ impl From<Error> for JsValue {
     }
 }
 
+const NUM_SHAPES: usize = 5;
 pub struct Manager {
     gl: WebGlContext,
-    kernel_texture: Texture2D,
+    kernels: HashMap<&'static str, Texture2D>,
 
     fbo: FrameBufferObject,
 
@@ -49,31 +52,53 @@ impl Manager {
     ) -> Result<Self, JsValue> {
         // Load the texture of the gaussian kernel
         let kernel_filename = resources.get_filename("kernel").unwrap_abort();
-        let kernel_texture = Texture2D::create_from_path::<_, al_core::image::format::RGBA8U>(
-            gl,
-            "kernel",
-            &kernel_filename,
-            &[
-                (
-                    WebGl2RenderingContext::TEXTURE_MIN_FILTER,
-                    WebGl2RenderingContext::LINEAR,
-                ),
-                (
-                    WebGl2RenderingContext::TEXTURE_MAG_FILTER,
-                    WebGl2RenderingContext::LINEAR,
-                ),
-                // Prevents s-coordinate wrapping (repeating)
-                (
-                    WebGl2RenderingContext::TEXTURE_WRAP_S,
-                    WebGl2RenderingContext::CLAMP_TO_EDGE,
-                ),
-                // Prevents t-coordinate wrapping (repeating)
-                (
-                    WebGl2RenderingContext::TEXTURE_WRAP_T,
-                    WebGl2RenderingContext::CLAMP_TO_EDGE,
-                ),
-            ],
-        )?;
+        let params = &[
+            (
+                WebGl2RenderingContext::TEXTURE_MIN_FILTER,
+                WebGl2RenderingContext::LINEAR,
+            ),
+            (
+                WebGl2RenderingContext::TEXTURE_MAG_FILTER,
+                WebGl2RenderingContext::LINEAR,
+            ),
+            // Prevents s-coordinate wrapping (repeating)
+            (
+                WebGl2RenderingContext::TEXTURE_WRAP_S,
+                WebGl2RenderingContext::CLAMP_TO_EDGE,
+            ),
+            // Prevents t-coordinate wrapping (repeating)
+            (
+                WebGl2RenderingContext::TEXTURE_WRAP_T,
+                WebGl2RenderingContext::CLAMP_TO_EDGE,
+            ),
+        ];
+        let kernels = [
+            (
+                "gaussian",
+                Texture2D::create_from_path::<_, RGBA8U>(gl, "kernel", &kernel_filename, params)?,
+            ),
+            (
+                "plus",
+                Texture2D::create_from_raw_pixels::<R8UI>(
+                    gl,
+                    3,
+                    3,
+                    params,
+                    Some(&[0, 0xff, 0, 0xff, 0xff, 0xff, 0, 0xff, 0]),
+                )?,
+            ),
+            (
+                "square",
+                Texture2D::create_from_raw_pixels::<R8UI>(
+                    gl,
+                    3,
+                    3,
+                    params,
+                    Some(&[0xff, 0xff, 0xff, 0xff, 0, 0xff, 0xff, 0xff, 0xff]),
+                )?,
+            ),
+        ]
+        .into();
 
         // Create the VAO for the screen
         let vertex_array_object_screen = {
@@ -81,10 +106,10 @@ impl Manager {
                 -1.0_f32, -1.0_f32, 0.0_f32, 0.0_f32, 1.0_f32, -1.0_f32, 1.0_f32, 0.0_f32, 1.0_f32,
                 1.0_f32, 1.0_f32, 1.0_f32, -1.0_f32, 1.0_f32, 0.0_f32, 1.0_f32,
             ];
-            let _position = [
+            let position = [
                 -1.0_f32, -1.0_f32, 1.0_f32, -1.0_f32, 1.0_f32, 1.0_f32, -1.0_f32, 1.0_f32,
             ];
-            let _uv = [
+            let uv = [
                 0.0_f32, 0.0_f32, 1.0_f32, 0.0_f32, 1.0_f32, 1.0_f32, 0.0_f32, 1.0_f32,
             ];
 
@@ -143,7 +168,7 @@ impl Manager {
         let gl = gl.clone();
         let mut manager = Manager {
             gl,
-            kernel_texture,
+            kernels,
 
             fbo,
 
@@ -489,7 +514,7 @@ impl Catalog {
                     shader_bound
                         .attach_uniforms_from(camera)
                         // Attach catalog specialized uniforms
-                        .attach_uniform("kernel_texture", &manager.kernel_texture) // Gaussian kernel texture
+                        .attach_uniform("kernel_texture", &manager.kernels["gaussian"]) // Gaussian kernel texture
                         .attach_uniform("strength", &self.strength) // Strengh of the kernel
                         .attach_uniform("current_time", &utils::get_current_time())
                         .attach_uniform("kernel_size", &manager.kernel_size)

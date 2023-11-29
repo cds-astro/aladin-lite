@@ -178,6 +178,7 @@ A.MOCFromJSON = function (jsonMOC, options) {
 
 
 A.catalogFromURL = function (url, options, successCallback, errorCallback, useProxy) {
+    options.url = url;
     var catalog = A.catalog(options);
 
     const processVOTable = function (table) {

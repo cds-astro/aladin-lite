@@ -50,6 +50,9 @@ import { Footprint } from "./Footprint.js";
 import { Selector } from "./Selector.js";
 import $ from 'jquery';
 import { ObsCore } from "./vo/ObsCore.js";
+import { DefaultActionsForContextMenu } from "./DefaultActionsForContextMenu.js";
+import { Layout } from "./gui/Layout.js";
+import { SAMPActionButton } from "./gui/Button/SAMP.js";
 
 export let View = (function () {
 
@@ -147,9 +150,7 @@ export let View = (function () {
         // Frame setting
         this.changeFrame(this.cooFrame);
 
-        this.selector = new Selector();
-        this.selectMode = 'rect';
-        this.selectCallbackFn = undefined;
+        this.selector = new Selector(this);
 
         // Zoom starting setting
         const si = 500000.0;
@@ -230,7 +231,7 @@ export let View = (function () {
         this.resizeTimer = null;
         let resizeObserver = new ResizeObserver(() => {
             self.fixLayoutDimensions();
-            self.requestRedraw();
+            //self.requestRedraw();
         });
 
         this.throttledPositionChanged = Utils.throttle(
@@ -269,6 +270,7 @@ export let View = (function () {
         //$(window).resize(() => {
         self.fixLayoutDimensions();
         self.redraw()
+        
             //self.requestRedraw();
         //});
         // in some contexts (Jupyter notebook for instance), the parent div changes little time after Aladin Lite creation
@@ -383,28 +385,18 @@ export let View = (function () {
         ctx.oImageSmoothingEnabled = enableSmoothing;
     }
 
-    View.prototype.startSelection = function(mode, callbackFn) {
-        this.setMode(View.SELECT);
-
-        this.selectMode = mode;
-        this.selectCallbackFn = callbackFn;
-    }
-
-    View.prototype.finishSelection = function() {
-        this.setMode(View.PAN);
+    View.prototype.startSelection = function(mode, callback) {
+        this.selector.dispatch('start', {mode, callback});
     }
 
     View.prototype.setMode = function (mode) {
         this.mode = mode;
-        if (this.mode == View.SELECT) {
-            this.setCursor('crosshair');
-        }
-        else if (this.mode == View.TOOL_SIMBAD_POINTER) {
+        if (this.mode == View.TOOL_SIMBAD_POINTER) {
             this.popup.hide();
             this.catalogCanvas.style.cursor = '';
             $(this.catalogCanvas).addClass('aladin-sp-cursor');
         }
-        else {
+        else if (this.mode == View.PAN) {
             this.setCursor('default');
         }
     };
@@ -475,7 +467,7 @@ export let View = (function () {
             const xymouse = Utils.relMouseCoords(e);
 
             // deselect all the selected sources with Select panel
-            view.hideSelectedObjects()
+            view.unselectObjects()
 
             try {
                 const lonlat = view.wasm.screenToWorld(xymouse.x, xymouse.y);
@@ -492,7 +484,7 @@ export let View = (function () {
         }
 
         // prevent default context menu from appearing (potential clash with right-click cuts control)
-        $(view.catalogCanvas).bind("contextmenu", function (e) {
+        $(view.catalogCanvas).on("contextmenu", function (e) {
             // do something here...
             e.preventDefault();
         }, false);
@@ -501,7 +493,7 @@ export let View = (function () {
         let cutMinInit = null
         let cutMaxInit = null;
 
-        $(view.catalogCanvas).bind("mousedown touchstart", function (e) {
+        $(view.catalogCanvas).on("mousedown touchstart", function (e) {
             e.preventDefault();
             e.stopPropagation();
 
@@ -564,18 +556,19 @@ export let View = (function () {
             if (view.mode == View.PAN) {
                 view.setCursor('move');
             }
-            else if (view.mode == View.SELECT) {
-                view.selector.start(view.dragCoo, view.selectMode, view.selectCallbackFn);
-            }
 
             view.wasm.pressLeftMouseButton(view.dragCoo.x, view.dragCoo.y);
+
+            if (view.mode === View.SELECT) {
+                view.selector.dispatch('mousedown', {coo: xymouse})
+            }
 
             // false disables default browser behaviour like possibility to touch hold for context menu.
             // To disable text selection use css user-select: none instead of putting this value to false
             return true;
         });
 
-        $(view.catalogCanvas).bind("mouseup", function (e) {
+        $(view.catalogCanvas).on("mouseup", function (e) {
             e.preventDefault();
             e.stopPropagation();
 
@@ -604,10 +597,14 @@ export let View = (function () {
 
                 return;
             }
+
+            if (view.mode === View.SELECT) {
+                view.selector.dispatch('mouseup', {coo: xymouse})
+            }
         });
         
         // reacting on 'click' rather on 'mouseup' is more reliable when panning the view
-        $(view.catalogCanvas).bind("click mouseout touchend touchcancel", function (e) {
+        $(view.catalogCanvas).on("click mouseout touchend touchcancel", function (e) {
             const xymouse = Utils.relMouseCoords(e);
 
             ALEvent.CANVAS_EVENT.dispatchedTo(view.aladinDiv, {
@@ -634,8 +631,7 @@ export let View = (function () {
                 return;
             }
 
-            var wasDragging = view.realDragging === true;
-            var selectionHasEnded = view.mode === View.SELECT && view.dragging;
+            var wasDragging = view.realDragging === true;            
 
             if (view.dragging) { // if we were dragging, reset to default cursor
                 view.setCursor('default');
@@ -645,18 +641,6 @@ export let View = (function () {
                     view.realDragging = false;
                 }
             } // end of "if (view.dragging) ... "
-
-            if (selectionHasEnded) {
-                view.selector.finish(view.dragCoo);
-
-                view.aladin.fire(
-                    'selectend'
-                );
-
-                view.requestRedraw();
-
-                return;
-            }
 
             view.mustClearCatalog = true;
             view.dragCoo = null;
@@ -683,7 +667,7 @@ export let View = (function () {
             // popup to show ?
             var objs = view.closestObjects(xymouse.x, xymouse.y, 5);
             if (!wasDragging && objs) {
-                view.hideSelectedObjects();
+                view.unselectObjects();
 
                 var o = objs[0];
 
@@ -717,30 +701,28 @@ export let View = (function () {
                 }
 
                 view.lastClickedObject = o;
-            } else {
-                if (!wasDragging) {
-                    // Deselect objects if any
-                    view.hideSelectedObjects();
+            } else if (!wasDragging) {
+                // Deselect objects if any
+                view.unselectObjects();
 
-                    // If there is a past clicked object
-                    if (view.lastClickedObject) {
-                        //view.aladin.measurementTable.hide();
-                        //view.aladin.sodaForm.hide();
-                        view.popup.hide();
+                // If there is a past clicked object
+                if (view.lastClickedObject) {
+                    //view.aladin.measurementTable.hide();
+                    //view.aladin.sodaForm.hide();
+                    view.popup.hide();
 
-                        // Deselect the last clicked object
-                        if (view.lastClickedObject instanceof Ellipse || view.lastClickedObject instanceof Circle || view.lastClickedObject instanceof Polyline) {
-                            view.lastClickedObject.deselect();
-                        } else {
-                            // Case where lastClickedObject is a Source
-                            view.lastClickedObject.actionOtherObjectClicked();
-                        }
-
-                        var objClickedFunction = view.aladin.callbacksByEventName['objectClicked'];
-                        (typeof objClickedFunction === 'function') && objClickedFunction(null, xymouse);
-
-                        view.lastClickedObject = null;
+                    // Deselect the last clicked object
+                    if (view.lastClickedObject instanceof Ellipse || view.lastClickedObject instanceof Circle || view.lastClickedObject instanceof Polyline) {
+                        view.lastClickedObject.deselect();
+                    } else {
+                        // Case where lastClickedObject is a Source
+                        view.lastClickedObject.actionOtherObjectClicked();
                     }
+
+                    var objClickedFunction = view.aladin.callbacksByEventName['objectClicked'];
+                    (typeof objClickedFunction === 'function') && objClickedFunction(null, xymouse);
+
+                    view.lastClickedObject = null;
                 }
             }
 
@@ -759,11 +741,15 @@ export let View = (function () {
 
             //view.requestRedraw();
             view.wasm.releaseLeftButtonMouse(xymouse.x, xymouse.y);
+
+            if (view.mode === View.SELECT) {
+                view.selector.dispatch('mouseout', {coo: view.dragCoo})
+            }
         });
 
         var lastHoveredObject; // save last object hovered by mouse
         var lastMouseMovePos = null;
-        $(view.catalogCanvas).bind("mousemove touchmove", function (e) {
+        $(view.catalogCanvas).on("mousemove touchmove", function (e) {
             e.preventDefault();
 
             const xymouse = Utils.relMouseCoords(e);
@@ -841,7 +827,7 @@ export let View = (function () {
                 return;
             }
 
-            if (!view.dragging /*&& !view.moving*/) {
+            if (!view.dragging && !view.moving) {
                 view.updateObjectsLookup();
             }
 
@@ -850,7 +836,7 @@ export let View = (function () {
                 view.updateLocation({mouseX: xymouse.x, mouseY: xymouse.y});
             }*/
 
-            if (!view.dragging) {
+            if (!view.dragging && !view.moving && view.mode === View.PAN) {
                 // call listener of 'mouseMove' event
                 var onMouseMoveFunction = view.aladin.callbacksByEventName['mouseMove'];
                 if (typeof onMouseMoveFunction === 'function') {
@@ -865,46 +851,45 @@ export let View = (function () {
                     lastMouseMovePos = pos;
                 }
 
-                if (!view.dragging && !view.mode == View.SELECT) {
-                    // closestObjects is very costly, we would like to not do it
-                    // especially if the objectHovered function is not defined.
-                    var closest = view.closestObjects(xymouse.x, xymouse.y, 5);
+                // closestObjects is very costly, we would like to not do it
+                // especially if the objectHovered function is not defined.
+                var closest = view.closestObjects(xymouse.x, xymouse.y, 5);
 
-                    if (closest) {
-                        let o = closest[0];
-                        var objHoveredFunction = view.aladin.callbacksByEventName['objectHovered'];
-                        var footprintHoveredFunction = view.aladin.callbacksByEventName['footprintHovered'];
+                if (closest) {
+                    let o = closest[0];
+                    var objHoveredFunction = view.aladin.callbacksByEventName['objectHovered'];
+                    var footprintHoveredFunction = view.aladin.callbacksByEventName['footprintHovered'];
 
-                        view.setCursor('pointer');
-                        if (typeof objHoveredFunction === 'function' && o != lastHoveredObject) {
-                            var ret = objHoveredFunction(o, xymouse);
-                        }
-
-                        if (o.isFootprint()) {
-                            if (typeof footprintHoveredFunction === 'function' && o != lastHoveredObject) {
-                                var ret = footprintHoveredFunction(o, xymouse);
-                            }
-                        }
-
-                        lastHoveredObject = o;
-                    } else {
-                        view.setCursor('default');
-                        var objHoveredStopFunction = view.aladin.callbacksByEventName['objectHoveredStop'];
-                        if (lastHoveredObject) {
-                            // Redraw the scene if the lastHoveredObject is a footprint (e.g. circle or polygon)
-                            if (lastHoveredObject.isFootprint()) {
-                                view.requestRedraw();
-                            }
-
-                            if (typeof objHoveredStopFunction === 'function') {
-                                // call callback function to notify we left the hovered object
-                                var ret = objHoveredStopFunction(lastHoveredObject, xymouse);
-                            }
-                        }
-
-                        lastHoveredObject = null;
+                    view.setCursor('pointer');
+                    if (typeof objHoveredFunction === 'function' && o != lastHoveredObject) {
+                        var ret = objHoveredFunction(o, xymouse);
                     }
+
+                    if (o.isFootprint()) {
+                        if (typeof footprintHoveredFunction === 'function' && o != lastHoveredObject) {
+                            var ret = footprintHoveredFunction(o, xymouse);
+                        }
+                    }
+
+                    lastHoveredObject = o;
+                } else {
+                    view.setCursor('default');
+                    var objHoveredStopFunction = view.aladin.callbacksByEventName['objectHoveredStop'];
+                    if (lastHoveredObject) {
+                        // Redraw the scene if the lastHoveredObject is a footprint (e.g. circle or polygon)
+                        //if (lastHoveredObject.isFootprint()) {
+                        //    view.requestRedraw();
+                        //}
+
+                        if (typeof objHoveredStopFunction === 'function') {
+                            // call callback function to notify we left the hovered object
+                            var ret = objHoveredStopFunction(lastHoveredObject, xymouse);
+                        }
+                    }
+
+                    lastHoveredObject = null;
                 }
+
                 if (e.type === "mousemove") {
                     return;
                 }
@@ -914,26 +899,31 @@ export let View = (function () {
                 return;
             }
 
+            view.realDragging = true;
+
+
             var s1 = view.dragCoo, s2 = xymouse;
             // update drag coo with the new position
             view.dragCoo = xymouse;
 
-            if (view.mode == View.SELECT) {
+            /*if (view.mode == View.SELECT) {
                 view.requestRedraw();
                 return;
+            }*/
+
+            if (view.mode === View.PAN) {
+                view.wasm.moveMouse(s1.x, s1.y, s2.x, s2.y);
+                view.wasm.goFromTo(s1.x, s1.y, s2.x, s2.y);
+    
+                view.updateCenter();
+    
+                ALEvent.POSITION_CHANGED.dispatchedTo(view.aladin.aladinDiv, view.viewCenter);
+    
+                // Apply position changed callback after the move
+                view.throttledPositionChanged();
+            } else if (view.mode === View.SELECT) {
+                view.selector.dispatch('mousemove', {coo: xymouse})
             }
-
-            view.realDragging = true;
-
-            view.wasm.moveMouse(s1.x, s1.y, s2.x, s2.y);
-            view.wasm.goFromTo(s1.x, s1.y, s2.x, s2.y);
-
-            view.updateCenter();
-
-            ALEvent.POSITION_CHANGED.dispatchedTo(view.aladin.aladinDiv, view.viewCenter);
-
-            // Apply position changed callback after the move
-            view.throttledPositionChanged();
         }); //// endof mousemove ////
 
         // disable text selection on IE
@@ -1101,61 +1091,59 @@ export let View = (function () {
     };
 
     View.prototype.drawAllOverlays = function () {
-        var catalogCtx = this.catalogCtx;
-        var catalogCanvasCleared = false;
+        var ctx = this.catalogCtx;
+        this.catalogCanvasCleared = false;
         if (this.mustClearCatalog) {
-            catalogCtx.clearRect(0, 0, this.width, this.height);
-            catalogCanvasCleared = true;
+            ctx.clearRect(0, 0, this.width, this.height);
+            this.catalogCanvasCleared = true;
             this.mustClearCatalog = false;
         }
 
         if (this.catalogs && this.catalogs.length > 0 && this.displayCatalog && (!this.dragging || View.DRAW_SOURCES_WHILE_DRAGGING)) {
             // TODO : do not clear every time
             //// clear canvas ////
-            if (!catalogCanvasCleared) {
-                catalogCtx.clearRect(0, 0, this.width, this.height);
-                catalogCanvasCleared = true;
+            if (!this.catalogCanvasCleared) {
+                ctx.clearRect(0, 0, this.width, this.height);
+                this.catalogCanvasCleared = true;
             }
 
             for (var i = 0; i < this.catalogs.length; i++) {
                 var cat = this.catalogs[i];
-                cat.draw(catalogCtx, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor);
+                cat.draw(ctx, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor);
             }
         }
         // draw popup catalog
         if (this.catalogForPopup.isShowing && this.catalogForPopup.sources.length > 0) {
-            if (!catalogCanvasCleared) {
-                catalogCtx.clearRect(0, 0, this.width, this.height);
-                catalogCanvasCleared = true;
+            if (!this.catalogCanvasCleared) {
+                ctx.clearRect(0, 0, this.width, this.height);
+                this.catalogCanvasCleared = true;
             }
 
-            this.catalogForPopup.draw(catalogCtx, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor);
+            this.catalogForPopup.draw(ctx, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor);
 
             // draw popup overlay layer
             if (this.overlayForPopup.isShowing) {
-                this.overlayForPopup.draw(catalogCtx, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor);
+                this.overlayForPopup.draw(ctx, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor);
             }
         }
 
         ////// 3. Draw overlays////////
-        var overlayCtx = this.catalogCtx;
         if (this.overlays && this.overlays.length > 0 && (!this.dragging || View.DRAW_SOURCES_WHILE_DRAGGING)) {
-            if (!catalogCanvasCleared) {
-                catalogCtx.clearRect(0, 0, this.width, this.height);
-                catalogCanvasCleared = true;
+            if (!this.catalogCanvasCleared) {
+                ctx.clearRect(0, 0, this.width, this.height);
+                this.catalogCanvasCleared = true;
             }
 
             for (var i = 0; i < this.overlays.length; i++) {
-                this.overlays[i].draw(overlayCtx);
+                this.overlays[i].draw(ctx);
             }
         }
 
         // Redraw HEALPix grid
-        var healpixGridCtx = catalogCtx;
         if (this.displayHpxGrid) {
-            if (!catalogCanvasCleared) {
-                catalogCtx.clearRect(0, 0, this.width, this.height);
-                catalogCanvasCleared = true;
+            if (!this.catalogCanvasCleared) {
+                ctx.clearRect(0, 0, this.width, this.height);
+                this.catalogCanvasCleared = true;
             }
 
             var cornersXYViewMapAllsky = this.getVisibleCells(3);
@@ -1169,11 +1157,15 @@ export let View = (function () {
                 }
             }
             if (cornersXYViewMapHighres && this.curNorder > 3) {
-                this.healpixGrid.redraw(healpixGridCtx, cornersXYViewMapHighres, this.fov, this.curNorder);
+                this.healpixGrid.redraw(ctx, cornersXYViewMapHighres, this.fov, this.curNorder);
             }
             else {
-                this.healpixGrid.redraw(healpixGridCtx, cornersXYViewMapAllsky, this.fov, 3);
+                this.healpixGrid.redraw(ctx, cornersXYViewMapAllsky, this.fov, 3);
             }
+        }
+
+        if (this.mode === View.SELECT) {
+            this.selector.dispatch('draw')
         }
 
         ////// 4. Draw reticle ///////
@@ -1267,35 +1259,45 @@ export let View = (function () {
         return pixList;
     };
 
-    View.prototype.hideSelectedObjects = function() {
+    View.prototype.unselectObjects = function() {
         this.aladin.measurementTable.hide();
 
-        if (this.selectedObjects) {
-            this.selectedObjects.forEach((objList) => {
+        if (this.selection) {
+            this.selection.forEach((objList) => {
                 objList.forEach((o) => o.deselect())
             });
 
-            this.selectedObjects = null;
+            this.selection = null;
+        }
+
+        // reattach the default contextmenu
+        if (this.aladin.contextMenu) {
+            this.aladin.contextMenu.attach(DefaultActionsForContextMenu.getDefaultActions(this.aladin));
         }
 
         this.requestRedraw();
-        //}
     }
 
-    View.prototype.showSelectedObjects = function() {
-        this.hideSelectedObjects();
+    View.prototype.selectObjects = function(selection) {
+        // unselect the previous selection
+        this.unselectObjects();
 
-        this.selectedObjects = this.getSelectedObjects();
+        if (Array.isArray(selection)) {
+            this.selection = [selection];
+        } else {
+            // select the new 
+            this.selection = Selector.getObjects(selection, this);
+        }
 
-        if (this.selectedObjects.length > 0) {
-            this.selectedObjects.forEach((objListPerCatalog) => {
+        if (this.selection.length > 0) {
+            this.selection.forEach((objListPerCatalog) => {
                 objListPerCatalog.forEach((obj) => obj.select())
             });
 
-            let tables = this.selectedObjects.map((objList) => {
+            let tables = this.selection.map((objList) => {
                 // Get the catalog containing that list of objects
                 let catalog = objList[0].getCatalog();
-                
+
                 let source;
                 let sources = objList.map((o) => {
                     if (o instanceof Footprint) {
@@ -1318,6 +1320,50 @@ export let View = (function () {
             })
 
             this.aladin.measurementTable.showMeasurement(tables);
+            let a = this.aladin;
+            const sampBtn = new SAMPActionButton({
+                tooltip: {content: 'Send a table through SAMP Hub'},
+                action(conn) {
+                    // hide the menu
+                    a.contextMenu._hide()
+
+                    let getSource = (o) => {
+                        let s = o;
+                        if (o.source) {
+                            s = o.source
+                        }
+
+                        return s;
+                    };
+
+                    for (const objects of objList) {
+                        let s0 = getSource(objects[0]);
+                        const cat = s0.catalog;
+                        const {url, name} = cat;
+                        conn.loadVOTable(url, name, url);
+
+                        let rowList = [];
+                        for (const obj of objects) {
+                            // select the source
+                            let s = getSource(obj)
+                            rowList.push('' + s.rowIdx);
+                        };
+                        conn.tableSelectRowList(name, url, rowList)
+                    }
+                }
+            }, a);
+
+            a.contextMenu.attach([
+                {
+                    label: Layout.horizontal([sampBtn, a.samp ? 'Send selection to SAMP' : 'SAMP disabled']),
+                },
+                {
+                    label: 'Remove selection',
+                    action(o) {
+                        a.view.unselectObjects();
+                    }
+                }
+            ]);
         }
     }
 
@@ -1584,14 +1630,12 @@ export let View = (function () {
     }
 
     View.prototype.removeImageLayer = function (layer) {
-        console.log("remove image layer", layer)
         // Get the survey to remove to dissociate it from the view
         let imageLayer = this.imageLayers.get(layer);
         if (imageLayer === undefined) {
             // there is nothing to remove
             return;
         }
-        console.log("remove image layer", layer)
 
         // Update the backend
         if (imageLayer.added) {
@@ -1606,7 +1650,6 @@ export let View = (function () {
             // layer not found
             return;
         }
-        console.log("remove image layer", layer)
 
         // Delete it
         this.imageLayers.delete(layer);
@@ -1625,7 +1668,6 @@ export let View = (function () {
             }
         }
 
-        console.log("removed image layer", layer)
         ALEvent.HIPS_LAYER_REMOVED.dispatchedTo(this.aladinDiv, { layer: layer });
 
         // check if there are no more surveys
@@ -1749,7 +1791,7 @@ export let View = (function () {
         this.requestRedraw();
     };
 
-    View.prototype.showReticle = function (show) {
+    /*View.prototype.showReticle = function (show) {
         this.displayReticle = show;
 
         if (!this.displayReticle) {
@@ -1757,7 +1799,7 @@ export let View = (function () {
         }
 
         this.requestRedraw();
-    };
+    };*/
 
     /**
      *
@@ -1868,58 +1910,6 @@ export let View = (function () {
     View.prototype.addMOC = function (moc) {
         moc.name = this.makeUniqLayerName(moc.name);
         moc.setView(this);
-    };
-
-    View.prototype.getSelectedObjects = function () {
-        let {x, y, w, h} = this.selector.getBBox(this.dragCoo);
-
-        if (w < 0) {
-            x = x + w;
-            w = -w;
-        }
-        if (h < 0) {
-            y = y + h;
-            h = -h;
-        }
-        var objList = [];
-        var cat, sources, s;
-        var footprints, f;
-        var objListPerCatalog = [];
-        if (this.catalogs) {
-            for (var k = 0; k < this.catalogs.length; k++) {
-                cat = this.catalogs[k];
-                if (!cat.isShowing) {
-                    continue;
-                }
-                sources = cat.getSources();
-                for (var l = 0; l < sources.length; l++) {
-                    s = sources[l];
-                    if (!s.isShowing || !s.x || !s.y) {
-                        continue;
-                    }
-                    if (s.x >= x && s.x <= x + w && s.y >= y && s.y <= y + h) {
-                        objListPerCatalog.push(s);
-                    }
-                }
-                // footprints
-                footprints = cat.getFootprints();
-                if (footprints) {
-                    for (var l = 0; l < footprints.length; l++) {
-                        f = footprints[l];
-                        if (f.intersectsBBox(x, y, w, h, this)) {
-                            objListPerCatalog.push(f);
-                        }
-                    }
-                }
-
-                if (objListPerCatalog.length > 0) {
-                    objList.push(objListPerCatalog);
-                }
-                objListPerCatalog = [];
-            }
-        }
-        return objList;
-
     };
 
     // update objLookup, lookup table

@@ -28,10 +28,9 @@
  * 
  *****************************************************************************/
 
-import { ActionButton } from "./gui/Widgets/ActionButton";
-import { Datalink } from "./vo/Datalink";
-import { Utils } from "./Utils";
 import { ObsCore } from "./vo/ObsCore";
+import { SAMPActionButton } from "./gui/Button/SAMP";
+import { Layout } from "./gui/Layout";
 
 export let Source = (function() {
     // constructor
@@ -102,27 +101,17 @@ export let Source = (function() {
     };
 
     // function called when a source is clicked. Called by the View object
-    Source.prototype.actionClicked = function() {
+    Source.prototype.actionClicked = function(obj) {
         if (this.catalog && this.catalog.onClick) {
             var view = this.catalog.view;
 
             if (this.catalog.onClick == 'showTable') {
-                this.select();
-
-                view.aladin.measurementTable.hide();
-
-                let singleSourceTable = {
-                    'rows': [this],
-                    'fields': this.catalog.fields,
-                    'showCallback': ObsCore.SHOW_CALLBACKS(view.aladin),
-                    'name': this.catalog.name,
-                    'color': this.catalog.color
-                };
-
-                view.aladin.measurementTable.showMeasurement([singleSourceTable]);
+                if (!obj) {
+                    obj = this;
+                }
+                view.selectObjects([obj]);
             }
             else if (this.catalog.onClick == 'showPopup') {
-
                 view.popup.setTitle('<br><br>');
                 var m = '<div class="aladin-marker-measurement">';
                 m += '<table>';

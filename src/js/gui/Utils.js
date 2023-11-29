@@ -17,7 +17,6 @@ Element.prototype.swap = function (node) {
     parent.insertBefore(node, sibling);
 };
 
-import { DOMElement } from "./Widgets/Widget";
 export let Utils = {}
 /**
  * Append el to target
@@ -40,27 +39,4 @@ export let Utils = {}
         else high = mid;
     }
     return low;
-}
-
-export class FSM {
-    // Constructor
-    constructor(options) {
-        this.state = options && options.state;
-        this.transitions = options && options.transitions || {};
-    }
-
-    // Do nothing if the to is inaccesible
-    dispatch(to, params) {
-        const action = this.transitions[this.state][to];
-        console.log(this.state, ' to ', to)
-        if (action) {
-            if (params) {
-                action(params);
-            } else {
-                action()
-            }
-
-            this.state = to;
-        }
-    }
 }

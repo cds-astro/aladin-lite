@@ -710,7 +710,7 @@ export let samp = (function() {
     // Closes this connection.  It unregisters from the hub if still
     // registered, but may harmlessly be called multiple times.
     Connection.prototype.close = function() {
-        var e;
+        var e, oc;
         if (this.closed) {
             return;
         }
@@ -992,6 +992,8 @@ export let samp = (function() {
         }
     };
     ClientTracker.prototype.init = function(connection) {
+        console.log('init client tracker')
+
         var tracker = this;
         this.connection = connection;
         var retrieveInfo = function(id, type, infoFuncName, infoArray) {
@@ -1001,11 +1003,14 @@ export let samp = (function() {
             });
         };
         connection.getRegisteredClients([], function(idlist) {
+            console.log(idlist)
+
             var i;
             var id;
             tracker.ids = {};
             for (i = 0; i < idlist.length; i++) {
                 id = idlist[i];
+
                 tracker.ids[id] = true;
                 retrieveInfo(id, "meta", "getMetadata", tracker.metas);
                 retrieveInfo(id, "subs", "getSubscriptions", tracker.subs);
@@ -1082,6 +1087,7 @@ export let samp = (function() {
             }
             if (this.callableClient) {
                 if (this.callableClient.init) {
+                    console.log("init")
                     this.callableClient.init(conn);
                 }
                 conn.setCallable(this.callableClient, function() {

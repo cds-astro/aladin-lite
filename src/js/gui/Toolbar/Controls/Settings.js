@@ -33,6 +33,7 @@ import { ContextMenu } from "../../Widgets/ContextMenu.js";
 import { Input } from "../../Widgets/Input.js";
 import { Color } from "../../../Color.js";
 import { ALEvent } from "../../../events/ALEvent.js";
+import { SAMPActionButton } from "../../Button/SAMP.js";
 
 export class Settings extends ContextMenu {
     // Constructor
@@ -55,7 +56,7 @@ export class Settings extends ContextMenu {
             change(e) {
                 let hex = e.target.value;
                 let reticle = aladin.getReticle();
-                reticle.setColor(hex)
+                reticle.update({color: hex})
             }
         });
 
@@ -95,7 +96,24 @@ export class Settings extends ContextMenu {
         self.reticleCheckbox = Input.checkbox({name: 'reticle', checked: this.aladin.isReticleDisplayed()})
 
         this.menu = menu;
+        
+        let sampBtn = new SAMPActionButton({
+            action(conn) {
+                if (conn.isConnected()) {
+                    conn.unregister();
+                    sampBtn.update({tooltip: {content: 'Connect to SAMP Hub'}})
+                } else {
+                    conn.register();
+                    sampBtn.update({tooltip: {content: 'Disconnect'}})
+                }
+
+                self._hide()
+            }
+        }, aladin);
+        this.sampBtn = sampBtn;
+
         this._attach();
+
     }
 
     _attach() {
@@ -118,7 +136,7 @@ export class Settings extends ContextMenu {
                 label: em,
                 action(o) {
                     let reticle = self.aladin.getReticle();
-                    reticle.setSize(pxSize);
+                    reticle.update({size: pxSize})
                 }
             })
         }
@@ -168,6 +186,9 @@ export class Settings extends ContextMenu {
 
                     self._attach();
                 }
+            },
+            {
+                label: Layout.horizontal({layout: [self.sampBtn, 'SAMP']}),
             },
             {
                 label: 'Features',

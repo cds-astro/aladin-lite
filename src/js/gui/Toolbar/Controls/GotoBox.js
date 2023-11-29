@@ -29,7 +29,7 @@
  *****************************************************************************/
 
 import { Box } from "../../Widgets/Box.js";
-import { Form } from "../../widgets/Form.js";
+import { Form } from "../../Widgets/Form.js";
  
 export class GotoBox extends Box {
     // Constructor

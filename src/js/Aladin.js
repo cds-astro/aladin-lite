@@ -125,6 +125,9 @@ export let Aladin = (function () {
         //var location = new Location(locationDiv.find('.aladin-location-text'));
 
         // set different options
+        // Reticle
+        this.reticle = new Reticle(this.options, this);
+
         this.view = new View(this);
         this.cacheSurveys = new Map();
 
@@ -317,20 +320,20 @@ export let Aladin = (function () {
         var aladin = this;
 
         var zoomPlus = $(aladinDiv).find('.zoomPlus');
-        zoomPlus.click(function () {
+        zoomPlus.on('click', function () {
             aladin.increaseZoom();
             return false;
         });
-        zoomPlus.bind('mousedown', function (e) {
+        zoomPlus.on('mousedown', function (e) {
             e.preventDefault(); // to prevent text selection
         });
 
         var zoomMinus = $(aladinDiv).find('.zoomMinus');
-        zoomMinus.click(function () {
+        zoomMinus.on('click', function () {
             aladin.decreaseZoom();
             return false;
         });
-        zoomMinus.bind('mousedown', function (e) {
+        zoomMinus.on('mousedown', function (e) {
             e.preventDefault(); // to prevent text selection
         });
 
@@ -366,12 +369,7 @@ export let Aladin = (function () {
 
         if (options.samp) {
             this.samp = new SAMPConnector(this);
-            ALEvent.SAMP_AVAILABILITY.listenedBy(this.aladinDiv, function (e) {
-                console.log('is hub running samp', e.detail.isHubRunning)
-            });
         }
-        // Reticle
-        this.reticle = new Reticle(this.options, this);
     };
 
     /**** CONSTANTS ****/
@@ -926,8 +924,7 @@ export let Aladin = (function () {
         this.view.showCatalog(show);
     };
     Aladin.prototype.showReticle = function (show) {
-        console.log("show", show, this.reticle)
-        this.reticle.show(show)
+        this.reticle.update({show})
         //$('#displayReticle').attr('checked', show);
     };
 
@@ -1224,24 +1221,19 @@ export let Aladin = (function () {
         new ALEvent(alEventName).listenedBy(this.aladinDiv, customFn);
     };
 
+    Aladin.prototype.selectObjects = function(objects) {
+        this.view.selectObjects(objects)
+    };
     // Possible values are 'rect' and 'circle'
     // TODO: add a 'polygon' selection mode
-    Aladin.prototype.select = function (mode = 'rect', callbackFn) {
-        this.fire('selectstart', {mode: mode, callbackFn: callbackFn});
+    Aladin.prototype.select = function (mode = 'rect', callback) {
+        this.fire('selectstart', {mode, callback});
     };
 
     Aladin.prototype.fire = function (what, params) {
         if (what === 'selectstart') {
-            this.view.startSelection(params["mode"], params["callbackFn"]);
-        }
-        else if (what === 'selectend') {
-            this.view.finishSelection();
-
-            var callbackFn = this.callbacksByEventName['select'];
-            if (typeof callbackFn === "function") {
-                this.view.showSelectedObjects();
-                callbackFn(this.view.selectedObjects);
-            }
+            const {mode, callback} = params;
+            this.view.startSelection(mode, callback);
         }
         else if (what === 'simbad') {
             this.view.setMode(View.TOOL_SIMBAD_POINTER);

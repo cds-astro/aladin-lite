@@ -48,6 +48,7 @@ export let Catalog = (function() {
         let self = this;
         options = options || {};
 
+        this.url = options.url;
         this.uuid = Utils.uuidv4();
         this.type = 'catalog';
         this.name = options.name || "catalog";
@@ -64,7 +65,7 @@ export let Catalog = (function() {
         this.decField = options.decField || undefined; // ID or name of the field holding dec
 
         // allows for filtering of sources
-        this.filterFn = options.filter || undefined; // TODO: do the same for catalog
+        this.filterFn = options.filter || undefined; // TODO: do the same for catalog
 
         this.showFieldCallback = {}; // callbacks when the user clicks on a cell in the measurement table associated
         this.fields = undefined;
@@ -301,6 +302,7 @@ export let Catalog = (function() {
     // return an array of Source(s) from a VOTable url
     // callback function is called each time a TABLE element has been parsed
     Catalog.parseVOTable = function(url, successCallback, errorCallback, maxNbSources, useProxy, raField, decField) {
+        let rowIdx = 0;
         VOTable.parse(
             url,
             (rsc) => {
@@ -348,6 +350,7 @@ export let Catalog = (function() {
                         }
 
                         source = new Source(ra, dec, mesures);
+                        source.rowIdx = rowIdx;
                     }
 
                     let footprint = null;
@@ -368,6 +371,7 @@ export let Catalog = (function() {
                         }
                     }
 
+                    rowIdx++;
                     return true;
                 })
 
@@ -642,8 +646,16 @@ export let Catalog = (function() {
             })
         }
 
+        let measureTime = (msg, f) => {
+            let a = performance.now()
+            let res = f()
+            console.log(msg, performance.now() - a);
+
+            return res;
+        };
+
         // Draw the footprints
-        this.drawFootprints(ctx);
+        measureTime(this.name + ' draw footprints', () => {this.drawFootprints(ctx)});
     };
 
     Catalog.prototype.drawSources = function(ctx, width, height) {
@@ -651,20 +663,32 @@ export let Catalog = (function() {
             return;
         }
 
+        let measureTime = (msg, f) => {
+            let a = performance.now()
+            let res = f()
+            console.log(msg, performance.now() - a);
+
+            return res;
+        };
+
         let sourcesInsideView = [];
-        let xy = this.view.wasm.worldToScreenVec(this.ra, this.dec);
+        let xy = measureTime(this.name + ' projection sources', () => {
+            return this.view.wasm.worldToScreenVec(this.ra, this.dec);
+        });
 
-        let self = this;
-        this.sources.forEach(function(s, idx) {
-            if (xy[2*idx] && xy[2*idx + 1]) {
-                if (!self.filterFn || self.filterFn(s)) {
-                    s.x = xy[2*idx];
-                    s.y = xy[2*idx + 1];
-
-                    self.drawSource(s, ctx, width, height)
-                    sourcesInsideView.push(s);
+        measureTime(this.name + ' draw sources', () => {
+            let self = this;
+            this.sources.forEach(function(s, idx) {
+                if (xy[2*idx] && xy[2*idx + 1]) {
+                    if (!self.filterFn || self.filterFn(s)) {
+                        s.x = xy[2*idx];
+                        s.y = xy[2*idx + 1];
+    
+                        self.drawSource(s, ctx, width, height)
+                        sourcesInsideView.push(s);
+                    }
                 }
-            }
+            });
         });
 
         return sourcesInsideView;

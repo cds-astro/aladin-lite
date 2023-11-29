@@ -79,6 +79,14 @@ export let Overlay = (function() {
         this.reportChange();
     };
 
+    Overlay.prototype.toggle = function() {
+        if (! this.isShowing) {
+            this.show()
+        } else {
+            this.hide()
+        }
+    };
+
     // return an array of Footprint from a STC-S string
     Overlay.parseSTCS = function(stcs, options) {
         options = options || {};

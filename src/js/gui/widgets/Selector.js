@@ -18,10 +18,10 @@
 //
 
 import { DOMElement } from "./Widget";
-import { FSM } from "../Utils";
+import { FSM } from "../../FiniteStateMachine";
 import { ActionButton } from "./ActionButton";
 import { ContextMenu } from "./ContextMenu";
-import { Tooltip } from "./Tooltip";
+
 /******************************************************************************
  * Aladin Lite project
  *

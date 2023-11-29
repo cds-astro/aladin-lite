@@ -36,6 +36,11 @@ export let DefaultActionsForContextMenu = (function () {
     let DefaultActionsForContextMenu = {};
 
     DefaultActionsForContextMenu.getDefaultActions = function (aladinInstance) {
+        const a = aladinInstance;
+
+        const selectObjects = (selection) => {
+            a.view.selectObjects(selection);
+        };
         return [
             {
                 label: "Copy position", action(o) {
@@ -54,19 +59,19 @@ export let DefaultActionsForContextMenu = (function () {
                 }
             },
             {
-                label: "Take snapshot", action(o) { aladinInstance.exportAsPNG(); }
+                label: "Take snapshot", action(o) { a.exportAsPNG(); }
             },
             {
                 label: "Add",
                 subMenu: [
                     {
                         label: 'New image layer', action(o) {
-                            aladinInstance.addNewImageLayer();
+                            a.addNewImageLayer();
                         }
                     },
                     {
                         label: 'New catalogue layer', action(o) {
-                            aladinInstance.stack._onAddCatalogue();
+                            a.stack._onAddCatalogue();
                         }
                     },
                 ]
@@ -86,19 +91,19 @@ export let DefaultActionsForContextMenu = (function () {
                                     const name = file.name;
 
                                     // Consider other cases
-                                    const image = aladinInstance.createImageFITS(
+                                    const image = a.createImageFITS(
                                         url,
                                         name,
                                         undefined,
                                         (ra, dec, fov, _) => {
                                             // Center the view around the new fits object
-                                            aladinInstance.gotoRaDec(ra, dec);
-                                            aladinInstance.setFoV(fov * 1.1);
+                                            a.gotoRaDec(ra, dec);
+                                            a.setFoV(fov * 1.1);
                                         },
                                         undefined
                                     );
 
-                                    aladinInstance.setOverlayImageLayer(image, name)
+                                    a.setOverlayImageLayer(image, name)
                                 });
                             };
                             input.click();
@@ -114,7 +119,7 @@ export let DefaultActionsForContextMenu = (function () {
                                 files.forEach(file => {
                                     const url = URL.createObjectURL(file);
                                     let moc = A.MOCFromURL(url, { name: file.name, fill: true, opacity: 0.4 });
-                                    aladinInstance.addMOC(moc);
+                                    a.addMOC(moc);
                                 });
                             };
                             input.click();
@@ -130,7 +135,7 @@ export let DefaultActionsForContextMenu = (function () {
                                 files.forEach(file => {
                                     const url = URL.createObjectURL(file);
                                     A.catalogFromURL(url, { name: file.name, onClick: 'showTable'}, (catalog) => {
-                                        aladinInstance.addCatalog(catalog);
+                                        a.addCatalog(catalog);
                                     }, false);
                                 });
                             };
@@ -141,12 +146,11 @@ export let DefaultActionsForContextMenu = (function () {
             },
             {
                 label: "What is this?", action(e) {
-                    GenericPointer(aladinInstance.view, e);
+                    GenericPointer(a.view, e);
                 }
             },
             {
                 label: "HiPS2FITS cutout", action(o) {
-                    const a = aladinInstance;
                     let hips2fitsUrl = 'https://alasky.cds.unistra.fr/hips-image-services/hips2fits#';
                     let radec = a.getRaDec();
                     let fov = Math.max.apply(null, a.getFov());
@@ -157,13 +161,21 @@ export let DefaultActionsForContextMenu = (function () {
                 }
             },
             {
-                label: "Select sources", action(o) {
-                    const a = aladinInstance;
-
-                    a.select('rect', (_) => {
-                        a.view.showSelectedObjects();
-                    })
-                }
+                label: "Select sources",
+                subMenu: [
+                    {
+                        label: 'Circular',
+                        action(o) {
+                            a.select('circle', selectObjects)
+                        }
+                    },
+                    {
+                        label: 'Rectangular',
+                        action(o) {        
+                            a.select('rect', selectObjects)
+                        }
+                    }
+                ]
             },
         ]
     }

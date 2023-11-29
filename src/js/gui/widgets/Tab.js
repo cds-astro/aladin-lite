@@ -45,9 +45,6 @@ export class Tabs extends DOMElement {
      *     For the list of possibilities, see https://developer.mozilla.org/en-US/docs/Web/API/Element/insertAdjacentHTML
      */
     constructor(options, target, position = "beforeend") {
-        let layout = options.layout;
-        let cssStyle = options.cssStyle;
-
         let el = document.createElement("div");
         el.classList.add('aladin-tabs');
 
@@ -59,13 +56,22 @@ export class Tabs extends DOMElement {
 
         let contentTabOptions = [];
         let tabsEl = [];
-        for (const tab of layout) {
+        for (const tab of options.layout) {
             // Create the content tab div
             let contentTabOptionEl = document.createElement("div");
             contentTabOptionEl.classList.add('aladin-tabs-content-option');
             contentTabOptionEl.style.display = 'none';
 
-            Utils.appendTo(tab.content, contentTabOptionEl);
+            if (tab.content instanceof DOMElement) {
+                // And add it to the DOM
+                tab.content.attachTo(contentTabOptionEl);
+            } else if (opt.label instanceof Element) {                
+                contentTabOptionEl.insertAdjacentElement('beforeend', tab.content);
+            } else {
+                let wrapEl = document.createElement('div');
+                wrapEl.innerHTML = tab.content;
+                contentTabOptionEl.insertAdjacentElement('beforeend', wrapEl);
+            }
 
             contentTabOptions.push(contentTabOptionEl);
 
@@ -102,11 +108,20 @@ export class Tabs extends DOMElement {
                 tabEl.classList.add('aladin-tabs-head-tab-selected')
             });
 
-            Utils.appendTo(tab.label, tabEl);
-            Utils.appendTo(tabEl, headerTabEl);
+            if (tab.label instanceof DOMElement) {
+                // And add it to the DOM
+                tab.label.attachTo(tabEl);
+            } else if (opt.label instanceof Element) {                
+                tabEl.insertAdjacentElement('beforeend', tab.label);
+            } else {
+                let wrapEl = document.createElement('div');
+                wrapEl.innerHTML = tab.label;
+                tabEl.insertAdjacentElement('beforeend', wrapEl);
+            }
+            headerTabEl.appendChild(tabEl);
 
-            if (tab.info) {
-                new Tooltip({content: tab.info}, tabEl);
+            if (tab.tooltip) {
+                Tooltip.add(tab.tooltip, tabEl)
             }
         }
 
@@ -117,21 +132,27 @@ export class Tabs extends DOMElement {
 
         for(let contentTabOptionEl of contentTabOptions) {
             // Add it to the view
-            Utils.appendTo(contentTabOptionEl, contentTabEl);
+            contentTabEl.appendChild(contentTabOptionEl)
         }
 
-        Utils.appendTo(headerTabEl, el);
-        Utils.appendTo(contentTabEl, el);
+        el.appendChild(headerTabEl);
+        el.appendChild(contentTabEl);
 
         super(el, options);
-
-        this.setCss(cssStyle)
-        this.attachTo(target, position);
-
         this._show();
+
+        this.attachTo(target, position);
     }
 
     _show() {
+        if (this.options.cssStyle) {
+            this.setCss(this.options.cssStyle)
+        }
+
+        if (this.options.tooltip) {
+            Tooltip.add(this.options.tooltip, this)
+        }
+
         super._show();
     }
 }

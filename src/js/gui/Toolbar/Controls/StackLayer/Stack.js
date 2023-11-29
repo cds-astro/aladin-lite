@@ -284,7 +284,7 @@ export class Stack extends ContextMenu {
     }
 
     hide() {
-    super._hide();
+        super._hide();
     }
     
     static singleton;

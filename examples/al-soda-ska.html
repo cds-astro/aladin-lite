@@ -10,12 +10,11 @@
     import A from '../src/js/A.js';
     let aladin;
     A.init.then(() => {
-        aladin = A.aladin('#aladin-lite-div', {fullScreen: true, target: "m51", fov: 180, projection: 'SIN', showContextMenu: true});
+        aladin = A.aladin('#aladin-lite-div', {fullScreen: true, target: "Abell 194", fov: 180, projection: 'SIN', showContextMenu: true});
 
-        const c1 = A.catalogFromSKAORucio("200 50", 90, {onClick: 'showTable'});
-        //const c1 = A.catalogFromURL('./ObsCoreRucioScs.xml', {onClick: 'showTable', limit: 1000});
-
-        aladin.addCatalog(c1);
+        A.catalogFromSKAORucio("Abell 194", 90, {onClick: 'showTable'}, (cat) => {
+            aladin.addCatalog(cat);
+        });
     });
 </script>
 </body>

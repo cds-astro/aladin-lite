@@ -16,9 +16,6 @@
 //    The GNU General Public License is available in COPYING file
 //    along with Aladin Lite.
 //
-
-import { Utils } from "./Utils";
-
 import { DOMElement } from "./Widgets/Widget";
 import { Tooltip } from "./Widgets/Tooltip";
 

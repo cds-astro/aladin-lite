@@ -60,8 +60,13 @@ export class ALEvent {
 
   static GRAPHIC_OVERLAY_LAYER_CHANGED  = new ALEvent("AL:GraphicOverlayLayer.changed");
 
-  static SAMP_AVAILABILITY  = new ALEvent("AL:samp.started");
+  static SAMP_HUB_RUNNING  = new ALEvent("AL:samp.hub");
+  static SAMP_CONNECTED  = new ALEvent("AL:samp.connected");
+  static SAMP_DISCONNECTED  = new ALEvent("AL:samp.disconnected");
+
   static CANVAS_EVENT  = new ALEvent("AL:Event");
+
+  static RETICLE_CHANGED = new ALEvent("AL:Reticle.changed")
 
   constructor(name) {
     this.name = name;

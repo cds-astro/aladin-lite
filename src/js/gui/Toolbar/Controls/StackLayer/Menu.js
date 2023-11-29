@@ -29,7 +29,7 @@
  *****************************************************************************/
 
 import { LayerEditBox } from "./EditBox";
-import { FSM } from "../../../Utils.js";
+import { FSM } from "../../../../FiniteStateMachine";
 import { Stack } from "./Stack.js";
 import { DOMElement } from "../../../Widgets/Widget.js";
 

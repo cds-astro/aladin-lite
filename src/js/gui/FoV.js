@@ -32,7 +32,7 @@
 import { Numbers }            from "../libs/astro/coo.js";
 import { Layout } from "./Layout.js";
 
-import { DOMElement } from "./widgets/Widget.js";
+import { DOMElement } from "./Widgets/Widget.js";
 
 import { ALEvent } from "../events/ALEvent.js";
 

@@ -29,37 +29,43 @@
  *****************************************************************************/
 export let Color = (function() {
     let Color = function(label) {
+      let color;
       if (label.r && label.g && label.b) {
-        return label;
-      }
-      
-      // hex string form
-      if (label.match(/^#?[0-9A-Fa-f]{6}$/) || label.match(/^#?[0-9A-Fa-f]{3}$/)) {
+        color = label;
+        // hex string form
+      } else if (label.match(/^#?[0-9A-Fa-f]{6}$/) || label.match(/^#?[0-9A-Fa-f]{3}$/)) {
         // if it is hexadecimal already, return it in its actual form
-        return Color.hexToRgb(label);
+        color = Color.hexToRgb(label);
+      } else {
+        // rgb string form
+        var rgb = label.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
+            
+        if (rgb) {
+          var r = parseInt(rgb[1]);
+          var g = parseInt(rgb[2]);
+          var b = parseInt(rgb[3]);
+          color = {r: r, g: g, b: b}
+        } else {
+          if (!Color.standardizedColors[label]) {
+            var ctx = document.createElement('canvas').getContext('2d');
+            ctx.fillStyle = label;
+            const colorHexa = ctx.fillStyle;
+    
+            Color.standardizedColors[label] = colorHexa;
+          }
+
+          color = Color.hexToRgb(Color.standardizedColors[label])
+        }
       }
 
-      // rgb string form
-      var rgb = label.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
-     
-      if (rgb) {
-        var r = parseInt(rgb[1]);
-        var g = parseInt(rgb[2]);
-        var b = parseInt(rgb[3]);
-        return {r: r, g: g, b: b}
-      }
-      
-      // fill style label
-      if (!Color.standardizedColors[label]) {
-        var ctx = document.createElement('canvas').getContext('2d');
-        ctx.fillStyle = label;
-        const colorHexa = ctx.fillStyle;
-
-        Color.standardizedColors[label] = colorHexa;
-      }
-
-      return Color.standardizedColors[label];
+      this.r = color.r;
+      this.g = color.g;
+      this.b = color.b;
     };
+
+    Color.prototype.toHex = function() {
+      return Color.rgbToHex(this.r, this.g, this.b)
+    }
 
     Color.curIdx = 0;
     Color.colors = ['#ff0000', '#0000ff', '#99cc00', '#ffff00','#000066', '#00ffff', '#9900cc', '#0099cc', '#cc9900', '#cc0099', '#00cc99', '#663333', '#ffcc9a', '#ff9acc', '#ccff33', '#660000', '#ffcc33', '#ff00ff', '#00ff00', '#ffffff'];

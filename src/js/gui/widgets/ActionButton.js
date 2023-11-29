@@ -80,11 +80,10 @@ export class ActionButton extends DOMElement {
 
         if (this.options.disable) {
             this.el.disabled = true;
-            this.el.style.cursor = "not-allowed";
-            this.el.style.filter = 'brightness(70%)';
+            this.addClass('disabled')
         } else {
             this.el.disabled = false;
-            this.el.style.cursor = 'pointer';
+            this.removeClass('disabled')
         }
 
         // Add the content to the dom

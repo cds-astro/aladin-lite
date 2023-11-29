@@ -16,6 +16,7 @@
 //extern crate itertools_num;
 //extern crate num;
 //extern crate num_traits;
+use crate::time::Time;
 use std::panic;
 
 pub trait Abort {
@@ -629,20 +630,23 @@ impl WebClient {
 
     #[wasm_bindgen(js_name = worldToScreenVec)]
     pub fn world_to_screen_vec(&self, lon: &[f64], lat: &[f64]) -> Box<[f64]> {
-        let vertices = lon
-            .iter()
-            .zip(lat.iter())
-            .map(|(&lon, &lat)| {
-                let xy = self
-                    .app
-                    .world_to_screen(lon, lat)
-                    .map(|v| [v.x, v.y])
-                    .unwrap_or([0.0, 0.0]);
+        let vertices = Time::measure_perf("projection rust side", || {
+            Ok(lon
+                .iter()
+                .zip(lat.iter())
+                .map(|(&lon, &lat)| {
+                    let xy = self
+                        .app
+                        .world_to_screen(lon, lat)
+                        .map(|v| [v.x, v.y])
+                        .unwrap_or([0.0, 0.0]);
 
-                xy
-            })
-            .flatten()
-            .collect::<Vec<_>>();
+                    xy
+                })
+                .flatten()
+                .collect::<Vec<_>>())
+        })
+        .unwrap();
 
         vertices.into_boxed_slice()
     }

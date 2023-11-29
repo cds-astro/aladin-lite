@@ -43,42 +43,6 @@ export let MeasurementTable = (function() {
         this.target = target;
     }
 
-    /*MeasurementTable.prototype.updateTableBody = function() {
-        let tbody = this.element.querySelector('tbody');
-        tbody.innerHTML = '';
-
-        let table = this.tables[this.curTableIdx];
-
-        table["rows"].forEach((row) => {
-            let trEl = document.createElement('tr');
-
-            for (let key in row.data) {
-                // check the type here
-
-                let tdEl = document.createElement('td');
-                tdEl.classList.add(key);
-
-                if (table.showCallback && table.showCallback[key]) {
-                    let showFieldCallback = table.showCallback[key];
-
-                    let el = showFieldCallback(row.data);
-                    if (el instanceof Element) {
-                        tdEl.appendChild(el);
-                    } else {
-                        tdEl.innerHTML = el;
-                    }
-                } else {
-                    let val = row.data[key] || '--';
-                    tdEl.innerText = val;
-                }
-
-                trEl.appendChild(tdEl);
-            }
-
-            tbody.appendChild(trEl);
-        });
-    }*/
-
     // show measurement associated with a given source
     MeasurementTable.prototype.showMeasurement = function(tables) {
         if (tables.length === 0) {

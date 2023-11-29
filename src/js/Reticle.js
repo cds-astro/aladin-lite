@@ -30,6 +30,7 @@ import { Color } from './Color.js';
  *****************************************************************************/
 
 import { Aladin } from "./Aladin";
+import { ALEvent } from './events/ALEvent';
  
 export let Reticle = (function() {
      // constructor
@@ -38,6 +39,7 @@ export let Reticle = (function() {
         this.el.className = 'aladin-reticle';
         this.el.type = "image/svg+xml";
         this.el.data = iconUrl;
+        this.aladin = aladin;
 
         aladin.aladinDiv.appendChild(this.el);
 
@@ -69,12 +71,33 @@ export let Reticle = (function() {
             self.el.addEventListener('error', handleError);
         });
 
-        this.setColor(reticleColor)
-        this.setSize(reticleSize);
-        this.show(reticleShow);
+        this._setColor(reticleColor)
+        this._setSize(reticleSize);
+        this._show(reticleShow);
     };
 
-    Reticle.prototype.setColor = async function(color) {
+    Reticle.prototype.update = function(options) {
+        options = options || {};
+        if (options.size) {
+            this._setSize(options.size)
+        }
+
+        if (options.color) {
+            this._setColor(options.color)
+        }
+
+        if (options.show !== undefined) {
+            this._show(options.show)
+        }
+
+        ALEvent.RETICLE_CHANGED.dispatchedTo(this.aladin.aladinDiv, {
+            color: this.color,
+            size: this.size,
+            show: this.visible
+        })
+    }
+
+    Reticle.prototype._setColor = async function(color) {
         if (!color) {
             return;
         }
@@ -92,7 +115,7 @@ export let Reticle = (function() {
 
     }
 
-    Reticle.prototype.setSize = async function(size) {
+    Reticle.prototype._setSize = async function(size) {
         if (!size) {
             return;
         }
@@ -104,7 +127,7 @@ export let Reticle = (function() {
         this.el.style.height = this.size + 'px';
     }
 
-    Reticle.prototype.show = async function(show) {
+    Reticle.prototype._show = async function(show) {
         if (show === undefined) {
             return;
         }

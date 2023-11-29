@@ -108,7 +108,7 @@
     cursor: pointer;
 
     font-size: 13px;
-    font-family: Verdana, Geneva, Tahoma, sans-serif;
+    font-family: monospace;
     
     text-overflow: ellipsis;
     text-align: left;
@@ -636,6 +636,14 @@ canvas {
 .aladin-btn.toggled {
     border: 2px solid greenyellow;
 }
+.aladin-btn.disabled {
+    cursor: not-allowed;
+    filter: brightness(70%);
+}
+
+.aladin-btn:not(.disabled):hover {
+    filter: brightness(105%);
+}
 
 .aladin-toolbar {
     display: flex;
@@ -691,10 +699,6 @@ canvas {
     font-weight: normal;
     text-overflow: ellipsis;
     vertical-align: middle;
-}
-
-.aladin-btn:hover {
-    filter: brightness(105%);
 }
 
 .aladin-cancelBtn {

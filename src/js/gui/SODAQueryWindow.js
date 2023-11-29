@@ -73,7 +73,7 @@ export class SODAQueryWindow {
                         backgroundColor: '#bababa',
                         borderColor: '#484848',
                     },
-                    info: 'Circular selection\n<i><font size="-2">Click, drag and release to define the circle</font></i>',
+                    tooltip: {content: 'Circular selection<br/><i><font size="-2">Click, drag and release to define the circle</font></i>'},
                     action(e) {
                         self.aladin.select('circle', (s) => {
                             const {x, y, r} = s;
@@ -105,7 +105,7 @@ export class SODAQueryWindow {
                 backgroundColor: '#bababa',
                 borderColor: '#484848',
             },
-            info: 'This is the form to request the SODA server located at: <a target="_blank" href="' + this.formParams["baseUrl"]  + '">' + this.formParams["baseUrl"] + '</a>\nThe list of input params is:\n' + listOfInputParams,
+            tooltip: {content: 'This is the form to request the SODA server located at: <br/><a target="_blank" href="' + this.formParams["baseUrl"]  + '">' + this.formParams["baseUrl"] + '</a><br/>The list of input params is:<br/>' + listOfInputParams},
             action(e) {}
         });
         let layoutForm = {

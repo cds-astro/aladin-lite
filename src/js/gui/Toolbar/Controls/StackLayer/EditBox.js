@@ -122,7 +122,7 @@ import { CmapSelector } from "./ColormapSelector.js";
         this.minCutInput = Input.number({
             cssStyle: {
                 padding: '0',
-                width: '4em',
+                width: '8ex',
                 'font-family': 'monospace',
             },
             tooltip: {content: 'Min cut', position: {direction: 'bottom'}},
@@ -136,7 +136,7 @@ import { CmapSelector } from "./ColormapSelector.js";
         this.maxCutInput = Input.number({
             cssStyle: {
                 padding: '0',
-                width: '4em',
+                width: '8ex',
                 'font-family': 'monospace',
             },
             tooltip: {content: 'Max cut', position: {direction: 'bottom'}},
@@ -388,7 +388,7 @@ import { CmapSelector } from "./ColormapSelector.js";
         ALEvent.HIPS_LAYER_CHANGED.listenedBy(this.aladin.aladinDiv, (e) => {
             const layerChanged = e.detail.layer;
             let selectedLayer = this.options.layer;
-            if (layerChanged.layer === selectedLayer.layer) {
+            if (selectedLayer && layerChanged.layer === selectedLayer.layer) {
                 let colorCfg = selectedLayer.getColorCfg();
 
                 let cmap = colorCfg.getColormap();

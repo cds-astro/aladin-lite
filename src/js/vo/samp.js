@@ -91,12 +91,12 @@ export class SAMPConnector {
         };
         // Arrange for document to be adjusted for presence of hub every 2 sec.
         this.connector = new samp.Connector("Aladin Lite", meta, cc, subs);
-        window.addEventListener('load', (e) => {
+        /*window.addEventListener('load', (e) => {
             this.connector.onHubAvailability((isHubRunning) => {
                 // Communicate to Aladin Lite
                 ALEvent.SAMP_AVAILABILITY.dispatchedTo(aladin.aladinDiv, { isHubRunning: isHubRunning } );
             }, 2000);
-        });
+        });*/
 
         window.addEventListener('unload', (e) => {
             this.connector.unregister();

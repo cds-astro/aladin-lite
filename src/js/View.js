@@ -234,7 +234,7 @@ export let View = (function () {
 
         this.throttledPositionChanged = Utils.throttle(
             () => {
-                var posChangedFn = this.aladin.callbacksByEventName['positionChanged'];
+                var posChangedFn = this.aladin.callbacksByEventName && this.aladin.callbacksByEventName['positionChanged'];
                 if (typeof posChangedFn === 'function') {
                     var pos = this.aladin.pix2world(this.width / 2, this.height / 2);
                     if (pos !== undefined) {
@@ -1821,6 +1821,9 @@ export let View = (function () {
 
         var self = this;
         setTimeout(function () { self.refreshProgressiveCats(); }, 1000);
+
+        // Apply position changed callback after the move
+        self.throttledPositionChanged();
     };
     View.prototype.makeUniqLayerName = function (name) {
         if (!this.layerNameExists(name)) {

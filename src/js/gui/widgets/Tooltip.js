@@ -62,9 +62,12 @@ export class Tooltip extends DOMElement {
 
         // Set the anchor to the element on which
         // the tooltip is set
-        if (options.position) {
-            options.position.anchor = target;
+        if (!options.position) {
+            options.position = {
+                direction: 'right',
+            }
         }
+        options.position.anchor = target;
 
         super(wrapperEl, options)
 

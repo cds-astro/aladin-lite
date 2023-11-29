@@ -71,7 +71,11 @@ export class Table extends DOMElement {
                     let showFieldCallback = opt.showCallback[key];
 
                     let el = showFieldCallback(row.data);
-                    Utils.appendTo(el, tdEl);
+                    if (el instanceof Element) {
+                        tdEl.appendChild(el);
+                    } else {
+                        tdEl.innerHTML = el;
+                    }
                 } else {
                     let val = row.data[key] || '--';
                     tdEl.innerHTML = val;
@@ -87,47 +91,6 @@ export class Table extends DOMElement {
         return tbody;
     }
  
-    /*MeasurementTable.prototype.createTabs = function() {
-        let self = this;
-        let layout = [];
-        this.tables.forEach(function(table, index) {
-            let backgroundColor = table["color"];
-            let hexStdColor = Color.standardizeColor(table["color"]);
-            let rgbColor = Color.hexToRgb(hexStdColor);
-            rgbColor = 'rgb(' + rgbColor.r + ', ' + rgbColor.g + ', ' + rgbColor.b + ')';
-            let labelColor = Color.getLabelColorForBackground(rgbColor);
-
-            let textContent = '<div style="overflow: hidden; text-overflow: ellipsis;white-space: nowrap;max-width: 20em;">' +
-            table.name + '</div>';
-
-            let tabContent = Layout.horizontal(['<div class="aladin-stack-icon" style="background-image: url(&quot;data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxwb2x5Z29uIHBvaW50cz0iMSwwLDUsMCw1LDMsMSwzIiAgZmlsbD0iIzk5Y2MwMCIgLz48cG9seWdvbiBwb2ludHM9IjcsMCw5LDAsOSwzLDcsMyIgIGZpbGw9IiM5OWNjMDAiIC8+PHBvbHlnb24gcG9pbnRzPSIxMCwwLDEyLDAsMTIsMywxMCwzIiAgZmlsbD0iIzk5Y2MwMCIgLz48cG9seWdvbiBwb2ludHM9IjEzLDAsMTUsMCwxNSwzLDEzLDMiICBmaWxsPSIjOTljYzAwIiAvPjxwb2x5bGluZSBwb2ludHM9IjEsNSw1LDkiICBzdHJva2U9IiM5OWNjMDAiIC8+PHBvbHlsaW5lIHBvaW50cz0iMSw5LDUsNSIgc3Ryb2tlPSIjOTljYzAwIiAvPjxsaW5lIHgxPSI3IiB5MT0iNyIgeDI9IjE1IiB5Mj0iNyIgc3Ryb2tlPSIjOTljYzAwIiBzdHJva2Utd2lkdGg9IjIiIC8+PHBvbHlsaW5lIHBvaW50cz0iMSwxMSw1LDE1IiAgc3Ryb2tlPSIjOTljYzAwIiAvPjxwb2x5bGluZSBwb2ludHM9IjEsMTUsNSwxMSIgIHN0cm9rZT0iIzk5Y2MwMCIgLz48bGluZSB4MT0iNyIgeTE9IjEzIiB4Mj0iMTUiIHkyPSIxMyIgc3Ryb2tlPSIjOTljYzAwIiBzdHJva2Utd2lkdGg9IjIiIC8+PC9zdmc+&quot;);"></div>', textContent]);
-
-            layout.push({
-                label: tabContent,
-                title: table["name"],
-                cssStyle: {
-                    backgroundColor: backgroundColor,
-                    color: labelColor,
-                },
-                content: tabContent
-                action(e) {
-                    self.curTableIdx = index;
-
-                    let tableElement = self.element.querySelector('table');
-                    tableElement.style.borderColor = table["color"]
-
-                    let thead = self.element.querySelector("thead");
-                    // replace the old header with the one of the current table
-                    thead.parentNode.replaceChild(MeasurementTable.createTableHeader(table), thead);
-                    
-                    self.updateTableBody()
-                }
-            });
-        });
-
-        return new Tabs(layout, self.aladinLiteDiv);
-    }*/
-
     static _createTableHeader = function(opt) {
         let theadElement = document.createElement('thead');
         var content = '<tr>';

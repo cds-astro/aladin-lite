@@ -553,6 +553,8 @@ impl App {
                 &JsValue::from_f64(center.lat().to_degrees()),
             )?;
             js_sys::Reflect::set(&args, &"dragging".into(), &JsValue::from_bool(false))?;
+            js_sys::Reflect::set(&args, &"inertia".into(), &JsValue::from_bool(true))?;
+
             // Position has changed, we call the callback
             self.callback_position_changed
                 .call1(&JsValue::null(), &args)?;

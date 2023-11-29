@@ -164,8 +164,8 @@ export class Form extends DOMElement {
                 let headerEl = document.createElement('div');
                 headerEl.className = "aladin-form-group-header";
 
-                Utils.appendTo(layout.header, headerEl);
-                Utils.appendTo(headerEl, groupEl);
+                DOMElement.appendTo(layout.header, headerEl);
+                groupEl.appendChild(headerEl);
             }
 
             layout.subInputs.forEach((subInput) => {

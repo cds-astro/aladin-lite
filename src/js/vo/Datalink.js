@@ -31,7 +31,7 @@
 
 import { VOTable } from "./VOTable.js";
 import { Utils } from './../Utils';
-import { ActionButton } from "../gui/widgets/ActionButton.js";
+import { ActionButton } from "../gui/Widgets/ActionButton.js";
 import { Catalog } from "../Catalog.js";
 
 export let Datalink = (function() {
@@ -41,8 +41,8 @@ export let Datalink = (function() {
         this.sodaQueryWindow = undefined;
     };
 
-    Datalink.prototype.handleActions = function(obscoreRow, aladinInstance) {
-        const url = obscoreRow["access_url"];
+    Datalink.prototype.handleActions = function(url, obscoreRow, aladinInstance) {
+        //const url = obscoreRow["access_url"];
         VOTable.parse(
             url,
             (rsc) => {
@@ -81,7 +81,7 @@ export let Datalink = (function() {
                                             backgroundColor: '#bababa',
                                             borderColor: '#484848',
                                         },
-                                        info: 'Open the cutout service form',
+                                        tooltip: {content: 'Open the cutout service form', position: {direction: 'top'}},
                                         action(e) {
                                             aladinInstance.sodaQueryWindow.hide();
                                             aladinInstance.sodaQueryWindow.setParams(self.SODAServerParams);
@@ -109,6 +109,8 @@ export let Datalink = (function() {
                                         accessUrlEl.innerHTML = '<a href=' + url + ' target="_blank">' + url + '</a>';
 
                                         accessUrlEl.addEventListener('click', (e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
 
                                             let processImageFitsClick = () => {
                                                 var successCallback = ((ra, dec, fov, _) => {
@@ -121,6 +123,11 @@ export let Datalink = (function() {
                                             };
 
                                             switch (contentType) {
+                                                // A datalink response containing links to datasets or services attached to the current dataset
+                                                case 'application/x-votable+xml;content=datalink':
+                                                    console.log("datalink recursive")
+                                                    new Datalink().handleActions(url, obscoreRow, aladinInstance);
+                                                    break;
                                                 case 'application/hips':
                                                     // Clic on a HiPS
                                                     let survey = aladinInstance.newImageSurvey(url);

@@ -110,10 +110,8 @@ export let Footprint= (function() {
 
     Footprint.prototype.actionClicked = function() {
         if (this.source) {
-            this.source.actionClicked();
+            this.source.actionClicked(this);
         }
-
-        this.shapes.forEach((shape) => shape.select())
     };
 
     Footprint.prototype.actionOtherObjectClicked = function() {

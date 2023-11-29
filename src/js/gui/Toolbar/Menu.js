@@ -24,13 +24,14 @@ import { DOMElement } from "../Widgets/Widget";
 /* Control import */
 import { Settings } from "./Controls/Settings";
 import { StackLayerMenu } from "./Controls/StackLayer/Menu";
-import { LayerEditBox } from "./Controls/StackLayer/EditBox";
+import { OverlayStack } from "./Controls/Overlays/Stack";
 import { GotoBox } from "./Controls/GotoBox";
 import { SimbadPointer } from "./Controls/SimbadPointer";
 import { GridBox } from "./Controls/GridBox";
 
 import settingsIcon from './../../../../assets/icons/settings.svg';
-import stackIcon from './../../../../assets/icons/stack.svg';
+import stackOverlayIconUrl from './../../../../assets/icons/stack.svg';
+import stackImageIconUrl from './../../../../assets/icons/telescope.svg';
 import gridIcon from './../../../../assets/icons/grid.svg';
 import searchIcon from './../../../../assets/icons/search.svg';
 import restoreIcon from './../../../../assets/icons/restore.svg';
@@ -83,6 +84,7 @@ import { Utils } from "../Utils";
         // Add the layers control
         if (aladin.options && aladin.options.showLayersControl) {
             this.appendControl('StackLayerMenu')
+            this.appendControl('OverlayStack')
         }
         // Add the simbad pointer control
         if (aladin.options && aladin.options.showSimbadPointerControl) {
@@ -114,7 +116,7 @@ import { Utils } from "../Utils";
         let menu = this;
         const controls = {
             StackLayerMenu: new ActionButton({
-                iconURL: stackIcon,
+                iconURL: stackImageIconUrl,
                 tooltip: {
                     content: 'Open the stack layer menu',
                     position: { direction: 'left'},
@@ -131,6 +133,26 @@ import { Utils } from "../Utils";
                 },
                 action(o) {
                     menu.showControl(StackLayerMenu)
+                }
+            }),
+            OverlayStack: new ActionButton({
+                iconURL: stackOverlayIconUrl,
+                tooltip: {
+                    content: 'Open the overlays menu',
+                    position: { direction: 'left'},
+                },
+                cssStyle: {
+                    padding: 0,
+                    backgroundColor: '#bababa',
+                    backgroundPosition: 'center',
+                    borderColor: '#484848',
+                    cursor: 'pointer',
+                    width: '28px',
+                    height: '28px'
+
+                },
+                action(o) {
+                    menu.showControl(OverlayStack)
                 }
             }),
             SimbadPointer: new SimbadPointer(aladin),

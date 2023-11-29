@@ -32,7 +32,7 @@
  import { Datalink } from "./Datalink.js";
  import { Utils } from '../Utils';
 
- import { ActionButton } from "../gui/widgets/ActionButton.js";
+ import { ActionButton } from "../gui/Widgets/ActionButton.js";
 
  export let ObsCore = (function() {
 
@@ -220,7 +220,7 @@
                         switch (format) {
                             // A datalink response containing links to datasets or services attached to the current dataset
                             case 'application/x-votable+xml;content=datalink':
-                                new Datalink().handleActions(data, aladinInstance);
+                                new Datalink().handleActions(url, data, aladinInstance);
                             break;
                             // Any multidimensional regularly sampled FITS image or cube
                             case 'image/fits':
@@ -256,7 +256,7 @@
                             backgroundColor: '#bababa',
                             borderColor: '#484848',
                         },
-                        info: accessFormat,
+                        tooltip: {content: accessFormat, position: {direction: 'left'}},
                         action(e) {}
                     }).element();
                 } else {

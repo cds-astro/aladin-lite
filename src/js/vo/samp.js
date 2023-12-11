@@ -152,14 +152,12 @@ export class SAMPConnector {
             if (this.isHubRunning !== isHubRunning) {
                 if (isHubRunning === false) {
                     // Reset the connector when the hub disconnects
-                    console.log("jkjk")
                     this.unregister();
                 }
             }
             this.isHubRunning = isHubRunning;
-
             ALEvent.SAMP_HUB_RUNNING.dispatchedTo(aladin.aladinDiv, { isHubRunning } );
-        }, 2000);
+        }, 2000);           
         //});
         this.connected = false;
 

@@ -28,12 +28,12 @@
  *
  *****************************************************************************/
 
-import { Layout } from "../../Layout.js";
-import { ContextMenu } from "../../Widgets/ContextMenu.js";
-import { Input } from "../../Widgets/Input.js";
-import { Color } from "../../../Color.js";
-import { ALEvent } from "../../../events/ALEvent.js";
-import { SAMPActionButton } from "../../Button/SAMP.js";
+import { Layout } from "../Layout.js";
+import { ContextMenu } from "../Widgets/ContextMenu.js";
+import { Input } from "../Widgets/Input.js";
+import { Color } from "../../Color.js";
+import { ALEvent } from "../../events/ALEvent.js";
+import { SAMPActionButton } from "../Button/SAMP.js";
 
 export class Settings extends ContextMenu {
     // Constructor
@@ -78,7 +78,6 @@ export class Settings extends ContextMenu {
 
         this.toggleCheckbox = (checkbox) => {
             const pastVal = checkbox.get();
-            console.log(pastVal, this.aladin.healpixGrid())
             const curVal = !pastVal;
 
             checkbox.set(curVal)

@@ -28,18 +28,18 @@
  *
  *****************************************************************************/
 
-import { ColorCfg } from "../../../../ColorCfg.js";
- import { Box } from "../../../Widgets/Box.js";
- import { ALEvent } from "../../../../events/ALEvent.js";
- import opacityIconUrl from '../../../../../../assets/icons/opacity.svg';
- import luminosityIconUrl from '../../../../../../assets/icons/brightness.svg';
- import colorIconUrl from '../../../../../../assets/icons/color.svg';
- import pixelHistIconUrl from '../../../../../../assets/icons/pixel_histogram.svg';
- import { SelectorButton } from "../../../Widgets/Selector";
+import { ColorCfg } from "../../ColorCfg.js";
+ import { Box } from "../Widgets/Box.js";
+ import { ALEvent } from "../../events/ALEvent.js";
+ import opacityIconUrl from '../../../../assets/icons/opacity.svg';
+ import luminosityIconUrl from '../../../../assets/icons/brightness.svg';
+ import colorIconUrl from '../../../../assets/icons/color.svg';
+ import pixelHistIconUrl from '../../../../assets/icons/pixel_histogram.svg';
+ import { SelectorButton } from "../Widgets/Selector";
 
- import { Layout } from "../../../Layout.js";
- import { Input } from "../../../Widgets/Input.js";
-import { CmapSelector } from "./ColormapSelector.js";
+ import { Layout } from "../Layout.js";
+ import { Input } from "../Widgets/Input.js";
+import { CmapSelector } from "../Toolbar/Controls/StackLayer/ColormapSelector.js";
 
  export class LayerEditBox extends Box {
      // Constructor
@@ -147,7 +147,7 @@ import { CmapSelector } from "./ColormapSelector.js";
             }
         })
 
-        this.stretchSelector = new SelectorButton({
+        self.stretchSelector = new SelectorButton({
             tooltip: {content: 'stretch function', position: {direction: 'right'}},
             sqrt: {
                 content: 'sqrt',
@@ -224,7 +224,7 @@ import { CmapSelector } from "./ColormapSelector.js";
                 }
             },
             selected: self.options.layer && self.options.layer.getColorCfg().stretch || 'linear'
-        }, aladin);
+        }, self.aladin);
 
         self._addListeners()
     }
@@ -233,9 +233,7 @@ import { CmapSelector } from "./ColormapSelector.js";
         let self = this;
         if (options && options.layer) {
             let layer = options.layer;
-
             // Define the contents
-
 
             let layerOpacity = layer.getOpacity()
 
@@ -314,8 +312,14 @@ import { CmapSelector } from "./ColormapSelector.js";
             const [minCut, maxCut] = layer.getColorCfg().getCuts();
             self.minCutInput.set(minCut);
             self.maxCutInput.set(maxCut)
+            self.stretchSelector.update({selected: layer.getColorCfg().stretch})
+
             self.pixelSettingsContent = Layout.horizontal({
-                layout: [this.stretchSelector, self.minCutInput, self.maxCutInput]
+                layout: [
+                    self.stretchSelector,
+                    self.minCutInput,
+                    self.maxCutInput
+                ]
             });
 
             let cmap = layer.getColorCfg().getColormap();
@@ -389,7 +393,7 @@ import { CmapSelector } from "./ColormapSelector.js";
             const layerChanged = e.detail.layer;
             let selectedLayer = this.options.layer;
             if (selectedLayer && layerChanged.layer === selectedLayer.layer) {
-                let colorCfg = selectedLayer.getColorCfg();
+                let colorCfg = layerChanged.getColorCfg();
 
                 let cmap = colorCfg.getColormap();
                 let reversed = colorCfg.getReversed();

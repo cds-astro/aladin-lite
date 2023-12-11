@@ -53,7 +53,13 @@ export let VOTable = (function() {
             .then((xml) => {
                 ALEvent.AL_USE_WASM.dispatchedTo(document.body, {
                     callback: (wasm) => {
-                        let votable = wasm.parseVOTable(xml);
+                        let votable;
+                        try {
+                            votable = wasm.parseVOTable(xml);
+                        } catch (e) {
+                            errorCallback('Catalogue failed to be parsed: ' + e);
+                        }
+                        
                         votable.votable.get("resources")
                             .forEach((rsc) => successCallback(rsc))
                     }

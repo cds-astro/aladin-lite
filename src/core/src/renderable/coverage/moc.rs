@@ -20,12 +20,21 @@ use al_api::coo_system::CooSystem;
 use super::mode::Node;
 
 use cgmath::Vector2;
+use wasm_bindgen::prelude::*;
 
-pub struct MOC([Option<MOCIntern>; 3]);
+pub struct MOC {
+    pub sky_fraction: f32,
+    pub max_order: u8,
+
+    inner: [Option<MOCIntern>; 3],
+}
 
 impl MOC {
     pub(super) fn new(moc: &HEALPixCoverage, cfg: &Cfg) -> Self {
-        let mocs = [
+        let sky_fraction = moc.sky_fraction() as f32;
+        let max_order = moc.depth_max();
+
+        let inner = [
             if cfg.perimeter {
                 // draw only perimeter
                 Some(MOCIntern::new(
@@ -62,11 +71,15 @@ impl MOC {
             },
         ];
 
-        Self(mocs)
+        Self {
+            inner,
+            max_order,
+            sky_fraction,
+        }
     }
 
     pub(super) fn cell_indices_in_view(&mut self, camera: &mut CameraViewPort) {
-        for render in &mut self.0 {
+        for render in &mut self.inner {
             if let Some(render) = render.as_mut() {
                 render.cell_indices_in_view(camera);
             }
@@ -74,7 +87,7 @@ impl MOC {
     }
 
     pub(super) fn num_cells_in_view(&self, camera: &mut CameraViewPort) -> usize {
-        self.0
+        self.inner
             .iter()
             .filter_map(|moc| moc.as_ref())
             .map(|moc| moc.num_cells_in_view(camera))
@@ -92,13 +105,21 @@ impl MOC {
         num_vertices
     }*/
 
+    pub fn sky_fraction(&self) -> f32 {
+        self.sky_fraction
+    }
+
+    pub fn max_order(&self) -> u8 {
+        self.max_order
+    }
+
     pub(super) fn draw(
         &self,
         camera: &mut CameraViewPort,
         proj: &ProjectionType,
         rasterizer: &mut RasterizedLineRenderer,
     ) {
-        for render in &self.0 {
+        for render in &self.inner {
             if let Some(render) = render.as_ref() {
                 render.draw(camera, proj, rasterizer)
             }

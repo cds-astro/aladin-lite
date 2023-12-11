@@ -259,7 +259,6 @@ Coo.prototype = {
 		}
 		return strlon+strlat;
 	}
-		
 }
 
 /**

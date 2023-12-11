@@ -16,50 +16,60 @@
 //    The GNU General Public License is available in COPYING file
 //    along with Aladin Lite.
 //
-
-import { Layout } from "../Layout";
-import { DOMElement } from "../Widgets/Widget";
-import { Menu } from "./Menu";
-import { ViewPortInfo } from "./ViewPortInfo";
-import { SurveyInfoActionButton } from "../Button/SurveyInfo";
-import { Utils } from "../Utils";
-
+import { Layout } from "./gui/Layout";
 /******************************************************************************
  * Aladin Lite project
  *
- * File gui/ActionButton.js
+ * File gui/widgets/layout/Horizontal.js
  *
- * A context menu that shows when the user right clicks, or long touch on touch device
+ * A layout grouping widgets horizontaly
  *
  *
  * Author: Matthieu Baumann[CDS]
  *
  *****************************************************************************/
 
-/**
- * Class representing a Tabs layout
- * @extends DOMElement
- */
- export class Toolbar extends DOMElement {
+/*{
+    direction: 'vertical' | 'horizontal',
+    cssStyle: {...}
+    position: {
+            top,
+            left
+        } \ {
+            container: NodeElement
+            anchor: 'left top' |
+                'left center' |
+                'left bottom' |
+                'right top' |
+                'right center' |
+                'right bottom' |
+                'center top' |
+                'center center' |
+                'center bottom'
+        }
+    }
+}*/
+export class Toolbar extends Layout {
     /**
-     * Create a Tabs layout
+     * Create a layout
+     * @param {layout: Array.<DOMElement | String>, cssStyle: Object} options - Represents the structure of the Tabs
      * @param {DOMElement} target - The parent element.
      * @param {String} position - The position of the tabs layout relative to the target.
      *     For the list of possibilities, see https://developer.mozilla.org/en-US/docs/Web/API/Element/insertAdjacentHTML
      */
-    constructor(aladin) {
-        let hipsSelector = new SurveyInfoActionButton(aladin);
-        //hipsSelector.addClass("aladin-base-survey");
+    constructor(options) {
+        options.direction = options.direction || 'horizontal';
+        options.position = options.position || {anchor: 'left top'};
 
-        let toolbar = Layout.toolbar({  
-            layout: [
-                new ViewPortInfo(aladin),
-                hipsSelector,
-            ]
-        }, aladin.aladinDiv);
+        let parent = options.position.container;
 
-        super(toolbar)
+        super(options, parent)
 
-        toolbar.appendLast(new Menu(aladin, this));
+        let direction = options.direction;
+        if (direction === 'vertical') {
+            this.addClass('aladin-vertical-list')
+        } else {
+            this.addClass('aladin-horizontal-list')
+        }
     }
 }

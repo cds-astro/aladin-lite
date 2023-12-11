@@ -406,7 +406,7 @@ export let Aladin = (function () {
         gridColor: "rgb(0, 255, 0)",
         gridOpacity: 0.5,
         log: true,
-        samp: true,
+        samp: false,
         allowFullZoomout: false,
         realFullscreen: false,
         //showAllskyRing: false,
@@ -1138,11 +1138,11 @@ export let Aladin = (function () {
     // @api
     // Set the current layer that is targeted
     // Rightclicking for changing the cuts is done the targeted layer
-    Aladin.prototype.setActiveHiPSLayer = function (layer) {
-        this.view.setActiveHiPSLayer(layer);
+    Aladin.prototype.selectLayer = function (layer) {
+        this.view.selectLayer(layer);
     }
 
-    Aladin.prototype.getActiveHiPSLayer = function () {
+    Aladin.prototype.getSelectedLayer = function () {
         return this.view.selectedLayer;
     }
 
@@ -1266,7 +1266,7 @@ export let Aladin = (function () {
 
     /**
      * Change the coo grid options
-     * @param {color: String | {r: Float, g: Float, b: Float}, labelSize: Float, thickness: Float, opacity: Float} options - Represents the structure of the Tabs
+     * @param {enable: Boolean, color: String | {r: Float, g: Float, b: Float}, labelSize: Float, thickness: Float, opacity: Float} options - Represents the structure of the Tabs
      */
     Aladin.prototype.setCooGrid = function(options) {
         if (options.color) {
@@ -1276,7 +1276,6 @@ export let Aladin = (function () {
             options.color.r /= 255;
             options.color.g /= 255;
             options.color.b /= 255;
-
         }
 
         this.view.setGridConfig(options);
@@ -1533,8 +1532,6 @@ export let Aladin = (function () {
         try {
             const [ra1, dec1] = this.pix2world(x1, y1);
             const [ra2, dec2] = this.pix2world(x2, y2);
-
-            console.log(ra1, dec1, ra2, dec2)
 
             return this.wasm.angularDist(ra1, dec1, ra2, dec2);
         } catch (e) {

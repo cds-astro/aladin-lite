@@ -63,24 +63,14 @@ export class Layout extends DOMElement {
             }
         }
 
-        /*
-        for(let item of options.layout) {
-            if (item instanceof DOMElement) {
-                item.attachTo(el);
-            } else if (item instanceof Element) {
-                el.insertAdjacentElement('beforeend', item);
-            } else {
-                let wrapEl = document.createElement('div');
-                wrapEl.innerHTML = item;
-                el.insertAdjacentElement('beforeend', wrapEl);
-            }
-        }
-        */
-
         // The tooltip has to be set once the element
         // lies in the DOM
         if (options.tooltip) {
             Tooltip.add(options.tooltip, this)
+        }
+
+        if (options.position) {
+            this.setPosition(options.position)
         }
 
         this.target = target;

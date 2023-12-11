@@ -17,7 +17,7 @@
 //    along with Aladin Lite.
 //
 
-import { Utils } from "../Utils";
+import { ActionButton } from "./ActionButton";
 import { DOMElement } from "./Widget";
 
 /******************************************************************************
@@ -56,7 +56,22 @@ export class Form extends DOMElement {
         let innerEl = Form._createInput(options, el);
         el.appendChild(innerEl);
 
+        let self;
+        // submit button
+        if (options.submit) {
+            new ActionButton({
+                content: 'Send',
+                cssStyle: {
+                    cursor: 'pointer',
+                },
+                action(e) {
+                    options.submit(self.values())
+                }
+            }, el);
+        }
+
         super(el, options);
+        self = this;
         this.attachTo(target, position)
     }
 
@@ -69,8 +84,10 @@ export class Form extends DOMElement {
             inputEl.type = layout.type;
             inputEl.classList.add('aladin-input');
 
+            inputEl.autocomplete = layout.autocomplete || 'off';
+
             if (layout.type === "number") {
-                inputEl.step = "any";
+                inputEl.step = layout.step || "any";
             }
 
             if (layout.value || layout.value === 0) {
@@ -150,14 +167,6 @@ export class Form extends DOMElement {
             groupEl.classList.add("aladin-form-input-group");
             for (const property in layout.cssStyle) {
                 groupEl.style[property] = layout.cssStyle[property];
-            }
-
-            if (layout.submit) {
-                formEl.addEventListener('submit', (e) => {
-                    e.preventDefault();
-
-                    layout.submit(e)
-                });
             }
 
             if (layout.header) {

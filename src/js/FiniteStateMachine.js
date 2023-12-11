@@ -9,13 +9,13 @@ export class FSM {
     dispatch(to, params) {
         const action = this.transitions[this.state][to];
         if (action) {
+            this.state = to;
+
             if (params) {
                 action(params);
             } else {
                 action()
             }
-
-            this.state = to;
         }
     }
 }

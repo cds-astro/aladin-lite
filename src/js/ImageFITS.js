@@ -194,6 +194,7 @@ export let ImageFITS = (function () {
                 // Set the automatic computed cuts
                 image.setCuts(imageParams.automatic_min_cut, imageParams.automatic_max_cut);
 
+                console.log(image)
                 image.ra = imageParams.centered_fov.ra;
                 image.dec = imageParams.centered_fov.dec;
                 image.fov = imageParams.centered_fov.fov;
@@ -271,6 +272,11 @@ export let ImageFITS = (function () {
     // @api
     ImageFITS.prototype.getColorCfg = function () {
         return this.colorCfg;
+    };
+
+    // @api
+    ImageFITS.prototype.getCuts = function () {
+        return this.colorCfg.getCuts();
     };
 
     // @api

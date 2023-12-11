@@ -1,6 +1,6 @@
-use crate::math;
 use crate::math::lonlat::LonLatT;
 use crate::math::PI;
+use crate::math::{self, lonlat::LonLat};
 
 use cgmath::{Vector3, Vector4};
 use moclib::{moc::range::RangeMOC, qty::Hpx, ranges::SNORanges};
@@ -10,30 +10,27 @@ use crate::healpix::cell::HEALPixCell;
 #[derive(Clone, Debug)]
 pub struct HEALPixCoverage(pub Smoc);
 
-
 impl HEALPixCoverage {
-    pub fn from_3d_coos<'a>(
+    pub fn from_3d_coos<T: LonLat<f64>>(
         // The depth of the smallest HEALPix cells contained in it
         depth: u8,
         // The vertices of the polygon delimiting the coverage
-        vertices_iter: impl Iterator<Item = Vector4<f64>>,
+        vertices_iter: impl Iterator<Item = T>,
         // A vertex being inside the coverage,
         // typically the center of projection
-        inside: &Vector3<f64>,
+        inside: &T,
     ) -> Self {
         let lonlat = vertices_iter
             .map(|vertex| {
-                let (lon, lat) = math::lonlat::xyzw_to_radec(&vertex);
+                let LonLatT(lon, lat) = vertex.lonlat();
+                //let (lon, lat) = math::lonlat::xyzw_to_radec(&vertex);
                 (lon.0, lat.0)
             })
             .collect::<Vec<_>>();
-        let (inside_lon, inside_lat) = math::lonlat::xyz_to_radec(inside);
 
-        let moc = RangeMOC::from_polygon_with_control_point(
-            &lonlat[..],
-            (inside_lon.0, inside_lat.0),
-            depth,
-        );
+        let LonLatT(in_lon, in_lat) = inside.lonlat();
+        let moc =
+            RangeMOC::from_polygon_with_control_point(&lonlat[..], (in_lon.0, in_lat.0), depth);
         HEALPixCoverage(moc)
     }
 
@@ -98,6 +95,10 @@ impl HEALPixCoverage {
 
     pub fn sky_fraction(&self) -> f64 {
         self.0.coverage_percentage()
+    }
+
+    pub fn not(&self) -> Self {
+        HEALPixCoverage(self.0.not())
     }
 
     pub fn empty(depth: u8) -> Self {

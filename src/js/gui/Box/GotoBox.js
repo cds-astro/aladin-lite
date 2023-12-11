@@ -28,12 +28,27 @@
  *
  *****************************************************************************/
 
-import { Box } from "../../Widgets/Box.js";
-import { Form } from "../../Widgets/Form.js";
+import { Box } from "../Widgets/Box.js";
+import { Form } from "../Widgets/Form.js";
+import { Layout } from "../Layout.js";
  
 export class GotoBox extends Box {
     // Constructor
     constructor(aladin, parent) {
+        /*let content = Layout.horizontal([
+            'Go to:',
+            Input.text({
+                //tooltip: {content: 'Search for a VizieR catalogue', position: {direction :'bottom'}},
+                label: "Go to:",
+                name: "goto",
+                type: "text",
+                placeholder: 'Object name/position',
+                autocomplete: 'off',
+                change(e, self) {
+                    self.addEventListener('blur', (event) => {});
+                }
+            })
+        ]);*/
         let form = new Form({
             name: 'header',
             type: 'group',

@@ -82,19 +82,17 @@ export let MOC = (function() {
      * set MOC data by parsing a MOC serialized in JSON
      * (as defined in IVOA MOC document, section 3.1.1)
      */
-    MOC.prototype.dataFromJSON = function(jsonMOC) {
-        this.dataJSON = jsonMOC;
-    };
-
-    /**
-     * set MOC data by parsing a URL pointing to a FITS MOC file
-     */
-    MOC.prototype.dataFromFITSURL = function(mocURL, successCallback) {
-        this.dataURL = mocURL;
-        this.promiseFetchData = fetch(this.dataURL)
-            .then((resp) => resp.arrayBuffer());
+    MOC.prototype.parse = function(data, successCallback) {
+        if (typeof data === 'string' || data instanceof String) {
+            let url = data;
+            this.promiseFetchData = fetch(url)
+                .then((resp) => resp.arrayBuffer());
+        } else {
+            this.promiseFetchData = Promise.resolve(data)
+        }
 
         this.successCallback = successCallback;
+        this.errorCallback = this.errorCallback;
     };
 
     MOC.prototype.setView = function(view) {
@@ -103,45 +101,43 @@ export let MOC = (function() {
         this.view = view;
         this.mocParams = new Aladin.wasmLibs.core.MOC(this.uuid, this.opacity, this.lineWidth, this.perimeter, this.fill, this.edge, this.isShowing, this.color, this.fillColor);
 
-        if (this.dataURL) {
-            this.promiseFetchData
-                .then((arrayBuffer) => {
-                    // Add the fetched moc to the rust backend
-                    self.view.wasm.addFITSMoc(self.mocParams, new Uint8Array(arrayBuffer));
-                    self.ready = true;
+        this.promiseFetchData
+            .then((data) => {
+                if (data instanceof ArrayBuffer) {
+                    // from an url
+                    const buf = data;
+                    self.view.wasm.addFITSMoc(self.mocParams, new Uint8Array(buf));
+                } else if(data.ra && data.dec && data.radius) {
+                    // circle
+                    const c = data;
+                    self.view.wasm.addConeMOC(self.mocParams, c.ra, c.dec, c.radius);
+                } else if(data.ra && data.dec) {
+                    // polygon
+                    const p = data;
+                    self.view.wasm.addPolyMOC(self.mocParams, p.ra, p.dec);
+                } else {
+                    // json moc
+                    self.view.wasm.addJSONMoc(self.mocParams, data);
+                }
+                // Add the fetched moc to the rust backend
+                self.ready = true;
 
-                    if (self.successCallback) {
-                        self.successCallback(self)
-                    }
+                if (self.successCallback) {
+                    self.successCallback(self)
+                }
 
-                    // Cache the sky fraction
-                    self.skyFrac = self.view.wasm.mocSkyFraction(this.mocParams);
+                // Cache the sky fraction
+                self.skyFrac = self.view.wasm.getMOCSkyFraction(this.mocParams);
 
-                    // Add it to the view
-                    self.view.mocs.push(self);
-                    self.view.allOverlayLayers.push(self);
+                // Add it to the view
+                self.view.mocs.push(self);
+                self.view.allOverlayLayers.push(self);
 
-                    // Tell the MOC has been fully loaded and can be sent as an event
-                    ALEvent.GRAPHIC_OVERLAY_LAYER_ADDED.dispatchedTo(self.view.aladinDiv, {layer: self});
+                // Tell the MOC has been fully loaded and can be sent as an event
+                ALEvent.GRAPHIC_OVERLAY_LAYER_ADDED.dispatchedTo(self.view.aladinDiv, {layer: self});
 
-                    self.view.requestRedraw();
-                })
-        } else if (this.dataFromJSON) {
-            self.view.wasm.addJSONMoc(self.mocParams, self.dataJSON);
-            self.ready = true;
-
-            // Cache the sky fraction
-            self.skyFrac = self.view.wasm.mocSkyFraction(self.mocParams);
-
-            // Add it to the view
-            self.view.mocs.push(self);
-            self.view.allOverlayLayers.push(self);
-
-            // Tell the MOC has been fully loaded and can be sent as an event
-            ALEvent.GRAPHIC_OVERLAY_LAYER_ADDED.dispatchedTo(self.view.aladinDiv, {layer: self});
-
-            self.view.requestRedraw();
-        }
+                self.view.requestRedraw();
+            })
     };
 
     MOC.prototype.reportChange = function() {

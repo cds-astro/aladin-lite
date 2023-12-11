@@ -391,6 +391,7 @@ use al_api::cell::HEALPixCellProjeted;
 
 use crate::downloader::request::tile::Tile;
 use crate::healpix::cell::HEALPixCell;
+use crate::renderable::coverage::moc::MOC;
 use al_api::color::ColorRGB;
 
 impl App {
@@ -480,9 +481,9 @@ impl App {
         Ok(res)
     }
 
-    /*pub(crate) fn get_moc(&self, cfg: &al_api::moc::MOC) -> Option<&HEALPixCoverage> {
-        self.moc.get(cfg)
-    }*/
+    pub(crate) fn get_moc(&self, cfg: &al_api::moc::MOC) -> Option<&MOC> {
+        self.moc.get_hpx_coverage(cfg)
+    }
 
     pub(crate) fn add_moc(
         &mut self,

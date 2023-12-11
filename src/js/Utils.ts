@@ -420,3 +420,12 @@ Utils.download = function(url, name = undefined) {
     }
     a.click()
 }
+
+Utils.measureTime = function(msg, method) {
+    let startTime = performance.now()
+    let output = method()
+    let deltaTime = performance.now() - startTime;
+    console.log(msg, deltaTime);
+
+    return output;
+};

@@ -40,9 +40,8 @@ import { Coo } from "./libs/astro/coo.js";
 import { URLBuilder } from "./URLBuilder.js";
 import { HiPSDefinition } from "./HiPSDefinition.js";
 import { ColorCfg } from './ColorCfg.js';
-
 import { Footprint } from './Footprint.js';
-import { ObsCore } from "./vo/ObsCore.js";
+import { Toolbar } from "./Toolbar.js";
 import { Aladin } from "./Aladin.js";
 // Wasm top level import
 import init, * as module from './../core/pkg';
@@ -163,19 +162,33 @@ A.footprintsFromSTCS = function (stcs, options) {
 // API
 A.MOCFromURL = function (url, options, successCallback) {
     var moc = new MOC(options);
-    moc.dataFromFITSURL(url, successCallback);
+    moc.parse(url, successCallback);
 
     return moc;
 };
 
 // API
-A.MOCFromJSON = function (jsonMOC, options) {
+A.MOCFromJSON = function (jsonMOC, options, successCallback, errorCallback) {
     var moc = new MOC(options);
-    moc.dataFromJSON(jsonMOC);
+    moc.parse(jsonMOC, successCallback, errorCallback);
 
     return moc;
 };
 
+// API
+A.MOCFromCircle = function (circle, options, successCallback, errorCallback) {
+    var moc = new MOC(options);
+    moc.parse(circle, successCallback, errorCallback);
+
+    return moc;
+};
+
+A.MOCFromPolygon= function (polygon, options, successCallback, errorCallback) {
+    var moc = new MOC(options);
+    moc.parse(polygon, successCallback, errorCallback);
+
+    return moc;
+};
 
 A.catalogFromURL = function (url, options, successCallback, errorCallback, useProxy) {
     options.url = url;
@@ -315,6 +328,32 @@ A.catalogFromSkyBot = function (ra, dec, radius, epoch, queryOptions, options, s
     var url = URLBuilder.buildSkyBotCSURL(ra, dec, radius, epoch, queryOptions);
     return A.catalogFromURL(url, options, successCallback, errorCallback, false);
 };
+
+/// UI API
+/*
+{
+    direction: 'vertical' | 'horizontal',
+    cssStyle: {...}
+    position: {
+            top,
+            left
+        } \ {
+            anchor: 'left top' |
+                'left center' |
+                'left bottom' |
+                'right top' |
+                'right center' |
+                'right bottom' |
+                'center top' |
+                'center center' |
+                'center bottom'
+        }
+    }
+}
+*/
+A.toolbar = function(options) {
+    return new Toolbar(options);
+}
 
 A.hipsDefinitionFromURL = function(url, successCallback) {
     HiPSDefinition.fromURL(url, successCallback);

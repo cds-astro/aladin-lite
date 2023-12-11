@@ -74,6 +74,7 @@ extern "C" {
 mod utils;
 
 use math::projection::*;
+use renderable::coverage::moc::MOC;
 use votable::votable::VOTableWrapper;
 use wasm_bindgen::prelude::*;
 
@@ -117,7 +118,7 @@ use al_core::Colormap;
 use al_core::WebGlContext;
 
 use app::App;
-use cgmath::Vector2;
+use cgmath::{Vector2, Vector4};
 
 use math::angle::ArcDeg;
 use moclib::{
@@ -630,6 +631,26 @@ impl WebClient {
 
     #[wasm_bindgen(js_name = worldToScreenVec)]
     pub fn world_to_screen_vec(&self, lon: &[f64], lat: &[f64]) -> Box<[f64]> {
+        let vertices = lon
+            .iter()
+            .zip(lat.iter())
+            .map(|(&lon, &lat)| {
+                let xy = self
+                    .app
+                    .world_to_screen(lon, lat)
+                    .map(|v| [v.x, v.y])
+                    .unwrap_or([0.0, 0.0]);
+
+                xy
+            })
+            .flatten()
+            .collect::<Vec<_>>();
+
+        vertices.into_boxed_slice()
+    }
+
+    /*#[wasm_bindgen(js_name = drawCatalog)]
+    pub fn world_to_screen_vec(&self, lon: &[f64], lat: &[f64], shape: &'static str, pixel_size) -> Box<[f64]> {
         let vertices = Time::measure_perf("projection rust side", || {
             Ok(lon
                 .iter()
@@ -649,7 +670,7 @@ impl WebClient {
         .unwrap();
 
         vertices.into_boxed_slice()
-    }
+    }*/
 
     #[wasm_bindgen(js_name = setCatalog)]
     pub fn set_catalog(&self, _catalog: &Catalog) {}
@@ -897,6 +918,18 @@ impl WebClient {
         self.app.is_rendering()
     }
 
+    #[wasm_bindgen(js_name = parseVOTable)]
+    pub fn parse_votable(&mut self, s: &str) -> Result<JsValue, JsValue> {
+        let votable: VOTableWrapper<votable::impls::mem::InMemTableDataRows> =
+            votable::votable::VOTableWrapper::from_ivoa_xml_str(s)
+                .map_err(|err| JsValue::from_str(&format!("Error parsing votable: {:?}", err)))?;
+
+        let votable = serde_wasm_bindgen::to_value(&votable)
+            .map_err(|_| JsValue::from_str("cannot convert votable to js type"))?;
+
+        Ok(votable)
+    }
+
     #[wasm_bindgen(js_name = addJSONMoc)]
     pub fn add_json_moc(
         &mut self,
@@ -916,18 +949,6 @@ impl WebClient {
         Ok(())
     }
 
-    #[wasm_bindgen(js_name = parseVOTable)]
-    pub fn parse_votable(&mut self, s: &str) -> Result<JsValue, JsValue> {
-        let votable: VOTableWrapper<votable::impls::mem::InMemTableDataRows> =
-            votable::votable::VOTableWrapper::from_ivoa_xml_str(s)
-                .map_err(|err| JsValue::from_str(&format!("Error parsing votable: {:?}", err)))?;
-
-        let votable = serde_wasm_bindgen::to_value(&votable)
-            .map_err(|_| JsValue::from_str("cannot convert votable to js type"))?;
-
-        Ok(votable)
-    }
-
     #[wasm_bindgen(js_name = addFITSMoc)]
     pub fn add_fits_moc(&mut self, params: &al_api::moc::MOC, data: &[u8]) -> Result<(), JsValue> {
         //let bytes = js_sys::Uint8Array::new(array_buffer).to_vec();
@@ -943,6 +964,57 @@ impl WebClient {
         }?;
 
         self.app.add_moc(params.clone(), HEALPixCoverage(moc))?;
+
+        Ok(())
+    }
+
+    #[wasm_bindgen(js_name = addConeMOC)]
+    pub fn add_cone_moc(
+        &mut self,
+        params: &al_api::moc::MOC,
+        ra_deg: f64,
+        dec_deg: f64,
+        rad_deg: f64,
+    ) -> Result<(), JsValue> {
+        let moc = HEALPixCoverage::from_cone(
+            &LonLatT::new(
+                ra_deg.to_radians().to_angle(),
+                dec_deg.to_radians().to_angle(),
+            ),
+            rad_deg.to_radians(),
+            10,
+        );
+
+        self.app.add_moc(params.clone(), moc)?;
+
+        Ok(())
+    }
+
+    #[wasm_bindgen(js_name = addPolyMOC)]
+    pub fn add_poly_moc(
+        &mut self,
+        params: &al_api::moc::MOC,
+        ra_deg: &[f64],
+        dec_deg: &[f64],
+    ) -> Result<(), JsValue> {
+        use cgmath::InnerSpace;
+
+        let vertex_it = ra_deg
+            .iter()
+            .zip(dec_deg.iter())
+            .map(|(ra, dec)| -> Vector4<f64> {
+                let lonlat = LonLatT(ra.to_radians().to_angle(), dec.to_radians().to_angle());
+                lonlat.vector()
+            });
+
+        let v_in = &Vector4::new(1.0, 0.0, 0.0, 1.0);
+
+        let mut moc = HEALPixCoverage::from_3d_coos(10, vertex_it, &v_in);
+        if (moc.sky_fraction() > 0.5) {
+            moc = moc.not();
+        }
+
+        self.app.add_moc(params.clone(), moc)?;
 
         Ok(())
     }
@@ -975,11 +1047,12 @@ impl WebClient {
         Ok(false)
     }
 
-    #[wasm_bindgen(js_name = mocSkyFraction)]
-    pub fn moc_sky_fraction(&mut self, _params: &al_api::moc::MOC) -> Result<f32, JsValue> {
-        //let moc = self.app.get_moc(params).ok_or_else(|| JsValue::from(js_sys::Error::new("MOC not found")))?;
-        //Ok(moc.coverage_percentage() as f32)
-
-        Ok(0.0)
+    #[wasm_bindgen(js_name = getMOCSkyFraction)]
+    pub fn get_moc_sky_fraction(&mut self, params: &al_api::moc::MOC) -> f32 {
+        if let Some(moc) = self.app.get_moc(params) {
+            moc.sky_fraction()
+        } else {
+            0.0
+        }
     }
 }

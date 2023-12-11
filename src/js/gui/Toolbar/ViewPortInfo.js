@@ -18,16 +18,12 @@
 //
 
 import { Layout } from "../Layout";
-import { ActionButton } from "../Widgets/ActionButton";
 import { Input } from "../Widgets/Input";
 import { DOMElement } from "../Widgets/Widget";
 import { CooFrameEnum } from "../../CooFrameEnum";
 import { Location } from "../Location";
-
-import projectionSvg from '../../../../assets/icons/grid.svg';
-import { ContextMenu } from "../Widgets/ContextMenu";
-import { ProjectionEnum } from "../../ProjectionEnum";
 import { FoV } from "../FoV";
+import { ProjectionActionButton } from "../Button/Projection";
 
 /******************************************************************************
  * Aladin Lite project
@@ -53,46 +49,11 @@ import { FoV } from "../FoV";
     constructor(aladin) {
         let cooFrame = CooFrameEnum.fromString(aladin.options && aladin.options.cooFrame, CooFrameEnum.J2000);
 
-        const projectionBtn = ActionButton.createIconBtn({
-            iconURL: projectionSvg,
-            tooltip: {content: 'Change the view projection', position: {direction: 'bottom'}},
-            cssStyle: {
-                backgroundColor: '#bababa',
-                borderColor: '#484848',
-                cursor: 'pointer',
-            },
-            action(e) {
-                let ctxMenu = ContextMenu.getInstance(aladin);
-                ctxMenu._hide();
-
-                let ctxMenuLayout = [];
-                let aladinProj = aladin.getProjectionName();
-                for (const key in ProjectionEnum) {
-                    let proj = ProjectionEnum[key];
-                    ctxMenuLayout.push({
-                        label: proj.label,
-                        selected: aladinProj === key,
-                        action(o) {
-                            aladin.setProjection(key)
-                        }
-                    })
-                }
-
-                ctxMenu.attach(ctxMenuLayout);
-                ctxMenu.show({
-                    e: e,
-                    position: {
-                        anchor: projectionBtn,
-                        direction: 'bottom',
-                    }
-                })
-            }
-        });
 
         let layout = [];
         // Add the projection control
         if (aladin.options && aladin.options.showProjectionControl) {
-            layout.push(projectionBtn)
+            layout.push(new ProjectionActionButton(aladin))
         }
         // Add the frame control
         if (aladin.options && aladin.options.showFrame) {

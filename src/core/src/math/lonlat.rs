@@ -1,6 +1,6 @@
-use cgmath::{BaseFloat, Rad, Vector3, Vector4, Matrix3};
-use crate::Abort;
 use crate::math::TWICE_PI;
+use crate::Abort;
+use cgmath::{BaseFloat, Matrix3, Rad, Vector3, Vector4};
 
 pub trait LonLat<S: BaseFloat> {
     fn lon(&self) -> Angle<S>;
@@ -11,7 +11,7 @@ pub trait LonLat<S: BaseFloat> {
 
 use crate::math::angle::Angle;
 #[derive(Clone, Copy, Debug)]
-pub struct LonLatT<S: BaseFloat>(Angle<S>, Angle<S>);
+pub struct LonLatT<S: BaseFloat>(pub Angle<S>, pub Angle<S>);
 
 impl<S> LonLatT<S>
 where
@@ -211,35 +211,53 @@ pub fn radec_to_basis<S: BaseFloat>(theta: Angle<S>, delta: Angle<S>) -> Matrix3
         // e_theta
         theta.cos(),
         S::zero(),
-        -theta.sin()
+        -theta.sin(),
     )
 }
 
 use crate::CameraViewPort;
 use crate::ProjectionType;
 
-use super::projection::coo_space::XYNDC;
 use super::projection::coo_space::XYScreen;
+use super::projection::coo_space::XYNDC;
 #[inline]
-pub fn proj(lonlat: &LonLatT<f64>, projection: &ProjectionType, camera: &CameraViewPort) -> Option<XYNDC> {
+pub fn proj(
+    lonlat: &LonLatT<f64>,
+    projection: &ProjectionType,
+    camera: &CameraViewPort,
+) -> Option<XYNDC> {
     let xyzw = lonlat.vector();
     projection.model_to_normalized_device_space(&xyzw, camera)
 }
 
 #[inline]
-pub fn unproj(ndc_xy: &XYNDC, projection: &ProjectionType, camera: &CameraViewPort) -> Option<LonLatT<f64>> {
-    projection.normalized_device_to_model_space(&ndc_xy, camera)
+pub fn unproj(
+    ndc_xy: &XYNDC,
+    projection: &ProjectionType,
+    camera: &CameraViewPort,
+) -> Option<LonLatT<f64>> {
+    projection
+        .normalized_device_to_model_space(&ndc_xy, camera)
         .map(|model_pos| model_pos.lonlat())
 }
 
 #[inline]
-pub fn proj_to_screen(lonlat: &LonLatT<f64>, projection: &ProjectionType, camera: &CameraViewPort) -> Option<XYScreen> {
+pub fn proj_to_screen(
+    lonlat: &LonLatT<f64>,
+    projection: &ProjectionType,
+    camera: &CameraViewPort,
+) -> Option<XYScreen> {
     let xyzw = lonlat.vector();
     projection.model_to_screen_space(&xyzw, camera)
 }
 
 #[inline]
-pub fn unproj_from_screen(xy: &XYScreen, projection: &ProjectionType, camera: &CameraViewPort) -> Option<LonLatT<f64>> {
-    projection.screen_to_model_space(&xy, camera)
+pub fn unproj_from_screen(
+    xy: &XYScreen,
+    projection: &ProjectionType,
+    camera: &CameraViewPort,
+) -> Option<LonLatT<f64>> {
+    projection
+        .screen_to_model_space(&xy, camera)
         .map(|model_pos| model_pos.lonlat())
 }

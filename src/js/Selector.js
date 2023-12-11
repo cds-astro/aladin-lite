@@ -19,8 +19,10 @@
 
 import { Aladin } from "./Aladin";
 import { Color } from "./Color";
-import { FSM } from "./FiniteStateMachine";
-import { View } from "./View";
+import { CircleSelect } from "./FiniteStateMachine/CircleSelect";
+import { PolySelect } from "./FiniteStateMachine/PolySelect";
+import { RectSelect } from "./FiniteStateMachine/RectSelect";
+
 /******************************************************************************
  * Aladin Lite project
  * 
@@ -32,183 +34,43 @@ import { View } from "./View";
  * 
  *****************************************************************************/
 
-export class Selector extends FSM {
+export class Selector {
     // constructor
     constructor(view, options) {
-        let start = (params) => {
-            const {mode, callback} = params;
-            this.view.setCursor('crosshair');
-            this.view.aladin.showReticle(false)
-
-            this.mode = mode;
-            this.callback = callback;
-            this.view.setMode(View.SELECT)
-        }
-
-        let mousedown = (params) => {
-            const {coo} = params;
-            // start a new selection
-            this.startCoo = coo;
-        }
-
-        let mousemove = (params) => {
-            const {coo} = params;
-            this.coo = coo;
-
-            this.view.requestRedraw();
-        };
-
-        let draw = () => {
-            let ctx = this.view.catalogCtx;
-
-            if (!this.view.catalogCanvasCleared) {
-                ctx.clearRect(0, 0, this.view.width, this.view.height);
-                this.view.catalogCanvasCleared = true;
-            }
-            // draw the selection
-            ctx.fillStyle = this.color + '7f';
-            ctx.strokeStyle = this.color;
-            ctx.lineWidth = this.lineWidth;
-            switch (this.mode) {
-                case 'rect':
-                    var w = this.coo.x - this.startCoo.x;
-                    var h = this.coo.y - this.startCoo.y;
-    
-                    ctx.fillRect(this.startCoo.x, this.startCoo.y, w, h);
-                    ctx.strokeRect(this.startCoo.x, this.startCoo.y, w, h);
-                    break;
-                case 'circle':
-                    var r2 = (this.coo.x - this.startCoo.x) * (this.coo.x - this.startCoo.x) + (this.coo.y - this.startCoo.y) * (this.coo.y - this.startCoo.y);
-                    var r = Math.sqrt(r2);
-    
-                    ctx.beginPath();
-                    ctx.arc(this.startCoo.x, this.startCoo.y, r, 0, 2 * Math.PI);
-                    ctx.fill();
-                    ctx.stroke();
-                    break;
-                default:
-                    break;
-            }
-        }
-
-        let mouseup = (params) => {
-            var x, y;
-            const {coo} = params;
-            this.coo = coo;
-            // finish the selection
-            switch (this.mode) {
-                case 'rect':
-                    var w = this.coo.x - this.startCoo.x;
-                    var h = this.coo.y - this.startCoo.y;
-                    x = this.startCoo.x;
-                    y = this.startCoo.y;
-                    
-                    if (w < 0) {
-                        x = x + w;
-                        w = -w;
-                    }
-                    if (h < 0) {
-                        y = y + h;
-                        h = -h;
-                    }
-
-                    (typeof this.callback === 'function') && this.callback({
-                        x, y, w, h,
-                        label: 'rect',
-                        contains(s) {
-                            return s.x >= x && s.x <= x + w && s.y >= y && s.y <= y + h;
-                        },
-                        bbox() {
-                            return {x, y, w, h}
-                        }
-                    });
-                    break;
-                case 'circle':
-                    var r2 = (this.coo.x - this.startCoo.x) * (this.coo.x - this.startCoo.x) + (this.coo.y - this.startCoo.y) * (this.coo.y - this.startCoo.y);
-                    var r = Math.sqrt(r2);
-
-                    x = this.startCoo.x;
-                    y = this.startCoo.y;
-                    (typeof this.callback === 'function') && this.callback({
-                        x, y, r,
-                        label: 'circle',
-                        contains(s) {
-                            let dx = (s.x - x)
-                            let dy = (s.y - y);
-
-                            return dx*dx + dy*dy <= r2;
-                        },
-                        bbox() {
-                            return {
-                                x: x - r,
-                                y: y - r,
-                                w: 2*r,
-                                h: 2*r
-                            }
-                        }
-                    });
-                    break;
-                default:
-                    break;
-            }
-
-            // TODO: remove these modes in the future
-            this.view.aladin.showReticle(true)
-            this.view.setCursor('default');
-
-            // execute general callback
-            if (this.view.callbacksByEventName) {
-                var callback = this.view.callbacksByEventName['select'];
-                if (typeof callback === "function") {
-                    // !todo
-                    let selectedObjects = this.view.selectObjects(this);
-                    callback(selectedObjects);
-                }
-            }
-            this.view.setMode(View.PAN)
-            this.view.requestRedraw();
-        };
-
-        let mouseout = mouseup;
-
-        super({
-            state: 'mouseup',
-            transitions: {
-                start: {
-                    mousedown
-                },
-                mousedown: {
-                    mousemove
-                },
-                mousemove: {
-                    draw,
-                    mouseup,
-                    mouseout
-                },
-                draw: {
-                    mousemove,
-                    mouseup,
-                    mouseout
-                },
-                mouseout: {
-                    start
-                },
-                mouseup: {
-                    start,
-                }
-            }
-        })
-
-        this.view = view;
-        this.options = options;
-
         let color = (options && options.color) || Aladin.DEFAULT_OPTIONS.reticleColor;
         this.color = new Color(color).toHex();
-        this.lineWidth = (options && options.lineWidth) || 2;
+        this.lineWidth = (options && options.lineWidth) || 1;
+
+        this.select = null;
+        this.view = view;
     };
+
+    setMode(mode) {
+        if (mode) {
+            let options = {
+                color: this.color,
+                lineWidth: this.lineWidth
+            };
+            if (mode === 'circle') {
+                this.select = new CircleSelect(options, this.view)
+            } else if (mode === 'rect') {
+                this.select = new RectSelect(options, this.view)
+            } else if (mode === 'poly') {
+                this.select = new PolySelect(options, this.view)
+            }
+        }
+    }
+
+    dispatch(to, params) {
+        this.select.dispatch(to, params);
+    }
 
     static getObjects(selection, view) {
         if (!selection) {
+            return;
+        }
+
+        if (!selection.contains) {
             return;
         }
 
@@ -252,29 +114,4 @@ export class Selector extends FSM {
         }
         return objList;
     }
-
-    _getBBox() {
-        let x, y, w, h;
-        switch (this.mode) {
-            case 'rect':
-                w = this.coo.x - this.startCoo.x;
-                h = this.coo.y - this.startCoo.y;
-                x = this.startCoo.x;
-                y = this.startCoo.y;
-                break;
-            case 'circle':
-                var r2 = (this.coo.x - this.startCoo.x) * (this.coo.x - this.startCoo.x) + (this.coo.y - this.startCoo.y) * (this.coo.y - this.startCoo.y);
-                var r = Math.sqrt(r2);
-
-                x = this.startCoo.x - r;
-                y = this.startCoo.y - r;
-                w = 2 * r;
-                h = 2 * r;
-                break;
-            default:
-                break;
-        }
-
-        return {x: x, y: y, w: w, h: h};
-    };
 }

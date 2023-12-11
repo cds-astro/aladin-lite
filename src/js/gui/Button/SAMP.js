@@ -74,7 +74,7 @@ options = {
 
         super(options)
 
-        this.addClass('aladin-24px-icon')
+        this.addClass('medium-sized-icon')
         this._addListeners(aladin);
     }
 

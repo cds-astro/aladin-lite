@@ -170,8 +170,6 @@ export class Box extends DOMElement {
         }
 
         if (this.options.content) {
-            console.log('append content', this.options.content)
-
             this.appendContent(this.options.content);
         }
 

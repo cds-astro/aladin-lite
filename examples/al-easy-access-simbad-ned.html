@@ -11,10 +11,15 @@
   let aladin;
   A.init.then(() => {
       // Start up Aladin Lite
-      aladin = A.aladin('#aladin-lite-div', {target: 'orion', projection: 'CAR', fov: 0.25, showContextMenu: true, fullScreen: true});
+      aladin = A.aladin('#aladin-lite-div', {
+        target: '09 55 52.4 +69 40 47',
+        fov: 0.25,
+        showContextMenu: true,
+        fullScreen: true
+      });
 
-      aladin.addCatalog(A.catalogFromSimbad('orion', 10, {onClick: 'showTable', limit: 100000}));
-      //aladin.addCatalog(A.catalogFromNED('09 55 52.4 +69 40 47', 0.1, {onClick: 'showPopup', shape: 'plus'}));
+      aladin.addCatalog(A.catalogFromSimbad('09 55 52.4 +69 40 47', 0.1, {onClick: 'showTable', limit: 1000}));
+      aladin.addCatalog(A.catalogFromNED('09 55 52.4 +69 40 47', 0.1, {onClick: 'showPopup', shape: 'plus'}));
   });
 </script>
 

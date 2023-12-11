@@ -306,7 +306,13 @@ export let Catalog = (function() {
         VOTable.parse(
             url,
             (rsc) => {
-                let { fields, rows } = VOTable.parseTableRsc(rsc)
+                let table = VOTable.parseTableRsc(rsc)
+                if (!table) {
+                    errorCallback('Parsing error of the votable located at: ' + url);
+                    return;
+                }
+
+                let { fields, rows } = table;
                 let type;
                 try {
                     fields = ObsCore.parseFields(fields);
@@ -646,16 +652,8 @@ export let Catalog = (function() {
             })
         }
 
-        let measureTime = (msg, f) => {
-            let a = performance.now()
-            let res = f()
-            console.log(msg, performance.now() - a);
-
-            return res;
-        };
-
         // Draw the footprints
-        measureTime(this.name + ' draw footprints', () => {this.drawFootprints(ctx)});
+        this.drawFootprints(ctx);
     };
 
     Catalog.prototype.drawSources = function(ctx, width, height) {
@@ -663,32 +661,20 @@ export let Catalog = (function() {
             return;
         }
 
-        let measureTime = (msg, f) => {
-            let a = performance.now()
-            let res = f()
-            console.log(msg, performance.now() - a);
-
-            return res;
-        };
-
         let sourcesInsideView = [];
-        let xy = measureTime(this.name + ' projection sources', () => {
-            return this.view.wasm.worldToScreenVec(this.ra, this.dec);
-        });
+        let xy = this.view.wasm.worldToScreenVec(this.ra, this.dec);
 
-        measureTime(this.name + ' draw sources', () => {
-            let self = this;
-            this.sources.forEach(function(s, idx) {
-                if (xy[2*idx] && xy[2*idx + 1]) {
-                    if (!self.filterFn || self.filterFn(s)) {
-                        s.x = xy[2*idx];
-                        s.y = xy[2*idx + 1];
-    
-                        self.drawSource(s, ctx, width, height)
-                        sourcesInsideView.push(s);
-                    }
+        let self = this;
+        this.sources.forEach(function(s, idx) {
+            if (xy[2*idx] && xy[2*idx + 1]) {
+                if (!self.filterFn || self.filterFn(s)) {
+                    s.x = xy[2*idx];
+                    s.y = xy[2*idx + 1];
+
+                    self.drawSource(s, ctx, width, height)
+                    sourcesInsideView.push(s);
                 }
-            });
+            }
         });
 
         return sourcesInsideView;

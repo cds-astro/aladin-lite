@@ -28,17 +28,19 @@
  *
  *****************************************************************************/
 
-import { ALEvent } from "../../../../events/ALEvent.js";
-import { Layout } from "../../../Layout.js";
-import { ContextMenu } from "../../../Widgets/ContextMenu.js";
-import { ActionButton } from "../../../Widgets/ActionButton.js";
-import { HiPSSelectorBox } from "../../../HiPSSelectorBox.js";
-import searchIconUrl from '../../../../../../assets/icons/search.svg';
-import showIconUrl from '../../../../../../assets/icons/show.svg';
-import hideIconUrl from '../../../../../../assets/icons/hide.svg';
-import removeIconUrl from '../../../../../../assets/icons/remove.svg';
-import editIconUrl from '../../../../../../assets/icons/edit.svg';
-import { ImageFITS } from "../../../../ImageFITS.js";
+import { ALEvent } from "../../events/ALEvent.js";
+import { Layout } from "../Layout.js";
+import { ContextMenu } from "../Widgets/ContextMenu.js";
+import { ActionButton } from "../Widgets/ActionButton.js";
+import { HiPSSelectorBox } from "../Box/HiPSSelectorBox.js";
+import searchIconUrl from '../../../../assets/icons/search.svg';
+import showIconUrl from '../../../../assets/icons/show.svg';
+import hideIconUrl from '../../../../assets/icons/hide.svg';
+import removeIconUrl from '../../../../assets/icons/remove.svg';
+import editIconUrl from '../../../../assets/icons/edit.svg';
+import { ImageFITS } from "../../ImageFITS.js";
+import { LayerEditBox } from "../Box/SurveyEditBox.js";
+import { Utils } from "../../Utils.ts";
 
 export class Stack extends ContextMenu {
     static previewImagesUrl = {
@@ -64,15 +66,22 @@ export class Stack extends ContextMenu {
     };
 
     // Constructor
-    constructor(aladin, menu, fsm) {
+    constructor(aladin, menu) {
         super(aladin, {hideOnClick: false, hideOnResize: false});
         this.aladin = aladin;
-        this.anchor = menu.controls["StackLayerMenu"];
-        this.fsm = fsm;
+        this.anchor = menu.controls["Stack"];
+        //this.fsm = new StackLayerOpenerFSM(aladin, menu);
 
         window.addEventListener("resize", (e) => {
-        this.fsm.dispatch("hide");
-    })
+            this._hide();
+        })
+        
+        document.addEventListener('click', () => {
+            if (this.mode === 'stack') {
+                this._hide()
+            }
+        });
+        this.mode = 'stack';
 
         this._addListeners();
     }
@@ -89,7 +98,7 @@ export class Stack extends ContextMenu {
             self.attach({layers});
             // If it is shown, update it
             if (!self.isHidden) {
-                self.show();
+                self._show()
             }
         };
 
@@ -116,31 +125,67 @@ export class Stack extends ContextMenu {
         const layers = options && options.layers || [];
 
         let layout = [{
-            label: Layout.horizontal({
-                layout: [
-                    ActionButton.createIconBtn({
-                        iconURL: searchIconUrl,
-                        tooltip: {content: 'Add a survey <br /> from our database...', position: { direction: 'bottom' }},
-                        cssStyle: {
-                            backgroundPosition: 'center center',
-                            backgroundColor: '#bababa',
-                            border: '1px solid rgb(72, 72, 72)',
-                            cursor: 'help',
-                        },
+            label: 'Add a survey',
+            subMenu: [{
+                label: Layout.horizontal({
+                        layout: [
+                            ActionButton.createIconBtn({
+                                iconURL: searchIconUrl,
+                                tooltip: {content: 'From our database...', position: { direction: 'bottom' }},
+                                cssStyle: {
+                                    backgroundPosition: 'center center',
+                                    backgroundColor: '#bababa',
+                                    border: '1px solid rgb(72, 72, 72)',
+                                    cursor: 'help',
+                                },
+                            }),
+                            'Search for a progressive survey'
+                        ]
                     }),
-                    'Add a survey/FITS image'
-                ]
-            }),
-            action(o) {
-                const hipsSelector = HiPSSelectorBox.getInstance(self.aladin);
-                hipsSelector._hide();
-                hipsSelector._show();
+                    action(e) {
+                        e.stopPropagation();
+                        e.preventDefault();
 
-                self.fsm.dispatch('hide');
-            }
+                        self._hide();
+
+                        self.hipsSelectorBox = new HiPSSelectorBox({
+                            position: {
+                                anchor: self.anchor,
+                                direction: 'bottom'
+                            },
+                            layer: Utils.uuidv4(),
+                        }, self.aladin);
+                        self.hipsSelectorBox._show();
+
+                        self.mode = 'hips';
+                    }
+                },
+                ContextMenu.fileLoaderItem({
+                    label: 'FITS image file',
+                    action(file) {
+                        let url = URL.createObjectURL(file);
+
+                        const image = self.aladin.createImageFITS(
+                            url,
+                            file.name,
+                            undefined,
+                            (ra, dec, fov, _) => {
+                                // Center the view around the new fits object
+                                self.aladin.gotoRaDec(ra, dec);
+                                self.aladin.setFoV(fov * 1.1);
+                            },
+                            undefined
+                        );
+
+                        self.aladin.setOverlayImageLayer(image, Utils.uuidv4())
+                    }
+                }),
+            ]
         }];
 
         let self = this;
+        let selectedLayer = self.aladin.getSelectedLayer();
+
         for(const layer of layers) {
             const name = layer.name;
             let backgroundUrl = this._findPreviewImageUrl(layer);
@@ -215,13 +260,22 @@ export class Stack extends ContextMenu {
                     e.stopPropagation();
                     e.preventDefault();
 
-                    self.fsm.dispatch('displayEditBox', {layer});
+                    self._hide();
 
+                    self.aladin.selectLayer(layer.layer);
+                    self.attach({layers})
+
+                    let editBox = LayerEditBox.getInstance(self.aladin, self.anchor);
+                    editBox.update({layer})
+                    editBox._show();
+
+                    self.mode = 'edit';
                 }
             });
+
             let item = Layout.horizontal({
                 layout: [
-                    '<div style="background-color: rgba(0, 0, 0, 0.6); padding: 3px; border-radius: 3px; word-break: break-word;">' + name + '</div>',
+                    '<div style="background-color: rgba(0, 0, 0, 0.6); padding: 3px; border-radius: 3px; word-break: break-word;' + (selectedLayer === layer.layer ? 'border: 1px solid white;' : '') + '">' + name + '</div>',
                     Layout.horizontal({layout: [showBtn, editBtn, deleteBtn]})
                 ],
                 cssStyle: {
@@ -246,6 +300,12 @@ export class Stack extends ContextMenu {
                     editBtn.el.style.visibility = 'hidden'
                     deleteBtn.el.style.visibility = 'hidden'
                 },
+                action(o) {
+                    self.aladin.selectLayer(layer.layer);
+                    // recompute the stack
+                    self.attach({layers})
+                    self._show()
+                }
             })
         }
 
@@ -266,7 +326,7 @@ export class Stack extends ContextMenu {
         }
     }
 
-    show() {
+    _show() {
         super.show({
             position: {
                 anchor: this.anchor,
@@ -274,24 +334,31 @@ export class Stack extends ContextMenu {
             },
             cssStyle: {
                 width: '15em',
-                //overflowY: 'scroll',
-                //maxHeight: '500px',
                 color: 'white',
                 backgroundColor: 'black',
-                border: '1px solid white',
             }
         })
     }
 
-    hide() {
+    _hide() {
+        // go back to the display stack state
+        let editBox = LayerEditBox.getInstance(this.aladin, this.anchor);
+        editBox._hide();
+
+        if (this.hipsSelectorBox) {
+            this.hipsSelectorBox._hide();
+        }
+
+        this.mode = 'stack';
+
         super._hide();
     }
-    
+
     static singleton;
 
-    static getInstance(aladin, menu, fsm) {
+    static getInstance(aladin, menu) {
         if (!Stack.singleton) {
-        Stack.singleton = new Stack(aladin, menu, fsm);
+            Stack.singleton = new Stack(aladin, menu);
         }
 
         return Stack.singleton;

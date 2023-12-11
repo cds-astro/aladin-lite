@@ -98,7 +98,7 @@ export class SelectorButton extends DOMElement {
             ctxMenu.attach(menuOptions);
             ctxMenu.show({
                 position: {
-                    anchor: this.el,
+                    relative: this.el,
                     direction: 'bottom',
                 },
                 cssStyle: {

@@ -101,12 +101,16 @@ export class ActionButton extends DOMElement {
             Tooltip.add(this.options.tooltip, this)
         }
 
+        if (this.options.position) {
+            this.setPosition(this.options.position)
+        }
+
         super._show();
     }
 
     static createIconBtn(opt, target, position = 'beforeend') {
         let btn = new ActionButton(opt, target, position);
-        btn.addClass('aladin-24px-icon');
+        btn.addClass('medium-sized-icon');
 
         return btn;
     }

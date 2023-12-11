@@ -1,9 +1,9 @@
+use crate::renderable::coverage::moc::MOC;
 use crate::{
     healpix::{cell::HEALPixCell, coverage::HEALPixCoverage, index_vector::IdxVec},
     math::angle::Angle,
     CameraViewPort, ShaderManager,
 };
-
 mod graph;
 pub mod mode;
 
@@ -221,6 +221,16 @@ impl MOCRenderer {
 
         camera.register_view_frame(CooSystem::ICRS, proj);
         //self.layers.push(key);
+    }
+
+    pub fn get_hpx_coverage(&self, cfg: &Cfg) -> Option<&MOC> {
+        let name = cfg.get_uuid();
+
+        if let Some(idx) = self.cfgs.iter().position(|cfg| cfg.get_uuid() == name) {
+            Some(self.mocs[idx].get_full_moc())
+        } else {
+            None
+        }
     }
 
     pub fn remove(

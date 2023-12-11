@@ -62,7 +62,7 @@ export let SimbadPointer = (function() {
                     if (Utils.isNumber(magnitude)) {
                         content += '<em>Mag: </em>' + magnitude + '<br>';
                     }
-                    content += '<br><a target="_blank" href="http://cdsportal.u-strasbg.fr/?target=' + encodeURIComponent(objName) + '">Query in CDS portal</a>';
+                    content += '<br><a target="_blank" href="http://cdsportal.u-strasbg.fr/?target=' + encodeURIComponent(objName.replace(/\s/g, '')) + '">Query in CDS portal</a>';
                     content += '</div>';
                     aladinInstance.showPopup(objCoo.lon, objCoo.lat, title, content);
                 }

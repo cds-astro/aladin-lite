@@ -34,6 +34,9 @@ import { Coo } from '../../libs/astro/coo.js';
 import { CooFrameEnum } from '../../CooFrameEnum.js';
 import { Utils } from '../../Utils';
 import { DOMElement } from './Widget.js';
+import { Layout } from '../Layout.js';
+import { ActionButton } from './ActionButton.js';
+import uploadIconUrl from '../../../../assets/icons/upload.svg';
 
 export class ContextMenu extends DOMElement {
 
@@ -41,7 +44,7 @@ export class ContextMenu extends DOMElement {
         let el = document.createElement('ul');
         el.className = 'aladin-context-menu';
 
-        super(el);
+        super(el, options);
 
         this.aladin = aladin;
 
@@ -61,17 +64,9 @@ export class ContextMenu extends DOMElement {
         super.remove()
     }
 
-    _attachOption(target, opt, xymouse) {
+    _attachOption(target, opt, xymouse, cssStyle) {
         const item = document.createElement('li');
         item.classList.add('aladin-context-menu-item');
-
-        if (opt.cssStyle) {
-            // add the css style to the item
-            // copied from widgets.js
-            for (const property in opt.cssStyle) {
-                item.style[property] = opt.cssStyle[property];
-            }
-        }
 
         if (opt.label == 'Copy position') {
             try {
@@ -102,8 +97,19 @@ export class ContextMenu extends DOMElement {
             }
         }
 
+        if (opt.cssStyle) {
+            // add the css style to the item
+            // copied from widgets.js
+            for (const property in opt.cssStyle) {
+                item.style[property] = opt.cssStyle[property];
+            }
+        }
+
         if (opt.subMenu && opt.subMenu.length > 0) {
-            item.innerHTML += '<span style="position: absolute; right: 0px">▶</span>';
+            item.innerHTML += '<span>▶</span>';
+            item.style.display = 'flex';
+            item.style.alignItems = 'center';
+            item.style.justifyContent = 'space-between';
         }
 
         const self = this;
@@ -122,7 +128,10 @@ export class ContextMenu extends DOMElement {
                 if (!opt.disabled || opt.disabled === false) {
                     if (!opt.subMenu || opt.subMenu.length === 0) {
                         opt.action(e);
-                        self._hide();
+
+                        if (!self.options || self.options.hideOnClick === undefined || self.options.hideOnClick === true) {
+                            self._hide();
+                        }
                     }
                 }
             });
@@ -146,8 +155,17 @@ export class ContextMenu extends DOMElement {
         if (opt.subMenu && opt.subMenu.length) {
             const subMenu = document.createElement('ul');
             subMenu.className = 'aladin-context-sub-menu';
+            // css is applied to the ul lonely
+            if (cssStyle) {
+                // add the css style to the item
+                // copied from widgets.js
+                for (const property in cssStyle) {
+                    subMenu.style[property] = cssStyle[property];
+                }
+            }
+
             item.appendChild(subMenu);
-            opt.subMenu.forEach(subOpt => this._attachOption(subMenu, subOpt));
+            opt.subMenu.forEach(subOpt => this._attachOption(subMenu, subOpt, undefined, cssStyle));
         }
     }
 
@@ -158,12 +176,13 @@ export class ContextMenu extends DOMElement {
 
             if (item.className === 'aladin-context-sub-menu') {
                 let r = item.getBoundingClientRect();
+                const {offsetWidth, offsetHeight} = this.aladin.aladinDiv;
 
-                if (r.x + r.width >= innerWidth) {
+                if (r.x + r.width >= offsetWidth) {
                     this.el.classList.add('left');
                 }
 
-                if (r.y + r.height >= innerHeight) {
+                if (r.y + r.height >= offsetHeight) {
                     this.el.classList.add('top');
                 }
             }
@@ -185,7 +204,9 @@ export class ContextMenu extends DOMElement {
             xymouse = Utils.relMouseCoords(options.e);
         }
 
-        this.menuOptions.forEach(opt => this._attachOption(this.el, opt, xymouse));
+        this.menuOptions.forEach((opt) => {
+            this._attachOption(this.el, opt, xymouse, options && options.cssStyle)
+        });
 
         // Add it to the dom
         this.attachTo(this.aladin.aladinDiv)
@@ -195,11 +216,17 @@ export class ContextMenu extends DOMElement {
         }
 
         // Set position
-        const position = options && options.position || (options && options.e && { left: options.e.clientX, top: options.e.clientY });
+        const position =
+            options && options.position ||
+            (options && options.e && {
+                left: options.e.clientX - this.aladin.aladinDiv.offsetLeft,
+                top: options.e.clientY - this.aladin.aladinDiv.offsetTop
+            });
         this.setPosition(position)
 
         this.el.classList.remove('left')
         this.el.classList.remove('top')
+
         this._subMenuDisplay(this.el)
 
         super._show()
@@ -218,12 +245,69 @@ export class ContextMenu extends DOMElement {
 
         return ContextMenu.menu;
     }
+
+    /// Context menu predefined items
+    static fileLoaderItem(itemOptions) {
+        return {
+            ...itemOptions,
+            label: Layout.horizontal([
+                    ActionButton.createIconBtn({
+                        tooltip: {content: 'Load a local file from your computer'},
+                        iconURL: uploadIconUrl,
+                        cssStyle: {
+                            cursor: 'help',
+                        }
+                    }),
+                    itemOptions.label
+                ]
+            ),
+            action(e) {
+                let fileLoader = document.createElement('input');
+                fileLoader.type = 'file';
+                // Case: The user is loading a FITS file
+        
+                fileLoader.addEventListener("change", (e) => {    
+                    let file = e.target.files[0];
+        
+                    if (itemOptions.action) {
+                        itemOptions.action(file)
+                    }
+                });
+        
+                fileLoader.click();
+            }
+        }
+    }
+
+    static searchingForItem(itemOptions) {
+        return {
+            ...itemOptions,
+            label: Layout.horizontal([
+                    ActionButton.createIconBtn({
+                        tooltip: {content: 'Load a local file from your computer'},
+                        iconURL: uploadIconUrl,
+                        cssStyle: {
+                            cursor: 'help',
+                        }
+                    }),
+                    itemOptions.label
+                ]
+            ),
+            action(e) {
+                let fileLoader = document.createElement('input');
+                fileLoader.type = 'file';
+                // Case: The user is loading a FITS file
+        
+                fileLoader.addEventListener("change", (e) => {    
+                    let file = e.target.files[0];
+        
+                    if (itemOptions.action) {
+                        itemOptions.action(file)
+                    }
+                });
+        
+                fileLoader.click();
+            }
+        }
+    }
 }
-
-
-
-
-
-
-
-

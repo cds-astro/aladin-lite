@@ -538,7 +538,7 @@ export let ImageSurvey = (function () {
         this.layer = layer;
 
         this.wasm.addImageSurvey({
-            layer: this.layer,
+            layer,
             properties: this.properties,
             meta: this.metadata(),
         });

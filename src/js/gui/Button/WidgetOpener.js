@@ -28,35 +28,31 @@
  *
  *****************************************************************************/
 
- import { DOMElement } from "../../Widgets/Widget.js";
- import { ActionButton } from "../../Widgets/ActionButton.js";
- import targetIcon from './../../../../../assets/icons/target.svg';
+ import { ActionButton } from "../Widgets/ActionButton.js";
 
-  
- export class SimbadPointer extends DOMElement {
-     // Constructor
-     constructor(aladin) {
-        let el = new ActionButton({
-            iconURL: targetIcon,
-            tooltip: {
-                content: 'What to know what is a specific object ?<br />Use the Simbad pointer tool!',
-                position: { direction: 'left' },
-            },
-            cssStyle: {
-                padding: 0,
-                backgroundColor: '#bababa',
-                backgroundPosition: 'center',
-                borderColor: '#484848',
-                cursor: 'pointer',
-                width: '28px',
-                height: '28px'
-            },
-            action(o) {
-                aladin.fire('simbad');
-            }
-        });
-
-        super(el);
-    }
- }
+ /*
+ options = {
+     action: (connector) => {
  
+     }
+     tooltip
+ }
+ */
+export class WidgetOpenerActionButton extends ActionButton {
+    // Constructor
+    constructor(options) {
+        let widget = options.widget;
+        super({
+            ...options,
+            action(e) {
+                if (widget.isHidden) {
+                    widget._show();
+                } else {
+                    widget._hide();
+                }
+            }
+        })
+
+        this.addClass('medium-sized-icon')
+    }
+}

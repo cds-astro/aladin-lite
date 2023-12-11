@@ -28,13 +28,40 @@
  *
  *****************************************************************************/
 
- import { DOMElement } from "../../Widgets/Widget.js";
-  
- export class FullScreen extends DOMElement {
-     // Constructor
-     constructor(aladin) {
-        let el;
-        super(el);
-    }
- }
+ import { ActionButton } from "../Widgets/ActionButton.js";
+ import targetIconUrl from '../../../../assets/icons/target.svg';
+
+ /*
+ options = {
+     action: (connector) => {
  
+     }
+     tooltip
+ }
+ */
+export class ConeSearchActionButton extends ActionButton {
+    // Constructor
+    constructor(options, aladin) {
+        super({
+            iconURL: targetIconUrl,
+            tooltip: options.tooltip,
+            disable: options.disable,
+            cssStyle: {
+                backgroundPosition: 'center center',
+                cursor: 'pointer',
+                ...options.cssStyle
+            },
+            action(e) {
+                if (options.onBeforeClick) {
+                    options.onBeforeClick(e);
+                }
+
+                aladin.select('circle', c => {
+                    options.action(c)
+                })
+            }
+        })
+
+        this.addClass('medium-sized-icon')
+    }
+}

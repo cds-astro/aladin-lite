@@ -386,7 +386,8 @@ export let View = (function () {
     }
 
     View.prototype.startSelection = function(mode, callback) {
-        this.selector.dispatch('start', {mode, callback});
+        this.selector.setMode(mode);
+        this.selector.dispatch('start', {callback});
     }
 
     View.prototype.setMode = function (mode) {
@@ -408,6 +409,10 @@ export let View = (function () {
         if (this.mode == View.TOOL_SIMBAD_POINTER) {
             return;
         }
+        if (this.mode == View.SELECT) {
+            return;
+        }
+
         this.catalogCanvas.style.cursor = cursor;
     };
 
@@ -449,7 +454,7 @@ export let View = (function () {
     };
 
 
-    View.prototype.setActiveHiPSLayer = function (layer) {
+    View.prototype.selectLayer = function (layer) {
         if (!this.imageLayers.has(layer)) {
             throw layer + ' does not exists. So cannot be selected';
         }
@@ -516,17 +521,19 @@ export let View = (function () {
                 view.rightclickx = xymouse.x;
                 view.rightclicky = xymouse.y;
 
-                const imageLayer = view.imageLayers.get(view.selectedLayer);
-                if (imageLayer) {
-                    // Take as start cut values what is inside the properties
-                    // If the cuts are not defined in the metadata of the survey
-                    // then we take what has been defined by the user
-                    if (imageLayer.imgFormat === "fits") {
-                        cutMinInit = imageLayer.properties.minCutout || imageLayer.getColorCfg().minCut || 0.0;
-                        cutMaxInit = imageLayer.properties.maxCutout || imageLayer.getColorCfg().maxCut || 1.0;
-                    } else {
-                        cutMinInit = imageLayer.getColorCfg().minCut || 0.0;
-                        cutMaxInit = imageLayer.getColorCfg().maxCut || 1.0;
+                if (view.selectedLayer) {
+                    const imageLayer = view.imageLayers.get(view.selectedLayer);
+                    if (imageLayer) {
+                        // Take as start cut values what is inside the properties
+                        // If the cuts are not defined in the metadata of the survey
+                        // then we take what has been defined by the user
+                        if (imageLayer.imgFormat === "fits") {
+                            cutMinInit = imageLayer.properties.minCutout || imageLayer.getColorCfg().minCut || 0.0;
+                            cutMaxInit = imageLayer.properties.maxCutout || imageLayer.getColorCfg().maxCut || 1.0;
+                        } else {
+                            cutMinInit = imageLayer.getColorCfg().minCut || 0.0;
+                            cutMaxInit = imageLayer.getColorCfg().maxCut || 1.0;
+                        }
                     }
                 }
 
@@ -553,6 +560,8 @@ export let View = (function () {
             view.dragCoo = xymouse;
 
             view.dragging = true;
+            view.aladin.contextMenu && view.aladin.contextMenu._hide()
+
             if (view.mode == View.PAN) {
                 view.setCursor('move');
             }
@@ -649,6 +658,8 @@ export let View = (function () {
                 if (e.type === "mouseout") {
                     if (view.mode === View.TOOL_SIMBAD_POINTER) {
                         view.setMode(View.PAN);
+                    } else if (view.mode === View.SELECT) {
+                        view.selector.dispatch('mouseout', {coo: xymouse, e})
                     }
 
                     return;
@@ -742,8 +753,8 @@ export let View = (function () {
             //view.requestRedraw();
             view.wasm.releaseLeftButtonMouse(xymouse.x, xymouse.y);
 
-            if (view.mode === View.SELECT) {
-                view.selector.dispatch('mouseout', {coo: view.dragCoo})
+            if (view.mode === View.SELECT && e.type === "click") {
+                view.selector.dispatch('click', {coo: xymouse})
             }
         });
 
@@ -895,6 +906,10 @@ export let View = (function () {
                 }
             }
 
+            if (view.mode === View.SELECT) {
+                view.selector.dispatch('mousemove', {coo: xymouse})
+            }
+
             if (!view.dragging) {
                 return;
             }
@@ -921,8 +936,6 @@ export let View = (function () {
     
                 // Apply position changed callback after the move
                 view.throttledPositionChanged();
-            } else if (view.mode === View.SELECT) {
-                view.selector.dispatch('mousemove', {coo: xymouse})
             }
         }); //// endof mousemove ////
 
@@ -1167,73 +1180,6 @@ export let View = (function () {
         if (this.mode === View.SELECT) {
             this.selector.dispatch('draw')
         }
-
-        ////// 4. Draw reticle ///////
-        // TODO: reticle should be placed in a static DIV, no need to waste a canvas
-        //var reticleCtx = catalogCtx;
-        /*if (this.mode == View.SELECT) {
-            // VIEW mode, we do not want to display the reticle in this
-            // but draw a selection box
-            if (this.dragging) {
-                if (!catalogCanvasCleared) {
-                    reticleCtx.clearRect(0, 0, this.width, this.height);
-                    catalogCanvasCleared = true;
-                }
-
-                this.selector.draw(reticleCtx, this.dragCoo)
-            }
-        } else {
-            // Normal modes
-            if (this.displayReticle) {
-                if (!catalogCanvasCleared) {
-                    catalogCtx.clearRect(0, 0, this.width, this.height);
-                    catalogCanvasCleared = true;
-                }
-
-                if (!this.reticleCache) {
-                    // build reticle image
-                    var c = document.createElement('canvas');
-                    var s = this.options.reticleSize;
-                    c.width = s;
-                    c.height = s;
-                    var ctx = c.getContext('2d');
-                    ctx.lineWidth = 2;
-                    ctx.strokeStyle = this.options.reticleColor;
-                    ctx.beginPath();
-                    ctx.moveTo(s / 2, s / 2 + (s / 2 - 1));
-                    ctx.lineTo(s / 2, s / 2 + 2);
-                    ctx.moveTo(s / 2, s / 2 - (s / 2 - 1));
-                    ctx.lineTo(s / 2, s / 2 - 2);
-
-                    ctx.moveTo(s / 2 + (s / 2 - 1), s / 2);
-                    ctx.lineTo(s / 2 + 2, s / 2);
-                    ctx.moveTo(s / 2 - (s / 2 - 1), s / 2);
-                    ctx.lineTo(s / 2 - 2, s / 2);
-
-                    ctx.stroke();
-
-                    this.reticleCache = c;
-                }
-                reticleCtx.drawImage(this.reticleCache, this.width / 2 - this.reticleCache.width / 2, this.height / 2 - this.reticleCache.height / 2);
-            }
-        }*/
-
-        ////// 5. Draw all-sky ring. This option is now disabled in v3, it is too projection dependant /////
-        /*if (this.projection == ProjectionEnum.SIN && this.fov >= 60 && this.aladin.options['showAllskyRing'] === true) {
-            if (!catalogCanvasCleared) {
-                reticleCtx.clearRect(0, 0, this.width, this.height);
-                catalogCanvasCleared = true;
-            }
-
-            reticleCtx.strokeStyle = this.aladin.options['allskyRingColor'];
-            var ringWidth = this.aladin.options['allskyRingWidth'];
-            reticleCtx.lineWidth = ringWidth;
-            reticleCtx.beginPath();
-            const maxCxCy = this.cy;
-            const radius = (maxCxCy - (ringWidth / 2.0) + 1) / this.zoomFactor;
-            reticleCtx.arc(this.cx, this.cy, radius, 0, 2 * Math.PI, true);
-            reticleCtx.stroke();
-        }*/
     };
 
     View.prototype.refreshProgressiveCats = function () {
@@ -1492,7 +1438,7 @@ export let View = (function () {
         return imageLayer;
     };
 
-    View.prototype.addLayer = function(imageLayer) {
+    View.prototype._addLayer = function(imageLayer) {
         const layerName = imageLayer.layer;
         // Check whether this layer already exist
         const idxOverlayLayer = this.overlayLayers.findIndex(overlayLayer => overlayLayer == layerName);
@@ -1505,8 +1451,8 @@ export let View = (function () {
         }
 
         // Find the toppest layer
-        const toppestLayer = this.overlayLayers[this.overlayLayers.length - 1];
-        this.selectedLayer = toppestLayer;
+        //const toppestLayer = this.overlayLayers[this.overlayLayers.length - 1];
+        //this.selectedLayer = toppestLayer;
 
         // Remove the existant layer if there is one
         let existantImageLayer = this.imageLayers.get(layerName);
@@ -1547,10 +1493,10 @@ export let View = (function () {
                 this.empty = false;
                 if (imageLayer.children) {
                     imageLayer.children.forEach((imageLayer) => {
-                        this.addLayer(imageLayer);
+                        this._addLayer(imageLayer);
                     })
                 } else {
-                    this.addLayer(imageLayer);
+                    this._addLayer(imageLayer);
                 }
             })
             .catch((e) => {
@@ -1560,7 +1506,6 @@ export let View = (function () {
                 // Loading state is over
                 self.loadingState = false;
                 ALEvent.LOADING_STOP.dispatchedTo(this.aladinDiv, { label: layer.layer });
-
                 self.imageLayersBeingQueried.delete(layer);
 
                 // Remove the settled promise
@@ -1605,12 +1550,12 @@ export let View = (function () {
         this.imageLayers.set(newLayer, imageLayer);
 
         // Change the selected layer if this is the one renamed
-        if (this.selectedLayer === layer) {
+        /*if (this.selectedLayer === layer) {
             this.selectedLayer = newLayer;
-        }
+        }*/
 
         // Tell the layer hierarchy has changed
-        ALEvent.HIPS_LAYER_RENAMED.dispatchedTo(this.aladinDiv, { layer: layer, newLayer: newLayer });
+        ALEvent.HIPS_LAYER_RENAMED.dispatchedTo(this.aladinDiv, { layer, newLayer });
     }
 
     View.prototype.swapLayers = function(firstLayer, secondLayer) {
@@ -1659,16 +1604,13 @@ export let View = (function () {
 
         if (this.overlayLayers.length === 0) {
             this.empty = true;
-            this.selectedLayer = "base";
-        } else {
+        } else if (this.selectedLayer === layer) {
             // find the toppest layer
-            if (this.selectedLayer === layer) {
-                const toppestLayer = this.overlayLayers[this.overlayLayers.length - 1];
-                this.selectedLayer = toppestLayer;
-            }
+            //const toppestLayer = this.overlayLayers[this.overlayLayers.length - 1];
+            this.selectedLayer = 'base';
         }
 
-        ALEvent.HIPS_LAYER_REMOVED.dispatchedTo(this.aladinDiv, { layer: layer });
+        ALEvent.HIPS_LAYER_REMOVED.dispatchedTo(this.aladinDiv, { layer });
 
         // check if there are no more surveys
         const noMoreLayersToWaitFor = this.promises.length === 0;
@@ -1692,7 +1634,7 @@ export let View = (function () {
         let imageLayerQueried = this.imageLayersBeingQueried.get(layer);
         let imageLayer = this.imageLayers.get(layer);
 
-        return imageLayerQueried || imageLayer;
+        return imageLayer || imageLayerQueried;
     };
 
     View.prototype.requestRedraw = function () {
@@ -1885,6 +1827,7 @@ export let View = (function () {
 
         ALEvent.GRAPHIC_OVERLAY_LAYER_REMOVED.dispatchedTo(this.aladinDiv, { layer: layer });
 
+        this.mustClearCatalog = true;
         this.requestRedraw();
     };
 

@@ -28,15 +28,15 @@
  *
  *****************************************************************************/
 
-import { Box } from "../../Widgets/Box.js";
-import { Input } from "../../Widgets/Input.js";
-import { Layout } from "../../Layout.js";
-import { ALEvent } from "../../../events/ALEvent.js";
-import { Color } from "../../../Color.js";
-import { ContextMenu } from "../../Widgets/ContextMenu.js";
-import { ActionButton } from "../../Widgets/ActionButton.js";
-import thicknessLineIcon from './../../../../../assets/icons/thickness.svg';
-import labelSizeIcon from './../../../../../assets/icons/font-size.svg';
+import { Box } from "../Widgets/Box.js";
+import { Input } from "../Widgets/Input.js";
+import { Layout } from "../Layout.js";
+import { ALEvent } from "../../events/ALEvent.js";
+import { Color } from "../../Color.js";
+import { ContextMenu } from "../Widgets/ContextMenu.js";
+import { ActionButton } from "../Widgets/ActionButton.js";
+import thicknessLineIcon from './../../../../assets/icons/thickness.svg';
+import labelSizeIcon from './../../../../assets/icons/font-size.svg';
 
 export class GridBox extends Box {
     // Constructor
@@ -144,8 +144,19 @@ export class GridBox extends Box {
                 })
             }
         });
+        let enableCheckbox = Input.checkbox({
+            name: 'enableGrid',
+            tooltip: {content: 'Enable/disable the grid', position: {direction: 'left'}},
+            type: 'checkbox',
+            checked: aladin.getGridOptions().enabled,
+            click(e) {
+                aladin.setCooGrid({enabled: enableCheckbox.get()})
+            }
+        });
+        sliderOpacity.addClass("aladin-input-range")
         const layout = Layout.horizontal({
             layout: [
+                enableCheckbox,
                 labelSizeBtn,
                 thicknessLineBtn,
                 colorInput,

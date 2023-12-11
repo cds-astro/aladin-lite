@@ -62,14 +62,15 @@ export class DOMElement {
     }
 
     remove() {
-        if (this.el) {
-            let target = this.el.parentNode;
+        let el = this.element();
+        if (el) {
+            let target = el.parentNode;
 
             let index = 0;
             if (target && target.children) {
-                index = Array.prototype.indexOf.call(target.children, this.el);
+                index = Array.prototype.indexOf.call(target.children, el);
             }
-            this.el.remove()
+            el.remove()
 
             return {target, position: index};
         }
@@ -104,58 +105,86 @@ export class DOMElement {
     }
 
     setPosition(options) {
-        let left = 0, top = 0, x = 0, y = 0;
+        let el = this.element();
 
-        // take on less priority the left and top
-        if (options && options.left) {
-            left = options.left;
-        }
+        if (options && options.anchor) {
+            el.style.position = 'absolute';
 
-        if (options && options.top) {
-            top = options.top;
-        }
-
-        // handle the anchor/dir case with higher priority
-        const {offsetWidth, offsetHeight} = this.element();
-
-        if (options && options.anchor && options.direction) {
-            let dir = options.direction || 'right';
-            let anchor = options.anchor;
-
-            if (anchor instanceof DOMElement) {
-                anchor = anchor.element();
+            const [lr, tb] = options.direction.split(' ').filter(s => s !== '');
+            if (lr === 'left') {
+                el.addClass('aladin-anchor-left')
+            } else if (lr === 'right') {
+                el.addClass('aladin-anchor-right')
+            } else if (lr === 'center') {
+                el.addClass('aladin-anchor-center')
             }
 
-            let rect = anchor.getBoundingClientRect();
+            if (tb === 'top') {
+                el.addClass('aladin-anchor-top')
+            } else if (tb === 'bottom') {
+                el.addClass('aladin-anchor-bottom')
+            } else if (tb === 'center') {
+                el.addClass('aladin-anchor-middle')
+            }
+
+            return;
+        }
+
+        let left = 0, top = 0, x = 0, y = 0;
+
+        // handle the anchor/dir case with higher priority
+        const {offsetWidth, offsetHeight} = el;
+        const aladinDiv = document.querySelector('.aladin-container');
+
+        const innerWidth = aladinDiv.offsetWidth;
+        const innerHeight = aladinDiv.offsetHeight;
+
+        // take on less priority the left and top
+        if (options && options.left && options.top) {
+            el.style.position = 'absolute';
+
+            top = options.top;
+            left = options.left;
+
+        } else if (options && options.relative && options.direction) {
+            let dir = options.direction || 'right';
+            let relative = options.relative;
+
+            if (relative instanceof DOMElement) {
+                relative = relative.element();
+            }
+
+            let rect = relative.getBoundingClientRect();
+            let aDivRect = aladinDiv.getBoundingClientRect();
+
+            const offViewX = aDivRect.x;
+            const offViewY = aDivRect.y;
+
             switch (dir) {
                 case 'left':
-                    left = rect.x - offsetWidth;
-                    top = rect.y;
+                    left = rect.x - offsetWidth - offViewX;
+                    top = rect.y - offViewY;
                     break;
                 case 'right':
-                    left = rect.x + rect.width;
-                    top = rect.y;
+                    left = rect.x + rect.width - offViewX;
+                    top = rect.y - offViewY;
                     break;
                 case 'top':
-                    left = rect.x;
-                    top = rect.y - offsetHeight;
+                    left = rect.x - offViewX;
+                    top = rect.y - offsetHeight - offViewY;
                     break;
                 case 'bottom':
-                    left = rect.x;
-                    top = rect.y + rect.height;
+                    left = rect.x - offViewX;
+                    top = rect.y + rect.height - offViewY;
                     break;
                 default:
                     left = 0;
                     top = 0;
                     break;
-            }
+            }   
         }
 
         // Translate if the div in 
-        const aladinDiv = document.querySelector('.aladin-container');
-        const innerWidth = aladinDiv.offsetWidth;
-        const innerHeight = aladinDiv.offsetHeight;
-
         if (left + offsetWidth > innerWidth) {
             x = '-' + (left + offsetWidth - innerWidth) + 'px';
         }   
@@ -172,9 +201,9 @@ export class DOMElement {
             y = Math.abs(top) + 'px';
         }
 
-        this.element().style.left = left + 'px';
-        this.element().style.top = top + 'px';
-        this.element().style.transform = `translate(${x}, ${y})`;
+        el.style.left = left + 'px';
+        el.style.top = top + 'px';
+        el.style.transform = `translate(${x}, ${y})`;
     }
 
     _show() {

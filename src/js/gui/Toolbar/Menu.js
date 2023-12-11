@@ -22,12 +22,12 @@ import { ActionButton } from "../Widgets/ActionButton";
 import { DOMElement } from "../Widgets/Widget";
 
 /* Control import */
-import { Settings } from "./Controls/Settings";
-import { StackLayerMenu } from "./Controls/StackLayer/Menu";
-import { OverlayStack } from "./Controls/Overlays/Stack";
-import { GotoBox } from "./Controls/GotoBox";
-import { SimbadPointer } from "./Controls/SimbadPointer";
-import { GridBox } from "./Controls/GridBox";
+import { Settings } from "../CtxMenu/Settings";
+import { Stack } from "../CtxMenu/SurveyStack";
+import { OverlayStack } from "../CtxMenu/OverlayStack";
+import { GotoBox } from "../Box/GotoBox";
+import { SimbadPointer } from "../Button/SimbadPointer";
+import { GridBox } from "../Box/GridBox";
 
 import settingsIcon from './../../../../assets/icons/settings.svg';
 import stackOverlayIconUrl from './../../../../assets/icons/stack.svg';
@@ -80,10 +80,11 @@ import { Utils } from "../Utils";
         this.layout = layout;
         this.controls = controls;
         this.controlIdxAppened = [];
+        this.hidden = {};
 
         // Add the layers control
         if (aladin.options && aladin.options.showLayersControl) {
-            this.appendControl('StackLayerMenu')
+            this.appendControl('Stack')
             this.appendControl('OverlayStack')
         }
         // Add the simbad pointer control
@@ -115,13 +116,13 @@ import { Utils } from "../Utils";
     defaultControls(aladin) {
         let menu = this;
         const controls = {
-            StackLayerMenu: new ActionButton({
+            Stack: ActionButton.createIconBtn({
                 iconURL: stackImageIconUrl,
                 tooltip: {
                     content: 'Open the stack layer menu',
                     position: { direction: 'left'},
                 },
-                cssStyle: {
+                /*cssStyle: {
                     padding: 0,
                     backgroundColor: '#bababa',
                     backgroundPosition: 'center',
@@ -129,19 +130,18 @@ import { Utils } from "../Utils";
                     cursor: 'pointer',
                     width: '28px',
                     height: '28px'
-
-                },
+                },*/
                 action(o) {
-                    menu.showControl(StackLayerMenu)
+                    menu.showControl(Stack)
                 }
             }),
-            OverlayStack: new ActionButton({
+            OverlayStack: ActionButton.createIconBtn({
                 iconURL: stackOverlayIconUrl,
                 tooltip: {
                     content: 'Open the overlays menu',
                     position: { direction: 'left'},
                 },
-                cssStyle: {
+                /*cssStyle: {
                     padding: 0,
                     backgroundColor: '#bababa',
                     backgroundPosition: 'center',
@@ -149,20 +149,19 @@ import { Utils } from "../Utils";
                     cursor: 'pointer',
                     width: '28px',
                     height: '28px'
-
-                },
+                },*/
                 action(o) {
                     menu.showControl(OverlayStack)
                 }
             }),
             SimbadPointer: new SimbadPointer(aladin),
-            GotoBox: new ActionButton({
+            GotoBox: ActionButton.createIconBtn({
                 iconURL: searchIcon,
                 tooltip: {
                     content: 'Search for where a celestial object is',
                     position: { direction: 'left'},
                 },
-                cssStyle: {
+                /*cssStyle: {
                     padding: 0,
                     backgroundColor: '#bababa',
                     backgroundPosition: 'center',
@@ -170,18 +169,18 @@ import { Utils } from "../Utils";
                     cursor: 'pointer',
                     width: '28px',
                     height: '28px'
-                },
+                },*/
                 action(o) {
                     menu.showControl(GotoBox)
                 }
             }),
-            GridBox: new ActionButton({
+            GridBox: ActionButton.createIconBtn({
                 iconURL: gridIcon,
                 tooltip: {
                     content: 'Open the grid layer menu',
                     position: { direction: 'left'},
                 },
-                cssStyle: {
+                /*cssStyle: {
                     padding: 0,
                     backgroundColor: '#bababa',
                     backgroundPosition: 'center',
@@ -189,32 +188,18 @@ import { Utils } from "../Utils";
                     cursor: 'pointer',
                     width: '28px',
                     height: '28px'
-                },
+                },*/
                 action(o) {
                     menu.showControl(GridBox)
                 }
             }),
-            Settings: new ActionButton({
-                content: Layout.horizontal({
-                    layout: ['Settings', new ActionButton({
-                        iconURL: settingsIcon,
-                        cssStyle: {
-                            padding: 0,
-                            color: "black",
-                            backgroundColor: '#bababa',
-                            backgroundPosition: 'center',
-                            borderColor: '#484848',
-                            cursor: 'pointer',
-                            height: '17px',
-                            width: '17px'
-                        }
-                    })]
-                }),
+            Settings: ActionButton.createIconBtn({
+                iconURL: settingsIcon,
                 tooltip: {
                     content: 'Some general settings e.g. background color, reticle, windows to show',
                     position: { direction: 'left' },
                 },
-                cssStyle: {
+                /*cssStyle: {
                     padding: 0,
                     color: "black",
                     backgroundColor: '#bababa',
@@ -222,25 +207,16 @@ import { Utils } from "../Utils";
                     borderColor: '#484848',
                     cursor: 'pointer',
                     height: '28px'
-                },
+                },*/
                 action(o) {
                     menu.showControl(Settings)
                 }
             }),
-            FullScreen: new ActionButton({
+            FullScreen: ActionButton.createIconBtn({
                 iconURL: aladin.isInFullscreen ? restoreIcon : maximizeIcon,
                 tooltip: {
                     content: aladin.isInFullscreen ? 'Restore original size' : 'Full-screen',
                     position: { direction: 'left'},
-                },
-                cssStyle: {
-                    padding: 0,
-                    backgroundColor: '#bababa',
-                    backgroundPosition: 'center',
-                    borderColor: '#484848',
-                    cursor: 'pointer',
-                    width: '28px',
-                    height: '28px'
                 },
                 action(o, self) {
                     aladin.toggleFullscreen(aladin.options.realFullscreen);
@@ -285,7 +261,6 @@ import { Utils } from "../Utils";
         let tool = toolClass.getInstance(this.aladin, this);
         let toolWasShown = !tool.isHidden;
 
-        console.log('tool hidden', tool.isHidden)
         this.hideAllControls(this.controls, this.aladin);
 
         if (!toolWasShown) {
@@ -312,7 +287,10 @@ import { Utils } from "../Utils";
 
             const ctrl = this.controls[name];
             this.layout.insertItemAtIndex(ctrl, insertIdx)
+
+            this.hidden[name] = true;
         }
+
     }
 
     _appendIdxControl(idx) {

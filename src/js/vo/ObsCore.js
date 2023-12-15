@@ -73,13 +73,6 @@
         'instrument_name': { name: 'instrument_name', ucd: 'meta.id;instr', utype: 'Provenance.ObsConfig.Instrument.name', units: null },
     }
 
-    /*ObsCore.clickOnAccessUrlAction = function(accessUrl) {
-        // Parse the datalink as a votable
-        VOTable.parse(accessUrl, (fields, rows) => {
-            console.log(fields)
-        })
-    }*/
-
     ObsCore.COLOR = '#004500'
 
     function ObsCore() {};
@@ -163,7 +156,7 @@
                 var field = fields[l];
 
                 if (field.ucd) {
-                    var ucd = $.trim(field.ucd.toLowerCase());
+                    var ucd = field.ucd.toLowerCase().trim();
 
                     if (ucd.indexOf(ucdField) == 0 || ucd.indexOf(ucdFieldOld) == 0) {
                         return l;
@@ -178,7 +171,7 @@
                 var field = fields[l];
 
                 if (field.utype) {
-                    var utype = $.trim(field.utype.toLowerCase());
+                    var utype = field.utype.toLowerCase().trim();
 
                     if (utype === utypeField) {
                         return l;

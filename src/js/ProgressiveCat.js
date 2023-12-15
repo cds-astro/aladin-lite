@@ -34,8 +34,6 @@ import { Coo } from "./libs/astro/coo.js";
 import { Utils } from "./Utils";
 import { CooFrameEnum } from "./CooFrameEnum.js";
 
-import $ from 'jquery';
-
 // TODO: index sources according to their HEALPix ipix
 // TODO : merge parsing with class Catalog
 export let ProgressiveCat = (function() {
@@ -103,7 +101,7 @@ export let ProgressiveCat = (function() {
         }
 
         var propertiesURL = rootUrl + '/properties';
-        $.ajax({
+        Utils.fetch({
             url: propertiesURL,
             method: 'GET',
             dataType: 'text',
@@ -113,8 +111,8 @@ export let ProgressiveCat = (function() {
                 for (var k=0; k<lines.length; k++) {
                     var line = lines[k];
                     var idx = line.indexOf('=');
-                    var propName  = $.trim(line.substring(0, idx));
-                    var propValue = $.trim(line.substring(idx + 1));
+                    var propName  = line.substring(0, idx).trim();
+                    var propValue = line.substring(idx + 1).trim();
                     
                     props[propName] = propValue;
                 }
@@ -139,19 +137,18 @@ export let ProgressiveCat = (function() {
         var fields = [];
         var k = 0;
         instance.keyRa = instance.keyDec = null;
-        $(xml).find("FIELD").each(function() {
+        xml.querySelectorAll("FIELD").forEach((field) => {
             var f = {};
             for (var i=0; i<attributes.length; i++) {
                 var attribute = attributes[i];
-                if ($(this).attr(attribute)) {
-                    f[attribute] = $(this).attr(attribute);
+                if (field.hasAttribute(attribute)) {
+                    f[attribute] = field.getAttribute(attribute);
                 }
-                
             }
+
             if ( ! f.ID) {
                 f.ID = "col_" + k;
             }
-            
             if (!instance.keyRa && f.ucd && (f.ucd.indexOf('pos.eq.ra')==0 || f.ucd.indexOf('POS_EQ_RA')==0)) {
                 if (f.name) {
                     instance.keyRa = f.name;
@@ -252,22 +249,23 @@ export let ProgressiveCat = (function() {
 
         _loadMetadata: function() {
             var self = this;
-            $.ajax({
-                url: self.rootUrl + '/' + 'Metadata.xml',
-                method: 'GET',
-                success: function(xml) {
+            let request = new Request(self.rootUrl + '/' + 'Metadata.xml', {
+                method: 'GET'
+            })
+            fetch(request)
+                .then((resp) => resp.text())
+                .then((text) => {
+                    let xml = ProgressiveCat.parser.parseFromString(text, "text/xml")
+
                     self.fields = getFields(self, xml);
                     self._loadAllskyNewMethod();
-                },
-                error: function(err) {
-                    self._loadAllskyOldMethod();
-                }
-            });
+                })
+                .catch(err => self._loadAllskyOldMethod());
         },
 
         _loadAllskyNewMethod: function() {
             var self = this;
-            $.ajax({
+            Utils.fetch({
                 url: self.rootUrl + '/' + 'Norder1/Allsky.tsv',
                 method: 'GET',
                 success: function(tsv) {
@@ -283,7 +281,7 @@ export let ProgressiveCat = (function() {
                 }
             });
 
-            $.ajax({
+            Utils.fetch({
                 url: self.rootUrl + '/' + 'Norder2/Allsky.tsv',
                 method: 'GET',
                 success: function(tsv) {
@@ -309,12 +307,14 @@ export let ProgressiveCat = (function() {
 
         _loadLevel2Sources: function() {
             var self = this;
-            $.ajax({
+            Utils.fetch({
                 url: self.rootUrl + '/' + 'Norder2/Allsky.xml',
                 method: 'GET',
-                success: function(xml) {
+                success: function(text) {
+                    let xml = ProgressiveCat.parser.parseFromString(text, "text/xml")
+
                     self.fields = getFields(self, xml);
-                    self.order2Sources = getSources(self, $(xml).find('CSV').text(), self.fields);
+                    self.order2Sources = getSources(self, xml.querySelectorAll('CSV').innerText, self.fields);
                     if (self.order3Sources) {
                         self.isReady = true;
                         self._finishInitWhenReady();
@@ -328,11 +328,12 @@ export let ProgressiveCat = (function() {
 
         _loadLevel3Sources: function() {
             var self = this;
-            $.ajax({
+            Utils.fetch({
                 url: self.rootUrl + '/' + 'Norder3/Allsky.xml',
                 method: 'GET',
-                success: function(xml) {
-                    self.order3Sources = getSources(self, $(xml).find('CSV').text(), self.fields);
+                success: function(text) {
+                    let xml = ProgressiveCat.parser.parseFromString(text, "text/xml")
+                    self.order3Sources = getSources(self, xml.querySelectorAll('CSV').innerText, self.fields);
                     if (self.order2Sources) {
                         self.isReady = true;
                         self._finishInitWhenReady();
@@ -547,7 +548,7 @@ export let ProgressiveCat = (function() {
                 if (!this.sourcesCache.get(key)) {
                     (function(self, norder, ipix) { // wrapping function is needed to be able to retrieve norder and ipix in ajax success function
                         var key = norder + '-' + ipix;
-                        $.ajax({
+                        Utils.fetch({
                             /*
                             url: Aladin.JSONP_PROXY,
                             data: {"url": self.getTileURL(norder, ipix)},
@@ -577,6 +578,7 @@ export let ProgressiveCat = (function() {
 
     }; // END OF .prototype functions
     
+    ProgressiveCat.parser = new DOMParser();
     
     return ProgressiveCat;
 })();

@@ -281,6 +281,7 @@ Utils.loadFromUrls = function (urls, options) {
         })
 }
 
+/*
 // return the jquery ajax object configured with the requested parameters
 // by default, we use the proxy (safer, as we don't know if the remote server supports CORS)
 Utils.getAjaxObject = function (url, method, dataType, useProxy) {
@@ -301,6 +302,45 @@ Utils.getAjaxObject = function (url, method, dataType, useProxy) {
         method: method,
         dataType: dataType
     })
+}
+*/
+Utils.fetch = function(params) {
+    let url = new URL(params.url);
+    if (params.useProxy === true) {
+        url = Utils.handleCORSNotSameOrigin(url)
+    }
+
+    if (params.data) {
+        // add the search params to the url object 
+        for (const key in params.data) {
+            url.searchParams.append(key, params.data[key]);
+        }
+    }
+
+    let request = new Request(url, {
+        method: params.method || 'GET',
+    })
+
+    fetch(request)
+        .then((resp) => {
+            if (params.dataType && params.dataType.includes('json')) {
+                return resp.json()
+            } else {
+                return resp.text()
+            }
+        })
+        .then(data => params.success && params.success(data))
+        .catch(e => {
+            if (params.error) {
+                params.error(e)
+            } else {
+                alert(e)
+            }
+        })
+}
+
+Utils.openNewTab = function(url) {
+    window.open(url, '_blank').focus();
 }
 
 // return true if script is executed in a HTTPS context

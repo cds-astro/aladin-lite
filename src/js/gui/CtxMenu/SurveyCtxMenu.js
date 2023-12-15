@@ -12,8 +12,8 @@ export class SurveyCtxMenu extends ContextMenu {
         super(aladin)
 
         let layout = [{
-            label: Layout.horizontal([
-                ActionButton.createIconBtn({
+            label: {
+                icon: {
                     iconURL: searchIconImg,
                     tooltip: {content: 'Find a specific survey <br /> in our database...', position: { direction: 'bottom' }},
                     cssStyle: {
@@ -22,11 +22,12 @@ export class SurveyCtxMenu extends ContextMenu {
                         border: '1px solid rgb(72, 72, 72)',
                         cursor: 'help',
                     },
-                }),
-                'Search for a new survey'
-            ]),
+                },
+                content: 'Search for a new survey'
+            },
             action(o) {
                 if (!self.hipsBox) {
+                    console.log(self.position)
                     self.hipsBox = new HiPSSelectorBox({
                             layer: 'base',
                             position: self.position,
@@ -102,14 +103,14 @@ export class SurveyCtxMenu extends ContextMenu {
         this.attach(layout)
     }
 
-    show(options) {
-        // store the position
-        if (options.position) {
+    _show(options) {
+        // set the position when we want to show
+        if (options && options.position) {
             this.position = options.position;
         }
 
         super.show({
-            ...options,
+            position: this.position,
             cssStyle: {
                 width: '20em',
                 overflowY: 'scroll',
@@ -118,16 +119,6 @@ export class SurveyCtxMenu extends ContextMenu {
                 backgroundColor: 'black',
             }
         })
-    }
-    
-    static ctxMenu;
-
-    static getInstance(aladin) {
-        if (!SurveyCtxMenu.ctxMenu) {
-            SurveyCtxMenu.ctxMenu = new SurveyCtxMenu(aladin);
-        }
-
-        return SurveyCtxMenu.ctxMenu;
     }
 
     static previewImagesUrl = {

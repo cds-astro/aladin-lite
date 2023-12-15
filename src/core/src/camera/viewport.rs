@@ -368,31 +368,30 @@ impl CameraViewPort {
 
         let aperture_start: Angle<f64> = ArcDeg(proj.aperture_start()).into();
 
-        self.aperture = if aperture <= aperture_start {
-            // Compute the new clip zoom factor
-            let lon = aperture.abs();
+        self.aperture = aperture.min(aperture_start);
+        // Compute the new clip zoom factor
+        let a = aperture.abs();
 
-            // Vertex in the WCS of the FOV
-            let v0 = math::lonlat::radec_to_xyzw(-lon / 2.0, Angle(0.0));
-            let v1 = math::lonlat::radec_to_xyzw(lon / 2.0, Angle(0.0));
+        let v0 = math::lonlat::radec_to_xyzw(-a / 2.0, Angle(0.0));
+        let v1 = math::lonlat::radec_to_xyzw(a / 2.0, Angle(0.0));
 
-            self.clip_zoom_factor = if let Some(p0) = proj.world_to_clip_space(&v0) {
-                if let Some(p1) = proj.world_to_clip_space(&v1) {
-                    (0.5 * (p1.x - p0.x).abs()).min(1.0)
-                } else {
-                    (aperture / aperture_start).0
-                }
+        // Vertex in the WCS of the FOV
+        self.clip_zoom_factor = if self.width < self.height {
+            if let (Some(p0), Some(p1)) =
+                (proj.world_to_clip_space(&v0), proj.world_to_clip_space(&v1))
+            {
+                (0.5 * (p1.x - p0.x).abs()).min(1.0)
             } else {
                 (aperture / aperture_start).0
-            };
-
-            aperture
-        } else if can_unzoom_more {
-            self.clip_zoom_factor = aperture.0 / aperture_start.0;
-            aperture
+            }
         } else {
-            self.clip_zoom_factor = 1.0;
-            aperture_start
+            if let (Some(p0), Some(p1)) =
+                (proj.world_to_clip_space(&v0), proj.world_to_clip_space(&v1))
+            {
+                (0.5 * (p1.x - p0.x).abs()).min(1.0)
+            } else {
+                (aperture / aperture_start).0
+            }
         };
 
         // Project this vertex into the screen

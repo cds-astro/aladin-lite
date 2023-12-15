@@ -1,5 +1,5 @@
 use crate::{
-    async_task::{BuildCatalogIndex, ParseTableTask, TaskExecutor, TaskResult, TaskType},
+    //async_task::{BuildCatalogIndex, ParseTableTask, TaskExecutor, TaskResult, TaskType},
     camera::CameraViewPort,
     downloader::Downloader,
     grid::ProjetedGrid,
@@ -71,8 +71,7 @@ pub struct App {
     manager: Manager,
 
     // Task executor
-    exec: Rc<RefCell<TaskExecutor>>,
-
+    //exec: Rc<RefCell<TaskExecutor>>,
     inertia: Option<Inertia>,
     disable_inertia: Rc<RefCell<bool>>,
     dist_dragging: f32,
@@ -131,7 +130,7 @@ impl App {
         callback_position_changed: js_sys::Function,
     ) -> Result<Self, JsValue> {
         let gl = gl.clone();
-        let exec = Rc::new(RefCell::new(TaskExecutor::new()));
+        //let exec = Rc::new(RefCell::new(TaskExecutor::new()));
 
         let projection = ProjectionType::Sin(mapproj::zenithal::sin::Sin);
         gl.blend_func_separate(
@@ -227,7 +226,7 @@ impl App {
             moc,
             // The catalog renderable
             manager,
-            exec,
+            //exec,
             //prev_center,
             _fbo_view,
             _fbo_ui,
@@ -1242,30 +1241,30 @@ impl App {
     }
 
     pub(crate) fn add_catalog(&mut self, name: String, table: JsValue, _colormap: String) {
-        let mut exec_ref = self.exec.borrow_mut();
+        //let mut exec_ref = self.exec.borrow_mut();
         let table = table;
 
-        exec_ref
-            .spawner()
-            .spawn(TaskType::ParseTableTask, async move {
-                let mut stream = ParseTableTask::<[f32; 2]>::new(table);
-                let mut results: Vec<LonLatT<f32>> = vec![];
+        /*exec_ref
+        .spawner()
+        .spawn(TaskType::ParseTableTask, async move {
+            let mut stream = ParseTableTask::<[f32; 2]>::new(table);
+            let mut results: Vec<LonLatT<f32>> = vec![];
 
-                while let Some(item) = stream.next().await {
-                    results.push(LonLatT::new(item[0].to_angle(), item[1].to_angle()));
-                }
+            while let Some(item) = stream.next().await {
+                results.push(LonLatT::new(item[0].to_angle(), item[1].to_angle()));
+            }
 
-                let mut stream_sort = BuildCatalogIndex::new(results);
-                while stream_sort.next().await.is_some() {}
+            let mut stream_sort = BuildCatalogIndex::new(results);
+            while stream_sort.next().await.is_some() {}
 
-                // The stream is finished, we get the sorted sources
-                let results = stream_sort.sources;
+            // The stream is finished, we get the sorted sources
+            let results = stream_sort.sources;
 
-                TaskResult::TableParsed {
-                    name,
-                    sources: results.into_boxed_slice(),
-                }
-            });
+            TaskResult::TableParsed {
+                name,
+                sources: results.into_boxed_slice(),
+            }
+        });*/
     }
 
     pub(crate) fn resize(&mut self, width: f32, height: f32) {

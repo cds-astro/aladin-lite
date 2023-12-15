@@ -138,6 +138,7 @@ export let MOC = (function() {
 
                 self.view.requestRedraw();
             })
+            .catch(e => alert('MOC load error:' + e))
     };
 
     MOC.prototype.reportChange = function() {

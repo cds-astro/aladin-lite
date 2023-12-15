@@ -17,7 +17,7 @@
 //    along with Aladin Lite.
 //
 
-import { SelectorButton } from "../../../Widgets/Selector";
+import { SelectorButton } from "../Widgets/Selector";
 /******************************************************************************
  * Aladin Lite project
  *

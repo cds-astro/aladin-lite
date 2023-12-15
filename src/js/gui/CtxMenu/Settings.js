@@ -34,8 +34,11 @@ import { Input } from "../Widgets/Input.js";
 import { Color } from "../../Color.js";
 import { ALEvent } from "../../events/ALEvent.js";
 import { SAMPActionButton } from "../Button/SAMP.js";
+import { ActionButton } from "../Widgets/ActionButton.js";
+import helpIconBtn from '../../../../assets/icons/help.svg';
+import { Utils } from "../../Utils";
 
-export class Settings extends ContextMenu {
+export class SettingsCtxMenu extends ContextMenu {
     // Constructor
     constructor(aladin, menu) {
         super(aladin);
@@ -67,14 +70,12 @@ export class Settings extends ContextMenu {
             let hex = Color.rgbToHex(r, g, b);
             self.backgroundColorInput.set(hex)
         });
+        ALEvent.RETICLE_CHANGED.listenedBy(aladin.aladinDiv, function (e) {
+            const color = e.detail.color;
+            let hex = new Color(color).toHex();
 
-        self.windowsVisible = {
-            StackBox: aladin.options && aladin.options.showLayersControl,
-            GridBox: aladin.options && aladin.options.showCooGridControl,
-            SimbadPointer: aladin.options && aladin.options.showSimbadPointerControl,
-            GotoBox: aladin.options && aladin.options.showGotoControl,
-            FullScreen: aladin.options && aladin.options.showFullscreenControl,
-        };
+            self.reticleColorInput.set(hex)
+        });
 
         this.toggleCheckbox = (checkbox) => {
             const pastVal = checkbox.get();
@@ -117,11 +118,11 @@ export class Settings extends ContextMenu {
 
     _attach() {
         const toggleWindow = (window) => {
-            self.windowsVisible[window] = !self.windowsVisible[window];
-            if(!self.windowsVisible[window]) {
-                self.menu.removeControl(window)
+            let windowEnabled = self.menu.isEnabled(window)
+            if(windowEnabled) {
+                self.menu.disable(window)
             } else {
-                self.menu.appendControl(window)
+                self.menu.enable(window)
             }
         }
 
@@ -142,19 +143,18 @@ export class Settings extends ContextMenu {
 
         this.attach([
             {
-                label: Layout.horizontal({
-                    layout: [
-                        'Background color',
-                        self.backgroundColorInput,
-                    ]
-                }),
+                label: {
+                    content: [self.backgroundColorInput, 'Background color']
+                },
                 action(o) {}
             },
             {
                 label: 'Reticle',
                 subMenu: [
                     {
-                        label: Layout.horizontal({layout: [self.reticleCheckbox, 'Reticle']}),
+                        label: {
+                            content: [self.reticleCheckbox, 'Reticle']
+                        },
                         action(o) {
                             let newVal = self.toggleCheckbox(self.reticleCheckbox);
                             self.aladin.showReticle(newVal)
@@ -163,12 +163,12 @@ export class Settings extends ContextMenu {
                         }
                     },
                     {
-                        label: Layout.horizontal({
-                            layout: [
-                                'Color',
+                        label: {
+                            content: [
                                 self.reticleColorInput,
+                                'Color',
                             ]
-                        }),
+                        },
                         action(o) {}
                     },
                     {
@@ -178,7 +178,9 @@ export class Settings extends ContextMenu {
                 ]
             },
             {
-                label: Layout.horizontal({layout: [self.hpxGridCheckbox, 'HEALPix grid']}),
+                label: {
+                    content: [self.hpxGridCheckbox, 'HEALPix grid']
+                },
                 action(o) {
                     let newVal = self.toggleCheckbox(self.hpxGridCheckbox);
                     self.aladin.showHealpixGrid(newVal)
@@ -187,54 +189,111 @@ export class Settings extends ContextMenu {
                 }
             },
             {
-                label: Layout.horizontal({layout: [self.sampBtn, 'SAMP']}),
+                label: {
+                    content: [self.sampBtn, 'SAMP']
+                },
             },
             {
                 label: 'Features',
                 subMenu: [
                     {
                         label: 'Stack',
-                        selected: self.windowsVisible['StackBox'],
+                        selected: self.menu.isEnabled('stack'),
                         action(o) {
-                            toggleWindow('StackBox')
+                            toggleWindow('stack')
+                            toggleWindow('overlay')
+                            toggleWindow('survey')
 
                             self._attach();
                         }
                     },
                     {
                         label: 'Simbad',
-                        selected: self.windowsVisible['SimbadPointer'],
+                        selected: self.menu.isEnabled('simbad'),
                         action(o) {
-                            toggleWindow('SimbadPointer');
+                            toggleWindow('simbad');
 
                             self._attach();
                         }
                     },
                     {
                         label: 'Go to',
-                        selected: self.windowsVisible['GotoBox'],
+                        selected: self.menu.isEnabled('goto'),
                         action(o) {                            
-                            toggleWindow('GotoBox');
+                            toggleWindow('goto');
 
                             self._attach();
                         }
                     },
                     {
                         label: 'Grid',
-                        selected: self.windowsVisible['GridBox'],
+                        selected: self.menu.isEnabled('grid'),
                         action(o) {
-                            toggleWindow('GridBox');
+                            toggleWindow('grid');
 
                             self._attach();
                         }
                     },
                     {
                         label: 'FullScreen',
-                        selected: self.windowsVisible['FullScreen'],
+                        selected: self.menu.isEnabled('fullscreen'),
                         action(o) {
-                            toggleWindow('FullScreen');
+                            toggleWindow('fullscreen');
 
                             self._attach();
+                        }
+                    }
+                ]
+            },
+            {
+                label: {
+                    icon: {
+                        tooltip: {content: 'Documentation about Aladin Lite', position: {direction: 'left'}},
+                        iconURL: helpIconBtn,
+                        cssStyle: {
+                            cursor: 'help',
+                        }
+                    },
+                    content: 'Help'
+                },
+                subMenu: [
+                    {
+                        label: 'Aladin Lite API',
+                        action(o) {
+                            Utils.openNewTab('https://aladin.cds.unistra.fr/AladinLite/doc/API/')
+                        }
+                    },
+                    {
+                        label: {
+                            content: 'Contact us',
+                            tooltip: { content: 'For bug reports, discussions, feature ideas...', position: {direction: 'bottom'} }
+                        },
+                        subMenu: [
+                            {
+                                label: 'GitHub',
+                                action(o) {
+                                    Utils.openNewTab('https://github.com/cds-astro/aladin-lite/issues')
+                                }
+                            },
+                            {
+                                label: 'by email',
+                                action(o) {
+                                    Utils.openNewTab('mailto:matthieu.baumann@astro.unistra.fr,thomas.boch@astro.unistra.fr?subject=Aladin Lite issue&body=message%20goes%20here')
+                                }
+                            }
+                        ],
+                    },
+                    {
+                        label: 'General documentation',
+                        
+                        action(o) {
+                            Utils.openNewTab('https://aladin.cds.unistra.fr/AladinLite/doc/')
+                        }
+                    },
+                    {
+                        label: Layout.horizontal({layout: ['Examples'], tooltip: { content: 'How to embed Aladin Lite <br \>into your own webpages!', position: {direction: 'bottom'}}}),
+                        action(o) {
+                            Utils.openNewTab('https://aladin.cds.unistra.fr/AladinLite/doc/API/examples/')
                         }
                     }
                 ]
@@ -245,7 +304,7 @@ export class Settings extends ContextMenu {
     _show() {
         super.show({
             position: {
-                anchor: this.menu.controls['Settings'],
+                nextTo: this.menu.controls['settings'],
                 direction: 'bottom',
             }
         })
@@ -253,9 +312,9 @@ export class Settings extends ContextMenu {
 
     static singleton;
 
-    static getInstance(aladin, parent) {
+    static getInstance(aladin, menu) {
         if (!Settings.singleton) {
-            Settings.singleton = new Settings(aladin, parent);
+            Settings.singleton = new Settings(aladin, menu);
         }
 
         return Settings.singleton;

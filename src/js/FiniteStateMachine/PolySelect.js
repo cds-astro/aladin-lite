@@ -91,7 +91,6 @@ export class PolySelect extends FSM {
                     action(e) {
                         e.stopPropagation();
                         e.preventDefault()
-                        console.log("clickkkk");
 
                         btn.remove();
                         self.dispatch('finish');

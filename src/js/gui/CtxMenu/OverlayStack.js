@@ -40,15 +40,15 @@ import A from "../../A.js";
  
 export class OverlayStack extends ContextMenu {
     // Constructor
-    constructor(aladin, menu) {
-        super(aladin, {hideOnClick: false, hideOnResize: false});
+    constructor(aladin) {
+        super(aladin, {hideOnClick: false});
         this.aladin = aladin;
-        this.anchor = menu.controls["OverlayStack"];
+        //this.anchor = menu.controls["OverlayStack"];
 
         this.mode = 'stack';
-        window.addEventListener("resize", (e) => {
+        /*window.addEventListener("resize", (e) => {
             this._hide();
-        })
+        })*/
         
         document.addEventListener('click', () => {
             if (this.mode === 'stack') {
@@ -103,6 +103,7 @@ export class OverlayStack extends ContextMenu {
                     subMenu: [
                         ContextMenu.fileLoaderItem({
                             label: 'VOTable File',
+                            accept: '.xml,.vot',
                             action(file) {
                                 let url = URL.createObjectURL(file);
 
@@ -124,7 +125,7 @@ export class OverlayStack extends ContextMenu {
                                 
                                 self._hide();
 
-                                let catBox = CatalogQueryBox.getInstance(self.aladin, self.anchor);
+                                let catBox = CatalogQueryBox.getInstance(self.aladin, self.position.nextTo);
                                 catBox._show();
 
                                 self.mode = 'search';
@@ -137,6 +138,7 @@ export class OverlayStack extends ContextMenu {
                     subMenu: [
                         ContextMenu.fileLoaderItem({
                             label: 'FITS File',
+                            accept: '.fits',
                             action(file) {
                                 let url = URL.createObjectURL(file);
 
@@ -340,15 +342,15 @@ export class OverlayStack extends ContextMenu {
         return icon;
     }
 
-    _show() {
+    _show(options) {
+        this.position = (options && options.position) || this.position || { anchor: 'center center'}; 
         super.show({
-            position: {
-                anchor: this.anchor,
-                direction: 'bottom',
-            },
+            ...options,
+            ...{position: this.position},
             cssStyle: {
                 color: 'white',
                 backgroundColor: 'black',
+                maxWidth: '20em',
                 //border: '1px solid white',
             }
         })
@@ -357,17 +359,19 @@ export class OverlayStack extends ContextMenu {
     _hide() {
         this.mode = 'stack';
 
-        let catBox = CatalogQueryBox.getInstance(this.aladin, this.anchor);
-        catBox._hide();
+        if (this.position) {
+            let catBox = CatalogQueryBox.getInstance(this.aladin, this.position.nextTo);
+            catBox._hide();
+        }
        
         super._hide();
     }
     
     static singleton;
 
-    static getInstance(aladin, menu) {
+    static getInstance(aladin) {
         if (!OverlayStack.singleton) {
-            OverlayStack.singleton = new OverlayStack(aladin, menu);
+            OverlayStack.singleton = new OverlayStack(aladin);
         }
 
         return OverlayStack.singleton;

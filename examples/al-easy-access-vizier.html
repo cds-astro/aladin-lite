@@ -21,7 +21,7 @@ var pessto = 'https://archive.eso.org/tap_cat/sync?REQUEST=doQuery&LANG=ADQL&MAX
 
 A.init.then(() => {
 
-    aladin = A.aladin('#aladin-lite-div', {survey: 'P/DSS2/red', target: 'LMC', fov: 5, showContextMenu: true});
+    aladin = A.aladin('#aladin-lite-div', {survey: 'https://alasky.cds.unistra.fr/DSS/DSSColor/', target: 'LMC', fov: 5, showContextMenu: true});
 
     aladin.addCatalog(A.catalogFromURL('https://vizier.u-strasbg.fr/viz-bin/votable?-source=HIP2&-c=LMC&-out.add=_RAJ,_DEJ&-oc.form=dm&-out.meta=DhuL&-out.max=9999&-c.rm=180', {sourceSize:12, color: '#f08080'}));
 

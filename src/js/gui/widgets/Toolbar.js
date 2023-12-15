@@ -16,7 +16,7 @@
 //    The GNU General Public License is available in COPYING file
 //    along with Aladin Lite.
 //
-import { Layout } from "./gui/Layout";
+import { Layout } from "../Layout";
 /******************************************************************************
  * Aladin Lite project
  *
@@ -60,16 +60,52 @@ export class Toolbar extends Layout {
     constructor(options) {
         options.direction = options.direction || 'horizontal';
         options.position = options.position || {anchor: 'left top'};
+        options.layout = options.layout || [];
 
-        let parent = options.position.container;
-
-        super(options, parent)
+        super(options)
 
         let direction = options.direction;
         if (direction === 'vertical') {
             this.addClass('aladin-vertical-list')
         } else {
             this.addClass('aladin-horizontal-list')
+        }
+
+        // Tool indices
+        this.indices = {};
+    }
+
+    append(items) {
+        if (!(items instanceof Array)) {
+            items = [items];
+        }
+
+        for (const {name, tool} of items) {
+            this.indices[name] = this.options.layout.length;
+            this.appendLast(tool);
+        }
+    }
+
+    /* Hide a tool */
+    hideTool(name) {
+        let indexTool = this.indices[name];
+        console.log(indexTool, "hide", name)
+
+        if (indexTool !== undefined && indexTool >= 0) {
+            this.options.layout[indexTool]._hide();
+
+            console.log(this.options.layout[indexTool])
+        }
+    }
+
+    /* Show a tool */
+    showTool(name) {
+        let indexTool = this.indices[name];
+
+        console.log(this.indices, indexTool, this.options.layout)
+
+        if (indexTool !== undefined && indexTool >= 0) {
+            this.options.layout[indexTool]._show();
         }
     }
 }

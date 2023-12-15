@@ -12,9 +12,21 @@
     A.init.then(() => {
         aladin = A.aladin('#aladin-lite-div', {fullScreen: true, target: "Abell 194", fov: 180, projection: 'SIN', showContextMenu: true});
 
-        A.catalogFromSKAORucio("Abell 194", 90, {onClick: 'showTable'}, (cat) => {
+        A.catalogFromSKAORucio("m51", 90, {onClick: 'showTable'}, (cat) => {
             aladin.addCatalog(cat);
         });
+
+        /*A.catalogFromURL('https://aladin.cds.unistra.fr/AladinLite/ska/obscoreRucio.xml', {onClick: 'showTable'}, (cat) => {
+            aladin.addCatalog(cat);
+        });
+
+        A.catalogFromURL('votable/CDS-B-jcmt-obscore.xml', {onClick: 'showTable'}, (cat) => {
+            aladin.addCatalog(cat);
+        });*/
+        A.catalogFromURL('https://aladin.cds.unistra.fr/ObsCoreRucioScs.xml', {onClick: 'showTable'}, (cat) => {
+            aladin.addCatalog(cat);
+        });
+        
     });
 </script>
 </body>

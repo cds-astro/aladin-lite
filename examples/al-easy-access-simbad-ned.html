@@ -15,7 +15,11 @@
         target: '09 55 52.4 +69 40 47',
         fov: 0.25,
         showContextMenu: true,
-        fullScreen: true
+        fullScreen: true,
+        showSimbadPointerControl: true,
+        showLayersControl: false,
+        showSimbadPointerControl: false,
+        showShareControl: true,
       });
 
       aladin.addCatalog(A.catalogFromSimbad('09 55 52.4 +69 40 47', 0.1, {onClick: 'showTable', limit: 1000}));

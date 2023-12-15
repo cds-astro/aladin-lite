@@ -79,8 +79,9 @@ export class DOMElement {
     setCss(options) {
         // CSS style elements
         if (options) {
+            let el = this.el
             for (const property in options) {
-                this.el.style[property] = options[property];
+                el.style[property] = options[property];
             }
         }
     }
@@ -110,21 +111,21 @@ export class DOMElement {
         if (options && options.anchor) {
             el.style.position = 'absolute';
 
-            const [lr, tb] = options.direction.split(' ').filter(s => s !== '');
+            const [lr, tb] = options.anchor.split(' ').filter(s => s !== '');
             if (lr === 'left') {
-                el.addClass('aladin-anchor-left')
+                el.classList.add('aladin-anchor-left')
             } else if (lr === 'right') {
-                el.addClass('aladin-anchor-right')
+                el.classList.add('aladin-anchor-right')
             } else if (lr === 'center') {
-                el.addClass('aladin-anchor-center')
+                el.classList.add('aladin-anchor-center')
             }
 
             if (tb === 'top') {
-                el.addClass('aladin-anchor-top')
+                el.classList.add('aladin-anchor-top')
             } else if (tb === 'bottom') {
-                el.addClass('aladin-anchor-bottom')
+                el.classList.add('aladin-anchor-bottom')
             } else if (tb === 'center') {
-                el.addClass('aladin-anchor-middle')
+                el.classList.add('aladin-anchor-middle')
             }
 
             return;
@@ -146,15 +147,15 @@ export class DOMElement {
             top = options.top;
             left = options.left;
 
-        } else if (options && options.relative && options.direction) {
+        } else if (options && options.nextTo && options.direction) {
             let dir = options.direction || 'right';
-            let relative = options.relative;
+            let nextTo = options.nextTo;
 
-            if (relative instanceof DOMElement) {
-                relative = relative.element();
+            if (nextTo instanceof DOMElement) {
+                nextTo = nextTo.element();
             }
 
-            let rect = relative.getBoundingClientRect();
+            let rect = nextTo.getBoundingClientRect();
             let aDivRect = aladinDiv.getBoundingClientRect();
 
             const offViewX = aDivRect.x;

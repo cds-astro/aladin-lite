@@ -26,6 +26,7 @@ import { Input } from "../Widgets/Input.js";
 import A from "../../A.js";
 import { ConeSearchBox } from "./ConeSearchBox.js";
 import { CtxMenuActionButtonOpener } from "../Button/CtxMenuOpener.js";
+import { ContextMenu } from "../Widgets/ContextMenu.js";
 /******************************************************************************
  * Aladin Lite project
  * 
@@ -100,7 +101,7 @@ import { CtxMenuActionButtonOpener } from "../Button/CtxMenuOpener.js";
 
         super({
             position: {
-                anchor,
+                nextTo: anchor,
                 direction: 'bottom',
             },
             content: Layout.horizontal({
@@ -208,31 +209,35 @@ import { CtxMenuActionButtonOpener } from "../Button/CtxMenuOpener.js";
 
         console.log(this.selectedItem)
        
-        let ctxMenu = {
-            layout: []
-        };
 
         if (!item) {
-            this.loadBtn.update({ctxMenu, disable: true}, aladin)
+            this.loadBtn.update({disable: true}, aladin)
             return;
         }
 
         let self = this;
+        let layout = [];
 
         if (item && item.cs_service_url) {
-            ctxMenu.layout.push({
+            layout.push({
                 label: 'Cone search',
                 disable: !item.cs_service_url,
                 action(o) {
-                    let box = ConeSearchBox.getInstance(aladin, (cs) => {
-                        self.fnIdSelected('coneSearch', {
-                            baseURL: self.selectedItem.cs_service_url,
-                            id: self.selectedItem.ID,
-                            ra: cs.ra,
-                            dec: cs.dec,
-                            radiusDeg: cs.rad,
-                            limit: cs.limit
-                        })
+                    let box = ConeSearchBox.getInstance(aladin);
+                    box.attach({
+                        callback: (cs) => {
+                            self.fnIdSelected('coneSearch', {
+                                baseURL: self.selectedItem.cs_service_url,
+                                id: self.selectedItem.ID,
+                                ra: cs.ra,
+                                dec: cs.dec,
+                                radiusDeg: cs.rad,
+                                limit: cs.limit
+                            })
+                        },
+                        position: {
+                            anchor: 'center center',
+                        }
                     })
                     box._show();
                 }
@@ -240,7 +245,7 @@ import { CtxMenuActionButtonOpener } from "../Button/CtxMenuOpener.js";
         }
         
         if (item && item.hips_service_url) {
-            ctxMenu.layout.push({
+            layout.push({
                 label: 'Progressive catalogue',
                 disable: !item.hips_service_url,
                 action(o) {
@@ -251,9 +256,7 @@ import { CtxMenuActionButtonOpener } from "../Button/CtxMenuOpener.js";
                 }
             })
         }
-
-        console.log('change load')
-        this.loadBtn.update({ctxMenu, disable: false}, aladin)
+        this.loadBtn.update({ctxMenu: layout, disable: false}, aladin)
     }
 
     static layerSelector = undefined;

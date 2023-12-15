@@ -29,7 +29,7 @@
  *****************************************************************************/
 export let ProjectionEnum = {
    // Zenithal
-   TAN: {id: 1, fov: 180, label: "gnomonic"},	         /* Gnomonic projection      */
+   TAN: {id: 1, fov: 150, label: "gnomonic"},	         /* Gnomonic projection      */
    STG: {id: 2, fov: 360, label: "stereographic"},	      /* Stereographic projection */
    SIN: {id: 3, fov: 180, label: "orthographic"},	      /* Orthographic		         */
    ZEA: {id: 4, fov: 360, label: "zenital equal-area"},	/* Equal-area 		         */

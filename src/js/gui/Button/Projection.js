@@ -42,7 +42,7 @@ import { ProjectionEnum } from "../../ProjectionEnum";
      * @param {Aladin} aladin - The aladin instance.
      */
     constructor(aladin) {
-        let ctxMenu = ContextMenu.getInstance(aladin);
+        //let ctxMenu = ;
         let layout = [];
 
         let aladinProj = aladin.getProjectionName();
@@ -57,10 +57,8 @@ import { ProjectionEnum } from "../../ProjectionEnum";
             })
         }
 
-        ctxMenu.attach(layout);
-
         super({
-            ctxMenu,
+            ctxMenu: layout,
             iconURL: projectionSvg,
             tooltip: {content: 'Change the view projection', position: {direction: 'bottom'}},
             cssStyle: {
@@ -68,8 +66,15 @@ import { ProjectionEnum } from "../../ProjectionEnum";
                 borderColor: '#484848',
                 cursor: 'pointer',
             },
-        });
+            /*action(o) {
+                ctxMenu.attach(layout);
+            }*/
+        }, aladin);
 
         this.addClass('medium-sized-icon')
+    }
+
+    _show() {
+        super._show()
     }
 }

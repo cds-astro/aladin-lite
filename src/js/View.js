@@ -43,7 +43,6 @@ import { Polyline } from "./Polyline.js";
 import { CooFrameEnum } from "./CooFrameEnum.js";
 import { requestAnimFrame } from "./libs/RequestAnimationFrame.js";
 import { WebGLCtx } from "./WebGL.js";
-import { Logger } from "./Logger.js";
 import { ALEvent } from "./events/ALEvent.js";
 import { ColorCfg } from "./ColorCfg.js";
 import { Footprint } from "./Footprint.js";
@@ -155,7 +154,6 @@ export let View = (function () {
         // Zoom starting setting
         const si = 500000.0;
         const alpha = 40.0;
-        this.fovLimit = undefined;
         let initialFov = this.options.fov || 180.0;
         this.pinchZoomParameters = {
             isPinching: false, // true if a pinch zoom is ongoing
@@ -832,7 +830,7 @@ export let View = (function () {
 
                 // zoom
                 const dist = Math.sqrt(Math.pow(e.originalEvent.touches[0].clientX - e.originalEvent.touches[1].clientX, 2) + Math.pow(e.originalEvent.touches[0].clientY - e.originalEvent.touches[1].clientY, 2));
-                const fov = Math.min(Math.max(view.pinchZoomParameters.initialFov * view.pinchZoomParameters.initialDistance / dist, 0.00002777777), view.fovLimit);
+                const fov = Math.min(Math.max(view.pinchZoomParameters.initialFov * view.pinchZoomParameters.initialDistance / dist, 0.00002777777), view.projection.fov);
                 view.setZoom(fov);
 
                 return;
@@ -1010,13 +1008,13 @@ export let View = (function () {
                 // touchpad
                 if (isTouchPad) {
                     a1 = 0.002;
-                    a0 = 0.00002;
+                    a0 = 0.0002;
                 } else {
                     a1 = 0.0025;
                     a0 = 0.0001;
                 }
 
-                const alpha = Math.pow(view.fov / view.fovLimit, 0.3);
+                const alpha = Math.pow(view.fov / view.projection.fov, 0.5);
 
                 const lerp = a0 * alpha + a1 * (1.0 - alpha);
                 triggerZoom(lerp);
@@ -1127,6 +1125,7 @@ export let View = (function () {
         }
         // draw popup catalog
         if (this.catalogForPopup.isShowing && this.catalogForPopup.sources.length > 0) {
+            console.log("draw popup")
             if (!this.catalogCanvasCleared) {
                 ctx.clearRect(0, 0, this.width, this.height);
                 this.catalogCanvasCleared = true;
@@ -1351,8 +1350,8 @@ export let View = (function () {
 
         let new_fov = si / Math.pow(initialAccDelta, alpha);
 
-        if (new_fov >= this.fovLimit) {
-            new_fov = this.fovLimit;
+        if (new_fov >= this.projection.fov) {
+            new_fov = this.projection.fov;
         }
 
         this.pinchZoomParameters.initialAccDelta = initialAccDelta;
@@ -1444,10 +1443,6 @@ export let View = (function () {
         const idxOverlayLayer = this.overlayLayers.findIndex(overlayLayer => overlayLayer == layerName);
         if (idxOverlayLayer == -1) {
             this.overlayLayers.push(layerName);
-        }
-
-        if (this.options.log) {
-            Logger.log("setImageLayer", imageLayer.url);
         }
 
         // Find the toppest layer
@@ -1642,32 +1637,8 @@ export let View = (function () {
     };
 
     View.prototype.setProjection = function (projName) {
-        this.fovLimit = 1000.0;
         this.projection = ProjectionEnum[projName];
-        switch (projName) {
-            // Zenithal (TAN, STG, SIN, ZEA, FEYE, AIR, AZP, ARC, NCP)
-            case "TAN":
-                this.fovLimit = 150.0;
-                break;
-            case "MER":
-                this.fovLimit = 360.0;
-                break;
-            case "CAR":
-                this.fovLimit = 360.0;
-                break;
-            case "CEA":
-                this.fovLimit = 360.0;
-                break;
-            case "CYP":
-                this.fovLimit = 360.0;
-                break;
-            // Hybrid
-            case "HPX":
-                this.fovLimit = 360.0;
-                break;
-            default:
-                break;
-        }
+
         // Change the projection here
         this.wasm.setProjection(projName);
         this.updateZoomState();
@@ -1775,6 +1746,9 @@ export let View = (function () {
         setTimeout(function () { self.refreshProgressiveCats(); }, 1000);
         // Apply position changed callback after the move
         self.throttledPositionChanged();
+
+        // hide the popup if it is open
+        this.aladin.hidePopup();
     };
     View.prototype.makeUniqLayerName = function (name) {
         if (!this.layerNameExists(name)) {

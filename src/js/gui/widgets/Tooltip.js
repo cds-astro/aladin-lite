@@ -135,6 +135,20 @@ export class Tooltip extends DOMElement {
         if (this.options.position) {
             this.setPosition(this.options.position)
         }
+
+        if (this.options.cssStyle) {
+            this.setCss(this.options.cssStyle)
+        }
+    }
+
+    setCss(options) {
+        let el = this.element();
+
+        if (options) {
+            for (const property in options) {
+                el.style[property] = options[property];
+            }
+        }
     }
 
     element() {

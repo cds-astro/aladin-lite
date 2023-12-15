@@ -75,7 +75,7 @@ codegen-units = 256
 rpath = false
 
 [profile.release]
-opt-level = 3
+opt-level = 'z'
 debug = false
 debug-assertions = false
 overflow-checks = false

@@ -30,8 +30,6 @@
 
 import { Utils } from "./Utils";
 
-import $ from 'jquery';
-
 export let PlanetaryFeaturesNameResolver = (function() {
     let PlanetaryFeaturesNameResolver = {};
 
@@ -59,7 +57,7 @@ export let PlanetaryFeaturesNameResolver = (function() {
     PlanetaryFeaturesNameResolver.resolve = function(featureName, body, callbackFunctionSuccess, callbackFunctionError) {
         const url = PlanetaryFeaturesNameResolver.URL;
 
-        $.ajax({
+        Utils.fetch({
             url: url ,
             data: {"identifier": featureName, 'body': body, 'threshold': 0.7, 'format': 'csv'},
             method: 'GET',
@@ -90,7 +88,7 @@ export let PlanetaryFeaturesNameResolver = (function() {
                 }
             },
             error: callbackFunctionError
-            });
+        });
     };
 
     return PlanetaryFeaturesNameResolver;

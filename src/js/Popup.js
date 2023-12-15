@@ -27,26 +27,28 @@
  * Author: Thomas Boch [CDS]
  *
  *****************************************************************************/
-import $ from 'jquery';
-
+// TODO replace with Box
 export let Popup = (function() {
 
     // constructor
     function Popup(parentDiv, view) {
-        this.domEl = $('<div class="aladin-popup-container"><div class="aladin-popup"><a class="aladin-closeBtn">&times;</a><div class="aladin-popupTitle"></div><div class="aladin-popupText"></div></div><div class="aladin-popup-arrow"></div></div>');
-        this.domEl.appendTo(parentDiv);
+        let el = document.createElement('div');
+        el.className = 'aladin-popup-container';
+        el.innerHTML = '<div class="aladin-popup"><a class="aladin-closeBtn">&times;</a><div class="aladin-popupTitle"></div><div class="aladin-popupText"></div></div><div class="aladin-popup-arrow"></div>';
+        this.domEl = el;
+
+        parentDiv.appendChild(this.domEl);
 
         this.view = view;
 
-
         var self = this;
         // close popup
-        this.domEl.find('.aladin-closeBtn').click(function() {self.hide();});
-
+        this.domEl.querySelector('.aladin-closeBtn').addEventListener("click", () => {self.hide()});
     };
 
     Popup.prototype.hide = function() {
-        this.domEl.hide();
+        this.isShown = false;
+        this.domEl.style.display = "none";
 
         this.view.mustClearCatalog=true;
         this.view.catalogForPopup.hide();
@@ -54,17 +56,31 @@ export let Popup = (function() {
     };
 
     Popup.prototype.show = function() {
-        this.domEl.show();
+        this.isShown = true;
+        this.domEl.style.display = "block";
     };
 
     Popup.prototype.setTitle = function(title) {
-        this.domEl.find('.aladin-popupTitle').html(title || '');
+        this.domEl.querySelector('.aladin-popupTitle').innerHTML = title || '';
     };
 
     Popup.prototype.setText = function(text) {
-        this.domEl.find('.aladin-popupText').html(text || '');
-        this.w = this.domEl.outerWidth();
-        this.h = this.domEl.outerHeight();
+        this.domEl.querySelector('.aladin-popupText').innerHTML = text || '';
+        if (!this.isShown) {
+            // offsetWidth and offsetHeight are gettable
+            // only if the dom element is displayed
+            // so we display it and hide it just after
+            // if it is supposed to be hidden
+            this.domEl.style.display = "block";
+
+            this.w = this.domEl.offsetWidth;
+            this.h = this.domEl.offsetHeight;
+
+            this.domEl.style.display = "none";
+        } else {
+            this.w = this.domEl.offsetWidth;
+            this.h = this.domEl.offsetHeight;
+        }
     };
 
     Popup.prototype.setSource = function(source) {
@@ -80,12 +96,13 @@ export let Popup = (function() {
     Popup.prototype.setPosition = function(x, y) {
         var newX = x - this.w/2;
         var newY = y - this.h;
+
         if (this.source) {
             newY += this.source.catalog.sourceSize/2;
         }
 
-        this.domEl[0].style.left = newX + 'px';
-        this.domEl[0].style.top  = newY + 'px';
+        this.domEl.style.left = newX + 'px';
+        this.domEl.style.top  = newY + 'px';
     };
 
     return Popup;

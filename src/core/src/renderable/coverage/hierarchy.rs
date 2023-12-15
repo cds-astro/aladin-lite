@@ -25,7 +25,7 @@ impl MOCHierarchy {
     }
 
     pub fn select_moc_from_view(&mut self, camera: &mut CameraViewPort) -> &mut MOC {
-        const MAX_NUM_CELLS_TO_DRAW: usize = 1500;
+        /*const MAX_NUM_CELLS_TO_DRAW: usize = 1500;
 
         let mut d = self.full_res_depth as usize;
 
@@ -41,6 +41,25 @@ impl MOCHierarchy {
         }
 
         self.mocs[d].cell_indices_in_view(camera);
+        &mut self.mocs[d]*/
+
+        let w_screen_px = camera.get_width() as f64;
+        let smallest_cell_size_px = 8.0;
+        let mut d = self.full_res_depth as usize;
+
+        let hpx_cell_size_rad =
+            (smallest_cell_size_px / w_screen_px) * camera.get_aperture().to_radians();
+
+        while d > 0 {
+            self.mocs[d].cell_indices_in_view(camera);
+
+            if (crate::healpix::utils::MEAN_HPX_CELL_RES[d] > hpx_cell_size_rad) {
+                break;
+            }
+
+            d = d - 1;
+        }
+
         &mut self.mocs[d]
     }
 

@@ -47,6 +47,8 @@ export class Layout extends DOMElement {
             options['layout'] = options;
         }
 
+        options.layout = options.layout || [];
+
         super(el, options);
 
         if (options.cssStyle) {
@@ -73,7 +75,11 @@ export class Layout extends DOMElement {
             this.setPosition(options.position)
         }
 
-        this.target = target;
+        if (options.direction) {
+            this.addClass(options.direction === 'horizontal' ? this.addClass('aladin-horizontal-list') : this.addClass('aladin-vertical-list'))
+        } else {
+            this.addClass('aladin-horizontal-list')
+        }
     }
 
     static horizontal(options, target, position = "beforeend") {
@@ -154,7 +160,7 @@ export class Layout extends DOMElement {
     }
 
     _show() {
-        this.remove();
+        //this.remove();
         this.el.innerHTML = "";
 
         // apply css
@@ -171,6 +177,6 @@ export class Layout extends DOMElement {
         }
 
         // attach to the DOM again
-        this.attachTo(this.target);
+        //this.attachTo(this.target);
     }
 }

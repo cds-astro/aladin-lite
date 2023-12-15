@@ -37,6 +37,7 @@ import { DOMElement } from './Widget.js';
 import { Layout } from '../Layout.js';
 import { ActionButton } from './ActionButton.js';
 import uploadIconUrl from '../../../../assets/icons/upload.svg';
+import { Tooltip } from './Tooltip.js';
 
 export class ContextMenu extends DOMElement {
 
@@ -65,7 +66,7 @@ export class ContextMenu extends DOMElement {
     }
 
     _attachOption(target, opt, xymouse, cssStyle) {
-        const item = document.createElement('li');
+        let item = document.createElement('li');
         item.classList.add('aladin-context-menu-item');
 
         if (opt.label == 'Copy position') {
@@ -90,6 +91,43 @@ export class ContextMenu extends DOMElement {
                 opt.label.attachTo(item);
             } else if (opt.label instanceof Element) {                
                 item.insertAdjacentElement('beforeend', opt.label);
+            } else if (opt.label instanceof Object) {
+                let layout = [];
+
+                if (opt.label.icon) {
+                    // add a button with a little bit of margin
+                    let icon = new ActionButton({
+                        ...opt.label.icon,
+                    });
+                    icon.addClass('medium-sized-icon');
+                    layout.push(icon)
+                }
+
+                if (opt.label.content) {
+                    if (!Array.isArray(opt.label.content)) {
+                        opt.label.content = [opt.label.content]
+                    }
+
+                    opt.label.content.forEach(l => layout.push(l))
+                }
+
+                for (let l of layout) {
+                    let el = l;
+                    if (l instanceof DOMElement) {
+                        el = l.element()
+                    }
+
+                    if (el.style) {
+                        el.style.marginRight = '5px';
+                    }
+                }
+
+                let labelEl = Layout.horizontal({
+                    layout,
+                    tooltip: opt.label.tooltip,
+                });
+
+                labelEl.attachTo(item)
             } else {
                 let wrapEl = document.createElement('div');
                 wrapEl.innerHTML = opt.label;
@@ -250,20 +288,20 @@ export class ContextMenu extends DOMElement {
     static fileLoaderItem(itemOptions) {
         return {
             ...itemOptions,
-            label: Layout.horizontal([
-                    ActionButton.createIconBtn({
-                        tooltip: {content: 'Load a local file from your computer'},
-                        iconURL: uploadIconUrl,
-                        cssStyle: {
-                            cursor: 'help',
-                        }
-                    }),
-                    itemOptions.label
-                ]
-            ),
+            label: {
+                icon: {
+                    tooltip: {content: 'Load a local file from your computer.<br \>Accept ' + itemOptions.accept + ' files'},
+                    iconURL: uploadIconUrl,
+                    cssStyle: {
+                        cursor: 'help',
+                    }
+                },
+                content: itemOptions.label
+            },
             action(e) {
                 let fileLoader = document.createElement('input');
                 fileLoader.type = 'file';
+                fileLoader.accept = itemOptions.accept || '*';
                 // Case: The user is loading a FITS file
         
                 fileLoader.addEventListener("change", (e) => {    

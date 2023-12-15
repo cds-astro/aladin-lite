@@ -32,7 +32,7 @@
     "HiPS"
   ],
   "scripts": {
-    "wasm": "wasm-pack build ./src/core --target web --release --out-name core -- --features webgl2",
+    "wasm": "wasm-pack build ./src/core --target web --release --out-name core -- --features webgl2 -Z build-std=panic_abort,std -Z build-std-features=panic_immediate_abort ",
     "predeploy": "npm run build && rm -rf aladin-lite.tgz && npm pack",
     "deploy": "./deploy.sh",
     "deploy:beta": "npm run predeploy && ./deploy-beta.sh",

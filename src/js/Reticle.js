@@ -41,16 +41,18 @@ export let Reticle = (function() {
         this.el.data = iconUrl;
         this.aladin = aladin;
 
+        this.color = null;
+
         aladin.aladinDiv.appendChild(this.el);
 
-        let reticleColor = options && options.color || Aladin.DEFAULT_OPTIONS.reticleColor;
-        let reticleSize = options && options.size || Aladin.DEFAULT_OPTIONS.reticleSize;
+        let color = options && options.color || Aladin.DEFAULT_OPTIONS.reticleColor;
+        let size = options && options.size || Aladin.DEFAULT_OPTIONS.reticleSize;
         
-        let reticleShow;
+        let show;
         if (options.showReticle === undefined) {
-            reticleShow = Aladin.DEFAULT_OPTIONS.showReticle;
+            show = Aladin.DEFAULT_OPTIONS.showReticle;
         } else {
-            reticleShow = options && options.showReticle;
+            show = options && options.showReticle;
         }
 
         let self = this;
@@ -71,13 +73,13 @@ export let Reticle = (function() {
             self.el.addEventListener('error', handleError);
         });
 
-        this._setColor(reticleColor)
-        this._setSize(reticleSize);
-        this._show(reticleShow);
+        this.update({color, size, show})
     };
 
-    Reticle.prototype.update = function(options) {
+    Reticle.prototype.update = async function(options) {
         options = options || {};
+        await this.loaded;
+
         if (options.size) {
             this._setSize(options.size)
         }
@@ -97,12 +99,10 @@ export let Reticle = (function() {
         })
     }
 
-    Reticle.prototype._setColor = async function(color) {
+    Reticle.prototype._setColor = function(color) {
         if (!color) {
             return;
         }
-
-        await this.loaded;
 
         // 1. the user has maybe given some
         let reticleColor = new Color(color);
@@ -115,24 +115,20 @@ export let Reticle = (function() {
 
     }
 
-    Reticle.prototype._setSize = async function(size) {
+    Reticle.prototype._setSize = function(size) {
         if (!size) {
             return;
         }
-
-        await this.loaded;
 
         this.size = size;
         this.el.style.width = this.size + 'px';
         this.el.style.height = this.size + 'px';
     }
 
-    Reticle.prototype._show = async function(show) {
+    Reticle.prototype._show = function(show) {
         if (show === undefined) {
             return;
         }
-
-        await this.loaded;
 
         if (show === true) {
             this.el.style.visibility = 'visible';

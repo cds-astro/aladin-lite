@@ -60,7 +60,12 @@ export class Box extends DOMElement {
         super._hide()
     }
 
-    _show() {
+    _show(options) {
+        this.options = {
+            ...this.options,
+            ...options
+        };
+
         this.el.innerHTML = "";
         super._show();
 
@@ -81,7 +86,7 @@ export class Box extends DOMElement {
             if (header.draggable) {
                 draggableEl = ActionButton.createIconBtn({
                     iconURL: moveIconImg,
-                    tooltip: {content: 'Drag the window to move it',  position: {direction: 'bottom'}},
+                    tooltip: {content: 'Drag the window to move it',  position: {direction: 'right'}},
                     cssStyle: {
                         backgroundColor: '#bababa',
                         borderColor: '#484848',

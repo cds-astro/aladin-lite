@@ -33,10 +33,12 @@ import { Coo }            from "../libs/astro/coo.js";
 import { CooFrameEnum }   from "../CooFrameEnum.js";
 
 import { DOMElement } from "./Widgets/Widget.js";
+import copyIconBtn from '../../../assets/icons/copy.svg';
 
 import { ALEvent } from "../events/ALEvent.js";
 import { Layout } from "./Layout.js";
 import { ActionButton } from "./Widgets/ActionButton.js";
+import { ShortLivedBox } from "./Box/ShortLivedBox.js";
 
 export class Location extends DOMElement {
     // constructor
@@ -46,17 +48,10 @@ export class Location extends DOMElement {
         let el = Layout.horizontal({
             layout: [
                 ActionButton.createIconBtn({
-                    content: "📋",
+                    iconURL: copyIconBtn,
                     cssStyle: {
-                        backgroundColor: '#bababa',
-                        borderColor: '#484848',
-                        textAlign: 'center',
-                        fontSize: '10px',
-                        width: '17px',
-                        height: '15px',
-                        fontWeight: 'bold',
-                        lineHeight: '0px',
-                        padding: '8px 2px' 
+                        width: '16px',
+                        height: '16px',
                     },
                     tooltip: {content: 'Copy to clipboard!', position: {direction: 'bottom'}},
                     action(e) {
@@ -113,6 +108,8 @@ export class Location extends DOMElement {
                 frame: e.detail.cooFrame
             }, aladin);
         });
+
+        this.aladin = aladin;
     };
 
     update(options, aladin) {
@@ -149,18 +146,28 @@ export class Location extends DOMElement {
 
     copyCoordinatesToClipboard() {
         let copyTextEl = this.el.querySelector('.aladin-monospace-text');
-        var r = document.createRange();
-        r.selectNode(copyTextEl);
-        window.getSelection().removeAllRanges();
-        window.getSelection().addRange(r);
-        try {
-            let successful = document.execCommand('copy');
-            let msg = successful ? 'successful' : 'unsuccessful';
-            console.log('Copying text command was ' + msg);
-        } catch (err) {
-            console.log('Oops, unable to copy');
-        }
-        window.getSelection().removeAllRanges();
+
+        let msg;
+        navigator.clipboard.writeText(copyTextEl.innerText)
+            .then(() => {
+                msg = 'successful'
+
+                let infoBox = ShortLivedBox.getInstance(this.aladin);
+                infoBox._show({
+                    content: 'Position saved!',
+                    duration: 2000,
+                    position: {
+                        anchor: 'center bottom'
+                    }
+                })
+            })
+            .catch(() => {
+                msg = 'unsuccessful'
+                console.info('Oops, unable to copy');
+            })
+            .finally(() => {
+                console.info('Copying text command was ' + msg);
+            })        
     }
 };
 

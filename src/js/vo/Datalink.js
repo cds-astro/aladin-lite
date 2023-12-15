@@ -33,22 +33,24 @@ import { VOTable } from "./VOTable.js";
 import { Utils } from './../Utils';
 import { ActionButton } from "../gui/Widgets/ActionButton.js";
 import { Catalog } from "../Catalog.js";
+import { ServiceQueryBox } from "../gui/Box/ServiceQueryBox.js";
 
 export let Datalink = (function() {
 
     let Datalink = function () {
-        this.SODAServerParams = undefined;
-        this.sodaQueryWindow = undefined;
+        this.services = {};
     };
 
     Datalink.prototype.handleActions = function(url, obscoreRow, aladinInstance) {
         //const url = obscoreRow["access_url"];
-        VOTable.parse(
+        new VOTable(
             url,
             (rsc) => {
-                let table = VOTable.parseTableRsc(rsc);
+                rsc = VOTable.parseRsc(rsc);
 
-                if (table && table.fields && table.rows) {
+                // It is a table
+                if (rsc && rsc.fields && rsc.rows) {
+                    let table = rsc;
                     table.fields = Catalog.parseFields(table.fields);
 
                     // Get the fields and the rows
@@ -72,7 +74,7 @@ export let Datalink = (function() {
                         'fields': fields,
                         'showCallback': {
                             'service_def': (data) => {
-                                const service = data['service_def'];
+                                const serviceName = data['service_def'];
 
                                 if (data['semantics'] === "#cutout") {
                                     return ActionButton.createIconBtn({
@@ -83,13 +85,18 @@ export let Datalink = (function() {
                                         },
                                         tooltip: {content: 'Open the cutout service form', position: {direction: 'top'}},
                                         action(e) {
-                                            aladinInstance.sodaQueryWindow.hide();
-                                            aladinInstance.sodaQueryWindow.setParams(self.SODAServerParams);
-                                            aladinInstance.sodaQueryWindow.show(aladinInstance);
+                                            let serviceQueryBox = ServiceQueryBox.getInstance(aladinInstance);
+                                            serviceQueryBox._hide();
+                                            serviceQueryBox.attach(self.services[serviceName]);
+                                            serviceQueryBox._show({
+                                                position: {
+                                                    anchor: 'center center'
+                                                }
+                                            });
                                         }
                                     }).element();
                                 } else {
-                                    return service || '--';
+                                    return serviceName || '--';
                                 }
                             },
                             'access_url': (data) => {
@@ -169,13 +176,12 @@ export let Datalink = (function() {
                     }
 
                     aladinInstance.measurementTable.showMeasurement([datalinkTable]);
-                } else {
+                // SODA service descriptor
+                } else if (rsc && rsc.baseUrl && rsc.inputParams) {
                     // Try to parse a SODA service descriptor resource
-                    let SODAServerParams = VOTable.parseSODAServiceRsc(rsc);
+                    let serviceDesc = rsc;
 
-                    if (SODAServerParams) {
-                        this.SODAServerParams = SODAServerParams;
-
+                    if (serviceDesc) {
                         // Try to populate the SODA form fields with obscore values
                         let populateSODAFields = (SODAParams) => {
                             for (const name in SODAParams.inputParams) {
@@ -205,22 +211,24 @@ export let Datalink = (function() {
 
                         // Request the base url of the SODA server to check if there
                         // is a self description VOTable
-                        VOTable.parse(this.SODAServerParams.baseUrl, (rsc) => {
-                            const SODAServerDesc = VOTable.parseSODAServiceRsc(rsc);
+                        new VOTable(serviceDesc.baseUrl, (rsc) => {
+                            const res = VOTable.parseRsc(rsc);
 
-                            if (SODAServerDesc) {
-                                for (const name in SODAServerDesc.inputParams) {
-                                    let inputParam = SODAServerDesc.inputParams[name];
-                                    if (!this.SODAServerParams.inputParams[name]) {
-                                        this.SODAServerParams.inputParams[name] = inputParam;
+                            if (res && res.baseUrl && res.inputParams) {
+                                for (const name in res.inputParams) {
+                                    let inputParam = res.inputParams[name];
+                                    if (!serviceDesc.inputParams[name]) {
+                                        serviceDesc.inputParams[name] = inputParam;
                                     }
                                 }
                             }
 
-                            populateSODAFields(this.SODAServerParams);
+                            populateSODAFields(serviceDesc);
                         }, undefined, true);
 
-                        populateSODAFields(this.SODAServerParams);
+                        populateSODAFields(serviceDesc);
+
+                        this.services[serviceDesc.name] = serviceDesc;
                     }
                 }
             },

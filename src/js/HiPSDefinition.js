@@ -29,7 +29,6 @@
  *****************************************************************************/
 
 import { Utils } from "./Utils";
-import $ from 'jquery';
 
 export let HiPSDefinition = (function() {
 
@@ -103,8 +102,8 @@ export let HiPSDefinition = (function() {
         propertiesStr = propertiesStr.replace(/[\r]/g, '');
         // split on LF
         var lines = propertiesStr.split('\n');
-        for (var k=0; k<lines.length; k++)  {
-            var l = $.trim(lines[k]);
+        for (var k=0; k<lines.length; k++) {
+            var l = lines[k].trim();
             // ignore comments lines
             if (l.slice(0, 1)==='#') {
                 continue;
@@ -113,8 +112,8 @@ export let HiPSDefinition = (function() {
             if (idx<0) {
                 continue;
             }
-            var key = $.trim(l.slice(0, idx));
-            var value = $.trim(l.slice(idx+1));
+            var key = l.slice(0, idx).trim();
+            var value = l.slice(idx+1).trim();
 
             propertiesDict[key] = value;
         }
@@ -134,7 +133,7 @@ export let HiPSDefinition = (function() {
     // else, it is assumed to be the base URL of the HiPS
     //
     // return a HiPSDefinition if successful, null if it failed
-    HiPSDefinition.fromURL = function(url, callback) {
+    /*HiPSDefinition.fromURL = function(url, callback) {
         var hipsUrl, propertiesUrl;
         if (url.slice(-10) === 'properties') {
             propertiesUrl = url;
@@ -175,7 +174,7 @@ export let HiPSDefinition = (function() {
                         (typeof callback === 'function') && callback(null);
                     })
             });
-    };
+    };*/
 
     // HiPSDefinition generation from a properties dict-like object
     HiPSDefinition.fromProperties = function(properties) {

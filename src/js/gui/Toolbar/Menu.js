@@ -17,12 +17,11 @@
 //    along with Aladin Lite.
 //
 
-import { Layout } from "../Layout";
 import { ActionButton } from "../Widgets/ActionButton";
 import { DOMElement } from "../Widgets/Widget";
 
 /* Control import */
-import { Settings } from "../CtxMenu/Settings";
+import { SettingsCtxMenu } from "../CtxMenu/Settings";
 import { Stack } from "../CtxMenu/SurveyStack";
 import { OverlayStack } from "../CtxMenu/OverlayStack";
 import { GotoBox } from "../Box/GotoBox";
@@ -50,22 +49,20 @@ import { Utils } from "../Utils";
  * Author: Matthieu Baumann[CDS]
  *
  *****************************************************************************/
-
+import { Toolbar } from "../Widgets/Toolbar";
+import { SurveyCtxMenu } from "../CtxMenu/SurveyCtxMenu";
+import { MainSurveyActionButton } from "../Button/MainSurvey";
 /**
  * Class representing a Tabs layout
  * @extends DOMElement
  */
- export class Menu extends DOMElement {
+ export class Menu extends Toolbar {
     /**
      * UI responsible for displaying the viewport infos
      * @param {Aladin} aladin - The aladin instance.
      */
-    constructor(aladin, parent) {
-        let layout = Layout.horizontal({
-            layout: []
-        }, parent.element());
-
-        super(layout)
+    constructor(options, aladin) {
+        super(options, aladin.aladinDiv)
         /*
         showFullscreenControl,
         showLayersControl,
@@ -75,222 +72,226 @@ import { Utils } from "../Utils";
         showCooGridControl
         */
 
+        window.addEventListener('resize', () => {
+            self.closeAll()
+        })
+
         // Add the fullscreen control
-        const controls = this.defaultControls(aladin);
-        this.layout = layout;
-        this.controls = controls;
-        this.controlIdxAppened = [];
-        this.hidden = {};
+        let self = this;
 
-        // Add the layers control
-        if (aladin.options && aladin.options.showLayersControl) {
-            this.appendControl('Stack')
-            this.appendControl('OverlayStack')
-        }
-        // Add the simbad pointer control
-        if (aladin.options && aladin.options.showSimbadPointerControl) {
-            this.appendControl('SimbadPointer')
-        }
-        // Add the goto control
-        if (aladin.options && aladin.options.showGotoControl) {
-            this.appendControl('GotoBox')
-        }
-        // Add the coo grid control
-        if (aladin.options && aladin.options.showCooGridControl) {
-            this.appendControl('GridBox')
-        }
-        // Add the share control
-        if (aladin.options && aladin.options.showShareControl) {
-            this.appendControl('ShareControl')
-        }
-        // Settings control
-        this.appendControl('Settings')
+        this.controls = {
+            survey: new MainSurveyActionButton(
+                aladin,
+                {
+                    action(o) {
+                        let toolWasShown = !survey.isHidden;
 
-        if (aladin.options && aladin.options.showFullscreenControl) {
-            this.appendControl('FullScreen')
-        }
+                        self.closeAll();
 
-        this.aladin = aladin;
-    }
-
-    defaultControls(aladin) {
-        let menu = this;
-        const controls = {
-            Stack: ActionButton.createIconBtn({
+                        if (!toolWasShown) {
+                            survey._show({
+                                position: {
+                                    nextTo: self.controls['survey'],
+                                    direction: 'bottom',
+                                }
+                            });
+                        }
+                    }
+                }
+            ),
+            stack: ActionButton.createIconBtn({
                 iconURL: stackImageIconUrl,
                 tooltip: {
                     content: 'Open the stack layer menu',
                     position: { direction: 'left'},
                 },
-                /*cssStyle: {
-                    padding: 0,
-                    backgroundColor: '#bababa',
-                    backgroundPosition: 'center',
-                    borderColor: '#484848',
-                    cursor: 'pointer',
-                    width: '28px',
-                    height: '28px'
-                },*/
                 action(o) {
-                    menu.showControl(Stack)
+                    let toolWasShown = !stack.isHidden;
+
+                    self.closeAll();
+
+                    if (!toolWasShown) {
+                        stack._show({
+                            position: {
+                                nextTo: self.controls['stack'],
+                                direction: 'bottom',
+                            }
+                        });
+                    }
                 }
             }),
-            OverlayStack: ActionButton.createIconBtn({
+            overlay: ActionButton.createIconBtn({
                 iconURL: stackOverlayIconUrl,
                 tooltip: {
                     content: 'Open the overlays menu',
                     position: { direction: 'left'},
                 },
-                /*cssStyle: {
-                    padding: 0,
-                    backgroundColor: '#bababa',
-                    backgroundPosition: 'center',
-                    borderColor: '#484848',
-                    cursor: 'pointer',
-                    width: '28px',
-                    height: '28px'
-                },*/
                 action(o) {
-                    menu.showControl(OverlayStack)
+                    let toolWasShown = !overlay.isHidden;
+
+                    self.closeAll();
+
+                    if (!toolWasShown) {
+                        overlay._show({
+                            position: {
+                                nextTo: self.controls['overlay'],
+                                direction: 'bottom',
+                            }
+                        });
+                    }
                 }
             }),
-            SimbadPointer: new SimbadPointer(aladin),
-            GotoBox: ActionButton.createIconBtn({
+            simbad: new SimbadPointer(aladin),
+            goto: ActionButton.createIconBtn({
                 iconURL: searchIcon,
                 tooltip: {
                     content: 'Search for where a celestial object is',
                     position: { direction: 'left'},
                 },
-                /*cssStyle: {
-                    padding: 0,
-                    backgroundColor: '#bababa',
-                    backgroundPosition: 'center',
-                    borderColor: '#484848',
-                    cursor: 'pointer',
-                    width: '28px',
-                    height: '28px'
-                },*/
                 action(o) {
-                    menu.showControl(GotoBox)
+                    let toolWasShown = !goto.isHidden;
+
+                    self.closeAll();
+
+                    if (!toolWasShown) {
+                        goto._show({
+                            position: {
+                                nextTo: self.controls['goto'],
+                                direction: 'bottom',
+                            }
+                        });
+                    }
                 }
             }),
-            GridBox: ActionButton.createIconBtn({
+            grid: ActionButton.createIconBtn({
                 iconURL: gridIcon,
                 tooltip: {
                     content: 'Open the grid layer menu',
                     position: { direction: 'left'},
                 },
-                /*cssStyle: {
-                    padding: 0,
-                    backgroundColor: '#bababa',
-                    backgroundPosition: 'center',
-                    borderColor: '#484848',
-                    cursor: 'pointer',
-                    width: '28px',
-                    height: '28px'
-                },*/
                 action(o) {
-                    menu.showControl(GridBox)
+                    let toolWasShown = !grid.isHidden;
+
+                    self.closeAll();
+
+                    if (!toolWasShown) {
+                        grid._show({
+                            position: {
+                                nextTo: self.controls['grid'],
+                                direction: 'bottom',
+                            }
+                        });
+                    }
                 }
             }),
-            Settings: ActionButton.createIconBtn({
+            settings: ActionButton.createIconBtn({
                 iconURL: settingsIcon,
                 tooltip: {
                     content: 'Some general settings e.g. background color, reticle, windows to show',
                     position: { direction: 'left' },
                 },
-                /*cssStyle: {
-                    padding: 0,
-                    color: "black",
-                    backgroundColor: '#bababa',
-                    backgroundPosition: 'center',
-                    borderColor: '#484848',
-                    cursor: 'pointer',
-                    height: '28px'
-                },*/
                 action(o) {
-                    menu.showControl(Settings)
+                    let toolWasShown = !settings.isHidden;
+
+                    self.closeAll();
+
+                    if (!toolWasShown) {
+                        settings._show({
+                            position: {
+                                nextTo: self.controls["settings"],
+                                direction: 'bottom',
+                            }
+                        });
+                    }
                 }
             }),
-            FullScreen: ActionButton.createIconBtn({
+            fullscreen: ActionButton.createIconBtn({
                 iconURL: aladin.isInFullscreen ? restoreIcon : maximizeIcon,
                 tooltip: {
                     content: aladin.isInFullscreen ? 'Restore original size' : 'Full-screen',
                     position: { direction: 'left'},
                 },
-                action(o, self) {
+                action(o) {
                     aladin.toggleFullscreen(aladin.options.realFullscreen);
     
+                    let btn = self.controls['fullscreen'];
                     if (aladin.isInFullscreen) {
-                        self.update({iconURL: restoreIcon, info: 'Restore original size'});
+                        btn.update({
+                            iconURL: restoreIcon,
+                            tooltip: {
+                                content: 'Restore original size',
+                                position: { direction: 'left'}
+                            }
+                        });
                     } else {
-                        self.update({iconURL: maximizeIcon, info: 'Full-screen'});
+                        btn.update({
+                            iconURL: maximizeIcon,
+                            tooltip: {
+                                content: 'Fullscreen',
+                                position: { direction: 'left'}
+                            }
+                        });
                     }
 
                     // hide all the controls
-                    menu.hideAllControls()
+                    self.closeAll()
                 }
             }),
-        }
+        };
 
-        return controls;
+        // tools
+        let stack = new Stack(aladin, self);
+        let overlay = new OverlayStack(aladin);
+        let goto = new GotoBox(aladin);
+        let grid = new GridBox(aladin);
+        let settings = new SettingsCtxMenu(aladin, self);
+        let survey = new SurveyCtxMenu(aladin, self);
+
+        this.tools = {
+            stack, overlay, goto, grid, settings, survey
+        };
+
+        console.log(this.controls)
+        //this.controlIdxAppened = [];
+
+        this.added = [];
+
+        this.aladin = aladin;
     }
 
-    hideAllControls() {
-        for (const classNameControl in this.controls) {
-            try {
-                const className = eval(classNameControl)
-                this.hideControl(className, this.aladin);
-            } catch(e) {}
-        }
-
-        // Hide the layer edit box if there is one shown
-        //LayerEditBox.getInstance(this.aladin, this.controls["StackLayerMenu"])._hide();
-    }
-
-    // show/hide panel
-    hideControl(classNameControl) {
-        if (classNameControl.getInstance) {
-            let tool = classNameControl.getInstance(this.aladin, this);
-
-            tool._hide();
-        }
-    }
-
-    showControl(toolClass) {
-        let tool = toolClass.getInstance(this.aladin, this);
-        let toolWasShown = !tool.isHidden;
-
-        this.hideAllControls(this.controls, this.aladin);
-
-        if (!toolWasShown) {
-            tool._show();
+    closeAll() {
+        for (const key in this.tools) {
+            this.tools[key]._hide();
         }
     }
 
-    // remove control and add control
-    removeControl(name) {
-        const idx = Object.keys(this.controls).indexOf(name);
-        if (idx > -1) {
-            this._removeIdxControl(idx);
-
-            const ctrl = this.controls[name];
-            this.layout.removeItem(ctrl)
+    enable(name) {
+        if (!this.added.includes(name)) {
+            this.append({name, tool: this.controls[name]});
+            this.added.push(name);
         }
+
+        // call show on it
+        this.showTool(name);
     }
 
-    appendControl(name) {
+    isEnabled(name) {
+        return !this.controls[name].isHidden;
+    }
+
+    disable(name) {
+        this.hideTool(name);
+    }
+
+    /*_appendControl(name) {
         const idx = Object.keys(this.controls).indexOf(name);
 
         if (idx > -1) {
             let insertIdx = this._appendIdxControl(idx);
 
             const ctrl = this.controls[name];
-            this.layout.insertItemAtIndex(ctrl, insertIdx)
-
-            this.hidden[name] = true;
+            this.insertItemAtIndex(ctrl, insertIdx)
         }
-
     }
 
     _appendIdxControl(idx) {
@@ -309,6 +310,6 @@ import { Utils } from "../Utils";
 
     _getInsertIdxControl(idx) {
         return Utils.binarySearch(this.controlIdxAppened, idx);
-    }
+    }*/
 }
  

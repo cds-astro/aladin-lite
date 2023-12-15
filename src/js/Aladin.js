@@ -40,10 +40,9 @@ import { MeasurementTable } from "./MeasurementTable.js";
 import { ImageSurvey } from "./ImageSurvey.js";
 import { Coo } from "./libs/astro/coo.js";
 import { CooConversion } from "./CooConversion.js";
-import { AladinLogo } from "./gui/AladinLogo.js";
+
 import { ProjectionEnum } from "./ProjectionEnum.js";
-import { ContextMenu } from "./gui/Widgets/ContextMenu.js";
-import { SODAQueryWindow } from "./gui/SODAQueryWindow";
+
 import { ALEvent } from "./events/ALEvent.js";
 import { Color } from './Color.js';
 import { ImageFITS } from "./ImageFITS.js";
@@ -51,17 +50,27 @@ import { DefaultActionsForContextMenu } from "./DefaultActionsForContextMenu.js"
 import { SAMPConnector } from "./vo/samp.js";
 import { Reticle } from "./Reticle.js";
 
+// GUI
+import { AladinLogo } from "./gui/AladinLogo.js";
+import { Location } from "./gui/Location.js";
+import { FoV } from "./gui/FoV.js";
+import { ShareActionButton } from "./gui/Button/ShareView.js";
+import { Menu } from "./gui/Toolbar/Menu.js";
+import { ContextMenu } from "./gui/Widgets/ContextMenu.js";
+import { ProjectionActionButton } from "./gui/Button/Projection.js";
+import { Input } from "./gui/Widgets/Input.js";
+
 import A from "./A.js";
 
 import $ from 'jquery';
-import { Toolbar } from "./gui/Toolbar/Toolbar.js";
+
 
 export let Aladin = (function () {
 
     // Constructor
     var Aladin = function (aladinDiv, requestedOptions) {
         // check that aladinDiv exists, stop immediately otherwise
-        if ($(aladinDiv).length == 0) {
+        if (!aladinDiv) {
             return;
         }
         this.wasm = null;
@@ -102,48 +111,29 @@ export let Aladin = (function () {
 
         this.reduceDeformations = true;
         // parent div
-        $(aladinDiv).addClass("aladin-container");
-
-        // zoom control
-        if (options.showZoomControl) {
-            $('<div class="aladin-zoomControl"><a href="#" class="zoomPlus" title="Zoom in">+</a><a href="#" class="zoomMinus" title="Zoom out">&ndash;</a></div>').appendTo(aladinDiv);
-        }
-
-        // Aladin SODA form
-        this.sodaQueryWindow = new SODAQueryWindow(this);
+        aladinDiv.classList.add("aladin-container");
 
         // Aladin logo
         new AladinLogo(aladinDiv);
 
-        // we store the boxes
-        this.boxes = [];
-
         // measurement table
         this.measurementTable = new MeasurementTable(aladinDiv);
-
 
         //var location = new Location(locationDiv.find('.aladin-location-text'));
 
         // set different options
         // Reticle
+        this.view = new View(this);
         this.reticle = new Reticle(this.options, this);
 
-        this.view = new View(this);
         this.cacheSurveys = new Map();
-
-        // Stack GUI
-        //this.stack = new StackMenu(this);
-        //this.coogrid = new CooGrid(this.aladinDiv, this, this.view);
+        this.ui = [];
 
         // Background color
         if (options.backgroundColor) {
             this.backgroundColor = options.backgroundColor;
             this.setBackgroundColor(this.backgroundColor)
         }
-
-        //this.boxes.push(this.stack);
-        //this.boxes.push(this.coogrid);
-
 
         // Grid
         var color, opacity;
@@ -168,8 +158,6 @@ export let Aladin = (function () {
         let projection = (options && options.projection) || 'SIN';
         this.setProjection(projection)
 
-        let top_px = 30;
-
         // layers control panel
         // TODO : valeur des checkbox en fonction des options
         ALEvent.LOADING_START.listenedBy(aladinDiv, function (e) {
@@ -188,92 +176,6 @@ export let Aladin = (function () {
             }
         });
 
-        this.toolbar = new Toolbar(this);
-
-        if (options.showLayersControl) {
-            // button to show Stack interface
-
-            if (options.expandLayersControl) {
-                self.hideBoxes();
-                self.showLayerBox();
-            }
-        }
-
-        // Coo grid pointer tool
-        /*if (options.showCooGridControl) {
-            var d = $('<div class="aladin-cooGridControl-container" style="top: ' + top_px + 'px" title="Coo grid. Keep the mouse down to see the option panel"><div class="aladin-cooGridControl"></div></div>');
-            d.appendTo(aladinDiv);
-
-            let mousedown = false;
-            let startMouseDown;
-            let interval;
-            let disableClick = false;
-            d.on("mousedown", function () {
-                mousedown = true;
-                startMouseDown = new Date();
-
-                interval = setInterval(() => {
-                    if (mousedown && (new Date() - startMouseDown) > 500) {
-                        disableClick = true;
-                        self.hideBoxes(); self.showCooGridBox();
-                        return false;
-                    }
-                }, 50);
-            });
-
-            d.on("mouseup", function () {
-                mousedown = false;
-                clearInterval(interval);
-                if ((new Date() - startMouseDown) < 500) {
-                    disableClick = false;
-                }
-            });
-            d.on("click", function() {
-                if (!disableClick) {
-                    let coogridContainer = d[0];
-                    if (self.cooGridEnabled) {
-                        self.hideCooGrid();
-                        coogridContainer.style.background = "rgba(250, 250, 250, 0.8)";
-                    } else {
-                        self.showCooGrid();
-                        coogridContainer.style.background = "rgba(250, 250, 250, 1)";
-                    }
-                }
-            })
-            top_px += 38;
-        }*/
-
-        // share control panel
-        if (options.showShareControl) {
-            var d = $('<div class="aladin-shareControl-container" title="Get link for current view"><div class="aladin-shareControl"></div></div>');
-            d.appendTo(aladinDiv);
-
-            var shareBox =
-                $('<div class="aladin-box aladin-shareBox">' +
-                    '<a class="aladin-closeBtn">&times;</a>' +
-                    '<div style="clear: both;"></div>' +
-                    'Link to previewer: <span class="info"></span>' +
-                    '<input type="text" class="aladin-input aladin-shareInput" />' +
-                    '</div>');
-            shareBox.appendTo(aladinDiv);
-            this.boxes.push(shareBox);
-
-
-            // TODO : classe GotoBox, GenericBox
-            d.click(function () {
-                self.hideBoxes();
-                shareBox.show();
-                var url = self.getShareURL();
-                shareBox.find('.aladin-shareInput').val(url).select();
-                document.execCommand('copy');
-
-                return false;
-            });
-            shareBox.find('.aladin-closeBtn').click(function () { self.hideBoxes(); return false; });
-            top_px += 38;
-        }
-
-
         this.gotoObject(options.target, undefined, {forceAnimation: false});
 
         if (options.log) {
@@ -287,12 +189,6 @@ export let Aladin = (function () {
                 this.createCatalogFromVOTable(options.catalogUrls[k]);
             }
         }
-
-
-        // Add the image layers
-        // For that we check the survey key of options
-        // It can be given as a single string or an array of strings
-        // for multiple blending surveys
 
         if (options.survey) {
             if (Array.isArray(options.survey)) {
@@ -308,41 +204,36 @@ export let Aladin = (function () {
             } else {
                 this.setBaseImageLayer(options.survey);
             }
-        } else {
-            const idxServiceUrl = Math.round(Math.random());
-            const dssUrl = Aladin.DEFAULT_OPTIONS.surveyUrl[idxServiceUrl]
+        } else if (options.surveyUrl) {
+            // Add the image layers
+            // For that we check the survey key of options
+            // It can be given as a single string or an array of strings
+            // for multiple blending surveys
+            // take in priority the surveyUrl parameter
+            let url;
+            if (Array.isArray(options.surveyUrl)) {
+                // mirrors given, take randomly one
+                let numMirrors = options.surveyUrl.length;
+                let id = Math.floor(Math.random() * numMirrors);
+                url = options.surveyUrl[id]
+            } else {
+                url = options.surveyUrl;
+            }
 
-            this.setBaseImageLayer(dssUrl);
+            this.setBaseImageLayer(url);
+        } else {
+            // This case should not happen because if there is no survey given
+            // then the surveyUrl pointing to the DSS is given.
         }
 
         this.view.showCatalog(options.showCatalog);
-
-        var aladin = this;
-
-        var zoomPlus = $(aladinDiv).find('.zoomPlus');
-        zoomPlus.on('click', function () {
-            aladin.increaseZoom();
-            return false;
-        });
-        zoomPlus.on('mousedown', function (e) {
-            e.preventDefault(); // to prevent text selection
-        });
-
-        var zoomMinus = $(aladinDiv).find('.zoomMinus');
-        zoomMinus.on('click', function () {
-            aladin.decreaseZoom();
-            return false;
-        });
-        zoomMinus.on('mousedown', function (e) {
-            e.preventDefault(); // to prevent text selection
-        });
 
         this.callbacksByEventName = {}; // we store the callback functions (on 'zoomChanged', 'positionChanged', ...) here
 
         // FullScreen toolbar icon
         this.isInFullscreen = false;
         // go to full screen ?
-        if (options.fullScreen) {
+        if (options.fullScreen === true) {
             // strange behaviour to wait for a sec
             self.toggleFullscreen(self.options.realFullscreen);
         }
@@ -351,9 +242,11 @@ export let Aladin = (function () {
         if (options.showFullscreenControl) {
             // react to fullscreenchange event to restore initial width/height (if user pressed ESC to go back from full screen)
             $(document).on('fullscreenchange webkitfullscreenchange mozfullscreenchange MSFullscreenChange', function (e) {
+                console.log("fullscreen change")
                 var fullscreenElt = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
                 if (fullscreenElt === null || fullscreenElt === undefined) {
-                    $(self.aladinDiv).removeClass('aladin-fullscreen');
+                    console.log('remove fullscreen')
+                    self.aladinDiv.classList.remove('aladin-fullscreen');
     
                     var fullScreenToggledFn = self.callbacksByEventName['fullScreenToggled'];
                     (typeof fullScreenToggledFn === 'function') && fullScreenToggledFn(self.isInFullscreen);
@@ -370,7 +263,159 @@ export let Aladin = (function () {
         if (options.samp) {
             this.samp = new SAMPConnector(this);
         }
+
+        this._setupUI(options);
     };
+
+    Aladin.prototype._setupUI = function(options) {
+        let self = this;
+
+        let viewport = A.toolbar({
+            direction: 'horizontal',
+            position: {
+                anchor: 'left top'
+            }
+        }, this);
+
+        // Add the projection control
+        if (options.showProjectionControl) {
+            viewport.append({
+                name: 'projection',
+                tool: new ProjectionActionButton(self)
+            })
+        }
+
+        // Add the frame control
+        if (options.showFrame) {
+            let cooFrame = CooFrameEnum.fromString(options.cooFrame, CooFrameEnum.J2000);
+            let cooFrameControl = new Input({
+                layout: {
+                    name: 'frame',
+                    type: 'select',
+                    value: cooFrame.label,
+                    options: [CooFrameEnum.J2000.label, CooFrameEnum.J2000d.label, CooFrameEnum.GAL.label],
+                    change(e) {
+                        self.setFrame(e.target.value)
+                    }
+                }
+            });
+
+            cooFrameControl.addClass('aladin-cooFrame');
+            viewport.append({
+                name: 'frame',
+                tool: cooFrameControl
+            })
+        }
+        // Add the location info
+        if (options.showCooLocation) {
+            viewport.append({
+                name: 'cooLocation',
+                tool: new Location(this)
+            });
+        }
+        // Add the FoV info
+        if (options.showFov) {
+            viewport.append({
+                name: 'fov',
+                tool: new FoV(this)
+            })
+        }
+
+        ////////////////////////////////////////////////////
+        let menu = new Menu({
+            direction: 'horizontal',
+            position: {
+                anchor: 'right top'
+            }
+        }, this);
+
+        // Add the layers control
+        if (options.showLayersControl) {
+            menu.enable('survey')
+            menu.enable('stack')
+            menu.enable('overlay')
+        }
+        // Add the simbad pointer control
+        if (options.showSimbadPointerControl) {
+            menu.enable('simbad')
+        }
+        // Add the goto control
+        if (options.showGotoControl) {
+            menu.enable('goto')
+        }
+        // Add the coo grid control
+        if (options.showCooGridControl) {
+            menu.enable('grid')
+        }
+        // Settings control
+        if (options.showSettingsControl) {
+            menu.enable('settings')
+        }
+
+        if (options.showFullscreenControl) {
+            menu.enable('fullscreen')
+        }
+
+        this.addUI(menu);
+        this.addUI(viewport);
+
+        // share control panel
+        if (options.showShareControl) {
+            this.addUI(new ShareActionButton(this, {
+                position: {
+                    anchor: 'left bottom'
+                } 
+            }));
+        }
+        
+        // zoom control
+        if (options.showZoomControl) {
+            let plusZoomBtn = A.button({
+                content: '+',
+                tooltip: {
+                    content: 'Zoom',
+                    position: {
+                        direction: 'left'
+                    }
+                },
+                cssStyle: {
+                    fontSize: 'x-large'
+                },
+                action(o) {
+                    self.increaseZoom();
+                }
+            });
+            plusZoomBtn.addClass('medium-sized-icon')
+
+            let minusZoomBtn = A.button({
+                content: '-',
+                tooltip: {
+                    content: 'Unzoom',
+                    position: {
+                        direction: 'left'
+                    }
+                },
+                cssStyle: {
+                    fontSize: 'x-large'
+                },
+                action(o) {
+                    self.decreaseZoom();
+                }
+            });
+            minusZoomBtn.addClass('medium-sized-icon')
+
+            let zoomControlToolbar = A.toolbar({
+                layout: [plusZoomBtn, minusZoomBtn],
+                direction: 'vertical',
+                position: {
+                    anchor: 'right center',
+                }
+            });
+            zoomControlToolbar.addClass('aladin-zoom-controls');
+            
+            this.addUI(zoomControlToolbar)
+        }
+    }
 
     /**** CONSTANTS ****/
     Aladin.VERSION = "3.0-beta0";
@@ -383,23 +428,35 @@ export let Aladin = (function () {
     // access to WASM libraries
     Aladin.wasmLibs = {};
     Aladin.DEFAULT_OPTIONS = {
-        surveyUrl: ["https://alaskybis.u-strasbg.fr/DSS/DSSColor", "https://alasky.u-strasbg.fr/DSS/DSSColor"],
-        survey: "CDS/P/DSS2/color",
+        surveyUrl: ["https://alaskybis.unistra.fr/DSS/DSSColor", "https://alasky.unistra.fr/DSS/DSSColor"],
         target: "0 +0",
         cooFrame: "J2000",
         fov: 60,
         backgroundColor: "rgb(60, 60, 60)",
-        showReticle: true,
+        // Zoom toolbar
         showZoomControl: true,
-        showFullscreenControl: true,
+        // Menu toolbar
         showLayersControl: true,
+        showFullscreenControl: true,
         showGotoControl: true,
         showSimbadPointerControl: false,
-        showShareControl: false,
         showCooGridControl: false,
+        showSettingsControl: true,
+        // Share toolbar
+        showShareControl: false,
+
+        // Viewport toolbar
         showFrame: true,
+        showFov: true,
+        showCooLocation: true,
+        showProjectionControl: true,
+
+        // Other UI elements
         showContextMenu: false,
+        // Internal
+        showReticle: true,
         showCatalog: true, // TODO: still used ??
+
         fullScreen: false,
         reticleColor: "rgb(178, 50, 178)",
         reticleSize: 22,
@@ -407,11 +464,7 @@ export let Aladin = (function () {
         gridOpacity: 0.5,
         log: true,
         samp: false,
-        allowFullZoomout: false,
         realFullscreen: false,
-        //showAllskyRing: false,
-        //allskyRingColor: '#c8c8ff',
-        //allskyRingWidth: 8,
         pixelateCanvas: true
     };
 
@@ -421,9 +474,10 @@ export let Aladin = (function () {
 
         realFullscreen = Boolean(realFullscreen);
         self.isInFullscreen = !self.isInFullscreen;
+
+        console.log('is in fullscreen: ', self.isInFullscreen)
         //this.fullScreenBtn.attr('title', isInFullscreen ? 'Restore original size' : 'Full screen');
 
-        //$(this.aladinDiv).toggleClass('aladin-fullscreen');
         if (this.aladinDiv.classList.contains('aladin-fullscreen')) {
             this.aladinDiv.classList.remove('aladin-fullscreen');
         } else {
@@ -432,7 +486,7 @@ export let Aladin = (function () {
 
         if (realFullscreen) {
             // go to "real" full screen mode
-            if (isInFullscreen) {
+            if (self.isInFullscreen) {
                 var d = this.aladinDiv;
 
                 if (d.requestFullscreen) {
@@ -534,27 +588,31 @@ export let Aladin = (function () {
         var query = "SELECT galdim_majaxis, V FROM basic JOIN ident ON oid=ident.oidref JOIN allfluxes ON oid=allfluxes.oidref WHERE id='" + objectName + "'";
         var url = '//simbad.u-strasbg.fr/simbad/sim-tap/sync?query=' + encodeURIComponent(query) + '&request=doQuery&lang=adql&format=json&phase=run';
 
-        var ajax = Utils.getAjaxObject(url, 'GET', 'json', false)
-        ajax.done(function (result) {
-            var defaultFov = 4 / 60; // 4 arcmin
-            var fov = defaultFov;
-
-            if ('data' in result && result.data.length > 0) {
-                var galdimMajAxis = Utils.isNumber(result.data[0][0]) ? result.data[0][0] / 60.0 : null; // result gives galdim in arcmin
-                var magV = Utils.isNumber(result.data[0][1]) ? result.data[0][1] : null;
-
-                if (galdimMajAxis !== null) {
-                    fov = 2 * galdimMajAxis;
-                }
-                else if (magV !== null) {
-                    if (magV < 10) {
-                        fov = 2 * Math.pow(2.0, (6 - magV / 2.0)) / 60;
+        Utils.fetch({
+            url,
+            method: 'GET',
+            dataType: 'json',
+            success: (result) => {
+                var defaultFov = 4 / 60; // 4 arcmin
+                var fov = defaultFov;
+    
+                if ('data' in result && result.data.length > 0) {
+                    var galdimMajAxis = Utils.isNumber(result.data[0][0]) ? result.data[0][0] / 60.0 : null; // result gives galdim in arcmin
+                    var magV = Utils.isNumber(result.data[0][1]) ? result.data[0][1] : null;
+    
+                    if (galdimMajAxis !== null) {
+                        fov = 2 * galdimMajAxis;
+                    }
+                    else if (magV !== null) {
+                        if (magV < 10) {
+                            fov = 2 * Math.pow(2.0, (6 - magV / 2.0)) / 60;
+                        }
                     }
                 }
+    
+                (typeof callback === 'function') && callback(fov);
             }
-
-            (typeof callback === 'function') && callback(fov);
-        });
+        })
     };
 
     Aladin.prototype.setFrame = function (frameName) {
@@ -572,9 +630,6 @@ export let Aladin = (function () {
         if (typeof frameChangedFunction === 'function') {
             frameChangedFunction(newFrame.label);
         }
-
-        // màj select box
-        //$(this.aladinDiv).find('.aladin-frameChoice').val(newFrame.label);
     };
 
     Aladin.prototype.setProjection = function (projection) {
@@ -656,7 +711,7 @@ export let Aladin = (function () {
                     Sesame.resolve(targetName,
                         function (data) { // success callback
                             // Location given in icrs at J2000
-                            const coo = data.Target.Resolver;
+                            const coo = data.coo;
                             self.view.pointTo(coo.jradeg, coo.jdedeg, options);
     
                             (typeof successCallback === 'function') && successCallback(self.getRaDec());
@@ -925,7 +980,6 @@ export let Aladin = (function () {
     };
     Aladin.prototype.showReticle = function (show) {
         this.reticle.update({show})
-        //$('#displayReticle').attr('checked', show);
     };
 
     Aladin.prototype.getReticle = function () {
@@ -942,13 +996,20 @@ export let Aladin = (function () {
 
         ALEvent.GRAPHIC_OVERLAY_LAYER_ADDED.dispatchedTo(this.aladinDiv, {layer: catalog});
     };
+
     Aladin.prototype.addOverlay = function (overlay) {
         this.view.addOverlay(overlay);
 
         ALEvent.GRAPHIC_OVERLAY_LAYER_ADDED.dispatchedTo(this.aladinDiv, {layer: overlay});
     };
+
     Aladin.prototype.addMOC = function (moc) {
         this.view.addMOC(moc);
+    };
+
+    Aladin.prototype.addUI = function (ui) {
+        this.ui.push(ui);
+        ui.attachTo(this.aladinDiv)
     };
 
     // @API
@@ -985,7 +1046,6 @@ export let Aladin = (function () {
         } else {
             cfg = Utils.clone(cfg)
         }
-
         return new ImageSurvey(cfg.id, cfg.name, cfg.rootUrl, this.view, cfg.options);
     };
 
@@ -1224,8 +1284,7 @@ export let Aladin = (function () {
     Aladin.prototype.selectObjects = function(objects) {
         this.view.selectObjects(objects)
     };
-    // Possible values are 'rect' and 'circle'
-    // TODO: add a 'polygon' selection mode
+    // Possible values are 'rect', 'poly' and 'circle'
     Aladin.prototype.select = function (mode = 'rect', callback) {
         this.fire('selectstart', {mode, callback});
     };
@@ -1608,7 +1667,7 @@ export let Aladin = (function () {
      * @return the jQuery object representing the DIV element where the Aladin Lite instance lies
      */
     Aladin.prototype.getParentDiv = function () {
-        return $(this.aladinDiv);
+        return this.aladinDiv;
     };
 
     return Aladin;
@@ -1618,12 +1677,12 @@ export let Aladin = (function () {
 /*
  * return a Box GUI element to insert content
  */
-Aladin.prototype.box = function (options) {
+/*Aladin.prototype.box = function (options) {
     var box = new Box(options);
     box.$parentDiv.appendTo(this.aladinDiv);
 
     return box;
-};
+};*/
 
 // @API
 /*
@@ -1651,6 +1710,7 @@ Aladin.prototype.showPopup = function (ra, dec, title, content, circleRadius) {
 
     this.view.popup.setTitle(title);
     this.view.popup.setText(content);
+
     this.view.popup.setSource(marker);
     this.view.popup.show();
 };

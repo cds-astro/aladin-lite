@@ -28,10 +28,6 @@
  * 
  *****************************************************************************/
 
-import { ObsCore } from "./vo/ObsCore";
-import { SAMPActionButton } from "./gui/Button/SAMP";
-import { Layout } from "./gui/Layout";
-
 export let Source = (function() {
     // constructor
     let Source = function(ra, dec, data, options) {

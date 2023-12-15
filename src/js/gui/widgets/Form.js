@@ -53,26 +53,33 @@ export class Form extends DOMElement {
         let el = document.createElement('form');
         el.className = "aladin-form";
 
-        let innerEl = Form._createInput(options, el);
-        el.appendChild(innerEl);
+        super(el, options);
+        this.attachTo(target, position)
 
-        let self;
+        this._show()
+    }
+
+    _show() {
+        this.el.innerHTML = '';
+
+        let innerEl = Form._createInput(this.options, this.el);
+        this.el.appendChild(innerEl);
+
+        let self = this;
         // submit button
-        if (options.submit) {
+        if (this.options && this.options.submit) {
             new ActionButton({
                 content: 'Send',
                 cssStyle: {
                     cursor: 'pointer',
                 },
                 action(e) {
-                    options.submit(self.values())
+                    self.options.submit(self.values())
                 }
-            }, el);
+            }, this.el);
         }
 
-        super(el, options);
-        self = this;
-        this.attachTo(target, position)
+        super._show();
     }
 
     static _createInput(layout, formEl) {

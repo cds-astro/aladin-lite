@@ -138,6 +138,18 @@ export class Input extends DOMElement {
             }
         }
 
+        if (layout.actions) {
+            for (const what in this.callbacks) {
+                this.el.removeEventListener(what, this.callbacks[what]);
+            }
+
+            this.callbacks = layout.actions;
+
+            for (const what in this.callbacks) {
+                this.el.addEventListener(what, this.callbacks[what]);
+            }
+        }
+
         if (layout.name) {
             this.el.name = layout.name;
         }
@@ -247,10 +259,7 @@ export class Input extends DOMElement {
             layout: {
                 name: options.name || 'text',
                 type: 'text',
-                value: options.value,
-                change: options.change,
-                placeholder: options.placeholder,
-                autocomplete: options.autocomplete,
+                ...options
             }
         });
         el.addClass("aladin-input-text");

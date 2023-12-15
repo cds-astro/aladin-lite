@@ -11,7 +11,7 @@ edition = "2018"
 members = [
     "al-core",
     "al-api",
-    "al-task-exec",
+    #"al-task-exec",
 ]
 
 [lib]
@@ -28,20 +28,20 @@ moclib = { package = "moc", git = "https://github.com/bmatthieu3/cds-moc-rust", 
 serde = { version = "^1.0.183", features = ["derive"] }
 serde_json = "1.0.104"
 serde-wasm-bindgen = "0.5"
-console_error_panic_hook = "0.1.7"
+#console_error_panic_hook = "0.1.7"
 enum_dispatch = "0.3.8"
 wasm-bindgen = "0.2.79"
 wasm-streams = "0.3.0"
 async-channel = "1.8.0"
 al-core = { path = "./al-core" }
-al-task-exec = { path = "./al-task-exec" }
+#al-task-exec = { path = "./al-task-exec" }
 al-api = { path = "./al-api" }
 mapproj = "0.3.0"
 fitsrs = "0.2.9"
 wcs = "0.2.8"
 colorgrad = "0.6.2"
-image-decoder = { package = "image", version = "0.24.2", default-features = false, features = ["jpeg", "png"] }
-votable = { package = "votable", git = "https://github.com/cds-astro/cds-votable-rust", branch = "main"}
+#image-decoder = { package = "image", version = "0.24.2", default-features = false, features = ["jpeg", "png"] }
+#votable = { package = "votable", git = "https://github.com/cds-astro/cds-votable-rust", branch = "main"}
 lyon = "1.0.1"
 
 [features]
@@ -64,7 +64,7 @@ webgl2 = [
 ]
 
 [dependencies.web-sys]
-version = "0.3.56"
+version = "*"
 features = [
   'console',
   'CssStyleDeclaration',
@@ -108,7 +108,7 @@ image-decoder = { package = "image", version = "0.24.2", default-features = fals
 rand = "0.8"
 
 [profile.dev]
-opt-level = 3
+opt-level = 'z'
 debug = true
 debug-assertions = true
 overflow-checks = true
@@ -124,7 +124,7 @@ debug = false
 debug-assertions = false
 overflow-checks = false
 lto = true
-panic = 'unwind'
+panic = 'abort'
 incremental = false
 codegen-units = 16
 rpath = false

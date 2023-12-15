@@ -53,6 +53,7 @@ export class FileLoaderActionButton extends ActionButton {
             action(e) {
                 let fileLoader = document.createElement('input');
                 fileLoader.type = 'file';
+                fileLoader.accept = options.accept || '*';
                 // Case: The user is loading a FITS file
         
                 fileLoader.addEventListener("change", (e) => {    

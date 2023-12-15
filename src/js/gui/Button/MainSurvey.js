@@ -17,12 +17,12 @@
 //    along with Aladin Lite.
 //
 
-import { Layout } from "../Layout";
+import { ALEvent } from "../../events/ALEvent";
+
 import { DOMElement } from "../Widgets/Widget";
-import { Menu } from "./Menu";
-import { ViewPortInfo } from "./ViewPortInfo";
-import { SurveyInfoActionButton } from "../Button/SurveyInfo";
-import { Utils } from "../Utils";
+
+import { ActionButton } from "../Widgets/ActionButton";
+import { SurveyCtxMenu } from "../CtxMenu/SurveyCtxMenu";
 
 /******************************************************************************
  * Aladin Lite project
@@ -38,28 +38,41 @@ import { Utils } from "../Utils";
 
 /**
  * Class representing a Tabs layout
- * @extends DOMElement
+ * @extends CtxMenuActionButtonOpener
  */
- export class Toolbar extends DOMElement {
+ export class MainSurveyActionButton extends ActionButton {
     /**
-     * Create a Tabs layout
-     * @param {DOMElement} target - The parent element.
-     * @param {String} position - The position of the tabs layout relative to the target.
-     *     For the list of possibilities, see https://developer.mozilla.org/en-US/docs/Web/API/Element/insertAdjacentHTML
+     * UI responsible for displaying the viewport infos
+     * @param {Aladin} aladin - The aladin instance.
      */
-    constructor(aladin) {
-        let hipsSelector = new SurveyInfoActionButton(aladin);
-        //hipsSelector.addClass("aladin-base-survey");
+    constructor(aladin, options) {
+        super({
+            ...options,
+            tooltip: {content: 'Survey name<br/>Click to change it!', position: { direction: 'bottom' }},
+            content: 'Main survey',
+            cssStyle: {
+                backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                borderColor: 'white',
+                color: 'white',
+                padding: '4px',
+            },
+        })
 
-        let toolbar = Layout.toolbar({  
-            layout: [
-                new ViewPortInfo(aladin),
-                hipsSelector,
-            ]
-        }, aladin.aladinDiv);
+        this._addListeners(aladin)
+    }
 
-        super(toolbar)
+    _hide() {
+        super._hide()
+    }
 
-        toolbar.appendLast(new Menu(aladin, this));
+    _addListeners(aladin) {
+        ALEvent.HIPS_LAYER_ADDED.listenedBy(aladin.aladinDiv, (e) => {
+            const layer = e.detail.layer;
+            if (layer.layer === 'base') {
+                this.update({
+                    content: layer.name,
+                })
+            }
+        });
     }
 }

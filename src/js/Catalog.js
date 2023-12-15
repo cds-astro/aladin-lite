@@ -34,18 +34,14 @@ import { Color } from "./Color.js"
 import { Utils } from "./Utils";
 import { Coo } from "./libs/astro/coo.js";
 import { VOTable } from "./vo/VOTable.js";
-import { ALEvent } from "./events/ALEvent.js";
 import { Footprint } from "./Footprint.js";
 import { ObsCore } from "./vo/ObsCore.js";
 import A from "./A.js";
-
-import $ from 'jquery';
 
 // TODO : harmoniser parsing avec classe ProgressiveCat
 export let Catalog = (function() {
 
    function Catalog(options) {
-        let self = this;
         options = options || {};
 
         this.url = options.url;
@@ -214,7 +210,7 @@ export let Catalog = (function() {
                 var field = fields[l];
                 if ( ! raFieldIdx) {
                     if (field.ucd) {
-                        var ucd = $.trim(field.ucd.toLowerCase());
+                        var ucd = field.ucd.toLowerCase().trim();
                         if (ucd.indexOf('pos.eq.ra')==0 || ucd.indexOf('pos_eq_ra')==0) {
                             raFieldIdx = l;
                             continue;
@@ -224,7 +220,7 @@ export let Catalog = (function() {
 
                 if ( ! decFieldIdx) {
                     if (field.ucd) {
-                        var ucd = $.trim(field.ucd.toLowerCase());
+                        var ucd = field.ucd.toLowerCase().trim();
                         if (ucd.indexOf('pos.eq.dec')==0 || ucd.indexOf('pos_eq_dec')==0) {
                             decFieldIdx = l;
                             continue;
@@ -274,7 +270,7 @@ export let Catalog = (function() {
         let parsedFields = {};
         let fieldIdx = 0;
         fields.forEach((field) => {
-            let key = field.name ? field.name : field.id;
+            let key = field.name ? field.name : field.ID;
 
             key = key.split(' ').join('_')
 
@@ -303,11 +299,11 @@ export let Catalog = (function() {
     // callback function is called each time a TABLE element has been parsed
     Catalog.parseVOTable = function(url, successCallback, errorCallback, maxNbSources, useProxy, raField, decField) {
         let rowIdx = 0;
-        VOTable.parse(
+        new VOTable(
             url,
             (rsc) => {
-                let table = VOTable.parseTableRsc(rsc)
-                if (!table) {
+                let table = VOTable.parseRsc(rsc)
+                if (!table || !table.rows || !table.fields) {
                     errorCallback('Parsing error of the votable located at: ' + url);
                     return;
                 }
@@ -452,12 +448,13 @@ export let Catalog = (function() {
             this.dec.push(sources[k].dec);
     	}
 
-        ALEvent.AL_USE_WASM.dispatchedTo(document.body, {
+        this.reportChange();
+        /*ALEvent.AL_USE_WASM.dispatchedTo(document.body, {
             callback: (wasm) => {
                 wasm.setCatalog(this);
                 this.reportChange();
             }
-        });
+        });*/
     };
 
     Catalog.prototype.addFootprints = function(footprintsToAdd) {
@@ -737,9 +734,11 @@ export let Catalog = (function() {
 
     Catalog.prototype.show = function() {
         if (this.isShowing) {
+            console.log("jkjkj")
             return;
         }
         this.isShowing = true;
+        console.log(this.isShowing)
         // Dispatch to the footprints
         if (this.footprints) {
             this.footprints.forEach((f) => f.show())

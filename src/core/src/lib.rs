@@ -75,7 +75,7 @@ mod utils;
 
 use math::projection::*;
 use renderable::coverage::moc::MOC;
-use votable::votable::VOTableWrapper;
+//use votable::votable::VOTableWrapper;
 use wasm_bindgen::prelude::*;
 
 use crate::math::angle::ToAngle;
@@ -154,7 +154,7 @@ impl WebClient {
         shaders: JsValue,
         resources: JsValue,
     ) -> Result<WebClient, JsValue> {
-        panic::set_hook(Box::new(console_error_panic_hook::hook));
+        //panic::set_hook(Box::new(console_error_panic_hook::hook));
 
         let shaders = serde_wasm_bindgen::from_value(shaders)?;
         let resources = serde_wasm_bindgen::from_value(resources)?;
@@ -920,14 +920,15 @@ impl WebClient {
 
     #[wasm_bindgen(js_name = parseVOTable)]
     pub fn parse_votable(&mut self, s: &str) -> Result<JsValue, JsValue> {
-        let votable: VOTableWrapper<votable::impls::mem::InMemTableDataRows> =
+        /*let votable: VOTableWrapper<votable::impls::mem::InMemTableDataRows> =
             votable::votable::VOTableWrapper::from_ivoa_xml_str(s)
                 .map_err(|err| JsValue::from_str(&format!("Error parsing votable: {:?}", err)))?;
 
         let votable = serde_wasm_bindgen::to_value(&votable)
             .map_err(|_| JsValue::from_str("cannot convert votable to js type"))?;
 
-        Ok(votable)
+        Ok(votable)*/
+        Ok(JsValue::null())
     }
 
     #[wasm_bindgen(js_name = addJSONMoc)]

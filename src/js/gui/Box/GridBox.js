@@ -40,7 +40,7 @@ import labelSizeIcon from './../../../../assets/icons/font-size.svg';
 
 export class GridBox extends Box {
     // Constructor
-    constructor(aladin, menu) {
+    constructor(aladin) {
         let colorInput = new Input({
             layout: {
                 name: 'gridColor',
@@ -102,7 +102,7 @@ export class GridBox extends Box {
                 ctxMenu.show({
                     e: e,
                     position: {
-                        anchor: labelSizeBtn,
+                        nextTo: labelSizeBtn,
                         direction: 'bottom',
                     }
                 })
@@ -138,7 +138,7 @@ export class GridBox extends Box {
                 ctxMenu.show({
                     e: e,
                     position: {
-                        anchor: thicknessLineBtn,
+                        nextTo: thicknessLineBtn,
                         direction: 'bottom',
                     }
                 })
@@ -179,10 +179,6 @@ export class GridBox extends Box {
                 padding: '2px',
                 'background-color': "#000",
             },
-            position: {
-                anchor: menu.controls["GridBox"],
-                direction: 'bottom',
-            }
         }, aladin.aladinDiv)
 
         this.aladin = aladin;
@@ -197,9 +193,9 @@ export class GridBox extends Box {
 
     static singleton;
 
-    static getInstance(aladin, menu) {
+    static getInstance(aladin) {
         if (!GridBox.singleton) {
-            GridBox.singleton = new GridBox(aladin, menu);
+            GridBox.singleton = new GridBox(aladin);
         }
 
         return GridBox.singleton;

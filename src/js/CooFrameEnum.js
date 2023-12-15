@@ -28,8 +28,6 @@
  * 
  *****************************************************************************/
 
-import $ from 'jquery';
-
 export let CooFrameEnum = (function() {
 
     var systems = {J2000: 'J2000', GAL: 'Galactic'};

@@ -29,12 +29,11 @@
  *****************************************************************************/
 
 import { Box } from "../Widgets/Box.js";
-import { Form } from "../Widgets/Form.js";
-import { Layout } from "../Layout.js";
+import { Input } from "../Widgets/Input.js";
  
 export class GotoBox extends Box {
     // Constructor
-    constructor(aladin, parent) {
+    constructor(aladin) {
         /*let content = Layout.horizontal([
             'Go to:',
             Input.text({
@@ -49,56 +48,49 @@ export class GotoBox extends Box {
                 }
             })
         ]);*/
-        let form = new Form({
-            name: 'header',
-            type: 'group',
-            cssStyle: {
-                borderStyle: 'none',
-                margin: '0',
-                width: '14em',
-            },
-            submit(e) {
-                let gotoInput = form.getInput('goto');
+        let textField = Input.text({
+            label: "Go to:",
+            name: "goto",
+            type: "text",
+            placeholder: 'Object name/position',
+            autocomplete: 'off',
+            actions: {
+                blur: () => {},
+                keydown: (e) => {
+                    textField.removeClass('aladin-unknownObject'); // remove red border
 
-                aladin.gotoObject(
-                    gotoInput.value,
-                    {
-                        error: function () {
-                            gotoInput.classList.add('aladin-unknownObject');
-                        }
-                    }
-                );
-            },
-            subInputs: [{
-                label: "Go to:",
-                name: "goto",
-                type: "text",
-                placeholder: 'Object name/position',
-                actions: {
-                    'change': (e, input) => {
-                        input.addEventListener('blur', (event) => {});
-                    },
-                    'keydown': (e, input) => {
-                        input.classList.remove('aladin-unknownObject'); // remove red border
+                    if (e.key === 'Enter') {
+                        let object = textField.get();
+                        textField.el.blur();
+
+                        aladin.gotoObject(
+                            object,
+                            {
+                                error: function () {
+                                    textField.addClass('aladin-unknownObject');
+                                }
+                            }
+                        );
+
                     }
                 }
-            }]
+            }
         });
 
-        super({
-            content: form,
-            position: {
-                anchor: parent,
-                direction: 'bottom',
-            }
-        }, aladin.aladinDiv)
+        super({content: textField}, aladin.aladinDiv)
+        this.textField = textField;
+    }
+
+    _hide() {
+        this.textField.set('')
+        super._hide()
     }
 
     static singleton;
 
-    static getInstance(aladin, parent) {
+    static getInstance(aladin) {
         if (!GotoBox.singleton) {
-            GotoBox.singleton = new GotoBox(aladin, parent);
+            GotoBox.singleton = new GotoBox(aladin);
         }
 
         return GotoBox.singleton;

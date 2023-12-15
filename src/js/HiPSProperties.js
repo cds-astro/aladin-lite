@@ -76,6 +76,8 @@ HiPSProperties.fetchFromUrl = async function(urlOrId) {
         // Relative path
         try {
             urlOrId = Utils.getAbsoluteURL(urlOrId)
+            //console.log("jjjj", urlOrId)
+
 
             urlOrId = new URL(urlOrId);
         } catch(e) {
@@ -103,6 +105,7 @@ HiPSProperties.fetchFromUrl = async function(urlOrId) {
     if (Utils.requestCORSIfNotSameOrigin(url)) {
         init = { mode: 'cors' };
     }
+    console.log('url', url)
 
     let result = fetch(url, init)
         .then((response) => {

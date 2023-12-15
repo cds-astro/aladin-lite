@@ -55,6 +55,7 @@ export let SimbadPointer = (function() {
                     var objCoo = new Coo();
                     objCoo.parse(match[1]);
                     var objName = match[2];
+                    console.log(encodeURIComponent(objName), objName)
                     var title = '<div class="aladin-sp-title"><a target="_blank" href="https://simbad.cds.unistra.fr/simbad/sim-id?Ident=' + encodeURIComponent(objName) + '">' + objName + '</a></div>';
                     var content = '<div class="aladin-sp-content">';
                     content += '<em>Type: </em>' + match[4] + '<br>';
@@ -62,8 +63,9 @@ export let SimbadPointer = (function() {
                     if (Utils.isNumber(magnitude)) {
                         content += '<em>Mag: </em>' + magnitude + '<br>';
                     }
-                    content += '<br><a target="_blank" href="http://cdsportal.u-strasbg.fr/?target=' + encodeURIComponent(objName.replace(/\s/g, '')) + '">Query in CDS portal</a>';
+                    content += '<br><a target="_blank" href="http://cdsportal.u-strasbg.fr/?target=' + encodeURIComponent(objName) + '">Query in CDS portal</a>';
                     content += '</div>';
+        
                     aladinInstance.showPopup(objCoo.lon, objCoo.lat, title, content);
                 }
                 else {

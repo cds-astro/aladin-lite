@@ -46,10 +46,9 @@ import { Aladin } from "./Aladin.js";
 // Wasm top level import
 import init, * as module from './../core/pkg';
 
-import $ from 'jquery';
-
 // Import aladin css inside the project
 import './../css/aladin.css';
+import { ActionButton } from "./gui/Widgets/ActionButton.js";
 
 ///////////////////////////////
 /////// Aladin Lite API ///////
@@ -63,7 +62,7 @@ let A = {};
 
 //@API
 A.aladin = function (divSelector, options) {
-    return new Aladin($(divSelector)[0], options);
+    return new Aladin(document.querySelector(divSelector), options);
 };
 
 // @API
@@ -355,9 +354,13 @@ A.toolbar = function(options) {
     return new Toolbar(options);
 }
 
-A.hipsDefinitionFromURL = function(url, successCallback) {
+A.button = function(options) {
+    return new ActionButton(options);
+}
+
+/*A.hipsDefinitionFromURL = function(url, successCallback) {
     HiPSDefinition.fromURL(url, successCallback);
-};
+};*/
 
 A.getAvailableListOfColormaps = function() {
     return ColorCfg.COLORMAPS;

@@ -17,17 +17,9 @@
 //    along with Aladin Lite.
 //
 import { Coo } from "../../libs/astro/coo.js";
-import { MocServer } from "../../MocServer.js";
-import  autocomplete from 'autocompleter';
-
 import { Box } from "../Widgets/Box.js";
 import { Layout } from "../Layout.js";
-import { ActionButton } from "../Widgets/ActionButton.js";
-import { Input } from "../Widgets/Input.js";
-import A from "../../A.js";
-import { FileLoaderActionButton } from "../Button/FileLoader.js";
 import { ConeSearchActionButton } from "../Button/ConeSearch.js";
-import { HiPSDefinition } from "../../HiPSDefinition.js";
 import { Form } from "../Widgets/Form.js";
 import { Angle } from "../../libs/astro/angle.js";
 /******************************************************************************
@@ -41,7 +33,7 @@ import { Angle } from "../../libs/astro/angle.js";
  *****************************************************************************/
 
  export class ConeSearchBox extends Box {
-    constructor(aladin, callback) {
+    constructor(aladin) {
         let self;
         let selectorBtn = new ConeSearchActionButton({
             tooltip: {content: 'Select the area to query the catalogue with', position: {direction: 'left'}},
@@ -82,7 +74,7 @@ import { Angle } from "../../libs/astro/angle.js";
 
                 let theta = new Angle();
                 theta.parse(values.rad)
-                callback({
+                self.callback && self.callback({
                     ra: coo.lon,
                     dec: coo.lat,
                     rad: theta.degrees(),
@@ -135,6 +127,7 @@ import { Angle } from "../../libs/astro/angle.js";
                         label: "Limit:",
                         name: "limit",
                         step: '1',
+                        value: 1000,
                         type: "number",
                         placeholder: 'Limit number of sources',
                         actions: {
@@ -158,18 +151,22 @@ import { Angle } from "../../libs/astro/angle.js";
         }, aladin.aladinDiv)
 
         // hide by default
-        console.log("hide cone search")
+        //console.log("hide cone search")
         this._hide();
 
         self = this;
-        this.addClass('aladin-anchor-center');
     }
+
+    attach(options) {
+        this.callback = options.callback;
+        super.update(options)
+    } 
 
     static box = undefined;
 
-    static getInstance(aladin, callback) {
+    static getInstance(aladin) {
         if (!ConeSearchBox.box) {
-            ConeSearchBox.box = new ConeSearchBox(aladin, callback);
+            ConeSearchBox.box = new ConeSearchBox(aladin);
         }
 
         return ConeSearchBox.box;

@@ -1,0 +1,298 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<vot:VOTABLE version="1.3" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:vot="http://www.ivoa.net/xml/VOTable/v1.3" xsi:schemaLocation="http://www.ivoa.net/xml/VOTable/v1.3 http://www.ivoa.net/xml/VOTable/VOTable-1.3.xsd" xmlns:stc="http://www.ivoa.net/xml/STC">
+<vot:COOSYS ID="J2000" equinox="J2000" epoch="J2000" system="eq_FK5"/>
+<vot:INFO ID="status" name="QUERY_STATUS" value="OK"/>
+<vot:INFO ID="ticket" name="Ticket" value="175907900401799334"/>
+<vot:INFO ID="reqTarget" name="-c" value="195.35884258333337+27.886008055555557,rs=5091.1688245431415"/>
+<vot:INFO ID="reqEpoch" name="Epoch" value="now"/>
+<vot:INFO ID="supplier" name="Supplier" value="Provided by IMCCE/OBSPM/CNRS"/>
+<vot:GROUP utype="stc:AstroCoordSystem" ID="IMCCE-INPOP-GEO"><vot:GROUP utype="stc:AstroCoordSystem.TimeFrame"><vot:PARAM name="TimeScale" datatype="char" arraysize="*" utype="stc:AstroCoordSystem.TimeFrame.TimeScale" value="UTC"/>
+<vot:PARAM name="RefPosition" datatype="char" arraysize="*" utype="stc:AstroCoordSystem.TimeFrame.ReferencePosition" value="GEOCENTER"/>
+</vot:GROUP>
+<vot:GROUP utype="stc:AstroCoordSystem.SpaceFrame"><vot:PARAM name="CooFrame" datatype="char" arraysize="*" utype="stc:AstroCoordSystem.SpaceFrame.CoordRefFrame" value="ICRS"/>
+<vot:PARAM name="CooFrameOrigin" datatype="char" arraysize="*" utype="stc:AstroCoordSystem.SpaceFrame.ReferencePosition" value="GEOCENTER"/>
+<vot:PARAM name="Ephemeris" datatype="char" arraysize="*" utype="stc:AstroCoordSystem.SpaceFrame.ReferencePosition.PlanetaryEphem" value="IMCCE-INPOP"><vot:DESCRIPTION>Planetary theory used to compute the ephemeris</vot:DESCRIPTION>
+</vot:PARAM>
+<vot:PARAM name="CooType" datatype="char" arraysize="*" utype="stc:AstroCoordSystem.SpaceFrame.CoordFlavor" value="SPHERICAL"/>
+<vot:PARAM name="Naxes" datatype="char" arraysize="*" utype="stc:AstroCoordSystem.SpaceFrame.coord_naxes" value="3"/>
+</vot:GROUP>
+</vot:GROUP>
+<vot:RESOURCE name="Skybot.ConeSearch"><vot:DESCRIPTION>SkyBoT - List of the targets located in the FOV</vot:DESCRIPTION>
+<vot:INFO name="QUERY_STATUS" value="OK"/>
+<vot:PARAM ID="epoch" name="Epoch" datatype="char" arraysize="*" ucd="time.epoch" unit="d" value="2023-02-28 12:47:46.00"><vot:DESCRIPTION>Requested epoch</vot:DESCRIPTION>
+</vot:PARAM>
+<vot:PARAM ID="fovRA" name="RA" datatype="double" ucd="pos.eq.ra" unit="deg" value="195.35884258333337"><vot:DESCRIPTION>Right ascension of the FOV center</vot:DESCRIPTION>
+</vot:PARAM>
+<vot:PARAM ID="fovDEC" name="DEC" datatype="double" ucd="pos.eq.dec" unit="deg" value="27.886008055555557"><vot:DESCRIPTION>Declination of the FOV center</vot:DESCRIPTION>
+</vot:PARAM>
+<vot:PARAM ID="fovSR" name="FOV" datatype="char" ucd="instr.fov" unit="arcsec" value="7200x7200"><vot:DESCRIPTION>Size of the FOV</vot:DESCRIPTION>
+</vot:PARAM>
+<vot:PARAM ID="filter" name="Filter" datatype="double" ucd="pos.angDistance;stat.max" unit="arcsec" value="120"/>
+<vot:PARAM ID="observer" name="Observer" datatype="char" arraysize="*" ucd="meta.code;obs.observer" value="500"><vot:DESCRIPTION>Observer location code</vot:DESCRIPTION>
+</vot:PARAM>
+<vot:PARAM ID="refsys" name="RefSys" datatype="char" ucd="meta.code;obs.observer" value="EQJ2000"><vot:DESCRIPTION>Reference system (EQJ2000|ECJ2000)</vot:DESCRIPTION>
+</vot:PARAM>
+<vot:TABLE ID="SkybotConeSearch_results" name="SkybotConeSearch" nrows="14"><vot:GROUP ID="Ephemeris" utype="stc:AstroCoords" ref="IMCCE-INPOP-GEO"><vot:PARAM name="GeoCoordinates" datatype="char" arraysize="*" utype="stc:AstroCoords.coord_sys_id" value="UTC-ICRS-GEO"/>
+</vot:GROUP>
+<vot:FIELD ID="num" name="Num" ucd="meta.id;meta.number" datatype="char" arraysize="6"><vot:DESCRIPTION>Solar system object number</vot:DESCRIPTION>
+</vot:FIELD>
+<vot:FIELD ID="name" name="Name" ucd="meta.id;meta.main" datatype="char" arraysize="32"><vot:DESCRIPTION>Solar system object name</vot:DESCRIPTION>
+<vot:LINK href="${ExternalLink}"/>
+</vot:FIELD>
+<vot:FIELD ID="ra" name="RA" ucd="pos.eq.ra;meta.main" ref="Ephemeris" utype="stc:AstroCoords.Position3D.Value3.C1" datatype="char" arraysize="13" unit="h:m:s"><vot:DESCRIPTION>Astrometric J2000 right ascension</vot:DESCRIPTION>
+</vot:FIELD>
+<vot:FIELD ID="de" name="DEC" ucd="pos.eq.dec;meta.main" ref="Ephemeris" utype="stc:AstroCoords.Position3D.Value3.C2" datatype="char" arraysize="13" unit="d:m:s"><vot:DESCRIPTION>Astrometric J2000 declination</vot:DESCRIPTION>
+</vot:FIELD>
+<vot:FIELD ID="class" name="Class" ucd="meta.code.class;src.class" datatype="char" arraysize="24"><vot:DESCRIPTION>Object classification</vot:DESCRIPTION>
+</vot:FIELD>
+<vot:FIELD ID="magV" name="Mv" ucd="phot.mag;em.opt.V" datatype="float" width="13" precision="2"><vot:DESCRIPTION>Visual magnitude</vot:DESCRIPTION>
+</vot:FIELD>
+<vot:FIELD ID="errpos" name="ErrPos" ucd="stat.error.sys" datatype="float" width="10" precision="3" unit="arcsec"><vot:DESCRIPTION>Uncertainty on the (RA,DEC) coordinates</vot:DESCRIPTION>
+</vot:FIELD>
+<vot:FIELD ID="angdist" name="d" ucd="pos.ang" datatype="float" width="8" precision="3" unit="arcsec"><vot:DESCRIPTION>Body-to-center angular distance</vot:DESCRIPTION>
+</vot:FIELD>
+<vot:FIELD ID="dracosdec" name="dRAcosDec" ucd="pos.pm;pos.eq.ra" datatype="double" width="12" unit="arcsec/h"><vot:DESCRIPTION>Motion in right ascension d(RA)cos(DEC)</vot:DESCRIPTION>
+</vot:FIELD>
+<vot:FIELD ID="ddec" name="dDEC" ucd="pos.pm;pos.eq.dec" datatype="double" width="12" unit="arcsec/h"><vot:DESCRIPTION>Motion in declination d(DEC)</vot:DESCRIPTION>
+</vot:FIELD>
+<vot:FIELD ID="dgeo" name="Dgeo" ucd="phys.distance" ref="Ephemeris" utype="stc:AstroCoords.Position3D.Value3.C3" datatype="double" width="15" unit="AU"><vot:DESCRIPTION>Distance from observer</vot:DESCRIPTION>
+</vot:FIELD>
+<vot:FIELD ID="dhelio" name="Dhelio" ucd="phys.distance" datatype="double" width="15" unit="AU"><vot:DESCRIPTION>Distance from the Sun</vot:DESCRIPTION>
+</vot:FIELD>
+<vot:FIELD ID="_raj2000" name="_RAJ2000" ucd="pos.eq.ra" ref="Ephemeris" utype="stc:AstroCoords.Position3D.Value3.C1" datatype="double" precision="9" width="13" unit="deg" type="hidden"><vot:DESCRIPTION>Astrometric J2000 right ascension</vot:DESCRIPTION>
+</vot:FIELD>
+<vot:FIELD ID="_decj2000" name="_DECJ2000" ucd="pos.eq.dec" ref="Ephemeris" utype="stc:AstroCoords.Position3D.Value3.C2" datatype="double" precision="9" width="13" unit="deg" type="hidden"><vot:DESCRIPTION>Astrometric J2000 declination</vot:DESCRIPTION>
+</vot:FIELD>
+<vot:FIELD ID="externallink" name="ExternalLink" ucd="meta.ref.url" datatype="char" arraysize="*" type="hidden"><vot:DESCRIPTION>External link to hint the target</vot:DESCRIPTION>
+<vot:LINK href="${ExternalLink}"/>
+</vot:FIELD>
+<vot:DATA><vot:TABLEDATA><vot:TR><vot:TD>-</vot:TD>
+<vot:TD>2014 WV397</vot:TD>
+<vot:TD>13 01 2.0637</vot:TD>
+<vot:TD>+27 55 1.276</vot:TD>
+<vot:TD>MB>Outer</vot:TD>
+<vot:TD>23.2</vot:TD>
+<vot:TD>0.140</vot:TD>
+<vot:TD>337.905</vot:TD>
+<vot:TD>-18.2939</vot:TD>
+<vot:TD>15.523</vot:TD>
+<vot:TD>3.375183185</vot:TD>
+<vot:TD>4.208495815</vot:TD>
+<vot:TD>195.25859878793071</vot:TD>
+<vot:TD>27.91702112270465</vot:TD>
+<vot:TD>http://vizier.u-strasbg.fr/cgi-bin/VizieR-5?-source=B/astorb/astorb&amp;Name===2014+WV397</vot:TD>
+</vot:TR>
+<vot:TR><vot:TD>-</vot:TD>
+<vot:TD>2014 WS180</vot:TD>
+<vot:TD>13 00 53.8731</vot:TD>
+<vot:TD>+28 01 42.808</vot:TD>
+<vot:TD>MB>Inner</vot:TD>
+<vot:TD>23.0</vot:TD>
+<vot:TD>0.359</vot:TD>
+<vot:TD>667.778</vot:TD>
+<vot:TD>-27.4081</vot:TD>
+<vot:TD>17.760</vot:TD>
+<vot:TD>1.866206685</vot:TD>
+<vot:TD>2.724357270</vot:TD>
+<vot:TD>195.22447108283899</vot:TD>
+<vot:TD>28.02855773551142</vot:TD>
+<vot:TD>http://vizier.u-strasbg.fr/cgi-bin/VizieR-5?-source=B/astorb/astorb&amp;Name===2014+WS180</vot:TD>
+</vot:TR>
+<vot:TR><vot:TD>291146</vot:TD>
+<vot:TD>2005 YB246</vot:TD>
+<vot:TD>13 02 41.3276</vot:TD>
+<vot:TD>+27 46 19.098</vot:TD>
+<vot:TD>MB>Middle</vot:TD>
+<vot:TD>20.8</vot:TD>
+<vot:TD>0.100</vot:TD>
+<vot:TD>1078.789</vot:TD>
+<vot:TD>-14.1907</vot:TD>
+<vot:TD>36.017</vot:TD>
+<vot:TD>1.995135821</vot:TD>
+<vot:TD>2.848239127</vot:TD>
+<vot:TD>195.67219822607407</vot:TD>
+<vot:TD>27.771971696809388</vot:TD>
+<vot:TD>http://vizier.u-strasbg.fr/cgi-bin/VizieR-5?-source=B/astorb/astorb&amp;Name===2005+YB246</vot:TD>
+</vot:TR>
+<vot:TR><vot:TD>-</vot:TD>
+<vot:TD>2019 GJ63</vot:TD>
+<vot:TD>13 01 53.2657</vot:TD>
+<vot:TD>+27 25 17.998</vot:TD>
+<vot:TD>MB>Middle</vot:TD>
+<vot:TD>22.2</vot:TD>
+<vot:TD>2.196</vot:TD>
+<vot:TD>1710.130</vot:TD>
+<vot:TD>-22.1227</vot:TD>
+<vot:TD>16.297</vot:TD>
+<vot:TD>2.324385013</vot:TD>
+<vot:TD>3.172886461</vot:TD>
+<vot:TD>195.47194051618888</vot:TD>
+<vot:TD>27.421666221036613</vot:TD>
+<vot:TD>http://vizier.u-strasbg.fr/cgi-bin/VizieR-5?-source=B/astorb/astorb&amp;Name===2019+GJ63</vot:TD>
+</vot:TR>
+<vot:TR><vot:TD>134371</vot:TD>
+<vot:TD>1995 RH</vot:TD>
+<vot:TD>13 02 17.2541</vot:TD>
+<vot:TD>+28 35 54.881</vot:TD>
+<vot:TD>Mars-Crosser</vot:TD>
+<vot:TD>20.8</vot:TD>
+<vot:TD>0.036</vot:TD>
+<vot:TD>2652.888</vot:TD>
+<vot:TD>-20.2356</vot:TD>
+<vot:TD>26.388</vot:TD>
+<vot:TD>2.283440411</vot:TD>
+<vot:TD>3.128191302</vot:TD>
+<vot:TD>195.57189197623612</vot:TD>
+<vot:TD>28.59857812786041</vot:TD>
+<vot:TD>http://vizier.u-strasbg.fr/cgi-bin/VizieR-5?-source=B/astorb/astorb&amp;Name===1995+RH</vot:TD>
+</vot:TR>
+<vot:TR><vot:TD>69933</vot:TD>
+<vot:TD>1998 UA7</vot:TD>
+<vot:TD>13 01 7.7148</vot:TD>
+<vot:TD>+27 08 47.150</vot:TD>
+<vot:TD>MB>Outer</vot:TD>
+<vot:TD>18.8</vot:TD>
+<vot:TD>0.025</vot:TD>
+<vot:TD>2673.866</vot:TD>
+<vot:TD>-15.7572</vot:TD>
+<vot:TD>21.076</vot:TD>
+<vot:TD>2.508485549</vot:TD>
+<vot:TD>3.355838595</vot:TD>
+<vot:TD>195.28214492683432</vot:TD>
+<vot:TD>27.146430555072108</vot:TD>
+<vot:TD>http://vizier.u-strasbg.fr/cgi-bin/VizieR-5?-source=B/astorb/astorb&amp;Name===1998+UA7</vot:TD>
+</vot:TR>
+<vot:TR><vot:TD>-</vot:TD>
+<vot:TD>2002 GV9</vot:TD>
+<vot:TD>13 04 48.2319</vot:TD>
+<vot:TD>+27 42 53.623</vot:TD>
+<vot:TD>MB>Middle</vot:TD>
+<vot:TD>20.8</vot:TD>
+<vot:TD>0.419</vot:TD>
+<vot:TD>2751.721</vot:TD>
+<vot:TD>-36.1422</vot:TD>
+<vot:TD>2.350</vot:TD>
+<vot:TD>1.454758304</vot:TD>
+<vot:TD>2.320906711</vot:TD>
+<vot:TD>196.200966290292</vot:TD>
+<vot:TD>27.714895377320573</vot:TD>
+<vot:TD>http://vizier.u-strasbg.fr/cgi-bin/VizieR-5?-source=B/astorb/astorb&amp;Name===2002+GV9</vot:TD>
+</vot:TR>
+<vot:TR><vot:TD>-</vot:TD>
+<vot:TD>2014 WW1</vot:TD>
+<vot:TD>13 05 2.6044</vot:TD>
+<vot:TD>+27 47 9.452</vot:TD>
+<vot:TD>Mars-Crosser</vot:TD>
+<vot:TD>24.3</vot:TD>
+<vot:TD>3.990</vot:TD>
+<vot:TD>2894.172</vot:TD>
+<vot:TD>-25.0326</vot:TD>
+<vot:TD>20.050</vot:TD>
+<vot:TD>2.090335593</vot:TD>
+<vot:TD>2.937553833</vot:TD>
+<vot:TD>196.26085171413428</vot:TD>
+<vot:TD>27.785958766568335</vot:TD>
+<vot:TD>http://vizier.u-strasbg.fr/cgi-bin/VizieR-5?-source=B/astorb/astorb&amp;Name===2014+WW1</vot:TD>
+</vot:TR>
+<vot:TR><vot:TD>324047</vot:TD>
+<vot:TD>2005 VZ</vot:TD>
+<vot:TD>13 03 30.0218</vot:TD>
+<vot:TD>+28 36 2.994</vot:TD>
+<vot:TD>Hungaria</vot:TD>
+<vot:TD>20.4</vot:TD>
+<vot:TD>0.068</vot:TD>
+<vot:TD>3050.249</vot:TD>
+<vot:TD>-30.4989</vot:TD>
+<vot:TD>17.829</vot:TD>
+<vot:TD>1.207804461</vot:TD>
+<vot:TD>2.083364638</vot:TD>
+<vot:TD>195.87509102386301</vot:TD>
+<vot:TD>28.600831574306405</vot:TD>
+<vot:TD>http://vizier.u-strasbg.fr/cgi-bin/VizieR-5?-source=B/astorb/astorb&amp;Name===2005+VZ</vot:TD>
+</vot:TR>
+<vot:TR><vot:TD>-</vot:TD>
+<vot:TD>2015 BJ4</vot:TD>
+<vot:TD>13 05 18.6328</vot:TD>
+<vot:TD>+27 43 11.726</vot:TD>
+<vot:TD>Hungaria</vot:TD>
+<vot:TD>21.2</vot:TD>
+<vot:TD>0.075</vot:TD>
+<vot:TD>3142.671</vot:TD>
+<vot:TD>-12.7048</vot:TD>
+<vot:TD>51.061</vot:TD>
+<vot:TD>1.151543765</vot:TD>
+<vot:TD>2.029782260</vot:TD>
+<vot:TD>196.32763674673879</vot:TD>
+<vot:TD>27.719923755198238</vot:TD>
+<vot:TD>http://vizier.u-strasbg.fr/cgi-bin/VizieR-5?-source=B/astorb/astorb&amp;Name===2015+BJ4</vot:TD>
+</vot:TR>
+<vot:TR><vot:TD>-</vot:TD>
+<vot:TD>2015 AT281</vot:TD>
+<vot:TD>12 57 32.7042</vot:TD>
+<vot:TD>+28 19 2.537</vot:TD>
+<vot:TD>Hungaria</vot:TD>
+<vot:TD>22.0</vot:TD>
+<vot:TD>0.538</vot:TD>
+<vot:TD>3457.247</vot:TD>
+<vot:TD>-10.4264</vot:TD>
+<vot:TD>65.186</vot:TD>
+<vot:TD>0.972225859</vot:TD>
+<vot:TD>1.867221497</vot:TD>
+<vot:TD>194.3862675654635</vot:TD>
+<vot:TD>28.317371373066628</vot:TD>
+<vot:TD>http://vizier.u-strasbg.fr/cgi-bin/VizieR-5?-source=B/astorb/astorb&amp;Name===2015+AT281</vot:TD>
+</vot:TR>
+<vot:TR><vot:TD>-</vot:TD>
+<vot:TD>2002 GO3</vot:TD>
+<vot:TD>13 01 13.5309</vot:TD>
+<vot:TD>+28 50 50.968</vot:TD>
+<vot:TD>MB>Middle</vot:TD>
+<vot:TD>20.4</vot:TD>
+<vot:TD>0.180</vot:TD>
+<vot:TD>3465.652</vot:TD>
+<vot:TD>-34.1287</vot:TD>
+<vot:TD>6.108</vot:TD>
+<vot:TD>1.575816966</vot:TD>
+<vot:TD>2.439380655</vot:TD>
+<vot:TD>195.30637868785774</vot:TD>
+<vot:TD>28.847491061912006</vot:TD>
+<vot:TD>http://vizier.u-strasbg.fr/cgi-bin/VizieR-5?-source=B/astorb/astorb&amp;Name===2002+GO3</vot:TD>
+</vot:TR>
+<vot:TR><vot:TD>245249</vot:TD>
+<vot:TD>2004 YT1</vot:TD>
+<vot:TD>12 57 48.5780</vot:TD>
+<vot:TD>+28 30 49.884</vot:TD>
+<vot:TD>MB>Inner</vot:TD>
+<vot:TD>20.4</vot:TD>
+<vot:TD>0.048</vot:TD>
+<vot:TD>3658.116</vot:TD>
+<vot:TD>-20.9517</vot:TD>
+<vot:TD>31.599</vot:TD>
+<vot:TD>1.799299187</vot:TD>
+<vot:TD>2.662086707</vot:TD>
+<vot:TD>194.45240837922003</vot:TD>
+<vot:TD>28.513856577567804</vot:TD>
+<vot:TD>http://vizier.u-strasbg.fr/cgi-bin/VizieR-5?-source=B/astorb/astorb&amp;Name===2004+YT1</vot:TD>
+</vot:TR>
+<vot:TR><vot:TD>-</vot:TD>
+<vot:TD>2012 JQ67</vot:TD>
+<vot:TD>12 58 23.7431</vot:TD>
+<vot:TD>+28 43 25.438</vot:TD>
+<vot:TD>MB>Outer</vot:TD>
+<vot:TD>20.7</vot:TD>
+<vot:TD>15.958</vot:TD>
+<vot:TD>3860.016</vot:TD>
+<vot:TD>-20.4462</vot:TD>
+<vot:TD>11.558</vot:TD>
+<vot:TD>1.504652705</vot:TD>
+<vot:TD>2.374770373</vot:TD>
+<vot:TD>194.59892967238451</vot:TD>
+<vot:TD>28.723732837638178</vot:TD>
+<vot:TD>http://vizier.u-strasbg.fr/cgi-bin/VizieR-5?-source=B/astorb/astorb&amp;Name===2012+JQ67</vot:TD>
+</vot:TR>
+</vot:TABLEDATA>
+</vot:DATA>
+</vot:TABLE>
+</vot:RESOURCE>
+</vot:VOTABLE>
+

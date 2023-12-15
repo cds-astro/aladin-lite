@@ -66,15 +66,15 @@ export class Stack extends ContextMenu {
     };
 
     // Constructor
-    constructor(aladin, menu) {
-        super(aladin, {hideOnClick: false, hideOnResize: false});
+    constructor(aladin) {
+        super(aladin, {hideOnClick: false});
         this.aladin = aladin;
-        this.anchor = menu.controls["Stack"];
+        //this.anchor = menu.controls["Stack"];
         //this.fsm = new StackLayerOpenerFSM(aladin, menu);
 
-        window.addEventListener("resize", (e) => {
+        /*window.addEventListener("resize", (e) => {
             this._hide();
-        })
+        })*/
         
         document.addEventListener('click', () => {
             if (this.mode === 'stack') {
@@ -126,22 +126,21 @@ export class Stack extends ContextMenu {
 
         let layout = [{
             label: 'Add a survey',
-            subMenu: [{
-                label: Layout.horizontal({
-                        layout: [
-                            ActionButton.createIconBtn({
-                                iconURL: searchIconUrl,
-                                tooltip: {content: 'From our database...', position: { direction: 'bottom' }},
-                                cssStyle: {
-                                    backgroundPosition: 'center center',
-                                    backgroundColor: '#bababa',
-                                    border: '1px solid rgb(72, 72, 72)',
-                                    cursor: 'help',
-                                },
-                            }),
-                            'Search for a progressive survey'
-                        ]
-                    }),
+            subMenu: [
+                {
+                    label: {
+                        icon: {
+                            iconURL: searchIconUrl,
+                            tooltip: {content: 'From our database...', position: { direction: 'right' }},
+                            cssStyle: {
+                                backgroundPosition: 'center center',
+                                backgroundColor: '#bababa',
+                                border: '1px solid rgb(72, 72, 72)',
+                                cursor: 'help',
+                            },
+                        },
+                        content: 'Search for a progressive survey'
+                    },
                     action(e) {
                         e.stopPropagation();
                         e.preventDefault();
@@ -149,10 +148,7 @@ export class Stack extends ContextMenu {
                         self._hide();
 
                         self.hipsSelectorBox = new HiPSSelectorBox({
-                            position: {
-                                anchor: self.anchor,
-                                direction: 'bottom'
-                            },
+                            position: self.position,
                             layer: Utils.uuidv4(),
                         }, self.aladin);
                         self.hipsSelectorBox._show();
@@ -173,6 +169,7 @@ export class Stack extends ContextMenu {
                                 // Center the view around the new fits object
                                 self.aladin.gotoRaDec(ra, dec);
                                 self.aladin.setFoV(fov * 1.1);
+                                //self.aladin.selectLayer(image.layer);
                             },
                             undefined
                         );
@@ -265,7 +262,7 @@ export class Stack extends ContextMenu {
                     self.aladin.selectLayer(layer.layer);
                     self.attach({layers})
 
-                    let editBox = LayerEditBox.getInstance(self.aladin, self.anchor);
+                    let editBox = LayerEditBox.getInstance(self.aladin, {position: self.position});
                     editBox.update({layer})
                     editBox._show();
 
@@ -326,12 +323,11 @@ export class Stack extends ContextMenu {
         }
     }
 
-    _show() {
+    _show(options) {
+        this.position = (options && options.position) || this.position || { anchor: 'center center'}; 
+
         super.show({
-            position: {
-                anchor: this.anchor,
-                direction: 'bottom',
-            },
+            position: this.position,
             cssStyle: {
                 width: '15em',
                 color: 'white',
@@ -342,8 +338,10 @@ export class Stack extends ContextMenu {
 
     _hide() {
         // go back to the display stack state
-        let editBox = LayerEditBox.getInstance(this.aladin, this.anchor);
-        editBox._hide();
+        if (this.position) {
+            let editBox = LayerEditBox.getInstance(this.aladin, {position: this.position});
+            editBox._hide();
+        }
 
         if (this.hipsSelectorBox) {
             this.hipsSelectorBox._hide();
@@ -352,16 +350,6 @@ export class Stack extends ContextMenu {
         this.mode = 'stack';
 
         super._hide();
-    }
-
-    static singleton;
-
-    static getInstance(aladin, menu) {
-        if (!Stack.singleton) {
-            Stack.singleton = new Stack(aladin, menu);
-        }
-
-        return Stack.singleton;
     }
 }
    

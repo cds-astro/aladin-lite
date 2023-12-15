@@ -41,11 +41,11 @@ import { ContextMenu } from "../Widgets/ContextMenu.js";
  */
 export class CtxMenuActionButtonOpener extends ActionButton {
     // Constructor
-    constructor(options) {
+    constructor(options, aladin) {
         let self;
 
-        let ctxMenu = options.ctxMenu;
-
+        let layout = options.ctxMenu;
+        let ctxMenu = ContextMenu.getInstance(aladin)
         super({
             ...options,
             cssStyle: {
@@ -54,25 +54,38 @@ export class CtxMenuActionButtonOpener extends ActionButton {
                 ...options.cssStyle
             },
             action(e) {
-                if (ctxMenu.isHidden) {
-                    ctxMenu.show({
+                if (options.action) {
+                    options.action(e)
+                }
+
+                if (self.ctxMenu.isHidden) {
+                    self.ctxMenu.attach(layout)
+                    self.ctxMenu.show({
                         position: {
-                            anchor: self,
-                            direction: 'bottom',
+                            nextTo: self,
+                            direction: options.openDirection || 'bottom',
                         },
                         cssStyle: options.ctxMenu && options.ctxMenu.cssStyle
                     });
                 } else {
-                    ctxMenu._hide();
-                }
-
-                if (options.action) {
-                    options.action(e)
+                    self.ctxMenu._hide();
                 }
             }
         })
 
         self = this;
-        this.ctxMenu = ctxMenu;
+        self.ctxMenu = ctxMenu;
+    }
+
+    hideCtxMenu() {
+        this.ctxMenu._hide();
+    }
+
+    update(options) {
+        if(options.ctxMenu) {
+            this.ctxMenu = options.ctxMenu;
+        }
+
+        super.update(options)
     }
 }

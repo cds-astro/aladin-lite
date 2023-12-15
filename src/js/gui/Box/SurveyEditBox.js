@@ -39,20 +39,17 @@ import { ColorCfg } from "../../ColorCfg.js";
 
  import { Layout } from "../Layout.js";
  import { Input } from "../Widgets/Input.js";
-import { CmapSelector } from "../Toolbar/Controls/StackLayer/ColormapSelector.js";
+import { CmapSelector } from "../Selector/Colormap.js";
 
  export class LayerEditBox extends Box {
      // Constructor
-     constructor(aladin, parent) {
+     constructor(aladin, options) {
         super({
             cssStyle: {
                 padding: '4px',
                 backgroundColor: 'black',
             },
-            position: {
-                anchor: parent,
-                direction: 'bottom',
-            }
+            ...options
         }, aladin.aladinDiv)
 
         this.aladin = aladin;
@@ -409,9 +406,9 @@ import { CmapSelector } from "../Toolbar/Controls/StackLayer/ColormapSelector.js
  
     static singleton;
  
-    static getInstance(aladin, menu) {
+    static getInstance(aladin, options) {
         if (!LayerEditBox.singleton) {
-            LayerEditBox.singleton = new LayerEditBox(aladin, menu);
+            LayerEditBox.singleton = new LayerEditBox(aladin, options);
         }
 
         return LayerEditBox.singleton;

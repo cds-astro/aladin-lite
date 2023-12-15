@@ -22,7 +22,7 @@ import { Color } from "./Color";
 import { CircleSelect } from "./FiniteStateMachine/CircleSelect";
 import { PolySelect } from "./FiniteStateMachine/PolySelect";
 import { RectSelect } from "./FiniteStateMachine/RectSelect";
-
+import { ALEvent } from "./events/ALEvent";
 /******************************************************************************
  * Aladin Lite project
  * 
@@ -37,13 +37,30 @@ import { RectSelect } from "./FiniteStateMachine/RectSelect";
 export class Selector {
     // constructor
     constructor(view, options) {
-        let color = (options && options.color) || Aladin.DEFAULT_OPTIONS.reticleColor;
-        this.color = new Color(color).toHex();
-        this.lineWidth = (options && options.lineWidth) || 1;
+        this.customColor = false;
+        this.color = options && options.color;
+        if (this.color) {
+            this.customColor = true;
+        }
+
+        this.lineWidth = (options && options.lineWidth) || 2;
 
         this.select = null;
         this.view = view;
+
+        this._addListeners(view.aladin)
     };
+
+    _addListeners(aladin) {
+        let self = this;
+        ALEvent.RETICLE_CHANGED.listenedBy(aladin.aladinDiv, function (e) {
+            if (!self.customColor) {
+                let reticleColor = e.detail.color;
+                // take the color of the reticle
+                self.color = new Color(reticleColor).toHex();
+            }
+        })
+    }
 
     setMode(mode) {
         if (mode) {
@@ -51,6 +68,7 @@ export class Selector {
                 color: this.color,
                 lineWidth: this.lineWidth
             };
+
             if (mode === 'circle') {
                 this.select = new CircleSelect(options, this.view)
             } else if (mode === 'rect') {

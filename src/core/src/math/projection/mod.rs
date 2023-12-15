@@ -372,7 +372,7 @@ impl ProjectionType {
         match self {
             // Zenithal projections
             /* TAN,      Gnomonic projection        */
-            ProjectionType::Tan(_) => 180.0,
+            ProjectionType::Tan(_) => 150.0,
             /* STG,	     Stereographic projection   */
             ProjectionType::Stg(_) => 360.0,
             /* SIN,	     Orthographic		        */

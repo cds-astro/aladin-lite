@@ -1,0 +1,80 @@
+<!doctype html>
+<html>
+<head>
+</head>
+<body>
+
+<div id="aladin-lite-div" style="width: 1024px; height: 768px"></div>
+
+<script type="module">
+    import A from '../src/js/A.js';
+    let aladin;
+    A.init.then(() => {
+        var aladin = A.aladin(
+            '#aladin-lite-div',
+            {
+                survey: 'P/allWISE/color', // set initial image survey
+                projection: 'AIT', // set a projection
+                fov: 1.5, // initial field of view in degrees
+                target: 'NGC 2175', // initial target
+                cooFrame: 'icrs', // set galactic frame
+                reticleColor: '#ff89ff', // change reticle color
+                reticleSize: 64, // change reticle size
+            }
+        );
+
+        let toolbar = A.toolbar({
+            cssStyle: {
+                backgroundColor: 'white',
+                border: '2px solid green',
+            },
+            position: {
+                anchor: 'left bottom'
+            }
+        });
+
+        let btn = A.button({
+            content: 'Draw your coverage',
+            cssStyle: {
+                backgroundColor: 'pink',
+            },
+            tooltip: {cssStyle: {color: 'red'}, content: 'Create a moc in pink!', position: {direction: 'top'}},
+            action(o) {
+                aladin.select('poly', p => {
+                    try {
+                        let ra = []
+                        let dec = []
+                        for (const v of p.vertices) {
+                            let [lon, lat] = aladin.pix2world(v.x, v.y);
+                            ra.push(lon)
+                            dec.push(lat)
+                        }
+
+                        let moc = A.MOCFromPolygon(
+                            {ra, dec},
+                            {name: 'poly', lineWidth: 3.0, color: 'pink'},
+                        );
+                        aladin.addMOC(moc)
+                    } catch(_) {
+                        alert('Selection covers a region out of the projection definition domain.');
+                    }
+                })
+            }
+        });
+        let btn2 = A.button({
+            content: 'I do nothing',
+            cssStyle: {
+                backgroundColor: 'pink',
+            },
+            tooltip: {cssStyle: {color: 'red'}, content: 'Create a moc in pink!', position: {direction: 'top'}},
+        });
+
+        aladin.addUI(toolbar)
+
+        toolbar.add([btn, btn2])
+
+    });
+</script>
+
+</body>
+</html>

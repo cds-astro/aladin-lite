@@ -17,24 +17,22 @@
 //    along with Aladin Lite.
 //
 
-import $ from 'jquery';
+import { Utils } from "./Utils";
 
 // log 
 export let Logger = {};
 
 Logger.log = function(action, params) {
     try {
-        var logUrl = "//alasky.unistra.fr/cgi/AladinLiteLogger/log.py";
+        var logUrl = "https://alasky.unistra.fr/cgi/AladinLiteLogger/log.py";
         var paramStr = "";
         if (params) {
             paramStr = JSON.stringify(params);
         }
-        
-        $.ajax({
+        Utils.fetch({
             url: logUrl,
             data: {"action": action, "params": paramStr, "pageUrl": window.location.href, "referer": document.referrer ? document.referrer : ""},
             method: 'GET',
-            dataType: 'json' // as alasky supports CORS, we do not need JSONP any longer
         });
         
     }

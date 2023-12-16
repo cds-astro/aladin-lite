@@ -47,7 +47,6 @@ import { ALEvent } from "./events/ALEvent.js";
 import { ColorCfg } from "./ColorCfg.js";
 import { Footprint } from "./Footprint.js";
 import { Selector } from "./Selector.js";
-import $ from 'jquery';
 import { ObsCore } from "./vo/ObsCore.js";
 import { DefaultActionsForContextMenu } from "./DefaultActionsForContextMenu.js";
 import { Layout } from "./gui/Layout.js";
@@ -265,12 +264,9 @@ export let View = (function () {
         );
 
         resizeObserver.observe(this.aladinDiv);
-        //$(window).resize(() => {
         self.fixLayoutDimensions();
         self.redraw()
-        
-            //self.requestRedraw();
-        //});
+
         // in some contexts (Jupyter notebook for instance), the parent div changes little time after Aladin Lite creation
         // this results in canvas dimension to be incorrect.
         // The following line tries to fix this issue
@@ -306,17 +302,36 @@ export let View = (function () {
 
     // (re)create needed canvases
     View.prototype.createCanvases = function () {
-        var a = $(this.aladinDiv);
-        a.find('.aladin-imageCanvas').remove();
-        a.find('.aladin-gridCanvas').remove();
-        a.find('.aladin-catalogCanvas').remove();
+        let imageCanvas = this.aladinDiv.querySelector('.aladin-imageCanvas');
+        if (imageCanvas) {
+            imageCanvas.remove();
+        }
+
+        let gridCanvas = this.aladinDiv.querySelector('.aladin-gridCanvas');
+        if (gridCanvas) {
+            gridCanvas.remove();
+        }
+
+        let catalogCanvas = this.aladinDiv.querySelector('.aladin-catalogCanvas')
+        if (catalogCanvas) {
+            catalogCanvas.remove();
+        }
 
         // canvas to draw the images
-        this.imageCanvas = $("<canvas class='aladin-imageCanvas'></canvas>").appendTo(this.aladinDiv)[0];
-        this.gridCanvas = $("<canvas class='aladin-gridCanvas'></canvas>").appendTo(this.aladinDiv)[0];
+        let createCanvas = (name) => {
+            // Create a new canvas element
+            let canvas = document.createElement('canvas');
+            canvas.className = name;
 
-        // canvas to draw the catalogs
-        this.catalogCanvas = $("<canvas class='aladin-catalogCanvas'></canvas>").appendTo(this.aladinDiv)[0];
+            // Append the canvas to the aladinDiv
+            this.aladinDiv.appendChild(canvas);
+
+            return canvas;
+        };
+
+        this.imageCanvas = createCanvas('aladin-imageCanvas');
+        this.gridCanvas = createCanvas('aladin-gridCanvas');
+        this.catalogCanvas = createCanvas('aladin-catalogCanvas');
     };
 
     // called at startup and when window is resized
@@ -324,8 +339,8 @@ export let View = (function () {
     View.prototype.fixLayoutDimensions = function () {
         Utils.cssScale = undefined;
 
-        var computedWidth = $(this.aladinDiv).width();
-        var computedHeight = $(this.aladinDiv).height();
+        var computedWidth = parseFloat(window.getComputedStyle(this.aladinDiv).width);
+        var computedHeight = parseFloat(window.getComputedStyle(this.aladinDiv).height);
 
         this.width = Math.max(computedWidth, 1);
         this.height = Math.max(computedHeight, 1); // this prevents many problems when div size is equal to 0
@@ -358,17 +373,17 @@ export let View = (function () {
 
         // change logo
         if (!this.logoDiv) {
-            this.logoDiv = $(this.aladinDiv).find('.aladin-logo')[0];
+            this.logoDiv = this.aladinDiv.querySelector('.aladin-logo');
         }
         if (this.width > 800) {
-            $(this.logoDiv).removeClass('aladin-logo-small');
-            $(this.logoDiv).addClass('aladin-logo-large');
-            $(this.logoDiv).css('width', '90px');
+            this.logoDiv.classList.remove('aladin-logo-small');
+            this.logoDiv.classList.add('aladin-logo-large');
+            this.logoDiv.style.width = '90px';
         }
         else {
-            $(this.logoDiv).addClass('aladin-logo-small');
-            $(this.logoDiv).removeClass('aladin-logo-large');
-            $(this.logoDiv).css('width', '32px');
+            this.logoDiv.classList.add('aladin-logo-small');
+            this.logoDiv.classList.remove('aladin-logo-large');
+            this.logoDiv.style.width = '32px';
         }
 
         this.computeNorder();
@@ -393,7 +408,7 @@ export let View = (function () {
         if (this.mode == View.TOOL_SIMBAD_POINTER) {
             this.popup.hide();
             this.catalogCanvas.style.cursor = '';
-            $(this.catalogCanvas).addClass('aladin-sp-cursor');
+            this.catalogCanvas.classList.add('aladin-sp-cursor');
         }
         else if (this.mode == View.PAN) {
             this.setCursor('default');
@@ -482,12 +497,13 @@ export let View = (function () {
             }
 
         };
+
         if (!hasTouchEvents) {
-            $(view.catalogCanvas).dblclick(onDblClick);
+            Utils.on(view.catalogCanvas, 'dblclick', onDblClick);
         }
 
         // prevent default context menu from appearing (potential clash with right-click cuts control)
-        $(view.catalogCanvas).on("contextmenu", function (e) {
+        Utils.on(view.catalogCanvas, "contextmenu", function (e) {
             // do something here...
             e.preventDefault();
         }, false);
@@ -496,7 +512,7 @@ export let View = (function () {
         let cutMinInit = null
         let cutMaxInit = null;
 
-        $(view.catalogCanvas).on("mousedown touchstart", function (e) {
+        Utils.on(view.catalogCanvas, "mousedown touchstart", function (e) {
             e.preventDefault();
             e.stopPropagation();
 
@@ -575,7 +591,7 @@ export let View = (function () {
             return true;
         });
 
-        $(view.catalogCanvas).on("mouseup", function (e) {
+        Utils.on(view.catalogCanvas, "mouseup", function (e) {
             e.preventDefault();
             e.stopPropagation();
 
@@ -611,7 +627,7 @@ export let View = (function () {
         });
         
         // reacting on 'click' rather on 'mouseup' is more reliable when panning the view
-        $(view.catalogCanvas).on("click mouseout touchend touchcancel", function (e) {
+        Utils.on(view.catalogCanvas, "click mouseout touchend touchcancel", function (e) {
             const xymouse = Utils.relMouseCoords(e);
 
             ALEvent.CANVAS_EVENT.dispatchedTo(view.aladinDiv, {
@@ -758,7 +774,7 @@ export let View = (function () {
 
         var lastHoveredObject; // save last object hovered by mouse
         var lastMouseMovePos = null;
-        $(view.catalogCanvas).on("mousemove touchmove", function (e) {
+        Utils.on(view.catalogCanvas, "mousemove touchmove", function (e) {
             e.preventDefault();
 
             const xymouse = Utils.relMouseCoords(e);
@@ -938,12 +954,12 @@ export let View = (function () {
         }); //// endof mousemove ////
 
         // disable text selection on IE
-        $(view.aladinDiv).onselectstart = function () { return false; }
+        Utils.on(view.aladinDiv, "selectstart", function () { return false; })
         var eventCount = 0;
         var eventCountStart;
         var isTouchPad;
-
-        $(view.catalogCanvas).on('wheel', function (e) {
+        var scale = 0.0;
+        Utils.on(view.catalogCanvas, 'wheel', function (e) {
             e.preventDefault();
             e.stopPropagation();
 
@@ -963,12 +979,15 @@ export let View = (function () {
                 return;
             }
 
-            var delta = e.deltaY;
+            var delta = e.deltaY || e.detail || (-e.wheelDelta);
+
+            // Limit the minimum and maximum zoom levels
+            //var delta = e.deltaY;
             // this seems to happen in context of Jupyter notebook --> we have to invert the direction of scroll
             // hope this won't trigger some side effects ...
-            if (e.hasOwnProperty('originalEvent')) {
+            /*if (e.hasOwnProperty('originalEvent')) {
                 delta = -e.originalEvent.deltaY;
-            }
+            }*/
 
             // See https://stackoverflow.com/questions/10744645/detect-touchpad-vs-mouse-in-javascript
             // for detecting the use of a touchpad
@@ -993,7 +1012,7 @@ export let View = (function () {
             // The value of the field of view is determined
             // inside the backend
             const triggerZoom = (amount) => {
-                if (delta > 0.0) {
+                if (delta < 0.0) {
                     view.increaseZoom(amount);
                 } else {
                     view.decreaseZoom(amount);
@@ -1038,8 +1057,12 @@ export let View = (function () {
     var init = function (view) {
         var stats = new Stats();
         stats.domElement.style.top = '50px';
-        if ($('#aladin-statsDiv').length > 0) {
-            $('#aladin-statsDiv')[0].appendChild(stats.domElement);
+
+        var statsDiv = document.getElementById('aladin-statsDiv');
+
+        if (statsDiv) {
+            // Append stats.domElement to statsDiv
+            statsDiv.appendChild(stats.domElement);
         }
 
         view.stats = stats;

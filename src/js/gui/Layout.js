@@ -48,7 +48,6 @@ export class Layout extends DOMElement {
         }
 
         options.layout = options.layout || [];
-
         super(el, options);
 
         if (options.cssStyle) {

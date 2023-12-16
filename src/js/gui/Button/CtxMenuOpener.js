@@ -44,7 +44,6 @@ export class CtxMenuActionButtonOpener extends ActionButton {
     constructor(options, aladin) {
         let self;
 
-        let layout = options.ctxMenu;
         let ctxMenu = ContextMenu.getInstance(aladin)
         super({
             ...options,
@@ -58,20 +57,19 @@ export class CtxMenuActionButtonOpener extends ActionButton {
                     options.action(e)
                 }
 
-                if (self.ctxMenu.isHidden) {
-                    self.ctxMenu.attach(layout)
-                    self.ctxMenu.show({
-                        position: {
-                            nextTo: self,
-                            direction: options.openDirection || 'bottom',
-                        },
-                        cssStyle: options.ctxMenu && options.ctxMenu.cssStyle
-                    });
-                } else {
-                    self.ctxMenu._hide();
-                }
+                self.ctxMenu._hide();
+                self.ctxMenu.attach(self.layout)
+                self.ctxMenu.show({
+                    position: {
+                        nextTo: self,
+                        direction: options.openDirection || 'bottom',
+                    },
+                    cssStyle: options.ctxMenu && options.ctxMenu.cssStyle
+                });
             }
         })
+
+        this.layout = options.ctxMenu;
 
         self = this;
         self.ctxMenu = ctxMenu;
@@ -83,7 +81,7 @@ export class CtxMenuActionButtonOpener extends ActionButton {
 
     update(options) {
         if(options.ctxMenu) {
-            this.ctxMenu = options.ctxMenu;
+            this.layout = options.ctxMenu;
         }
 
         super.update(options)

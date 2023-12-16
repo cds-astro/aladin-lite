@@ -43,83 +43,80 @@ import { ShortLivedBox } from "../Box/ShortLivedBox";
      * @param {Aladin} aladin - The aladin instance.
      */
     constructor(aladin, options) {
-        let ctxMenu = ContextMenu.getInstance(aladin);
+        let layout = [
+            {
+                label: {
+                    content: 'Save the view',
+                    tooltip: {
+                        content: 'View URL will be saved into your clipboard',
+                        position: {
+                            direction: 'bottom'
+                        }
+                    }
+                },
+                action(o) {
+                    var url = aladin.getShareURL();
+                    navigator.clipboard.writeText(url);
+
+                    let infoBox = ShortLivedBox.getInstance(aladin);
+                    infoBox._show({
+                        content: 'View URL saved into your clipboard!',
+                        duration: 2000,
+                        position: {
+                            anchor: 'center bottom'
+                        }
+                    })
+                }
+            },
+            {
+                label: 'HiPS2FITS cutout',
+                action(o) {
+                    let hips2fitsUrl = 'https://alasky.cds.unistra.fr/hips-image-services/hips2fits#';
+                    let radec = aladin.getRaDec();
+                    let fov = Math.max.apply(null, aladin.getFov());
+                    let hipsId = aladin.getBaseImageLayer().id;
+                    let proj = aladin.getProjectionName();
+                    hips2fitsUrl += 'ra=' + radec[0] + '&dec=' + radec[1] + '&fov=' + fov + '&projection=' + proj + '&hips=' + encodeURIComponent(hipsId);
+                    window.open(hips2fitsUrl, '_blank');
+                }
+            },
+            {
+                label: 'Export to notebook',
+                disabled: true,
+            },
+            {
+                label: {
+                    content: 'Save the WCS',
+                    tooltip: {
+                        content: 'World Coordinate System of the view',
+                        position: {
+                            direction: 'right'
+                        }
+                    }
+                },
+                action(o) {
+                    let wcs = aladin.getViewWCS()
+                    navigator.clipboard.writeText(JSON.stringify(wcs));
+
+                    let infoBox = ShortLivedBox.getInstance(aladin);
+                    infoBox._show({
+                        content: 'WCS saved!',
+                        duration: 2000,
+                        position: {
+                            anchor: 'center bottom'
+                        }
+                    })
+                }
+            },
+        ];
+
         let self;
         super({
-            ctxMenu,
+            ctxMenu: layout,
             ...options,
             iconURL: shareIconUrl,
             openDirection: 'top',
             tooltip: {content: 'You can share/export your view into many ways', position: {direction: 'top'}},
-            action(o) {
-                let layout = [
-                    {
-                        label: {
-                            content: 'Save the view',
-                            tooltip: {
-                                content: 'View URL will be saved into your clipboard',
-                                position: {
-                                    direction: 'bottom'
-                                }
-                            }
-                        },
-                        action(o) {
-                            var url = aladin.getShareURL();
-                            navigator.clipboard.writeText(url);
-        
-                            let infoBox = ShortLivedBox.getInstance(aladin);
-                            infoBox._show({
-                                content: 'View URL: ' + url + ' saved into your clipboard!',
-                                duration: 2000,
-                                position: {
-                                    anchor: 'center bottom'
-                                }
-                            })
-                        }
-                    },
-                    {
-                        label: 'HiPS2FITS cutout',
-                        action(o) {
-                            let hips2fitsUrl = 'https://alasky.cds.unistra.fr/hips-image-services/hips2fits#';
-                            let radec = aladin.getRaDec();
-                            let fov = Math.max.apply(null, aladin.getFov());
-                            let hipsId = aladin.getBaseImageLayer().id;
-                            let proj = aladin.getProjectionName();
-                            hips2fitsUrl += 'ra=' + radec[0] + '&dec=' + radec[1] + '&fov=' + fov + '&projection=' + proj + '&hips=' + encodeURIComponent(hipsId);
-                            window.open(hips2fitsUrl, '_blank');
-                        }
-                    },
-                    {
-                        label: 'Export to notebook',
-                        disabled: true,
-                    },
-                    {
-                        label: {
-                            content: 'Save the WCS',
-                            tooltip: {
-                                content: 'World Coordinate System of the view',
-                                position: {
-                                    direction: 'right'
-                                }
-                            }
-                        },
-                        action(o) {
-                            let wcs = aladin.getViewWCS()
-                            navigator.clipboard.writeText(JSON.stringify(wcs));
-        
-                            let infoBox = ShortLivedBox.getInstance(aladin);
-                            infoBox._show({
-                                content: 'WCS saved!',
-                                duration: 2000,
-                                position: {
-                                    anchor: 'center bottom'
-                                }
-                            })
-                        }
-                    },
-                ];
-                ctxMenu.attach(layout);
-            }
         });
         self = this;
         this.addClass('medium-sized-icon')

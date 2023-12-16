@@ -118,8 +118,9 @@ export class SettingsCtxMenu extends ContextMenu {
 
     _attach() {
         const toggleWindow = (window) => {
-            let windowEnabled = self.menu.isEnabled(window)
-            if(windowEnabled) {
+            let windowShown = self.menu.isShown(window);
+            console.log(windowShown)
+            if(windowShown) {
                 self.menu.disable(window)
             } else {
                 self.menu.enable(window)
@@ -146,6 +147,7 @@ export class SettingsCtxMenu extends ContextMenu {
                 label: {
                     content: [self.backgroundColorInput, 'Background color']
                 },
+                mustHide: false,
                 action(o) {}
             },
             {
@@ -169,6 +171,7 @@ export class SettingsCtxMenu extends ContextMenu {
                                 'Color',
                             ]
                         },
+                        mustHide: false,
                         action(o) {}
                     },
                     {
@@ -198,49 +201,39 @@ export class SettingsCtxMenu extends ContextMenu {
                 subMenu: [
                     {
                         label: 'Stack',
-                        selected: self.menu.isEnabled('stack'),
+                        selected: self.menu.isShown('stack'),
                         action(o) {
                             toggleWindow('stack')
                             toggleWindow('overlay')
                             toggleWindow('survey')
-
-                            self._attach();
                         }
                     },
                     {
                         label: 'Simbad',
-                        selected: self.menu.isEnabled('simbad'),
+                        selected: self.menu.isShown('simbad'),
                         action(o) {
                             toggleWindow('simbad');
-
-                            self._attach();
                         }
                     },
                     {
                         label: 'Go to',
-                        selected: self.menu.isEnabled('goto'),
+                        selected: self.menu.isShown('goto'),
                         action(o) {                            
                             toggleWindow('goto');
-
-                            self._attach();
                         }
                     },
                     {
                         label: 'Grid',
-                        selected: self.menu.isEnabled('grid'),
+                        selected: self.menu.isShown('grid'),
                         action(o) {
                             toggleWindow('grid');
-
-                            self._attach();
                         }
                     },
                     {
                         label: 'FullScreen',
-                        selected: self.menu.isEnabled('fullscreen'),
+                        selected: self.menu.isShown('fullscreen'),
                         action(o) {
                             toggleWindow('fullscreen');
-
-                            self._attach();
                         }
                     }
                 ]

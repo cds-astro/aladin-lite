@@ -207,9 +207,6 @@ import { ContextMenu } from "../Widgets/ContextMenu.js";
     _selectItem(item, aladin) {
         this.selectedItem = item;
 
-        console.log(this.selectedItem)
-       
-
         if (!item) {
             this.loadBtn.update({disable: true}, aladin)
             return;

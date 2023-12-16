@@ -38,10 +38,9 @@ import { ProgressiveCat } from "./ProgressiveCat.js";
 import { Source } from "./Source.js";
 import { Coo } from "./libs/astro/coo.js";
 import { URLBuilder } from "./URLBuilder.js";
-import { HiPSDefinition } from "./HiPSDefinition.js";
 import { ColorCfg } from './ColorCfg.js';
 import { Footprint } from './Footprint.js';
-import { Toolbar } from "./Toolbar.js";
+import { Toolbar } from "./gui/widgets/Toolbar.js";
 import { Aladin } from "./Aladin.js";
 // Wasm top level import
 import init, * as module from './../core/pkg';

@@ -14,3 +14,6 @@ aladin-lite*.tgz
 
 deploy.sh
 deploy-beta.sh
+
+# JsDoc generated files
+out/

@@ -41,7 +41,8 @@
     "serve": "npm run dev",
     "preview": "vite preview",
     "test:build": "cd src/core && cargo test --release --features webgl2",
-    "test:unit": "vitest run"
+    "test:unit": "vitest run",
+    "doc": "jsdoc src/js && open out/index.html"
   },
   "devDependencies": {
     "happy-dom": "^10.11.0",

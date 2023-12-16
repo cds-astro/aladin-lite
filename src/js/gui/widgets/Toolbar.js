@@ -17,6 +17,7 @@
 //    along with Aladin Lite.
 //
 import { Layout } from "../Layout";
+import { Utils } from "../../Utils";
 /******************************************************************************
  * Aladin Lite project
  *
@@ -71,41 +72,51 @@ export class Toolbar extends Layout {
             this.addClass('aladin-horizontal-list')
         }
 
-        // Tool indices
-        this.indices = {};
+        this.tools = {};
     }
 
-    append(items) {
-        if (!(items instanceof Array)) {
-            items = [items];
+    add(tools) {
+        if (!Array.isArray(tools)) {
+            tools = [tools];
         }
 
-        for (const {name, tool} of items) {
-            this.indices[name] = this.options.layout.length;
-            this.appendLast(tool);
-        }
+        tools.forEach(tool => {
+            this.appendAtLast(tool)
+        });
     }
 
-    /* Hide a tool */
-    hideTool(name) {
-        let indexTool = this.indices[name];
-        console.log(indexTool, "hide", name)
-
-        if (indexTool !== undefined && indexTool >= 0) {
-            this.options.layout[indexTool]._hide();
-
-            console.log(this.options.layout[indexTool])
+    appendAtLast(tool, name) {
+        if (!name) {
+            name = Utils.uuidv4()
         }
+        this.tools[name] = tool;
+        this.appendLast(tool);
+    }
+
+    appendAtIndex(tool, name, index) {
+        this.tools[name] = tool;
+        this.insertItemAtIndex(tool, index);
     }
 
     /* Show a tool */
-    showTool(name) {
-        let indexTool = this.indices[name];
-
-        console.log(this.indices, indexTool, this.options.layout)
-
-        if (indexTool !== undefined && indexTool >= 0) {
-            this.options.layout[indexTool]._show();
+    show(name) {
+        if (name && this.tools[name]) {
+            this.tools[name]._show()
         }
+    }
+
+    isShown(name) {
+        return this.tools[name] && !this.tools[name].isHidden
+    }
+
+    /* Hide a tool */
+    hide(name) {
+        if (name && this.tools[name]) {
+            this.tools[name]._hide()
+        }
+    }
+
+    contains(name) {
+        return this.tools[name] !== undefined;
     }
 }

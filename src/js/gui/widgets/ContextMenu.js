@@ -62,7 +62,7 @@ export class ContextMenu extends DOMElement {
 
     _hide() {
         super._hide()
-        super.remove()
+        //super.remove()
     }
 
     _attachOption(target, opt, xymouse, cssStyle) {
@@ -167,7 +167,7 @@ export class ContextMenu extends DOMElement {
                     if (!opt.subMenu || opt.subMenu.length === 0) {
                         opt.action(e);
 
-                        if (!self.options || self.options.hideOnClick === undefined || self.options.hideOnClick === true) {
+                        if ((opt.mustHide === undefined || opt.mustHide === true) && (!self.options || self.options.hideOnClick === undefined || self.options.hideOnClick === true)) {
                             self._hide();
                         }
                     }
@@ -233,7 +233,7 @@ export class ContextMenu extends DOMElement {
     }
 
     show(options) {
-        this.remove();
+        //this.remove();
 
         this.el.innerHTML = '';
         this.el.style = this.cssStyleDefault
@@ -260,6 +260,7 @@ export class ContextMenu extends DOMElement {
                 left: options.e.clientX - this.aladin.aladinDiv.offsetLeft,
                 top: options.e.clientY - this.aladin.aladinDiv.offsetTop
             });
+
         this.setPosition(position)
 
         this.el.classList.remove('left')

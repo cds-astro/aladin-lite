@@ -63,14 +63,6 @@ import { MainSurveyActionButton } from "../Button/MainSurvey";
      */
     constructor(options, aladin) {
         super(options, aladin.aladinDiv)
-        /*
-        showFullscreenControl,
-        showLayersControl,
-        showGotoControl,
-        showSimbadPointerControl,
-        showShareControl,
-        showCooGridControl
-        */
 
         window.addEventListener('resize', () => {
             self.closeAll()
@@ -247,69 +239,49 @@ import { MainSurveyActionButton } from "../Button/MainSurvey";
         let settings = new SettingsCtxMenu(aladin, self);
         let survey = new SurveyCtxMenu(aladin, self);
 
-        this.tools = {
+        this.panels = {
             stack, overlay, goto, grid, settings, survey
         };
 
-        console.log(this.controls)
-        //this.controlIdxAppened = [];
-
-        this.added = [];
+        this.indices = [];
 
         this.aladin = aladin;
     }
 
     closeAll() {
-        for (const key in this.tools) {
-            this.tools[key]._hide();
+        for (const name in this.tools) {
+            let panel = this.panels[name];
+            panel && panel._hide();
         }
     }
 
     enable(name) {
-        if (!this.added.includes(name)) {
-            this.append({name, tool: this.controls[name]});
-            this.added.push(name);
+        if (!this.contains(name)) {
+            // add the tool
+            const idx = Object.keys(this.controls).indexOf(name);
+            let insertIdx = Utils.binarySearch(this.indices, idx);
+            this.indices.splice(insertIdx, 0, idx);
+
+            this.appendAtIndex(this.controls[name], name, insertIdx)            
         }
 
-        // call show on it
-        this.showTool(name);
-    }
+        // show it
+        this.show(name);
 
-    isEnabled(name) {
-        return !this.controls[name].isHidden;
+        // update the settings once a tool has been added
+        this.panels["settings"]._attach();
     }
 
     disable(name) {
-        this.hideTool(name);
-    }
-
-    /*_appendControl(name) {
-        const idx = Object.keys(this.controls).indexOf(name);
-
-        if (idx > -1) {
-            let insertIdx = this._appendIdxControl(idx);
-
-            const ctrl = this.controls[name];
-            this.insertItemAtIndex(ctrl, insertIdx)
+        // If it is not even added, do nothing
+        if (!this.contains(name)) {
+            return;
         }
+
+        this.hide(name);
+
+        // update the settings once a tool has been added
+        this.panels["settings"]._attach();
     }
-
-    _appendIdxControl(idx) {
-        const insertIdx = this._getInsertIdxControl(idx);
-        this.controlIdxAppened.splice(insertIdx, 0, idx);
-
-        return insertIdx;
-    }
-
-    _removeIdxControl(idx) {
-        const insertIdx = this._getInsertIdxControl(idx);
-        this.controlIdxAppened.splice(insertIdx, 1);
-
-        return insertIdx;
-    }
-
-    _getInsertIdxControl(idx) {
-        return Utils.binarySearch(this.controlIdxAppened, idx);
-    }*/
 }
  

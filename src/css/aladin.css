@@ -1032,6 +1032,7 @@ canvas {
     appearance: none;
     -moz-appearance: none;
     -webkit-appearance: none;
+    outline-style: none;
     padding: 0;
     border: none;
     border-radius: 5px;

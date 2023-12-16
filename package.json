@@ -54,7 +54,6 @@
     "vitest": "^0.32.2"
   },
   "dependencies": {
-    "autocompleter": "^6.1.3",
-    "jquery": "^3.6.1"
+    "autocompleter": "^6.1.3"
   }
 }

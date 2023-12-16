@@ -424,7 +424,7 @@ impl CameraViewPort {
     }
 
     fn compute_tile_depth(&mut self) {
-        // Compute a depth from a number of pixels on screen
+        /*// Compute a depth from a number of pixels on screen
         let width = self.width;
         let aperture = self.aperture.0 as f32;
 
@@ -440,6 +440,27 @@ impl CameraViewPort {
         const DEPTH_OFFSET_TEXTURE: u32 = 9;
         // The depth of the texture corresponds to the depth of a pixel
         // minus the offset depth of the texture
+        self.tile_depth = if DEPTH_OFFSET_TEXTURE > depth_pixel {
+            0_u8
+        } else {
+            (depth_pixel - DEPTH_OFFSET_TEXTURE) as u8
+        };*/
+
+        let w_screen_px = self.width as f64;
+        let smallest_cell_size_px = 1.0;
+        let mut depth_pixel = 29 as usize;
+
+        let hpx_cell_size_rad =
+            (smallest_cell_size_px / w_screen_px) * self.get_aperture().to_radians();
+
+        while depth_pixel > 0 {
+            if (crate::healpix::utils::MEAN_HPX_CELL_RES[depth_pixel] > hpx_cell_size_rad) {
+                break;
+            }
+
+            depth_pixel = depth_pixel - 1;
+        }
+        const DEPTH_OFFSET_TEXTURE: usize = 9;
         self.tile_depth = if DEPTH_OFFSET_TEXTURE > depth_pixel {
             0_u8
         } else {

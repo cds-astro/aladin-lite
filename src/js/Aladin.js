@@ -61,13 +61,65 @@ import { ProjectionActionButton } from "./gui/Button/Projection.js";
 import { Input } from "./gui/Widgets/Input.js";
 
 import A from "./A.js";
+import { SnapshotActionButton } from "./gui/Button/Snapshot.js";
+/**
+ * Aladin module provides functionality for creating an interactive sky atlas.
+ *
+ * @namespace
+ * @typedef {Object} Aladin
+ * @property {string|HTMLElement} aladinDiv - The ID of the HTML element or the HTML element itself
+ *                                            where the Aladin sky atlas is rendered.
 
-import $ from 'jquery';
-
-
+ * @throws {Error} Throws an error if aladinDiv is not provided or is invalid.
+ *
+ * @example
+ * // Usage example:
+ * import { Aladin } from 'aladin-lite';
+ *
+ * const aladinInstance = new Aladin(aladinDiv, { survey: 'your survey url', fov: 180, projection: 'SIN' });
+ */
 export let Aladin = (function () {
-
-    // Constructor
+   /**
+     * Creates an instance of the Aladin interactive sky atlas.
+     *
+     * @class
+     * @memberof Aladin
+     * @param {HTMLElement} aladinDiv - The HTML element itself
+     *                                         where the Aladin sky atlas will be rendered.
+     * @param {Object} requestedOptions - Options to customize the behavior and appearance of the Aladin atlas.
+     * @param {string} [requestedOptions.survey="https://alaskybis.unistra.fr/DSS/DSSColor"] - URL or ID of type 'DSS/Color' of the survey image to be used by Aladin.
+     * @param {string[]} [requestedOptions.surveyUrl=["https://alaskybis.unistra.fr/DSS/DSSColor", "https://alasky.unistra.fr/DSS/DSSColor"]] - URLs of the survey images to be used by Aladin.
+     * @param {string} [requestedOptions.target="0 +0"] - The initial target coordinates in the specified coordinate frame.
+     * @param {string} [requestedOptions.cooFrame="J2000"] - The coordinate frame for the initial target.
+     * @param {number} [requestedOptions.fov=60] - The initial field of view in degrees.
+     * @param {string} [requestedOptions.backgroundColor="rgb(60, 60, 60)"] - The background color of the Aladin atlas.
+     * @param {boolean} [requestedOptions.showZoomControl=true] - Whether to show the zoom toolbar.
+     * @param {boolean} [requestedOptions.showLayersControl=true] - Whether to show the menu toolbar for controlling layers.
+     * @param {boolean} [requestedOptions.showFullscreenControl=true] - Whether to show the menu toolbar for controlling fullscreen mode.
+     * @param {boolean} [requestedOptions.showGotoControl=true] - Whether to show the menu toolbar for navigating to specific coordinates.
+     * @param {boolean} [requestedOptions.showSimbadPointerControl=false] - Whether to show the menu toolbar for controlling the SIMBAD pointer.
+     * @param {boolean} [requestedOptions.showCooGridControl=false] - Whether to show the menu toolbar for controlling coordinate grids.
+     * @param {boolean} [requestedOptions.showSettingsControl=true] - Whether to show the menu toolbar for controlling settings.
+     * @param {boolean} [requestedOptions.showShareControl=false] - Whether to show the share toolbar.
+     * @param {boolean} [requestedOptions.showFrame=true] - Whether to show the viewport toolbar for controlling coordinate frames.
+     * @param {boolean} [requestedOptions.showFov=true] - Whether to show the viewport toolbar for controlling the field of view.
+     * @param {boolean} [requestedOptions.showCooLocation=true] - Whether to show the viewport toolbar for displaying current coordinates.
+     * @param {boolean} [requestedOptions.showProjectionControl=true] - Whether to show the viewport toolbar for controlling projections.
+     * @param {boolean} [requestedOptions.showContextMenu=false] - Whether to show the context menu.
+     * @param {boolean} [requestedOptions.showReticle=true] - Whether to show the reticle.
+     * @param {boolean} [requestedOptions.showCatalog=true] - Whether to show the catalog (Note: TODO: still used?).
+     * @param {boolean} [requestedOptions.fullScreen=false] - Whether to start the Aladin atlas in fullscreen mode.
+     * @param {string} [requestedOptions.reticleColor="rgb(178, 50, 178)"] - The color of the reticle.
+     * @param {number} [requestedOptions.reticleSize=22] - The size of the reticle.
+     * @param {string} [requestedOptions.gridColor="rgb(0, 255, 0)"] - The color of the coordinate grid.
+     * @param {number} [requestedOptions.gridOpacity=0.5] - The opacity of the coordinate grid.
+     * @param {boolean} [requestedOptions.log=true] - Whether to log Aladin events.
+     * @param {boolean} [requestedOptions.samp=false] - Whether to enable SAMP (Simple Application Messaging Protocol) support.
+     * @param {boolean} [requestedOptions.realFullscreen=false] - Whether to use real fullscreen mode.
+     * @param {boolean} [requestedOptions.pixelateCanvas=true] - Whether to pixelate the canvas.
+     *
+     * @throws {Error} Throws an error if aladinDiv is not provided or is invalid.
+     */
     var Aladin = function (aladinDiv, requestedOptions) {
         // check that aladinDiv exists, stop immediately otherwise
         if (!aladinDiv) {
@@ -241,11 +293,9 @@ export let Aladin = (function () {
         // maximize control
         if (options.showFullscreenControl) {
             // react to fullscreenchange event to restore initial width/height (if user pressed ESC to go back from full screen)
-            $(document).on('fullscreenchange webkitfullscreenchange mozfullscreenchange MSFullscreenChange', function (e) {
-                console.log("fullscreen change")
+            Utils.on(document, 'fullscreenchange webkitfullscreenchange mozfullscreenchange MSFullscreenChange', function (e) {
                 var fullscreenElt = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
                 if (fullscreenElt === null || fullscreenElt === undefined) {
-                    console.log('remove fullscreen')
                     self.aladinDiv.classList.remove('aladin-fullscreen');
     
                     var fullScreenToggledFn = self.callbacksByEventName['fullScreenToggled'];
@@ -279,10 +329,7 @@ export let Aladin = (function () {
 
         // Add the projection control
         if (options.showProjectionControl) {
-            viewport.append({
-                name: 'projection',
-                tool: new ProjectionActionButton(self)
-            })
+            viewport.add(new ProjectionActionButton(self))
         }
 
         // Add the frame control
@@ -301,24 +348,15 @@ export let Aladin = (function () {
             });
 
             cooFrameControl.addClass('aladin-cooFrame');
-            viewport.append({
-                name: 'frame',
-                tool: cooFrameControl
-            })
+            viewport.add(cooFrameControl)
         }
         // Add the location info
         if (options.showCooLocation) {
-            viewport.append({
-                name: 'cooLocation',
-                tool: new Location(this)
-            });
+            viewport.add(new Location(this));
         }
         // Add the FoV info
         if (options.showFov) {
-            viewport.append({
-                name: 'fov',
-                tool: new FoV(this)
-            })
+            viewport.appendAtLast(new FoV(this))
         }
 
         ////////////////////////////////////////////////////
@@ -361,11 +399,23 @@ export let Aladin = (function () {
 
         // share control panel
         if (options.showShareControl) {
-            this.addUI(new ShareActionButton(this, {
+            let share = A.toolbar({
+                direction: 'horizontal',
                 position: {
                     anchor: 'left bottom'
-                } 
-            }));
+                }
+            }, this);
+            share.add(new ShareActionButton(this))
+            share.add(new SnapshotActionButton({
+                tooltip: {
+                    content: 'Take a snapshot of your current view',
+                    position: {
+                        direction: 'top'
+                    }
+                },
+            }, this))
+
+            this.addUI(share);
         }
         
         // zoom control
@@ -462,6 +512,7 @@ export let Aladin = (function () {
         reticleSize: 22,
         gridColor: "rgb(0, 255, 0)",
         gridOpacity: 0.5,
+        projection: 'SIN',
         log: true,
         samp: false,
         realFullscreen: false,
@@ -475,7 +526,6 @@ export let Aladin = (function () {
         realFullscreen = Boolean(realFullscreen);
         self.isInFullscreen = !self.isInFullscreen;
 
-        console.log('is in fullscreen: ', self.isInFullscreen)
         //this.fullScreenBtn.attr('title', isInFullscreen ? 'Restore original size' : 'Full screen');
 
         if (this.aladinDiv.classList.contains('aladin-fullscreen')) {
@@ -569,7 +619,10 @@ export let Aladin = (function () {
         return options;
     };
 
-    // @API
+    /**
+     * Field of view setter
+     * @param {number} fovDegrees the fov 
+     */
     Aladin.prototype.setFoV = Aladin.prototype.setFov = function (fovDegrees) {
         this.view.setZoom(fovDegrees);
     };
@@ -1309,23 +1362,16 @@ export let Aladin = (function () {
         }
     };
 
-    // ?
-    Aladin.prototype.updateCM = function () {
-
-    };
-
     // TODO : LayerBox (or Stack?) must be extracted as a separate object
     Aladin.prototype.showLayerBox = function () {
         this.stack.showImageLayerBox();
     };
 
-    /*Aladin.prototype.showCooGridBox = function () {
-        this.coogrid.show();
-    };*/
-
     /**
      * Change the coo grid options
-     * @param {enable: Boolean, color: String | {r: Float, g: Float, b: Float}, labelSize: Float, thickness: Float, opacity: Float} options - Represents the structure of the Tabs
+     * @param {Object} options options of the coordinate grid
+     * @param {Boolean} options.enable enable or disable the grid
+     * @param {String} options.color color of the form 'rgba(255, 0, 255, 255)'
      */
     Aladin.prototype.setCooGrid = function(options) {
         if (options.color) {

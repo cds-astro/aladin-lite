@@ -52,6 +52,16 @@ import { ActionButton } from "./gui/Widgets/ActionButton.js";
 ///////////////////////////////
 /////// Aladin Lite API ///////
 ///////////////////////////////
+
+/**
+ * @namespace A
+ * @description Aladin Lite API namespace for creating celestial objects.
+ * @example
+ * // Usage example:
+ * import { A } from 'aladin-lite';
+ *
+ * const aladin = new A.aladin("#aladin-lite-div", { survey: 'your survey url', fov: 180, projection: 'SIN' });
+ */
 let A = {};
 
 //// New API ////
@@ -59,17 +69,97 @@ let A = {};
 // rather than creating directly the corresponding JS objects
 // This facade allows for more flexibility as objects can be updated/renamed harmlessly
 
-//@API
+/**
+ * @typedef {Object} AladinOptions
+ * @description Options for configuring the Aladin Lite instance.
+ *
+ * @property {string} [survey="https://alaskybis.unistra.fr/DSS/DSSColor"] URL or ID of the survey to use
+ * @property {string[]} [surveyUrl=["https://alaskybis.unistra.fr/DSS/DSSColor", "https://alasky.unistra.fr/DSS/DSSColor"]]
+ *   Array of URLs for the survey images. This replaces the survey parameter.
+ * @property {string} [target="0 +0"] - Target coordinates for the initial view.
+ * @property {string} [cooFrame="J2000"] - Coordinate frame.
+ * @property {number} [fov=60] - Field of view in degrees.
+ * @property {string} [backgroundColor="rgb(60, 60, 60)"] - Background color in RGB format.
+ *
+ * @property {boolean} [showZoomControl=true] - Whether to show the zoom control toolbar.
+ * @property {boolean} [showLayersControl=true] - Whether to show the layers control toolbar.
+ * @property {boolean} [showFullscreenControl=true] - Whether to show the fullscreen control toolbar.
+ * @property {boolean} [showGotoControl=true] - Whether to show the goto control toolbar.
+ * @property {boolean} [showSimbadPointerControl=false] - Whether to show the Simbad pointer control toolbar.
+ * @property {boolean} [showCooGridControl=false] - Whether to show the coordinate grid control toolbar.
+ * @property {boolean} [showSettingsControl=true] - Whether to show the settings control toolbar.
+ *
+ * @property {boolean} [showShareControl=false] - Whether to show the share control toolbar.
+ *
+ * @property {boolean} [showFrame=true] - Whether to show the viewport frame.
+ * @property {boolean} [showFov=true] - Whether to show the field of view indicator.
+ * @property {boolean} [showCooLocation=true] - Whether to show the coordinate location indicator.
+ * @property {boolean} [showProjectionControl=true] - Whether to show the projection control toolbar.
+ *
+ * @property {boolean} [showContextMenu=false] - Whether to show the context menu.
+ * @property {boolean} [showReticle=true] - Whether to show the reticle.
+ * @property {boolean} [showCatalog=true] - Whether to show the catalog.
+ *
+ * @property {boolean} [fullScreen=false] - Whether to start in full-screen mode.
+ * @property {string} [reticleColor="rgb(178, 50, 178)"] - Color of the reticle in RGB format.
+ * @property {number} [reticleSize=22] - Size of the reticle.
+ * @property {string} [gridColor="rgb(0, 255, 0)"] - Color of the grid in RGB format.
+ * @property {number} [gridOpacity=0.5] - Opacity of the grid (0 to 1).
+ * @property {string} [projection="SIN"] - Projection type.
+ * @property {boolean} [log=true] - Whether to log events.
+ * @property {boolean} [samp=false] - Whether to enable SAMP (Simple Application Messaging Protocol).
+ * @property {boolean} [realFullscreen=false] - Whether to use real fullscreen mode.
+ * @property {boolean} [pixelateCanvas=true] - Whether to pixelate the canvas.
+ */
+
+/**
+ * Creates an Aladin Lite instance within the specified HTML element.
+ *
+ * @function
+ * @name A.aladin
+ * @memberof A
+ * @param {string} divSelector - The ID selector for the HTML element.
+ * @param {AladinOptions} [options] - Options for configuring the Aladin Lite instance.
+ * @returns {Aladin} An instance of the Aladin Lite library.
+ * @example
+ * const aladinInstance = A.aladin('#aladin-container', options);
+ */
 A.aladin = function (divSelector, options) {
     return new Aladin(document.querySelector(divSelector), options);
 };
 
-// @API
+/**
+ * Creates a celestial source object with the given coordinates.
+ *
+ * @function
+ * @name A.source
+ * @memberof A
+ * @param {number} ra - Right Ascension (RA) coordinate in degrees.
+ * @param {number} dec - Declination (Dec) coordinate in degrees.
+ * @param {*} [data] - Additional data associated with the source.
+ * @param {SourceOptions} [options] - Options for configuring the source object.
+ * @returns {Source} A celestial source object.
+ * @example
+ * const sourceObj = A.source(180.0, 30.0, data, options);
+ */
 A.source = function (ra, dec, data, options) {
     return new Source(ra, dec, data, options);
 };
 
-// @API
+/**
+ * Creates a marker at the specified celestial coordinates.
+ *
+ * @function
+ * @name A.marker
+ * @memberof A
+ * @param {number} ra - Right Ascension (RA) coordinate in degrees.
+ * @param {number} dec - Declination (Dec) coordinate in degrees.
+ * @param {MarkerOptions} [options] - Options for configuring the marker.
+ * @param {*} [data] - Additional data associated with the marker.
+ * @returns {Source} A marker source object.
+ * @example
+ * const markerObj = A.marker(180.0, 30.0, data, options);
+ */
 A.marker = function (ra, dec, options, data) {
     options = options || {};
     options['marker'] = true;
@@ -131,11 +221,6 @@ A.graphicOverlay = function (options) {
 };
 
 // @API
-A.catalog = function (options) {
-    return new Catalog(options);
-};
-
-// @API
 A.catalogHiPS = function (rootURL, options) {
     return new ProgressiveCat(rootURL, null, null, options);
 };
@@ -188,6 +273,75 @@ A.MOCFromPolygon= function (polygon, options, successCallback, errorCallback) {
     return moc;
 };
 
+/**
+ * Represents options for configuring a catalog.
+ *
+ * @typedef {Object} CatalogOptions
+ * @property {string} url - The URL of the catalog.
+ * @property {string} [name="catalog"] - The name of the catalog.
+ * @property {string} [color] - The color associated with the catalog.
+ * @property {number} [sourceSize=8] - The size of the sources in the catalog.
+ * @property {number} [markerSize=12] - The size of the markers associated with sources.
+ * @property {string} [shape="square"] - The shape of the sources (e.g., "square", "circle", "rhomb", "triangle", "cross").
+ * @property {number} [limit] - The maximum number of sources to display.
+ * @property {function} [onClick] - The callback function to execute on a source click.
+ * @property {boolean} [readOnly=false] - Whether the catalog is read-only.
+ * @property {string} [raField] - The ID or name of the field holding Right Ascension (RA).
+ * @property {string} [decField] - The ID or name of the field holding Declination (dec).
+ * @property {function} [filter] - The filtering function for sources.
+ * @property {boolean} [displayLabel=false] - Whether to display labels for sources.
+ * @property {string} [labelColor] - The color of the source labels.
+ * @property {string} [labelFont="10px sans-serif"] - The font for the source labels.
+ */
+
+/**
+ * Represents a catalog with configurable options for display and interaction.
+ *
+ * @function
+ * @name A.catalog
+ * @memberof A
+ * @param {CatalogOptions} options - Configuration options for the catalog.
+ * @returns {Catalog}
+ */
+A.catalog = function (options) {
+    return new Catalog(options);
+};
+
+/**
+ * Asynchronously creates a new catalog instance from the specified URL with additional options.
+ *
+ * @function
+ * @memberof A
+ * @param {string} url - The URL of the catalog.
+ * @param {CatalogOptions} [options] - Additional configuration options for the catalog.
+ * @param {function} [successCallback] - The callback function to execute on successful catalog creation.
+ * @param {function} [errorCallback] - The callback function to execute on error during catalog creation.
+ * @param {boolean} [useProxy=false] - Indicates whether to use a proxy for loading the catalog.
+ * @returns {Catalog} A new instance of the Catalog class created from the specified URL.
+ *
+ * @example
+ * // Create a catalog from a URL using the A.catalogFromURL method
+ * const catalogURL = "https://example.com/catalog";
+ * const catalogOptions = {
+ *   name: "My Catalog",
+ *   color: "#ff0000",
+ *   sourceSize: 10,
+ *   // ... other options
+ * };
+ *
+ * const myCatalog = A.catalogFromURL(
+ *   catalogURL,
+ *   catalogOptions,
+ *   (catalog) => {
+ *     // Catalog successfully loaded
+ *     aladin.addCatalog(catalog)
+ *   },
+ *   (error) => {
+ *     // Error loading catalog
+ *     console.error("Error loading catalog:", error);
+ *   },
+ * );
+ */
 A.catalogFromURL = function (url, options, successCallback, errorCallback, useProxy) {
     options.url = url;
     var catalog = A.catalog(options);
@@ -196,7 +350,7 @@ A.catalogFromURL = function (url, options, successCallback, errorCallback, usePr
         let {sources, footprints, fields, type} = table;
         catalog.setFields(fields);
 
-        if (catalog.isObsCore()) {
+        if (catalog.type === 'ObsCore') {
             // The fields corresponds to obscore ones
             // Set the name of the catalog to be ObsCore:<catalog name>
             catalog.name = "ObsCore:" + url;
@@ -365,6 +519,30 @@ A.getAvailableListOfColormaps = function() {
     return ColorCfg.COLORMAPS;
 };
 
+/**
+ * Initializes the Aladin Lite library, checking for WebGL2 support.
+ * This method must be called before instancing an Aladin Lite object.
+ *
+ * @function
+ * @name A.init
+ * @memberof A
+ * @async
+ *
+ * @throws {string} Throws an error if WebGL2 is not supported by the browser.
+ *
+ * @returns {Promise<void>} A promise that resolves once the initialization is complete.
+ *
+ * @example
+ * // Usage example:
+ * A.init
+ *   .then(async () => {
+ *     const aladinInstance = A.aladin('div', requestedOptions);
+ *     // Perform further actions with the Aladin Lite instance
+ *   })
+ *   .catch(error => {
+ *     console.error('Error initializing Aladin Lite:', error);
+ *   });
+ */
 A.init = (async () => {
     const isWebGL2Supported = document
         .createElement('canvas')

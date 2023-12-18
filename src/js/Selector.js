@@ -89,13 +89,16 @@ export class Selector {
         }
 
         if (!selection.contains) {
+            // contains must be implemented for the region
             return;
         }
+
 
         var objList = [];
         var cat, sources, s;
         var footprints, f;
         var objListPerCatalog = [];
+
         if (view.catalogs) {
             for (var k = 0; k < view.catalogs.length; k++) {
                 cat = view.catalogs[k];
@@ -130,6 +133,7 @@ export class Selector {
                 objListPerCatalog = [];
             }
         }
+
         return objList;
     }
 }

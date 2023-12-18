@@ -1148,7 +1148,6 @@ export let View = (function () {
         }
         // draw popup catalog
         if (this.catalogForPopup.isShowing && this.catalogForPopup.sources.length > 0) {
-            console.log("draw popup")
             if (!this.catalogCanvasCleared) {
                 ctx.clearRect(0, 0, this.width, this.height);
                 this.catalogCanvasCleared = true;
@@ -1342,6 +1341,9 @@ export let View = (function () {
     // Called for touchmove events
     // initialAccDelta must be consistent with fovDegrees here
     View.prototype.setZoom = function (fovDegrees) {
+        fovDegrees = Math.min(fovDegrees, this.projection.fov);
+        console.log(fovDegrees)
+        
         this.wasm.setFieldOfView(fovDegrees);
         this.updateZoomState();
     };

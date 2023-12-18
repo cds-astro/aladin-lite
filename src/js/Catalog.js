@@ -38,15 +38,60 @@ import { Footprint } from "./Footprint.js";
 import { ObsCore } from "./vo/ObsCore.js";
 import A from "./A.js";
 
-// TODO : harmoniser parsing avec classe ProgressiveCat
+/**
+ * Represents a catalog with configurable options for display and interaction.
+ *
+ * @namespace
+ * @typedef {Object} Aladin
+ */
 export let Catalog = (function() {
-
+    /**
+     * Constructor function for creating a new catalog instance.
+     *
+     * @constructor
+     * @memberof Catalog
+    * @param {Object} options - Configuration options for the catalog.
+    * @param {string} options.url - The URL of the catalog.
+    * @param {string} [options.name="catalog"] - The name of the catalog.
+    * @param {string} [options.color] - The color associated with the catalog.
+    * @param {number} [options.sourceSize=8] - The size of the sources in the catalog.
+    * @param {number} [options.markerSize=12] - The size of the markers associated with sources.
+    * @param {string} [options.shape="square"] - The shape of the sources (can be, "square", "circle", "plus", "cross", "rhomb", "triangle").
+    * @param {number} [options.limit] - The maximum number of sources to display.
+    * @param {function} [options.onClick] - The callback function to execute on a source click.
+    * @param {boolean} [options.readOnly=false] - Whether the catalog is read-only.
+    * @param {string} [options.raField] - The ID or name of the field holding Right Ascension (RA).
+    * @param {string} [options.decField] - The ID or name of the field holding Declination (dec).
+    * @param {function} [options.filter] - The filtering function for sources.
+    * @param {boolean} [options.displayLabel=false] - Whether to display labels for sources.
+    * @param {string} [options.labelColor] - The color of the source labels.
+    * @param {string} [options.labelFont="10px sans-serif"] - The font for the source labels.
+    *
+    * @example
+    * const catalogOptions = {
+    *   url: "https://example.com/catalog",
+    *   name: "My Catalog",
+    *   color: "#ff0000",
+    *   sourceSize: 10,
+    *   markerSize: 15,
+    *   shape: "circle",
+    *   limit: 1000,
+    *   onClick: (source) => { /* handle source click * },
+    *   readOnly: true,
+    *   raField: "ra",
+    *   decField: "dec",
+    *   filter: (source) => source.mag < 15,
+    *   displayLabel: true,
+    *   labelColor: "#00ff00",
+    *   labelFont: "12px Arial"
+    * };
+    * const myCatalog = new Catalog(catalogOptions);
+     */
    function Catalog(options) {
         options = options || {};
 
         this.url = options.url;
-        this.uuid = Utils.uuidv4();
-        this.type = 'catalog';
+
         this.name = options.name || "catalog";
     	this.color = options.color || Color.getNextColor();
     	this.sourceSize = options.sourceSize || 8;
@@ -63,15 +108,6 @@ export let Catalog = (function() {
         // allows for filtering of sources
         this.filterFn = options.filter || undefined; // TODO: do the same for catalog
 
-        this.showFieldCallback = {}; // callbacks when the user clicks on a cell in the measurement table associated
-        this.fields = undefined;
-
-    	this.indexationNorder = 5; // à quel niveau indexe-t-on les sources
-    	this.sources = [];
-        this.ra = [];
-        this.dec = [];
-        this.footprints = [];
-
         this.displayLabel = options.displayLabel || false;
         this.labelColor = options.labelColor || this.color;
         this.labelFont = options.labelFont || '10px sans-serif';
@@ -83,6 +119,19 @@ export let Catalog = (function() {
         }
 
     	this.selectionColor = '#00ff00';
+
+        this.showFieldCallback = {}; // callbacks when the user clicks on a cell in the measurement table associated
+        this.fields = undefined;
+        this.uuid = Utils.uuidv4();
+        this.type = 'catalog';
+
+    	this.indexationNorder = 5; // à quel niveau indexe-t-on les sources
+    	this.sources = [];
+        this.ra = [];
+        this.dec = [];
+        this.footprints = [];
+
+
 
         // create this.cacheCanvas
     	// cacheCanvas permet de ne créer le path de la source qu'une fois, et de le réutiliser (cf. http://simonsarris.com/blog/427-increasing-performance-by-caching-paths-on-canvas)
@@ -734,11 +783,9 @@ export let Catalog = (function() {
 
     Catalog.prototype.show = function() {
         if (this.isShowing) {
-            console.log("jkjkj")
             return;
         }
         this.isShowing = true;
-        console.log(this.isShowing)
         // Dispatch to the footprints
         if (this.footprints) {
             this.footprints.forEach((f) => f.show())

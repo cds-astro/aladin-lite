@@ -6,10 +6,11 @@
 
 <div id="aladin-lite-div" style="width: 500px; height: 400px"></div>
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
-
+<script>
+    var aladin;
+</script>
 <script type="module">
     import A from '../src/js/A.js';
-    let aladin;
     A.init.then(() => {
         aladin = A.aladin('#aladin-lite-div', {target: 'M 45', fov: 5, showContextMenu: true});
 

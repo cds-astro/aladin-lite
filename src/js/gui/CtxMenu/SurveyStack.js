@@ -314,6 +314,10 @@ export class Stack extends ContextMenu {
             return;
         }
 
+        if (!layer.properties || !layer.properties.creatorDid) {
+            return;
+        }
+
         const creatorDid = layer.properties.creatorDid;
         
         for (const key in Stack.previewImagesUrl) {

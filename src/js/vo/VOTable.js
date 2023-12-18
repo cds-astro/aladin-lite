@@ -248,17 +248,19 @@ export class VOTable {
     static textDecoder = new TextDecoder();
 
     constructor(url, successCallback, errorCallback, useProxy) {
-        console.log(url, useProxy)
         Utils.fetch({
             url,
             useProxy,
             success: data => {
                 try {
-                    //console.log(data)
                     let xml = VOTable.parser.parseFromString(data, "text/xml")
                     xml.querySelectorAll("RESOURCE").forEach((rsc) => { successCallback(rsc) })
                 } catch(e) {
-                    errorCallback('Catalogue failed to be parsed: ' + e);
+                    if (errorCallback) {
+                        errorCallback('Catalogue failed to be parsed: ' + e);
+                    } else {
+                        throw e;
+                    }
                 }
             },
             error: e => {
@@ -484,8 +486,6 @@ export class VOTable {
                             values[1] = +max.getAttribute("value");
                         }
 
-                        console.log(values)
-
                         inputParams['Band'] = {
                             name: 'BAND',
                             type: 'group',
@@ -547,7 +547,6 @@ export class VOTable {
                 }
             })
 
-            console.log("PARSE service RSC", { name, baseUrl, inputParams})
             return { name, baseUrl, inputParams}
     };
 };

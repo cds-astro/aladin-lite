@@ -17,8 +17,6 @@
 //    along with Aladin Lite.
 //
 
-import { Aladin } from "../Aladin";
-import { Color } from "../Color";
 import { FSM } from "../FiniteStateMachine";
 import { View } from "../View";
 /******************************************************************************
@@ -116,6 +114,8 @@ export class RectSelect extends FSM {
                 if (typeof callback === "function") {
                     // !todo
                     let selectedObjects = view.selectObjects(this);
+                    console.log(selectedObjects)
+
                     callback(selectedObjects);
                 }
             }

@@ -63,14 +63,9 @@ export class OverlayStack extends ContextMenu {
         let self = this;
 
         let updateImageList = () => {
-            const overlays = Array.from(self.aladin.getOverlays()).reverse().map((overlay) => {
-                return overlay;
-            });
-
-
-            self.attach({overlays});
             // If it is shown, update it
             if (!self.isHidden) {
+                // show will update the content of the stack
                 self._show();
             }
         };
@@ -90,8 +85,10 @@ export class OverlayStack extends ContextMenu {
         });
     }
 
-    attach(options) {
-        const overlays = options && options.overlays || [];
+    attach() {
+        const overlays = Array.from(this.aladin.getOverlays()).reverse().map((overlay) => {
+            return overlay;
+        });
 
         let self = this;
 
@@ -284,7 +281,7 @@ export class OverlayStack extends ContextMenu {
 
             let item = Layout.horizontal({
                 layout: [
-                this._addOverlayIcon(overlay),
+                    this._addOverlayIcon(overlay),
                     '<div style="background-color: rgba(0, 0, 0, 0.6); padding: 3px; border-radius: 3px; word-break: break-word;">' + name + '</div>',
                     Layout.horizontal({layout: [showBtn, deleteBtn]})
                 ],
@@ -343,6 +340,8 @@ export class OverlayStack extends ContextMenu {
     }
 
     _show(options) {
+        this.attach();
+
         this.position = (options && options.position) || this.position || { anchor: 'center center'}; 
         super.show({
             ...options,

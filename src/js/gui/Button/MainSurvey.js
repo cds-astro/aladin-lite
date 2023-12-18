@@ -49,7 +49,7 @@ import { SurveyCtxMenu } from "../CtxMenu/SurveyCtxMenu";
         super({
             ...options,
             tooltip: {content: 'Survey name<br/>Click to change it!', position: { direction: 'bottom' }},
-            content: 'Main survey',
+            content: '<div class="aladin-long-text">Main survey</div>',
             cssStyle: {
                 backgroundColor: 'rgba(0, 0, 0, 0.5)',
                 borderColor: 'white',
@@ -61,16 +61,19 @@ import { SurveyCtxMenu } from "../CtxMenu/SurveyCtxMenu";
         this._addListeners(aladin)
     }
 
-    _hide() {
-        super._hide()
-    }
-
     _addListeners(aladin) {
         ALEvent.HIPS_LAYER_ADDED.listenedBy(aladin.aladinDiv, (e) => {
             const layer = e.detail.layer;
             if (layer.layer === 'base') {
+                let name = (layer.properties && layer.properties.obsTitle) || layer.name;
                 this.update({
-                    content: layer.name,
+                    content: '<div class="aladin-long-text">' + name + '</div>',
+                    tooltip: {
+                        content: name,
+                        position: {
+                            direction: 'left'
+                        }
+                    }
                 })
             }
         });

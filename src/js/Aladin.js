@@ -188,23 +188,16 @@ export let Aladin = (function () {
         }
 
         // Grid
-        var color, opacity;
-        if (options.gridOptions) {
-            color = options.gridOptions.color && Color.hexToRgb(options.gridOptions.color);
-            opacity = options.gridOptions.opacity;
-        } else {
-            color = Aladin.DEFAULT_OPTIONS.gridColor;
-            opacity = Aladin.DEFAULT_OPTIONS.gridOpacity;
-        }
-
-        this.setCooGrid({
-            color: color,
-            opacity: opacity,
-        });
-
+        let gridOptions = {
+            enabled: false,
+            color: (options.gridOptions && options.gridOptions.color && Color.hexToRgb(options.gridOptions.color)) || Aladin.DEFAULT_OPTIONS.gridColor,
+            opacity: (options.gridOptions && options.gridOptions.opacity) || Aladin.DEFAULT_OPTIONS.gridOpacity
+        };
         if (options && options.showCooGrid) {
-            this.showCooGrid();
+            gridOptions.enabled = true;
         }
+
+        this.setCooGrid(gridOptions);
 
         // Set the projection
         let projection = (options && options.projection) || 'SIN';
@@ -1338,7 +1331,14 @@ export let Aladin = (function () {
         this.view.selectObjects(objects)
     };
     // Possible values are 'rect', 'poly' and 'circle'
-    Aladin.prototype.select = function (mode = 'rect', callback) {
+    Aladin.prototype.select = async function (mode = 'rect', callback) {
+        await this.reticle.loaded;
+
+        // Default callback selects objects
+        callback = callback || ((selection) => {
+            this.view.selectObjects(selection);
+        });
+
         this.fire('selectstart', {mode, callback});
     };
 
@@ -1392,12 +1392,10 @@ export let Aladin = (function () {
 
     Aladin.prototype.showCooGrid = function () {
         this.view.setGridConfig({enabled: true});
-        this.cooGridEnabled = true;
     };
 
     Aladin.prototype.hideCooGrid = function() {
         this.view.setGridConfig({enabled: false});
-        this.cooGridEnabled = false;
     }
 
     Aladin.prototype.layerByName = function (name) {

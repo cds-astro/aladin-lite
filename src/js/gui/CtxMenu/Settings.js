@@ -113,13 +113,11 @@ export class SettingsCtxMenu extends ContextMenu {
         this.sampBtn = sampBtn;
 
         this._attach();
-
     }
 
     _attach() {
         const toggleWindow = (window) => {
             let windowShown = self.menu.isShown(window);
-            console.log(windowShown)
             if(windowShown) {
                 self.menu.disable(window)
             } else {

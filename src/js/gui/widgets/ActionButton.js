@@ -31,6 +31,48 @@ import { Tooltip } from "./Tooltip";
  *
  *****************************************************************************/
 
+/**
+ * Represents an action button that can be added to the DOM.
+ *
+ * @namespace
+ * @typedef {Object} ActionButton
+ * @extends DOMElement
+ *
+ * @param {Object} opt - Options for configuring the action button.
+ * @param {HTMLElement} target - The target element to which the button will be attached.
+ * @param {Object|string} [position="beforeend"] - The position to insert the button relative to the target.
+ *
+ * @property {boolean} [opt.toggled=false] - Whether the button is initially toggled.
+ * @property {function} [opt.action] - The callback function to execute when the button is clicked.
+ * @property {string} [opt.title] - The title attribute for the button.
+ * @property {string} [opt.iconURL] - The URL of the icon image for the button.
+ * @property {boolean} [opt.disable=false] - Whether the button is initially disabled.
+ * @property {HTMLElement|string|Widget} [opt.content] - The content to be added to the button.
+ * @property {CSSStyleSheet} [opt.cssStyle] - The CSS styles to apply to the button.
+ * @property {string} [opt.tooltip] - The tooltip text for the button.
+ * @property {Object|string} [opt.position] - The position of the button.
+ *   - If an object:
+ *     - `{ nextTo: DOMElement, direction: 'left' | 'right' | 'top' | 'bottom' }`
+ *     - `{ top: number, left: number }`
+ *     - `{ anchor: 'left top' | 'left center' | 'left bottom' | 'right top' | 'right center' | 'right bottom' | 'center top' | 'center center' | 'center bottom' }`
+ *   - If a string: One of the following values: "beforebegin", "afterbegin", "beforeend", "afterend".
+ *
+ * @example
+ * const actionButton = new ActionButton({
+ *   toggled: false,
+ *   action: (e) => { /* callback function * },
+ *   title: "Click me",
+ *   iconURL: "path/to/icon.png",
+ *   cssStyle: "color: red;",
+ *   tooltip: {
+ *     position: {
+ *       direction: 'left,
+ *     },
+ *     content: 'A tooltip'
+ *   },
+ *   position: { nextTo: someDOMElement, direction: 'right' }
+ * }, document.getElementById('container'));
+ */
 export class ActionButton extends DOMElement {
     constructor(opt, target, position = "beforeend") {
         let el = document.createElement('button');

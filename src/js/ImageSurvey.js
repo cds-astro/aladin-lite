@@ -180,7 +180,13 @@ export let ImageSurvey = (function () {
                 HiPSProperties.getFasterMirrorUrl(properties)
                     .then((url) => {
                         self.setUrl(url);
-                    });
+                    })
+                    .catch(e => {
+                        alert(e);
+                        // the survey has been added so we remove it from the stack
+                        self.view.removeImageLayer(self.layer)
+                        throw e;
+                    })
 
                 // Max order
                 maxOrder = PropertyParser.maxOrder(options, properties);

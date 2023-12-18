@@ -28,7 +28,6 @@
  * Author: Matthieu Baumann[CDS]
  * 
  *****************************************************************************/
- import { VOTable } from "./VOTable.js";
  import { Datalink } from "./Datalink.js";
  import { Utils } from '../Utils';
 

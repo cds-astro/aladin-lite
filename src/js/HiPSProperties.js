@@ -76,8 +76,6 @@ HiPSProperties.fetchFromUrl = async function(urlOrId) {
         // Relative path
         try {
             urlOrId = Utils.getAbsoluteURL(urlOrId)
-            //console.log("jjjj", urlOrId)
-
 
             urlOrId = new URL(urlOrId);
         } catch(e) {
@@ -105,7 +103,6 @@ HiPSProperties.fetchFromUrl = async function(urlOrId) {
     if (Utils.requestCORSIfNotSameOrigin(url)) {
         init = { mode: 'cors' };
     }
-    console.log('url', url)
 
     let result = fetch(url, init)
         .then((response) => {
@@ -158,6 +155,8 @@ HiPSProperties.getFasterMirrorUrl = function (metadata) {
 
     // Get all the possible hips_service_url urls
     let promises = [];
+    let urls = [metadata.hips_service_url];
+
     promises.push(pingHiPSServiceUrl(metadata.hips_service_url));
 
     let numHiPSServiceURL = 1;
@@ -167,6 +166,8 @@ HiPSProperties.getFasterMirrorUrl = function (metadata) {
         let curUrl = metadata[key];
         promises.push(pingHiPSServiceUrl(curUrl))
         numHiPSServiceURL += 1;
+
+        urls.push(curUrl)
     }
 
     return Promise.all(promises)
@@ -193,9 +194,12 @@ HiPSProperties.getFasterMirrorUrl = function (metadata) {
                 } else {
                     return validResponses[0].baseUrl;
                 }
-            } else {
+            } else if (validResponses.length === 1) {
                 return validResponses[0].baseUrl;
+            } else {
+                // no valid response => we return an error
+                throw 'Survey not found. All mirrors urls have been tested:' + urls
             }
         })
-        .then((url) => Utils.fixURLForHTTPS(url));
+        .then((url) => Utils.fixURLForHTTPS(url))
 }

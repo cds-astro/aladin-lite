@@ -70,10 +70,6 @@ export let ImageFITS = (function () {
         this.query = Promise.resolve(self);
     }
 
-    ImageFITS.prototype.isReady = function() {
-        return this.added;
-    }
-
     // @api
     ImageFITS.prototype.setOpacity = function (opacity) {
         let self = this;
@@ -249,15 +245,6 @@ export let ImageFITS = (function () {
     ImageFITS.prototype.isPlanetaryBody = function() {
         return false;
     }
-
-    // @api
-    ImageFITS.prototype.focusOn = function () {
-        // ensure the fits have been parsed
-        if (this.added) {
-            this.view.aladin.gotoRaDec(this.ra, this.dec);
-            this.view.aladin.setFoV(this.fov);
-        }
-    };
 
     // @oldapi
     ImageFITS.prototype.setAlpha = ImageFITS.prototype.setOpacity;

@@ -29,7 +29,6 @@
  *****************************************************************************/
 import { Utils } from "./Utils";
 import { ALEvent } from "./events/ALEvent.js";
-import { CooFrameEnum } from "./CooFrameEnum.js"
 import { ColorCfg } from "./ColorCfg.js";
 import { ImageLayer } from "./ImageLayer.js";
 import { HiPSProperties } from "./HiPSProperties.js";
@@ -56,11 +55,8 @@ PropertyParser.frame = function(options, properties = {}) {
         frame = "ICRS";
     } else if (frame == "galactic") {
         frame = "GAL";
-    } else if (frame === undefined) {
-        frame = "ICRS";
-        console.warn('No cooframe given. Coordinate systems supported: "ICRS", "ICRSd", "j2000" or "galactic". ICRS is chosen by default');
     } else {
-        frame = "ICRSd";
+        frame = "ICRS";
         console.warn('Invalid cooframe given: ' + cooFrame + '. Coordinate systems supported: "ICRS", "ICRSd", "j2000" or "galactic". ICRS is chosen by default');
     }
 
@@ -128,14 +124,42 @@ PropertyParser.isPlanetaryBody = function(options, properties = {}) {
     return properties.hips_body !== undefined;
 }
 
+/**
+ * @typedef {Object} ImageSurveyOptions
+ * 
+ * @property {number} [opacity=1.0] - Opacity of the survey or image (value between 0 and 1).
+ * @property {string} [colormap="native"] - The colormap configuration for the survey or image.
+ * @property {string} [stretch="linear"] - The stretch configuration for the survey or image.
+ * @property {boolean} [reversed=false] - If true, the colormap is reversed; otherwise, it is not reversed.
+ * @property {number} [minCut] - The minimum cut value for the color configuration. If not given, 0.0 for JPEG/PNG surveys, the value of the property file for FITS surveys
+ * @property {number} [maxCut] - The maximum cut value for the color configuration. If not given, 1.0 for JPEG/PNG surveys, the value of the property file for FITS surveys
+ * @property {boolean} [additive=false] - If true, additive blending is applied; otherwise, it is not applied.
+ * @property {number} [gamma=1.0] - The gamma correction value for the color configuration.
+ * @property {number} [saturation=0.0] - The saturation value for the color configuration.
+ * @property {number} [brightness=0.0] - The brightness value for the color configuration.
+ * @property {number} [contrast=0.0] - The contrast value for the color configuration.
+ * @property {number} [maxOrder] - If not given, retrieved from the properties of the survey.
+ * @property {number} [minOrder] - If not given, retrieved from the properties of the survey.
+ * @property {boolean} [longitudeReversed=false] - Set it to True for planetary survey visualization
+ * @property {string} [imgFormat] - If not given, look into the properties to see the accepted format. The format is chosen from PNG > WEBP > JPEG > FITS (in this importance order).
+ * @property {string} [cooFrame] - If not given, look into the properties. If it is a planet, then ICRS is chosen, otherwise its hips_frame key is read. If no value is found in the properties, ICRS is chosen by default. 
+ */
 export let ImageSurvey = (function () {
-    /** Constructor
-     * cooFrame and maxOrder can be set to null
-     * They will be determined by reading the properties file
+    /**
+     * The object describing an image survey
      *
+     * @class
+     * @constructs ImageSurvey
+     * 
+     * @param {string} [id] - Optional, a uniq id for the survey. See {@link https://aladin.cds.unistra.fr/hips/list|here} for the list of IDs.
+     *      Keep in mind that it is better to directly provide an url as it will not request our mocserver first to get final survey tiles retrieval url.
+     * @param {string} [name] - The name of the survey to be displayed in the UI
+     * @param {string} url - The url where the survey is located. Check the hips list {@link https://aladin.cds.unistra.fr/hips/list|here} for the valid survey urls to display.
+     * @param {ImageSurveyOptions} [options] - The option for the survey
+     * 
+     * @description Prefer provide an url better than an id. If both are given, the url will be requested first for the survey data.
      */
     function ImageSurvey(id, name, url, view, options) {
-        // A reference to the view
         this.view = view;
         this.wasm = view.wasm;
         this.added = false;
@@ -179,7 +203,7 @@ export let ImageSurvey = (function () {
                 // Request all the properties to see which mirror is the fastest
                 HiPSProperties.getFasterMirrorUrl(properties)
                     .then((url) => {
-                        self.setUrl(url);
+                        self._setUrl(url);
                     })
                     .catch(e => {
                         alert(e);
@@ -373,11 +397,7 @@ export let ImageSurvey = (function () {
         })();
     };
 
-    ImageSurvey.prototype.isReady = function() {
-        return this.added;
-    }
-
-    ImageSurvey.prototype.setUrl = function (url) {
+    ImageSurvey.prototype._setUrl = function (url) {
         if (this.properties.url !== url) {
             console.info("Change url of ", this.id, " from ", this.properties.url, " to ", url)
 
@@ -389,13 +409,30 @@ export let ImageSurvey = (function () {
             this.properties.url = url;
         }
     }
-
+    /**
+     * Checks if the ImageSurvey represents a planetary body.
+     *
+     * This method returns a boolean indicating whether the ImageSurvey corresponds to a planetary body, e.g. the earth or a celestial body. 
+     *
+     * @memberof ImageSurvey
+     *
+     * @returns {boolean} Returns true if the ImageSurvey represents a planetary body; otherwise, returns false.
+     */
     ImageSurvey.prototype.isPlanetaryBody = function() {
         return this.properties.isPlanetaryBody;
     }
 
-    // @api
-    // TODO: include imgFormat inside the ImageSurvey's meta attribute
+    /**
+     * Sets the image format for the ImageSurvey.
+     *
+     * This method updates the image format of the ImageSurvey, performs format validation, and triggers the update of metadata.
+     *
+     * @memberof ImageSurvey
+     *
+     * @param {string} format - The desired image format. Should be one of ["fits", "png", "jpg", "webp"].
+     *
+     * @throws {string} Throws an error if the provided format is not one of the supported formats or if the format is not available for the specific ImageSurvey.
+     */
     ImageSurvey.prototype.setImageFormat = function (format) {
         let self = this;
         self.query
@@ -453,11 +490,24 @@ export let ImageSurvey = (function () {
             })
     };
 
+     /**
+     * Sets the opacity factor when rendering the ImageSurvey
+     *
+     * @memberof ImageSurvey
+     *
+     * @returns {string[]} Returns the formats accepted for the survey, i.e. the formats of tiles that are availables. Could be PNG, WEBP, JPG and FITS.
+     */
     ImageSurvey.prototype.getAvailableFormats = function() {
         return this.properties.formats;
     }
 
-    // @api
+    /**
+     * Sets the opacity factor when rendering the ImageSurvey
+     *
+     * @memberof ImageSurvey
+     *
+     * @param {number} opacity - Opacity of the survey to set. Between 0 and 1
+     */
     ImageSurvey.prototype.setOpacity = function (opacity) {
         let self = this;
         updateMetadata(self, () => {
@@ -465,47 +515,139 @@ export let ImageSurvey = (function () {
         });
     };
 
-    // @api
+    /**
+     * Sets the blending mode when rendering the ImageSurvey
+     *
+     * @memberof ImageSurvey
+     *
+     * @param {boolean} [additive=false] - 
+     * 
+     * @description Two rendering modes are availables i.e. the default one and the additive one.
+     * When rendering this survey on top of the already rendered ones, the final color of the screen is computed like:
+     * <br>
+     * <br>opacity * this_survey_color + (1 - opacity) * already_rendered_color for the default mode
+     * <br>opacity * this_survey_color + already_rendered_color for the additive mode
+     * <br>
+     * <br>
+     * Additive mode allows you to do linear survey color combination i.e. let's define 3 surveys named s1, s2, s3. Each could be associated to one color channel, i.e. s1 with red, s2 with green and s3 with the blue color channel.
+     * If the additive blending mode is enabled, then the final pixel color of your screen will be: rgb = [s1_opacity * s1_color; s2_opacity * s2_color; s3_opacity * s3_color]
+     */
     ImageSurvey.prototype.setBlendingConfig = function (additive = false) {
         updateMetadata(this, () => {
             this.colorCfg.setBlendingConfig(additive);
         });
     };
 
-    // @api
+    /**
+     * Sets the colormap when rendering the ImageSurvey.
+     *
+     * @memberof ImageSurvey
+     *
+     * @param {string} [colormap="grayscale"] - The colormap label to use. See {@link https://matplotlib.org/stable/users/explain/colors/colormaps.html|here} for more info about colormaps.
+     *      Possible values are:
+     * <br>"blues"
+     * <br>"cividis"
+     * <br>"cubehelix"
+     * <br>"eosb"
+     * <br>"grayscale"
+     * <br>"inferno"
+     * <br>"magma"
+     * <br>"native"
+     * <br>"parula"
+     * <br>"plasma"
+     * <br>"rainbow"
+     * <br>"rdbu"
+     * <br>"rdylbu"
+     * <br>"redtemperature"
+     * <br>"sinebow"
+     * <br>"spectral"
+     * <br>"summer"
+     * <br>"viridis"
+     * <br>"ylgnbu"
+     * <br>"ylorbr"
+     * <br>"red"
+     * <br>"green"
+     * <br>"blue"
+     * @param {Object} [options] - Options for the colormap
+     * @param {string} [options.stretch] - Stretching function of the colormap. Possible values are 'linear', 'asinh', 'log', 'sqrt', 'pow'. If no given, will not change it.
+     * @param {boolean} [options.reversed=false] - Reverse the colormap axis.
+    */
     ImageSurvey.prototype.setColormap = function (colormap, options) {
         updateMetadata(this, () => {
             this.colorCfg.setColormap(colormap, options);
         });
     }
 
-    // @api
+    /**
+     * Sets the gamma correction factor for the ImageSurvey.
+     *
+     * This method updates the gamma of the ImageSurvey.
+     *
+     * @memberof ImageSurvey
+     *
+     * @param {number} lowCut - The low cut value to set for the ImageSurvey.
+     * @param {number} highCut - The high cut value to set for the ImageSurvey.
+     */
     ImageSurvey.prototype.setCuts = function (lowCut, highCut) {
         updateMetadata(this, () => {
             this.colorCfg.setCuts(lowCut, highCut);
         });
     };
 
-    // @api
+    /**
+     * Sets the gamma correction factor for the ImageSurvey.
+     *
+     * This method updates the gamma of the ImageSurvey.
+     *
+     * @memberof ImageSurvey
+     *
+     * @param {number} gamma - The saturation value to set for the ImageSurvey. Between 0.1 and 10
+     */
     ImageSurvey.prototype.setGamma = function (gamma) {
         updateMetadata(this, () => {
             this.colorCfg.setGamma(gamma);
         });
     };
 
-    // @api
+    /**
+     * Sets the saturation for the ImageSurvey.
+     *
+     * This method updates the saturation of the ImageSurvey.
+     *
+     * @memberof ImageSurvey
+     *
+     * @param {number} saturation - The saturation value to set for the ImageSurvey. Between 0 and 1
+     */
     ImageSurvey.prototype.setSaturation = function (saturation) {
         updateMetadata(this, () => {
             this.colorCfg.setSaturation(saturation);
         });
     };
 
+    /**
+     * Sets the brightness for the ImageSurvey.
+     *
+     * This method updates the brightness of the ImageSurvey.
+     *
+     * @memberof ImageSurvey
+     *
+     * @param {number} brightness - The brightness value to set for the ImageSurvey. Between 0 and 1
+     */
     ImageSurvey.prototype.setBrightness = function (brightness) {
         updateMetadata(this, () => {
             this.colorCfg.setBrightness(brightness);
         });
     };
 
+    /**
+     * Sets the contrast for the ImageSurvey.
+     *
+     * This method updates the contrast of the ImageSurvey and triggers the update of metadata.
+     *
+     * @memberof ImageSurvey
+     *
+     * @param {number} contrast - The contrast value to set for the ImageSurvey. Between 0 and 1
+     */
     ImageSurvey.prototype.setContrast = function (contrast) {
         updateMetadata(this, () => {
             this.colorCfg.setContrast(contrast);
@@ -521,7 +663,7 @@ export let ImageSurvey = (function () {
     }
 
     // Private method for updating the backend with the new meta
-    var updateMetadata = function (self, callback = undefined) {
+    var updateMetadata = function (self, callback) {
         if (callback) {
             callback();
         }

@@ -28,9 +28,15 @@
  * 
  *****************************************************************************/
 
-export let AladinUtils = (function() {
+export let AladinUtils = {
 
-    return {
+
+        HEALPix: {
+            vertices: function() {
+
+            }
+        },
+
     	/**
     	 * passage de xy projection à xy dans la vue écran 
     	 * @param x
@@ -40,6 +46,7 @@ export let AladinUtils = (function() {
     	 * @param largestDim largest dimension of the view
     	 * @returns position in the view
     	 */
+        /*
     	xyToView: function(x, y, width, height, largestDim, zoomFactor, round) {
     	    if (round==undefined) {
                 // we round by default
@@ -54,7 +61,7 @@ export let AladinUtils = (function() {
     	    else {
                 return {vx: largestDim/2*(1+zoomFactor*x)-(largestDim-width)/2, vy: largestDim/2*(1+zoomFactor*y)-(largestDim-height)/2};
     	    }
-    	},
+    	},*/
     	
     	/**
     	 * passage de xy dans la vue écran à xy projection
@@ -66,9 +73,9 @@ export let AladinUtils = (function() {
     	 * @param zoomFactor
     	 * @returns position in xy projection
     	 */
-    	viewToXy: function(vx, vy, width, height, largestDim, zoomFactor) {
+    	/*viewToXy: function(vx, vy, width, height, largestDim, zoomFactor) {
     		return {x: ((2*vx+(largestDim-width))/largestDim-1)/zoomFactor, y: ((2*vy+(largestDim-height))/largestDim-1)/zoomFactor};
-    	},
+    	},*/
 
     	/**
     	 * convert a 
@@ -274,5 +281,3 @@ export let AladinUtils = (function() {
         }
  
     };
-
-})();

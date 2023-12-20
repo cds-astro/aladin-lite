@@ -490,7 +490,7 @@ export let View = (function () {
             try {
                 const lonlat = view.wasm.screenToWorld(xymouse.x, xymouse.y);
                 var radec = view.wasm.viewToICRSCooSys(lonlat[0], lonlat[1]);
-                view.pointTo(radec[0], radec[1], { forceAnimation: true });
+                view.pointTo(radec[0], radec[1]);
             }
             catch (err) {
                 return;
@@ -1320,17 +1320,19 @@ export let View = (function () {
                 }
             }, a);
 
-            a.contextMenu.attach([
-                {
-                    label: Layout.horizontal([sampBtn, a.samp ? 'Send selection to SAMP' : 'SAMP disabled']),
-                },
-                {
-                    label: 'Remove selection',
-                    action(o) {
-                        a.view.unselectObjects();
+            if (a.contextMenu) {
+                a.contextMenu.attach([
+                    {
+                        label: Layout.horizontal([sampBtn, a.samp ? 'Send selection to SAMP' : 'SAMP disabled']),
+                    },
+                    {
+                        label: 'Remove selection',
+                        action(o) {
+                            a.view.unselectObjects();
+                        }
                     }
-                }
-            ]);
+                ]);
+            }
         }
     }
 
@@ -1342,8 +1344,7 @@ export let View = (function () {
     // initialAccDelta must be consistent with fovDegrees here
     View.prototype.setZoom = function (fovDegrees) {
         fovDegrees = Math.min(fovDegrees, this.projection.fov);
-        console.log(fovDegrees)
-        
+
         this.wasm.setFieldOfView(fovDegrees);
         this.updateZoomState();
     };
@@ -1748,8 +1749,7 @@ export let View = (function () {
      * @param options
      *
      */
-    View.prototype.pointTo = function (ra, dec, options) {
-        options = options || {};
+    View.prototype.pointTo = function (ra, dec) {
         ra = parseFloat(ra);
         dec = parseFloat(dec);
 
@@ -1775,6 +1775,7 @@ export let View = (function () {
         // hide the popup if it is open
         this.aladin.hidePopup();
     };
+
     View.prototype.makeUniqLayerName = function (name) {
         if (!this.layerNameExists(name)) {
             return name;

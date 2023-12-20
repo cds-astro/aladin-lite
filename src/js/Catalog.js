@@ -42,7 +42,7 @@ import A from "./A.js";
  * Represents a catalog with configurable options for display and interaction.
  *
  * @namespace
- * @typedef {Object} Aladin
+ * @typedef {Object} Catalog
  */
 export let Catalog = (function() {
     /**

@@ -183,7 +183,7 @@
 
     // @api
     // Optional arguments, 
-    ColorCfg.prototype.setColormap = function(colormap = "native", options = {}) {
+    ColorCfg.prototype.setColormap = function(colormap = "native", options) {
         /// colormap
         // Make it case insensitive
         let cmap = formatColormap(colormap);

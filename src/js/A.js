@@ -70,49 +70,6 @@ let A = {};
 // This facade allows for more flexibility as objects can be updated/renamed harmlessly
 
 /**
- * @typedef {Object} AladinOptions
- * @description Options for configuring the Aladin Lite instance.
- *
- * @property {string} [survey="https://alaskybis.unistra.fr/DSS/DSSColor"] URL or ID of the survey to use
- * @property {string[]} [surveyUrl=["https://alaskybis.unistra.fr/DSS/DSSColor", "https://alasky.unistra.fr/DSS/DSSColor"]]
- *   Array of URLs for the survey images. This replaces the survey parameter.
- * @property {string} [target="0 +0"] - Target coordinates for the initial view.
- * @property {string} [cooFrame="J2000"] - Coordinate frame.
- * @property {number} [fov=60] - Field of view in degrees.
- * @property {string} [backgroundColor="rgb(60, 60, 60)"] - Background color in RGB format.
- *
- * @property {boolean} [showZoomControl=true] - Whether to show the zoom control toolbar.
- * @property {boolean} [showLayersControl=true] - Whether to show the layers control toolbar.
- * @property {boolean} [showFullscreenControl=true] - Whether to show the fullscreen control toolbar.
- * @property {boolean} [showGotoControl=true] - Whether to show the goto control toolbar.
- * @property {boolean} [showSimbadPointerControl=false] - Whether to show the Simbad pointer control toolbar.
- * @property {boolean} [showCooGridControl=false] - Whether to show the coordinate grid control toolbar.
- * @property {boolean} [showSettingsControl=true] - Whether to show the settings control toolbar.
- *
- * @property {boolean} [showShareControl=false] - Whether to show the share control toolbar.
- *
- * @property {boolean} [showFrame=true] - Whether to show the viewport frame.
- * @property {boolean} [showFov=true] - Whether to show the field of view indicator.
- * @property {boolean} [showCooLocation=true] - Whether to show the coordinate location indicator.
- * @property {boolean} [showProjectionControl=true] - Whether to show the projection control toolbar.
- *
- * @property {boolean} [showContextMenu=false] - Whether to show the context menu.
- * @property {boolean} [showReticle=true] - Whether to show the reticle.
- * @property {boolean} [showCatalog=true] - Whether to show the catalog.
- *
- * @property {boolean} [fullScreen=false] - Whether to start in full-screen mode.
- * @property {string} [reticleColor="rgb(178, 50, 178)"] - Color of the reticle in RGB format.
- * @property {number} [reticleSize=22] - Size of the reticle.
- * @property {string} [gridColor="rgb(0, 255, 0)"] - Color of the grid in RGB format.
- * @property {number} [gridOpacity=0.5] - Opacity of the grid (0 to 1).
- * @property {string} [projection="SIN"] - Projection type.
- * @property {boolean} [log=true] - Whether to log events.
- * @property {boolean} [samp=false] - Whether to enable SAMP (Simple Application Messaging Protocol).
- * @property {boolean} [realFullscreen=false] - Whether to use real fullscreen mode.
- * @property {boolean} [pixelateCanvas=true] - Whether to pixelate the canvas.
- */
-
-/**
  * Creates an Aladin Lite instance within the specified HTML element.
  *
  * @function

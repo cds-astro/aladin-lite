@@ -462,6 +462,12 @@ impl Ord for HEALPixCell {
     }
 }
 
+// Utils
+#[inline(always)]
+pub fn nside2depth(nside: u32) -> u8 {
+    crate::math::utils::log_2_unchecked(nside) as u8
+}
+
 mod tests {
     use super::HEALPixCell;
 

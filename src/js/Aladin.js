@@ -706,20 +706,9 @@ export let Aladin = (function () {
      * <br>"STG" (Stereographic projection)
      * <br>"SIN" (Orthographic projection)
      * <br>"ZEA" (Zenital equal-area projection)
-     * <br>"FEYE" (Fish eye projection)
-     * <br>"AIR" (Airy projection)
-     * <br>"ARC" (Zenital equidistant projection)
-     * <br>"NCP" (North celestial pole projection)
      * <br>"MER" (Mercator projection)
-     * <br>"CAR" (Plate Carrée projection)
-     * <br>"CEA" (Cylindrical equal area projection)
-     * <br>"CYP" (Cylindrical perspective projection)
      * <br>"AIT" (Hammer-Aitoff projection)
-     * <br>"PAR" (Parabolic projection)
-     * <br>"SFL" (Sanson-Flamsteed projection)
      * <br>"MOL" (Mollweide projection)
-     * <br>"COD" (Conic equidistant projection)
-     * <br>"HPX" (Healpix projection)
     *
     * @example
     * // Set the projection to 'orthographic'

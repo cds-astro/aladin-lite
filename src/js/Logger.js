@@ -34,7 +34,6 @@ Logger.log = function(action, params) {
             data: {"action": action, "params": paramStr, "pageUrl": window.location.href, "referer": document.referrer ? document.referrer : ""},
             method: 'GET',
         });
-        
     }
     catch(e) {
         window.console && console.log('Exception: ' + e);

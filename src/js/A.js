@@ -42,6 +42,7 @@ import { ColorCfg } from './ColorCfg.js';
 import { Footprint } from './Footprint.js';
 import { Toolbar } from "./gui/widgets/Toolbar.js";
 import { Aladin } from "./Aladin.js";
+import { ALEvent } from "./events/ALEvent.js";
 // Wasm top level import
 import init, * as module from './../core/pkg';
 
@@ -515,5 +516,34 @@ A.init = (async () => {
         throw "WebGL2 not supported by your browser";
     }
 })();
+
+/**
+ * Gives to the user an entry point to the WebAssembly API 
+ * This should not be used. Prefer calling the JS API instead
+ *
+ * @function
+ * @name A.queryWasmAPI
+ * @memberof A
+ * @async
+ * 
+ * @param {Function} callback - A callback with the wasm object as parameter
+ *
+ * @throws {string} Throws an error if WebGL2 is not supported by the browser.
+ *
+ * @example
+ * // Usage example:
+ * A.queryWasmAPI((wasm) => {
+ *      let vertices = wasm.HEALPixVertices(8, [0, 1, 2])
+ * })
+ */
+A.queryWasmAPI = function(callback) {
+    (async () => {
+        await A.init;
+
+        if (Aladin.wasmLibs.core) {
+            callback(Aladin.wasmLibs.core)
+        }        
+    })();
+};
 
 export default A;

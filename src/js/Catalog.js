@@ -670,7 +670,7 @@ export let Catalog = (function() {
         this.footprints = [];
     };
 
-    Catalog.prototype.draw = function(ctx, frame, width, height, largestDim, zoomFactor) {
+    Catalog.prototype.draw = function(ctx, frame, width, height, largestDim) {
         if (! this.isShowing) {
             return;
         }

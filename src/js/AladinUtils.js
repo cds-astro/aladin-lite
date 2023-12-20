@@ -27,13 +27,123 @@
  * Author: Thomas Boch[CDS]
  * 
  *****************************************************************************/
+import { HPXVertices } from "../core/pkg/core";
+import A from "./A";
+import { Aladin } from "./Aladin";
 
+/**
+ * @namespace AladinUtils
+ * @description Aladin Lite utils API namespace for basic functions
+ */
 export let AladinUtils = {
-
-
+        /**
+         * @namespace HEALPix
+         * @memberof AladinUtils
+         * @description Namespace for HEALPix-related utilities within the Aladin Lite API.
+         */
         HEALPix: {
-            vertices: function() {
+            /**
+             * Represents a geographical point with longitude and latitude coordinates.
+             *
+             * @typedef {Object} LonLat
+             * @property {number} lon - The longitude coordinate.
+             * @property {number} lat - The latitude coordinate.
+             */
 
+            /**
+             * Represents the vertices of a HEALPix cell, where each vertex is a LonLat object.
+             *
+             * @typedef {Object} HpxCellVertices
+             * @property {LonLat} v1 - The first vertex.
+             * @property {LonLat} v2 - The second vertex.
+             * @property {LonLat} v3 - The third vertex.
+             * @property {LonLat} v4 - The fourth vertex.
+             */
+
+            /**
+             * Computes HEALPix vertices for a given NSIDE and pixel index (ipix).
+             *
+             * @function
+             * @memberof AladinUtils.HEALPix
+             * @name vertices
+             *
+             * @param {number} nside - NSIDE parameter for the HEALPix grid.
+             * @param {number | number[]} ipix - Pixel index or an array of pixel indices.
+             * @throws {string} Throws an error if A.init is not called first.
+             * @returns {HpxCellVertices[]} vertices - An array representing HEALPix cell vertices. Each element has v1, v2, v3, v4 properties. Each vi is an object having a lon and a lat property.
+             */
+            vertices: function(nside, ipix) {
+                let wasm = Aladin.wasmLibs.core;
+                if (!wasm) {
+                    throw 'A.init must be called first'
+                }
+
+                // Cast to 1d array
+                if (!Array.isArray(ipix)) {
+                    ipix = [ipix];
+                }
+
+                const vertices = wasm.HEALPixVertices(nside, ipix)
+                return vertices;
+            },
+
+           /**
+             * Computes HEALPix pixel indices from angular coordinates (longitude and latitude).
+             *
+             * @function
+             * @memberof AladinUtils.HEALPix
+             * @name ang2pix
+             *
+             * @param {number} nside - NSIDE parameter for the HEALPix grid.
+             * @param {number | number[]} lon - Longitude or an array of longitudes.
+             * @param {number | number[]} lat - Latitude or an array of latitudes.
+             * @throws {string} Throws an error if A.init is not called first.
+             * @returns {number | number[]} ipix - Pixel index or an array of pixel indices.
+             */
+            ang2pix: function(nside, lon, lat) {
+                let wasm = Aladin.wasmLibs.core;
+                if (!wasm) {
+                    throw 'A.init must be called first'
+                }
+
+                if (!Array.isArray(lon)) {
+                    lon = [lon];
+                }
+
+                if (!Array.isArray(lat)) {
+                    lat = [lat];
+                }
+
+                const ipix = wasm.HEALPixAng2Pix(nside, lon, lat)
+                return ipix;
+            },
+
+            /**
+             * Computes angular coordinates (longitude and latitude) from HEALPix pixel indices.
+             *
+             * @function
+             * @memberof AladinUtils.HEALPix
+             * @name pix2ang
+             *
+             * @param {number} nside - NSIDE parameter for the HEALPix grid.
+             * @param {number | number[]} ipix - Pixel index or an array of pixel indices.
+             *
+             * @throws {string} Throws an error if A.init is not called first.
+             * @returns {LonLat | LonLat[]} lonlat - Longitude and latitude or an array of longitudes and latitudes.
+             */
+            pix2ang: function(nside, ipix) {
+                let wasm = Aladin.wasmLibs.core;
+                if (!wasm) {
+                    throw 'A.init must be called first'
+                }
+
+                // Cast to 1d array
+                if (!Array.isArray(ipix)) {
+                    ipix = [ipix];
+                }
+
+                const lonlat = wasm.HEALPixPix2Ang(nside, ipix)
+                return lonlat;
             }
         },
 
@@ -96,16 +206,44 @@ export let AladinUtils = {
 
             return AladinUtils.xyToView(xy.X, xy.Y, width, height, largestDim, zoomFactor, false);
         },*/
-        radecToViewXy: function(ra, dec, view) {
-            let xy = view.wasm.worldToScreen(ra, dec);
+
+        /**
+         * Converts celestial coordinates (ra, dec) to screen coordinates (x, y) in pixels within the view.
+         *
+         * @function
+         * @memberof AladinUtils
+         * @name radecToViewXy
+         *
+         * @param {number} ra - Right Ascension (RA) coordinate in degrees.
+         * @param {number} dec - Declination (Dec) coordinate in degrees.
+         * @param {Aladin} aladin - Aladin Lite object containing the WebAssembly API.
+         * @returns {number[]} xy - A 2 elements array representing the screen coordinates [X, Y] in pixels.
+         */
+        radecToViewXy: function(ra, dec, aladin) {
+            let xy = aladin.view.wasm.worldToScreen(ra, dec);
             return xy;
         },
 
-        viewXyToClipXy: function(x, y, view) {
-            let xy = view.wasm.screenToClip(x, y);
+        /**
+         * Converts screen coordinates (X, Y) to clip coordinates within the view (coordinates lying between 0 and 1).
+         *
+         * @function
+         * @memberof AladinUtils
+         * @name viewXyToClipXy
+         *
+         * @param {number} x - X-coordinate in pixel screen coordinates
+         * @param {number} y - Y-coordinate in pixel screen coordinates.
+         * @param {Aladin} aladin - Aladin Lite object containing the WebAssembly API.
+         * @returns {number[]} xy - An array representing the coordinates [X, Y] in clipping space.
+         */
+        viewXyToClipXy: function(x, y, aladin) {
+            let xy = aladin.view.wasm.screenToClip(x, y);
             return xy;
         },
     	
+        /**
+         * @deprecated since version 2.0
+         */
     	myRound: function(a) {
     		if (a<0) {
     			return -1*( (-a) | 0);
@@ -123,16 +261,16 @@ export let AladinUtils = {
     	 * @param height
     	 * @returns a boolean whether (vx, vy) is in the screen
     	 */
-    	isInsideViewXy: function(vx, vy, width, height) {
+    	/*isInsideViewXy: function(vx, vy, width, height) {
     		return vx >= 0 && vx < width && vy >= 0 && vy < height
-    	},
+    	},*/
     	
     	/**
     	 * tests whether a healpix pixel is visible or not
     	 * @param pixCorners array of position (xy view) of the corners of the pixel
     	 * @param viewW
     	 */
-    	isHpxPixVisible: function(pixCorners, viewWidth, viewHeight) {
+    	/*isHpxPixVisible: function(pixCorners, viewWidth, viewHeight) {
     		for (var i = 0; i<pixCorners.length; i++) {
     			if ( pixCorners[i].vx>=-20 && pixCorners[i].vx<(viewWidth+20) &&
     				 pixCorners[i].vy>=-20 && pixCorners[i].vy<(viewHeight+20) ) {
@@ -140,13 +278,8 @@ export let AladinUtils = {
     			}
     		}
     		return false;
-    	},
-    	
-    	ipixToIpix: function(npixIn, norderIn, norderOut) {
-    		var npixOut = [];
-    		if (norderIn>=norderOut) {
-    		}
-    	},
+    	},*/
+
         // Zoom is handled in the backend
         /*getZoomFactorForAngle: function(angleInDegrees, projectionMethod) {
             var p1 = {ra: 0, dec: 0};
@@ -161,17 +294,17 @@ export let AladinUtils = {
             return zoomFactor;
         },*/
 
-        counterClockwiseTriangle: function(x1, y1, x2, y2, x3, y3) {
+        /*counterClockwiseTriangle: function(x1, y1, x2, y2, x3, y3) {
             // From: https://math.stackexchange.com/questions/1324179/how-to-tell-if-3-connected-points-are-connected-clockwise-or-counter-clockwise
             // | x1, y1, 1 |
             // | x2, y2, 1 | > 0 => the triangle is given in anticlockwise order
             // | x3, y3, 1 |
     
             return x1*y2 + y1*x3 + x2*y3 - x3*y2 - y3*x1 - x2*y1 >= 0;
-        },
+        },*/
 
         // grow array b of vx,vy view positions by *val* pixels
-        grow2: function(b, val) {
+        /*grow2: function(b, val) {
             var j=0;
             for ( var i=0; i<4; i++ ) {
                 if ( b[i]==null ) {
@@ -229,7 +362,7 @@ export let AladinUtils = {
                 b1[c].vy+=chouilla;
             }
             return b1;
-        },
+        },*/
 
         // SVG icons templates are stored here rather than in a CSS, as to allow
         // to dynamically change the fill color

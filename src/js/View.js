@@ -138,9 +138,6 @@ export let View = (function () {
         lon = lat = 0;
         this.projection = ProjectionEnum.SIN;
 
-        // Prev time of the last frame
-        this.zoomFactor = this.wasm.getClipZoomFactor();
-
         this.viewCenter = { lon: lon, lat: lat }; // position of center of view
 
         this.cooFrame = CooFrameEnum.fromString(this.options.cooFrame, CooFrameEnum.J2000);
@@ -1105,6 +1102,7 @@ export let View = (function () {
             // specified fpsInterval not being a multiple of RAF's interval (16.7ms)
 
             // Drawing code
+
             try {
                 this.moving = this.wasm.update(elapsedTime);
             } catch (e) {
@@ -1143,7 +1141,7 @@ export let View = (function () {
 
             for (var i = 0; i < this.catalogs.length; i++) {
                 var cat = this.catalogs[i];
-                cat.draw(ctx, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor);
+                cat.draw(ctx, this.cooFrame, this.width, this.height, this.largestDim);
             }
         }
         // draw popup catalog
@@ -1153,11 +1151,11 @@ export let View = (function () {
                 this.catalogCanvasCleared = true;
             }
 
-            this.catalogForPopup.draw(ctx, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor);
+            this.catalogForPopup.draw(ctx, this.cooFrame, this.width, this.height, this.largestDim);
 
             // draw popup overlay layer
             if (this.overlayForPopup.isShowing) {
-                this.overlayForPopup.draw(ctx, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor);
+                this.overlayForPopup.draw(ctx, this.cooFrame, this.width, this.height, this.largestDim);
             }
         }
 
@@ -1413,7 +1411,6 @@ export let View = (function () {
 
     View.prototype.updateZoomState = function () {
         // Get the new zoom values from the backend
-        this.zoomFactor = this.wasm.getClipZoomFactor();
         let fov = this.wasm.getFieldOfView();
 
         // Update the pinch zoom parameters consequently

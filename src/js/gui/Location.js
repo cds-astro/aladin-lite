@@ -133,14 +133,16 @@ export class Location extends DOMElement {
         if (options.lon && options.lat) {
             updateFromLonLatFunc(options.lon, options.lat, options.frame, true);
         } else if (options.mouseX && options.mouseY) {
-            let radec = aladin.pix2world(options.mouseX, options.mouseY); // This is given in the frame of the view
-            if (radec) {
-                if (radec[0] < 0) {
-                    radec = [radec[0] + 360.0, radec[1]];
+            try {
+                let radec = aladin.pix2world(options.mouseX, options.mouseY); // This is given in the frame of the view
+                if (radec) {
+                    if (radec[0] < 0) {
+                        radec = [radec[0] + 360.0, radec[1]];
+                    }
+    
+                    updateFromLonLatFunc(radec[0], radec[1], options.frame, false);
                 }
-
-                updateFromLonLatFunc(radec[0], radec[1], options.frame, false);
-            }
+            } catch(e) {}
         }
     }
 

@@ -1221,10 +1221,11 @@ impl App {
     pub(crate) fn set_projection(&mut self, projection: ProjectionType) -> Result<(), JsValue> {
         self.projection = projection;
 
-        // Recompute the ndc_to_clip
-        self.camera.set_projection(&self.projection);
         // Recompute clip zoom factor
         self.layers.set_projection(&self.projection)?;
+        // Recompute the ndc_to_clip
+        self.camera.set_projection(&self.projection);
+
 
         self.request_for_new_tiles = true;
         self.request_redraw = true;

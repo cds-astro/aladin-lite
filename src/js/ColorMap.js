@@ -30,6 +30,9 @@
 
 import { AladinUtils } from "./AladinUtils.js";
 
+/**
+ * @deprecated since version 3.0
+ */
 export let ColorMap = (function() {
     
     

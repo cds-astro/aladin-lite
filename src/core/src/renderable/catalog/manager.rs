@@ -498,15 +498,15 @@ impl Catalog {
                         ProjectionType::Mol(_) => {
                             crate::shader::get_shader(gl, shaders, "CatalogMolVS", "CatalogFS")
                         }
-                        ProjectionType::Arc(_) => {
+                        /*ProjectionType::Arc(_) => {
                             crate::shader::get_shader(gl, shaders, "CatalogArcVS", "CatalogFS")
-                        }
+                        }*/
                         ProjectionType::Tan(_) => {
                             crate::shader::get_shader(gl, shaders, "CatalogTanVS", "CatalogFS")
                         }
-                        ProjectionType::Hpx(_) => {
+                        /*ProjectionType::Hpx(_) => {
                             crate::shader::get_shader(gl, shaders, "CatalogHpxVS", "CatalogFS")
-                        }
+                        }*/
                         _ => todo!(),
                     }?;
                     let shader_bound = shader.bind(gl);

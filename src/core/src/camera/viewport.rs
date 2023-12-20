@@ -357,12 +357,12 @@ impl CameraViewPort {
         let can_unzoom_more = match proj {
             ProjectionType::Tan(_)
             | ProjectionType::Mer(_)
-            | ProjectionType::Air(_)
-            | ProjectionType::Stg(_)
-            | ProjectionType::Car(_)
-            | ProjectionType::Cea(_)
-            | ProjectionType::Cyp(_)
-            | ProjectionType::Hpx(_) => false,
+            //| ProjectionType::Air(_)
+            | ProjectionType::Stg(_) => false,
+            //| ProjectionType::Car(_)
+            //| ProjectionType::Cea(_)
+            //| ProjectionType::Cyp(_)
+            //| ProjectionType::Hpx(_) => false,
             _ => true,
         };
 
@@ -382,7 +382,7 @@ impl CameraViewPort {
             {
                 (0.5 * (p1.x - p0.x).abs()).min(1.0)
             } else {
-                (aperture / aperture_start).0
+                1.0
             }
         } else {
             if let (Some(p0), Some(p1)) =
@@ -390,7 +390,7 @@ impl CameraViewPort {
             {
                 (0.5 * (p1.x - p0.x).abs()).min(1.0)
             } else {
-                (aperture / aperture_start).0
+                1.0
             }
         };
 

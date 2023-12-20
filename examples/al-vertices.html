@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+<head>
+</head>
+<body>
+
+<div id="aladin-lite-div" style="width: 1024px; height: 768px"></div>
+
+<script type="module">
+    import A from '../src/js/A.js';
+    import {AladinUtils} from '../src/js/AladinUtils.js';
+
+    A.init.then(() => {
+        let vertices = AladinUtils.HEALPix.vertices(8, 0n)
+
+        let lonlat = AladinUtils.HEALPix.pix2ang(8, 0n)
+
+        let ipix = AladinUtils.HEALPix.ang2pix(8, 0.1, 0.4)
+        console.log(vertices, lonlat, ipix)
+    })
+    
+</script>
+
+</body>
+</html>

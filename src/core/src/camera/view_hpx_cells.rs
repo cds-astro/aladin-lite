@@ -17,7 +17,7 @@ pub fn project(
     projection: &ProjectionType,
 ) -> Option<HEALPixCellProjeted> {
     match projection {
-        ProjectionType::Hpx(_) => {
+        /*ProjectionType::Hpx(_) => {
             let tri_idx_in_collignon_zone = |x: f64, y: f64| -> u8 {
                 let zoom_factor = camera.get_clip_zoom_factor() as f32;
                 let x = (((x as f32) / camera.get_width()) - 0.5) * zoom_factor;
@@ -53,7 +53,7 @@ pub fn project(
             } else {
                 Some(cell)
             }
-        }
+        }*/
         _ => Some(cell),
     }
 }

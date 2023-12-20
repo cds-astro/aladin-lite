@@ -120,6 +120,7 @@ use al_core::WebGlContext;
 use app::App;
 use cgmath::{Vector2, Vector4};
 
+use crate::healpix::cell::HEALPixCell;
 use math::angle::ArcDeg;
 use moclib::{
     moc::{CellMOCIntoIterator, CellMOCIterator, RangeMOCIterator},
@@ -232,7 +233,7 @@ impl WebClient {
             "ZEA" => self
                 .app
                 .set_projection(ProjectionType::Zea(mapproj::zenithal::zea::Zea::new())), /* Equal-area 		         */
-            "FEYE" => self
+            /*"FEYE" => self
                 .app
                 .set_projection(ProjectionType::Feye(mapproj::zenithal::feye::Feye::new())),
             "AIR" => {
@@ -240,19 +241,19 @@ impl WebClient {
                 //air_proj.set_n_iter(10);
                 //air_proj.set_eps(1e-12);
                 self.app.set_projection(ProjectionType::Air(air_proj))
-            }
+            }*/
             //"AZP",
-            "ARC" => self
+            /*"ARC" => self
                 .app
                 .set_projection(ProjectionType::Arc(mapproj::zenithal::arc::Arc::new())),
             "NCP" => self
                 .app
-                .set_projection(ProjectionType::Ncp(mapproj::zenithal::ncp::Ncp::new())),
+                .set_projection(ProjectionType::Ncp(mapproj::zenithal::ncp::Ncp::new())),*/
             // Cylindrical
             "MER" => self
                 .app
                 .set_projection(ProjectionType::Mer(mapproj::cylindrical::mer::Mer::new())),
-            "CAR" => self
+            /*"CAR" => self
                 .app
                 .set_projection(ProjectionType::Car(mapproj::cylindrical::car::Car::new())),
             "CEA" => self
@@ -260,34 +261,33 @@ impl WebClient {
                 .set_projection(ProjectionType::Cea(mapproj::cylindrical::cea::Cea::new())),
             "CYP" => self
                 .app
-                .set_projection(ProjectionType::Cyp(mapproj::cylindrical::cyp::Cyp::new())),
+                .set_projection(ProjectionType::Cyp(mapproj::cylindrical::cyp::Cyp::new())),*/
             // Pseudo-cylindrical
             "AIT" => self
                 .app
                 .set_projection(ProjectionType::Ait(mapproj::pseudocyl::ait::Ait::new())),
-            "PAR" => self
+            /*"PAR" => self
                 .app
                 .set_projection(ProjectionType::Par(mapproj::pseudocyl::par::Par::new())),
             "SFL" => self
                 .app
-                .set_projection(ProjectionType::Sfl(mapproj::pseudocyl::sfl::Sfl::new())),
+                .set_projection(ProjectionType::Sfl(mapproj::pseudocyl::sfl::Sfl::new())),*/
             "MOL" => {
                 let mut mol_proj = mapproj::pseudocyl::mol::Mol::new();
                 mol_proj.set_n_iter(10);
                 mol_proj.set_epsilon(1e-12);
 
                 self.app.set_projection(ProjectionType::Mol(mol_proj))
-            }
-            // Conic
-            "COD" => self
+            } // Conic
+            /*"COD" => self
                 .app
                 .set_projection(ProjectionType::Cod(mapproj::conic::cod::Cod::new())),
             // Hybrid
             "HPX" => self
                 .app
-                .set_projection(ProjectionType::Hpx(mapproj::hybrid::hpx::Hpx::new())),
+                .set_projection(ProjectionType::Hpx(mapproj::hybrid::hpx::Hpx::new())),*/
             _ => Err(JsValue::from_str(
-                "Not a valid projection name. AIT, ARC, SIN, TAN, MOL, HPX and MER are accepted",
+                "Not a valid projection name. AIT, ZEA, SIN, STG, TAN, MOL and MER are accepted",
             )),
         }
     }
@@ -1011,7 +1011,7 @@ impl WebClient {
         let v_in = &Vector4::new(1.0, 0.0, 0.0, 1.0);
 
         let mut moc = HEALPixCoverage::from_3d_coos(10, vertex_it, &v_in);
-        if (moc.sky_fraction() > 0.5) {
+        if moc.sky_fraction() > 0.5 {
             moc = moc.not();
         }
 
@@ -1056,4 +1056,88 @@ impl WebClient {
             0.0
         }
     }
+}
+
+#[wasm_bindgen]
+#[derive(Clone, Copy)]
+struct LonLat {
+    pub lon: f64,
+    pub lat: f64,
+}
+
+#[wasm_bindgen]
+#[derive(Clone, Copy)]
+struct HPXVertices {
+    pub v1: LonLat,
+    pub v2: LonLat,
+    pub v3: LonLat,
+    pub v4: LonLat,
+}
+
+/* HEALPix utils functions */
+#[wasm_bindgen(js_name = HEALPixVertices)]
+pub fn hpx_vertices(nside: u32, ipix: &[u64]) -> Result<Box<[HPXVertices]>, JsValue> {
+    let depth = crate::healpix::cell::nside2depth(nside);
+    let vertices = ipix
+        .iter()
+        .map(|i| {
+            let cell = HEALPixCell(depth, *i);
+            let vertices = cell.vertices();
+            HPXVertices {
+                v1: LonLat {
+                    lon: vertices[0].0,
+                    lat: vertices[0].1,
+                },
+                v2: LonLat {
+                    lon: vertices[1].0,
+                    lat: vertices[1].1,
+                },
+                v3: LonLat {
+                    lon: vertices[2].0,
+                    lat: vertices[2].1,
+                },
+                v4: LonLat {
+                    lon: vertices[3].0,
+                    lat: vertices[3].1,
+                },
+            }
+        })
+        .collect::<Vec<_>>()
+        .into_boxed_slice();
+
+    Ok(vertices)
+}
+
+#[wasm_bindgen(js_name = HEALPixPix2Ang)]
+pub fn hpx_pix2ang(nside: u32, ipix: &[u64]) -> Result<Box<[LonLat]>, JsValue> {
+    let depth = crate::healpix::cell::nside2depth(nside);
+    let vertices = ipix
+        .iter()
+        .map(|i| {
+            let cell = HEALPixCell(depth, *i);
+            let (lon, lat) = cell.center();
+
+            LonLat { lon, lat }
+        })
+        .collect::<Vec<_>>()
+        .into_boxed_slice();
+
+    Ok(vertices)
+}
+
+#[wasm_bindgen(js_name = HEALPixAng2Pix)]
+pub fn hpx_ang2pix(nside: u32, lon: &[f64], lat: &[f64]) -> Result<Box<[u64]>, JsValue> {
+    let depth = crate::healpix::cell::nside2depth(nside);
+    let vertices = lon
+        .iter()
+        .zip(lat.iter())
+        .map(|(&lon, &lat)| {
+            let cell = HEALPixCell::new(depth, lon, lat);
+
+            cell.idx()
+        })
+        .collect::<Vec<_>>()
+        .into_boxed_slice();
+
+    Ok(vertices)
 }

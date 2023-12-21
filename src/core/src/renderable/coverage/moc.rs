@@ -363,8 +363,6 @@ impl MOCIntern {
         match self.mode {
             RenderModeType::Perimeter { thickness, color }
             | RenderModeType::Edge { thickness, color } => {
-                let thickness = (thickness + 0.5) * 2.0 / camera.get_width();
-
                 rasterizer.add_stroke_paths(
                     paths_iter,
                     thickness,

@@ -89,6 +89,7 @@ export let Sesame = (function() {
 
         Sesame.lastObjectNameResolved = objectName;
         Utils.fetch({
+            desc: "Resolving name of: " + objectName,
             url: sesameUrl + objectName,
             dataType: 'text',
             useProxy: false,

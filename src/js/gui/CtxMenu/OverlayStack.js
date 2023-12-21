@@ -122,7 +122,7 @@ export class OverlayStack extends ContextMenu {
                                 
                                 self._hide();
 
-                                let catBox = CatalogQueryBox.getInstance(self.aladin, self.position.nextTo);
+                                let catBox = CatalogQueryBox.getInstance(self.aladin, self.position);
                                 catBox._show();
 
                                 self.mode = 'search';
@@ -359,7 +359,7 @@ export class OverlayStack extends ContextMenu {
         this.mode = 'stack';
 
         if (this.position) {
-            let catBox = CatalogQueryBox.getInstance(this.aladin, this.position.nextTo);
+            let catBox = CatalogQueryBox.getInstance(this.aladin, this.position);
             catBox._hide();
         }
        

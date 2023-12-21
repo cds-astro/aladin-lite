@@ -266,6 +266,7 @@ export let ProgressiveCat = (function() {
         _loadAllskyNewMethod: function() {
             var self = this;
             Utils.fetch({
+                desc: "Loading allsky tiles of: " + self.name,
                 url: self.rootUrl + '/' + 'Norder1/Allsky.tsv',
                 method: 'GET',
                 success: function(tsv) {
@@ -282,6 +283,7 @@ export let ProgressiveCat = (function() {
             });
 
             Utils.fetch({
+                desc: "Loading allsky order 2 tiles of: " + self.name,
                 url: self.rootUrl + '/' + 'Norder2/Allsky.tsv',
                 method: 'GET',
                 success: function(tsv) {
@@ -308,6 +310,7 @@ export let ProgressiveCat = (function() {
         _loadLevel2Sources: function() {
             var self = this;
             Utils.fetch({
+                desc: "Loading level 2 sources of: " + self.name,
                 url: self.rootUrl + '/' + 'Norder2/Allsky.xml',
                 method: 'GET',
                 success: function(text) {
@@ -329,6 +332,7 @@ export let ProgressiveCat = (function() {
         _loadLevel3Sources: function() {
             var self = this;
             Utils.fetch({
+                desc: "Loading level 3 sources of: " + self.name,
                 url: self.rootUrl + '/' + 'Norder3/Allsky.xml',
                 method: 'GET',
                 success: function(text) {
@@ -555,6 +559,7 @@ export let ProgressiveCat = (function() {
                             */
                             // ATTENTIOn : je passe en JSON direct, car je n'arrive pas a choper les 404 en JSONP
                             url: self.getTileURL(norder, ipix),
+                            desc: "Get tile .tsv " + norder + ' ' + ipix + ' of ' + self.name,
                             method: 'GET',
                             //dataType: 'jsonp',
                             success: function(tsv) {

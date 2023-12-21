@@ -438,7 +438,7 @@ export let Catalog = (function() {
             errorCallback,
             useProxy,
             raField,
-            decField
+            decField,
         )
     };
 

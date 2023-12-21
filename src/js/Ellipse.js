@@ -175,15 +175,15 @@ export let Ellipse = (function() {
             return;
         }
 
-        var centerXyview = AladinUtils.radecToViewXy(this.centerRaDec[0], this.centerRaDec[1], view);
+        var centerXyview = AladinUtils.radecToViewXy(this.centerRaDec[0], this.centerRaDec[1], view.aladin);
         if (!centerXyview) {
             // the center goes out of the projection
             // we do not draw it
             return;
         }
 
-        let circlePtXyViewRa = AladinUtils.radecToViewXy(this.centerRaDec[0] + this.radiusXDegrees, this.centerRaDec[1], view);
-        let circlePtXyViewDec = AladinUtils.radecToViewXy(this.centerRaDec[0], this.centerRaDec[1] + this.radiusYDegrees, view);
+        let circlePtXyViewRa = AladinUtils.radecToViewXy(this.centerRaDec[0] + this.radiusXDegrees, this.centerRaDec[1], view.aladin);
+        let circlePtXyViewDec = AladinUtils.radecToViewXy(this.centerRaDec[0], this.centerRaDec[1] + this.radiusYDegrees, view.aladin);
 
         if (!circlePtXyViewRa || !circlePtXyViewDec) {
             // the circle border goes out of the projection

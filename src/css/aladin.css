@@ -639,6 +639,23 @@ canvas {
     display: inline-block;
 }
 
+.aladin-img {
+    object-fit: 'contain';
+    vertical-align: 'middle';
+}
+
+@keyframes rotating {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+}
+.rotating {
+    animation: rotating 2s linear infinite;
+}
+
 .aladin-toolbar {
     display: flex;
     align-items: center;
@@ -700,7 +717,7 @@ canvas {
 
 .aladin-vertical-list {
     display: flex;
-    align-items: center; 
+    align-items: flex-end; 
     list-style: none;
     flex-direction: column;
 }
@@ -856,18 +873,12 @@ canvas {
     width: 100%;
 }
 
-.aladin-layer-label {
-	padding: 0 4px 0 4px;
-	color: #ddd;
-    border-radius: 8px;
-    cursor: pointer;
-    user-select: none;
-
+.aladin-status-bar-message {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 
-    max-width: 150px;
+    max-width: 40vw;
 }
 
 .aladin-sp-title a {

@@ -1490,6 +1490,11 @@ export let View = (function () {
         this.promises.push(imageLayerPromise);
 
         // All image layer promises must be completed (fullfilled or rejected)
+        console.log(imageLayer.name)
+        const task = {
+            message: 'Load layer: ' + imageLayer.name,
+            id: Utils.uuidv4(),
+        }
         Promise.allSettled(this.promises)
             .then(() => imageLayerPromise)
             // The promise is resolved and we now have access
@@ -1499,10 +1504,8 @@ export let View = (function () {
                 const promise = imageLayer.add(layer);
 
                 self.loadingState = true;
-                ALEvent.LOADING_START.dispatchedTo(this.aladinDiv, {
-                    label: layer.layer,
-                    msg: 'Load the layer: ' + layer.name
-                });
+                
+                ALEvent.FETCH.dispatchedTo(document, {task});
 
                 return promise;
             })
@@ -1523,7 +1526,8 @@ export let View = (function () {
             .finally(() => {
                 // Loading state is over
                 self.loadingState = false;
-                ALEvent.LOADING_STOP.dispatchedTo(this.aladinDiv, { label: layer.layer });
+                ALEvent.RESOURCE_FETCHED.dispatchedTo(document, {task});
+
                 self.imageLayersBeingQueried.delete(layer);
 
                 // Remove the settled promise
@@ -1660,6 +1664,14 @@ export let View = (function () {
     };
 
     View.prototype.setProjection = function (projName) {
+        if (this.projection.id === ProjectionEnum[projName].id) {
+            return;
+        }
+
+        if (!ProjectionEnum[projName]) {
+            throw projName + " is not a valid projection."
+        }
+
         this.projection = ProjectionEnum[projName];
 
         // Change the projection here

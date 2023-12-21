@@ -215,7 +215,7 @@ export let ImageFITS = (function () {
 
             return self;
         }).catch((e) => {
-            window.alert(e + ". See the console for more logging details. It may be possible CORS headers have not been set in the server where you want to download the file. If it is the case, try to manually download the FITS file first and then open it into aladin lite (e.g. by a drag and drop)")
+            window.alert(e + ". See the javascript console for more logging details.")
 
             if (self.errorCallback) {
                 self.errorCallback()
@@ -245,6 +245,15 @@ export let ImageFITS = (function () {
     ImageFITS.prototype.isPlanetaryBody = function() {
         return false;
     }
+
+    // @api
+    ImageFITS.prototype.focusOn = function () {
+        // ensure the fits have been parsed
+        if (this.added) {
+            this.view.aladin.gotoRaDec(this.ra, this.dec);
+            this.view.aladin.setFoV(this.fov);
+        }
+    };
 
     // @oldapi
     ImageFITS.prototype.setAlpha = ImageFITS.prototype.setOpacity;

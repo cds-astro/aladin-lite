@@ -59,6 +59,7 @@ export let PlanetaryFeaturesNameResolver = (function() {
 
         Utils.fetch({
             url: url ,
+            desc: "Resolving planet name: " + featureName,
             data: {"identifier": featureName, 'body': body, 'threshold': 0.7, 'format': 'csv'},
             method: 'GET',
             dataType: 'text',

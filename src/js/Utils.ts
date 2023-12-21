@@ -28,6 +28,8 @@
  *****************************************************************************/
 
 import {JSONP_PROXY} from "@/js/Constants";
+import { ALEvent } from './events/ALEvent';
+
 
 export let Utils: any = {}
 
@@ -304,6 +306,7 @@ Utils.getAjaxObject = function (url, method, dataType, useProxy) {
     })
 }
 */
+
 Utils.fetch = function(params) {
     let url = new URL(params.url);
     if (params.useProxy === true) {
@@ -321,6 +324,12 @@ Utils.fetch = function(params) {
         method: params.method || 'GET',
     })
 
+    let task = {
+        message: params.desc || 'fetching: ' + url,
+        id: Utils.uuidv4()
+    };
+    ALEvent.FETCH.dispatchedTo(document, {task});
+
     fetch(request)
         .then((resp) => {
             if (params.dataType && params.dataType.includes('json')) {
@@ -336,6 +345,9 @@ Utils.fetch = function(params) {
             } else {
                 alert(e)
             }
+        })
+        .finally(() => {
+            ALEvent.RESOURCE_FETCHED.dispatchedTo(document, {task});
         })
 }
 

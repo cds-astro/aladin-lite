@@ -38,7 +38,6 @@ import copyIconBtn from '../../../assets/icons/copy.svg';
 import { ALEvent } from "../events/ALEvent.js";
 import { Layout } from "./Layout.js";
 import { ActionButton } from "./Widgets/ActionButton.js";
-import { ShortLivedBox } from "./Box/ShortLivedBox.js";
 
 export class Location extends DOMElement {
     // constructor
@@ -153,19 +152,15 @@ export class Location extends DOMElement {
         navigator.clipboard.writeText(copyTextEl.innerText)
             .then(() => {
                 msg = 'successful'
-
-                let infoBox = ShortLivedBox.getInstance(this.aladin);
-                infoBox._show({
-                    content: 'Position saved!',
+                this.aladin.statusBar.appendMessage({
+                    message: 'Reticle location saved!',
                     duration: 2000,
-                    position: {
-                        anchor: 'center bottom'
-                    }
+                    type: 'info'
                 })
             })
-            .catch(() => {
+            .catch((e) => {
                 msg = 'unsuccessful'
-                console.info('Oops, unable to copy');
+                console.info('Oops, unable to copy', e);
             })
             .finally(() => {
                 console.info('Copying text command was ' + msg);

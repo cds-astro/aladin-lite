@@ -29,7 +29,7 @@
  *****************************************************************************/
 
 import { Box } from "../Widgets/Box.js";
- 
+
 export class ShortLivedBox extends Box {
     // Constructor
     constructor(aladin) {
@@ -44,9 +44,16 @@ export class ShortLivedBox extends Box {
     _show(options) {
         let duration = options.duration || 1000;
         
-        setTimeout(() => {
-            this._hide()
-        }, duration)
+        // clear the past timeout
+        if (this.idxTimeout) {
+            clearTimeout(this.idxTimeout)
+        }
+
+        if (duration !== 'unlimited') {
+            this.idxTimeout = setTimeout(() => {
+                this._hide()
+            }, duration)
+        }
 
         super._show(options);
     }

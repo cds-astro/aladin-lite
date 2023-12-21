@@ -150,7 +150,7 @@ export let Footprint= (function() {
                     y: s.y,
                 };
             } else {
-                var xy = AladinUtils.radecToViewXy(s.ra, s.dec, view);
+                var xy = AladinUtils.radecToViewXy(s.ra, s.dec, view.aladin);
                 if (!xy) {
                     return false;
                 }

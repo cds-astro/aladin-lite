@@ -157,7 +157,7 @@ export let Circle = (function() {
         }
         noStroke = noStroke===true || false;
 
-        var centerXyview = AladinUtils.radecToViewXy(this.centerRaDec[0], this.centerRaDec[1], view);
+        var centerXyview = AladinUtils.radecToViewXy(this.centerRaDec[0], this.centerRaDec[1], view.aladin);
         if (!centerXyview) {
             // the center goes out of the projection
             // we do not draw it
@@ -179,7 +179,7 @@ export let Circle = (function() {
                 ra = this.centerRaDec[0] + cardDirRa * this.radiusDegrees;
                 dec = this.centerRaDec[1] + cardDirDec * this.radiusDegrees;
 
-                vertOnCircle = AladinUtils.radecToViewXy(ra, dec, view);
+                vertOnCircle = AladinUtils.radecToViewXy(ra, dec, view.aladin);
 
                 if (vertOnCircle) {
                     dx = vertOnCircle[0] - this.center.x;

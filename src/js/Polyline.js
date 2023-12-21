@@ -43,16 +43,16 @@ import { ProjectionEnum } from "./ProjectionEnum.js";
 export let Polyline= (function() {
     function _calculateMag2ForNoSinProjections(line, view) {
         // check if the line is too big (in the clip space) to be drawn
-        const [x1, y1] = AladinUtils.viewXyToClipXy(line.x1, line.y1, view);
-        const [x2, y2] = AladinUtils.viewXyToClipXy(line.x2, line.y2, view);
+        const [x1, y1] = AladinUtils.viewXyToClipXy(line.x1, line.y1, view.aladin);
+        const [x2, y2] = AladinUtils.viewXyToClipXy(line.x2, line.y2, view.aladin);
 
         const mag2 = (x1 - x2)*(x1 - x2) + (y1 - y2)*(y1 - y2);
         return mag2;
     }
 
     function _isAcrossCollignonZoneForHpxProjection(line, view) {
-        const [x1, y1] = AladinUtils.viewXyToClipXy(line.x1, line.y1, view);
-        const [x2, y2] = AladinUtils.viewXyToClipXy(line.x2, line.y2, view);
+        const [x1, y1] = AladinUtils.viewXyToClipXy(line.x1, line.y1, view.aladin);
+        const [x2, y2] = AladinUtils.viewXyToClipXy(line.x2, line.y2, view.aladin);
 
         // x, y, between -1 and 1
         let triIdxCollignionZone = function(x, y) {
@@ -231,7 +231,7 @@ export let Polyline= (function() {
         let ymax = Number.NEGATIVE_INFINITY;
 
         for (var k=0; k<len; k++) {
-            var xyview = AladinUtils.radecToViewXy(this.radecArray[k][0], this.radecArray[k][1], view);
+            var xyview = AladinUtils.radecToViewXy(this.radecArray[k][0], this.radecArray[k][1], view.aladin);
             if (!xyview) {
                 return;
             }
@@ -397,7 +397,7 @@ export let Polyline= (function() {
 
         let pointXY = [];
         for (var j = 0; j < this.radecArray.length; j++) {
-            var xy = AladinUtils.radecToViewXy(this.radecArray[j][0], this.radecArray[j][1], view);
+            var xy = AladinUtils.radecToViewXy(this.radecArray[j][0], this.radecArray[j][1], view.aladin);
             if (!xy) {
                 return false;
             }

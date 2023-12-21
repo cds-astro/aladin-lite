@@ -18,10 +18,7 @@
 //
 
 import { CtxMenuActionButtonOpener } from "./CtxMenuOpener";
-import { ContextMenu } from "../Widgets/ContextMenu";
 import shareIconUrl from '../../../../assets/icons/share.svg';
-import { ProjectionEnum } from "../../ProjectionEnum";
-import { ShortLivedBox } from "../Box/ShortLivedBox";
 /******************************************************************************
  * Aladin Lite project
  *
@@ -58,13 +55,10 @@ import { ShortLivedBox } from "../Box/ShortLivedBox";
                     var url = aladin.getShareURL();
                     navigator.clipboard.writeText(url);
 
-                    let infoBox = ShortLivedBox.getInstance(aladin);
-                    infoBox._show({
-                        content: 'View URL saved into your clipboard!',
+                    aladin.statusBar.appendMessage({
+                        message: 'View URL saved into your clipboard!',
                         duration: 2000,
-                        position: {
-                            anchor: 'center bottom'
-                        }
+                        type: 'info'
                     })
                 }
             },
@@ -98,13 +92,10 @@ import { ShortLivedBox } from "../Box/ShortLivedBox";
                     let wcs = aladin.getViewWCS()
                     navigator.clipboard.writeText(JSON.stringify(wcs));
 
-                    let infoBox = ShortLivedBox.getInstance(aladin);
-                    infoBox._show({
-                        content: 'WCS saved!',
+                    aladin.statusBar.appendMessage({
+                        message: 'WCS saved into your clipboard!',
                         duration: 2000,
-                        position: {
-                            anchor: 'center bottom'
-                        }
+                        type: 'info'
                     })
                 }
             },

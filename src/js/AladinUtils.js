@@ -98,7 +98,7 @@ export let AladinUtils = {
              * @param {number | number[]} lon - Longitude or an array of longitudes.
              * @param {number | number[]} lat - Latitude or an array of latitudes.
              * @throws {string} Throws an error if A.init is not called first.
-             * @returns {number | number[]} ipix - Pixel index or an array of pixel indices.
+             * @returns {number[]} ipix - Pixel index or an array of pixel indices.
              */
             ang2pix: function(nside, lon, lat) {
                 let wasm = Aladin.wasmLibs.core;
@@ -129,7 +129,7 @@ export let AladinUtils = {
              * @param {number | number[]} ipix - Pixel index or an array of pixel indices.
              *
              * @throws {string} Throws an error if A.init is not called first.
-             * @returns {LonLat | LonLat[]} lonlat - Longitude and latitude or an array of longitudes and latitudes.
+             * @returns {LonLat[]} lonlat - Longitude and latitude or an array of longitudes and latitudes.
              */
             pix2ang: function(nside, ipix) {
                 let wasm = Aladin.wasmLibs.core;

@@ -303,7 +303,7 @@ A.catalog = function (options) {
 A.catalogFromURL = function (url, options, successCallback, errorCallback, useProxy) {
     options.url = url;
     var catalog = A.catalog(options);
-
+console.log(options)
     const processVOTable = function (table) {
         let {sources, footprints, fields, type} = table;
         catalog.setFields(fields);
@@ -516,34 +516,5 @@ A.init = (async () => {
         throw "WebGL2 not supported by your browser";
     }
 })();
-
-/**
- * Gives to the user an entry point to the WebAssembly API 
- * This should not be used. Prefer calling the JS API instead
- *
- * @function
- * @name A.queryWasmAPI
- * @memberof A
- * @async
- * 
- * @param {Function} callback - A callback with the wasm object as parameter
- *
- * @throws {string} Throws an error if WebGL2 is not supported by the browser.
- *
- * @example
- * // Usage example:
- * A.queryWasmAPI((wasm) => {
- *      let vertices = wasm.HEALPixVertices(8, [0, 1, 2])
- * })
- */
-A.queryWasmAPI = function(callback) {
-    (async () => {
-        await A.init;
-
-        if (Aladin.wasmLibs.core) {
-            callback(Aladin.wasmLibs.core)
-        }        
-    })();
-};
 
 export default A;

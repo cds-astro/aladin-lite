@@ -62,6 +62,7 @@ import { Input } from "./gui/Widgets/Input.js";
 
 import A from "./A.js";
 import { SnapshotActionButton } from "./gui/Button/Snapshot.js";
+import { StatusBarBox } from "./gui/Box/StatusBarBox.js";
 /**
  * @typedef {Object} AladinOptions
  * @description Options for configuring the Aladin Lite instance.
@@ -356,7 +357,7 @@ export let Aladin = (function () {
 
         ////////////////////////////////////////////////////
         let menu = new Menu({
-            direction: 'horizontal',
+            direction: 'vertical',
             position: {
                 anchor: 'right top'
             }
@@ -460,6 +461,11 @@ export let Aladin = (function () {
             
             this.addUI(zoomControlToolbar)
         }
+
+        // Status bar
+        if (options.showStatusBar) {
+            this.statusBar = new StatusBarBox(this);
+        }
     }
 
     /**** CONSTANTS ****/
@@ -498,6 +504,7 @@ export let Aladin = (function () {
 
         // Other UI elements
         showContextMenu: false,
+        showStatusBar: false,
         // Internal
         showReticle: true,
         showCatalog: true, // TODO: still used ??

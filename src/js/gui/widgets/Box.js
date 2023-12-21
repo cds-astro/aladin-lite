@@ -175,7 +175,13 @@ export class Box extends DOMElement {
         }
 
         if (this.options.content) {
-            this.appendContent(this.options.content);
+            let content = this.options.content
+
+            if (Array.isArray(content)) {
+                this.appendContent(Layout.horizontal(content));
+            } else {
+                this.appendContent(content);
+            }
         }
 
         if (this.options.position) {

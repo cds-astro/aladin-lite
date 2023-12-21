@@ -250,6 +250,7 @@ export class VOTable {
     constructor(url, successCallback, errorCallback, useProxy) {
         Utils.fetch({
             url,
+            desc: 'Loading VOTable located at: ' + url,
             useProxy,
             success: data => {
                 try {
@@ -280,7 +281,8 @@ export class VOTable {
         }
         
         // Case of SODA service
-        if(rsc.getAttribute('utype').includes('service')) {
+        let utype = rsc.getAttribute('utype');
+        if(utype && utype.includes('service')) {
             return VOTable._parseServiceRsc(rsc)
         }
 

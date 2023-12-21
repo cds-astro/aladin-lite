@@ -43,22 +43,7 @@ import { ProjectionEnum } from "../../ProjectionEnum";
      */
     constructor(aladin) {
         //let ctxMenu = ;
-        let layout = [];
-
-        let aladinProj = aladin.getProjectionName();
-        for (const key in ProjectionEnum) {
-            let proj = ProjectionEnum[key];
-            layout.push({
-                label: proj.label,
-                selected: aladinProj === key,
-                action(o) {
-                    aladin.setProjection(key)
-                }
-            })
-        }
-
         super({
-            ctxMenu: layout,
             iconURL: projectionSvg,
             tooltip: {content: 'Change the view projection', position: {direction: 'bottom'}},
             cssStyle: {
@@ -71,7 +56,33 @@ import { ProjectionEnum } from "../../ProjectionEnum";
             }*/
         }, aladin);
 
+        console.log("jkjkj", aladin)
+        let ctxMenu = this._buildLayout(aladin);
+        this.update({ctxMenu})
+
         this.addClass('medium-sized-icon')
+    }
+
+    _buildLayout(aladin) {
+        let layout = [];
+        let self = this;
+
+        let aladinProj = aladin.getProjectionName();
+        for (const key in ProjectionEnum) {
+            let proj = ProjectionEnum[key];
+            layout.push({
+                label: proj.label,
+                selected: aladinProj === key,
+                action(o) {
+                    aladin.setProjection(key)
+
+                    let ctxMenu = self._buildLayout(aladin);
+                    self.update({ctxMenu});
+                }
+            })
+        }
+
+        return layout;
     }
 
     _show() {

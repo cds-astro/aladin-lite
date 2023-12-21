@@ -68,6 +68,9 @@ export class ALEvent {
 
   static RETICLE_CHANGED = new ALEvent("AL:Reticle.changed")
 
+  static RESOURCE_FETCHED = new ALEvent("AL:Resource.fetched")
+  static FETCH = new ALEvent("AL:fetch")
+
   constructor(name) {
     this.name = name;
   }

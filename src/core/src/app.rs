@@ -486,9 +486,12 @@ impl App {
 
     pub(crate) fn add_moc(
         &mut self,
-        cfg: al_api::moc::MOC,
+        mut cfg: al_api::moc::MOC,
         moc: HEALPixCoverage,
     ) -> Result<(), JsValue> {
+        // change the moc thickness
+        cfg.line_width = (cfg.line_width + 0.5) * 2.0 / self.camera.get_width();
+
         self.moc
             .push_back(moc, cfg, &mut self.camera, &self.projection);
         self.request_redraw = true;
@@ -1225,7 +1228,6 @@ impl App {
         self.layers.set_projection(&self.projection)?;
         // Recompute the ndc_to_clip
         self.camera.set_projection(&self.projection);
-
 
         self.request_for_new_tiles = true;
         self.request_redraw = true;

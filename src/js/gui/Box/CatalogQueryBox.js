@@ -38,7 +38,7 @@ import { ContextMenu } from "../Widgets/ContextMenu.js";
  *****************************************************************************/
 
  export class CatalogQueryBox extends Box {
-    constructor(aladin, anchor) {
+    constructor(aladin, position) {
         const fnIdSelected = function(type, params) {
             if (type=='coneSearch') {
                 let errorCallback = (e) => {
@@ -100,10 +100,7 @@ import { ContextMenu } from "../Widgets/ContextMenu.js";
         }, aladin)
 
         super({
-            position: {
-                nextTo: anchor,
-                direction: 'bottom',
-            },
+            position,
             content: Layout.horizontal({
                 layout: [catNameTextInput, loadBtn]
             })
@@ -258,9 +255,9 @@ import { ContextMenu } from "../Widgets/ContextMenu.js";
 
     static layerSelector = undefined;
 
-    static getInstance(aladin, anchor) {
+    static getInstance(aladin, position) {
         if (!CatalogQueryBox.layerSelector) {
-            CatalogQueryBox.layerSelector = new CatalogQueryBox(aladin, anchor);
+            CatalogQueryBox.layerSelector = new CatalogQueryBox(aladin, position);
         }
 
         return CatalogQueryBox.layerSelector;

@@ -93,7 +93,14 @@ export class SettingsCtxMenu extends ContextMenu {
                 self.aladin.showHealpixGrid(newVal)
             }
         })
-        self.reticleCheckbox = Input.checkbox({name: 'reticle', checked: this.aladin.isReticleDisplayed()})
+        self.reticleCheckbox = Input.checkbox({
+            name: 'reticle',
+            checked: this.aladin.isReticleDisplayed(),
+            click(e) {
+                let newVal = self.toggleCheckbox(self.reticleCheckbox);
+                self.aladin.showReticle(newVal)
+            }
+        })
 
         this.menu = menu;
         
@@ -292,11 +299,15 @@ export class SettingsCtxMenu extends ContextMenu {
         ]);
     }
 
-    _show() {
+    _show(options) {
+        this.position = (options && options.position) || this.position || { anchor: 'center center'}; 
+
         super.show({
-            position: {
-                nextTo: this.menu.controls['settings'],
-                direction: 'bottom',
+            position: this.position,
+            cssStyle: {
+                color: 'white',
+                backgroundColor: 'black',
+                maxWidth: '20em',
             }
         })
     }

@@ -84,7 +84,7 @@ import { MainSurveyActionButton } from "../Button/MainSurvey";
                             survey._show({
                                 position: {
                                     nextTo: self.controls['survey'],
-                                    direction: 'bottom',
+                                    direction: options.direction === 'horizontal' ? 'bottom' : 'left',
                                 }
                             });
                         }
@@ -106,7 +106,7 @@ import { MainSurveyActionButton } from "../Button/MainSurvey";
                         stack._show({
                             position: {
                                 nextTo: self.controls['stack'],
-                                direction: 'bottom',
+                                direction: options.direction === 'horizontal' ? 'bottom' : 'left',
                             }
                         });
                     }
@@ -127,7 +127,7 @@ import { MainSurveyActionButton } from "../Button/MainSurvey";
                         overlay._show({
                             position: {
                                 nextTo: self.controls['overlay'],
-                                direction: 'bottom',
+                                direction: options.direction === 'horizontal' ? 'bottom' : 'left',
                             }
                         });
                     }
@@ -149,7 +149,7 @@ import { MainSurveyActionButton } from "../Button/MainSurvey";
                         goto._show({
                             position: {
                                 nextTo: self.controls['goto'],
-                                direction: 'bottom',
+                                direction: options.direction === 'horizontal' ? 'bottom' : 'left',
                             }
                         });
                     }
@@ -170,7 +170,7 @@ import { MainSurveyActionButton } from "../Button/MainSurvey";
                         grid._show({
                             position: {
                                 nextTo: self.controls['grid'],
-                                direction: 'bottom',
+                                direction: options.direction === 'horizontal' ? 'bottom' : 'left',
                             }
                         });
                     }
@@ -191,7 +191,7 @@ import { MainSurveyActionButton } from "../Button/MainSurvey";
                         settings._show({
                             position: {
                                 nextTo: self.controls["settings"],
-                                direction: 'bottom',
+                                direction: options.direction === 'horizontal' ? 'bottom' : 'left',
                             }
                         });
                     }

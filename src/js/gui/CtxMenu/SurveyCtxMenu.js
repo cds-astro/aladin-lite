@@ -27,7 +27,6 @@ export class SurveyCtxMenu extends ContextMenu {
             },
             action(o) {
                 if (!self.hipsBox) {
-                    console.log(self.position)
                     self.hipsBox = new HiPSSelectorBox({
                             layer: 'base',
                             position: self.position,

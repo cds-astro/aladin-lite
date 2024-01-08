@@ -16,9 +16,7 @@
             aladin.addCatalog(catalog)
         });
 
-        A.catalogFromVizieR('B/assocdata/obscore', '14 18 16.868 +56 44 29.37', 100, {onClick: 'showTable', limit: 1000}, (catalog) => {
-            aladin.addCatalog(catalog);
-        });
+        aladin.addCatalog(A.catalogFromVizieR("B/assocdata/obscore", "0 +0", 20, {limit: 1000}))
     });
 </script>
 </body>

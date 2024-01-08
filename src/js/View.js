@@ -510,7 +510,7 @@ export let View = (function () {
         let cutMaxInit = null;
 
         Utils.on(view.catalogCanvas, "mousedown touchstart", function (e) {
-            e.preventDefault();
+            //e.preventDefault();
             e.stopPropagation();
 
             const xymouse = Utils.relMouseCoords(e);
@@ -552,7 +552,7 @@ export let View = (function () {
             }
 
             // zoom pinching
-            if (e.type === 'touchstart' && e.originalEvent && e.originalEvent.targetTouches && e.originalEvent.targetTouches.length == 2) {
+            if (e.type === 'touchstart' && e.targetTouches && e.targetTouches.length == 2) {
                 view.dragging = false;
 
                 view.pinchZoomParameters.isPinching = true;
@@ -560,10 +560,10 @@ export let View = (function () {
                 //view.pinchZoomParameters.initialFov = Math.max(fov[0], fov[1]);
                 var fov = view.wasm.getFieldOfView();
                 view.pinchZoomParameters.initialFov = fov;
-                view.pinchZoomParameters.initialDistance = Math.sqrt(Math.pow(e.originalEvent.targetTouches[0].clientX - e.originalEvent.targetTouches[1].clientX, 2) + Math.pow(e.originalEvent.targetTouches[0].clientY - e.originalEvent.targetTouches[1].clientY, 2));
+                view.pinchZoomParameters.initialDistance = Math.sqrt(Math.pow(e.targetTouches[0].clientX - e.targetTouches[1].clientX, 2) + Math.pow(e.targetTouches[0].clientY - e.targetTouches[1].clientY, 2));
 
                 view.fingersRotationParameters.initialViewAngleFromCenter = view.wasm.getRotationAroundCenter();
-                view.fingersRotationParameters.initialFingerAngle = Math.atan2(e.originalEvent.targetTouches[1].clientY - e.originalEvent.targetTouches[0].clientY, e.originalEvent.targetTouches[1].clientX - e.originalEvent.targetTouches[0].clientX) * 180.0 / Math.PI;
+                view.fingersRotationParameters.initialFingerAngle = Math.atan2(e.targetTouches[1].clientY - e.targetTouches[0].clientY, e.targetTouches[1].clientX - e.targetTouches[0].clientX) * 180.0 / Math.PI;
 
                 return;
             }
@@ -772,7 +772,8 @@ export let View = (function () {
         var lastHoveredObject; // save last object hovered by mouse
         var lastMouseMovePos = null;
         Utils.on(view.catalogCanvas, "mousemove touchmove", function (e) {
-            e.preventDefault();
+            //e.preventDefault();
+            e.stopPropagation();
 
             const xymouse = Utils.relMouseCoords(e);
 
@@ -818,9 +819,9 @@ export let View = (function () {
                 return;
             }
 
-            if (e.type === 'touchmove' && view.pinchZoomParameters.isPinching && e.originalEvent && e.originalEvent.touches && e.originalEvent.touches.length == 2) {
+            if (e.type === 'touchmove' && view.pinchZoomParameters.isPinching && e.touches && e.touches.length == 2) {
                 // rotation
-                var currentFingerAngle = Math.atan2(e.originalEvent.targetTouches[1].clientY - e.originalEvent.targetTouches[0].clientY, e.originalEvent.targetTouches[1].clientX - e.originalEvent.targetTouches[0].clientX) * 180.0 / Math.PI;
+                var currentFingerAngle = Math.atan2(e.targetTouches[1].clientY - e.targetTouches[0].clientY, e.targetTouches[1].clientX - e.targetTouches[0].clientX) * 180.0 / Math.PI;
                 var fingerAngleDiff = view.fingersRotationParameters.initialFingerAngle - currentFingerAngle;
                 // rotation is initiated when angle is equal or greater than 7 degrees
                 if (!view.fingersRotationParameters.rotationInitiated && Math.abs(fingerAngleDiff) >= 7) {
@@ -842,7 +843,7 @@ export let View = (function () {
                 }
 
                 // zoom
-                const dist = Math.sqrt(Math.pow(e.originalEvent.touches[0].clientX - e.originalEvent.touches[1].clientX, 2) + Math.pow(e.originalEvent.touches[0].clientY - e.originalEvent.touches[1].clientY, 2));
+                const dist = Math.sqrt(Math.pow(e.touches[0].clientX - e.touches[1].clientX, 2) + Math.pow(e.touches[0].clientY - e.touches[1].clientY, 2));
                 const fov = Math.min(Math.max(view.pinchZoomParameters.initialFov * view.pinchZoomParameters.initialDistance / dist, 0.00002777777), view.projection.fov);
                 view.setZoom(fov);
 
@@ -957,7 +958,7 @@ export let View = (function () {
         var isTouchPad;
         var scale = 0.0;
         Utils.on(view.catalogCanvas, 'wheel', function (e) {
-            e.preventDefault();
+            //e.preventDefault();
             e.stopPropagation();
 
             const xymouse = Utils.relMouseCoords(e);
@@ -983,7 +984,7 @@ export let View = (function () {
             // this seems to happen in context of Jupyter notebook --> we have to invert the direction of scroll
             // hope this won't trigger some side effects ...
             /*if (e.hasOwnProperty('originalEvent')) {
-                delta = -e.originalEvent.deltaY;
+                delta = -e.deltaY;
             }*/
 
             // See https://stackoverflow.com/questions/10744645/detect-touchpad-vs-mouse-in-javascript
@@ -1490,7 +1491,6 @@ export let View = (function () {
         this.promises.push(imageLayerPromise);
 
         // All image layer promises must be completed (fullfilled or rejected)
-        console.log(imageLayer.name)
         const task = {
             message: 'Load layer: ' + imageLayer.name,
             id: Utils.uuidv4(),

@@ -49,9 +49,9 @@ export class OverlayStack extends ContextMenu {
         /*window.addEventListener("resize", (e) => {
             this._hide();
         })*/
-        
-        document.addEventListener('click', () => {
-            if (this.mode === 'stack') {
+        let self = this;
+        document.addEventListener('click', (e) => {
+            if (!self.el.contains(e.target) && this.mode === 'stack') {
                 this._hide()
             }
         });

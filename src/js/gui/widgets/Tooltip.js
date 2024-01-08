@@ -160,6 +160,11 @@ export class Tooltip extends DOMElement {
             if (target.tooltip) {
                 target.tooltip.update(options)
             } else {
+                // Do not create the tooltip if the device used has touch events
+                if ('ontouchstart' in window) {
+                    return;
+                }
+
                 target.tooltip = new Tooltip(options, target.element())
             }
         }

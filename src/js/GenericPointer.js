@@ -11,8 +11,9 @@ import { Utils } from './Utils';
 
 // allow to call either Simbad or Planetary features Pointers
 export let GenericPointer = function (view, e) {
-    const xymouse = Utils.relMouseCoords(e);
-    let radec = view.wasm.screenToWorld(xymouse.x, xymouse.y);
+    const xymouse = {x: e.clientX, y: e.clientY};
+
+    let radec = view.aladin.pix2world(xymouse.x, xymouse.y);
     if (radec) {
         // sky case
         if (view.aladin.getBaseImageLayer().isPlanetaryBody() === false) {

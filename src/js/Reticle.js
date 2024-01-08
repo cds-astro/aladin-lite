@@ -99,16 +99,19 @@ export let Reticle = (function() {
         })
     }
 
-    Reticle.prototype._setColor = function(color) {
+    Reticle.prototype._setColor = async function(color) {
         if (!color) {
             return;
         }
+
+        //await this.loaded;
 
         // 1. the user has maybe given some
         let reticleColor = new Color(color);
         // a dynamic way to set the color
         this.color = 'rgb(' + reticleColor.r + ', ' + reticleColor.g + ', ' + reticleColor.b + ')';
 
+        console.log(color, this.el)
         this.el.contentDocument
             .getElementById("reticle")
             .setAttribute('fill', this.color);

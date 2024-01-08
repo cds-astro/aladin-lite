@@ -303,7 +303,6 @@ A.catalog = function (options) {
 A.catalogFromURL = function (url, options, successCallback, errorCallback, useProxy) {
     options.url = url;
     var catalog = A.catalog(options);
-console.log(options)
     const processVOTable = function (table) {
         let {sources, footprints, fields, type} = table;
         catalog.setFields(fields);

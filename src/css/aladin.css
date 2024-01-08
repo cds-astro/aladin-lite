@@ -1,3 +1,5 @@
+body { overscroll-behavior: contain; }
+
 .aladin-container {
 	position: relative;
 	border: 1px solid #ddd;

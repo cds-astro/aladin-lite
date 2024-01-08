@@ -56,7 +56,6 @@ import { ProjectionEnum } from "../../ProjectionEnum";
             }*/
         }, aladin);
 
-        console.log("jkjkj", aladin)
         let ctxMenu = this._buildLayout(aladin);
         this.update({ctxMenu})
 

@@ -69,9 +69,10 @@ Utils.relMouseCoords = function (event: MouseEvent) {
 
         var clientX = e.clientX
         var clientY = e.clientY
-        if (e.originalEvent && e.originalEvent.changedTouches) {
-            clientX = e.originalEvent.changedTouches[0].clientX
-            clientY = e.originalEvent.changedTouches[0].clientY
+
+        if (e && e.changedTouches) {
+            clientX = e.changedTouches[0].clientX
+            clientY = e.changedTouches[0].clientY
         }
 
         var offsetX = clientX - borderLeftWidth - rect.left
@@ -354,7 +355,11 @@ Utils.fetch = function(params) {
 Utils.on = function(element, events, callback) {
     events.split(' ')
         .forEach(e => {
-            element.addEventListener(e, callback)
+            if (e === "touchstart" || e === 'touchmove' || e === "wheel") {
+                element.addEventListener(e, callback, {passive: true})
+            } else {
+                element.addEventListener(e, callback)
+            }
         })
 }
 

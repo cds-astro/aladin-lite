@@ -1673,7 +1673,7 @@ export let Aladin = (function () {
      * @throws {Error} Throws an error if an issue occurs during the transformation.
      */
     Aladin.prototype.pix2world = function (x, y) {
-        const [ra, dec] = this.wasm.screenToWorld(x, y);
+        const [ra, dec] = this.view.wasm.screenToWorld(x, y);
 
         if (ra < 0) {
             return [ra + 360.0, dec];
@@ -1695,7 +1695,7 @@ export let Aladin = (function () {
      * @throws {Error} Throws an error if an issue occurs during the transformation.
      */
     Aladin.prototype.world2pix = function (ra, dec) {
-        return this.wasm.worldToScreen(ra, dec);
+        return this.view.wasm.worldToScreen(ra, dec);
     };
 
      /**

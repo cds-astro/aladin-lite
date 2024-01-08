@@ -12,17 +12,17 @@
 
     let aladin;
     A.init.then(() => {
-        aladin = A.aladin('#aladin-lite-div', {survey: ["P/Mellinger"], cooFrame: 'galactic', fov: 1000, fullScreen: true, showCooGrid: true});
+        aladin = A.aladin('#aladin-lite-div', {survey: ["P/Mellinger"], cooFrame: 'galactic', fov: 1000, fullScreen: true});
         const meerkat = aladin.newImageSurvey('P/MeerKAT/Galactic-Centre-1284MHz-StokesI', {imgFormat: 'fits'});
         meerkat.setColormap('magma', {stretch: "asinh"})
         aladin.setOverlayImageLayer(meerkat)
-        aladin.setProjection("MOL")
+        aladin.setProjection("AIT")
 
         let fov = 1000;
         setInterval(function zoom() {
             if (fov > 1) {
                 fov *= 0.995;
-                aladin.setFov(fov);
+                aladin.setFoV(fov);
             }
         }, 10);
 

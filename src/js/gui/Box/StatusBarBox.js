@@ -109,13 +109,27 @@ export class StatusBarBox extends Box {
         this.el.title = task.message;
 
         // create message div
-        let messageDiv = document.createElement("div");
-        messageDiv.className = "aladin-status-bar-message";
-        messageDiv.innerHTML = task.message;
-        messageDiv.title = task.message;
+        let message = Layout.horizontal({
+            layout: [task.message],
+            tooltip: {
+                content: task.message,
+                position: {
+                    direction: "top",
+                },
+                cssStyle: {
+                    border: "1px solid white",
+                    fontSize: 'xx-small',
+                    maxWidth: "200px",
+                    "overflow-wrap": "break-word",
+                    "pointer-events": "auto",
+                }
+            },
+        });
+
+        message.addClass("aladin-status-bar-message")
 
         this._show({
-            content: [StatusBarBox.icons[task.type], messageDiv],
+            content: [StatusBarBox.icons[task.type], message],
             position: {
                 anchor: 'center bottom'
             }

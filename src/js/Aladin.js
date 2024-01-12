@@ -40,6 +40,7 @@ import { MeasurementTable } from "./MeasurementTable.js";
 import { ImageSurvey } from "./ImageSurvey.js";
 import { Coo } from "./libs/astro/coo.js";
 import { CooConversion } from "./CooConversion.js";
+import { GotoBox } from "./gui/Box/GotoBox.js";
 
 import { ProjectionEnum } from "./ProjectionEnum.js";
 
@@ -59,6 +60,7 @@ import { Menu } from "./gui/Toolbar/Menu.js";
 import { ContextMenu } from "./gui/Widgets/ContextMenu.js";
 import { ProjectionActionButton } from "./gui/Button/Projection.js";
 import { Input } from "./gui/Widgets/Input.js";
+import { ConeSearchBox } from "./gui/Box/ConeSearchBox.js";
 
 import A from "./A.js";
 import { SnapshotActionButton } from "./gui/Button/Snapshot.js";
@@ -316,6 +318,56 @@ export let Aladin = (function () {
     Aladin.prototype._setupUI = function(options) {
         let self = this;
 
+        let textField = Input.text({
+            label: "Go to:",
+            name: "goto",
+            type: "text",
+            placeholder: 'Object name/position',
+            //autocapitalize: 'off',
+            autocomplete: 'off',
+            autofocus: true,
+            actions: {
+                change: (e, input) => {
+                    input.addEventListener('blur', (f) => {});
+                },
+                click: (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    console.log("click")
+                }
+                /*focus: (e) => {
+                    //e.stopPropagation();
+                    //e.preventDefault();
+
+                    //textField.element().blur();
+
+                    console.log("focus")
+                },
+                input: (e) => {
+                    console.log("change")
+                }
+                keydown: (e) => {
+                    textField.removeClass('aladin-unknownObject'); // remove red border
+
+                    if (e.key === 'Enter') {
+                        let object = textField.get();
+                        textField.el.blur();
+
+                        aladin.gotoObject(
+                            object,
+                            {
+                                error: function () {
+                                    textField.addClass('aladin-unknownObject');
+                                }
+                            }
+                        );
+
+                    }
+                }*/
+            }
+        });
+
         let viewport = A.toolbar({
             direction: 'horizontal',
             position: {
@@ -331,14 +383,18 @@ export let Aladin = (function () {
         // Add the frame control
         if (options.showFrame) {
             let cooFrame = CooFrameEnum.fromString(options.cooFrame, CooFrameEnum.J2000);
-            let cooFrameControl = new Input({
-                layout: {
-                    name: 'frame',
-                    type: 'select',
-                    value: cooFrame.label,
-                    options: [CooFrameEnum.J2000.label, CooFrameEnum.J2000d.label, CooFrameEnum.GAL.label],
-                    change(e) {
-                        self.setFrame(e.target.value)
+            let cooFrameControl = Input.select({
+                name: 'frame',
+                type: 'select',
+                value: cooFrame.label,
+                options: [CooFrameEnum.J2000.label, CooFrameEnum.J2000d.label, CooFrameEnum.GAL.label],
+                change(e) {
+                    self.setFrame(e.target.value)
+                },
+                tooltip: {
+                    content: "Change the frame",
+                    position: {
+                        direction: 'bottom'
                     }
                 }
             });
@@ -362,6 +418,16 @@ export let Aladin = (function () {
                 anchor: 'right top'
             }
         }, this);
+
+        /*let box = ConeSearchBox.getInstance(this);
+        box.attach({
+            callback: (cs) => {
+            },
+            position: {
+                anchor: 'center center',
+            }
+        })
+        box._show();*/
 
         // Add the layers control
         if (options.showLayersControl) {
@@ -421,7 +487,7 @@ export let Aladin = (function () {
                 tooltip: {
                     content: 'Zoom',
                     position: {
-                        direction: 'left'
+                        direction: 'right'
                     }
                 },
                 cssStyle: {
@@ -438,11 +504,11 @@ export let Aladin = (function () {
                 tooltip: {
                     content: 'Unzoom',
                     position: {
-                        direction: 'left'
+                        direction: 'right'
                     }
                 },
                 cssStyle: {
-                    fontSize: 'x-large'
+                    fontSize: 'x-large',
                 },
                 action(o) {
                     self.decreaseZoom();
@@ -454,7 +520,7 @@ export let Aladin = (function () {
                 layout: [plusZoomBtn, minusZoomBtn],
                 direction: 'vertical',
                 position: {
-                    anchor: 'right center',
+                    anchor: 'left center',
                 }
             });
             zoomControlToolbar.addClass('aladin-zoom-controls');
@@ -510,7 +576,7 @@ export let Aladin = (function () {
         showCatalog: true, // TODO: still used ??
 
         fullScreen: false,
-        reticleColor: "rgb(178, 50, 178)",
+        reticleColor: "rgb(255, 200, 0)",
         reticleSize: 22,
         gridColor: "rgb(0, 255, 0)",
         gridOpacity: 0.5,

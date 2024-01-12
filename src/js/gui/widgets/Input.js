@@ -101,6 +101,10 @@ export class Input extends DOMElement {
                 this.el.step = "any";
             }
 
+            if (layout.type === "text") {
+                this.el.enterkeyhint = "send";
+            }
+
             if (layout.autocomplete) {
                 this.el.autocomplete = layout.autocomplete;
             }
@@ -136,6 +140,10 @@ export class Input extends DOMElement {
                     this.el.addEventListener('change', this.action);
                 }
             }
+
+            /*if (layout.autofocus) {
+                this.el.autofocus = true;
+            }*/
         }
 
         if (layout.actions) {
@@ -263,6 +271,21 @@ export class Input extends DOMElement {
             }
         });
         el.addClass("aladin-input-text");
+
+        return el;
+    }
+
+    static select(options) {
+        let el = new Input({
+            cssStyle: options.cssStyle,
+            tooltip: options.tooltip,
+            layout: {
+                name: options.name || 'select',
+                type: 'select',
+                ...options
+            }
+        });
+        el.addClass("aladin-input-select");
 
         return el;
     }

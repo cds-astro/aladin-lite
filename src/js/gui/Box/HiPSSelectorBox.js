@@ -59,11 +59,11 @@ import { Utils } from "../../Utils.ts";
             type: 'text',
             placeholder: "Type ID, title, keyword or URL",
             autocomplete: 'off',
-            change(e) {
+            /*change(e) {
                 loadBtn.update({disable: true})
                 // Unfocus the keyboard on android devices (maybe it concerns all smartphones) when the user click on enter
                 //inputText.element().blur();
-            }
+            }*/
         });
 
         let self;
@@ -87,6 +87,9 @@ import { Utils } from "../../Utils.ts";
                 ]
             })
         }, aladin.aladinDiv)
+
+        this.addClass('aladin-box-night')
+
         self = this;
         // Query the mocserver
         MocServer.getAllHiPSes();

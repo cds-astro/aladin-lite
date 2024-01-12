@@ -77,7 +77,7 @@ export class Stack extends ContextMenu {
         })*/
 
         let self = this;
-        document.addEventListener('click', (e) => {
+        document.addEventListener('click', e => {
             if (!self.el.contains(e.target) && this.mode === 'stack') {
                 this._hide()
             }
@@ -140,11 +140,13 @@ export class Stack extends ContextMenu {
                                 cursor: 'help',
                             },
                         },
-                        content: 'Search for a progressive survey'
+                        content: 'Search a survey'
                     },
                     action(e) {
-                        e.stopPropagation();
-                        e.preventDefault();
+                        /*if (e) {
+                            e.stopPropagation();
+                            e.preventDefault();
+                        }*/
 
                         self._hide();
 
@@ -205,7 +207,7 @@ export class Stack extends ContextMenu {
                     backgroundColor: '#bababa',
                     borderColor: '#484848',
                     color: 'black',
-                    visibility: 'hidden',
+                    visibility: Utils.hasTouchScreen() ? 'visible' : 'hidden',
                     width: '18px',
                     height: '18px',
                     verticalAlign: 'middle',
@@ -230,7 +232,7 @@ export class Stack extends ContextMenu {
                     backgroundColor: '#bababa',
                     borderColor: '#484848',
                     color: 'black',
-                    visibility: 'hidden',
+                    visibility: Utils.hasTouchScreen() ? 'visible' : 'hidden',
                     width: '18px',
                     height: '18px',
                     verticalAlign: 'middle'
@@ -247,7 +249,7 @@ export class Stack extends ContextMenu {
                     backgroundColor: '#bababa',
                     borderColor: '#484848',
                     color: 'black',
-                    visibility: 'hidden',
+                    visibility: Utils.hasTouchScreen() ? 'visible' : 'hidden',
                     width: '18px',
                     height: '18px',
                     verticalAlign: 'middle',
@@ -285,26 +287,32 @@ export class Stack extends ContextMenu {
                 }
             });
 
-            layout.push({
+            let l = {
                 label: item,
-                cssStyle: cssStyle,
-                hover(e) {
-                    showBtn.el.style.visibility = 'visible'
-                    editBtn.el.style.visibility = 'visible'
-                    deleteBtn.el.style.visibility = 'visible'
-                },
-                unhover(e) {
-                    showBtn.el.style.visibility = 'hidden'
-                    editBtn.el.style.visibility = 'hidden'
-                    deleteBtn.el.style.visibility = 'hidden'
-                },
+                cssStyle,
                 action(o) {
                     self.aladin.selectLayer(layer.layer);
                     // recompute the stack
                     self.attach({layers})
                     self._show()
                 }
-            })
+            };
+
+            if (!Utils.hasTouchScreen()) {
+                l.hover = (e) => {
+                    showBtn.el.style.visibility = 'visible'
+                    editBtn.el.style.visibility = 'visible'
+                    deleteBtn.el.style.visibility = 'visible'
+                }
+
+                l.unhover = (e) => {
+                    showBtn.el.style.visibility = 'hidden'
+                    editBtn.el.style.visibility = 'hidden'
+                    deleteBtn.el.style.visibility = 'hidden'
+                }
+            }
+
+            layout.push(l);
         }
 
         super.attach(layout);

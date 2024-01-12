@@ -223,10 +223,21 @@ export let View = (function () {
         init(this);
         // listen to window resize and reshape canvases
         this.resizeTimer = null;
-        let resizeObserver = new ResizeObserver(() => {
-            self.fixLayoutDimensions();
-            //self.requestRedraw();
-        });
+        /*if ('ontouchstart' in window) {
+            Utils.on(document, 'orientationchange', (e) => {
+                self.fixLayoutDimensions();
+            })
+        } else {*/
+            
+            this.resizeObserver = new ResizeObserver(() => {
+                self.fixLayoutDimensions();
+                //self.requestRedraw();
+            });
+
+            self.resizeObserver.observe(this.aladinDiv);
+        //}
+
+        /**/
 
         this.throttledPositionChanged = Utils.throttle(
             () => {
@@ -260,7 +271,6 @@ export let View = (function () {
             View.CALLBACKS_THROTTLE_TIME_MS,
         );
 
-        resizeObserver.observe(this.aladinDiv);
         self.fixLayoutDimensions();
         self.redraw()
 
@@ -472,9 +482,9 @@ export let View = (function () {
     };
 
     var createListeners = function (view) {
-        var hasTouchEvents = false;
-        if ('ontouchstart' in window) {
-            hasTouchEvents = true;
+        if ('virtualKeyboard' in navigator) {
+            // The VirtualKeyboard API is supported!
+            navigator.virtualKeyboard.overlaysContent = true;
         }
 
         // various listeners
@@ -495,7 +505,7 @@ export let View = (function () {
 
         };
 
-        if (!hasTouchEvents) {
+        if (!Utils.hasTouchScreen()) {
             Utils.on(view.catalogCanvas, 'dblclick', onDblClick);
         }
 
@@ -510,7 +520,7 @@ export let View = (function () {
         let cutMaxInit = null;
 
         Utils.on(view.catalogCanvas, "mousedown touchstart", function (e) {
-            //e.preventDefault();
+            e.preventDefault();
             e.stopPropagation();
 
             const xymouse = Utils.relMouseCoords(e);
@@ -573,7 +583,7 @@ export let View = (function () {
             view.dragging = true;
             view.aladin.contextMenu && view.aladin.contextMenu._hide()
 
-            if (view.mode == View.PAN) {
+            if (view.mode === View.PAN) {
                 view.setCursor('move');
             }
 
@@ -625,6 +635,9 @@ export let View = (function () {
         
         // reacting on 'click' rather on 'mouseup' is more reliable when panning the view
         Utils.on(view.catalogCanvas, "click mouseout touchend touchcancel", function (e) {
+            //e.preventDefault();
+            //e.stopPropagation();
+
             const xymouse = Utils.relMouseCoords(e);
 
             ALEvent.CANVAS_EVENT.dispatchedTo(view.aladinDiv, {
@@ -666,15 +679,21 @@ export let View = (function () {
             view.dragCoo = null;
 
             if (e.type === "mouseout" || e.type === "touchend" || e.type === "touchcancel") {
-                if (e.type === "mouseout") {
-                    if (view.mode === View.TOOL_SIMBAD_POINTER) {
-                        view.setMode(View.PAN);
-                    } else if (view.mode === View.SELECT) {
+                if (e.type === "mouseout" || e.type === "touchcancel") {
+                    if (view.mode === View.SELECT) {
                         view.selector.dispatch('mouseout', {coo: xymouse, e})
                     }
 
                     return;
                 }
+
+                if (e.type === "touchend") {
+                    if (view.mode === View.SELECT) {
+                        view.selector.dispatch('mouseup', {coo: xymouse})
+                        
+                        return;
+                    }
+                } 
             }
 
             if (view.mode == View.TOOL_SIMBAD_POINTER) {
@@ -772,7 +791,7 @@ export let View = (function () {
         var lastHoveredObject; // save last object hovered by mouse
         var lastMouseMovePos = null;
         Utils.on(view.catalogCanvas, "mousemove touchmove", function (e) {
-            //e.preventDefault();
+            e.preventDefault();
             e.stopPropagation();
 
             const xymouse = Utils.relMouseCoords(e);
@@ -854,7 +873,7 @@ export let View = (function () {
                 view.updateObjectsLookup();
             }
 
-            /*if (!view.dragging || hasTouchEvents) {
+            /*if (!view.dragging || Utils.hasTouchScreen()) {
                 // update location box
                 view.updateLocation({mouseX: xymouse.x, mouseY: xymouse.y});
             }*/
@@ -958,7 +977,7 @@ export let View = (function () {
         var isTouchPad;
         var scale = 0.0;
         Utils.on(view.catalogCanvas, 'wheel', function (e) {
-            //e.preventDefault();
+            e.preventDefault();
             e.stopPropagation();
 
             const xymouse = Utils.relMouseCoords(e);

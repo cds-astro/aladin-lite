@@ -35,10 +35,14 @@ import { ALEvent } from './events/ALEvent';
 export let Reticle = (function() {
      // constructor
     let Reticle = function(options, aladin) {
-        this.el = document.createElement('object');
+        this.el = document.createElement('div');
         this.el.className = 'aladin-reticle';
-        this.el.type = "image/svg+xml";
-        this.el.data = iconUrl;
+        this.el.innerHTML = '<svg id="reticle" viewBox="0 0 16 16" width="16" height="16" xmlns="http://www.w3.org/2000/svg">' +
+        '   <path d="M 0 7 L 5 7 L 5 9 L 0 9 L 0 7 Z" fill-rule="evenodd"/>' +
+        '   <path d="M 11 7 L 16 7 L 16 9 L 11 9 L 11 7 Z" fill-rule="evenodd"/>' +
+        '   <path d="M 7 11 L 9 11 L 9 16 L 7 16 L 7 11 Z" fill-rule="evenodd" />' +
+        '   <path d="M 7 0 L 9 0 L 9 5 L 7 5 L 7 0 Z" fill-rule="evenodd"/>' +
+        '</svg>';
         this.aladin = aladin;
 
         this.color = null;
@@ -55,30 +59,11 @@ export let Reticle = (function() {
             show = options && options.showReticle;
         }
 
-        let self = this;
-        this.loaded = new Promise((resolve, reject) => {
-            function handleLoad(event) {
-                /* Removes the listeners */
-                self.el.removeEventListener('load', handleLoad);
-                resolve(event); // works just fine
-            }
-
-            function handleError(event) {
-                /* Removes the listeners */
-                self.el.removeEventListener('error', handleError);
-                reject(event); // works just fine
-            }
-
-            self.el.addEventListener('load', handleLoad);
-            self.el.addEventListener('error', handleError);
-        });
-
         this.update({color, size, show})
     };
 
     Reticle.prototype.update = async function(options) {
         options = options || {};
-        await this.loaded;
 
         if (options.size) {
             this._setSize(options.size)
@@ -104,18 +89,13 @@ export let Reticle = (function() {
             return;
         }
 
-        //await this.loaded;
-
         // 1. the user has maybe given some
         let reticleColor = new Color(color);
         // a dynamic way to set the color
         this.color = 'rgb(' + reticleColor.r + ', ' + reticleColor.g + ', ' + reticleColor.b + ')';
 
-        console.log(color, this.el)
-        this.el.contentDocument
-            .getElementById("reticle")
+        this.el.getElementsByTagName("svg")[0]
             .setAttribute('fill', this.color);
-
     }
 
     Reticle.prototype._setSize = function(size) {
@@ -124,8 +104,12 @@ export let Reticle = (function() {
         }
 
         this.size = size;
-        this.el.style.width = this.size + 'px';
-        this.el.style.height = this.size + 'px';
+        //this.el.style.width = this.size + 'px';
+        //this.el.style.height = this.size + 'px';
+
+        this.el.getElementsByTagName("svg")[0].setAttribute('width', size);
+        this.el.getElementsByTagName("svg")[0].setAttribute('height', size);
+
     }
 
     Reticle.prototype._show = function(show) {

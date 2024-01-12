@@ -131,7 +131,8 @@ export class DOMElement {
             return;
         }
 
-        let left = 0, top = 0, x = 0, y = 0;
+        let left = 0, top = 0, bottom, right;
+        let x = 0, y = 0;
 
         // handle the anchor/dir case with higher priority
         const {offsetWidth, offsetHeight} = el;
@@ -141,12 +142,21 @@ export class DOMElement {
         const innerHeight = aladinDiv.offsetHeight;
 
         // take on less priority the left and top
-        if (options && options.left && options.top) {
+        if (options && (options.left || options.top || options.right || options.bottom)) {
             el.style.position = 'absolute';
 
-            top = options.top;
-            left = options.left;
-
+            if (options.top) {
+                top = options.top;
+            }
+            if (options.left) {
+                left = options.left;
+            }
+            if (options.bottom) {
+                bottom = options.bottom;
+            }
+            if (options.right) {
+                right = options.right;
+            }
         } else if (options && options.nextTo && options.direction) {
             let dir = options.direction || 'right';
             let nextTo = options.nextTo;
@@ -202,8 +212,19 @@ export class DOMElement {
             y = Math.abs(top) + 'px';
         }
 
-        el.style.left = left + 'px';
-        el.style.top = top + 'px';
+        if (top !== undefined) {
+            el.style.top = top + 'px';
+        }
+        if (left !== undefined) {
+            el.style.left = left + 'px';
+        }
+        if (bottom !== undefined) {
+            el.style.bottom = bottom + 'px';
+        }
+        if (right !== undefined) {
+            el.style.right = right + 'px';
+        }
+
         el.style.transform = `translate(${x}, ${y})`;
     }
 

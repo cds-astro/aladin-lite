@@ -36,6 +36,7 @@ import searchIcon from './../../../../assets/icons/search.svg';
 import restoreIcon from './../../../../assets/icons/restore.svg';
 import maximizeIcon from './../../../../assets/icons/maximize.svg';
 
+import { Utils as UtilsExt } from "../../Utils";
 import { Utils } from "../Utils";
 
 /******************************************************************************
@@ -63,13 +64,27 @@ import { MainSurveyActionButton } from "../Button/MainSurvey";
      */
     constructor(options, aladin) {
         super(options, aladin.aladinDiv)
+        let self = this;
 
-        window.addEventListener('resize', () => {
-            self.closeAll()
-        })
+        // When the menu resize we close it.
+        // For smarthphone, we only make the menu close when the orientation is changing
+        if (UtilsExt.hasTouchScreen()) {
+            if (screen && 'orientation' in screen) {
+                screen.orientation.addEventListener("change", (e) => {
+                    self.closeAll()
+                });
+            } else {
+                window.addEventListener('orientationchange', (e) => {
+                    self.closeAll()
+                })
+            }
+        } else {
+            window.addEventListener('resize', () => {
+                self.closeAll()
+            })
+        }
 
         // Add the fullscreen control
-        let self = this;
 
         this.controls = {
             survey: new MainSurveyActionButton(

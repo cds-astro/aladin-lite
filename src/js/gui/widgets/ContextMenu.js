@@ -51,7 +51,7 @@ export class ContextMenu extends DOMElement {
         this.cssStyleDefault = el.style;
 
         if (!options || options.hideOnClick === undefined || options.hideOnClick === true) {
-            document.addEventListener('click', (e) => {
+            this.aladin.aladinDiv.addEventListener('click', (e) => {
                 if (!el.contains(e.target)) {
                     this._hide()
                 }
@@ -59,13 +59,22 @@ export class ContextMenu extends DOMElement {
         }
 
         if (!options || options.hideOnResize === undefined || options.hideOnResize === true) {
-            window.addEventListener('resize', () => this._hide());
+            if (Utils.hasTouchScreen()) {
+                if (screen && 'orientation' in screen) {
+                    screen.orientation.addEventListener("change", (e) => {
+                        this._hide()
+                    });
+                } else {
+                    window.addEventListener('orientationchange', (e) => {
+                        this._hide()
+                    })
+                }
+            } else {
+                window.addEventListener('resize', () => {
+                    this._hide()
+                })
+            }
         }
-    }
-
-    _hide() {
-        super._hide()
-        //super.remove()
     }
 
     _attachOption(target, opt, e, cssStyle) {
@@ -179,6 +188,17 @@ export class ContextMenu extends DOMElement {
             });
         } else if (opt.subMenu) {
             item.addEventListener('click', e => {
+                console.log("click on item")
+                e.preventDefault();
+                e.stopPropagation();
+
+                if (item.parentNode) {
+                    let subMenus = item.parentNode.querySelectorAll(".aladin-context-sub-menu")
+                    for (let subMenuChild of subMenus) {
+                        subMenuChild.style.display = 'none';
+                    }  
+                }
+                
                 item.querySelector(".aladin-context-sub-menu")
                     .style.display = 'block';
             });

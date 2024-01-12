@@ -1,5 +1,3 @@
-import { Layout } from "../Layout";
-import { ActionButton } from "../Widgets/ActionButton";
 import { ImageLayer } from "../../ImageLayer.js";
 import searchIconImg from '../../../../assets/icons/search.svg';
 
@@ -64,8 +62,7 @@ export class SurveyCtxMenu extends ContextMenu {
                 label: '<div style="background-color: rgba(0, 0, 0, 0.6); padding: 3px; border-radius: 3px">' + layer.name + '</div>',
                 cssStyle: cssStyle,
                 action(e) {
-                    let name = e.srcElement.innerText;
-                    let cfg = ImageLayer.LAYERS.find((layer) => layer.name === name);
+                    let cfg = ImageLayer.LAYERS.find((l) => l.name === layer.name);
                     let newLayer;
                     
                     // Max order is specific for surveys
@@ -108,12 +105,14 @@ export class SurveyCtxMenu extends ContextMenu {
             this.position = options.position;
         }
 
+        console.log(this.aladin.aladinDiv.offsetHeight)
+        let maxHeight = Math.min(this.aladin.aladinDiv.offsetHeight, 500);
         super.show({
             position: this.position,
             cssStyle: {
                 width: '20em',
                 overflowY: 'scroll',
-                maxHeight: '500px',
+                maxHeight: maxHeight + 'px',
                 color: 'white',
                 backgroundColor: 'black',
             }

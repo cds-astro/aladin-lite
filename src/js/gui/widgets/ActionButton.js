@@ -19,6 +19,7 @@
 
 import { DOMElement } from "./Widget";
 import { Tooltip } from "./Tooltip";
+import { Utils } from "../../Utils";
 /******************************************************************************
  * Aladin Lite project
  *
@@ -77,6 +78,11 @@ export class ActionButton extends DOMElement {
     constructor(opt, target, position = "beforeend") {
         let el = document.createElement('button');
         el.classList.add('aladin-btn');
+
+        if (Utils.hasTouchScreen()) {
+            // Add a little padding 
+            el.style.padding = "0.3em";
+        }
 
         // add it to the dom
         super(el, opt);

@@ -93,6 +93,10 @@ export class Form extends DOMElement {
 
             inputEl.autocomplete = layout.autocomplete || 'off';
 
+            if (layout.type === "text") {
+                inputEl.enterkeyhint = "send";
+            }
+
             if (layout.type === "number") {
                 inputEl.step = layout.step || "any";
             }

@@ -250,7 +250,7 @@ export class VOTable {
     constructor(url, successCallback, errorCallback, useProxy) {
         Utils.fetch({
             url,
-            desc: 'Loading VOTable located at: ' + url,
+            desc: 'Downloading VOTable: ' + url,
             useProxy,
             success: data => {
                 try {

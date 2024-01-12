@@ -329,6 +329,11 @@ word-wrap:break-word;
     max-width: fit-content;
 }
 
+.aladin-box-night {
+    padding: '2px';
+    background-color: #000;
+}
+
 .aladin-box::-webkit-scrollbar {
     display: none; /* for Chrome, Safari, and Opera */
 }
@@ -594,13 +599,14 @@ canvas {
     margin-right: 10px;
 }
 
+/* smartphones, iPhone, portrait 480x320 phones */
 .aladin-btn {
     all:unset;
 
 	display: inline-block;
     margin-bottom: 0;
     margin: 0;
-    padding: 8px;
+    padding: 4px;
     z-index: 30;
 
     font-size: 12px;
@@ -618,29 +624,48 @@ canvas {
 .aladin-btn.toggled {
     border: 2px solid greenyellow;
 }
+
 .aladin-btn.disabled {
     cursor: not-allowed;
     filter: brightness(70%);
 }
+
 .aladin-btn:not(.disabled):hover {
     filter: brightness(105%);
 }
+
 .aladin-btn.small-sized-icon {
-    padding: 0;
+    padding: 0px;
     width: 16px;
     height: 16px;
 }
+
 .aladin-btn.medium-sized-icon {
-    padding: 0;
+    padding: 0px;
     width: 24px;
     height: 24px;
 }
+
 .aladin-btn.svg-icon {
     background-repeat:  no-repeat;
     background-position:center center;
     display: inline-block;
 }
+/*
+@media only screen and (max-width:1025px)  {
+    .aladin-btn {
+        padding: 8px;
+    }
 
+    .aladin-btn.medium-sized-icon {
+        padding: 4px;
+    }
+
+    .aladin-btn.small-sized-icon {
+        padding: 4px;
+    }
+}
+*/
 .aladin-img {
     object-fit: 'contain';
     vertical-align: 'middle';
@@ -876,11 +901,12 @@ canvas {
 }
 
 .aladin-status-bar-message {
+    display: block;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 
-    max-width: 40vw;
+    max-width: 300px;
 }
 
 .aladin-sp-title a {
@@ -1047,6 +1073,57 @@ canvas {
 
 /* *********************************************** */
 
+/* normalize here the inputs */
+
+/* Input text */
+.aladin-input-text {
+    appearance: none;
+    -moz-appearance: none;
+    -webkit-appearance: none;
+    outline-style: none;
+    padding: 2px;
+    border: none;
+    border-radius: 5px;
+    background-color: white;
+}
+
+.aladin-input-text::placeholder {
+    font-style: italic;
+    font-family: monospace;
+}
+
+/* Input select */
+.aladin-input-select {
+    /* Reset */
+    -webkit-appearance: none;
+       -moz-appearance: none;
+            appearance: none;
+    border: 1px solid white;
+    outline: 0;
+    font: inherit;
+    /* Personalize */
+    padding: 2px;
+    background-color: black;
+    color: white;
+    border-radius: 0.25em;
+    box-shadow: 0 0 1em 0 rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    /* <option> colors */
+    /* Remove focus outline */
+    /* Remove IE arrow */
+}
+.aladin-input-select option {
+    color: inherit;
+    background-color: #320a28;
+}
+.aladin-input-select:focus {
+    outline: none;
+}
+.aladin-input-select::-ms-expand {
+    display: none;
+}
+
+
 /* Frames */
 .aladin-input-color {
     appearance: none;
@@ -1112,6 +1189,9 @@ canvas {
  .aladin-input-range:hover::-webkit-slider-thumb {
     filter: brightness(105%);
  }
+
+ /* aladin input text */
+
 
  
  /******** Firefox styles ********/

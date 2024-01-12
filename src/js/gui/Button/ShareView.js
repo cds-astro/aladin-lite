@@ -55,11 +55,13 @@ import shareIconUrl from '../../../../assets/icons/share.svg';
                     var url = aladin.getShareURL();
                     navigator.clipboard.writeText(url);
 
-                    aladin.statusBar.appendMessage({
-                        message: 'View URL saved into your clipboard!',
-                        duration: 2000,
-                        type: 'info'
-                    })
+                    if (aladin.statusBar) {
+                        aladin.statusBar.appendMessage({
+                            message: 'View URL saved into your clipboard!',
+                            duration: 2000,
+                            type: 'info'
+                        })
+                    }
                 }
             },
             {
@@ -92,11 +94,13 @@ import shareIconUrl from '../../../../assets/icons/share.svg';
                     let wcs = aladin.getViewWCS()
                     navigator.clipboard.writeText(JSON.stringify(wcs));
 
-                    aladin.statusBar.appendMessage({
-                        message: 'WCS saved into your clipboard!',
-                        duration: 2000,
-                        type: 'info'
-                    })
+                    if (aladin.statusBar) {
+                        aladin.statusBar.appendMessage({
+                            message: 'WCS saved into your clipboard!',
+                            duration: 2000,
+                            type: 'info'
+                        })
+                    }
                 }
             },
         ];

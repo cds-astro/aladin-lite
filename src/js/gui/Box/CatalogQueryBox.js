@@ -106,6 +106,8 @@ import { ContextMenu } from "../Widgets/ContextMenu.js";
             })
         }, aladin.aladinDiv)
 
+        this.addClass('aladin-box-night')
+
         self = this;
         this.loadBtn = loadBtn;
         this.catNameTextInput = catNameTextInput;

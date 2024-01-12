@@ -21,6 +21,7 @@ import { FSM } from "../FiniteStateMachine";
 import { ActionButton } from "../gui/Widgets/ActionButton";
 import { View } from "../View";
 import finishIconUrl from '../../../assets/icons/finish.svg';
+import { Utils } from "../Utils";
 
 /******************************************************************************
  * Aladin Lite project
@@ -38,6 +39,8 @@ export class PolySelect extends FSM {
     constructor(options, view) {
         // Off initial state
         let off = () => {
+            console.log("off")
+
             view.aladin.showReticle(true)
             view.setMode(View.PAN)
             view.setCursor('default');
@@ -48,6 +51,8 @@ export class PolySelect extends FSM {
         }
         let btn;
         let mouseout = (params) => {
+            console.log("mouseout")
+
             let {e, coo} = params;
 
             if (btn.el.contains(e.relatedTarget) || e.relatedTarget.contains(btn.el)) {
@@ -61,6 +66,8 @@ export class PolySelect extends FSM {
         };
 
         let start = (params) => {
+            console.log("start")
+
             const {callback} = params;
             view.aladin.showReticle(false)
             view.setCursor('crosshair');
@@ -73,6 +80,8 @@ export class PolySelect extends FSM {
         }
 
         let click = (params) => {
+            console.log("click")
+
             const {coo} = params;
 
             const firstClick = this.coos.length === 0;
@@ -106,6 +115,9 @@ export class PolySelect extends FSM {
         };
 
         let mousemove = (params) => {
+
+            console.log("move")
+
             const {coo} = params;
             this.moveCoo = coo;
 
@@ -113,6 +125,9 @@ export class PolySelect extends FSM {
         };
 
         let draw = () => {
+
+            console.log("draw")
+
             let ctx = view.catalogCtx;
 
             if (!view.catalogCanvasCleared) {
@@ -143,6 +158,8 @@ export class PolySelect extends FSM {
         }
 
         let finish = () => {
+            console.log("finish")
+
             // finish the selection
             let xMin = this.coos[0].x
             let yMin = this.coos[0].y
@@ -176,40 +193,90 @@ export class PolySelect extends FSM {
             this.dispatch('off');
         };
 
-        super({
-            state: 'off',
-            transitions: {
-                off: {
-                    start,
-                },
-                start: {
-                    click
-                },
-                click: {
-                    //mouseout,
-                    mousemove,
-                    draw,
-                },
-                mouseout: {
-                    start,
-                    mousemove,
-                },
-                mousemove: {
-                    draw,
-                    click,
-                    finish
-                },
-                draw: {
-                    click,
-                    mouseout,
-                    mousemove,
-                    finish
-                },
-                finish: {
-                    off
+        let fsm;
+        if (Utils.hasTouchScreen()) {
+            let mousedown = click;
+            let mouseup = click;
+
+            // smartphone, tablet
+            fsm = {
+                state: 'off',
+                transitions: {
+                    off: {
+                        start,
+                    },
+                    start: {
+                        mousedown
+                    },
+                    mousedown: {
+                        //mouseout,
+                        mousemove,
+                        draw,
+                    },
+                    mouseout: {
+                        start,
+                        mousemove,
+                    },
+                    mousemove: {
+                        draw,
+                        mouseup,
+                        finish
+                    },
+                    mouseup: {
+                        mousedown,
+                        finish,
+                        draw,
+                    },
+                    draw: {
+                        mouseup,
+                        mouseout,
+                        mousemove,
+                        finish
+                    },
+                    finish: {
+                        off
+                    }
                 }
             }
-        })
+        } else {
+            // desktop, laptops...
+            fsm = {
+                state: 'off',
+                transitions: {
+                    off: {
+                        start,
+                    },
+                    start: {
+                        click
+                    },
+                    click: {
+                        //mouseout,
+                        mousemove,
+                        draw,
+                    },
+                    mouseout: {
+                        start,
+                        mousemove,
+                    },
+                    mousemove: {
+                        draw,
+                        click,
+                        finish
+                    },
+                    draw: {
+                        click,
+                        mouseout,
+                        mousemove,
+                        finish
+                    },
+                    finish: {
+                        off
+                    }
+                }
+            }
+        }
+
+        super(fsm)
         let self = this;
 
         this.coos = [];

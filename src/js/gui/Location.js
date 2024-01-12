@@ -152,11 +152,13 @@ export class Location extends DOMElement {
         navigator.clipboard.writeText(copyTextEl.innerText)
             .then(() => {
                 msg = 'successful'
-                this.aladin.statusBar.appendMessage({
-                    message: 'Reticle location saved!',
-                    duration: 2000,
-                    type: 'info'
-                })
+                if (this.aladin.statusBar) {
+                    this.aladin.statusBar.appendMessage({
+                        message: 'Reticle location saved!',
+                        duration: 2000,
+                        type: 'info'
+                    })
+                }
             })
             .catch((e) => {
                 msg = 'unsuccessful'

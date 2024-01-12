@@ -22,13 +22,14 @@
             {
                 minCut: 5000,
                 maxCut: 17000,
+                colormap: 'viridis'
             }, // no optional params
             (ra, dec, fov, image) => {
                 // ra, dec and fov are centered around the fits image
                 image.setColormap("magma", {stretch: "asinh"});
 
                 aladin.gotoRaDec(ra, dec);
-                aladin.setFoV(fov);
+                //aladin.setFoV(fov);
             },
         );
     });

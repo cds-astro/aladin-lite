@@ -53,7 +53,9 @@ export class SettingsCtxMenu extends ContextMenu {
                 aladin.setBackgroundColor(hex)
             }
         });
+        let reticleColor = new Color(aladin.getReticle().getColor())
         self.reticleColorInput = Input.color({
+            value: reticleColor.toHex(),
             name: 'reticleColor',
             change(e) {
                 let hex = e.target.value;

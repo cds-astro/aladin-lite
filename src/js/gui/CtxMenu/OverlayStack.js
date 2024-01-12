@@ -37,6 +37,7 @@ import { CatalogQueryBox } from "../Box/CatalogQueryBox.js";
  import removeIconUrl from '../../../../assets/icons/remove.svg';
  import { AladinUtils } from "../../AladinUtils.js";
 import A from "../../A.js";
+import { Utils } from "../../../js/Utils";
  
 export class OverlayStack extends ContextMenu {
     // Constructor
@@ -117,8 +118,8 @@ export class OverlayStack extends ContextMenu {
                         {
                             label: 'Find in our databases...',
                             action(o) {
-                                o.stopPropagation();
-                                o.preventDefault();
+                                //o.stopPropagation();
+                                //o.preventDefault();
                                 
                                 self._hide();
 
@@ -131,7 +132,7 @@ export class OverlayStack extends ContextMenu {
                     ]
                 },
                 {
-                    label: 'Multi-Order Coverage',
+                    label: 'MOC',
                     subMenu: [
                         ContextMenu.fileLoaderItem({
                             label: 'FITS File',
@@ -241,7 +242,7 @@ export class OverlayStack extends ContextMenu {
                     backgroundColor: '#bababa',
                     borderColor: '#484848',
                     color: 'black',
-                    visibility: 'hidden',
+                    visibility: Utils.hasTouchScreen() ? 'visible' : 'hidden',
                     width: '18px',
                     height: '18px',
                     verticalAlign: 'middle',
@@ -265,7 +266,7 @@ export class OverlayStack extends ContextMenu {
                     backgroundColor: '#bababa',
                     borderColor: '#484848',
                     color: 'black',
-                    visibility: 'hidden',
+                    visibility: Utils.hasTouchScreen() ? 'visible' : 'hidden',
                     width: '18px',
                     height: '18px',
                     verticalAlign: 'middle'
@@ -289,18 +290,26 @@ export class OverlayStack extends ContextMenu {
                     textAlign: 'center',
                 }
             });
-            layout.push({
-                label: item,
-                cssStyle: cssStyle,
-                hover(e) {
-                    showBtn.el.style.visibility = 'visible'
-                    deleteBtn.el.style.visibility = 'visible'
-                },
-                unhover(e) {
-                    showBtn.el.style.visibility = 'hidden'
-                    deleteBtn.el.style.visibility = 'hidden'
-                },
-            })
+
+            if(!Utils.hasTouchScreen()) {
+                layout.push({
+                    label: item,
+                    cssStyle,
+                    hover(e) {
+                        showBtn.el.style.visibility = 'visible'
+                        deleteBtn.el.style.visibility = 'visible'
+                    },
+                    unhover(e) {
+                        showBtn.el.style.visibility = 'hidden'
+                        deleteBtn.el.style.visibility = 'hidden'
+                    },
+                })
+            } else {
+                layout.push({
+                    label: item,
+                    cssStyle
+                })
+            }
         }
 
         super.attach(layout);

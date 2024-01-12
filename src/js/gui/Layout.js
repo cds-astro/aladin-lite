@@ -59,8 +59,13 @@ export class Layout extends DOMElement {
 
         // 2. Once self is attached, attach the children
         if (options.layout) {
-            for (const item of options.layout) {
-                this.appendContent(item)
+            if (typeof options.layout === 'string' || options.layout instanceof String) {
+                this.el.innerHTML = options.layout;
+            } else {
+                // treat it as an array
+                for (const item of options.layout) {
+                    this.appendContent(item)
+                }
             }
         }
 

@@ -53,9 +53,10 @@ export class GotoBox extends Box {
             name: "goto",
             type: "text",
             placeholder: 'Object name/position',
+            //autocapitalize: 'off',
             autocomplete: 'off',
+            autofocus: true,
             actions: {
-                blur: () => {},
                 keydown: (e) => {
                     textField.removeClass('aladin-unknownObject'); // remove red border
 
@@ -71,13 +72,14 @@ export class GotoBox extends Box {
                                 }
                             }
                         );
-
                     }
                 }
             }
         });
 
         super({content: textField}, aladin.aladinDiv)
+
+        this.addClass('aladin-box-night');
         this.textField = textField;
     }
 

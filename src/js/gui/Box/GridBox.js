@@ -175,11 +175,9 @@ export class GridBox extends Box {
 
         super({
             content: layout,
-            cssStyle: {
-                padding: '2px',
-                'background-color': "#000",
-            },
         }, aladin.aladinDiv)
+
+        this.addClass("aladin-box-night")
 
         this.aladin = aladin;
     }

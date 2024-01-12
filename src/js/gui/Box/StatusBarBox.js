@@ -110,7 +110,7 @@ export class StatusBarBox extends Box {
 
         // create message div
         let message = Layout.horizontal({
-            layout: [task.message],
+            layout: task.message,
             tooltip: {
                 content: task.message,
                 position: {
@@ -127,6 +127,8 @@ export class StatusBarBox extends Box {
         });
 
         message.addClass("aladin-status-bar-message")
+
+        console.log(message)
 
         this._show({
             content: [StatusBarBox.icons[task.type], message],

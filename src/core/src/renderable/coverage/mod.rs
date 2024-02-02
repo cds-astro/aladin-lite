@@ -223,11 +223,11 @@ impl MOCRenderer {
         //self.layers.push(key);
     }
 
-    pub fn get_hpx_coverage(&self, cfg: &Cfg) -> Option<&MOC> {
+    pub fn get_hpx_coverage(&self, cfg: &Cfg) -> Option<&HEALPixCoverage> {
         let name = cfg.get_uuid();
 
         if let Some(idx) = self.cfgs.iter().position(|cfg| cfg.get_uuid() == name) {
-            Some(self.mocs[idx].get_full_moc())
+            Some(&self.mocs[idx].get_full_moc())
         } else {
             None
         }

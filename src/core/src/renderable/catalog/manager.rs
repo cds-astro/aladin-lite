@@ -32,7 +32,7 @@ impl From<Error> for JsValue {
 const NUM_SHAPES: usize = 5;
 pub struct Manager {
     gl: WebGlContext,
-    kernels: HashMap<&'static str, Texture2D>,
+    //kernels: HashMap<&'static str, Texture2D>,
 
     fbo: FrameBufferObject,
 
@@ -72,7 +72,7 @@ impl Manager {
                 WebGl2RenderingContext::CLAMP_TO_EDGE,
             ),
         ];
-        let kernels = [
+        /*let kernels = [
             (
                 "gaussian",
                 Texture2D::create_from_path::<_, RGBA8U>(gl, "kernel", &kernel_filename, params)?,
@@ -98,8 +98,7 @@ impl Manager {
                 )?,
             ),
         ]
-        .into();
-
+        .into();*/
         // Create the VAO for the screen
         let vertex_array_object_screen = {
             let vertices = [
@@ -168,7 +167,7 @@ impl Manager {
         let gl = gl.clone();
         let mut manager = Manager {
             gl,
-            kernels,
+            //kernels,
 
             fbo,
 
@@ -514,7 +513,7 @@ impl Catalog {
                     shader_bound
                         .attach_uniforms_from(camera)
                         // Attach catalog specialized uniforms
-                        .attach_uniform("kernel_texture", &manager.kernels["gaussian"]) // Gaussian kernel texture
+                        //.attach_uniform("kernel_texture", &manager.kernels["gaussian"]) // Gaussian kernel texture
                         .attach_uniform("strength", &self.strength) // Strengh of the kernel
                         .attach_uniform("current_time", &utils::get_current_time())
                         .attach_uniform("kernel_size", &manager.kernel_size)

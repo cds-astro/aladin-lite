@@ -95,16 +95,17 @@ import { ContextMenu } from "../Widgets/ContextMenu.js";
         let self;
 
         let loadBtn = new CtxMenuActionButtonOpener({
+            openDirection: "left",
             content: 'Load',
             disable: true,
         }, aladin)
 
-        super({
+        super(aladin, {
             position,
             content: Layout.horizontal({
                 layout: [catNameTextInput, loadBtn]
             })
-        }, aladin.aladinDiv)
+        })
 
         this.addClass('aladin-box-night')
 
@@ -236,23 +237,35 @@ import { ContextMenu } from "../Widgets/ContextMenu.js";
                         }
                     })
                     box._show();
+
+                    self._hide();
                 }
             })
         }
         
         if (item && item.hips_service_url) {
             layout.push({
-                label: 'Progressive catalogue',
+                label: 'HiPS catalogue',
                 disable: !item.hips_service_url,
                 action(o) {
                     self.fnIdSelected('hips', {
                         hipsURL: item.hips_service_url,
                         id: item.ID,
                     })
+
+                    self._hide();
                 }
             })
         }
         this.loadBtn.update({ctxMenu: layout, disable: false}, aladin)
+    }
+
+    _hide() {
+        if (this.loadBtn) {
+            this.loadBtn._hide();
+        }
+
+        super._hide()
     }
 
     static layerSelector = undefined;

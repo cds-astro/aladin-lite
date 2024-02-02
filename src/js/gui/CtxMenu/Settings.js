@@ -151,7 +151,7 @@ export class SettingsCtxMenu extends ContextMenu {
         this.attach([
             {
                 label: {
-                    content: [self.backgroundColorInput, 'Background color']
+                    content: [self.backgroundColorInput, 'Back color']
                 },
                 mustHide: false,
                 action(o) {}
@@ -161,7 +161,7 @@ export class SettingsCtxMenu extends ContextMenu {
                 subMenu: [
                     {
                         label: {
-                            content: [self.reticleCheckbox, 'Reticle']
+                            content: [self.reticleCheckbox, 'Show/Hide']
                         },
                         action(o) {
                             let newVal = self.toggleCheckbox(self.reticleCheckbox);
@@ -306,7 +306,6 @@ export class SettingsCtxMenu extends ContextMenu {
         super.show({
             position: this.position,
             cssStyle: {
-                color: 'white',
                 backgroundColor: 'black',
                 maxWidth: '20em',
             }

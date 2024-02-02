@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+<head>
+</head>
+<body>
+
+<div id="aladin-lite-div" style="width: 1024px; height: 768px"></div>
+
+<script type="module">
+    import A from '../src/js/A.js';
+    let aladin;
+    A.init.then(() => {
+        var aladin = A.aladin(
+            '#aladin-lite-div',
+            {
+                survey: 'P/PanSTARRS/DR1/color-i-r-g', // set initial image survey
+                projection: 'SIN', // set a projection
+                fov: 1.5, // initial field of view in degrees
+                target: 'orion', // initial target
+                cooFrame: 'galactic', // set galactic frame
+                reticleColor: '#ff89ff', // change reticle color
+                reticleSize: 64, // change reticle size
+                showCooGrid: true, // set the grid
+                fullScreen: true,
+                showShareControl: true,
+            }
+        );
+    });
+</script>
+
+</body>
+</html>

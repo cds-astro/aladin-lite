@@ -40,11 +40,13 @@ import { ContextMenu } from "../Widgets/ContextMenu.js";
  }
  */
 export class CtxMenuActionButtonOpener extends ActionButton {
+    //static BUTTONS = [];
+
     // Constructor
     constructor(options, aladin) {
         let self;
 
-        let ctxMenu = ContextMenu.getInstance(aladin)
+        let ctxMenu = new ContextMenu(aladin, {hideOnClick: false})
         super({
             ...options,
             cssStyle: {
@@ -58,25 +60,39 @@ export class CtxMenuActionButtonOpener extends ActionButton {
                 }
 
                 self.ctxMenu._hide();
-                self.ctxMenu.attach(self.layout)
-                self.ctxMenu.show({
-                    position: {
-                        nextTo: self,
-                        direction: options.openDirection || 'bottom',
-                    },
-                    cssStyle: options.ctxMenu && options.ctxMenu.cssStyle
-                });
+
+                if (self.hidden === true) {
+                    self.ctxMenu.attach(self.layout)
+                    self.ctxMenu.show({
+                        position: {
+                            nextTo: self,
+                            direction: options.openDirection || 'bottom',
+                        },
+                        cssStyle: options.ctxMenu && options.ctxMenu.cssStyle
+                    });
+
+                    //CtxMenuActionButtonOpener.BUTTONS.forEach(b => {b.hidden = true})
+                }
+
+                self.hidden = !self.hidden;
             }
         })
+
+        this.hidden = true;
 
         this.layout = options.ctxMenu;
 
         self = this;
         self.ctxMenu = ctxMenu;
+
+        //CtxMenuActionButtonOpener.BUTTONS.push(this);
     }
 
-    hideCtxMenu() {
+    _hide() {
         this.ctxMenu._hide();
+        this.hidden = true;
+
+        super._hide();
     }
 
     update(options) {
@@ -85,5 +101,16 @@ export class CtxMenuActionButtonOpener extends ActionButton {
         }
 
         super.update(options)
+
+        if (!this.hidden) {
+            this.ctxMenu.attach(this.layout)
+            this.ctxMenu.show({
+                position: {
+                    nextTo: this,
+                    direction: options.openDirection || 'bottom',
+                },
+                cssStyle: options.ctxMenu && options.ctxMenu.cssStyle
+            });
+        }
     }
 }

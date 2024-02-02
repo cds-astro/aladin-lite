@@ -253,7 +253,7 @@ impl RasterizedLineRenderer {
             tessellator
                 .tessellate(
                     &p,
-                    &StrokeOptions::default().with_line_width(thickness),
+                    &StrokeOptions::default().with_line_width(thickness * 0.001),
                     &mut BuffersBuilder::new(&mut geometry, |vertex: StrokeVertex| {
                         vertex.position().to_array()
                     })

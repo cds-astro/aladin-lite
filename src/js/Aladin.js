@@ -60,8 +60,7 @@ import { Menu } from "./gui/Toolbar/Menu.js";
 import { ContextMenu } from "./gui/Widgets/ContextMenu.js";
 import { ProjectionActionButton } from "./gui/Button/Projection.js";
 import { Input } from "./gui/Widgets/Input.js";
-import { ConeSearchBox } from "./gui/Box/ConeSearchBox.js";
-
+import { Popup } from "./Popup.js";
 import A from "./A.js";
 import { SnapshotActionButton } from "./gui/Button/Snapshot.js";
 import { StatusBarBox } from "./gui/Box/StatusBarBox.js";
@@ -78,7 +77,9 @@ import { StatusBarBox } from "./gui/Box/StatusBarBox.js";
  * @property {string} [backgroundColor="rgb(60, 60, 60)"] - Background color in RGB format.
  *
  * @property {boolean} [showZoomControl=true] - Whether to show the zoom control toolbar.
- * @property {boolean} [showLayersControl=true] - Whether to show the layers control toolbar.
+ * @property {boolean} [showLayersControl=false] - Whether to show the layers control toolbar.
+ * @property {boolean} [showOverlayStackControl=true] - Whether to show the overlay stack control toolbar.
+ * @property {boolean} [showSurveyStackControl=true] - Whether to show the survey stack control toolbar.
  * @property {boolean} [showFullscreenControl=true] - Whether to show the fullscreen control toolbar.
  * @property {boolean} [showGotoControl=true] - Whether to show the goto control toolbar.
  * @property {boolean} [showSimbadPointerControl=false] - Whether to show the Simbad pointer control toolbar.
@@ -170,9 +171,6 @@ export let Aladin = (function () {
         // parent div
         aladinDiv.classList.add("aladin-container");
 
-        // Aladin logo
-        new AladinLogo(aladinDiv);
-
         // measurement table
         this.measurementTable = new MeasurementTable(aladinDiv);
 
@@ -181,7 +179,12 @@ export let Aladin = (function () {
         // set different options
         // Reticle
         this.view = new View(this);
+
+        // Aladin logo
+        new AladinLogo(this.aladinDiv);
+
         this.reticle = new Reticle(this.options, this);
+        this.popup = new Popup(this.aladinDiv, this.view);
 
         this.cacheSurveys = new Map();
         this.ui = [];
@@ -318,67 +321,12 @@ export let Aladin = (function () {
     Aladin.prototype._setupUI = function(options) {
         let self = this;
 
-        let textField = Input.text({
-            label: "Go to:",
-            name: "goto",
-            type: "text",
-            placeholder: 'Object name/position',
-            //autocapitalize: 'off',
-            autocomplete: 'off',
-            autofocus: true,
-            actions: {
-                change: (e, input) => {
-                    input.addEventListener('blur', (f) => {});
-                },
-                click: (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-
-                    console.log("click")
-                }
-                /*focus: (e) => {
-                    //e.stopPropagation();
-                    //e.preventDefault();
-
-                    //textField.element().blur();
-
-                    console.log("focus")
-                },
-                input: (e) => {
-                    console.log("change")
-                }
-                keydown: (e) => {
-                    textField.removeClass('aladin-unknownObject'); // remove red border
-
-                    if (e.key === 'Enter') {
-                        let object = textField.get();
-                        textField.el.blur();
-
-                        aladin.gotoObject(
-                            object,
-                            {
-                                error: function () {
-                                    textField.addClass('aladin-unknownObject');
-                                }
-                            }
-                        );
-
-                    }
-                }*/
-            }
-        });
-
         let viewport = A.toolbar({
             direction: 'horizontal',
             position: {
                 anchor: 'left top'
             }
         }, this);
-
-        // Add the projection control
-        if (options.showProjectionControl) {
-            viewport.add(new ProjectionActionButton(self))
-        }
 
         // Add the frame control
         if (options.showFrame) {
@@ -400,40 +348,45 @@ export let Aladin = (function () {
             });
 
             cooFrameControl.addClass('aladin-cooFrame');
+
             viewport.add(cooFrameControl)
         }
         // Add the location info
         if (options.showCooLocation) {
-            viewport.add(new Location(this));
+            this.location = new Location(this)
+            viewport.add(this.location);
         }
         // Add the FoV info
         if (options.showFov) {
-            viewport.appendAtLast(new FoV(this))
+            viewport.add(new FoV(this))
+        }
+
+        // Add the projection control
+        if (options.showProjectionControl) {
+            viewport.add(new ProjectionActionButton(self), 'proj')
         }
 
         ////////////////////////////////////////////////////
         let menu = new Menu({
-            direction: 'vertical',
+            orientation: 'vertical',
+            direction: 'right',
             position: {
                 anchor: 'right top'
             }
         }, this);
 
-        /*let box = ConeSearchBox.getInstance(this);
-        box.attach({
-            callback: (cs) => {
-            },
-            position: {
-                anchor: 'center center',
-            }
-        })
-        box._show();*/
-
         // Add the layers control
         if (options.showLayersControl) {
-            menu.enable('survey')
             menu.enable('stack')
             menu.enable('overlay')
+        } else {
+            if (options.showSurveyStackControl) {
+                menu.enable('stack')
+            }
+
+            if (options.showOverlayStackControl) {
+                menu.enable('overlay')
+            }
         }
         // Add the simbad pointer control
         if (options.showSimbadPointerControl) {
@@ -456,18 +409,18 @@ export let Aladin = (function () {
             menu.enable('fullscreen')
         }
 
-        this.addUI(menu);
         this.addUI(viewport);
+        this.addUI(menu);
 
         // share control panel
         if (options.showShareControl) {
             let share = A.toolbar({
-                direction: 'horizontal',
+                orientation: 'horizontal',
                 position: {
                     anchor: 'left bottom'
                 }
             }, this);
-            share.add(new ShareActionButton(this))
+            share.add(new ShareActionButton(self))
             share.add(new SnapshotActionButton({
                 tooltip: {
                     content: 'Take a snapshot of your current view',
@@ -517,14 +470,14 @@ export let Aladin = (function () {
             minusZoomBtn.addClass('medium-sized-icon')
 
             let zoomControlToolbar = A.toolbar({
-                layout: [plusZoomBtn, minusZoomBtn],
-                direction: 'vertical',
+                orientation: 'vertical',
                 position: {
                     anchor: 'left center',
                 }
             });
             zoomControlToolbar.addClass('aladin-zoom-controls');
-            
+            zoomControlToolbar.add([plusZoomBtn, minusZoomBtn])
+
             this.addUI(zoomControlToolbar)
         }
 
@@ -532,6 +485,76 @@ export let Aladin = (function () {
         if (options.showStatusBar) {
             this.statusBar = new StatusBarBox(this);
         }
+
+        this.menu = menu;
+        this.viewportMenu = viewport;
+
+        this._applyMediaQueriesUI()
+    }
+
+    Aladin.prototype._applyMediaQueriesUI = function() {
+        let self = this;
+        function updateLocation() {
+            let [lon, lat] = self.wasm.getCenter();
+            self.location.update({
+                lon: lon,
+                lat: lat,
+                isViewCenter: true,
+                frame: self.view.cooFrame
+            }, self);
+        }
+
+        function mqMediumSizeFunction(x) {
+            if (x.matches) { // If media query matches
+                if (self.location) {
+                    Location.prec = 2;
+                    updateLocation()
+                }
+            } else {
+                if (self.location) {
+                    Location.prec = 7;
+                    updateLocation()
+                }       
+            }
+        }
+
+        // Create a MediaQueryList object
+        var mqMediumSize = window.matchMedia("(max-width: 500px)")
+
+        // Attach listener function on state changes
+        mqMediumSize.addEventListener("change", function() {
+            mqMediumSizeFunction(mqMediumSize);
+        });
+
+        var mqSmallSize = window.matchMedia("(max-width: 410px)")
+
+        function mqSmallSizeFunction(x) {
+            if (x.matches) { // If media query matches
+                self.menu.update({
+                    direction: 'left',
+                    position: {
+                        top: 23,
+                        left: 0
+                    }
+                })
+            } else {
+                self.menu.update({
+                    direction: 'right',
+                    position: {
+                        anchor: 'right top'
+                    }
+                })
+            }
+        }
+
+        // Attach listener function on state changes
+        mqSmallSize.addEventListener("change", function() {
+            mqSmallSizeFunction(mqSmallSize);
+        });
+
+        // Call listener function at run time
+        mqSmallSizeFunction(mqSmallSize);
+        mqMediumSizeFunction(mqMediumSize);
     }
 
     /**** CONSTANTS ****/
@@ -553,7 +576,9 @@ export let Aladin = (function () {
         // Zoom toolbar
         showZoomControl: true,
         // Menu toolbar
-        showLayersControl: true,
+        showLayersControl: false,
+        showOverlayStackControl: true,
+        showSurveyStackControl: true,
         showFullscreenControl: true,
         showGotoControl: true,
         showSimbadPointerControl: false,
@@ -576,7 +601,7 @@ export let Aladin = (function () {
         showCatalog: true, // TODO: still used ??
 
         fullScreen: false,
-        reticleColor: "rgb(255, 200, 0)",
+        reticleColor: "rgb(178, 50, 178)",
         reticleSize: 22,
         gridColor: "rgb(0, 255, 0)",
         gridOpacity: 0.5,
@@ -793,6 +818,7 @@ export let Aladin = (function () {
             return;
         }
         this.view.setProjection(projection);
+
         ALEvent.PROJECTION_CHANGED.dispatchedTo(this.aladinDiv, {projection: projection});
     };
 
@@ -1901,11 +1927,11 @@ export let Aladin = (function () {
         this.view.overlayForPopup.show();
         this.view.catalogForPopup.show();
 
-        this.view.popup.setTitle(title);
-        this.view.popup.setText(content);
+        this.popup.setTitle(title);
+        this.popup.setText(content);
 
-        this.view.popup.setSource(marker);
-        this.view.popup.show();
+        this.popup.setSource(marker);
+        this.popup.show();
     };
 
     // @API
@@ -1913,7 +1939,7 @@ export let Aladin = (function () {
     * hide popup
     */
     Aladin.prototype.hidePopup = function () {
-        this.view.popup.hide();
+        this.popup.hide();
     };
 
     // @API

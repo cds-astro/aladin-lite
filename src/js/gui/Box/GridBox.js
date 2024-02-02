@@ -173,13 +173,17 @@ export class GridBox extends Box {
             colorInput.set(hexColor)
         });
 
-        super({
-            content: layout,
-        }, aladin.aladinDiv)
+        super(aladin,
+            {
+                content: layout,
+            }
+        )
 
         this.addClass("aladin-box-night")
 
         this.aladin = aladin;
+
+        this._hide();
     }
 
     _hide() {

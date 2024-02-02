@@ -96,7 +96,7 @@ export class ContextMenu extends DOMElement {
                 }
                 item.innerHTML = '<span>' + posStr + '</span>';
             } catch (e) {
-                item.innerHTML = '<span></span>';
+                item.innerHTML = '<span>Out of projection</span>';
             }
         } else {
             if (opt.label instanceof DOMElement) {
@@ -157,7 +157,10 @@ export class ContextMenu extends DOMElement {
         }
 
         if (opt.subMenu && opt.subMenu.length > 0) {
-            item.innerHTML += '<span>▶</span>';
+            let spanEl = document.createElement('span')
+            spanEl.innerText = '▶';
+
+            item.appendChild(spanEl);
             item.style.display = 'flex';
             item.style.alignItems = 'center';
             item.style.justifyContent = 'space-between';
@@ -171,8 +174,27 @@ export class ContextMenu extends DOMElement {
         if (opt.selected && opt.selected === true) {
             item.classList.add('aladin-context-menu-item-selected');
         }
+        
+        if (opt.subMenu) {
+            item.addEventListener('click', e => {
+                e.preventDefault();
+                e.stopPropagation();
 
-        if (opt.action) {
+                if (item.parentNode) {
+                    let subMenus = item.parentNode.querySelectorAll(".aladin-context-sub-menu")
+                    for (let subMenuChild of subMenus) {
+                        subMenuChild.style.display = 'none';
+                    }  
+                }
+
+                item.querySelector(".aladin-context-sub-menu")
+                    .style.display = 'block';
+
+                if (opt.action && (!opt.disabled || opt.disabled === false)) {
+                    opt.action(e);
+                }
+            });
+        } else if (opt.action) {
             item.addEventListener('click', o => {
                 o.stopPropagation();
 
@@ -186,38 +208,7 @@ export class ContextMenu extends DOMElement {
                     }
                 }
             });
-        } else if (opt.subMenu) {
-            item.addEventListener('click', e => {
-                console.log("click on item")
-                e.preventDefault();
-                e.stopPropagation();
-
-                if (item.parentNode) {
-                    let subMenus = item.parentNode.querySelectorAll(".aladin-context-sub-menu")
-                    for (let subMenuChild of subMenus) {
-                        subMenuChild.style.display = 'none';
-                    }  
-                }
-                
-                item.querySelector(".aladin-context-sub-menu")
-                    .style.display = 'block';
-            });
         }
-        
-        if (opt.hover) {
-            item.addEventListener('mouseover', e => {
-                e.stopPropagation();
-                opt.hover(e, item);
-            })
-        }
-        if (opt.unhover) {
-            item.addEventListener('mouseout', e => {
-                e.stopPropagation();
-                opt.unhover(e, item);
-            })
-        }
-        
-        target.appendChild(item);
 
         if (opt.subMenu && opt.subMenu.length) {
             const subMenu = document.createElement('ul');
@@ -234,36 +225,70 @@ export class ContextMenu extends DOMElement {
             item.appendChild(subMenu);
             opt.subMenu.forEach(subOpt => this._attachOption(subMenu, subOpt, e, cssStyle));
         }
+
+
+        if (opt.hover) {
+            item.addEventListener('mouseover', e => {
+                e.stopPropagation();
+                e.preventDefault();
+
+                opt.hover(e, item);
+            })
+        }
+
+        if (opt.unhover) {
+            item.addEventListener('mouseout', e => {
+                e.stopPropagation();
+                e.preventDefault();
+
+                opt.unhover(e, item);
+            })
+        }
+
+        target.appendChild(item);
     }
 
     _subMenuDisplay(parent) {
+        const {offsetWidth, offsetHeight} = this.aladin.aladinDiv;
+        const aladinRect = this.aladin.aladinDiv.getBoundingClientRect();
+
+        let leftDir = 0;
+        let topDir = 0;
+
         for (let item of parent.children) {
-            // Display the submenu to evaluate its size
             item.style.display = "block";
 
-            if (item.className === 'aladin-context-sub-menu') {
-                let r = item.getBoundingClientRect();
-                const {offsetWidth, offsetHeight} = this.aladin.aladinDiv;
+            let r = item.getBoundingClientRect();
 
-                if (r.x + r.width >= offsetWidth) {
-                    this.el.classList.add('left');
-                }
-
-                if (r.y + r.height >= offsetHeight) {
-                    this.el.classList.add('top');
-                }
+            if (r.x - aladinRect.left <= offsetWidth / 2.0) {
+                leftDir -= 1;
+            } else {
+                leftDir += 1;
             }
 
-            this._subMenuDisplay(item)
+            if (r.y - aladinRect.top <= offsetHeight / 2.0) {
+                topDir -= 1;
+            } else {
+                topDir += 1;
+            }
 
-            // Hide the submenu
             item.style.display = "";
+        }
+
+        if (leftDir > 0) {
+            this.el.classList.add('left');
+        } else {
+            this.el.classList.add('right');
+        }
+
+        if (topDir > 0) {
+            this.el.classList.add('top');
+        } else {
+            this.el.classList.add('bottom');
         }
     }
 
     show(options) {
-        //this.remove();
-
         this.el.innerHTML = '';
         this.el.style = this.cssStyleDefault
 
@@ -286,7 +311,7 @@ export class ContextMenu extends DOMElement {
                 top: options.e.clientY - this.aladin.aladinDiv.offsetTop
             });
 
-        this.setPosition(position)
+        this.setPosition({...position, aladinDiv: this.aladin.aladinDiv})
 
         this.el.classList.remove('left')
         this.el.classList.remove('top')

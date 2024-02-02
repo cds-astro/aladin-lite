@@ -18,7 +18,6 @@
 //
 
 import { DOMElement } from "./Widget";
-import { Utils } from "../Utils";
 import { ActionButton } from "./ActionButton";
 import moveIconImg from '../../../../assets/icons/move.svg';
 import { Layout } from "../Layout";
@@ -46,14 +45,19 @@ import { Form } from "./Form";
 },]
 */
 export class Box extends DOMElement {
-    constructor(options, target, position = "beforeend") {
+    constructor(aladin, options, position = "beforeend") {
         let el = document.createElement("div");
         el.classList.add('aladin-box');
         el.style.display = "initial";
 
         super(el, options);
+        let target = aladin.aladinDiv;
         // add it to the dom
         this.attachTo(target, position);
+
+        this.aladin = aladin;
+
+        this._hide();
     }
 
     _hide() {
@@ -185,7 +189,7 @@ export class Box extends DOMElement {
         }
 
         if (this.options.position) {
-            this.setPosition(this.options.position)
+            this.setPosition({...this.options.position, aladinDiv: this.aladin.aladinDiv})
         }
     }
 }
@@ -198,7 +202,7 @@ export class SelectBox extends Box {
      * @param {String} position - The position of the tabs layout relative to the target.
      *     For the list of possibilities, see https://developer.mozilla.org/en-US/docs/Web/API/Element/insertAdjacentHTML
      */
-    constructor(options, target, position = "beforeend") {
+    constructor(aladin, options, position = "beforeend") {
         let labels = options.possibilities.map((opt) => opt.label);
         
         let value = (options && options.selected) || labels[0];
@@ -235,7 +239,7 @@ export class SelectBox extends Box {
             layout: [settingsSelector, selectedContent.content]
         });
 
-        super(options, target, position);
+        super(aladin, options, position);
         self = this;
     }
 }

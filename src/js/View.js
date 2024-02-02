@@ -31,7 +31,6 @@
 
 import { Aladin } from "./Aladin.js";
 import A from "./A.js";
-import { Popup } from "./Popup.js";
 import { HealpixGrid } from "./HealpixGrid.js";
 import { ProjectionEnum } from "./ProjectionEnum.js";
 import { Utils } from "./Utils";
@@ -60,8 +59,8 @@ export let View = (function () {
         // Add a reference to the WebGL API
         this.options = aladin.options;
         this.aladinDiv = this.aladin.aladinDiv;
-        this.popup = new Popup(this.aladinDiv, this);
         this.createCanvases();
+
         this.loadingState = false;
 
         let self = this;
@@ -228,10 +227,13 @@ export let View = (function () {
                 self.fixLayoutDimensions();
             })
         } else {*/
-            
-            this.resizeObserver = new ResizeObserver(() => {
+            let resizeLayout = () => {
                 self.fixLayoutDimensions();
-                //self.requestRedraw();
+            }
+            let doit;
+            this.resizeObserver = new ResizeObserver(() => {
+                clearTimeout(doit);
+                doit = setTimeout(resizeLayout, 100);
             });
 
             self.resizeObserver.observe(this.aladinDiv);
@@ -331,7 +333,7 @@ export let View = (function () {
             canvas.className = name;
 
             // Append the canvas to the aladinDiv
-            this.aladinDiv.appendChild(canvas);
+            this.aladinDiv.appendChild(canvas, 'begin');
 
             return canvas;
         };
@@ -382,15 +384,18 @@ export let View = (function () {
         if (!this.logoDiv) {
             this.logoDiv = this.aladinDiv.querySelector('.aladin-logo');
         }
-        if (this.width > 800) {
-            this.logoDiv.classList.remove('aladin-logo-small');
-            this.logoDiv.classList.add('aladin-logo-large');
-            this.logoDiv.style.width = '90px';
-        }
-        else {
-            this.logoDiv.classList.add('aladin-logo-small');
-            this.logoDiv.classList.remove('aladin-logo-large');
-            this.logoDiv.style.width = '32px';
+
+        if (this.logoDiv) {
+            if (this.width > 800) {
+                this.logoDiv.classList.remove('aladin-logo-small');
+                this.logoDiv.classList.add('aladin-logo-large');
+                this.logoDiv.style.width = '90px';
+            }
+            else {
+                this.logoDiv.classList.add('aladin-logo-small');
+                this.logoDiv.classList.remove('aladin-logo-large');
+                this.logoDiv.style.width = '32px';
+            }
         }
 
         this.computeNorder();
@@ -413,7 +418,7 @@ export let View = (function () {
     View.prototype.setMode = function (mode) {
         this.mode = mode;
         if (this.mode == View.TOOL_SIMBAD_POINTER) {
-            this.popup.hide();
+            this.aladin.popup.hide();
             this.catalogCanvas.style.cursor = '';
             this.catalogCanvas.classList.add('aladin-sp-cursor');
         }
@@ -715,10 +720,10 @@ export let View = (function () {
                 // footprint selection code adapted from Fabrizio Giordano dev. from Serco for ESA/ESDC
                 if (o.marker) {
                     // could be factorized in Source.actionClicked
-                    view.popup.setTitle(o.popupTitle);
-                    view.popup.setText(o.popupDesc);
-                    view.popup.setSource(o);
-                    view.popup.show();
+                    view.aladin.popup.setTitle(o.popupTitle);
+                    view.aladin.popup.setText(o.popupDesc);
+                    view.aladin.popup.setSource(o);
+                    view.aladin.popup.show();
                 }
                 else {
                     if (view.lastClickedObject) {
@@ -750,7 +755,7 @@ export let View = (function () {
                 if (view.lastClickedObject) {
                     //view.aladin.measurementTable.hide();
                     //view.aladin.sodaForm.hide();
-                    view.popup.hide();
+                    view.aladin.popup.hide();
 
                     // Deselect the last clicked object
                     if (view.lastClickedObject instanceof Ellipse || view.lastClickedObject instanceof Circle || view.lastClickedObject instanceof Polyline) {
@@ -792,7 +797,7 @@ export let View = (function () {
         var lastMouseMovePos = null;
         Utils.on(view.catalogCanvas, "mousemove touchmove", function (e) {
             e.preventDefault();
-            e.stopPropagation();
+            //e.stopPropagation();
 
             const xymouse = Utils.relMouseCoords(e);
 
@@ -1683,12 +1688,13 @@ export let View = (function () {
     };
 
     View.prototype.setProjection = function (projName) {
-        if (this.projection.id === ProjectionEnum[projName].id) {
-            return;
+        if (!ProjectionEnum[projName]) {
+            console.warn(projName + " is not a valid projection.")
+            projName = 'SIN'
         }
 
-        if (!ProjectionEnum[projName]) {
-            throw projName + " is not a valid projection."
+        if (this.projection.id === ProjectionEnum[projName].id) {
+            return;
         }
 
         this.projection = ProjectionEnum[projName];

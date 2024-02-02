@@ -977,13 +977,15 @@ impl WebClient {
         dec_deg: f64,
         rad_deg: f64,
     ) -> Result<(), JsValue> {
+        let tile_d = self.app.get_norder();
+        let pixel_d = tile_d + 9;
         let moc = HEALPixCoverage::from_cone(
             &LonLatT::new(
                 ra_deg.to_radians().to_angle(),
                 dec_deg.to_radians().to_angle(),
             ),
             rad_deg.to_radians(),
-            10,
+            pixel_d as u8 - 2,
         );
 
         self.app.add_moc(params.clone(), moc)?;
@@ -999,6 +1001,8 @@ impl WebClient {
         dec_deg: &[f64],
     ) -> Result<(), JsValue> {
         use cgmath::InnerSpace;
+        let tile_d = self.app.get_norder();
+        let pixel_d = tile_d + 9;
 
         let vertex_it = ra_deg
             .iter()
@@ -1010,7 +1014,7 @@ impl WebClient {
 
         let v_in = &Vector4::new(1.0, 0.0, 0.0, 1.0);
 
-        let mut moc = HEALPixCoverage::from_3d_coos(10, vertex_it, &v_in);
+        let mut moc = HEALPixCoverage::from_3d_coos(pixel_d as u8 - 2, vertex_it, &v_in);
         if moc.sky_fraction() > 0.5 {
             moc = moc.not();
         }
@@ -1037,21 +1041,23 @@ impl WebClient {
     #[wasm_bindgen(js_name = mocContains)]
     pub fn moc_contains(
         &mut self,
-        _params: &al_api::moc::MOC,
-        _lon: f64,
-        _lat: f64,
+        params: &al_api::moc::MOC,
+        lon: f64,
+        lat: f64,
     ) -> Result<bool, JsValue> {
-        /*let moc = self.app.get_moc(params).ok_or_else(|| JsValue::from(js_sys::Error::new("MOC not found")))?;
+        let moc = self
+            .app
+            .get_moc(params)
+            .ok_or_else(|| JsValue::from(js_sys::Error::new("MOC not found")))?;
         let location = LonLatT::new(ArcDeg(lon).into(), ArcDeg(lat).into());
 
-        Ok(moc.is_in(location.lon().0, location.lat().0))*/
-        Ok(false)
+        Ok(moc.contains_lonlat(&location))
     }
 
     #[wasm_bindgen(js_name = getMOCSkyFraction)]
     pub fn get_moc_sky_fraction(&mut self, params: &al_api::moc::MOC) -> f32 {
         if let Some(moc) = self.app.get_moc(params) {
-            moc.sky_fraction()
+            moc.sky_fraction() as f32
         } else {
             0.0
         }

@@ -81,7 +81,7 @@ export class ActionButton extends DOMElement {
 
         if (Utils.hasTouchScreen()) {
             // Add a little padding 
-            el.style.padding = "0.3em";
+            el.style.padding = "0.2em";
         }
 
         // add it to the dom

@@ -1311,6 +1311,7 @@ export let View = (function () {
 
             this.aladin.measurementTable.showMeasurement(tables);
             let a = this.aladin;
+            let self = this;
             const sampBtn = new SAMPActionButton({
                 tooltip: {content: 'Send a table through SAMP Hub'},
                 action(conn) {
@@ -1326,7 +1327,7 @@ export let View = (function () {
                         return s;
                     };
 
-                    for (const objects of objList) {
+                    for (const objects of self.selection) {
                         let s0 = getSource(objects[0]);
                         const cat = s0.catalog;
                         const {url, name} = cat;

@@ -38,6 +38,7 @@ import copyIconBtn from '../../../assets/icons/copy.svg';
 import { ALEvent } from "../events/ALEvent.js";
 import { Layout } from "./Layout.js";
 import { ActionButton } from "./Widgets/ActionButton.js";
+import { Utils } from "../Utils";
 
 export class Location extends DOMElement {
     // constructor
@@ -57,7 +58,7 @@ export class Location extends DOMElement {
                         self.copyCoordinatesToClipboard()
                     }
                 }),
-                '<div class="aladin-monospace-text"></div>'
+                '<div class="aladin-monospace-text" style="white-space: pre;"></div>'
             ]
         })
         el.addClass('aladin-location');
@@ -109,12 +110,26 @@ export class Location extends DOMElement {
         });
 
         this.aladin = aladin;
+
+        let [lon, lat] = aladin.wasm.getCenter();
+        this.update({
+            lon: lon,
+            lat: lat,
+            isViewCenter: true,
+            frame: aladin.view.cooFrame
+        }, aladin)
+
+        if (Utils.hasTouchScreen()) {
+            this.el.style.padding = "0.2em";
+        }
     };
+
+    static prec = 7;
 
     update(options, aladin) {
         let self = this;
         const updateFromLonLatFunc = (lon, lat, cooFrame) => {
-            var coo = new Coo(lon, lat, 7);
+            var coo = new Coo(lon, lat, Location.prec);
             let textEl = self.el.querySelector('.aladin-monospace-text')
             if (cooFrame == CooFrameEnum.J2000) {
                 textEl.innerHTML = coo.format('s/');

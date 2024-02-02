@@ -59,30 +59,68 @@ export class Toolbar extends Layout {
      *     For the list of possibilities, see https://developer.mozilla.org/en-US/docs/Web/API/Element/insertAdjacentHTML
      */
     constructor(options) {
-        options.direction = options.direction || 'horizontal';
+        options.orientation = options.orientation || 'horizontal';
+
+        if (options.direction === undefined) {
+            options.direction = options.orientation === 'horizontal' ? 'bottom' : 'left';
+        }
+
         options.position = options.position || {anchor: 'left top'};
         options.layout = options.layout || [];
 
         super(options)
 
-        let direction = options.direction;
-        if (direction === 'vertical') {
-            this.addClass('aladin-vertical-list')
-        } else {
-            this.addClass('aladin-horizontal-list')
-        }
+        this.addClass(options.direction);
 
         this.tools = {};
     }
 
-    add(tools) {
-        if (!Array.isArray(tools)) {
-            tools = [tools];
+    update(options) {
+        if (options.direction) {
+            this.removeClass('left');
+            this.removeClass('right');
+            this.removeClass('top');
+            this.removeClass('bottom');
+
+            this.addClass(options.direction)
+
+            // search for a tooltip
+            this.el.querySelectorAll(".aladin-tooltip-container")
+                .forEach((t) => {
+                    t.classList.remove('left');
+                    t.classList.remove('right');
+                    t.classList.remove('top');
+                    t.classList.remove('bottom');
+
+                    t.classList.add(options.direction === 'left' ? 'right' : 'left');
+                })
         }
 
-        tools.forEach(tool => {
-            this.appendAtLast(tool)
-        });
+        super.update(options);
+    }
+
+    add(tool, name, position = 'after') {
+        if (Array.isArray(tool)) {
+            let tools = tool;
+            tools.forEach(t => {
+                this.appendAtLast(t)
+            });
+        } else {
+            if (position === 'begin') {
+                this.appendAtIndex(tool, name, 0)
+            } else {
+                this.appendAtLast(tool, name)
+            }
+        }
+    }
+
+    remove(name) {
+        let tool = this.tools[name];
+
+        this.removeItem(tool)
+        delete this.tools[name];
+
+        return tool;
     }
 
     appendAtLast(tool, name) {

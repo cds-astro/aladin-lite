@@ -10,7 +10,7 @@
     import A from '../src/js/A.js';
     let aladin;
     A.init.then(() => {
-        aladin = A.aladin('#aladin-lite-div', {survey: 'http://alasky.cds.unistra.fr/ancillary/GaiaDR2/hips-density-map/', showProjectionControl: true, showContextMenu: true, fullScreen: true, target: 'galactic center'});
+        aladin = A.aladin('#aladin-lite-div', {survey: 'http://alasky.cds.unistra.fr/ancillary/GaiaDR2/hips-density-map/', showProjectionControl: true, showContextMenu: true, showStatusBar: true, fullScreen: true, target: 'galactic center'});
 
         const fluxMap = aladin.createImageSurvey('gdr3-color-flux-map', 'Gaia DR3 flux map', 'https://alasky.u-strasbg.fr/ancillary/GaiaEDR3/color-Rp-G-Bp-flux-map', 'equatorial', 7);
         const densityMap = aladin.createImageSurvey('gdr3-density-map', 'Gaia DR3 density map', 'sdfsg', 'equatorial', 7, {imgFormat: 'fits'});

@@ -10,7 +10,6 @@ use crate::ProjectionType;
 use crate::grid::angle::SerializeFmt;
 use crate::math::HALF_PI;
 
-
 pub fn get_intersecting_meridian(
     lon: f64,
     camera: &CameraViewPort,

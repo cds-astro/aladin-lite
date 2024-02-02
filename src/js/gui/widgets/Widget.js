@@ -108,6 +108,19 @@ export class DOMElement {
     setPosition(options) {
         let el = this.element();
 
+        el.classList.remove('aladin-anchor-left');
+        el.classList.remove('aladin-anchor-right');
+        el.classList.remove('aladin-anchor-center');
+        el.classList.remove('aladin-anchor-top');
+        el.classList.remove('aladin-anchor-bottom');
+        el.classList.remove('aladin-anchor-middle');
+
+        delete el.style.removeProperty("left");
+        delete el.style.removeProperty("right");
+        delete el.style.removeProperty("top");
+        delete el.style.removeProperty("bottom");
+        delete el.style.removeProperty("transform");
+
         if (options && options.anchor) {
             el.style.position = 'absolute';
 
@@ -132,11 +145,11 @@ export class DOMElement {
         }
 
         let left = 0, top = 0, bottom, right;
-        let x = 0, y = 0;
+        let x, y;
 
         // handle the anchor/dir case with higher priority
         const {offsetWidth, offsetHeight} = el;
-        const aladinDiv = document.querySelector('.aladin-container');
+        const aladinDiv = options.aladinDiv || document.querySelector('.aladin-container');
 
         const innerWidth = aladinDiv.offsetWidth;
         const innerHeight = aladinDiv.offsetHeight;
@@ -145,16 +158,16 @@ export class DOMElement {
         if (options && (options.left || options.top || options.right || options.bottom)) {
             el.style.position = 'absolute';
 
-            if (options.top) {
+            if (options.top !== undefined) {
                 top = options.top;
             }
-            if (options.left) {
+            if (options.left !== undefined) {
                 left = options.left;
             }
-            if (options.bottom) {
+            if (options.bottom !== undefined) {
                 bottom = options.bottom;
             }
-            if (options.right) {
+            if (options.right !== undefined) {
                 right = options.right;
             }
         } else if (options && options.nextTo && options.direction) {
@@ -192,7 +205,7 @@ export class DOMElement {
                     left = 0;
                     top = 0;
                     break;
-            }   
+            }
         }
 
         // Translate if the div in 
@@ -212,20 +225,20 @@ export class DOMElement {
             y = Math.abs(top) + 'px';
         }
 
-        if (top !== undefined) {
-            el.style.top = top + 'px';
-        }
-        if (left !== undefined) {
-            el.style.left = left + 'px';
-        }
         if (bottom !== undefined) {
             el.style.bottom = bottom + 'px';
-        }
-        if (right !== undefined) {
-            el.style.right = right + 'px';
+        } else {
+            el.style.top = top + 'px';
         }
 
-        el.style.transform = `translate(${x}, ${y})`;
+        if (right !== undefined) {
+            el.style.right = right + 'px';
+        } else {
+            el.style.left = left + 'px';
+        }
+
+        if (x && y)
+            el.style.transform = `translate(${x}, ${y})`;
     }
 
     _show() {

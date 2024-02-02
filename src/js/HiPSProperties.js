@@ -112,20 +112,20 @@ HiPSProperties.fetchFromUrl = async function(urlOrId) {
                 return response.text();
             }
         })
-        .then((response) => {
-            // We get the property here
-            let metadata = HiPSDefinition.parseHiPSProperties(response);
-
-            // 1. Ensure there is exactly one survey matching
-            if (metadata) {
-                // Set the service url if not found
-                metadata.hips_service_url = HiPSServiceUrl;
-
-                return metadata;
-            } else {
-                throw 'No surveys matching at this url: ' + rootURL;
-            }
-        })
+        .then(
+            (response) => new Promise((resolve, reject) => {
+                // We get the property here
+                let metadata = HiPSDefinition.parseHiPSProperties(response);
+                // 1. Ensure there is exactly one survey matching
+                if (metadata && Object.keys(metadata).length > 0) {
+                    // Set the service url if not found
+                    metadata.hips_service_url = HiPSServiceUrl;
+                    resolve(metadata);
+                } else {
+                    reject('No surveys matching at this url: ' + rootURL);
+                }
+            })
+        )
 
     return result;
 }

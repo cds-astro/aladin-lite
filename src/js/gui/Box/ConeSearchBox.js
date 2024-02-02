@@ -140,15 +140,18 @@ import { Angle } from "../../libs/astro/angle.js";
             ]
         });
 
-        super({
-            header: {
-                draggable: true,
-                title: 'Cone Search box'
-            },
-            content: Layout.horizontal({
-                layout: [form]
-            })
-        }, aladin.aladinDiv)
+        super(
+            aladin,
+            {
+                header: {
+                    draggable: true,
+                    title: 'Cone Search box'
+                },
+                content: Layout.horizontal({
+                    layout: [form]
+                })
+            }
+        )
 
         // hide by default
         //console.log("hide cone search")

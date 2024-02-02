@@ -44,13 +44,16 @@ import { CmapSelector } from "../Selector/Colormap.js";
  export class LayerEditBox extends Box {
      // Constructor
      constructor(aladin, options) {
-        super({
-            cssStyle: {
-                padding: '4px',
-                backgroundColor: 'black',
-            },
-            ...options
-        }, aladin.aladinDiv)
+        super(
+            aladin,
+            {
+                cssStyle: {
+                    padding: '4px',
+                    backgroundColor: 'black',
+                },
+                ...options
+            }
+        )
 
         this.aladin = aladin;
 
@@ -149,10 +152,8 @@ import { CmapSelector } from "../Selector/Colormap.js";
             sqrt: {
                 content: 'sqrt',
                 cssStyle: {
-                    width: '18px',
                     height: '18px',
                     padding: 0,
-                    width: '3em',
                     color: 'black'
                 },
                 change(e) {
@@ -163,10 +164,8 @@ import { CmapSelector } from "../Selector/Colormap.js";
             linear: {
                 content: 'linear',
                 cssStyle: {
-                    width: '18px',
                     height: '18px',
                     padding: 0,
-                    width: '3em',
                     color: 'black'
 
                 },
@@ -178,10 +177,8 @@ import { CmapSelector } from "../Selector/Colormap.js";
             asinh: {
                 content: 'asinh',
                 cssStyle: {
-                    width: '18px',
                     height: '18px',
                     padding: 0,
-                    width: '3em',
                     color: 'black'
 
                 },
@@ -193,10 +190,8 @@ import { CmapSelector } from "../Selector/Colormap.js";
             pow2: {
                 content: 'pow2',
                 cssStyle: {
-                    width: '18px',
                     height: '18px',
                     padding: 0,
-                    width: '3em',
                     color: 'black'
 
                 },
@@ -208,10 +203,8 @@ import { CmapSelector } from "../Selector/Colormap.js";
             log: {
                 content: 'log',
                 cssStyle: {
-                    width: '18px',
                     height: '18px',
                     padding: 0,
-                    width: '3em',
                     color: 'black'
 
                 },
@@ -237,7 +230,7 @@ import { CmapSelector } from "../Selector/Colormap.js";
             self.opacitySettingsContent = Layout.horizontal({
                 layout: [
                     Input.slider({
-                        tooltip: {content: layerOpacity, position: {direction: 'right'}},
+                        tooltip: {content: layerOpacity, position: {direction: 'bottom'}},
                         name: 'opacitySlider',
                         type: 'range',
                         min: 0.0,
@@ -247,7 +240,7 @@ import { CmapSelector } from "../Selector/Colormap.js";
                             const opacity = +e.target.value
                             layer.setOpacity(opacity)
 
-                            slider.update({tooltip: {content: opacity.toFixed(2), position: {direction: 'right'}}})
+                            slider.update({tooltip: {content: opacity.toFixed(2), position: {direction: 'bottom'}}})
                         }
                     }),
                 ]

@@ -19,10 +19,8 @@
 
 import { ALEvent } from "../../events/ALEvent";
 
-import { DOMElement } from "../Widgets/Widget";
-
 import { ActionButton } from "../Widgets/ActionButton";
-import { SurveyCtxMenu } from "../CtxMenu/SurveyCtxMenu";
+import mapIconUrl from '../../../../assets/icons/map.svg';
 
 /******************************************************************************
  * Aladin Lite project
@@ -36,10 +34,6 @@ import { SurveyCtxMenu } from "../CtxMenu/SurveyCtxMenu";
  *
  *****************************************************************************/
 
-/**
- * Class representing a Tabs layout
- * @extends CtxMenuActionButtonOpener
- */
  export class MainSurveyActionButton extends ActionButton {
     /**
      * UI responsible for displaying the viewport infos
@@ -49,14 +43,10 @@ import { SurveyCtxMenu } from "../CtxMenu/SurveyCtxMenu";
         super({
             ...options,
             tooltip: {content: 'Survey name<br/>Click to change it!', position: { direction: 'bottom' }},
-            content: '<div class="aladin-long-text">Main survey</div>',
-            cssStyle: {
-                backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                borderColor: 'white',
-                color: 'white',
-                padding: '4px',
-            },
+            iconURL: mapIconUrl,
         })
+
+        this.addClass('medium-sized-icon')
 
         this._addListeners(aladin)
     }
@@ -67,9 +57,8 @@ import { SurveyCtxMenu } from "../CtxMenu/SurveyCtxMenu";
             if (layer.layer === 'base') {
                 let name = (layer.properties && layer.properties.obsTitle) || layer.name;
                 this.update({
-                    content: '<div class="aladin-long-text">' + name + '</div>',
                     tooltip: {
-                        content: name,
+                        content: 'Survey: ' + name,
                         position: {
                             direction: 'left'
                         }

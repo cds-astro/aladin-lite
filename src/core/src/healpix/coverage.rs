@@ -78,6 +78,10 @@ impl HEALPixCoverage {
         self.0.is_in(lon.0, lat.0)
     }
 
+    pub fn contains_lonlat(&self, lonlat: &LonLatT<f64>) -> bool {
+        self.0.is_in(lonlat.lon().0, lonlat.lat().0)
+    }
+
     // O(log2(N))
     pub fn intersects_cell(&self, cell: &HEALPixCell) -> bool {
         let z29_rng = cell.z_29_rng();

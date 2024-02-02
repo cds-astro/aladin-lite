@@ -96,11 +96,9 @@ options = {
 
             if (hubRunning !== isHubRunning) {
                 let newOptions = {
-                    disable: !isHubRunning
+                    disable: !isHubRunning,
+                    tooltip: isHubRunning ? {content: 'Connect to SAMP hub'} : {content: 'No hub running found'}
                 };
-                if (!isHubRunning) {
-                    newOptions['tooltip'] = {content: 'No hub running found'};
-                }
 
                 self.update(newOptions)
                 if (isHubRunning === false) {

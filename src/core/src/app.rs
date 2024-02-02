@@ -480,7 +480,7 @@ impl App {
         Ok(res)
     }
 
-    pub(crate) fn get_moc(&self, cfg: &al_api::moc::MOC) -> Option<&MOC> {
+    pub(crate) fn get_moc(&self, cfg: &al_api::moc::MOC) -> Option<&HEALPixCoverage> {
         self.moc.get_hpx_coverage(cfg)
     }
 
@@ -489,9 +489,6 @@ impl App {
         mut cfg: al_api::moc::MOC,
         moc: HEALPixCoverage,
     ) -> Result<(), JsValue> {
-        // change the moc thickness
-        cfg.line_width = (cfg.line_width + 0.5) * 2.0 / self.camera.get_width();
-
         self.moc
             .push_back(moc, cfg, &mut self.camera, &self.projection);
         self.request_redraw = true;

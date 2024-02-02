@@ -79,8 +79,12 @@ export class Layout extends DOMElement {
             this.setPosition(options.position)
         }
 
-        if (options.direction) {
-            this.addClass(options.direction === 'horizontal' ? this.addClass('aladin-horizontal-list') : this.addClass('aladin-vertical-list'))
+        if (options.orientation) {
+            if (options.orientation === 'horizontal') {
+                this.addClass('aladin-horizontal-list')
+            } else {
+                this.addClass('aladin-vertical-list')
+            }
         } else {
             this.addClass('aladin-horizontal-list')
         }
@@ -180,6 +184,11 @@ export class Layout extends DOMElement {
             }
         }
 
+        if (this.options.position) {
+            this.setPosition(this.options.position)
+        }
+
+        //super._show()
         // attach to the DOM again
         //this.attachTo(this.target);
     }

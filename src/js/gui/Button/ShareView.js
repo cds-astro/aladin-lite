@@ -112,7 +112,7 @@ import shareIconUrl from '../../../../assets/icons/share.svg';
             iconURL: shareIconUrl,
             openDirection: 'top',
             tooltip: {content: 'You can share/export your view into many ways', position: {direction: 'top'}},
-        });
+        }, aladin);
         self = this;
         this.addClass('medium-sized-icon')
     }

@@ -19,6 +19,7 @@
 
 import { DOMElement } from "./Widget";
 import { Tooltip } from "./Tooltip";
+import { Utils } from "../../Utils";
 /******************************************************************************
  * Aladin Lite project
  *
@@ -170,6 +171,12 @@ export class Input extends DOMElement {
 
         if (this.options.tooltip) {
             Tooltip.add(this.options.tooltip, this)
+        }
+
+        // Add padding for inputs except color ones
+        if (Utils.hasTouchScreen() && layout.type !== "color") {
+            // Add a little padding 
+            this.el.style.padding = "0.5em";
         }
 
         super._show()

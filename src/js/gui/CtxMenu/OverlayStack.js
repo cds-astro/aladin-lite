@@ -50,12 +50,11 @@ export class OverlayStack extends ContextMenu {
         /*window.addEventListener("resize", (e) => {
             this._hide();
         })*/
-        let self = this;
-        document.addEventListener('click', (e) => {
+        /*document.addEventListener('click', (e) => {
             if (!self.el.contains(e.target) && this.mode === 'stack') {
                 this._hide()
             }
-        });
+        });*/
 
         this._addListeners();
     }
@@ -122,9 +121,8 @@ export class OverlayStack extends ContextMenu {
                                 //o.preventDefault();
                                 
                                 self._hide();
-
-                                let catBox = CatalogQueryBox.getInstance(self.aladin, self.position);
-                                catBox._show();
+                                self.catBox = new CatalogQueryBox(self.aladin, self.position);
+                                self.catBox._show();
 
                                 self.mode = 'search';
                             }
@@ -237,7 +235,7 @@ export class OverlayStack extends ContextMenu {
             height: 'fit-content',
         };
             let showBtn = ActionButton.createIconBtn({
-                iconURL: showIconUrl,
+                iconURL:  overlay.isShowing ? showIconUrl : hideIconUrl,
                 cssStyle: {
                     backgroundColor: '#bababa',
                     borderColor: '#484848',
@@ -248,7 +246,7 @@ export class OverlayStack extends ContextMenu {
                     verticalAlign: 'middle',
                     marginRight: '2px',
                 },
-                tooltip: {content: 'Hide', position: {direction: 'bottom'}},
+                tooltip: {content: overlay.isShowing ? 'Hide' : 'Show', position: {direction: 'bottom'}},
                 action(e, btn) {
                     if (overlay.isShowing) {
                         overlay.hide()
@@ -356,7 +354,6 @@ export class OverlayStack extends ContextMenu {
             ...options,
             ...{position: this.position},
             cssStyle: {
-                color: 'white',
                 backgroundColor: 'black',
                 maxWidth: '20em',
                 //border: '1px solid white',
@@ -367,10 +364,16 @@ export class OverlayStack extends ContextMenu {
     _hide() {
         this.mode = 'stack';
 
-        if (this.position) {
-            let catBox = CatalogQueryBox.getInstance(this.aladin, this.position);
-            catBox._hide();
+        if (this.catBox) {
+            this.catBox._hide();
         }
+        
+        /*let catBox = CatalogQueryBox.getInstance(this.aladin, this.position);
+        
+
+        if (this.position) {
+            
+        }*/
        
         super._hide();
     }

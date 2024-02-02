@@ -40,7 +40,7 @@ import { Coo } from "./libs/astro/coo.js";
 import { URLBuilder } from "./URLBuilder.js";
 import { ColorCfg } from './ColorCfg.js';
 import { Footprint } from './Footprint.js';
-import { Toolbar } from "./gui/widgets/Toolbar.js";
+import { Toolbar } from "./gui/Widgets/Toolbar.js";
 import { Aladin } from "./Aladin.js";
 import { ALEvent } from "./events/ALEvent.js";
 // Wasm top level import

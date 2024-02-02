@@ -15,6 +15,7 @@ use crate::ProjectionType;
 use al_api::color::ColorRGBA;
 
 use al_api::grid::GridCfg;
+use cgmath::InnerSpace;
 
 use crate::grid::label::Label;
 pub struct ProjetedGrid {
@@ -53,7 +54,7 @@ impl ProjetedGrid {
         let label_scale = 1.0;
         let line_style = line::Style::None;
         let fmt = angle::SerializeFmt::DMS;
-        let thickness = 3.0;
+        let thickness = 2.0;
 
         let grid = ProjetedGrid {
             color,
@@ -207,12 +208,8 @@ impl ProjetedGrid {
                 vertices,
             });
 
-        rasterizer.add_stroke_paths(
-            paths,
-            self.thickness * 2.0 / camera.get_width(),
-            &self.color,
-            &self.line_style,
-        );
+        let m = camera.get_screen_size().magnitude();
+        rasterizer.add_stroke_paths(paths, self.thickness, &self.color, &self.line_style);
 
         // update labels
         {

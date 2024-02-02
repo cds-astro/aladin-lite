@@ -18,8 +18,7 @@
 //
 
 import { CtxMenuActionButtonOpener } from "./CtxMenuOpener";
-import { ContextMenu } from "../Widgets/ContextMenu";
-import projectionSvg from '../../../../assets/icons/grid.svg';
+import projectionSvg from '../../../../assets/icons/projection.svg';
 import { ProjectionEnum } from "../../ProjectionEnum";
 /******************************************************************************
  * Aladin Lite project
@@ -51,6 +50,7 @@ import { ProjectionEnum } from "../../ProjectionEnum";
                 borderColor: '#484848',
                 cursor: 'pointer',
             },
+            openDirection: 'bottom',
             /*action(o) {
                 ctxMenu.attach(layout);
             }*/

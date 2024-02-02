@@ -51,8 +51,7 @@ import { Utils } from "../Utils";
  *
  *****************************************************************************/
 import { Toolbar } from "../Widgets/Toolbar";
-import { SurveyCtxMenu } from "../CtxMenu/SurveyCtxMenu";
-import { MainSurveyActionButton } from "../Button/MainSurvey";
+
 /**
  * Class representing a Tabs layout
  * @extends DOMElement
@@ -85,43 +84,44 @@ import { MainSurveyActionButton } from "../Button/MainSurvey";
         }
 
         // Add the fullscreen control
+        // tools
+        let stack = new Stack(aladin, self);
+        let overlay = new OverlayStack(aladin);
+        let goto = new GotoBox(aladin);
+        let grid = new GridBox(aladin);
+        let settings = new SettingsCtxMenu(aladin, self);
+
+        this.panels = {
+            stack, overlay, goto, grid, settings
+        };
+        this.indices = [];
+
+        this.aladin = aladin;
+
+        this._initControls();
+    }
+
+    _initControls() {
+        let self = this;
+        let aladin = this.aladin;
 
         this.controls = {
-            survey: new MainSurveyActionButton(
-                aladin,
-                {
-                    action(o) {
-                        let toolWasShown = !survey.isHidden;
-
-                        self.closeAll();
-
-                        if (!toolWasShown) {
-                            survey._show({
-                                position: {
-                                    nextTo: self.controls['survey'],
-                                    direction: options.direction === 'horizontal' ? 'bottom' : 'left',
-                                }
-                            });
-                        }
-                    }
-                }
-            ),
             stack: ActionButton.createIconBtn({
                 iconURL: stackImageIconUrl,
                 tooltip: {
                     content: 'Open the stack layer menu',
-                    position: { direction: 'left'},
+                    position: { direction: self.options.direction === 'right' ? 'left' : 'right' },
                 },
                 action(o) {
-                    let toolWasShown = !stack.isHidden;
+                    let toolWasShown = !self.panels["stack"].isHidden;
 
                     self.closeAll();
 
                     if (!toolWasShown) {
-                        stack._show({
+                        self.panels["stack"]._show({
                             position: {
                                 nextTo: self.controls['stack'],
-                                direction: options.direction === 'horizontal' ? 'bottom' : 'left',
+                                direction: self.options.direction === 'right' ? 'left' : 'right',
                             }
                         });
                     }
@@ -131,18 +131,18 @@ import { MainSurveyActionButton } from "../Button/MainSurvey";
                 iconURL: stackOverlayIconUrl,
                 tooltip: {
                     content: 'Open the overlays menu',
-                    position: { direction: 'left'},
+                    position: { direction: self.options.direction === 'right' ? 'left' : 'right'},
                 },
                 action(o) {
-                    let toolWasShown = !overlay.isHidden;
+                    let toolWasShown = !self.panels["overlay"].isHidden;
 
                     self.closeAll();
 
                     if (!toolWasShown) {
-                        overlay._show({
+                        self.panels["overlay"]._show({
                             position: {
                                 nextTo: self.controls['overlay'],
-                                direction: options.direction === 'horizontal' ? 'bottom' : 'left',
+                                direction: self.options.direction === 'right' ? 'left' : 'right',
                             }
                         });
                     }
@@ -153,18 +153,18 @@ import { MainSurveyActionButton } from "../Button/MainSurvey";
                 iconURL: searchIcon,
                 tooltip: {
                     content: 'Search for where a celestial object is',
-                    position: { direction: 'left'},
+                    position: { direction: self.options.direction === 'right' ? 'left' : 'right'},
                 },
                 action(o) {
-                    let toolWasShown = !goto.isHidden;
+                    let toolWasShown = !self.panels["goto"].isHidden;
 
                     self.closeAll();
 
                     if (!toolWasShown) {
-                        goto._show({
+                        self.panels["goto"]._show({
                             position: {
                                 nextTo: self.controls['goto'],
-                                direction: options.direction === 'horizontal' ? 'bottom' : 'left',
+                                direction: self.options.direction === 'right' ? 'left' : 'right',
                             }
                         });
                     }
@@ -174,18 +174,18 @@ import { MainSurveyActionButton } from "../Button/MainSurvey";
                 iconURL: gridIcon,
                 tooltip: {
                     content: 'Open the grid layer menu',
-                    position: { direction: 'left'},
+                    position: { direction: self.options.direction === 'right' ? 'left' : 'right'},
                 },
                 action(o) {
-                    let toolWasShown = !grid.isHidden;
+                    let toolWasShown = !self.panels["grid"].isHidden;
 
                     self.closeAll();
 
                     if (!toolWasShown) {
-                        grid._show({
+                        self.panels["grid"]._show({
                             position: {
                                 nextTo: self.controls['grid'],
-                                direction: options.direction === 'horizontal' ? 'bottom' : 'left',
+                                direction: self.options.direction === 'right' ? 'left' : 'right',
                             }
                         });
                     }
@@ -195,18 +195,18 @@ import { MainSurveyActionButton } from "../Button/MainSurvey";
                 iconURL: settingsIcon,
                 tooltip: {
                     content: 'Some general settings e.g. background color, reticle, windows to show',
-                    position: { direction: 'left' },
+                    position: { direction: self.options.direction === 'right' ? 'left' : 'right' },
                 },
                 action(o) {
-                    let toolWasShown = !settings.isHidden;
+                    let toolWasShown = !self.panels["settings"].isHidden;
 
                     self.closeAll();
 
                     if (!toolWasShown) {
-                        settings._show({
+                        self.panels["settings"]._show({
                             position: {
                                 nextTo: self.controls["settings"],
-                                direction: options.direction === 'horizontal' ? 'bottom' : 'left',
+                                direction: self.options.direction === 'right' ? 'left' : 'right',
                             }
                         });
                     }
@@ -216,26 +216,30 @@ import { MainSurveyActionButton } from "../Button/MainSurvey";
                 iconURL: aladin.isInFullscreen ? restoreIcon : maximizeIcon,
                 tooltip: {
                     content: aladin.isInFullscreen ? 'Restore original size' : 'Full-screen',
-                    position: { direction: 'left'},
+                    position: { direction: self.options.direction === 'right' ? 'left' : 'right'},
                 },
                 action(o) {
-                    aladin.toggleFullscreen(aladin.options.realFullscreen);
-    
+                    aladin.toggleFullscreen(aladin.options.realFullscreen);    
                     let btn = self.controls['fullscreen'];
+
                     if (aladin.isInFullscreen) {
+                        // make that div above other aladin lite divs (if there are...)
+                        aladin.aladinDiv.style.zIndex = 1
                         btn.update({
                             iconURL: restoreIcon,
                             tooltip: {
                                 content: 'Restore original size',
-                                position: { direction: 'left'}
+                                position: { direction: self.options.direction === 'right' ? 'left' : 'right'}
                             }
                         });
                     } else {
+                        aladin.aladinDiv.style.removeProperty('z-index')
+
                         btn.update({
                             iconURL: maximizeIcon,
                             tooltip: {
                                 content: 'Fullscreen',
-                                position: { direction: 'left'}
+                                position: { direction: self.options.direction === 'right' ? 'left' : 'right'}
                             }
                         });
                     }
@@ -245,22 +249,6 @@ import { MainSurveyActionButton } from "../Button/MainSurvey";
                 }
             }),
         };
-
-        // tools
-        let stack = new Stack(aladin, self);
-        let overlay = new OverlayStack(aladin);
-        let goto = new GotoBox(aladin);
-        let grid = new GridBox(aladin);
-        let settings = new SettingsCtxMenu(aladin, self);
-        let survey = new SurveyCtxMenu(aladin, self);
-
-        this.panels = {
-            stack, overlay, goto, grid, settings, survey
-        };
-
-        this.indices = [];
-
-        this.aladin = aladin;
     }
 
     closeAll() {

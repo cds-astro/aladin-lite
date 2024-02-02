@@ -6,6 +6,7 @@ pub struct MOCHierarchy {
     full_res_depth: u8,
     // MOC at different resolution
     mocs: Vec<MOC>,
+    coverage: HEALPixCoverage,
 }
 
 impl MOCHierarchy {
@@ -21,6 +22,7 @@ impl MOCHierarchy {
         Self {
             mocs,
             full_res_depth,
+            coverage: full_res_moc,
         }
     }
 
@@ -63,8 +65,8 @@ impl MOCHierarchy {
         &mut self.mocs[d]
     }
 
-    pub fn get_full_moc(&self) -> &MOC {
-        &self.mocs[self.full_res_depth as usize]
+    pub fn get_full_moc(&self) -> &HEALPixCoverage {
+        &self.coverage
     }
 
     pub fn get_full_res_depth(&self) -> u8 {

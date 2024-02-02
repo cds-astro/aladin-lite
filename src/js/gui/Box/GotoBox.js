@@ -77,14 +77,17 @@ export class GotoBox extends Box {
             }
         });
 
-        super({content: textField}, aladin.aladinDiv)
+        super(aladin, {content: textField})
 
         this.addClass('aladin-box-night');
         this.textField = textField;
     }
 
     _hide() {
-        this.textField.set('')
+        if (this.textField) {
+            this.textField.set('')
+        }
+
         super._hide()
     }
 

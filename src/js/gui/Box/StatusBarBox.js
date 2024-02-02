@@ -38,14 +38,17 @@ import infoIconUrl from '../../../../assets/icons/info.svg';
 
 export class StatusBarBox extends Box {
     constructor(aladin) {
-        super({
-            cssStyle: {
-                color: 'white',
-                backgroundColor: 'black',
-                borderRadius: '3px',
-                padding: 0,
+        super(
+            aladin,
+            {
+                cssStyle: {
+                    color: 'white',
+                    backgroundColor: 'black',
+                    borderRadius: '3px',
+                    padding: 0,
+                }
             }
-        }, aladin.aladinDiv)
+        )
 
         this.addClass("aladin-status-bar");
 
@@ -127,8 +130,6 @@ export class StatusBarBox extends Box {
         });
 
         message.addClass("aladin-status-bar-message")
-
-        console.log(message)
 
         this._show({
             content: [StatusBarBox.icons[task.type], message],

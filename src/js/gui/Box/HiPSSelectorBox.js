@@ -37,33 +37,13 @@ import { Utils } from "../../Utils.ts";
  *****************************************************************************/
 
  export class HiPSSelectorBox extends Box {
-
-    constructor(options, aladin) {
-        let layer = options.layer;
-        let fnIdSelected = (IDOrURL) => {
-            let name;
-
-            if (layer) {
-                name = layer;
-            } else {
-                name = Utils.uuidv4();
-            }
-
-            aladin.setOverlayImageLayer(IDOrURL, name);
-        };
-
+    constructor(options, callback, aladin) {
         let inputText = Input.text({
-            //tooltip: {content: 'Search for a VizieR catalogue', position: {direction :'bottom'}},
             label: "Survey",
             name: 'autocomplete',
             type: 'text',
             placeholder: "Type ID, title, keyword or URL",
             autocomplete: 'off',
-            /*change(e) {
-                loadBtn.update({disable: true})
-                // Unfocus the keyboard on android devices (maybe it concerns all smartphones) when the user click on enter
-                //inputText.element().blur();
-            }*/
         });
 
         let self;
@@ -71,22 +51,25 @@ import { Utils } from "../../Utils.ts";
             content: 'Load',
             disable: true,
             action(e) {
-                fnIdSelected && fnIdSelected(inputText.get());
+                callback && callback(inputText.get());
                 // reset the field
                 inputText.set('');
 
                 self._hide();
             }
         })
-        super({
-            ...options,
-            content: Layout.horizontal({
-                layout: [
-                    inputText,
-                    loadBtn
-                ]
-            })
-        }, aladin.aladinDiv)
+        super(
+            aladin,
+            {
+                ...options,
+                content: Layout.horizontal({
+                    layout: [
+                        inputText,
+                        loadBtn
+                    ]
+                })
+            }
+        )
 
         this.addClass('aladin-box-night')
 
@@ -146,7 +129,6 @@ import { Utils } from "../../Utils.ts";
                 inputText.set(item.ID);
                 loadBtn.update({disable: false});
 
-                //self.fnIdSelected && self.fnIdSelected(item.ID);
                 inputText.element().blur();
             },
             // attach container to AL div if needed (to prevent it from being hidden in full screen mode)

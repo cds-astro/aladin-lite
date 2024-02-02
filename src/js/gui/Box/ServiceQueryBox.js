@@ -97,13 +97,16 @@ export class ServiceQueryBox extends Box {
             subInputs: []
         });
 
-        super({
-            header: {
-                draggable: true,
-                title: 'Service query'
-            },
-            content: form
-        }, aladin.aladinDiv)
+        super(
+            aladin,
+            {
+                header: {
+                    draggable: true,
+                    title: 'Service query'
+                },
+                content: form
+            }
+        )
 
         this.form = form;
         this.aladin = aladin;

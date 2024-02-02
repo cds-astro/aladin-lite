@@ -39,8 +39,6 @@ export class PolySelect extends FSM {
     constructor(options, view) {
         // Off initial state
         let off = () => {
-            console.log("off")
-
             view.aladin.showReticle(true)
             view.setMode(View.PAN)
             view.setCursor('default');
@@ -51,8 +49,6 @@ export class PolySelect extends FSM {
         }
         let btn;
         let mouseout = (params) => {
-            console.log("mouseout")
-
             let {e, coo} = params;
 
             if (btn.el.contains(e.relatedTarget) || e.relatedTarget.contains(btn.el)) {
@@ -66,8 +62,6 @@ export class PolySelect extends FSM {
         };
 
         let start = (params) => {
-            console.log("start")
-
             const {callback} = params;
             view.aladin.showReticle(false)
             view.setCursor('crosshair');
@@ -80,8 +74,6 @@ export class PolySelect extends FSM {
         }
 
         let click = (params) => {
-            console.log("click")
-
             const {coo} = params;
 
             const firstClick = this.coos.length === 0;
@@ -115,9 +107,6 @@ export class PolySelect extends FSM {
         };
 
         let mousemove = (params) => {
-
-            console.log("move")
-
             const {coo} = params;
             this.moveCoo = coo;
 
@@ -125,9 +114,6 @@ export class PolySelect extends FSM {
         };
 
         let draw = () => {
-
-            console.log("draw")
-
             let ctx = view.catalogCtx;
 
             if (!view.catalogCanvasCleared) {
@@ -158,8 +144,6 @@ export class PolySelect extends FSM {
         }
 
         let finish = () => {
-            console.log("finish")
-
             // finish the selection
             let xMin = this.coos[0].x
             let yMin = this.coos[0].y

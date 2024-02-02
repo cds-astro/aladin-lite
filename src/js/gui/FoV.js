@@ -27,32 +27,32 @@
  * Author: Thomas Boch[CDS]
  * 
  *****************************************************************************/
-
-
-import { Numbers }            from "../libs/astro/coo.js";
+import { Numbers } from "../libs/astro/coo.js";
 import { Layout } from "./Layout.js";
 
 import { DOMElement } from "./Widgets/Widget.js";
 
 import { ALEvent } from "../events/ALEvent.js";
+import { Utils } from "../Utils";
 
 export class FoV extends DOMElement {
     // constructor
     constructor(aladin) {
         let el = Layout.horizontal({
-            layout: [
+            layout: ['FoV: ',
                 '<div class="aladin-monospace-text"></div>',
                 '<div class="aladin-label-text">&times;</div>',
                 '<div class="aladin-monospace-text"></div>',
-            ],
-            tooltip: {
-                content: 'Field of View in ra and dec direction',
-                position: { direction: 'bottom' },
-            }
+            ]
         });
         el.addClass('aladin-fov');
 
         super(el)
+
+        if (Utils.hasTouchScreen()) {
+            // Add a little padding 
+            this.el.style.padding = "0.5em";
+        }
 
         let self = this;
         ALEvent.ZOOM_CHANGED.listenedBy(aladin.aladinDiv, function (e) {
@@ -94,6 +94,5 @@ export class FoV extends DOMElement {
     
         return Numbers.toDecimal(fov, 1) + suffix;
     }
-    
 };
 

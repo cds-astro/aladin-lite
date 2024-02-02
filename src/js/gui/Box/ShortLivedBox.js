@@ -33,12 +33,17 @@ import { Box } from "../Widgets/Box.js";
 export class ShortLivedBox extends Box {
     // Constructor
     constructor(aladin) {
-        super({cssStyle: {
-            color: 'white',
-            backgroundColor: 'black',
-            borderRadius: '3px',
-            padding: 0,
-        }}, aladin.aladinDiv)
+        super(
+            aladin,
+            {
+                cssStyle: {
+                    color: 'white',
+                    backgroundColor: 'black',
+                    borderRadius: '3px',
+                    padding: 0,
+                }
+            }
+        )
     }
 
     _show(options) {

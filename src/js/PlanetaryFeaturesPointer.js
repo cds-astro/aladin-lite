@@ -130,7 +130,7 @@ export let PlanetaryFeaturesPointer = (function() {
                     try {
                         const diameter = parseFloat(values[fields.indexOf('diameter')]);
                         if (body in PlanetaryFeaturesPointer.PLANETS_RADIUS) {
-                            const parallelLength = 2 * Math.PI * PlanetaryFeaturesPointer.PLANETS_RADIUS[body] * Math.cos(lat * Math.PI /  8180.0);
+                            const parallelLength = 2 * Math.PI * PlanetaryFeaturesPointer.PLANETS_RADIUS[body] * Math.cos(lat * Math.PI /  180.0);
                             const radiusRadians = 2 * Math.PI * (1000 * diameter / 2) / parallelLength;
                             radiusDeg = 180 * radiusRadians / Math.PI;
                         }
@@ -147,7 +147,7 @@ export let PlanetaryFeaturesPointer = (function() {
                 }
             })
             .catch((e) => {
-                
+
                 aladinInstance.view.setCursor('pointer');
                 aladinInstance.hidePopup();
             })

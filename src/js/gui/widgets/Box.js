@@ -65,6 +65,8 @@ export class Box extends DOMElement {
     }
 
     _show(options) {
+        this.el.parentNode.appendChild(this.el);
+
         this.options = {
             ...this.options,
             ...options

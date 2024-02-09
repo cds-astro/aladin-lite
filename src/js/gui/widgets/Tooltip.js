@@ -32,7 +32,7 @@
 
 
 import { DOMElement } from './Widget.js';
-
+import { Utils } from '../../Utils';
 
 /* Add a tooltip on a already added Element on the DOM */
 export class Tooltip extends DOMElement {
@@ -75,15 +75,29 @@ export class Tooltip extends DOMElement {
     }
 
     setPosition(options) {
-        let left = 0, top = 0, x = 0, y = 0;
-
         // take on less priority the left and top
         if (options && options.left) {
-            left = options.left;
+            const left = options.left;
+            this.element().style.position = 'absolute';
+            this.element().style.left = left;
         }
 
         if (options && options.top) {
-            top = options.top;
+            const top = options.top;
+            this.element().style.position = 'absolute';
+            this.element().style.top = top;
+        }
+
+        if (options && options.bottom) {
+            const bottom = options.bottom;
+            this.element().style.position = 'absolute';
+            this.element().style.bottom = bottom;
+        }
+
+        if (options && options.right) {
+            const right = options.right;
+            this.element().style.position = 'absolute';
+            this.element().style.right = right;
         }
 
         // handle the anchor/dir case with higher priority
@@ -94,22 +108,12 @@ export class Tooltip extends DOMElement {
             this.removeClass('bottom');
             this.removeClass('top');
 
-            switch (dir) {
-                case 'left':
-                    this.addClass('left');
-                    break;
-                case 'right':
-                    this.addClass('right');
-                    break;
-                case 'top':
-                    this.addClass('top');
-                    break;
-                case 'bottom':
-                    this.addClass('bottom');
-                    break;
-                default:
-                    break;
-            }
+            let self = this;
+
+            dir.split(' ')
+                .forEach(d => {
+                    self.addClass(d)
+                })
         }
     }
 
@@ -162,6 +166,37 @@ export class Tooltip extends DOMElement {
             } else {
                 // Do not create the tooltip if the device used has touch events
                 if ('ontouchstart' in window) {
+                    return;
+                }
+
+                if (options.global) {
+                    let statusBar = options.aladin && options.aladin.statusBar;
+                    if (!statusBar) {
+                        return;
+                    }
+                    let removeMsgFunc = () => {
+                        statusBar.removeMessage('tooltip')
+                    }
+                    let timeoutId;
+                    // handle global tooltip div display
+                    Utils.on(target.el, 'mouseover', (e) => {
+                        statusBar.appendMessage({
+                            id: 'tooltip',
+                            message: options.content,
+                            duration: 'unlimited',
+                            type: 'tooltip'
+                        })
+                        if (timeoutId) {
+                            clearTimeout(timeoutId)
+                        }
+                        timeoutId = setTimeout(removeMsgFunc, 1000)
+                    });
+                    Utils.on(target.el, 'mouseout', (e) => {
+                        statusBar.removeMessage('tooltip')
+                        if (timeoutId) {
+                            clearTimeout(timeoutId)
+                        }
+                    });
                     return;
                 }
 

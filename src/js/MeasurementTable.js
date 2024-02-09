@@ -89,7 +89,6 @@ export let MeasurementTable = (function() {
             cssStyle: {
                 position: 'absolute',
                 bottom: '27px',
-                zIndex: 100,
                 maxWidth: '100%',
             }
         }, this.target);

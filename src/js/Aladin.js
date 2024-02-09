@@ -321,6 +321,16 @@ export let Aladin = (function () {
     Aladin.prototype._setupUI = function(options) {
         let self = this;
 
+        // Status bar
+        if (options.showStatusBar) {
+            let statusBarOptions = {};
+            if (typeof options.showStatusBar === "object") {
+                statusBarOptions = options.showStatusBar;
+                
+            }
+            this.statusBar = new StatusBarBox(this, statusBarOptions);
+        }
+
         let viewport = A.toolbar({
             direction: 'horizontal',
             position: {
@@ -443,9 +453,6 @@ export let Aladin = (function () {
                         direction: 'right'
                     }
                 },
-                cssStyle: {
-                    fontSize: 'x-large'
-                },
                 action(o) {
                     self.increaseZoom();
                 }
@@ -459,9 +466,6 @@ export let Aladin = (function () {
                     position: {
                         direction: 'right'
                     }
-                },
-                cssStyle: {
-                    fontSize: 'x-large',
                 },
                 action(o) {
                     self.decreaseZoom();
@@ -479,11 +483,6 @@ export let Aladin = (function () {
             zoomControlToolbar.add([plusZoomBtn, minusZoomBtn])
 
             this.addUI(zoomControlToolbar)
-        }
-
-        // Status bar
-        if (options.showStatusBar) {
-            this.statusBar = new StatusBarBox(this);
         }
 
         this.menu = menu;
@@ -595,7 +594,7 @@ export let Aladin = (function () {
 
         // Other UI elements
         showContextMenu: false,
-        showStatusBar: false,
+        showStatusBar: true,
         // Internal
         showReticle: true,
         showCatalog: true, // TODO: still used ??

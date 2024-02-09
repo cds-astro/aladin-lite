@@ -37,7 +37,7 @@ import { Utils } from "../../Utils.ts";
  *****************************************************************************/
 
  export class HiPSSelectorBox extends Box {
-    constructor(options, callback, aladin) {
+    constructor(aladin) {
         let inputText = Input.text({
             label: "Survey",
             name: 'autocomplete',
@@ -51,7 +51,7 @@ import { Utils } from "../../Utils.ts";
             content: 'Load',
             disable: true,
             action(e) {
-                callback && callback(inputText.get());
+                self.callback && self.callback(inputText.get());
                 // reset the field
                 inputText.set('');
 
@@ -61,7 +61,6 @@ import { Utils } from "../../Utils.ts";
         super(
             aladin,
             {
-                ...options,
                 content: Layout.horizontal({
                     layout: [
                         inputText,
@@ -148,11 +147,15 @@ import { Utils } from "../../Utils.ts";
         });
     }
 
+    attach(callback) {
+        this.callback = callback;
+    }
+
     static box = undefined;
 
-    static getInstance(options, aladin) {
+    static getInstance(aladin) {
         if (!HiPSSelectorBox.box) {
-            HiPSSelectorBox.box = new HiPSSelectorBox(options, aladin);
+            HiPSSelectorBox.box = new HiPSSelectorBox(aladin);
         }
 
         return HiPSSelectorBox.box;

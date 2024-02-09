@@ -51,7 +51,6 @@ import { Utils } from "../Utils";
  *
  *****************************************************************************/
 import { Toolbar } from "../Widgets/Toolbar";
-
 /**
  * Class representing a Tabs layout
  * @extends DOMElement
@@ -83,6 +82,10 @@ import { Toolbar } from "../Widgets/Toolbar";
             })
         }
 
+        UtilsExt.on(aladin.aladinDiv, 'dblclick', () => {
+            self.closeAll();
+        });
+
         // Add the fullscreen control
         // tools
         let stack = new Stack(aladin, self);
@@ -110,7 +113,8 @@ import { Toolbar } from "../Widgets/Toolbar";
                 iconURL: stackImageIconUrl,
                 tooltip: {
                     content: 'Open the stack layer menu',
-                    position: { direction: self.options.direction === 'right' ? 'left' : 'right' },
+                    global: true,
+                    aladin
                 },
                 action(o) {
                     let toolWasShown = !self.panels["stack"].isHidden;
@@ -131,7 +135,8 @@ import { Toolbar } from "../Widgets/Toolbar";
                 iconURL: stackOverlayIconUrl,
                 tooltip: {
                     content: 'Open the overlays menu',
-                    position: { direction: self.options.direction === 'right' ? 'left' : 'right'},
+                    global: true,
+                    aladin
                 },
                 action(o) {
                     let toolWasShown = !self.panels["overlay"].isHidden;
@@ -153,7 +158,8 @@ import { Toolbar } from "../Widgets/Toolbar";
                 iconURL: searchIcon,
                 tooltip: {
                     content: 'Search for where a celestial object is',
-                    position: { direction: self.options.direction === 'right' ? 'left' : 'right'},
+                    global: true,
+                    aladin
                 },
                 action(o) {
                     let toolWasShown = !self.panels["goto"].isHidden;
@@ -174,7 +180,8 @@ import { Toolbar } from "../Widgets/Toolbar";
                 iconURL: gridIcon,
                 tooltip: {
                     content: 'Open the grid layer menu',
-                    position: { direction: self.options.direction === 'right' ? 'left' : 'right'},
+                    global: true,
+                    aladin
                 },
                 action(o) {
                     let toolWasShown = !self.panels["grid"].isHidden;
@@ -195,7 +202,8 @@ import { Toolbar } from "../Widgets/Toolbar";
                 iconURL: settingsIcon,
                 tooltip: {
                     content: 'Some general settings e.g. background color, reticle, windows to show',
-                    position: { direction: self.options.direction === 'right' ? 'left' : 'right' },
+                    global: true,
+                    aladin
                 },
                 action(o) {
                     let toolWasShown = !self.panels["settings"].isHidden;
@@ -216,7 +224,8 @@ import { Toolbar } from "../Widgets/Toolbar";
                 iconURL: aladin.isInFullscreen ? restoreIcon : maximizeIcon,
                 tooltip: {
                     content: aladin.isInFullscreen ? 'Restore original size' : 'Full-screen',
-                    position: { direction: self.options.direction === 'right' ? 'left' : 'right'},
+                    global: true,
+                    aladin
                 },
                 action(o) {
                     aladin.toggleFullscreen(aladin.options.realFullscreen);    
@@ -229,7 +238,8 @@ import { Toolbar } from "../Widgets/Toolbar";
                             iconURL: restoreIcon,
                             tooltip: {
                                 content: 'Restore original size',
-                                position: { direction: self.options.direction === 'right' ? 'left' : 'right'}
+                                global: true,
+                                aladin
                             }
                         });
                     } else {
@@ -239,7 +249,8 @@ import { Toolbar } from "../Widgets/Toolbar";
                             iconURL: maximizeIcon,
                             tooltip: {
                                 content: 'Fullscreen',
-                                position: { direction: self.options.direction === 'right' ? 'left' : 'right'}
+                                global: true,
+                                aladin
                             }
                         });
                     }
@@ -285,6 +296,16 @@ import { Toolbar } from "../Widgets/Toolbar";
 
         // update the settings once a tool has been added
         this.panels["settings"]._attach();
+    }
+
+    open(name) {
+        this.closeAll();
+        this.panels[name]._show({
+            position: {
+                nextTo: this.controls[name],
+                direction: this.options.direction === 'right' ? 'left' : 'right',
+            }
+        });
     }
 }
  

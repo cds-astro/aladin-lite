@@ -26,7 +26,6 @@ import { Input } from "../Widgets/Input.js";
 import A from "../../A.js";
 import { ConeSearchBox } from "./ConeSearchBox.js";
 import { CtxMenuActionButtonOpener } from "../Button/CtxMenuOpener.js";
-import { ContextMenu } from "../Widgets/ContextMenu.js";
 /******************************************************************************
  * Aladin Lite project
  * 
@@ -38,7 +37,7 @@ import { ContextMenu } from "../Widgets/ContextMenu.js";
  *****************************************************************************/
 
  export class CatalogQueryBox extends Box {
-    constructor(aladin, position) {
+    constructor(aladin) {
         const fnIdSelected = function(type, params) {
             if (type=='coneSearch') {
                 let errorCallback = (e) => {
@@ -101,7 +100,6 @@ import { ContextMenu } from "../Widgets/ContextMenu.js";
         }, aladin)
 
         super(aladin, {
-            position,
             content: Layout.horizontal({
                 layout: [catNameTextInput, loadBtn]
             })
@@ -209,60 +207,63 @@ import { ContextMenu } from "../Widgets/ContextMenu.js";
 
         if (!item) {
             this.loadBtn.update({disable: true}, aladin)
-            return;
+        } else {
+            let self = this;
+            let layout = [];
+
+            if (item && item.cs_service_url) {
+                layout.push({
+                    label: 'Cone search',
+                    disable: !item.cs_service_url,
+                    action(o) {
+                        let box = ConeSearchBox.getInstance(aladin);
+                        box.attach({
+                            callback: (cs) => {
+                                self.fnIdSelected('coneSearch', {
+                                    baseURL: self.selectedItem.cs_service_url,
+                                    id: self.selectedItem.ID,
+                                    ra: cs.ra,
+                                    dec: cs.dec,
+                                    radiusDeg: cs.rad,
+                                    limit: cs.limit
+                                })
+
+                                self._hide();
+                            },
+                            position: {
+                                anchor: 'center center',
+                            }
+                        })
+                        box._show();
+                        self.loadBtn.hideMenu()
+
+                    }
+                })
+            }
+            
+            if (item && item.hips_service_url) {
+                layout.push({
+                    label: 'HiPS catalogue',
+                    disable: !item.hips_service_url,
+                    action(o) {
+                        self.fnIdSelected('hips', {
+                            hipsURL: item.hips_service_url,
+                            id: item.ID,
+                        })
+
+                        self._hide();
+                    }
+                })
+            }
+            this.loadBtn.update({ctxMenu: layout, disable: false}, aladin)
         }
 
-        let self = this;
-        let layout = [];
-
-        if (item && item.cs_service_url) {
-            layout.push({
-                label: 'Cone search',
-                disable: !item.cs_service_url,
-                action(o) {
-                    let box = ConeSearchBox.getInstance(aladin);
-                    box.attach({
-                        callback: (cs) => {
-                            self.fnIdSelected('coneSearch', {
-                                baseURL: self.selectedItem.cs_service_url,
-                                id: self.selectedItem.ID,
-                                ra: cs.ra,
-                                dec: cs.dec,
-                                radiusDeg: cs.rad,
-                                limit: cs.limit
-                            })
-                        },
-                        position: {
-                            anchor: 'center center',
-                        }
-                    })
-                    box._show();
-
-                    self._hide();
-                }
-            })
-        }
-        
-        if (item && item.hips_service_url) {
-            layout.push({
-                label: 'HiPS catalogue',
-                disable: !item.hips_service_url,
-                action(o) {
-                    self.fnIdSelected('hips', {
-                        hipsURL: item.hips_service_url,
-                        id: item.ID,
-                    })
-
-                    self._hide();
-                }
-            })
-        }
-        this.loadBtn.update({ctxMenu: layout, disable: false}, aladin)
+        this.loadBtn.hideMenu()
     }
 
     _hide() {
         if (this.loadBtn) {
-            this.loadBtn._hide();
+            this.loadBtn.hideMenu()
         }
 
         super._hide()
@@ -270,9 +271,9 @@ import { ContextMenu } from "../Widgets/ContextMenu.js";
 
     static layerSelector = undefined;
 
-    static getInstance(aladin, position) {
+    static getInstance(aladin) {
         if (!CatalogQueryBox.layerSelector) {
-            CatalogQueryBox.layerSelector = new CatalogQueryBox(aladin, position);
+            CatalogQueryBox.layerSelector = new CatalogQueryBox(aladin);
         }
 
         return CatalogQueryBox.layerSelector;

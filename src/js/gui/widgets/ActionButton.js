@@ -75,7 +75,7 @@ import { Utils } from "../../Utils";
  * }, document.getElementById('container'));
  */
 export class ActionButton extends DOMElement {
-    constructor(opt, target, position = "beforeend") {
+    constructor(options, target, position = "beforeend") {
         let el = document.createElement('button');
         el.classList.add('aladin-btn');
 
@@ -85,7 +85,7 @@ export class ActionButton extends DOMElement {
         }
 
         // add it to the dom
-        super(el, opt);
+        super(el, options);
         this._show();
 
         this.attachTo(target, position)

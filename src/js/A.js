@@ -320,6 +320,10 @@ A.catalogFromURL = function (url, options, successCallback, errorCallback, usePr
             successCallback(catalog);
         }
 
+        if (sources.length === 0) {
+            console.warn(catalog.name + ' has no sources!')
+        }
+
         // Even if the votable is not a proper ObsCore one, try to see if specific columns are given
         // e.g. access_format and access_url
         //ObsCore.handleActions(catalog);

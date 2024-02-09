@@ -34,21 +34,25 @@ import { Utils } from "../../Utils";
 import { Layout } from "../Layout";
 import { ActionButton } from "../Widgets/ActionButton";
 import infoIconUrl from '../../../../assets/icons/info.svg';
+import tooltipIconUrl from '../../../../assets/icons/tooltip.svg';
 
 
 export class StatusBarBox extends Box {
-    constructor(aladin) {
-        super(
-            aladin,
-            {
-                cssStyle: {
-                    color: 'white',
-                    backgroundColor: 'black',
-                    borderRadius: '3px',
-                    padding: 0,
-                }
-            }
-        )
+    constructor(aladin, options) {
+        options.cssStyle = {
+            color: 'white',
+            backgroundColor: 'black',
+            borderRadius: '3px',
+            padding: 0,
+            ...options.cssStyle
+        };
+
+        super(aladin, {
+            position: {
+                anchor: 'center bottom'
+            },
+            ...options,
+        })
 
         this.addClass("aladin-status-bar");
 
@@ -133,9 +137,6 @@ export class StatusBarBox extends Box {
 
         this._show({
             content: [StatusBarBox.icons[task.type], message],
-            position: {
-                anchor: 'center bottom'
-            }
         })
     }
 
@@ -164,6 +165,15 @@ export class StatusBarBox extends Box {
         })(),
         info: ActionButton.createIconBtn({
             iconURL: infoIconUrl,
+            cssStyle: {
+                backgroundColor: 'white',
+                border: "none",
+                margin: "5px",
+                cursor: "help",
+            },
+        }),
+        tooltip: ActionButton.createIconBtn({
+            iconURL: tooltipIconUrl,
             cssStyle: {
                 backgroundColor: 'white',
                 border: "none",

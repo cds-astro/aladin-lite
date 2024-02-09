@@ -43,6 +43,8 @@ import { LayerEditBox } from "../Box/SurveyEditBox.js";
 import { Utils } from "../../Utils.ts";
 import { ImageLayer } from "../../ImageLayer.js";
 import searchIconImg from '../../../../assets/icons/search.svg';
+import { AladinUtils } from "../../AladinUtils.js";
+import A from '../../A';
 
 
 export class Stack extends ContextMenu {
@@ -153,20 +155,21 @@ export class Stack extends ContextMenu {
 
                         self._hide();
 
-                        self.hipsSelectorBox = new HiPSSelectorBox({
-                                position: self.position,
-                            }, 
+                        self.hipsSelectorBox = HiPSSelectorBox.getInstance(self.aladin);
+                        // attach a callback
+                        self.hipsSelectorBox.attach( 
                             (HiPSId) => {
                                 let name = Utils.uuidv4()
                                 self.aladin.setOverlayImageLayer(HiPSId, name)
 
                                 self.mode = 'stack';
                                 self._show();
-                            },
-                            self.aladin
+                            }
                         );
 
-                        self.hipsSelectorBox._show();
+                        self.hipsSelectorBox._show({
+                            position: self.position,
+                        });
 
                         self.mode = 'hips';
                     }
@@ -198,6 +201,18 @@ export class Stack extends ContextMenu {
 
         let self = this;
         let selectedLayer = self.aladin.getSelectedLayer();
+
+        if (!layers) {
+            super.attach(layout);
+            return;
+        }
+
+        const defaultLayers = ImageLayer.LAYERS.sort(function (a, b) {
+            if (!a.order) {
+                return a.name > b.name ? 1 : -1;
+            }
+            return a.maxOrder && a.maxOrder > b.maxOrder ? 1 : -1;
+        });
 
         for(const layer of layers) {
             const name = layer.name;
@@ -290,12 +305,48 @@ export class Stack extends ContextMenu {
                 }
             });
 
+            let loadMOCBtn = ActionButton.createIconBtn({
+                cssStyle: {
+                    backgroundColor: '#bababa',
+                    borderColor: '#484848',
+                    color: 'black',
+                    visibility: Utils.hasTouchScreen() ? 'visible' : 'hidden',
+                    backgroundImage: 'url("data:image/svg+xml;base64,' + window.btoa(AladinUtils.SVG_ICONS.MOC.replace(/FILLCOLOR/g, 'black')) + '")',
+                    width: '16px',
+                    height: '18px',
+                    verticalAlign: 'middle',
+                    marginRight: '2px',
+                },
+                tooltip: {content: 'Add coverage', position: {direction: 'left'}},
+                action: (e) => {
+                    let moc = A.MOCFromURL(layer.properties.url + '/Moc.fits', {lineWidth: 3, name: layer.properties.obsTitle});
+                    self.aladin.addMOC(moc);
+
+                    if (self.aladin.statusBar) {
+                        self.aladin.statusBar.appendMessage({
+                            message: 'Coverage of ' + layer.properties.obsTitle + ' loaded',
+                            duration: 2000,
+                            type: 'info'
+                        })
+                    }
+                }
+            });
+            loadMOCBtn.addClass('svg-icon')
+
+
             let layerClassName = 'a' + layer.layer.replace(/[.\/ ]/g, '')
+
+            let btns = [showBtn, editBtn];
+
+            if (layer.subtype !== 'fits') {
+                btns.push(loadMOCBtn)
+            }
+            btns.push(deleteBtn)
 
             let item = Layout.horizontal({
                 layout: [
                     '<div class="' + layerClassName + '" style="background-color: rgba(0, 0, 0, 0.6); padding: 3px; border-radius: 3px; word-break: break-word;' + (selectedLayer === layer.layer ? 'border: 1px solid white;' : '') + '">' + name + '</div>',
-                    Layout.horizontal({layout: [showBtn, editBtn, deleteBtn]})
+                    Layout.horizontal({layout: btns})
                 ],
                 cssStyle: {
                     display: 'flex',
@@ -313,15 +364,17 @@ export class Stack extends ContextMenu {
                     showBtn.el.style.visibility = 'visible'
                     editBtn.el.style.visibility = 'visible'
                     deleteBtn.el.style.visibility = 'visible'
+                    loadMOCBtn.el.style.visibility = 'visible'
                 },
                 unhover(e) {
                     showBtn.el.style.visibility = 'hidden'
                     editBtn.el.style.visibility = 'hidden'
                     deleteBtn.el.style.visibility = 'hidden'
+                    loadMOCBtn.el.style.visibility = 'hidden'
                 }
             };
 
-            if (layer.layer === "base") {
+            //if (layer.layer === "base") {
                 l.subMenu = [{
                     label: {
                         icon: {
@@ -339,32 +392,26 @@ export class Stack extends ContextMenu {
                     action(o) {
                         self._hide();
         
-                        self.hipsBox = new HiPSSelectorBox({
-                                position: self.position,
-                            },
+                        self.hipsBox = HiPSSelectorBox.getInstance(self.aladin)
+                        
+                        self.hipsBox.attach(
                             (HiPSId) => {            
-                                self.aladin.setOverlayImageLayer(HiPSId, 'base');
+                                self.aladin.setOverlayImageLayer(HiPSId, layer.layer);
                                 self.mode = 'stack';
                                 self._show();
-                            },
-                            self.aladin
+                            }
                         );
         
-                        self.hipsBox._show()
+                        self.hipsBox._show({
+                            position: self.position,
+                        })
         
                         self.mode = 'hips';
                     }
                 }];
         
-                let layers = ImageLayer.LAYERS.sort(function (a, b) {
-                    if (!a.order) {
-                        return a.name > b.name ? 1 : -1;
-                    }
-                    return a.maxOrder && a.maxOrder > b.maxOrder ? 1 : -1;
-                });
-        
-                for(let layer of layers) {
-                    let backgroundUrl = Stack.previewImagesUrl[layer.name];
+                for(let ll of defaultLayers) {
+                    let backgroundUrl = Stack.previewImagesUrl[ll.name];
                     let cssStyle = {
                         height: '2.5em',
                     };
@@ -378,10 +425,10 @@ export class Stack extends ContextMenu {
         
                     l.subMenu.push({
                         //selected: layer.name === aladin.getBaseImageLayer().name,
-                        label: '<div style="background-color: rgba(0, 0, 0, 0.6); padding: 3px; border-radius: 3px">' + layer.name + '</div>',
+                        label: '<div style="background-color: rgba(0, 0, 0, 0.6); padding: 3px; border-radius: 3px">' + ll.name + '</div>',
                         cssStyle: cssStyle,
                         action(e) {
-                            let cfg = ImageLayer.LAYERS.find((l) => l.name === layer.name);
+                            let cfg = ImageLayer.LAYERS.find((l) => l.name === ll.name);
                             let newLayer;
                             
                             // Max order is specific for surveys
@@ -404,7 +451,7 @@ export class Stack extends ContextMenu {
                                 );
                             }
                 
-                            self.aladin.setOverlayImageLayer(newLayer, 'base');
+                            self.aladin.setOverlayImageLayer(newLayer, layer.layer);
                             //self._hide();
                         },
                         hover(e, item) {
@@ -415,7 +462,7 @@ export class Stack extends ContextMenu {
                         }
                     })
                 }
-            }
+            //}
 
             l.action = (o) => {
                 let oldLayerClassName = 'a' + self.aladin.getSelectedLayer().replace(/[.\/ ]/g, '')
@@ -459,11 +506,16 @@ export class Stack extends ContextMenu {
             }
         })
 
-        let subMenus = this.element().querySelectorAll(".aladin-context-sub-menu");
-        
-        let defaultHiPSMenu = subMenus[subMenus.length - 1];
-        defaultHiPSMenu.style.maxHeight = Math.min(500, this.aladin.aladinDiv.offsetHeight) + 'px';
-        defaultHiPSMenu.style.overflowY = 'scroll';
+        this.element().querySelectorAll(".aladin-context-sub-menu")
+            // skip the first menu
+            .forEach((subMenu, index) => {
+                if (index > 0) {
+                    subMenu.style.maxHeight = Math.min(500, this.aladin.aladinDiv.offsetHeight) + 'px';
+                    subMenu.style.overflowY = 'scroll';
+                }
+            })
+
+        //let defaultHiPSMenu = subMenus[subMenus.length - 1];
     }
 
     _hide() {

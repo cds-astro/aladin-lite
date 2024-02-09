@@ -60,12 +60,26 @@ export class Toolbar extends Layout {
      */
     constructor(options) {
         options.orientation = options.orientation || 'horizontal';
+        options.position = options.position || {anchor: 'left top'};
 
-        if (options.direction === undefined) {
-            options.direction = options.orientation === 'horizontal' ? 'bottom' : 'left';
+        if (!!options.direction === false) {
+            if (options.orientation === 'horizontal') {
+                // top or bottom
+                if (options.position.anchor && options.position.anchor.includes('top')) {
+                    options.direction = 'bottom'
+                } else {
+                    options.direction = 'top'
+                }
+            } else {
+                // left or right
+                if (options.position.anchor && options.position.anchor.includes('left')) {
+                    options.direction = 'right'
+                } else {
+                    options.direction = 'left'
+                }
+            }
         }
 
-        options.position = options.position || {anchor: 'left top'};
         options.layout = options.layout || [];
 
         super(options)
@@ -85,15 +99,23 @@ export class Toolbar extends Layout {
             this.addClass(options.direction)
 
             // search for a tooltip
-            this.el.querySelectorAll(".aladin-tooltip-container")
+            /*this.el.querySelectorAll(".aladin-tooltip-container")
                 .forEach((t) => {
                     t.classList.remove('left');
                     t.classList.remove('right');
                     t.classList.remove('top');
                     t.classList.remove('bottom');
 
-                    t.classList.add(options.direction === 'left' ? 'right' : 'left');
-                })
+                    if (options.direction === 'left') {
+                        t.classList.add('bottom')
+                    } else if (options.direction === 'right') {
+                        t.classList.add('bottom', 'left')
+                    } else if (options.direction === 'top') { 
+                        t.classList.add('right')
+                    } else {
+                        t.classList.add('left')
+                    }
+                })*/
         }
 
         super.update(options);

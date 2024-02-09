@@ -88,10 +88,13 @@ export class CtxMenuActionButtonOpener extends ActionButton {
         //CtxMenuActionButtonOpener.BUTTONS.push(this);
     }
 
-    _hide() {
+    hideMenu() {
         this.ctxMenu._hide();
         this.hidden = true;
+    }
 
+    _hide() {
+        this.hideMenu();
         super._hide();
     }
 

@@ -30,6 +30,7 @@
 
 import { GenericPointer } from "./GenericPointer.js";
 import A from "./A.js";
+import { CatalogQueryBox } from "./gui/Box/CatalogQueryBox.js";
 
 export let DefaultActionsForContextMenu = (function () {
 
@@ -48,13 +49,24 @@ export let DefaultActionsForContextMenu = (function () {
                     r.selectNode(o.target);
                     window.getSelection().removeAllRanges();
                     window.getSelection().addRange(r);
+                    let statusBarMsg;
                     try {
                         let successful = document.execCommand('copy');
                         let msg = successful ? 'successful' : 'unsuccessful';
-                        //console.log('Copying text command was ' + msg);
+
+                        statusBarMsg = 'Copying position was ' + msg;
                     } catch (err) {
-                        console.error('Oops, unable to copy to clipboard');
+                        statusBarMsg = 'Oops, unable to copy to clipboard';
                     }
+
+                    if (a.statusBar) {
+                        a.statusBar.appendMessage({
+                            message: statusBarMsg,
+                            duration: 2000,
+                            type: 'info'
+                        })
+                    }
+
                     window.getSelection().removeAllRanges();
                 }
             },
@@ -67,11 +79,25 @@ export let DefaultActionsForContextMenu = (function () {
                     {
                         label: 'New image layer', action(o) {
                             a.addNewImageLayer();
+                            if (a.menu) {
+                                a.menu.open('stack')
+                            }
                         }
                     },
                     {
                         label: 'New catalogue layer', action(o) {
-                            a.stack._onAddCatalogue();
+                            let catBox = CatalogQueryBox.getInstance(a)
+                            if (catBox.isHidden) {
+                                catBox._show({
+                                    header: {
+                                        title: 'Add a new catalogue',
+                                        draggable: true
+                                    },
+                                    position: {
+                                        anchor :'center center'
+                                    },
+                                });
+                            }
                         }
                     },
                 ]

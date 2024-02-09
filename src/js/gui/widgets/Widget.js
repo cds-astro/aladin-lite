@@ -57,6 +57,7 @@ export class DOMElement {
     addClass(className) {
         this.el.classList.add(className);
     }
+
     removeClass(className) {
         this.el.classList.remove(className);
     }

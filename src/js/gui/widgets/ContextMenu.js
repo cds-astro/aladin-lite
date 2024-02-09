@@ -303,14 +303,11 @@ export class ContextMenu extends DOMElement {
             this.setCss(options.cssStyle);
         }
 
+        let mouseCoords = options && options.e && Utils.relMouseCoords(options.e)
         // Set position
         const position =
             options && options.position ||
-            (options && options.e && {
-                left: options.e.clientX - this.aladin.aladinDiv.offsetLeft,
-                top: options.e.clientY - this.aladin.aladinDiv.offsetTop
-            });
-
+            {left: mouseCoords.x, top: mouseCoords.y};
         this.setPosition({...position, aladinDiv: this.aladin.aladinDiv})
 
         this.el.classList.remove('left')

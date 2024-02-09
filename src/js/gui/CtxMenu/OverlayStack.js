@@ -121,8 +121,9 @@ export class OverlayStack extends ContextMenu {
                                 //o.preventDefault();
                                 
                                 self._hide();
-                                self.catBox = new CatalogQueryBox(self.aladin, self.position);
-                                self.catBox._show();
+                                self.catBox = CatalogQueryBox.getInstance(self.aladin);
+                                console.log(self.position)
+                                self.catBox._show({position: self.position});
 
                                 self.mode = 'search';
                             }

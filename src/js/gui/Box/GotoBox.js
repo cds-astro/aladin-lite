@@ -53,6 +53,11 @@ export class GotoBox extends Box {
             name: "goto",
             type: "text",
             placeholder: 'Object name/position',
+            tooltip: {
+                global: true,
+                aladin,
+                content: 'Search for an object name/position'
+            },
             //autocapitalize: 'off',
             autocomplete: 'off',
             autofocus: true,

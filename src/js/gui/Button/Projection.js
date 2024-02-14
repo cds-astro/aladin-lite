@@ -40,20 +40,17 @@ import { ProjectionEnum } from "../../ProjectionEnum";
      * UI responsible for displaying the viewport infos
      * @param {Aladin} aladin - The aladin instance.
      */
-    constructor(aladin) {
+    constructor(aladin, options) {
         //let ctxMenu = ;
         super({
             iconURL: projectionSvg,
-            tooltip: {content: 'Change the view projection', position: {direction: 'bottom'}},
+            tooltip: {content: 'Change the view projection', position: {direction: 'top'}},
             cssStyle: {
                 backgroundColor: '#bababa',
                 borderColor: '#484848',
                 cursor: 'pointer',
             },
-            openDirection: 'bottom',
-            /*action(o) {
-                ctxMenu.attach(layout);
-            }*/
+            ...options
         }, aladin);
 
         let ctxMenu = this._buildLayout(aladin);

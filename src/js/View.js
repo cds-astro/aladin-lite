@@ -1051,8 +1051,8 @@ export let View = (function () {
                     a1 = 0.002;
                     a0 = 0.0002;
                 } else {
-                    a1 = 0.0025;
-                    a0 = 0.0001;
+                    a1 = 0.01;
+                    a0 = 0.0004;
                 }
 
                 const alpha = Math.pow(view.fov / view.projection.fov, 0.5);

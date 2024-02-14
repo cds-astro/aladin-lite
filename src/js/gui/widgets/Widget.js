@@ -145,8 +145,8 @@ export class DOMElement {
             return;
         }
 
-        let left = 0, top = 0, bottom, right;
-        let x, y;
+        let left, top, bottom, right;
+        let x = 0, y = 0;
 
         // handle the anchor/dir case with higher priority
         const {offsetWidth, offsetHeight} = el;
@@ -170,6 +170,19 @@ export class DOMElement {
             }
             if (options.right !== undefined) {
                 right = options.right;
+            }
+
+            if (typeof top === 'number') {
+                top = top + 'px';
+            }
+            if (typeof bottom === 'number') {
+                bottom = bottom + 'px';
+            }
+            if (typeof left === 'number') {
+                left = left + 'px';
+            }
+            if (typeof right === 'number') {
+                right = right + 'px';
             }
         } else if (options && options.nextTo && options.direction) {
             let dir = options.direction || 'right';
@@ -207,47 +220,55 @@ export class DOMElement {
                     top = 0;
                     break;
             }
-        }
 
-        // Translate if the div in 
-        if (left + offsetWidth > innerWidth) {
-            x = '-' + (left + offsetWidth - innerWidth) + 'px';
-        }   
+            // Translate if the div in 
+            if (left + offsetWidth > innerWidth) {
+                x = '-' + (left + offsetWidth - innerWidth) + 'px';
+            } else if (left < 0) {
+                x = Math.abs(left) + 'px';
+            }
 
-        if (top + offsetHeight >= innerHeight) {
-            y = '-' + (top + offsetHeight - innerHeight) + 'px';
-        }
-
-        if (left < 0) {
-            x = Math.abs(left) + 'px';
-        }
-
-        if (top < 0) {
-            y = Math.abs(top) + 'px';
+            if (top + offsetHeight >= innerHeight) {
+                y = '-' + (top + offsetHeight - innerHeight) + 'px';
+            } else if (top < 0) {
+                y = Math.abs(top) + 'px';
+            }
+                
+            if (bottom) {
+                bottom = bottom + 'px';
+            }
+            if (top) {
+                top = top + 'px';
+            }
+            if (left) {
+                left = left + 'px';
+            }
+            if (right) {
+                right = right + 'px';
+            }   
         }
 
         if (bottom !== undefined) {
-            el.style.bottom = bottom + 'px';
-        } else {
-            el.style.top = top + 'px';
+            el.style.bottom = bottom;
         }
-
+        if (top !== undefined) {
+            el.style.top = top;
+        }
+        if (left !== undefined) {
+            el.style.left = left;
+        }
         if (right !== undefined) {
-            el.style.right = right + 'px';
-        } else {
-            el.style.left = left + 'px';
+            el.style.right = right;
         }
 
-        if (x && y)
+        if (x && y) {
             el.style.transform = `translate(${x}, ${y})`;
+        }
     }
 
     _show() {
         this.el.style.display = 'block';
         this.isHidden = false;
-
-        // recursively
-        //this._updateTooltipAfterInsertion();
     }
 
     _hide() {

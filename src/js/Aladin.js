@@ -40,7 +40,8 @@ import { MeasurementTable } from "./MeasurementTable.js";
 import { ImageSurvey } from "./ImageSurvey.js";
 import { Coo } from "./libs/astro/coo.js";
 import { CooConversion } from "./CooConversion.js";
-import { GotoBox } from "./gui/Box/GotoBox.js";
+import plusIconUrl from "../../assets/icons/plus.svg"
+import minusIconUrl from "../../assets/icons/minus.svg"
 
 import { ProjectionEnum } from "./ProjectionEnum.js";
 
@@ -58,12 +59,12 @@ import { FoV } from "./gui/FoV.js";
 import { ShareActionButton } from "./gui/Button/ShareView.js";
 import { Menu } from "./gui/Toolbar/Menu.js";
 import { ContextMenu } from "./gui/Widgets/ContextMenu.js";
-import { ProjectionActionButton } from "./gui/Button/Projection.js";
 import { Input } from "./gui/Widgets/Input.js";
 import { Popup } from "./Popup.js";
 import A from "./A.js";
 import { SnapshotActionButton } from "./gui/Button/Snapshot.js";
 import { StatusBarBox } from "./gui/Box/StatusBarBox.js";
+import { FullScreenActionButton } from "./gui/Button/FullScreen.js";
 /**
  * @typedef {Object} AladinOptions
  * @description Options for configuring the Aladin Lite instance.
@@ -371,17 +372,13 @@ export let Aladin = (function () {
             viewport.add(new FoV(this))
         }
 
-        // Add the projection control
-        if (options.showProjectionControl) {
-            viewport.add(new ProjectionActionButton(self), 'proj')
-        }
-
         ////////////////////////////////////////////////////
         let menu = new Menu({
             orientation: 'vertical',
-            direction: 'right',
+            direction: 'left',
             position: {
-                anchor: 'right top'
+                left: '0px',
+                top: '3rem'
             }
         }, this);
 
@@ -402,6 +399,10 @@ export let Aladin = (function () {
         if (options.showSimbadPointerControl) {
             menu.enable('simbad')
         }
+        // Add the projection control
+        if (options.showProjectionControl) {
+            menu.enable('projection')
+        }
         // Add the goto control
         if (options.showGotoControl) {
             menu.enable('goto')
@@ -415,10 +416,6 @@ export let Aladin = (function () {
             menu.enable('settings')
         }
 
-        if (options.showFullscreenControl) {
-            menu.enable('fullscreen')
-        }
-
         this.addUI(viewport);
         this.addUI(menu);
 
@@ -430,6 +427,9 @@ export let Aladin = (function () {
                     anchor: 'left bottom'
                 }
             }, this);
+            if (options.showFullscreenControl) {
+                share.add(new FullScreenActionButton(self))
+            }
             share.add(new ShareActionButton(self))
             share.add(new SnapshotActionButton({
                 tooltip: {
@@ -446,7 +446,7 @@ export let Aladin = (function () {
         // zoom control
         if (options.showZoomControl) {
             let plusZoomBtn = A.button({
-                content: '+',
+                iconURL: plusIconUrl,
                 tooltip: {
                     content: 'Zoom',
                     position: {
@@ -460,7 +460,7 @@ export let Aladin = (function () {
             plusZoomBtn.addClass('medium-sized-icon')
 
             let minusZoomBtn = A.button({
-                content: '-',
+                iconURL: minusIconUrl,
                 tooltip: {
                     content: 'Unzoom',
                     position: {
@@ -527,32 +527,33 @@ export let Aladin = (function () {
 
         var mqSmallSize = window.matchMedia("(max-width: 410px)")
 
-        function mqSmallSizeFunction(x) {
+        /*function mqSmallSizeFunction(x) {
             if (x.matches) { // If media query matches
                 self.menu.update({
-                    direction: 'left',
+                    direction: 'right',
                     position: {
-                        top: 23,
-                        left: 0
+                        top: '23px',
+                        left: '0px'
                     }
                 })
             } else {
                 self.menu.update({
-                    direction: 'right',
+                    direction: 'left',
                     position: {
-                        anchor: 'right top'
+                        top: '23px',
+                        left: '0px'
                     }
                 })
             }
-        }
+        }*/
 
         // Attach listener function on state changes
-        mqSmallSize.addEventListener("change", function() {
+        /*mqSmallSize.addEventListener("change", function() {
             mqSmallSizeFunction(mqSmallSize);
-        });
+        });*/
 
         // Call listener function at run time
-        mqSmallSizeFunction(mqSmallSize);
+        //mqSmallSizeFunction(mqSmallSize);
         mqMediumSizeFunction(mqMediumSize);
     }
 
@@ -617,6 +618,10 @@ export let Aladin = (function () {
 
         realFullscreen = Boolean(realFullscreen);
         self.isInFullscreen = !self.isInFullscreen;
+
+        if (this.menu) {
+            this.menu.closeAll();
+        }
 
         //this.fullScreenBtn.attr('title', isInFullscreen ? 'Restore original size' : 'Full screen');
 

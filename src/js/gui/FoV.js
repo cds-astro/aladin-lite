@@ -49,11 +49,6 @@ export class FoV extends DOMElement {
 
         super(el)
 
-        if (Utils.hasTouchScreen()) {
-            // Add a little padding 
-            this.el.style.padding = "0.5em";
-        }
-
         let self = this;
         ALEvent.ZOOM_CHANGED.listenedBy(aladin.aladinDiv, function (e) {
             let [fovXDeg, fovYDeg] = aladin.getFov();

@@ -50,10 +50,14 @@ export class ContextMenu extends DOMElement {
 
         this.cssStyleDefault = el.style;
 
-        if (!options || options.hideOnClick === undefined || options.hideOnClick === true) {
+        if (!options || options.hideOnClick === undefined || options.hideOnClick === true || typeof options.hideOnClick === 'function') {
             this.aladin.aladinDiv.addEventListener('click', (e) => {
                 if (!el.contains(e.target)) {
-                    this._hide()
+                    if (options && options.hideOnClick && typeof options.hideOnClick === 'function') {
+                        options.hideOnClick(e)
+                    } else {
+                        this._hide()
+                    }
                 }
             });
         }
@@ -70,13 +74,15 @@ export class ContextMenu extends DOMElement {
                     })
                 }
             } else {
-                window.addEventListener('resize', () => {
+                new ResizeObserver(() => { 
                     this._hide()
                 })
+                .observe(this.aladin.aladinDiv)
             }
         }
     }
 
+    static lastHoveredItem;
     _attachOption(target, opt, e, cssStyle) {
         let item = document.createElement('li');
         item.classList.add('aladin-context-menu-item');
@@ -110,9 +116,8 @@ export class ContextMenu extends DOMElement {
                 if (opt.label.icon) {
                     // add a button with a little bit of margin
                     let icon = new ActionButton({
-                        ...opt.label.icon,
+                        ...{...opt.label.icon, size: 'small'},
                     });
-                    icon.addClass('medium-sized-icon');
                     layout.push(icon)
                 }
 
@@ -195,16 +200,17 @@ export class ContextMenu extends DOMElement {
                 }
             });
         } else if (opt.action) {
-            item.addEventListener('click', o => {
-                o.stopPropagation();
+            item.addEventListener('click', e => {
+                e.preventDefault();
+                e.stopPropagation();
 
                 if (!opt.disabled || opt.disabled === false) {
                     if (!opt.subMenu || opt.subMenu.length === 0) {
-                        opt.action(e);
-
                         if ((opt.mustHide === undefined || opt.mustHide === true) && (!self.options || self.options.hideOnClick === undefined || self.options.hideOnClick === true)) {
                             self._hide();
                         }
+
+                        opt.action(e);
                     }
                 }
             });
@@ -226,24 +232,37 @@ export class ContextMenu extends DOMElement {
             opt.subMenu.forEach(subOpt => this._attachOption(subMenu, subOpt, e, cssStyle));
         }
 
+        const areSiblings = (elm1, elm2) => (elm1 !== elm2 && elm1.parentNode == elm2.parentNode);
+        item.addEventListener('mouseover', e => {
+            e.stopPropagation();
+            e.preventDefault();
 
-        if (opt.hover) {
-            item.addEventListener('mouseover', e => {
-                e.stopPropagation();
-                e.preventDefault();
-
+            if (opt.hover) {
                 opt.hover(e, item);
-            })
-        }
+            }
 
-        if (opt.unhover) {
-            item.addEventListener('mouseout', e => {
-                e.stopPropagation();
-                e.preventDefault();
+            if (ContextMenu.lastHoveredItem) {
+                let parent = ContextMenu.lastHoveredItem.parentNode;
+                if (parent && (areSiblings(parent, item) || item.contains(parent) || item === parent)) {
+                    ContextMenu.lastHoveredItem.style.display = 'none';
+                }
+            }
 
+            const subMenu = item.querySelector('.aladin-context-sub-menu');
+            if (subMenu) {
+                subMenu.style.display = 'block';
+                ContextMenu.lastHoveredItem = subMenu;
+            }
+        })
+
+        item.addEventListener('mouseout', e => {
+            e.stopPropagation();
+            e.preventDefault();
+
+            if (opt.unhover) {
                 opt.unhover(e, item);
-            })
-        }
+            }
+        })
 
         target.appendChild(item);
     }

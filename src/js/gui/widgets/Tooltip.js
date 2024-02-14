@@ -174,28 +174,19 @@ export class Tooltip extends DOMElement {
                     if (!statusBar) {
                         return;
                     }
-                    let removeMsgFunc = () => {
-                        statusBar.removeMessage('tooltip')
-                    }
-                    let timeoutId;
+
                     // handle global tooltip div display
                     Utils.on(target.el, 'mouseover', (e) => {
+                        statusBar.removeMessage('tooltip')
                         statusBar.appendMessage({
                             id: 'tooltip',
                             message: options.content,
                             duration: 'unlimited',
                             type: 'tooltip'
                         })
-                        if (timeoutId) {
-                            clearTimeout(timeoutId)
-                        }
-                        timeoutId = setTimeout(removeMsgFunc, 1000)
                     });
                     Utils.on(target.el, 'mouseout', (e) => {
                         statusBar.removeMessage('tooltip')
-                        if (timeoutId) {
-                            clearTimeout(timeoutId)
-                        }
                     });
                     return;
                 }

@@ -79,11 +79,6 @@ export class ActionButton extends DOMElement {
         let el = document.createElement('button');
         el.classList.add('aladin-btn');
 
-        if (Utils.hasTouchScreen()) {
-            // Add a little padding 
-            el.style.padding = "0.2em";
-        }
-
         // add it to the dom
         super(el, options);
         this._show();
@@ -99,6 +94,12 @@ export class ActionButton extends DOMElement {
             this.addClass('toggled');
         } else if (this.options.toggled === false) {
             this.removeClass('toggled');
+        }
+
+        if (this.options.size === 'small') {
+            this.addClass('small-sized-icon')
+        } else {
+            this.addClass('medium-sized-icon')
         }
 
         if (this.options.action) {
@@ -157,8 +158,13 @@ export class ActionButton extends DOMElement {
     }
 
     static createIconBtn(opt, target, position = 'beforeend') {
-        let btn = new ActionButton(opt, target, position);
-        btn.addClass('medium-sized-icon');
+        let btn = new ActionButton({...opt, size: 'medium'}, target, position);
+
+        return btn;
+    }
+
+    static createSmallSizedIconBtn(opt, target, position = 'beforeend') {
+        let btn = new ActionButton({...opt, size: 'small'}, target, position);
 
         return btn;
     }

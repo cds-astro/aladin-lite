@@ -46,13 +46,14 @@ options = {
      constructor(options, aladin) {
         if (!aladin.samp) {
             options = {
+                ...options,
                 iconURL: waveOffIconUrl,
-                tooltip: {content: 'SAMP disabled in Aladin Lite options', position: {direction: 'left'}},
+                tooltip: {content: 'SAMP disabled in Aladin Lite options', position: {direction: 'top'}},
                 disable: true,
             }
         } else {
             let isHubRunning = aladin.samp.isHubCurrentlyRunning();
-            let tooltip = options && options.tooltip || {content: isHubRunning ? 'Connect to SAMP Hub' : 'No hub running found', position: {direction: 'left'}}
+            let tooltip = options && options.tooltip || {content: isHubRunning ? 'Connect to SAMP Hub' : 'No hub running found', position: {direction: 'top'}}
             let action = options && options.action
             if (!action) {
                 // default action, just connect and ping
@@ -63,6 +64,7 @@ options = {
             let disable = !isHubRunning;
 
             options = {
+                ...options,
                 iconURL: aladin.samp.isConnected() ? waveOnIconUrl : waveOffIconUrl,
                 tooltip,
                 disable,
@@ -74,7 +76,6 @@ options = {
 
         super(options)
 
-        this.addClass('medium-sized-icon')
         this._addListeners(aladin);
     }
 

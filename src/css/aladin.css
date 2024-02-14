@@ -317,7 +317,7 @@ word-wrap:break-word;
 }
 
 .aladin-box-night {
-    padding: '2px';
+    padding: 0.5rem;
     background-color: #000;
     color: white;
 }
@@ -623,15 +623,15 @@ canvas {
 }
 
 .aladin-btn.small-sized-icon {
-    padding: 0px;
-    width: 16px;
-    height: 16px;
+    padding: 0;
+    width: 1.5rem;
+    height: 1.5rem;
 }
 
 .aladin-btn.medium-sized-icon {
-    padding: 0px;
-    width: 24px;
-    height: 24px;
+    padding: 0;
+    width: 2rem;
+    height: 2rem;
 }
 
 .aladin-btn.svg-icon {
@@ -675,17 +675,16 @@ canvas {
 
 .aladin-fov, .aladin-location, .aladin-cooFrame {
     font-family: monospace;
-
-    border: 1px solid white;
-    border-radius: 3px;
+    height: 1.5rem;
 
     background-color: rgba(0, 0, 0, 0.5);
     color: white;
+
+    font-size: 1rem;
+    text-shadow: 0px 0px 2px #000;
 }
 
-.aladin-zoom-controls {
 
-}
 
 .aladin-cancelBtn {
     background-color: #ca4242;
@@ -1019,11 +1018,11 @@ canvas {
     border-top: 1px solid #d2d2d2;
     margin-top: -1px;
 }
-
+/*
 .aladin-context-menu .aladin-context-menu-item:hover > .aladin-context-sub-menu {
     display: block;
 }
-
+*/
 .aladin-context-menu.left .aladin-context-sub-menu {
     left: 0;
     transform: translateX(-100%);
@@ -1061,10 +1060,12 @@ canvas {
     -moz-appearance: none;
     -webkit-appearance: none;
     outline-style: none;
-    padding: 2px;
+    padding: 0.3rem;
     border: none;
     border-radius: 5px;
     background-color: white;
+    font-family: monospace;
+    font-size: 1rem;
 }
 
 .aladin-input-text::placeholder {
@@ -1074,11 +1075,7 @@ canvas {
 
 /* Input select */
 .aladin-input-select {
-    all:unset;
     /* Reset */
-    -webkit-appearance: none;
-       -moz-appearance: none;
-            appearance: none;
     border: 1px solid white;
     outline: 0;
     font: inherit;

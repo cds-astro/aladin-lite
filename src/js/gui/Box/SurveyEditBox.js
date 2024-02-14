@@ -50,8 +50,7 @@ import { CmapSelector } from "../Selector/Colormap.js";
                 cssStyle: {
                     padding: '4px',
                     backgroundColor: 'black',
-                },
-                ...options
+                }
             }
         )
 
@@ -61,12 +60,7 @@ import { CmapSelector } from "../Selector/Colormap.js";
         this.selector = new SelectorButton({
             luminosity: {
                 iconURL: luminosityIconUrl,
-                tooltip: {content: 'Luminosity sliders', position: {direction: 'left'}},
-                cssStyle: {
-                    width: '18px',
-                    height: '18px',
-                    padding: 0,
-                },
+                tooltip: {content: 'Luminosity sliders', position: {direction: 'right'}},
                 change(e) {
                     const content = Layout.horizontal({
                         layout: [self.selector, self.luminositySettingsContent]
@@ -76,12 +70,7 @@ import { CmapSelector } from "../Selector/Colormap.js";
             },
             opacity: {
                 iconURL: opacityIconUrl,
-                tooltip: {content: 'Opacity slider', position: {direction: 'left'}},
-                cssStyle: {
-                    width: '18px',
-                    height: '18px',
-                    padding: 0,
-                },
+                tooltip: {content: 'Opacity slider', position: {direction: 'right'}},
                 change(e) {
                     const content = Layout.horizontal({layout: [self.selector, self.opacitySettingsContent]});
                     self.update({content})
@@ -89,12 +78,7 @@ import { CmapSelector } from "../Selector/Colormap.js";
             },
             colors: {
                 iconURL: colorIconUrl,
-                tooltip: {content: 'Colormap', position: {direction: 'left'}},
-                cssStyle: {
-                    width: '18px',
-                    height: '18px',
-                    padding: 0,
-                },
+                tooltip: {content: 'Colormap', position: {direction: 'right'}},
                 change(e) {
                     const content = Layout.horizontal({layout: [self.selector, self.colorSettingsContent]});
                     self.update({content})
@@ -102,12 +86,7 @@ import { CmapSelector } from "../Selector/Colormap.js";
             },
             pixel: {
                 iconURL: pixelHistIconUrl,
-                tooltip: {content: 'Pixel cutouts', position: {direction: 'left'}},
-                cssStyle: {
-                    width: '18px',
-                    height: '18px',
-                    padding: 0,
-                },
+                tooltip: {content: 'Pixel cutouts', position: {direction: 'right'}},
                 change(e) {
                     const content = Layout.horizontal({layout: [self.selector, self.pixelSettingsContent]});
                     self.update({content})
@@ -152,8 +131,6 @@ import { CmapSelector } from "../Selector/Colormap.js";
             sqrt: {
                 content: 'sqrt',
                 cssStyle: {
-                    height: '18px',
-                    padding: 0,
                     color: 'black'
                 },
                 change(e) {
@@ -164,10 +141,7 @@ import { CmapSelector } from "../Selector/Colormap.js";
             linear: {
                 content: 'linear',
                 cssStyle: {
-                    height: '18px',
-                    padding: 0,
                     color: 'black'
-
                 },
                 change(e) {
                     let layer = self.options.layer;
@@ -177,10 +151,7 @@ import { CmapSelector } from "../Selector/Colormap.js";
             asinh: {
                 content: 'asinh',
                 cssStyle: {
-                    height: '18px',
-                    padding: 0,
                     color: 'black'
-
                 },
                 change(e) {
                     let layer = self.options.layer;
@@ -190,8 +161,6 @@ import { CmapSelector } from "../Selector/Colormap.js";
             pow2: {
                 content: 'pow2',
                 cssStyle: {
-                    height: '18px',
-                    padding: 0,
                     color: 'black'
 
                 },
@@ -203,10 +172,7 @@ import { CmapSelector } from "../Selector/Colormap.js";
             log: {
                 content: 'log',
                 cssStyle: {
-                    height: '18px',
-                    padding: 0,
                     color: 'black'
-
                 },
                 change(e) {
                     let layer = self.options.layer;
@@ -344,7 +310,7 @@ import { CmapSelector } from "../Selector/Colormap.js";
         super.update(options)
     }
 
-    _show() {
+    _show(options) {
         this._hide();
 
         if (this.selector) {
@@ -359,7 +325,7 @@ import { CmapSelector } from "../Selector/Colormap.js";
             this.colorSettingsContent._show();
         }
 
-        super._show()
+        super._show(options)
     }
 
     _hide() {
@@ -399,9 +365,9 @@ import { CmapSelector } from "../Selector/Colormap.js";
  
     static singleton;
  
-    static getInstance(aladin, options) {
+    static getInstance(aladin) {
         if (!LayerEditBox.singleton) {
-            LayerEditBox.singleton = new LayerEditBox(aladin, options);
+            LayerEditBox.singleton = new LayerEditBox(aladin);
         }
 
         return LayerEditBox.singleton;

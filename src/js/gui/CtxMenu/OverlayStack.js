@@ -40,21 +40,24 @@ import A from "../../A.js";
 import { Utils } from "../../../js/Utils";
  
 export class OverlayStack extends ContextMenu {
+
+    static predefinedCats = {
+        simbad: {url: 'https://axel.u-strasbg.fr/HiPSCatService/SIMBAD', options: {id: 'simbad', name: 'SIMBAD', shape: 'circle', sourceSize: 8, color: '#318d80'}},
+        gaia: {url: 'https://axel.u-strasbg.fr/HiPSCatService/I/355/gaiadr3', options: {id: 'gaia-dr3', name: 'Gaia DR3', shape: 'square', sourceSize: 8, color: '#6baed6'}},
+        twomass: {url: 'https://axel.u-strasbg.fr/HiPSCatService/II/246/out', options: {id: '2mass', name: '2MASS', shape: 'plus', sourceSize: 8, color: '#dd2233'}}
+    };
     // Constructor
     constructor(aladin) {
-        super(aladin, {hideOnClick: false});
+        let self;
+        super(aladin, {hideOnClick: (e) => {
+            if (self.mode === 'stack') {
+                self._hide();
+            }
+        }});
+        self = this;
         this.aladin = aladin;
-        //this.anchor = menu.controls["OverlayStack"];
 
         this.mode = 'stack';
-        /*window.addEventListener("resize", (e) => {
-            this._hide();
-        })*/
-        /*document.addEventListener('click', (e) => {
-            if (!self.el.contains(e.target) && this.mode === 'stack') {
-                this._hide()
-            }
-        });*/
 
         this._addListeners();
     }
@@ -98,8 +101,50 @@ export class OverlayStack extends ContextMenu {
                 {
                     label: 'Catalogue',
                     subMenu: [
+                        {
+                            label: 'Simbad',
+                            action(o) {
+                                o.stopPropagation();
+                                o.preventDefault();
+                                
+                                self._hide();
+
+                                const simbadHiPS = A.catalogHiPS(OverlayStack.predefinedCats.simbad.url, OverlayStack.predefinedCats.simbad.options);
+                                self.aladin.addCatalog(simbadHiPS);
+
+                                self.mode = 'stack';
+                            }
+                        },
+                        {
+                            label: 'Gaia DR3',
+                            action(o) {
+                                o.stopPropagation();
+                                o.preventDefault();
+                                
+                                self._hide();
+
+                                const simbadHiPS = A.catalogHiPS(OverlayStack.predefinedCats.gaia.url, OverlayStack.predefinedCats.gaia.options);
+                                self.aladin.addCatalog(simbadHiPS);
+
+                                self.mode = 'stack';
+                            }
+                        },
+                        {
+                            label: '2MASS',
+                            action(o) {
+                                o.stopPropagation();
+                                o.preventDefault();
+                                
+                                self._hide();
+
+                                const simbadHiPS = A.catalogHiPS(OverlayStack.predefinedCats.twomass.url, OverlayStack.predefinedCats.twomass.options);
+                                self.aladin.addCatalog(simbadHiPS);
+
+                                self.mode = 'stack';
+                            }
+                        },
                         ContextMenu.fileLoaderItem({
-                            label: 'VOTable File',
+                            label: 'From a VOTable File',
                             accept: '.xml,.vot',
                             action(file) {
                                 let url = URL.createObjectURL(file);
@@ -115,19 +160,19 @@ export class OverlayStack extends ContextMenu {
                             }
                         }),
                         {
-                            label: 'Find in our databases...',
+                            label: 'More...',
                             action(o) {
-                                //o.stopPropagation();
-                                //o.preventDefault();
+                                o.stopPropagation();
+                                o.preventDefault();
                                 
                                 self._hide();
-                                self.catBox = CatalogQueryBox.getInstance(self.aladin);
-                                console.log(self.position)
-                                self.catBox._show({position: self.position});
+
+                                let catBox = CatalogQueryBox.getInstance(self.aladin);
+                                catBox._show({position: self.position});
 
                                 self.mode = 'search';
                             }
-                        }
+                        },
                     ]
                 },
                 {
@@ -152,6 +197,9 @@ export class OverlayStack extends ContextMenu {
                                 {
                                     label: 'Circle',
                                     action(o) {
+                                        o.preventDefault();
+                                        o.stopPropagation();
+
                                         self._hide();
 
                                         self.aladin.select('circle', c => {
@@ -173,6 +221,9 @@ export class OverlayStack extends ContextMenu {
                                 {
                                     label: 'Rect',
                                     action(o) {
+                                        o.stopPropagation();
+                                        o.preventDefault();
+
                                         self._hide();
 
                                         self.aladin.select('rect', r => {
@@ -199,6 +250,9 @@ export class OverlayStack extends ContextMenu {
                                 {
                                     label: 'Polygon',
                                     action(o) {
+                                        o.stopPropagation();
+                                        o.preventDefault();
+
                                         self._hide();
 
                                         self.aladin.select('poly', p => {
@@ -235,15 +289,14 @@ export class OverlayStack extends ContextMenu {
             let cssStyle = {
             height: 'fit-content',
         };
-            let showBtn = ActionButton.createIconBtn({
+            let showBtn = new ActionButton({
+                size: 'small',
                 iconURL:  overlay.isShowing ? showIconUrl : hideIconUrl,
                 cssStyle: {
                     backgroundColor: '#bababa',
                     borderColor: '#484848',
                     color: 'black',
                     visibility: Utils.hasTouchScreen() ? 'visible' : 'hidden',
-                    width: '18px',
-                    height: '18px',
                     verticalAlign: 'middle',
                     marginRight: '2px',
                 },
@@ -259,20 +312,19 @@ export class OverlayStack extends ContextMenu {
                 }
             });
 
-            let deleteBtn = ActionButton.createIconBtn({
+            let deleteBtn = new ActionButton({
                 iconURL: removeIconUrl,
+                size: 'small',
                 cssStyle: {
                     backgroundColor: '#bababa',
                     borderColor: '#484848',
                     color: 'black',
                     visibility: Utils.hasTouchScreen() ? 'visible' : 'hidden',
-                    width: '18px',
-                    height: '18px',
                     verticalAlign: 'middle'
                 },
                 tooltip: {
                     content: 'Remove',
-                    position: {direction: 'left'}
+                    position: {direction: 'bottom'}
                 },
                 action(e) {
                     self.aladin.removeLayer(overlay)
@@ -332,13 +384,22 @@ export class OverlayStack extends ContextMenu {
             iconSvg = AladinUtils.SVG_ICONS.OVERLAY;
         }
 
+        let changeSVGSize = (svg, size) => {
+            let str = svg.replace(/FILLCOLOR/g, 'black')
+            let elt = document.createElement('div');
+            elt.innerHTML = str;
+
+            elt.querySelector('svg').setAttribute('width', size);
+            elt.querySelector('svg').setAttribute('height', size);
+
+            return elt.innerHTML;
+        };
         // retrieve SVG icon, and apply the layer color
-        var svgBase64 = window.btoa(iconSvg.replace(/FILLCOLOR/g, overlay.color));
-        let icon = ActionButton.createIconBtn({
-            tooltip: {content: tooltipText, position: {direction: 'left'}},
+        var svgBase64 = window.btoa(changeSVGSize(iconSvg.replace(/FILLCOLOR/g, overlay.color), '1rem'));
+        let icon = new ActionButton({
+            size: 'small',
+            tooltip: {content: tooltipText, position: {direction: 'bottom'}},
             cssStyle: {
-                width: '16px',
-                height: '16px',
                 backgroundImage: 'url("data:image/svg+xml;base64,' + svgBase64 + '")',
             }
         });
@@ -364,17 +425,9 @@ export class OverlayStack extends ContextMenu {
 
     _hide() {
         this.mode = 'stack';
-
-        if (this.catBox) {
-            this.catBox._hide();
-        }
         
-        /*let catBox = CatalogQueryBox.getInstance(this.aladin, this.position);
-        
-
-        if (this.position) {
-            
-        }*/
+        let catBox = CatalogQueryBox.getInstance(this.aladin);
+        catBox._hide();
        
         super._hide();
     }

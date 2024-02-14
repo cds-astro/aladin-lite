@@ -28,24 +28,34 @@
  *
  *****************************************************************************/
 
- import { ActionButton } from "../Widgets/ActionButton.js";
- import targetIcon from '../../../../assets/icons/target.svg';
+import { ActionButton } from "../Widgets/ActionButton.js";
+import gridIcon from './../../../../assets/icons/grid.svg';
 
-  
- export class SimbadPointer extends ActionButton {
-     // Constructor
-     constructor(aladin) {
+export class GridEnabler extends ActionButton {
+    // Constructor
+    constructor(aladin, options) {
+        const computeTooltip = (enabled) => {
+            const content = enabled ? 'Hide the coordinate grid' : 'Display the coordinate grid'
+            return {
+                content,
+                position: {
+                    direction: 'top'
+                }
+            }
+        }
+
+        let self;
         super({
-            iconURL: targetIcon,
-            size: 'medium',
-            tooltip: {
-                content: 'Want to know what is a specific object ?<br />Use the Simbad pointer tool!',
-                position: { direction: 'right' },
-            },
+            iconURL: gridIcon,
+            tooltip: computeTooltip(aladin.getGridOptions().enabled),
             action(o) {
-                aladin.fire('simbad');
+                let gridEnabled = aladin.getGridOptions().enabled;
+                aladin.setCooGrid({enabled: !gridEnabled})
+
+                self.update({tooltip: computeTooltip(!gridEnabled)})
             }
         })
+        self = this;
+        this.addClass('medium-sized-icon')
     }
- }
- 
+}

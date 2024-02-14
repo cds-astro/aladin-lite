@@ -47,12 +47,8 @@ export class Location extends DOMElement {
 
         let el = Layout.horizontal({
             layout: [
-                ActionButton.createIconBtn({
+                ActionButton.createSmallSizedIconBtn({
                     iconURL: copyIconBtn,
-                    cssStyle: {
-                        width: '16px',
-                        height: '16px',
-                    },
                     tooltip: {content: 'Copy to clipboard!', position: {direction: 'bottom'}},
                     action(e) {
                         self.copyCoordinatesToClipboard()
@@ -118,10 +114,6 @@ export class Location extends DOMElement {
             isViewCenter: true,
             frame: aladin.view.cooFrame
         }, aladin)
-
-        if (Utils.hasTouchScreen()) {
-            this.el.style.padding = "0.2em";
-        }
     };
 
     static prec = 7;

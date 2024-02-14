@@ -78,13 +78,7 @@ export class SelectorButton extends DOMElement {
 
                 let optSelect = this.options[id];
                 menuOptions.push({
-                    label: new ActionButton(optSelect),
-                    cssStyle: {
-                        padding: 0,
-                        height: 'fit-content',
-                        margin: 0,
-                        border: 'none',
-                    },
+                    label: ActionButton.createSmallSizedIconBtn(optSelect),
                     action(e) {
                         if(optSelect.change) {
                             optSelect.change(e)
@@ -140,10 +134,8 @@ export class SelectorButton extends DOMElement {
         // remove from the DOM tree
         const selectedId = this.options.selected;
         let {target, position} = this.remove();
-
-        this.el = new ActionButton({
+        this.el = ActionButton.createSmallSizedIconBtn({
             ...this.options[selectedId],
-            tooltip: this.options.tooltip,
             action: (e) => {
                 if (self.fsm.state === 'openCtxMenu') {
                     self.fsm.dispatch('closeCtxMenu');

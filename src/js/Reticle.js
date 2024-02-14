@@ -17,7 +17,6 @@
 //    along with Aladin Lite.
 //
 
-import iconUrl from './../../assets/icons/reticle.svg'
 import { Color } from './Color.js';
 
 /******************************************************************************

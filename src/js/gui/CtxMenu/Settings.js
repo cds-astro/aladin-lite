@@ -36,11 +36,12 @@ import { ALEvent } from "../../events/ALEvent.js";
 import { SAMPActionButton } from "../Button/SAMP.js";
 import helpIconBtn from '../../../../assets/icons/help.svg';
 import { Utils } from "../../Utils";
+import { GridSettingsCtxMenu } from "./GridSettings.js";
 
 export class SettingsCtxMenu extends ContextMenu {
     // Constructor
     constructor(aladin, menu) {
-        super(aladin);
+        super(aladin, {hideOnClick: true});
         let self = this;
         self.backgroundColorInput = Input.color({
             name: 'color',
@@ -106,6 +107,7 @@ export class SettingsCtxMenu extends ContextMenu {
         this.menu = menu;
         
         let sampBtn = new SAMPActionButton({
+            size: 'small',
             action(conn) {
                 if (conn.isConnected()) {
                     conn.unregister();
@@ -186,6 +188,7 @@ export class SettingsCtxMenu extends ContextMenu {
                     }
                 ]
             },
+            GridSettingsCtxMenu.getLayout(self.aladin),
             {
                 label: {
                     content: [self.hpxGridCheckbox, 'HEALPix grid']
@@ -234,21 +237,15 @@ export class SettingsCtxMenu extends ContextMenu {
                         action(o) {
                             toggleWindow('grid');
                         }
-                    },
-                    {
-                        label: 'FullScreen',
-                        selected: self.menu.isShown('fullscreen'),
-                        action(o) {
-                            toggleWindow('fullscreen');
-                        }
                     }
                 ]
             },
             {
                 label: {
                     icon: {
-                        tooltip: {content: 'Documentation about Aladin Lite', position: {direction: 'left'}},
+                        tooltip: {content: 'Documentation about Aladin Lite', position: {direction: 'top'}},
                         iconURL: helpIconBtn,
+                        size: 'small',
                         cssStyle: {
                             cursor: 'help',
                         }

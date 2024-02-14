@@ -26,15 +26,13 @@ import { Stack } from "../CtxMenu/SurveyStack";
 import { OverlayStack } from "../CtxMenu/OverlayStack";
 import { GotoBox } from "../Box/GotoBox";
 import { SimbadPointer } from "../Button/SimbadPointer";
-import { GridBox } from "../Box/GridBox";
+import { ProjectionActionButton } from "../Button/Projection";
 
 import settingsIcon from './../../../../assets/icons/settings.svg';
 import stackOverlayIconUrl from './../../../../assets/icons/stack.svg';
 import stackImageIconUrl from './../../../../assets/icons/telescope.svg';
-import gridIcon from './../../../../assets/icons/grid.svg';
+import { GridEnabler } from '../Button/GridEnabler';
 import searchIcon from './../../../../assets/icons/search.svg';
-import restoreIcon from './../../../../assets/icons/restore.svg';
-import maximizeIcon from './../../../../assets/icons/maximize.svg';
 
 import { Utils as UtilsExt } from "../../Utils";
 import { Utils } from "../Utils";
@@ -82,20 +80,14 @@ import { Toolbar } from "../Widgets/Toolbar";
             })
         }
 
-        UtilsExt.on(aladin.aladinDiv, 'dblclick', () => {
-            self.closeAll();
-        });
-
-        // Add the fullscreen control
         // tools
         let stack = new Stack(aladin, self);
         let overlay = new OverlayStack(aladin);
         let goto = new GotoBox(aladin);
-        let grid = new GridBox(aladin);
         let settings = new SettingsCtxMenu(aladin, self);
 
         this.panels = {
-            stack, overlay, goto, grid, settings
+            stack, overlay, goto, settings
         };
         this.indices = [];
 
@@ -113,8 +105,9 @@ import { Toolbar } from "../Widgets/Toolbar";
                 iconURL: stackImageIconUrl,
                 tooltip: {
                     content: 'Open the stack layer menu',
-                    global: true,
-                    aladin
+                    position: {
+                        direction: 'top'
+                    }
                 },
                 action(o) {
                     let toolWasShown = !self.panels["stack"].isHidden;
@@ -135,8 +128,9 @@ import { Toolbar } from "../Widgets/Toolbar";
                 iconURL: stackOverlayIconUrl,
                 tooltip: {
                     content: 'Open the overlays menu',
-                    global: true,
-                    aladin
+                    position: {
+                        direction: 'top'
+                    }
                 },
                 action(o) {
                     let toolWasShown = !self.panels["overlay"].isHidden;
@@ -153,13 +147,21 @@ import { Toolbar } from "../Widgets/Toolbar";
                     }
                 }
             }),
+            projection: new ProjectionActionButton(aladin, {
+                openDirection: self.options.direction === 'right' ? 'left' : 'right',
+                action(o) {
+                    // executed before opening the ctx menu
+                    self.closeAll();
+                }
+            }),
             simbad: new SimbadPointer(aladin),
             goto: ActionButton.createIconBtn({
                 iconURL: searchIcon,
                 tooltip: {
                     content: 'Search for where a celestial object is',
-                    global: true,
-                    aladin
+                    position: {
+                        direction: 'top'
+                    }
                 },
                 action(o) {
                     let toolWasShown = !self.panels["goto"].isHidden;
@@ -176,34 +178,14 @@ import { Toolbar } from "../Widgets/Toolbar";
                     }
                 }
             }),
-            grid: ActionButton.createIconBtn({
-                iconURL: gridIcon,
-                tooltip: {
-                    content: 'Open the grid layer menu',
-                    global: true,
-                    aladin
-                },
-                action(o) {
-                    let toolWasShown = !self.panels["grid"].isHidden;
-
-                    self.closeAll();
-
-                    if (!toolWasShown) {
-                        self.panels["grid"]._show({
-                            position: {
-                                nextTo: self.controls['grid'],
-                                direction: self.options.direction === 'right' ? 'left' : 'right',
-                            }
-                        });
-                    }
-                }
-            }),
+            grid: new GridEnabler(aladin),
             settings: ActionButton.createIconBtn({
                 iconURL: settingsIcon,
                 tooltip: {
                     content: 'Some general settings e.g. background color, reticle, windows to show',
-                    global: true,
-                    aladin
+                    position: {
+                        direction: 'top'
+                    }
                 },
                 action(o) {
                     let toolWasShown = !self.panels["settings"].isHidden;
@@ -219,46 +201,7 @@ import { Toolbar } from "../Widgets/Toolbar";
                         });
                     }
                 }
-            }),
-            fullscreen: ActionButton.createIconBtn({
-                iconURL: aladin.isInFullscreen ? restoreIcon : maximizeIcon,
-                tooltip: {
-                    content: aladin.isInFullscreen ? 'Restore original size' : 'Full-screen',
-                    global: true,
-                    aladin
-                },
-                action(o) {
-                    aladin.toggleFullscreen(aladin.options.realFullscreen);    
-                    let btn = self.controls['fullscreen'];
-
-                    if (aladin.isInFullscreen) {
-                        // make that div above other aladin lite divs (if there are...)
-                        aladin.aladinDiv.style.zIndex = 1
-                        btn.update({
-                            iconURL: restoreIcon,
-                            tooltip: {
-                                content: 'Restore original size',
-                                global: true,
-                                aladin
-                            }
-                        });
-                    } else {
-                        aladin.aladinDiv.style.removeProperty('z-index')
-
-                        btn.update({
-                            iconURL: maximizeIcon,
-                            tooltip: {
-                                content: 'Fullscreen',
-                                global: true,
-                                aladin
-                            }
-                        });
-                    }
-
-                    // hide all the controls
-                    self.closeAll()
-                }
-            }),
+            })
         };
     }
 
@@ -267,6 +210,8 @@ import { Toolbar } from "../Widgets/Toolbar";
             let panel = this.panels[name];
             panel && panel._hide();
         }
+
+        this.controls.projection.hideMenu()
     }
 
     enable(name) {

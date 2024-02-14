@@ -50,10 +50,8 @@ import A from '../../A';
 export class Stack extends ContextMenu {
     static previewImagesUrl = {
         'AllWISE color': 'https://aladin.cds.unistra.fr/AladinLite/survey-previews/P_allWISE_color.jpg',
-        'DECaPS DR1 color': 'https://aladin.cds.unistra.fr/AladinLite/survey-previews/P_DECaLS_DR5_color.jpg',
         'DSS colored': 'https://aladin.cds.unistra.fr/AladinLite/survey-previews/P_DSS2_color.jpg',
         'DSS2 Red (F+R)': 'https://aladin.cds.unistra.fr/AladinLite/survey-previews/P_DSS2_red.jpg',
-        'Density map for Gaia EDR3 (I/350/gaiaedr3)' : undefined,
         'Fermi color': 'https://aladin.cds.unistra.fr/AladinLite/survey-previews/P_Fermi_color.jpg',
         'GALEXGR6_7 NUV': 'https://aladin.cds.unistra.fr/AladinLite/survey-previews/P_GALEXGR6_7_color.jpg',
         'GLIMPSE360': 'https://aladin.cds.unistra.fr/AladinLite/survey-previews/P_GLIMPSE360.jpg',
@@ -62,7 +60,6 @@ export class Stack extends ContextMenu {
         'IRIS colored': 'https://aladin.cds.unistra.fr/AladinLite/survey-previews/P_IRIS_color.jpg',
         'Mellinger colored': 'https://aladin.cds.unistra.fr/AladinLite/survey-previews/P_Mellinger_color.jpg',
         'PanSTARRS DR1 color': 'https://aladin.cds.unistra.fr/AladinLite/survey-previews/P_PanSTARRS_DR1_color-z-zg-g.jpg',
-        'PanSTARRS DR1 g': undefined,
         '2MASS colored': 'https://aladin.cds.unistra.fr/AladinLite/survey-previews/P_2MASS_color.jpg',
         'AKARI colored': 'https://aladin.cds.unistra.fr/AladinLite/survey-previews/P_AKARI_FIS_Color.jpg',
         'SWIFT': 'https://aladin.cds.unistra.fr/AladinLite/survey-previews/P_SWIFT_BAT_FLUX.jpg',
@@ -73,7 +70,13 @@ export class Stack extends ContextMenu {
 
     // Constructor
     constructor(aladin) {
-        super(aladin, {hideOnClick: false});
+        let self;
+        super(aladin, {hideOnClick: (e) => {
+            if (self.mode === 'stack') {
+                self._hide();
+            }
+        }});
+        self = this;
         this.aladin = aladin;
         //this.anchor = menu.controls["Stack"];
         //this.fsm = new StackLayerOpenerFSM(aladin, menu);
@@ -145,19 +148,17 @@ export class Stack extends ContextMenu {
                                 cursor: 'help',
                             },
                         },
-                        content: 'Search a survey'
+                        content: 'Search for a survey'
                     },
-                    action(e) {
-                        /*if (e) {
-                            e.stopPropagation();
-                            e.preventDefault();
-                        }*/
+                    action: (e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
 
                         self._hide();
 
-                        self.hipsSelectorBox = HiPSSelectorBox.getInstance(self.aladin);
+                        let hipsSelectorBox = HiPSSelectorBox.getInstance(self.aladin);
                         // attach a callback
-                        self.hipsSelectorBox.attach( 
+                        hipsSelectorBox.attach( 
                             (HiPSId) => {
                                 let name = Utils.uuidv4()
                                 self.aladin.setOverlayImageLayer(HiPSId, name)
@@ -167,7 +168,7 @@ export class Stack extends ContextMenu {
                             }
                         );
 
-                        self.hipsSelectorBox._show({
+                        hipsSelectorBox._show({
                             position: self.position,
                         });
 
@@ -217,7 +218,7 @@ export class Stack extends ContextMenu {
         for(const layer of layers) {
             const name = layer.name;
 
-            let backgroundUrl = this._findPreviewImageUrl(layer);
+            let backgroundUrl = layer.properties.url + '/preview.jpg';
             let cssStyle = {
                 height: 'fit-content',
             };
@@ -230,15 +231,13 @@ export class Stack extends ContextMenu {
                 }
             }
 
-            let showBtn = ActionButton.createIconBtn({
+            let showBtn = ActionButton.createSmallSizedIconBtn({
                 iconURL: layer.getOpacity() === 0.0 ? hideIconUrl : showIconUrl,
                 cssStyle: {
                     backgroundColor: '#bababa',
                     borderColor: '#484848',
                     color: 'black',
                     visibility: Utils.hasTouchScreen() ? 'visible' : 'hidden',
-                    width: '18px',
-                    height: '18px',
                     verticalAlign: 'middle',
                     marginRight: '2px',
                 },
@@ -258,32 +257,29 @@ export class Stack extends ContextMenu {
                 }
             });
 
-            let deleteBtn = ActionButton.createIconBtn({
+            let deleteBtn = ActionButton.createSmallSizedIconBtn({
                 iconURL: removeIconUrl,
                 cssStyle: {
                     backgroundColor: '#bababa',
                     borderColor: '#484848',
                     color: 'black',
                     visibility: Utils.hasTouchScreen() ? 'visible' : 'hidden',
-                    width: '18px',
-                    height: '18px',
                     verticalAlign: 'middle'
                 },
                 disable: layer.layer === 'base',
-                tooltip: {content: 'Remove', position: {direction: 'left'}},
+                tooltip: {content: 'Remove', position: {direction: 'bottom'}},
                 action(e) {
                     self.aladin.removeImageLayer(layer.layer);
                 }
             });
-            let editBtn = ActionButton.createIconBtn({
+
+            let editBtn = ActionButton.createSmallSizedIconBtn({
                 iconURL: editIconUrl,
                 cssStyle: {
                     backgroundColor: '#bababa',
                     borderColor: '#484848',
                     color: 'black',
                     visibility: Utils.hasTouchScreen() ? 'visible' : 'hidden',
-                    width: '18px',
-                    height: '18px',
                     verticalAlign: 'middle',
                     marginRight: '2px',
                 },
@@ -297,27 +293,37 @@ export class Stack extends ContextMenu {
                     self.aladin.selectLayer(layer.layer);
                     self.attach({layers})
 
-                    let editBox = LayerEditBox.getInstance(self.aladin, {position: self.position});
+                    let editBox = LayerEditBox.getInstance(self.aladin);
                     editBox.update({layer})
-                    editBox._show();
+                    editBox._show({position: self.position});
 
                     self.mode = 'edit';
                 }
             });
 
-            let loadMOCBtn = ActionButton.createIconBtn({
+            let changeSVGSize = (svg, size) => {
+                let str = svg.replace(/FILLCOLOR/g, 'black')
+                let elt = document.createElement('div');
+                elt.innerHTML = str;
+
+                elt.querySelector('svg').setAttribute('width', size);
+                elt.querySelector('svg').setAttribute('height', size);
+
+                return elt.innerHTML;
+            };
+
+            let loadMOCBtn = new ActionButton({
+                size: 'small',
                 cssStyle: {
                     backgroundColor: '#bababa',
                     borderColor: '#484848',
                     color: 'black',
                     visibility: Utils.hasTouchScreen() ? 'visible' : 'hidden',
-                    backgroundImage: 'url("data:image/svg+xml;base64,' + window.btoa(AladinUtils.SVG_ICONS.MOC.replace(/FILLCOLOR/g, 'black')) + '")',
-                    width: '16px',
-                    height: '18px',
+                    backgroundImage: 'url("data:image/svg+xml;base64,' + window.btoa(changeSVGSize(AladinUtils.SVG_ICONS.MOC.replace(/FILLCOLOR/g, 'black'), '1rem')) + '")',
                     verticalAlign: 'middle',
                     marginRight: '2px',
                 },
-                tooltip: {content: 'Add coverage', position: {direction: 'left'}},
+                tooltip: {content: 'Add coverage', position: {direction: 'bottom'}},
                 action: (e) => {
                     let moc = A.MOCFromURL(layer.properties.url + '/Moc.fits', {lineWidth: 3, name: layer.properties.obsTitle});
                     self.aladin.addMOC(moc);
@@ -332,7 +338,6 @@ export class Stack extends ContextMenu {
                 }
             });
             loadMOCBtn.addClass('svg-icon')
-
 
             let layerClassName = 'a' + layer.layer.replace(/[.\/ ]/g, '')
 
@@ -375,43 +380,13 @@ export class Stack extends ContextMenu {
             };
 
             //if (layer.layer === "base") {
-                l.subMenu = [{
-                    label: {
-                        icon: {
-                            iconURL: searchIconImg,
-                            tooltip: {content: 'Find a specific survey <br /> in our database...', position: { direction: 'bottom' }},
-                            cssStyle: {
-                                backgroundPosition: 'center center',
-                                backgroundColor: '#bababa',
-                                border: '1px solid rgb(72, 72, 72)',
-                                cursor: 'help',
-                            },
-                        },
-                        content: 'Search for a new survey'
-                    },
-                    action(o) {
-                        self._hide();
-        
-                        self.hipsBox = HiPSSelectorBox.getInstance(self.aladin)
-                        
-                        self.hipsBox.attach(
-                            (HiPSId) => {            
-                                self.aladin.setOverlayImageLayer(HiPSId, layer.layer);
-                                self.mode = 'stack';
-                                self._show();
-                            }
-                        );
-        
-                        self.hipsBox._show({
-                            position: self.position,
-                        })
-        
-                        self.mode = 'hips';
-                    }
-                }];
+                l.subMenu = [];
         
                 for(let ll of defaultLayers) {
-                    let backgroundUrl = Stack.previewImagesUrl[ll.name];
+                    backgroundUrl = Stack.previewImagesUrl[ll.name];
+                    if (!backgroundUrl) {
+                        backgroundUrl = ll.url + '/preview.jpg'
+                    }
                     let cssStyle = {
                         height: '2.5em',
                     };
@@ -462,6 +437,44 @@ export class Stack extends ContextMenu {
                         }
                     })
                 }
+
+                l.subMenu.push({
+                    label: {
+                        icon: {
+                            iconURL: searchIconImg,
+                            tooltip: {content: 'Find a specific survey <br /> in our database...', position: { direction: 'top' }},
+                            cssStyle: {
+                                backgroundPosition: 'center center',
+                                backgroundColor: '#bababa',
+                                border: '1px solid rgb(72, 72, 72)',
+                                cursor: 'help',
+                            },
+                        },
+                        content: 'More...'
+                    },
+                    action(o) {
+                        o.stopPropagation();
+                        o.preventDefault();
+
+                        self._hide();
+
+                        let hipsBox = HiPSSelectorBox.getInstance(self.aladin)
+                        
+                        hipsBox.attach(
+                            (HiPSId) => {            
+                                self.aladin.setOverlayImageLayer(HiPSId, layer.layer);
+                                self.mode = 'stack';
+                                self._show();
+                            }
+                        );
+        
+                        hipsBox._show({
+                            position: self.position,
+                        })
+        
+                        self.mode = 'hips';
+                    }
+                })
             //}
 
             l.action = (o) => {
@@ -493,6 +506,8 @@ export class Stack extends ContextMenu {
                 return Stack.previewImagesUrl[key];
             }
         }
+        // if not found
+        return layer.properties.url + '/preview.jpg'
     }
 
     _show(options) {
@@ -501,7 +516,7 @@ export class Stack extends ContextMenu {
         super.show({
             position: this.position,
             cssStyle: {
-                maxWidth: '15em',
+                maxWidth: '15rem',
                 backgroundColor: 'black',
             }
         })
@@ -520,14 +535,13 @@ export class Stack extends ContextMenu {
 
     _hide() {
         // go back to the display stack state
-        if (this.position) {
-            let editBox = LayerEditBox.getInstance(this.aladin, {position: this.position});
+        //if (this.mode === 'stack') {
+            let editBox = LayerEditBox.getInstance(this.aladin);
             editBox._hide();
-        }
 
-        if (this.hipsSelectorBox) {
-            this.hipsSelectorBox._hide();
-        }
+            let hipsSelectorBox = HiPSSelectorBox.getInstance(this.aladin);
+            hipsSelectorBox._hide();
+        //}
 
         this.mode = 'stack';
 

@@ -60,13 +60,12 @@ export class CmapSelector extends SelectorButton {
             options[cmap] = {
                 ...options[cmap],
                 cssStyle: {
-                    padding: '0px',
                     //border: 'none',
                     //borderRadius: '0',
                     //backgroundColor: 'black',
                     color: 'black',
+                    width: '4rem',
                     overflow: 'hidden',
-                    width: '6em',
                     'font-family': 'monospace',
                 },
                 content: cmap,

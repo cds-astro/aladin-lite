@@ -30,6 +30,7 @@
 
 import { Box } from "../Widgets/Box.js";
 import { Input } from "../Widgets/Input.js";
+import { Layout } from "../Layout.js";
  
 export class GotoBox extends Box {
     // Constructor
@@ -82,7 +83,7 @@ export class GotoBox extends Box {
             }
         });
 
-        super(aladin, {content: textField})
+        super(aladin, {content: Layout.horizontal(["Target:  ", textField])})
 
         this.addClass('aladin-box-night');
         this.textField = textField;

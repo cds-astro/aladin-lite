@@ -88,7 +88,7 @@ export let MeasurementTable = (function() {
             layout: layout,
             cssStyle: {
                 position: 'absolute',
-                bottom: '27px',
+                bottom: '2rem',
                 maxWidth: '100%',
             }
         }, this.target);

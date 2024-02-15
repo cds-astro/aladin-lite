@@ -49,6 +49,9 @@ import { Utils } from "../Utils";
  *
  *****************************************************************************/
 import { Toolbar } from "../Widgets/Toolbar";
+import { ALEvent } from "../../events/ALEvent";
+import { View } from "../../View";
+
 /**
  * Class representing a Tabs layout
  * @extends DOMElement
@@ -63,7 +66,7 @@ import { Toolbar } from "../Widgets/Toolbar";
         let self = this;
 
         // When the menu resize we close it.
-        // For smarthphone, we only make the menu close when the orientation is changing
+        // For smartphone, we only make the menu close when the orientation is changing
         if (UtilsExt.hasTouchScreen()) {
             if (screen && 'orientation' in screen) {
                 screen.orientation.addEventListener("change", (e) => {

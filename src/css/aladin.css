@@ -610,7 +610,9 @@ canvas {
 }
 
 .aladin-btn.toggled {
-    border: 2px solid greenyellow;
+    -webkit-box-shadow:inset 0 0 0 0.2rem greenyellow;
+    -moz-box-shadow:inset 0 0 0 0.2rem greenyellow;
+    box-shadow:inset 0 0 0 0.2rem greenyellow;
 }
 
 .aladin-btn.disabled {
@@ -972,10 +974,11 @@ canvas {
 .aladin-context-menu .aladin-context-menu-item {
     cursor: pointer;
 
-    height: 22px;
+    height: 1.5rem;
+
     display: flex;
     align-items: center;
-    padding: 4px;
+    padding: 0.2rem;
     position: relative;
     border-bottom: 1px solid #d2d2d2;
     border-left: 1px solid #d2d2d2;
@@ -989,10 +992,11 @@ canvas {
     cursor: not-allowed;
     color: red;
 
-    height: 22px;
+    height: 1.5rem;
     display: flex;
     align-items: center;
-    padding: 4px;
+    padding: 0.2rem;
+
     position: relative;
 }
 

@@ -39,23 +39,38 @@ export class GridEnabler extends ActionButton {
             return {
                 content,
                 position: {
-                    direction: 'top'
+                    direction: 'right'
                 }
             }
         }
 
         let self;
         super({
+            size: "medium",
             iconURL: gridIcon,
             tooltip: computeTooltip(aladin.getGridOptions().enabled),
             action(o) {
-                let gridEnabled = aladin.getGridOptions().enabled;
-                aladin.setCooGrid({enabled: !gridEnabled})
+                const isGridEnabled = aladin.getGridOptions().enabled;
+                const enabled = !isGridEnabled;
+                aladin.setCooGrid({enabled})
 
-                self.update({tooltip: computeTooltip(!gridEnabled)})
+                self.update({toggled: enabled, tooltip: computeTooltip(enabled)})
+
+                // 
+                if (aladin.statusBar) {
+                    aladin.statusBar.removeMessage('grid')
+
+                    if (enabled) {
+                        aladin.statusBar.appendMessage({
+                            id: 'grid',
+                            message: 'Grid enabled!',
+                            duration: 2000,
+                            type: 'info'
+                        })
+                    }
+                }
             }
         })
         self = this;
-        this.addClass('medium-sized-icon')
     }
 }

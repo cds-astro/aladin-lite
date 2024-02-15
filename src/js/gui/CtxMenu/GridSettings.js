@@ -137,17 +137,7 @@ export let GridSettingsCtxMenu = (function () {
 
         return {
             label: 'Grid',
-            subMenu: [{
-                label: {
-                        content: ['Show/Hide']
-                    },
-                    action(o) {
-                        /*let newVal = toggleCheckbox(gridCheckbox);
-                        aladin.showReticle(newVal)
-
-                        self._attach();*/
-                    }
-                },
+            subMenu: [
                 {
                     label: {
                         content: ['Color ', colorInput],

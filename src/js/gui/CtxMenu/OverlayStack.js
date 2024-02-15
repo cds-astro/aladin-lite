@@ -38,13 +38,14 @@ import { CatalogQueryBox } from "../Box/CatalogQueryBox.js";
  import { AladinUtils } from "../../AladinUtils.js";
 import A from "../../A.js";
 import { Utils } from "../../../js/Utils";
+import { View } from "../../View.js";
  
 export class OverlayStack extends ContextMenu {
 
     static predefinedCats = {
-        simbad: {url: 'https://axel.u-strasbg.fr/HiPSCatService/SIMBAD', options: {id: 'simbad', name: 'SIMBAD', shape: 'circle', sourceSize: 8, color: '#318d80'}},
-        gaia: {url: 'https://axel.u-strasbg.fr/HiPSCatService/I/355/gaiadr3', options: {id: 'gaia-dr3', name: 'Gaia DR3', shape: 'square', sourceSize: 8, color: '#6baed6'}},
-        twomass: {url: 'https://axel.u-strasbg.fr/HiPSCatService/II/246/out', options: {id: '2mass', name: '2MASS', shape: 'plus', sourceSize: 8, color: '#dd2233'}}
+        simbad: {url: 'https://axel.u-strasbg.fr/HiPSCatService/SIMBAD', options: {id: 'simbad', name: 'SIMBAD', shape: 'circle', sourceSize: 8, color: '#318d80', onClick: 'showTable'}},
+        gaia: {url: 'https://axel.u-strasbg.fr/HiPSCatService/I/355/gaiadr3', options: {id: 'gaia-dr3', name: 'Gaia DR3', shape: 'square', sourceSize: 8, color: '#6baed6', onClick: 'showTable'}},
+        twomass: {url: 'https://axel.u-strasbg.fr/HiPSCatService/II/246/out', options: {id: '2mass', name: '2MASS', shape: 'plus', sourceSize: 8, color: '#dd2233', onClick: 'showTable'}}
     };
     // Constructor
     constructor(aladin) {
@@ -102,7 +103,19 @@ export class OverlayStack extends ContextMenu {
                     label: 'Catalogue',
                     subMenu: [
                         {
-                            label: 'Simbad',
+                            label: {
+                                icon: {
+                                    tooltip: {content: 'Click to go to the SIMBAD database', position: {direction: 'top'}},
+                                    iconURL: 'http://cloud-wiki.u-strasbg.fr/twiki/pub/Communication/Supports/WebHome/SIMBAD_LOGO-vect.svg',
+                                    cssStyle: {
+                                        cursor: 'help',
+                                    },
+                                    action(o) {
+                                        window.open('https://simbad.cds.unistra.fr/simbad/')
+                                    }
+                                },
+                                content: 'Simbad Database'
+                            },
                             action(o) {
                                 o.stopPropagation();
                                 o.preventDefault();
@@ -195,7 +208,10 @@ export class OverlayStack extends ContextMenu {
                             label: 'From selection',
                             subMenu: [
                                 {
-                                    label: 'Circle',
+                                    label: '◌ Circle',
+                                    disabled: self.aladin.view.mode !== View.PAN ? {
+                                        reason: 'Exit your current mode<br/>(e.g. disable the SIMBAD pointer mode)'
+                                    } : false,
                                     action(o) {
                                         o.preventDefault();
                                         o.stopPropagation();
@@ -219,7 +235,10 @@ export class OverlayStack extends ContextMenu {
                                     }
                                 },
                                 {
-                                    label: 'Rect',
+                                    label: '⬚ Rect',
+                                    disabled: self.aladin.view.mode !== View.PAN ? {
+                                        reason: 'Exit your current mode<br/>(e.g. disable the SIMBAD pointer mode)'
+                                    } : false,
                                     action(o) {
                                         o.stopPropagation();
                                         o.preventDefault();
@@ -248,7 +267,10 @@ export class OverlayStack extends ContextMenu {
                                     }
                                 },
                                 {
-                                    label: 'Polygon',
+                                    label: '⛉ Polygon',
+                                    disabled: self.aladin.view.mode !== View.PAN ? {
+                                        reason: 'Exit your current mode<br/>(e.g. disable the SIMBAD pointer mode)'
+                                    } : false,
                                     action(o) {
                                         o.stopPropagation();
                                         o.preventDefault();

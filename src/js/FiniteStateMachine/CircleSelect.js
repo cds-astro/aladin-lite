@@ -35,9 +35,6 @@ export class CircleSelect extends FSM {
     constructor(options, view) {
         let start = (params) => {
             const {callback} = params;
-            view.setCursor('crosshair');
-            view.aladin.showReticle(false)
-
             this.callback = callback;
             view.setMode(View.SELECT)
         }

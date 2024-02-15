@@ -47,7 +47,6 @@ export let SimbadPointer = (function() {
         Utils.loadFromUrls(SimbadPointer.MIRRORS, {contentType: "text/plain", data: params})
             .then((response) => response.text())
             .then((result) => {
-                aladinInstance.view.setCursor('pointer');
 
                 var regexp = /(.*?)\/(.*?)\((.*?),(.*?)\)/g;
                 var match = regexp.exec(result);
@@ -75,10 +74,8 @@ export let SimbadPointer = (function() {
                 }
             })
             .catch((e) => {
-                aladinInstance.view.setCursor('pointer');
                 aladinInstance.hidePopup();
-            }
-            )
+            })
     };
 
     return SimbadPointer;

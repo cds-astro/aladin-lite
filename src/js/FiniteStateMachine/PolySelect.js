@@ -63,8 +63,6 @@ export class PolySelect extends FSM {
 
         let start = (params) => {
             const {callback} = params;
-            view.aladin.showReticle(false)
-            view.setCursor('crosshair');
             view.setMode(View.SELECT)
 
             this.callback = callback;

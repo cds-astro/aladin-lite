@@ -17,7 +17,6 @@
 //    along with Aladin Lite.
 //
 
-import { Aladin } from "./Aladin";
 import { Color } from "./Color";
 import { CircleSelect } from "./FiniteStateMachine/CircleSelect";
 import { PolySelect } from "./FiniteStateMachine/PolySelect";

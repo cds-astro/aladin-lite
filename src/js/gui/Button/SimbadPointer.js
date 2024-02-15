@@ -28,13 +28,15 @@
  *
  *****************************************************************************/
 
- import { ActionButton } from "../Widgets/ActionButton.js";
- import targetIcon from '../../../../assets/icons/target.svg';
-
+import { ActionButton } from "../Widgets/ActionButton.js";
+import targetIcon from '../../../../assets/icons/target.svg';
+import { ALEvent } from "../../events/ALEvent.js";
+import { View } from "../../View.js";
   
- export class SimbadPointer extends ActionButton {
-     // Constructor
-     constructor(aladin) {
+export class SimbadPointer extends ActionButton {
+    // Constructor
+    constructor(aladin) {
+        let self;
         super({
             iconURL: targetIcon,
             size: 'medium',
@@ -43,9 +45,46 @@
                 position: { direction: 'right' },
             },
             action(o) {
-                aladin.fire('simbad');
+                if (self.mode !== View.TOOL_SIMBAD_POINTER) {
+                    aladin.fire('simbad');
+                } else {
+                    aladin.fire('default');
+                }
             }
         })
+        self = this;
+
+        this.aladin = aladin;
+        this.mode = aladin.view.mode;
+
+        this.addListeners()
     }
- }
+
+    updateStatus() {
+        if (this.mode === View.TOOL_SIMBAD_POINTER) {
+            if (this.aladin.statusBar) {
+                this.aladin.statusBar.appendMessage({
+                    id: 'simbad',
+                    message: 'Simbad pointer mode, click on the icon to exit',
+                    type: 'info'
+                })
+            }
+        } else {
+            if (this.aladin.statusBar) {
+                this.aladin.statusBar.removeMessage('simbad')
+            }
+        }
+
+        this.update({toggled: this.mode === View.TOOL_SIMBAD_POINTER})
+    }
+
+    addListeners() {
+        ALEvent.MODE.listenedBy(this.aladin.aladinDiv, e => {
+            let mode = e.detail.mode;
+            this.mode = mode;
+
+            this.updateStatus();
+        });
+    }
+}
  

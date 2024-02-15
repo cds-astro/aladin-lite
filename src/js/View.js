@@ -417,6 +417,7 @@ export let View = (function () {
 
     View.prototype.setMode = function (mode) {
         this.mode = mode;
+
         if (this.mode == View.TOOL_SIMBAD_POINTER) {
             this.aladin.popup.hide();
             this.catalogCanvas.style.cursor = '';
@@ -425,16 +426,16 @@ export let View = (function () {
         else if (this.mode == View.PAN) {
             this.setCursor('default');
         }
+        else if (this.mode == View.SELECT) {
+            this.setCursor('crosshair');
+            this.aladin.showReticle(false)
+        }
+
+        ALEvent.MODE.dispatchedTo(this.aladin.aladinDiv, {mode});
     };
 
     View.prototype.setCursor = function (cursor) {
         if (this.catalogCanvas.style.cursor == cursor) {
-            return;
-        }
-        if (this.mode == View.TOOL_SIMBAD_POINTER) {
-            return;
-        }
-        if (this.mode == View.SELECT) {
             return;
         }
 
@@ -672,7 +673,10 @@ export let View = (function () {
             var wasDragging = view.realDragging === true;            
 
             if (view.dragging) { // if we were dragging, reset to default cursor
-                view.setCursor('default');
+                if(view.mode === View.PAN) {
+                    view.setCursor('default');
+                }
+
                 view.dragging = false;
 
                 if (wasDragging) {
@@ -705,7 +709,7 @@ export let View = (function () {
                 // call Simbad pointer or Planetary features
                 GenericPointer(view, e);
                 // exit the simbad pointer mode
-                view.setMode(View.PAN);
+                //view.setMode(View.PAN);
 
                 return; // when in TOOL_SIMBAD_POINTER mode, we do not call the listeners
             }
@@ -1313,6 +1317,7 @@ export let View = (function () {
             let a = this.aladin;
             let self = this;
             const sampBtn = new SAMPActionButton({
+                size: 'small',
                 tooltip: {content: 'Send a table through SAMP Hub'},
                 action(conn) {
                     // hide the menu

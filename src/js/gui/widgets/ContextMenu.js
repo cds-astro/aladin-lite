@@ -140,11 +140,25 @@ export class ContextMenu extends DOMElement {
                     }
                 }
 
-                let labelEl = Layout.horizontal({
-                    layout,
-                    tooltip: opt.label.tooltip,
-                });
+                let tooltip;
+                if (opt.disabled && opt.disabled.reason) {
+                    tooltip = {
+                        content: opt.disabled.reason,
+                        position: {direction: 'top'}
+                    }
+                } else if (opt.label.tooltip) {
+                    tooltip = opt.label.tooltip
+                }
 
+                let labelEl = Layout.horizontal({layout, tooltip});
+                labelEl.attachTo(item)
+            } else if (opt.disabled && opt.disabled.reason) {
+                let tooltip = {
+                    content: opt.disabled.reason,
+                    position: {direction: 'top'}
+                }
+
+                let labelEl = Layout.horizontal({layout: opt.label, tooltip});
                 labelEl.attachTo(item)
             } else {
                 let wrapEl = document.createElement('div');
@@ -172,7 +186,7 @@ export class ContextMenu extends DOMElement {
         }
 
         const self = this;
-        if (opt.disabled && opt.disabled === true) {
+        if (opt.disabled && opt.disabled !== false) {
             item.classList.add('aladin-context-menu-item-disabled');
         }
 

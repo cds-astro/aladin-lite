@@ -71,6 +71,8 @@ export class ALEvent {
   static RESOURCE_FETCHED = new ALEvent("AL:Resource.fetched")
   static FETCH = new ALEvent("AL:fetch")
 
+  static MODE = new ALEvent("AL:mode")
+
   constructor(name) {
     this.name = name;
   }

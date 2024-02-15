@@ -1531,6 +1531,8 @@ export let Aladin = (function () {
         }
         else if (what === 'simbad') {
             this.view.setMode(View.TOOL_SIMBAD_POINTER);
+        } else if (what === 'default') {
+            this.view.setMode(View.PAN);
         }
     };
 

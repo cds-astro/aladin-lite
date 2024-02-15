@@ -92,8 +92,6 @@ export let PlanetaryFeaturesPointer = (function() {
         Utils.loadFromUrls(PlanetaryFeaturesPointer.MIRRORS, {contentType: "text/plain", data: params})
             .then((response) => response.text())
             .then((result) => {
-                aladinInstance.view.setCursor('pointer');
-
                 const lines = result.split('\n');
                 const fields = csvToArray(lines[0])[0];
 
@@ -147,8 +145,7 @@ export let PlanetaryFeaturesPointer = (function() {
                 }
             })
             .catch((e) => {
-
-                aladinInstance.view.setCursor('pointer');
+                //aladinInstance.view.setCursor('pointer');
                 aladinInstance.hidePopup();
             })
     };

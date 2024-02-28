@@ -65,7 +65,19 @@ import { CtxMenuActionButtonOpener } from "../Button/CtxMenuOpener.js";
                         errorCallback
                     );
                 }
+                else if (params.baseURL.includes('/simbad.')) {
+                    A.catalogFromSimbad(
+                        params.ra + ' ' + params.dec,
+                        params.radiusDeg,
+                        {limit: params.limit, onClick: 'showTable'},
+                        (catalog) => {
+                            aladin.addCatalog(catalog)
+                        },
+                        errorCallback
+                    );
+                }
                 else {
+                    console.log('cone search', params.baseURL)
                     let url = params.baseURL;
                     if (! url.endsWith('?')) {
                         url += '?';

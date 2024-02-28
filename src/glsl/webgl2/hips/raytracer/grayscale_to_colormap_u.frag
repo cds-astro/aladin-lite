@@ -27,7 +27,6 @@ vec4 get_tile_color(vec3 pos) {
     HashDxDy result = hash_with_dxdy(0, pos.zxy);
 
     int idx = result.idx;
-
     vec2 uv = vec2(result.dy, result.dx);
 
     Tile tile = textures_tiles[idx];

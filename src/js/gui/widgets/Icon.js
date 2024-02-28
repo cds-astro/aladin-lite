@@ -19,8 +19,6 @@
 
 import { DOMElement } from "./Widget";
 import { Tooltip } from "./Tooltip";
-import { Icon } from "./Icon";
-import { Layout } from "../Layout";
 /******************************************************************************
  * Aladin Lite project
  *
@@ -75,15 +73,15 @@ import { Layout } from "../Layout";
  *   position: { nextTo: someDOMElement, direction: 'right' }
  * }, document.getElementById('container'));
  */
-export class ActionButton extends DOMElement {
+export class Icon extends DOMElement {
     constructor(options, target, position = "beforeend") {
-        let el = document.createElement('button');
-        el.classList.add('aladin-btn');
+        let el = document.createElement('div');
 
         // add it to the dom
         super(el, options);
         this._show();
 
+        this.addClass('aladin-icon')
         this.addClass('aladin-dark-theme')
 
         this.attachTo(target, position)
@@ -91,13 +89,6 @@ export class ActionButton extends DOMElement {
 
     _show() {
         this.el.innerHTML = '';
-        this.el.removeEventListener('click', this.action);
-
-        if (this.options.toggled === true) {
-            this.addClass('toggled');
-        } else if (this.options.toggled === false) {
-            this.removeClass('toggled');
-        }
 
         if (this.options.size === 'small') {
             this.addClass('small-sized-icon')
@@ -105,33 +96,18 @@ export class ActionButton extends DOMElement {
             this.addClass('medium-sized-icon')
         }
 
-        if (this.options.action) {
-            this.action = (e) => {
-                e.stopPropagation();
-                e.preventDefault();
-    
-                this.options.action(e, this);
-            };
-
-            this.el.addEventListener('click', this.action);
-        }
-
         if (this.options.title) {
             this.el.setAttribute('title', this.options.title);
         }
 
-        /*if (this.options.iconURL) {
+        if (this.options.url) {
             let img = document.createElement('img');
-            img.src = this.options.iconURL;
+            img.src = this.options.url;
             img.style.objectFit = 'contain';
             img.style.verticalAlign = 'middle';
             img.style.width = '100%';
 
             this.el.appendChild(img);
-        }*/
-        let layout = [];
-        if (this.options.icon) {
-            layout.push(new Icon(this.options.icon));
         }
 
         if (this.options.disable) {
@@ -142,22 +118,12 @@ export class ActionButton extends DOMElement {
             this.removeClass('disabled')
         }
 
-        // Add the content to the dom
-        // Content can be a DOM element, just plain text or another Widget instance
-        if (this.options.content) {
-            layout.push(this.options.content);
-        }
-
-        if (layout.length > 0) {
-            if (layout.length === 1) {
-                this.appendContent(layout[0])
-            } else {
-                this.appendContent(new Layout({layout, orientation: 'horizontal'}))
-            }
-        }
-
         if (this.options.cssStyle) {
             this.setCss(this.options.cssStyle);
+        }
+
+        if (this.options.monochrome && this.options.monochrome === true) {
+            this.addClass('aladin-icon-monochrome');
         }
 
         // trigger el added
@@ -169,37 +135,34 @@ export class ActionButton extends DOMElement {
             this.setPosition(this.options.position)
         }
 
-        super._show();
+        this.isHidden = false;
     }
 
-    static createIconBtn(opt, target, position = 'beforeend') {
-        let btn = new ActionButton({...opt, size: 'medium'}, target, position);
-
-        return btn;
+    // SVG icons templates are stored here rather than in a CSS, as to allow
+    // to dynamically change the fill color
+    // Pretty ugly, haven't found a prettier solution yet
+    static SVG_ICONS = {
+        CATALOG: '<svg xmlns="http://www.w3.org/2000/svg"><polygon points="1,0,5,0,5,3,1,3"  fill="FILLCOLOR" /><polygon points="7,0,9,0,9,3,7,3"  fill="FILLCOLOR" /><polygon points="10,0,12,0,12,3,10,3"  fill="FILLCOLOR" /><polygon points="13,0,15,0,15,3,13,3"  fill="FILLCOLOR" /><polyline points="1,5,5,9"  stroke="FILLCOLOR" /><polyline points="1,9,5,5" stroke="FILLCOLOR" /><line x1="7" y1="7" x2="15" y2="7" stroke="FILLCOLOR" stroke-width="2" /><polyline points="1,11,5,15"  stroke="FILLCOLOR" /><polyline points="1,15,5,11"  stroke="FILLCOLOR" /><line x1="7" y1="13" x2="15" y2="13" stroke="FILLCOLOR" stroke-width="2" /></svg>',
+        MOC: '<svg xmlns="http://www.w3.org/2000/svg"><polyline points="0.5,7,2.5,7,2.5,5,7,5,7,3,10,3,10,5,13,5,13,7,15,7,15,9,13,9,13,12,10,12,10,14,7,14,7,12,2.5,12,2.5,10,0.5,10,0.5,7" stroke-width="1" stroke="FILLCOLOR" fill="transparent" /><line x1="1" y1="10" x2="6" y2="5" stroke="FILLCOLOR" stroke-width="0.5" /><line x1="2" y1="12" x2="10" y2="4" stroke="FILLCOLOR" stroke-width="0.5" /><line x1="5" y1="12" x2="12" y2="5" stroke="FILLCOLOR" stroke-width="0.5" /><line x1="7" y1="13" x2="13" y2="7" stroke="FILLCOLOR" stroke-width="0.5" /><line x1="10" y1="13" x2="13" y2="10" stroke="FILLCOLOR" stroke-width="0.5" /></svg>',
+        OVERLAY: '<svg xmlns="http://www.w3.org/2000/svg"><polygon points="10,5,10,1,14,1,14,14,2,14,2,9,6,9,6,5" fill="transparent" stroke="FILLCOLOR" stroke-width="2"/></svg>'
     }
 
-    static createSmallSizedIconBtn(opt, target, position = 'beforeend') {
-        let btn = new ActionButton({...opt, size: 'small'}, target, position);
+    static dataURLFromSVG(icon) {
+        let changeSVGSize = (svg, size) => {
+            let str = svg.replace(/FILLCOLOR/g, 'black')
+            let elt = document.createElement('div');
+            elt.innerHTML = str;
 
-        return btn;
-    }
+            elt.querySelector('svg').setAttribute('width', size);
+            elt.querySelector('svg').setAttribute('height', size);
 
-    static create(opt, info, target, position = 'beforeend') {
-        opt['info'] = info || undefined;
+            return elt.innerHTML;
+        };
 
-        return new ActionButton(opt, target, position);
-    }
+        let color = icon.color || 'black';
+        let size = icon.size || '1rem';
+        let svg = icon.svg;
 
-    static DEFAULT_BTN = {
-        'loading': {
-            content: '⏳',
-            width: '28px',
-            height: '28px',
-            cssStyle: {
-                backgroundColor: '#bababa',
-                borderColor: '#484848',
-            },
-            action(e) {}
-        },
+        return 'data:image/svg+xml;base64,' + window.btoa(changeSVGSize(svg.replace(/FILLCOLOR/g, color), size));
     }
 }

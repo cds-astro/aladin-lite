@@ -22,15 +22,14 @@ import { DOMElement } from "../Widgets/Widget";
 
 /* Control import */
 import { SettingsCtxMenu } from "../CtxMenu/Settings";
-import { Stack } from "../CtxMenu/SurveyStack";
+//import { Stack } from "../CtxMenu/SurveyStack";
 import { OverlayStack } from "../CtxMenu/OverlayStack";
-import { GotoBox } from "../Box/GotoBox";
+//import { GotoBox } from "../Box/GotoBox";
 import { SimbadPointer } from "../Button/SimbadPointer";
 import { ProjectionActionButton } from "../Button/Projection";
 
 import settingsIcon from './../../../../assets/icons/settings.svg';
 import stackOverlayIconUrl from './../../../../assets/icons/stack.svg';
-import stackImageIconUrl from './../../../../assets/icons/telescope.svg';
 import { GridEnabler } from '../Button/GridEnabler';
 import searchIcon from './../../../../assets/icons/search.svg';
 
@@ -84,13 +83,13 @@ import { View } from "../../View";
         }
 
         // tools
-        let stack = new Stack(aladin, self);
+        //let stack = new Stack(aladin, self);
         let overlay = new OverlayStack(aladin);
-        let goto = new GotoBox(aladin);
+        //let goto = new GotoBox(aladin);
         let settings = new SettingsCtxMenu(aladin, self);
 
         this.panels = {
-            stack, overlay, goto, settings
+            overlay, settings
         };
         this.indices = [];
 
@@ -104,12 +103,12 @@ import { View } from "../../View";
         let aladin = this.aladin;
 
         this.controls = {
-            stack: ActionButton.createIconBtn({
+            /*stack: ActionButton.createIconBtn({
                 iconURL: stackImageIconUrl,
                 tooltip: {
                     content: 'Open the stack layer menu',
                     position: {
-                        direction: 'top'
+                        direction: 'top right'
                     }
                 },
                 action(o) {
@@ -126,13 +125,17 @@ import { View } from "../../View";
                         });
                     }
                 }
-            }),
+            }),*/
             overlay: ActionButton.createIconBtn({
-                iconURL: stackOverlayIconUrl,
+                icon: {
+                    size: 'medium',
+                    monochrome: true,
+                    url: stackOverlayIconUrl
+                },
                 tooltip: {
                     content: 'Open the overlays menu',
                     position: {
-                        direction: 'top'
+                        direction: 'top right'
                     }
                 },
                 action(o) {
@@ -150,20 +153,13 @@ import { View } from "../../View";
                     }
                 }
             }),
-            projection: new ProjectionActionButton(aladin, {
-                openDirection: self.options.direction === 'right' ? 'left' : 'right',
-                action(o) {
-                    // executed before opening the ctx menu
-                    self.closeAll();
-                }
-            }),
             simbad: new SimbadPointer(aladin),
-            goto: ActionButton.createIconBtn({
+            /*goto: ActionButton.createIconBtn({
                 iconURL: searchIcon,
                 tooltip: {
                     content: 'Search for where a celestial object is',
                     position: {
-                        direction: 'top'
+                        direction: 'top right'
                     }
                 },
                 action(o) {
@@ -180,14 +176,18 @@ import { View } from "../../View";
                         });
                     }
                 }
-            }),
+            }),*/
             grid: new GridEnabler(aladin),
             settings: ActionButton.createIconBtn({
-                iconURL: settingsIcon,
+                icon: {
+                    size: 'medium',
+                    monochrome: true,
+                    url: settingsIcon
+                },
                 tooltip: {
                     content: 'Some general settings e.g. background color, reticle, windows to show',
                     position: {
-                        direction: 'top'
+                        direction: 'top right'
                     }
                 },
                 action(o) {
@@ -214,7 +214,7 @@ import { View } from "../../View";
             panel && panel._hide();
         }
 
-        this.controls.projection.hideMenu()
+        //this.controls.projection.hideMenu()
     }
 
     enable(name) {

@@ -85,8 +85,10 @@ export class Layout extends DOMElement {
             } else {
                 this.addClass('aladin-vertical-list')
             }
-        } else {
-            this.addClass('aladin-horizontal-list')
+        }
+
+        if (options.classList) {
+            options.classList.forEach((className) => this.addClass(className))
         }
     }
 

@@ -80,7 +80,7 @@ export class DOMElement {
     setCss(options) {
         // CSS style elements
         if (options) {
-            let el = this.el
+            let el = this.element();
             for (const property in options) {
                 el.style[property] = options[property];
             }

@@ -47,13 +47,16 @@ options = {
         if (!aladin.samp) {
             options = {
                 ...options,
-                iconURL: waveOffIconUrl,
+                icon: {
+                    monochrome: true,
+                    url: waveOffIconUrl
+                },
                 tooltip: {content: 'SAMP disabled in Aladin Lite options', position: {direction: 'top'}},
                 disable: true,
             }
         } else {
-            let isHubRunning = aladin.samp.isHubCurrentlyRunning();
-            let tooltip = options && options.tooltip || {content: isHubRunning ? 'Connect to SAMP Hub' : 'No hub running found', position: {direction: 'top'}}
+            //let isHubRunning = aladin.samp.isHubCurrentlyRunning();
+            let tooltip = options && options.tooltip || {content: 'Connect to SAMP Hub', position: {direction: 'top'}}
             let action = options && options.action
             if (!action) {
                 // default action, just connect and ping
@@ -61,13 +64,14 @@ options = {
                     connector.register();
                 }
             }
-            let disable = !isHubRunning;
 
             options = {
                 ...options,
-                iconURL: aladin.samp.isConnected() ? waveOnIconUrl : waveOffIconUrl,
+                icon: {
+                    monochrome: true,
+                    url: aladin.samp.isConnected() ? waveOnIconUrl : waveOffIconUrl
+                },
                 tooltip,
-                disable,
                 action(o) {
                     action(aladin.samp)
                 }
@@ -81,18 +85,23 @@ options = {
 
     _addListeners(aladin) {
         let self = this;
-        let hubRunning;
-        ALEvent.SAMP_CONNECTED.listenedBy(aladin.aladinDiv, function (e) {            
-            const iconURL = waveOnIconUrl
-            self.update({iconURL})
+        ALEvent.SAMP_CONNECTED.listenedBy(aladin.aladinDiv, function (e) {
+            const icon = {
+                monochrome: true,
+                url: waveOnIconUrl
+            }
+            self.update({icon})
         });
 
         ALEvent.SAMP_DISCONNECTED.listenedBy(aladin.aladinDiv, function (e) {            
-            const iconURL = waveOffIconUrl
-            self.update({iconURL})
+            const icon = {
+                monochrome: true,
+                url: waveOffIconUrl
+            }
+            self.update({icon})
         });
 
-        ALEvent.SAMP_HUB_RUNNING.listenedBy(aladin.aladinDiv, function (e) {
+        /*ALEvent.SAMP_HUB_RUNNING.listenedBy(aladin.aladinDiv, function (e) {
             const isHubRunning = e.detail.isHubRunning;
 
             if (hubRunning !== isHubRunning) {
@@ -107,7 +116,42 @@ options = {
                 }
                 hubRunning = isHubRunning;
             }
-        });
+        });*/
     }
- }
+
+    static sendSources(aladin) {
+        return new SAMPActionButton({
+            size: 'small',
+            tooltip: {content: 'Send a table through SAMP Hub'},
+            action(conn) {
+                // hide the menu
+                aladin.contextMenu._hide()
+
+                let getSource = (o) => {
+                    let s = o;
+                    if (o.source) {
+                        s = o.source
+                    }
+
+                    return s;
+                };
+
+                for (const objects of aladin.view.selection) {
+                    let s0 = getSource(objects[0]);
+                    const cat = s0.catalog;
+                    const {url, name} = cat;
+                    conn.loadVOTable(url, name, url);
+
+                    let rowList = [];
+                    for (const obj of objects) {
+                        // select the source
+                        let s = getSource(obj)
+                        rowList.push('' + s.rowIdx);
+                    };
+                    conn.tableSelectRowList(name, url, rowList)
+                }
+            }
+        }, aladin)
+    }
+}
  

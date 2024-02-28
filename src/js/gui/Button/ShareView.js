@@ -19,6 +19,8 @@
 
 import { CtxMenuActionButtonOpener } from "./CtxMenuOpener";
 import shareIconUrl from '../../../../assets/icons/share.svg';
+import cameraIconUrl from '../../../../assets/icons/camera.svg';
+
 /******************************************************************************
  * Aladin Lite project
  *
@@ -103,13 +105,30 @@ import shareIconUrl from '../../../../assets/icons/share.svg';
                     }
                 }
             },
+            {
+                label: {
+                    icon: {
+                        tooltip: {content: 'Download a PNG image file of the view', position: {direction: 'top'}},
+                        monochrome: true,
+                        url: cameraIconUrl,
+                        size: 'small',
+                    },
+                    content: 'Export as image file'
+                },
+                action(o) {
+                    aladin.exportAsPNG()
+                }
+            },
         ];
 
         let self;
         super({
             ctxMenu: layout,
             ...options,
-            iconURL: shareIconUrl,
+            icon: {
+                url: shareIconUrl,
+                monochrome: true,
+            },
             openDirection: 'top',
             tooltip: {content: 'You can share/export your view into many ways', position: {direction: 'top'}},
         }, aladin);

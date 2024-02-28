@@ -36,6 +36,7 @@ import { Utils } from '../../Utils';
 import { DOMElement } from './Widget.js';
 import { Layout } from '../Layout.js';
 import { ActionButton } from './ActionButton.js';
+import { Icon } from './Icon.js';
 import uploadIconUrl from '../../../../assets/icons/upload.svg';
 
 export class ContextMenu extends DOMElement {
@@ -115,9 +116,9 @@ export class ContextMenu extends DOMElement {
 
                 if (opt.label.icon) {
                     // add a button with a little bit of margin
-                    let icon = new ActionButton({
-                        ...{...opt.label.icon, size: 'small'},
-                    });
+                    opt.label.icon.size = opt.label.icon.size || 'small';
+
+                    let icon = new Icon(opt.label.icon);
                     layout.push(icon)
                 }
 
@@ -193,10 +194,9 @@ export class ContextMenu extends DOMElement {
         if (opt.selected && opt.selected === true) {
             item.classList.add('aladin-context-menu-item-selected');
         }
-        
+
         if (opt.subMenu) {
             item.addEventListener('click', e => {
-                e.preventDefault();
                 e.stopPropagation();
 
                 if (item.parentNode) {
@@ -215,7 +215,6 @@ export class ContextMenu extends DOMElement {
             });
         } else if (opt.action) {
             item.addEventListener('click', e => {
-                e.preventDefault();
                 e.stopPropagation();
 
                 if (!opt.disabled || opt.disabled === false) {
@@ -277,6 +276,10 @@ export class ContextMenu extends DOMElement {
                 opt.unhover(e, item);
             }
         })
+
+        if (opt.classList) {
+            item.classList.add(opt.classList)
+        }
 
         target.appendChild(item);
     }
@@ -371,8 +374,9 @@ export class ContextMenu extends DOMElement {
             ...itemOptions,
             label: {
                 icon: {
+                    monochrome: true,
                     tooltip: {content: 'Load a local file from your computer.<br \>Accept ' + itemOptions.accept + ' files'},
-                    iconURL: uploadIconUrl,
+                    url: uploadIconUrl,
                     cssStyle: {
                         cursor: 'help',
                     }
@@ -383,38 +387,6 @@ export class ContextMenu extends DOMElement {
                 let fileLoader = document.createElement('input');
                 fileLoader.type = 'file';
                 fileLoader.accept = itemOptions.accept || '*';
-                // Case: The user is loading a FITS file
-        
-                fileLoader.addEventListener("change", (e) => {    
-                    let file = e.target.files[0];
-        
-                    if (itemOptions.action) {
-                        itemOptions.action(file)
-                    }
-                });
-        
-                fileLoader.click();
-            }
-        }
-    }
-
-    static searchingForItem(itemOptions) {
-        return {
-            ...itemOptions,
-            label: Layout.horizontal([
-                    ActionButton.createIconBtn({
-                        tooltip: {content: 'Load a local file from your computer'},
-                        iconURL: uploadIconUrl,
-                        cssStyle: {
-                            cursor: 'help',
-                        }
-                    }),
-                    itemOptions.label
-                ]
-            ),
-            action(e) {
-                let fileLoader = document.createElement('input');
-                fileLoader.type = 'file';
                 // Case: The user is loading a FITS file
         
                 fileLoader.addEventListener("change", (e) => {    

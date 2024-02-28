@@ -52,9 +52,7 @@ export let DefaultActionsForContextMenu = (function () {
                     let statusBarMsg;
                     try {
                         let successful = document.execCommand('copy');
-                        let msg = successful ? 'successful' : 'unsuccessful';
-
-                        statusBarMsg = 'Copying position was ' + msg;
+                        statusBarMsg = successful ? 'Position copied!' : 'Position could not be copied!';
                     } catch (err) {
                         statusBarMsg = 'Oops, unable to copy to clipboard';
                     }
@@ -86,7 +84,7 @@ export let DefaultActionsForContextMenu = (function () {
                     },
                     {
                         label: 'New catalogue layer', action(o) {
-                            let catBox = CatalogQueryBox.getInstance(a)
+                            let catBox = new CatalogQueryBox(a)
                             if (catBox.isHidden) {
                                 catBox._show({
                                     header: {

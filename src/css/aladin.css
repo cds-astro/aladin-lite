@@ -81,43 +81,7 @@ body { overscroll-behavior: contain; }
 
 .aladin-measurement-div {
     font-family: monospace;
-    font-size: 12px;
-    display: flex;
-    flex-direction: column;
-    flex-wrap: nowrap;
-
-    
-}
-
-.aladin-tabs .aladin-tabs-content {
-    float: left;
-}
-
-.aladin-tabs .aladin-tabs-head .aladin-tabs-head-tab {
-    background-color: #fff;
-    color: black;
-
-    border-radius: 4px 4px 0px 0px;
-    float: left;
-    border: none;
-    cursor: pointer;
-
-    font-size: 13px;
-    font-family: monospace;
-    
-    text-overflow: ellipsis;
-    text-align: left;
-}
-
-.aladin-tabs-head-tab.aladin-tabs-head-tab-selected, .aladin-tabs-content-option.aladin-tabs-content-option-selected {
-    filter: brightness(120%);
-}
-
-.aladin-measurement-div table {
-    background-color: rgba(255, 255, 255, 0.9);
-    border-collapse: collapse;
-    table-layout: fixed;
-    white-space: nowrap;
+    font-size: 0.8rem;
 
     display: block;
 
@@ -128,7 +92,20 @@ body { overscroll-behavior: contain; }
     overflow-y: scroll;
     scrollbar-width: none;
 
-    border: 2px solid black;
+    border-radius: 3px;
+    border-top-left-radius: 0;
+}
+
+.aladin-btn.tab {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    border-bottom: 0;
+}
+
+.aladin-measurement-div table {
+    border-collapse: collapse;
+    table-layout: fixed;
+    white-space: nowrap;
 }
 
 .aladin-measurement-div table::-webkit-scrollbar {
@@ -139,21 +116,16 @@ body { overscroll-behavior: contain; }
     position: sticky;
     width: 100%;
     top: 0;
-    background-color: #fff;
-    color: #000;
+}
+
+.aladin-measurement-div.aladin-dark-theme table thead {
+    background-color: #000;
 }
 
 .aladin-measurement-div table td.aladin-href-td-container a:hover {
     overflow: visible;
     display: inline-block;
     animation: leftright 5s infinite normal linear;
-}
-
-.aladin-long-text {
-    display: inline-block;
-    max-width: 100px;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
 
 @keyframes leftright {
@@ -176,13 +148,13 @@ body { overscroll-behavior: contain; }
 
 .aladin-measurement-div table td.aladin-href-td-container {
     border: 1px solid #d2d2d2;
+
     border-radius: 3px;
 
     padding: 0.5em;
     white-space: nowrap;
     overflow: hidden;
     text-align: center;
-    color: #000;
     max-width: 150px;
     text-overflow: ellipsis;
 }
@@ -191,7 +163,7 @@ body { overscroll-behavior: contain; }
     padding: 0.5em;
     white-space: nowrap;
     overflow: hidden;
-    color: #000;
+
     max-width: 150px;
     text-overflow: ellipsis;
 }
@@ -290,16 +262,42 @@ word-wrap:break-word;
     transform: translate(-50%, -50%);
 }
 
+@keyframes rotating {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.rotating {
+    animation: rotating 2s linear infinite;
+}
+
+@keyframes rotating-centered {
+    from {
+        transform: translate(-50%, -50%) rotate(0deg);
+    }
+    to {
+        transform: translate(-50%, -50%) rotate(360deg);
+    }
+}
+
+.aladin-anchor-middle.aladin-anchor-center.rotating {
+    animation: rotating-centered 2s linear infinite;
+}
+
 .aladin-box {
 	display: none;
 
-    padding: 4px 4px;
+    padding: 0.2rem;
     background: whitesmoke;
     border-radius: 2px;
     position: absolute;
     max-width: 15em;
 
-    font-size: 13px;
+    font-size: 0.8rem;
     font-family: monospace;
     background: #fff;
 
@@ -314,12 +312,6 @@ word-wrap:break-word;
     overflow-y: none;
     max-height: 500px;
     max-width: fit-content;
-}
-
-.aladin-box-night {
-    padding: 0.5rem;
-    background-color: #000;
-    color: white;
 }
 
 .aladin-box::-webkit-scrollbar {
@@ -341,15 +333,6 @@ word-wrap:break-word;
     padding: 0.8em;
 }
 
-.aladin-selector, .aladin-input {
-    padding: 4px;
-    box-sizing: border-box;
-    margin: 0;
-}
-
-.aladin-layerSelection {
-    max-width: 150px;
-}
 
 canvas {
     image-rendering: optimizeSpeed;             /* Older versions of FF          */
@@ -589,13 +572,10 @@ canvas {
     all:unset;
 
 	display: inline-block;
-    margin-bottom: 0;
     margin: 0;
-    padding: 4px;
+    padding: 0.2rem;
 
-    z-index: 10;
-
-    font-size: 12px;
+    font-size: 1rem;
     font-weight: normal;
     text-align: center;
     white-space: nowrap;
@@ -609,10 +589,8 @@ canvas {
     font-family: monospace;
 }
 
-.aladin-btn.toggled {
-    -webkit-box-shadow:inset 0 0 0 0.2rem greenyellow;
-    -moz-box-shadow:inset 0 0 0 0.2rem greenyellow;
-    box-shadow:inset 0 0 0 0.2rem greenyellow;
+.aladin-btn.aladin-dark-theme.toggled {
+    border-color: greenyellow;
 }
 
 .aladin-btn.disabled {
@@ -624,39 +602,55 @@ canvas {
     filter: brightness(105%);
 }
 
-.aladin-btn.small-sized-icon {
-    padding: 0;
-    width: 1.5rem;
-    height: 1.5rem;
-}
-
-.aladin-btn.medium-sized-icon {
-    padding: 0;
-    width: 2rem;
-    height: 2rem;
-}
-
 .aladin-btn.svg-icon {
     background-repeat:  no-repeat;
     background-position:center center;
     display: inline-block;
 }
 
-.aladin-img {
-    object-fit: 'contain';
-    vertical-align: 'middle';
+.aladin-icon {
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
-@keyframes rotating {
-    from {
-      transform: rotate(0deg);
-    }
-    to {
-      transform: rotate(360deg);
-    }
+.aladin-icon.aladin-dark-theme {
+    background-color: transparent;
 }
-.rotating {
-    animation: rotating 2s linear infinite;
+
+.aladin-icon.aladin-dark-theme.aladin-icon-monochrome img {
+    filter: invert(100%) sepia(91%) saturate(0%) hue-rotate(169deg) brightness(115%) contrast(100%);
+}
+
+.aladin-btn.aladin-dark-theme {
+    background-color: rgba(0, 0, 0, 0.5);
+    border-color: white;
+}
+
+.aladin-measurement-div.aladin-dark-theme {
+    background-color: rgba(0, 0, 0, 0.5);
+    border: 1px solid white;
+    color: white;
+}
+
+.aladin-box.aladin-dark-theme {
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+}
+
+.aladin-input-select.aladin-dark-theme {
+    background-color: rgba(0, 0, 0, 0.5);
+    border: 1px solid white;
+}
+
+.small-sized-icon {
+    width: 1.2rem;
+    height: 1.2rem;
+}
+
+.medium-sized-icon {
+    width: 1.7rem;
+    height: 1.7rem;
 }
 
 .aladin-toolbar {
@@ -675,18 +669,42 @@ canvas {
     font-size: 12px;
 }
 
-.aladin-fov, .aladin-location, .aladin-cooFrame {
+.aladin-fov, .aladin-cooFrame, .aladin-location {
     font-family: monospace;
-    height: 1.5rem;
 
-    background-color: rgba(0, 0, 0, 0.5);
     color: white;
 
     font-size: 1rem;
+    border-radius: 5px;
+    height: 1.8rem;
+}
+
+.aladin-input-text.aladin-dark-theme.search {
+    width: 16rem;
     text-shadow: 0px 0px 2px #000;
 }
 
+.aladin-input-text.aladin-dark-theme.search:focus {
+    background-image: url(../../assets/icons/search-white.svg);
+    background-size: 1.8rem;
+    background-repeat: no-repeat;
+    text-indent: 1.8rem;
+}
+   
+.aladin-input-text.search {
+    background-image:none;
+    text-indent: 0rem;
+}
 
+.aladin-input-text.search.aladin-unknownObject {
+    -webkit-box-shadow:inset 0px 0px 0px 3px #f00;
+    -moz-box-shadow:inset 0px 0px 0px 3px #f00;
+    box-shadow:inset 0px 0px 0px 3px #f00;
+}
+
+.aladin-dark-theme {
+    color: white;
+}
 
 .aladin-cancelBtn {
     background-color: #ca4242;
@@ -708,27 +726,27 @@ canvas {
     border-color: #285e8e;
 }
 
-.aladin-unknownObject {
-	border: 3px solid red;
-}
-
-.aladin-form > * {
-    margin-bottom: 5px;
-}
-
 .aladin-vertical-list {
     display: flex;
-    align-items: flex-end; 
+    align-items: flex-start; 
     list-style: none;
     flex-direction: column;
 }
 
 .aladin-vertical-list.left {
-    align-items: flex-start; 
+    align-items: flex-start;
 }
 
 .aladin-vertical-list.right {
-    align-items: flex-end; 
+    align-items: flex-end;
+}
+
+.aladin-vertical-list > *:first-of-type {
+    margin-top: 0;
+}
+
+.aladin-vertical-list > * {
+    margin-top: 0.2rem;
 }
 
 .aladin-horizontal-list {
@@ -739,52 +757,35 @@ canvas {
 
 .aladin-horizontal-list > * {
     vertical-align: middle;
+    margin-right: 0.2rem;
 }
 
-/*
-.aladin-horizontal-list > *:last-of-type {
-    margin: 0;
+.aladin-horizontal-list > *::last-of-type {
+    vertical-align: middle;
+    margin-right: 0;
 }
-*/
+
 .aladin-form .aladin-form-input {
     display: flex;
     justify-content: flex-end;
-    align-items: center; 
-    margin-bottom: 7px;
+    align-items: center;
+    margin-bottom: 0.4rem;
 }
 
-.aladin-form .aladin-form-input:last-of-type {
-    margin-bottom: 0px;
+.aladin-form .aladin-form-group {
+    margin-bottom: 1rem;
 }
 
 .aladin-form .aladin-form-input select {
     width: 100%;
 }
 
-.aladin-form .aladin-form-input > label{
+.aladin-form .aladin-form-input > label {
     flex: 1;
 }
 
 .aladin-form .aladin-form-input .aladin-input {
     flex: 2;
-}
-
-.aladin-form .aladin-form-input-group {
-    border-bottom: 1px solid #d2d2d2;
-}
-
-.aladin-form .aladin-form-input-group:last-of-type {
-    border-bottom: none;
-}
-
-.aladin-form .aladin-form-input-group .aladin-form-group-header {
-    display: flex;
-    align-items: center; 
-
-    top: 0px;
-    margin-bottom: 13px;
-    /*font-size: 14px;*/
-    /*font-family: Verdana, Geneva, Tahoma, sans-serif;*/
 }
 
 .aladin-window-container {
@@ -911,15 +912,6 @@ canvas {
     width: 8em;
 }
 
-/* Icons figuring layers in the Stack */
-.aladin-stack-icon {
-	width: 16px;
-    height: 16px;
-    background-repeat:  no-repeat;
-    background-position:center center;
-    display: inline-block;
-}
-
 .aladin-chevron {
   display: inline-block;
   width: 16px;
@@ -965,39 +957,47 @@ canvas {
     width: max-content;
     margin: 0;
     padding: 0;
-    border-radius: 2px;
+
     box-shadow: 0 0 8px rgba(0,0,0,0.2);
     font-size: 12px;
     /*font-family: Verdana, Geneva, Tahoma, sans-serif;*/
+
+    border-radius: 3px;
+
+    border-bottom: 1px solid white;
+    border-right: 1px solid white;
 }
 
 .aladin-context-menu .aladin-context-menu-item {
     cursor: pointer;
 
-    height: 1.5rem;
+    height: 1.7rem;
 
     display: flex;
     align-items: center;
-    padding: 0.2rem;
+    padding: 0.2rem 0.4rem;
     position: relative;
-    border-bottom: 1px solid #d2d2d2;
-    border-left: 1px solid #d2d2d2;
-    border-right: 1px solid #d2d2d2;
 
     color: lightgray;
     background-color: black;
+
+    box-shadow:inset 1px 1px 0px 0px #fff;
+}
+
+.aladin-context-menu .aladin-context-menu-item:first-of-type {
+   border-top-left-radius: 3px;
+   border-top-right-radius: 3px;
+}
+
+.aladin-context-menu .aladin-context-menu-item:last-of-type {
+    border-bottom: 0;
+    border-bottom-left-radius: 3px;
+    border-bottom-right-radius: 3px;
 }
 
 .aladin-context-menu .aladin-context-menu-item.aladin-context-menu-item-disabled {
     cursor: not-allowed;
     color: red;
-
-    height: 1.5rem;
-    display: flex;
-    align-items: center;
-    padding: 0.2rem;
-
-    position: relative;
 }
 
 .aladin-context-menu .aladin-context-menu-item.aladin-context-menu-item-selected::after {
@@ -1018,10 +1018,10 @@ canvas {
   text-overflow: ellipsis;
 }
 
-.aladin-context-menu-item:first-of-type {
+/*.aladin-context-menu-item:first-of-type {
     border-top: 1px solid #d2d2d2;
     margin-top: -1px;
-}
+}*/
 /*
 .aladin-context-menu .aladin-context-menu-item:hover > .aladin-context-sub-menu {
     display: block;
@@ -1059,17 +1059,20 @@ canvas {
 /* normalize here the inputs */
 
 /* Input text */
-.aladin-input-text {
+.aladin-input-text, .aladin-input-number {
     appearance: none;
     -moz-appearance: none;
     -webkit-appearance: none;
     outline-style: none;
     padding: 0.3rem;
-    border: none;
     border-radius: 5px;
-    background-color: white;
     font-family: monospace;
     font-size: 1rem;
+}
+
+.aladin-input-text.aladin-dark-theme, .aladin-input-number.aladin-dark-theme {
+    background-color: rgba(0, 0, 0, 0.5);
+    border: 1px solid white;
 }
 
 .aladin-input-text::placeholder {
@@ -1085,8 +1088,6 @@ canvas {
     font: inherit;
     /* Personalize */
     padding: 2px;
-    background-color: black;
-    color: white;
     border-radius: 0.25em;
     box-shadow: 0 0 1em 0 rgba(0, 0, 0, 0.2);
     cursor: pointer;
@@ -1116,8 +1117,8 @@ canvas {
     padding: 0;
     border: none;
     border-radius: 5px;
-    width: 30px;
-    height: 20px;
+    width: 2rem;
+    height: 1.5rem;
     cursor: pointer;
 }
 
@@ -1298,7 +1299,7 @@ canvas {
 /* *********************************************** */
 
 /* Autocomplete styles (adapted from https://github.com/kraaden/autocomplete ) */
-.autocomplete {
+/*.autocomplete {
     background: white;
 
     font: 14px/22px "-apple-system", BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -1323,4 +1324,4 @@ canvas {
 .autocomplete > div.selected {
     background: #81ca91;
     cursor: pointer;
-}
+}*/

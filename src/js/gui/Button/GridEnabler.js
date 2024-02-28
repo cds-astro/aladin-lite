@@ -33,22 +33,27 @@ import gridIcon from './../../../../assets/icons/grid.svg';
 
 export class GridEnabler extends ActionButton {
     // Constructor
-    constructor(aladin, options) {
+    constructor(aladin) {
         const computeTooltip = (enabled) => {
             const content = enabled ? 'Hide the coordinate grid' : 'Display the coordinate grid'
             return {
                 content,
                 position: {
-                    direction: 'right'
+                    direction: 'top right'
                 }
             }
         }
 
+        let gridEnabled = aladin.getGridOptions().enabled;
         let self;
         super({
-            size: "medium",
-            iconURL: gridIcon,
-            tooltip: computeTooltip(aladin.getGridOptions().enabled),
+            icon: {
+                size: 'medium',
+                monochrome: true,
+                url: gridIcon
+            },
+            tooltip: computeTooltip(gridEnabled),
+            toggled: gridEnabled,
             action(o) {
                 const isGridEnabled = aladin.getGridOptions().enabled;
                 const enabled = !isGridEnabled;
@@ -56,7 +61,6 @@ export class GridEnabler extends ActionButton {
 
                 self.update({toggled: enabled, tooltip: computeTooltip(enabled)})
 
-                // 
                 if (aladin.statusBar) {
                     aladin.statusBar.removeMessage('grid')
 

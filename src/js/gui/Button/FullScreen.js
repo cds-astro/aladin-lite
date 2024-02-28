@@ -38,12 +38,16 @@ export class FullScreenActionButton extends ActionButton {
     constructor(aladin, options) {
         let self;
         super({
-            iconURL: aladin.isInFullscreen ? restoreIcon : maximizeIcon,
+            icon: {
+                size: 'medium',
+                monochrome: true,
+                url: aladin.isInFullscreen ? restoreIcon : maximizeIcon
+            },
             ...options,
             tooltip: {
                 content: aladin.isInFullscreen ? 'Restore original size' : 'Full-screen',
                 position: {
-                    direction: 'top'
+                    direction: 'left'
                 }
             },
             action(e) {
@@ -57,11 +61,15 @@ export class FullScreenActionButton extends ActionButton {
                     // make that div above other aladin lite divs (if there are...)
                     aladin.aladinDiv.style.zIndex = 1
                     self.update({
-                        iconURL: restoreIcon,
+                        icon: {
+                            size: 'medium',
+                            monochrome: true,
+                            url: restoreIcon
+                        },
                         tooltip: {
                             content: 'Restore original size',
                             position: {
-                                direction: 'top'
+                                direction: 'left'
                             }
                         }
                     });
@@ -69,11 +77,15 @@ export class FullScreenActionButton extends ActionButton {
                     aladin.aladinDiv.style.removeProperty('z-index')
     
                     self.update({
-                        iconURL: maximizeIcon,
+                        icon: {
+                            size: 'medium',
+                            monochrome: true,
+                            url: maximizeIcon
+                        },
                         tooltip: {
                             content: 'Fullscreen',
                             position: {
-                                direction: 'top'
+                                direction: 'left'
                             }
                         }
                     });

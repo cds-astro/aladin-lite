@@ -220,6 +220,25 @@ impl HpxCells {
     pub fn get_cells<'a>(&'a mut self, depth: u8) -> impl Iterator<Item = &'a HEALPixCell> {
         let Range { start, end } = if let Some(idx) = self.idx_rng[depth as usize].as_ref() {
             idx.start..idx.end
+        } else if depth > self.cov.depth_max() {
+            let cov_d = self.cov.depth_max();
+            let dd = depth - cov_d;
+            // compute the cells from the coverage
+            let cells_iter = self
+                .cov
+                .flatten_to_fixed_depth_cells()
+                .map(|idx| {
+                    // idx is at depth_max
+                    HEALPixCell(cov_d, idx).get_children_cells(dd)
+                })
+                .flatten();
+            // add them and store the cells for latter reuse
+            let num_past = self.cells.len();
+            self.cells.extend(cells_iter);
+            let num_cur = self.cells.len();
+
+            self.idx_rng[depth as usize] = Some(num_past..num_cur);
+            num_past..num_cur
         } else {
             // compute the cells from the coverage
             let degraded_moc = self.cov.degraded(depth);

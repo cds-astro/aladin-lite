@@ -59,7 +59,11 @@ import { CmapSelector } from "../Selector/Colormap.js";
         let self = this;
         this.selector = new SelectorButton({
             luminosity: {
-                iconURL: luminosityIconUrl,
+                icon: {
+                    size: 'small',
+                    monochrome: true,
+                    url: luminosityIconUrl
+                },
                 tooltip: {content: 'Luminosity sliders', position: {direction: 'right'}},
                 change(e) {
                     const content = Layout.horizontal({
@@ -69,7 +73,11 @@ import { CmapSelector } from "../Selector/Colormap.js";
                 }
             },
             opacity: {
-                iconURL: opacityIconUrl,
+                icon: {
+                    size: 'small',
+                    monochrome: true,
+                    url: opacityIconUrl
+                },
                 tooltip: {content: 'Opacity slider', position: {direction: 'right'}},
                 change(e) {
                     const content = Layout.horizontal({layout: [self.selector, self.opacitySettingsContent]});
@@ -77,7 +85,10 @@ import { CmapSelector } from "../Selector/Colormap.js";
                 }
             },
             colors: {
-                iconURL: colorIconUrl,
+                icon: {
+                    size: 'small',
+                    url: colorIconUrl
+                },
                 tooltip: {content: 'Colormap', position: {direction: 'right'}},
                 change(e) {
                     const content = Layout.horizontal({layout: [self.selector, self.colorSettingsContent]});
@@ -85,7 +96,11 @@ import { CmapSelector } from "../Selector/Colormap.js";
                 }
             },
             pixel: {
-                iconURL: pixelHistIconUrl,
+                icon: {
+                    size: 'small',
+                    monochrome: true,
+                    url: pixelHistIconUrl
+                },
                 tooltip: {content: 'Pixel cutouts', position: {direction: 'right'}},
                 change(e) {
                     const content = Layout.horizontal({layout: [self.selector, self.pixelSettingsContent]});
@@ -125,62 +140,16 @@ import { CmapSelector } from "../Selector/Colormap.js";
                 layer.setCuts(layer.getColorCfg().getCuts()[0], +e.target.value)
             }
         })
-
-        self.stretchSelector = new SelectorButton({
-            tooltip: {content: 'stretch function', position: {direction: 'right'}},
-            sqrt: {
-                content: 'sqrt',
-                cssStyle: {
-                    color: 'black'
-                },
-                change(e) {
-                    let layer = self.options.layer;
-                    layer.setColormap(layer.getColorCfg().getColormap(), {stretch: 'sqrt'});
-                }
+        self.stretchSelector = Input.select({
+            name: 'stretch',
+            value: self.options.layer && self.options.layer.getColorCfg().stretch || 'linear',
+            options: ['sqrt', 'linear', 'asinh', 'pow2', 'log'],
+            change() {
+                let layer = self.options.layer;
+                layer.setColormap(layer.getColorCfg().getColormap(), {stretch: this.value});
             },
-            linear: {
-                content: 'linear',
-                cssStyle: {
-                    color: 'black'
-                },
-                change(e) {
-                    let layer = self.options.layer;
-                    layer.setColormap(layer.getColorCfg().getColormap(), {stretch: 'linear'});
-                }
-            },
-            asinh: {
-                content: 'asinh',
-                cssStyle: {
-                    color: 'black'
-                },
-                change(e) {
-                    let layer = self.options.layer;
-                    layer.setColormap(layer.getColorCfg().getColormap(), {stretch: 'asinh'});
-                }
-            },
-            pow2: {
-                content: 'pow2',
-                cssStyle: {
-                    color: 'black'
-
-                },
-                change(e) {
-                    let layer = self.options.layer;
-                    layer.setColormap(layer.getColorCfg().getColormap(), {stretch: 'pow2'});
-                }
-            },
-            log: {
-                content: 'log',
-                cssStyle: {
-                    color: 'black'
-                },
-                change(e) {
-                    let layer = self.options.layer;
-                    layer.setColormap(layer.getColorCfg().getColormap(), {stretch: 'log'});
-                }
-            },
-            selected: self.options.layer && self.options.layer.getColorCfg().stretch || 'linear'
-        }, self.aladin);
+            tooltip: {content: 'stretch function', position: {direction: 'right'}}
+        });
 
         self._addListeners()
     }
@@ -193,24 +162,21 @@ import { CmapSelector } from "../Selector/Colormap.js";
 
             let layerOpacity = layer.getOpacity()
 
-            self.opacitySettingsContent = Layout.horizontal({
-                layout: [
-                    Input.slider({
-                        tooltip: {content: layerOpacity, position: {direction: 'bottom'}},
-                        name: 'opacitySlider',
-                        type: 'range',
-                        min: 0.0,
-                        max: 1.0,
-                        value: layerOpacity,
-                        change(e, slider) {
-                            const opacity = +e.target.value
-                            layer.setOpacity(opacity)
-
-                            slider.update({tooltip: {content: opacity.toFixed(2), position: {direction: 'bottom'}}})
-                        }
-                    }),
-                ]
-            });
+            self.opacitySettingsContent = Layout.horizontal([
+                Input.slider({
+                    tooltip: {content: layerOpacity, position: {direction: 'bottom'}},
+                    name: 'opacitySlider',
+                    type: 'range',
+                    min: 0.0,
+                    max: 1.0,
+                    value: layerOpacity,
+                    change(e, slider) {
+                        const opacity = +e.target.value;
+                        layer.setOpacity(opacity)
+                        slider.update({value: opacity, tooltip: {content: opacity.toFixed(2), position: {direction: 'bottom'}}})
+                    }
+                }),
+            ]);
 
             let brightness = layer.getColorCfg().getBrightness()
             let saturation = layer.getColorCfg().getSaturation()
@@ -225,8 +191,8 @@ import { CmapSelector } from "../Selector/Colormap.js";
                         tooltip: {content: 'brightness', position: {direction: 'right'}},
                         name: 'brightness',
                         type: 'range',
-                        min: -0.5,
-                        max: 0.5,
+                        min: -1,
+                        max: 1,
                         ticks: [0.0],
                         value: brightness,
                         change(e, slider) {
@@ -241,8 +207,8 @@ import { CmapSelector } from "../Selector/Colormap.js";
                         tooltip: {content: 'saturation', position: {direction: 'right'}},
                         name: 'saturation',
                         type: 'range',
-                        min: -0.5,
-                        max: 0.5,
+                        min: -1,
+                        max: 1,
                         ticks: [0.0],
                         value: saturation,
                         change(e, slider) {
@@ -254,8 +220,8 @@ import { CmapSelector } from "../Selector/Colormap.js";
                         tooltip: {content: 'contrast', position: {direction: 'right'}},
                         name: 'contrast',
                         type: 'range',
-                        min: -0.5,
-                        max: 0.5,
+                        min: -1,
+                        max: 1,
                         ticks: [0.0],
                         value: contrast,
                         change(e, slider) {
@@ -268,7 +234,7 @@ import { CmapSelector } from "../Selector/Colormap.js";
             const [minCut, maxCut] = layer.getColorCfg().getCuts();
             self.minCutInput.set(minCut);
             self.maxCutInput.set(maxCut)
-            self.stretchSelector.update({selected: layer.getColorCfg().stretch})
+            self.stretchSelector.update({value: layer.getColorCfg().stretch})
 
             self.pixelSettingsContent = Layout.horizontal({
                 layout: [
@@ -279,16 +245,18 @@ import { CmapSelector } from "../Selector/Colormap.js";
             });
 
             let cmap = layer.getColorCfg().getColormap();
-            let optionsCmapSelector = {selected: cmap};
-            
-            for (const cmap of ColorCfg.COLORMAPS) {
-                optionsCmapSelector[cmap] = {
-                    change(e) {
-                        layer.setColormap(cmap)
-                    }
-                };
-            }
-            this.colorSettingsContent = new CmapSelector(optionsCmapSelector, this.aladin);
+
+            this.colorSettingsContent = Input.select({
+                name: 'colormap',
+                value: cmap,
+                options: ColorCfg.COLORMAPS,
+                change() {
+                    let colormap = this.value;
+                    layer.setColormap(colormap)
+                },
+            });
+
+            //this.colorSettingsContent = new CmapSelector(optionsCmapSelector, this.aladin);
             let content = (() => {
                 let selected = self.selector.options.selected;
                 switch (selected) {
@@ -358,7 +326,7 @@ import { CmapSelector } from "../Selector/Colormap.js";
                 let [minCut, maxCut] = colorCfg.getCuts();
                 this.minCutInput.set(+minCut.toFixed(2));
                 this.maxCutInput.set(+maxCut.toFixed(2));
-                this.stretchSelector.update({selected: stretch})
+                this.stretchSelector.update({value: stretch})
             }
         });
     }

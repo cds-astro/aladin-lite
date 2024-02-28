@@ -220,7 +220,7 @@ impl Layers {
         projection: &ProjectionType,
     ) -> Result<(), JsValue> {
         let raytracer = &self.raytracer;
-        let raytracing = raytracer.is_rendering(camera /* , depth_texture*/);
+        let raytracing = raytracer.is_rendering(camera);
 
         // Check whether a survey to plot is allsky
         // if neither are, we draw a font
@@ -604,7 +604,7 @@ impl Layers {
         Ok(())
     }
 
-    pub fn is_ready(&self) -> bool {
+    /*pub fn is_ready(&self) -> bool {
         let ready = self
             .surveys
             .iter()
@@ -612,7 +612,7 @@ impl Layers {
             .fold(true, |acc, x| acc & x);
 
         ready
-    }
+    }*/
 
     // Accessors
     // HiPSes getters

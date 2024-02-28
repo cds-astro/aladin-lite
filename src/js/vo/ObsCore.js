@@ -242,12 +242,9 @@
                 let accessFormat = data['access_format'];
 
                 if (accessFormat && accessFormat.includes('datalink')) {
-                    return ActionButton.createIconBtn({
+                    return new ActionButton({
+                        size: 'small',
                         content: '🔗',
-                        cssStyle: {
-                            backgroundColor: '#bababa',
-                            borderColor: '#484848',
-                        },
                         tooltip: {content: accessFormat, position: {direction: 'left'}},
                         action(e) {}
                     }).element();

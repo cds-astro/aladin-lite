@@ -33,19 +33,53 @@ import { Layout } from "./Layout.js";
 import { DOMElement } from "./Widgets/Widget.js";
 
 import { ALEvent } from "../events/ALEvent.js";
-import { Utils } from "../Utils";
+import { ActionButton } from "./Widgets/ActionButton.js";
+
+import plusIconUrl from "../../../assets/icons/plus.svg"
+import minusIconUrl from "../../../assets/icons/minus.svg"
 
 export class FoV extends DOMElement {
     // constructor
     constructor(aladin) {
         let el = Layout.horizontal({
-            layout: ['FoV: ',
+            layout: [
+                new ActionButton({
+                    size: 'small',
+                    icon: {
+                        monochrome: true,
+                        size: 'small',
+                        url: plusIconUrl,
+                    },
+                    cssStyle: {
+                        marginRight: 0,
+                        borderRight: 'none',
+                        borderRadius: '5px 0px 0px 5px'
+                    },
+                    action(o) {
+                        aladin.increaseZoom();
+                    }
+                }),
+                new ActionButton({
+                    size: 'small',
+                    cssStyle: {
+                        borderRadius: '0px 5px 5px 0px'
+                    },
+                    icon: {
+                        monochrome: true,
+                        size: 'small',
+                        url: minusIconUrl,
+                    },
+                    action(o) {
+                        aladin.decreaseZoom();
+                    }
+                }),
                 '<div class="aladin-monospace-text"></div>',
                 '<div class="aladin-label-text">&times;</div>',
                 '<div class="aladin-monospace-text"></div>',
             ]
         });
         el.addClass('aladin-fov');
+        el.addClass('aladin-dark-theme')
 
         super(el)
 

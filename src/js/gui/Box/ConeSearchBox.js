@@ -64,9 +64,14 @@ import { Angle } from "../../libs/astro/angle.js";
             }
         }, aladin)
 
+        let [ra, dec] = aladin.getRaDec();
+        let centerCoo = new Coo(ra, dec, 5);
+        let [defaultRa, defaultDec] = centerCoo.format('s2');
+
+        let fov = aladin.getFov();
+        let fovAngle = new Angle(Math.min(fov[0], fov[1]) / 2, 1).format()
+
         let form = new Form({
-            name: 'header',
-            type: 'group',
             submit(values) {
                 self._hide();
                 let coo = new Coo();
@@ -85,35 +90,39 @@ import { Angle } from "../../libs/astro/angle.js";
                 {
                     type: 'group',
                     header: Layout.horizontal([selectorBtn, 'Cone search']),
-                    subInputs: [{
-                            label: "ra [deg]:",
+                    subInputs: [
+                        {
+                            label: "ra:",
                             name: "ra",
                             type: "text",
+                            value: defaultRa,
                             placeholder: 'Right ascension',
                             actions: {
-                                'change': (e, input) => {
+                                change(e, input) {
                                     input.addEventListener('blur', (event) => {});
                                 },
                             }
                         },
                         {
-                            label: "dec [deg]:",
+                            label: "dec:",
                             name: "dec",
                             type: "text",
+                            value: defaultDec,
                             placeholder: 'Declination',
                             actions: {
-                                'change': (e, input) => {
+                                change(e, input) {
                                     input.addEventListener('blur', (event) => {});
                                 },
                             }
                         },
                         {
-                            label: "Rad [deg]:",
+                            label: "Rad:",
                             name: "rad",
                             type: 'text',
+                            value: fovAngle,
                             placeholder: 'Radius',
                             actions: {
-                                'change': (e, input) => {
+                                change(e, input) {
                                     input.addEventListener('blur', (event) => {});
                                 },
                             }
@@ -131,7 +140,7 @@ import { Angle } from "../../libs/astro/angle.js";
                         type: "number",
                         placeholder: 'Limit number of sources',
                         actions: {
-                            'change': (e, input) => {
+                            change(e, input) {
                                 input.addEventListener('blur', (event) => {});
                             },
                         }
@@ -147,9 +156,7 @@ import { Angle } from "../../libs/astro/angle.js";
                     draggable: true,
                     title: 'Cone Search box'
                 },
-                content: Layout.horizontal({
-                    layout: [form]
-                })
+                content: form
             }
         )
 

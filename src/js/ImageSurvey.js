@@ -206,10 +206,11 @@ export let ImageSurvey = (function () {
                         self._setUrl(url);
                     })
                     .catch(e => {
-                        alert(e);
+                        //alert(e);
+                        console.error(e);
                         // the survey has been added so we remove it from the stack
                         self.view.removeImageLayer(self.layer)
-                        throw e;
+                        //throw e;
                     })
 
                 // Max order
@@ -357,10 +358,10 @@ export let ImageSurvey = (function () {
                 }
             } else {
                 // user wants nothing then we choose one from the properties
-                if (formats.indexOf('png') >= 0) {
-                    imgFormat = "png";
-                } else if (formats.indexOf('webp') >= 0) {
+                if (formats.indexOf('webp') >= 0) {
                     imgFormat = "webp";
+                } else if (formats.indexOf('png') >= 0) {
+                    imgFormat = "png";
                 } else if (formats.indexOf('jpeg') >= 0) {
                     imgFormat = "jpeg";
                 } else if (formats.indexOf('fits') >= 0) {

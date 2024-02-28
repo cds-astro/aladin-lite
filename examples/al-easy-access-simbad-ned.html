@@ -29,7 +29,9 @@
         samp: true,
       });
 
-      aladin.addCatalog(A.catalogFromSimbad('09 55 52.4 +69 40 47', 0.1, {onClick: 'showTable', limit: 1000}));
+      A.catalogFromSimbad('09 55 52.4 +69 40 47', 0.1, {onClick: 'showTable', limit: 1000}, (cat) => {
+        aladin.addCatalog(cat)
+      });
       aladin.addCatalog(A.catalogFromNED('09 55 52.4 +69 40 47', 0.1, {onClick: 'showPopup', shape: 'plus'}));
   });
 </script>

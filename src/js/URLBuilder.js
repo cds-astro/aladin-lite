@@ -29,17 +29,22 @@
  *****************************************************************************/
 import { Coo } from './libs/astro/coo.js';
 import { Utils } from './Utils';
+import { Sesame } from './Sesame.js';
+
 export let URLBuilder = (function() {    
 
     let URLBuilder = {
-        buildSimbadCSURL: function(target, radiusDegrees) {
-            if (target && (typeof target  === "object")) {
-                if ('ra' in target && 'dec' in target) {
-                    var coo = new Coo(target.ra, target.dec, 7);
-                    target = coo.format('s');
-                }
+        buildSimbadCSURL: function(ra, dec, radiusDegrees, options) {
+            let url = 'https://simbad.cds.unistra.fr/cone?RA=' + ra + '&DEC=' + dec + '&SR=' + radiusDegrees + '&RESPONSEFORMAT=votable';
+
+            if (options && options.limit) {
+                url += '&MAXREC=' + options.limit;
             }
-            return 'https://alasky.unistra.fr/cgi/simbad-flat/simbad-cs.py?target=' + encodeURIComponent(target) + '&SR=' + radiusDegrees + '&format=votable&SRUNIT=deg&SORTBY=nbref';
+
+            const orderBy = options && options.orderBy || 'nb_ref';
+            url += '&ORDER_BY=' + orderBy;
+
+            return url;
         },
 
         buildNEDPositionCSURL: function(ra, dec, radiusDegrees) {

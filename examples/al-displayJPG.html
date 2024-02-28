@@ -23,7 +23,9 @@ Image Opacity: <br/> <input id="slider" type="range" value=1 min=0 max=1 step=0.
         aladin = A.aladin('#aladin-lite-div', {target: "0 0", cooFrame: "gal"});
         
         var callback = function(ra, dec, fov) {
-            aladin.addCatalog(A.catalogFromSimbad( {ra: ra, dec: dec} , 1 , {shape: 'circle', color: '#5d5', onClick: 'showTable'}));
+            A.catalogFromSimbad( {ra: ra, dec: dec} , 1 , {shape: 'circle', color: '#5d5', onClick: 'showTable'}, (cat) => {
+                aladin.addCatalog(cat)
+            });
             // we must return true, so that the default action (set view to center of image) is performed
             return true;
         }

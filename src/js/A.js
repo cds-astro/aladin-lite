@@ -368,8 +368,45 @@ A.catalogFromSimbad = function (target, radius, options, successCallback, errorC
     if (!('name' in options)) {
         options['name'] = 'Simbad';
     }
-    var url = URLBuilder.buildSimbadCSURL(target, radius);
-    return A.catalogFromURL(url, options, successCallback, errorCallback, false);
+
+    return new Promise((resolve, reject) => {
+        let coo;
+        if (target && (typeof target  === "object")) {
+            if ('ra' in target && 'dec' in target) {
+                coo = new Coo(target.ra, target.dec, 7);
+                resolve(coo)
+            }
+        } else {
+            var isObjectName = /[a-zA-Z]/.test(target);
+    
+            // Try to parse as a position
+            if (!isObjectName) {
+                coo = new Coo();
+                coo.parse(target);
+                resolve(coo);
+            } else {
+                // object name, use sesame
+                Sesame.resolve(target,
+                    function (data) { // success callback
+                        // Location given in icrs at J2000
+                        coo = new Coo(data.coo.jradeg, data.coo.jdedeg);
+                        resolve(coo)
+                    },
+                    function (data) { // errror callback
+                        if (console) {
+                            console.log("Could not resolve object name " + target);
+                            console.log(data);
+                        }
+
+                        reject(data)
+                    }
+                );
+            }
+        }
+    }).then((coo) => {
+        const url = URLBuilder.buildSimbadCSURL(coo.lon, coo.lat, radius, options)
+        return A.catalogFromURL(url, options, successCallback, errorCallback, false);
+    })
 };
 
 // API

@@ -40,8 +40,6 @@ import { MeasurementTable } from "./MeasurementTable.js";
 import { ImageSurvey } from "./ImageSurvey.js";
 import { Coo } from "./libs/astro/coo.js";
 import { CooConversion } from "./CooConversion.js";
-import plusIconUrl from "../../assets/icons/plus.svg"
-import minusIconUrl from "../../assets/icons/minus.svg"
 
 import { ProjectionEnum } from "./ProjectionEnum.js";
 
@@ -62,9 +60,10 @@ import { ContextMenu } from "./gui/Widgets/ContextMenu.js";
 import { Input } from "./gui/Widgets/Input.js";
 import { Popup } from "./Popup.js";
 import A from "./A.js";
-import { SnapshotActionButton } from "./gui/Button/Snapshot.js";
 import { StatusBarBox } from "./gui/Box/StatusBarBox.js";
 import { FullScreenActionButton } from "./gui/Button/FullScreen.js";
+import { ProjectionActionButton } from "./gui/Button/Projection.js";
+
 /**
  * @typedef {Object} AladinOptions
  * @description Options for configuring the Aladin Lite instance.
@@ -82,7 +81,7 @@ import { FullScreenActionButton } from "./gui/Button/FullScreen.js";
  * @property {boolean} [showOverlayStackControl=true] - Whether to show the overlay stack control toolbar.
  * @property {boolean} [showSurveyStackControl=true] - Whether to show the survey stack control toolbar.
  * @property {boolean} [showFullscreenControl=true] - Whether to show the fullscreen control toolbar.
- * @property {boolean} [showGotoControl=true] - Whether to show the goto control toolbar.
+ * @property {boolean} [showGotoControl=false] - Whether to show the goto control toolbar.
  * @property {boolean} [showSimbadPointerControl=false] - Whether to show the Simbad pointer control toolbar.
  * @property {boolean} [showCooGridControl=false] - Whether to show the coordinate grid control toolbar.
  * @property {boolean} [showSettingsControl=true] - Whether to show the settings control toolbar.
@@ -173,7 +172,7 @@ export let Aladin = (function () {
         aladinDiv.classList.add("aladin-container");
 
         // measurement table
-        this.measurementTable = new MeasurementTable(aladinDiv);
+        this.measurementTable = new MeasurementTable(this);
 
         //var location = new Location(locationDiv.find('.aladin-location-text'));
 
@@ -400,13 +399,21 @@ export let Aladin = (function () {
             menu.enable('simbad')
         }
         // Add the projection control
-        if (options.showProjectionControl) {
-            menu.enable('projection')
-        }
+        let topRightToolbar = A.toolbar({
+            orientation: 'horizontal',
+            position: {
+                anchor: 'right top'
+            }
+        }, this);
+        /*if (options.showProjectionControl) {
+            topRightToolbar.add(new ProjectionActionButton(this, {
+                openDirection: 'left',
+            }))            
+        }*/
         // Add the goto control
-        if (options.showGotoControl) {
+        /*if (options.showGotoControl) {
             menu.enable('goto')
-        }
+        }*/
         // Add the coo grid control
         if (options.showCooGridControl) {
             menu.enable('grid')
@@ -427,63 +434,31 @@ export let Aladin = (function () {
                     anchor: 'left bottom'
                 }
             }, this);
-            if (options.showFullscreenControl) {
-                share.add(new FullScreenActionButton(self))
-            }
+
             share.add(new ShareActionButton(self))
-            share.add(new SnapshotActionButton({
+            /*share.add(new SnapshotActionButton({
                 tooltip: {
                     content: 'Take a snapshot of your current view',
                     position: {
                         direction: 'top'
                     }
                 },
-            }, this))
+            }, this))*/
 
             this.addUI(share);
         }
-        
-        // zoom control
-        if (options.showZoomControl) {
-            let plusZoomBtn = A.button({
-                iconURL: plusIconUrl,
-                tooltip: {
-                    content: 'Zoom',
-                    position: {
-                        direction: 'right'
-                    }
-                },
-                action(o) {
-                    self.increaseZoom();
-                }
-            });
-            plusZoomBtn.addClass('medium-sized-icon')
 
-            let minusZoomBtn = A.button({
-                iconURL: minusIconUrl,
-                tooltip: {
-                    content: 'Unzoom',
-                    position: {
-                        direction: 'right'
-                    }
-                },
-                action(o) {
-                    self.decreaseZoom();
-                }
-            });
-            minusZoomBtn.addClass('medium-sized-icon')
-
-            let zoomControlToolbar = A.toolbar({
-                orientation: 'vertical',
-                position: {
-                    anchor: 'left center',
-                }
-            });
-            zoomControlToolbar.addClass('aladin-zoom-controls');
-            zoomControlToolbar.add([plusZoomBtn, minusZoomBtn])
-
-            this.addUI(zoomControlToolbar)
+        if (options.showProjectionControl) {
+            topRightToolbar.add(new ProjectionActionButton(this))            
         }
+
+        if (options.showFullscreenControl) {
+            topRightToolbar.add(new FullScreenActionButton(self))
+        }
+
+        this.addUI(topRightToolbar);
+
+        topRightToolbar
 
         this.menu = menu;
         this.viewportMenu = viewport;
@@ -580,7 +555,7 @@ export let Aladin = (function () {
         showOverlayStackControl: true,
         showSurveyStackControl: true,
         showFullscreenControl: true,
-        showGotoControl: true,
+        showGotoControl: false,
         showSimbadPointerControl: false,
         showCooGridControl: false,
         showSettingsControl: true,
@@ -1448,7 +1423,7 @@ export let Aladin = (function () {
     }
 
     Aladin.prototype.isReticleDisplayed = function () {
-        return this.view.displayReticle;
+        return this.reticle.isVisible();
     }
 
     Aladin.prototype.createProgressiveCatalog = function (url, frame, maxOrder, options) {

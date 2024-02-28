@@ -108,7 +108,7 @@ export let Source = (function() {
                 view.selectObjects([obj]);
             }
             else if (this.catalog.onClick == 'showPopup') {
-                view.popup.setTitle('<br><br>');
+                view.aladin.popup.setTitle('<br><br>');
                 var m = '<div class="aladin-marker-measurement">';
                 m += '<table>';
                 for (var key in this.data) {
@@ -116,9 +116,9 @@ export let Source = (function() {
                 }
                 m += '</table>';
                 m += '</div>';
-                view.popup.setText(m);
-                view.popup.setSource(this);
-                view.popup.show();
+                view.aladin.popup.setText(m);
+                view.aladin.popup.setSource(this);
+                view.aladin.popup.show();
             }
             else if (typeof this.catalog.onClick === 'function') {
                 this.catalog.onClick(this);

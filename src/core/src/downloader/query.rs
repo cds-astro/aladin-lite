@@ -5,12 +5,13 @@ pub trait Query: Sized {
     type Request: From<Self> + Into<RequestType>;
 
     fn url(&self) -> &Url;
-    fn id(&self) -> QueryId;
+    fn id(&self) -> &QueryId;
 }
 
-pub type QueryId = (&'static str, Url);
+pub type QueryId = String;
 
 use al_core::image::format::ImageFormatType;
+use al_core::log::console_log;
 #[derive(Eq, Hash, PartialEq, Clone)]
 pub struct Tile {
     pub cell: HEALPixCell,
@@ -19,13 +20,17 @@ pub struct Tile {
     pub hips_url: Url,
     // The total url of the query
     pub url: Url,
+    pub id: QueryId,
 }
 
 use crate::{healpix::cell::HEALPixCell, survey::config::HiPSConfig};
 impl Tile {
-    pub fn new(cell: &HEALPixCell, hips_url: String, format: ImageFormatType) -> Self {
-        //let hips_url = cfg.get_root_url().clone();
-        //let format = cfg.get_format();
+    pub fn new(
+        cell: &HEALPixCell,
+        hips_id: String,
+        hips_url: String,
+        format: ImageFormatType,
+    ) -> Self {
         let ext = format.get_ext_file();
 
         let HEALPixCell(depth, idx) = *cell;
@@ -37,20 +42,14 @@ impl Tile {
             hips_url, depth, dir_idx, idx, ext
         );
 
-        // Check if this is a root tile
-        /*let delta_depth = cfg.delta_depth();
-        let texture_depth = if depth > delta_depth {
-            depth - delta_depth
-        } else {
-            0
-        };
-        let is_root = texture_depth == 0;*/
+        let id = format!("{}{}{}{}", hips_id, depth, idx, ext);
 
         Tile {
             hips_url,
             url,
             cell: *cell,
             format,
+            id,
         }
     }
 }
@@ -63,8 +62,8 @@ impl Query for Tile {
         &self.url
     }
 
-    fn id(&self) -> QueryId {
-        ("Tile", self.url().to_string())
+    fn id(&self) -> &QueryId {
+        &self.id
     }
 }
 
@@ -77,6 +76,7 @@ pub struct Allsky {
     pub hips_url: Url,
     // The total url of the query
     pub url: Url,
+    pub id: QueryId,
 }
 
 impl Allsky {
@@ -89,12 +89,15 @@ impl Allsky {
 
         let url = format!("{}/Norder3/Allsky.{}", hips_url, ext);
 
+        let id = format!("{}Allsky{}", cfg.get_creator_did(), ext);
+
         Allsky {
             tile_size,
             texture_size,
             hips_url,
             url,
             format,
+            id,
         }
     }
 }
@@ -107,8 +110,8 @@ impl Query for Allsky {
         &self.url
     }
 
-    fn id(&self) -> QueryId {
-        ("Allsky", self.url().to_string())
+    fn id(&self) -> &QueryId {
+        &self.id
     }
 }
 
@@ -119,6 +122,7 @@ pub struct PixelMetadata {
     pub hips_url: Url,
     // The total url of the query
     pub url: Url,
+    pub id: QueryId,
 }
 
 impl PixelMetadata {
@@ -129,10 +133,12 @@ impl PixelMetadata {
 
         let url = format!("{}/Norder3/Allsky.{}", hips_url, ext);
 
+        let id = format!("{}Allsky{}", cfg.get_creator_did(), ext);
         PixelMetadata {
             hips_url,
             url,
             format,
+            id,
         }
     }
 }
@@ -145,8 +151,8 @@ impl Query for PixelMetadata {
         &self.url
     }
 
-    fn id(&self) -> QueryId {
-        ("PixelMetadata", self.url().to_string())
+    fn id(&self) -> &QueryId {
+        &self.id
     }
 }
 
@@ -170,7 +176,7 @@ impl Query for Moc {
         &self.url
     }
 
-    fn id(&self) -> QueryId {
-        ("MOC", self.url().to_string())
+    fn id(&self) -> &QueryId {
+        &self.url
     }
 }

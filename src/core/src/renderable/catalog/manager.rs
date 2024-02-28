@@ -33,7 +33,6 @@ const NUM_SHAPES: usize = 5;
 pub struct Manager {
     gl: WebGlContext,
     //kernels: HashMap<&'static str, Texture2D>,
-
     fbo: FrameBufferObject,
 
     // VAOs
@@ -168,7 +167,6 @@ impl Manager {
         let mut manager = Manager {
             gl,
             //kernels,
-
             fbo,
 
             vertex_array_object_screen,
@@ -244,7 +242,7 @@ impl Manager {
                 catalog.update(cells);
             }
         } else {
-            let depth = camera.get_tile_depth().min(7);
+            let depth = camera.get_texture_depth().min(7);
             let cells: Vec<_> = camera
                 .get_hpx_cells(depth, CooSystem::ICRS)
                 .cloned()

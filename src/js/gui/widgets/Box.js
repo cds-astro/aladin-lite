@@ -56,6 +56,7 @@ export class Box extends DOMElement {
         this.attachTo(target, position);
 
         this.aladin = aladin;
+        this.addClass('aladin-dark-theme')
 
         this._hide();
     }
@@ -90,74 +91,30 @@ export class Box extends DOMElement {
     
             let draggableEl;
             if (header.draggable) {
-                draggableEl = ActionButton.createIconBtn({
-                    iconURL: moveIconImg,
+                draggableEl = new ActionButton({
+                    icon: {
+                        url: moveIconImg,
+                        size: "small",
+                        monochrome: true,
+                    },
                     tooltip: {content: 'Drag the window to move it',  position: {direction: 'right'}},
                     cssStyle: {
-                        backgroundColor: '#bababa',
-                        borderColor: '#484848',
                         cursor: 'move',
-                        width: '18px',
-                        height: '18px',
                     },
                     action(e) {}
                 });
     
                 dragElement(draggableEl.element(), this.el)
-    
-                // Heavily inspired from https://www.w3schools.com/howto/howto_js_draggable.asp
-                function dragElement(triggerElt, elmnt) {
-                    var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
-                    // otherwise, move the DIV from anywhere inside the DIV:
-    
-                    triggerElt.onmousedown = dragMouseDown;
-                  
-                    function dragMouseDown(e) {
-                        e = e || window.event;
-                        e.preventDefault();
-                        // get the mouse cursor position at startup:
-                        pos3 = e.clientX;
-                        pos4 = e.clientY;
-                        document.onmouseup = closeDragElement;
-                        // call a function whenever the cursor moves:
-                        document.onmousemove = elementDrag;
-                    }
-                  
-                    function elementDrag(e) {
-                        e = e || window.event;
-                        e.preventDefault();
-                        // calculate the new cursor position:
-                        pos1 = pos3 - e.clientX;
-                        pos2 = pos4 - e.clientY;
-                        pos3 = e.clientX;
-                        pos4 = e.clientY;
-                        // set the element's new position:
-                        elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
-                        elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
-                    }
-                  
-                    function closeDragElement() {
-                        // stop moving when mouse button is released:
-                        document.onmouseup = null;
-                        document.onmousemove = null;
-                    }
-                }
+                dragElement(titleEl, this.el)
+                titleEl.style.cursor = 'move'
             }
     
-            let closedEl = ActionButton.createIconBtn({
+            let closedEl = new ActionButton({
+                size: 'small',
                 content: '❌',
                 tooltip: {content: 'Close the window', position: {direction: 'bottom'}},
                 cssStyle: {
-                    backgroundColor: '#bababa',
-                    borderColor: '#484848',
-                    color: 'red',
                     cursor: 'pointer',
-                    textAlign: 'center',
-                    fontSize: '12px',
-                    fontWeight: 'bold',
-                    lineHeight: '0px', 
-                    width: '18px',
-                    height: '18px',
                 },
                 action(e) {
                     self._hide();
@@ -184,7 +141,7 @@ export class Box extends DOMElement {
             let content = this.options.content
 
             if (Array.isArray(content)) {
-                this.appendContent(Layout.horizontal(content));
+                this.appendContent(new Layout({layout: content}));
             } else {
                 this.appendContent(content);
             }
@@ -196,52 +153,40 @@ export class Box extends DOMElement {
     }
 }
 
-export class SelectBox extends Box {
-    /**
-     * Create a Tabs layout
-     * @param {box options, possibilities: Array.<{label: String, content: DOMElement}>} options - Represents the structure of the Tabs
-     * @param {DOMElement} target - The parent element.
-     * @param {String} position - The position of the tabs layout relative to the target.
-     *     For the list of possibilities, see https://developer.mozilla.org/en-US/docs/Web/API/Element/insertAdjacentHTML
-     */
-    constructor(aladin, options, position = "beforeend") {
-        let labels = options.possibilities.map((opt) => opt.label);
-        
-        let value = (options && options.selected) || labels[0];
+// Heavily inspired from https://www.w3schools.com/howto/howto_js_draggable.asp
+function dragElement(triggerElt, elmnt) {
+    var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+    // otherwise, move the DIV from anywhere inside the DIV:
 
-        let self;
-        let settingsSelector = new Form({
-            label: "Settings",
-            name: 'param',
-            type: 'select',
-            value: value,
-            options: labels,
-            actions: {
-                'change': (e) => {
-                    let labelSelected = e.target.value;
-
-                    let content;
-                    for (let opt of options.possibilities) {
-                        if (opt.label === labelSelected) {
-                            content = opt.content;
-                            break;
-                        }
-                    }
-
-                    self.update({
-                        header: options && options.header,
-                        content: Layout.vertical({layout: [settingsSelector, content]})
-                    })
-                }
-            }
-        })
-
-        let selectedContent = options.possibilities.find((p) => p.label === value);
-        options['content'] = Layout.vertical({
-            layout: [settingsSelector, selectedContent.content]
-        });
-
-        super(aladin, options, position);
-        self = this;
+    triggerElt.onmousedown = dragMouseDown;
+  
+    function dragMouseDown(e) {
+        e = e || window.event;
+        e.preventDefault();
+        // get the mouse cursor position at startup:
+        pos3 = e.clientX;
+        pos4 = e.clientY;
+        document.onmouseup = closeDragElement;
+        // call a function whenever the cursor moves:
+        document.onmousemove = elementDrag;
+    }
+  
+    function elementDrag(e) {
+        e = e || window.event;
+        e.preventDefault();
+        // calculate the new cursor position:
+        pos1 = pos3 - e.clientX;
+        pos2 = pos4 - e.clientY;
+        pos3 = e.clientX;
+        pos4 = e.clientY;
+        // set the element's new position:
+        elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
+        elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+    }
+  
+    function closeDragElement() {
+        // stop moving when mouse button is released:
+        document.onmouseup = null;
+        document.onmousemove = null;
     }
 }

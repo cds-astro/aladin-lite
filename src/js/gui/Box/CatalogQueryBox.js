@@ -18,7 +18,6 @@
 //
 
 import { MocServer } from "../../MocServer.js";
-import  autocomplete from 'autocompleter';
 
 import { Box } from "../Widgets/Box.js";
 import { Layout } from "../Layout.js";
@@ -37,7 +36,18 @@ import { CtxMenuActionButtonOpener } from "../Button/CtxMenuOpener.js";
  *****************************************************************************/
 
  export class CatalogQueryBox extends Box {
+    static catalogs = {};
     constructor(aladin) {
+        // Query the mocserver
+        MocServer.getAllCatalogHiPSes()
+            .then((catalogs) => {
+                catalogs.forEach((cat) => {
+                    CatalogQueryBox.catalogs[cat.obs_title] = cat;
+                });
+
+                inputText.update({autocomplete: {options: Object.keys(CatalogQueryBox.catalogs)}})
+            })
+
         const fnIdSelected = function(type, params) {
             if (type=='coneSearch') {
                 let errorCallback = (e) => {
@@ -77,19 +87,29 @@ import { CtxMenuActionButtonOpener } from "../Button/CtxMenuOpener.js";
             }
         };
 
-        let catNameTextInput = Input.text({
+        let inputText = Input.text({
             //tooltip: {content: 'Search for a VizieR catalogue', position: {direction :'bottom'}},
-            label: "catalogue",
-            name: 'autocomplete',
-            type: 'text',
+            name: 'catalogs',
             placeholder: "Type ID, title, keyword or URL",
-            autocomplete: 'off',
-            change(e) {
+            actions: {
+                change() {
+                    const catalog = CatalogQueryBox.catalogs[this.value];
+                    inputText.set(catalog.ID);
+                    loadBtn.update({disable: false});
+
+                    self._selectItem(catalog, aladin);
+                },
+                keydown() {
+                    loadBtn.update({disable: true});
+                }
+            }
+            
+            /*change(e) {
                 self._selectItem(undefined, aladin)
                 //resetCatalogueSelection();
                 // Unfocus the keyboard on android devices (maybe it concerns all smartphones) when the user click on enter
                 //input.element().blur();
-            }
+            }*/
         });
         let self;
 
@@ -101,19 +121,16 @@ import { CtxMenuActionButtonOpener } from "../Button/CtxMenuOpener.js";
 
         super(aladin, {
             content: Layout.horizontal({
-                layout: [catNameTextInput, loadBtn]
+                layout: [inputText, loadBtn]
             })
         })
 
-        this.addClass('aladin-box-night')
-
         self = this;
         this.loadBtn = loadBtn;
-        this.catNameTextInput = catNameTextInput;
+        this.inputText = inputText;
         this.fnIdSelected = fnIdSelected;
-        // Query the mocserver
-        MocServer.getAllCatalogHiPSes();
-        autocomplete({
+        
+        /*autocomplete({
             input: catNameTextInput.element(),
             minLength: 3,
             fetch: function(text, update) {
@@ -199,7 +216,7 @@ import { CtxMenuActionButtonOpener } from "../Button/CtxMenuOpener.js";
 
                 return itemElement;
             },
-        });
+        });*/
     }
 
     _selectItem(item, aladin) {

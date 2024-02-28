@@ -53,8 +53,5 @@
     "vite-plugin-wasm": "^3.2.2",
     "vite-plugin-wasm-pack": "^0.1.12",
     "vitest": "^0.32.2"
-  },
-  "dependencies": {
-    "autocompleter": "^6.1.3"
   }
 }

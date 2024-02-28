@@ -28,44 +28,35 @@
  *
  *****************************************************************************/
 
- import { ActionButton } from "../Widgets/ActionButton.js";
- import targetIconUrl from '../../../../assets/icons/target.svg';
+import { ActionButton } from "../Widgets/ActionButton.js";
 
- /*
- options = {
-     action: (connector) => {
- 
-     }
-     tooltip
- }
- */
-export class ConeSearchActionButton extends ActionButton {
-    // Constructor
-    constructor(options, aladin) {
+export class TogglerActionButton extends ActionButton {
+     // Constructor
+    constructor(options) {
+        let self;
+        let toggled = false;
+        if (options.toggled !== undefined) {
+            toggled = options.toggled;
+        }
+
         super({
-            icon: {
-                size: 'medium',
-                monochrome: true,
-                url: targetIconUrl
-            },
-            tooltip: options.tooltip,
-            disable: options.disable,
-            cssStyle: {
-                backgroundPosition: 'center center',
-                cursor: 'pointer',
-                ...options.cssStyle
-            },
-            action(e) {
-                if (options.onBeforeClick) {
-                    options.onBeforeClick(e);
+            ...options,
+            toggled,
+            action(o) {
+                toggled = !toggled;
+
+                self.update({toggled, tooltip: toggled ? options.tooltipOn : options.tooltipOff})
+                if (toggled && options.actionOn) {
+                    options.actionOn(o)
                 }
 
-                aladin.select('circle', c => {
-                    options.action(c)
-                })
+                if (!toggled && options.actionOff) { 
+                    options.actionOff(o)
+                }
+
+                options.action && options.action(o)
             }
         })
-
-        this.addClass('medium-sized-icon')
+        self = this;
     }
 }

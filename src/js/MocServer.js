@@ -45,36 +45,36 @@ export class MocServer {
     static _allCatalogHiPSes = undefined;
 
     static getAllHiPSes() {
-        if (this._allHiPSes === undefined) {
-            (async () => {
-                const params = {
-                    expr: "dataproduct_type=image||dataproduct_type=cube",
-                    get: "record",
-                    fmt: "json",
-                    fields: "ID,hips_initial_fov,hips_initial_ra,hips_initial_dec,hips_pixel_bitpix,hips_creator,hips_copyright,hips_frame,hips_order,hips_order_min,hips_tile_width,hips_tile_format,hips_pixel_cut,obs_title,obs_description,obs_copyright,obs_regime,hips_data_range,hips_service_url",
-                };
-
-                this._allHiPSes = await Utils.loadFromUrls(MocServer.MIRRORS_HTTPS, {
-                    data: params,
-                }).then(response => response.json());
-            })();
+        if (!this._allHiPSes) {
+            const params = {
+                //expr: "dataproduct_type=image||dataproduct_type=cube",
+                expr: "dataproduct_type=image",
+                get: "record",
+                fmt: "json",
+                fields: "ID,hips_creator,hips_copyright,hips_frame,hips_tile_format,obs_title,obs_description,obs_copyright,obs_regime",
+                //fields: "ID,hips_initial_fov,hips_initial_ra,hips_initial_dec,hips_pixel_bitpix,hips_creator,hips_copyright,hips_frame,hips_order,hips_order_min,hips_tile_width,hips_tile_format,hips_pixel_cut,obs_title,obs_description,obs_copyright,obs_regime,hips_data_range,hips_service_url",
+            };
+    
+            this._allHiPSes = Utils.loadFromUrls(MocServer.MIRRORS_HTTPS, {
+                data: params,
+                dataType: 'json'
+            })
         }
 
         return this._allHiPSes;
     }
 
     static getAllCatalogHiPSes() {
-        if (this._allCatalogHiPSes === undefined) {
-            (async () => {
-                const params = {
-                    expr: "dataproduct_type=catalog",
-                    get: "record",
-                    fmt: "json",
-                    fields: "ID,hips_copyright,hips_order,hips_order_min,obs_title,obs_description,obs_copyright,obs_regime,cs_service_url,hips_service_url",
-                };
-                this._allCatalogHiPSes = await Utils.loadFromUrls(MocServer.MIRRORS_HTTPS, {data: params})
-                    .then(response => response.json());
-            })();
+        if (!this._allCatalogHiPSes) {
+            const params = {
+                expr: "dataproduct_type=catalog",
+                get: "record",
+                fmt: "json",
+                fields: "ID,hips_copyright,obs_title,obs_description,obs_copyright,cs_service_url,hips_service_url",
+                //fields: "ID,hips_copyright,hips_order,hips_order_min,obs_title,obs_description,obs_copyright,obs_regime,cs_service_url,hips_service_url",
+            };
+
+            this._allCatalogHiPSes = Utils.loadFromUrls(MocServer.MIRRORS_HTTPS, {data: params, dataType: 'json'})
         }
 
         return this._allCatalogHiPSes;

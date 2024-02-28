@@ -50,6 +50,8 @@ import { ObsCore } from "./vo/ObsCore.js";
 import { DefaultActionsForContextMenu } from "./DefaultActionsForContextMenu.js";
 import { Layout } from "./gui/Layout.js";
 import { SAMPActionButton } from "./gui/Button/SAMP.js";
+import { Icon } from "./gui/Widgets/Icon.js";
+import openerIconUrl from '../../assets/icons/loading.svg'
 
 export let View = (function () {
 
@@ -333,14 +335,14 @@ export let View = (function () {
             canvas.className = name;
 
             // Append the canvas to the aladinDiv
-            this.aladinDiv.appendChild(canvas, 'begin');
+            this.aladinDiv.insertBefore(canvas, this.aladinDiv.firstChild);
 
             return canvas;
         };
 
-        this.imageCanvas = createCanvas('aladin-imageCanvas');
-        this.gridCanvas = createCanvas('aladin-gridCanvas');
         this.catalogCanvas = createCanvas('aladin-catalogCanvas');
+        this.gridCanvas = createCanvas('aladin-gridCanvas');
+        this.imageCanvas = createCanvas('aladin-imageCanvas');
     };
 
     // called at startup and when window is resized
@@ -525,6 +527,17 @@ export let View = (function () {
         let cutMinInit = null
         let cutMaxInit = null;
 
+        var onlongtouch = function(e) {
+            if (view.aladin.statusBar) {
+                view.aladin.statusBar.removeMessage('opening-ctxmenu')
+            }
+
+            view.aladin.contextMenu && view.aladin.contextMenu.show({e});
+        };
+        var longTouchTimer;
+        var longTouchDuration = 800;
+        var xystart;
+
         Utils.on(view.catalogCanvas, "mousedown touchstart", function (e) {
             e.preventDefault();
             e.stopPropagation();
@@ -541,6 +554,7 @@ export let View = (function () {
                 xy: xymouse,
             });
 
+            xystart = xymouse;
 
             if (e.which === 3 || e.button === 2) {
                 view.rightClick = true;
@@ -565,6 +579,20 @@ export let View = (function () {
                 }
 
                 return;
+            }
+
+            // detect long touch
+            if (e.type === 'touchstart' && e.targetTouches && e.targetTouches.length == 1) {
+                if (view.aladin.statusBar) {
+                    view.aladin.statusBar.appendMessage({
+                        id: 'opening-ctxmenu',
+                        message: 'Opening menu...',
+                        duration: 'unlimited',
+                        type: 'loading'
+                    })
+                }
+
+                longTouchTimer = setTimeout(() => {onlongtouch(e); view.dragging = false;}, longTouchDuration); 
             }
 
             // zoom pinching
@@ -655,6 +683,18 @@ export let View = (function () {
                 type: e.type,
                 ev: e,
             });
+
+
+            if (e.type === 'touchend' || e.type === 'touchcancel') {
+                if (longTouchTimer) {
+                    if (view.aladin.statusBar) {
+                        view.aladin.statusBar.removeMessage('opening-ctxmenu')
+                    }
+                    clearTimeout(longTouchTimer)
+                }
+            }
+
+            xystart = undefined;
 
             if ((e.type === 'touchend' || e.type === 'touchcancel') && view.pinchZoomParameters.isPinching) {
                 view.pinchZoomParameters.isPinching = false;
@@ -814,6 +854,19 @@ export let View = (function () {
                 type: e.type,
                 xy: xymouse,
             });
+
+            if (e.type === 'touchmove' && xystart) {
+                let dist = (() => {
+                    return (xymouse.x - xystart.x)*(xymouse.x - xystart.x) + (xymouse.y - xystart.y)*(xymouse.y - xystart.y)
+                })();
+                if (longTouchTimer && dist > 100) {
+                    if (view.aladin.statusBar) {
+                        view.aladin.statusBar.removeMessage('opening-ctxmenu')
+                    }
+                    clearTimeout(longTouchTimer)
+                    xystart = undefined;
+                }
+            }
 
             if (view.rightClick) {
                 var onRightClickMoveFunction = view.aladin.callbacksByEventName['rightClickMove'];
@@ -1097,7 +1150,6 @@ export let View = (function () {
 
         view.displayHpxGrid = false;
         view.displayCatalog = false;
-        view.displayReticle = true;
     };
 
     View.prototype.requestRedrawAtDate = function (date) {
@@ -1315,39 +1367,7 @@ export let View = (function () {
 
             this.aladin.measurementTable.showMeasurement(tables);
             let a = this.aladin;
-            let self = this;
-            const sampBtn = new SAMPActionButton({
-                size: 'small',
-                tooltip: {content: 'Send a table through SAMP Hub'},
-                action(conn) {
-                    // hide the menu
-                    a.contextMenu._hide()
-
-                    let getSource = (o) => {
-                        let s = o;
-                        if (o.source) {
-                            s = o.source
-                        }
-
-                        return s;
-                    };
-
-                    for (const objects of self.selection) {
-                        let s0 = getSource(objects[0]);
-                        const cat = s0.catalog;
-                        const {url, name} = cat;
-                        conn.loadVOTable(url, name, url);
-
-                        let rowList = [];
-                        for (const obj of objects) {
-                            // select the source
-                            let s = getSource(obj)
-                            rowList.push('' + s.rowIdx);
-                        };
-                        conn.tableSelectRowList(name, url, rowList)
-                    }
-                }
-            }, a);
+            const sampBtn = SAMPActionButton.sendSources(a);
 
             if (a.contextMenu) {
                 a.contextMenu.attach([
@@ -1769,16 +1789,6 @@ export let View = (function () {
         }
         this.requestRedraw();
     };
-
-    /*View.prototype.showReticle = function (show) {
-        this.displayReticle = show;
-
-        if (!this.displayReticle) {
-            this.mustClearCatalog = true;
-        }
-
-        this.requestRedraw();
-    };*/
 
     /**
      *

@@ -32,10 +32,9 @@ import { Box } from "../Widgets/Box";
 import { ALEvent } from "../../events/ALEvent";
 import { Utils } from "../../Utils";
 import { Layout } from "../Layout";
-import { ActionButton } from "../Widgets/ActionButton";
 import infoIconUrl from '../../../../assets/icons/info.svg';
 import tooltipIconUrl from '../../../../assets/icons/tooltip.svg';
-
+import { Icon } from "../Widgets/Icon";
 
 export class StatusBarBox extends Box {
     constructor(aladin, options) {
@@ -136,18 +135,16 @@ export class StatusBarBox extends Box {
         message.addClass("aladin-status-bar-message")
 
         this._show({
-            content: [StatusBarBox.icons[task.type], message],
+            content: new Layout({layout: [StatusBarBox.icons[task.type], message], orientation: 'horizontal'}),
         })
     }
 
     static icons = {
         loading: (() => {
-            let icon = new ActionButton({
-                iconURL: "https://raw.githubusercontent.com/cds-astro/aladin-lite/master/assets/aladin-logo.gif",
+            let icon = new Icon({
+                size: 'medium',
+                url: "https://raw.githubusercontent.com/cds-astro/aladin-lite/master/assets/aladin-logo.gif",
                 cssStyle: {
-                    backgroundColor: 'black',
-                    border: "none",
-                    margin: "5px",
                     cursor: "help",
                 },
                 tooltip: {
@@ -159,25 +156,22 @@ export class StatusBarBox extends Box {
             })
 
             icon.addClass("rotating")
-            icon.addClass("medium-sized-icon")
 
             return icon
         })(),
-        info: ActionButton.createIconBtn({
-            iconURL: infoIconUrl,
+        info: new Icon({
+            size: 'medium',
+            monochrome: true,
+            url: infoIconUrl,
             cssStyle: {
-                backgroundColor: 'white',
-                border: "none",
-                margin: "5px",
                 cursor: "help",
             },
         }),
-        tooltip: ActionButton.createIconBtn({
-            iconURL: tooltipIconUrl,
+        tooltip: new Icon({
+            size: 'medium',
+            monochrome: true,
+            url: tooltipIconUrl,
             cssStyle: {
-                backgroundColor: 'white',
-                border: "none",
-                margin: "5px",
                 cursor: "help",
             },
         })

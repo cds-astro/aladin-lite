@@ -77,12 +77,9 @@ export let Datalink = (function() {
                                 const serviceName = data['service_def'];
 
                                 if (data['semantics'] === "#cutout") {
-                                    return ActionButton.createIconBtn({
+                                    return new ActionButton({
+                                        size: 'small',
                                         content: '📡',
-                                        cssStyle: {
-                                            backgroundColor: '#bababa',
-                                            borderColor: '#484848',
-                                        },
                                         tooltip: {content: 'Open the cutout service form', position: {direction: 'top'}},
                                         action(e) {
                                             let serviceQueryBox = ServiceQueryBox.getInstance(aladinInstance);

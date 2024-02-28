@@ -89,8 +89,7 @@ export let PlanetaryFeaturesPointer = (function() {
             return ret;
         };
 
-        Utils.loadFromUrls(PlanetaryFeaturesPointer.MIRRORS, {contentType: "text/plain", data: params})
-            .then((response) => response.text())
+        Utils.loadFromUrls(PlanetaryFeaturesPointer.MIRRORS, {contentType: "text/plain", data: params, dataType: 'text'})
             .then((result) => {
                 const lines = result.split('\n');
                 const fields = csvToArray(lines[0])[0];

@@ -53,6 +53,8 @@ export class Table extends DOMElement {
 
         super(el, options);
         this.attachTo(target, position);
+
+        this.addClass("aladin-dark-theme")
     }
  
     static _createTableBody = function(opt) {

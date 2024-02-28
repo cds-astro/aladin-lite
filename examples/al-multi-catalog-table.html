@@ -12,7 +12,7 @@
 <script type="module">
     import A from '../src/js/A.js';
     A.init.then(() => {
-        aladin = A.aladin('#aladin-lite-div', {target: 'M 45', fov: 5, showContextMenu: true});
+        aladin = A.aladin('#aladin-lite-div', {target: 'M 45', fov: 5, showContextMenu: true, samp: true});
 
         const cat = A.catalogFromVizieR('I/311/hip2', 'M 45', 5, {onClick: 'showTable'});
         const cat2 = A.catalogFromVizieR('I/312/sample', 'M 45', 0.5, {onClick: 'showTable'});

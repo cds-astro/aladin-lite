@@ -51,119 +51,153 @@ export class Input extends DOMElement {
      */
     constructor(options, target, position = "beforeend") {
         let el;
+        if (options && options.type === 'select') {
+            el = document.createElement('select');
+        } else {
+            el = document.createElement('input');
+        }
+
         super(el, options);
 
         this._show()
+
+        this.attachTo(target, position)
     }
 
     _show() {
         this.el.innerHTML = '';
-        let layout = this.options.layout;
 
-        if (layout.type === "checkbox") {
-            this.el = document.createElement('input');
-            this.el.type = layout.type;
+        if (this.options.classList) {
+            this.options.classList.forEach((className) => this.addClass(className))
+        }
 
-            this.el.checked = layout.checked;
+        if (this.options.type === "checkbox") {
+            this.el.type = this.options.type;
 
-            if (layout.click) {
+            this.el.checked = this.options.checked;
+
+            if (this.options.click) {
                 this.el.removeEventListener('click', this.action);
-                this.action = layout.click;
+                this.action = this.options.click;
 
                 this.el.addEventListener('click', this.action);
             }    
-        } else if (layout.type === "select") {
-            this.el = document.createElement('select');
-            
-            if (layout.options) {
+        } else if (this.options.type === "select") {            
+            if (this.options.options) {
                 let innerHTML = "";
 
-                for (const option of layout.options) {
+                for (const option of this.options.options) {
                     innerHTML += "<option>" + option + "</option>";
                 }
                 this.el.innerHTML = innerHTML;
             }
 
-            if (layout.value) {
-                this.el.value = layout.value;
+            if (this.options.value) {
+                this.el.value = this.options.value;
             }
 
-            if (layout.change) {
+            if (this.options.change) {
                 this.el.removeEventListener('change', this.action);
 
-                this.action = layout.change;
+                this.action = this.options.change;
                 this.el.addEventListener('change', this.action);
             }    
         } else {
-            this.el = document.createElement('input');
-            this.el.type = layout.type;
+            this.el.type = this.options.type;
 
-            if (layout.type === "number" || layout.type === "range") {
+            if (this.options.type === "number" || this.options.type === "range") {
                 this.el.step = "any";
             }
 
-            if (layout.type === "text") {
+            if (this.options.type === "text") {
                 this.el.enterkeyhint = "send";
             }
 
-            if (layout.autocomplete) {
-                this.el.autocomplete = layout.autocomplete;
+            if (this.options.autocomplete) {
+                const autocomplete = this.options.autocomplete
+                if (autocomplete instanceof Object && autocomplete !== null) {
+                    let datalist = document.createElement('datalist');
+
+                    autocomplete.options.forEach((o) => {
+                        let option = document.createElement('option');
+                        option.value = o;
+                        datalist.appendChild(option);
+                    })
+
+                    datalist.id = 'ticks-' + this.options.name;
+                    this.el.setAttribute('list', datalist.id);
+                    
+                    if (this.el.querySelector('#' + datalist.id)) {
+                        this.el.querySelector('#' + datalist.id).remove()
+                    }
+                    this.el.appendChild(datalist);
+
+                    this.el.autocomplete = 'on';
+                } else {
+                    this.el.autocomplete = autocomplete;
+                }
             }
 
-            if (layout.step) {
-                this.el.step = layout.step;
+            if (this.options.step) {
+                this.el.step = this.options.step;
             }
-            if (layout.min) {
-                this.el.min = layout.min;
-            }
-            if (layout.max) {
-                this.el.max = layout.max;
+            if (this.options.min) {
+                this.el.min = this.options.min;
             }
 
-            if (layout.value || layout.value === 0) {
-                this.el.value = layout.value;
+            if (this.options.max) {
+                this.el.max = this.options.max;
             }
 
-            if (layout.placeholder) {
-                this.el.placeholder = layout.placeholder;
+            if (this.options.value || this.options.value === 0) {
+                this.el.value = this.options.value;
             }
 
-            if (layout.change) {
-                if (layout.type === 'color' || layout.type === 'range' || layout.type === "text") {
+            if (this.options.placeholder) {
+                this.el.placeholder = this.options.placeholder;
+            }
+
+            if (this.options.change) {
+                if (this.options.type === 'color' || this.options.type === 'range' || this.options.type === "text") {
                     this.el.removeEventListener('input', this.action);
                     this.action = (e) => {
-                        layout.change(e, this);
+                        this.options.change(e, this);
                     };
                     this.el.addEventListener('input', this.action);
                 } else {
                     this.el.removeEventListener('change', this.action);
-                    this.action = layout.change;
+                    this.action = this.options.change;
                     this.el.addEventListener('change', this.action);
                 }
             }
-
-            /*if (layout.autofocus) {
-                this.el.autofocus = true;
-            }*/
         }
 
-        if (layout.actions) {
+        // add the personnalized style
+        if (this.options.type)
+            this.addClass("aladin-input-" + this.options.type);
+
+        if (this.options.label) {
+            this.el.id = this.options.label;
+        }
+
+        if (this.options.actions) {
             for (const what in this.callbacks) {
                 this.el.removeEventListener(what, this.callbacks[what]);
             }
 
-            this.callbacks = layout.actions;
+            this.callbacks = this.options.actions;
 
             for (const what in this.callbacks) {
                 this.el.addEventListener(what, this.callbacks[what]);
             }
         }
 
-        if (layout.name) {
-            this.el.name = layout.name;
+        if (this.options.name) {
+            this.el.name = this.options.name;
         }
 
         this.el.classList.add('aladin-input');
+        this.el.classList.add('aladin-dark-theme');
 
         if (this.options.cssStyle) {
             this.setCss(this.options.cssStyle);
@@ -174,12 +208,25 @@ export class Input extends DOMElement {
         }
 
         /*// Add padding for inputs except color ones
-        if (Utils.hasTouchScreen() && layout.type !== "color") {
+        if (Utils.hasTouchScreen() && this.options.type !== "color") {
             // Add a little padding 
             this.el.style.padding = "0.5em";
         }*/
 
         super._show()
+    }
+
+    /*setPlaceholder(placeholder) {
+        this.el.placeholder = placeholder;
+    }*/
+
+    update(options) {
+        // if no options given, use the previous one set
+        if (options) {
+            this.options = {...this.options, ...options};
+        }
+
+        this._show();
     }
 
     get() {
@@ -202,14 +249,11 @@ export class Input extends DOMElement {
     static color(options) {
         let change = options.change || ((e) => {});
         let el = new Input({
-            layout: {
-                name: options.name || 'color',
-                type: 'color',
-                value: options.value || '#000000',
-                change
-            }
+            name: options.name || 'color',
+            type: 'color',
+            value: options.value || '#000000',
+            change
         });
-        el.addClass("aladin-input-color");
 
         return el;
     }
@@ -217,82 +261,53 @@ export class Input extends DOMElement {
     static slider(options) {
         let change = options.change || ((e) => {});
         let el = new Input({
-            cssStyle: options.cssStyle,
-            tooltip: options.tooltip,
-            layout: {
-                name: options.name || 'slider',
-                type: 'range',
-                min: options.min || 0.0,
-                max: options.max || 1.0,
-                value: options.value,
-                ticks: options.ticks,
-                change
-            }
+            name: options.name || 'slider',
+            type: 'range',
+            min: options.min || 0.0,
+            max: options.max || 1.0,
+            change,
+            ...options
         });
-        el.addClass("aladin-input-range")
 
         return el;
     }
 
     static checkbox(options) {
         let el = new Input({
-            cssStyle: options.cssStyle,
-            tooltip: options.tooltip,
-            layout: {
-                name: options.name || 'checkbox',
-                type: 'checkbox',
-                checked: options.checked,
-                click: options.click
-            }
+            name: options.name || 'checkbox',
+            type: 'checkbox',
+            ...options
         });
-        el.addClass("aladin-input-checkbox");
 
         return el;
     }
 
     static number(options) {
         let el = new Input({
-            cssStyle: options.cssStyle,
-            tooltip: options.tooltip,
-            layout: {
-                name: options.name || 'number',
-                type: 'number',
-                value: options.value,
-                change: options.change,
-                placeholder: options.placeholder,
-            }
+            name: options.name || 'number',
+            type: 'number',
+            ...options
         });
-        el.addClass("aladin-input-number");
 
         return el;
     }
 
     static text(options) {
         let el = new Input({
-            cssStyle: options.cssStyle,
-            tooltip: options.tooltip,
-            layout: {
-                name: options.name || 'text',
-                type: 'text',
-                ...options
-            }
+            name: options.name || 'text',
+            type: 'text',
+            ...options
         });
-        el.addClass("aladin-input-text");
 
         return el;
     }
 
     static select(options) {
         let el = new Input({
-            cssStyle: options.cssStyle,
-            tooltip: options.tooltip,
-            layout: {
-                name: options.name || 'select',
-                type: 'select',
-                ...options
-            }
+            name: options.name || 'select',
+            type: 'select',
+            ...options
         });
-        el.addClass("aladin-input-select");
 
         return el;
     }

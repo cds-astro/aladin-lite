@@ -1,13 +1,13 @@
 // A request image should not be used outside this module
 // but contained inside a more specific type of query (e.g. for a tile or allsky)
 pub mod allsky;
-pub mod tile;
 pub mod blank;
 pub mod moc;
+pub mod tile;
 
 /* ------------------------------------- */
 
-use crate::{time::Time};
+use crate::time::Time;
 use std::cell::Cell;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
@@ -31,7 +31,7 @@ use std::future::Future;
 use wasm_bindgen::JsValue;
 impl<R> Request<R>
 where
-    R: 'static
+    R: 'static,
 {
     pub fn new<F>(f: F) -> Self
     where
@@ -78,25 +78,24 @@ where
 }
 
 use allsky::AllskyRequest;
-use tile::TileRequest;
 use blank::PixelMetadataRequest;
 use moc::MOCRequest;
+use tile::TileRequest;
 pub enum RequestType {
     Tile(TileRequest),
     Allsky(AllskyRequest),
     PixelMetadata(PixelMetadataRequest),
-    Moc(MOCRequest)
-    //..
+    Moc(MOCRequest), //..
 }
-use crate::downloader::QueryId;
 use super::query::Url;
+use crate::downloader::QueryId;
 impl RequestType {
     pub fn id(&self) -> &QueryId {
         match self {
             RequestType::Tile(request) => &request.id,
             RequestType::Allsky(request) => &request.id,
             RequestType::PixelMetadata(request) => &request.id,
-            RequestType::Moc(request) => &request.id,
+            RequestType::Moc(request) => &request.url,
         }
     }
 }
@@ -104,31 +103,25 @@ impl RequestType {
 impl<'a> From<&'a RequestType> for Option<Resource> {
     fn from(request: &'a RequestType) -> Self {
         match request {
-            RequestType::Tile(request) => {
-                Option::<Tile>::from(request).map(Resource::Tile)
-            }
-            RequestType::Allsky(request) => {
-                Option::<Allsky>::from(request).map(Resource::Allsky)
-            }
+            RequestType::Tile(request) => Option::<Tile>::from(request).map(Resource::Tile),
+            RequestType::Allsky(request) => Option::<Allsky>::from(request).map(Resource::Allsky),
             RequestType::PixelMetadata(request) => {
                 Option::<PixelMetadata>::from(request).map(Resource::PixelMetadata)
             }
-            RequestType::Moc(request) => {
-                Option::<Moc>::from(request).map(Resource::Moc)
-            }
+            RequestType::Moc(request) => Option::<Moc>::from(request).map(Resource::Moc),
         }
     }
 }
 
 use allsky::Allsky;
-use tile::Tile;
 use blank::PixelMetadata;
 use moc::Moc;
+use tile::Tile;
 pub enum Resource {
     Tile(Tile),
     Allsky(Allsky),
     PixelMetadata(PixelMetadata),
-    Moc(Moc)
+    Moc(Moc),
 }
 
 impl Resource {
@@ -136,7 +129,7 @@ impl Resource {
         match self {
             Resource::Tile(tile) => tile.get_url(),
             Resource::Allsky(allsky) => allsky.get_url(),
-            Resource::PixelMetadata(PixelMetadata { url, ..}) => url, 
+            Resource::PixelMetadata(PixelMetadata { url, .. }) => url,
             Resource::Moc(moc) => moc.get_url(),
         }
     }

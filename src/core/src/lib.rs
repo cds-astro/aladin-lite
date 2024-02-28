@@ -292,6 +292,7 @@ impl WebClient {
         }
     }
 
+    /*
     /// Check whether the app is ready
     ///
     /// Aladin Lite is in a good state when the root tiles of the
@@ -302,6 +303,7 @@ impl WebClient {
     pub fn is_ready(&mut self) -> Result<bool, JsValue> {
         self.app.is_ready()
     }
+    */
 
     #[wasm_bindgen(js_name = getNOrder)]
     pub fn get_norder(&mut self) -> Result<i32, JsValue> {
@@ -985,7 +987,7 @@ impl WebClient {
                 dec_deg.to_radians().to_angle(),
             ),
             rad_deg.to_radians(),
-            pixel_d as u8 - 2,
+            pixel_d as u8 - 1,
         );
 
         self.app.add_moc(params.clone(), moc)?;
@@ -1014,7 +1016,7 @@ impl WebClient {
 
         let v_in = &Vector4::new(1.0, 0.0, 0.0, 1.0);
 
-        let mut moc = HEALPixCoverage::from_3d_coos(pixel_d as u8 - 2, vertex_it, &v_in);
+        let mut moc = HEALPixCoverage::from_3d_coos(pixel_d as u8 - 1, vertex_it, &v_in);
         if moc.sky_fraction() > 0.5 {
             moc = moc.not();
         }

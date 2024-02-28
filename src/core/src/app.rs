@@ -18,7 +18,10 @@ use crate::{
     tile_fetcher::TileFetcherQueue,
     time::DeltaTime,
 };
-use al_core::{info, inforec, log};
+use al_core::{
+    info, inforec,
+    log::{self, console_log},
+};
 
 use wasm_bindgen::prelude::*;
 
@@ -267,16 +270,29 @@ impl App {
         self.tile_fetcher.clear();
         // Loop over the surveys
         for survey in self.layers.values_mut_hips() {
-            let cfg = survey.get_config();
-            let hips_url = cfg.get_root_url().to_string();
-            let format = cfg.get_format();
-            let min_tile_depth = cfg.delta_depth().max(cfg.get_min_depth_tile());
+            if self.camera.get_texture_depth() == 0
+                && self
+                    .downloader
+                    .is_queried(&query::Allsky::new(survey.get_config()).id)
+            {
+                // do not ask for tiles if we download the allsky
+                continue;
+            }
+
+            let min_tile_depth = survey
+                .get_config()
+                .delta_depth()
+                .max(survey.get_config().get_min_depth_tile());
             let mut ancestors = HashSet::new();
+
+            let creator_did = survey.get_config().get_creator_did().to_string();
+            let root_url = survey.get_config().get_root_url().to_string();
+            let format = survey.get_config().get_format();
 
             if let Some(tiles_iter) = survey.look_for_new_tiles(&mut self.camera) {
                 for tile_cell in tiles_iter.into_iter() {
                     self.tile_fetcher.append(
-                        query::Tile::new(&tile_cell, hips_url.clone(), format),
+                        query::Tile::new(&tile_cell, creator_did.clone(), root_url.clone(), format),
                         &mut self.downloader,
                     );
 
@@ -300,7 +316,7 @@ impl App {
             for ancestor in ancestors {
                 if !survey.update_priority_tile(&ancestor) {
                     self.tile_fetcher.append(
-                        query::Tile::new(&ancestor, hips_url.clone(), format),
+                        query::Tile::new(&ancestor, creator_did.clone(), root_url.clone(), format),
                         &mut self.downloader,
                     );
                 }
@@ -474,11 +490,11 @@ impl App {
         self.catalog_loaded
     }
 
-    pub(crate) fn is_ready(&self) -> Result<bool, JsValue> {
+    /*pub(crate) fn is_ready(&self) -> Result<bool, JsValue> {
         let res = self.layers.is_ready();
 
         Ok(res)
-    }
+    }*/
 
     pub(crate) fn get_moc(&self, cfg: &al_api::moc::MOC) -> Option<&HEALPixCoverage> {
         self.moc.get_hpx_coverage(cfg)
@@ -652,12 +668,14 @@ impl App {
                                 // the 0's cell
                                 let cfg = survey.get_config();
                                 let _delta_depth = cfg.delta_depth();
-                                let hips_url = cfg.get_root_url();
-                                let format = cfg.get_format();
                                 for texture_cell in crate::healpix::cell::ALLSKY_HPX_CELLS_D0 {
                                     for cell in texture_cell.get_tile_cells(cfg.delta_depth()) {
-                                        let query =
-                                            query::Tile::new(&cell, hips_url.to_string(), format);
+                                        let query = query::Tile::new(
+                                            &cell,
+                                            cfg.get_creator_did().to_string(),
+                                            cfg.get_root_url().to_string(),
+                                            cfg.get_format(),
+                                        );
                                         self.tile_fetcher
                                             .append_base_tile(query, &mut self.downloader);
                                     }
@@ -1536,7 +1554,7 @@ impl App {
     }
 
     pub(crate) fn get_norder(&self) -> i32 {
-        self.camera.get_tile_depth() as i32
+        self.camera.get_texture_depth() as i32
     }
 
     pub(crate) fn get_clip_zoom_factor(&self) -> f64 {

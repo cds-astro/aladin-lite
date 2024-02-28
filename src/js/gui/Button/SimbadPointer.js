@@ -38,11 +38,14 @@ export class SimbadPointer extends ActionButton {
     constructor(aladin) {
         let self;
         super({
-            iconURL: targetIcon,
+            icon: {
+                url: targetIcon,
+                monochrome: true,
+            },
             size: 'medium',
             tooltip: {
                 content: 'Want to know what is a specific object ?<br />Use the Simbad pointer tool!',
-                position: { direction: 'right' },
+                position: { direction: 'top right' },
             },
             action(o) {
                 if (self.mode !== View.TOOL_SIMBAD_POINTER) {

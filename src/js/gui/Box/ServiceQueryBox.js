@@ -44,8 +44,6 @@ export class ServiceQueryBox extends Box {
         let self;
         // Define the form once for all
         let form = new Form({
-            name: 'header',
-            type: 'group',
             submit(params) {
                 // Construct the SODA url
                 let url = new URL(self.service.baseUrl)
@@ -73,10 +71,8 @@ export class ServiceQueryBox extends Box {
                 );*/
 
                 let name = url.searchParams.toString();
-                console.log("soda query", url.href)
                 // Tackle CORS problems
-                Utils.loadFromUrls([url, Utils.handleCORSNotSameOrigin(url)], {timeout: 30000})
-                    .then((response) => response.blob())
+                Utils.loadFromUrls([url, Utils.handleCORSNotSameOrigin(url)], {timeout: 30000, dataType: 'blob'})
                     .then((blob) => {
                         const url = URL.createObjectURL(blob);
                         try {
@@ -118,8 +114,6 @@ export class ServiceQueryBox extends Box {
         this.service = service;
         let self = this;
 
-        console.log("service", this.service)
-
         let subInputs = []
         for (const param in this.service.inputParams) {
 
@@ -130,12 +124,9 @@ export class ServiceQueryBox extends Box {
                 case 'ID':
                     const listOfInputParams = Object.keys(this.service["inputParams"]).map((name) => name).join(', ');
 
-                    header = Layout.horizontal(['ID', ActionButton.createIconBtn({
+                    header = Layout.horizontal(['ID', new ActionButton({
+                        size: 'small',
                         content: '📡',
-                        cssStyle: {
-                            backgroundColor: '#bababa',
-                            borderColor: '#484848',
-                        },
                         tooltip: {
                             content: 'This is the form to request the SODA server located at: <br/>' + 
                                 '<a target="_blank" href="' + this.service["baseUrl"]  + '">' + this.service["baseUrl"] + '</a><br/>' +

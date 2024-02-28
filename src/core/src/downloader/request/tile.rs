@@ -53,13 +53,12 @@ use web_sys::{HtmlImageElement, RequestInit, RequestMode, Response};
 impl From<query::Tile> for TileRequest {
     // Create a tile request associated to a HiPS
     fn from(query: query::Tile) -> Self {
-        let id = query.id();
-
         let query::Tile {
             format,
             cell,
             url,
             hips_url,
+            id,
         } = query;
 
         let url_clone = url.clone();
@@ -218,10 +217,10 @@ impl Tile {
         &self.cell
     }
 
-    #[inline(always)]
+    /*#[inline(always)]
     pub fn query(&self) -> query::Tile {
         query::Tile::new(&self.cell, self.hips_url.clone(), self.format)
-    }
+    }*/
 }
 
 impl<'a> From<&'a TileRequest> for Option<Tile> {

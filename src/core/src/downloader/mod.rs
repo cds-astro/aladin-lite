@@ -46,11 +46,11 @@ impl Downloader {
         } else {
             let query_id = query.id();
 
-            let not_already_requested = !self.queried_list.contains(&query_id);
+            let not_already_requested = !self.queried_list.contains(query_id);
 
             // The cell is not already requested
             if not_already_requested {
-                self.queried_list.insert(query_id);
+                self.queried_list.insert(query_id.to_string());
 
                 let request = T::Request::from(query);
                 self.requests.push(request.into());
@@ -92,6 +92,10 @@ impl Downloader {
         }
 
         rscs
+    }
+
+    pub fn is_queried(&self, id: &QueryId) -> bool {
+        self.queried_list.contains(id)
     }
 
     //pub fn get_cached_resources(&mut self) -> Vec<Resource> {}

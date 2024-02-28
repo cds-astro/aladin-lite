@@ -47,6 +47,16 @@ export class SAMPConnector {
         let callHandler = cc.callHandler;
         this.cc = cc;
 
+        let self = this;
+        // listen for hub deconnexion/shutdown and unregister if so
+        callHandler["samp.hub.event.shutdown"] = function(senderId, message, isCall) {
+            self.unregister();
+        };
+
+        callHandler["samp.hub.disconnect"] = function(senderId, message, isCall) {
+            self.unregister();
+        };
+
         callHandler["script.aladin.send"] = function(senderId, message, isCall) {
             var params = message["samp.params"];
             aladin.setBaseImageLayer(params["url"])
@@ -148,7 +158,8 @@ export class SAMPConnector {
         // Arrange for document to be adjusted for presence of hub every 2 sec.
         this.connector = new samp.Connector("Aladin Lite", meta, cc, subs);
         //window.addEventListener('load', (e) => {
-        this.connector.onHubAvailability((isHubRunning) => {
+        /*let onHubAvailability = this.connector.onHubAvailability((isHubRunning) => {
+            console.log(isHubRunning, this.isHubRunning)
             if (this.isHubRunning !== isHubRunning) {
                 if (isHubRunning === false) {
                     // Reset the connector when the hub disconnects
@@ -157,7 +168,7 @@ export class SAMPConnector {
             }
             this.isHubRunning = isHubRunning;
             ALEvent.SAMP_HUB_RUNNING.dispatchedTo(aladin.aladinDiv, { isHubRunning } );
-        }, 2000);           
+        }, 2000);     */
         //});
         this.connected = false;
 
@@ -303,6 +314,8 @@ export class SAMPConnector {
             var regErrHandler = (err) => {
                 this.connected = false;
                 this.connectionAsked = false;
+
+                window.alert('Could not connect to a SAMP Hub. Maybe the hub is missing')
 
                 reject(err);
             };

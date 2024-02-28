@@ -43,7 +43,8 @@ HiPSProperties.fetchFromID = async function(ID) {
 
     let metadata = await Utils.loadFromUrls(MocServer.MIRRORS_HTTPS, {
         data: params,
-    }).then(response => response.json());
+        dataType: 'json'
+    });
 
     // We get the property here
     // 1. Ensure there is exactly one survey matching
@@ -137,7 +138,7 @@ HiPSProperties.getFasterMirrorUrl = function (metadata) {
         const controller = new AbortController()
 
         let startRequestTime = Date.now();
-        const maxTime = 2000;
+        const maxTime = 500;
         // 5 second timeout:
         const timeoutId = setTimeout(() => controller.abort(), maxTime)
         const promise = fetch(hipsServiceUrl + '/properties', { cache: 'no-store', signal: controller.signal, mode: "cors" }).then(response => {
@@ -186,6 +187,8 @@ HiPSProperties.getFasterMirrorUrl = function (metadata) {
                 return r1.duration - r2.duration;
             });
 
+            //console.log(validResponses)
+
             if (validResponses.length >= 2) {
                 const isSecondUrlOk = ((validResponses[1].duration - validResponses[0].duration) / validResponses[0].duration) < 0.20;
 
@@ -198,7 +201,7 @@ HiPSProperties.getFasterMirrorUrl = function (metadata) {
                 return validResponses[0].baseUrl;
             } else {
                 // no valid response => we return an error
-                throw 'Survey not found. All mirrors urls have been tested:' + urls
+                return Promise.reject('Survey not found. All mirrors urls have been tested:' + urls)
             }
         })
         .then((url) => Utils.fixURLForHTTPS(url))

@@ -1,6 +1,8 @@
 use crate::domain::sdf::ProjDefType;
+use crate::survey::config::HiPSConfig;
 use crate::{camera::CameraViewPort, math::projection::Projection};
 
+use al_api::hips::HiPSCfg;
 use al_core::VecData;
 use al_core::{shader::ShaderBound, Texture2D, VertexArrayObject, WebGlContext};
 
@@ -35,7 +37,7 @@ pub struct RayTracer {
 }
 use cgmath::{InnerSpace, Vector2};
 
-const SIZE_POSITION_TEX: usize = 2048;
+const SIZE_POSITION_TEX: usize = 512;
 fn generate_xyz_position(projection: &ProjectionType) -> Vec<f32> {
     let (w, h) = (SIZE_POSITION_TEX, SIZE_POSITION_TEX);
     let mut data = vec![0.0; SIZE_POSITION_TEX * SIZE_POSITION_TEX * 3];
@@ -241,7 +243,7 @@ impl RayTracer {
     pub fn is_rendering(&self, camera: &CameraViewPort) -> bool {
         // Check whether the tile depth is 0 for square projection
         // definition domains i.e. Mercator
-        let depth = camera.get_tile_depth();
-        camera.is_allsky() || depth <= 2
+        let depth = camera.get_texture_depth();
+        camera.is_allsky() || depth == 0
     }
 }

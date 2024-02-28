@@ -18,7 +18,7 @@
 //
 
 import { Tooltip } from "./Tooltip";
-import { Utils } from "../Utils";
+import { SAMPActionButton } from '../Button/SAMP.js';
 
 /******************************************************************************
  * Aladin Lite project
@@ -32,6 +32,7 @@ import { Utils } from "../Utils";
  *
  *****************************************************************************/
 import { DOMElement } from "./Widget";
+import { Layout } from "../Layout";
 /**
  * Class representing a Tabs layout
  * @extends DOMElement
@@ -45,21 +46,12 @@ export class Tabs extends DOMElement {
      *     For the list of possibilities, see https://developer.mozilla.org/en-US/docs/Web/API/Element/insertAdjacentHTML
      */
     constructor(options, target, position = "beforeend") {
-        let el = document.createElement("div");
-        el.classList.add('aladin-tabs');
-
-        let headerTabEl = document.createElement("div");
-        headerTabEl.classList.add('aladin-tabs-head');
-        let contentTabEl = document.createElement("div");
-        contentTabEl.classList.add('aladin-tabs-content');
-        contentTabEl.style.maxWidth = '100%';
-
         let contentTabOptions = [];
-        let tabsEl = [];
+        let tabsLayout = [];
+
         for (const tab of options.layout) {
             // Create the content tab div
             let contentTabOptionEl = document.createElement("div");
-            contentTabOptionEl.classList.add('aladin-tabs-content-option');
             contentTabOptionEl.style.display = 'none';
 
             if (tab.content instanceof DOMElement) {
@@ -76,67 +68,46 @@ export class Tabs extends DOMElement {
             contentTabOptions.push(contentTabOptionEl);
 
             // Create the Tab element
-            let tabEl = document.createElement('div');
-            tabEl.className = 'aladin-tabs-head-tab';
-            if (tab.title) {
-                tabEl.title = tab.title;
-            }
+            tab.label.update({
+                action(e) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    
+                    for (let contentTabOptionEl of contentTabOptions) {
+                        contentTabOptionEl.style.display = 'none';
+                    }
 
-            // Apply the css to the tab
-            for (const property in tab.cssStyle) {
-                tabEl.style[property] = tab.cssStyle[property];
-            }
+                    contentTabOptionEl.style.display = 'block';
+                    for (const t of options.layout) {
+                        t.label.update({toggled: false});
+                    }
 
-            tabsEl.push(tabEl);
-
-            tabEl.addEventListener('click', (e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                
-                for (let contentTabOptionEl of contentTabOptions) {
-                    contentTabOptionEl.style.display = 'none';
-                    contentTabOptionEl.classList.remove('aladin-tabs-content-option-selected')
-                }
-
-                contentTabOptionEl.style.display = 'block';
-                contentTabOptionEl.classList.add('aladin-tabs-content-option-selected')
-
-                for(let t of tabsEl) {
-                    t.classList.remove('aladin-tabs-head-tab-selected')
-                }
-
-                tabEl.classList.add('aladin-tabs-head-tab-selected')
+                    tab.label.update({toggled: true})
+                },
             });
+            tab.label.addClass('tab')
 
-            if (tab.label instanceof DOMElement) {
-                // And add it to the DOM
-                tab.label.attachTo(tabEl);
-            } else if (opt.label instanceof Element) {                
-                tabEl.insertAdjacentElement('beforeend', tab.label);
-            } else {
-                let wrapEl = document.createElement('div');
-                wrapEl.innerHTML = tab.label;
-                tabEl.insertAdjacentElement('beforeend', wrapEl);
-            }
-            headerTabEl.appendChild(tabEl);
-
-            if (tab.tooltip) {
-                Tooltip.add(tab.tooltip, tabEl)
-            }
+            tabsLayout.push(tab.label);
         }
 
+        if (options.aladin && options.aladin.samp) {
+            tabsLayout.push(SAMPActionButton.sendSources(options.aladin))
+        }
+
+        let contentTabEl = document.createElement("div");
+        contentTabEl.style.maxWidth = '100%';
+
         contentTabOptions[0].style.display = 'block';
-        contentTabOptions[0].classList.add('aladin-tabs-content-option-selected');
-
-        tabsEl[0].classList.add('aladin-tabs-head-tab-selected')
-
+        tabsLayout[0].update({toggled: true})
         for(let contentTabOptionEl of contentTabOptions) {
             // Add it to the view
             contentTabEl.appendChild(contentTabOptionEl)
         }
 
-        el.appendChild(headerTabEl);
-        el.appendChild(contentTabEl);
+        let el = new Layout([
+            new Layout({layout: tabsLayout, orientation: 'horizontal'}),
+            contentTabEl
+        ]);
 
         super(el, options);
         this._show();

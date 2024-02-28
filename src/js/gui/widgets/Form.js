@@ -19,6 +19,8 @@
 
 import { ActionButton } from "./ActionButton";
 import { DOMElement } from "./Widget";
+import { Input } from "./Input";
+import { Layout } from "../Layout";
 
 /******************************************************************************
  * Aladin Lite project
@@ -62,138 +64,65 @@ export class Form extends DOMElement {
     _show() {
         this.el.innerHTML = '';
 
-        let innerEl = Form._createInput(this.options, this.el);
-        this.el.appendChild(innerEl);
+        let layout = [];
+        if (this.options && this.options.subInputs) {
+            this.options.subInputs.forEach(subInput => {
+                layout.push(Form._createInput(subInput))
+            });
+        }
 
         let self = this;
         // submit button
         if (this.options && this.options.submit) {
-            new ActionButton({
-                content: 'Send',
-                cssStyle: {
-                    cursor: 'pointer',
-                },
-                action(e) {
-                    self.options.submit(self.values())
-                }
-            }, this.el);
+            layout.push(
+                new ActionButton({
+                    content: 'Send',
+                    cssStyle: {
+                        cursor: 'pointer',
+                    },
+                    action(e) {
+                        self.options.submit(self.values())
+                    }
+                })
+            );
         }
 
+        this.appendContent(new Layout(layout))
         super._show();
     }
 
-    static _createInput(layout, formEl) {
-        let isInput = false;
-        let inputEl, labelEl;
+    static _createInput(layout) {
+        if (!layout.subInputs) {
+            let input = new Input(layout);
 
-        if (layout.type === "text" || layout.type === "number" || layout.type === "color") {
-            inputEl = document.createElement('input');
-            inputEl.type = layout.type;
-            inputEl.classList.add('aladin-input');
-
-            inputEl.autocomplete = layout.autocomplete || 'off';
-
-            if (layout.type === "text") {
-                inputEl.enterkeyhint = "send";
+            let label = document.createElement('label');
+            if (layout.labelContent) {
+                DOMElement.appendTo(layout.labelContent, label);
+            } else {
+                label.textContent = layout.label;
             }
+    
+            label.for = input.el.id;
 
-            if (layout.type === "number") {
-                inputEl.step = layout.step || "any";
-            }
+            let item = new Layout([label, input]);
+            item.addClass("aladin-form-input")
 
-            if (layout.value || layout.value === 0) {
-                inputEl.value = layout.value;
-            }
-
-            inputEl.name = layout.name;
-            inputEl.id = layout.label;
-
-            if (layout.placeholder) {
-                inputEl.placeholder = layout.placeholder;
-            }
-
-            isInput = true;
-        } else if (layout.type === "checkbox") {
-            inputEl = document.createElement('input');
-            inputEl.type = "checkbox";
-            inputEl.classList.add('aladin-input');
-
-            inputEl.checked = layout.checked;
-            inputEl.name = layout.name;
-            inputEl.id = layout.label;
-
-            isInput = true;
-        } else if (layout.type === "select") {
-            inputEl = document.createElement('select');
-            inputEl.classList.add('aladin-input');
-            inputEl.id = layout.label;
-            inputEl.name = layout.name;
-
-            if (layout.options) {
-                let innerHTML = "";
-
-                for (const option of layout.options) {
-                    innerHTML += "<option>" + option + "</option>";
-                }
-                inputEl.innerHTML = innerHTML;
-            }
-
-            if (layout.value) {
-                inputEl.value = layout.value;
-            }
-
-            isInput = true;
-        }
-
-        labelEl = document.createElement('label');
-        if (layout.labelContent) {
-            DOMElement.appendTo(layout.labelContent, labelEl);
+            return item;
         } else {
-            labelEl.textContent = layout.label;
-        }
-
-        if (inputEl) {
-            labelEl.for = inputEl.id;
-        }
-
-        if (layout.actions) {
-            for (const what in layout.actions) {
-                const actionFunc = layout.actions[what];
-                inputEl.addEventListener(what, (e) => actionFunc(e, inputEl));
-            }
-        }
-
-        if (isInput) {
-            let divEl = document.createElement("div");
-            divEl.classList.add("aladin-form-input");
-
-            divEl.appendChild(labelEl);
-            divEl.appendChild(inputEl);
-
-            return divEl;
-        }
-
-        if (layout.subInputs) {
-            let groupEl = document.createElement('div');
-            groupEl.classList.add("aladin-form-input-group");
-            for (const property in layout.cssStyle) {
-                groupEl.style[property] = layout.cssStyle[property];
-            }
-
+            let groupLayout = [];
             if (layout.header) {
-                let headerEl = document.createElement('div');
-                headerEl.className = "aladin-form-group-header";
-
-                DOMElement.appendTo(layout.header, headerEl);
-                groupEl.appendChild(headerEl);
+                groupLayout.push(layout.header);
             }
 
-            layout.subInputs.forEach((subInput) => {
-                let inputEl = Form._createInput(subInput, formEl)
-                groupEl.appendChild(inputEl);
+            layout.subInputs.map((subInput) => {
+                let input = Form._createInput(subInput)
+                groupLayout.push(input)
             });
 
-            return groupEl;
+            let item = new Layout({layout: groupLayout});
+            item.addClass('aladin-form-group')
+
+            return item;
         }
     }
 

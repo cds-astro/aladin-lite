@@ -86,7 +86,11 @@ export class PolySelect extends FSM {
                         zIndex: 100,
                     },
                     tooltip: {content: 'Finish the selection', position: {direction: 'bottom'}},
-                    iconURL: finishIconUrl, 
+                    icon: {
+                        size: 'medium',
+                        monochrome: true,
+                        url: finishIconUrl
+                    },
                     action(e) {
                         e.stopPropagation();
                         e.preventDefault()

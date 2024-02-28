@@ -31,16 +31,17 @@
  *****************************************************************************/
 
 import { Color } from "./Color.js"
-import { Layout } from "./gui/Layout.js";
+import { Icon } from "./gui/Widgets/Icon.js";
 import { Tabs } from "./gui/Widgets/Tab.js";
 import { Table } from "./gui/Widgets/Table.js";
+import { ActionButton } from "./gui/Widgets/ActionButton.js";
+
 
 export let MeasurementTable = (function() {
 
     // constructor
-    function MeasurementTable(target) {
-        //this.isShowing = false;
-        this.target = target;
+    function MeasurementTable(aladin) {
+        this.aladin = aladin;
     }
 
     // show measurement associated with a given source
@@ -52,46 +53,40 @@ export let MeasurementTable = (function() {
         let layout = tables.map((table) => {
             let content = new Table(table);
 
-            //let backgroundColor = table["color"];
-            let hexStdColor = Color.standardizeColor(table.color);
-            let rgbColor = Color.hexToRgb(hexStdColor);
-            rgbColor = 'rgb(' + rgbColor.r + ', ' + rgbColor.g + ', ' + rgbColor.b + ')';
-            let labelColor = Color.getLabelColorForBackground(rgbColor);
-
             let textContent = '<div style="overflow: hidden; text-overflow: ellipsis;white-space: nowrap;max-width: 20em;">' +
             table.name + '</div>';
 
-            let label = Layout.horizontal({
-                layout: [
-                    '<div class="aladin-stack-icon" style="background-image: url(&quot;data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxwb2x5Z29uIHBvaW50cz0iMSwwLDUsMCw1LDMsMSwzIiAgZmlsbD0iIzk5Y2MwMCIgLz48cG9seWdvbiBwb2ludHM9IjcsMCw5LDAsOSwzLDcsMyIgIGZpbGw9IiM5OWNjMDAiIC8+PHBvbHlnb24gcG9pbnRzPSIxMCwwLDEyLDAsMTIsMywxMCwzIiAgZmlsbD0iIzk5Y2MwMCIgLz48cG9seWdvbiBwb2ludHM9IjEzLDAsMTUsMCwxNSwzLDEzLDMiICBmaWxsPSIjOTljYzAwIiAvPjxwb2x5bGluZSBwb2ludHM9IjEsNSw1LDkiICBzdHJva2U9IiM5OWNjMDAiIC8+PHBvbHlsaW5lIHBvaW50cz0iMSw5LDUsNSIgc3Ryb2tlPSIjOTljYzAwIiAvPjxsaW5lIHgxPSI3IiB5MT0iNyIgeDI9IjE1IiB5Mj0iNyIgc3Ryb2tlPSIjOTljYzAwIiBzdHJva2Utd2lkdGg9IjIiIC8+PHBvbHlsaW5lIHBvaW50cz0iMSwxMSw1LDE1IiAgc3Ryb2tlPSIjOTljYzAwIiAvPjxwb2x5bGluZSBwb2ludHM9IjEsMTUsNSwxMSIgIHN0cm9rZT0iIzk5Y2MwMCIgLz48bGluZSB4MT0iNyIgeTE9IjEzIiB4Mj0iMTUiIHkyPSIxMyIgc3Ryb2tlPSIjOTljYzAwIiBzdHJva2Utd2lkdGg9IjIiIC8+PC9zdmc+&quot;);"></div>',
-                    textContent
-                ]
-            });
+            let label = new ActionButton({
+                icon: {
+                    size: 'small',
+                    url: Icon.dataURLFromSVG({svg: Icon.SVG_ICONS.CATALOG, color: table.color}),
+                },
+                content: textContent,
+            })
 
             return {
                 title: table.name,
-                label: label,
-                content: content,
-                cssStyle: {
+                label,
+                content,
+                /*cssStyle: {
                     backgroundColor: rgbColor,
                     color: labelColor,
                     padding: '2px',
-                }
+                }*/
             }
         });
 
-        if (this.table) {
-            this.table.remove();
-        }
+        this.hide();
 
         this.table = new Tabs({
-            layout: layout,
+            aladin: this.aladin,
+            layout,
             cssStyle: {
                 position: 'absolute',
-                bottom: '2rem',
+                bottom: '2.4rem',
                 maxWidth: '100%',
             }
-        }, this.target);
+        }, this.aladin.aladinDiv);
     };
 
     MeasurementTable.prototype.hide = function() {

@@ -88,7 +88,7 @@ impl TileFetcherQueue {
         let cfg = hips.get_config();
         // Request for the allsky first
         // The allsky is not mandatory present in a HiPS service but it is better to first try to search for it
-        downloader.fetch(query::PixelMetadata::new(cfg));
+        //downloader.fetch(query::PixelMetadata::new(cfg));
         // Try to fetch the MOC
         downloader.fetch(query::Moc::new(
             format!("{}/Moc.fits", cfg.get_root_url()),
@@ -100,7 +100,8 @@ impl TileFetcherQueue {
         if tile_size <= 128 || cfg.get_min_depth_tile() > 0 {
             // Request the allsky
             downloader.fetch(query::Allsky::new(cfg));
-        } else {
+        }
+        /*else {
             for texture_cell in crate::healpix::cell::ALLSKY_HPX_CELLS_D0 {
                 for cell in texture_cell.get_tile_cells(cfg.delta_depth()) {
                     let hips_url = cfg.get_root_url();
@@ -109,6 +110,6 @@ impl TileFetcherQueue {
                     self.append_base_tile(query, downloader);
                 }
             }
-        }
+        }*/
     }
 }

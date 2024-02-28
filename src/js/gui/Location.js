@@ -33,43 +33,111 @@ import { Coo }            from "../libs/astro/coo.js";
 import { CooFrameEnum }   from "../CooFrameEnum.js";
 
 import { DOMElement } from "./Widgets/Widget.js";
-import copyIconBtn from '../../../assets/icons/copy.svg';
+import copyIconUrl from '../../../assets/icons/copy.svg';
 
 import { ALEvent } from "../events/ALEvent.js";
 import { Layout } from "./Layout.js";
 import { ActionButton } from "./Widgets/ActionButton.js";
-import { Utils } from "../Utils";
+import { Input } from "./Widgets/Input.js";
 
 export class Location extends DOMElement {
     // constructor
     constructor(aladin) {
         let self;
 
+        let parseCoo = () => {
+            let [lon, lat] = aladin.getRaDec()
+            let coo = new Coo(lon, lat, 5);
+            return coo.format('s/')
+        };
+
+        aladin.view.catalogCanvas.addEventListener('click', (e) => {
+            self.field.el.blur();
+        });
+
+        let field = Input.text({
+            classList: ['search'],
+            tooltip: {
+                global: true,
+                aladin,
+                content: 'Search for an object name/position'
+            },
+            placeholder: "Search for an object...",
+            autocomplete: 'off',
+            autofocus: true,
+            actions: {
+                keydown: (e) => {
+                    field.removeClass('aladin-unknownObject'); // remove red border
+
+                    if (e.key === 'Enter') {
+                        field.el.blur();
+
+                        let object = field.get();
+
+                        field.update({placeholder: 'Resolving ' + object + '...'})
+                        field.set('');
+
+                        aladin.gotoObject(
+                            object,
+                            {
+                                error: function () {
+                                    field.addClass('aladin-unknownObject');
+                                    field.update({placeholder: object + ' not found...'})
+                                    field.set('');
+                                    field.el.focus();
+                                },
+                                success: function() {
+                                    field.update({placeholder:'Search for an object...', value: object});
+                                }
+                            }
+                        );
+                    }
+                }
+            },
+            value: parseCoo(),
+            cssStyle: {
+                borderRadius: "0px 5px 5px 0px",
+            }
+        });
+
         let el = Layout.horizontal({
             layout: [
-                ActionButton.createSmallSizedIconBtn({
-                    iconURL: copyIconBtn,
-                    tooltip: {content: 'Copy to clipboard!', position: {direction: 'bottom'}},
+                new ActionButton({
+                    icon: {
+                        monochrome: true,
+                        size: 'small',
+                        url: copyIconUrl,
+                    },
+                    //tooltip: {content: 'Copy to clipboard!', position: {direction: 'bottom'}},
                     action(e) {
                         self.copyCoordinatesToClipboard()
+                    },
+                    cssStyle: {
+                        height: '1.4rem',
+                        width: '1.4rem',
+                        marginRight: 0,
+                        paddingRight: '0.2rem',
+                        borderRadius: "5px 0px 0px 5px",
+                        borderRight: 'none',
                     }
                 }),
-                '<div class="aladin-monospace-text" style="white-space: pre;"></div>'
+                field
             ]
         })
         el.addClass('aladin-location');
 
         super(el)
 
+        this.field = field;
+
         self = this;
         ALEvent.CANVAS_EVENT.listenedBy(aladin.aladinDiv, function (e) {
             let param = e.detail;
 
             if (param.type === 'mouseout') {
-                let [lon, lat] = aladin.wasm.getCenter();
+                let [lon, lat] = aladin.getRaDec();
                 self.update({
-                    lon: lon,
-                    lat: lat,
+                    lon, lat,
                     frame: aladin.view.cooFrame,
                     isViewCenter: true,
                 }, aladin);
@@ -95,11 +163,10 @@ export class Location extends DOMElement {
         });
 
         ALEvent.FRAME_CHANGED.listenedBy(aladin.aladinDiv, function (e) {
-            let [lon, lat] = aladin.wasm.getCenter();
+            let [lon, lat] = aladin.getRaDec();
 
             self.update({
-                lon: lon,
-                lat: lat,
+                lon, lat,
                 isViewCenter: true,
                 frame: e.detail.cooFrame
             }, aladin);
@@ -107,10 +174,9 @@ export class Location extends DOMElement {
 
         this.aladin = aladin;
 
-        let [lon, lat] = aladin.wasm.getCenter();
+        let [lon, lat] = aladin.getRaDec();
         this.update({
-            lon: lon,
-            lat: lat,
+            lon, lat,
             isViewCenter: true,
             frame: aladin.view.cooFrame
         }, aladin)
@@ -122,18 +188,19 @@ export class Location extends DOMElement {
         let self = this;
         const updateFromLonLatFunc = (lon, lat, cooFrame) => {
             var coo = new Coo(lon, lat, Location.prec);
-            let textEl = self.el.querySelector('.aladin-monospace-text')
             if (cooFrame == CooFrameEnum.J2000) {
-                textEl.innerHTML = coo.format('s/');
+                self.field.set(coo.format('s/'));
             }
             else if (cooFrame == CooFrameEnum.J2000d) {
-                textEl.innerHTML = coo.format('d/');
+                self.field.set(coo.format('d/'))
             }
             else {
-                textEl.innerHTML = coo.format('d/');
+                self.field.set(coo.format('d/'))
             }
+            self.field.removeClass('aladin-unknownObject');
 
-            textEl.style.color = options.isViewCenter ? aladin.getReticle().getColor() : 'white';
+            self.field.element().style.color = options.isViewCenter ? aladin.getReticle().getColor() : 'white';
+            //self.field.el.blur()
         };
 
         if (options.lon && options.lat) {
@@ -153,10 +220,8 @@ export class Location extends DOMElement {
     }
 
     copyCoordinatesToClipboard() {
-        let copyTextEl = this.el.querySelector('.aladin-monospace-text');
-
         let msg;
-        navigator.clipboard.writeText(copyTextEl.innerText)
+        navigator.clipboard.writeText(this.field.get())
             .then(() => {
                 msg = 'successful'
                 if (this.aladin.statusBar) {

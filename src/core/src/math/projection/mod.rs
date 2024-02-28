@@ -744,7 +744,7 @@ mod tests {
         use crate::Abort;
 
         fn generate_projection_map(filename: &str, projection: ProjectionType) {
-            let (w, h) = (1024.0, 1024.0);
+            let (w, h) = (512.0, 512.0);
             let mut img = RgbImage::new(w as u32, h as u32);
             for x in 0..(w as u32) {
                 for y in 0..(h as u32) {
@@ -772,22 +772,22 @@ mod tests {
 
         // Zenithal
         generate_projection_map(
-            "./../img/tan.png",
+            "./../img/tan.jpg",
             ProjectionType::Tan(mapproj::zenithal::tan::Tan),
         );
         generate_projection_map(
-            "./../img/stg.png",
+            "./../img/stg.jpg",
             ProjectionType::Stg(mapproj::zenithal::stg::Stg),
         );
         generate_projection_map(
-            "./../img/sin.png",
+            "./../img/sin.jpg",
             ProjectionType::Sin(mapproj::zenithal::sin::Sin),
         );
         generate_projection_map(
-            "./../img/zea.png",
+            "./../img/zea.jpg",
             ProjectionType::Zea(mapproj::zenithal::zea::Zea),
         );
-        generate_projection_map(
+        /*generate_projection_map(
             "./../img/feye.png",
             ProjectionType::Feye(mapproj::zenithal::feye::Feye),
         );
@@ -802,14 +802,14 @@ mod tests {
         generate_projection_map(
             "./../img/air.png",
             ProjectionType::Air(mapproj::zenithal::air::Air::new()),
-        );
+        );*/
 
         // Cylindrical
         generate_projection_map(
-            "./../img/mer.png",
+            "./../img/mer.jpg",
             ProjectionType::Mer(mapproj::cylindrical::mer::Mer),
         );
-        generate_projection_map(
+        /*generate_projection_map(
             "./../img/car.png",
             ProjectionType::Car(mapproj::cylindrical::car::Car),
         );
@@ -820,26 +820,26 @@ mod tests {
         generate_projection_map(
             "./../img/cyp.png",
             ProjectionType::Cyp(mapproj::cylindrical::cyp::Cyp::new()),
-        );
+        );*/
         // Pseudo-cylindrical
         generate_projection_map(
-            "./../img/mer.png",
+            "./../img/ait.jpg",
             ProjectionType::Ait(mapproj::pseudocyl::ait::Ait),
         );
-        generate_projection_map(
+        /*generate_projection_map(
             "./../img/car.png",
             ProjectionType::Par(mapproj::pseudocyl::par::Par),
         );
         generate_projection_map(
             "./../img/cea.png",
             ProjectionType::Sfl(mapproj::pseudocyl::sfl::Sfl),
-        );
+        );*/
         generate_projection_map(
-            "./../img/cyp.png",
+            "./../img/mol.jpg",
             ProjectionType::Mol(mapproj::pseudocyl::mol::Mol::new()),
         );
         // Conic
-        generate_projection_map(
+        /*generate_projection_map(
             "./../img/cod.png",
             ProjectionType::Cod(mapproj::conic::cod::Cod::new()),
         );
@@ -847,6 +847,6 @@ mod tests {
         generate_projection_map(
             "./../img/hpx.png",
             ProjectionType::Hpx(mapproj::hybrid::hpx::Hpx),
-        );
+        );*/
     }
 }

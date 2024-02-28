@@ -29,9 +29,8 @@ pub struct Texture {
 
     // Num tiles written for the gpu
     num_tiles_written: usize,
-    /*// Flag telling whether the texture is available
+    // Flag telling whether the texture is available
     // for drawing
-    is_available: bool,*/
     missing: bool,
 }
 
@@ -45,7 +44,6 @@ impl Texture {
         let full = false;
         let texture_cell = *texture_cell;
         let uniq = texture_cell.uniq();
-        //let is_available = false;
         let missing = true;
         let num_tiles_written = 0;
         Texture {
@@ -56,7 +54,6 @@ impl Texture {
             idx,
             start_time,
             full,
-            //is_available,
             num_tiles_written,
             missing,
         }
@@ -94,6 +91,7 @@ impl Texture {
             if self.num_tiles_written == num_tiles_per_texture {
                 // The texture is full and available
                 self.full = true;
+                console_log("tile full");
                 self.start_time = Some(Time::now());
             }
         }
@@ -150,7 +148,6 @@ impl Texture {
         self.start_time = None;
         self.time_request = time_request;
         self.tiles.clear();
-        //self.is_available = false;
         self.missing = true;
         self.num_tiles_written = 0;
     }
@@ -195,7 +192,10 @@ impl<'a> TextureUniforms<'a> {
     }
 }
 
-use al_core::shader::{SendUniforms, ShaderBound};
+use al_core::{
+    log::console_log,
+    shader::{SendUniforms, ShaderBound},
+};
 impl<'a> SendUniforms for TextureUniforms<'a> {
     fn attach_uniforms<'b>(&self, shader: &'b ShaderBound<'b>) -> &'b ShaderBound<'b> {
         shader

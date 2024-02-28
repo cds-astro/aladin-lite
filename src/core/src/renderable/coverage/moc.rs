@@ -167,7 +167,7 @@ impl MOCIntern {
 
     fn cell_indices_in_view(&mut self, camera: &mut CameraViewPort) {
         // Cache it for several reuse during the same frame
-        let view_depth = camera.get_tile_depth();
+        let view_depth = camera.get_texture_depth();
         let cells_iter = camera.get_hpx_cells(view_depth, CooSystem::ICRS);
 
         if self.nodes.is_empty() {

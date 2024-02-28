@@ -18,14 +18,11 @@
 //
 
 import { MocServer } from "../../MocServer.js";
-import  autocomplete from 'autocompleter';
 
 import { Box } from "../Widgets/Box.js";
 import { Layout } from "../Layout.js";
-import { Input } from "../Widgets/Input.js";
 import { ActionButton } from "../Widgets/ActionButton.js";
-import { Utils } from "../../Utils.ts";
-
+import { Input } from "../Widgets/Input.js";
 /******************************************************************************
  * Aladin Lite project
  * 
@@ -37,18 +34,21 @@ import { Utils } from "../../Utils.ts";
  *****************************************************************************/
 
  export class HiPSSelectorBox extends Box {
+    static HiPSList = {};
+
     constructor(aladin) {
-        let inputText = Input.text({
-            label: "Survey",
-            name: 'autocomplete',
-            type: 'text',
-            placeholder: "Type ID, title, keyword or URL",
-            autocomplete: 'off',
-        });
+        MocServer.getAllHiPSes()
+            .then((HiPSes) => {
+                HiPSes.forEach((h) => {
+                    HiPSSelectorBox.HiPSList[h.obs_title] = h
+                });
+
+                inputText.update({autocomplete: {options: Object.keys(HiPSSelectorBox.HiPSList)}})
+            });
 
         let self;
         let loadBtn = new ActionButton({
-            content: 'Load',
+            content: 'Add',
             disable: true,
             action(e) {
                 self.callback && self.callback(inputText.get());
@@ -58,6 +58,23 @@ import { Utils } from "../../Utils.ts";
                 self._hide();
             }
         })
+
+        let inputText = Input.text({
+            classList: ['search'],
+            name: 'survey',
+            placeholder: "Type survey keywords",
+            actions: {
+                change() {
+                    const HiPS = HiPSSelectorBox.HiPSList[this.value];
+                    inputText.set(HiPS.ID);
+                    loadBtn.update({disable: false});
+                },
+                keydown() {
+                    loadBtn.update({disable: true});
+                }
+            }
+        });
+
         super(
             aladin,
             {
@@ -70,11 +87,9 @@ import { Utils } from "../../Utils.ts";
             }
         )
 
-        this.addClass('aladin-box-night')
-
         self = this;
         // Query the mocserver
-        MocServer.getAllHiPSes();
+        /*MocServer.getAllHiPSes();
 
         autocomplete({
             input: inputText.element(),
@@ -144,7 +159,7 @@ import { Utils } from "../../Utils.ts";
 
                 return itemElement;
             }
-        });
+        });*/
     }
 
     attach(callback) {

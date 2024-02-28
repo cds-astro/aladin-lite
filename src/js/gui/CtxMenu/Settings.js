@@ -54,6 +54,7 @@ export class SettingsCtxMenu extends ContextMenu {
                 aladin.setBackgroundColor(hex)
             }
         });
+
         let reticleColor = new Color(aladin.getReticle().getColor())
         self.reticleColorInput = Input.color({
             value: reticleColor.toHex(),
@@ -111,10 +112,8 @@ export class SettingsCtxMenu extends ContextMenu {
             action(conn) {
                 if (conn.isConnected()) {
                     conn.unregister();
-                    sampBtn.update({tooltip: {content: 'Connect to SAMP Hub'}})
                 } else {
                     conn.register();
-                    sampBtn.update({tooltip: {content: 'Disconnect'}})
                 }
 
                 self._hide()
@@ -137,27 +136,22 @@ export class SettingsCtxMenu extends ContextMenu {
 
         let self = this;
 
-        let reticleSizeSubMenu = [];
-        const fontSize = 5; // 10px
-        for (let em = 1; em <= 10; em++) {
-            let pxSize = fontSize * em;
-            reticleSizeSubMenu.push({
-                label: em,
-                action(o) {
-                    let reticle = self.aladin.getReticle();
-                    reticle.update({size: pxSize})
-                }
-            })
-        }
+        let reticle = self.aladin.getReticle();
+
+        let sliderReticleSize = Input.slider({
+            name: 'reticleSize',
+            type: 'range',
+            min: 0.0,
+            max: 50,
+            value: reticle.getSize(),
+            change(e) {
+                reticle.update({size: e.target.value})
+            }
+        });
 
         this.attach([
-            {
-                label: {
-                    content: [self.backgroundColorInput, 'Back color']
-                },
-                mustHide: false,
-                action(o) {}
-            },
+            //ProjectionCtxMenu.getLayout(self.aladin),
+            GridSettingsCtxMenu.getLayout(self.aladin),
             {
                 label: 'Reticle',
                 subMenu: [
@@ -165,6 +159,7 @@ export class SettingsCtxMenu extends ContextMenu {
                         label: {
                             content: [self.reticleCheckbox, 'Show/Hide']
                         },
+                        mustHide: false,
                         action(o) {
                             let newVal = self.toggleCheckbox(self.reticleCheckbox);
                             self.aladin.showReticle(newVal)
@@ -174,25 +169,24 @@ export class SettingsCtxMenu extends ContextMenu {
                     },
                     {
                         label: {
-                            content: [
-                                self.reticleColorInput,
-                                'Color',
-                            ]
-                        },
-                        mustHide: false,
-                        action(o) {}
+                            content: [self.reticleColorInput, 'Color']
+                        }
                     },
                     {
-                        label: 'Size',
-                        subMenu: reticleSizeSubMenu
+                        label: Layout.horizontal(['Size', sliderReticleSize]),
                     }
                 ]
             },
-            GridSettingsCtxMenu.getLayout(self.aladin),
+            {
+                label: {
+                    content: [self.backgroundColorInput, 'Back color']
+                },
+            },
             {
                 label: {
                     content: [self.hpxGridCheckbox, 'HEALPix grid']
                 },
+                mustHide: false,
                 action(o) {
                     let newVal = self.toggleCheckbox(self.hpxGridCheckbox);
                     self.aladin.showHealpixGrid(newVal)
@@ -210,11 +204,9 @@ export class SettingsCtxMenu extends ContextMenu {
                 subMenu: [
                     {
                         label: 'Stack',
-                        selected: self.menu.isShown('stack'),
+                        selected: self.menu.isShown('overlay'),
                         action(o) {
-                            toggleWindow('stack')
                             toggleWindow('overlay')
-                            toggleWindow('survey')
                         }
                     },
                     {
@@ -222,13 +214,6 @@ export class SettingsCtxMenu extends ContextMenu {
                         selected: self.menu.isShown('simbad'),
                         action(o) {
                             toggleWindow('simbad');
-                        }
-                    },
-                    {
-                        label: 'Go to',
-                        selected: self.menu.isShown('goto'),
-                        action(o) {                            
-                            toggleWindow('goto');
                         }
                     },
                     {
@@ -243,8 +228,9 @@ export class SettingsCtxMenu extends ContextMenu {
             {
                 label: {
                     icon: {
+                        monochrome: true,
                         tooltip: {content: 'Documentation about Aladin Lite', position: {direction: 'top'}},
-                        iconURL: helpIconBtn,
+                        url: helpIconBtn,
                         size: 'small',
                         cssStyle: {
                             cursor: 'help',
@@ -295,6 +281,12 @@ export class SettingsCtxMenu extends ContextMenu {
                 ]
             }
         ]);
+    }
+
+    _hide() {
+        this._attach()
+
+        super._hide();
     }
 
     _show(options) {

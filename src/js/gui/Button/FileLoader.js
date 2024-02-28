@@ -43,7 +43,11 @@ export class FileLoaderActionButton extends ActionButton {
     // Constructor
     constructor(options) {
         super({
-            iconURL: uploadIconUrl,
+            icon: {
+                size: 'medium',
+                monochrome: true,
+                url: uploadIconUrl
+            },
             tooltip: options.tooltip,
             cssStyle: {
                 backgroundPosition: 'center center',
@@ -67,7 +71,5 @@ export class FileLoaderActionButton extends ActionButton {
                 fileLoader.click();
             }
         })
-
-        this.addClass('medium-sized-icon')
     }
 }

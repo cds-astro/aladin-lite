@@ -35,7 +35,7 @@ pub struct CameraViewPort {
     dpi: f32,
 
     // HEALPix depth of 512 large tiles
-    tile_depth: u8,
+    texture_depth: u8,
 
     // Internal variable used for projection purposes
     ndc_to_clip: Vector2<f64>,
@@ -132,7 +132,7 @@ impl CameraViewPort {
         let rotation_center_angle = Angle(0.0);
         let reversed_longitude = false;
 
-        let tile_depth = 0;
+        let texture_depth = 0;
 
         let view_hpx_cells = ViewHpxCells::new();
         CameraViewPort {
@@ -171,7 +171,7 @@ impl CameraViewPort {
             // for the last time
             time_last_move,
 
-            tile_depth,
+            texture_depth,
 
             // A reference to the WebGL2 context
             gl,
@@ -184,7 +184,7 @@ impl CameraViewPort {
 
     pub fn register_view_frame(&mut self, frame: CooSystem, proj: &ProjectionType) {
         self.view_hpx_cells.register_frame(
-            self.tile_depth,
+            self.texture_depth,
             &self.fov,
             &self.center,
             self.coo_sys,
@@ -195,7 +195,7 @@ impl CameraViewPort {
 
     pub fn unregister_view_frame(&mut self, frame: CooSystem, proj: &ProjectionType) {
         self.view_hpx_cells.unregister_frame(
-            self.tile_depth,
+            self.texture_depth,
             &self.fov,
             &self.center,
             self.coo_sys,
@@ -408,14 +408,14 @@ impl CameraViewPort {
             self,
         ));
 
-        self.compute_tile_depth();
+        self.compute_texture_depth();
 
         // recompute the scissor with the new aperture
         self.recompute_scissor();
 
         // compute the hpx cells
         self.view_hpx_cells.update(
-            self.tile_depth,
+            self.texture_depth,
             &self.fov,
             &self.center,
             self.get_coo_system(),
@@ -423,7 +423,7 @@ impl CameraViewPort {
         );
     }
 
-    fn compute_tile_depth(&mut self) {
+    fn compute_texture_depth(&mut self) {
         /*// Compute a depth from a number of pixels on screen
         let width = self.width;
         let aperture = self.aperture.0 as f32;
@@ -440,7 +440,7 @@ impl CameraViewPort {
         const DEPTH_OFFSET_TEXTURE: u32 = 9;
         // The depth of the texture corresponds to the depth of a pixel
         // minus the offset depth of the texture
-        self.tile_depth = if DEPTH_OFFSET_TEXTURE > depth_pixel {
+        self.texture_depth = if DEPTH_OFFSET_TEXTURE > depth_pixel {
             0_u8
         } else {
             (depth_pixel - DEPTH_OFFSET_TEXTURE) as u8
@@ -461,15 +461,15 @@ impl CameraViewPort {
             depth_pixel = depth_pixel - 1;
         }
         const DEPTH_OFFSET_TEXTURE: usize = 9;
-        self.tile_depth = if DEPTH_OFFSET_TEXTURE > depth_pixel {
+        self.texture_depth = if DEPTH_OFFSET_TEXTURE > depth_pixel {
             0_u8
         } else {
             (depth_pixel - DEPTH_OFFSET_TEXTURE) as u8
         };
     }
 
-    pub fn get_tile_depth(&self) -> u8 {
-        self.tile_depth
+    pub fn get_texture_depth(&self) -> u8 {
+        self.texture_depth
     }
 
     pub fn rotate(
@@ -519,8 +519,13 @@ impl CameraViewPort {
         // register the new one
         //self.view_hpx_cells.register_frame(new_coo_sys);
         // recompute the coverage if necessary
-        self.view_hpx_cells
-            .update(self.tile_depth, &self.fov, &self.center, new_coo_sys, proj);
+        self.view_hpx_cells.update(
+            self.texture_depth,
+            &self.fov,
+            &self.center,
+            new_coo_sys,
+            proj,
+        );
 
         // Record the new system
         self.coo_sys = new_coo_sys;
@@ -651,7 +656,7 @@ impl CameraViewPort {
 
         // compute the hpx cells
         self.view_hpx_cells.update(
-            self.tile_depth,
+            self.texture_depth,
             &self.fov,
             &self.center,
             self.get_coo_system(),

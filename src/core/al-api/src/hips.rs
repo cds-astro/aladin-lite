@@ -61,12 +61,19 @@ pub struct HiPSProperties {
     // Parametrable by the user
     min_cutout: Option<f32>,
     max_cutout: Option<f32>,
+
+    creator_did: String,
 }
 
 impl HiPSProperties {
     #[inline(always)]
     pub fn get_url(&self) -> &str {
         &self.url
+    }
+
+    #[inline(always)]
+    pub fn get_creator_did(&self) -> &str {
+        &self.creator_did
     }
 
     #[inline(always)]

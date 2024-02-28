@@ -9,6 +9,7 @@ use al_core::colormap::Colormap;
 use al_core::colormap::Colormaps;
 use al_core::image::format::ChannelType;
 use al_core::image::Image;
+use al_core::log::console_log;
 use al_core::shader::Shader;
 use al_core::webgl_ctx::GlWrapper;
 use al_core::VecData;
@@ -28,6 +29,7 @@ use crate::healpix::{cell::HEALPixCell, coverage::HEALPixCoverage};
 use crate::math::angle::ToAngle;
 use crate::math::lonlat::LonLat;
 use crate::time::Time;
+use al_core::log;
 
 // Recursively compute the number of subdivision needed for a cell
 // to not be too much skewed
@@ -79,8 +81,8 @@ fn is_too_large(cell: &HEALPixCell, camera: &CameraViewPort, projection: &Projec
 fn num_subdivision(cell: &HEALPixCell, camera: &CameraViewPort, projection: &ProjectionType) -> u8 {
     let d = cell.depth();
     let mut num_sub = 0;
-    if d < 3 {
-        num_sub = 3 - d;
+    if d < 2 {
+        num_sub = 2 - d;
     }
 
     // Largest deformation cell among the cells of a specific depth
@@ -375,8 +377,7 @@ pub struct HiPS {
     vao: VertexArrayObject,
     gl: WebGlContext,
 
-    min_depth_tile: u8,
-
+    //min_depth_tile: u8,
     footprint_moc: Option<HEALPixCoverage>,
 }
 
@@ -497,7 +498,7 @@ impl HiPS {
             .unbind();
 
         let num_idx = 0;
-        let min_depth_tile = config.get_min_depth_tile();
+        //let min_depth_tile = config.get_min_depth_tile();
 
         let textures = ImageSurveyTextures::new(gl, config)?;
 
@@ -521,8 +522,7 @@ impl HiPS {
             m1,
 
             idx_vertices,
-            min_depth_tile,
-
+            //min_depth_tile,
             footprint_moc,
         })
     }
@@ -532,57 +532,57 @@ impl HiPS {
         camera: &'a mut CameraViewPort,
     ) -> Option<impl Iterator<Item = &'a HEALPixCell> + 'a> {
         // do not add tiles if the view is already at depth 0
-        let depth_tile = camera
-            .get_tile_depth()
-            .min(self.get_config().get_max_tile_depth());
+        let depth_tile = (camera.get_texture_depth() + self.get_config().delta_depth())
+            .min(self.get_config().get_max_depth_tile())
+            .max(self.get_config().get_min_depth_tile());
 
-        let min_depth_tile = self.get_min_depth_tile();
-        let delta_depth = self.get_config().delta_depth();
+        //let min_depth_tile = self.get_min_depth_tile();
+        //let delta_depth = self.get_config().delta_depth();
 
-        let min_bound_depth = min_depth_tile.max(delta_depth);
+        //let min_bound_depth = min_depth_tile.max(delta_depth);
         // do not ask to query tiles that:
         // * either do not exist because < to min_depth_tile
         // * either are part of a base tile already handled i.e. tiles < delta_depth
-        if depth_tile >= min_bound_depth {
-            let survey_frame = self.get_config().get_frame();
-            let tile_cells_iter = camera
-                .get_hpx_cells(depth_tile, survey_frame)
-                //.flat_map(move |cell| {
-                //    let texture_cell = cell.get_texture_cell(delta_depth);
-                //    texture_cell.get_tile_cells(delta_depth)
-                //})
-                .filter(move |tile_cell| {
-                    if let Some(moc) = self.footprint_moc.as_ref() {
-                        if moc.intersects_cell(tile_cell) {
-                            !self.update_priority_tile(tile_cell)
-                        } else {
-                            false
-                        }
-                    } else {
-                        !self.update_priority_tile(tile_cell)
-                    }
-                });
+        //console_log(depth_tile);
+        //console_log(min_bound_depth);
 
-            /*if depth_tile >= min_depth_tile + 3 {
-                // Retrieve the grand-grand parent cells but not if it is root ones as it may interfere with already done requests
-                let tile_cells_ancestor_iter =
-                    (&tile_cells_iter).map(|tile_cell| tile_cell.ancestor(3));
+        //if depth_tile >= min_bound_depth {
+        //let depth_tile = depth_tile.max(min_bound_depth);
+        let survey_frame = self.get_config().get_frame();
+        let tile_cells_iter = camera
+            .get_hpx_cells(depth_tile, survey_frame)
+            //.flat_map(move |cell| {
+            //    let texture_cell = cell.get_texture_cell(delta_depth);
+            //    texture_cell.get_tile_cells(delta_depth)
+            //})
+            .filter(move |tile_cell| {
+                if let Some(moc) = self.footprint_moc.as_ref() {
+                    moc.intersects_cell(tile_cell) && !self.update_priority_tile(tile_cell)
+                } else {
+                    !self.update_priority_tile(tile_cell)
+                }
+            });
 
-                tile_cells_iter.chain(tile_cells_ancestor_iter);
-            }*/
+        /*if depth_tile >= min_depth_tile + 3 {
+            // Retrieve the grand-grand parent cells but not if it is root ones as it may interfere with already done requests
+            let tile_cells_ancestor_iter =
+                (&tile_cells_iter).map(|tile_cell| tile_cell.ancestor(3));
 
-            /*let tile_cells: HashSet<_> = if let Some(moc) = survey.get_moc() {
-                tile_cells_iter
-                    .filter(|tile_cell| moc.intersects_cell(tile_cell))
-                    .collect()
-            } else {
-                tile_cells_iter.collect()
-            };*/
+            tile_cells_iter.chain(tile_cells_ancestor_iter);
+        }*/
 
-            Some(tile_cells_iter)
+        /*let tile_cells: HashSet<_> = if let Some(moc) = survey.get_moc() {
+            tile_cells_iter
+                .filter(|tile_cell| moc.intersects_cell(tile_cell))
+                .collect()
         } else {
-            None
-        }
+            tile_cells_iter.collect()
+        };*/
+
+        Some(tile_cells_iter)
+        //} else {
+        //    None
+        //}
     }
 
     pub fn contains_tile(&self, cell: &HEALPixCell) -> bool {
@@ -650,7 +650,8 @@ impl HiPS {
         let pos = crate::coosys::apply_coo_system(camera_frame, hips_frame, &pos.vector());
 
         // Get the array of textures from that survey
-        let tile_depth = camera.get_tile_depth().min(cfg.get_max_depth());
+        let tile_depth = camera.get_texture_depth().min(cfg.get_max_depth_texture());
+
         let pos_tex = self
             .textures
             .get_pixel_position_in_texture(&pos.lonlat(), tile_depth)?;
@@ -692,7 +693,8 @@ impl HiPS {
 
         let mut off_indices = 0;
 
-        let depth = camera.get_tile_depth().min(cfg.get_max_depth());
+        let depth = camera.get_texture_depth().min(cfg.get_max_depth_texture());
+
         let view_cells: Vec<_> = camera.get_hpx_cells(depth, hips_frame).cloned().collect();
         for cell in &view_cells {
             // filter textures that are not in the moc
@@ -726,7 +728,11 @@ impl HiPS {
                                 cell,
                             ))
                         } else {
-                            None
+                            Some(TextureToDraw::new(
+                                ending_cell_in_tex,
+                                ending_cell_in_tex,
+                                cell,
+                            ))
                         }
                     } else {
                         None
@@ -743,7 +749,11 @@ impl HiPS {
                                 cell,
                             ))
                         } else {
-                            None
+                            Some(TextureToDraw::new(
+                                ending_cell_in_tex,
+                                ending_cell_in_tex,
+                                cell,
+                            ))
                         }
                     } else {
                         None
@@ -946,15 +956,15 @@ impl HiPS {
         &self.view
     }*/
 
-    #[inline]
+    /*#[inline]
     pub fn get_min_depth_tile(&self) -> u8 {
         self.min_depth_tile
-    }
+    }*/
 
-    #[inline]
+    /*#[inline]
     pub fn is_ready(&self) -> bool {
         self.textures.is_ready()
-    }
+    }*/
 
     #[inline]
     pub fn get_ready_time(&self) -> &Option<Time> {

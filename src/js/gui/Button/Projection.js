@@ -18,8 +18,9 @@
 //
 
 import { CtxMenuActionButtonOpener } from "./CtxMenuOpener";
-import projectionSvg from '../../../../assets/icons/projection.svg';
 import { ProjectionEnum } from "../../ProjectionEnum";
+import projectionIconUrl from '../../../../assets/icons/projection.svg';
+import { ALEvent } from "../../events/ALEvent";
 /******************************************************************************
  * Aladin Lite project
  *
@@ -41,13 +42,15 @@ import { ProjectionEnum } from "../../ProjectionEnum";
      * @param {Aladin} aladin - The aladin instance.
      */
     constructor(aladin, options) {
-        //let ctxMenu = ;
         super({
-            iconURL: projectionSvg,
-            tooltip: {content: 'Change the view projection', position: {direction: 'top'}},
+            icon: {
+                monochrome: true,
+                size: 'small',
+                url: projectionIconUrl,
+            },
+            content: [ProjectionEnum[aladin.getProjectionName()].label],
+            tooltip: {content: 'Change the view projection', position: {direction: 'bottom left'}},
             cssStyle: {
-                backgroundColor: '#bababa',
-                borderColor: '#484848',
                 cursor: 'pointer',
             },
             ...options
@@ -56,7 +59,14 @@ import { ProjectionEnum } from "../../ProjectionEnum";
         let ctxMenu = this._buildLayout(aladin);
         this.update({ctxMenu})
 
-        this.addClass('medium-sized-icon')
+        this._addEventListeners(aladin)
+    }
+
+    _addEventListeners(aladin) {
+        let self = this;
+        ALEvent.PROJECTION_CHANGED.listenedBy(aladin.aladinDiv, function (e) {
+            self.update({content: [ProjectionEnum[aladin.getProjectionName()].label]})
+        });
     }
 
     _buildLayout(aladin) {
@@ -73,7 +83,7 @@ import { ProjectionEnum } from "../../ProjectionEnum";
                     aladin.setProjection(key)
 
                     let ctxMenu = self._buildLayout(aladin);
-                    self.update({ctxMenu});
+                    self.update({ctxMenu, content: proj.label});
                 }
             })
         }

@@ -31,31 +31,26 @@
 import { ALEvent } from "../../events/ALEvent.js";
 import { Input } from "../Widgets/Input.js";
 import { ActionButton } from "../Widgets/ActionButton.js";
-import { Layout } from "../Layout.js";
 import { Color } from "../../Color.js";
 import thicknessLineIcon from './../../../../assets/icons/thickness.svg';
-import labelSizeIcon from './../../../../assets/icons/font-size.svg';
 
 export let GridSettingsCtxMenu = (function () {
 
     let GridSettingsCtxMenu = {};
 
     GridSettingsCtxMenu.getLayout = function (aladin) {
-        let colorInput = new Input({
-            layout: {
-                name: 'gridColor',
-                type: 'color',
-                value: (() => {
-                    let c = aladin.getGridOptions().color;
-                    const cHex = Color.rgbToHex(c.r * 255, c.g * 255, c.b * 255)
-                    return cHex;
-                })(),
-                change(e) {
-                    aladin.setCooGrid({color: e.target.value})
-                }
+        let colorInput = Input.color({
+            name: 'gridColor',
+            type: 'color',
+            value: (() => {
+                let c = aladin.getGridOptions().color;
+                const cHex = Color.rgbToHex(c.r * 255, c.g * 255, c.b * 255)
+                return cHex;
+            })(),
+            change(e) {
+                aladin.setCooGrid({color: e.target.value})
             }
         });
-        colorInput.addClass("aladin-input-color");
 
         let opacitySlider = Input.slider({
             name: 'opacity',
@@ -83,7 +78,10 @@ export let GridSettingsCtxMenu = (function () {
         });
 
         const thicknessLineBtn = ActionButton.createSmallSizedIconBtn({
-            iconURL: thicknessLineIcon,
+            icon: {
+                url: thicknessLineIcon,
+                monochrome: true,
+            },
             tooltip: {content: 'Grid line thickness', position: {direction: 'left'}},
             cssStyle: {
                 backgroundColor: '#bababa',
@@ -140,24 +138,18 @@ export let GridSettingsCtxMenu = (function () {
             subMenu: [
                 {
                     label: {
-                        content: ['Color ', colorInput],
+                        content: [colorInput, 'Color '],
                     },
-                    mustHide: false,
-                    action(o) {}
                 },
                 {
                     label: {
                         content: ['Opacity ', opacitySlider],
                     },
-                    mustHide: false,
-                    action(o) {}
                 },
                 {
                     label: {
                         content: ['Label', labelSizeSlider]
                     },
-                    mustHide: false,
-                    action(o) {}
                 }
             ]
         }

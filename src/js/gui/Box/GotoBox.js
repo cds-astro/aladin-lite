@@ -31,6 +31,7 @@
 import { Box } from "../Widgets/Box.js";
 import { Input } from "../Widgets/Input.js";
 import { Layout } from "../Layout.js";
+import { SearchTextInput } from "../Input/InputTextSearch.js";
  
 export class GotoBox extends Box {
     // Constructor
@@ -49,41 +50,13 @@ export class GotoBox extends Box {
                 }
             })
         ]);*/
-        let textField = Input.text({
-            label: "Go to:",
-            name: "goto",
-            type: "text",
-            placeholder: 'Object name/position',
-            tooltip: {
-                global: true,
-                aladin,
-                content: 'Search for an object name/position'
-            },
-            //autocapitalize: 'off',
-            autocomplete: 'off',
-            autofocus: true,
-            actions: {
-                keydown: (e) => {
-                    textField.removeClass('aladin-unknownObject'); // remove red border
-
-                    if (e.key === 'Enter') {
-                        let object = textField.get();
-                        textField.el.blur();
-
-                        aladin.gotoObject(
-                            object,
-                            {
-                                error: function () {
-                                    textField.addClass('aladin-unknownObject');
-                                }
-                            }
-                        );
-                    }
-                }
+        let textField = new SearchTextInput(aladin, {
+            cssStyle: {
+                width: '15rem'
             }
         });
 
-        super(aladin, {content: Layout.horizontal(["Target:  ", textField])})
+        super(aladin, {content: textField, cssStyle: {backgroundColor: 'transparent', padding: '0 0 0 0.2rem'}})
 
         this.addClass('aladin-box-night');
         this.textField = textField;

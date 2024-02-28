@@ -143,6 +143,7 @@ pub struct HiPSConfig {
     // Delta depth i.e. log2(texture_size / tile_size)
     delta_depth: u8,
     min_depth_tile: u8,
+    min_depth_texture: u8,
     // Num tiles per texture
     num_tiles_per_texture: usize,
     // Max depth of the current HiPS tiles
@@ -169,6 +170,7 @@ pub struct HiPSConfig {
     format: ImageFormatType,
     dataproduct_subtype: Option<Vec<String>>,
     colored: bool,
+    pub creator_did: String,
 }
 
 use crate::math;
@@ -189,6 +191,7 @@ impl HiPSConfig {
     /// * `img_format` - Image format wanted by the user
     pub fn new(properties: &HiPSProperties, img_ext: ImageExt) -> Result<HiPSConfig, JsValue> {
         let root_url = properties.get_url();
+        let creator_did = properties.get_creator_did().to_string();
         // Define the size of the 2d texture array depending on the
         // characterics of the client
         let num_textures = (NUM_TEXTURES_BY_SLICE * NUM_SLICES) as usize;
@@ -297,9 +300,14 @@ impl HiPSConfig {
 
         let is_allsky = sky_fraction >= 1.0;
 
-        let min_depth_texture = properties.get_min_order();
-        let min_depth_tile = min_depth_texture.unwrap_or(0);
+        let min_depth_tile = properties.get_min_order().unwrap_or(0);
+        let min_depth_texture = if min_depth_tile >= delta_depth {
+            min_depth_tile - delta_depth
+        } else {
+            0
+        };
         let hips_config = HiPSConfig {
+            creator_did,
             // HiPS name
             root_url: root_url.to_string(),
             // Tile size & blank tile data
@@ -314,6 +322,7 @@ impl HiPSConfig {
             // Max depth of the current HiPS tiles
             max_depth_texture,
             max_depth_tile,
+            min_depth_texture,
             min_depth_tile,
             num_textures,
 
@@ -463,23 +472,33 @@ impl HiPSConfig {
     }
 
     #[inline(always)]
+    pub fn get_min_depth_texture(&self) -> u8 {
+        self.min_depth_texture
+    }
+
+    #[inline(always)]
+    pub fn get_creator_did(&self) -> &str {
+        &self.creator_did
+    }
+
+    #[inline(always)]
     pub fn get_tile_size(&self) -> i32 {
         self.tile_size
     }
 
     #[inline(always)]
-    pub fn get_max_depth(&self) -> u8 {
+    pub fn get_max_depth_texture(&self) -> u8 {
         self.max_depth_texture
+    }
+
+    #[inline(always)]
+    pub fn get_max_depth_tile(&self) -> u8 {
+        self.max_depth_tile
     }
 
     #[inline(always)]
     pub fn get_frame(&self) -> CooSystem {
         self.frame
-    }
-
-    #[inline(always)]
-    pub fn get_max_tile_depth(&self) -> u8 {
-        self.max_depth_tile
     }
 
     #[inline(always)]

@@ -16,7 +16,7 @@ Aladin Lite v3 is out! Please play with [Aladin Lite v3 at this link](https://al
 
 ## Releases
 
-For integrating Aladin Lite into your personal website, please refer to this [release page](https://aladin.cds.unistra.fr/AladinLite/doc/release/#download).
+For integrating Aladin Lite into your personal website, please refer to this [release page](https://aladin.cds.unistra.fr/AladinLite/doc/release/).
 Always prefer using the latest version. If you want the new features without minding about the bugs coming with it, then the beta is the good way to go.
 
 ## Embed it into your projects

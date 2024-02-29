@@ -27,7 +27,7 @@
  * Author: Thomas Boch[CDS], Matthieu Baumann[CDS]
  *
  *****************************************************************************/
-
+import { version } from './../../package.json';
 import { View } from "./View.js";
 import { Utils } from "./Utils";
 import { Overlay } from "./Overlay.js";
@@ -87,6 +87,8 @@ import { ProjectionActionButton } from "./gui/Button/Projection.js";
  * @property {boolean} [showSettingsControl=true] - Whether to show the settings control toolbar.
  *
  * @property {boolean} [showShareControl=false] - Whether to show the share control toolbar.
+ * @property {boolean} [showStatusBar=true] - Whether to show the status bar. Enabled by default.
+
  *
  * @property {boolean} [showFrame=true] - Whether to show the viewport frame.
  * @property {boolean} [showFov=true] - Whether to show the field of view indicator.
@@ -533,7 +535,7 @@ export let Aladin = (function () {
     }
 
     /**** CONSTANTS ****/
-    Aladin.VERSION = "3.0-beta0";
+    Aladin.VERSION = version;
 
     Aladin.JSONP_PROXY = "https://alaskybis.cds.unistra.fr/cgi/JSONProxy";
     //Aladin.JSONP_PROXY = "https://alaskybis.unistra.fr/cgi/JSONProxy";

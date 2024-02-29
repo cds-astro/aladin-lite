@@ -10,7 +10,7 @@
 <script type="text/javascript">
     var aladin;
     A.init.then(() => {
-        aladin = A.aladin('#aladin-lite-div', {fullScreen: true, cooFrame: "ICRSd", survey: 'https://alasky.cds.unistra.fr/DSS/DSSColor/', fov: 180, showContextMenu: true});
+        aladin = A.aladin('#aladin-lite-div', {fullScreen: true, cooFrame: "ICRSd", showSimbadPointerControl: true, showShareControl: true, showShareControl: true, survey: 'https://alasky.cds.unistra.fr/DSS/DSSColor/', fov: 180, showContextMenu: true});
         // manage URL parameters
         const searchParams = new URL(document.location).searchParams;
         if (searchParams.has('baseImageLayer')) {

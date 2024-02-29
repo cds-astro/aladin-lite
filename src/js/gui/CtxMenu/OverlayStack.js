@@ -867,12 +867,18 @@ export class OverlayStack extends ContextMenu {
             }
         })
 
+        const innerHeight = this.aladin.aladinDiv.offsetHeight;
         this.element().querySelectorAll(".surveyItem")
             .forEach((surveyItem) => {
                 surveyItem.querySelectorAll(".aladin-context-sub-menu")
                     // skip the first menu
                     .forEach((subMenu) => {
-                        subMenu.style.maxHeight = '50vh';
+                        subMenu.style.display = 'block'
+
+                        let Y = innerHeight - (subMenu.getBoundingClientRect().y - this.aladin.aladinDiv.getBoundingClientRect().y);
+                        subMenu.style.display = 'none'
+
+                        subMenu.style.maxHeight = Y + 'px';
                         subMenu.style.overflowY = 'scroll';
                     })
             })

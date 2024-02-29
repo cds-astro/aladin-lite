@@ -146,7 +146,7 @@ export class DOMElement {
         }
 
         let left, top, bottom, right;
-        let x = 0, y = 0;
+        let x, y;
 
         // handle the anchor/dir case with higher priority
         const {offsetWidth, offsetHeight} = el;
@@ -173,12 +173,24 @@ export class DOMElement {
             }
 
             if (typeof top === 'number') {
+                if (top + offsetHeight >= innerHeight) {
+                    y = '-' + (top + offsetHeight - innerHeight) + 'px';
+                } else if (top < 0) {
+                    y = Math.abs(top) + 'px';
+                }
+
                 top = top + 'px';
             }
             if (typeof bottom === 'number') {
                 bottom = bottom + 'px';
             }
             if (typeof left === 'number') {
+                if (left + offsetWidth > innerWidth) {
+                    x = '-' + (left + offsetWidth - innerWidth) + 'px';
+                } else if (left < 0) {
+                    x = Math.abs(left) + 'px';
+                }
+
                 left = left + 'px';
             }
             if (typeof right === 'number') {
@@ -245,7 +257,7 @@ export class DOMElement {
             }
             if (right) {
                 right = right + 'px';
-            }   
+            }
         }
 
         if (bottom !== undefined) {
@@ -261,7 +273,12 @@ export class DOMElement {
             el.style.right = right;
         }
 
-        if (x && y) {
+        if (x || y) {
+            if (!x)
+                x = 0
+            if (!y)
+                y = 0
+
             el.style.transform = `translate(${x}, ${y})`;
         }
     }

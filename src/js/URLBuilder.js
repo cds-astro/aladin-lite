@@ -29,7 +29,6 @@
  *****************************************************************************/
 import { Coo } from './libs/astro/coo.js';
 import { Utils } from './Utils';
-import { Sesame } from './Sesame.js';
 
 export let URLBuilder = (function() {    
 

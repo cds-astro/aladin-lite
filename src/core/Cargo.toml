@@ -3,129 +3,89 @@ name = "aladin-lite"
 description = "Aladin Lite v3 introduces a new graphical engine written in Rust with the use of WebGL"
 license = "BSD-3-Clause"
 repository = "https://github.com/cds-astro/aladin-lite"
-version = "3.2.0"
-authors = ["baumannmatthieu0@gmail.com", "matthieu.baumann@astro.unistra.fr"]
+version = "3.3.0"
+authors = [ "baumannmatthieu0@gmail.com", "matthieu.baumann@astro.unistra.fr",]
 edition = "2018"
 
 [workspace]
-members = [
-    "al-core",
-    "al-api",
-    #"al-task-exec",
-]
+members = [ "al-core", "al-api",]
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = [ "cdylib",]
 
 [dependencies]
 futures = "0.3.12"
 js-sys = "0.3.47"
 wasm-bindgen-futures = "0.4.20"
 cgmath = "*"
-healpix = { package = "cdshealpix", git = "https://github.com/bmatthieu3/cds-healpix-rust", branch = "polygonIntersectVertices" }
-#moclib = { package = "moc", git = "https://github.com/cds-astro/cds-moc-rust", branch = "main" }
-moclib = { package = "moc", git = "https://github.com/bmatthieu3/cds-moc-rust", branch = "cellsWithUnidirectionalNeigs" }
-serde = { version = "^1.0.183", features = ["derive"] }
 url-lite = "0.1.0"
 serde_json = "1.0.104"
 serde-wasm-bindgen = "0.5"
-#console_error_panic_hook = "0.1.7"
 enum_dispatch = "0.3.8"
 wasm-bindgen = "0.2.79"
 wasm-streams = "0.3.0"
 async-channel = "1.8.0"
-al-core = { path = "./al-core" }
-#al-task-exec = { path = "./al-task-exec" }
-al-api = { path = "./al-api" }
 mapproj = "0.3.0"
 fitsrs = "0.2.9"
 wcs = "0.2.8"
 colorgrad = "0.6.2"
-#image-decoder = { package = "image", version = "0.24.2", default-features = false, features = ["jpeg", "png"] }
-#votable = { package = "votable", git = "https://github.com/cds-astro/cds-votable-rust", branch = "main"}
 lyon = "1.0.1"
 
 [features]
-webgl1 = [
-  "al-core/webgl1",
-  #"al-ui/webgl1",
-  "al-api/webgl1",
-  "web-sys/WebGlRenderingContext",
-  "web-sys/AngleInstancedArrays",   # Enabling instancing features
-  "web-sys/ExtSRgb",                # Enabling SRGB8_ALPHA8 internal format
-  "web-sys/OesTextureFloat"
-]
-webgl2 = [
-  "al-core/webgl2",
-  #"al-ui/webgl2",
-  "al-api/webgl2",
-  "web-sys/WebGl2RenderingContext",
-  "web-sys/WebGlVertexArrayObject",
-  "web-sys/ExtColorBufferFloat",
-]
+webgl1 = [ "al-core/webgl1", "al-api/webgl1", "web-sys/WebGlRenderingContext", "web-sys/AngleInstancedArrays", "web-sys/ExtSRgb", "web-sys/OesTextureFloat",]
+webgl2 = [ "al-core/webgl2", "al-api/webgl2", "web-sys/WebGl2RenderingContext", "web-sys/WebGlVertexArrayObject", "web-sys/ExtColorBufferFloat",]
+
+[dev-dependencies]
+rand = "0.8"
+
+[dependencies.healpix]
+package = "cdshealpix"
+git = "https://github.com/bmatthieu3/cds-healpix-rust"
+branch = "polygonIntersectVertices"
+
+[dependencies.moclib]
+package = "moc"
+git = "https://github.com/bmatthieu3/cds-moc-rust"
+branch = "cellsWithUnidirectionalNeigs"
+
+[dependencies.serde]
+version = "^1.0.183"
+features = [ "derive",]
+
+[dependencies.al-core]
+path = "./al-core"
+
+[dependencies.al-api]
+path = "./al-api"
 
 [dependencies.web-sys]
 version = "*"
-features = [
-  'console',
-  'CssStyleDeclaration',
-  'Document',
-  'Element',
-  'HtmlCollection',
-  'HtmlElement',
-  'HtmlImageElement',
-  'HtmlCanvasElement',
-  'Blob',
-  'ImageBitmap',
-  'ImageData',
+features = [ "console", "CssStyleDeclaration", "Document", "Element", "HtmlCollection", "HtmlElement", "HtmlImageElement", "HtmlCanvasElement", "Blob", "ImageBitmap", "ImageData", "CanvasRenderingContext2d", "WebGlBuffer", "WebGlContextAttributes", "WebGlFramebuffer", "WebGlProgram", "WebGlShader", "WebGlUniformLocation", "WebGlTexture", "WebGlActiveInfo", "Headers", "Window", "Request", "RequestInit", "RequestMode", "Response", "XmlHttpRequest", "XmlHttpRequestResponseType", "PerformanceTiming", "Performance", "Url", "ReadableStream",]
 
-  'CanvasRenderingContext2d',
-
-  'WebGlBuffer',
-  'WebGlContextAttributes',
-  'WebGlFramebuffer',
-  'WebGlProgram',
-  'WebGlShader',
-  'WebGlUniformLocation',
-  'WebGlTexture',
-  'WebGlActiveInfo',
-  'Headers',
-
-  'Window',
-  'Request',
-  'RequestInit',
-  'RequestMode',
-  'Response',
-  'XmlHttpRequest',
-  'XmlHttpRequestResponseType',
-  'PerformanceTiming',
-  'Performance',
-  'Url',
-  'ReadableStream',
-]
-
-[dev-dependencies]
-image-decoder = { package = "image", version = "0.24.2", default-features = false, features = ["jpeg", "png"] }
-rand = "0.8"
+[dev-dependencies.image-decoder]
+package = "image"
+version = "0.24.2"
+default-features = false
+features = [ "jpeg", "png",]
 
 [profile.dev]
-opt-level = 'z'
+opt-level = "z"
 debug = true
 debug-assertions = true
 overflow-checks = true
 lto = true
-panic = 'unwind'
+panic = "unwind"
 incremental = true
 codegen-units = 256
 rpath = false
 
 [profile.release]
-opt-level = 'z'
+opt-level = "z"
 debug = false
 debug-assertions = false
 overflow-checks = false
 lto = true
-panic = 'abort'
+panic = "abort"
 incremental = false
 codegen-units = 16
 rpath = false

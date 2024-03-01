@@ -120,8 +120,12 @@ HiPSProperties.fetchFromUrl = async function(urlOrId) {
                 // 1. Ensure there is exactly one survey matching
                 if (metadata && Object.keys(metadata).length > 0) {
                     // Set the service url if not found
-                    metadata.hips_service_url = HiPSServiceUrl;
-                    resolve(metadata);
+                    if (!metadata.hips_frame || !metadata.hips_order) {
+                        reject('Bad properties: do not contain the mandatory frame or order info')
+                    } else {
+                        metadata.hips_service_url = HiPSServiceUrl;
+                        resolve(metadata);
+                    }
                 } else {
                     reject('No surveys matching at this url: ' + rootURL);
                 }

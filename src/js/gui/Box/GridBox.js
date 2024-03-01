@@ -192,14 +192,4 @@ export class GridBox extends Box {
         let ctxMenu = ContextMenu.getInstance(this.aladin);
         ctxMenu._hide();
     }
-
-    static singleton;
-
-    static getInstance(aladin) {
-        if (!GridBox.singleton) {
-            GridBox.singleton = new GridBox(aladin);
-        }
-
-        return GridBox.singleton;
-    }
 }

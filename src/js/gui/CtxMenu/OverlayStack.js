@@ -243,8 +243,8 @@ export class OverlayStack extends ContextMenu {
                                 
                                 self._hide();
 
-                                let catBox = CatalogQueryBox.getInstance(self.aladin);
-                                catBox._show({position: self.position});
+                                self.catBox = new CatalogQueryBox(self.aladin);
+                                self.catBox._show({position: self.position});
 
                                 self.mode = 'search';
                             }
@@ -477,9 +477,9 @@ export class OverlayStack extends ContextMenu {
 
                         self._hide();
 
-                        let hipsSelectorBox = HiPSSelectorBox.getInstance(self.aladin);
+                        self.hipsSelectorBox = new HiPSSelectorBox(self.aladin);
                         // attach a callback
-                        hipsSelectorBox.attach( 
+                        self.hipsSelectorBox.attach( 
                             (HiPSId) => {
                                 let name = Utils.uuidv4()
                                 self.aladin.setOverlayImageLayer(HiPSId, name)
@@ -489,7 +489,7 @@ export class OverlayStack extends ContextMenu {
                             }
                         );
 
-                        hipsSelectorBox._show({
+                        self.hipsSelectorBox._show({
                             position: self.position,
                         });
 
@@ -601,9 +601,9 @@ export class OverlayStack extends ContextMenu {
                     self.aladin.selectLayer(layer.layer);
                     self.attach()
 
-                    let editBox = LayerEditBox.getInstance(self.aladin);
-                    editBox.update({layer})
-                    editBox._show({position: self.position});
+                    self.editBox = new LayerEditBox(self.aladin);
+                    self.editBox.update({layer})
+                    self.editBox._show({position: self.position});
 
                     self.mode = 'edit';
                 }
@@ -771,9 +771,12 @@ export class OverlayStack extends ContextMenu {
 
                     self._hide();
 
-                    let hipsBox = HiPSSelectorBox.getInstance(self.aladin)
-                    
-                    hipsBox.attach(
+                    if (self.hipsBox) {
+                        self.hipsBox.remove();
+                    }
+                    self.hipsBox = new HiPSSelectorBox(self.aladin)
+
+                    self.hipsBox.attach(
                         (HiPSId) => {            
                             self.aladin.setOverlayImageLayer(HiPSId, layer.layer);
                             self.mode = 'stack';
@@ -781,7 +784,7 @@ export class OverlayStack extends ContextMenu {
                         }
                     );
     
-                    hipsBox._show({
+                    self.hipsBox._show({
                         position: self.position,
                     })
     
@@ -861,9 +864,7 @@ export class OverlayStack extends ContextMenu {
             ...options,
             ...{position: this.position},
             cssStyle: {
-                backgroundColor: 'black',
                 maxWidth: '20em',
-                //border: '1px solid white',
             }
         })
 
@@ -886,27 +887,17 @@ export class OverlayStack extends ContextMenu {
     }
 
     _hide() {
-        let catBox = CatalogQueryBox.getInstance(this.aladin);
-        catBox._hide();
+        if (this.catBox)
+            this.catBox.remove();
 
-        let editBox = LayerEditBox.getInstance(this.aladin);
-        editBox._hide();
+        if (this.editBox)
+            this.editBox.remove();
 
-        let hipsSelectorBox = HiPSSelectorBox.getInstance(this.aladin);
-        hipsSelectorBox._hide();
+        if (this.hipsSelectorBox)
+            this.hipsSelectorBox.remove();
 
         this.mode = 'stack';
        
         super._hide();
-    }
-    
-    static singleton;
-
-    static getInstance(aladin) {
-        if (!OverlayStack.singleton) {
-            OverlayStack.singleton = new OverlayStack(aladin);
-        }
-
-        return OverlayStack.singleton;
     }
 }

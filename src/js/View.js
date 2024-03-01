@@ -521,6 +521,7 @@ export let View = (function () {
         Utils.on(view.catalogCanvas, "contextmenu", function (e) {
             // do something here...
             e.preventDefault();
+            e.stopPropagation();
         }, false);
 
 
@@ -538,6 +539,67 @@ export let View = (function () {
         var longTouchDuration = 800;
         var xystart;
 
+        var handleSelect = function(xy, tolerance) {
+            tolerance = tolerance || 5;
+            var objs = view.closestObjects(xy.x, xy.y, tolerance);
+            // Deselect objects if any
+            view.unselectObjects();
+            if (objs) {
+                var o = objs[0];
+
+                // footprint selection code adapted from Fabrizio Giordano dev. from Serco for ESA/ESDC
+                if (o.marker) {
+                    // could be factorized in Source.actionClicked
+                    view.aladin.popup.setTitle(o.popupTitle);
+                    view.aladin.popup.setText(o.popupDesc);
+                    view.aladin.popup.setSource(o);
+                    view.aladin.popup.show();
+                }
+                else {
+                    if (view.lastClickedObject) {
+                        view.lastClickedObject.actionOtherObjectClicked && view.lastClickedObject.actionOtherObjectClicked();
+                    }
+                }
+
+                // show measurements
+                if (o.actionClicked) {
+                    o.actionClicked();
+                }
+
+                var objClickedFunction = view.aladin.callbacksByEventName['objectClicked'];
+                (typeof objClickedFunction === 'function') && objClickedFunction(o, xy);
+
+                if (o.isFootprint()) {
+                    var footprintClickedFunction = view.aladin.callbacksByEventName['footprintClicked'];
+                    if (typeof footprintClickedFunction === 'function' && o != view.lastClickedObject) {
+                        var ret = footprintClickedFunction(o, xy);
+                    }
+                }
+
+                view.lastClickedObject = o;
+            } else {
+                // If there is a past clicked object
+                if (view.lastClickedObject) {
+                    //view.aladin.measurementTable.hide();
+                    //view.aladin.sodaForm.hide();
+                    view.aladin.popup.hide();
+
+                    // Deselect the last clicked object
+                    if (view.lastClickedObject instanceof Ellipse || view.lastClickedObject instanceof Circle || view.lastClickedObject instanceof Polyline) {
+                        view.lastClickedObject.deselect();
+                    } else {
+                        // Case where lastClickedObject is a Source
+                        view.lastClickedObject.actionOtherObjectClicked();
+                    }
+
+                    var objClickedFunction = view.aladin.callbacksByEventName['objectClicked'];
+                    (typeof objClickedFunction === 'function') && objClickedFunction(null, xy);
+
+                    view.lastClickedObject = null;
+                }
+            }
+        }
+        var touchStartTime;
         Utils.on(view.catalogCanvas, "mousedown touchstart", function (e) {
             e.preventDefault();
             e.stopPropagation();
@@ -588,11 +650,14 @@ export let View = (function () {
                         id: 'opening-ctxmenu',
                         message: 'Opening menu...',
                         duration: 'unlimited',
+                        offsetTimeDisplay: 200, // in ms
                         type: 'loading'
                     })
                 }
 
                 longTouchTimer = setTimeout(() => {onlongtouch(e); view.dragging = false;}, longTouchDuration); 
+                touchStartTime = Date.now();
+
             }
 
             // zoom pinching
@@ -651,7 +716,7 @@ export let View = (function () {
             if (view.rightClick) {
                 const rightClickDurationMs = Date.now() - view.rightClickTimeStart;
                 if (rightClickDurationMs < 300) {
-                    view.aladin.contextMenu && view.aladin.contextMenu.show({e: e});
+                    view.aladin.contextMenu && view.aladin.contextMenu.show({e});
                 }
 
                 view.rightClick = false;
@@ -669,9 +734,6 @@ export let View = (function () {
         
         // reacting on 'click' rather on 'mouseup' is more reliable when panning the view
         Utils.on(view.catalogCanvas, "click mouseout touchend touchcancel", function (e) {
-            //e.preventDefault();
-            //e.stopPropagation();
-
             const xymouse = Utils.relMouseCoords(e);
 
             ALEvent.CANVAS_EVENT.dispatchedTo(view.aladinDiv, {
@@ -755,64 +817,19 @@ export let View = (function () {
             }
 
             // popup to show ?
-            var objs = view.closestObjects(xymouse.x, xymouse.y, 5);
-            if (!wasDragging && objs) {
-                view.unselectObjects();
-
-                var o = objs[0];
-
-                // footprint selection code adapted from Fabrizio Giordano dev. from Serco for ESA/ESDC
-                if (o.marker) {
-                    // could be factorized in Source.actionClicked
-                    view.aladin.popup.setTitle(o.popupTitle);
-                    view.aladin.popup.setText(o.popupDesc);
-                    view.aladin.popup.setSource(o);
-                    view.aladin.popup.show();
-                }
-                else {
-                    if (view.lastClickedObject) {
-                        view.lastClickedObject.actionOtherObjectClicked && view.lastClickedObject.actionOtherObjectClicked();
+            if (!wasDragging || e.type === "touchend") {
+                if (e.type === "touchend") {
+                    if (e.targetTouches && e.targetTouches.length == 0) {
+                        // Check if the user moved a lot or not
+                        // maybe check the time between the last touch start
+                        const elapsedTime = Date.now() - touchStartTime;
+                        if (elapsedTime < 100) {
+                            view.updateObjectsLookup();
+                            handleSelect(xymouse, 10);
+                        }
                     }
-                }
-
-                // show measurements
-                if (o.actionClicked) {
-                    o.actionClicked();
-                }
-
-                var objClickedFunction = view.aladin.callbacksByEventName['objectClicked'];
-                (typeof objClickedFunction === 'function') && objClickedFunction(o, xymouse);
-
-                if (o.isFootprint()) {
-                    var footprintClickedFunction = view.aladin.callbacksByEventName['footprintClicked'];
-                    if (typeof footprintClickedFunction === 'function' && o != view.lastClickedObject) {
-                        var ret = footprintClickedFunction(o, xymouse);
-                    }
-                }
-
-                view.lastClickedObject = o;
-            } else if (!wasDragging) {
-                // Deselect objects if any
-                view.unselectObjects();
-
-                // If there is a past clicked object
-                if (view.lastClickedObject) {
-                    //view.aladin.measurementTable.hide();
-                    //view.aladin.sodaForm.hide();
-                    view.aladin.popup.hide();
-
-                    // Deselect the last clicked object
-                    if (view.lastClickedObject instanceof Ellipse || view.lastClickedObject instanceof Circle || view.lastClickedObject instanceof Polyline) {
-                        view.lastClickedObject.deselect();
-                    } else {
-                        // Case where lastClickedObject is a Source
-                        view.lastClickedObject.actionOtherObjectClicked();
-                    }
-
-                    var objClickedFunction = view.aladin.callbacksByEventName['objectClicked'];
-                    (typeof objClickedFunction === 'function') && objClickedFunction(null, xymouse);
-
-                    view.lastClickedObject = null;
+                } else {
+                    handleSelect(xymouse);
                 }
             }
 

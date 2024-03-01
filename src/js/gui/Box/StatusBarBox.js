@@ -78,14 +78,27 @@ export class StatusBarBox extends Box {
 
         this.inProgressTasks.push(task);
 
-        if (task.duration && task.duration !== "unlimited") {
+        let offsetTimeDisplay = task.offsetTimeDisplay;
+        let duration = task.duration;
+        if (typeof duration === 'number' && typeof offsetTimeDisplay === 'number' && offsetTimeDisplay > duration) {
+            // do not add the message the display occurs after the duration of the task
+            return;
+        }
+
+        if (duration && duration !== "unlimited") {
             setTimeout(() => {
                 this.removeMessage(task.id);
-            }, task.duration)
+            }, duration)
         }
 
         // display it
-        this._displayLastTaskInProgress();
+        if (offsetTimeDisplay) {
+            setTimeout(() => {
+                this._displayLastTaskInProgress();
+            }, offsetTimeDisplay)
+        } else {
+            this._displayLastTaskInProgress();
+        }
     };
 
     removeMessage(id) {

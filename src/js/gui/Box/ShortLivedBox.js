@@ -62,14 +62,4 @@ export class ShortLivedBox extends Box {
 
         super._show(options);
     }
-
-    static singleton;
-
-    static getInstance(aladin) {
-        if (!ShortLivedBox.singleton) {
-            ShortLivedBox.singleton = new ShortLivedBox(aladin);
-        }
-
-        return ShortLivedBox.singleton;
-    }
 }

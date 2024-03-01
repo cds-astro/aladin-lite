@@ -245,8 +245,11 @@ import { CtxMenuActionButtonOpener } from "../Button/CtxMenuOpener.js";
                     label: 'Cone search',
                     disable: !item.cs_service_url,
                     action(o) {
-                        let box = ConeSearchBox.getInstance(aladin);
-                        box.attach({
+                        if (self.box) {
+                            self.box.remove();
+                        }
+                        self.box = new ConeSearchBox(aladin);
+                        self.box.attach({
                             callback: (cs) => {
                                 self.fnIdSelected('coneSearch', {
                                     baseURL: self.selectedItem.cs_service_url,
@@ -263,7 +266,7 @@ import { CtxMenuActionButtonOpener } from "../Button/CtxMenuOpener.js";
                                 anchor: 'center center',
                             }
                         })
-                        box._show();
+                        self.box._show();
                         self.loadBtn.hideMenu()
 
                     }
@@ -291,20 +294,14 @@ import { CtxMenuActionButtonOpener } from "../Button/CtxMenuOpener.js";
     }
 
     _hide() {
+        if (this.box) {
+            this.box.remove();
+        }
+
         if (this.loadBtn) {
             this.loadBtn.hideMenu()
         }
 
         super._hide()
-    }
-
-    static layerSelector = undefined;
-
-    static getInstance(aladin) {
-        if (!CatalogQueryBox.layerSelector) {
-            CatalogQueryBox.layerSelector = new CatalogQueryBox(aladin);
-        }
-
-        return CatalogQueryBox.layerSelector;
     }
 }

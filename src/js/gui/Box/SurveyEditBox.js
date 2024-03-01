@@ -39,11 +39,10 @@ import { ColorCfg } from "../../ColorCfg.js";
 
  import { Layout } from "../Layout.js";
  import { Input } from "../Widgets/Input.js";
-import { CmapSelector } from "../Selector/Colormap.js";
 
  export class LayerEditBox extends Box {
      // Constructor
-     constructor(aladin, options) {
+     constructor(aladin) {
         super(
             aladin,
             {
@@ -329,16 +328,6 @@ import { CmapSelector } from "../Selector/Colormap.js";
                 this.stretchSelector.update({value: stretch})
             }
         });
-    }
- 
-    static singleton;
- 
-    static getInstance(aladin) {
-        if (!LayerEditBox.singleton) {
-            LayerEditBox.singleton = new LayerEditBox(aladin);
-        }
-
-        return LayerEditBox.singleton;
     }
 }
  

@@ -82,10 +82,14 @@ export let Datalink = (function() {
                                         content: '📡',
                                         tooltip: {content: 'Open the cutout service form', position: {direction: 'top'}},
                                         action(e) {
-                                            let serviceQueryBox = ServiceQueryBox.getInstance(aladinInstance);
-                                            serviceQueryBox._hide();
-                                            serviceQueryBox.attach(self.services[serviceName]);
-                                            serviceQueryBox._show({
+                                            if (self.serviceQueryBox) {
+                                                self.serviceQueryBox.remove()
+                                            }
+
+                                            self.serviceQueryBox = new ServiceQueryBox(aladinInstance);
+                                            self.serviceQueryBox._hide();
+                                            self.serviceQueryBox.attach(self.services[serviceName]);
+                                            self.serviceQueryBox._show({
                                                 position: {
                                                     anchor: 'center center'
                                                 }

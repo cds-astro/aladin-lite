@@ -129,8 +129,11 @@ export let Aladin = (function () {
      * let aladin = A.Aladin('#aladin-lite-div', { option1: 'value1', option2: 'value2' });
      */
     var Aladin = function (aladinDiv, requestedOptions) {
+        this.callbacksByEventName = {}; // we store the callback functions (on 'zoomChanged', 'positionChanged', ...) here
+
         // check that aladinDiv exists, stop immediately otherwise
         if (!aladinDiv) {
+            console.error("Aladin div has not been found. Please check its name!");
             return;
         }
         this.wasm = null;
@@ -282,8 +285,6 @@ export let Aladin = (function () {
         }
 
         this.view.showCatalog(options.showCatalog);
-
-        this.callbacksByEventName = {}; // we store the callback functions (on 'zoomChanged', 'positionChanged', ...) here
 
         // FullScreen toolbar icon
         this.isInFullscreen = false;
@@ -770,7 +771,7 @@ export let Aladin = (function () {
 
         this.view.changeFrame(newFrame);
 
-        var frameChangedFunction = this.view.aladin.callbacksByEventName['cooFrameChanged'];
+        var frameChangedFunction = this.callbacksByEventName['cooFrameChanged'];
         if (typeof frameChangedFunction === 'function') {
             frameChangedFunction(newFrame.label);
         }

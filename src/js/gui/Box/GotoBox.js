@@ -69,14 +69,4 @@ export class GotoBox extends Box {
 
         super._hide()
     }
-
-    static singleton;
-
-    static getInstance(aladin) {
-        if (!GotoBox.singleton) {
-            GotoBox.singleton = new GotoBox(aladin);
-        }
-
-        return GotoBox.singleton;
-    }
 }

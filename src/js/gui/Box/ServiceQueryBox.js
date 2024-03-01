@@ -181,15 +181,4 @@ export class ServiceQueryBox extends Box {
             subInputs,
         })
     }
-
-    static singleton;
-
-    static getInstance(aladin) {
-        if (!ServiceQueryBox.singleton) {
-            ServiceQueryBox.singleton = new ServiceQueryBox(aladin);
-        }
-
-        return ServiceQueryBox.singleton;
-    }
-
 }

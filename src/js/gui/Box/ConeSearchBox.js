@@ -170,15 +170,5 @@ import { Angle } from "../../libs/astro/angle.js";
     attach(options) {
         this.callback = options.callback;
         super.update(options)
-    } 
-
-    static box = undefined;
-
-    static getInstance(aladin) {
-        if (!ConeSearchBox.box) {
-            ConeSearchBox.box = new ConeSearchBox(aladin);
-        }
-
-        return ConeSearchBox.box;
     }
 }

@@ -300,15 +300,5 @@ export class SettingsCtxMenu extends ContextMenu {
             }
         })
     }
-
-    static singleton;
-
-    static getInstance(aladin, menu) {
-        if (!Settings.singleton) {
-            Settings.singleton = new Settings(aladin, menu);
-        }
-
-        return Settings.singleton;
-    }
 }
  

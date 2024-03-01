@@ -169,8 +169,8 @@ export let DefaultActionsForContextMenu = (function () {
                 ]
             },
             {
-                label: "What is this?", action(e) {
-                    GenericPointer(a.view, e);
+                label: "What is this?", action(o) {
+                    GenericPointer(a.view, o);
                 }
             },
             {

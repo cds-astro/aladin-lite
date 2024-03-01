@@ -165,14 +165,4 @@ import { Input } from "../Widgets/Input.js";
     attach(callback) {
         this.callback = callback;
     }
-
-    static box = undefined;
-
-    static getInstance(aladin) {
-        if (!HiPSSelectorBox.box) {
-            HiPSSelectorBox.box = new HiPSSelectorBox(aladin);
-        }
-
-        return HiPSSelectorBox.box;
-    }
 }

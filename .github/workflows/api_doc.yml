@@ -36,7 +36,7 @@ jobs:
       - name: Build docs
         run: |
           npm install --save-dev jsdoc
-          npm run doc
+          jsdoc src/js
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:

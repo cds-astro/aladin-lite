@@ -35,7 +35,7 @@ jobs:
         uses: actions/configure-pages@v4
       - name: Build docs
         run: |
-          npm install --save-dev jsdoc
+          npm install -g jsdoc
           jsdoc src/js
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

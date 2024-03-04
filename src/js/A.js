@@ -40,15 +40,14 @@ import { Coo } from "./libs/astro/coo.js";
 import { URLBuilder } from "./URLBuilder.js";
 import { ColorCfg } from './ColorCfg.js';
 import { Footprint } from './Footprint.js';
-import { Toolbar } from "./gui/Widgets/Toolbar.js";
 import { Aladin } from "./Aladin.js";
-import { ALEvent } from "./events/ALEvent.js";
 // Wasm top level import
 import init, * as module from './../core/pkg';
 
 // Import aladin css inside the project
 import './../css/aladin.css';
 import { ActionButton } from "./gui/Widgets/ActionButton.js";
+import { Box } from "./gui/Widgets/Box.js";
 
 ///////////////////////////////
 /////// Aladin Lite API ///////
@@ -76,14 +75,20 @@ let A = {};
  * @function
  * @name A.aladin
  * @memberof A
- * @param {string} divSelector - The ID selector for the HTML element.
+ * @param {string} divSelector - The ID selector for the HTML element or the HTML element itself
  * @param {AladinOptions} [options] - Options for configuring the Aladin Lite instance.
  * @returns {Aladin} An instance of the Aladin Lite library.
  * @example
- * const aladinInstance = A.aladin('#aladin-container', options);
+ *  var aladin;
+ *  A.init.then(() => {
+ *      aladin = A.aladin('#aladin-lite-div', {fullScreen: true, cooFrame: "ICRSd", showSimbadPointerControl: true, showShareControl: true, showShareControl: true, survey: 'https://alasky.cds.unistra.fr/DSS/DSSColor/', fov: 180, showContextMenu: true});
+ *  })
  */
 A.aladin = function (divSelector, options) {
-    return new Aladin(document.querySelector(divSelector), options);
+    if (!(divSelector instanceof HTMLElement)) {
+        divSelector = document.querySelector(divSelector)
+    }
+    return new Aladin(divSelector, options);
 };
 
 /**
@@ -124,7 +129,18 @@ A.marker = function (ra, dec, options, data) {
     return A.source(ra, dec, data, options);
 };
 
-// @API
+/**
+ * Creates a polygon object using an array of celestial coordinates (RA, Dec).
+ *
+ * @function
+ * @memberof A
+ * @name polygon
+ *
+ * @param {Array} raDecArray - Array of celestial coordinates representing the vertices of the polygon.
+ *   Each element should be an object with properties `ra` (Right Ascension) in degrees and `dec` (Declination) in degrees.
+ * @param {Object} options - Options for configuring the polygon.
+ * @throws {string} Throws an error if the number of vertices is less than 3.
+ */
 A.polygon = function (raDecArray, options) {
     const numVertices = raDecArray.length;
 
@@ -147,43 +163,109 @@ A.polygon = function (raDecArray, options) {
     return new Polyline(raDecArray, options);
 };
 
-//@API
+/**
+ * Creates a polyline object using an array of celestial coordinates (RA, Dec).
+ *
+ * @function
+ * @memberof A
+ * @name polyline
+ *
+ * @param {Array} raDecArray - Array of celestial coordinates representing the vertices of the polyline.
+ *   Each element should be an object with properties `ra` (Right Ascension) in degrees and `dec` (Declination) in degrees.
+ * @param {Object} options - Options for configuring the polyline.
+ */
 A.polyline = function (raDecArray, options) {
     return new Polyline(raDecArray, options);
 };
 
 
-// @API
+/**
+ * Creates a circle object
+ *
+ * @function
+ * @memberof A
+ * @name circle
+ *
+ * @param {number} ra - Right Ascension (RA) coordinate of the center in degrees.
+ * @param {number} dec - Declination (Dec) coordinate of the center in degrees.
+ * @param {number} radiusDeg - Radius in degrees.
+
+ * @param {Object} options - Options for configuring the circle.
+ */
 A.circle = function (ra, dec, radiusDeg, options) {
     return new Circle([ra, dec], radiusDeg, options);
 };
 
 /**
+ * Creates a ellipse object
  *
- * @API
+ * @function
+ * @memberof A
+ * @name ellipse
  *
- * @param ra
- * @param dec
- * @param radiusRaDeg the radius along the ra axis in degrees
- * @param radiusDecDeg the radius along the dec axis in degrees
- * @param rotationDeg the rotation angle in degrees
- *
+ * @param {number} ra - Right Ascension (RA) coordinate of the center in degrees.
+ * @param {number} dec - Declination (Dec) coordinate of the center in degrees.
+ * @param {number} radiusRaDeg - the radius along the ra axis in degrees
+ * @param {number} radiusDecDeg - the radius along the dec axis in degrees
+ * @param {number} rotationDeg - the rotation angle in degrees
+
+ * @param {Object} options - Options for configuring the ellipse.
  */
 A.ellipse = function (ra, dec, radiusRaDeg, radiusDecDeg, rotationDeg, options) {
     return new Ellipse([ra, dec], radiusRaDeg, radiusDecDeg, rotationDeg, options);
 };
 
-// @API
+/**
+ * Creates a graphic overlay on the Aladin Lite view.
+ *
+ * @function
+ * @memberof A
+ * @name graphicOverlay
+ *
+ * @param {Object} options - Options for configuring the graphic overlay.
+ * @param {string} [options.color] - The color of the graphic overlay.
+ * @param {number} [options.lineWidth] - The width of the lines in the graphic overlay.
+ * @returns {Overlay} Returns a new Overlay object representing the graphic overlay.
+ *
+ * @example
+ * var overlay = A.graphicOverlay({ color: '#ee2345', lineWidth: 3 });
+ */
 A.graphicOverlay = function (options) {
     return new Overlay(options);
 };
 
-// @API
-A.catalogHiPS = function (rootURL, options) {
-    return new ProgressiveCat(rootURL, null, null, options);
+/**
+ * Creates progressive catalog object (i.e. Simbad/Gaia)
+ *
+ * @function
+ * @memberof A
+ * @name catalogHiPS
+ *
+ * @param {string} url - Root url of the catalog
+ * @param {CatalogOptions} options - Options for configuring the catalogue.
+ * @returns {ProgressiveCat} Returns a new Overlay object representing the graphic overlay.
+ *
+ * @example
+ * let gaia = A.catalogHiPS('http://axel.u-strasbg.fr/HiPSCatService/I/345/gaia2', {onClick: 'showTable', color: 'orange', name: 'Gaia', filter: myFilterFunction});
+ * aladin.addCatalog(gaia)
+ */
+A.catalogHiPS = function (url, options) {
+    return new ProgressiveCat(url, null, null, options);
 };
 
-// API
+/**
+ * Creates a new coo from a longitude and latitude given in degrees
+ *
+ * @function
+ * @memberof A
+ * @name coo
+ *
+ * @param {number} longitude - longitude (decimal degrees)
+ * @param {number} latitude - latitude (decimal degrees)
+ * @param {number} prec - precision
+ * (8: 1/1000th sec, 7: 1/100th sec, 6: 1/10th sec, 5: sec, 4: 1/10th min, 3: min, 2: 1/10th deg, 1: deg
+ * @returns {Coo} Returns a new Coo object
+ */
 A.coo = function (longitude, latitude, prec) {
     return new Coo(longitude, latitude, prec);
 };
@@ -246,7 +328,7 @@ A.MOCFromPolygon= function (polygon, options, successCallback, errorCallback) {
  * @property {boolean} [readOnly=false] - Whether the catalog is read-only.
  * @property {string} [raField] - The ID or name of the field holding Right Ascension (RA).
  * @property {string} [decField] - The ID or name of the field holding Declination (dec).
- * @property {function} [filter] - The filtering function for sources.
+ * @property {function} [filter] - The filtering function for sources. Returns a boolean
  * @property {boolean} [displayLabel=false] - Whether to display labels for sources.
  * @property {string} [labelColor] - The color of the source labels.
  * @property {string} [labelFont="10px sans-serif"] - The font for the source labels.
@@ -270,6 +352,7 @@ A.catalog = function (options) {
  *
  * @function
  * @memberof A
+ * @name A.catalogFromURL
  * @param {string} url - The URL of the catalog.
  * @param {CatalogOptions} [options] - Additional configuration options for the catalog.
  * @param {function} [successCallback] - The callback function to execute on successful catalog creation.
@@ -361,8 +444,29 @@ A.catalogFromURL = function (url, options, successCallback, errorCallback, usePr
     return catalog;
 };
 
-// API
-// @param target: can be either a string representing a position or an object name, or can be an object with keys 'ra' and 'dec' (values being in decimal degrees)
+/**
+ * Create a catalog from a SIMBAD cone search query
+ *
+ * @function
+ * @memberof A
+ * @name A.catalogFromSimbad
+ * @param {string|Object} target - can be either a string representing a position or an object name, or can be an object with keys 'ra' and 'dec' (values being in decimal degrees)
+ * @param {number} target.ra - Right Ascenscion in degrees of the cone's center
+ * @param {number} target.dec - Declination in degrees of the cone's center
+ * @param {number} radius - Radius of the cone in degrees
+ * @param {Object|CatalogOptions} [options] - Additional configuration options for SIMBAD cone search. See the {@link https://simbad.cds.unistra.fr/cone/help/#/ConeSearch/get_ SIMBAD cone search} parameters.
+ * @param {Object} [options.limit] - The max number of sources to return
+ * @param {Object} [options.orderBy] - Order the result by specific
+ *
+ * @param {function} [successCallback] - The callback function to execute on successful catalog creation.
+ * @param {function} [errorCallback] - The callback function to execute on error during catalog creation.
+ * @returns {Catalog} A new instance of the Catalog class created from the SIMBAD cone search.
+ *
+ * @example
+ *  A.catalogFromSimbad('09 55 52.4 +69 40 47', 0.1, {onClick: 'showTable', limit: 1000}, (cat) => {
+ *      aladin.addCatalog(cat)
+ *  });
+ */
 A.catalogFromSimbad = function (target, radius, options, successCallback, errorCallback) {
     options = options || {};
     if (!('name' in options)) {
@@ -409,7 +513,25 @@ A.catalogFromSimbad = function (target, radius, options, successCallback, errorC
     })
 };
 
-// API
+/**
+ * Create a catalog from a NED cone search query
+ *
+ * @function
+ * @memberof A
+ * @name A.catalogFromNED
+ * @param {string|Object} target - can be either a string representing a position or an object name, or can be an object with keys 'ra' and 'dec' (values being in decimal degrees)
+ * @param {number} target.ra - Right Ascenscion in degrees of the cone's center
+ * @param {number} target.dec - Declination in degrees of the cone's center
+ * @param {number} radius - Radius of the cone in degrees
+ * @param {CatalogOptions} [options] - Additional configuration options for the catalogue.
+ *
+ * @param {function} [successCallback] - The callback function to execute on successful catalog creation.
+ * @param {function} [errorCallback] - The callback function to execute on error during catalog creation.
+ * @returns {Catalog}
+ *
+ * @example
+ * A.catalogFromNED('09 55 52.4 +69 40 47', 0.1, {onClick: 'showPopup', shape: 'plus'})
+ */
 A.catalogFromNED = function (target, radius, options, successCallback, errorCallback) {
     options = options || {};
     if (!('name' in options)) {
@@ -436,6 +558,25 @@ A.catalogFromNED = function (target, radius, options, successCallback, errorCall
     return A.catalogFromURL(url, options, successCallback, errorCallback, true);
 };
 
+/**
+ * Create a catalog from a SKAORucio cone search query
+ *
+ * @function
+ * @memberof A
+ * @name A.catalogFromSKAORucio
+ * @param {string|Object} target - can be either a string representing a position or an object name, or can be an object with keys 'ra' and 'dec' (values being in decimal degrees)
+ * @param {number} target.ra - Right Ascenscion in degrees of the cone's center
+ * @param {number} target.dec - Declination in degrees of the cone's center
+ * @param {number} radiusDegrees - Radius of the cone in degrees
+ * @param {CatalogOptions} [options] - Additional configuration options for the catalogue.
+ *
+ * @param {function} [successCallback] - The callback function to execute on successful catalog creation.
+ * @param {function} [errorCallback] - The callback function to execute on error during catalog creation.
+ * @returns {Catalog}
+ *
+ * @example
+ * A.catalogFromSKAORucio('09 55 52.4 +69 40 47', 0.1, {onClick: 'showPopup', shape: 'plus'})
+ */
 A.catalogFromSKAORucio = function (target, radiusDegrees, options, successCallback, errorCallback) {
     options = options || {};
     if (!('name' in options)) {
@@ -446,7 +587,26 @@ A.catalogFromSKAORucio = function (target, radiusDegrees, options, successCallba
     return A.catalogFromURL(url, options, successCallback, errorCallback, true);
 };
 
-// API
+/**
+ * Create a catalog from a SKAORucio cone search query
+ *
+ * @function
+ * @memberof A
+ * @name A.catalogFromVizieR
+ * @param {string} vizCatId - the id of the ViZieR catalog
+ * @param {string|Object} target - can be either a string representing a position or an object name, or can be an object with keys 'ra' and 'dec' (values being in decimal degrees)
+ * @param {number} target.ra - Right Ascenscion in degrees of the cone's center
+ * @param {number} target.dec - Declination in degrees of the cone's center
+ * @param {number} radius - Radius of the cone in degrees
+ * @param {CatalogOptions} [options] - Additional configuration options for the catalogue.
+ *
+ * @param {function} [successCallback] - The callback function to execute on successful catalog creation.
+ * @param {function} [errorCallback] - The callback function to execute on error during catalog creation.
+ * @returns {Catalog}
+ *
+ * @example
+ *      const cat = A.catalogFromVizieR('I/311/hip2', 'M 45', 5, {onClick: 'showTable'});
+ */
 A.catalogFromVizieR = function (vizCatId, target, radius, options, successCallback, errorCallback) {
     options = options || {};
     if (!('name' in options)) {
@@ -457,18 +617,22 @@ A.catalogFromVizieR = function (vizCatId, target, radius, options, successCallba
     return A.catalogFromURL(url, options, successCallback, errorCallback, false);
 };
 
-// API
-A.catalogFromVizieR = function (vizCatId, target, radius, options, successCallback, errorCallback) {
-    options = options || {};
-    if (!('name' in options)) {
-        options['name'] = 'VizieR:' + vizCatId;
-    }
-
-    var url = URLBuilder.buildVizieRCSURL(vizCatId, target, radius, options);
-    return A.catalogFromURL(url, options, successCallback, errorCallback, false);
-};
-
-// API
+/**
+ * Create a catalog from a SkyBot cone search query
+ *
+ * @function
+ * @memberof A
+ * @name A.catalogFromSkyBot
+ * @param {number} ra - Right Ascenscion in degrees of the cone's center
+ * @param {number} dec - Declination in degrees of the cone's center
+ * @param {number} radius - Radius of the cone in degrees
+ * @param {string} epoch - Requested epoch, expressed in Julian day or ISO dateTime
+ * @param {Object} queryOptions - options passed to SkyBot, see {@link https://vo.imcce.fr/webservices/skybot/?conesearch}
+ * @param {CatalogOptions} [options] - Additional configuration options for the catalogue.
+ * @param {function} [successCallback] - The callback function to execute on successful catalog creation.
+ * @param {function} [errorCallback] - The callback function to execute on error during catalog creation.
+ * @returns {Catalog}
+ */
 A.catalogFromSkyBot = function (ra, dec, radius, epoch, queryOptions, options, successCallback, errorCallback) {
     queryOptions = queryOptions || {};
     options = options || {};
@@ -479,39 +643,95 @@ A.catalogFromSkyBot = function (ra, dec, radius, epoch, queryOptions, options, s
     return A.catalogFromURL(url, options, successCallback, errorCallback, false);
 };
 
-/// UI API
-/*
-{
-    direction: 'vertical' | 'horizontal',
-    cssStyle: {...}
-    position: {
-            top,
-            left
-        } \ {
-            anchor: 'left top' |
-                'left center' |
-                'left bottom' |
-                'right top' |
-                'right center' |
-                'right bottom' |
-                'center top' |
-                'center center' |
-                'center bottom'
-        }
-    }
-}
-*/
-A.toolbar = function(options) {
-    return new Toolbar(options);
-}
-
+/**
+ * Creates a user interface button for Aladin Lite
+ *
+ * @function
+ * @memberof A
+ * @name button
+ *
+ * @param {Object} options - Options for configuring the button.
+ * @param {boolean} [options.toggled=false] - Whether the button is initially toggled.
+ * @param {function} [options.action] - The callback function to execute when the button is clicked.
+ * @param {string} [options.title] - The title attribute for the button.
+ * @param {Object} [options.icon] - An icon object for the button.
+ * @param {boolean} [options.disable=false] - Whether the button is initially disabled.
+ * @param {HTMLElement|string|Widget} [options.content] - The content to be added to the button.
+ * @param {CSSStyleSheet} [options.cssStyle] - The CSS styles to apply to the button.
+ * @param {Object} [options.tooltip] - A tooltip.
+ * @param {Object|string} [options.position] - The position of the button.
+ * @param {string} [options.size] - The size of the button. Can be 'medium' or 'small'
+ * @returns {ActionButton} Returns a new button object representing the graphic overlay.
+ *
+ * @example
+ *       let btn = A.button({
+ *           content: 'Draw your coverage',
+ *           cssStyle: {
+ *               backgroundColor: 'pink',
+ *           },
+ *           tooltip: {cssStyle: {color: 'red'}, content: 'Create a moc in pink!', position: {direction: 'top'}},
+ *           action(o) {
+ *               // Enter a polygonal selection mode
+ *               aladin.select('poly', p => {
+ *                   // Create a moc from the polygon
+ *                   try {
+ *                       let ra = []
+ *                       let dec = []
+ *                       for (const v of p.vertices) {
+ *                           let [lon, lat] = aladin.pix2world(v.x, v.y);
+ *                           ra.push(lon)
+ *                           dec.push(lat)
+ *                       }
+ *
+ *                       let moc = A.MOCFromPolygon(
+ *                           {ra, dec},
+ *                           {name: 'poly', lineWidth: 3.0, color: 'pink'},
+ *                       );
+ *                       aladin.addMOC(moc)
+ *                   } catch(_) {
+ *                       alert('Selection covers a region out of the projection definition domain.');
+ *                  }
+ *              })
+ *          }
+ *       });
+ *       aladin.addUI(btn)
+ */
 A.button = function(options) {
     return new ActionButton(options);
 }
 
-/*A.hipsDefinitionFromURL = function(url, successCallback) {
-    HiPSDefinition.fromURL(url, successCallback);
-};*/
+/**
+ * Creates a box user interface for Aladin Lite.
+ *
+ * @function
+ * @memberof A
+ * @name box
+ *
+ * @param {Object} options - Options for configuring the button.
+ * @param {Object} [options.header] - The header of the box
+ * @param {boolean} [options.header.draggable=false] - Can move the window by dragging its title. 
+ * @param {string} [options.header.title] - A title name for the window
+ * @param {HTMLElement|string|Widget} [options.content] - The content to be added to the button.
+ * @param {CSSStyleSheet} [options.cssStyle] - The CSS styles to apply to the button.
+ * @param {Object|string} [options.position] - The position of the button.
+ * @returns {Box} Returns a new box window object.
+ *
+ * @example
+ *   let box = A.box({
+ *       header: {
+ *           title: "My window",
+ *           draggable: true,
+ *       },
+ *       content: "This is the content of my window<br/> I can write proper html",
+ *       position: {
+ *           anchor: 'center center'
+ *       }
+ *   })
+ *   aladin.addUI(box)
+ */
+A.box = function(options) {
+    return new Box(options)
+}
 
 A.getAvailableListOfColormaps = function() {
     return ColorCfg.COLORMAPS;

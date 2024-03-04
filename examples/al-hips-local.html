@@ -12,7 +12,7 @@
     A.init.then(() => {
         aladin = A.aladin('#aladin-lite-div', {target: 'galactic center'});
         
-        let survey = aladin.createImageSurvey('hips gaia', "hips gaia name", "./hips/gaia", undefined, undefined, {colormap:"viridis"});
+        let survey = aladin.createImageSurvey('hips gaia', "hips gaia name", "data/hips/gaia", undefined, undefined, {colormap:"viridis"});
         aladin.setBaseImageLayer(survey);
     });
 </script>

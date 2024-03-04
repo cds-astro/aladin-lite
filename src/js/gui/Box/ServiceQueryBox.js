@@ -94,14 +94,14 @@ export class ServiceQueryBox extends Box {
         });
 
         super(
-            aladin,
             {
                 header: {
                     draggable: true,
                     title: 'Service query'
                 },
                 content: form
-            }
+            },
+            aladin.aladinDiv
         )
 
         this.form = form;

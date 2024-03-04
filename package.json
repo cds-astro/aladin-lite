@@ -45,6 +45,7 @@
   },
   "devDependencies": {
     "happy-dom": "^10.11.0",
+    "jsdoc": "^4.0.2",
     "vite": "^4.3.8",
     "vite-plugin-css-injected-by-js": "^3.1.1",
     "vite-plugin-glsl": "^1.1.2",

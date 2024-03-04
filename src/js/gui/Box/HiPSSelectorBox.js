@@ -76,7 +76,6 @@ import { Input } from "../Widgets/Input.js";
         });
 
         super(
-            aladin,
             {
                 content: Layout.horizontal({
                     layout: [
@@ -84,7 +83,8 @@ import { Input } from "../Widgets/Input.js";
                         loadBtn
                     ]
                 })
-            }
+            },
+            aladin.aladinDiv
         )
 
         self = this;

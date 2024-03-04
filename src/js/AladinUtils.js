@@ -244,14 +244,14 @@ export let AladinUtils = {
         /**
          * @deprecated since version 2.0
          */
-    	myRound: function(a) {
+    	/*myRound: function(a) {
     		if (a<0) {
     			return -1*( (-a) | 0);
     		}
     		else {
     			return a | 0;
     		}
-    	},
+    	},*/
     	
     	/**
     	 * Test whether a xy position is the view

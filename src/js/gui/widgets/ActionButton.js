@@ -47,12 +47,14 @@ import { Layout } from "../Layout";
  * @property {boolean} [opt.toggled=false] - Whether the button is initially toggled.
  * @property {function} [opt.action] - The callback function to execute when the button is clicked.
  * @property {string} [opt.title] - The title attribute for the button.
- * @property {string} [opt.iconURL] - The URL of the icon image for the button.
+ * @property {Object} [opt.icon] - An icon object for the button.
  * @property {boolean} [opt.disable=false] - Whether the button is initially disabled.
  * @property {HTMLElement|string|Widget} [opt.content] - The content to be added to the button.
  * @property {CSSStyleSheet} [opt.cssStyle] - The CSS styles to apply to the button.
- * @property {string} [opt.tooltip] - The tooltip text for the button.
+ * @property {Object} [opt.tooltip] - A tooltip.
  * @property {Object|string} [opt.position] - The position of the button.
+ * @property {string} [opt.size] - The size of the button. Can be 'medium' or 'small'
+
  *   - If an object:
  *     - `{ nextTo: DOMElement, direction: 'left' | 'right' | 'top' | 'bottom' }`
  *     - `{ top: number, left: number }`
@@ -120,15 +122,6 @@ export class ActionButton extends DOMElement {
             this.el.setAttribute('title', this.options.title);
         }
 
-        /*if (this.options.iconURL) {
-            let img = document.createElement('img');
-            img.src = this.options.iconURL;
-            img.style.objectFit = 'contain';
-            img.style.verticalAlign = 'middle';
-            img.style.width = '100%';
-
-            this.el.appendChild(img);
-        }*/
         let layout = [];
         if (this.options.icon) {
             layout.push(new Icon(this.options.icon));

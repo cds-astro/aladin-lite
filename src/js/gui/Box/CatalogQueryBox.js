@@ -131,11 +131,11 @@ import { CtxMenuActionButtonOpener } from "../Button/CtxMenuOpener.js";
             disable: true,
         }, aladin)
 
-        super(aladin, {
+        super({
             content: Layout.horizontal({
                 layout: [inputText, loadBtn]
             })
-        })
+        }, aladin.aladinDiv)
 
         self = this;
         this.loadBtn = loadBtn;

@@ -150,7 +150,7 @@ export class DOMElement {
 
         // handle the anchor/dir case with higher priority
         const {offsetWidth, offsetHeight} = el;
-        const aladinDiv = options.aladinDiv || document.querySelector('.aladin-container');
+        const aladinDiv = document.querySelector('.aladin-container');
 
         const innerWidth = aladinDiv.offsetWidth;
         const innerHeight = aladinDiv.offsetHeight;

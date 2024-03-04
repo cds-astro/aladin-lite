@@ -150,14 +150,14 @@ import { Angle } from "../../libs/astro/angle.js";
         });
 
         super(
-            aladin,
             {
                 header: {
                     draggable: true,
                     title: 'Cone Search box'
                 },
                 content: form
-            }
+            },
+            aladin.aladinDiv
         )
 
         // hide by default

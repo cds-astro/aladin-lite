@@ -63,6 +63,7 @@ import A from "./A.js";
 import { StatusBarBox } from "./gui/Box/StatusBarBox.js";
 import { FullScreenActionButton } from "./gui/Button/FullScreen.js";
 import { ProjectionActionButton } from "./gui/Button/Projection.js";
+import { Toolbar } from './gui/Widgets/Toolbar';
 
 /**
  * @typedef {Object} AladinOptions
@@ -334,7 +335,7 @@ export let Aladin = (function () {
             this.statusBar = new StatusBarBox(this, statusBarOptions);
         }
 
-        let viewport = A.toolbar({
+        let viewport = new Toolbar({
             direction: 'horizontal',
             position: {
                 anchor: 'left top'
@@ -402,7 +403,7 @@ export let Aladin = (function () {
             menu.enable('simbad')
         }
         // Add the projection control
-        let topRightToolbar = A.toolbar({
+        let topRightToolbar = new Toolbar({
             orientation: 'horizontal',
             position: {
                 anchor: 'right top'
@@ -431,7 +432,7 @@ export let Aladin = (function () {
 
         // share control panel
         if (options.showShareControl) {
-            let share = A.toolbar({
+            let share = new Toolbar({
                 orientation: 'horizontal',
                 position: {
                     anchor: 'left bottom'
@@ -802,6 +803,22 @@ export let Aladin = (function () {
         this.view.setProjection(projection);
 
         ALEvent.PROJECTION_CHANGED.dispatchedTo(this.aladinDiv, {projection: projection});
+    };
+
+    /**
+     * Append a message to the status bar with a specific duration
+     *
+     * @memberof Aladin
+     * @param {Object} options - The message to display
+     * @param {string} options.id - The id of the message, is useful for removing unlimited time messages
+     * @param {string} options.message - The message to display
+     * @param {string|number} options.duration - The duration of the message. Accepts a time in milliseconds or 'unlimited'
+     * @param {string} options.type - The type of the message. Can be 'loading', 'tooltip', 'info'
+     */
+    Aladin.prototype.appendStatusBarMessage = function(options) {
+        if (this.statusBar) {
+            this.statusBar.appendMessage(options)
+        }
     };
 
     Aladin.prototype.getProjectionName = function() {
@@ -1283,17 +1300,6 @@ export let Aladin = (function () {
         // Create a new ImageSurvey
         const name = idOrUrl;
 
-        /*try {
-            const url = new URL(rootUrlOrId).toString()
-
-            // Valid URL case
-            const id = url;
-            return this.createImageSurvey(id, name, url, null, null, options);
-        } catch (e) {
-            // Valid ID case
-            const id = idOrUrl;
-            return this.createImageSurvey(id, name, undefined, null, null, options);
-        }*/
         return this.createImageSurvey(idOrUrl, name, idOrUrl, null, null, options);
     }
 
@@ -1306,7 +1312,6 @@ export let Aladin = (function () {
     // @param imageSurvey : ImageSurvey object or image survey identifier
     // @api
     // @old
-
     Aladin.prototype.setImageLayer = function(imageLayer) {
         this.setBaseImageLayer(imageLayer);
     };
@@ -1337,7 +1342,7 @@ export let Aladin = (function () {
         this.view.removeImageLayer(layer);
     };
 
-    // @api
+
     Aladin.prototype.setBaseImageLayer = function(idOrSurvey) {
         return this.setOverlayImageLayer(idOrSurvey, "base");
     };

@@ -44,13 +44,13 @@ import { ColorCfg } from "../../ColorCfg.js";
      // Constructor
      constructor(aladin) {
         super(
-            aladin,
             {
                 cssStyle: {
                     padding: '4px',
                     backgroundColor: 'black',
                 }
-            }
+            },
+            aladin.aladinDiv
         )
 
         this.aladin = aladin;

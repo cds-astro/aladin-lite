@@ -46,12 +46,12 @@ export class StatusBarBox extends Box {
             ...options.cssStyle
         };
 
-        super(aladin, {
+        super({
             position: {
                 anchor: 'center bottom'
             },
             ...options,
-        })
+        }, aladin.aladinDiv)
 
         this.addClass("aladin-status-bar");
 

@@ -21,7 +21,6 @@ import { DOMElement } from "./Widget";
 import { ActionButton } from "./ActionButton";
 import moveIconImg from '../../../../assets/icons/move.svg';
 import { Layout } from "../Layout";
-import { Form } from "./Form";
 
 /******************************************************************************
  * Aladin Lite project
@@ -45,20 +44,17 @@ import { Form } from "./Form";
 },]
 */
 export class Box extends DOMElement {
-    constructor(aladin, options, position = "beforeend") {
+    constructor(options, target, position = "beforeend") {
         let el = document.createElement("div");
         el.classList.add('aladin-box');
         el.style.display = "initial";
 
         super(el, options);
-        let target = aladin.aladinDiv;
-        // add it to the dom
-        this.attachTo(target, position);
+        this._show();
 
-        this.aladin = aladin;
         this.addClass('aladin-dark-theme')
 
-        this._hide();
+        this.attachTo(target, position);
     }
 
     _hide() {
@@ -66,7 +62,7 @@ export class Box extends DOMElement {
     }
 
     _show(options) {
-        this.el.parentNode.appendChild(this.el);
+        //this.el.parentNode.appendChild(this.el);
 
         this.options = {
             ...this.options,
@@ -74,7 +70,6 @@ export class Box extends DOMElement {
         };
 
         this.el.innerHTML = "";
-        super._show();
 
         let self = this;
 
@@ -148,8 +143,10 @@ export class Box extends DOMElement {
         }
 
         if (this.options.position) {
-            this.setPosition({...this.options.position, aladinDiv: this.aladin.aladinDiv})
+            this.setPosition({...this.options.position})
         }
+
+        super._show();
     }
 }
 

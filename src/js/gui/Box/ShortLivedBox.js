@@ -34,7 +34,6 @@ export class ShortLivedBox extends Box {
     // Constructor
     constructor(aladin) {
         super(
-            aladin,
             {
                 cssStyle: {
                     color: 'white',
@@ -42,7 +41,8 @@ export class ShortLivedBox extends Box {
                     borderRadius: '3px',
                     padding: 0,
                 }
-            }
+            },
+            aladin.aladinDiv
         )
     }
 

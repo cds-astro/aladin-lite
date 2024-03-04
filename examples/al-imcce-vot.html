@@ -1,0 +1,27 @@
+<!doctype html>
+<html>
+<head>
+</head>
+<body>
+
+<div id="aladin-lite-div" style="width: 1024px; height: 768px"></div>
+
+<script type="module">
+  import A from '../src/js/A.js';
+  let aladin;
+  A.init.then(() => {
+      // Start up Aladin Lite
+      aladin = A.aladin('#aladin-lite-div', {
+        target: '09 55 52.4 +69 40 47',
+        fov: 0.25,
+        showContextMenu: true,
+        fullScreen: true,
+        showSimbadPointerControl: true,
+      });
+
+      aladin.addCatalog(A.catalogFromURL('./data/votable/IMCCE.with_namespace.vot', {onClick: 'showTable', limit: 1000}));
+  });
+</script>
+
+</body>
+</html>

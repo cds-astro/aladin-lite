@@ -41,7 +41,8 @@
     "preview": "vite preview",
     "test:build": "cd src/core && cargo test --release --features webgl2",
     "test:unit": "vitest run",
-    "doc": "jsdoc src/js && open out/index.html"
+    "doc": "jsdoc -d doc --readme README.md src/js && cp aladin-logo.png doc/",
+    "doc:dev": "npm run doc && open doc/index.html"
   },
   "devDependencies": {
     "happy-dom": "^10.11.0",

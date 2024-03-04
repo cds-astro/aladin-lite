@@ -19,6 +19,10 @@ Aladin Lite v3 is out! Please play with [Aladin Lite v3 at this link](https://al
 For integrating Aladin Lite into your personal website, please refer to this [release page](https://aladin.cds.unistra.fr/AladinLite/doc/release/).
 Always prefer using the latest version. If you want the new features without minding about the bugs coming with it, then the beta is the good way to go.
 
+## API documentation
+
+There is a new in progress API documentation at [this link](https://cds-astro.github.io/aladin-lite).
+
 ## Embed it into your projects
 
 You can embed Aladin Lite it into your webpages in two ways

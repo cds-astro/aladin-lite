@@ -36,12 +36,12 @@ jobs:
       - name: Build docs
         run: |
           npm install -g jsdoc
-          jsdoc src/js
+          npm run doc
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           # Upload entire repository
-          path: './out'
+          path: './doc'
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4

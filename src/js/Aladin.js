@@ -1495,7 +1495,35 @@ export let Aladin = (function () {
         this.view.selectObjects(objects)
     };
 
-    // Possible values are 'rect', 'poly' and 'circle'
+    /**
+     * Enters selection mode
+     *
+     * @memberof Aladin
+     * @param {string} mode=rect - The mode of selection, can be either, 'rect', 'poly', or 'circle'
+     * @param {function} callback - A function called once the selection has been done
+    *
+    * @example
+    * // Creates and add a MOC from the user polygonal selection
+    * aladin.select('poly', p => {
+    *    try {
+    *        let ra = []
+    *        let dec = []
+    *        for (const v of p.vertices) {
+    *            let [lon, lat] = aladin.pix2world(v.x, v.y);
+    *            ra.push(lon)
+    *            dec.push(lat)
+    *        }
+    *
+    *        let moc = A.MOCFromPolygon(
+    *            {ra, dec},
+    *            {name: 'poly', lineWidth: 3.0, color: 'pink'},
+    *        );
+    *        aladin.addMOC(moc)
+    *    } catch(_) {
+    *        alert('Selection covers a region out of the projection definition domain.');
+    *    }
+    *})
+    */
     Aladin.prototype.select = async function (mode = 'rect', callback) {
         await this.reticle.loaded;
 

@@ -443,7 +443,8 @@ export let Aladin = (function () {
         }
 
         if (options.showProjectionControl) {
-            topRightToolbar.add(new ProjectionActionButton(this))            
+            this.projBtn = new ProjectionActionButton(this);
+            topRightToolbar.add(this.projBtn)            
         }
 
         if (options.showFullscreenControl) {
@@ -457,74 +458,43 @@ export let Aladin = (function () {
         this.menu = menu;
         this.viewportMenu = viewport;
 
-        this._applyMediaQueriesUI()
+        //this._applyMediaQueriesUI()
     }
 
-    Aladin.prototype._applyMediaQueriesUI = function() {
-        let self = this;
-        function updateLocation() {
-            let [lon, lat] = self.wasm.getCenter();
-            self.location.update({
-                lon: lon,
-                lat: lat,
-                isViewCenter: true,
-                frame: self.view.cooFrame
-            }, self);
-        }
-
-        function mqMediumSizeFunction(x) {
-            if (x.matches) { // If media query matches
-                if (self.location) {
-                    Location.prec = 2;
-                    updateLocation()
+    /*Aladin.prototype._applyMediaQueriesUI = function() {
+        const applyMediaQuery = function(maxWidth, matchingCallback, unmatchingCallback) {
+            function mqFunction(x) {
+                if (x.matches) { // If media query matches
+                    matchingCallback()
+                } else {
+                    unmatchingCallback()
                 }
-            } else {
-                if (self.location) {
-                    Location.prec = 7;
-                    updateLocation()
-                }       
             }
+    
+            // Create a MediaQueryList object
+            var mq = window.matchMedia("(max-width: " + maxWidth + ")")
+    
+            // Attach listener function on state changes
+            mq.addEventListener("change", function() {
+                mqFunction(mq);
+            });
+
+            mqFunction(mq);
         }
 
-        // Create a MediaQueryList object
-        var mqMediumSize = window.matchMedia("(max-width: 500px)")
+        let self = this;
 
-        // Attach listener function on state changes
-        mqMediumSize.addEventListener("change", function() {
-            mqMediumSizeFunction(mqMediumSize);
-        });
-
-        var mqSmallSize = window.matchMedia("(max-width: 410px)")
-
-        /*function mqSmallSizeFunction(x) {
-            if (x.matches) { // If media query matches
-                self.menu.update({
-                    direction: 'right',
-                    position: {
-                        top: '23px',
-                        left: '0px'
-                    }
-                })
-            } else {
-                self.menu.update({
-                    direction: 'left',
-                    position: {
-                        top: '23px',
-                        left: '0px'
-                    }
-                })
+        applyMediaQuery('48rem', () => {
+            if (self.projBtn) {
+                self.projBtn.update({verbosity: 'reduced'})
             }
-        }*/
-
-        // Attach listener function on state changes
-        /*mqSmallSize.addEventListener("change", function() {
-            mqSmallSizeFunction(mqSmallSize);
-        });*/
-
-        // Call listener function at run time
-        //mqSmallSizeFunction(mqSmallSize);
-        mqMediumSizeFunction(mqMediumSize);
-    }
+        },
+        () => {
+            if (self.projBtn) {
+                self.projBtn.update({verbosity: 'full'})
+            }
+        })
+    }*/
 
     /**** CONSTANTS ****/
     Aladin.VERSION = version;

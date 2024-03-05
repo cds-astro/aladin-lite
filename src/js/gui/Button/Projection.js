@@ -42,13 +42,16 @@ import { ALEvent } from "../../events/ALEvent";
      * @param {Aladin} aladin - The aladin instance.
      */
     constructor(aladin, options) {
+        options = options || {};
+        options.verbosity = (options && options.verbosity) || 'full';
+        let projectionName = aladin.getProjectionName();
         super({
             icon: {
                 monochrome: true,
                 size: 'small',
                 url: projectionIconUrl,
             },
-            content: [ProjectionEnum[aladin.getProjectionName()].label],
+            content: [options.verbosity === 'full' ? ProjectionEnum[projectionName].label : ''],
             tooltip: {content: 'Change the view projection', position: {direction: 'bottom left'}},
             cssStyle: {
                 cursor: 'pointer',
@@ -56,26 +59,36 @@ import { ALEvent } from "../../events/ALEvent";
             ...options
         }, aladin);
 
-        let ctxMenu = this._buildLayout(aladin);
+        this.aladin = aladin;
+
+        let ctxMenu = this._buildLayout();
         this.update({ctxMenu})
 
-        this._addEventListeners(aladin)
+        this._addEventListeners()
     }
 
-    _addEventListeners(aladin) {
+    _addEventListeners() {
+        let aladin = this.aladin;
         let self = this;
+
         ALEvent.PROJECTION_CHANGED.listenedBy(aladin.aladinDiv, function (e) {
-            self.update({content: [ProjectionEnum[aladin.getProjectionName()].label]})
+            let projName = aladin.getProjectionName();
+            let content = self.options.verbosity === 'full' ? ProjectionEnum[projName].label : '';
+
+            self.update({content})
         });
     }
 
-    _buildLayout(aladin) {
+    _buildLayout() {
+        let aladin = this.aladin;
+
         let layout = [];
         let self = this;
 
         let aladinProj = aladin.getProjectionName();
         for (const key in ProjectionEnum) {
             let proj = ProjectionEnum[key];
+
             layout.push({
                 label: proj.label,
                 selected: aladinProj === key,
@@ -83,12 +96,23 @@ import { ALEvent } from "../../events/ALEvent";
                     aladin.setProjection(key)
 
                     let ctxMenu = self._buildLayout(aladin);
-                    self.update({ctxMenu, content: proj.label});
+                    self.update({ctxMenu, content: self.options.verbosity === 'full' ? proj.label : ''});
                 }
             })
         }
 
         return layout;
+    }
+
+    update(options) {
+        super.update(options);
+
+        if (options.verbosity) {
+            let ctxMenu = this._buildLayout();
+            let projName = this.aladin.getProjectionName();
+            let label = options.verbosity === 'full' ? ProjectionEnum[projName].label : '';
+            super.update({ctxMenu, content: label});
+        }
     }
 
     _show() {

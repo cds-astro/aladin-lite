@@ -22,6 +22,7 @@ jobs:
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
           source "$HOME/.cargo/env"
           rustup default nightly
+          rustup component add rust-src --toolchain nightly-x86_64-unknown-linux-gnu
       - name: "Install wasm-pack"
         run: |
           curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh -s -- -y
@@ -31,6 +32,8 @@ jobs:
       - name: "Build Aladin Lite"
         run: |
           npm run build
+      - name: "Publish Aladin Lite to npm"
+        run: |
           npm publish
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}

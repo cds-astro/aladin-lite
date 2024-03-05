@@ -78,7 +78,7 @@ export class FoV extends DOMElement {
 
         if (options.showFov) {
             layout.push(...['<div class="aladin-monospace-text"></div>',
-            '<div class="aladin-label-text">&times;</div>',
+            '<div class="aladin-monospace-text">&times;</div>',
             '<div class="aladin-monospace-text"></div>'])
         }
 
@@ -102,7 +102,7 @@ export class FoV extends DOMElement {
     };
 
     _update(fovXDeg, fovYDeg) {
-        let [fovX, fovY] = this.el.querySelectorAll('.aladin-monospace-text')
+        let [fovX, _, fovY] = this.el.querySelectorAll('.aladin-monospace-text')
         fovX.innerText = this._format(fovXDeg) 
         fovY.innerText = this._format(fovYDeg) 
     }

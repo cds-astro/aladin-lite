@@ -76,7 +76,7 @@ let A = {};
  * @function
  * @name A.aladin
  * @memberof A
- * @param {string} divSelector - The ID selector for the HTML element or the HTML element itself
+ * @param {string|HTMLElement} divSelector - The ID selector for the HTML element or the HTML element itself
  * @param {AladinOptions} [options] - Options for configuring the Aladin Lite instance.
  * @returns {Aladin} An instance of the Aladin Lite library.
  * @example

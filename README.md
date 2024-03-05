@@ -10,6 +10,8 @@ Aladin Lite is built to be easily embeddable in any web page. It powers astronom
 
 More details on [Aladin Lite documentation page](http://aladin.u-strasbg.fr/AladinLite/doc/).
 
+[![Run tests](https://github.com/cds-astro/aladin-lite/actions/workflows/test.yml/badge.svg)](https://github.com/cds-astro/aladin-lite/actions/workflows/test.yml)
+
 # How to test it ?
 
 Aladin Lite v3 is out! Please play with [Aladin Lite v3 at this link](https://aladin.u-strasbg.fr/AladinLite).

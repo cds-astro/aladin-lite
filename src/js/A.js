@@ -41,13 +41,14 @@ import { URLBuilder } from "./URLBuilder.js";
 import { ColorCfg } from './ColorCfg.js';
 import { Footprint } from './Footprint.js';
 import { Aladin } from "./Aladin.js";
+import { ActionButton } from "./gui/Widgets/ActionButton.js";
+import { Box } from "./gui/Widgets/Box.js";
 // Wasm top level import
 import init, * as module from './../core/pkg';
 
 // Import aladin css inside the project
 import './../css/aladin.css';
-import { ActionButton } from "./gui/Widgets/ActionButton.js";
-import { Box } from "./gui/Widgets/Box.js";
+
 
 ///////////////////////////////
 /////// Aladin Lite API ///////

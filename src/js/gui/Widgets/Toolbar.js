@@ -21,7 +21,7 @@ import { Utils } from "../../Utils";
 /******************************************************************************
  * Aladin Lite project
  *
- * File gui/widgets/layout/Horizontal.js
+ * File gui/Widgets/layout/Horizontal.js
  *
  * A layout grouping widgets horizontaly
  *

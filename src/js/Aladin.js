@@ -78,7 +78,7 @@ import { Toolbar } from './gui/Widgets/Toolbar';
  * @property {string} [backgroundColor="rgb(60, 60, 60)"] - Background color in RGB format.
  *
  * @property {boolean} [showZoomControl=true] - Whether to show the zoom control toolbar.
- * @property {boolean} [showLayersControl=false] - Whether to show the layers control toolbar.
+ * @property {boolean} [showLayersControl=true] - Whether to show the layers control toolbar.
  * @property {boolean} [showOverlayStackControl=true] - Whether to show the overlay stack control toolbar.
  * @property {boolean} [showSurveyStackControl=true] - Whether to show the survey stack control toolbar.
  * @property {boolean} [showFullscreenControl=true] - Whether to show the fullscreen control toolbar.
@@ -545,7 +545,7 @@ export let Aladin = (function () {
         // Zoom toolbar
         showZoomControl: true,
         // Menu toolbar
-        showLayersControl: false,
+        showLayersControl: true,
         showFullscreenControl: true,
         //showGotoControl: false,
         showSimbadPointerControl: false,

@@ -82,7 +82,6 @@ import { Toolbar } from './gui/Widgets/Toolbar';
  * @property {boolean} [showOverlayStackControl=true] - Whether to show the overlay stack control toolbar.
  * @property {boolean} [showSurveyStackControl=true] - Whether to show the survey stack control toolbar.
  * @property {boolean} [showFullscreenControl=true] - Whether to show the fullscreen control toolbar.
- * @property {boolean} [showGotoControl=false] - Whether to show the goto control toolbar.
  * @property {boolean} [showSimbadPointerControl=false] - Whether to show the Simbad pointer control toolbar.
  * @property {boolean} [showCooGridControl=false] - Whether to show the coordinate grid control toolbar.
  * @property {boolean} [showSettingsControl=true] - Whether to show the settings control toolbar.
@@ -371,9 +370,7 @@ export let Aladin = (function () {
             viewport.add(this.location);
         }
         // Add the FoV info
-        if (options.showFov) {
-            viewport.add(new FoV(this))
-        }
+        viewport.add(new FoV(this, options))
 
         ////////////////////////////////////////////////////
         let menu = new Menu({
@@ -387,16 +384,7 @@ export let Aladin = (function () {
 
         // Add the layers control
         if (options.showLayersControl) {
-            menu.enable('stack')
             menu.enable('overlay')
-        } else {
-            if (options.showSurveyStackControl) {
-                menu.enable('stack')
-            }
-
-            if (options.showOverlayStackControl) {
-                menu.enable('overlay')
-            }
         }
         // Add the simbad pointer control
         if (options.showSimbadPointerControl) {
@@ -432,14 +420,12 @@ export let Aladin = (function () {
 
         // share control panel
         if (options.showShareControl) {
-            let share = new Toolbar({
+            /*let share = new Toolbar({
                 orientation: 'horizontal',
-                position: {
-                    anchor: 'left bottom'
-                }
+                
             }, this);
 
-            share.add(new ShareActionButton(self))
+            share.add()*/
             /*share.add(new SnapshotActionButton({
                 tooltip: {
                     content: 'Take a snapshot of your current view',
@@ -449,7 +435,11 @@ export let Aladin = (function () {
                 },
             }, this))*/
 
-            this.addUI(share);
+            this.addUI(new ShareActionButton(self, {
+                position: {
+                    anchor: 'left bottom'
+                }
+            }));
         }
 
         if (options.showProjectionControl) {
@@ -556,13 +546,11 @@ export let Aladin = (function () {
         showZoomControl: true,
         // Menu toolbar
         showLayersControl: false,
-        showOverlayStackControl: true,
-        showSurveyStackControl: true,
         showFullscreenControl: true,
-        showGotoControl: false,
+        //showGotoControl: false,
         showSimbadPointerControl: false,
         showCooGridControl: false,
-        showSettingsControl: true,
+        showSettingsControl: false,
         // Share toolbar
         showShareControl: false,
 

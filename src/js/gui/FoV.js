@@ -40,58 +40,65 @@ import minusIconUrl from "../../../assets/icons/minus.svg"
 
 export class FoV extends DOMElement {
     // constructor
-    constructor(aladin) {
-        let el = Layout.horizontal({
-            layout: [
-                new ActionButton({
+    constructor(aladin, options) {
+        let layout = [];
+
+        if (options.showZoomControl) {
+            layout.push(new ActionButton({
+                size: 'small',
+                icon: {
+                    monochrome: true,
                     size: 'small',
-                    icon: {
-                        monochrome: true,
-                        size: 'small',
-                        url: plusIconUrl,
-                    },
-                    cssStyle: {
-                        marginRight: 0,
-                        borderRight: 'none',
-                        borderRadius: '5px 0px 0px 5px'
-                    },
-                    action(o) {
-                        aladin.increaseZoom();
-                    }
-                }),
-                new ActionButton({
+                    url: plusIconUrl,
+                },
+                cssStyle: {
+                    marginRight: 0,
+                    borderRight: 'none',
+                    borderRadius: '5px 0px 0px 5px'
+                },
+                action(o) {
+                    aladin.increaseZoom();
+                }
+            }))
+            layout.push(new ActionButton({
+                size: 'small',
+                cssStyle: {
+                    borderRadius: '0px 5px 5px 0px'
+                },
+                icon: {
+                    monochrome: true,
                     size: 'small',
-                    cssStyle: {
-                        borderRadius: '0px 5px 5px 0px'
-                    },
-                    icon: {
-                        monochrome: true,
-                        size: 'small',
-                        url: minusIconUrl,
-                    },
-                    action(o) {
-                        aladin.decreaseZoom();
-                    }
-                }),
-                '<div class="aladin-monospace-text"></div>',
-                '<div class="aladin-label-text">&times;</div>',
-                '<div class="aladin-monospace-text"></div>',
-            ]
-        });
+                    url: minusIconUrl,
+                },
+                action(o) {
+                    aladin.decreaseZoom();
+                }
+            }))
+        }
+
+        if (options.showFov) {
+            layout.push(...['<div class="aladin-monospace-text"></div>',
+            '<div class="aladin-label-text">&times;</div>',
+            '<div class="aladin-monospace-text"></div>'])
+        }
+
+        let el = Layout.horizontal(layout);
         el.addClass('aladin-fov');
         el.addClass('aladin-dark-theme')
 
         super(el)
 
-        let self = this;
-        ALEvent.ZOOM_CHANGED.listenedBy(aladin.aladinDiv, function (e) {
+        if (options.showFov) {
+            let self = this;
+            ALEvent.ZOOM_CHANGED.listenedBy(aladin.aladinDiv, function (e) {
+                let [fovXDeg, fovYDeg] = aladin.getFov();
+    
+                self._update(fovXDeg, fovYDeg)
+            });
+    
             let [fovXDeg, fovYDeg] = aladin.getFov();
-
             self._update(fovXDeg, fovYDeg)
-        });
-
-        let [fovXDeg, fovYDeg] = aladin.getFov();
-        self._update(fovXDeg, fovYDeg)
+        }
     };
 
     _update(fovXDeg, fovYDeg) {

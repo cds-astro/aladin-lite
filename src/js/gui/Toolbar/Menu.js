@@ -26,12 +26,10 @@ import { SettingsCtxMenu } from "../CtxMenu/Settings";
 import { OverlayStack } from "../CtxMenu/OverlayStack";
 //import { GotoBox } from "../Box/GotoBox";
 import { SimbadPointer } from "../Button/SimbadPointer";
-import { ProjectionActionButton } from "../Button/Projection";
 
 import settingsIcon from './../../../../assets/icons/settings.svg';
 import stackOverlayIconUrl from './../../../../assets/icons/stack.svg';
 import { GridEnabler } from '../Button/GridEnabler';
-import searchIcon from './../../../../assets/icons/search.svg';
 
 import { Utils as UtilsExt } from "../../Utils";
 import { Utils } from "../Utils";

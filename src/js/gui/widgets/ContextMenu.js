@@ -37,7 +37,9 @@ import { DOMElement } from './Widget.js';
 import { Layout } from '../Layout.js';
 import { ActionButton } from './ActionButton.js';
 import { Icon } from './Icon.js';
+
 import uploadIconUrl from '../../../../assets/icons/upload.svg';
+import nextIconSvg from '../../../../assets/icons/next.svg';
 
 export class ContextMenu extends DOMElement {
 
@@ -177,10 +179,7 @@ export class ContextMenu extends DOMElement {
         }
 
         if (opt.subMenu && opt.subMenu.length > 0) {
-            let spanEl = document.createElement('span')
-            spanEl.innerText = '▶';
-
-            item.appendChild(spanEl);
+            item.appendChild(new Icon({url: nextIconSvg, size: 'small', monochrome: true}).element());
             item.style.display = 'flex';
             item.style.alignItems = 'center';
             item.style.justifyContent = 'space-between';

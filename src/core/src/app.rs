@@ -39,7 +39,7 @@ use cgmath::Vector4;
 use fitsrs::{fits::AsyncFits, hdu::extension::AsyncXtensionHDU};
 use wasm_bindgen_futures::JsFuture;
 
-use web_sys::WebGl2RenderingContext;
+use web_sys::{HtmlElement, WebGl2RenderingContext};
 
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -127,6 +127,7 @@ use al_api::resources::Resources;
 impl App {
     pub fn new(
         gl: &WebGlContext,
+        aladin_div: &HtmlElement,
         mut shaders: ShaderManager,
         resources: Resources,
         // Callbacks
@@ -169,7 +170,7 @@ impl App {
         let manager = Manager::new(&gl, &mut shaders, &camera, &resources)?;
 
         // Grid definition
-        let grid = ProjetedGrid::new()?;
+        let grid = ProjetedGrid::new(aladin_div)?;
 
         // Variable storing the location to move to
         let inertia = None;

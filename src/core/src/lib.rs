@@ -77,6 +77,7 @@ use math::projection::*;
 use renderable::coverage::moc::MOC;
 //use votable::votable::VOTableWrapper;
 use wasm_bindgen::prelude::*;
+use web_sys::HtmlElement;
 
 use crate::math::angle::ToAngle;
 
@@ -151,7 +152,7 @@ impl WebClient {
     /// * `resources` - Image resource files
     #[wasm_bindgen(constructor)]
     pub fn new(
-        aladin_div_name: &str,
+        aladin_div: &HtmlElement,
         shaders: JsValue,
         resources: JsValue,
     ) -> Result<WebClient, JsValue> {
@@ -159,13 +160,19 @@ impl WebClient {
 
         let shaders = serde_wasm_bindgen::from_value(shaders)?;
         let resources = serde_wasm_bindgen::from_value(resources)?;
-        let gl = WebGlContext::new(aladin_div_name)?;
+        let gl = WebGlContext::new(aladin_div)?;
 
         let shaders = ShaderManager::new(&gl, shaders).unwrap_abort();
 
         // Event listeners callbacks
         let callback_position_changed = js_sys::Function::new_no_args("");
-        let app = App::new(&gl, shaders, resources, callback_position_changed)?;
+        let app = App::new(
+            &gl,
+            aladin_div,
+            shaders,
+            resources,
+            callback_position_changed,
+        )?;
 
         let dt = DeltaTime::zero();
 

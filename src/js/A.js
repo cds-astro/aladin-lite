@@ -86,10 +86,13 @@ let A = {};
  *  })
  */
 A.aladin = function (divSelector, options) {
+    let divElement;
     if (!(divSelector instanceof HTMLElement)) {
-        divSelector = document.querySelector(divSelector)
+        divElement = document.querySelector(divSelector)
+    } else {
+        divElement = divSelector;
     }
-    return new Aladin(divSelector, options);
+    return new Aladin(divElement, options);
 };
 
 /**

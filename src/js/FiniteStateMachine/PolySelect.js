@@ -81,6 +81,7 @@ export class PolySelect extends FSM {
                     position: {
                         left: coo.x,
                         top: coo.y,
+                        aladin: view.aladin
                     },
                     cssStyle: {
                         zIndex: 100,

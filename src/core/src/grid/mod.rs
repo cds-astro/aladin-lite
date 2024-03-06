@@ -38,10 +38,11 @@ use wasm_bindgen::JsValue;
 
 use crate::renderable::line::RasterizedLineRenderer;
 use crate::renderable::text::TextRenderManager;
+use web_sys::HtmlElement;
 
 impl ProjetedGrid {
-    pub fn new() -> Result<ProjetedGrid, JsValue> {
-        let text_renderer = TextRenderManager::new()?;
+    pub fn new(aladin_div: &HtmlElement) -> Result<ProjetedGrid, JsValue> {
+        let text_renderer = TextRenderManager::new(aladin_div)?;
 
         let color = ColorRGBA {
             r: 0.0,

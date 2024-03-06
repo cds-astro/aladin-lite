@@ -73,11 +73,11 @@ export let View = (function () {
         try {
             // Start our Rust application. You can find `WebClient` in `src/lib.rs`
             // The Rust part should also create a new WebGL2 or WebGL1 context depending on the WebGL2 brower support.
-            const webglCtx = new WebGLCtx(Aladin.wasmLibs.core, this.aladinDiv.id);
+            const webglCtx = new WebGLCtx(Aladin.wasmLibs.core, this.aladinDiv);
             this.aladin.wasm = webglCtx.webclient;
             this.wasm = this.aladin.wasm;
 
-            ALEvent.AL_USE_WASM.listenedBy(document.body, function (e) {
+            ALEvent.AL_USE_WASM.listenedBy(this.aladinDiv, function (e) {
                 let callback = e.detail.callback;
 
                 callback(self.wasm);
@@ -88,9 +88,9 @@ export let View = (function () {
         } catch (e) {
             // For browsers not supporting WebGL2:
             // 1. Print the original exception message in the console
-            console.error(e)
+            //console.error(e)
             // 2. Add a more explicite message to the end user
-            alert("Problem initializing Aladin Lite. Please contact the support by contacting Matthieu Baumann (baumannmatthieu0@gmail.com) or Thomas Boch (thomas.boch@astro.unistra.fr). You can also open an issue on the Aladin Lite github repository here: https://github.com/cds-astro/aladin-lite. Message error:" + e)
+            console.error("Problem initializing Aladin Lite. Please contact the support by contacting Matthieu Baumann (baumannmatthieu0@gmail.com) or Thomas Boch (thomas.boch@astro.unistra.fr). You can also open an issue on the Aladin Lite github repository here: https://github.com/cds-astro/aladin-lite. Message error:" + e)
         }
 
         // Attach the drag and drop events to the view

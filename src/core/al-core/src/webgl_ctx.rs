@@ -2,6 +2,7 @@ use al_api::blend::BlendFunc;
 use std::rc::Rc;
 use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;
+use web_sys::HtmlElement;
 
 #[cfg(feature = "webgl2")]
 pub type WebGlRenderingCtx = web_sys::WebGl2RenderingContext;
@@ -24,19 +25,15 @@ pub struct WebGlExt {
 use crate::Abort;
 
 impl WebGlContext {
-    pub fn new(aladin_div_name: &str) -> Result<WebGlContext, JsValue> {
-        let window = web_sys::window().unwrap_abort();
-        let document = window.document().unwrap_abort();
-
-        let canvas = document
-            // Get the aladin div element
-            .get_element_by_id(aladin_div_name)
-            .unwrap_abort()
+    pub fn new(aladin_div: &HtmlElement) -> Result<WebGlContext, JsValue> {
+        let canvas = aladin_div
             // Inside it, retrieve the canvas
             .get_elements_by_class_name("aladin-imageCanvas")
             .get_with_index(0)
             .unwrap_abort();
-        let canvas = canvas.dyn_into::<web_sys::HtmlCanvasElement>().unwrap_abort();
+        let canvas = canvas
+            .dyn_into::<web_sys::HtmlCanvasElement>()
+            .unwrap_abort();
 
         // See https://stackoverflow.com/a/26790802/13456997
         // preserveDrawingBuffer enabled for exporting the view as a PNG
@@ -62,7 +59,9 @@ impl WebGlContext {
 
         #[cfg(feature = "webgl2")]
         {
-            if let Ok(r) = get_extension::<web_sys::ExtColorBufferFloat>(&gl, "EXT_color_buffer_float") {
+            if let Ok(r) =
+                get_extension::<web_sys::ExtColorBufferFloat>(&gl, "EXT_color_buffer_float")
+            {
                 let _ = r;
             }
 
@@ -72,7 +71,8 @@ impl WebGlContext {
 
         #[cfg(feature = "webgl1")]
         {
-            let angles_ext = get_extension::<web_sys::AngleInstancedArrays>(&gl, "ANGLE_instanced_arrays")?;
+            let angles_ext =
+                get_extension::<web_sys::AngleInstancedArrays>(&gl, "ANGLE_instanced_arrays")?;
             let _ = get_extension::<web_sys::OesTextureFloat>(&gl, "OES_texture_float")?;
             let _ = get_extension::<web_sys::ExtSRgb>(&gl, "EXT_sRGB")?;
 
@@ -108,12 +108,20 @@ impl Deref for WebGlContext {
 }
 
 pub trait GlWrapper {
-    fn enable(&self, gl: &WebGlContext, f: impl FnOnce() -> Result<(), JsValue>) -> Result<(), JsValue>;
+    fn enable(
+        &self,
+        gl: &WebGlContext,
+        f: impl FnOnce() -> Result<(), JsValue>,
+    ) -> Result<(), JsValue>;
 }
 
 use al_api::blend::{BlendCfg, BlendFactor};
 impl GlWrapper for BlendCfg {
-    fn enable(&self, gl: &WebGlContext, f: impl FnOnce() -> Result<(), JsValue>) -> Result<(), JsValue> {
+    fn enable(
+        &self,
+        gl: &WebGlContext,
+        f: impl FnOnce() -> Result<(), JsValue>,
+    ) -> Result<(), JsValue> {
         let blend_factor_f = |f: &BlendFactor| -> u32 {
             match f {
                 BlendFactor::ConstantAlpha => WebGlRenderingCtx::CONSTANT_ALPHA,

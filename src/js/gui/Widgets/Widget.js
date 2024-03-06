@@ -17,6 +17,8 @@
 //    along with Aladin Lite.
 //
 
+import { requestAnimFrame } from "../../libs/RequestAnimationFrame";
+
 /******************************************************************************
  * Aladin Lite project
  *
@@ -145,13 +147,17 @@ export class DOMElement {
             return;
         }
 
+        const aladinDiv = options && options.aladin && options.aladin.aladinDiv;
+        if (!aladinDiv) {
+            return;
+        }
+
         let left, top, bottom, right;
         let x, y;
 
         // handle the anchor/dir case with higher priority
         const {offsetWidth, offsetHeight} = el;
-        const aladinDiv = document.querySelector('.aladin-container');
-
+        
         const innerWidth = aladinDiv.offsetWidth;
         const innerHeight = aladinDiv.offsetHeight;
 

@@ -174,128 +174,89 @@ export let ImageSurvey = (function () {
         self.query = (async () => {
             let obsTitle, creatorDid, maxOrder, frame, tileSize, formats, minCutout, maxCutout, bitpix, skyFraction, minOrder, initialFov, initialRa, initialDec, hipsBody, isPlanetaryBody, dataproductSubtype;
 
+            let properties;
             try {
-                let properties;
-                try {
-                    properties = await HiPSProperties.fetchFromUrl(url)
-                        .catch(async (e) => {
-                            // url not valid so we try with the id
-                            try {
-                                return await HiPSProperties.fetchFromID(id);
-                            } catch(e) {
-                                throw e;
-                            }
-                        })
-                } catch(e) {
-                    throw e;
-                }
-
-                obsTitle = properties.obs_title;
-                creatorDid = properties.creator_did;
-                // Give a better name if we have the HiPS metadata
-                self.name = self.name || properties.obs_title;
-                // Set it to a default value
-                if (!properties.hips_service_url) {
-                    throw 'no valid service URL for retrieving the tiles'
-                }
-                url = Utils.fixURLForHTTPS(properties.hips_service_url);
-
-                // Request all the properties to see which mirror is the fastest
-                HiPSProperties.getFasterMirrorUrl(properties)
-                    .then((url) => {
-                        self._setUrl(url);
+                properties = await HiPSProperties.fetchFromUrl(url)
+                    .catch(async (e) => {
+                        // url not valid so we try with the id
+                        try {
+                            return await HiPSProperties.fetchFromID(id);
+                        } catch(e) {
+                            throw e;
+                        }
                     })
-                    .catch(e => {
-                        //alert(e);
-                        console.error(e);
-                        // the survey has been added so we remove it from the stack
-                        self.view.removeImageLayer(self.layer)
-                        //throw e;
-                    })
-
-                // Max order
-                maxOrder = PropertyParser.maxOrder(options, properties);
-
-                // Tile size
-                tileSize = PropertyParser.tileSize(options, properties);
-
-                // Tile formats
-                formats = PropertyParser.formats(options, properties);
-
-                // min order
-                minOrder = PropertyParser.minOrder(options, properties);
-
-                // Frame
-                frame = PropertyParser.frame(options, properties);
-
-                // sky fraction
-                skyFraction = PropertyParser.skyFraction(options, properties);
-
-                // Initial fov/ra/dec
-                initialFov = PropertyParser.initialFov(options, properties);
-                initialRa = +properties.hips_initial_ra;
-                initialDec = +properties.hips_initial_dec;
-
-                // Cutouts
-                [minCutout, maxCutout] = PropertyParser.cutouts(options, properties);
-
-                // Bitpix
-                bitpix = PropertyParser.bitpix(options, properties);
-
-                // Dataproduct subtype
-                dataproductSubtype = PropertyParser.dataproductSubtype(options, properties);
-
-                // HiPS body
-                isPlanetaryBody = PropertyParser.isPlanetaryBody(options, properties);
-                if (properties.hips_body) {
-                    hipsBody = properties.hips_body;
-                }
-
-                // TODO move that code out of here
-                if (properties.hips_body !== undefined) {
-                    if (self.view.options.showFrame) {
-                        self.view.aladin.setFrame('J2000d');
-                    }
-                } /*else {
-                    if (self.view.options.showFrame) {
-                        const cooFrame = CooFrameEnum.fromString(self.view.options.cooFrame, CooFrameEnum.J2000);
-                        let frameChoiceElt = document.querySelectorAll('.aladin-location > .aladin-frameChoice')[0];
-                        frameChoiceElt.innerHTML = '<option value="' + CooFrameEnum.J2000.label + '" '
-                            + (cooFrame == CooFrameEnum.J2000 ? 'selected="selected"' : '') + '>J2000</option><option value="' + CooFrameEnum.J2000d.label + '" '
-                            + (cooFrame == CooFrameEnum.J2000d ? 'selected="selected"' : '') + '>J2000d</option><option value="' + CooFrameEnum.GAL.label + '" '
-                            + (cooFrame == CooFrameEnum.GAL ? 'selected="selected"' : '') + '>GAL</option>';
-                    }
-                }*/
-            } catch (e) {
-                //console.error("Could not fetch properties for the survey ", self.id, " with the error:\n", e)
-                /*if (!options.maxOrder) {
-                    throw "The max order is mandatory for a HiPS."
-                }
-
-                if (!options.tileSize) {
-                    console.warn("The tile size has not been given, 512 is chosen by default");
-                }
-
-                url = Utils.fixURLForHTTPS(url);
-
-                // Max order
-                maxOrder = PropertyParser.maxOrder(options);
-
-                // Tile size
-                tileSize = PropertyParser.tileSize(options);
-
-                // Tile formats
-                formats = PropertyParser.formats(options);
-
-                // min order
-                minOrder = PropertyParser.minOrder(options);
-
-                // Frame
-                frame = PropertyParser.frame(options);*/
-
+            } catch(e) {
                 throw e;
             }
 
+            obsTitle = properties.obs_title;
+            creatorDid = properties.creator_did;
+            // Give a better name if we have the HiPS metadata
+            self.name = self.name || properties.obs_title;
+            // Set it to a default value
+            if (!properties.hips_service_url) {
+                throw 'no valid service URL for retrieving the tiles'
+            }
+            url = Utils.fixURLForHTTPS(properties.hips_service_url);
+
+            // Request all the properties to see which mirror is the fastest
+            HiPSProperties.getFasterMirrorUrl(properties)
+                .then((url) => {
+                    self._setUrl(url);
+                })
+                .catch(e => {
+                    //alert(e);
+                    console.error(e);
+                    // the survey has been added so we remove it from the stack
+                    self.view.removeImageLayer(self.layer)
+                    //throw e;
+                })
+
+            // Max order
+            maxOrder = PropertyParser.maxOrder(options, properties);
+
+            // Tile size
+            tileSize = PropertyParser.tileSize(options, properties);
+
+            // Tile formats
+            formats = PropertyParser.formats(options, properties);
+
+            // min order
+            minOrder = PropertyParser.minOrder(options, properties);
+
+            // Frame
+            frame = PropertyParser.frame(options, properties);
+
+            // sky fraction
+            skyFraction = PropertyParser.skyFraction(options, properties);
+
+            // Initial fov/ra/dec
+            initialFov = PropertyParser.initialFov(options, properties);
+            initialRa = +properties.hips_initial_ra;
+            initialDec = +properties.hips_initial_dec;
+
+            // Cutouts
+            [minCutout, maxCutout] = PropertyParser.cutouts(options, properties);
+
+            // Bitpix
+            bitpix = PropertyParser.bitpix(options, properties);
+
+            // Dataproduct subtype
+            dataproductSubtype = PropertyParser.dataproductSubtype(options, properties);
+
+            // HiPS body
+            isPlanetaryBody = PropertyParser.isPlanetaryBody(options, properties);
+            if (properties.hips_body) {
+                hipsBody = properties.hips_body;
+            }
+
+            // TODO move that code out of here
+            if (properties.hips_body !== undefined) {
+                if (self.view.options.showFrame) {
+                    self.view.aladin.setFrame('J2000d');
+                }
+            }
+            
             self.properties = {
                 creatorDid: creatorDid,
                 obsTitle: obsTitle,

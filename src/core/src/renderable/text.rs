@@ -18,12 +18,12 @@ use web_sys::HtmlCanvasElement;
 
 use crate::Abort;
 use wasm_bindgen::JsCast;
+use web_sys::HtmlElement;
 
 impl TextRenderManager {
     /// Init the buffers, VAO and shader
-    pub fn new() -> Result<Self, JsValue> {
-        let document = web_sys::window().unwrap_abort().document().unwrap_abort();
-        let canvas = document
+    pub fn new(aladin_div: &HtmlElement) -> Result<Self, JsValue> {
+        let canvas = aladin_div
             // Inside it, retrieve the canvas
             .get_elements_by_class_name("aladin-gridCanvas")
             .get_with_index(0)

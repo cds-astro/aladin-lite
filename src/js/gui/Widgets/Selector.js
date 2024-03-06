@@ -68,7 +68,7 @@ export class SelectorButton extends DOMElement {
             this.fsm.dispatch('closeCtxMenu')
         };
         const openCtxMenu = () => {
-            document.addEventListener('click', openCtxMenuOnClick)
+            this.aladin.aladinDiv.addEventListener('click', openCtxMenuOnClick)
             
             let menuOptions = [];
             for (const id in this.options) {
@@ -101,7 +101,7 @@ export class SelectorButton extends DOMElement {
             })
         };
         const closeCtxMenu = () => {
-            document.removeEventListener('click', openCtxMenuOnClick)
+            this.aladin.aladinDiv.removeEventListener('click', openCtxMenuOnClick)
             ctxMenu._hide();
         };
 

@@ -143,7 +143,7 @@ export class Box extends DOMElement {
         }
 
         if (this.options.position) {
-            this.setPosition({...this.options.position})
+            this.setPosition(this.options.position)
         }
 
         super._show();

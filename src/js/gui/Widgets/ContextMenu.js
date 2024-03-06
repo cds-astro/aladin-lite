@@ -343,7 +343,7 @@ export class ContextMenu extends DOMElement {
         const position =
             options && options.position ||
             {left: mouseCoords.x, top: mouseCoords.y};
-        this.setPosition({...position, aladinDiv: this.aladin.aladinDiv})
+        this.setPosition({...position, aladin: this.aladin})
 
         this.el.classList.remove('left')
         this.el.classList.remove('top')

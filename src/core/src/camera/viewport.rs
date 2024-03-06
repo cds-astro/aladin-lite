@@ -261,16 +261,6 @@ impl CameraViewPort {
             .dyn_into::<web_sys::HtmlCanvasElement>()
             .unwrap_abort();
 
-        // grid canvas
-        /*let document = web_sys::window().unwrap_abort().document().unwrap_abort();
-        let grid_canvas = document
-            // Inside it, retrieve the canvas
-            .get_elements_by_class_name("aladin-gridCanvas")
-            .get_with_index(0)
-            .unwrap_abort()
-            .dyn_into::<web_sys::HtmlCanvasElement>()
-            .unwrap_abort();*/
-
         canvas
             .style()
             .set_property("width", &format!("{}px", width))

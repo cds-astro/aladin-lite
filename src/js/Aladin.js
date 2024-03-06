@@ -137,6 +137,8 @@ export let Aladin = (function () {
             return;
         }
         this.wasm = null;
+        this.aladinDiv = aladinDiv;
+
         const self = this;
 
         // if not options was set, try to retrieve them from the query string
@@ -169,8 +171,6 @@ export let Aladin = (function () {
         }
 
         this.options = options;
-
-        this.aladinDiv = aladinDiv;
 
         this.reduceDeformations = true;
         // parent div
@@ -1186,6 +1186,9 @@ export let Aladin = (function () {
     Aladin.prototype.addUI = function (ui) {
         this.ui.push(ui);
         ui.attachTo(this.aladinDiv)
+        // as the ui is pushed to the dom, setting position may need the aladin instance to work
+        // so we recompute it
+        ui.update({position: {...ui.options.position, aladin: this}})
     };
 
     // @API
@@ -1285,7 +1288,7 @@ export let Aladin = (function () {
         this.backgroundColor = new Color(rgb);
         // Once the wasm is ready, send the color to change it
 
-        ALEvent.AL_USE_WASM.dispatchedTo(document.body, {callback: (wasm) => {
+        ALEvent.AL_USE_WASM.dispatchedTo(this.aladinDiv, {callback: (wasm) => {
             wasm.setBackgroundColor(this.backgroundColor);
             ALEvent.BACKGROUND_COLOR_CHANGED.dispatchedTo(this.aladinDiv, {color: this.backgroundColor});
         }})
@@ -1434,7 +1437,7 @@ export let Aladin = (function () {
         if (what === "positionChanged") {
             // tell the backend about that callback
             // because it needs to be called when the inertia is done
-            ALEvent.AL_USE_WASM.dispatchedTo(document.body, {callback: (wasm) => {
+            ALEvent.AL_USE_WASM.dispatchedTo(this.aladinDiv, {callback: (wasm) => {
                 let myFunctionThrottled = Utils.throttle(
                     myFunction,
                     View.CALLBACKS_THROTTLE_TIME_MS,

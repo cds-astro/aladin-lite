@@ -859,7 +859,8 @@ export class OverlayStack extends ContextMenu {
     _show(options) {
         this.attach();
 
-        this.position = (options && options.position) || this.position || { anchor: 'center center'}; 
+        this.position = (options && options.position) || this.position || { anchor: 'center center'};
+        this.position.aladin = this.aladin;
         super.show({
             ...options,
             ...{position: this.position},

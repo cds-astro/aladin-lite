@@ -498,12 +498,6 @@ export let Catalog = (function() {
     	}
 
         this.reportChange();
-        /*ALEvent.AL_USE_WASM.dispatchedTo(document.body, {
-            callback: (wasm) => {
-                wasm.setCatalog(this);
-                this.reportChange();
-            }
-        });*/
     };
 
     Catalog.prototype.addFootprints = function(footprintsToAdd) {

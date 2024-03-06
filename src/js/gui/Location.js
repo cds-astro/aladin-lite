@@ -55,6 +55,7 @@ export class Location extends DOMElement {
             self.field.el.blur();
         });
 
+        let focused = false;
         let field = Input.text({
             classList: ['search'],
             tooltip: {
@@ -66,6 +67,15 @@ export class Location extends DOMElement {
             autocomplete: 'off',
             autofocus: true,
             actions: {
+                focus: (e) => {
+                    console.log("focused")
+                    focused = true;
+                },
+                blur: (e) => {
+                    console.log("unfocused")
+
+                    focused = false;
+                },
                 keydown: (e) => {
                     field.removeClass('aladin-unknownObject'); // remove red border
 
@@ -144,6 +154,10 @@ export class Location extends DOMElement {
             }
 
             if (param.type === 'mousemove' && param.state.dragging === false) {
+                if (focused) {
+                    return;
+                }
+
                 self.update({
                     mouseX: param.xy.x,
                     mouseY: param.xy.y,

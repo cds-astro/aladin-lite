@@ -98,6 +98,7 @@ import { Toolbar } from './gui/Widgets/Toolbar';
  * @property {boolean} [showContextMenu=false] - Whether to show the context menu.
  * @property {boolean} [showReticle=true] - Whether to show the reticle.
  * @property {boolean} [showCatalog=true] - Whether to show the catalog.
+ * @property {boolean} [showCooGrid=true] - Whether the coordinates grid should be shown at startup.
  *
  * @property {boolean} [fullScreen=false] - Whether to start in full-screen mode.
  * @property {string} [reticleColor="rgb(178, 50, 178)"] - Color of the reticle in RGB format.

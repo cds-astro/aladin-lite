@@ -52,6 +52,8 @@ import { Layout } from "./gui/Layout.js";
 import { SAMPActionButton } from "./gui/Button/SAMP.js";
 import { Icon } from "./gui/Widgets/Icon.js";
 import openerIconUrl from '../../assets/icons/loading.svg'
+import { ImageSurvey } from "./ImageSurvey.js";
+import { ImageLayer } from "./ImageLayer.js";
 
 export let View = (function () {
 
@@ -350,8 +352,8 @@ export let View = (function () {
     View.prototype.fixLayoutDimensions = function () {
         Utils.cssScale = undefined;
 
-        var computedWidth = parseFloat(window.getComputedStyle(this.aladinDiv).width);
-        var computedHeight = parseFloat(window.getComputedStyle(this.aladinDiv).height);
+        var computedWidth = parseFloat(window.getComputedStyle(this.aladinDiv).width) || 1.0;
+        var computedHeight = parseFloat(window.getComputedStyle(this.aladinDiv).height) || 1.0;
 
         this.width = Math.max(computedWidth, 1);
         this.height = Math.max(computedHeight, 1); // this prevents many problems when div size is equal to 0
@@ -369,7 +371,6 @@ export let View = (function () {
         this.imageCtx = this.imageCanvas.getContext("webgl2");
         //this.aladinDiv.style.width = this.width + "px";
         //this.aladinDiv.style.height = this.height + "px";
-
         this.wasm.resize(this.width, this.height);
 
         this.catalogCtx = this.catalogCanvas.getContext("2d");
@@ -1204,7 +1205,7 @@ export let View = (function () {
             try {
                 this.moving = this.wasm.update(elapsedTime);
             } catch (e) {
-                console.warn(e)
+                console.error(e)
             }
 
             ////// 2. Draw catalogues////////
@@ -1579,12 +1580,20 @@ export let View = (function () {
             .then((imageLayer) => {
                 // If the image layer has successfuly been added
                 this.empty = false;
+
                 if (imageLayer.children) {
                     imageLayer.children.forEach((imageLayer) => {
                         this._addLayer(imageLayer);
                     })
                 } else {
                     this._addLayer(imageLayer);
+                }
+
+                // change the view frame in case we have a planetary hips loaded
+                if (imageLayer.properties.hipsBody) {
+                    if (this.options.showFrame) {
+                        this.aladin.setFrame('J2000d');
+                    }
                 }
             })
             .catch((e) => {
@@ -1606,10 +1615,9 @@ export let View = (function () {
                 if (noMoreLayersToWaitFor) {
                     if (self.empty) {
                         // no promises to launch!
-                        const idxServiceUrl = Math.round(Math.random());
-                        const dssUrl = Aladin.DEFAULT_OPTIONS.surveyUrl[idxServiceUrl]
+                        const dssLayerOptions = ImageLayer.DEFAULT_SURVEY
 
-                        self.aladin.setBaseImageLayer(dssUrl);
+                        self.aladin.setBaseImageLayer(ImageSurvey.fromLayerOptions(self, dssLayerOptions));
                     } else {
                         // there is surveys that have been queried
                         // rename the first overlay layer to "base"

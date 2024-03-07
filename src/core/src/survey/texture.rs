@@ -91,7 +91,6 @@ impl Texture {
             if self.num_tiles_written == num_tiles_per_texture {
                 // The texture is full and available
                 self.full = true;
-                console_log("tile full");
                 self.start_time = Some(Time::now());
             }
         }

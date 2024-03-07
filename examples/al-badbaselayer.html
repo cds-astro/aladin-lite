@@ -8,8 +8,9 @@
         import A from '../src/js/A.js';
 A.init.then(() => {
     let aladin = A.aladin('#aladin-lite-div', {fov: 70,projection: "AIT"});
-    let hsc = aladin.newImageSurvey("P/HSC/DR2/deep/g", {colormap:"Purples", imgFormat: "fits"});
-    aladin.setBaseImageLayer(hsc);
+    
+    //let hsc = aladin.newImageSurvey("P/HSC/DR2/deep/g", {colormap:"Purples", imgFormat: "fits"});
+    //aladin.setBaseImageLayer(hsc);
 
 });
 </script>

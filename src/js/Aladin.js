@@ -64,6 +64,7 @@ import { StatusBarBox } from "./gui/Box/StatusBarBox.js";
 import { FullScreenActionButton } from "./gui/Button/FullScreen.js";
 import { ProjectionActionButton } from "./gui/Button/Projection.js";
 import { Toolbar } from './gui/Widgets/Toolbar';
+import { ImageLayer } from './ImageLayer';
 
 /**
  * @typedef {Object} AladinOptions
@@ -79,12 +80,10 @@ import { Toolbar } from './gui/Widgets/Toolbar';
  *
  * @property {boolean} [showZoomControl=true] - Whether to show the zoom control toolbar.
  * @property {boolean} [showLayersControl=true] - Whether to show the layers control toolbar.
- * @property {boolean} [showOverlayStackControl=true] - Whether to show the overlay stack control toolbar.
- * @property {boolean} [showSurveyStackControl=true] - Whether to show the survey stack control toolbar.
  * @property {boolean} [showFullscreenControl=true] - Whether to show the fullscreen control toolbar.
  * @property {boolean} [showSimbadPointerControl=false] - Whether to show the Simbad pointer control toolbar.
  * @property {boolean} [showCooGridControl=false] - Whether to show the coordinate grid control toolbar.
- * @property {boolean} [showSettingsControl=true] - Whether to show the settings control toolbar.
+ * @property {boolean} [showSettingsControl=false] - Whether to show the settings control toolbar.
  *
  * @property {boolean} [showShareControl=false] - Whether to show the share control toolbar.
  * @property {boolean} [showStatusBar=true] - Whether to show the status bar. Enabled by default.
@@ -260,8 +259,11 @@ export let Aladin = (function () {
                     }
                     i++;
                 });
+            } else if (options.survey === ImageSurvey.DEFAULT_SURVEY_ID) {
+                const survey = ImageSurvey.fromLayerOptions(this, ImageLayer.DEFAULT_SURVEY);
+                this.setBaseImageLayer(survey);
             } else {
-                this.setBaseImageLayer(options.survey);
+                this.setBaseImageLayer(options.survey)
             }
         } else if (options.surveyUrl) {
             // Add the image layers
@@ -508,7 +510,8 @@ export let Aladin = (function () {
     // access to WASM libraries
     Aladin.wasmLibs = {};
     Aladin.DEFAULT_OPTIONS = {
-        surveyUrl: ["https://alaskybis.unistra.fr/DSS/DSSColor", "https://alasky.unistra.fr/DSS/DSSColor"],
+        survey: ImageSurvey.DEFAULT_SURVEY_ID,
+        //surveyUrl: ["https://alaskybis.unistra.fr/DSS/DSSColor", "https://alasky.unistra.fr/DSS/DSSColor"],
         target: "0 +0",
         cooFrame: "J2000",
         fov: 60,
@@ -518,7 +521,6 @@ export let Aladin = (function () {
         // Menu toolbar
         showLayersControl: true,
         showFullscreenControl: true,
-        //showGotoControl: false,
         showSimbadPointerControl: false,
         showCooGridControl: false,
         showSettingsControl: false,
@@ -1230,7 +1232,7 @@ export let Aladin = (function () {
         } else {
             cfg = Utils.clone(cfg)
         }
-        return new ImageSurvey(cfg.id, cfg.name, cfg.rootUrl, this.view, cfg.options);
+        return new ImageSurvey(cfg.id, cfg.name, cfg.rootUrl, cfg.options, this.view);
     };
 
     Aladin.prototype.createImageFITS = function(url, name, options = {}, successCallback = undefined, errorCallback = undefined) {

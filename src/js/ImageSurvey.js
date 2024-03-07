@@ -159,124 +159,119 @@ export let ImageSurvey = (function () {
      * 
      * @description Prefer provide an url better than an id. If both are given, the url will be requested first for the survey data.
      */
-    function ImageSurvey(id, name, url, view, options) {
+    function ImageSurvey(id, name, url, options, view) {
         this.view = view;
-        this.wasm = view.wasm;
         this.added = false;
         this.id = id;
         this.name = name;
         this.subtype = "survey";
 
-        this.properties = {};
+        this.properties = options.properties || {};
         this.colorCfg = new ColorCfg(options);
 
         let self = this;
         self.query = (async () => {
-            let obsTitle, creatorDid, maxOrder, frame, tileSize, formats, minCutout, maxCutout, bitpix, skyFraction, minOrder, initialFov, initialRa, initialDec, hipsBody, isPlanetaryBody, dataproductSubtype;
+            if (!options.properties) {
+                let obsTitle, creatorDid, maxOrder, frame, tileSize, formats, minCutout, maxCutout, bitpix, skyFraction, minOrder, initialFov, initialRa, initialDec, hipsBody, isPlanetaryBody, dataproductSubtype;
 
-            let properties;
-            try {
-                properties = await HiPSProperties.fetchFromUrl(url)
-                    .catch(async (e) => {
-                        // url not valid so we try with the id
-                        try {
-                            return await HiPSProperties.fetchFromID(id);
-                        } catch(e) {
-                            throw e;
-                        }
-                    })
-            } catch(e) {
-                throw e;
-            }
-
-            obsTitle = properties.obs_title;
-            creatorDid = properties.creator_did;
-            // Give a better name if we have the HiPS metadata
-            self.name = self.name || properties.obs_title;
-            // Set it to a default value
-            if (!properties.hips_service_url) {
-                throw 'no valid service URL for retrieving the tiles'
-            }
-            url = Utils.fixURLForHTTPS(properties.hips_service_url);
-
-            // Request all the properties to see which mirror is the fastest
-            HiPSProperties.getFasterMirrorUrl(properties)
-                .then((url) => {
-                    self._setUrl(url);
-                })
-                .catch(e => {
-                    //alert(e);
-                    console.error(e);
-                    // the survey has been added so we remove it from the stack
-                    self.view.removeImageLayer(self.layer)
-                    //throw e;
-                })
-
-            // Max order
-            maxOrder = PropertyParser.maxOrder(options, properties);
-
-            // Tile size
-            tileSize = PropertyParser.tileSize(options, properties);
-
-            // Tile formats
-            formats = PropertyParser.formats(options, properties);
-
-            // min order
-            minOrder = PropertyParser.minOrder(options, properties);
-
-            // Frame
-            frame = PropertyParser.frame(options, properties);
-
-            // sky fraction
-            skyFraction = PropertyParser.skyFraction(options, properties);
-
-            // Initial fov/ra/dec
-            initialFov = PropertyParser.initialFov(options, properties);
-            initialRa = +properties.hips_initial_ra;
-            initialDec = +properties.hips_initial_dec;
-
-            // Cutouts
-            [minCutout, maxCutout] = PropertyParser.cutouts(options, properties);
-
-            // Bitpix
-            bitpix = PropertyParser.bitpix(options, properties);
-
-            // Dataproduct subtype
-            dataproductSubtype = PropertyParser.dataproductSubtype(options, properties);
-
-            // HiPS body
-            isPlanetaryBody = PropertyParser.isPlanetaryBody(options, properties);
-            if (properties.hips_body) {
-                hipsBody = properties.hips_body;
-            }
-
-            // TODO move that code out of here
-            if (properties.hips_body !== undefined) {
-                if (self.view.options.showFrame) {
-                    self.view.aladin.setFrame('J2000d');
+                let properties;
+                try {
+                    properties = await HiPSProperties.fetchFromUrl(url)
+                        .catch(async (e) => {
+                            // url not valid so we try with the id
+                            try {
+                                return await HiPSProperties.fetchFromID(id);
+                            } catch(e) {
+                                throw e;
+                            }
+                        })
+                } catch(e) {
+                    throw e;
                 }
+
+                obsTitle = properties.obs_title;
+                creatorDid = properties.creator_did;
+                // Set it to a default value
+                if (!properties.hips_service_url) {
+                    throw 'no valid service URL for retrieving the tiles'
+                }
+                url = Utils.fixURLForHTTPS(properties.hips_service_url);
+
+                // Request all the properties to see which mirror is the fastest
+                HiPSProperties.getFasterMirrorUrl(properties)
+                    .then((url) => {
+                        self._setUrl(url);
+                    })
+                    .catch(e => {
+                        //alert(e);
+                        console.error(e);
+                        // the survey has been added so we remove it from the stack
+                        self.view.removeImageLayer(self.layer)
+                        //throw e;
+                    })
+
+                // Max order
+                maxOrder = PropertyParser.maxOrder(options, properties);
+
+                // Tile size
+                tileSize = PropertyParser.tileSize(options, properties);
+
+                // Tile formats
+                formats = PropertyParser.formats(options, properties);
+
+                // min order
+                minOrder = PropertyParser.minOrder(options, properties);
+
+                // Frame
+                frame = PropertyParser.frame(options, properties);
+
+                // sky fraction
+                skyFraction = PropertyParser.skyFraction(options, properties);
+
+                // Initial fov/ra/dec
+                initialFov = PropertyParser.initialFov(options, properties);
+                initialRa = +properties.hips_initial_ra;
+                initialDec = +properties.hips_initial_dec;
+
+                // Cutouts
+                [minCutout, maxCutout] = PropertyParser.cutouts(options, properties);
+
+                // Bitpix
+                bitpix = PropertyParser.bitpix(options, properties);
+
+                // Dataproduct subtype
+                dataproductSubtype = PropertyParser.dataproductSubtype(options, properties);
+
+                // HiPS body
+                isPlanetaryBody = PropertyParser.isPlanetaryBody(options, properties);
+                if (properties.hips_body) {
+                    hipsBody = properties.hips_body;
+                }
+
+                self.properties = {
+                    creatorDid,
+                    obsTitle,
+                    url,
+                    maxOrder,
+                    frame,
+                    tileSize,
+                    formats,
+                    minCutout,
+                    maxCutout,
+                    bitpix,
+                    skyFraction,
+                    minOrder,
+                    hipsInitialFov: initialFov,
+                    hipsInitialRa: initialRa,
+                    hipsInitialDec: initialDec,
+                    dataproductSubtype,
+                    isPlanetaryBody,
+                    hipsBody
+                };
             }
-            
-            self.properties = {
-                creatorDid: creatorDid,
-                obsTitle: obsTitle,
-                url: url,
-                maxOrder: maxOrder,
-                frame: frame,
-                tileSize: tileSize,
-                formats: formats,
-                minCutout: minCutout,
-                maxCutout: maxCutout,
-                bitpix: bitpix,
-                skyFraction: skyFraction,
-                minOrder: minOrder,
-                hipsInitialFov: initialFov,
-                hipsInitialRa: initialRa,
-                hipsInitialDec: initialDec,
-                dataproductSubtype: dataproductSubtype,
-                isPlanetaryBody: isPlanetaryBody,
-                hipsBody: hipsBody
-            };
+
+            // Give a better name if we have the HiPS metadata
+            self.name = self.name || self.properties.obsTitle;
 
             // Use the property to define and check some user given infos
             // Longitude reversed
@@ -302,56 +297,49 @@ export let ImageSurvey = (function () {
                 }
 
                 // user wants a fits but the properties tells this format is not available
-                if (imgFormat === "fits" && formats.indexOf('fits') < 0) {
+                if (imgFormat === "fits" && self.properties.formats && self.properties.formats.indexOf('fits') < 0) {
                     throw self.name + " does not provide fits tiles";
                 }
 
-                if (imgFormat === "webp" && formats.indexOf('webp') < 0) {
+                if (imgFormat === "webp" && self.properties.formats && self.properties.formats.indexOf('webp') < 0) {
                     throw self.name + " does not provide webp tiles";
                 }
 
-                if (imgFormat === "png" && formats.indexOf('png') < 0) {
+                if (imgFormat === "png" && self.properties.formats && self.properties.formats.indexOf('png') < 0) {
                     throw self.name + " does not provide png tiles";
                 }
 
-                if (imgFormat === "jpeg" && formats.indexOf('jpeg') < 0) {
+                if (imgFormat === "jpeg" && self.properties.formats && self.properties.formats.indexOf('jpeg') < 0) {
                     throw self.name + " does not provide jpeg tiles";
                 }
             } else {
                 // user wants nothing then we choose one from the properties
-                if (formats.indexOf('webp') >= 0) {
+                if (self.properties.formats.indexOf('webp') >= 0) {
                     imgFormat = "webp";
-                } else if (formats.indexOf('png') >= 0) {
+                } else if (self.properties.formats.indexOf('png') >= 0) {
                     imgFormat = "png";
-                } else if (formats.indexOf('jpeg') >= 0) {
+                } else if (self.properties.formats.indexOf('jpeg') >= 0) {
                     imgFormat = "jpeg";
-                } else if (formats.indexOf('fits') >= 0) {
+                } else if (self.properties.formats.indexOf('fits') >= 0) {
                     imgFormat = "fits";
                 } else {
-                    throw "Unsupported format(s) found in the properties: " + formats;
+                    throw "Unsupported format(s) found in the properties: " + self.properties.formats;
                 }
             }
 
             self.imgFormat = imgFormat;
 
             // Initialize the color meta data here
+            let minCut, maxCut;
             if (imgFormat === "fits") {
                 // Take into account the default cuts given by the property file (this is true especially for FITS HiPSes)
-                const minCut = self.colorCfg.minCut || (options && options.minCut) || self.properties.minCutout || 0.0;
-                const maxCut = self.colorCfg.maxCut || (options && options.maxCut) || self.properties.maxCutout || 1.0;
-
-                this.colorCfg.setCuts(minCut, maxCut);
+                minCut = self.colorCfg.minCut || (options && options.minCut) || self.properties.minCutout || 0.0;
+                maxCut = self.colorCfg.maxCut || (options && options.maxCut) || self.properties.maxCutout || 1.0;
             } else {
-                const minCut = self.colorCfg.minCut || (options && options.minCut) || 0.0;
-                const maxCut = self.colorCfg.maxCut || (options && options.maxCut) || 1.0;
-
-                this.colorCfg.setCuts(minCut, maxCut);
+                minCut = self.colorCfg.minCut || (options && options.minCut) || 0.0;
+                maxCut = self.colorCfg.maxCut || (options && options.maxCut) || 1.0;
             }
-
-            // Color cuts
-            //const lowCut = self.colorCfg.minCut || self.properties.minCutout || 0.0;
-            //const highCut = self.colorCfg.maxCut || self.properties.maxCutout || 1.0;
-            //self.setCuts(lowCut, highCut);
+            self.colorCfg.setCuts(minCut, maxCut);
 
             ImageLayer.update(self);
 
@@ -359,13 +347,26 @@ export let ImageSurvey = (function () {
         })();
     };
 
+    ImageSurvey.fromLayerOptions = function(aladin, options) {
+        return new ImageSurvey(
+            options.id,
+            options.name,
+            options.url,
+            {
+                properties: options,
+                ...options.options
+            },
+            aladin.view
+        );
+    }
+
     ImageSurvey.prototype._setUrl = function (url) {
         if (this.properties.url !== url) {
             console.info("Change url of ", this.id, " from ", this.properties.url, " to ", url)
 
             // If added to the backend, then we need to tell it the url has changed
             if (this.added) {
-                this.wasm.setHiPSUrl(this.properties.url, url);
+                this.view.wasm.setHiPSUrl(this.properties.url, url);
             }
 
             this.properties.url = url;
@@ -399,7 +400,7 @@ export let ImageSurvey = (function () {
         let self = this;
         self.query
             .then(() => {
-                updateMetadata(self, () => {
+                self._updateMetadata(() => {
                     let imgFormat = format.toLowerCase();
 
                     if (imgFormat !== "fits" && imgFormat !== "png" && imgFormat !== "jpg" && imgFormat !== "jpeg" && imgFormat !== "webp") {
@@ -471,9 +472,8 @@ export let ImageSurvey = (function () {
      * @param {number} opacity - Opacity of the survey to set. Between 0 and 1
      */
     ImageSurvey.prototype.setOpacity = function (opacity) {
-        let self = this;
-        updateMetadata(self, () => {
-            self.colorCfg.setOpacity(opacity);
+        this._updateMetadata(() => {
+            this.colorCfg.setOpacity(opacity);
         });
     };
 
@@ -495,7 +495,7 @@ export let ImageSurvey = (function () {
      * If the additive blending mode is enabled, then the final pixel color of your screen will be: rgb = [s1_opacity * s1_color; s2_opacity * s2_color; s3_opacity * s3_color]
      */
     ImageSurvey.prototype.setBlendingConfig = function (additive = false) {
-        updateMetadata(this, () => {
+        this._updateMetadata(() => {
             this.colorCfg.setBlendingConfig(additive);
         });
     };
@@ -535,7 +535,7 @@ export let ImageSurvey = (function () {
      * @param {boolean} [options.reversed=false] - Reverse the colormap axis.
     */
     ImageSurvey.prototype.setColormap = function (colormap, options) {
-        updateMetadata(this, () => {
+        this._updateMetadata(() => {
             this.colorCfg.setColormap(colormap, options);
         });
     }
@@ -551,7 +551,7 @@ export let ImageSurvey = (function () {
      * @param {number} highCut - The high cut value to set for the ImageSurvey.
      */
     ImageSurvey.prototype.setCuts = function (lowCut, highCut) {
-        updateMetadata(this, () => {
+        this._updateMetadata(() => {
             this.colorCfg.setCuts(lowCut, highCut);
         });
     };
@@ -566,7 +566,7 @@ export let ImageSurvey = (function () {
      * @param {number} gamma - The saturation value to set for the ImageSurvey. Between 0.1 and 10
      */
     ImageSurvey.prototype.setGamma = function (gamma) {
-        updateMetadata(this, () => {
+        this._updateMetadata(() => {
             this.colorCfg.setGamma(gamma);
         });
     };
@@ -581,7 +581,7 @@ export let ImageSurvey = (function () {
      * @param {number} saturation - The saturation value to set for the ImageSurvey. Between 0 and 1
      */
     ImageSurvey.prototype.setSaturation = function (saturation) {
-        updateMetadata(this, () => {
+        this._updateMetadata(() => {
             this.colorCfg.setSaturation(saturation);
         });
     };
@@ -596,7 +596,7 @@ export let ImageSurvey = (function () {
      * @param {number} brightness - The brightness value to set for the ImageSurvey. Between 0 and 1
      */
     ImageSurvey.prototype.setBrightness = function (brightness) {
-        updateMetadata(this, () => {
+        this._updateMetadata(() => {
             this.colorCfg.setBrightness(brightness);
         });
     };
@@ -611,32 +611,29 @@ export let ImageSurvey = (function () {
      * @param {number} contrast - The contrast value to set for the ImageSurvey. Between 0 and 1
      */
     ImageSurvey.prototype.setContrast = function (contrast) {
-        updateMetadata(this, () => {
+        this._updateMetadata(() => {
             this.colorCfg.setContrast(contrast);
         });
     };
 
-    ImageSurvey.prototype.metadata = function () {
-        return {
-            ...this.colorCfg.get(),
-            longitudeReversed: this.longitudeReversed,
-            imgFormat: this.imgFormat
-        };
-    }
-
     // Private method for updating the backend with the new meta
-    var updateMetadata = function (self, callback) {
+    ImageSurvey.prototype._updateMetadata = function (callback) {
         if (callback) {
             callback();
         }
 
         // Tell the view its meta have changed
         try {
-            if (self.added) {
-                const metadata = self.metadata();
-                self.wasm.setImageMetadata(self.layer, metadata);
+            this.metadata = {
+                ...this.colorCfg.get(),
+                longitudeReversed: this.longitudeReversed,
+                imgFormat: this.imgFormat
+            };
+
+            if (this.added) {
+                this.view.wasm.setImageMetadata(this.layer, this.metadata);
                 // once the meta have been well parsed, we can set the meta
-                ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(self.view.aladinDiv, { layer: self });
+                ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.view.aladinDiv, { layer: this });
             }
         } catch (e) {
             // Display the error message
@@ -647,10 +644,16 @@ export let ImageSurvey = (function () {
     ImageSurvey.prototype.add = function (layer) {
         this.layer = layer;
 
-        this.wasm.addImageSurvey({
+        this.metadata = {
+            ...this.colorCfg.get(),
+            longitudeReversed: this.longitudeReversed,
+            imgFormat: this.imgFormat
+        };
+
+        this.view.wasm.addImageSurvey({
             layer,
             properties: this.properties,
-            meta: this.metadata(),
+            meta: this.metadata,
         });
 
         this.added = true;
@@ -671,7 +674,7 @@ export let ImageSurvey = (function () {
     ImageSurvey.prototype.setAlpha = ImageSurvey.prototype.setOpacity;
 
     ImageSurvey.prototype.setColorCfg = function (colorCfg) {
-        updateMetadata(this, () => {
+        this._updateMetadata(() => {
             this.colorCfg = colorCfg;
         });
     };
@@ -690,7 +693,7 @@ export let ImageSurvey = (function () {
 
     // @api
     ImageSurvey.prototype.readPixel = function (x, y) {
-        return this.wasm.readPixel(x, y, this.layer);
+        return this.view.wasm.readPixel(x, y, this.layer);
     };
 
     ImageSurvey.DEFAULT_SURVEY_ID = "P/DSS2/color";

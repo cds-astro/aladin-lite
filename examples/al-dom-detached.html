@@ -1,0 +1,43 @@
+<!doctype html>
+<html>
+<head>
+</head>
+<body>
+
+
+<script type="module">
+    import A from '../src/js/A.js';
+    
+    let el = document.createElement('div')
+    el.id = "aladin-lite-div"
+    el.style.width = '1024px';
+    el.style.height = '768px';
+
+    let aladin;
+    A.init.then(() => {
+        var aladin = A.aladin(
+            el,
+            {
+                projection: 'AIT', // set a projection
+                fov: 1.5, // initial field of view in degrees
+                target: 'NGC 2175', // initial target
+                cooFrame: 'galactic', // set galactic frame
+                reticleColor: '#ff89ff', // change reticle color
+                reticleSize: 64, // change reticle size
+                showCooGrid: true, // set the grid
+                fullScreen: true,
+                showShareControl: true,
+                showSettingsControl: true,
+                showLayersControl: true,
+                showContextMenu: true,
+                showFullscreenControl: true,
+            }
+        );
+
+        document.body.appendChild(el);
+    });
+
+</script>
+
+</body>
+</html>

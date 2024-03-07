@@ -229,9 +229,14 @@ pub struct ImageMetadata {
     pub blend_cfg: BlendCfg,
     #[serde(default = "default_opacity")]
     pub opacity: f32,
+    #[serde(default = "default_longitude_reversed")]
     pub longitude_reversed: bool,
     /// the current format chosen
     pub img_format: ImageExt,
+}
+
+fn default_longitude_reversed() -> bool {
+    true
 }
 
 fn default_opacity() -> f32 {

@@ -920,8 +920,8 @@ impl App {
                 &mut self.line_renderer,
             )?;
             self.line_renderer.end();
-
             self.line_renderer.draw(&self.camera)?;
+
             //let dpi  = self.camera.get_dpi();
             //ui.draw(&gl, dpi)?;
 

@@ -1,13 +1,9 @@
 export let ImageLayer = {};
 
 ImageLayer.update = function (layer) {
-    const foundLayer = ImageLayer.LAYERS.find(({ id }) => layer.id.endsWith(id));
+    const foundLayer = ImageLayer.contains(layer.id)
 
-    const options = {
-        ...layer.colorCfg.get(),
-        imgFormat: layer.imgFormat,
-        longitudeReversed: layer.longitudeReversed,
-    };
+    const options = layer.metadata;
     // The survey has not been found among the ones cached
     if (foundLayer) {
         foundLayer.options = options;
@@ -16,24 +12,35 @@ ImageLayer.update = function (layer) {
             id: layer.id,
             name: layer.name,
             url: layer.url,
-            options: options,
+            options,
             subtype: layer.subtype,
         });
     }
 }
 
+ImageLayer.contains = function(id) {
+    return ImageLayer.LAYERS.find((layer) => layer.id.endsWith(id));
+}
+
+ImageLayer.DEFAULT_SURVEY = {
+    id: "P/DSS2/color",
+    name: "DSS colored",
+    url: "https://alasky.cds.unistra.fr/DSS/DSSColor",
+    maxOrder: 9,
+    subtype: "survey",
+    tileSize: 512,
+    formats: ['jpeg'],
+    creatorDid: "ivo://CDS/P/DSS2/color",
+    dataproductSubtype: ['color'],
+    frame: "ICRS"
+}
+
 ImageLayer.LAYERS = [
+    ImageLayer.DEFAULT_SURVEY,
     {
         id: "P/2MASS/color",
         name: "2MASS colored",
         url: "https://alasky.cds.unistra.fr/2MASS/Color",
-        maxOrder: 9,
-        subtype: "survey",
-    },
-    {
-        id: "P/DSS2/color",
-        name: "DSS colored",
-        url: "https://alasky.cds.unistra.fr/DSS/DSSColor",
         maxOrder: 9,
         subtype: "survey",
     },

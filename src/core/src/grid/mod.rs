@@ -102,6 +102,7 @@ impl ProjetedGrid {
 
         if let Some(opacity) = opacity {
             self.color.a = opacity;
+            self.text_renderer.set_color(&self.color);
         }
 
         if let Some(thickness) = thickness {
@@ -213,7 +214,7 @@ impl ProjetedGrid {
         rasterizer.add_stroke_paths(paths, self.thickness, &self.color, &self.line_style);
 
         // update labels
-        {
+        if self.show_labels {
             let labels = meridians
                 .iter()
                 .filter_map(|m| m.get_label())

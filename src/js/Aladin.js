@@ -103,8 +103,20 @@ import { Toolbar } from './gui/Widgets/Toolbar';
  * @property {boolean} [fullScreen=false] - Whether to start in full-screen mode.
  * @property {string} [reticleColor="rgb(178, 50, 178)"] - Color of the reticle in RGB format.
  * @property {number} [reticleSize=22] - Size of the reticle.
- * @property {string} [gridColor="rgb(0, 255, 0)"] - Color of the grid in RGB format.
- * @property {number} [gridOpacity=0.5] - Opacity of the grid (0 to 1).
+ * 
+ * @property {string} [gridColor="rgb(178, 50, 178)"] - Color of the grid in RGB format. 
+ *                                                      Is overshadowed by gridOptions.color if defined.
+ * @property {number} [gridOpacity=0.8] - Opacity of the grid (0 to 1). 
+ *                                        Is overshadowed by gridOptions.opacity if defined.
+ * @property {Object} [gridOptions] - More options for the grid.
+ * @property {string} [gridOptions.color="rgb(178, 50, 178)"] - Color of the grid. Can be specified as a named color 
+ *                    (see {@link https://developer.mozilla.org/en-US/docs/Web/CSS/named-color| named colors}),
+ *                    as rgb (ex: "rgb(178, 50, 178)"), or as a hex color (ex: "#86D6AE").              
+ * @property {number} [gridOptions.thickness=2] - The thickness of the grid, in pixels.
+ * @property {number} [gridOptions.opacity=0.8] - Opacity of the grid and labels. It is comprised between 0 and 1.
+ * @property {boolean} [gridOptions.showLabels=true] - Whether the grid has labels.
+ * @property {number} [gridOptions.labelSize=15] - The font size of the labels.
+ * 
  * @property {string} [projection="SIN"] - Projection type.
  * @property {boolean} [log=true] - Whether to log events.
  * @property {boolean} [samp=false] - Whether to enable SAMP (Simple Application Messaging Protocol).
@@ -204,13 +216,15 @@ export let Aladin = (function () {
         // Grid
         let gridOptions = {
             enabled: false,
-            color: (options.gridOptions && options.gridOptions.color && Color.hexToRgb(options.gridOptions.color)) || Aladin.DEFAULT_OPTIONS.gridColor,
-            opacity: (options.gridOptions && options.gridOptions.opacity) || Aladin.DEFAULT_OPTIONS.gridOpacity
+            color: options.gridOptions.color ? options.gridOptions.color : options.gridColor,
+            opacity: options.gridOptions.opacity || options.gridOpacity,
+            showLabels: options.gridOptions.showLabels === undefined ? true : options.gridOptions.showLabels,
+            thickness: options.gridOptions.thickness || 2,
+            labelSize: options.gridOptions.labelSize || 15,
         };
         if (options && options.showCooGrid) {
             gridOptions.enabled = true;
         }
-
         this.setCooGrid(gridOptions);
 
         // Set the projection
@@ -238,7 +252,7 @@ export let Aladin = (function () {
         this.gotoObject(options.target, undefined);
 
         if (options.log) {
-            var params = requestedOptions;
+            var params = options;
             params['version'] = Aladin.VERSION;
             Logger.log("startup", params);
         }
@@ -541,8 +555,9 @@ export let Aladin = (function () {
         fullScreen: false,
         reticleColor: "rgb(178, 50, 178)",
         reticleSize: 22,
-        gridColor: "rgb(0, 255, 0)",
-        gridOpacity: 0.5,
+        gridColor: "rgb(178, 50, 178)",
+        gridOpacity: 0.8,
+        gridOptions: {},
         projection: 'SIN',
         log: true,
         samp: false,

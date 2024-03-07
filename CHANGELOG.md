@@ -2,6 +2,9 @@
 
 ## 3.3.0
 
+* [style] The default grid color is now `rgb(178, 50, 178)` to fit the classic Aladin color palette
+* [feat] The object of grid options `gridOptions` is now available in the public API
+* [fixed] The parameters `gridColor` and `gridOpacity`, `gridOptions.showLabels` now work as expected
 * New documentation API (W.I.P) here: <https://cds-astro.github.io/aladin-lite/>
 * New release page here: <https://aladin.cds.unistra.fr/AladinLite/doc/release/>
 * A major UI update by @bmatthieu3

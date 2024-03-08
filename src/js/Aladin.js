@@ -166,8 +166,20 @@ export let Aladin = (function () {
             delete requestedOptions.zoom;
             requestedOptions.fov = fovValue;
         }
+
         // merge with default options
-        var options = {};
+        var options = {
+            gridOptions: {}
+        };
+
+        // 'gridOptions' is an object, so it need it own loop
+        if ('gridOptions' in requestedOptions) {
+            for (var key in Aladin.DEFAULT_OPTIONS.gridOptions) {
+                if (requestedOptions.gridOptions[key] === undefined) {
+                    options.gridOptions[key] = Aladin.DEFAULT_OPTIONS.gridOptions[key]
+                }
+            }
+        }
         for (var key in Aladin.DEFAULT_OPTIONS) {
             if (requestedOptions[key] !== undefined) {
                 options[key] = requestedOptions[key];
@@ -213,14 +225,11 @@ export let Aladin = (function () {
         }
 
         // Grid
-        let gridOptions = {
-            enabled: false,
-            color: options.gridOptions.color ? options.gridOptions.color : options.gridColor,
-            opacity: options.gridOptions.opacity || options.gridOpacity,
-            showLabels: options.gridOptions.showLabels === undefined ? true : options.gridOptions.showLabels,
-            thickness: options.gridOptions.thickness || 2,
-            labelSize: options.gridOptions.labelSize || 15,
-        };
+        let gridOptions = options.gridOptions;
+        // color and opacity can be defined by two variables. The item in gridOptions
+        // should take precedence.
+        gridOptions["color"] = options.gridOptions.color || options.gridColor;
+        gridOptions["opacity"] = options.gridOptions.opacity || options.gridOpacity;
         if (options && options.showCooGrid) {
             gridOptions.enabled = true;
         }
@@ -559,7 +568,12 @@ export let Aladin = (function () {
         reticleSize: 22,
         gridColor: "rgb(178, 50, 178)",
         gridOpacity: 0.8,
-        gridOptions: {},
+        gridOptions: {
+            enabled: false,
+            showLabels: true,
+            thickness: 2,
+            labelSize: 15
+        },
         projection: 'SIN',
         log: true,
         samp: false,

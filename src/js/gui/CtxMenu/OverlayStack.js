@@ -243,12 +243,7 @@ export class OverlayStack extends ContextMenu {
                                 
                                 self._hide();
 
-                                self.catBox = new CatalogQueryBox(self.aladin, {
-                                    onHidden: () => {
-                                        // called after hiding catalog query box
-                                        self.show()
-                                    }
-                                });
+                                self.catBox = new CatalogQueryBox(self.aladin);
                                 self.catBox._show({position: self.position});
 
                                 self.mode = 'search';
@@ -482,12 +477,7 @@ export class OverlayStack extends ContextMenu {
 
                         self._hide();
 
-                        self.hipsSelectorBox = new HiPSSelectorBox(self.aladin, {
-                            onHidden: () => {
-                                // called after hiding catalog query box
-                                self.show()
-                            }
-                        });
+                        self.hipsSelectorBox = new HiPSSelectorBox(self.aladin);
                         // attach a callback
                         self.hipsSelectorBox.attach( 
                             (HiPSId) => {
@@ -607,16 +597,11 @@ export class OverlayStack extends ContextMenu {
 
                     self._hide();
 
-                    self.aladin.selectLayer(layer.layer);
-                    self.attach()
+                    console.log("kjkj")
+                    //self.aladin.selectLayer(layer.layer);
+                    //self.attach()
 
-                    self.editBox = new LayerEditBox(self.aladin, {
-                        onHidden: () => {
-                            // called after hiding catalog query box
-                            self.show()
-
-                        }
-                    });
+                    self.editBox = new LayerEditBox(self.aladin);
                     self.editBox.update({layer})
                     self.editBox._show({position: self.position});
 
@@ -786,15 +771,7 @@ export class OverlayStack extends ContextMenu {
 
                     self._hide();
 
-                    if (self.hipsBox) {
-                        self.hipsBox.remove();
-                    }
-                    self.hipsBox = new HiPSSelectorBox(self.aladin, {
-                        onHidden: () => {
-                            // called after hiding catalog query box
-                            self.show()
-                        }
-                    })
+                    self.hipsBox = new HiPSSelectorBox(self.aladin)
 
                     self.hipsBox.attach(
                         (HiPSId) => {            
@@ -888,6 +865,10 @@ export class OverlayStack extends ContextMenu {
             if(this.hipsBox) {
                 this.hipsBox.remove()
             }
+
+            if(this.editBox) {
+                this.editBox.remove()
+            }
         }
 
         self.mode = 'stack';
@@ -919,48 +900,5 @@ export class OverlayStack extends ContextMenu {
                         subMenu.style.overflowY = 'scroll';
                     })
             })
-            
-    }
-
-    hideAll() {
-        if (this.hipsBox) {
-            this.hipsBox.remove()
-        }
-
-        if (this.editBox) {
-            this.editBox.remove()
-        }
-
-        if (this.hipsSelectorBox) {
-            this.hipsSelectorBox.remove()
-        }
-
-        if (this.catBox) {
-            this.catBox.remove()
-        }
-
-        this._hide()
-        this.mode = 'stack';
-    }
-
-    _hide() {
-        /*if (this.hipsBox) {
-            this.hipsBox.remove()
-        }
-
-        if (this.editBox) {
-            this.editBox.remove()
-        }
-
-        if (this.hipsSelectorBox) {
-            this.hipsSelectorBox.remove()
-        }
-
-        if (this.catBox) {
-            this.catBox.remove()
-        }*/
-
-        //this.mode = 'stack';
-        super._hide();
     }
 }

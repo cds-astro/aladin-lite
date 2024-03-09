@@ -36,7 +36,7 @@ import { Input } from "../Widgets/Input.js";
  export class HiPSSelectorBox extends Box {
     static HiPSList = {};
 
-    constructor(aladin) {
+    constructor(aladin, options) {
         MocServer.getAllHiPSes()
             .then((HiPSes) => {
                 HiPSes.forEach((h) => {
@@ -82,7 +82,8 @@ import { Input } from "../Widgets/Input.js";
                         inputText,
                         loadBtn
                     ]
-                })
+                }),
+                ...options
             },
             aladin.aladinDiv
         )

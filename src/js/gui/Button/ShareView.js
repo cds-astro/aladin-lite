@@ -123,20 +123,16 @@ import cameraIconUrl from '../../../../assets/icons/camera.svg';
 
         let self;
         super({
+            size: 'medium',
             ctxMenu: layout,
             ...options,
             icon: {
                 url: shareIconUrl,
                 monochrome: true,
             },
-            openDirection: 'top',
+            //openDirection: 'top',
             tooltip: {content: 'You can share/export your view into many ways', position: {direction: 'top'}},
         }, aladin);
         self = this;
-        this.addClass('medium-sized-icon')
-    }
-
-    _show() {
-        super._show()
     }
 }

@@ -42,6 +42,7 @@ export class SimbadPointer extends ActionButton {
                 url: targetIcon,
                 monochrome: true,
             },
+            classList: ['aladin-simbadPointer-control'],
             size: 'medium',
             tooltip: {
                 content: 'Want to know what is a specific object ?<br />Use the Simbad pointer tool!',

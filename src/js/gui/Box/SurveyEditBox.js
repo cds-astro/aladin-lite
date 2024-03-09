@@ -42,13 +42,14 @@ import { ColorCfg } from "../../ColorCfg.js";
 
  export class LayerEditBox extends Box {
      // Constructor
-     constructor(aladin) {
+     constructor(aladin, options) {
         super(
             {
                 cssStyle: {
                     padding: '4px',
                     backgroundColor: 'black',
-                }
+                },
+                ...options
             },
             aladin.aladinDiv
         )

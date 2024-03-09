@@ -52,6 +52,7 @@ export class GridEnabler extends ActionButton {
                 monochrome: true,
                 url: gridIcon
             },
+            classList: ['aladin-grid-control'],
             tooltip: computeTooltip(gridEnabled),
             toggled: gridEnabled,
             action(o) {

@@ -17,8 +17,6 @@
 //    along with Aladin Lite.
 //
 
-import { requestAnimFrame } from "../../libs/RequestAnimationFrame";
-
 /******************************************************************************
  * Aladin Lite project
  *
@@ -202,9 +200,15 @@ export class DOMElement {
             if (typeof right === 'number') {
                 right = right + 'px';
             }
-        } else if (options && options.nextTo && options.direction) {
-            let dir = options.direction || 'right';
+        } else if (options && options.nextTo) {
+            let dir = options.direction;
             let nextTo = options.nextTo;
+
+            if (!dir) {
+                // determine the direction with respect to the element given
+                let elX = options.nextTo.el.getBoundingClientRect().left + options.nextTo.el.getBoundingClientRect().width * 0.5;
+                dir = (elX < innerWidth / 2) ? 'right' : 'left';
+            }
 
             if (nextTo instanceof DOMElement) {
                 nextTo = nextTo.element();
@@ -240,28 +244,28 @@ export class DOMElement {
             }
 
             // Translate if the div in 
-            if (left + offsetWidth > innerWidth) {
-                x = '-' + (left + offsetWidth - innerWidth) + 'px';
-            } else if (left < 0) {
-                x = Math.abs(left) + 'px';
-            }
+            if (typeof top === 'number') {
+                if (top + offsetHeight >= innerHeight) {
+                    y = '-' + (top + offsetHeight - innerHeight) + 'px';
+                } else if (top < 0) {
+                    y = Math.abs(top) + 'px';
+                }
 
-            if (top + offsetHeight >= innerHeight) {
-                y = '-' + (top + offsetHeight - innerHeight) + 'px';
-            } else if (top < 0) {
-                y = Math.abs(top) + 'px';
-            }
-                
-            if (bottom) {
-                bottom = bottom + 'px';
-            }
-            if (top) {
                 top = top + 'px';
             }
-            if (left) {
+            if (typeof bottom === 'number') {
+                bottom = bottom + 'px';
+            }
+            if (typeof left === 'number') {
+                if (left + offsetWidth > innerWidth) {
+                    x = '-' + (left + offsetWidth - innerWidth) + 'px';
+                } else if (left < 0) {
+                    x = Math.abs(left) + 'px';
+                }
+
                 left = left + 'px';
             }
-            if (right) {
+            if (typeof right === 'number') {
                 right = right + 'px';
             }
         }
@@ -297,6 +301,10 @@ export class DOMElement {
     _hide() {
         this.isHidden = true;
         this.el.style.display = 'none';
+
+        if (this.options && this.options.onHidden) {
+            this.options.onHidden();
+        }
     }
 
     attachTo(target, position = 'beforeend') {

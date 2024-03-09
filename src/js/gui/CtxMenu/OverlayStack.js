@@ -78,9 +78,8 @@ export class OverlayStack extends ContextMenu {
     constructor(aladin) {
         let self;
         super(aladin, {hideOnClick: (e) => {
-            if (self.mode === 'stack') {
-                self._hide();
-            }
+            // only hide the stack ctx menu but not the windows
+            super._hide();
         }});
         self = this;
         this.aladin = aladin;
@@ -99,7 +98,8 @@ export class OverlayStack extends ContextMenu {
             // If it is shown, update it
             if (!self.isHidden) {
                 // show will update the content of the stack
-                self._show();
+                self.attach();
+                self.show();
             }
         };
         
@@ -243,7 +243,12 @@ export class OverlayStack extends ContextMenu {
                                 
                                 self._hide();
 
-                                self.catBox = new CatalogQueryBox(self.aladin);
+                                self.catBox = new CatalogQueryBox(self.aladin, {
+                                    onHidden: () => {
+                                        // called after hiding catalog query box
+                                        self.show()
+                                    }
+                                });
                                 self.catBox._show({position: self.position});
 
                                 self.mode = 'search';
@@ -477,15 +482,19 @@ export class OverlayStack extends ContextMenu {
 
                         self._hide();
 
-                        self.hipsSelectorBox = new HiPSSelectorBox(self.aladin);
+                        self.hipsSelectorBox = new HiPSSelectorBox(self.aladin, {
+                            onHidden: () => {
+                                // called after hiding catalog query box
+                                self.show()
+                            }
+                        });
                         // attach a callback
                         self.hipsSelectorBox.attach( 
                             (HiPSId) => {
                                 let name = Utils.uuidv4()
                                 self.aladin.setOverlayImageLayer(HiPSId, name)
 
-                                self.mode = 'stack';
-                                self._show();
+                                self.show();
                             }
                         );
 
@@ -601,7 +610,13 @@ export class OverlayStack extends ContextMenu {
                     self.aladin.selectLayer(layer.layer);
                     self.attach()
 
-                    self.editBox = new LayerEditBox(self.aladin);
+                    self.editBox = new LayerEditBox(self.aladin, {
+                        onHidden: () => {
+                            // called after hiding catalog query box
+                            self.show()
+
+                        }
+                    });
                     self.editBox.update({layer})
                     self.editBox._show({position: self.position});
 
@@ -716,7 +731,7 @@ export class OverlayStack extends ContextMenu {
                 l.subMenu.push({
                     //selected: layer.name === aladin.getBaseImageLayer().name,
                     label: '<div style="background-color: rgba(0, 0, 0, 0.6); padding: 3px; border-radius: 3px">' + ll.name + '</div>',
-                    cssStyle: cssStyle,
+                    cssStyle,
                     action(e) {
                         let cfg = ImageLayer.LAYERS.find((l) => l.name === ll.name);
                         let newLayer;
@@ -774,13 +789,17 @@ export class OverlayStack extends ContextMenu {
                     if (self.hipsBox) {
                         self.hipsBox.remove();
                     }
-                    self.hipsBox = new HiPSSelectorBox(self.aladin)
+                    self.hipsBox = new HiPSSelectorBox(self.aladin, {
+                        onHidden: () => {
+                            // called after hiding catalog query box
+                            self.show()
+                        }
+                    })
 
                     self.hipsBox.attach(
                         (HiPSId) => {            
                             self.aladin.setOverlayImageLayer(HiPSId, layer.layer);
-                            self.mode = 'stack';
-                            self._show();
+                            self.show();
                         }
                     );
     
@@ -856,7 +875,23 @@ export class OverlayStack extends ContextMenu {
         });
     }
 
-    _show(options) {
+    show(options) {
+        if (this.mode !== 'stack') {
+            if(this.hipsSelectorBox) {
+                this.hipsSelectorBox.remove()
+            }
+
+            if(this.catBox) {
+                this.catBox.remove()
+            }
+
+            if(this.hipsBox) {
+                this.hipsBox.remove()
+            }
+        }
+
+        self.mode = 'stack';
+
         this.attach();
 
         this.position = (options && options.position) || this.position || { anchor: 'center center'};
@@ -865,7 +900,7 @@ export class OverlayStack extends ContextMenu {
             ...options,
             ...{position: this.position},
             cssStyle: {
-                maxWidth: '20em',
+                maxWidth: '17rem',
             }
         })
 
@@ -887,18 +922,45 @@ export class OverlayStack extends ContextMenu {
             
     }
 
-    _hide() {
-        if (this.catBox)
-            this.catBox.remove();
+    hideAll() {
+        if (this.hipsBox) {
+            this.hipsBox.remove()
+        }
 
-        if (this.editBox)
-            this.editBox.remove();
+        if (this.editBox) {
+            this.editBox.remove()
+        }
 
-        if (this.hipsSelectorBox)
-            this.hipsSelectorBox.remove();
+        if (this.hipsSelectorBox) {
+            this.hipsSelectorBox.remove()
+        }
 
+        if (this.catBox) {
+            this.catBox.remove()
+        }
+
+        this._hide()
         this.mode = 'stack';
-       
+    }
+
+    _hide() {
+        /*if (this.hipsBox) {
+            this.hipsBox.remove()
+        }
+
+        if (this.editBox) {
+            this.editBox.remove()
+        }
+
+        if (this.hipsSelectorBox) {
+            this.hipsSelectorBox.remove()
+        }
+
+        if (this.catBox) {
+            this.catBox.remove()
+        }*/
+
+        //this.mode = 'stack';
         super._hide();
     }
 }

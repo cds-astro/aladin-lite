@@ -35,13 +35,13 @@ import { CooFrameEnum } from '../../CooFrameEnum.js';
 import { Utils } from '../../Utils';
 import { DOMElement } from './Widget.js';
 import { Layout } from '../Layout.js';
-import { ActionButton } from './ActionButton.js';
 import { Icon } from './Icon.js';
 
 import uploadIconUrl from '../../../../assets/icons/upload.svg';
 import nextIconSvg from '../../../../assets/icons/next.svg';
 
 export class ContextMenu extends DOMElement {
+    static _menus = [];
 
     constructor(aladin, options) {
         let el = document.createElement('ul');
@@ -83,9 +83,12 @@ export class ContextMenu extends DOMElement {
                 .observe(this.aladin.aladinDiv)
             }
         }
+
+        ContextMenu._menus.push(this);
     }
 
     static lastHoveredItem;
+
     _attachOption(target, opt, e, cssStyle) {
         let item = document.createElement('li');
         item.classList.add('aladin-context-menu-item');
@@ -357,14 +360,9 @@ export class ContextMenu extends DOMElement {
         this.menuOptions = options;
     }
 
-    static menu = undefined;
-
-    static getInstance(aladin, options) {
-        if (!ContextMenu.menu) {
-            ContextMenu.menu = new ContextMenu(aladin, options);
-        }
-
-        return ContextMenu.menu;
+    /* Hide all the defined menus */
+    static hideAll() {
+        ContextMenu._menus.forEach((menu) => menu._hide())
     }
 
     /// Context menu predefined items

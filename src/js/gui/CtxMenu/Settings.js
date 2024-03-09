@@ -40,7 +40,7 @@ import { GridSettingsCtxMenu } from "./GridSettings.js";
 
 export class SettingsCtxMenu extends ContextMenu {
     // Constructor
-    constructor(aladin, menu) {
+    constructor(aladin, options) {
         super(aladin, {hideOnClick: true});
         let self = this;
         self.backgroundColorInput = Input.color({
@@ -105,8 +105,8 @@ export class SettingsCtxMenu extends ContextMenu {
             }
         })
 
-        this.menu = menu;
-        
+        this.features = options && options.features;
+
         let sampBtn = new SAMPActionButton({
             size: 'small',
             action(conn) {
@@ -121,20 +121,20 @@ export class SettingsCtxMenu extends ContextMenu {
         }, aladin);
         this.sampBtn = sampBtn;
 
-        this._attach();
+        this.attach();
     }
 
-    _attach() {
-        const toggleWindow = (window) => {
-            let windowShown = self.menu.isShown(window);
-            if(windowShown) {
-                self.menu.disable(window)
+    attach() {
+        let self = this;
+
+        const toggleFeature = (name) => {
+            let feature = self.features[name];
+            if(feature.isHidden) {
+                feature._show();
             } else {
-                self.menu.enable(window)
+                feature._hide();
             }
         }
-
-        let self = this;
 
         let reticle = self.aladin.getReticle();
 
@@ -149,7 +149,7 @@ export class SettingsCtxMenu extends ContextMenu {
             }
         });
 
-        this.attach([
+        let options = [
             //ProjectionCtxMenu.getLayout(self.aladin),
             GridSettingsCtxMenu.getLayout(self.aladin),
             {
@@ -164,7 +164,7 @@ export class SettingsCtxMenu extends ContextMenu {
                             let newVal = self.toggleCheckbox(self.reticleCheckbox);
                             self.aladin.showReticle(newVal)
         
-                            self._attach();
+                            self.attach();
                         }
                     },
                     {
@@ -191,7 +191,7 @@ export class SettingsCtxMenu extends ContextMenu {
                     let newVal = self.toggleCheckbox(self.hpxGridCheckbox);
                     self.aladin.showHealpixGrid(newVal)
 
-                    self._attach();
+                    self.attach();
                 }
             },
             {
@@ -204,23 +204,23 @@ export class SettingsCtxMenu extends ContextMenu {
                 subMenu: [
                     {
                         label: 'Stack',
-                        selected: self.menu.isShown('overlay'),
+                        selected: !self.features['stack'].isHidden,
                         action(o) {
-                            toggleWindow('overlay')
+                            toggleFeature('stack')
                         }
                     },
                     {
                         label: 'Simbad',
-                        selected: self.menu.isShown('simbad'),
+                        selected: !self.features['simbad'].isHidden,
                         action(o) {
-                            toggleWindow('simbad');
+                            toggleFeature('simbad');
                         }
                     },
                     {
                         label: 'Grid',
-                        selected: self.menu.isShown('grid'),
+                        selected: !self.features['grid'].isHidden,
                         action(o) {
-                            toggleWindow('grid');
+                            toggleFeature('grid');
                         }
                     }
                 ]
@@ -280,23 +280,20 @@ export class SettingsCtxMenu extends ContextMenu {
                     }
                 ]
             }
-        ]);
+        ]
+        super.attach(options);
     }
 
-    _hide() {
-        this._attach()
+    show(options) {
+        this.attach();
 
-        super._hide();
-    }
-
-    _show(options) {
         this.position = (options && options.position) || this.position || { anchor: 'center center'}; 
 
         super.show({
             position: this.position,
             cssStyle: {
                 backgroundColor: 'black',
-                maxWidth: '20em',
+                maxWidth: '17rem',
             }
         })
     }

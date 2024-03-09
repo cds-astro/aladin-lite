@@ -80,13 +80,11 @@ import { Layout } from "../Layout";
 export class ActionButton extends DOMElement {
     constructor(options, target, position = "beforeend") {
         let el = document.createElement('button');
-        el.classList.add('aladin-btn');
+        el.classList.add('aladin-btn', 'aladin-dark-theme');
 
         // add it to the dom
         super(el, options);
         this._show();
-
-        this.addClass('aladin-dark-theme')
 
         this.attachTo(target, position)
     }
@@ -160,6 +158,10 @@ export class ActionButton extends DOMElement {
 
         if (this.options.position) {
             this.setPosition(this.options.position)
+        }
+
+        if (this.options.classList) {
+            this.options.classList.forEach((className) => this.element().classList.add(className))
         }
 
         super._show();

@@ -68,12 +68,9 @@ export class Location extends DOMElement {
             autofocus: true,
             actions: {
                 focus: (e) => {
-                    console.log("focused")
                     focused = true;
                 },
                 blur: (e) => {
-                    console.log("unfocused")
-
                     focused = false;
                 },
                 keydown: (e) => {

@@ -40,13 +40,10 @@ import { ContextMenu } from "../Widgets/ContextMenu.js";
  }
  */
 export class CtxMenuActionButtonOpener extends ActionButton {
-    //static BUTTONS = [];
-
     // Constructor
     constructor(options, aladin) {
         let self;
 
-        let ctxMenu = new ContextMenu(aladin, {hideOnClick: true, hideOnResize: true})
         super({
             ...options,
             cssStyle: {
@@ -55,40 +52,41 @@ export class CtxMenuActionButtonOpener extends ActionButton {
                 ...options.cssStyle
             },
             action(e) {
+                let isHidden = self.ctxMenu.isHidden
 
-                //self.ctxMenu._hide();
+                ContextMenu.hideAll();
 
-                if (self.ctxMenu.isHidden === true) {
+                // If it was hidden then reopen it
+                if (isHidden) {
                     if (options.action) {
                         options.action(e)
                     }
 
-                    self.ctxMenu.attach(self.layout)
+                    if (self.layout) {
+                        self.ctxMenu.attach(self.layout)
+                    }
+
                     self.ctxMenu.show({
                         position: {
                             nextTo: self,
-                            direction: options.openDirection || 'bottom',
+                            direction: options.openDirection,
                         },
-                        cssStyle: options.ctxMenu && options.ctxMenu.cssStyle
                     });
-
-                    //CtxMenuActionButtonOpener.BUTTONS.forEach(b => {b.hidden = true})
-                } else {
-                    self.hideMenu();
                 }
-
-                //self.hidden = !self.hidden;
             }
         })
 
-        //this.hidden = true;
-
-        this.layout = options.ctxMenu;
-
         self = this;
-        self.ctxMenu = ctxMenu;
 
-        //CtxMenuActionButtonOpener.BUTTONS.push(this);
+        let ctxMenu;
+        if (options.ctxMenu instanceof ContextMenu) {
+            ctxMenu = options.ctxMenu;
+        } else {
+            this.layout = options.ctxMenu;
+            ctxMenu = new ContextMenu(aladin, {hideOnClick: true, hideOnResize: true})
+        }
+
+        self.ctxMenu = ctxMenu;
     }
 
     hideMenu() {
@@ -102,19 +100,31 @@ export class CtxMenuActionButtonOpener extends ActionButton {
 
     update(options) {
         if(options.ctxMenu) {
-            this.layout = options.ctxMenu;
+            if (options.ctxMenu instanceof ContextMenu) {
+                this.ctxMenu = options.ctxMenu
+            } else {
+                this.layout = options.ctxMenu;
+            }
+        }
+
+        if (!this.ctxMenu) {
+            this.ctxMenu = new ContextMenu(aladin, {hideOnClick: true, hideOnResize: true})
         }
 
         super.update(options)
 
         if (!this.ctxMenu.isHidden) {
-            this.ctxMenu.attach(this.layout)
+            if (this.layout) {
+                this.ctxMenu.attach(this.layout)
+            }
+
             this.ctxMenu.show({
                 position: {
                     nextTo: this,
-                    direction: options.openDirection || 'bottom',
+                    // it case it is not given then it will be computed by default
+                    direction: options.openDirection,
                 },
-                cssStyle: options.ctxMenu && options.ctxMenu.cssStyle
+                //cssStyle: options.ctxMenu && options.ctxMenu.cssStyle
             });
         }
     }

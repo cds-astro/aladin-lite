@@ -48,8 +48,8 @@ export let Reticle = (function() {
 
         aladin.aladinDiv.appendChild(this.el);
 
-        let color = options && options.color || Aladin.DEFAULT_OPTIONS.reticleColor;
-        let size = options && options.size || Aladin.DEFAULT_OPTIONS.reticleSize;
+        let color = options && options.reticleColor || Aladin.DEFAULT_OPTIONS.reticleColor;
+        let size = options && options.reticleSize || Aladin.DEFAULT_OPTIONS.reticleSize;
         
         let show;
         if (options.showReticle === undefined) {

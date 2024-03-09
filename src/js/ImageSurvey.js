@@ -141,7 +141,7 @@ PropertyParser.isPlanetaryBody = function(options, properties = {}) {
  * @property {number} [maxOrder] - If not given, retrieved from the properties of the survey.
  * @property {number} [minOrder] - If not given, retrieved from the properties of the survey.
  * @property {boolean} [longitudeReversed=false] - Set it to True for planetary survey visualization
- * @property {string} [imgFormat] - If not given, look into the properties to see the accepted format. The format is chosen from PNG > WEBP > JPEG > FITS (in this importance order).
+ * @property {string} [imgFormat] - If not given, look into the properties to see the accepted format. The format is chosen from WEBP > PNG > JPEG > FITS (in this importance order).
  * @property {string} [cooFrame] - If not given, look into the properties. If it is a planet, then ICRS is chosen, otherwise its hips_frame key is read. If no value is found in the properties, ICRS is chosen by default. 
  */
 export let ImageSurvey = (function () {

@@ -37,7 +37,7 @@ import { CtxMenuActionButtonOpener } from "../Button/CtxMenuOpener.js";
 
  export class CatalogQueryBox extends Box {
     static catalogs = {};
-    constructor(aladin) {
+    constructor(aladin, options) {
         // Query the mocserver
         MocServer.getAllCatalogHiPSes()
             .then((catalogs) => {
@@ -126,7 +126,6 @@ import { CtxMenuActionButtonOpener } from "../Button/CtxMenuOpener.js";
         let self;
 
         let loadBtn = new CtxMenuActionButtonOpener({
-            openDirection: "left",
             content: 'Load',
             disable: true,
         }, aladin)
@@ -134,7 +133,8 @@ import { CtxMenuActionButtonOpener } from "../Button/CtxMenuOpener.js";
         super({
             content: Layout.horizontal({
                 layout: [inputText, loadBtn]
-            })
+            }),
+            ...options
         }, aladin.aladinDiv)
 
         self = this;

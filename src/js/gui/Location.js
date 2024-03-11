@@ -74,6 +74,8 @@ export class Location extends DOMElement {
                     focused = false;
                 },
                 keydown: (e) => {
+                    e.stopPropagation();
+
                     field.removeClass('aladin-unknownObject'); // remove red border
 
                     if (e.key === 'Enter') {

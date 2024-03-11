@@ -109,6 +109,13 @@ export class Input extends DOMElement {
                 this.el.step = "any";
             }
 
+            if (this.options.type === "range") {
+                if (this.options.ticks) {
+                    this.options.autocomplete = {options: this.options.ticks};
+                    delete this.options.ticks;
+                }
+            }
+
             if (this.options.type === "text") {
                 this.el.enterkeyhint = "send";
             }

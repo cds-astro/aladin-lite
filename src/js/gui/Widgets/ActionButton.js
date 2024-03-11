@@ -161,7 +161,7 @@ export class ActionButton extends DOMElement {
         }
 
         if (this.options.classList) {
-            this.options.classList.forEach((className) => this.element().classList.add(className))
+            this.element().classList.add(this.options.classList)
         }
 
         super._show();

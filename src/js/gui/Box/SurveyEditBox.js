@@ -185,9 +185,6 @@ import { ColorCfg } from "../../ColorCfg.js";
             self.luminositySettingsContent = Layout.vertical({
                 layout: [
                     Input.slider({
-                        cssStyle: {
-                            marginBottom: '7px',
-                        },
                         tooltip: {content: 'brightness', position: {direction: 'right'}},
                         name: 'brightness',
                         type: 'range',
@@ -196,14 +193,12 @@ import { ColorCfg } from "../../ColorCfg.js";
                         ticks: [0.0],
                         value: brightness,
                         change(e, slider) {
-                            const brightness = +e.target.value
+                            const brightness = +e.target.value;
                             layer.setBrightness(brightness)
+                            slider.update({value: brightness, tooltip: {content: `brightness: ${brightness.toFixed(3)}`, position: {direction: 'right'}}})
                         }
                     }),
                     Input.slider({
-                        cssStyle: {
-                            marginBottom: '7px',
-                        },
                         tooltip: {content: 'saturation', position: {direction: 'right'}},
                         name: 'saturation',
                         type: 'range',
@@ -214,6 +209,7 @@ import { ColorCfg } from "../../ColorCfg.js";
                         change(e, slider) {
                             const saturation = +e.target.value
                             layer.setSaturation(saturation)
+                            slider.update({value: saturation, tooltip: {content: `saturation: ${saturation.toFixed(3)}`, position: {direction: 'right'}}})
                         }
                     }),
                     Input.slider({
@@ -227,6 +223,7 @@ import { ColorCfg } from "../../ColorCfg.js";
                         change(e, slider) {
                             const contrast = +e.target.value
                             layer.setContrast(contrast)
+                            slider.update({value: contrast, tooltip: {content: `contrast: ${contrast.toFixed(3)}`, position: {direction: 'right'}}})
                         }
                     }),
                 ]

@@ -673,6 +673,8 @@ A.catalogFromSkyBot = function (ra, dec, radius, epoch, queryOptions, options, s
  *           cssStyle: {
  *               backgroundColor: 'pink',
  *           },
+ *           // Adding a CSS class allowing you to position your button on the aladin lite view
+ *           classList: ['myButton'],
  *           tooltip: {cssStyle: {color: 'red'}, content: 'Create a moc in pink!', position: {direction: 'top'}},
  *           action(o) {
  *               // Enter a polygonal selection mode
@@ -726,10 +728,9 @@ A.button = function(options) {
  *           title: "My window",
  *           draggable: true,
  *       },
+ *       // Adding a CSS class allowing you to position your window on the aladin lite view
+ *       classList: ['myBox'],
  *       content: "This is the content of my window<br/> I can write proper html",
- *       position: {
- *           anchor: 'center center'
- *       }
  *   })
  *   aladin.addUI(box)
  */

@@ -57,10 +57,6 @@ export class Box extends DOMElement {
         this.attachTo(target, position);
     }
 
-    _hide() {
-        super._hide()
-    }
-
     _show(options) {
         //this.el.parentNode.appendChild(this.el);
 
@@ -144,6 +140,10 @@ export class Box extends DOMElement {
 
         if (this.options.position) {
             this.setPosition(this.options.position)
+        }
+
+        if (this.options.classList) {
+            this.addClass(this.options.classList)
         }
 
         super._show();

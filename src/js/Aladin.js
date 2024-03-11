@@ -628,14 +628,14 @@ export let Aladin = (function () {
      * Sets the field of view (FoV) of the Aladin instance to the specified angle in degrees.
      *
      * @memberof Aladin
-     * @param {number} fovDegrees - The angle of the field of view in degrees.
+     * @param {number} FoV - The angle of the field of view in degrees.
      *
      * @example
      * let aladin = A.aladin('#aladin-lite-div');
      * aladin.setFoV(60);
      */
-    Aladin.prototype.setFoV = function (fovDegrees) {
-        this.view.setZoom(fovDegrees);
+    Aladin.prototype.setFoV = function (FoV) {
+        this.view.setZoom(FoV);
     };
 
     // @API
@@ -648,7 +648,7 @@ export let Aladin = (function () {
     };
 
 
-    Aladin.prototype.getFovForObject = function (objectName, callback) {
+    Aladin.prototype.getFovForObject = Aladin.prototype.getFoVForObject = function (objectName, callback) {
         var query = "SELECT galdim_majaxis, V FROM basic JOIN ident ON oid=ident.oidref JOIN allfluxes ON oid=allfluxes.oidref WHERE id='" + objectName + "'";
         var url = '//simbad.u-strasbg.fr/simbad/sim-tap/sync?query=' + encodeURIComponent(query) + '&request=doQuery&lang=adql&format=json&phase=run';
 
@@ -1510,7 +1510,6 @@ export let Aladin = (function () {
      * This method allows you to customize the appearance of the coordinate grid in the Aladin Lite view.
      *
      * @memberof Aladin
-     *
      * @param {Object} options - Options to customize the coordinate grid.
      * @param {string} [options.color] - The color of the coordinate grid.
      * @param {number} [options.opacity] - The opacity of the coordinate grid (value between 0 and 1).
@@ -1692,22 +1691,33 @@ export let Aladin = (function () {
         return WCS;
     }
 
-    /** restrict FOV range
-     * @API
-     * @param minFOV in degrees when zoom in at max
-     * @param maxFOV in degrees when zoom out at max
-    */
-    Aladin.prototype.setFovRange = Aladin.prototype.setFOVRange = function (minFOV, maxFOV) {
-        if (minFOV > maxFOV) {
-            var tmp = minFOV;
-            minFOV = maxFOV;
-            maxFOV = tmp;
+
+    /**
+     * Restrict the FoV range between a min and a max value
+     *
+     * @memberof Aladin
+     * @param {number} minFoV - in degrees when zoom in at max. If undefined, the zooming in is not limited
+     * @param {number} maxFoV - in degrees when zoom out at max. If undefined, the zooming out is not limited
+     *
+     * @example
+     * let aladin = A.aladin('#aladin-lite-div');
+     * aladin.setFoVRange(30, 60);
+     */
+    Aladin.prototype.setFoVRange = function (minFoV, maxFoV) {
+        if (minFoV > maxFoV) {
+            var tmp = minFoV;
+            minFoV = maxFoV;
+            maxFoV = tmp;
         }
 
-        this.view.minFOV = minFOV;
-        this.view.maxFOV = maxFOV;
+        this.view.minFoV = minFoV;
+        this.view.maxFoV = maxFoV;
 
+        // reset the field of view
+        this.setFoV(this.view.fov)
     };
+
+    Aladin.prototype.setFOVRange = Aladin.prototype.setFoVRange;
 
     /**
      * Transform pixel coordinates to world coordinates.
@@ -1715,7 +1725,6 @@ export let Aladin = (function () {
      * The origin (0,0) of pixel coordinates is at the top-left corner of the Aladin Lite view.
      *
      * @memberof Aladin
-     *
      * @param {number} x - The x-coordinate in pixel coordinates.
      * @param {number} y - The y-coordinate in pixel coordinates.
      *
@@ -1737,7 +1746,6 @@ export let Aladin = (function () {
      * Transform world coordinates to pixel coordinates in the view.
      *
      * @memberof Aladin
-     *
      * @param {number} ra - The Right Ascension (RA) coordinate in degrees.
      * @param {number} dec - The Declination (Dec) coordinate in degrees.
      *
@@ -1753,7 +1761,6 @@ export let Aladin = (function () {
      * Get the angular distance in degrees between two locations
      *
      * @memberof Aladin
-     *
      * @param {number} x1 - The x-coordinate of the first pixel coordinates.
      * @param {number} y1 - The y-coordinate of the first pixel coordinates.
      * @param {number} x2 - The x-coordinate of the second pixel coordinates.
@@ -1774,7 +1781,6 @@ export let Aladin = (function () {
      * Gets a set of points along the current Field of View (FoV) corners.
      *
      * @memberof Aladin
-     *
      * @param {number} nbSteps - The number of points to return along each side (the total number of points returned is 4 * nbSteps).
      *
      * @returns {number[][]} - A set of positions along the current FoV with the following format: [[ra1, dec1], [ra2, dec2], ..., [ra_n, dec_n]].
@@ -1783,7 +1789,7 @@ export let Aladin = (function () {
      * @throws {Error} Throws an error if an issue occurs during the transformation.
      *
      */
-    Aladin.prototype.getFovCorners = function (nbSteps) {
+    Aladin.prototype.getFoVCorners = function (nbSteps) {
         // default value: 1
         if (!nbSteps || nbSteps < 1) {
             nbSteps = 1;
@@ -1811,7 +1817,6 @@ export let Aladin = (function () {
      * Gets the current Field of View (FoV) size in degrees as a 2-element array.
      *
      * @memberof Aladin
-     *
      * @returns {number[]} - A 2-element array representing the current FoV size in degrees. The first element is the FoV width,
      *                       and the second element is the FoV height.
      */
@@ -1830,11 +1835,12 @@ export let Aladin = (function () {
         return [fovX, fovY];
     };
 
+    Aladin.prototype.getFoV = Aladin.prototype.getFov;
+
     /**
      * Returns the size in pixels for the Aladin view
      *
      * @memberof Aladin
-     *
      * @returns {number[]} - A 2-element array representing the current Aladin view size in pixels. The first element is the width,
      *                       and the second element is the height.
      */
@@ -1944,7 +1950,6 @@ export let Aladin = (function () {
  * Display a JPEG image in the Aladin Lite view.
  *
  * @memberof Aladin
- *
  * @param {string} url - The URL of the JPEG image.
  * @param {Object} options - Options to customize the display. Can include the following properties:
  * @param {string} options.label  - A label for the displayed image.
@@ -1987,7 +1992,6 @@ export let Aladin = (function () {
  * Display a JPEG image in the Aladin Lite view.
  *
  * @memberof Aladin
- *
  * @param {string} url - The URL of the JPEG image.
  * @param {Object} options - Options to customize the display. Can include the following properties:
  * @param {string} options.label  - A label for the displayed image.
@@ -2011,7 +2015,7 @@ export let Aladin = (function () {
  *   })
  *);
  */
-    Aladin.prototype.displayJPG = Aladin.prototype.displayPNG = function (url, options, successCallback, errorCallback) {
+    Aladin.prototype.displayJPG = function (url, options, successCallback, errorCallback) {
         options = options || {};
         options.color = true;
         options.label = options.label || "JPG/PNG image";
@@ -2082,6 +2086,8 @@ export let Aladin = (function () {
                 // before setting a new image survey
             });
     };
+
+    Aladin.prototype.displayPNG = Aladin.prototype.displayJPG;
 
     /*
     Aladin.prototype.setReduceDeformations = function (reduce) {

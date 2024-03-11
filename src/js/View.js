@@ -1409,10 +1409,24 @@ export let View = (function () {
 
     // Called for touchmove events
     // initialAccDelta must be consistent with fovDegrees here
-    View.prototype.setZoom = function (fovDegrees) {
-        fovDegrees = Math.min(fovDegrees, this.projection.fov);
+    View.prototype.setZoom = function (fov) {
+        // limit the fov in function of the projection
+        fov = Math.min(fov, this.projection.fov);
 
-        this.wasm.setFieldOfView(fovDegrees);
+        // then clamp the fov between minFov and maxFov
+        const minFoV = this.minFoV;
+        const maxFoV = this.maxFoV;
+
+        if (minFoV) {
+            fov = Math.max(fov, minFoV);
+        }
+
+        if (maxFoV) {
+            fov = Math.min(fov, maxFoV);
+        }
+
+        this.wasm.setFieldOfView(fov);
+
         this.updateZoomState();
     };
 

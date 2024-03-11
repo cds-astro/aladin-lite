@@ -1,0 +1,42 @@
+<!doctype html>
+<html>
+<head>
+</head>
+<body>
+
+<div id="aladin-lite-div" style="width: 1024px; height: 768px"></div>
+
+<script type="module">
+    import A from '../src/js/A.js';
+    let aladin;
+    A.init.then(() => {
+        var aladin = A.aladin(
+            '#aladin-lite-div',
+            {
+                survey: 'P/allWISE/color', // set initial image survey
+                projection: 'AIT', // set a projection
+                fov: 1.5, // initial field of view in degrees
+                target: 'NGC 2175', // initial target
+                cooFrame: 'galactic', // set galactic frame
+                reticleColor: '#00ff00', // change reticle color
+                reticleSize: 40, // change reticle size
+                gridOptions: {color: 'pink'},
+                showCooGrid: true, // set the grid
+                fullScreen: true,
+                showShareControl: true,
+                showSettingsControl: true,
+                showLayersControl: true,
+                showZoomControl: true,
+                showContextMenu: true,
+                showCooGridControl: true,
+                showSimbadPointerControl: true,
+                showFullscreenControl: true,
+            }
+        );
+
+        aladin.setFoVRange(1, 60)
+    });
+</script>
+
+</body>
+</html>

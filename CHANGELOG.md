@@ -2,6 +2,7 @@
 
 ## 3.3.0
 
+* Add CSS class for positioning the UI elements as the user wants. See the API doc aladin options for the class names to use.
 * [style] The default grid color is now `rgb(178, 50, 178)` to fit the classic Aladin color palette
 * [feat] The object of grid options `gridOptions` is now available in the public API
 * [fixed] The parameters `gridColor` and `gridOpacity`, `gridOptions.showLabels` now work as expected

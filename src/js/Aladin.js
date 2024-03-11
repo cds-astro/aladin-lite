@@ -84,9 +84,11 @@ import { GridEnabler } from './gui/Button/GridEnabler';
  * @property {string} [backgroundColor="rgb(60, 60, 60)"] - Background color in RGB format.
  *
  * @property {boolean} [showZoomControl=true] - Whether to show the zoom control toolbar.
+ * This element belongs to the FoV UI thus its CSS class is `aladin-fov` 
  * @property {boolean} [showLayersControl=true] - Whether to show the layers control toolbar.
  * CSS class for that button is `aladin-stack-control` 
  * @property {boolean} [showFullscreenControl=true] - Whether to show the fullscreen control toolbar.
+ * CSS class for that button is `aladin-fullScreen-control` 
  * @property {boolean} [showSimbadPointerControl=false] - Whether to show the Simbad pointer control toolbar.
  * CSS class for that button is `aladin-simbadPointer-control` 
  * @property {boolean} [showCooGridControl=false] - Whether to show the coordinate grid control toolbar.
@@ -94,13 +96,17 @@ import { GridEnabler } from './gui/Button/GridEnabler';
  * @property {boolean} [showSettingsControl=false] - Whether to show the settings control toolbar.
  * CSS class for that button is `aladin-settings-control` 
  * @property {boolean} [showShareControl=false] - Whether to show the share control toolbar.
+ * CSS class for that button is `aladin-share-control` 
  * @property {boolean} [showStatusBar=true] - Whether to show the status bar. Enabled by default.
- *
+ * CSS class for that button is `aladin-status-bar` 
  * @property {boolean} [showFrame=true] - Whether to show the viewport frame.
+ * CSS class for that button is `aladin-cooFrame` 
  * @property {boolean} [showFov=true] - Whether to show the field of view indicator.
+ * CSS class for that button is `aladin-fov` 
  * @property {boolean} [showCooLocation=true] - Whether to show the coordinate location indicator.
+ * CSS class for that button is `aladin-location` 
  * @property {boolean} [showProjectionControl=true] - Whether to show the projection control toolbar.
- *
+ * CSS class for that button is `aladin-projection-control` 
  * @property {boolean} [showContextMenu=false] - Whether to show the context menu.
  * @property {boolean} [showReticle=true] - Whether to show the reticle.
  * @property {boolean} [showCatalog=true] - Whether to show the catalog.
@@ -315,7 +321,7 @@ export let Aladin = (function () {
             Utils.on(document, 'fullscreenchange webkitfullscreenchange mozfullscreenchange MSFullscreenChange', function (e) {
                 var fullscreenElt = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
                 if (fullscreenElt === null || fullscreenElt === undefined) {
-                    self.aladinDiv.classList.remove('aladin-fullscreen');
+                    //self.aladinDiv.classList.remove('aladin-fullscreen');
     
                     var fullScreenToggledFn = self.callbacksByEventName['fullScreenToggled'];
                     (typeof fullScreenToggledFn === 'function') && fullScreenToggledFn(self.isInFullscreen);
@@ -348,13 +354,6 @@ export let Aladin = (function () {
             this.statusBar = new StatusBarBox(this, statusBarOptions);
         }
 
-        let viewport = new Toolbar({
-            direction: 'horizontal',
-            position: {
-                anchor: 'left top'
-            }
-        }, this);
-
         // Add the frame control
         if (options.showFrame) {
             let cooFrame = CooFrameEnum.fromString(options.cooFrame, CooFrameEnum.J2000);
@@ -376,15 +375,18 @@ export let Aladin = (function () {
 
             cooFrameControl.addClass('aladin-cooFrame');
 
-            viewport.add(cooFrameControl)
+            this.addUI(cooFrameControl)
         }
+
         // Add the location info
         if (options.showCooLocation) {
-            this.location = new Location(this)
-            viewport.add(this.location);
+            this.addUI(new Location(this));
         }
+
         // Add the FoV info
-        viewport.add(new FoV(this, options))
+        if (options.showFov || options.showZoomControl) {
+            this.addUI(new FoV(this, options))
+        }
 
         ////////////////////////////////////////////////////
         let stack = new OverlayStackButton(this);
@@ -400,22 +402,8 @@ export let Aladin = (function () {
         if (options.showSimbadPointerControl) {
             this.addUI(simbad)
         }
+
         // Add the projection control
-        let topRightToolbar = new Toolbar({
-            orientation: 'horizontal',
-            position: {
-                anchor: 'right top'
-            }
-        }, this);
-        /*if (options.showProjectionControl) {
-            topRightToolbar.add(new ProjectionActionButton(this, {
-                openDirection: 'left',
-            }))            
-        }*/
-        // Add the goto control
-        /*if (options.showGotoControl) {
-            menu.enable('goto')
-        }*/
         // Add the coo grid control
         if (options.showCooGridControl) {
             this.addUI(grid)
@@ -425,35 +413,19 @@ export let Aladin = (function () {
             this.addUI(settings)
         }
 
-        this.addUI(viewport);
-        //this.addUI(menu);
-
         // share control panel
         if (options.showShareControl) {
-            this.addUI(new ShareActionButton(self, {
-                position: {
-                    bottom: "0px",
-                    left: "0px",
-                }
-            }));
+            this.addUI(new ShareActionButton(self));
         }
 
         if (options.showProjectionControl) {
             this.projBtn = new ProjectionActionButton(this);
-            topRightToolbar.add(this.projBtn)            
+            this.addUI(this.projBtn)            
         }
 
         if (options.showFullscreenControl) {
-            topRightToolbar.add(new FullScreenActionButton(self))
+            this.addUI(new FullScreenActionButton(self))
         }
-
-        this.addUI(topRightToolbar);
-
-        topRightToolbar
-
-        this.viewportMenu = viewport;
-
-        //this._applyMediaQueriesUI()
     }
 
     /*Aladin.prototype._applyMediaQueriesUI = function() {
@@ -561,11 +533,11 @@ export let Aladin = (function () {
 
         //this.fullScreenBtn.attr('title', isInFullscreen ? 'Restore original size' : 'Full screen');
 
-        if (this.aladinDiv.classList.contains('aladin-fullscreen')) {
+        /*if (this.aladinDiv.classList.contains('aladin-fullscreen')) {
             this.aladinDiv.classList.remove('aladin-fullscreen');
         } else {
             this.aladinDiv.classList.add('aladin-fullscreen');
-        }
+        }*/
 
         if (realFullscreen) {
             // go to "real" full screen mode
@@ -1187,7 +1159,9 @@ export let Aladin = (function () {
         ui.attachTo(this.aladinDiv)
         // as the ui is pushed to the dom, setting position may need the aladin instance to work
         // so we recompute it
-        ui.update({position: {...ui.options.position, aladin: this}})
+        if (ui.options) {
+            ui.update({position: {...ui.options.position, aladin: this}})
+        }
     };
 
     // @API

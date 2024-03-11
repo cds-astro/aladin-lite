@@ -51,6 +51,7 @@ import { ALEvent } from "../../events/ALEvent";
                 size: 'small',
                 url: projectionIconUrl,
             },
+            classList: ['aladin-projection-control'],
             content: [options.verbosity === 'full' ? ProjectionEnum[projectionName].label : ''],
             tooltip: {content: 'Change the view projection', position: {direction: 'bottom left'}},
             cssStyle: {
@@ -113,9 +114,5 @@ import { ALEvent } from "../../events/ALEvent";
             let label = options.verbosity === 'full' ? ProjectionEnum[projName].label : '';
             super.update({ctxMenu, content: label});
         }
-    }
-
-    _show() {
-        super._show()
     }
 }

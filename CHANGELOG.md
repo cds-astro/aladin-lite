@@ -10,7 +10,7 @@
 * New release page here: <https://aladin.cds.unistra.fr/AladinLite/doc/release/>
 * A major UI update by @bmatthieu3
   1. Some API new classes A.box, A.button
-  2. A status bar where the user can enque messages for a specific amount of time (Aladin.appendStatusBarMessage)
+  2. A status bar where the user can enque messages for a specific amount of time (Aladin.addStatusBarMessage)
 * Remove of JQuery and autocompletejs dependencies by @bmatthieu3
 * Fix some performances issues, i.e. a bug when resizing the aladin lite view and which launched several parallel requestAnimationFrame by @bmatthieu3
 * Polygon and circular selection (see Aladin class API documentation for how to use it)

@@ -533,11 +533,11 @@ export let Aladin = (function () {
 
         //this.fullScreenBtn.attr('title', isInFullscreen ? 'Restore original size' : 'Full screen');
 
-        /*if (this.aladinDiv.classList.contains('aladin-fullscreen')) {
+        if (this.aladinDiv.classList.contains('aladin-fullscreen')) {
             this.aladinDiv.classList.remove('aladin-fullscreen');
         } else {
             this.aladinDiv.classList.add('aladin-fullscreen');
-        }*/
+        }
 
         if (realFullscreen) {
             // go to "real" full screen mode
@@ -743,8 +743,16 @@ export let Aladin = (function () {
      * @param {string} options.message - The message to display
      * @param {string|number} options.duration - The duration of the message. Accepts a time in milliseconds or 'unlimited'
      * @param {string} options.type - The type of the message. Can be 'loading', 'tooltip', 'info'
+     * 
+     * @example
+     * 
+     * aladin.addStatusBarMessage({
+     *       duration: 10000,
+     *       type: 'info',
+     *       message: 'Aladin Lite v3.3 is out. New features available:<ul><li>New Button, Box objects</li><li>Polygonal, circular selection</li></ul>'
+     * })
      */
-    Aladin.prototype.appendStatusBarMessage = function(options) {
+    Aladin.prototype.addStatusBarMessage = function(options) {
         if (this.statusBar) {
             this.statusBar.appendMessage(options)
         }

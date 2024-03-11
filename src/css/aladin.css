@@ -267,6 +267,7 @@ body { overscroll-behavior: contain; }
     overflow-y: none;
     max-height: 500px;
     max-width: fit-content;
+    height: fit-content;
 }
 
 .aladin-box::-webkit-scrollbar {
@@ -933,6 +934,7 @@ canvas {
      background: transparent;
      cursor: pointer;
      width: 5em;
+     height: 1.5rem;
  }
  
  /* Removes default focus */
@@ -961,13 +963,6 @@ canvas {
 
     border-radius: 0.5rem;
  }
- .aladin-input-range:hover::-webkit-slider-thumb {
-    filter: brightness(105%);
- }
-
- /* aladin input text */
-
-
  
  /******** Firefox styles ********/
  /* slider track */
@@ -989,11 +984,6 @@ canvas {
 
     border-radius: 0.5rem;
  }
-
- .aladin-input-range:hover::-moz-range-thumb {
-    filter: brightness(105%);
- }
- 
  
 /* *********************************************** */
 
@@ -1176,6 +1166,18 @@ canvas {
     position: absolute;
     top: 0;
     right: 3rem;
+}
+
+.aladin-fullscreen {
+	position: fixed !important;
+
+	top: 0;
+	left: 0;
+	height: 100% !important;
+	width: 100% !important;
+	border: 0 !important;
+    max-width: none !important;
+    background: #fff;
 }
 
 /* Media query */

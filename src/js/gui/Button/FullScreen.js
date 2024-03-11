@@ -95,7 +95,5 @@ export class FullScreenActionButton extends ActionButton {
         })
 
         self = this;
-
-        this.addClass('medium-sized-icon')
     }
 }

@@ -1180,7 +1180,14 @@ canvas {
     background: #fff;
 }
 
+
+
 /* Media query */
+/*@media screen and (max-width: 31rem) {
+    .aladin-projection-control {
+        display: none;
+    }
+}*/
 /*@container (max-width: 40rem) {
     .aladin-input-text.aladin-dark-theme.search {
         width: 6rem;

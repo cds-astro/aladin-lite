@@ -294,7 +294,8 @@ export class DOMElement {
     }
 
     _show() {
-        this.el.style.display = 'block';
+        delete this.el.style.display;
+        //this.el.style.display = 'block';
         this.isHidden = false;
     }
 

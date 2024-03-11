@@ -121,18 +121,18 @@ import cameraIconUrl from '../../../../assets/icons/camera.svg';
             },
         ];
 
-        let self;
         super({
             size: 'medium',
             ctxMenu: layout,
+            classList: ['aladin-share-control'],
             ...options,
             icon: {
                 url: shareIconUrl,
                 monochrome: true,
             },
-            //openDirection: 'top',
             tooltip: {content: 'You can share/export your view into many ways', position: {direction: 'top'}},
         }, aladin);
+
         self = this;
     }
 }

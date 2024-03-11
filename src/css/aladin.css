@@ -370,18 +370,6 @@ canvas {
     background-position:center center;
 }
 
-.aladin-fullscreen {
-	position: fixed !important;
-
-	top: 0;
-	left: 0;
-	height: 100% !important;
-	width: 100% !important;
-	border: 0 !important;
-    max-width: none !important;
-    background: #fff;
-}
-
 /* smartphones, iPhone, portrait 480x320 phones */
 .aladin-btn {
     all:unset;
@@ -477,16 +465,6 @@ canvas {
     top: 0px;
     left: 0px;
     width: 100%;
-}
-
-.aladin-fov, .aladin-cooFrame, .aladin-location {
-    font-family: monospace;
-
-    color: white;
-
-    font-size: 1rem;
-    border-radius: 5px;
-    height: 1.7rem;
 }
 
 .aladin-input-text.aladin-dark-theme.search {
@@ -1132,6 +1110,72 @@ canvas {
     position: absolute;
     top: 10.2rem;
     left: 0;
+}
+
+.aladin-cooFrame {
+    position: absolute;
+    top: 0;
+    left: 0;
+
+    font-family: monospace;
+
+    color: white;
+
+    font-size: 1rem;
+    border-radius: 5px;
+    height: 1.7rem;
+}
+
+.aladin-location {
+    position: absolute;
+    top: 0;
+    left: 7rem;
+    font-family: monospace;
+
+    color: white;
+
+    font-size: 1rem;
+    border-radius: 5px;
+    height: 1.7rem;
+}
+
+.aladin-fov {
+    position: absolute;
+    top: 0;
+    left: 25rem;
+
+    font-family: monospace;
+
+    color: white;
+
+    font-size: 1rem;
+    border-radius: 5px;
+    height: 1.7rem;
+}
+
+.aladin-status-bar {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translate(-50%, 0%);
+}
+
+.aladin-share-control {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+}
+
+.aladin-fullScreen-control {
+    position: absolute;
+    top: 0;
+    right: 0;
+}
+
+.aladin-projection-control {
+    position: absolute;
+    top: 0;
+    right: 3rem;
 }
 
 /* Media query */

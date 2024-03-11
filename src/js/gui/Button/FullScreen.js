@@ -43,6 +43,7 @@ export class FullScreenActionButton extends ActionButton {
                 monochrome: true,
                 url: aladin.isInFullscreen ? restoreIcon : maximizeIcon
             },
+            classList: ['aladin-fullScreen-control'],
             ...options,
             tooltip: {
                 content: aladin.isInFullscreen ? 'Restore original size' : 'Full-screen',

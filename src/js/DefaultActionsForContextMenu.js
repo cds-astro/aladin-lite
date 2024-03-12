@@ -85,17 +85,15 @@ export let DefaultActionsForContextMenu = (function () {
                     {
                         label: 'New catalogue layer', action(o) {
                             let catBox = new CatalogQueryBox(a)
-                            if (catBox.isHidden) {
-                                catBox._show({
-                                    header: {
-                                        title: 'Add a new catalogue',
-                                        draggable: true
-                                    },
-                                    position: {
-                                        anchor :'center center'
-                                    },
-                                });
-                            }
+                            catBox._show({
+                                header: {
+                                    title: 'Add a new catalogue',
+                                    draggable: true
+                                },
+                                position: {
+                                    anchor :'center center'
+                                },
+                            });
                         }
                     },
                 ]

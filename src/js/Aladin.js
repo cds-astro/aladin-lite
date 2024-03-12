@@ -70,6 +70,7 @@ import { SettingsButton } from "./gui/Button/Settings";
 import { SimbadPointer } from "./gui/Button/SimbadPointer";
 import { OverlayStackButton } from "./gui/Button/OverlayStack";
 import { GridEnabler } from './gui/Button/GridEnabler';
+import { CooFrame } from './gui/Input/CooFrame';
 
 /**
  * @typedef {Object} AladinOptions
@@ -352,30 +353,12 @@ export let Aladin = (function () {
                 statusBarOptions = options.showStatusBar;
             }
             this.statusBar = new StatusBarBox(this, statusBarOptions);
+            this.addUI(this.statusBar)
         }
 
         // Add the frame control
         if (options.showFrame) {
-            let cooFrame = CooFrameEnum.fromString(options.cooFrame, CooFrameEnum.J2000);
-            let cooFrameControl = Input.select({
-                name: 'frame',
-                type: 'select',
-                value: cooFrame.label,
-                options: [CooFrameEnum.J2000.label, CooFrameEnum.J2000d.label, CooFrameEnum.GAL.label],
-                change(e) {
-                    self.setFrame(e.target.value)
-                },
-                tooltip: {
-                    content: "Change the frame",
-                    position: {
-                        direction: 'bottom'
-                    }
-                }
-            });
-
-            cooFrameControl.addClass('aladin-cooFrame');
-
-            this.addUI(cooFrameControl)
+            this.addUI(new CooFrame(this))
         }
 
         // Add the location info
@@ -1165,6 +1148,7 @@ export let Aladin = (function () {
     Aladin.prototype.addUI = function (ui) {
         this.ui.push(ui);
         ui.attachTo(this.aladinDiv)
+
         // as the ui is pushed to the dom, setting position may need the aladin instance to work
         // so we recompute it
         if (ui.options) {

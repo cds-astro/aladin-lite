@@ -8,9 +8,9 @@
 
 <script type="module">
     import A from '../src/js/A.js';
-    let aladin;
+    var aladin;
     A.init.then(() => {
-        var aladin = A.aladin(
+        aladin = A.aladin(
             '#aladin-lite-div',
             {
                 survey: 'P/allWISE/color', // set initial image survey

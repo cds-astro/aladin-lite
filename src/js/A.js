@@ -668,39 +668,77 @@ A.catalogFromSkyBot = function (ra, dec, radius, epoch, queryOptions, options, s
  * @returns {ActionButton} Returns a new button object representing the graphic overlay.
  *
  * @example
- *       let btn = A.button({
- *           content: 'Draw your coverage',
- *           cssStyle: {
- *               backgroundColor: 'pink',
- *           },
- *           // Adding a CSS class allowing you to position your button on the aladin lite view
- *           classList: ['myButton'],
- *           tooltip: {cssStyle: {color: 'red'}, content: 'Create a moc in pink!', position: {direction: 'top'}},
- *           action(o) {
- *               // Enter a polygonal selection mode
- *               aladin.select('poly', p => {
- *                   // Create a moc from the polygon
- *                   try {
- *                       let ra = []
- *                       let dec = []
- *                       for (const v of p.vertices) {
- *                           let [lon, lat] = aladin.pix2world(v.x, v.y);
- *                           ra.push(lon)
- *                           dec.push(lat)
- *                       }
- *
- *                       let moc = A.MOCFromPolygon(
- *                           {ra, dec},
- *                           {name: 'poly', lineWidth: 3.0, color: 'pink'},
- *                       );
- *                       aladin.addMOC(moc)
- *                   } catch(_) {
- *                       alert('Selection covers a region out of the projection definition domain.');
- *                  }
- *              })
- *          }
- *       });
- *       aladin.addUI(btn)
+ * <!-- This example instanciates a customized button that when clicked, enters the user in
+ * the polygonal selection mode. Once the polygon selection is done, the vertices are converted
+ * to sky coords and a Multi-Order Coverage (MOC) is created from that list of sky coords. -->
+<!doctype html>
+<html>
+<head>
+</head>
+<body>
+
+
+<div id="aladin-lite-div" style="width: 512px; height: 512px"></div>
+
+<script type="module">
+    import A from aladin-lite;
+    let aladin;
+    A.init.then(() => {
+        var aladin = A.aladin(
+            '#aladin-lite-div',
+            {
+                survey: 'P/allWISE/color', // set initial image survey
+                projection: 'AIT', // set a projection
+                fov: 1.5, // initial field of view in degrees
+                target: 'NGC 2175', // initial target
+                cooFrame: 'icrs', // set galactic frame
+                reticleColor: '#ff89ff', // change reticle color
+                reticleSize: 64, // change reticle size
+                showContextMenu: true,
+            }
+        );
+
+        let btn = A.button({
+            content: 'My button',
+            classList: ['myButton'],
+            tooltip: {cssStyle: {color: 'red'}, content: 'Create a moc in pink!', position: {direction: 'top'}},
+            action(o) {
+                aladin.select('poly', p => {
+                    try {
+                        let ra = []
+                        let dec = []
+                        for (const v of p.vertices) {
+                            let [lon, lat] = aladin.pix2world(v.x, v.y);
+                            ra.push(lon)
+                            dec.push(lat)
+                        }
+
+                        let moc = A.MOCFromPolygon(
+                            {ra, dec},
+                            {name: 'poly', lineWidth: 3.0, color: 'pink'},
+                        );
+                        aladin.addMOC(moc)
+                    } catch(_) {
+                        alert('Selection covers a region out of the projection definition domain.');
+                    }
+                })
+            }
+        });
+
+        aladin.addUI(btn)
+    });
+</script>
+<style>
+    .myButton {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+
+        background-color: pink;
+    }
+</style>
+</body>
+</html>
  */
 A.button = function(options) {
     return new ActionButton(options);

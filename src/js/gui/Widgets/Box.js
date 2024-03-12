@@ -47,7 +47,7 @@ export class Box extends DOMElement {
     constructor(options, target, position = "beforeend") {
         let el = document.createElement("div");
         el.classList.add('aladin-box');
-        el.style.display = "initial";
+        //el.style.display = "initial";
 
         super(el, options);
         this._show();
@@ -58,8 +58,6 @@ export class Box extends DOMElement {
     }
 
     _show(options) {
-        //this.el.parentNode.appendChild(this.el);
-
         this.options = {
             ...this.options,
             ...options

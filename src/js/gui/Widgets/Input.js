@@ -68,7 +68,7 @@ export class Input extends DOMElement {
         this.el.innerHTML = '';
 
         if (this.options.classList) {
-            this.options.classList.forEach((className) => this.addClass(className))
+            this.addClass(this.options.classList)
         }
 
         if (this.options.type === "checkbox") {

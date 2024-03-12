@@ -2,6 +2,8 @@
 
 ## 3.3.0
 
+* [fixed] the cooFrame UI selector is updated if the user calls `aladin.setFrame`
+* [fixed] `reticleColor` and `reticleSize` options in the public API 
 * Restore setFoVRange
 * Add CSS class for positioning the UI elements as the user wants. See the API doc aladin options for the class names to use.
 * [style] The default grid color is now `rgb(178, 50, 178)` to fit the classic Aladin color palette

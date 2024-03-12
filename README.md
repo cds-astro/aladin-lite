@@ -142,12 +142,20 @@ to compile the core project into WebAssembly.
 Follow the steps from the Rust official website [here](https://www.rust-lang.org/learn/get-started)
 You will also need [wasm-pack](https://rustwasm.github.io/wasm-pack/), a tool helping compiling rust into a proper .wasm file.
 
-Once it's installed you can only build the project:
+Once it's installed you will need to switch to the nightly rust version:
+
+```bash
+rustup default nightly
+```
+
+Then you can build the project:
+
 ```bash
 npm run build
 ```
 
 Or build it and launch a localhost server (usually starting on port 8080 but it can be another one if 8080 is occupied):
+
 ```bash
 npm run serve
 ```
@@ -164,11 +172,4 @@ and run the tests
 ```bash
 cd src/core
 cargo test --features webgl2
-```
-
-To generate the Rust backend API documentation
-
-```bash
-cd src/core
-cargo doc --no-deps --open
 ```

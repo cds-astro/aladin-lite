@@ -200,7 +200,7 @@ export class SettingsCtxMenu extends ContextMenu {
                 },
             },
             {
-                label: 'Features',
+                label: 'Tools',
                 subMenu: [
                     {
                         label: 'Stack',

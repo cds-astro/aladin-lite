@@ -375,24 +375,28 @@ export let Aladin = (function () {
         let stack = new OverlayStackButton(this);
         let simbad = new SimbadPointer(this);
         let grid = new GridEnabler(this);
-        let settings = new SettingsButton(this, {features: {stack, simbad, grid}});
+        this.addUI(stack)
+        this.addUI(simbad)
+        this.addUI(grid)
 
         // Add the layers control
-        if (options.showLayersControl) {
-            this.addUI(stack)
+        if (!options.showLayersControl) {
+            stack._hide();
         }
         // Add the simbad pointer control
-        if (options.showSimbadPointerControl) {
-            this.addUI(simbad)
+        if (!options.showSimbadPointerControl) {
+            simbad._hide();
         }
 
         // Add the projection control
         // Add the coo grid control
-        if (options.showCooGridControl) {
-            this.addUI(grid)
+        if (!options.showCooGridControl) {
+            grid._hide();
         }
+
         // Settings control
         if (options.showSettingsControl) {
+            let settings = new SettingsButton(this, {features: {stack, simbad, grid}});
             this.addUI(settings)
         }
 

@@ -334,6 +334,7 @@ A.MOCFromPolygon= function (polygon, options, successCallback, errorCallback) {
  * @property {string} [decField] - The ID or name of the field holding Declination (dec).
  * @property {function} [filter] - The filtering function for sources. Returns a boolean
  * @property {boolean} [displayLabel=false] - Whether to display labels for sources.
+ * @property {string} [labelColumn] - The name of the column to be used for the label.
  * @property {string} [labelColor] - The color of the source labels.
  * @property {string} [labelFont="10px sans-serif"] - The font for the source labels.
  */

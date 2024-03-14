@@ -64,6 +64,7 @@ export let Catalog = (function() {
     * @param {string} [options.decField] - The ID or name of the field holding Declination (dec).
     * @param {function} [options.filter] - The filtering function for sources.
     * @param {boolean} [options.displayLabel=false] - Whether to display labels for sources.
+    * @param {string} [options.labelColumn] - The name of the column to be used for the label.
     * @param {string} [options.labelColor] - The color of the source labels.
     * @param {string} [options.labelFont="10px sans-serif"] - The font for the source labels.
     *

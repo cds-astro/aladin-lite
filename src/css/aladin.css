@@ -1134,7 +1134,8 @@ canvas {
 
     position: absolute;
     bottom: 0;
-    left: 2.5rem;
+    left: 50%;
+    transform: translate(-50%, 0);
 }
 
 .aladin-status-bar.aladin-dark-theme {

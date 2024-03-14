@@ -20,13 +20,11 @@
     import A from '../src/js/A.js';
     let aladin;
     A.init.then(() => {
-        aladin = A.aladin('#aladin-lite-div', {cooFrame: 'galactic', fov: 400, fullScreen: true, showCooGrid: false, showReticle: false})
+        aladin = A.aladin('#aladin-lite-div', {projection: 'MOL', cooFrame: 'galactic', fov: 360, fullScreen: true, showCooGrid: false, showReticle: false})
         aladin.gotoRaDec(79.9525321, -69.2742586)
         const gaiaFlux = aladin.createImageSurvey('P/DM/flux-G/I/355/gaiadr3', "GaiaDR3GFlux", null, null, null, {imgFormat: 'fits', stretch: 'log'})
         aladin.setBaseImageLayer(gaiaFlux)
         gaiaFlux.setCuts(3e5, 1e8)
-
-        aladin.setProjection('MOL')
 
 
         

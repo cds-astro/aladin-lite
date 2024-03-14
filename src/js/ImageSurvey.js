@@ -120,9 +120,9 @@ PropertyParser.isPlanetaryBody = function(properties) {
  * @property {string} [imgFormat] - Formats accepted 'webp', 'png', 'jpeg' or 'fits'. Will raise an error if the HiPS does not contain tiles in this format
  * @property {CooFrame} [cooFrame="J2000"] - Coordinate frame of the survey tiles
  * @property {number} [maxOrder] - The maximum HEALPix order of the HiPS, i.e the HEALPix order of the most refined tile images of the HiPS. 
- * @property {number} [numBitsPerPixel] - useful if you want to display the FITS tiles of a HiPS. It specifies the number of bits per pixel. Possible values are:
+ * @property {number} [numBitsPerPixel] - Useful if you want to display the FITS tiles of a HiPS. It specifies the number of bits per pixel. Possible values are:
  * -64: double, -32: float, 8: unsigned byte, 16: short, 32: integer 32 bits, 64: integer 64 bits  
- * @property {number} [tileSize] - The width of the HEALPix tile images. Mostly 512 pixels for can be 256, 128, 64, 32
+ * @property {number} [tileSize] - The width of the HEALPix tile images. Mostly 512 pixels but can be 256, 128, 64, 32
  * @property {number} [opacity=1.0] - Opacity of the survey or image (value between 0 and 1).
  * @property {string} [colormap="native"] - The colormap configuration for the survey or image.
  * @property {string} [stretch="linear"] - The stretch configuration for the survey or image.
@@ -194,7 +194,11 @@ export let ImageSurvey = (function () {
                             // url not valid so we try with the id
                             try {
                                 isCDSId = true;
-                                return await HiPSProperties.fetchFromID(self.url);
+                                // the url stores a "CDS ID" we take it prioritaly
+                                // if the url is null, take the id, this is for some tests
+                                // to pass because some users might just give null as url param and a "CDS ID" as id param
+                                let id = self.url || self.id;
+                                return await HiPSProperties.fetchFromID(id);
                             } catch(e) {
                                 throw e;
                             }

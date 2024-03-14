@@ -131,9 +131,6 @@ export class Selector {
             }
         }
 
-        console.log(objList)
-
-
         return objList;
     }
 }

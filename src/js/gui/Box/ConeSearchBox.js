@@ -33,7 +33,7 @@ import { Angle } from "../../libs/astro/angle.js";
  *****************************************************************************/
 
  export class ConeSearchBox extends Box {
-    constructor(aladin) {
+    constructor(aladin, options) {
         let self;
         let selectorBtn = new ConeSearchActionButton({
             tooltip: {content: 'Select the area to query the catalogue with', position: {direction: 'left'}},
@@ -43,8 +43,8 @@ import { Angle } from "../../libs/astro/angle.js";
             action(circle) {
                 // convert to ra, dec and radius in deg
                 try {
-                    let [ra, dec] = aladin.pix2world(circle.x, circle.y);
-                    let radius = aladin.angularDist(circle.x, circle.y, circle.x + circle.r, circle.y);
+                    let [ra, dec] = aladin.pix2world(circle.x, circle.y, options.frame);
+                    let radius = aladin.angularDist(circle.x, circle.y, circle.x + circle.r, circle.y, options.frame);
     
                     //var hlon = this.lon/15.0;
                     //var strlon = Numbers.toSexagesimal(hlon, this.prec+1, false);
@@ -160,8 +160,6 @@ import { Angle } from "../../libs/astro/angle.js";
             aladin.aladinDiv
         )
 
-        // hide by default
-        //console.log("hide cone search")
         this._hide();
 
         self = this;

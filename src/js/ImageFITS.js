@@ -29,15 +29,11 @@
  *****************************************************************************/
 import { ALEvent } from "./events/ALEvent.js";
 import { ColorCfg } from "./ColorCfg.js";
-import { ImageLayer } from "./ImageLayer.js";
 import { Utils } from "./Utils";
 
 export let ImageFITS = (function () {
 
-    function ImageFITS(url, name, view, options, successCallback = undefined, errorCallback = undefined) {
-        this.view = view;
-        this.wasm = view.wasm;
-
+    function ImageFITS(url, name, options, successCallback = undefined, errorCallback = undefined) {
         // Name of the layer
         this.layer = null;
         this.added = false;
@@ -46,110 +42,102 @@ export let ImageFITS = (function () {
         this.url = url.toString();
 
         this.id = url.toString();
-        this.name = name;
+        this.name = name || this.url;
 
         this.imgFormat = "fits";
-        this.properties = {
-            formats: ["fits"]
-        }
+        this.formats = ["fits"]
         // callbacks
         this.successCallback = successCallback;
         this.errorCallback = errorCallback;
         // initialize the color meta data here
         // set a asinh stretch by default if there is none
-        if (options) {
+        /*if (options) {
             options.stretch = options.stretch || "asinh";
-        }
+        }*/
         this.colorCfg = new ColorCfg(options);
 
         let self = this;
 
-        updateMetadata(self);
-        ImageLayer.update(self);
-
         this.query = Promise.resolve(self);
+    }
+    
+    // A cache storing directly the images to not query for the properties each time
+    ImageFITS.cache = {};
+
+    ImageFITS.prototype.setView = function(view) {
+        this.view = view;
     }
 
     // @api
     ImageFITS.prototype.setOpacity = function (opacity) {
         let self = this;
-        updateMetadata(self, () => {
+        this._updateMetadata(() => {
             self.colorCfg.setOpacity(opacity);
         });
     };
 
     // @api
     ImageFITS.prototype.setBlendingConfig = function (additive = false) {
-        updateMetadata(this, () => {
+        this._updateMetadata(() => {
             this.colorCfg.setBlendingConfig(additive);
         });
     };
 
     // @api
     ImageFITS.prototype.setColormap = function (colormap, options) {
-        updateMetadata(this, () => {
+        this._updateMetadata(() => {
             this.colorCfg.setColormap(colormap, options);
         });
     }
 
     // @api
     ImageFITS.prototype.setCuts = function (lowCut, highCut) {
-        updateMetadata(this, () => {
+        this._updateMetadata(() => {
             this.colorCfg.setCuts(lowCut, highCut);
         });
     };
 
     // @api
     ImageFITS.prototype.setGamma = function (gamma) {
-        updateMetadata(this, () => {
+        this._updateMetadata(() => {
             this.colorCfg.setGamma(gamma);
         });
     };
 
-    ImageFITS.prototype.getAvailableFormats = function() {
-        return this.properties.formats;
-    }
-
     // @api
     ImageFITS.prototype.setSaturation = function (saturation) {
-        updateMetadata(this, () => {
+        this._updateMetadata(() => {
             this.colorCfg.setSaturation(saturation);
         });
     };
 
     ImageFITS.prototype.setBrightness = function (brightness) {
-        updateMetadata(this, () => {
+        this._updateMetadata(() => {
             this.colorCfg.setBrightness(brightness);
         });
     };
 
     ImageFITS.prototype.setContrast = function (contrast) {
-        updateMetadata(this, () => {
+        this._updateMetadata(() => {
             this.colorCfg.setContrast(contrast);
         });
     };
 
-    ImageFITS.prototype.metadata = function () {
-        return {
-            ...this.colorCfg.get(),
-            longitudeReversed: false,
-            imgFormat: this.imgFormat
-        };
-    }
-
     // Private method for updating the view with the new meta
-    var updateMetadata = function (self, callback = undefined) {
+    ImageFITS.prototype._updateMetadata = function (callback) {
         if (callback) {
             callback();
         }
 
         // Tell the view its meta have changed
         try {
-            if (self.added) {
-                const metadata = self.metadata();
-                self.wasm.setImageMetadata(self.layer, metadata);
-
-                ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(self.view.aladinDiv, { layer: self });
+            if (this.added) {
+                this.view.wasm.setImageMetadata(this.layer, {
+                    ...this.colorCfg.get(),
+                    longitudeReversed: false,
+                    imgFormat: this.imgFormat
+                });
+                ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.view.aladinDiv, { layer: this });
             }
         } catch (e) {
             // Display the error message
@@ -161,13 +149,19 @@ export let ImageFITS = (function () {
         this.layer = layer;
 
         let self = this;
-        const promise = self.wasm.addImageFITS({
+
+        const promise = self.view.wasm.addImageFITS({
             layer: self.layer,
             url: self.url,
-            meta: self.metadata()
+            meta: {
+                ...this.colorCfg.get(),
+                longitudeReversed: false,
+                imgFormat: this.imgFormat
+            }
         }).then((imagesParams) => {
             // There is at least one entry in imageParams
             self.added = true;
+
             self.children = [];
 
             let hduIdx = 0;
@@ -176,7 +170,6 @@ export let ImageFITS = (function () {
                 let image = new ImageFITS(
                     imageParams.url,
                     self.name + "_ext_" + hduIdx.toString(),
-                    self.view,
                     null,
                     null,
                     null
@@ -185,6 +178,7 @@ export let ImageFITS = (function () {
                 // Set the layer corresponding to the onein the backend
                 image.layer = imageParams.layer;
                 image.added = true;
+                image.setView(self.view);
                 // deep copy of the color object of self
                 image.colorCfg = Utils.deepCopy(self.colorCfg);
                 // Set the automatic computed cuts
@@ -259,7 +253,7 @@ export let ImageFITS = (function () {
     ImageFITS.prototype.setAlpha = ImageFITS.prototype.setOpacity;
 
     ImageFITS.prototype.setColorCfg = function (colorCfg) {
-        updateMetadata(this, () => {
+        this._updateMetadata(() => {
             this.colorCfg = colorCfg;
         });
     };
@@ -283,7 +277,7 @@ export let ImageFITS = (function () {
 
     // @api
     ImageFITS.prototype.readPixel = function (x, y) {
-        return this.wasm.readPixel(x, y, this.layer);
+        return this.view.wasm.readPixel(x, y, this.layer);
     };
 
     return ImageFITS;

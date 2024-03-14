@@ -19,6 +19,7 @@
 
 import { FSM } from "../FiniteStateMachine";
 import { View } from "../View";
+import { Selector } from "../Selector";
 /******************************************************************************
  * Aladin Lite project
  * 
@@ -83,7 +84,8 @@ export class CircleSelect extends FSM {
 
             x = this.startCoo.x;
             y = this.startCoo.y;
-            (typeof this.callback === 'function') && this.callback({
+
+            let s = {
                 x, y, r,
                 label: 'circle',
                 contains(s) {
@@ -100,21 +102,25 @@ export class CircleSelect extends FSM {
                         h: 2*r
                     }
                 }
-            });
+            };
+
+            // execute general callback
+            if (view.aladin.callbacksByEventName) {
+                var callback = view.aladin.callbacksByEventName['select'];
+                if (typeof callback === "function") {
+                    let objList = Selector.getObjects(s, view);
+                    callback(objList);
+                }
+            }
+
+            // execute selection callback only
+            (typeof this.callback === 'function') && this.callback(s);
 
             // TODO: remove these modes in the future
             view.aladin.showReticle(true)
             view.setCursor('default');
+            console.log("end select", view)
 
-            // execute general callback
-            if (view.callbacksByEventName) {
-                var callback = view.callbacksByEventName['select'];
-                if (typeof callback === "function") {
-                    // !todo
-                    let selectedObjects = view.selectObjects(this);
-                    callback(selectedObjects);
-                }
-            }
             view.setMode(View.PAN)
             view.requestRedraw();
         };

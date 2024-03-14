@@ -67,10 +67,6 @@ export class Input extends DOMElement {
     _show() {
         this.el.innerHTML = '';
 
-        if (this.options.classList) {
-            this.addClass(this.options.classList)
-        }
-
         if (this.options.type === "checkbox") {
             this.el.type = this.options.type;
 
@@ -212,6 +208,10 @@ export class Input extends DOMElement {
 
         if (this.options.tooltip) {
             Tooltip.add(this.options.tooltip, this)
+        }
+
+        if (this.options.classList) {
+            this.element().classList.add(this.options.classList)
         }
 
         /*// Add padding for inputs except color ones

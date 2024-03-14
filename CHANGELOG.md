@@ -2,6 +2,14 @@
 
 ## 3.3.0
 
+* [fixed] A.on('select') (debugged from ipyaladin)  
+* [fixed] Simbad pointer in galactical frame, cone search of simbad/vizier cats/other cone search services in galactical frame and MOC creation from selection in galactical frame => there is now a new `frame` optional param to Aladin.pix2world. If not given, the coo returned are in the frame of the view.
+* [doc] Add doc for image survey definition
+* [deprecation] A.createImageSurvey/A.newImageSurvey are now deprecated (but still in the API). Please use `A.imageHiPS` instead by providing a valid url or CDS ID conformed to <https://aladin.cds.unistra.fr/hips/list>
+* [refac] Simplify the instanciation of an imageHiPS/ imageFITS. Add a `A.imageHiPS` method for defining a HiPS object
+* [fixed] At initialisation, giving a fov > 180 was clamped back to 180 even if we specify allsky projection (i.e. accepting fov > 180). This is now fixed.
+* [fixed] MeasurementTable now display the full cell values (no ellipsis anymore)
+* [fixed] aladin.on('select') has been implemented. Callback is triggered on a circle and rect selections for not on polygonal selection.
 * [fixed] the cooFrame UI selector is updated if the user calls `aladin.setFrame`
 * [fixed] `reticleColor` and `reticleSize` options in the public API 
 * Restore setFoVRange

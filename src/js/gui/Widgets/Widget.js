@@ -295,17 +295,12 @@ export class DOMElement {
 
     _show() {
         this.el.style.display = ""
-        //this.el.style.display = 'block';
         this.isHidden = false;
     }
 
     _hide() {
         this.isHidden = true;
         this.el.style.display = 'none';
-
-        if (this.options && this.options.onHidden) {
-            this.options.onHidden();
-        }
     }
 
     attachTo(target, position = 'beforeend') {
@@ -322,6 +317,10 @@ export class DOMElement {
         // if no options given, use the previous one set
         if (options) {
             this.options = {...this.options, ...options};
+        }
+
+        if (this.isHidden) {
+            return;
         }
 
         this._show();

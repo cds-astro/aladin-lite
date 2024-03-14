@@ -43,10 +43,9 @@ pub struct HiPSProperties {
     // Associated with the HiPS
     url: String,
     max_order: u8,
-    frame: CooSystem,
+    coo_frame: CooSystem,
     tile_size: i32,
     formats: Vec<ImageExt>,
-    dataproduct_subtype: Option<Vec<String>>,
 
     is_planetary_body: Option<bool>,
 
@@ -103,7 +102,7 @@ impl HiPSProperties {
 
     #[inline(always)]
     pub fn get_frame(&self) -> CooSystem {
-        self.frame
+        self.coo_frame
     }
 
     #[inline(always)]
@@ -124,11 +123,6 @@ impl HiPSProperties {
     #[inline(always)]
     pub fn get_initial_dec(&self) -> Option<f64> {
         self.hips_initial_dec
-    }
-
-    #[inline(always)]
-    pub fn get_dataproduct_subtype(&self) -> &Option<Vec<String>> {
-        &self.dataproduct_subtype
     }
 }
 

@@ -248,9 +248,12 @@ import { CtxMenuActionButtonOpener } from "../Button/CtxMenuOpener.js";
                         if (self.box) {
                             self.box.remove();
                         }
-                        self.box = new ConeSearchBox(aladin);
+                        // output the resulting cone search in the icrs frame
+                        self.box = new ConeSearchBox(aladin, {frame: 'icrs'});
                         self.box.attach({
                             callback: (cs) => {
+                                // the cone search services are asking for 
+
                                 self.fnIdSelected('coneSearch', {
                                     baseURL: self.selectedItem.cs_service_url,
                                     id: self.selectedItem.ID,

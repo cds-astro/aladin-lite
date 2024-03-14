@@ -9,8 +9,17 @@
 A.init.then(() => {
     let aladin = A.aladin('#aladin-lite-div', {fov: 70,projection: "AIT"});
     
-    let hsc = aladin.newImageSurvey("P/HSC/DR2/deep/g", {colormap:"Purples", imgFormat: "fits"});
-    aladin.setBaseImageLayer(hsc);
+    aladin.setOverlayImageLayer(A.imageHiPS(
+        'Fermi',
+        "https://alasky.cds.unistra.fr/Fermi/Color",
+        {
+            name: "Fermi color",
+            maxOrder: 3,
+            imgFormat: 'jpeg',
+            tileSize: 512,
+            cooFrame: 'equatorial'
+        }
+    ));
 
 });
 </script>

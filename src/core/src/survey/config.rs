@@ -168,8 +168,8 @@ pub struct HiPSConfig {
     pub frame: CooSystem,
     pub bitpix: Option<i32>,
     format: ImageFormatType,
-    dataproduct_subtype: Option<Vec<String>>,
-    colored: bool,
+    //dataproduct_subtype: Option<Vec<String>>,
+    //colored: bool,
     pub creator_did: String,
 }
 
@@ -272,7 +272,7 @@ impl HiPSConfig {
             }),
         }?;
 
-        let dataproduct_subtype = properties.get_dataproduct_subtype().clone();
+        /*let dataproduct_subtype = properties.get_dataproduct_subtype().clone();
         let colored = if tex_storing_fits {
             false
         } else {
@@ -281,7 +281,7 @@ impl HiPSConfig {
             } else {
                 false
             }
-        };
+        };*/
 
         let empty_image = EmptyTileImage::new(tile_size, format.get_channel());
 
@@ -341,8 +341,8 @@ impl HiPSConfig {
             bitpix,
             format,
             tile_size,
-            dataproduct_subtype,
-            colored,
+            //dataproduct_subtype,
+            //colored,
         };
 
         Ok(hips_config)
@@ -421,7 +421,7 @@ impl HiPSConfig {
         self.empty_image = EmptyTileImage::new(self.tile_size, self.format.get_channel());
 
         // Recompute if the survey will be colored or not
-        self.colored = if self.tex_storing_fits {
+        /*self.colored = if self.tex_storing_fits {
             false
         } else {
             if let Some(subtypes) = &self.dataproduct_subtype {
@@ -429,7 +429,7 @@ impl HiPSConfig {
             } else {
                 false
             }
-        };
+        };*/
 
         Ok(())
     }
@@ -528,7 +528,7 @@ impl HiPSConfig {
 
     #[inline(always)]
     pub fn is_colored(&self) -> bool {
-        self.colored
+        self.format.is_colored()
     }
 
     #[inline(always)]

@@ -75,8 +75,9 @@ export class SelectorButton extends DOMElement {
                 if (id === 'selected' || this.options.selected === id || id === 'tooltip') {
                     continue;
                 }
-
                 let optSelect = this.options[id];
+                console.log(optSelect)
+
                 menuOptions.push({
                     label: new ActionButton(optSelect),
                     action(e) {
@@ -85,6 +86,8 @@ export class SelectorButton extends DOMElement {
                         }
 
                         self.update({selected: id});
+                        self._show();
+
                         self.fsm.dispatch('closeCtxMenu')
                     }
                 })
@@ -133,6 +136,7 @@ export class SelectorButton extends DOMElement {
 
         // remove from the DOM tree
         const selectedId = this.options.selected;
+
         let {target, position} = this.remove();
         this.el = new ActionButton({
             ...this.options[selectedId],

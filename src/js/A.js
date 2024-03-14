@@ -87,6 +87,7 @@ let A = {};
  */
 A.aladin = function (divSelector, options) {
     let divElement;
+
     if (!(divSelector instanceof HTMLElement)) {
         divElement = document.querySelector(divSelector)
     } else {
@@ -94,6 +95,45 @@ A.aladin = function (divSelector, options) {
     }
     return new Aladin(divElement, options);
 };
+
+/**
+ * Creates a HiPS image object
+ *
+ * @function
+ * @name A.imageHiPS
+ * @memberof A
+ * @param {string} id - Mandatory unique identifier for the layer.
+ * @param {string} url - Can be an `url` that refers to a HiPS.
+ * Or it can be a "CDS ID" pointing towards a HiPS. One can found the list of IDs {@link https://aladin.cds.unistra.fr/hips/list| here}.
+ * @param {ImageSurveyOptions} [options] - Options describing the survey
+ * @returns {ImageSurvey} - A HiPS image object
+ */
+A.imageHiPS = function (id, url, options) {
+    return Aladin.createImageSurvey(
+        id,
+        options && options.name,
+        url,
+        options && options.cooFrame,
+        options && options.maxOrder,
+        options
+    );
+}
+
+/**
+ * Creates a celestial source object with the given coordinates.
+ *
+ * @function
+ * @name A.imageFITS
+ * @memberof A
+ * @param {string} url - Options describing the fits file. An url is mandatory
+ * @param {ImageFITSOptions} [options] - Options describing the fits file. An url is mandatory
+ * @returns {ImageSurvey} - A HiPS image object
+ * @example
+ * const sourceObj = A.source(180.0, 30.0, data, options);
+ */
+A.imageFITS = function (url, options) {
+    return Aladin.createImageFITS(url, options.name, options, options.successCallback, options.errorCallback);
+}
 
 /**
  * Creates a celestial source object with the given coordinates.

@@ -13,7 +13,7 @@ import { Utils } from './Utils';
 export let GenericPointer = function (view, e) {
     const xymouse = Utils.relMouseCoords(e);
 
-    let radec = view.aladin.pix2world(xymouse.x, xymouse.y);
+    let radec = view.aladin.pix2world(xymouse.x, xymouse.y, 'icrs');
     if (radec) {
         // sky case
         if (view.aladin.getBaseImageLayer().isPlanetaryBody() === false) {
@@ -23,7 +23,7 @@ export let GenericPointer = function (view, e) {
         // planetary body case
         else {
             // TODO: replace with actual value
-            const body = view.aladin.getBaseImageLayer().properties.hipsBody;
+            const body = view.aladin.getBaseImageLayer().hipsBody;
             PlanetaryFeaturesPointer.query(radec[0], radec[1], Math.min(80, view.fov / 20.0), body, view.aladin);
         }
     } else {

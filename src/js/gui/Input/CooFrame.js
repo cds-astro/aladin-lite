@@ -46,7 +46,7 @@
             value: cooFrame.label,
             options: [CooFrameEnum.J2000.label, CooFrameEnum.J2000d.label, CooFrameEnum.GAL.label],
             change(e) {
-                self.setFrame(e.target.value)
+                aladin.setFrame(e.target.value)
             },
             classList: ['aladin-cooFrame'],
             tooltip: {
@@ -67,7 +67,6 @@
         let self = this;
         ALEvent.FRAME_CHANGED.listenedBy(aladin.aladinDiv, function (e) {
             let frame = e.detail.cooFrame;
-            console.log(frame, e)
 
             self.update({
                 value: frame.label

@@ -55,7 +55,6 @@ export let Catalog = (function() {
     * @param {string} [options.name="catalog"] - The name of the catalog.
     * @param {string} [options.color] - The color associated with the catalog.
     * @param {number} [options.sourceSize=8] - The size of the sources in the catalog.
-    * @param {number} [options.markerSize=12] - The size of the markers associated with sources.
     * @param {string} [options.shape="square"] - The shape of the sources (can be, "square", "circle", "plus", "cross", "rhomb", "triangle").
     * @param {number} [options.limit] - The maximum number of sources to display.
     * @param {function} [options.onClick] - The callback function to execute on a source click.

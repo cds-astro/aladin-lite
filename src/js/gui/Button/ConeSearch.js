@@ -43,8 +43,8 @@ export class ConeSearchActionButton extends ActionButton {
     // Constructor
     constructor(options, aladin) {
         super({
+            size: 'medium',
             icon: {
-                size: 'medium',
                 monochrome: true,
                 url: targetIconUrl
             },
@@ -65,7 +65,5 @@ export class ConeSearchActionButton extends ActionButton {
                 })
             }
         })
-
-        this.addClass('medium-sized-icon')
     }
 }

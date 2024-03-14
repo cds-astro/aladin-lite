@@ -65,7 +65,6 @@ HiPSProperties.fetchFromID = async function(ID) {
             // Exactly one matching
             result = metadata[0];
         }
-
         return result;
     }
 }
@@ -74,7 +73,7 @@ HiPSProperties.fetchFromUrl = async function(urlOrId) {
     try {
         urlOrId = new URL(urlOrId);
     } catch (e) {
-        // Relative path
+        // Relative path test
         try {
             urlOrId = Utils.getAbsoluteURL(urlOrId)
 

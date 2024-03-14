@@ -163,13 +163,23 @@ export class PolySelect extends FSM {
             let y = yMin;
             let w = xMax - xMin;
             let h = yMax - yMin;
-            (typeof this.callback === 'function') && this.callback({
+
+            let s = {
                 vertices: this.coos,
                 label: 'polygon',
                 bbox() {
                     return {x, y, w, h}
                 }
-            });
+            };
+            (typeof this.callback === 'function') && this.callback(s);
+
+            // execute general callback
+            if (view.aladin.callbacksByEventName) {
+                var callback = view.aladin.callbacksByEventName['select'];
+                if (typeof callback === "function") {
+                    console.warn('polygon selection is not fully implemented, PolySelect.contains is needed for finding sources inside a polygon')
+                }
+            }
 
             this.coos = [];
 

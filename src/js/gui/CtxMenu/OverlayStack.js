@@ -44,10 +44,10 @@ import hideIconUrl from '../../../../assets/icons/hide.svg';
 import removeIconUrl from '../../../../assets/icons/remove.svg';
 import editIconUrl from '../../../../assets/icons/edit.svg';
 import { ImageFITS } from "../../ImageFITS.js";
-import { ImageLayer } from "../../ImageLayer.js";
 import searchIconImg from '../../../../assets/icons/search.svg';
 import { TogglerActionButton } from "../Button/Toggler.js";
 import { Icon } from "../Widgets/Icon.js";
+import { ImageSurvey } from "../../ImageSurvey.js";
  
 export class OverlayStack extends ContextMenu {
     static previewImagesUrl = {
@@ -293,10 +293,11 @@ export class OverlayStack extends ContextMenu {
                                         self._hide();
 
                                         self.aladin.select('circle', c => {
-                                            let [ra, dec] = self.aladin.pix2world(c.x, c.y);
+                                            let [ra, dec] = self.aladin.pix2world(c.x, c.y, 'j2000');
                                             let radius = self.aladin.angularDist(c.x, c.y, c.x + c.r, c.y);
 
                                             if (ra && dec && radius) {
+                                                // the moc needs a 
                                                 let moc = A.MOCFromCircle(
                                                     {ra, dec, radius},
                                                     {name: 'cone', lineWidth: 3.0},
@@ -321,10 +322,10 @@ export class OverlayStack extends ContextMenu {
 
                                         self.aladin.select('rect', r => {
                                             try {
-                                                let [ra1, dec1] = self.aladin.pix2world(r.x, r.y);
-                                                let [ra2, dec2] = self.aladin.pix2world(r.x + r.w, r.y);
-                                                let [ra3, dec3] = self.aladin.pix2world(r.x + r.w, r.y + r.h);
-                                                let [ra4, dec4] = self.aladin.pix2world(r.x, r.y + r.h);
+                                                let [ra1, dec1] = self.aladin.pix2world(r.x, r.y, 'j2000');
+                                                let [ra2, dec2] = self.aladin.pix2world(r.x + r.w, r.y, 'j2000');
+                                                let [ra3, dec3] = self.aladin.pix2world(r.x + r.w, r.y + r.h, 'j2000');
+                                                let [ra4, dec4] = self.aladin.pix2world(r.x, r.y + r.h, 'j2000');
     
                                                 let moc = A.MOCFromPolygon(
                                                     {
@@ -356,7 +357,7 @@ export class OverlayStack extends ContextMenu {
                                                 let ra = []
                                                 let dec = []
                                                 for (const v of p.vertices) {
-                                                    let [lon, lat] = self.aladin.pix2world(v.x, v.y);
+                                                    let [lon, lat] = self.aladin.pix2world(v.x, v.y, 'j2000');
                                                     ra.push(lon)
                                                     dec.push(lat)
                                                 }
@@ -528,15 +529,19 @@ export class OverlayStack extends ContextMenu {
             return;
         }*/
 
-        const defaultLayers = ImageLayer.LAYERS.sort(function (a, b) {
+        const defaultLayers = Object.entries(ImageSurvey.cache).sort(function (e1, e2) {
+            let a = e1[1]
+            let b = e2[1]
+
             if (!a.order) {
                 return a.name > b.name ? 1 : -1;
             }
+
             return a.maxOrder && a.maxOrder > b.maxOrder ? 1 : -1;
         });
 
         for(const layer of layers) {
-            let backgroundUrl = layer.properties.url + '/preview.jpg';
+            let backgroundUrl = layer.url + '/preview.jpg';
             let cssStyle = {
                 height: 'fit-content',
             };
@@ -597,7 +602,6 @@ export class OverlayStack extends ContextMenu {
 
                     self._hide();
 
-                    console.log("kjkj")
                     //self.aladin.selectLayer(layer.layer);
                     //self.attach()
 
@@ -618,35 +622,35 @@ export class OverlayStack extends ContextMenu {
                 tooltip: {content: 'Add coverage', position: {direction: 'bottom'}},
                 toggled: (() => {
                     let overlays = self.aladin.getOverlays();
-                    let found = overlays.find((o) => o.type === "moc" && o.name === layer.properties.obsTitle);
+                    let found = overlays.find((o) => o.type === "moc" && o.name === layer.name);
                     return found !== undefined;
                 })(),
                 actionOn: (e) => {
-                    let moc = A.MOCFromURL(layer.properties.url + '/Moc.fits', {lineWidth: 3, name: layer.properties.obsTitle});
+                    let moc = A.MOCFromURL(layer.url + '/Moc.fits', {lineWidth: 3, name: layer.name});
                     self.aladin.addMOC(moc);
 
-                    self.mocHiPSUrls[layer.properties.url] = moc;
+                    self.mocHiPSUrls[layer.url] = moc;
                     loadMOCBtn.update({tooltip: {content: 'Remove coverage', position: {direction: 'bottom'}}})
 
                     if (self.aladin.statusBar) {
                         self.aladin.statusBar.appendMessage({
-                            message: 'Coverage of ' + layer.properties.obsTitle + ' loaded',
+                            message: 'Coverage of ' + layer.name + ' loaded',
                             duration: 2000,
                             type: 'info'
                         })
                     }
                 },
                 actionOff: (e) => {
-                    let moc = self.mocHiPSUrls[layer.properties.url];
+                    let moc = self.mocHiPSUrls[layer.url];
                     self.aladin.removeLayer(moc)
 
-                    delete self.mocHiPSUrls[layer.properties.url];
+                    delete self.mocHiPSUrls[layer.url];
 
                     loadMOCBtn.update({tooltip: {content: 'Add coverage', position: {direction: 'bottom'}}})
 
                     if (self.aladin.statusBar) {
                         self.aladin.statusBar.appendMessage({
-                            message: 'Coverage of ' + layer.properties.obsTitle + ' removed',
+                            message: 'Coverage of ' + layer.name + ' removed',
                             duration: 2000,
                             type: 'info'
                         })
@@ -697,7 +701,7 @@ export class OverlayStack extends ContextMenu {
 
             l.subMenu = [];
     
-            for(let ll of defaultLayers) {
+            for(const [id, ll] of defaultLayers) {
                 backgroundUrl = OverlayStack.previewImagesUrl[ll.name];
                 if (!backgroundUrl) {
                     backgroundUrl = ll.url + '/preview.jpg'
@@ -718,31 +722,7 @@ export class OverlayStack extends ContextMenu {
                     label: '<div style="background-color: rgba(0, 0, 0, 0.6); padding: 3px; border-radius: 3px">' + ll.name + '</div>',
                     cssStyle,
                     action(e) {
-                        let cfg = ImageLayer.LAYERS.find((l) => l.name === ll.name);
-                        let newLayer;
-                        
-                        // Max order is specific for surveys
-                        if (cfg.subtype === "fits") {
-                            // FITS
-                            newLayer = self.aladin.createImageFITS(
-                                cfg.url,
-                                cfg.name,
-                                cfg.options,
-                            );
-                        } else {
-                            // HiPS
-                            newLayer = self.aladin.createImageSurvey(
-                                cfg.id,
-                                cfg.name,
-                                cfg.url,
-                                undefined,
-                                cfg.maxOrder,
-                                cfg.options
-                            );
-                        }
-            
-                        self.aladin.setOverlayImageLayer(newLayer, layer.layer);
-                        //self._hide();
+                        self.aladin.setOverlayImageLayer(id, layer.layer);
                     },
                     hover(e, item) {
                         item.style.filter = 'brightness(1.5)';
@@ -806,11 +786,11 @@ export class OverlayStack extends ContextMenu {
             return;
         }
 
-        if (!layer.properties || !layer.properties.creatorDid) {
+        if (!layer.creatorDid) {
             return;
         }
 
-        const creatorDid = layer.properties.creatorDid;
+        const creatorDid = layer.creatorDid;
         
         for (const key in Stack.previewImagesUrl) {
             if (creatorDid.includes(key)) {
@@ -818,7 +798,7 @@ export class OverlayStack extends ContextMenu {
             }
         }
         // if not found
-        return layer.properties.url + '/preview.jpg'
+        return layer.url + '/preview.jpg'
     }
 
     _addOverlayIcon(overlay) {

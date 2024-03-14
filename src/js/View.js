@@ -50,10 +50,8 @@ import { ObsCore } from "./vo/ObsCore.js";
 import { DefaultActionsForContextMenu } from "./DefaultActionsForContextMenu.js";
 import { Layout } from "./gui/Layout.js";
 import { SAMPActionButton } from "./gui/Button/SAMP.js";
-import { Icon } from "./gui/Widgets/Icon.js";
-import openerIconUrl from '../../assets/icons/loading.svg'
 import { ImageSurvey } from "./ImageSurvey.js";
-import { ImageLayer } from "./ImageLayer.js";
+import { ImageFITS } from "./ImageFITS.js";
 
 export let View = (function () {
 
@@ -84,9 +82,6 @@ export let View = (function () {
 
                 callback(self.wasm);
             });
-
-            // Retrieve all the possible colormaps
-            ColorCfg.COLORMAPS = this.wasm.getAvailableColormapList();
         } catch (e) {
             // For browsers not supporting WebGL2:
             // 1. Print the original exception message in the console
@@ -128,7 +123,6 @@ export let View = (function () {
 
         this.aladinDiv.ondragover = Utils.dragOverHandler;
 
-        //this.location = location;
         this.mustClearCatalog = true;
         this.mode = View.PAN;
 
@@ -139,18 +133,8 @@ export let View = (function () {
 
         var lon, lat;
         lon = lat = 0;
-        this.projection = ProjectionEnum.SIN;
 
-        this.viewCenter = { lon: lon, lat: lat }; // position of center of view
-
-        this.cooFrame = CooFrameEnum.fromString(this.options.cooFrame, CooFrameEnum.J2000);
-
-        // Frame setting
-        this.changeFrame(this.cooFrame);
-
-        this.selector = new Selector(this);
-
-        // Zoom starting setting
+        // FoV init settings
         const si = 500000.0;
         const alpha = 40.0;
         let initialFov = this.options.fov || 180.0;
@@ -160,7 +144,23 @@ export let View = (function () {
             initialDistance: undefined,
             initialAccDelta: Math.pow(si / initialFov, 1.0 / alpha)
         };
+
+        // Projection definition
+        const projName = (this.options && this.options.projection) || "SIN";
+        this.setProjection(projName)
+
+        // Then set the zoom properly once the projection is defined
         this.setZoom(initialFov);
+
+        // Target position settings
+        this.viewCenter = { lon, lat }; // position of center of view
+
+        // Coo frame setting
+        const cooFrame = CooFrameEnum.fromString(this.options.cooFrame, CooFrameEnum.J2000);
+        this.changeFrame(cooFrame);
+
+        this.selector = new Selector(this);
+
         // current reference image survey displayed
         this.imageLayers = new Map();
 
@@ -631,13 +631,9 @@ export let View = (function () {
                         // Take as start cut values what is inside the properties
                         // If the cuts are not defined in the metadata of the survey
                         // then we take what has been defined by the user
-                        if (imageLayer.imgFormat === "fits") {
-                            cutMinInit = imageLayer.properties.minCutout || imageLayer.getColorCfg().minCut || 0.0;
-                            cutMaxInit = imageLayer.properties.maxCutout || imageLayer.getColorCfg().maxCut || 1.0;
-                        } else {
-                            cutMinInit = imageLayer.getColorCfg().minCut || 0.0;
-                            cutMaxInit = imageLayer.getColorCfg().maxCut || 1.0;
-                        }
+                        cutMinInit = imageLayer.getColorCfg().minCut || 0.0;
+                        cutMaxInit = imageLayer.getColorCfg().maxCut || 1.0;
+                        
                     }
                 }
 
@@ -1353,6 +1349,7 @@ export let View = (function () {
             this.selection = Selector.getObjects(selection, this);
         }
 
+
         if (this.selection.length > 0) {
             this.selection.forEach((objListPerCatalog) => {
                 objListPerCatalog.forEach((obj) => obj.select())
@@ -1535,6 +1532,10 @@ export let View = (function () {
     };
 
     View.prototype.setOverlayImageLayer = function (imageLayer, layer = "overlay") {
+        // set the view to the image layer object
+        // do the properties query if needed
+        imageLayer.setView(this);
+
         // register its promise
         this.imageLayersBeingQueried.set(layer, imageLayer);
 
@@ -1604,13 +1605,17 @@ export let View = (function () {
                 }
 
                 // change the view frame in case we have a planetary hips loaded
-                if (imageLayer.properties.hipsBody) {
+                if (imageLayer.hipsBody) {
                     if (this.options.showFrame) {
                         this.aladin.setFrame('J2000d');
                     }
                 }
             })
             .catch((e) => {
+                // remove it from the cache
+                delete ImageSurvey.cache[imageLayer.id]
+                delete ImageFITS.cache[imageLayer.id]
+
                 throw e;
             })
             .finally(() => {
@@ -1629,9 +1634,7 @@ export let View = (function () {
                 if (noMoreLayersToWaitFor) {
                     if (self.empty) {
                         // no promises to launch!
-                        const dssLayerOptions = ImageLayer.DEFAULT_SURVEY
-
-                        self.aladin.setBaseImageLayer(ImageSurvey.fromLayerOptions(self, dssLayerOptions));
+                        //self.aladin.setBaseImageLayer(self.aladin.createImageSurvey(ImageSurvey.DEFAULT_SURVEY_ID));
                     } else {
                         // there is surveys that have been queried
                         // rename the first overlay layer to "base"
@@ -1758,7 +1761,7 @@ export let View = (function () {
             projName = 'SIN'
         }
 
-        if (this.projection.id === ProjectionEnum[projName].id) {
+        if (this.projection && this.projection.id === ProjectionEnum[projName].id) {
             return;
         }
 

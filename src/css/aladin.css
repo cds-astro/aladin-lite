@@ -80,7 +80,7 @@ body { overscroll-behavior: contain; }
 
     display: block;
 
-    max-height: 33vh;
+    max-height: 30vh;
     max-width: 100%;
     -ms-overflow-style: none;
     overscroll-behavior-x: none;
@@ -150,8 +150,8 @@ body { overscroll-behavior: contain; }
     white-space: nowrap;
     overflow: hidden;
     text-align: center;
-    max-width: 150px;
-    text-overflow: ellipsis;
+    /*max-width: 150px;
+    text-overflow: ellipsis;*/
 }
 
 .aladin-measurement-div table td.aladin-text-td-container {
@@ -159,8 +159,8 @@ body { overscroll-behavior: contain; }
     white-space: nowrap;
     overflow: hidden;
 
-    max-width: 150px;
-    text-overflow: ellipsis;
+    /*max-width: 150px;
+    text-overflow: ellipsis;*/
 }
 
 .aladin-measurement-div table td.aladin-href-td-container:hover {
@@ -464,10 +464,12 @@ canvas {
 }
 
 .aladin-input-text.search.aladin-unknownObject {
-    -webkit-box-shadow:inset 0px 0px 0px 3px #f00;
-    -moz-box-shadow:inset 0px 0px 0px 3px #f00;
-    box-shadow:inset 0px 0px 0px 3px #f00;
-}
+    -webkit-box-shadow:inset 0px 0px 0px 1px #f00;
+    -moz-box-shadow:inset 0px 0px 0px 1px #f00;
+    box-shadow:inset 0px 0px 0px 1px #f00;
+
+    border: 1px solid red;
+}   
 
 .aladin-dark-theme {
     color: white;
@@ -654,10 +656,14 @@ canvas {
 .aladin-status-bar-message {
     display: block;
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
 
-    max-width: 300px;
+    text-wrap: nowrap;
+    -ms-overflow-style: none;
+    overscroll-behavior-x: none;
+    overflow-y: scroll;
+    scrollbar-width: none;
+
+    max-width: 30rem;
 
     font-size: 1rem;
 }
@@ -988,6 +994,7 @@ canvas {
     border-radius: 2px;
 
     top:0%;
+    left:0%;
 
     z-index: 100;
  

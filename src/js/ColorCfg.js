@@ -222,7 +222,31 @@
         return [this.minCut, this.maxCut];
     };
 
-    ColorCfg.COLORMAPS = [];
+    ColorCfg.COLORMAPS = [
+        "blues",
+        "cividis",
+        "cubehelix",
+        "eosb",
+        "grayscale",
+        "inferno",
+        "magma",
+        "native",
+        "parula",
+        "plasma",
+        "rainbow",
+        "rdbu",
+        "rdylbu",
+        "redtemperature",
+        "sinebow",
+        "spectral",
+        "summer",
+        "viridis",
+        "ylgnbu",
+        "ylorbr",
+        "red",
+        "green",
+        "blue"
+    ];
 
     return ColorCfg;
  })();

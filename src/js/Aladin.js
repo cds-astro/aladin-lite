@@ -56,14 +56,11 @@ import { Location } from "./gui/Location.js";
 import { FoV } from "./gui/FoV.js";
 import { ShareActionButton } from "./gui/Button/ShareView.js";
 import { ContextMenu } from "./gui/Widgets/ContextMenu.js";
-import { Input } from "./gui/Widgets/Input.js";
 import { Popup } from "./Popup.js";
 import A from "./A.js";
 import { StatusBarBox } from "./gui/Box/StatusBarBox.js";
 import { FullScreenActionButton } from "./gui/Button/FullScreen.js";
 import { ProjectionActionButton } from "./gui/Button/Projection.js";
-import { Toolbar } from './gui/Widgets/Toolbar';
-import { ImageLayer } from './ImageLayer';
 
 // features
 import { SettingsButton } from "./gui/Button/Settings";
@@ -80,7 +77,7 @@ import { CooFrame } from './gui/Input/CooFrame';
  * @property {string[]} [surveyUrl=["https://alaskybis.unistra.fr/DSS/DSSColor", "https://alasky.unistra.fr/DSS/DSSColor"]]
  *   Array of URLs for the survey images. This replaces the survey parameter.
  * @property {string} [target="0 +0"] - Target coordinates for the initial view.
- * @property {string} [cooFrame="J2000"] - Coordinate frame.
+ * @property {CooFrame} [cooFrame="J2000"] - Coordinate frame.
  * @property {number} [fov=60] - Field of view in degrees.
  * @property {string} [backgroundColor="rgb(60, 60, 60)"] - Background color in RGB format.
  *
@@ -130,11 +127,16 @@ import { CooFrame } from './gui/Input/CooFrame';
  * @property {boolean} [gridOptions.showLabels=true] - Whether the grid has labels.
  * @property {number} [gridOptions.labelSize=15] - The font size of the labels.
  * 
- * @property {string} [projection="SIN"] - Projection type.
+ * @property {string} [projection="SIN"] - Projection type. Can be 'SIN' for orthographic, 'MOL' for mollweide, 'AIT' for hammer-aitoff, 'ZEA' for zenital equal-area or 'MER' for mercator
  * @property {boolean} [log=true] - Whether to log events.
  * @property {boolean} [samp=false] - Whether to enable SAMP (Simple Application Messaging Protocol).
  * @property {boolean} [realFullscreen=false] - Whether to use real fullscreen mode.
  * @property {boolean} [pixelateCanvas=true] - Whether to pixelate the canvas.
+ */
+
+/**
+ * @typedef {string} CooFrame
+ * String with possible values: 'equatorial', 'ICRS', 'ICRSd', 'j2000', 'gal, 'galactic'
  */
 
 export let Aladin = (function () {
@@ -214,10 +216,8 @@ export let Aladin = (function () {
         // parent div
         aladinDiv.classList.add("aladin-container");
 
-        // measurement table
+        // Init the measurement table
         this.measurementTable = new MeasurementTable(this);
-
-        //var location = new Location(locationDiv.find('.aladin-location-text'));
 
         // set different options
         // Reticle
@@ -229,7 +229,6 @@ export let Aladin = (function () {
         this.reticle = new Reticle(this.options, this);
         this.popup = new Popup(this.aladinDiv, this.view);
 
-        this.cacheSurveys = new Map();
         this.ui = [];
 
         // Background color
@@ -248,10 +247,6 @@ export let Aladin = (function () {
             gridOptions.enabled = true;
         }
         this.setCooGrid(gridOptions);
-
-        // Set the projection
-        let projection = (options && options.projection) || 'SIN';
-        this.setProjection(projection)
 
         this.gotoObject(options.target, undefined);
 
@@ -279,12 +274,14 @@ export let Aladin = (function () {
                     i++;
                 });
             } else if (options.survey === ImageSurvey.DEFAULT_SURVEY_ID) {
-                const survey = ImageSurvey.fromLayerOptions(this, ImageLayer.DEFAULT_SURVEY);
+                // DSS is cached inside ImageSurvey class, no need to provide any further information
+                const survey = this.createImageSurvey(ImageSurvey.DEFAULT_SURVEY_ID);
+
                 this.setBaseImageLayer(survey);
             } else {
                 this.setBaseImageLayer(options.survey)
             }
-        } else if (options.surveyUrl) {
+        } else {
             // Add the image layers
             // For that we check the survey key of options
             // It can be given as a single string or an array of strings
@@ -301,9 +298,6 @@ export let Aladin = (function () {
             }
 
             this.setBaseImageLayer(url);
-        } else {
-            // This case should not happen because if there is no survey given
-            // then the surveyUrl pointing to the DSS is given.
         }
 
         this.view.showCatalog(options.showCatalog);
@@ -348,11 +342,7 @@ export let Aladin = (function () {
 
         // Status bar
         if (options.showStatusBar) {
-            let statusBarOptions = {};
-            if (typeof options.showStatusBar === "object") {
-                statusBarOptions = options.showStatusBar;
-            }
-            this.statusBar = new StatusBarBox(this, statusBarOptions);
+            this.statusBar = new StatusBarBox(this);
             this.addUI(this.statusBar)
         }
 
@@ -853,7 +843,7 @@ export let Aladin = (function () {
                 }
                 // planetary case
                 else {
-                    const body = baseImageLayer.properties.hipsBody;
+                    const body = baseImageLayer.hipsBody;
                     PlanetaryFeaturesNameResolver.resolve(targetName, body,
                         function (data) { // success callback
                             self.view.pointTo(data.lon, data.lat);
@@ -1179,29 +1169,51 @@ export let Aladin = (function () {
         this.view.removeLayer(layer);
     };
 
-    // @oldAPI
-    Aladin.prototype.createImageSurvey = function(id, name, rootUrl, cooFrame, maxOrder, options = {}) {
-        let cfg = this.cacheSurveys.get(id);
-        if (!cfg) {
-            // Add the cooFrame and maxOrder given by the user
-            // to the list of options passed to the ImageSurvey constructor
-            if (cooFrame) {
-                options.cooFrame = cooFrame;
-            }
+    /**
+     * @deprecated
+     * Creates and return an image survey (HiPS) object
+     * 
+     * @memberof Aladin
+     * @param {string} id - Mandatory unique identifier for the layer.
+     * @param {string} [name] - A convinient name for the survey, optional
+     * @param {string} url - Can be an `url` that refers to a HiPS.
+     * Or it can be a "CDS ID" pointing towards a HiPS. One can found the list of IDs {@link https://aladin.cds.unistra.fr/hips/list| here}.
+     * @param {string} [cooFrame] - Values accepted: 'equatorial', 'icrs', 'icrsd', 'j2000', 'gal', 'galactic'
+     * @param {number} [maxOrder] - The maximum HEALPix order of the HiPS, i.e the HEALPix order of the most refined tile images of the HiPS. 
+     * @param {ImageSurveyOptions} [options] - Options describing the survey
+     * @returns {ImageSurvey} A HiPS image object.
+     */
+    Aladin.prototype.createImageSurvey = function(id, name, url, cooFrame, maxOrder, options) {
+        let surveyOptions = ImageSurvey.cache[id];
 
-            if (maxOrder) {
-                options.maxOrder = maxOrder;
-            }
-
-            cfg = {id, name, rootUrl, options};
-            this.cacheSurveys.set(id, cfg);
-        } else {
-            cfg = Utils.clone(cfg)
+        if (!surveyOptions) {
+            surveyOptions = {url, name, maxOrder, cooFrame, ...options};
+            ImageSurvey.cache[id] = surveyOptions;
         }
-        return new ImageSurvey(cfg.id, cfg.name, cfg.rootUrl, cfg.options, this.view);
+
+        return new ImageSurvey(id, surveyOptions.url, surveyOptions);
     };
 
-    Aladin.prototype.createImageFITS = function(url, name, options = {}, successCallback = undefined, errorCallback = undefined) {
+    /**
+     * @deprecated
+     * Creates and return an image survey (HiPS) object
+     *
+     * @function createImageSurvey
+     * @memberof Aladin
+     * @static
+     * @param {string} id - Mandatory unique identifier for the layer.
+     * @param {string} [name] - A convinient name for the survey, optional
+     * @param {string} url - Can be an `url` that refers to a HiPS.
+     * Or it can be a "CDS ID" pointing towards a HiPS. One can found the list of IDs {@link https://aladin.cds.unistra.fr/hips/list| here}.
+     * @param {string} [cooFrame] - Values accepted: 'equatorial', 'icrs', 'icrsd', 'j2000', 'gal', 'galactic'
+     * @param {number} [maxOrder] - The maximum HEALPix order of the HiPS, i.e the HEALPix order of the most refined tile images of the HiPS. 
+     * @param {ImageSurveyOptions} [options] - Options describing the survey
+     * @returns {ImageSurvey} A HiPS image object.
+     */
+    Aladin.createImageSurvey = Aladin.prototype.createImageSurvey;
+
+    
+    Aladin.prototype.createImageFITS = function(url, name, options, successCallback, errorCallback) {
         try {
             url = new URL(url);
         } catch(e) {
@@ -1213,30 +1225,53 @@ export let Aladin = (function () {
         // Do not use proxy with CORS headers until we solve that: https://github.com/MattiasBuelens/wasm-streams/issues/20
         //url = Utils.handleCORSNotSameOrigin(url);
 
-        let cfg = this.cacheSurveys.get(url);
-        if (!cfg) {
-            cfg = {url, name, options, successCallback, errorCallback}
-            this.cacheSurveys.set(url, cfg);
-        } else {
-            cfg = Utils.clone(cfg)
+        let image = ImageFITS.cache[url];
+        if (!image) {
+            image = new ImageFITS(url, name, options, successCallback, errorCallback)
+            ImageFITS.cache[url] = image;
         }
 
-        return new ImageFITS(cfg.url, cfg.name, this.view, cfg.options, cfg.successCallback, cfg.errorCallback);
+        return image;
     };
 
-    Aladin.prototype.newImageSurvey = function(rootUrlOrId, options) {
-        const idOrUrl = rootUrlOrId;
-        // Check if the survey has already been added
-        // Create a new ImageSurvey
-        const name = idOrUrl;
+    /**
+     * Creates a FITS image object
+     *
+     * @function createImageFITS
+     * @memberof Aladin
+     * @static
+     * @param {string} url - The url of the fits.
+     * @param {string} [name] - The url of the fits.
+     * @param {ImageSurveyOptions} [options] - Options for rendering the image
+     * @param {function} [success] - A success callback
+     * @param {function} [error] - A success callback
+     * @returns {ImageSurvey} A FITS image object.
+     */
+    Aladin.createImageFITS = Aladin.prototype.createImageFITS;
 
-        return this.createImageSurvey(idOrUrl, name, idOrUrl, null, null, options);
+
+     /**
+     * @deprecated
+     * Create a new layer from an url or CDS ID.  
+     *
+     * @memberof Aladin
+     * @static
+     * @param {string} url - Can be an `url` that refers to a HiPS.
+     * Or it can be a "CDS ID" pointing towards a HiPS. One can found the list of IDs {@link https://aladin.cds.unistra.fr/hips/list| here}.
+     * @param {ImageSurveyOptions} [options] - Options for rendering the image
+     * @param {function} [success] - A success callback
+     * @param {function} [error] - A success callback
+     * @returns {ImageSurvey} A FITS image object.
+     */
+    Aladin.prototype.newImageSurvey = function(url, options) {
+        const id = url;
+        return A.imageHiPS(id, url, options);
     }
 
     Aladin.prototype.addNewImageLayer = function() {
         let layerName = Utils.uuidv4();
         // A HIPS_LAYER_ADDED will be called after the hips is added to the view
-        this.setOverlayImageLayer('CDS/P/DSS2/color', layerName);
+        this.setOverlayImageLayer(ImageSurvey.DEFAULT_SURVEY_ID, layerName);
     }
 
     // @param imageSurvey : ImageSurvey object or image survey identifier
@@ -1273,8 +1308,8 @@ export let Aladin = (function () {
     };
 
 
-    Aladin.prototype.setBaseImageLayer = function(idOrSurvey) {
-        return this.setOverlayImageLayer(idOrSurvey, "base");
+    Aladin.prototype.setBaseImageLayer = function(idOrUrlOrImageLayer) {
+        return this.setOverlayImageLayer(idOrUrlOrImageLayer, "base");
     };
 
     // @api
@@ -1288,26 +1323,9 @@ export let Aladin = (function () {
         // 1. User gives an ID
         if (typeof idOrUrlOrImageLayer === "string") {
             const idOrUrl = idOrUrlOrImageLayer;
-            // Check if the survey has already been added
-            // Create a new ImageSurvey
-            /*let isUrl = false;
-            if (idOrUrl.includes("http")) {
-                isUrl = true;
-            }
-            const name = idOrUrl;
 
-            if (isUrl) {
-                const url = idOrUrl;
-                const id = url;
-                // Url
-                imageLayer = this.createImageSurvey(idOrUrl, name, idOrUrl, null, null);
-            } else {
-                const id = idOrUrl;
-                // ID
-                imageLayer = this.createImageSurvey(idOrUrl, name, idOrUrl, null, null);
-            }*/
-            const name = idOrUrl;
-            imageLayer = this.createImageSurvey(idOrUrl, name, idOrUrl, null, null);
+            imageLayer = A.imageHiPS(idOrUrl, idOrUrl);
+
         // 2. User gives a non resolved promise
         } else {
             imageLayer = idOrUrlOrImageLayer;
@@ -1456,11 +1474,6 @@ export let Aladin = (function () {
     */
     Aladin.prototype.select = async function (mode = 'rect', callback) {
         await this.reticle.loaded;
-
-        // Default callback selects objects
-        callback = callback || ((selection) => {
-            this.view.selectObjects(selection);
-        });
 
         this.fire('selectstart', {mode, callback});
     };
@@ -1635,7 +1648,7 @@ export let Aladin = (function () {
         let radecsys;
 
         if (this.getBaseImageLayer().isPlanetaryBody()) {
-            const body = this.getBaseImageLayer().properties.hipsBody
+            const body = this.getBaseImageLayer().hipsBody
             if (body in solarSystemObjects) {
                 cooType1 = `${solarSystemObjects[body]}LN-`;
                 cooType2 = `${solarSystemObjects[body]}LT-`;
@@ -1715,13 +1728,29 @@ export let Aladin = (function () {
      * @memberof Aladin
      * @param {number} x - The x-coordinate in pixel coordinates.
      * @param {number} y - The y-coordinate in pixel coordinates.
+     * @param {CooFrame} [frame] - The frame in which we want to retrieve the coordinates.
+     * If not given, the frame chosen is the one from the view
      *
-     * @returns {number[]} - An array representing the [Right Ascension, Declination] coordinates in degrees.
+     * @returns {number[]} - An array representing the [Right Ascension, Declination] coordinates in degrees in the `frame`.
+     * If not specified, returns the coo in the frame of the current view.
      * 
      * @throws {Error} Throws an error if an issue occurs during the transformation.
      */
-    Aladin.prototype.pix2world = function (x, y) {
-        const [ra, dec] = this.view.wasm.screenToWorld(x, y);
+    Aladin.prototype.pix2world = function (x, y, frame) {
+        let radec = this.view.wasm.screenToWorld(x, y);
+
+        frame = frame || this.view.cooFrame.label;
+        frame = CooFrameEnum.fromString(frame, CooFrameEnum.J2000);
+
+        if (frame !== this.view.cooFrame) {
+            if (frame.label === 'Galactic') {
+                console.warn('Conversion from icrs to galactic not yet impl')
+            } else {
+                radec = this.view.wasm.viewToICRSCooSys(radec[0], radec[1]);
+            }
+        }
+
+        let [ra, dec] = radec;
 
         if (ra < 0) {
             return [ra + 360.0, dec];
@@ -1734,8 +1763,8 @@ export let Aladin = (function () {
      * Transform world coordinates to pixel coordinates in the view.
      *
      * @memberof Aladin
-     * @param {number} ra - The Right Ascension (RA) coordinate in degrees.
-     * @param {number} dec - The Declination (Dec) coordinate in degrees.
+     * @param {number} ra - The Right Ascension (RA) coordinate in degrees. Frame considered is the current view frame
+     * @param {number} dec - The Declination (Dec) coordinate in degrees. Frame considered is the current view frame
      *
      * @returns {number[]} - An array representing the [x, y] coordinates in pixel coordinates in the view.
      *
@@ -1753,14 +1782,16 @@ export let Aladin = (function () {
      * @param {number} y1 - The y-coordinate of the first pixel coordinates.
      * @param {number} x2 - The x-coordinate of the second pixel coordinates.
      * @param {number} y2 - The y-coordinate of the second pixel coordinates.
+     * @param {CooFrame} [frame] - The frame in which we want to retrieve the coordinates.
+     * If not given, the frame chosen is the one from the view
      *
      * @returns {number} - The angular distance between the two pixel coordinates in degrees
      *
      * @throws {Error} Throws an error if an issue occurs during the transformation.
      */
-    Aladin.prototype.angularDist = function (x1, y1, x2, y2) {
-        const [ra1, dec1] = this.pix2world(x1, y1);
-        const [ra2, dec2] = this.pix2world(x2, y2);
+    Aladin.prototype.angularDist = function (x1, y1, x2, y2, frame) {
+        const [ra1, dec1] = this.pix2world(x1, y1, frame);
+        const [ra2, dec2] = this.pix2world(x2, y2, frame);
 
         return this.wasm.angularDist(ra1, dec1, ra2, dec2);
     };

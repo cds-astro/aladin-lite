@@ -30,14 +30,13 @@
 import { Utils } from "./Utils";
 import { ALEvent } from "./events/ALEvent.js";
 import { ColorCfg } from "./ColorCfg.js";
-import { ImageLayer } from "./ImageLayer.js";
 import { HiPSProperties } from "./HiPSProperties.js";
 
 let PropertyParser = {};
 // Utilitary functions for parsing the properties and giving default values
 /// Mandatory tileSize property
-PropertyParser.tileSize = function(options, properties = {}) {
-    let tileSize = (options && options.tileSize) || (properties.hips_tile_width && (+properties.hips_tile_width)) || 512;
+PropertyParser.tileSize = function(properties) {
+    let tileSize = (properties && properties.hips_tile_width && (+properties.hips_tile_width)) || 512;
 
     // Check if the tile width size is a power of 2
     if (tileSize & (tileSize - 1) !== 0) {
@@ -48,35 +47,25 @@ PropertyParser.tileSize = function(options, properties = {}) {
 }
 
 /// Mandatory frame property
-PropertyParser.frame = function(options, properties = {}) {
-    let frame = (options && options.cooFrame) || (properties.hips_body && "ICRSd") || properties.hips_frame;
-
-    if (frame == "ICRS" || frame == "ICRSd" || frame == "equatorial" || frame == "j2000") {
-        frame = "ICRS";
-    } else if (frame == "galactic") {
-        frame = "GAL";
-    } else {
-        frame = "ICRS";
-        console.warn('Invalid cooframe given: ' + cooFrame + '. Coordinate systems supported: "ICRS", "ICRSd", "j2000" or "galactic". ICRS is chosen by default');
-    }
-
-    return frame;
+PropertyParser.cooFrame = function(properties) {
+    let cooFrame = (properties && properties.hips_body && "ICRSd") || (properties && properties.hips_frame) || "ICRS";
+    return cooFrame;
 }
 
 /// Mandatory maxOrder property
-PropertyParser.maxOrder = function(options, properties = {}) {
-    let maxOrder = (options && options.maxOrder) || (properties.hips_order && (+properties.hips_order));
+PropertyParser.maxOrder = function(properties) {
+    let maxOrder = properties && properties.hips_order && (+properties.hips_order);
     return maxOrder;
 }
 
 /// Mandatory minOrder property
-PropertyParser.minOrder = function(options, properties = {}) {
-    const minOrder = (options && options.minOrder) || (properties.hips_order_min && (+properties.hips_order_min)) || 0;
+PropertyParser.minOrder = function(properties) {
+    const minOrder = (properties && properties.hips_order_min && (+properties.hips_order_min)) || 0;
     return minOrder;
 }
 
-PropertyParser.formats = function(options, properties = {}) {
-    let formats = properties.hips_tile_format || "jpeg";
+PropertyParser.formats = function(properties) {
+    let formats = properties && properties.hips_tile_format || "jpeg";
 
     formats = formats.split(' ')
         .map((fmt) => fmt.toLowerCase());
@@ -84,8 +73,8 @@ PropertyParser.formats = function(options, properties = {}) {
     return formats;
 }
 
-PropertyParser.initialFov = function(options, properties = {}) {
-    let initialFov = properties.hips_initial_fov && +properties.hips_initial_fov;
+PropertyParser.initialFov = function(properties) {
+    let initialFov = properties && properties.hips_initial_fov && (+properties.hips_initial_fov);
 
     if (initialFov && initialFov < 0.00002777777) {
         initialFov = 360;
@@ -94,13 +83,13 @@ PropertyParser.initialFov = function(options, properties = {}) {
     return initialFov;
 }
 
-PropertyParser.skyFraction = function(options, properties = {}) {
-    const skyFraction = (properties.moc_sky_fraction && (+properties.moc_sky_fraction)) || 0.0;
+PropertyParser.skyFraction = function(properties) {
+    const skyFraction = (properties && properties.moc_sky_fraction && (+properties.moc_sky_fraction)) || 0.0;
     return skyFraction;
 }
 
-PropertyParser.cutouts = function(options, properties = {}) {
-    let cuts = properties.hips_pixel_cut && properties.hips_pixel_cut.split(" ");
+PropertyParser.cutouts = function(properties) {
+    let cuts = properties && properties.hips_pixel_cut && properties.hips_pixel_cut.split(" ");
 
     const minCutout = cuts && parseFloat(cuts[0]);
     const maxCutout = cuts && parseFloat(cuts[1]);
@@ -108,25 +97,32 @@ PropertyParser.cutouts = function(options, properties = {}) {
     return [minCutout, maxCutout];
 }
 
-PropertyParser.bitpix = function(options, properties = {}) {
-    const bitpix = properties.hips_pixel_bitpix && (+properties.hips_pixel_bitpix);
+PropertyParser.bitpix = function(properties) {
+    const bitpix = properties && properties.hips_pixel_bitpix && (+properties.hips_pixel_bitpix);
     return bitpix;
 }
 
-PropertyParser.dataproductSubtype = function(options, properties = {}) {
-    let dataproductSubtype = properties.dataproduct_subtype || "color";
+PropertyParser.dataproductSubtype = function(properties) {
+    let dataproductSubtype = (properties && properties.dataproduct_subtype) || "color";
     dataproductSubtype = dataproductSubtype.split(" ")
         .map((subtype) => subtype.toLowerCase());
     return dataproductSubtype;
 }
 
-PropertyParser.isPlanetaryBody = function(options, properties = {}) {
-    return properties.hips_body !== undefined;
+PropertyParser.isPlanetaryBody = function(properties) {
+    return properties && properties.hips_body !== undefined;
 }
 
 /**
  * @typedef {Object} ImageSurveyOptions
  * 
+ * @property {string} [name] - The name of the survey to be displayed in the UI
+ * @property {string} [imgFormat] - Formats accepted 'webp', 'png', 'jpeg' or 'fits'. Will raise an error if the HiPS does not contain tiles in this format
+ * @property {CooFrame} [cooFrame="J2000"] - Coordinate frame of the survey tiles
+ * @property {number} [maxOrder] - The maximum HEALPix order of the HiPS, i.e the HEALPix order of the most refined tile images of the HiPS. 
+ * @property {number} [numBitsPerPixel] - useful if you want to display the FITS tiles of a HiPS. It specifies the number of bits per pixel. Possible values are:
+ * -64: double, -32: float, 8: unsigned byte, 16: short, 32: integer 32 bits, 64: integer 64 bits  
+ * @property {number} [tileSize] - The width of the HEALPix tile images. Mostly 512 pixels for can be 256, 128, 64, 32
  * @property {number} [opacity=1.0] - Opacity of the survey or image (value between 0 and 1).
  * @property {string} [colormap="native"] - The colormap configuration for the survey or image.
  * @property {string} [stretch="linear"] - The stretch configuration for the survey or image.
@@ -138,12 +134,9 @@ PropertyParser.isPlanetaryBody = function(options, properties = {}) {
  * @property {number} [saturation=0.0] - The saturation value for the color configuration.
  * @property {number} [brightness=0.0] - The brightness value for the color configuration.
  * @property {number} [contrast=0.0] - The contrast value for the color configuration.
- * @property {number} [maxOrder] - If not given, retrieved from the properties of the survey.
  * @property {number} [minOrder] - If not given, retrieved from the properties of the survey.
  * @property {boolean} [longitudeReversed=false] - Set it to True for planetary survey visualization
- * @property {string} [imgFormat] - If not given, look into the properties to see the accepted format. The format is chosen from WEBP > PNG > JPEG > FITS (in this importance order).
- * @property {string} [cooFrame] - If not given, look into the properties. If it is a planet, then ICRS is chosen, otherwise its hips_frame key is read. If no value is found in the properties, ICRS is chosen by default. 
- */
+*/
 export let ImageSurvey = (function () {
     /**
      * The object describing an image survey
@@ -151,36 +144,57 @@ export let ImageSurvey = (function () {
      * @class
      * @constructs ImageSurvey
      * 
-     * @param {string} [id] - Optional, a uniq id for the survey. See {@link https://aladin.cds.unistra.fr/hips/list|here} for the list of IDs.
-     *      Keep in mind that it is better to directly provide an url as it will not request our mocserver first to get final survey tiles retrieval url.
-     * @param {string} [name] - The name of the survey to be displayed in the UI
-     * @param {string} url - The url where the survey is located. Check the hips list {@link https://aladin.cds.unistra.fr/hips/list|here} for the valid survey urls to display.
+     * @param {string} id - Mandatory unique identifier for the layer.
+     * Can be an arbitrary name
+     * @param {string} url - Can be an url to the survey or a "CDS" ID pointing towards a HiPS. One can found the list of IDs {@link https://aladin.cds.unistra.fr/hips/list| here}
      * @param {ImageSurveyOptions} [options] - The option for the survey
      * 
-     * @description Prefer provide an url better than an id. If both are given, the url will be requested first for the survey data.
+     * @description For the `url` param, prefer provide an url better than an CDS ID. Giving a CDS ID will do a query to the mocserver more but will also check for the presence of faster HiPS nodes. 
      */
-    function ImageSurvey(id, name, url, options, view) {
-        this.view = view;
+    function ImageSurvey(id, url, options) {
         this.added = false;
+        // Unique identifier for a survey
         this.id = id;
-        this.name = name;
+        this.name = options.name || id || url;
         this.subtype = "survey";
 
-        this.properties = options.properties || {};
+        this.url = url;
+        this.maxOrder = options.maxOrder;
+        this.minOrder = options.minOrder || 0;
+        this.cooFrame = options.cooFrame;
+        this.tileSize = options.tileSize;
+        this.longitudeReversed = options.longitudeReversed === undefined ? false : options.longitudeReversed;
+        this.imgFormat = options.imgFormat;
+        this.numBitsPerPixel = options.numBitsPerPixel;
+        this.creatorDid = options.creatorDid;
+
         this.colorCfg = new ColorCfg(options);
+    };
 
+    ImageSurvey.prototype.setView = function(view) {
         let self = this;
-        self.query = (async () => {
-            if (!options.properties) {
-                let obsTitle, creatorDid, maxOrder, frame, tileSize, formats, minCutout, maxCutout, bitpix, skyFraction, minOrder, initialFov, initialRa, initialDec, hipsBody, isPlanetaryBody, dataproductSubtype;
 
+        self.view = view;
+
+        let isMOCServerToBeQueried = true;
+        if (this.imgFormat === 'fits') {
+            // a fits is given
+            isMOCServerToBeQueried = !(this.maxOrder && this.url && this.imgFormat && this.tileSize && this.cooFrame && this.numBitsPerPixel)
+        } else {
+            isMOCServerToBeQueried = !(this.maxOrder && this.url && this.imgFormat && this.tileSize && this.cooFrame);
+        }
+
+        self.query = (async () => {
+            if (isMOCServerToBeQueried) {
                 let properties;
+                let isCDSId = false;
                 try {
-                    properties = await HiPSProperties.fetchFromUrl(url)
+                    properties = await HiPSProperties.fetchFromUrl(self.url)
                         .catch(async (e) => {
                             // url not valid so we try with the id
                             try {
-                                return await HiPSProperties.fetchFromID(id);
+                                isCDSId = true;
+                                return await HiPSProperties.fetchFromID(self.url);
                             } catch(e) {
                                 throw e;
                             }
@@ -189,200 +203,201 @@ export let ImageSurvey = (function () {
                     throw e;
                 }
 
-                obsTitle = properties.obs_title;
-                creatorDid = properties.creator_did;
-                // Set it to a default value
-                if (!properties.hips_service_url) {
-                    throw 'no valid service URL for retrieving the tiles'
+                if (isCDSId) {
+                    self.url = properties.hips_service_url;
                 }
-                url = Utils.fixURLForHTTPS(properties.hips_service_url);
+                //obsTitle = properties.obs_title;
+                self.creatorDid = properties.creator_did || self.creatorDid;
+                // url
 
-                // Request all the properties to see which mirror is the fastest
-                HiPSProperties.getFasterMirrorUrl(properties)
-                    .then((url) => {
-                        self._setUrl(url);
-                    })
-                    .catch(e => {
-                        //alert(e);
-                        console.error(e);
-                        // the survey has been added so we remove it from the stack
-                        self.view.removeImageLayer(self.layer)
-                        //throw e;
-                    })
+                if (!self.url) {
+                    self.url = properties.hips_service_url
+                    if (!self.url) {
+                        throw 'no valid service URL for retrieving the tiles'
+                    }
+
+                    self.url = Utils.fixURLForHTTPS(self.url);
+
+                    // Request all the properties to see which mirror is the fastest
+                    HiPSProperties.getFasterMirrorUrl(properties)
+                        .then((url) => {
+                            if (self.url !== url) {
+                                console.info("Change url of ", self.id, " from ", self.url, " to ", url)
+                    
+                                // If added to the backend, then we need to tell it the url has changed
+                                if (self.added) {
+                                    self.view.wasm.setHiPSUrl(self.url, url);
+                                }
+                    
+                                self.url = url;
+
+                                // save the new url to the cache
+                                ImageSurvey.cache[self.id].url = self.url;
+                            }
+                        })
+                        /*.catch(e => {
+                            //alert(e);
+                            console.error(e);
+                            // the survey has been added so we remove it from the stack
+                            self.view.removeImageLayer(self.layer)
+                            //throw e;
+                        })*/
+                }
 
                 // Max order
-                maxOrder = PropertyParser.maxOrder(options, properties);
+                self.maxOrder = PropertyParser.maxOrder(properties) || self.maxOrder;
 
                 // Tile size
-                tileSize = PropertyParser.tileSize(options, properties);
+                self.tileSize = PropertyParser.tileSize(properties) || self.tileSize;
 
                 // Tile formats
-                formats = PropertyParser.formats(options, properties);
+                self.formats = PropertyParser.formats(properties) || self.formats;
 
                 // min order
-                minOrder = PropertyParser.minOrder(options, properties);
+                self.minOrder = PropertyParser.minOrder(properties) || self.minOrder;
 
                 // Frame
-                frame = PropertyParser.frame(options, properties);
+                self.cooFrame = PropertyParser.cooFrame(properties) || self.cooFrame;
 
                 // sky fraction
-                skyFraction = PropertyParser.skyFraction(options, properties);
+                self.skyFraction = PropertyParser.skyFraction(properties);
 
                 // Initial fov/ra/dec
-                initialFov = PropertyParser.initialFov(options, properties);
-                initialRa = +properties.hips_initial_ra;
-                initialDec = +properties.hips_initial_dec;
+                self.initialFov = PropertyParser.initialFov(properties);
+                self.initialRa = properties && properties.hips_initial_ra && (+properties.hips_initial_ra);
+                self.initialDec = properties && properties.hips_initial_dec && (+properties.hips_initial_dec);
 
                 // Cutouts
-                [minCutout, maxCutout] = PropertyParser.cutouts(options, properties);
+                const cutoutFromProperties = PropertyParser.cutouts(properties);
+                self.minCut = cutoutFromProperties[0];
+                self.maxCut = cutoutFromProperties[1];
 
                 // Bitpix
-                bitpix = PropertyParser.bitpix(options, properties);
-
-                // Dataproduct subtype
-                dataproductSubtype = PropertyParser.dataproductSubtype(options, properties);
+                self.numBitsPerPixel = PropertyParser.bitpix(properties) || self.numBitsPerPixel;
 
                 // HiPS body
-                isPlanetaryBody = PropertyParser.isPlanetaryBody(options, properties);
                 if (properties.hips_body) {
-                    hipsBody = properties.hips_body;
+                    self.hipsBody = properties.hips_body;
+                    // Use the property to define and check some user given infos
+                    // Longitude reversed
+                    self.longitudeReversed = true;
                 }
 
-                self.properties = {
-                    creatorDid,
-                    obsTitle,
-                    url,
-                    maxOrder,
-                    frame,
-                    tileSize,
-                    formats,
-                    minCutout,
-                    maxCutout,
-                    bitpix,
-                    skyFraction,
-                    minOrder,
-                    hipsInitialFov: initialFov,
-                    hipsInitialRa: initialRa,
-                    hipsInitialDec: initialDec,
-                    dataproductSubtype,
-                    isPlanetaryBody,
-                    hipsBody
-                };
+                // Give a better name if we have the HiPS metadata
+                self.name = self.name || properties.obsTitle;
+
+                self.cooFrame = properties.cooFrame || self.cooFrame;
             }
 
-            // Give a better name if we have the HiPS metadata
-            self.name = self.name || self.properties.obsTitle;
-
-            // Use the property to define and check some user given infos
-            // Longitude reversed
-            let longitudeReversed = false;
-            if (options && options.longitudeReversed === true) {
-                longitudeReversed = true;
-            }
-
-            if (self.properties.hipsBody) {
-                longitudeReversed = true;
-            }
-
-            self.longitudeReversed = longitudeReversed;
+            self.creatorDid = self.creatorDid || self.id || self.url;
 
             // Image format
-            let imgFormat = options && options.imgFormat;
-            if (imgFormat) {
+            if (self.imgFormat) {
                 // transform to lower case
-                imgFormat = imgFormat.toLowerCase();
+                self.imgFormat = self.imgFormat.toLowerCase();
                 // convert JPG -> JPEG
-                if (imgFormat === "jpg") {
-                    imgFormat = "jpeg";
+                if (self.imgFormat === "jpg") {
+                    self.imgFormat = "jpeg";
                 }
 
                 // user wants a fits but the properties tells this format is not available
-                if (imgFormat === "fits" && self.properties.formats && self.properties.formats.indexOf('fits') < 0) {
+                if (self.imgFormat === "fits" && self.formats && self.formats.indexOf('fits') < 0) {
                     throw self.name + " does not provide fits tiles";
                 }
 
-                if (imgFormat === "webp" && self.properties.formats && self.properties.formats.indexOf('webp') < 0) {
+                if (self.imgFormat === "webp" && self.formats && self.formats.indexOf('webp') < 0) {
                     throw self.name + " does not provide webp tiles";
                 }
 
-                if (imgFormat === "png" && self.properties.formats && self.properties.formats.indexOf('png') < 0) {
+                if (self.imgFormat === "png" && self.formats && self.formats.indexOf('png') < 0) {
                     throw self.name + " does not provide png tiles";
                 }
 
-                if (imgFormat === "jpeg" && self.properties.formats && self.properties.formats.indexOf('jpeg') < 0) {
+                if (self.imgFormat === "jpeg" && self.formats && self.formats.indexOf('jpeg') < 0) {
                     throw self.name + " does not provide jpeg tiles";
                 }
             } else {
                 // user wants nothing then we choose one from the properties
-                if (self.properties.formats.indexOf('webp') >= 0) {
-                    imgFormat = "webp";
-                } else if (self.properties.formats.indexOf('png') >= 0) {
-                    imgFormat = "png";
-                } else if (self.properties.formats.indexOf('jpeg') >= 0) {
-                    imgFormat = "jpeg";
-                } else if (self.properties.formats.indexOf('fits') >= 0) {
-                    imgFormat = "fits";
+                if (self.formats.indexOf('webp') >= 0) {
+                    self.imgFormat = "webp";
+                } else if (self.formats.indexOf('png') >= 0) {
+                    self.imgFormat = "png";
+                } else if (self.formats.indexOf('jpeg') >= 0) {
+                    self.imgFormat = "jpeg";
+                } else if (self.formats.indexOf('fits') >= 0) {
+                    self.imgFormat = "fits";
                 } else {
-                    throw "Unsupported format(s) found in the properties: " + self.properties.formats;
+                    throw "Unsupported format(s) found in the properties: " + self.formats;
                 }
             }
 
-            self.imgFormat = imgFormat;
-
-            // Initialize the color meta data here
+            // Cutouts
             let minCut, maxCut;
-            if (imgFormat === "fits") {
+            if (self.imgFormat === "fits") {
                 // Take into account the default cuts given by the property file (this is true especially for FITS HiPSes)
-                minCut = self.colorCfg.minCut || (options && options.minCut) || self.properties.minCutout || 0.0;
-                maxCut = self.colorCfg.maxCut || (options && options.maxCut) || self.properties.maxCutout || 1.0;
+                minCut = self.colorCfg.minCut || self.minCut || 0.0;
+                maxCut = self.colorCfg.maxCut || self.maxCut || 1.0;
             } else {
-                minCut = self.colorCfg.minCut || (options && options.minCut) || 0.0;
-                maxCut = self.colorCfg.maxCut || (options && options.maxCut) || 1.0;
+                minCut = self.colorCfg.minCut || 0.0;
+                maxCut = self.colorCfg.maxCut || 1.0;
             }
             self.colorCfg.setCuts(minCut, maxCut);
 
-            ImageLayer.update(self);
+            // Coo frame
+            if (self.cooFrame == "ICRS" || self.cooFrame == "ICRSd" || self.cooFrame == "equatorial" || self.cooFrame == "j2000") {
+                self.cooFrame = "ICRS";
+            } else if (self.cooFrame == "galactic") {
+                self.cooFrame = "GAL";
+            } else {
+                self.cooFrame = "ICRS";
+                console.warn('Invalid cooframe given: ' + self.cooFrame + '. Coordinate systems supported: "ICRS", "ICRSd", "j2000" or "galactic". ICRS is chosen by default');
+            }
+
+            self.formats = self.formats || [self.imgFormat];
+
+            self._save();
 
             return self;
         })();
-    };
-
-    ImageSurvey.fromLayerOptions = function(aladin, options) {
-        return new ImageSurvey(
-            options.id,
-            options.name,
-            options.url,
-            {
-                properties: options,
-                ...options.options
-            },
-            aladin.view
-        );
     }
 
-    ImageSurvey.prototype._setUrl = function (url) {
-        if (this.properties.url !== url) {
-            console.info("Change url of ", this.id, " from ", this.properties.url, " to ", url)
+    ImageSurvey.prototype._save = function() {
+        let self = this;
 
-            // If added to the backend, then we need to tell it the url has changed
-            if (this.added) {
-                this.view.wasm.setHiPSUrl(this.properties.url, url);
-            }
-
-            this.properties.url = url;
+        let surveyOpt = {
+            creatorDid: self.creatorDid,
+            name: self.name,
+            url: self.url,
+            cooFrame: self.cooFrame,
+            maxOrder: self.maxOrder,
+            tileSize: self.tileSize,
+            imgFormat: self.imgFormat,
         }
-    }
+
+        if (self.numBitsPerPixel) {
+            surveyOpt.numBitsPerPixel = self.numBitsPerPixel;
+        }
+
+        ImageSurvey.cache[self.id] = {
+            // Erase by the cache already put values which is considered
+            // as the ground truth
+            ...ImageSurvey.cache[self.id],
+            // append new important infos from the properties queried
+            ...surveyOpt,
+        }
+    } 
+
     /**
-     * Checks if the ImageSurvey represents a planetary body.
-     *
-     * This method returns a boolean indicating whether the ImageSurvey corresponds to a planetary body, e.g. the earth or a celestial body. 
-     *
-     * @memberof ImageSurvey
-     *
-     * @returns {boolean} Returns true if the ImageSurvey represents a planetary body; otherwise, returns false.
-     */
+         * Checks if the ImageSurvey represents a planetary body.
+         *
+         * This method returns a boolean indicating whether the ImageSurvey corresponds to a planetary body, e.g. the earth or a celestial body. 
+         *
+         * @memberof ImageSurvey
+         *
+         * @returns {boolean} Returns true if the ImageSurvey represents a planetary body; otherwise, returns false.
+         */
     ImageSurvey.prototype.isPlanetaryBody = function() {
-        return this.properties.isPlanetaryBody;
+        return self.hipsBody !== undefined;;
     }
 
     /**
@@ -419,7 +434,7 @@ export let ImageSurvey = (function () {
 
                     // Check the properties to see if the given format is available among the list
                     // If the properties have not been retrieved yet, it will be tested afterwards
-                    const availableFormats = self.properties.formats;
+                    const availableFormats = self.formats;
                     // user wants a fits but the metadata tells this format is not available
                     if (imgFormat === "fits" && availableFormats.indexOf('fits') < 0) {
                         throw self.id + " does not provide fits tiles";
@@ -439,8 +454,8 @@ export let ImageSurvey = (function () {
 
                     // Switch from png/webp/jpeg to fits
                     if ((self.imgFormat === 'png' || self.imgFormat === "webp" || self.imgFormat === "jpeg") && imgFormat === 'fits') {
-                        if (self.properties.minCutout && self.properties.maxCutout) {
-                            self.setCuts(self.properties.minCutout, self.properties.maxCutout)
+                        if (self.minCut && self.maxCut) {
+                            self.setCuts(self.minCut, self.maxCut)
                         }
                     // Switch from fits to png/webp/jpeg
                     } else if (self.imgFormat === "fits") {
@@ -453,7 +468,7 @@ export let ImageSurvey = (function () {
             })
     };
 
-     /**
+    /**
      * Sets the opacity factor when rendering the ImageSurvey
      *
      * @memberof ImageSurvey
@@ -461,7 +476,7 @@ export let ImageSurvey = (function () {
      * @returns {string[]} Returns the formats accepted for the survey, i.e. the formats of tiles that are availables. Could be PNG, WEBP, JPG and FITS.
      */
     ImageSurvey.prototype.getAvailableFormats = function() {
-        return this.properties.formats;
+        return this.formats;
     }
 
     /**
@@ -624,14 +639,12 @@ export let ImageSurvey = (function () {
 
         // Tell the view its meta have changed
         try {
-            this.metadata = {
-                ...this.colorCfg.get(),
-                longitudeReversed: this.longitudeReversed,
-                imgFormat: this.imgFormat
-            };
-
             if (this.added) {
-                this.view.wasm.setImageMetadata(this.layer, this.metadata);
+                this.view.wasm.setImageMetadata(this.layer, {
+                    ...this.colorCfg.get(),
+                    longitudeReversed: this.longitudeReversed,
+                    imgFormat: this.imgFormat
+                });
                 // once the meta have been well parsed, we can set the meta
                 ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.view.aladinDiv, { layer: this });
             }
@@ -643,17 +656,31 @@ export let ImageSurvey = (function () {
 
     ImageSurvey.prototype.add = function (layer) {
         this.layer = layer;
-
-        this.metadata = {
-            ...this.colorCfg.get(),
-            longitudeReversed: this.longitudeReversed,
-            imgFormat: this.imgFormat
-        };
+        let self = this;
 
         this.view.wasm.addImageSurvey({
             layer,
-            properties: this.properties,
-            meta: this.metadata,
+            properties: {
+                creatorDid: self.creatorDid,
+                url: self.url,
+                maxOrder: self.maxOrder,
+                cooFrame: self.cooFrame,
+                tileSize: self.tileSize,
+                formats: self.formats,
+                bitpix: self.numBitsPerPixel,
+                skyFraction: self.skyFraction,
+                minOrder: self.minOrder,
+                hipsInitialFov: self.initialFov,
+                hipsInitialRa: self.initialRa,
+                hipsInitialDec: self.initialDec,
+                isPlanetaryBody: self.isPlanetaryBody(),
+                hipsBody: self.hipsBody
+            },
+            meta: {
+                ...this.colorCfg.get(),
+                longitudeReversed: this.longitudeReversed,
+                imgFormat: this.imgFormat
+            },
         });
 
         this.added = true;
@@ -696,7 +723,203 @@ export let ImageSurvey = (function () {
         return this.view.wasm.readPixel(x, y, this.layer);
     };
 
-    ImageSurvey.DEFAULT_SURVEY_ID = "P/DSS2/color";
+    ImageSurvey.DEFAULT_SURVEY_ID = "DSS2_color";
+
+    // A cache storing directly surveys important information to not query for the properties each time
+    ImageSurvey.cache = {
+        DSS2_color: {
+            creatorDid: "ivo://CDS/P/DSS2/color",
+            name: "DSS colored",
+            url: "https://alasky.cds.unistra.fr/DSS/DSSColor",
+            maxOrder: 9,
+            tileSize: 512,
+            imgFormat: 'jpeg',
+            cooFrame: "ICRS"
+        },
+        MASS2_color: {
+            creatorDid: "ivo://CDS/P/2MASS/color",
+            name: "2MASS colored",
+            url: "https://alasky.cds.unistra.fr/2MASS/Color",
+            maxOrder: 9,
+            tileSize: 512,
+            imgFormat: 'jpeg',
+            cooFrame: "ICRS"
+        },
+        DSS2_red: {
+            creatorDid: "ivo://CDS/P/DSS2/red",
+            name: "DSS2 Red (F+R)",
+            url: "https://alasky.cds.unistra.fr/DSS/DSS2Merged",
+            maxOrder: 9,
+            tileSize: 512,
+            imgFormat: 'fits',
+            cooFrame: "ICRS",
+            numBitsPerPixel: 16,
+            // options
+            minCut: 1000.0,
+            maxCut: 10000.0,
+            colormap: "magma",
+            stretch: 'Linear',
+            imgFormat: "fits"
+        },
+        GAIA_EDR3: {
+            creatorDid: "ivo://CDS/P/DM/I/350/gaiaedr3",
+            name: "Density map for Gaia EDR3 (I/350/gaiaedr3)",
+            url: "https://alasky.cds.unistra.fr/ancillary/GaiaEDR3/density-map",
+            maxOrder: 7,
+            tileSize: 512,
+            numBitsPerPixel: -32,
+            cooFrame: "ICRS",
+            minCut: 0,
+            maxCut: 12000,
+            stretch: 'asinh',
+            colormap: "rdylbu",
+            imgFormat: "fits",
+        },
+        PanSTARRS_DR1_g: {
+            creatorDid: "ivo://CDS/P/PanSTARRS/DR1/g",
+            name: "PanSTARRS DR1 g",
+            url: "https://alasky.cds.unistra.fr/Pan-STARRS/DR1/g",
+            maxOrder: 11,
+            tileSize: 512,
+            imgFormat: 'fits',
+            cooFrame: "ICRS",
+            numBitsPerPixel: -32,
+            // options
+            minCut: -34,
+            maxCut: 7000,
+            stretch: 'asinh',
+            colormap: "redtemperature",
+        },
+        PanSTARRS_DR1_color: {
+            creatorDid: "ivo://CDS/P/PanSTARRS/DR1/color-z-zg-g",
+            name: "PanSTARRS DR1 color",
+            url: "https://alasky.cds.unistra.fr/Pan-STARRS/DR1/color-z-zg-g",
+            maxOrder: 11,
+            tileSize: 512,
+            imgFormat: 'jpeg',
+            cooFrame: "ICRS",
+        },
+        DECaPS_DR2_color: {
+            creatorDid: "ivo://CDS/P/DECaPS/DR2/color",
+            name: "DECaPS DR2 color",
+            url: "https://alasky.cds.unistra.fr/DECaPS/DR2/CDS_P_DECaPS_DR2_color/",
+            maxOrder: 11,
+            cooFrame: "equatorial",
+            tileSize: 512,
+            imgFormat: 'png',
+        },
+        Fermi_color: {
+            creatorDid: "ivo://CDS/P/Fermi/color",
+            name: "Fermi color",
+            url: "https://alasky.cds.unistra.fr/Fermi/Color",
+            maxOrder: 3,
+            imgFormat: 'jpeg',
+            tileSize: 512,
+            cooFrame: 'equatorial'
+        },
+        /*
+        {
+            id: "P/Finkbeiner",
+            name: "Halpha",
+            url: "https://alasky.cds.unistra.fr/FinkbeinerHalpha",
+            maxOrder: 3,
+            subtype: "survey",
+            // options
+            options: {
+                minCut: -10,
+                maxCut: 800,
+                colormap: "rdbu",
+                imgFormat: "fits",
+            }
+        },
+        {
+            id: "P/GALEXGR6_7/NUV",
+            name: "GALEXGR6_7 NUV",
+            url: "http://alasky.cds.unistra.fr/GALEX/GALEXGR6_7_NUV/",
+            maxOrder: 8,
+            subtype: "survey",
+        },
+        {
+            id: "P/IRIS/color",
+            name: "IRIS colored",
+            url: "https://alasky.cds.unistra.fr/IRISColor",
+            maxOrder: 3,
+            subtype: "survey",
+        },
+        {
+            id: "P/Mellinger/color",
+            name: "Mellinger colored",
+            url: "https://alasky.cds.unistra.fr/MellingerRGB",
+            maxOrder: 4,
+            subtype: "survey",
+        },
+        {
+            id: "P/SDSS9/color",
+            name: "SDSS9 colored",
+            url: "https://alasky.cds.unistra.fr/SDSS/DR9/color",
+            maxOrder: 10,
+            subtype: "survey",
+        },
+        {
+            id: "P/SDSS9/g",
+            name: "SDSS9 band-g",
+            url: "https://alasky.cds.unistra.fr/SDSS/DR9/band-g",
+            maxOrder: 10,
+            subtype: "survey",
+            options: {
+                stretch: 'asinh',
+                colormap: "redtemperature",
+                imgFormat: 'fits'
+            }
+        },
+        {
+            id: "P/SPITZER/color",
+            name: "IRAC color I1,I2,I4 - (GLIMPSE, SAGE, SAGE-SMC, SINGS)",
+            url: "http://alasky.cds.unistra.fr/Spitzer/SpitzerI1I2I4color/",
+            maxOrder: 9,
+            subtype: "survey",
+        },
+        {
+            id: "P/VTSS/Ha",
+            name: "VTSS-Ha",
+            url: "https://alasky.cds.unistra.fr/VTSS/Ha",
+            maxOrder: 3,
+            subtype: "survey",
+            options: {
+                minCut: -10.0,
+                maxCut: 100.0,
+                colormap: "grayscale",
+                imgFormat: "fits"
+            }
+        },
+        {
+            id: "xcatdb/P/XMM/PN/color",
+            name: "XMM PN colored",
+            url: "https://alasky.cds.unistra.fr/cgi/JSONProxy?url=https://saada.unistra.fr/PNColor",
+            maxOrder: 7,
+            subtype: "survey",
+        },
+        {
+            id: "P/allWISE/color",
+            name: "AllWISE color",
+            url: "https://alasky.cds.unistra.fr/AllWISE/RGB-W4-W2-W1/",
+            maxOrder: 8,
+            subtype: "survey",
+        },
+        {
+            id: "P/GLIMPSE360",
+            name: "GLIMPSE360",
+            // This domain is not giving the CORS headers
+            // We need to query by with a proxy equipped with CORS header.
+            url: "https://alasky.cds.unistra.fr/cgi/JSONProxy?url=https://www.spitzer.caltech.edu/glimpse360/aladin/data",
+            subtype: "survey",
+            options: {
+                maxOrder: 9,
+                imgFormat: "jpg",
+                minOrder: 3,
+            }
+        },*/
+    };
 
     return ImageSurvey;
 })();

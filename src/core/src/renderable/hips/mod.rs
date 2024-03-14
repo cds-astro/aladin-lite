@@ -4,10 +4,10 @@ pub mod uv;
 
 use al_api::hips::ImageExt;
 use al_api::hips::ImageMetadata;
-
 use al_core::colormap::Colormap;
 use al_core::colormap::Colormaps;
 use al_core::image::format::ChannelType;
+use al_core::image::format::ImageFormatType;
 use al_core::image::Image;
 use al_core::log::console_log;
 use al_core::shader::Shader;
@@ -282,9 +282,7 @@ pub fn get_raster_shader<'a>(
     shaders: &'a mut ShaderManager,
     config: &HiPSConfig,
 ) -> Result<&'a Shader, JsValue> {
-    let colored_hips = config.is_colored();
-
-    if colored_hips && cmap.label() == "native" {
+    if config.get_format().is_colored() && cmap.label() == "native" {
         crate::shader::get_shader(gl, shaders, "RasterizerVS", "RasterizerColorFS")
     } else {
         if config.tex_storing_unsigned_int {
@@ -318,8 +316,8 @@ pub fn get_raytracer_shader<'a>(
     shaders: &'a mut ShaderManager,
     config: &HiPSConfig,
 ) -> Result<&'a Shader, JsValue> {
-    let colored_hips = config.is_colored();
-    if colored_hips && cmap.label() == "native" {
+    //let colored_hips = config.is_colored();
+    if config.get_format().is_colored() && cmap.label() == "native" {
         crate::shader::get_shader(gl, shaders, "RayTracerVS", "RayTracerColorFS")
     } else {
         if config.tex_storing_unsigned_int {

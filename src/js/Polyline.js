@@ -83,6 +83,8 @@ export let Polyline= (function() {
         this.fillColor = options['fillColor'] || undefined;
         this.opacity   = options['opacity']   || undefined;
         this.lineWidth = options["lineWidth"] || undefined;
+        this.selectionColor = options["selectionColor"] || '#00ff00';
+        this.hoverColor = options["hoverColor"] || undefined;
 
         if (options["closed"]) {
             this.closed = options["closed"];
@@ -98,8 +100,7 @@ export let Polyline= (function() {
 
     	this.isShowing = true;
     	this.isSelected = false;
-
-        this.selectionColor = '#00ff00';
+        this.isHovered = false;
     };
 
     Polyline.prototype.setOverlay = function(overlay) {
@@ -146,6 +147,26 @@ export let Polyline= (function() {
         }
     };
 
+    Polyline.prototype.hover = function() {
+        if (this.isHovered) {
+            return;
+        }
+        this.isHovered = true;
+        if (this.overlay) {
+            this.overlay.reportChange();
+        }
+    };
+
+    Polyline.prototype.unhover = function() {
+        if (! this.isHovered) {
+            return;
+        }
+        this.isHovered = false;
+        if (this.overlay) {
+            this.overlay.reportChange();
+        }
+    };
+
     Polyline.prototype.getLineWidth = function() {
         return this.lineWidth;
     };
@@ -176,6 +197,16 @@ export let Polyline= (function() {
             return;
         }
         this.selectionColor = color;
+        if (this.overlay) {
+            this.overlay.reportChange();
+        }
+    };
+
+    Polyline.prototype.setHoverColor = function(color) {
+        if (this.hoverColor == color) {
+            return;
+        }
+        this.hoverColor = color;
         if (this.overlay) {
             this.overlay.reportChange();
         }
@@ -215,9 +246,10 @@ export let Polyline= (function() {
             } else {
                 ctx.strokeStyle = Overlay.increaseBrightness(baseColor, 50);
             }
-        }
-        else {
-            ctx.strokeStyle= baseColor;
+        } else if (this.isHovered) {
+            ctx.strokeStyle = this.hoverColor || Overlay.increaseBrightness(baseColor, 25);
+        } else {
+            ctx.strokeStyle = baseColor;
         }
 
         // 1. project the vertices into the screen

@@ -82,6 +82,14 @@ export let Footprint= (function() {
         this.shapes.forEach((shape) => shape.deselect())
     };
 
+    Footprint.prototype.hover = function() {
+        this.shapes.forEach((shape) => shape.hover())
+    };
+
+    Footprint.prototype.unhover = function() {
+        this.shapes.forEach((shape) => shape.unhover())
+    };
+
     Footprint.prototype.setLineWidth = function(lineWidth) {
         this.shapes.forEach((shape) => shape.setLineWidth(lineWidth))
     };
@@ -98,6 +106,10 @@ export let Footprint= (function() {
 
     Footprint.prototype.setSelectionColor = function(color) {
         this.shapes.forEach((shape) => shape.setSelectionColor(color))
+    };
+
+    Footprint.prototype.setHoverColor = function(color) {
+        this.shapes.forEach((shape) => shape.setHoverColor(color))
     };
 
     Footprint.prototype.isFootprint = function() {

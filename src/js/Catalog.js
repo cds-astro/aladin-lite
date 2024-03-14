@@ -107,7 +107,8 @@ export let Catalog = (function() {
 
         // allows for filtering of sources
         this.filterFn = options.filter || undefined; // TODO: do the same for catalog
-
+        this.selectionColor = options.selectionColor || '#00ff00';
+        this.hoverColor = options.hoverColor || this.color;
         this.displayLabel = options.displayLabel || false;
         this.labelColor = options.labelColor || this.color;
         this.labelFont = options.labelFont || '10px sans-serif';
@@ -117,8 +118,6 @@ export let Catalog = (function() {
                 this.displayLabel = false;
             }
         }
-
-    	this.selectionColor = '#00ff00';
 
         this.showFieldCallback = {}; // callbacks when the user clicks on a cell in the measurement table associated
         this.fields = undefined;
@@ -462,7 +461,7 @@ export let Catalog = (function() {
 
         this.cacheCanvas = Catalog.createShape(this.shape, this.color, this.sourceSize);
         this.cacheSelectCanvas = Catalog.createShape(this.shape, this.selectionColor, this.selectSize);
-        this.cacheHoverCanvas = Catalog.createShape(this.shape, this.hoverColor, this.sourceSize);
+        this.cacheHoverCanvas = Catalog.createShape(this.shape, this.hoverColor, this.selectSize);
 
         this.reportChange();
     };
@@ -507,6 +506,7 @@ export let Catalog = (function() {
     	    footprintsToAdd[k].setCatalog(this);
             footprintsToAdd[k].setColor(this.color);
             footprintsToAdd[k].setSelectionColor(this.selectionColor);
+            footprintsToAdd[k].setHoverColor(this.hoverColor);
     	}
         this.reportChange();
     };
@@ -734,6 +734,9 @@ export let Catalog = (function() {
             }
             else if (s.isSelected) {
                 ctx.drawImage(this.cacheSelectCanvas, s.x-this.selectSize/2, s.y-this.selectSize/2);
+            }
+            else if (s.isHovered) {
+                ctx.drawImage(this.cacheHoverCanvas, s.x-this.selectSize/2, s.y-this.selectSize/2);
             }
             else {
                 ctx.drawImage(this.cacheCanvas, s.x-this.cacheCanvas.width/2, s.y-this.cacheCanvas.height/2);

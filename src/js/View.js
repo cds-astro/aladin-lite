@@ -989,6 +989,7 @@ export let View = (function () {
                         }
                     }
 
+                    o.hover();
                     lastHoveredObject = o;
                 } else {
                     view.setCursor('default');
@@ -1003,8 +1004,10 @@ export let View = (function () {
                             // call callback function to notify we left the hovered object
                             var ret = objHoveredStopFunction(lastHoveredObject, xymouse);
                         }
-                    }
 
+                        lastHoveredObject.unhover();
+                    }
+                    
                     lastHoveredObject = null;
                 }
 

@@ -46,6 +46,7 @@ export let Source = (function() {
 
     	this.isShowing = true;
     	this.isSelected = false;
+        this.isHovered = false;
     };
 
     Source.prototype.setCatalog = function(catalog) {
@@ -95,6 +96,26 @@ export let Source = (function() {
             this.catalog.reportChange();
         }
     };
+
+    Source.prototype.hover = function() {
+        if (this.isHovered) {
+            return;
+        }
+        this.isHovered = true;
+        if (this.catalog) {
+            this.catalog.reportChange();
+        }
+    }
+
+    Source.prototype.unhover = function() {
+        if (! this.isHovered) {
+            return;
+        }
+        this.isHovered = false;
+        if (this.catalog) {
+            this.catalog.reportChange();
+        }
+    }
 
     // function called when a source is clicked. Called by the View object
     Source.prototype.actionClicked = function(obj) {

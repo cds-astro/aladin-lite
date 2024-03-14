@@ -41,6 +41,8 @@ export let Ellipse = (function() {
         this.color = options['color'] || undefined;
         this.fillColor = options['fillColor'] || undefined;
         this.lineWidth = options["lineWidth"] || 2;
+        this.selectionColor = options["selectionColor"] || '#00ff00';
+        this.hoverColor = options["hoverColor"] || undefined;
 
         // TODO : all graphic overlays should have an id
         this.id = 'ellipse-' + Utils.uuidv4();
@@ -52,8 +54,7 @@ export let Ellipse = (function() {
     	
     	this.isShowing = true;
         this.isSelected = false;
-
-        this.selectionColor = '#00ff00';
+        this.isHovered = false;
     };
 
     Ellipse.prototype.setColor = function(color) {
@@ -71,6 +72,16 @@ export let Ellipse = (function() {
             return;
         }
         this.selectionColor = color;
+        if (this.overlay) {
+            this.overlay.reportChange();
+        }
+    };
+
+    Ellipse.prototype.setHoverColor = function(color) {
+        if (this.hoverColor == color) {
+            return;
+        }
+        this.hoverColor = color;
         if (this.overlay) {
             this.overlay.reportChange();
         }
@@ -135,6 +146,25 @@ export let Ellipse = (function() {
     };
 
 
+    Ellipse.prototype.hover = function() {
+        if (this.isHovered) {
+            return;
+        }
+        this.isHovered = true;
+        if (this.overlay) {
+            this.overlay.reportChange();
+        }
+    }
+
+    Ellipse.prototype.unhover = function() {
+        if (! this.isHovered) {
+            return;
+        }
+        this.isHovered = false;
+        if (this.overlay) {
+            this.overlay.reportChange();
+        }
+    }
     
     Ellipse.prototype.setCenter = function(centerRaDec) {
         this.centerRaDec = centerRaDec;
@@ -221,8 +251,9 @@ export let Ellipse = (function() {
             } else {
                 ctx.strokeStyle = Overlay.increaseBrightness(baseColor, 50);
             }
-        }
-        else {
+        } else if (this.isHovered) {
+            ctx.strokeStyle = this.hoverColor || Overlay.increaseBrightness(baseColor, 25);
+        } else {
             ctx.strokeStyle = baseColor;
         }
 

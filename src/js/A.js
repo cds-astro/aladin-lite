@@ -102,7 +102,7 @@ A.aladin = function (divSelector, options) {
  * @function
  * @name A.imageHiPS
  * @memberof A
- * @param {string} id - Mandatory unique identifier for the layer.
+ * @param {string} id - Mandatory unique identifier for the survey.
  * @param {string} url - Can be an `url` that refers to a HiPS.
  * Or it can be a "CDS ID" pointing towards a HiPS. One can found the list of IDs {@link https://aladin.cds.unistra.fr/hips/list| here}.
  * @param {ImageSurveyOptions} [options] - Options describing the survey

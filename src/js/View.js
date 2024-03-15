@@ -989,6 +989,14 @@ export let View = (function () {
                         }
                     }
 
+                    if (lastHoveredObject && o != lastHoveredObject) {
+                        lastHoveredObject.unhover();
+                        
+                        if (typeof objHoveredStopFunction === 'function') {
+                            objHoveredStopFunction(lastHoveredObject, xymouse);
+                        }
+                    }
+
                     o.hover();
                     lastHoveredObject = o;
                 } else {

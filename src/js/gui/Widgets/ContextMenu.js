@@ -38,6 +38,8 @@ import { Layout } from '../Layout.js';
 import { Icon } from './Icon.js';
 
 import uploadIconUrl from '../../../../assets/icons/upload.svg';
+import copyIconUrl from '../../../../assets/icons/copy.svg';
+
 import nextIconSvg from '../../../../assets/icons/next.svg';
 
 export class ContextMenu extends DOMElement {
@@ -48,6 +50,8 @@ export class ContextMenu extends DOMElement {
         el.className = 'aladin-context-menu';
 
         super(el, options);
+
+        this.addClass('aladin-dark-theme')
 
         this.aladin = aladin;
 
@@ -95,6 +99,10 @@ export class ContextMenu extends DOMElement {
 
         if (opt.label == 'Copy position') {
             try {
+                // erase the label
+                item.innerHTML = '';
+
+                // compute the position string
                 const xymouse = Utils.relMouseCoords(e);
                 const pos = this.aladin.pix2world(xymouse.x, xymouse.y);
                 const coo = new Coo(pos[0], pos[1], 6);
@@ -106,7 +114,18 @@ export class ContextMenu extends DOMElement {
                 } else {
                     posStr = coo.format('d/');
                 }
-                item.innerHTML = '<span>' + posStr + '</span>';
+
+                // construct the new item
+                Layout.horizontal([
+                    new Icon({
+                        monochrome: true,
+                        url: copyIconUrl,
+                        size: 'small',
+                        tooltip: {content: 'Copy the position!', position: {direction: 'bottom'}}
+                    }),
+                    posStr
+                ]).attachTo(item)
+
             } catch (e) {
                 item.innerHTML = '<span>Out of projection</span>';
             }
@@ -212,7 +231,7 @@ export class ContextMenu extends DOMElement {
                     .style.display = 'block';
 
                 if (opt.action && (!opt.disabled || opt.disabled === false)) {
-                    opt.action(e);
+                    opt.action(e, self);
                 }
             });
         } else if (opt.action) {
@@ -225,7 +244,7 @@ export class ContextMenu extends DOMElement {
                             self._hide();
                         }
 
-                        opt.action(e);
+                        opt.action(e, self);
                     }
                 }
             });

@@ -88,7 +88,7 @@ export class Layout extends DOMElement {
         }
 
         if (options.classList) {
-            options.classList.forEach((className) => this.addClass(className))
+            this.addClass(options.classList)
         }
     }
 

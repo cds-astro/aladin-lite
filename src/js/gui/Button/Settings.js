@@ -49,9 +49,9 @@ import { SettingsCtxMenu } from "../CtxMenu/Settings";
             },
             classList: ['aladin-settings-control'],
             tooltip: {
-                content: 'Some general settings e.g. background color, reticle, windows to show',
+                content: 'Some general settings for the<br/>coordinate grid, the reticle or tools to enable',
                 position: {
-                    direction: 'top right'
+                    direction: 'right'
                 }
             },
             ctxMenu: new SettingsCtxMenu(aladin, options),

@@ -61,7 +61,7 @@ export class Location extends DOMElement {
             tooltip: {
                 global: true,
                 aladin,
-                content: 'Search for an object name/position'
+                content: 'Edit for typing an object name/position'
             },
             placeholder: "Search for an object...",
             autocomplete: 'off',
@@ -109,27 +109,29 @@ export class Location extends DOMElement {
             }
         });
 
+        let copyBtn = new ActionButton({
+            icon: {
+                monochrome: true,
+                size: 'small',
+                url: copyIconUrl,
+            },
+            tooltip: {content: 'Copy to clipboard!', position: {direction: 'bottom'}},
+            action(e) {
+                self.copyCoordinatesToClipboard()
+            },
+            cssStyle: {
+                height: '1.4rem',
+                width: '1.4rem',
+                paddingRight: '0.2rem',
+                borderRadius: "5px 0px 0px 5px",
+                borderRight: 'none',
+            }
+        })
+        copyBtn.element().style.marginRight = 0;
+ 
         let el = Layout.horizontal({
             layout: [
-                new ActionButton({
-                    icon: {
-                        monochrome: true,
-                        size: 'small',
-                        url: copyIconUrl,
-                    },
-                    //tooltip: {content: 'Copy to clipboard!', position: {direction: 'bottom'}},
-                    action(e) {
-                        self.copyCoordinatesToClipboard()
-                    },
-                    cssStyle: {
-                        height: '1.4rem',
-                        width: '1.4rem',
-                        marginRight: 0,
-                        paddingRight: '0.2rem',
-                        borderRadius: "5px 0px 0px 5px",
-                        borderRight: 'none',
-                    }
-                }),
+                copyBtn,
                 field
             ]
         })
@@ -251,7 +253,7 @@ export class Location extends DOMElement {
             })
             .finally(() => {
                 console.info('Copying text command was ' + msg);
-            })        
+            })
     }
 };
 

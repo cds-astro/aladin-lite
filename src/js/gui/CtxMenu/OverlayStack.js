@@ -32,7 +32,6 @@ import { CatalogQueryBox } from "../Box/CatalogQueryBox.js";
  import { Layout } from "../Layout.js";
  import { ContextMenu } from "../Widgets/ContextMenu.js";
  import { ActionButton } from "../Widgets/ActionButton.js";
- import { AladinUtils } from "../../AladinUtils.js";
 import A from "../../A.js";
 import { Utils } from "../../../js/Utils";
 import { View } from "../../View.js";
@@ -42,7 +41,7 @@ import searchIconUrl from '../../../../assets/icons/search.svg';
 import showIconUrl from '../../../../assets/icons/show.svg';
 import hideIconUrl from '../../../../assets/icons/hide.svg';
 import removeIconUrl from '../../../../assets/icons/remove.svg';
-import editIconUrl from '../../../../assets/icons/edit.svg';
+import settingsIconUrl from '../../../../assets/icons/settings.svg';
 import { ImageFITS } from "../../ImageFITS.js";
 import searchIconImg from '../../../../assets/icons/search.svg';
 import { TogglerActionButton } from "../Button/Toggler.js";
@@ -591,11 +590,11 @@ export class OverlayStack extends ContextMenu {
             });
 
             let editBtn = ActionButton.createSmallSizedIconBtn({
-                icon: {url: editIconUrl, monochrome: true},
+                icon: {url: settingsIconUrl, monochrome: true},
                 cssStyle: {
                     visibility: Utils.hasTouchScreen() ? 'visible' : 'hidden',
                 },
-                tooltip: {content: 'Edit', position: {direction: 'bottom'}},
+                tooltip: {content: 'Settings', position: {direction: 'bottom'}},
                 action: (e) => {
                     e.stopPropagation();
                     e.preventDefault();

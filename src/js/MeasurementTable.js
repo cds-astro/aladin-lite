@@ -81,11 +81,6 @@ export let MeasurementTable = (function() {
         this.table = new Tabs({
             aladin: this.aladin,
             layout,
-            cssStyle: {
-                position: 'absolute',
-                bottom: '2.4rem',
-                maxWidth: '100%',
-            }
         }, this.aladin.aladinDiv);
     };
 

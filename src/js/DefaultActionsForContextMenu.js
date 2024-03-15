@@ -31,6 +31,9 @@
 import { GenericPointer } from "./GenericPointer.js";
 import A from "./A.js";
 import { CatalogQueryBox } from "./gui/Box/CatalogQueryBox.js";
+import cameraIconUrl from '../../assets/icons/camera.svg'
+import targetIconUrl from '../../assets/icons/target.svg';
+import uploadIconUrl from '../../assets/icons/upload.svg';
 
 export let DefaultActionsForContextMenu = (function () {
 
@@ -45,31 +48,38 @@ export let DefaultActionsForContextMenu = (function () {
         return [
             {
                 label: "Copy position", action(o) {
-                    var r = document.createRange();
-                    r.selectNode(o.target);
-                    window.getSelection().removeAllRanges();
-                    window.getSelection().addRange(r);
-                    let statusBarMsg;
-                    try {
-                        let successful = document.execCommand('copy');
-                        statusBarMsg = successful ? 'Position copied!' : 'Position could not be copied!';
-                    } catch (err) {
-                        statusBarMsg = 'Oops, unable to copy to clipboard';
-                    }
-
-                    if (a.statusBar) {
-                        a.statusBar.appendMessage({
-                            message: statusBarMsg,
-                            duration: 2000,
-                            type: 'info'
+                    let msg;
+                    navigator.clipboard.writeText(o.target.innerText)
+                        .then(() => {
+                            msg = 'successful'
+                            if (aladinInstance.statusBar) {
+                                aladinInstance.statusBar.appendMessage({
+                                    message: 'Reticle location saved!',
+                                    duration: 2000,
+                                    type: 'info'
+                                })
+                            }
                         })
-                    }
-
-                    window.getSelection().removeAllRanges();
+                        .catch((e) => {
+                            msg = 'unsuccessful'
+                            console.info('Oops, unable to copy', e);
+                        })
+                        .finally(() => {
+                            console.info('Copying text command was ' + msg);
+                        })
                 }
             },
             {
-                label: "Take snapshot", action(o) { a.exportAsPNG(); }
+                label: {
+                    icon: {
+                        tooltip: {content: 'Download a PNG image file of the view', position: {direction: 'top'}},
+                        monochrome: true,
+                        url: cameraIconUrl,
+                        size: 'small',
+                    },
+                    content: 'Take a snapshot'
+                },
+                action(o) { a.exportAsPNG(); }
             },
             {
                 label: "Add",
@@ -99,7 +109,16 @@ export let DefaultActionsForContextMenu = (function () {
                 ]
             },
             {
-                label: "Load local file",
+                label: {
+                    icon: {
+                        monochrome: true,
+                        url: uploadIconUrl,
+                        cssStyle: {
+                            cursor: 'help',
+                        }
+                    },
+                    content: "Load a local file"
+                },
                 subMenu: [
                     {
                         label: 'FITS image', action(o) {
@@ -167,8 +186,21 @@ export let DefaultActionsForContextMenu = (function () {
                 ]
             },
             {
-                label: "What is this?", action(o) {
-                    GenericPointer(a.view, o);
+                label: {
+                    icon: {
+                        tooltip: {content: 'Use Sesame, our name resolver!', position: {direction: 'top'}},
+                        monochrome: true,
+                        url: targetIconUrl,
+                        size: 'small',
+                    },
+                    content: 'What is this?'
+                },
+                
+                action(o, ctxMenu) {
+                    GenericPointer(a.view, {
+                        x: parseInt(ctxMenu.element().style.left),
+                        y: parseInt(ctxMenu.element().style.top)
+                    });
                 }
             },
             {

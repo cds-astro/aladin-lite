@@ -20,6 +20,8 @@
 import { CtxMenuActionButtonOpener } from "./CtxMenuOpener";
 import shareIconUrl from '../../../../assets/icons/share.svg';
 import cameraIconUrl from '../../../../assets/icons/camera.svg';
+import linkIconUrl from '../../../../assets/icons/link.svg';
+import jupyterIconUrl from '../../../../assets/icons/jupyter.svg';
 
 /******************************************************************************
  * Aladin Lite project
@@ -45,11 +47,16 @@ import cameraIconUrl from '../../../../assets/icons/camera.svg';
         let layout = [
             {
                 label: {
-                    content: 'Save the view',
+                    content: 'Get view URL',
+                    icon: {
+                        monochrome: true,
+                        url: linkIconUrl,
+                        size: 'small',
+                    },
                     tooltip: {
                         content: 'View URL will be saved into your clipboard',
                         position: {
-                            direction: 'bottom'
+                            direction: 'right'
                         }
                     }
                 },
@@ -79,31 +86,21 @@ import cameraIconUrl from '../../../../assets/icons/camera.svg';
                 }
             },
             {
-                label: 'Export to notebook',
-                disabled: true,
-            },
-            {
                 label: {
-                    content: 'Save the WCS',
+                    content: 'Export to notebook',
+                    icon: {
+                        url: jupyterIconUrl,
+                        size: 'medium',
+                    },
                     tooltip: {
-                        content: 'World Coordinate System of the view',
+                        content: '<i><font color="#ff0000">Not implemented</font></i><br/>Launch a notebook with <a href="https://github.com/cds-astro/ipyaladin" target="_blank"><font color="#fff">ipyaladin</font></a> inside.',
+                        hoverable: true,
                         position: {
                             direction: 'right'
                         }
                     }
                 },
-                action(o) {
-                    let wcs = aladin.getViewWCS()
-                    navigator.clipboard.writeText(JSON.stringify(wcs));
-
-                    if (aladin.statusBar) {
-                        aladin.statusBar.appendMessage({
-                            message: 'WCS saved into your clipboard!',
-                            duration: 2000,
-                            type: 'info'
-                        })
-                    }
-                }
+                disabled: true,
             },
             {
                 label: {
@@ -113,7 +110,7 @@ import cameraIconUrl from '../../../../assets/icons/camera.svg';
                         url: cameraIconUrl,
                         size: 'small',
                     },
-                    content: 'Export as image file'
+                    content: 'Take a snapshot'
                 },
                 action(o) {
                     aladin.exportAsPNG()

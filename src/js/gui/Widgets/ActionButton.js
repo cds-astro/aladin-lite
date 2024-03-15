@@ -147,13 +147,13 @@ export class ActionButton extends DOMElement {
             }
         }
 
-        if (this.options.cssStyle) {
-            this.setCss(this.options.cssStyle);
-        }
-
         // trigger el added
         if (this.options.tooltip) {
             Tooltip.add(this.options.tooltip, this)
+        }
+
+        if (this.options.cssStyle) {
+            this.setCss(this.options.cssStyle);
         }
 
         if (this.options.position) {

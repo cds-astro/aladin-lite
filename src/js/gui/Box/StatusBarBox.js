@@ -122,12 +122,12 @@ export class StatusBarBox extends Box {
                 position: {
                     direction: "top",
                 },
+                hoverable: true,
+                delayShowUpTime: '500ms',
                 cssStyle: {
-                    border: "1px solid white",
-                    fontSize: 'xx-small',
+                    fontSize: 'x-small',
                     maxWidth: "200px",
                     "overflow-wrap": "break-word",
-                    "pointer-events": "auto",
                 }
             },
         });

@@ -104,10 +104,13 @@ export class Tabs extends DOMElement {
             contentTabEl.appendChild(contentTabOptionEl)
         }
 
-        let el = new Layout([
-            new Layout({layout: tabsLayout, orientation: 'horizontal'}),
-            contentTabEl
-        ]);
+        let el = new Layout({
+            layout: [
+                new Layout({layout: tabsLayout, orientation: 'horizontal'}),
+                contentTabEl
+            ],
+            classList: "aladin-table"
+        });
 
         super(el, options);
         this._show();

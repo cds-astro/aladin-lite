@@ -31,18 +31,21 @@
 import { ActionButton } from "../Widgets/ActionButton.js";
 import { ContextMenu } from "../Widgets/ContextMenu.js";
 
- /*
- options = {
-     action: (connector) => {
- 
-     }
-     tooltip
- }
- */
 export class CtxMenuActionButtonOpener extends ActionButton {
     // Constructor
     constructor(options, aladin) {
         let self;
+
+        const enableTooltips = () => {
+            aladin.aladinDiv.removeEventListener('click', enableTooltips);
+
+            aladin.aladinDiv.querySelectorAll('.aladin-tooltip')
+                // for each tooltips reset its visibility and transition delay
+                .forEach((t) => {
+                    t.style.visibility = ''
+                    t.style.transitionDelay = ''
+                })
+        };
 
         super({
             ...options,
@@ -52,6 +55,8 @@ export class CtxMenuActionButtonOpener extends ActionButton {
                 ...options.cssStyle
             },
             action(e) {
+                enableTooltips()
+
                 let isHidden = self.ctxMenu.isHidden
 
                 ContextMenu.hideAll();
@@ -72,6 +77,15 @@ export class CtxMenuActionButtonOpener extends ActionButton {
                             direction: options.openDirection,
                         },
                     });
+                }
+
+                // the panel is now open and we know the button has a tooltip
+                // => we close it!
+                if (self.tooltip && !self.ctxMenu.isHidden) {
+                    self.tooltip.element().style.visibility = 'hidden'
+                    self.tooltip.element().style.transitionDelay = '0ms';
+
+                    aladin.aladinDiv.addEventListener("click", enableTooltips)
                 }
             }
         })
@@ -124,7 +138,6 @@ export class CtxMenuActionButtonOpener extends ActionButton {
                     // it case it is not given then it will be computed by default
                     direction: options.openDirection,
                 },
-                //cssStyle: options.ctxMenu && options.ctxMenu.cssStyle
             });
         }
     }

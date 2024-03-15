@@ -69,7 +69,13 @@ export class Tooltip extends DOMElement {
         }
         options.position.anchor = target;
 
+        if (!options.delayShowUpTime) {
+            options.delayShowUpTime = 500;
+        }
+
         super(wrapperEl, options)
+
+        this.element().classList.add('aladin-dark-theme')
 
         this._show();
     }
@@ -121,6 +127,14 @@ export class Tooltip extends DOMElement {
         let tooltipEl = this.el.querySelector('.aladin-tooltip');
         tooltipEl.innerHTML = '';
 
+        if (this.options.hoverable) {
+            this.element().style.pointerEvents = "auto";
+        }
+
+        if (this.options.delayShowUpTime) {
+            this.element().style.transitionDelay = this.options.delayShowUpTime;
+        }
+
         if (this.options.content) {
             let content = this.options.content;
             if (content instanceof DOMElement) {
@@ -134,8 +148,6 @@ export class Tooltip extends DOMElement {
             }
         }
 
-        super._show();
-
         if (this.options.position) {
             this.setPosition(this.options.position)
         }
@@ -143,6 +155,8 @@ export class Tooltip extends DOMElement {
         if (this.options.cssStyle) {
             this.setCss(this.options.cssStyle)
         }
+
+        super._show();
     }
 
     setCss(options) {

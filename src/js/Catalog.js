@@ -62,6 +62,8 @@ export let Catalog = (function() {
     * @param {string} [options.raField] - The ID or name of the field holding Right Ascension (RA).
     * @param {string} [options.decField] - The ID or name of the field holding Declination (dec).
     * @param {function} [options.filter] - The filtering function for sources.
+    * @param {string} [options.selectionColor] - The color to apply to selected sources in the catalog.
+    * @param {string} [options.hoverColor] - The color to apply to sources in the catalog when they are hovered.
     * @param {boolean} [options.displayLabel=false] - Whether to display labels for sources.
     * @param {string} [options.labelColumn] - The name of the column to be used for the label.
     * @param {string} [options.labelColor] - The color of the source labels.
@@ -81,6 +83,8 @@ export let Catalog = (function() {
     *   raField: "ra",
     *   decField: "dec",
     *   filter: (source) => source.mag < 15,
+    *   selectionColor: "#00ff00",
+    *   hoverColor: "#ff00ff",
     *   displayLabel: true,
     *   labelColor: "#00ff00",
     *   labelFont: "12px Arial"

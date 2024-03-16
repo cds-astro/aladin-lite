@@ -1941,9 +1941,10 @@ export let Aladin = (function () {
     };
 
     /**
-     * @API
+     * Returns the HTML div element
      *
-     * @return the jQuery object representing the DIV element where the Aladin Lite instance lies
+     * @memberof Aladin
+     * @return {HTMLElement} - The aladin lite div HTML element
      */
     Aladin.prototype.getParentDiv = function () {
         return this.aladinDiv;

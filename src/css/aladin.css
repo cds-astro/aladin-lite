@@ -5,6 +5,7 @@ body { overscroll-behavior: contain; }
 	border: 1px solid #ddd;
     height: 100%;
 
+
     /* disable x swipe on chrome, firefox */
     /* see. https://stackoverflow.com/questions/30636930/disable-web-page-navigation-on-swipeback-and-forward */
     overscroll-behavior-x: none;
@@ -461,6 +462,7 @@ canvas {
 .aladin-input-text.search {
     background-image:none;
     text-indent: 0rem;
+    font-size: 1rem;
 }
 
 .aladin-input-text.search.aladin-unknownObject {
@@ -1003,7 +1005,7 @@ canvas {
     /*font-family: Verdana, Geneva, Tahoma, sans-serif;*/
     font-size: 0.9rem;
 
-    transition-delay: 300ms;
+    transition-delay: 100ms;
 }
 
 .aladin-tooltip-container .aladin-tooltip.aladin-dark-theme {

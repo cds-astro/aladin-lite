@@ -155,20 +155,34 @@ Then you can build the project:
 npm run build
 ```
 
-Or build it and launch a localhost server (usually starting on port 8080 but it can be another one if 8080 is occupied):
+:warning: **If you are experimenting rust error compilations**:
+
+- Make sure you have your **wasm-pack** version updated. To do so:
+
+```bash
+cargo install wasm-pack@0.12.1
+git clean -fd
+```
+
+- Make sure you are using the rust **nightly** toolchain
+- Remove your `src/core/Cargo.lock` file and `src/core/target` directory before recompiling with `npm run build` as it is possible you are in a bad compilation state.
+
+It will generate the aladin lite compiled code into a `dist/` directory located at the root of the repository. This directory contains two javascript file. `aladin.umd.cjs` follows the UMD module export convention and it is the one you can use for your project.
+
+To run the examples, you can start a localhost server with the following command:
 
 ```bash
 npm run serve
 ```
 
-For just compiling the rust core from the root location (it is faster to do so)
+For just compiling the rust core, from the root location do:
 
 ```bash
 cd src/core
 cargo check --features webgl2
 ```
 
-and run the tests
+and run the tests:
 
 ```bash
 cd src/core

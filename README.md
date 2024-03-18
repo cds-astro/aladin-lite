@@ -160,14 +160,19 @@ npm run build
 - Make sure you have your **wasm-pack** version updated. To do so:
 
 ```bash
-cargo install wasm-pack@0.12.1
-git clean -fd
+cargo install wasm-pack --version ~0.12
 ```
 
 - Make sure you are using the rust **nightly** toolchain
-- Remove your `src/core/Cargo.lock` file and `src/core/target` directory before recompiling with `npm run build` as it is possible you are in a bad compilation state.
+- Remove your `src/core/Cargo.lock` file and `src/core/target` directory -- this ensures that you'd escape any bad compilation state:
 
-It will generate the aladin lite compiled code into a `dist/` directory located at the root of the repository. This directory contains two javascript file. `aladin.umd.cjs` follows the UMD module export convention and it is the one you can use for your project.
+```bash
+git clean -di
+```
+ 
+-  then recompile with `npm run build`.
+
+It will generate the aladin lite compiled code into a `dist/` directory located at the root of the repository. This directory contains two javascript files. `aladin.umd.cjs` follows the UMD module export convention and it is the one you can use for your project.
 
 To run the examples, you can start a localhost server with the following command:
 

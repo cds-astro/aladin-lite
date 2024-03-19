@@ -46,6 +46,7 @@ export let Overlay = (function() {
     	this.color = options.color || Color.getNextColor();
 
     	this.lineWidth = options["lineWidth"] || 2;
+        this.lineDash = options["lineDash"] || [];
 
     	//this.indexationNorder = 5; // at which level should we index overlays?
     	//this.overlays = [];
@@ -204,6 +205,7 @@ export let Overlay = (function() {
         // simple drawing
         ctx.strokeStyle= this.color;
         ctx.lineWidth = this.lineWidth;
+        ctx.setLineDash(this.lineDash);
 
         // 1. Drawing polygons
 
@@ -261,6 +263,11 @@ export let Overlay = (function() {
         this.lineWidth = lineWidth;
         this.reportChange();
     };
+
+    Overlay.prototype.setLineDash = function(lineDash) {
+        this.lineDash = lineDash;
+        this.reportChange();
+    }
 
     // callback function to be called when the status of one of the footprints has changed
     Overlay.prototype.reportChange = function() {

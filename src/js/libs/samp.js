@@ -992,8 +992,6 @@ export let samp = (function() {
         }
     };
     ClientTracker.prototype.init = function(connection) {
-        console.log('init client tracker')
-
         var tracker = this;
         this.connection = connection;
         var retrieveInfo = function(id, type, infoFuncName, infoArray) {
@@ -1003,8 +1001,6 @@ export let samp = (function() {
             });
         };
         connection.getRegisteredClients([], function(idlist) {
-            console.log(idlist)
-
             var i;
             var id;
             tracker.ids = {};
@@ -1087,7 +1083,6 @@ export let samp = (function() {
             }
             if (this.callableClient) {
                 if (this.callableClient.init) {
-                    console.log("init")
                     this.callableClient.init(conn);
                 }
                 conn.setCallable(this.callableClient, function() {

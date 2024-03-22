@@ -199,7 +199,7 @@ HiPSProperties.getFasterMirrorUrl = function (metadata, currUrl) {
                 return r1.duration - r2.duration;
             });
 
-            console.log(validResponses)
+            //console.log(validResponses)
             let newUrlResp;
 
             if (validResponses.length >= 2) {
@@ -229,7 +229,7 @@ HiPSProperties.getFasterMirrorUrl = function (metadata, currUrl) {
                 urlChosen = newUrlResp.baseUrl;
             }
 
-            console.log('curr url', currUrlResp, ', new ', newUrlResp)
+            //console.log('curr url', currUrlResp, ', new ', newUrlResp)
 
             urlChosen = Utils.fixURLForHTTPS(urlChosen)
             return urlChosen;

@@ -133,7 +133,6 @@ export let Datalink = (function() {
                                             switch (contentType) {
                                                 // A datalink response containing links to datasets or services attached to the current dataset
                                                 case 'application/x-votable+xml;content=datalink':
-                                                    console.log("datalink recursive")
                                                     new Datalink().handleActions(url, obscoreRow, aladinInstance);
                                                     break;
                                                 case 'application/hips':

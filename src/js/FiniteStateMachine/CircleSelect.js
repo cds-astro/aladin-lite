@@ -119,7 +119,6 @@ export class CircleSelect extends FSM {
             // TODO: remove these modes in the future
             view.aladin.showReticle(true)
             view.setCursor('default');
-            console.log("end select", view)
 
             view.setMode(View.PAN)
             view.requestRedraw();

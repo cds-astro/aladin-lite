@@ -76,7 +76,6 @@ export class SelectorButton extends DOMElement {
                     continue;
                 }
                 let optSelect = this.options[id];
-                console.log(optSelect)
 
                 menuOptions.push({
                     label: new ActionButton(optSelect),

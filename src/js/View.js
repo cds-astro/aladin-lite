@@ -353,7 +353,6 @@ export let View = (function () {
         var computedWidth = parseFloat(window.getComputedStyle(this.aladinDiv).width) || 1.0;
         var computedHeight = parseFloat(window.getComputedStyle(this.aladinDiv).height) || 1.0;
 
-        console.log(this.height, computedHeight)
         this.width = Math.max(computedWidth, 1);
         this.height = Math.max(computedHeight, 1); // this prevents many problems when div size is equal to 0
 

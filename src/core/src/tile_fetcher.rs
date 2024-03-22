@@ -101,7 +101,6 @@ impl TileFetcherQueue {
         if tile_size <= 128 || cfg.get_min_depth_tile() > 0 {
             // Request the allsky
             use al_core::log::console_log;
-            console_log("fetch allsky");
             downloader.fetch(query::Allsky::new(cfg));
         }
         /*else {

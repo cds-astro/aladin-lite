@@ -685,7 +685,6 @@ impl App {
                                 // give them already
                                 survey.add_allsky(allsky)?;
                                 // Once received ask for redraw
-                                console_log("allsky received");
                                 self.request_redraw = true;
                             }
                         }

@@ -17,7 +17,6 @@ struct Tile {
 };
 
 uniform Tile textures_tiles[12];
-uniform int num_tiles;
 
 #include ../color.glsl;
 #include ./healpix.glsl;
@@ -29,7 +28,6 @@ vec4 get_tile_color(vec3 pos) {
 
     int idx = result.idx;
     vec2 uv = vec2(result.dy, result.dx);
-
     Tile tile = textures_tiles[idx];
 
     int idx_texture = tile.texture_idx >> 6;
@@ -41,6 +39,7 @@ vec4 get_tile_color(vec3 pos) {
     vec3 UV = vec3(offset, float(idx_texture));
 
     vec4 color = get_color_from_texture(UV);
+    color.a *= (1.0 - tile.empty);
     return color;
 }
 

@@ -1,7 +1,7 @@
 //const int MAX_NUM_TEX = 3;
 uniform usampler2D tex1;
 uniform usampler2D tex2;
-uniform usampler2D tex3;
+//uniform usampler2D tex3;
 uniform int num_tex;
 
 uniform float scale;
@@ -22,7 +22,7 @@ uniform int tex_storing_fits;
 #include ./tonal_corrections.glsl;
 
 uvec4 get_pixels(vec3 uv) {
-    int idx_texture = int(uv.z);
+    /*int idx_texture = int(uv.z);
     if (idx_texture == 0) {
         return texture(tex1, uv.xy);
     } else if (idx_texture == 1) {
@@ -31,7 +31,11 @@ uvec4 get_pixels(vec3 uv) {
         return texture(tex3, uv.xy);
     } else {
         return uvec4(0, 0, 0, 1);
-    }
+    }*/
+    //return texture(tex1, uv.xy);
+    //int idx_texture = int(uv.z);
+    int idx_texture = int(uv.z);
+    return uvec4(mix(vec4(texture(tex1, uv.xy)), vec4(texture(tex2, uv.xy)), float(idx_texture)));
 }
 
 vec3 reverse_uv(vec3 uv) {

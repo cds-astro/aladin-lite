@@ -134,11 +134,11 @@ pub struct ImageSurveyTextures {
     size: usize,
 
     pub textures: HashMap<HEALPixCell, Texture>,
-    pub base_textures: [Texture; NUM_HPX_TILES_DEPTH_ZERO],
+    //pub base_textures: [Texture; NUM_HPX_TILES_DEPTH_ZERO],
     //pub cutoff_values_tile: Rc<RefCell<HashMap<HEALPixCell, (f32, f32)>>>,
 
     // Array of 2D textures
-    texture_2d_array: Rc<Texture2DArray>,
+    texture_2d_array: Texture2DArray,
 
     // A boolean ensuring the root textures
     // have already been loaded
@@ -146,6 +146,7 @@ pub struct ImageSurveyTextures {
     pub start_time: Option<Time>,
 
     available_tiles_during_frame: bool,
+    //num_base_textures: usize,
     //exec: Rc<RefCell<TaskExecutor>>,
 }
 
@@ -176,11 +177,11 @@ impl ImageSurveyTextures {
         // Ensures there is at least space for the 12
         // root textures
         debug_assert!(size >= NUM_HPX_TILES_DEPTH_ZERO);
-        let heap = HEALPixCellHeap::with_capacity(size - NUM_HPX_TILES_DEPTH_ZERO);
+        let heap = HEALPixCellHeap::with_capacity(size);
         let textures = HashMap::with_capacity(size);
 
         let now = Time::now();
-        let base_textures = [
+        /*let base_textures = [
             Texture::new(&HEALPixCell(0, 0), 0, now),
             Texture::new(&HEALPixCell(0, 1), 1, now),
             Texture::new(&HEALPixCell(0, 2), 2, now),
@@ -193,34 +194,31 @@ impl ImageSurveyTextures {
             Texture::new(&HEALPixCell(0, 9), 9, now),
             Texture::new(&HEALPixCell(0, 10), 10, now),
             Texture::new(&HEALPixCell(0, 11), 11, now),
-        ];
+        ];*/
         let channel = config.get_format().get_channel();
 
-        #[cfg(feature = "webgl2")]
         let texture_2d_array = match channel {
             ChannelType::RGBA32F => unimplemented!(),
             ChannelType::RGB32F => unimplemented!(),
-            ChannelType::RGBA8U => Rc::new(create_texture_array::<RGBA8U>(gl, &config)?),
-            ChannelType::RGB8U => Rc::new(create_texture_array::<RGB8U>(gl, &config)?),
-            ChannelType::R8UI => Rc::new(create_texture_array::<R8UI>(gl, &config)?),
-            ChannelType::R16I => Rc::new(create_texture_array::<R16I>(gl, &config)?),
-            ChannelType::R32I => Rc::new(create_texture_array::<R32I>(gl, &config)?),
-            ChannelType::R32F => Rc::new(create_texture_array::<R32F>(gl, &config)?),
-            ChannelType::R64F => Rc::new(create_texture_array::<R64F>(gl, &config)?),
+            ChannelType::RGBA8U => create_texture_array::<RGBA8U>(gl, &config)?,
+            ChannelType::RGB8U => create_texture_array::<RGB8U>(gl, &config)?,
+            ChannelType::R32F => create_texture_array::<R32F>(gl, &config)?,
+            #[cfg(feature = "webgl2")]
+            ChannelType::R8UI => create_texture_array::<R8UI>(gl, &config)?,
+            #[cfg(feature = "webgl2")]
+            ChannelType::R16I => create_texture_array::<R16I>(gl, &config)?,
+            #[cfg(feature = "webgl2")]
+            ChannelType::R32I => create_texture_array::<R32I>(gl, &config)?,
+            #[cfg(feature = "webgl2")]
+            ChannelType::R64F => create_texture_array::<R64F>(gl, &config)?,
         };
-        #[cfg(feature = "webgl1")]
-        let texture_2d_array = match config.get_format() {
-            ChannelType::RGBA32F => unimplemented!(),
-            ChannelType::RGB32F => unimplemented!(),
-            ChannelType::RGBA8U => Rc::new(create_texture_array::<RGBA8U>(gl, &config)?),
-            ChannelType::RGB8U => Rc::new(create_texture_array::<RGB8U>(gl, &config)?),
-            ChannelType::R32F => Rc::new(create_texture_array::<R32F>(gl, &config)?),
-        };
+
         // The root textures have not been loaded
         //let ready = false;
         //let num_root_textures_available = 0;
         let available_tiles_during_frame = false;
         let start_time = None;
+        //let num_base_textures = 0;
         Ok(ImageSurveyTextures {
             config,
             heap,
@@ -228,8 +226,8 @@ impl ImageSurveyTextures {
             size,
             //num_root_textures_available,
             textures,
-            base_textures,
-
+            //base_textures,
+            //num_base_textures,
             texture_2d_array,
             available_tiles_during_frame,
 
@@ -246,21 +244,21 @@ impl ImageSurveyTextures {
         self.texture_2d_array = match channel {
             ChannelType::RGBA32F => unimplemented!(),
             ChannelType::RGB32F => unimplemented!(),
-            ChannelType::RGBA8U => Rc::new(create_texture_array::<RGBA8U>(gl, &self.config)?),
-            ChannelType::RGB8U => Rc::new(create_texture_array::<RGB8U>(gl, &self.config)?),
-            ChannelType::R32F => Rc::new(create_texture_array::<R32F>(gl, &self.config)?),
+            ChannelType::RGBA8U => create_texture_array::<RGBA8U>(gl, &self.config)?,
+            ChannelType::RGB8U => create_texture_array::<RGB8U>(gl, &self.config)?,
+            ChannelType::R32F => create_texture_array::<R32F>(gl, &self.config)?,
             #[cfg(feature = "webgl2")]
-            ChannelType::R8UI => Rc::new(create_texture_array::<R8UI>(gl, &self.config)?),
+            ChannelType::R8UI => create_texture_array::<R8UI>(gl, &self.config)?,
             #[cfg(feature = "webgl2")]
-            ChannelType::R16I => Rc::new(create_texture_array::<R16I>(gl, &self.config)?),
+            ChannelType::R16I => create_texture_array::<R16I>(gl, &self.config)?,
             #[cfg(feature = "webgl2")]
-            ChannelType::R32I => Rc::new(create_texture_array::<R32I>(gl, &self.config)?),
+            ChannelType::R32I => create_texture_array::<R32I>(gl, &self.config)?,
             #[cfg(feature = "webgl2")]
-            ChannelType::R64F => Rc::new(create_texture_array::<R64F>(gl, &self.config)?),
+            ChannelType::R64F => create_texture_array::<R64F>(gl, &self.config)?,
         };
 
         let now = Time::now();
-        self.base_textures = [
+        /*self.base_textures = [
             Texture::new(&HEALPixCell(0, 0), 0, now),
             Texture::new(&HEALPixCell(0, 1), 1, now),
             Texture::new(&HEALPixCell(0, 2), 2, now),
@@ -273,7 +271,7 @@ impl ImageSurveyTextures {
             Texture::new(&HEALPixCell(0, 9), 9, now),
             Texture::new(&HEALPixCell(0, 10), 10, now),
             Texture::new(&HEALPixCell(0, 11), 11, now),
-        ];
+        ];*/
 
         self.heap.clear();
         self.textures.clear();
@@ -326,7 +324,7 @@ impl ImageSurveyTextures {
             let tex_cell = cell.get_texture_cell(self.config.delta_depth());
 
             let tex_cell_is_root = tex_cell.is_root(self.config.delta_depth());
-            if !tex_cell_is_root && !self.textures.contains_key(&tex_cell) {
+            if !self.textures.contains_key(&tex_cell) {
                 // The texture is not among the essential ones
                 // (i.e. is not a root texture)
                 let texture = if self.is_heap_full() {
@@ -340,6 +338,12 @@ impl ImageSurveyTextures {
                         "Texture (oldest one) has not been found in the buffer of textures",
                     );
                     // Clear and assign it to tex_cell
+                    /*let idx = if tex_cell_is_root {
+                        self.num_base_textures += 1;
+                        Some(tex_cell.idx() as i32)
+                    } else {
+                        None
+                    };*/
                     texture.replace(&tex_cell, time_request);
 
                     texture
@@ -347,10 +351,18 @@ impl ImageSurveyTextures {
                     // The heap buffer is not full, let's create a new
                     // texture with an unique idx
                     // The idx is computed based on the current size of the buffer
-                    let idx = NUM_HPX_TILES_DEPTH_ZERO + self.heap.len();
+                    /*let idx = if tex_cell_is_root {
+                        self.num_base_textures += 1;
+                        tex_cell.idx() as usize
+                    } else {
+                        //NUM_HPX_TILES_DEPTH_ZERO + (self.heap.len() - self.num_base_textures)
+                        self.heap.len()
+                    };*/
+                    let idx = self.heap.len();
 
                     Texture::new(&tex_cell, idx as i32, time_request)
                 };
+
                 // Push it to the buffer
                 self.heap.push(&texture);
 
@@ -363,23 +375,17 @@ impl ImageSurveyTextures {
             // We can safely push it
             // First get the texture
 
-            let texture = if !tex_cell_is_root {
+            let texture = //if !tex_cell_is_root {
                 self.textures
                     .get_mut(&tex_cell)
-                    .expect("the cell has to be in the tile buffer")
-            } else {
+                    .expect("the cell has to be in the tile buffer");
+            /* } else {
                 let HEALPixCell(_, idx) = tex_cell;
                 &mut self.base_textures[idx as usize]
-            };
+            };*/
 
             if let Some(image) = image {
-                send_to_gpu(
-                    cell,
-                    texture,
-                    image,
-                    self.texture_2d_array.clone(),
-                    &self.config,
-                )?;
+                send_to_gpu(cell, texture, image, &self.texture_2d_array, &self.config)?;
                 // Once the texture has been received in the GPU
                 texture.append(
                     cell, // The tile cell
@@ -391,7 +397,7 @@ impl ImageSurveyTextures {
                     cell,
                     texture,
                     self.config.get_default_image(),
-                    self.texture_2d_array.clone(),
+                    &self.texture_2d_array,
                     &self.config,
                 )?;
                 // Once the texture has been received in the GPU
@@ -404,9 +410,9 @@ impl ImageSurveyTextures {
 
             self.available_tiles_during_frame = true;
             //self.ready = true;
-            if self.start_time.is_none() {
+            /*if self.start_time.is_none() {
                 self.start_time = Some(Time::now());
-            }
+            }*/
 
             /*if tex_cell.is_root(self.config.delta_depth()) && texture.is_available() {
                 self.num_root_textures_available += 1;
@@ -436,23 +442,15 @@ impl ImageSurveyTextures {
         // textures in the buffer
         let num_textures_heap = self.heap.len();
 
-        num_textures_heap == (self.size - NUM_HPX_TILES_DEPTH_ZERO)
+        num_textures_heap == self.size
     }
 
     // Tell if a texture is available meaning all its sub tiles
     // must have been written for the GPU
     pub fn contains(&self, texture_cell: &HEALPixCell) -> bool {
-        if let Some(texture) = self.textures.get(texture_cell) {
-            // The texture is in the buffer i.e. there is at least one
-            // sub tile received
-
-            // It is possible that it is not available. Available means
-            // all its sub tiles have been received and written to the
-            // textures array!
-            texture.is_available()
+        if let Some(t) = self.get(texture_cell) {
+            t.is_full()
         } else {
-            // The texture is not contained in the buffer i.e.
-            // even not one sub tile that has been received
             false
         }
     }
@@ -463,20 +461,20 @@ impl ImageSurveyTextures {
     pub fn contains_tile(&self, cell: &HEALPixCell) -> bool {
         let texture_cell = cell.get_texture_cell(self.config.delta_depth());
 
-        let tex_cell_is_root = texture_cell.is_root(self.config.delta_depth());
-        if tex_cell_is_root {
-            let HEALPixCell(_, idx) = texture_cell;
-            self.base_textures[idx as usize].contains(cell)
+        //let tex_cell_is_root = texture_cell.is_root(self.config.delta_depth());
+        //if tex_cell_is_root {
+        //    let HEALPixCell(_, idx) = texture_cell;
+        //    self.base_textures[idx as usize].contains(cell)
+        //} else {
+        if let Some(texture) = self.get(&texture_cell) {
+            // The texture is present in the buffer
+            // We must check whether it contains the tile
+            texture.contains(cell)
         } else {
-            if let Some(texture) = self.textures.get(&texture_cell) {
-                // The texture is present in the buffer
-                // We must check whether it contains the tile
-                texture.contains(cell)
-            } else {
-                // The texture in which cell should be is not present
-                false
-            }
+            // The texture in which cell should be is not present
+            false
         }
+        //}
     }
 
     // Update the priority of the texture containing the tile
@@ -486,9 +484,9 @@ impl ImageSurveyTextures {
 
         // Get the texture cell in which the tile has to be
         let texture_cell = cell.get_texture_cell(self.config.delta_depth());
-        if texture_cell.is_root(self.config().delta_depth()) {
-            return;
-        }
+        //if texture_cell.is_root(self.config().delta_depth()) {
+        //    return;
+        //}
 
         let texture = self
             .textures
@@ -520,7 +518,7 @@ impl ImageSurveyTextures {
         let (pix, dx, dy) = crate::healpix::utils::hash_with_dxdy(depth, lonlat);
         let texture_cell = HEALPixCell(depth, pix);
 
-        if let Some(texture) = self.textures.get(&texture_cell) {
+        if let Some(texture) = self.get(&texture_cell) {
             let cfg = &self.config;
 
             // Index of the texture in the total set of textures
@@ -568,29 +566,33 @@ impl ImageSurveyTextures {
 
     /// Accessors
     pub fn get(&self, texture_cell: &HEALPixCell) -> Option<&Texture> {
-        if texture_cell.is_root(self.config().delta_depth()) {
-            let HEALPixCell(_, idx) = texture_cell;
-            Some(&self.base_textures[*idx as usize])
-        } else {
-            self.textures.get(texture_cell)
-        }
+        //if texture_cell.is_root(self.config().delta_depth()) {
+        //    let HEALPixCell(_, idx) = texture_cell;
+        //    Some(&self.base_textures[*idx as usize])
+        //} else {
+        self.textures.get(texture_cell)
+        //}
     }
 
     // Get the nearest parent tile found in the CPU buffer
-    pub fn get_nearest_parent(&self, cell: &HEALPixCell) -> HEALPixCell {
+    pub fn get_nearest_parent(&self, cell: &HEALPixCell) -> Option<HEALPixCell> {
         let dd = self.config.delta_depth();
-        if cell.is_root(dd) {
+        /*if cell.is_root(dd) {
             // Root cells are in the buffer by definition
             *cell
-        } else {
-            let mut parent_cell = cell.parent();
+        } else {*/
+        let mut parent_cell = cell.parent();
 
-            while !self.contains(&parent_cell) && !parent_cell.is_root(dd) {
-                parent_cell = parent_cell.parent();
-            }
-
-            parent_cell
+        while !self.contains(&parent_cell) && !parent_cell.is_root(dd) {
+            parent_cell = parent_cell.parent();
         }
+
+        if self.contains(&parent_cell) {
+            Some(parent_cell)
+        } else {
+            None
+        }
+        //}
     }
 
     pub fn config(&self) -> &HiPSConfig {
@@ -628,8 +630,8 @@ impl ImageSurveyTextures {
         ]
     }*/
 
-    pub fn get_texture_array(&self) -> Rc<Texture2DArray> {
-        self.texture_2d_array.clone()
+    pub fn get_texture_array(&self) -> &Texture2DArray {
+        &self.texture_2d_array
     }
 }
 
@@ -637,7 +639,7 @@ fn send_to_gpu<I: Image>(
     cell: &HEALPixCell,
     texture: &Texture,
     image: I,
-    texture_array: Rc<Texture2DArray>,
+    texture_array: &Texture2DArray,
     cfg: &HiPSConfig,
 ) -> Result<(), JsValue> {
     // Index of the texture in the total set of textures
@@ -677,17 +679,30 @@ impl SendUniforms for ImageSurveyTextures {
     // Send only the allsky textures
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
         // Send the textures
-        let textures = &self.base_textures;
+        /*let textures = &self.base_textures;
         for (idx, texture) in textures.iter().enumerate() {
             let texture_uniforms = TextureUniforms::new(texture, idx as i32);
             shader.attach_uniforms_from(&texture_uniforms);
-        }
+        }*/
 
-        let num_tiles = textures.len() as i32;
+        //if self.raytracing {
+        for idx in 0..NUM_HPX_TILES_DEPTH_ZERO {
+            let cell = HEALPixCell(0, idx as u64);
+
+            if let Some(texture) = self.get(&cell) {
+                let texture_uniforms = TextureUniforms::new(texture, idx as i32);
+                shader.attach_uniforms_from(&texture_uniforms);
+            } else {
+                let texture = &Texture::new(&cell, idx as i32, Time::now());
+                let texture_uniforms = TextureUniforms::new(texture, idx as i32);
+                shader.attach_uniforms_from(&texture_uniforms);
+            }
+        }
+        //}
+
         let shader = shader
-            .attach_uniform("num_tiles", &num_tiles)
             .attach_uniforms_from(&self.config)
-            .attach_uniforms_from(&*self.texture_2d_array);
+            .attach_uniforms_from(&self.texture_2d_array);
 
         shader
     }

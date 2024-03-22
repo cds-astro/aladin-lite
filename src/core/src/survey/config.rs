@@ -180,7 +180,7 @@ use wasm_bindgen::JsValue;
 
 const NUM_TEXTURES_BY_SIDE_SLICE: i32 = 8;
 const NUM_TEXTURES_BY_SLICE: i32 = NUM_TEXTURES_BY_SIDE_SLICE * NUM_TEXTURES_BY_SIDE_SLICE;
-const NUM_SLICES: i32 = 1;
+const NUM_SLICES: i32 = 2;
 
 impl HiPSConfig {
     /// Define a HiPS configuration

@@ -60,14 +60,14 @@ pub struct Texture2D {
 pub enum SamplerType {
     Float,
     Integer,
-    Unsigned
+    Unsigned,
 }
 
 use crate::image::format::ImageFormat;
 //use super::pixel::PixelType;
+use std::cell::RefCell;
 use std::path::Path;
 use std::rc::Rc;
-use std::cell::RefCell;
 impl Texture2D {
     pub fn create_from_path<P: AsRef<Path>, F: ImageFormat>(
         gl: &WebGlContext,
@@ -145,7 +145,6 @@ impl Texture2D {
         onload.forget();
         onerror.forget();
 
-
         let gl = gl.clone();
         Ok(Texture2D {
             texture,
@@ -163,16 +162,12 @@ impl Texture2D {
         tex_params: &'static [(u32, u32)],
         data: Option<&[<F::P as Pixel>::Item]>,
     ) -> Result<Texture2D, JsValue> {
-        let texture = Texture2D::create_empty_with_format::<F>(
-            gl,
-            width,
-            height,
-            tex_params
-        )?;
+        let texture = Texture2D::create_empty_with_format::<F>(gl, width, height, tex_params)?;
 
         if let Some(data) = data {
             let buf_data = unsafe { F::view(data) };
-            texture.bind()
+            texture
+                .bind()
                 .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_array_buffer_view(
                     0,
                     0,
@@ -235,7 +230,6 @@ impl Texture2D {
             None,
         )
         .expect("Texture 2D");
-        //gl.generate_mipmap(WebGlRenderingCtx::TEXTURE_2D);
 
         let gl = gl.clone();
         let metadata = Some(Rc::new(RefCell::new(Texture2DMeta {
@@ -329,7 +323,8 @@ impl Texture2D {
         } else {
             // set the viewport as the FBO won't be the same dimension as the screen
             let metadata = self.metadata.as_ref().unwrap_abort().borrow();
-            self.gl.viewport(x, y, metadata.width as i32, metadata.height as i32);
+            self.gl
+                .viewport(x, y, metadata.width as i32, metadata.height as i32);
             #[cfg(feature = "webgl2")]
             let value = match (metadata.format, metadata.type_) {
                 (WebGlRenderingCtx::RED_INTEGER, WebGlRenderingCtx::UNSIGNED_BYTE) => {

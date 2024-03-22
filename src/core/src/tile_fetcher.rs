@@ -92,6 +92,7 @@ impl TileFetcherQueue {
         // Try to fetch the MOC
         downloader.fetch(query::Moc::new(
             format!("{}/Moc.fits", cfg.get_root_url()),
+            cfg.get_creator_did().to_string(),
             al_api::moc::MOC::default(),
         ));
 
@@ -99,6 +100,8 @@ impl TileFetcherQueue {
         //Request the allsky for the small tile size or if base tiles are not available
         if tile_size <= 128 || cfg.get_min_depth_tile() > 0 {
             // Request the allsky
+            use al_core::log::console_log;
+            console_log("fetch allsky");
             downloader.fetch(query::Allsky::new(cfg));
         }
         /*else {

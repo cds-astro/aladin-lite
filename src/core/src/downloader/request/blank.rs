@@ -2,6 +2,7 @@ use al_core::image::format::ChannelType;
 use std::io::Cursor;
 
 use crate::downloader::query;
+use crate::renderable::CreatorDid;
 use fitsrs::fits::Fits;
 
 #[derive(Debug, Clone, Copy)]
@@ -27,7 +28,7 @@ use crate::downloader::QueryId;
 pub struct PixelMetadataRequest {
     pub id: QueryId,
     pub url: Url,
-    pub hips_url: Url,
+    pub hips_cdid: CreatorDid,
     request: Request<Metadata>,
 }
 
@@ -49,7 +50,7 @@ impl From<query::PixelMetadata> for PixelMetadataRequest {
         let query::PixelMetadata {
             format,
             url,
-            hips_url,
+            hips_cdid,
             id,
         } = query;
 
@@ -126,7 +127,7 @@ impl From<query::PixelMetadata> for PixelMetadataRequest {
         Self {
             id,
             url,
-            hips_url,
+            hips_cdid,
             request,
         }
     }
@@ -136,7 +137,7 @@ use std::sync::{Arc, Mutex};
 #[derive(Debug)]
 pub struct PixelMetadata {
     pub value: Arc<Mutex<Option<Metadata>>>,
-    pub hips_url: String,
+    pub hips_cdid: CreatorDid,
     pub url: String,
 }
 use crate::Abort;
@@ -144,7 +145,7 @@ impl<'a> From<&'a PixelMetadataRequest> for Option<PixelMetadata> {
     fn from(request: &'a PixelMetadataRequest) -> Self {
         let PixelMetadataRequest {
             request,
-            hips_url,
+            hips_cdid,
             url,
             ..
         } = request;
@@ -152,7 +153,7 @@ impl<'a> From<&'a PixelMetadataRequest> for Option<PixelMetadata> {
             let Request::<Metadata> { data, .. } = request;
             // It will always be resolved and found as we will request a well know tile (Norder0/Tile0)
             Some(PixelMetadata {
-                hips_url: hips_url.clone(),
+                hips_cdid: hips_cdid.clone(),
                 url: url.to_string(),
                 value: data.clone(),
             })

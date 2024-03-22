@@ -49,7 +49,6 @@ vec4 get_tile_color(vec3 pos) {
     // For empty tiles we set the alpha of the pixel to 0.0
     // so that what is behind will be plotted
     color.a *= (1.0 - tile.empty);
-
     return color;
 }
 

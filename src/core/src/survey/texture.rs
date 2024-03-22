@@ -105,14 +105,10 @@ impl Texture {
         self.full
     }
 
-    pub fn is_available(&self) -> bool {
-        self.is_full()
-    }
-
     // Getter
     // Returns the current time if the texture is not full
     pub fn start_time(&self) -> Time {
-        if self.is_available() {
+        if self.is_full() {
             self.start_time.unwrap_abort()
         } else {
             Time::now()

@@ -95,7 +95,7 @@ impl RequestType {
             RequestType::Tile(request) => &request.id,
             RequestType::Allsky(request) => &request.id,
             RequestType::PixelMetadata(request) => &request.id,
-            RequestType::Moc(request) => &request.url,
+            RequestType::Moc(request) => &request.hips_cdid,
         }
     }
 }
@@ -125,12 +125,12 @@ pub enum Resource {
 }
 
 impl Resource {
-    pub fn url(&self) -> &Url {
+    pub fn id(&self) -> &String {
         match self {
-            Resource::Tile(tile) => tile.get_url(),
-            Resource::Allsky(allsky) => allsky.get_url(),
-            Resource::PixelMetadata(PixelMetadata { url, .. }) => url,
-            Resource::Moc(moc) => moc.get_url(),
+            Resource::Tile(tile) => tile.get_hips_cdid(),
+            Resource::Allsky(allsky) => allsky.get_hips_cdid(),
+            Resource::PixelMetadata(PixelMetadata { hips_cdid, .. }) => hips_cdid,
+            Resource::Moc(moc) => moc.get_hips_cdid(),
         }
     }
 }

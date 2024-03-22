@@ -207,14 +207,11 @@ export let ImageSurvey = (function () {
                     throw e;
                 }
 
-                if (isCDSId) {
-                    self.url = properties.hips_service_url;
-                }
                 //obsTitle = properties.obs_title;
                 self.creatorDid = properties.creator_did || self.creatorDid;
                 // url
 
-                if (!self.url) {
+                if (isCDSId) {
                     self.url = properties.hips_service_url
                     if (!self.url) {
                         throw 'no valid service URL for retrieving the tiles'
@@ -223,14 +220,14 @@ export let ImageSurvey = (function () {
                     self.url = Utils.fixURLForHTTPS(self.url);
 
                     // Request all the properties to see which mirror is the fastest
-                    HiPSProperties.getFasterMirrorUrl(properties)
+                    HiPSProperties.getFasterMirrorUrl(properties, self.url)
                         .then((url) => {
                             if (self.url !== url) {
                                 console.info("Change url of ", self.id, " from ", self.url, " to ", url)
                     
                                 // If added to the backend, then we need to tell it the url has changed
                                 if (self.added) {
-                                    self.view.wasm.setHiPSUrl(self.url, url);
+                                    self.view.wasm.setHiPSUrl(self.creatorDid, url);
                                 }
                     
                                 self.url = url;
@@ -401,7 +398,7 @@ export let ImageSurvey = (function () {
          * @returns {boolean} Returns true if the ImageSurvey represents a planetary body; otherwise, returns false.
          */
     ImageSurvey.prototype.isPlanetaryBody = function() {
-        return self.hipsBody !== undefined;;
+        return this.hipsBody !== undefined;
     }
 
     /**
@@ -727,7 +724,7 @@ export let ImageSurvey = (function () {
         return this.view.wasm.readPixel(x, y, this.layer);
     };
 
-    ImageSurvey.DEFAULT_SURVEY_ID = "DSS2_color";
+    ImageSurvey.DEFAULT_SURVEY_ID = "CDS/P/DSS2/color";
 
     // A cache storing directly surveys important information to not query for the properties each time
     ImageSurvey.cache = {

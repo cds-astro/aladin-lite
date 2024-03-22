@@ -148,8 +148,12 @@ export let AladinUtils = {
         },
 
         /**
+         * @deprecated
+         * 
          * Converts celestial coordinates (ra, dec) to screen coordinates (x, y) in pixels within the view.
-         *
+         * Use {@link Aladin.world2pix} instead
+         * 
+         * 
          * @function
          * @memberof AladinUtils
          * @name radecToViewXy
@@ -160,25 +164,7 @@ export let AladinUtils = {
          * @returns {number[]} xy - A 2 elements array representing the screen coordinates [X, Y] in pixels.
          */
         radecToViewXy: function(ra, dec, aladin) {
-            let xy = aladin.view.wasm.worldToScreen(ra, dec);
-            return xy;
-        },
-
-        /**
-         * Converts screen coordinates (X, Y) to clip coordinates within the view (coordinates lying between 0 and 1).
-         *
-         * @function
-         * @memberof AladinUtils
-         * @name viewXyToClipXy
-         *
-         * @param {number} x - X-coordinate in pixel screen coordinates
-         * @param {number} y - Y-coordinate in pixel screen coordinates.
-         * @param {Aladin} aladin - Aladin Lite object containing the WebAssembly API.
-         * @returns {number[]} xy - An array representing the coordinates [X, Y] in clipping space.
-         */
-        viewXyToClipXy: function(x, y, aladin) {
-            let xy = aladin.view.wasm.screenToClip(x, y);
-            return xy;
+            return aladin.world2pix(ra, dec);
         },
 
         /**

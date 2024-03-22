@@ -11,8 +11,8 @@ pub struct Downloader {
     requests: Vec<RequestType>,
     queried_list: HashSet<QueryId>,
 
-    cache: Cache<Url, Resource>,
-    queried_cached_urls: Vec<Url>,
+    cache: Cache<QueryId, Resource>,
+    queried_cached_ids: Vec<QueryId>,
 }
 
 use crate::fifo_cache::Cache;
@@ -25,12 +25,12 @@ impl Downloader {
         let requests = Vec::with_capacity(32);
         let queried_list = HashSet::with_capacity(64);
         let cache = Cache::new();
-        let queried_cached_urls = Vec::with_capacity(64);
+        let queried_cached_ids = Vec::with_capacity(64);
         Self {
             requests,
             queried_list,
             cache,
-            queried_cached_urls,
+            queried_cached_ids,
         }
     }
     // Returns true if the fetch has been done
@@ -39,8 +39,8 @@ impl Downloader {
     where
         T: Query,
     {
-        let url = query.url();
-        if self.cache.contains(url) {
+        let id = query.id();
+        if self.cache.contains(id) {
             //self.queried_cached_urls.push(url.clone());
             false
         } else {
@@ -85,8 +85,8 @@ impl Downloader {
             self.queried_list.remove(&query_id);
         }
 
-        while let Some(url) = self.queried_cached_urls.pop() {
-            if let Some(rsc) = self.cache.extract(&url) {
+        while let Some(id) = self.queried_cached_ids.pop() {
+            if let Some(rsc) = self.cache.extract(&id) {
                 rscs.push(rsc);
             }
         }
@@ -105,7 +105,7 @@ impl Downloader {
     }*/
 
     pub fn delay_rsc(&mut self, rsc: Resource) {
-        self.queried_cached_urls.push(rsc.url().clone());
-        self.cache.insert(rsc.url().clone(), rsc);
+        self.queried_cached_ids.push(rsc.id().clone());
+        self.cache.insert(rsc.id().clone(), rsc);
     }
 }

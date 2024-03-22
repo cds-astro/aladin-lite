@@ -63,8 +63,6 @@ export let View = (function () {
         this.aladinDiv = this.aladin.aladinDiv;
         this.createCanvases();
 
-        this.loadingState = false;
-
         let self = this;
 
         self.redrawClbk = this.redraw.bind(this);
@@ -1585,9 +1583,6 @@ export let View = (function () {
             .then((imageLayer) => {
                 // Add to the backend
                 const promise = imageLayer.add(layer);
-
-                self.loadingState = true;
-                
                 ALEvent.FETCH.dispatchedTo(document, {task});
 
                 return promise;
@@ -1620,7 +1615,6 @@ export let View = (function () {
             })
             .finally(() => {
                 // Loading state is over
-                self.loadingState = false;
                 ALEvent.RESOURCE_FETCHED.dispatchedTo(document, {task});
 
                 self.imageLayersBeingQueried.delete(layer);

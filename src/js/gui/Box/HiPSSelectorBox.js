@@ -41,6 +41,8 @@ import { Input } from "../Widgets/Input.js";
             .then((HiPSes) => {
                 HiPSes.forEach((h) => {
                     HiPSSelectorBox.HiPSList[h.obs_title] = h
+                    HiPSSelectorBox.HiPSList[h.ID] = h
+
                 });
 
                 inputText.update({autocomplete: {options: Object.keys(HiPSSelectorBox.HiPSList)}})

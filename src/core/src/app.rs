@@ -115,7 +115,7 @@ use cgmath::{Vector2, Vector3};
 use futures::{io::BufReader, stream::StreamExt}; // for `next`
 
 use crate::math::projection::*;
-pub const BLENDING_ANIM_DURATION: DeltaTime = DeltaTime::from_millis(400.0); // in ms
+pub const BLENDING_ANIM_DURATION: DeltaTime = DeltaTime::from_millis(200.0); // in ms
                                                                              //use crate::buffer::Tile;
 use crate::time::Time;
 use cgmath::InnerSpace;
@@ -605,7 +605,7 @@ impl App {
                     Resource::Tile(tile) => {
                         if !has_camera_moved {
                             if let Some(survey) =
-                                self.layers.get_mut_hips_from_url(&tile.get_hips_url())
+                                self.layers.get_mut_hips_from_cdid(&tile.get_hips_cdid())
                             {
                                 let cfg = survey.get_config();
 
@@ -620,10 +620,10 @@ impl App {
                                             fov_coverage.intersects_cell(&neighbor_tile_cell)
                                         });
 
-                                    let is_tile_root = tile.cell().depth() == delta_depth;
-                                    let _depth = tile.cell().depth();
+                                    //let is_tile_root = tile.cell().depth() == delta_depth;
+                                    //let _depth = tile.cell().depth();
                                     // do not perform tex_sub costly GPU calls while the camera is zooming
-                                    if is_tile_root || included_or_near_coverage {
+                                    if included_or_near_coverage {
                                         let is_missing = tile.missing();
                                         /*self.tile_fetcher.notify_tile(
                                             &tile,
@@ -648,7 +648,6 @@ impl App {
                                         };
 
                                         survey.add_tile(&cell, image, time_req)?;
-
                                         self.request_redraw = true;
 
                                         self.time_start_blending = Time::now();
@@ -660,9 +659,9 @@ impl App {
                         }
                     }
                     Resource::Allsky(allsky) => {
-                        let hips_url = allsky.get_hips_url();
+                        let hips_cdid = allsky.get_hips_cdid();
 
-                        if let Some(survey) = self.layers.get_mut_hips_from_url(hips_url) {
+                        if let Some(survey) = self.layers.get_mut_hips_from_cdid(hips_cdid) {
                             let is_missing = allsky.missing();
                             if is_missing {
                                 // The allsky image is missing so we donwload all the tiles contained into
@@ -686,12 +685,14 @@ impl App {
                                 // give them already
                                 survey.add_allsky(allsky)?;
                                 // Once received ask for redraw
+                                console_log("allsky received");
                                 self.request_redraw = true;
                             }
                         }
                     }
                     Resource::PixelMetadata(metadata) => {
-                        if let Some(hips) = self.layers.get_mut_hips_from_url(&metadata.hips_url) {
+                        if let Some(hips) = self.layers.get_mut_hips_from_cdid(&metadata.hips_cdid)
+                        {
                             let mut cfg = hips.get_config_mut();
 
                             if let Some(metadata) = *metadata.value.lock().unwrap_abort() {
@@ -702,9 +703,9 @@ impl App {
                         }
                     }
                     Resource::Moc(moc) => {
-                        let moc_url = moc.get_url();
-                        let url = &moc_url[..moc_url.find("/Moc.fits").unwrap_abort()];
-                        if let Some(hips) = self.layers.get_mut_hips_from_url(url) {
+                        let moc_hips_cdid = moc.get_hips_cdid();
+                        //let url = &moc_url[..moc_url.find("/Moc.fits").unwrap_abort()];
+                        if let Some(hips) = self.layers.get_mut_hips_from_cdid(moc_hips_cdid) {
                             let request::moc::Moc { moc, .. } = moc;
 
                             if let Some(moc) = &*moc.lock().unwrap_abort() {
@@ -756,14 +757,13 @@ impl App {
         // - there is at least one tile in its blending phase
         let blending_anim_occuring =
             (Time::now() - self.time_start_blending) < BLENDING_ANIM_DURATION;
-
-        let start_fading = self.layers.values_hips().any(|hips| {
+        /*let start_fading = self.layers.values_hips().any(|hips| {
             if let Some(start_time) = hips.get_ready_time() {
                 Time::now() - *start_time < BLENDING_ANIM_DURATION
             } else {
                 false
             }
-        });
+        });*/
 
         // Finally update the camera that reset the flag camera changed
         //if has_camera_moved {
@@ -787,8 +787,7 @@ impl App {
             })
         }
 
-        self.rendering =
-            blending_anim_occuring | has_camera_moved | self.request_redraw | start_fading;
+        self.rendering = blending_anim_occuring | has_camera_moved | self.request_redraw /*| start_fading*/;
         self.request_redraw = false;
 
         self.draw(false)?;
@@ -1189,17 +1188,13 @@ impl App {
         self.layers.get_layer_cfg(layer)
     }
 
-    pub(crate) fn set_hips_url(
-        &mut self,
-        past_url: String,
-        new_url: String,
-    ) -> Result<(), JsValue> {
-        self.layers.set_survey_url(past_url, new_url.clone())?;
+    pub(crate) fn set_hips_url(&mut self, cdid: &String, new_url: String) -> Result<(), JsValue> {
+        self.layers.set_survey_url(cdid, new_url.clone())?;
 
-        let hips = self.layers.get_hips_from_url(&new_url).unwrap_abort();
+        //let hips = self.layers.get_hips_from_url(&new_url).unwrap_abort();
         // Relaunch the base tiles for the survey to be ready with the new url
-        self.tile_fetcher
-            .launch_starting_hips_requests(hips, &mut self.downloader);
+        //self.tile_fetcher
+        //    .launch_starting_hips_requests(hips, &mut self.downloader);
 
         Ok(())
     }
@@ -1302,12 +1297,8 @@ impl App {
         self.request_redraw = true;
     }
 
-    pub(crate) fn set_survey_url(
-        &mut self,
-        past_url: String,
-        new_url: String,
-    ) -> Result<(), JsValue> {
-        self.layers.set_survey_url(past_url, new_url)
+    pub(crate) fn set_survey_url(&mut self, cdid: &String, new_url: String) -> Result<(), JsValue> {
+        self.layers.set_survey_url(cdid, new_url)
     }
 
     pub(crate) fn set_catalog_opacity(

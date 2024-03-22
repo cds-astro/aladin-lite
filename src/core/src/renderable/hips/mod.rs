@@ -30,6 +30,7 @@ use crate::math::angle::ToAngle;
 use crate::math::lonlat::LonLat;
 use crate::time::Time;
 use al_core::log;
+use std::collections::HashSet;
 
 // Recursively compute the number of subdivision needed for a cell
 // to not be too much skewed
@@ -528,11 +529,12 @@ impl HiPS {
     pub fn look_for_new_tiles<'a>(
         &'a mut self,
         camera: &'a mut CameraViewPort,
-    ) -> Option<impl Iterator<Item = &'a HEALPixCell> + 'a> {
+    ) -> Option<impl Iterator<Item = HEALPixCell> + 'a> {
         // do not add tiles if the view is already at depth 0
         let depth_tile = (camera.get_texture_depth() + self.get_config().delta_depth())
             .min(self.get_config().get_max_depth_tile())
             .max(self.get_config().get_min_depth_tile());
+        let dd = self.get_config().delta_depth();
 
         //let min_depth_tile = self.get_min_depth_tile();
         //let delta_depth = self.get_config().delta_depth();
@@ -547,13 +549,25 @@ impl HiPS {
         //if depth_tile >= min_bound_depth {
         //let depth_tile = depth_tile.max(min_bound_depth);
         let survey_frame = self.get_config().get_frame();
+        let mut already_considered_tiles = HashSet::new();
         let tile_cells_iter = camera
             .get_hpx_cells(depth_tile, survey_frame)
             //.flat_map(move |cell| {
             //    let texture_cell = cell.get_texture_cell(delta_depth);
             //    texture_cell.get_tile_cells(delta_depth)
             //})
+            .flat_map(move |tile_cell| {
+                let tex_cell = tile_cell.get_texture_cell(dd);
+                //console_log(&format!("{:?}, dd:{:?}", tex_cell, dd));
+                tex_cell.get_tile_cells(dd)
+            })
             .filter(move |tile_cell| {
+                if already_considered_tiles.contains(tile_cell) {
+                    return false;
+                }
+
+                already_considered_tiles.insert(*tile_cell);
+
                 if let Some(moc) = self.footprint_moc.as_ref() {
                     moc.intersects_cell(tile_cell) && !self.update_priority_tile(tile_cell)
                 } else {
@@ -616,7 +630,7 @@ impl HiPS {
         self.textures.set_format(&self.gl, ext)
     }
 
-    pub fn get_fading_factor(&self) -> f32 {
+    /*pub fn get_fading_factor(&self) -> f32 {
         self.textures
             .start_time
             .map(|start_time| {
@@ -624,7 +638,7 @@ impl HiPS {
                 fading.clamp(0.0, 1.0)
             })
             .unwrap_or(0.0)
-    }
+    }*/
 
     pub fn is_allsky(&self) -> bool {
         self.textures.config().is_allsky
@@ -716,15 +730,22 @@ impl HiPS {
 
             if let Some(cell) = cell {
                 let texture_to_draw = if self.textures.contains(cell) {
-                    let parent_cell = self.textures.get_nearest_parent(cell);
-
                     if let Some(ending_cell_in_tex) = self.textures.get(cell) {
-                        if let Some(starting_cell_in_tex) = self.textures.get(&parent_cell) {
-                            Some(TextureToDraw::new(
-                                starting_cell_in_tex,
-                                ending_cell_in_tex,
-                                cell,
-                            ))
+                        if let Some(parent_cell) = self.textures.get_nearest_parent(cell) {
+                            if let Some(starting_cell_in_tex) = self.textures.get(&parent_cell) {
+                                Some(TextureToDraw::new(
+                                    starting_cell_in_tex,
+                                    ending_cell_in_tex,
+                                    cell,
+                                ))
+                            } else {
+                                // no blending here
+                                Some(TextureToDraw::new(
+                                    ending_cell_in_tex,
+                                    ending_cell_in_tex,
+                                    cell,
+                                ))
+                            }
                         } else {
                             Some(TextureToDraw::new(
                                 ending_cell_in_tex,
@@ -736,22 +757,36 @@ impl HiPS {
                         None
                     }
                 } else {
-                    let parent_cell = self.textures.get_nearest_parent(cell);
-                    let grand_parent_cell = self.textures.get_nearest_parent(&parent_cell);
-
-                    if let Some(ending_cell_in_tex) = self.textures.get(&parent_cell) {
-                        if let Some(starting_cell_in_tex) = self.textures.get(&grand_parent_cell) {
-                            Some(TextureToDraw::new(
-                                starting_cell_in_tex,
-                                ending_cell_in_tex,
-                                cell,
-                            ))
+                    if let Some(parent_cell) = self.textures.get_nearest_parent(cell) {
+                        if let Some(ending_cell_in_tex) = self.textures.get(&parent_cell) {
+                            if let Some(grand_parent_cell) =
+                                self.textures.get_nearest_parent(&parent_cell)
+                            {
+                                if let Some(starting_cell_in_tex) =
+                                    self.textures.get(&grand_parent_cell)
+                                {
+                                    Some(TextureToDraw::new(
+                                        starting_cell_in_tex,
+                                        ending_cell_in_tex,
+                                        cell,
+                                    ))
+                                } else {
+                                    // no blending
+                                    Some(TextureToDraw::new(
+                                        ending_cell_in_tex,
+                                        ending_cell_in_tex,
+                                        cell,
+                                    ))
+                                }
+                            } else {
+                                Some(TextureToDraw::new(
+                                    ending_cell_in_tex,
+                                    ending_cell_in_tex,
+                                    cell,
+                                ))
+                            }
                         } else {
-                            Some(TextureToDraw::new(
-                                ending_cell_in_tex,
-                                ending_cell_in_tex,
-                                cell,
-                            ))
+                            None
                         }
                     } else {
                         None
@@ -1000,8 +1035,8 @@ impl HiPS {
         } = cfg;
 
         // Add starting fading
-        let fading = self.get_fading_factor();
-        let opacity = opacity * fading;
+        //let fading = self.get_fading_factor();
+        //let opacity = opacity * fading;
         // Get the colormap from the color
         let cmap = colormaps.get(color.cmap_name.as_ref());
 
@@ -1019,7 +1054,7 @@ impl HiPS {
                     .attach_uniform("model", &w2v)
                     .attach_uniform("inv_model", &v2w)
                     .attach_uniform("current_time", &utils::get_current_time())
-                    .attach_uniform("opacity", &opacity)
+                    .attach_uniform("opacity", opacity)
                     .attach_uniforms_from(colormaps);
 
                 raytracer.draw(&shader);
@@ -1047,7 +1082,7 @@ impl HiPS {
                     .attach_uniform("model", &w2v)
                     .attach_uniform("inv_model", &v2w)
                     .attach_uniform("current_time", &utils::get_current_time())
-                    .attach_uniform("opacity", &opacity)
+                    .attach_uniform("opacity", opacity)
                     .attach_uniforms_from(colormaps)
                     .bind_vertex_array_object_ref(&self.vao)
                     .draw_elements_with_i32(

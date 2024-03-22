@@ -1,4 +1,5 @@
 use crate::healpix::cell::HEALPixCell;
+use crate::renderable::CreatorDid;
 use al_core::image::format::{ChannelType, ImageFormatType, RGB8U, RGBA8U};
 
 use crate::downloader::query;
@@ -12,7 +13,7 @@ pub struct TileRequest {
     pub id: QueryId,
 
     cell: HEALPixCell,
-    hips_url: Url,
+    hips_cdid: CreatorDid,
     url: Url,
     format: ImageFormatType,
 
@@ -57,7 +58,7 @@ impl From<query::Tile> for TileRequest {
             format,
             cell,
             url,
-            hips_url,
+            hips_cdid,
             id,
         } = query;
 
@@ -177,7 +178,7 @@ impl From<query::Tile> for TileRequest {
             cell,
             format,
             id,
-            hips_url,
+            hips_cdid,
             url,
             request,
         }
@@ -191,7 +192,7 @@ pub struct Tile {
     pub time_req: Time,
     pub cell: HEALPixCell,
     pub format: ImageFormatType,
-    hips_url: Url,
+    hips_cdid: CreatorDid,
     url: Url,
 }
 
@@ -203,8 +204,8 @@ impl Tile {
     }
 
     #[inline(always)]
-    pub fn get_hips_url(&self) -> &Url {
-        &self.hips_url
+    pub fn get_hips_cdid(&self) -> &CreatorDid {
+        &self.hips_cdid
     }
 
     #[inline(always)]
@@ -228,7 +229,7 @@ impl<'a> From<&'a TileRequest> for Option<Tile> {
         let TileRequest {
             cell,
             request,
-            hips_url,
+            hips_cdid,
             url,
             format,
             ..
@@ -242,7 +243,7 @@ impl<'a> From<&'a TileRequest> for Option<Tile> {
                 time_req: *time_request,
                 // This is a clone on a Arc, it is supposed to be fast
                 image: data.clone(),
-                hips_url: hips_url.clone(),
+                hips_cdid: hips_cdid.clone(),
                 url: url.clone(),
                 format: *format,
             })

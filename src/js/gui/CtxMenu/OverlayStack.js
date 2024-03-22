@@ -292,18 +292,18 @@ export class OverlayStack extends ContextMenu {
                                         self._hide();
 
                                         self.aladin.select('circle', c => {
-                                            let [ra, dec] = self.aladin.pix2world(c.x, c.y, 'j2000');
-                                            let radius = self.aladin.angularDist(c.x, c.y, c.x + c.r, c.y);
-
-                                            if (ra && dec && radius) {
+                                            try {
+                                                let [ra, dec] = self.aladin.pix2world(c.x, c.y, 'j2000');
+                                                let radius = self.aladin.angularDist(c.x, c.y, c.x + c.r, c.y);
+    
                                                 // the moc needs a 
                                                 let moc = A.MOCFromCircle(
                                                     {ra, dec, radius},
                                                     {name: 'cone', lineWidth: 3.0},
                                                 );
                                                 self.aladin.addMOC(moc)
-                                            } else {
-                                                alert('The circle selection might be invalid. ra: ' + ra + 'deg, dec: ' + dec + 'deg, radius: ' + radius + 'deg')
+                                            } catch {
+                                                console.error('Circle out of projection. Selection canceled')
                                             }
                                         })
                                     }

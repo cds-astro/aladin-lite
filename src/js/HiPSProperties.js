@@ -134,27 +134,36 @@ HiPSProperties.fetchFromUrl = async function(urlOrId) {
     return result;
 }
 
-HiPSProperties.getFasterMirrorUrl = function (metadata) {
-    const pingHiPSServiceUrl = (hipsServiceUrl) => {
-        hipsServiceUrl = Utils.fixURLForHTTPS(hipsServiceUrl);
+HiPSProperties.getFasterMirrorUrl = function (metadata, currUrl) {
+    const pingHiPSServiceUrl = async (baseUrl) => {
+        baseUrl = Utils.fixURLForHTTPS(baseUrl);
 
         const controller = new AbortController()
 
-        let startRequestTime = Date.now();
-        const maxTime = 500;
+        const maxTime = 1000;
         // 5 second timeout:
         const timeoutId = setTimeout(() => controller.abort(), maxTime)
-        const promise = fetch(hipsServiceUrl + '/properties', { cache: 'no-store', signal: controller.signal, mode: "cors" }).then(response => {
-            const duration = Date.now() - startRequestTime;//the time needed to do the request
+
+        let startRequestTime = performance.now();
+        let options = {
+            //headers: { 'Cache-Control': 'no-cache' }, // Disable caching
+            method: 'GET',
+            signal: controller.signal,
+            mode: 'cors',
+            cache: "no-cache",
+        };
+        let validRequest = await fetch(baseUrl + '/properties', options).then((resp) => {
             // completed request before timeout fired
             clearTimeout(timeoutId)
             // Resolve with the time duration of the request
-            return { duration: duration, baseUrl: hipsServiceUrl, validRequest: true };
+            return Promise.resolve(true);
         }).catch((e) => {
-            return { duration: maxTime, baseUrl: hipsServiceUrl, validRequest: false };
+            return Promise.resolve(false);
         });
+        const duration = performance.now() - startRequestTime;//the time needed to do the request
 
-        return promise;
+
+        return {duration, validRequest, baseUrl};
     };
 
     // Get all the possible hips_service_url urls
@@ -190,22 +199,39 @@ HiPSProperties.getFasterMirrorUrl = function (metadata) {
                 return r1.duration - r2.duration;
             });
 
-            //console.log(validResponses)
+            console.log(validResponses)
+            let newUrlResp;
 
             if (validResponses.length >= 2) {
-                const isSecondUrlOk = ((validResponses[1].duration - validResponses[0].duration) / validResponses[0].duration) < 0.20;
+                const isSecondUrlOk = ((validResponses[1].duration - validResponses[0].duration) / validResponses[0].duration) < 0.10;
 
                 if (isSecondUrlOk) {
-                    return validResponses[getRandomIntInclusive(0, 1)].baseUrl;
+                    newUrlResp = validResponses[getRandomIntInclusive(0, 1)];
                 } else {
-                    return validResponses[0].baseUrl;
+                    newUrlResp = validResponses[0];
                 }
             } else if (validResponses.length === 1) {
-                return validResponses[0].baseUrl;
+                newUrlResp = validResponses[0];
             } else {
                 // no valid response => we return an error
                 return Promise.reject('Survey not found. All mirrors urls have been tested:' + urls)
             }
+
+            // check if there is a big difference from the current one
+            let currUrlResp = validResponses.find((r) => r.baseUrl === currUrl)
+
+            let urlChosen;
+            if (Math.abs(currUrlResp.duration - newUrlResp.duration) / Math.min(currUrlResp.duration, newUrlResp.duration) < 0.10) {
+                // there is not enough difference => do not switch
+                urlChosen = currUrlResp.baseUrl;
+            } else {
+                // good difference we take the best
+                urlChosen = newUrlResp.baseUrl;
+            }
+
+            console.log('curr url', currUrlResp, ', new ', newUrlResp)
+
+            urlChosen = Utils.fixURLForHTTPS(urlChosen)
+            return urlChosen;
         })
-        .then((url) => Utils.fixURLForHTTPS(url))
 }

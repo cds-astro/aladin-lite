@@ -1,7 +1,7 @@
 //const int MAX_NUM_TEX = 3;
 uniform sampler2D tex1;
 uniform sampler2D tex2;
-uniform sampler2D tex3;
+//uniform sampler2D tex3;
 
 uniform int num_tex;
 
@@ -23,16 +23,16 @@ uniform int tex_storing_fits;
 #include ./hsv.glsl;
 
 vec4 get_pixels(vec3 uv) {
-    int idx_texture = int(uv.z);
-    if (idx_texture == 0) {
+    
+    /*if (idx_texture == 0) {
         return texture(tex1, uv.xy);
     } else if (idx_texture == 1) {
         return texture(tex2, uv.xy);
-    } else if (idx_texture == 2) {
-        return texture(tex3, uv.xy);
     } else {
         return vec4(0.0, 1.0, 0.0, 1.0);
-    }
+    }*/
+    int idx_texture = int(uv.z);
+    return mix(texture(tex1, uv.xy), texture(tex2, uv.xy), float(idx_texture));
 }
 
 vec3 reverse_uv(vec3 uv) {

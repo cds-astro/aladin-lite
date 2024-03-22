@@ -1,6 +1,7 @@
 use std::io::Cursor;
 
 use crate::downloader::query;
+use crate::renderable::CreatorDid;
 use al_core::image::format::ChannelType;
 use al_core::image::ImageType;
 
@@ -9,7 +10,7 @@ use fitsrs::{fits::Fits, hdu::data::InMemData};
 use super::{Request, RequestType};
 use crate::downloader::QueryId;
 pub struct AllskyRequest {
-    pub hips_url: Url,
+    pub hips_cdid: CreatorDid,
     pub url: Url,
     pub depth_tile: u8,
     pub id: QueryId,
@@ -76,7 +77,7 @@ impl From<query::Allsky> for AllskyRequest {
             format,
             tile_size,
             url,
-            hips_url,
+            hips_cdid,
             texture_size,
             id,
         } = query;
@@ -207,7 +208,7 @@ impl From<query::Allsky> for AllskyRequest {
 
         Self {
             id,
-            hips_url,
+            hips_cdid,
             depth_tile,
             url,
             request,
@@ -309,7 +310,7 @@ pub struct Allsky {
     pub time_req: Time,
     pub depth_tile: u8,
 
-    pub hips_url: Url,
+    pub hips_cdid: CreatorDid,
     url: Url,
 }
 
@@ -320,8 +321,8 @@ impl Allsky {
         self.image.lock().unwrap_abort().is_none()
     }
 
-    pub fn get_hips_url(&self) -> &Url {
-        &self.hips_url
+    pub fn get_hips_cdid(&self) -> &CreatorDid {
+        &self.hips_cdid
     }
 
     pub fn get_url(&self) -> &Url {
@@ -333,7 +334,7 @@ impl<'a> From<&'a AllskyRequest> for Option<Allsky> {
     fn from(request: &'a AllskyRequest) -> Self {
         let AllskyRequest {
             request,
-            hips_url,
+            hips_cdid,
             depth_tile,
             url,
             ..
@@ -346,7 +347,7 @@ impl<'a> From<&'a AllskyRequest> for Option<Allsky> {
                 time_req: *time_request,
                 // This is a clone on a Arc, it is supposed to be fast
                 image: data.clone(),
-                hips_url: hips_url.clone(),
+                hips_cdid: hips_cdid.clone(),
                 url: url.clone(),
                 depth_tile: *depth_tile,
             })

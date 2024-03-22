@@ -4,7 +4,7 @@ use super::request::RequestType;
 pub trait Query: Sized {
     type Request: From<Self> + Into<RequestType>;
 
-    fn url(&self) -> &Url;
+    fn hips_cdid(&self) -> &CreatorDid;
     fn id(&self) -> &QueryId;
 }
 
@@ -17,17 +17,18 @@ pub struct Tile {
     pub cell: HEALPixCell,
     pub format: ImageFormatType,
     // The root url of the HiPS
-    pub hips_url: Url,
+    pub hips_cdid: CreatorDid,
     // The total url of the query
     pub url: Url,
     pub id: QueryId,
 }
 
+use crate::renderable::CreatorDid;
 use crate::{healpix::cell::HEALPixCell, survey::config::HiPSConfig};
 impl Tile {
     pub fn new(
         cell: &HEALPixCell,
-        hips_id: String,
+        hips_cdid: String,
         hips_url: String,
         format: ImageFormatType,
     ) -> Self {
@@ -42,10 +43,10 @@ impl Tile {
             hips_url, depth, dir_idx, idx, ext
         );
 
-        let id = format!("{}{}{}{}", hips_id, depth, idx, ext);
+        let id = format!("{}{}{}{}", hips_cdid, depth, idx, ext);
 
         Tile {
-            hips_url,
+            hips_cdid,
             url,
             cell: *cell,
             format,
@@ -58,8 +59,8 @@ use super::request::tile::TileRequest;
 impl Query for Tile {
     type Request = TileRequest;
 
-    fn url(&self) -> &Url {
-        &self.url
+    fn hips_cdid(&self) -> &CreatorDid {
+        &self.hips_cdid
     }
 
     fn id(&self) -> &QueryId {
@@ -73,7 +74,7 @@ pub struct Allsky {
     pub tile_size: i32,
     pub texture_size: i32,
     // The root url of the HiPS
-    pub hips_url: Url,
+    pub hips_cdid: CreatorDid,
     // The total url of the query
     pub url: Url,
     pub id: QueryId,
@@ -81,20 +82,20 @@ pub struct Allsky {
 
 impl Allsky {
     pub fn new(cfg: &HiPSConfig) -> Self {
-        let hips_url = cfg.get_root_url().to_string();
+        let hips_cdid = cfg.get_creator_did().to_string();
         let tile_size = cfg.get_tile_size();
         let texture_size = cfg.get_texture_size();
         let format = cfg.get_format();
         let ext = format.get_ext_file();
 
-        let url = format!("{}/Norder3/Allsky.{}", hips_url, ext);
+        let url = format!("{}/Norder3/Allsky.{}", cfg.get_root_url(), ext);
 
         let id = format!("{}Allsky{}", cfg.get_creator_did(), ext);
 
         Allsky {
             tile_size,
             texture_size,
-            hips_url,
+            hips_cdid,
             url,
             format,
             id,
@@ -106,8 +107,8 @@ use super::request::allsky::AllskyRequest;
 impl Query for Allsky {
     type Request = AllskyRequest;
 
-    fn url(&self) -> &Url {
-        &self.url
+    fn hips_cdid(&self) -> &CreatorDid {
+        &self.hips_cdid
     }
 
     fn id(&self) -> &QueryId {
@@ -119,7 +120,7 @@ impl Query for Allsky {
 pub struct PixelMetadata {
     pub format: ImageFormatType,
     // The root url of the HiPS
-    pub hips_url: Url,
+    pub hips_cdid: CreatorDid,
     // The total url of the query
     pub url: Url,
     pub id: QueryId,
@@ -127,15 +128,15 @@ pub struct PixelMetadata {
 
 impl PixelMetadata {
     pub fn new(cfg: &HiPSConfig) -> Self {
-        let hips_url = cfg.get_root_url().to_string();
+        let hips_cdid = cfg.get_creator_did().to_string();
         let format = cfg.get_format();
         let ext = format.get_ext_file();
 
-        let url = format!("{}/Norder3/Allsky.{}", hips_url, ext);
+        let url = format!("{}/Norder3/Allsky.{}", cfg.get_root_url(), ext);
 
-        let id = format!("{}Allsky{}", cfg.get_creator_did(), ext);
+        let id = format!("{}Allsky{}", hips_cdid, ext);
         PixelMetadata {
-            hips_url,
+            hips_cdid,
             url,
             format,
             id,
@@ -147,8 +148,8 @@ use super::request::blank::PixelMetadataRequest;
 impl Query for PixelMetadata {
     type Request = PixelMetadataRequest;
 
-    fn url(&self) -> &Url {
-        &self.url
+    fn hips_cdid(&self) -> &CreatorDid {
+        &self.hips_cdid
     }
 
     fn id(&self) -> &QueryId {
@@ -161,10 +162,15 @@ pub struct Moc {
     // The total url of the query
     pub url: Url,
     pub params: al_api::moc::MOC,
+    pub hips_cdid: CreatorDid,
 }
 impl Moc {
-    pub fn new(url: String, params: al_api::moc::MOC) -> Self {
-        Moc { url, params }
+    pub fn new(url: String, hips_cdid: CreatorDid, params: al_api::moc::MOC) -> Self {
+        Moc {
+            url,
+            params,
+            hips_cdid,
+        }
     }
 }
 
@@ -172,8 +178,8 @@ use super::request::moc::MOCRequest;
 impl Query for Moc {
     type Request = MOCRequest;
 
-    fn url(&self) -> &Url {
-        &self.url
+    fn hips_cdid(&self) -> &CreatorDid {
+        &self.hips_cdid
     }
 
     fn id(&self) -> &QueryId {

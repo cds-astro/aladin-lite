@@ -1,4 +1,5 @@
 use crate::downloader::query;
+use crate::renderable::CreatorDid;
 
 use super::{Request, RequestType};
 use crate::downloader::QueryId;
@@ -8,7 +9,7 @@ use moclib::qty::Hpx;
 
 pub struct MOCRequest {
     //pub id: QueryId,
-    pub url: Url,
+    pub hips_cdid: CreatorDid,
     pub params: al_api::moc::MOC,
     request: Request<HEALPixCoverage>,
 }
@@ -48,7 +49,11 @@ use wasm_bindgen::JsValue;
 impl From<query::Moc> for MOCRequest {
     // Create a tile request associated to a HiPS
     fn from(query: query::Moc) -> Self {
-        let query::Moc { url, params } = query;
+        let query::Moc {
+            url,
+            params,
+            hips_cdid,
+        } = query;
 
         let url_clone = url.clone();
 
@@ -88,7 +93,8 @@ impl From<query::Moc> for MOCRequest {
 
         Self {
             //id,
-            url,
+            //url,
+            hips_cdid,
             request,
             params,
         }
@@ -99,12 +105,12 @@ use std::sync::{Arc, Mutex};
 pub struct Moc {
     pub moc: Arc<Mutex<Option<HEALPixCoverage>>>,
     pub params: al_api::moc::MOC,
-    pub url: Url,
+    pub hips_cdid: Url,
 }
 
 impl Moc {
-    pub fn get_url(&self) -> &Url {
-        &self.url
+    pub fn get_hips_cdid(&self) -> &Url {
+        &self.hips_cdid
     }
 }
 
@@ -112,7 +118,7 @@ impl<'a> From<&'a MOCRequest> for Option<Moc> {
     fn from(request: &'a MOCRequest) -> Self {
         let MOCRequest {
             request,
-            url,
+            hips_cdid,
             params,
             ..
         } = request;
@@ -121,7 +127,7 @@ impl<'a> From<&'a MOCRequest> for Option<Moc> {
             Some(Moc {
                 // This is a clone on a Arc, it is supposed to be fast
                 moc: data.clone(),
-                url: url.clone(),
+                hips_cdid: hips_cdid.clone(),
                 params: params.clone(),
             })
         } else {

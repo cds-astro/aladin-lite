@@ -43,16 +43,16 @@ import { ProjectionEnum } from "./ProjectionEnum.js";
 export let Polyline= (function() {
     function _calculateMag2ForNoSinProjections(line, view) {
         // check if the line is too big (in the clip space) to be drawn
-        const [x1, y1] = AladinUtils.viewXyToClipXy(line.x1, line.y1, view.aladin);
-        const [x2, y2] = AladinUtils.viewXyToClipXy(line.x2, line.y2, view.aladin);
+        const [x1, y1] = view.wasm.screenToClip(line.x1, line.y1);
+        const [x2, y2] = view.wasm.screenToClip(line.x2, line.y2);
 
         const mag2 = (x1 - x2)*(x1 - x2) + (y1 - y2)*(y1 - y2);
         return mag2;
     }
 
     function _isAcrossCollignonZoneForHpxProjection(line, view) {
-        const [x1, y1] = AladinUtils.viewXyToClipXy(line.x1, line.y1, view.aladin);
-        const [x2, y2] = AladinUtils.viewXyToClipXy(line.x2, line.y2, view.aladin);
+        const [x1, y1] = view.wasm.screenToClip(line.x1, line.y1);
+        const [x2, y2] = view.wasm.screenToClip(line.x2, line.y2);
 
         // x, y, between -1 and 1
         let triIdxCollignionZone = function(x, y) {

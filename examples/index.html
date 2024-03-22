@@ -6,9 +6,10 @@
 <body>
 <div id="aladin-lite-div" style="width: 500px; height: 500px"></div>
 
-<script type="text/javascript" src="./../dist/aladin.umd.cjs" charset="utf-8"></script>
+<script type="text/javascript" src="https://aladin.cds.unistra.fr/AladinLite/alpha/aladin.js" charset="utf-8"></script>
 <script type="text/javascript">
     var aladin;
+    console.log(A.AladinUtils.HEALPix)
     A.init.then(() => {
         aladin = A.aladin('#aladin-lite-div', {fullScreen: true, cooFrame: "ICRSd", showSimbadPointerControl: true, showShareControl: true, showShareControl: true, survey: 'https://alasky.cds.unistra.fr/DSS/DSSColor/', fov: 180, showContextMenu: true});
         // manage URL parameters
@@ -40,6 +41,11 @@
                 enabled: b
             });
         }
+
+        A.catalogFromSKAORucio("Abell 194", 90, {onClick: 'showTable'}, (cat) => {
+            aladin.addCatalog(cat);
+        });
+
     });
 </script>
 

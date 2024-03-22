@@ -43,6 +43,8 @@ import { Footprint } from './Footprint.js';
 import { Aladin } from "./Aladin.js";
 import { ActionButton } from "./gui/Widgets/ActionButton.js";
 import { Box } from "./gui/Widgets/Box.js";
+import { AladinUtils } from "./AladinUtils.js";
+
 // Wasm top level import
 import init, * as module from './../core/pkg';
 
@@ -820,6 +822,19 @@ A.box = function(options) {
 A.getAvailableListOfColormaps = function() {
     return ColorCfg.COLORMAPS;
 };
+
+/**
+ * Returns utils object
+ * 
+ * This contains utilitary methods such as HEALPix basic or projection methods.
+ *
+ * @function
+ * @memberof A
+ * @name Utils
+ *
+ * @returns {AladinUtils} Returns a new box window object.
+ */
+A.Utils = AladinUtils;
 
 /**
  * Initializes the Aladin Lite library, checking for WebGL2 support.

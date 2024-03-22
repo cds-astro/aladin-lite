@@ -27,8 +27,6 @@
  * Author: Thomas Boch[CDS]
  * 
  *****************************************************************************/
-import { HPXVertices } from "../core/pkg/core";
-import A from "./A";
 import { Aladin } from "./Aladin";
 
 /**

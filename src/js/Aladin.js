@@ -213,12 +213,12 @@ export let Aladin = (function () {
         this.options = options;
 
         this.reduceDeformations = true;
-        // parent div
-        aladinDiv.classList.add("aladin-container");
 
         // Init the measurement table
         this.measurementTable = new MeasurementTable(this);
 
+        // parent div
+        aladinDiv.classList.add("aladin-container");
         // set different options
         // Reticle
         this.view = new View(this);

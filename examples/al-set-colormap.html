@@ -6,14 +6,18 @@
 <div id="aladin-lite-div" style="width: 1024px; height: 768px"></div>
 
 <div id='aladin-statsDiv'></div>
+<script>let aladin, hips</script>
 <script type="module">
     import A from '../src/js/A.js';
-    let aladin;
     A.init.then(() => {
         aladin = A.aladin('#aladin-lite-div', {cooFrame: 'galactic', target: 'galactic center', survey: 'P/Finkbeiner'});
         // possible values are 'blues', 'cividis', 'cubehelix', 'eosb', 'grayscale', 'inferno', 'magma', 'native', 'parula', 'plasma', 'rainbow',
         // 'rdbu', 'rdylbu', 'redtemperature', 'sinebow', 'spectral', 'summer', 'viridis', 'ylgnbu' and 'ylorbr'
-        aladin.getBaseImageLayer().setColormap("cubehelix");
+        hips = aladin.getBaseImageLayer()
+        hips.setColormap("cubehelix");
+
+        aladin.setImageSurvey('astron.nl/P/lotss_dr2_high')
+
         //aladin.getBaseImageLayer().setColor([1.0, 0.0, 1.0, 1.0], { tf: 'Linear'} );
     });
 </script>

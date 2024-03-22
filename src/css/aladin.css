@@ -2,9 +2,8 @@ body { overscroll-behavior: contain; }
 
 .aladin-container {
 	position: relative;
-	border: 1px solid #ddd;
-    height: 100%;
 
+	border: 1px solid #ddd;
 
     /* disable x swipe on chrome, firefox */
     /* see. https://stackoverflow.com/questions/30636930/disable-web-page-navigation-on-swipeback-and-forward */

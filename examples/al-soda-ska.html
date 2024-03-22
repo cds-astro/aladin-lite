@@ -10,9 +10,9 @@
     import A from '../src/js/A.js';
     let aladin;
     A.init.then(() => {
-        aladin = A.aladin('#aladin-lite-div', {fullScreen: true, target: "Abell 194", fov: 180, projection: 'SIN', showContextMenu: true});
-
-        A.catalogFromSKAORucio("m51", 90, {onClick: 'showTable'}, (cat) => {
+        aladin = A.aladin('#aladin-lite-div', {fullScreen: true, target: "Abell 194", fov: 180, projection: 'AIT', showContextMenu: true});
+        aladin.setImageSurvey('astron.nl/P/lotss_dr2_high')
+        A.catalogFromSKAORucio("Abell 194", 90, {onClick: 'showTable'}, (cat) => {
             aladin.addCatalog(cat);
         });
 

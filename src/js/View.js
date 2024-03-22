@@ -195,7 +195,6 @@ export let View = (function () {
 
         this.empty = true;
 
-        //this.fixLayoutDimensions();
         this.promises = [];
         this.firstHiPS = true;
         this.curNorder = 1;
@@ -229,17 +228,19 @@ export let View = (function () {
                 self.fixLayoutDimensions();
             })
         } else {*/
-            let resizeLayout = () => {
-                self.fixLayoutDimensions();
-            }
-            let doit;
-            this.resizeObserver = new ResizeObserver(() => {
-                clearTimeout(doit);
-                doit = setTimeout(resizeLayout, 100);
-            });
+        let resizeLayout = () => {
+            self.fixLayoutDimensions();
+        }
 
-            self.resizeObserver.observe(this.aladinDiv);
+        let doit;
+        this.resizeObserver = new ResizeObserver(() => {
+            clearTimeout(doit);
+            doit = setTimeout(resizeLayout, 100);
+        });
+
+        self.resizeObserver.observe(this.aladinDiv);
         //}
+
 
         /**/
 
@@ -349,10 +350,10 @@ export let View = (function () {
     // The WebGL backend is resized
     View.prototype.fixLayoutDimensions = function () {
         Utils.cssScale = undefined;
-
         var computedWidth = parseFloat(window.getComputedStyle(this.aladinDiv).width) || 1.0;
         var computedHeight = parseFloat(window.getComputedStyle(this.aladinDiv).height) || 1.0;
 
+        console.log(this.height, computedHeight)
         this.width = Math.max(computedWidth, 1);
         this.height = Math.max(computedHeight, 1); // this prevents many problems when div size is equal to 0
 

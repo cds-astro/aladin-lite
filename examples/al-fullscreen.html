@@ -1,0 +1,23 @@
+<!doctype html>
+<html>
+<head>
+</head>
+<body>
+<div id="aladin-lite-div" style="width: 100%; height: 100%"></div>
+<!--<script type="text/javascript" src="https://aladin.cds.unistra.fr/AladinLite/api/v3/latest/aladin.js" charset="utf-8"></script>-->
+
+
+<script>let aladin, hips</script>
+<script type="module">
+    import A from '../src/js/A.js';
+    A.init.then(() => {
+        aladin = A.aladin('#aladin-lite-div', {cooFrame: 'galactic', target: 'galactic center', survey: 'P/Finkbeiner'});
+        // possible values are 'blues', 'cividis', 'cubehelix', 'eosb', 'grayscale', 'inferno', 'magma', 'native', 'parula', 'plasma', 'rainbow',
+        // 'rdbu', 'rdylbu', 'redtemperature', 'sinebow', 'spectral', 'summer', 'viridis', 'ylgnbu' and 'ylorbr'
+
+        //aladin.getBaseImageLayer().setColor([1.0, 0.0, 1.0, 1.0], { tf: 'Linear'} );
+    });
+</script>
+
+</body>
+</html>

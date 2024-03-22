@@ -291,10 +291,6 @@ export class SettingsCtxMenu extends ContextMenu {
 
         super.show({
             position: this.position,
-            cssStyle: {
-                backgroundColor: 'black',
-                maxWidth: '17rem',
-            }
         })
     }
 }

@@ -238,11 +238,7 @@ export let View = (function () {
             doit = setTimeout(resizeLayout, 100);
         });
 
-        self.resizeObserver.observe(this.aladinDiv);
-        //}
-
-
-        /**/
+        self.resizeObserver.observe(this.aladinDiv)
 
         this.throttledPositionChanged = Utils.throttle(
             () => {
@@ -350,6 +346,7 @@ export let View = (function () {
     // The WebGL backend is resized
     View.prototype.fixLayoutDimensions = function () {
         Utils.cssScale = undefined;
+
         var computedWidth = parseFloat(window.getComputedStyle(this.aladinDiv).width) || 1.0;
         var computedHeight = parseFloat(window.getComputedStyle(this.aladinDiv).height) || 1.0;
 
@@ -366,10 +363,19 @@ export let View = (function () {
         this.mouseMoveIncrement = 160 / this.largestDim;
 
         // reinitialize 2D context
-        this.imageCtx = this.imageCanvas.getContext("webgl2");
-        //this.aladinDiv.style.width = this.width + "px";
         //this.aladinDiv.style.height = this.height + "px";
-        this.wasm.resize(this.width, this.height);
+
+        /*canvas
+        .style()
+        .set_property("width", &format!("{}px", width))
+        .unwrap_abort();
+    canvas
+        .style()
+        .set_property("height", &format!("{}px", height))
+        .unwrap_abort();
+
+    canvas.set_width(self.width as u32);
+    canvas.set_height(self.height as u32);*/
 
         this.catalogCtx = this.catalogCanvas.getContext("2d");
         this.catalogCtx.canvas.width = this.width;
@@ -378,6 +384,14 @@ export let View = (function () {
         this.gridCtx = this.gridCanvas.getContext("2d");
         this.gridCtx.canvas.width = this.width;
         this.gridCtx.canvas.height = this.height;
+
+
+        this.imageCtx = this.imageCanvas.getContext("webgl2");
+        this.imageCtx.canvas.style.width = this.width + "px";
+        this.imageCtx.canvas.style.height = this.height + "px";
+
+        this.wasm.resize(this.width, this.height);
+
 
         pixelateCanvasContext(this.imageCtx, this.aladin.options.pixelateCanvas);
 

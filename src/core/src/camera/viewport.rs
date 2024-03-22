@@ -253,41 +253,6 @@ impl CameraViewPort {
         );
     }
 
-    fn set_canvas_size(&self, width: f32, height: f32) {
-        let canvas = self
-            .gl
-            .canvas()
-            .unwrap_abort()
-            .dyn_into::<web_sys::HtmlCanvasElement>()
-            .unwrap_abort();
-
-        canvas
-            .style()
-            .set_property("width", &format!("{}px", width))
-            .unwrap_abort();
-        canvas
-            .style()
-            .set_property("height", &format!("{}px", height))
-            .unwrap_abort();
-        /*grid_canvas
-            .style()
-            .set_property("width", &format!("{}px", width))
-            .unwrap_abort();
-        grid_canvas
-            .style()
-            .set_property("height", &format!("{}px", height))
-            .unwrap_abort();*/
-
-        canvas.set_width(self.width as u32);
-        canvas.set_height(self.height as u32);
-        //grid_canvas.set_width(self.width as u32);
-        //grid_canvas.set_height(self.height as u32);
-
-        // Once the canvas size is changed, we have to set the viewport as well
-        self.gl
-            .viewport(0, 0, self.width as i32, self.height as i32);
-    }
-
     pub fn set_screen_size(&mut self, width: f32, height: f32, projection: &ProjectionType) {
         self.width = (width as f32) * self.dpi;
         self.height = (height as f32) * self.dpi;
@@ -310,7 +275,18 @@ impl CameraViewPort {
         ));
 
         // Update the size of the canvas
-        self.set_canvas_size(width, height);
+        let canvas = self
+            .gl
+            .canvas()
+            .unwrap_abort()
+            .dyn_into::<web_sys::HtmlCanvasElement>()
+            .unwrap_abort();
+
+        canvas.set_width(self.width as u32);
+        canvas.set_height(self.height as u32);
+        // Once the canvas size is changed, we have to set the viewport as well
+        self.gl
+            .viewport(0, 0, self.width as i32, self.height as i32);
         // Once it is done, recompute the scissor
         self.recompute_scissor();
     }

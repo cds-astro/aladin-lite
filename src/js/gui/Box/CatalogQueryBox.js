@@ -77,7 +77,6 @@ import { CtxMenuActionButtonOpener } from "../Button/CtxMenuOpener.js";
                     );
                 }
                 else {
-                    console.log('cone search', params.baseURL)
                     let url = params.baseURL;
                     if (! url.endsWith('?')) {
                         url += '?';
@@ -253,7 +252,6 @@ import { CtxMenuActionButtonOpener } from "../Button/CtxMenuOpener.js";
                         self.box.attach({
                             callback: (cs) => {
                                 // the cone search services are asking for 
-
                                 self.fnIdSelected('coneSearch', {
                                     baseURL: self.selectedItem.cs_service_url,
                                     id: self.selectedItem.ID,

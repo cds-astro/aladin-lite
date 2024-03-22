@@ -156,8 +156,6 @@ export class ServiceQueryBox extends Box {
                                 self.form.set('ra', +lon)
                                 self.form.set('dec', +lat)
                                 self.form.set('rad', fov)
-
-                                console.log(lon, lat, fov)
                             } catch (e) {
                                 alert(e, 'Cone search out of projection')
                             }

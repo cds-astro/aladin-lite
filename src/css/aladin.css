@@ -2,13 +2,14 @@ body { overscroll-behavior: contain; }
 
 .aladin-container {
 	position: relative;
-
-	border: 1px solid #ddd;
+    height: 100%;
+	border: 0px solid #ddd;
+    /* SVG inside divs add a 4px height: https://stackoverflow.com/questions/75751593/why-there-is-additional-4px-height-for-div-when-there-is-svg-inside-it */
+    line-height: 0;
 
     /* disable x swipe on chrome, firefox */
     /* see. https://stackoverflow.com/questions/30636930/disable-web-page-navigation-on-swipeback-and-forward */
     overscroll-behavior-x: none;
-
     /* media query on the aladin lite container. not supported everywhere.
     There can be a more supported alternative here: https://caniuse.com/?search=grid-template-columns */
     /*container-type: inline-size;*/
@@ -976,6 +977,8 @@ canvas {
     /* take the size of its inner div child */
 
     font-family: monospace;
+    line-height: 1rem;
+
     
     float: left;
 }
@@ -1135,11 +1138,9 @@ canvas {
 
     font-family: monospace;
 
-    color: white;
-
     font-size: 1rem;
     border-radius: 5px;
-    height: 1.7rem;
+    line-height: 1.7rem;
 }
 
 .aladin-status-bar {
@@ -1148,8 +1149,7 @@ canvas {
 
     position: absolute;
     bottom: 0;
-    left: 50%;
-    transform: translate(-50%, 0);
+    right: 90px;
 }
 
 .aladin-status-bar.aladin-dark-theme {
@@ -1157,11 +1157,17 @@ canvas {
     background-color: black;
 }
 
+.aladin-fov.aladin-dark-theme {
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
 .aladin-table {
     position: absolute;
     bottom: 2.8rem;
     margin: 0rem 0.4rem;
     max-width: 100%;
+    line-height: 1rem;
+
 }
 
 .aladin-share-control {

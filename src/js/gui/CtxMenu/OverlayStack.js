@@ -668,16 +668,16 @@ export class OverlayStack extends ContextMenu {
 
             let item = Layout.horizontal({
                 layout: [
-                    '<div class="' + layerClassName + '" style="background-color: rgba(0, 0, 0, 0.6); padding: 3px; border-radius: 3px; word-break: break-word;' + (selectedLayer === layer.layer ? 'border: 1px solid white;' : '') + '">' + (layer.name) + '</div>',
+                    '<div class="' + layerClassName + '" style="background-color: rgba(0, 0, 0, 0.6); line-height: 1rem; padding: 3px; border-radius: 3px; word-break: break-word;' + (selectedLayer === layer.layer ? 'border: 1px solid white;' : '') + '">' + (layer.name) + '</div>',
                     Layout.horizontal({layout: btns})
                 ],
-                cssStyle: {
+                /*cssStyle: {
                     display: 'flex',
                     alignItems: 'center',
                     listStyle: 'none',
                     justifyContent: 'space-between',
                     width: '100%',
-                }
+                }*/
             });
 
             let l = {
@@ -718,7 +718,7 @@ export class OverlayStack extends ContextMenu {
     
                 l.subMenu.push({
                     //selected: layer.name === aladin.getBaseImageLayer().name,
-                    label: '<div style="background-color: rgba(0, 0, 0, 0.6); padding: 3px; border-radius: 3px">' + ll.name + '</div>',
+                    label: '<div style="background-color: rgba(0, 0, 0, 0.6); line-height: 1rem; padding: 3px; border-radius: 3px">' + ll.name + '</div>',
                     cssStyle,
                     action(e) {
                         self.aladin.setOverlayImageLayer(id, layer.layer);

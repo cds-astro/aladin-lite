@@ -458,7 +458,7 @@ export let Aladin = (function () {
         fov: 60,
         backgroundColor: "rgb(60, 60, 60)",
         // Zoom toolbar
-        showZoomControl: true,
+        showZoomControl: false,
         // Menu toolbar
         showLayersControl: true,
         showFullscreenControl: true,

@@ -104,15 +104,16 @@ export let PlanetaryFeaturesPointer = (function() {
                     const featureFieldIdx = fields.findIndex((element) => element.includes('feature_name'));
                     const featureName = values[featureFieldIdx];
                     const featureId = values[fields.indexOf('feature_id')];
-                    const title = '<div class="aladin-sp-title"><a target="_blank" href="https://planetarynames.wr.usgs.gov/Feature/' + featureId + '">' + featureName + '</a></div>';
-                    const featureType = values[fields.indexOf('feature_type')]
-                    let content = '<div class="aladin-sp-content">' + ' ' + '</div>';
-                    content += '<em>Type: </em>' + featureType + '<br><br>';
                     let moreInfoURL = 'https://planetarynames.wr.usgs.gov/Feature/' + featureId;
                     if (body === 'earth') {
                         const placeId = values[fields.indexOf('place_id')];
                         moreInfoURL = 'https://nominatim.openstreetmap.org/ui/details.html?place_id=' + placeId;
                     }
+
+                    const title = '<div class="aladin-sp-title"><a target="_blank" href=" ' + moreInfoURL + '">' + featureName + '</a></div>';
+                    const featureType = values[fields.indexOf('feature_type')]
+                    let content = '<div class="aladin-sp-content">' + ' ' + '</div>';
+                    content += '<em>Type: </em>' + featureType + '<br><br>';
 
                     content += '<a target="_blank" href="' + moreInfoURL + '">More information</a>';
 

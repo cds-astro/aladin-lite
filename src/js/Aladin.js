@@ -73,15 +73,15 @@ import { CooFrame } from './gui/Input/CooFrame';
  * @typedef {Object} AladinOptions
  * @description Options for configuring the Aladin Lite instance.
  *
- * @property {string} [survey="https://alaskybis.unistra.fr/DSS/DSSColor"] URL or ID of the survey to use
- * @property {string[]} [surveyUrl=["https://alaskybis.unistra.fr/DSS/DSSColor", "https://alasky.unistra.fr/DSS/DSSColor"]]
+ * @property {string} [survey="CDS/P/DSS2/color"] URL or ID of the survey to use
+ * @property {string[]} [surveyUrl]
  *   Array of URLs for the survey images. This replaces the survey parameter.
  * @property {string} [target="0 +0"] - Target coordinates for the initial view.
  * @property {CooFrame} [cooFrame="J2000"] - Coordinate frame.
  * @property {number} [fov=60] - Field of view in degrees.
  * @property {string} [backgroundColor="rgb(60, 60, 60)"] - Background color in RGB format.
  *
- * @property {boolean} [showZoomControl=true] - Whether to show the zoom control toolbar.
+ * @property {boolean} [showZoomControl=false] - Whether to show the zoom control toolbar.
  * This element belongs to the FoV UI thus its CSS class is `aladin-fov` 
  * @property {boolean} [showLayersControl=true] - Whether to show the layers control toolbar.
  * CSS class for that button is `aladin-stack-control` 

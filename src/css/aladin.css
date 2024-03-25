@@ -5,7 +5,6 @@ body { overscroll-behavior: contain; }
     height: 100%;
 	border: 0px solid #ddd;
     /* SVG inside divs add a 4px height: https://stackoverflow.com/questions/75751593/why-there-is-additional-4px-height-for-div-when-there-is-svg-inside-it */
-    line-height: 0;
 
     /* disable x swipe on chrome, firefox */
     /* see. https://stackoverflow.com/questions/30636930/disable-web-page-navigation-on-swipeback-and-forward */
@@ -1083,31 +1082,31 @@ canvas {
 .aladin-stack-control {
     position: absolute;
     top: 3rem;
-    left: 0.4rem;
+    left: 0.2rem;
 }
 
 .aladin-settings-control {
     position: absolute;
     top: 5.4rem;
-    left: 0.4rem;
+    left: 0.2rem;
 }
 
 .aladin-simbadPointer-control {
     position: absolute;
     top: 7.8rem;
-    left: 0.4rem;
+    left: 0.2rem;
 }
 
 .aladin-grid-control {
     position: absolute;
     top: 10.2rem;
-    left: 0.4rem;
+    left: 0.2rem;
 }
 
 .aladin-cooFrame {
     position: absolute;
-    top: 0.4rem;
-    left: 0.4rem;
+    top: 0.2rem;
+    left: 0.2rem;
 
     font-family: monospace;
 
@@ -1120,7 +1119,7 @@ canvas {
 
 .aladin-location {
     position: absolute;
-    top: 0.4rem;
+    top: 0.2rem;
     left: 7.15rem;
     font-family: monospace;
 
@@ -1133,8 +1132,8 @@ canvas {
 
 .aladin-fov {
     position: absolute;
-    bottom: 0.4rem;
-    left: 0.4rem;
+    bottom: 0.2rem;
+    left: 0.2rem;
 
     font-family: monospace;
 
@@ -1165,26 +1164,26 @@ canvas {
 .aladin-table {
     position: absolute;
     bottom: 2.8rem;
-    margin: 0rem 0.4rem;
-    max-width: calc(100% - 0.8rem);
+    left: 0.2rem;
+    max-width: calc(100% - 0.4rem);
     line-height: 1rem;
 }
 
 .aladin-share-control {
     position: absolute;
     top: 12.6rem;
-    left: 0.4rem;
+    left: 0.2rem;
 }
 
 .aladin-fullScreen-control {
     position: absolute;
-    top: 0.4rem;
-    right: 0.4rem;
+    top: 0.2rem;
+    right: 0.2rem;
 }
 
 .aladin-projection-control {
     position: absolute;
-    top: 0.4rem;
+    top: 0.2rem;
     right: 3rem;
 }
 

@@ -203,10 +203,12 @@ export class DOMElement {
         } else if (options && options.nextTo) {
             let dir = options.direction;
             let nextTo = options.nextTo;
-
+            let aDivRect = aladinDiv.getBoundingClientRect();
+            const offViewX = aDivRect.x;
+            const offViewY = aDivRect.y;
             if (!dir) {
                 // determine the direction with respect to the element given
-                let elX = options.nextTo.el.getBoundingClientRect().left + options.nextTo.el.getBoundingClientRect().width * 0.5;
+                let elX = options.nextTo.el.getBoundingClientRect().left + options.nextTo.el.getBoundingClientRect().width * 0.5 - offViewX;
                 dir = (elX < innerWidth / 2) ? 'right' : 'left';
             }
 
@@ -215,10 +217,6 @@ export class DOMElement {
             }
 
             let rect = nextTo.getBoundingClientRect();
-            let aDivRect = aladinDiv.getBoundingClientRect();
-
-            const offViewX = aDivRect.x;
-            const offViewY = aDivRect.y;
 
             switch (dir) {
                 case 'left':

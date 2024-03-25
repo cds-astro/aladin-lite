@@ -345,6 +345,9 @@ export let View = (function () {
     // called at startup and when window is resized
     // The WebGL backend is resized
     View.prototype.fixLayoutDimensions = function () {
+        // make de line height at 0. This prevents the resize observer to infinitely
+        // trigger over and over.
+        this.aladinDiv.style.setProperty('line-height', 0);
         Utils.cssScale = undefined;
 
         var computedWidth = parseFloat(window.getComputedStyle(this.aladinDiv).width) || 1.0;
@@ -363,19 +366,6 @@ export let View = (function () {
         this.mouseMoveIncrement = 160 / this.largestDim;
 
         // reinitialize 2D context
-        //this.aladinDiv.style.height = this.height + "px";
-
-        /*canvas
-        .style()
-        .set_property("width", &format!("{}px", width))
-        .unwrap_abort();
-    canvas
-        .style()
-        .set_property("height", &format!("{}px", height))
-        .unwrap_abort();
-
-    canvas.set_width(self.width as u32);
-    canvas.set_height(self.height as u32);*/
 
         this.catalogCtx = this.catalogCanvas.getContext("2d");
         this.catalogCtx.canvas.width = this.width;
@@ -414,6 +404,8 @@ export let View = (function () {
         }
 
         this.computeNorder();
+
+        this.aladinDiv.style.removeProperty('line-height');
     };
 
     var pixelateCanvasContext = function (ctx, pixelateFlag) {
@@ -819,8 +811,6 @@ export let View = (function () {
             if (view.mode == View.TOOL_SIMBAD_POINTER) {
                 // call Simbad pointer or Planetary features
                 GenericPointer(view, e);
-                // exit the simbad pointer mode
-                //view.setMode(View.PAN);
 
                 return; // when in TOOL_SIMBAD_POINTER mode, we do not call the listeners
             }

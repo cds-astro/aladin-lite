@@ -32,7 +32,8 @@ export let ProjectionEnum = {
    TAN: {id: 1, fov: 150, label: "Tangential"},	         /* Gnomonic projection      */
    STG: {id: 2, fov: 360, label: "Stereographic"},	      /* Stereographic projection */
    SIN: {id: 3, fov: 180, label: "Spheric"},	      /* Orthographic		         */
-   ZEA: {id: 4, fov: 360, label: "Zenital equal-area"},	/* Equal-area 		         */
+   // TODO: fix why the projection disappears at fov = 360.0
+   ZEA: {id: 4, fov: 359.999, label: "Zenital equal-area"},	/* Equal-area 		         */
    //FEYE: {id: 5, fov: 190, label: "fish eye"},
    //AIR: {id: 6, fov: 360, label: "airy"},
    //AZP: {fov: 180},

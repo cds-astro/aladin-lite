@@ -317,7 +317,7 @@ export class ContextMenu extends DOMElement {
 
             let r = item.getBoundingClientRect();
 
-            if (r.x - aladinRect.left <= offsetWidth / 2.0) {
+            if (r.x - aladinRect.left <= aladinRect.right - (r.x + r.width)) {
                 leftDir -= 1;
             } else {
                 leftDir += 1;

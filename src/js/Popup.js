@@ -90,6 +90,7 @@ export let Popup = (function() {
         }
         source.popup = this;
         this.source = source;
+
         this.setPosition(source.x, source.y);
     };
 

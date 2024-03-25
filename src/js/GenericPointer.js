@@ -12,10 +12,10 @@ import { Utils } from './Utils';
 // allow to call either Simbad or Planetary features Pointers
 export let GenericPointer = function (view, e) {
     let xymouse;
-    if (e.x && e.y) {
-        xymouse = e;
-    } else {
+    if (e instanceof Event) {
         xymouse = Utils.relMouseCoords(e);
+    } else {
+        xymouse = e;
     }
 
     let radec = view.aladin.pix2world(xymouse.x, xymouse.y, 'icrs');

@@ -10,8 +10,7 @@
     import A from '../src/js/A.js';
     let aladin;
     A.init.then(() => {
-        aladin = A.aladin('#aladin-lite-div', {target: 'galactic center'});
-        aladin.setImageSurvey('P/allWISE/color');
+        aladin = A.aladin('#aladin-lite-div', {survey: 'P/allWISE/color', target: 'galactic center'});
     });
 </script>
 

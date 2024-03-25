@@ -403,9 +403,11 @@ export let Aladin = (function () {
         if (options.showFullscreenControl) {
             this.addUI(new FullScreenActionButton(self))
         }
+
+        this._applyMediaQueriesUI();
     }
 
-    /*Aladin.prototype._applyMediaQueriesUI = function() {
+    Aladin.prototype._applyMediaQueriesUI = function() {
         const applyMediaQuery = function(maxWidth, matchingCallback, unmatchingCallback) {
             function mqFunction(x) {
                 if (x.matches) { // If media query matches
@@ -428,6 +430,7 @@ export let Aladin = (function () {
 
         let self = this;
 
+
         applyMediaQuery('48rem', () => {
             if (self.projBtn) {
                 self.projBtn.update({verbosity: 'reduced'})
@@ -438,7 +441,7 @@ export let Aladin = (function () {
                 self.projBtn.update({verbosity: 'full'})
             }
         })
-    }*/
+    }
 
     /**** CONSTANTS ****/
     Aladin.VERSION = version;

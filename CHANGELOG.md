@@ -2,6 +2,7 @@
 
 ## 3.3.0
 
+* [fixed] multiple calls to setImageSurvey with the same survey object led to strange behaviour.
 * [perf] Display the first tile received instantly with no blending. Should enhance the slow reported in issue #88.
 * [fixed] A.on('select') (debugged from ipyaladin)  
 * [fixed] Simbad pointer in galactical frame, cone search of simbad/vizier cats/other cone search services in galactical frame and MOC creation from selection in galactical frame => there is now a new `frame` optional param to Aladin.pix2world. If not given, the coo returned are in the frame of the view.

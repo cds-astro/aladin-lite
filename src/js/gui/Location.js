@@ -197,7 +197,7 @@ export class Location extends DOMElement {
         }, aladin)
     };
 
-    static prec = 7;
+    static prec = 6;
 
     update(options, aladin) {
         let self = this;

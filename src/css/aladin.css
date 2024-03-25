@@ -448,7 +448,7 @@ canvas {
 }
 
 .aladin-input-text.aladin-dark-theme.search {
-    width: 15rem;
+    width: 14rem;
     text-shadow: 0px 0px 2px #000;
 }
 
@@ -661,7 +661,7 @@ canvas {
     overflow-y: scroll;
     scrollbar-width: none;
 
-    max-width: 30rem;
+    max-width: 20rem;
 
     font-size: 1rem;
 }
@@ -1133,8 +1133,8 @@ canvas {
 
 .aladin-fov {
     position: absolute;
-    top: 0.4rem;
-    left: 25rem;
+    bottom: 0.4rem;
+    left: 0.4rem;
 
     font-family: monospace;
 
@@ -1149,7 +1149,8 @@ canvas {
 
     position: absolute;
     bottom: 0;
-    right: 90px;
+    left: 50%;
+    transform: translate(-50%, 0);
 }
 
 .aladin-status-bar.aladin-dark-theme {
@@ -1165,14 +1166,13 @@ canvas {
     position: absolute;
     bottom: 2.8rem;
     margin: 0rem 0.4rem;
-    max-width: 100%;
+    max-width: calc(100% - 0.8rem);
     line-height: 1rem;
-
 }
 
 .aladin-share-control {
     position: absolute;
-    bottom: 0.4rem;
+    top: 12.6rem;
     left: 0.4rem;
 }
 

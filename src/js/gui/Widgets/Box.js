@@ -86,7 +86,7 @@ export class Box extends DOMElement {
                         size: "small",
                         monochrome: true,
                     },
-                    tooltip: {content: 'Drag the window to move it',  position: {direction: 'right'}},
+                    tooltip: {content: 'Drag the window to move it',  position: {direction: 'top'}},
                     cssStyle: {
                         cursor: 'move',
                     },

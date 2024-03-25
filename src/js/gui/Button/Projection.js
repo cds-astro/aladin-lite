@@ -52,7 +52,8 @@ import { ALEvent } from "../../events/ALEvent";
                 url: projectionIconUrl,
             },
             classList: ['aladin-projection-control'],
-            content: [options.verbosity === 'full' ? ProjectionEnum[projectionName].label : ''],
+            //content: [options.verbosity === 'full' ? ProjectionEnum[projectionName].label : projectionName],
+            content: projectionName,
             tooltip: {content: 'Change the view projection', position: {direction: 'bottom left'}},
             cssStyle: {
                 cursor: 'pointer',
@@ -74,8 +75,8 @@ import { ALEvent } from "../../events/ALEvent";
 
         ALEvent.PROJECTION_CHANGED.listenedBy(aladin.aladinDiv, function (e) {
             let projName = aladin.getProjectionName();
-            let content = self.options.verbosity === 'full' ? ProjectionEnum[projName].label : '';
-
+            //let content = self.options.verbosity === 'full' ? ProjectionEnum[projName].label : projName;
+            let content = projName;
             self.update({content})
         });
     }
@@ -97,7 +98,8 @@ import { ALEvent } from "../../events/ALEvent";
                     aladin.setProjection(key)
 
                     let ctxMenu = self._buildLayout(aladin);
-                    self.update({ctxMenu, content: self.options.verbosity === 'full' ? proj.label : ''});
+                    //self.update({ctxMenu, content: self.options.verbosity === 'full' ? proj.label : key});
+                    self.update({ctxMenu});
                 }
             })
         }
@@ -108,11 +110,11 @@ import { ALEvent } from "../../events/ALEvent";
     update(options) {
         super.update(options);
 
-        if (options.verbosity) {
+        /*if (options.verbosity) {
             let ctxMenu = this._buildLayout();
             let projName = this.aladin.getProjectionName();
-            let label = options.verbosity === 'full' ? ProjectionEnum[projName].label : '';
+            let label = options.verbosity === 'full' ? ProjectionEnum[projName].label : projName;
             super.update({ctxMenu, content: label});
-        }
+        }*/
     }
 }

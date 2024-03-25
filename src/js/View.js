@@ -1561,20 +1561,12 @@ export let View = (function () {
         // Check whether this layer already exist
         const idxOverlayLayer = this.overlayLayers.findIndex(overlayLayer => overlayLayer == layerName);
         if (idxOverlayLayer == -1) {
+            // it does not exist so we add it to the stack
             this.overlayLayers.push(layerName);
         }
 
-        // Find the toppest layer
-        //const toppestLayer = this.overlayLayers[this.overlayLayers.length - 1];
-        //this.selectedLayer = toppestLayer;
-
-        // Remove the existant layer if there is one
-        let existantImageLayer = this.imageLayers.get(layerName);
-        if (existantImageLayer) {
-            existantImageLayer.added = false;
-        }
-
         this.imageLayers.set(layerName, imageLayer);
+
         ALEvent.HIPS_LAYER_ADDED.dispatchedTo(this.aladinDiv, { layer: imageLayer });
     }
 
@@ -1711,6 +1703,8 @@ export let View = (function () {
 
         // Get the survey to remove to dissociate it from the view
         imageLayer.added = false;
+        // Delete it
+        this.imageLayers.delete(layer);
 
         const idxOverlaidLayer = this.overlayLayers.findIndex(overlaidLayer => overlaidLayer == layer);
         if (idxOverlaidLayer == -1) {
@@ -1718,17 +1712,13 @@ export let View = (function () {
             return;
         }
 
-        // Delete it
-        this.imageLayers.delete(layer);
-
         // Remove it from the layer stack
         this.overlayLayers.splice(idxOverlaidLayer, 1);
 
         if (this.overlayLayers.length === 0) {
             this.empty = true;
         } else if (this.selectedLayer === layer) {
-            // find the toppest layer
-            //const toppestLayer = this.overlayLayers[this.overlayLayers.length - 1];
+            // If the layer removed was selected then we select the base layer
             this.selectedLayer = 'base';
         }
 
@@ -1738,9 +1728,8 @@ export let View = (function () {
         const noMoreLayersToWaitFor = this.promises.length === 0;
         if (noMoreLayersToWaitFor && this.empty) {
             // no promises to launch!
-            const idxServiceUrl = Math.round(Math.random());
-            const dssUrl = Aladin.DEFAULT_OPTIONS.surveyUrl[idxServiceUrl]
-            this.aladin.setBaseImageLayer(dssUrl);
+            const dssId = Aladin.DEFAULT_OPTIONS.survey;
+            this.aladin.setBaseImageLayer(dssId);
         }
     };
 

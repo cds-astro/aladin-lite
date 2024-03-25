@@ -14,13 +14,14 @@
         // Start up Aladin Lite
         aladin = A.aladin('#aladin-lite-div', {
             fov: 360,
+            projection: 'MER',
             target: '0 0',
             fullScreen: true,
             survey: "CDS/P/Mars/Pan-Perseverance-PIA24422",
             showCooGrid: true,
             showCooGridControl: true,
         });
-        aladin.setProjection('MER');
+
   });
 </script>
 

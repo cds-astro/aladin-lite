@@ -82,7 +82,7 @@ export class FoV extends DOMElement {
             '<div class="aladin-monospace-text"></div>'])
         }
 
-        let el = Layout.horizontal({layout, tooltip: { content: 'FoV', position: {direction: "bottom"}}});
+        let el = Layout.horizontal({layout, tooltip: { content: 'FoV', position: {direction: "top"}}});
         el.tooltip.addClass('aladin-fov');
         el.tooltip.addClass('aladin-dark-theme')
 

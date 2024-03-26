@@ -618,6 +618,8 @@ export let Aladin = (function () {
         this.view.setZoom(FoV);
     };
 
+    Aladin.prototype.setFov =  Aladin.prototype.setFoV;
+
     // @API
     // (experimental) try to adjust the FoV to the given object name. Does nothing if object is not known from Simbad
     Aladin.prototype.adjustFovForObject = function (objectName) {

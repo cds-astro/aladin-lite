@@ -234,8 +234,9 @@ export let View = (function () {
 
         let doit;
         this.resizeObserver = new ResizeObserver(() => {
-            clearTimeout(doit);
-            doit = setTimeout(resizeLayout, 100);
+            //clearTimeout(doit);
+            //doit = setTimeout(resizeLayout, 100);
+            resizeLayout();
         });
 
         self.resizeObserver.observe(this.aladinDiv)

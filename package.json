@@ -33,7 +33,7 @@
   ],
   "scripts": {
     "wasm": "wasm-pack build ./src/core --target web --release --out-name core -- --features webgl2 -Z build-std=panic_abort,std -Z build-std-features=panic_immediate_abort ",
-    "predeploy": "npm run build && rm -rf aladin-lite.tgz && npm pack",
+    "predeploy": "npm run build && rm -rf aladin-lite*.tgz && npm pack",
     "deploy": "python3 deploy/deploy.py",
     "build": "npm run wasm && vite build && cp examples/index.html dist/index.html",
     "dev": "npm run build && vite",

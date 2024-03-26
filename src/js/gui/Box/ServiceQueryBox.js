@@ -85,10 +85,6 @@ export class ServiceQueryBox extends Box {
                     .catch((e) => {
                         window.alert(e)
                     })
-                    .finally(() => {
-                        // set cursor back to the normal mode
-                        //loadingBtn.remove();
-                    })
             },
             subInputs: []
         });

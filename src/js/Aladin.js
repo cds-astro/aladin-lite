@@ -2057,7 +2057,8 @@ export let Aladin = (function () {
  * @param {Function} successCallback - The callback function to be executed on a successful display.
  *      The callback gives the ra, dec, and fov of the image;
  * @param {Function} errorCallback - The callback function to be executed if an error occurs during display.
- * 
+ * @param {string} [layer="base"] - The name of the layer. If not specified, it will be replace the base layer.
+* 
  * @example
  * aladin.displayJPG(
  *  // the JPG to transform to HiPS
@@ -2099,6 +2100,7 @@ export let Aladin = (function () {
  * @param {Function} successCallback - The callback function to be executed on a successful display.
  *      The callback gives the ra, dec, and fov of the image;
  * @param {Function} errorCallback - The callback function to be executed if an error occurs during display.
+ * @param {string} [layer="overlay"] - The name of the layer. If not specified, it will add a new overlay layer on top of the base. 
  * 
  * @example
  * aladin.displayJPG(
@@ -2113,7 +2115,7 @@ export let Aladin = (function () {
  *   })
  *);
  */
-    Aladin.prototype.displayJPG = function (url, options, successCallback, errorCallback) {
+    Aladin.prototype.displayJPG = function (url, options, successCallback, errorCallback, layer = "overlay") {
         options = options || {};
         options.color = true;
         options.label = options.label || "JPG/PNG image";
@@ -2163,7 +2165,7 @@ export let Aladin = (function () {
                 var meta = response.data.meta;
 
                 const survey = self.createImageSurvey(response.data.url, label, response.data.url);
-                self.setOverlayImageLayer(survey, "overlay");
+                self.setOverlayImageLayer(survey, layer);
 
                 var transparency = (options && options.transparency) || 1.0;
                 survey.setOpacity(transparency);

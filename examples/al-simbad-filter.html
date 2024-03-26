@@ -1,0 +1,45 @@
+<!doctype html>
+<html>
+<head>
+</head>
+<body>
+
+<script src="https://code.jquery.com/jquery-1.10.1.min.js"></script>
+
+<div id="aladin-lite-div" style="width: 1024px; height: 768px"></div>
+
+Show sources with proper motion greater than:
+<input id='slider' style='vertical-align:middle;width:60vw;' step='1' min='0' max='10' type='range' value='0'>
+<span id='pmVal'  >0 mas/yr</span><br><br><div id='aladin-lite-div' style='width: 500px;height: 500px;'></div>
+
+<script type="module">
+    import A from '../src/js/A.js';
+    let aladin;
+    A.init.then(() => {
+        var colorThreshold = 0;
+var slider = document.getElementById('slider');
+slider.oninput = function() {
+    colorThreshold = this.value;
+    $('#colorVal').html(colorThreshold);
+    cat.reportChange();
+}
+var myFilterFunction = function(source) {
+    const magB  = parseFloat(source.data['B']);
+    const magV  = parseFloat(source.data['V']);
+    if (isNaN(magB) || isNaN(magV) ) {
+        return false;
+    }
+    const color = magB - magV;
+    return color>colorThreshold;
+}
+
+aladin = A.aladin('#aladin-lite-div', {target: 'M 81', fov: 0.5, survey: 'CDS/P/SDSS9/color'});
+var cat = A.catalogFromSimbad('M 81', 0.25, {onClick: 'showTable', verbosity: 3, filter: myFilterFunction});
+aladin.addCatalog(cat);
+    });
+</script>
+
+</body>
+</html>
+
+

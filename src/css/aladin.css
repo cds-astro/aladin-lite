@@ -1,8 +1,8 @@
-body { overscroll-behavior: contain; }
+/*body { overscroll-behavior: contain; }*/
 
 .aladin-container {
 	position: relative;
-    height: 100%;
+    /*height: 100%;*/
 	border: 0px solid #ddd;
     /* SVG inside divs add a 4px height: https://stackoverflow.com/questions/75751593/why-there-is-additional-4px-height-for-div-when-there-is-svg-inside-it */
 
@@ -115,6 +115,7 @@ body { overscroll-behavior: contain; }
 
 .aladin-measurement-div.aladin-dark-theme table thead {
     background-color: #000;
+    color: white;
 }
 
 .aladin-measurement-div table td.aladin-href-td-container a:hover {
@@ -412,6 +413,9 @@ canvas {
 .aladin-measurement-div.aladin-dark-theme {
     background-color: rgba(0, 0, 0, 0.5);
     border: 1px solid white;
+}
+
+.aladin-measurement-div.aladin-dark-theme table {
     color: white;
 }
 
@@ -1167,6 +1171,9 @@ canvas {
     left: 0.2rem;
     max-width: calc(100% - 0.4rem);
     line-height: 1rem;
+}
+.aladin-measurement-div.aladin-dark-theme {
+    color: white;
 }
 
 .aladin-share-control {

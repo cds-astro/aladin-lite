@@ -44,6 +44,7 @@ import { Aladin } from "./Aladin.js";
 import { ActionButton } from "./gui/Widgets/ActionButton.js";
 import { Box } from "./gui/Widgets/Box.js";
 import { AladinUtils } from "./AladinUtils.js";
+import { Sesame } from "./Sesame.js";
 
 // Wasm top level import
 import init, * as module from './../core/pkg';
@@ -502,9 +503,9 @@ A.catalogFromURL = function (url, options, successCallback, errorCallback, usePr
  * @param {number} target.dec - Declination in degrees of the cone's center
  * @param {number} radius - Radius of the cone in degrees
  * @param {Object|CatalogOptions} [options] - Additional configuration options for SIMBAD cone search. See the {@link https://simbad.cds.unistra.fr/cone/help/#/ConeSearch/get_ SIMBAD cone search} parameters.
- * @param {Object} [options.limit] - The max number of sources to return
- * @param {Object} [options.orderBy] - Order the result by specific
- *
+ * @param {number} [options.limit] - The max number of sources to return
+ * @param {string} [options.orderBy='nb_ref'] - Order the result by specific ref number
+ * @param {number} [options.verbosity=2] - Verbosity, put 3 if you want all the column
  * @param {function} [successCallback] - The callback function to execute on successful catalog creation.
  * @param {function} [errorCallback] - The callback function to execute on error during catalog creation.
  * @returns {Catalog} A new instance of the Catalog class created from the SIMBAD cone search.
@@ -519,8 +520,8 @@ A.catalogFromSimbad = function (target, radius, options, successCallback, errorC
     if (!('name' in options)) {
         options['name'] = 'Simbad';
     }
-
-    return new Promise((resolve, reject) => {
+    let cat = A.catalog(options);
+    new Promise((resolve, reject) => {
         let coo;
         if (target && (typeof target  === "object")) {
             if ('ra' in target && 'dec' in target) {
@@ -556,8 +557,45 @@ A.catalogFromSimbad = function (target, radius, options, successCallback, errorC
         }
     }).then((coo) => {
         const url = URLBuilder.buildSimbadCSURL(coo.lon, coo.lat, radius, options)
-        return A.catalogFromURL(url, options, successCallback, errorCallback, false);
+        const processVOTable = function (table) {
+            let {sources, footprints, fields, type} = table;
+            cat.setFields(fields);
+
+            if (cat.type === 'ObsCore') {
+                // The fields corresponds to obscore ones
+                // Set the name of the catalog to be ObsCore:<catalog name>
+                cat.name = "ObsCore:" + url;
+            }
+
+            cat.addFootprints(footprints)
+            cat.addSources(sources);
+
+            if (successCallback) {
+                successCallback(cat);
+            }
+
+            if (sources.length === 0) {
+                console.warn(cat.name + ' has no sources!')
+            }
+
+            // Even if the votable is not a proper ObsCore one, try to see if specific columns are given
+            // e.g. access_format and access_url
+            //ObsCore.handleActions(catalog);
+        };
+
+        
+        Catalog.parseVOTable(
+            url,
+            processVOTable,
+            errorCallback,
+            cat.maxNbSources,
+            false,
+            cat.raField, cat.decField
+        );
+
     })
+
+    return cat;
 };
 
 /**

@@ -209,8 +209,6 @@ export let ImageFITS = (function () {
 
             return self;
         }).catch((e) => {
-            window.alert(e + ". See the javascript console for more logging details.")
-
             if (self.errorCallback) {
                 self.errorCallback()
             }

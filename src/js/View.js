@@ -351,8 +351,8 @@ export let View = (function () {
         this.aladinDiv.style.setProperty('line-height', 0);
         Utils.cssScale = undefined;
 
-        var computedWidth = parseFloat(window.getComputedStyle(this.aladinDiv).width) || 1.0;
-        var computedHeight = parseFloat(window.getComputedStyle(this.aladinDiv).height) || 1.0;
+        var computedWidth = parseFloat(this.aladinDiv.getBoundingClientRect().width) || 1.0;
+        var computedHeight = parseFloat(this.aladinDiv.getBoundingClientRect().height) || 1.0;
 
         this.width = Math.max(computedWidth, 1);
         this.height = Math.max(computedHeight, 1); // this prevents many problems when div size is equal to 0

@@ -40,6 +40,10 @@ export let URLBuilder = (function() {
                 url += '&MAXREC=' + options.limit;
             }
 
+            if (options && options.verbosity) {
+                url += '&VERB=' + options.verbosity;
+            }
+
             const orderBy = options && options.orderBy || 'nb_ref';
             url += '&ORDER_BY=' + orderBy;
 

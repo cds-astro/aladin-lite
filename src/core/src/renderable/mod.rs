@@ -214,6 +214,10 @@ impl Layers {
         self.background_color = color;
     }
 
+    pub fn get_raytracer(&self) -> &RayTracer {
+        &self.raytracer
+    }
+
     pub fn draw(
         &mut self,
         camera: &mut CameraViewPort,
@@ -222,7 +226,7 @@ impl Layers {
         projection: &ProjectionType,
     ) -> Result<(), JsValue> {
         let raytracer = &self.raytracer;
-        let raytracing = raytracer.is_rendering(camera);
+        let raytracing = camera.is_raytracing(projection);
 
         // Check whether a survey to plot is allsky
         // if neither are, we draw a font
@@ -292,10 +296,10 @@ impl Layers {
                 // 1. Update the survey if necessary
                 let id = self.ids.get(layer).expect("Url should be found");
                 if let Some(survey) = self.surveys.get_mut(id) {
-                    survey.update(&self.raytracer, camera, projection);
+                    survey.update(camera, projection);
 
                     // 2. Draw it if its opacity is not null
-                    survey.draw(shaders, colormaps, camera, raytracer, draw_opt)?;
+                    survey.draw(shaders, colormaps, camera, raytracer, draw_opt, projection)?;
                 } else if let Some(image) = self.images.get_mut(id) {
                     image.update(camera, projection)?;
 

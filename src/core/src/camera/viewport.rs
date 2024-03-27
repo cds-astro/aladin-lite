@@ -9,6 +9,7 @@ pub enum UserAction {
 use super::{fov::FieldOfView, view_hpx_cells::ViewHpxCells};
 use crate::healpix::cell::HEALPixCell;
 use crate::healpix::coverage::HEALPixCoverage;
+use crate::math::angle::ToAngle;
 use crate::math::{projection::coo_space::XYZWModel, projection::domain::sdf::ProjDef};
 use al_core::{info, inforec, log};
 
@@ -210,10 +211,29 @@ impl CameraViewPort {
 
     pub fn get_hpx_cells<'a>(
         &'a mut self,
-        depth: u8,
+        mut depth: u8,
         frame: CooSystem,
     ) -> impl Iterator<Item = &'a HEALPixCell> {
         self.view_hpx_cells.get_cells(depth, frame)
+    }
+
+    pub fn is_raytracing(&self, proj: &ProjectionType) -> bool {
+        // Check whether the tile depth is 0 for square projection
+        // definition domains i.e. Mercator
+        if self.is_allsky() {
+            return true;
+        }
+
+        // check the projection
+        match proj {
+            ProjectionType::Tan(_) => self.aperture >= 100.0_f64.to_radians().to_angle(),
+            ProjectionType::Mer(_) => self.aperture >= 200.0_f64.to_radians().to_angle(),
+            ProjectionType::Stg(_) => self.aperture >= 200.0_f64.to_radians().to_angle(),
+            ProjectionType::Sin(_) => false,
+            ProjectionType::Ait(_) => false,
+            ProjectionType::Mol(_) => false,
+            ProjectionType::Zea(_) => false,
+        }
     }
 
     fn recompute_scissor(&self) {

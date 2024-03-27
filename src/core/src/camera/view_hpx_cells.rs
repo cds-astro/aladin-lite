@@ -10,6 +10,7 @@ use crate::HEALPixCoverage;
 use std::ops::Range;
 
 use al_api::cell::HEALPixCellProjeted;
+use al_core::log::console_log;
 
 pub fn project(
     cell: HEALPixCellProjeted,

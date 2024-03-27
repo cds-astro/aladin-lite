@@ -239,11 +239,4 @@ impl RayTracer {
                 0,
             )
     }
-
-    pub fn is_rendering(&self, camera: &CameraViewPort) -> bool {
-        // Check whether the tile depth is 0 for square projection
-        // definition domains i.e. Mercator
-        let depth = camera.get_texture_depth();
-        camera.is_allsky() || depth == 0
-    }
 }

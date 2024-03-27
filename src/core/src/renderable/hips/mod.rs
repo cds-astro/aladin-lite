@@ -529,9 +529,10 @@ impl HiPS {
     pub fn look_for_new_tiles<'a>(
         &'a mut self,
         camera: &'a mut CameraViewPort,
+        proj: &ProjectionType,
     ) -> Option<impl Iterator<Item = HEALPixCell> + 'a> {
         // do not add tiles if the view is already at depth 0
-        let depth_tile = (camera.get_texture_depth() + self.get_config().delta_depth())
+        let mut depth_tile = (camera.get_texture_depth() + self.get_config().delta_depth())
             .min(self.get_config().get_max_depth_tile())
             .max(self.get_config().get_min_depth_tile());
         let dd = self.get_config().delta_depth();
@@ -550,6 +551,12 @@ impl HiPS {
         //let depth_tile = depth_tile.max(min_bound_depth);
         let survey_frame = self.get_config().get_frame();
         let mut already_considered_tiles = HashSet::new();
+
+        // raytracer is rendering and the shader only renders HPX texture cells of depth 0
+        if camera.is_raytracing(proj) {
+            depth_tile = 0;
+        }
+
         let tile_cells_iter = camera
             .get_hpx_cells(depth_tile, survey_frame)
             //.flat_map(move |cell| {
@@ -601,13 +608,8 @@ impl HiPS {
         self.textures.contains_tile(cell)
     }
 
-    pub fn update(
-        &mut self,
-        raytracer: &RayTracer,
-        camera: &mut CameraViewPort,
-        projection: &ProjectionType,
-    ) {
-        let raytracing = raytracer.is_rendering(camera);
+    pub fn update(&mut self, camera: &mut CameraViewPort, projection: &ProjectionType) {
+        let raytracing = camera.is_raytracing(projection);
 
         let vertices_recomputation_needed =
             !raytracing && (self.textures.reset_available_tiles() | camera.has_moved());
@@ -1011,6 +1013,7 @@ impl HiPS {
         camera: &CameraViewPort,
         raytracer: &RayTracer,
         cfg: &ImageMetadata,
+        proj: &ProjectionType,
     ) -> Result<(), JsValue> {
         // Get the coo system transformation matrix
         let selected_frame = camera.get_coo_system();
@@ -1022,7 +1025,7 @@ impl HiPS {
         let w2v = c * (*camera.get_w2m());
         let v2w = w2v.transpose();
 
-        let raytracing = raytracer.is_rendering(camera);
+        let raytracing = camera.is_raytracing(proj);
         let config = self.get_config();
 
         self.gl.enable(WebGl2RenderingContext::BLEND);

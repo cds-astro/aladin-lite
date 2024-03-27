@@ -270,6 +270,8 @@ impl App {
         // Move the views of the different active surveys
         self.tile_fetcher.clear();
         // Loop over the surveys
+        let raytracer = self.layers.get_raytracer();
+
         for survey in self.layers.values_mut_hips() {
             if self.camera.get_texture_depth() == 0
                 && self
@@ -290,7 +292,8 @@ impl App {
             let root_url = survey.get_config().get_root_url().to_string();
             let format = survey.get_config().get_format();
 
-            if let Some(tiles_iter) = survey.look_for_new_tiles(&mut self.camera) {
+            if let Some(tiles_iter) = survey.look_for_new_tiles(&mut self.camera, &self.projection)
+            {
                 for tile_cell in tiles_iter.into_iter() {
                     self.tile_fetcher.append(
                         query::Tile::new(&tile_cell, creator_did.clone(), root_url.clone(), format),

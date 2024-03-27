@@ -3,6 +3,7 @@
 ## 3.3.2
 
 * [fixed] do not allow to query the properties several times for an imageHiPS
+* [fixed] Detecting raytracing rendering mode. Adapt the rendering mode in function of the fov value and the projection used. Some projections do have more distortions with wide FoVs so it is better to use the raytracing rendering mode when fov >= smaller FoV threshold.
 
 ## 3.3.0
 

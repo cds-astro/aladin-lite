@@ -1,8 +1,5 @@
-/*body { overscroll-behavior: contain; }*/
-
 .aladin-container {
 	position: relative;
-    /*height: 100%;*/
 	border: 0px solid #ddd;
     /* SVG inside divs add a 4px height: https://stackoverflow.com/questions/75751593/why-there-is-additional-4px-height-for-div-when-there-is-svg-inside-it */
 
@@ -15,7 +12,7 @@
 }
 
 .aladin-imageCanvas {
-	position: relative;
+	position: absolute;
 	left: 0;
 	top: 0;
 }

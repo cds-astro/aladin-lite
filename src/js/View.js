@@ -351,9 +351,9 @@ export let View = (function () {
         this.aladinDiv.style.setProperty('line-height', 0);
         Utils.cssScale = undefined;
 
-        var computedWidth = parseFloat(this.aladinDiv.getBoundingClientRect().width) || 1.0;
-        var computedHeight = parseFloat(this.aladinDiv.getBoundingClientRect().height) || 1.0;
-
+        var computedWidth = Math.floor(parseFloat(this.aladinDiv.getBoundingClientRect().width)) || 1.0;
+        var computedHeight = Math.floor(parseFloat(this.aladinDiv.getBoundingClientRect().height)) || 1.0;
+        
         this.width = Math.max(computedWidth, 1);
         this.height = Math.max(computedHeight, 1); // this prevents many problems when div size is equal to 0
 
@@ -376,13 +376,10 @@ export let View = (function () {
         this.gridCtx.canvas.width = this.width;
         this.gridCtx.canvas.height = this.height;
 
-
         this.imageCtx = this.imageCanvas.getContext("webgl2");
         this.imageCtx.canvas.style.width = this.width + "px";
         this.imageCtx.canvas.style.height = this.height + "px";
-
         this.wasm.resize(this.width, this.height);
-
 
         pixelateCanvasContext(this.imageCtx, this.aladin.options.pixelateCanvas);
 

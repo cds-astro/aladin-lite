@@ -12,7 +12,7 @@
     let aladin;
     A.init.then(() => {
         aladin = A.aladin('#aladin-lite-div', {target: '00 00 00 +07 00 00', fov: 130, survey: 'P/Mellinger/color'});
-        var moc11 = A.MOCFromURL('http://skies.esac.esa.int/HST/NICMOS/Moc.fits', {color: '#84f', lineWidth: 3, fill: true}, (moc) => {
+        var moc11 = A.MOCFromURL('http://skies.esac.esa.int/HST/NICMOS/Moc.fits', {color: '#84f', lineWidth: 3, perimeter: true}, (moc) => {
             // moc is ready
             console.log(moc.contains(205.9019247, +2.4492764));
             console.log(moc.contains(-205.9019247, +2.4492764));

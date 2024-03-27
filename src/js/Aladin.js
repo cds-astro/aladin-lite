@@ -135,6 +135,38 @@ import { CooFrame } from './gui/Input/CooFrame';
  */
 
 /**
+ * @typedef {Object} CircleSelection
+ * @description Options for configuring the Aladin Lite instance.
+ *
+ * @property {number} x - x coordinate of the center's circle in pixels
+ * @property {number} y - y coordinate of the center's circle in pixels
+ * @property {number} r - radius of the circle in pixels
+ * @property {function} contains - function taking a {x, y} object telling if the vertex is contained or not
+ * @property {function} bbox - returns the bbox of the selection in pixels 
+ */
+
+/**
+ * @typedef {Object} RectSelection
+ * @description Options for configuring the Aladin Lite instance.
+ *
+ * @property {number} x - top left x coordinate of the rectangle in pixels
+ * @property {number} y - top left y coordinate of the rectangle in pixels
+ * @property {number} w - width of the selection in pixels
+ * @property {number} h - height of the selection in pixels
+ * @property {function} contains - function taking a {x, y} object telling if the vertex is contained in the selection or not
+ * @property {function} bbox - returns the bbox of the selection in pixels 
+ */
+
+/**
+ * @typedef {Object} PolygonSelection
+ * @description Options for configuring the Aladin Lite instance.
+ *
+ * @property {Object[]} vertices - vertices of the polygon selection in pixels. Each vertex has a x and y key in pixels.
+ * @property {function} contains - function taking a {x, y} object telling if the vertex is contained in the selection or not
+ * @property {function} bbox - returns the bbox of the selection in pixels 
+ */
+
+/**
  * @typedef {string} CooFrame
  * String with possible values: 'equatorial', 'ICRS', 'ICRSd', 'j2000', 'gal, 'galactic'
  */
@@ -1525,8 +1557,12 @@ export let Aladin = (function () {
      * Enters selection mode
      *
      * @memberof Aladin
-     * @param {string} mode=rect - The mode of selection, can be either, 'rect', 'poly', or 'circle'
-     * @param {function} callback - A function called once the selection has been done
+     * @param {string} [mode='rect'] - The mode of selection, can be either, 'rect', 'poly', or 'circle'
+     * @param {function} [callback] - A function called once the selection has been done
+     * The callback accepts one parameter depending of the mode used: <br/>
+     * - If mode='circle' that parameter is of type {@link CircleSelection} <br/>
+     * - If mode='rect' that parameter is of type {@link RectSelection} <br/>
+     * - If mode='poly' that parameter is of type {@link PolygonSelection}
     *
     * @example
     * // Creates and add a MOC from the user polygonal selection

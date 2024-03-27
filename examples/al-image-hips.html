@@ -1,34 +1,35 @@
-
 <!doctype html>
 <html>
 <head>
+    <meta name="viewport" content="width=device-width, height=device-height, maximum-scale=1.0, initial-scale=1.0, user-scalable=no">
 </head>
 <body>
-<div id="aladin-lite-div" style="width: 500px; height: 400px"></div>
+<div id="aladin-lite-div" style="width: 500px; height: 500px"></div>
 
 <script type="module">
     import A from '../src/js/A.js';
-
+    var aladin;
     A.init.then(() => {
-        // Start up Aladin Lite
-        let aladin = A.aladin('#aladin-lite-div', {target: 'Sgr a*', fov: 0.5, showContextMenu: true});
+        aladin = A.aladin('#aladin-lite-div', {fullScreen: true, cooFrame: "ICRSd", showSimbadPointerControl: true, showShareControl: true, showShareControl: true, survey: 'https://alasky.cds.unistra.fr/DSS/DSSColor/', fov: 180, showContextMenu: true});
+        // manage URL parameters
         let survey1 = aladin.getBaseImageLayer();
         survey1.setColormap('magma', {stretch: 'linear'});
-        
-        let survey2 = aladin.newImageSurvey("CDS/P/2MASS6X/H");
+
+        let survey2 = aladin.newImageSurvey("CSIRO/P/RACS/mid/I");
         aladin.setImageLayer(survey2)
-        survey2.setColormap('rdbu', {stretch: 'asinh'});
-        
-        let survey3 = aladin.newImageSurvey("https://alasky.cds.unistra.fr/CFHTLS-T0007b/Deep/UALLSKY/");
+        survey2.setColormap('rdbu', {stretch: 'linear'});
+
+        let survey3 = aladin.newImageSurvey("CSIRO/P/RACS/low/I");
         aladin.setImageLayer(survey3)
-        survey3.setColormap('cubehelix', {stretch: 'linear'});
+        survey3.setColormap('cubehelix', {stretch: 'asinh'});
+        aladin.setImageLayer(survey3)
+        aladin.setImageLayer(survey3)
 
         aladin.setImageLayer(survey2);
-        aladin.setImageLayer(survey3);
-        aladin.setImageLayer(survey3);
 
-        //aladin.setOverlayImageLayer(survey2);
+        aladin.setImageLayer(survey3)
+        aladin.setImageLayer(survey2);
+
+
     });
 </script>
-</body>
-</html>

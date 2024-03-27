@@ -1,5 +1,9 @@
 # Changelogs
 
+## 3.3.2
+
+* [fixed] do not allow to query the properties several times for an imageHiPS
+
 ## 3.3.0
 
 * [fixed] multiple calls to setImageSurvey with the same survey object led to strange behaviour.

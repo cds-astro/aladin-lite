@@ -174,6 +174,13 @@ export let ImageSurvey = (function () {
     ImageSurvey.prototype.setView = function(view) {
         let self = this;
 
+        // do not allow to call setView multiple times otherwise
+        // the querying to the properties and the search to the best
+        // HiPS node will be done again for the same imageHiPS
+        if (self.view) {
+            return;
+        }
+
         self.view = view;
 
         let isMOCServerToBeQueried = true;

@@ -991,13 +991,17 @@ export let View = (function () {
 
                     if (lastHoveredObject && o != lastHoveredObject) {
                         lastHoveredObject.unhover();
-                        
+
+                        var objHoveredStopFunction = view.aladin.callbacksByEventName['objectHoveredStop'];
+
                         if (typeof objHoveredStopFunction === 'function') {
                             objHoveredStopFunction(lastHoveredObject, xymouse);
                         }
                     }
 
-                    o.hover();
+                    if (o != lastHoveredObject) {
+                        o.hover();
+                    }
                     lastHoveredObject = o;
                 } else {
                     view.setCursor('default');

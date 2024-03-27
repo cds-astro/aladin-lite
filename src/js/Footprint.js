@@ -46,6 +46,7 @@ export let Footprint= (function() {
         this.shapes = shapes;
 
         this.isShowing = true;
+        this.isHovered = false;
 
         this.overlay = null;
     };
@@ -83,11 +84,33 @@ export let Footprint= (function() {
     };
 
     Footprint.prototype.hover = function() {
+        if (this.isHovered) {
+            return;
+        }
+
+        this.isHovered = true;
         this.shapes.forEach((shape) => shape.hover())
+
+        if (this.overlay) {
+            this.overlay.reportChange();
+        } else if (this.source && this.source.catalog) {
+            this.source.catalog.view && this.source.catalog.view.requestRedraw();
+        }
     };
 
     Footprint.prototype.unhover = function() {
+        if (!this.isHovered) {
+            return;
+        }
+
+        this.isHovered = false;
         this.shapes.forEach((shape) => shape.unhover())
+
+        if (this.overlay) {
+            this.overlay.reportChange();
+        } else if (this.source && this.source.catalog) {
+            this.source.catalog.view && this.source.catalog.view.requestRedraw();
+        }
     };
 
     Footprint.prototype.setLineWidth = function(lineWidth) {

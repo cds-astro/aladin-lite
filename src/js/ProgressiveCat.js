@@ -65,6 +65,8 @@ export let ProgressiveCat = (function() {
         this.sourceSize = options.sourceSize || 6;
         this.selectSize = this.sourceSize + 2;
         this.selectionColor = '#00ff00'; // TODO: to be merged with Catalog
+        this.hoverColor = options.hoverColor || this.color;
+
 
         // allows for filtering of sources
         this.filterFn = options.filter || undefined; // TODO: do the same for catalog

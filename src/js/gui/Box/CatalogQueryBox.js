@@ -43,6 +43,7 @@ import { CtxMenuActionButtonOpener } from "../Button/CtxMenuOpener.js";
             .then((catalogs) => {
                 catalogs.forEach((cat) => {
                     CatalogQueryBox.catalogs[cat.obs_title] = cat;
+                    CatalogQueryBox.catalogs[cat.ID] = cat;
                 });
 
                 inputText.update({autocomplete: {options: Object.keys(CatalogQueryBox.catalogs)}})

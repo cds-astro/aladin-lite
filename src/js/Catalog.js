@@ -736,11 +736,11 @@ export let Catalog = (function() {
             else if (s.marker && s.useMarkerDefaultIcon) {
                 ctx.drawImage(this.cacheMarkerCanvas, s.x-this.sourceSize/2, s.y-this.sourceSize/2);
             }
-            else if (s.isSelected) {
-                ctx.drawImage(this.cacheSelectCanvas, s.x-this.selectSize/2, s.y-this.selectSize/2);
-            }
             else if (s.isHovered) {
                 ctx.drawImage(this.cacheHoverCanvas, s.x-this.selectSize/2, s.y-this.selectSize/2);
+            }
+            else if (s.isSelected) {
+                ctx.drawImage(this.cacheSelectCanvas, s.x-this.selectSize/2, s.y-this.selectSize/2);
             }
             else {
                 ctx.drawImage(this.cacheCanvas, s.x-this.cacheCanvas.width/2, s.y-this.cacheCanvas.height/2);

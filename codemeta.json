@@ -8,8 +8,8 @@
     "dateModified": "2023-01-31",
     "issueTracker": "https://github.com/cds-astro/aladin-lite/issues",
     "name": "Aladin Lite",
-    "version": "3.3.0",
-    "softwareVersion": "3.3.0",
+    "version": "3.3.2",
+    "softwareVersion": "3.3.2",
     "description": "An astronomical HiPS visualizer in the browser.",
     "identifier": "10.5281/zenodo.7638833",
     "applicationCategory": "Astronomy, Visualization",
@@ -41,7 +41,7 @@
             "email": "matthieu.baumann@unistra.fr",
             "affiliation": {
                 "@type": "Organization",
-                "name": "Université de Strasbourg, CNRS, Observatoire astronomique de Strasbourg, UMR 7550, F-67000 Strasbourg, France"
+                "name": "Universit\u00e9 de Strasbourg, CNRS, Observatoire astronomique de Strasbourg, UMR 7550, F-67000 Strasbourg, France"
             }
         },
         {
@@ -52,7 +52,7 @@
             "email": "thomas.boch@astro.unistra.fr",
             "affiliation": {
                 "@type": "Organization",
-                "name": "Université de Strasbourg, CNRS, Observatoire astronomique de Strasbourg, UMR 7550, F-67000 Strasbourg, France"
+                "name": "Universit\u00e9 de Strasbourg, CNRS, Observatoire astronomique de Strasbourg, UMR 7550, F-67000 Strasbourg, France"
             }
         }
     ],
@@ -65,9 +65,9 @@
             "email": "matthieu.baumann@unistra.fr",
             "affiliation": {
                 "@type": "Organization",
-                "name": "Université de Strasbourg, CNRS, Observatoire astronomique de Strasbourg, UMR 7550, F-67000 Strasbourg, France"
+                "name": "Universit\u00e9 de Strasbourg, CNRS, Observatoire astronomique de Strasbourg, UMR 7550, F-67000 Strasbourg, France"
             }
-        }, 
+        },
         {
             "@type": "Person",
             "@id": "https://orcid.org/0000-0001-5818-2781",
@@ -76,7 +76,7 @@
             "email": "thomas.boch@astro.unistra.fr",
             "affiliation": {
                 "@type": "Organization",
-                "name": "Université de Strasbourg, CNRS, Observatoire astronomique de Strasbourg, UMR 7550, F-67000 Strasbourg, France"
+                "name": "Universit\u00e9 de Strasbourg, CNRS, Observatoire astronomique de Strasbourg, UMR 7550, F-67000 Strasbourg, France"
             }
         }
     ]

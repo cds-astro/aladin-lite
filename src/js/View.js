@@ -1007,11 +1007,6 @@ export let View = (function () {
                     view.setCursor('default');
                     var objHoveredStopFunction = view.aladin.callbacksByEventName['objectHoveredStop'];
                     if (lastHoveredObject) {
-                        // Redraw the scene if the lastHoveredObject is a footprint (e.g. circle or polygon)
-                        //if (lastHoveredObject.isFootprint()) {
-                        //    view.requestRedraw();
-                        //}
-
                         if (typeof objHoveredStopFunction === 'function') {
                             // call callback function to notify we left the hovered object
                             var ret = objHoveredStopFunction(lastHoveredObject, xymouse);

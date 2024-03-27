@@ -12,11 +12,11 @@
     A.init.then(() => {
         aladin = A.aladin('#aladin-lite-div', {target: 'NGC 1367', fov: 360, samp: false, projection: 'AIT', fullScreen: true, showContextMenu: true});
 
-        A.catalogFromURL('https://raw.githubusercontent.com/VisIVOLab/SKA-Discovery-Service-Mockup/main/ObsCore/ObsCore_003.xml', {onClick: 'showTable'}, (catalog) => {
+        A.catalogFromURL('https://raw.githubusercontent.com/VisIVOLab/SKA-Discovery-Service-Mockup/main/ObsCore/ObsCore_003.xml', {onClick: 'showTable', hoverColor: 'purple'}, (catalog) => {
             aladin.addCatalog(catalog)
         });
 
-        aladin.addCatalog(A.catalogFromVizieR("B/assocdata/obscore", "0 +0", 20, {limit: 1000}))
+        aladin.addCatalog(A.catalogFromVizieR("B/assocdata/obscore", "0 +0", 20, {limit: 1000, hoverColor: 'cyan'}))
     });
 </script>
 </body>

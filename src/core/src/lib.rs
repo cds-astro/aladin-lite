@@ -442,7 +442,7 @@ impl WebClient {
     /// * `green` - Green amount (between 0.0 and 1.0)
     /// * `blue` - Blue amount (between 0.0 and 1.0)
     /// * `alpha` - Alpha amount (between 0.0 and 1.0)
-    #[wasm_bindgen(js_name = setGridConfig)]
+    #[wasm_bindgen(js_name = setGridOptions)]
     pub fn set_grid_cfg(&mut self, cfg: JsValue) -> Result<(), JsValue> {
         let cfg = serde_wasm_bindgen::from_value(cfg)?;
 

@@ -316,10 +316,10 @@ export let View = (function () {
             imageCanvas.remove();
         }
 
-        let gridCanvas = this.aladinDiv.querySelector('.aladin-gridCanvas');
+        /*let gridCanvas = this.aladinDiv.querySelector('.aladin-gridCanvas');
         if (gridCanvas) {
             gridCanvas.remove();
-        }
+        }*/
 
         let catalogCanvas = this.aladinDiv.querySelector('.aladin-catalogCanvas')
         if (catalogCanvas) {
@@ -339,7 +339,7 @@ export let View = (function () {
         };
 
         this.catalogCanvas = createCanvas('aladin-catalogCanvas');
-        this.gridCanvas = createCanvas('aladin-gridCanvas');
+        //this.gridCanvas = createCanvas('aladin-gridCanvas');
         this.imageCanvas = createCanvas('aladin-imageCanvas');
     };
 
@@ -369,13 +369,16 @@ export let View = (function () {
         // reinitialize 2D context
 
         this.catalogCtx = this.catalogCanvas.getContext("2d");
-        this.catalogCtx.canvas.width = this.width;
-        this.catalogCtx.canvas.height = this.height;
+        this.catalogCtx.canvas.width = this.width * window.devicePixelRatio;
+        this.catalogCtx.canvas.height = this.height * window.devicePixelRatio;
+        this.catalogCtx.canvas.style.width = this.width + "px";
+        this.catalogCtx.canvas.style.height = this.height + "px";
+        this.catalogCtx.scale(window.devicePixelRatio, window.devicePixelRatio);
 
-        this.gridCtx = this.gridCanvas.getContext("2d");
+        /*this.gridCtx = this.gridCanvas.getContext("2d");
         this.gridCtx.canvas.width = this.width;
         this.gridCtx.canvas.height = this.height;
-
+*/
         this.imageCtx = this.imageCanvas.getContext("webgl2");
         this.imageCtx.canvas.style.width = this.width + "px";
         this.imageCtx.canvas.style.height = this.height + "px";
@@ -467,9 +470,8 @@ export let View = (function () {
                 const canvas = this.wasm.canvas();
 
                 var c = document.createElement('canvas');
-                let dpi = window.devicePixelRatio;
-                c.width = width || (this.width * dpi);
-                c.height = height || (this.height * dpi);
+                c.width = width || (this.width * window.devicePixelRatio);
+                c.height = height || (this.height * window.devicePixelRatio);
 
                 var ctx = c.getContext('2d');
 
@@ -506,9 +508,8 @@ export let View = (function () {
             view.unselectObjects()
 
             try {
-                const lonlat = view.wasm.screenToWorld(xymouse.x, xymouse.y);
-                var radec = view.wasm.viewToICRSCooSys(lonlat[0], lonlat[1]);
-                view.pointTo(radec[0], radec[1]);
+                const [lon, lat] = view.aladin.pix2world(xymouse.x, xymouse.y, 'icrs');
+                view.pointTo(lon, lat);
             }
             catch (err) {
                 return;
@@ -1207,12 +1208,11 @@ export let View = (function () {
             // specified fpsInterval not being a multiple of RAF's interval (16.7ms)
 
             // Drawing code
-
-            try {
-                this.moving = this.wasm.update(elapsedTime);
-            } catch (e) {
-                console.error(e)
-            }
+            //try {
+            this.moving = this.wasm.update(elapsedTime);
+            //} catch (e) {
+            //    console.error(e)
+            //}
 
             ////// 2. Draw catalogues////////
             const isViewRendering = this.wasm.isRendering();
@@ -1230,6 +1230,7 @@ export let View = (function () {
     View.prototype.drawAllOverlays = function () {
         var ctx = this.catalogCtx;
         this.catalogCanvasCleared = false;
+
         if (this.mustClearCatalog) {
             ctx.clearRect(0, 0, this.width, this.height);
             this.catalogCanvasCleared = true;
@@ -1246,7 +1247,7 @@ export let View = (function () {
 
             for (var i = 0; i < this.catalogs.length; i++) {
                 var cat = this.catalogs[i];
-                cat.draw(ctx, this.cooFrame, this.width, this.height, this.largestDim);
+                cat.draw(ctx, this.width, this.height);
             }
         }
         // draw popup catalog
@@ -1320,8 +1321,7 @@ export let View = (function () {
 
     View.prototype.getVisiblePixList = function (norder) {
         var pixList = [];
-        let centerWorldPosition = this.wasm.screenToWorld(this.cx, this.cy);
-        const [lon, lat] = this.wasm.viewToICRSCooSys(centerWorldPosition[0], centerWorldPosition[1]);
+        let [lon, lat] = this.aladin.pix2world(this.cx, this.cy, 'icrs');
 
         var radius = this.fov * 0.5 * this.ratio;
         this.wasm.queryDisc(norder, lon, lat, radius).forEach(x => pixList.push(Number(x)));
@@ -1476,26 +1476,20 @@ export let View = (function () {
         this.wasm.setRotationAroundCenter(rotation);
     }
 
-    View.prototype.setGridConfig = function (gridCfg) {
-        this.gridCfg = {...this.gridCfg, ...gridCfg};
-        this.wasm.setGridConfig(this.gridCfg);
+    View.prototype.setGridOptions = function (options) {
+        this.gridCfg = {...this.gridCfg, ...options};
+        this.wasm.setGridOptions(this.gridCfg);
 
-        // send events
-        /*if (this.gridCfg.hasOwnProperty('enabled')) {
-            if (this.gridCfg.enabled === true) {
-                ALEvent.COO_GRID_ENABLED.dispatchedTo(this.aladinDiv);
-            }
-            else {
-                ALEvent.COO_GRID_DISABLED.dispatchedTo(this.aladinDiv);
-            }
-        }*/
+        if (!this.gridCfg.enabled) {
+            this.mustClearCatalog = true;
+        }
 
         ALEvent.COO_GRID_UPDATED.dispatchedTo(this.aladinDiv, this.gridCfg);
 
         this.requestRedraw();
     };
 
-    View.prototype.getGridConfig = function() {
+    View.prototype.getGridOptions = function() {
         return this.gridCfg;
     }
 
@@ -1782,10 +1776,10 @@ export let View = (function () {
 
         // Set the grid label format
         if (this.cooFrame.label == "J2000d") {
-            this.setGridConfig({fmt: "HMS"});
+            this.setGridOptions({fmt: "HMS"});
         }
         else {
-            this.setGridConfig({fmt: "DMS"});
+            this.setGridOptions({fmt: "DMS"});
         }
 
         // Get the new view center position (given in icrs)
@@ -1987,7 +1981,7 @@ export let View = (function () {
             let lineWidth = footprint.getLineWidth();
 
             footprint.setLineWidth(10.0);
-            if (footprint.isShowing && footprint.isInStroke(ctx, this, x, y)) {
+            if (footprint.isShowing && footprint.isInStroke(ctx, this, x * window.devicePixelRatio, y * window.devicePixelRatio)) {
                 closest = footprint;
             }
             footprint.setLineWidth(lineWidth);
@@ -2025,8 +2019,9 @@ export let View = (function () {
         if (this.catalogs) {
             for (var k = 0; k < this.catalogs.length; k++) {
                 let catalog = this.catalogs[k];
+                let footprints = catalog.getFootprints();
 
-                let closest = this.closestFootprints(catalog.footprints, ctx, x, y);
+                let closest = this.closestFootprints(footprints, ctx, x, y);
                 if (closest) {
                     //ctx.lineWidth = pastLineWidth;
                     return [closest];

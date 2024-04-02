@@ -1,4 +1,5 @@
 use super::Renderer;
+use al_core::log::console_log;
 use web_sys::CanvasRenderingContext2d;
 
 pub struct TextRenderManager {
@@ -25,7 +26,7 @@ impl TextRenderManager {
     pub fn new(aladin_div: &HtmlElement) -> Result<Self, JsValue> {
         let canvas = aladin_div
             // Inside it, retrieve the canvas
-            .get_elements_by_class_name("aladin-gridCanvas")
+            .get_elements_by_class_name("aladin-catalogCanvas")
             .get_with_index(0)
             .unwrap_abort()
             .dyn_into::<web_sys::HtmlCanvasElement>()?;
@@ -67,6 +68,7 @@ impl TextRenderManager {
         angle: A,
     ) -> Result<(), JsValue> {
         self.ctx.save();
+
         self.ctx
             .translate(screen_pos.x as f64, screen_pos.y as f64)?;
 
@@ -89,15 +91,6 @@ impl TextRenderManager {
     ) -> Result<(), JsValue> {
         Ok(())
     }
-
-    pub fn clear_text_canvas(&mut self) {
-        self.ctx.clear_rect(
-            0_f64,
-            0_f64,
-            self.canvas.width() as f64,
-            self.canvas.height() as f64,
-        );
-    }
 }
 
 impl Renderer for TextRenderManager {
@@ -110,7 +103,15 @@ impl Renderer for TextRenderManager {
             .dyn_into::<web_sys::CanvasRenderingContext2d>()
             .unwrap_abort();
 
-        self.clear_text_canvas();
+        //self.clear_text_canvas();
+        // Clear the Aladin Lite 2d canvas
+        // This canvas is where catalogs, grid labels, Hpx grid are drawn
+        /*self.ctx.clear_rect(
+            0_f64,
+            0_f64,
+            self.canvas.width() as f64,
+            self.canvas.height() as f64,
+        );*/
 
         // reset the font and color
         self.ctx

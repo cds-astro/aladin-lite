@@ -8,15 +8,13 @@
 
 <script type="module">
     import A from '../src/js/A.js';
-    import {AladinUtils} from '../src/js/AladinUtils.js';
 
     A.init.then(() => {
-        let vertices = AladinUtils.HEALPix.vertices(8, 0n)
-
-        let lonlat = AladinUtils.HEALPix.pix2ang(8, 0n)
-
-        let ipix = AladinUtils.HEALPix.ang2pix(8, 0.1, 0.4)
-        console.log(vertices, lonlat, ipix)
+        let vertices = A.Utils.HEALPix.vertices(Math.pow(2, 3), BigInt(276))
+        //let lonlat = A.Utils.HEALPix.pix2ang(8, 0n)
+        //let ipix = A.Utils.HEALPix.ang2pix(8, 0.1, 0.4)
+        //console.log("vertices", vertices, lonlat, ipix)
+        console.log(vertices)
     })
     
 </script>

@@ -33,7 +33,6 @@
  *
  *****************************************************************************/
 
-import { AladinUtils } from './AladinUtils.js';
 import { Utils } from './Utils';
 
 export let Footprint= (function() {
@@ -43,7 +42,11 @@ export let Footprint= (function() {
         this.id = 'footprint-' + Utils.uuidv4();
 
         this.source = source;
-        this.shapes = shapes;
+        if (this.source) {
+            this.source.hasFootprint = true;
+        }
+
+        this.shapes = [].concat(shapes);
 
         this.isShowing = true;
         this.isHovered = false;
@@ -54,6 +57,11 @@ export let Footprint= (function() {
     Footprint.prototype.setCatalog = function(catalog) {
         if (this.source) {
             this.source.setCatalog(catalog);
+
+            // Take the color properties of the catalog
+            this.setColor(catalog.color);
+            this.setSelectionColor(catalog.selectionColor);
+            this.setHoverColor(catalog.hoverColor);
         }
     };
 
@@ -93,8 +101,12 @@ export let Footprint= (function() {
 
         if (this.overlay) {
             this.overlay.reportChange();
-        } else if (this.source && this.source.catalog) {
-            this.source.catalog.view && this.source.catalog.view.requestRedraw();
+            return;
+        }
+
+        let catalog = this.getCatalog();
+        if (catalog) {
+            catalog.view && catalog.view.requestRedraw();
         }
     };
 
@@ -108,30 +120,43 @@ export let Footprint= (function() {
 
         if (this.overlay) {
             this.overlay.reportChange();
-        } else if (this.source && this.source.catalog) {
-            this.source.catalog.view && this.source.catalog.view.requestRedraw();
+        }
+
+        let catalog = this.getCatalog();
+        if (catalog) {
+            catalog.view && catalog.view.requestRedraw();
         }
     };
+
+    Footprint.prototype.getLineWidth = function() {
+        return this.shapes && this.shapes[0].getLineWidth();
+    };
+
 
     Footprint.prototype.setLineWidth = function(lineWidth) {
         this.shapes.forEach((shape) => shape.setLineWidth(lineWidth))
     };
 
-    Footprint.prototype.getLineWidth = function() {
-        if (this.shapes && this.shapes.length > 0) {
-            return this.shapes[0].getLineWidth();
-        }
-    };
-
     Footprint.prototype.setColor = function(color) {
+        if(!color) {
+            return;
+        }
+
         this.shapes.forEach((shape) => shape.setColor(color))
     };
 
     Footprint.prototype.setSelectionColor = function(color) {
+        if (!color) {
+            return;
+        }
+
         this.shapes.forEach((shape) => shape.setSelectionColor(color))
     };
 
     Footprint.prototype.setHoverColor = function(color) {
+        if (!color)
+            return;
+
         this.shapes.forEach((shape) => shape.setHoverColor(color))
     };
 
@@ -185,7 +210,7 @@ export let Footprint= (function() {
                     y: s.y,
                 };
             } else {
-                var xy = AladinUtils.radecToViewXy(s.ra, s.dec, view.aladin);
+                var xy = view.aladin.world2pix(s.ra, s.dec);
                 if (!xy) {
                     return false;
                 }

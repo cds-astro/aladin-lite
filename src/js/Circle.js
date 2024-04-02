@@ -57,7 +57,7 @@ export let Circle = (function() {
     };
 
     Circle.prototype.setColor = function(color) {
-        if (this.color == color) {
+        if (!color || this.color == color) {
             return;
         }
         this.color = color;
@@ -67,7 +67,7 @@ export let Circle = (function() {
     };
 
     Circle.prototype.setSelectionColor = function(color) {
-        if (this.selectionColor == color) {
+        if (!color || this.selectionColor == color) {
             return;
         }
         this.selectionColor = color;
@@ -77,7 +77,7 @@ export let Circle = (function() {
     };
 
     Circle.prototype.setHoverColor = function(color) {
-        if (this.hoverColor == color) {
+        if (!color || this.hoverColor == color) {
             return;
         }
         this.hoverColor = color;
@@ -189,7 +189,7 @@ export let Circle = (function() {
         }
         noStroke = noStroke===true || false;
 
-        var centerXyview = AladinUtils.radecToViewXy(this.centerRaDec[0], this.centerRaDec[1], view.aladin);
+        var centerXyview = view.aladin.world2pix(this.centerRaDec[0], this.centerRaDec[1]);
         if (!centerXyview) {
             // the center goes out of the projection
             // we do not draw it
@@ -203,39 +203,24 @@ export let Circle = (function() {
         let hidden = true;
 
         var ra, dec, vertOnCircle, dx, dy;
-        //if (this.radiusDegrees > 30) {
-            this.radius = Number.NEGATIVE_INFINITY;
-            
-            // Project 4 points lying on the circle and take the minimal dist with the center as radius
-            [[-1, 0], [1, 0], [0, -1], [0, 1]].forEach(([cardDirRa, cardDirDec]) => {
-                ra = this.centerRaDec[0] + cardDirRa * this.radiusDegrees;
-                dec = this.centerRaDec[1] + cardDirDec * this.radiusDegrees;
+        this.radius = Number.NEGATIVE_INFINITY;
+        
+        // Project 4 points lying on the circle and take the minimal dist with the center as radius
+        [[-1, 0], [1, 0], [0, -1], [0, 1]].forEach(([cardDirRa, cardDirDec]) => {
+            ra = this.centerRaDec[0] + cardDirRa * this.radiusDegrees;
+            dec = this.centerRaDec[1] + cardDirDec * this.radiusDegrees;
 
-                vertOnCircle = AladinUtils.radecToViewXy(ra, dec, view.aladin);
-
-                if (vertOnCircle) {
-                    dx = vertOnCircle[0] - this.center.x;
-                    dy = vertOnCircle[1] - this.center.y;
-
-                    this.radius = Math.max(Math.sqrt(dx*dx + dy*dy), this.radius);
-
-                    hidden = false;
-                }            
-            });
-        /*} else {
-            ra = this.centerRaDec[0] + this.radiusDegrees;
-            dec = this.centerRaDec[1];
-
-            vertOnCircle = AladinUtils.radecToViewXy(ra, dec, view);
+            vertOnCircle = view.aladin.world2pix(ra, dec);
 
             if (vertOnCircle) {
                 dx = vertOnCircle[0] - this.center.x;
                 dy = vertOnCircle[1] - this.center.y;
 
-                this.radius = Math.sqrt(dx*dx + dy*dy);
+                this.radius = Math.max(Math.sqrt(dx*dx + dy*dy), this.radius);
+
                 hidden = false;
-            }
-        }*/
+            }            
+        });
 
         if (hidden) {
             return;

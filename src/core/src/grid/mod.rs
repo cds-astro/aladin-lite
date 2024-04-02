@@ -126,9 +126,9 @@ impl ProjetedGrid {
         if let Some(enabled) = enabled {
             self.enabled = enabled;
 
-            if !self.enabled {
+            /*if !self.enabled {
                 self.text_renderer.clear_text_canvas();
-            }
+            }*/
         }
 
         Ok(())

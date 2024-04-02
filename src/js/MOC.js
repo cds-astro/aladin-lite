@@ -15,7 +15,35 @@ import { Color } from "./Color.js";
 
 import { ALEvent } from "./events/ALEvent.js";
 
+/**
+* @typedef {Object} MOCOptions
+* @description Options for configuring a MOC (Multi-Order-Coverage).
+*
+* @property {Object} options - Configuration options for the MOC.
+* @property {string} [options.name="MOC"] - The name of the catalog.
+* @property {string} [options.color] - The color of the MOC HEALPix cell edges.
+* @property {string} [options.fillColor] - A filling color of the MOC HEALPix cells.
+* @property {string} [options.fill=false] - Fill the MOC with `options.fillColor`
+* @property {string} [options.edge=true] - Draw the edges of the HEALPix cells with `options.color`.
+* @property {number} [options.lineWidth=3] - The line width in pixels 
+* @property {Boolean} [options.perimeter=false] - A filling color of the MOC HEALPix cells.
+* @property {number} [options.opacity=1.0] - The opacity of the MOC
+*/
+
+/**
+ * Represents a Multi-Order-Coverage with configurable options for display and interaction.
+ *
+ * @namespace
+ * @typedef {Object} MOC
+ */
 export let MOC = (function() {
+ /**
+     * Constructor function for creating a new catalog instance.
+     *
+     * @constructor
+     * @memberof MOC
+    * @param {MOCOptions} options - Configuration options for the MOC.
+     */
     let MOC = function(options) {
         //this.order = undefined;
 
@@ -61,7 +89,7 @@ export let MOC = (function() {
         }
 
         this.opacity = Math.max(0, Math.min(1, this.opacity)); // 0 <= this.opacity <= 1
-        this.lineWidth = options["lineWidth"] || 1;
+        this.lineWidth = options["lineWidth"] || 3;
 
         //this.proxyCalled = false; // this is a flag to check whether we already tried to load the MOC through the proxy
 

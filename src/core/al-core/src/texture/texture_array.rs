@@ -27,12 +27,12 @@ impl Texture2DArray {
         tex_params: &'static [(u32, u32)],
     ) -> Result<Texture2DArray, JsValue> {
         let textures: Result<Vec<_>, _> = (0..num_slices)
-            .map(|_| {
-                Texture2D::create_empty_with_format::<F>(gl, width, height, tex_params)
-            })
+            .map(|_| Texture2D::create_empty_with_format::<F>(gl, width, height, tex_params))
             .collect();
 
-        Ok(Texture2DArray { textures: textures? })
+        Ok(Texture2DArray {
+            textures: textures?,
+        })
     }
 }
 

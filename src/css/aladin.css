@@ -17,11 +17,11 @@
 	top: 0;
 }
 
-.aladin-gridCanvas {
+/*.aladin-gridCanvas {
 	position: absolute;
 	left: 0;
 	top: 0;
-}
+}*/
 
 .aladin-catalogCanvas {
     position: absolute;
@@ -752,6 +752,10 @@ canvas {
     box-shadow:inset 1px 1px 0px 0px #fff;
 
     background-color: rgba(0, 0, 0, 0.7);
+
+    margin: 0;
+    box-sizing: content-box;
+    line-height: normal;
 }
 
 .aladin-context-menu .aladin-context-menu-item:first-of-type {

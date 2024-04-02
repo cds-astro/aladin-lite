@@ -29,7 +29,6 @@
  *****************************************************************************/
 
 import { Utils } from "./Utils";
-import { AladinUtils } from "./AladinUtils.js";
 import { Overlay } from "./Overlay.js";
 
 // TODO : Ellipse, Circle and Footprint should inherit from the same root object
@@ -58,7 +57,7 @@ export let Ellipse = (function() {
     };
 
     Ellipse.prototype.setColor = function(color) {
-        if (this.color == color) {
+        if (!color || this.color == color) {
             return;
         }
         this.color = color;
@@ -68,7 +67,7 @@ export let Ellipse = (function() {
     };
 
     Ellipse.prototype.setSelectionColor = function(color) {
-        if (this.selectionColor == color) {
+        if (!color || this.selectionColor == color) {
             return;
         }
         this.selectionColor = color;
@@ -78,7 +77,7 @@ export let Ellipse = (function() {
     };
 
     Ellipse.prototype.setHoverColor = function(color) {
-        if (this.hoverColor == color) {
+        if (!color || this.hoverColor == color) {
             return;
         }
         this.hoverColor = color;
@@ -187,8 +186,8 @@ export let Ellipse = (function() {
     };
 
     Ellipse.prototype.setRadiuses = function(radiusXDegrees, radiusYDegrees) {
-        this.radiusXDegrees = radiusXDegrees;
-        this.radiusYDegrees = radiusYDegrees;
+        this.a = radiusXDegrees;
+        this.b = radiusYDegrees;
 
         if (this.overlay) {
             this.overlay.reportChange();
@@ -205,15 +204,44 @@ export let Ellipse = (function() {
             return;
         }
 
-        var centerXyview = AladinUtils.radecToViewXy(this.centerRaDec[0], this.centerRaDec[1], view.aladin);
-        if (!centerXyview) {
+        var originScreen = view.aladin.world2pix(this.centerRaDec[0], this.centerRaDec[1]);
+        if (!originScreen) {
             // the center goes out of the projection
             // we do not draw it
             return;
         }
 
-        let circlePtXyViewRa = AladinUtils.radecToViewXy(this.centerRaDec[0] + this.radiusXDegrees, this.centerRaDec[1], view.aladin);
-        let circlePtXyViewDec = AladinUtils.radecToViewXy(this.centerRaDec[0], this.centerRaDec[1] + this.radiusYDegrees, view.aladin);
+        // 1. Find the spherical tangent vector going to the north
+        let toNorth = [this.centerRaDec[0], this.centerRaDec[1] + 1e-3];
+
+        // 2. Project it to the screen
+        let toNorthScreen = view.aladin.world2pix(toNorth[0], toNorth[1]);
+
+        if(!toNorthScreen) {
+            return;
+        }
+
+        // 3. normalize this vector
+        let toNorthVec = [toNorthScreen[0] - originScreen[0], toNorthScreen[1] - originScreen[1]];
+        let norm = Math.sqrt(toNorthVec[0]*toNorthVec[0] + toNorthVec[1]*toNorthVec[1]);
+        
+        toNorthVec = [toNorthVec[0] / norm, toNorthVec[1] / norm];
+        let toWestVec = [1.0, 0.0];
+
+        let x1 = toWestVec[0];
+        let y1 = toWestVec[1];
+        let x2 = toNorthVec[0];
+        let y2 = toNorthVec[1];
+        // 4. Compute the west to north angle
+        let westToNorthAngle = Math.atan2(x1*y2-y1*x2, x1*x2+y1*y2);
+
+        // 5. Get the correct ellipse angle
+        let theta = -this.rotation + westToNorthAngle;
+        //let ct = Math.cos(theta);
+        //let st = Math.sin(theta);
+
+        /*let circlePtXyViewRa = view.aladin.world2pix(view.viewCenter.lon + 1.0, view.viewCenter.lat);
+        let circlePtXyViewDec = view.aladin.world2pix(view.viewCenter.lon, view.viewCenter.lat + 1.0);
 
         if (!circlePtXyViewRa || !circlePtXyViewDec) {
             // the circle border goes out of the projection
@@ -223,17 +251,20 @@ export let Ellipse = (function() {
 
         var dxRa = circlePtXyViewRa[0] - centerXyview[0];
         var dyRa = circlePtXyViewRa[1] - centerXyview[1];
-        var radiusInPixX = Math.sqrt(dxRa*dxRa + dyRa*dyRa);
+        var dRa = Math.sqrt(dxRa*dxRa + dyRa*dyRa);
 
         var dxDec = circlePtXyViewDec[0] - centerXyview[0];
         var dyDec = circlePtXyViewDec[1] - centerXyview[1];
-        var radiusInPixY = Math.sqrt(dxDec*dxDec + dyDec*dyDec);
+        var dDec = Math.sqrt(dxDec*dxDec + dyDec*dyDec);*/
+
+        //var radiusInPixX = Math.abs(this.a * ct * dRa) + Math.abs(this.a * st * dDec);
+        //var radiusInPixY = Math.abs(this.b * st * dRa) + Math.abs(this.b * ct * dDec);
 
         // Ellipse crossing the projection
-        if ((dxRa*dyDec - dxDec*dyRa) <= 0.0) {
+        /*if ((dxRa*dyDec - dxDec*dyRa) <= 0.0) {
             // We do not draw it
             return;
-        }
+        }*/
         noStroke = noStroke===true || false;
 
         // TODO : check each 4 point until show
@@ -257,33 +288,10 @@ export let Ellipse = (function() {
             ctx.strokeStyle = baseColor;
         }
 
-        // 1. Find the spherical tangent vector going to the north
-        let origin = this.centerRaDec;
-        let toNorth = [this.centerRaDec[0], this.centerRaDec[1] + 1e-3];
-
-        // 2. Project it to the screen
-        let originScreen = this.overlay.view.wasm.worldToScreen(origin[0], origin[1]);
-        let toNorthScreen = this.overlay.view.wasm.worldToScreen(toNorth[0], toNorth[1]);
-
-        // 3. normalize this vector
-        let toNorthVec = [toNorthScreen[0] - originScreen[0], toNorthScreen[1] - originScreen[1]];
-        let norm = Math.sqrt(toNorthVec[0]*toNorthVec[0] + toNorthVec[1]*toNorthVec[1]);
-        
-        toNorthVec = [toNorthVec[0] / norm, toNorthVec[1] / norm];
-        let toWestVec = [1.0, 0.0];
-
-        let x1 = toWestVec[0];
-        let y1 = toWestVec[1];
-        let x2 = toNorthVec[0];
-        let y2 = toNorthVec[1];
-        // 4. Compute the west to north angle
-        let westToNorthAngle = Math.atan2(x1*y2-y1*x2, x1*x2+y1*y2);
-
-        // 5. Get the correct ellipse angle
-        let theta = -this.rotation + westToNorthAngle;
-
+        ctx.lineWidth = this.lineWidth;
         ctx.beginPath();
-        ctx.ellipse(centerXyview[0], centerXyview[1], radiusInPixX, radiusInPixY, theta, 0, 2*Math.PI, false);
+        let px_per_deg = view.width / view.fov;
+        ctx.ellipse(originScreen[0], originScreen[1], px_per_deg * this.a, px_per_deg * this.b, theta, 0, 2*Math.PI, false);
         if (!noStroke) {
             if (this.fillColor) {
                 ctx.fillStyle = this.fillColor;

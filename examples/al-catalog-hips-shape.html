@@ -10,7 +10,7 @@
     import A from '../src/js/A.js';
     let aladin;
     A.init.then(() => {
-        aladin = A.aladin('#aladin-lite-div', {target: 'LMC', fov: 55, showContextMenu: true});
+        aladin = A.aladin('#aladin-lite-div', {target: '12 25 41.512 +12 48 47.2', fov: 1, showContextMenu: true});
         // define custom draw function
         var drawFunction = function(source, canvasCtx, viewParams) {
             canvasCtx.beginPath();
@@ -31,7 +31,19 @@
             canvasCtx.globalAlpha = 1;
         };
 
-        var hips = A.catalogHiPS('https://axel.u-strasbg.fr/HiPSCatService/Simbad', {onClick: 'showTable', name: 'Simbad', shape: drawFunction});
+        var drawFunctionFootprint = function(s) {
+            let a = +s.data.size_maj;
+            let b = +s.data.size_min;
+
+            if (a < 0.1 || b < 0.1) {
+                return;
+            }
+
+            let angle = +s.data.size_angle || 0.0;
+            return A.ellipse(s.ra, s.dec, a / 60, b / 60, angle, {lineWidth: 3, hoverColor: 'yellow'});
+        };
+
+        var hips = A.catalogHiPS('https://axel.u-strasbg.fr/HiPSCatService/Simbad', {onClick: 'showTable', name: 'Simbad', color: 'cyan', hoverColor: 'red', shape: drawFunctionFootprint});
         aladin.addCatalog(hips);
     });
 </script>

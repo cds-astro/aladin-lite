@@ -1,5 +1,9 @@
 # Changelogs
 
+## 3.3.3
+
+* [feat] Hover color support by @pmatsson and @bmatthieu3 in <https://github.com/cds-astro/aladin-lite/pull/145>
+
 ## 3.3.2
 
 * [fixed] do not allow to query the properties several times for an imageHiPS

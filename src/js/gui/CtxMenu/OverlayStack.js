@@ -297,7 +297,7 @@ export class OverlayStack extends ContextMenu {
                                                 let radius = self.aladin.angularDist(c.x, c.y, c.x + c.r, c.y);
     
                                                 // the moc needs a 
-                                                let moc = A.MOCFromCircle(
+                                                let moc = A.MOCFromCone(
                                                     {ra, dec, radius},
                                                     {name: 'cone', lineWidth: 3.0},
                                                 );

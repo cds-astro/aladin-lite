@@ -34,9 +34,13 @@ import { Color } from "./Color.js"
 import { Utils } from "./Utils";
 import { Coo } from "./libs/astro/coo.js";
 import { VOTable } from "./vo/VOTable.js";
-import { Footprint } from "./Footprint.js";
 import { ObsCore } from "./vo/ObsCore.js";
 import A from "./A.js";
+import { Polyline } from "./Polyline.js";
+import { Ellipse } from "./Ellipse.js";
+import { Circle } from "./Circle.js";
+import { Footprint } from "./Footprint.js";
+
 
 /**
  * Represents a catalog with configurable options for display and interaction.
@@ -55,7 +59,7 @@ export let Catalog = (function() {
     * @param {string} [options.name="catalog"] - The name of the catalog.
     * @param {string} [options.color] - The color associated with the catalog.
     * @param {number} [options.sourceSize=8] - The size of the sources in the catalog.
-    * @param {string} [options.shape="square"] - The shape of the sources (can be, "square", "circle", "plus", "cross", "rhomb", "triangle").
+    * @param {string|function|Image|HTMLCanvasElement} [options.shape="square"] - The shape of the sources (can be, "square", "circle", "plus", "cross", "rhomb", "triangle").
     * @param {number} [options.limit] - The maximum number of sources to display.
     * @param {function} [options.onClick] - The callback function to execute on a source click.
     * @param {boolean} [options.readOnly=false] - Whether the catalog is read-only.
@@ -431,10 +435,10 @@ export let Catalog = (function() {
 
                 if (successCallback) {
                     successCallback({
-                        sources: sources,
-                        footprints: footprints,
-                        fields: fields,
-                        type: type
+                        sources,
+                        footprints,
+                        fields,
+                        type
                     });
                 }
             },
@@ -453,11 +457,16 @@ export let Catalog = (function() {
     	this.shape = options.shape || this.shape || "square";
 
         this._shapeIsFunction = false; // if true, the shape is a function drawing on the canvas
+        this._shapeIsFootprintFunction = false;
         if (typeof this.shape === 'function') {
             this._shapeIsFunction = true;
-        }
+            // do not need to compute any canvas
 
-        if (this.shape instanceof Image || this.shape instanceof HTMLCanvasElement) {
+            // there is a possibility that the user gives a function returning shape objects such as
+            // circle, polyline, line or even footprints
+            // we must test that here and precompute all those objects and add them as footprints to draw
+            // at this point, we do not have to draw any sources
+        } else if (this.shape instanceof Image || this.shape instanceof HTMLCanvasElement) {
             this.sourceSize = this.shape.width;
         }
 
@@ -491,6 +500,10 @@ export let Catalog = (function() {
             this.setFields(fields);
         }
 
+        let footprints = this.parseFootprintsFromSources(sources);
+        sources = sources.filter((s) => s.hasFootprint !== true);
+        this.addFootprints(footprints);
+
     	this.sources = this.sources.concat(sources);
     	for (var k=0, len=sources.length; k<len; k++) {
     	    sources[k].setCatalog(this);
@@ -506,14 +519,39 @@ export let Catalog = (function() {
     Catalog.prototype.addFootprints = function(footprintsToAdd) {
         footprintsToAdd = [].concat(footprintsToAdd); // make sure we have an array and not an individual footprints
     	this.footprints = this.footprints.concat(footprintsToAdd);
-    	for (var k=0, len=footprintsToAdd.length; k<len; k++) {
-    	    footprintsToAdd[k].setCatalog(this);
-            footprintsToAdd[k].setColor(this.color);
-            footprintsToAdd[k].setSelectionColor(this.selectionColor);
-            footprintsToAdd[k].setHoverColor(this.hoverColor);
-    	}
+
+        footprintsToAdd.forEach(f => {
+            f.setCatalog(this);
+        })
+
         this.reportChange();
     };
+
+    Catalog.prototype.parseFootprintsFromSources = function(sources) {
+        let footprints = [];
+        if (this._shapeIsFunction) {
+            for(const source of sources) {
+                try {
+                    let shape = this.shape(source)
+                    // convert simple shapes to footprints
+                    if (shape instanceof Circle || shape instanceof Polyline || shape instanceof Ellipse) {
+                        shape = new Footprint(shape, source);
+                    }
+
+                    if (shape instanceof Footprint) {
+                        this._shapeIsFootprintFunction = true;
+                        // store the footprints
+                        footprints.push(shape);
+                    }
+                } catch(e) {
+                    // do not create the footprint
+                    continue;
+                }
+            };
+        }
+
+        return footprints;
+    }
 
     Catalog.prototype.setFields = function(fields) {
         this.fields = fields;
@@ -668,19 +706,19 @@ export let Catalog = (function() {
         this.footprints = [];
     };
 
-    Catalog.prototype.draw = function(ctx, frame, width, height, largestDim) {
+    Catalog.prototype.draw = function(ctx, width, height) {
         if (! this.isShowing) {
             return;
         }
         // tracé simple
         ctx.strokeStyle= this.color;
 
-        //ctx.lineWidth = 1;
-        //ctx.beginPath();
+        // Draw the footprints
+        this.drawFootprints(ctx);
+
         if (this._shapeIsFunction) {
             ctx.save();
         }
-
         const sourcesInView = this.drawSources(ctx, width, height);
 
         if (this._shapeIsFunction) {
@@ -695,9 +733,6 @@ export let Catalog = (function() {
                 this.drawSourceLabel(s, ctx);
             })
         }
-
-        // Draw the footprints
-        this.drawFootprints(ctx);
     };
 
     Catalog.prototype.drawSources = function(ctx, width, height) {
@@ -729,18 +764,22 @@ export let Catalog = (function() {
             return false;
         }
 
+        if (s.hasFootprint) {
+            return false;
+        }
+
         if (s.x <= width && s.x >= 0 && s.y <= height && s.y >= 0) {
-            if (this._shapeIsFunction) {
+            if (this._shapeIsFunction && !this._shapeIsFootprintFunction) {
                 this.shape(s, ctx, this.view.getViewParams());
             }
             else if (s.marker && s.useMarkerDefaultIcon) {
                 ctx.drawImage(this.cacheMarkerCanvas, s.x-this.sourceSize/2, s.y-this.sourceSize/2);
             }
-            else if (s.isHovered) {
-                ctx.drawImage(this.cacheHoverCanvas, s.x-this.selectSize/2, s.y-this.selectSize/2);
-            }
             else if (s.isSelected) {
                 ctx.drawImage(this.cacheSelectCanvas, s.x-this.selectSize/2, s.y-this.selectSize/2);
+            }
+            else if (s.isHovered) {
+                ctx.drawImage(this.cacheHoverCanvas, s.x-this.selectSize/2, s.y-this.selectSize/2);
             }
             else {
                 ctx.drawImage(this.cacheCanvas, s.x-this.cacheCanvas.width/2, s.y-this.cacheCanvas.height/2);
@@ -771,9 +810,9 @@ export let Catalog = (function() {
     };
 
     Catalog.prototype.drawFootprints = function(ctx) {
-        this.footprints.forEach((f) => {
-            f.draw(ctx, this.view)
-        });
+        for(let k = 0; k < this.footprints.length; k++) {
+            this.footprints[k].draw(ctx, this.view)
+        };
     };
 
 

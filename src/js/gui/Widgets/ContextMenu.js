@@ -121,11 +121,12 @@ export class ContextMenu extends DOMElement {
                         monochrome: true,
                         url: copyIconUrl,
                         size: 'small',
-                        tooltip: {content: 'Copy the position!', position: {direction: 'bottom'}}
+                        cssStyle: {
+                            cursor: 'not-allowed',
+                        }
                     }),
                     posStr
                 ]).attachTo(item)
-
             } catch (e) {
                 item.innerHTML = '<span>Out of projection</span>';
             }
@@ -240,11 +241,13 @@ export class ContextMenu extends DOMElement {
 
                 if (!opt.disabled || opt.disabled === false) {
                     if (!opt.subMenu || opt.subMenu.length === 0) {
-                        if ((opt.mustHide === undefined || opt.mustHide === true) && (!self.options || self.options.hideOnClick === undefined || self.options.hideOnClick === true)) {
+                        let close = opt.action(e, self);
+
+                        close = close !== undefined ? close : true;
+
+                        if (close && ((opt.mustHide === undefined || opt.mustHide === true) && (!self.options || self.options.hideOnClick === undefined || self.options.hideOnClick === true))) {
                             self._hide();
                         }
-
-                        opt.action(e, self);
                     }
                 }
             });

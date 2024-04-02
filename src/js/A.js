@@ -318,8 +318,8 @@ A.coo = function (longitude, latitude, prec) {
 };
 
 // API
-A.footprint = function(shapes, source) {
-    return new Footprint(shapes, source);
+A.footprint = function(shapes) {
+    return new Footprint(shapes);
 };
 
 // API
@@ -329,15 +329,52 @@ A.footprintsFromSTCS = function (stcs, options) {
     return footprints;
 }
 
-// API
-A.MOCFromURL = function (url, options, successCallback) {
+/**
+ * Creates a new MOC (Multi-Order-Coverage) from an url
+ *
+ * @function
+ * @memberof A
+ * @name MOCFromURL
+ *
+ * @param {string} url - The url to the MOC (e.g. stored as FITS file)
+ * @param {MOCOptions} [options] - Display options for the MOC
+ * @param {function} [successCallback] - Callback function when the MOC loads
+ * @param {function} [errorCallback] - Callback function when the MOC fails loading
+ * @returns {MOC} Returns a new MOC object
+ */
+A.MOCFromURL = function (url, options, successCallback, errorCallback) {
     var moc = new MOC(options);
-    moc.parse(url, successCallback);
+    moc.parse(url, successCallback, errorCallback);
 
     return moc;
 };
 
-// API
+/**
+ * Creates a new MOC (Multi-Order-Coverage) from a JSON-like dictionary (javascript Object)
+ *
+ * @function
+ * @memberof A
+ * @name MOCFromJSON
+ *
+ * @param {Object} jsonMOC - The MOC stores as a JSON-like dictionary
+ * @param {MOCOptions} [options] - Display options for the MOC
+ * @param {function} [successCallback] - Callback function when the MOC loads
+ * @param {function} [errorCallback] - Callback function when the MOC fails loading
+ * @returns {MOC} Returns a new MOC object
+ * 
+ * @example
+ * var json = {"3":[517],
+ *  "4":[2065,2066,2067,2112,2344,2346,2432],
+ *   "5":[8221,8257,8258,8259,8293,8304,8305,8307,8308,8452,8456,9346,9352,9354,9736],
+ *   "6":[32861,32862,32863,32881,32882,32883,32892,32893,33025,33026,33027,33157,33168,33169,33171,
+ *   33181,33224,33225,33227,33236,33240,33812,33816,33828,33832,37377,37378,37379,37382,37388,
+ *   37390,37412,37414,37420,37422,37562,38928,38930,38936,38948,38952],
+ *   "7":[131423,131439,131443,131523,131556,131557,131580,131581,132099,132612,132613,132624,132625,132627,132637,
+ *   132680,132681,132683,132709,132720,132721,132904,132905,132948,132952,132964,132968,133008,133009,133012,135252,135256,135268,135316,135320,135332,135336,148143,148152,148154,149507,149520
+ *   ,149522,149523,149652,149654,149660,149662,149684,149686,149692,149694,149695,150120,150122,150208,150210,150216,150218,150240,150242,150243,155748,155752,155796,155800,155812,155816]};
+ * var moc = A.MOCFromJSON(json, {opacity: 0.25, color: 'magenta', lineWidth: 3});
+ *   aladin.addMOC(moc);
+ */
 A.MOCFromJSON = function (jsonMOC, options, successCallback, errorCallback) {
     var moc = new MOC(options);
     moc.parse(jsonMOC, successCallback, errorCallback);
@@ -345,14 +382,44 @@ A.MOCFromJSON = function (jsonMOC, options, successCallback, errorCallback) {
     return moc;
 };
 
-// API
-A.MOCFromCircle = function (circle, options, successCallback, errorCallback) {
+/**
+ * Creates a new MOC (Multi-Order-Coverage) from an object describing a cone on the sky
+ *
+ * @function
+ * @memberof A
+ * @name MOCFromCone
+ *
+ * @param {Object} circle - A object describing a cone in the sky
+ * @param {number} circle.ra - Right-ascension of the circle's center (in deg)
+ * @param {number} circle.dec - Declination of the circle's center (in deg)
+ * @param {number} circle.radius - Radius of the circle (in deg)
+ * @param {MOCOptions} [options] - Display options for the MOC
+ * @param {function} [successCallback] - Callback function when the MOC loads
+ * @param {function} [errorCallback] - Callback function when the MOC fails loading
+ * @returns {MOC} Returns a new MOC object
+ */
+A.MOCFromCone = function (circle, options, successCallback, errorCallback) {
     var moc = new MOC(options);
     moc.parse(circle, successCallback, errorCallback);
 
     return moc;
 };
 
+/**
+ * Creates a new MOC (Multi-Order-Coverage) from an object describing a polygon on the sky
+ *
+ * @function
+ * @memberof A
+ * @name MOCFromPolygon
+ *
+ * @param {Object} polygon - A object describing a polygon in the sky
+ * @param {number[]} polygon.ra - Right-ascensions of the polygon's vertices (in deg)
+ * @param {number[]} polygon.dec - Declination of the polygon's vertices (in deg)
+ * @param {MOCOptions} [options] - Display options for the MOC
+ * @param {function} [successCallback] - Callback function when the MOC loads
+ * @param {function} [errorCallback] - Callback function when the MOC fails loading
+ * @returns {MOC} Returns a new MOC object
+ */
 A.MOCFromPolygon= function (polygon, options, successCallback, errorCallback) {
     var moc = new MOC(options);
     moc.parse(polygon, successCallback, errorCallback);

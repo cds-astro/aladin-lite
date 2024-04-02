@@ -33,7 +33,11 @@ import { Color } from "./Color.js";
 import { Coo } from "./libs/astro/coo.js";
 import { Utils } from "./Utils";
 import { CooFrameEnum } from "./CooFrameEnum.js";
-
+import { Footprint } from "./Footprint.js";
+import { Circle } from "./Circle.js";
+import { Ellipse } from "./Ellipse.js";
+import { Line } from "./Line.js";
+import { Polyline } from "./Polyline.js";
 // TODO: index sources according to their HEALPix ipix
 // TODO : merge parsing with class Catalog
 export let ProgressiveCat = (function() {
@@ -74,20 +78,11 @@ export let ProgressiveCat = (function() {
 
         this.onClick = options.onClick || undefined; // TODO: inherit from catalog
 
-        
-
         // we cache the list of sources in each healpix tile. Key of the cache is norder+'-'+npix
         this.sourcesCache = new Utils.LRUCache(256);
+        this.footprintsCache = new Utils.LRUCache(256);
 
         //added to allow hips catalogue to also use shape functions
-        if (this.shape instanceof Image || this.shape instanceof HTMLCanvasElement) {
-            this.sourceSize = this.shape.width;
-        }
-        this._shapeIsFunction = false; // if true, the shape is a function drawing on the canvas
-        if (typeof this.shape === 'function') {
-            this._shapeIsFunction = true;
-        }
-
         this.updateShape(options);
 
         this.maxOrderAllsky = 2;
@@ -219,7 +214,14 @@ export let ProgressiveCat = (function() {
             sources.push(newSource);
             newSource.setCatalog(instance);
         }
-        return sources;
+
+        let footprints = instance.parseFootprintsFromSources(sources);
+        footprints.forEach(f => {
+            f.setCatalog(instance);
+        }) 
+        sources = sources.filter((s) => s.hasFootprint !== true);
+
+        return [sources, footprints];
     };
 
     ProgressiveCat.prototype = {
@@ -272,7 +274,10 @@ export let ProgressiveCat = (function() {
                 url: self.rootUrl + '/' + 'Norder1/Allsky.tsv',
                 method: 'GET',
                 success: function(tsv) {
-                    self.order1Sources = getSources(self, tsv, self.fields);
+                    let [sources, footprints] = getSources(self, tsv, self.fields);
+
+                    self.order1Footprints = footprints;
+                    self.order1Sources = sources;
 
                     if (self.order2Sources) {
                         self.isReady = true;
@@ -289,7 +294,10 @@ export let ProgressiveCat = (function() {
                 url: self.rootUrl + '/' + 'Norder2/Allsky.tsv',
                 method: 'GET',
                 success: function(tsv) {
-                    self.order2Sources = getSources(self, tsv, self.fields);
+                    let [sources, footprints] = getSources(self, tsv, self.fields);
+
+                    self.order2Footprints = footprints;
+                    self.order2Sources = sources;
 
                     if (self.order1Sources) {
                         self.isReady = true;
@@ -319,7 +327,12 @@ export let ProgressiveCat = (function() {
                     let xml = ProgressiveCat.parser.parseFromString(text, "text/xml")
 
                     self.fields = getFields(self, xml);
-                    self.order2Sources = getSources(self, xml.querySelectorAll('CSV').innerText, self.fields);
+
+                    let [sources, footprints] = getSources(self, xml.querySelectorAll('CSV').innerText, self.fields);
+
+                    self.order2Footprints = footprints
+                    self.order2Sources = sources
+
                     if (self.order3Sources) {
                         self.isReady = true;
                         self._finishInitWhenReady();
@@ -339,7 +352,10 @@ export let ProgressiveCat = (function() {
                 method: 'GET',
                 success: function(text) {
                     let xml = ProgressiveCat.parser.parseFromString(text, "text/xml")
-                    self.order3Sources = getSources(self, xml.querySelectorAll('CSV').innerText, self.fields);
+                    let [sources, footprints] = getSources(self, xml.querySelectorAll('CSV').innerText, self.fields);
+                    self.order3Footprints = footprints
+                    self.order3Sources = sources
+
                     if (self.order2Sources) {
                         self.isReady = true;
                         self._finishInitWhenReady();
@@ -356,7 +372,7 @@ export let ProgressiveCat = (function() {
             this.loadNeededTiles();
         },
 
-        draw: function(ctx, frame, width, height, largestDim) {
+        draw: function(ctx, width, height) {
             if (! this.isShowing || ! this.isReady) {
                 return;
             }
@@ -366,26 +382,55 @@ export let ProgressiveCat = (function() {
             }
 
             // Order must be >= 0
-            this.drawSources(this.order1Sources, ctx, width, height);
+            if (this.order1Sources) {
+                this.drawSources(this.order1Sources, ctx, width, height);
+            }
+            if (this.order1Footprints) {
+                this.order1Footprints.forEach((f) => {
+                    f.draw(ctx, this.view)
+                });
+            }
 
             if (this.view.realNorder >= 1) {
-                this.drawSources(this.order2Sources, ctx, width, height);
+                if (this.order2Sources) {
+                    this.drawSources(this.order2Sources, ctx, width, height);
+                }
+                if (this.order2Footprints) {
+                    this.order2Footprints.forEach((f) => {
+                        f.draw(ctx, this.view)
+                    });
+                }
             }
 
             // For old allsky, tilesInView refers to tiles at orders 4..
             // For new allsky, tilesInView will contains order3 sources
             if (this.maxOrderAllsky === 3) {
                 if (this.view.realNorder >= 2) {
-                    this.drawSources(this.order3Sources, ctx, width, height);
+                    if (this.order3Sources) {
+                        this.drawSources(this.order3Sources, ctx, width, height);
+                    }
+                    if (this.order3Footprints) {
+                        this.order3Footprints.forEach((f) => {
+                            f.draw(ctx, this.view)
+                        });
+                    }
                 }
             }
 
-            let key, sources;
+            let key, sources, footprints;
             this.tilesInView.forEach((tile) => {
                 key = tile[0] + '-' + tile[1];
                 sources = this.sourcesCache.get(key);
+                footprints = this.footprintsCache.get(key);
+
                 if (sources) {
                     this.drawSources(sources, ctx, width, height);
+                }
+
+                if (footprints) {
+                    footprints.forEach((f) => {
+                        f.draw(ctx, this.view)
+                    });
                 }
             });
 
@@ -393,11 +438,11 @@ export let ProgressiveCat = (function() {
                 ctx.restore();
             }
         },
+
         drawSources: function(sources, ctx, width, height) {
-            if (!sources) {
-                return;
-            }
-            let ra = [], dec = [];
+            let ra = []
+            let dec = [];
+
             sources.forEach((s) => {
                 ra.push(s.ra);
                 dec.push(s.dec);
@@ -445,7 +490,32 @@ export let ProgressiveCat = (function() {
             return ret;
         },
 
+        getFootprints: function() {
+            var ret = [];
+            if (this.order1Footprints) {
+                ret = ret.concat(this.order1Footprints);
+            }
+            if (this.order2Footprints) {
+                ret = ret.concat(this.order2Footprints);
+            }
+            if (this.order3Footprints) {
+                ret = ret.concat(this.order3Footprints);
+            }
+            if (this.tilesInView) {
+                var footprints, key, t;
+                for (var k=0; k < this.tilesInView.length; k++) {
+                    t = this.tilesInView[k];
+                    key = t[0] + '-' + t[1];
+                    footprints = this.footprintsCache.get(key);
 
+                    if (footprints) {
+                        ret = ret.concat(footprints);
+                    }
+                }
+            }
+            
+            return ret;
+        },
         
         deselectAll: function() {
             if (this.order1Sources) {
@@ -474,6 +544,11 @@ export let ProgressiveCat = (function() {
                 for (var k=0; k<sources.length; k++) {
                     sources[k].deselect();
                 }
+
+                var footprints = this.footprintsCache[key];
+                for (var k=0; k<footprints.length; k++) {
+                    footprints[k].deselect();
+                }
             }
         },
 
@@ -501,11 +576,6 @@ export let ProgressiveCat = (function() {
             return this.rootUrl + "/" + "Norder" + norder + "/Dir" + dirIdx + "/Npix" + npix + ".tsv";
         },
     
-        // todo, allow HiPS cats to support footprints 
-        getFootprints: function() {
-            return null;
-        },
-
         loadNeededTiles: function() {
             if ( ! this.isShowing) {
                 return;
@@ -559,24 +629,31 @@ export let ProgressiveCat = (function() {
                             url: Aladin.JSONP_PROXY,
                             data: {"url": self.getTileURL(norder, ipix)},
                             */
-                            // ATTENTIOn : je passe en JSON direct, car je n'arrive pas a choper les 404 en JSONP
+                            // ATTENTION : je passe en JSON direct, car je n'arrive pas a choper les 404 en JSONP
                             url: self.getTileURL(norder, ipix),
                             desc: "Get tile .tsv " + norder + ' ' + ipix + ' of ' + self.name,
                             method: 'GET',
                             //dataType: 'jsonp',
                             success: function(tsv) {
-                                self.sourcesCache.set(key, getSources(self, tsv, self.fields));
+                                let [sources, footprints] = getSources(self, tsv, self.fields);
+
+                                self.sourcesCache.set(key, sources);
+                                self.footprintsCache.set(key, footprints);
+
                                 self.view.requestRedraw();
                             },
                             error: function() {
                                 // on suppose qu'il s'agit d'une erreur 404
                                 self.sourcesCache.set(key, []);
+                                self.footprintsCache.set(key, []);
                             }
                         });
                     })(this, t[0], t[1]);
                 }
             }
         },
+
+        parseFootprintsFromSources: Catalog.prototype.parseFootprintsFromSources,
 
         reportChange: function() { // TODO: to be shared with Catalog
             this.view && this.view.requestRedraw();

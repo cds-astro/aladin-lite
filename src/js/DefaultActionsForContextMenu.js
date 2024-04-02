@@ -49,7 +49,12 @@ export let DefaultActionsForContextMenu = (function () {
             {
                 label: "Copy position", action(o) {
                     let msg;
-                    navigator.clipboard.writeText(o.target.innerText)
+                    let text = o.target.innerText;
+                    if (!text) {
+                        return false;
+                    }
+
+                    navigator.clipboard.writeText(text)
                         .then(() => {
                             msg = 'successful'
                             if (aladinInstance.statusBar) {

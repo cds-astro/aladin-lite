@@ -524,7 +524,7 @@ export let Aladin = (function () {
         gridOptions: {
             enabled: false,
             showLabels: true,
-            thickness: 2,
+            thickness: 3,
             labelSize: 15
         },
         projection: 'SIN',
@@ -1649,19 +1649,19 @@ export let Aladin = (function () {
             options.color.b /= 255;
         }
 
-        this.view.setGridConfig(options);
+        this.view.setGridOptions(options);
     }
 
     Aladin.prototype.getGridOptions = function() {
-        return this.view.getGridConfig();
+        return this.view.getGridOptions();
     }
 
     Aladin.prototype.showCooGrid = function () {
-        this.view.setGridConfig({enabled: true});
+        this.setCooGrid({enabled: true});
     };
 
     Aladin.prototype.hideCooGrid = function() {
-        this.view.setGridConfig({enabled: false});
+        this.setCooGrid({enabled: false});
     }
 
     Aladin.prototype.layerByName = function (name) {

@@ -57,10 +57,11 @@ export class RectSelect extends FSM {
         let draw = () => {
             let ctx = view.catalogCtx;
 
-            if (!view.catalogCanvasCleared) {
+            /*if (!view.catalogCanvasCleared) {
                 ctx.clearRect(0, 0, view.width, view.height);
                 view.catalogCanvasCleared = true;
-            }
+            }*/
+
             // draw the selection
             ctx.fillStyle = options.color + '7f';
             ctx.strokeStyle = options.color;

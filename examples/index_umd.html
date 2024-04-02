@@ -36,7 +36,7 @@
         }
         if (searchParams.has('showCooGrid')) {
             const b = searchParams.get('showCooGrid') === 'true';
-            aladin.view.setGridConfig({
+            aladin.setCooGrid({
                 enabled: b
             });
         }

@@ -183,9 +183,10 @@ export let Polyline= (function() {
     };
 
     Polyline.prototype.setColor = function(color) {
-        if (this.color == color) {
+        if (!color || this.color == color) {
             return;
         }
+
         this.color = color;
         if (this.overlay) {
             this.overlay.reportChange();
@@ -193,7 +194,7 @@ export let Polyline= (function() {
     };
 
     Polyline.prototype.setSelectionColor = function(color) {
-        if (this.selectionColor == color) {
+        if (!color || this.selectionColor == color) {
             return;
         }
         this.selectionColor = color;
@@ -203,7 +204,7 @@ export let Polyline= (function() {
     };
 
     Polyline.prototype.setHoverColor = function(color) {
-        if (this.hoverColor == color) {
+        if (!color || this.hoverColor == color) {
             return;
         }
         this.hoverColor = color;
@@ -263,7 +264,7 @@ export let Polyline= (function() {
         let ymax = Number.NEGATIVE_INFINITY;
 
         for (var k=0; k<len; k++) {
-            var xyview = AladinUtils.radecToViewXy(this.radecArray[k][0], this.radecArray[k][1], view.aladin);
+            var xyview = view.aladin.world2pix(this.radecArray[k][0], this.radecArray[k][1]);
             if (!xyview) {
                 return;
             }
@@ -306,7 +307,7 @@ export let Polyline= (function() {
                     return true;
                 };
             }
-        } else if (view.projection === ProjectionEnum.HPX) {
+        /*} else if (view.projection === ProjectionEnum.HPX) {
             drawLine = (v0, v1) => {
                 const line = new Line(v0.x, v0.y, v1.x, v1.y);
 
@@ -346,7 +347,7 @@ export let Polyline= (function() {
                         return false;
                     }
                 };
-            }
+            }*/
         } else {
             drawLine = (v0, v1) => {
                 const line = new Line(v0.x, v0.y, v1.x, v1.y);
@@ -429,7 +430,7 @@ export let Polyline= (function() {
 
         let pointXY = [];
         for (var j = 0; j < this.radecArray.length; j++) {
-            var xy = AladinUtils.radecToViewXy(this.radecArray[j][0], this.radecArray[j][1], view.aladin);
+            var xy = view.aladin.world2pix(this.radecArray[j][0], this.radecArray[j][1]);
             if (!xy) {
                 return false;
             }

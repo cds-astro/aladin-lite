@@ -29,77 +29,146 @@
  * Author: Matthieu Baumann[CDS]
  * 
  *****************************************************************************/
+import { Polyline } from "./Polyline.js";
+import { Utils } from './Utils';
+import { Overlay } from "./Overlay.js";
 
 export let Line = (function() {
     // constructor
-    let Line = function(x1, y1, x2, y2) {
-        this.x1 = x1;
-        this.y1 = y1;
-        this.x2 = x2;
-        this.y2 = y2;
+    let Line = function(ra1, dec1, ra2, dec2, frame, options) {
+        options = options || {};
+        this.color     = options['color']     || undefined;
+        this.opacity   = options['opacity']   || undefined;
+        this.lineWidth = options["lineWidth"] || undefined;
+        this.selectionColor = options["selectionColor"] || '#00ff00';
+        this.hoverColor = options["hoverColor"] || undefined;
+        this.arrow = options["arrow"] === undefined ? false : options["arrow"];
+
+        // All graphics overlay have an id
+        this.id = 'line-' + Utils.uuidv4();
+
+        this.overlay = null;
+
+    	this.isShowing = true;
+    	this.isSelected = false;
+        this.isHovered = false;
+
+        this.ra1 = ra1;
+        this.dec1 = dec1;
+        this.ra2 = ra2;
+        this.dec2 = dec2;
+        this.frame = frame;
     };
 
-    // Method for testing whether a line is inside the view
-    // http://www.jeffreythompson.org/collision-detection/line-rect.php
-    Line.prototype.isInsideView = function(rw, rh) {
-        if (this.x1 >= 0 && this.x1 <= rw && this.y1 >= 0 && this.y1 <= rh) {
-            return true;
-        }
-        if (this.x2 >= 0 && this.x2 <= rw && this.y2 >= 0 && this.y2 <= rh) {
-            return true;
-        }
+    Line.prototype = {
+        setOverlay: Polyline.prototype.setOverlay,
+        isFootprint: Polyline.prototype.isFootprint,
+        show: Polyline.prototype.show,
+        hide: Polyline.prototype.hide,
+        
+        select: Polyline.prototype.select,
+        deselect: Polyline.prototype.deselect,
+        
+        hover: Polyline.prototype.hover,
+        unhover: Polyline.prototype.unhover,
+        
+        getLineWidth: Polyline.prototype.getLineWidth,
+        setLineWidth: Polyline.prototype.setLineWidth,
 
-        // check if the line has hit any of the rectangle's sides
-        // uses the Line/Line function below
-        let left =   Line.intersectLine(this.x1, this.y1, this.x2, this.y2, 0, 0, 0, rh);
-        let right =  Line.intersectLine(this.x1, this.y1, this.x2, this.y2, rw, 0, rw, rh);
-        let top =    Line.intersectLine(this.x1, this.y1, this.x2, this.y2, 0, 0, rw, 0);
-        let bottom = Line.intersectLine(this.x1, this.y1, this.x2, this.y2, 0, rh, rw, rh);
-    
-        // if ANY of the above are true, the line
-        // has hit the rectangle
-        if (left || right || top || bottom) {
-            return true;
-        }
+        setColor: Polyline.prototype.setColor,
+        setSelectionColor: Polyline.prototype.setSelectionColor,
+        setHoverColor: Polyline.prototype.setHoverColor,
 
-        return false;
-    };
+        draw: function(ctx, view, noStroke) {
+            noStroke = noStroke===true || false;
 
-    Line.prototype.isFootprint = function() {
-        return false;
-    }
+            // project
+            const v1 = view.aladin.world2pix(this.ra1, this.dec1, this.frame);
+            if (!v1)
+                return;
+            const v2 = view.aladin.world2pix(this.ra2, this.dec2, this.frame);
+            if (!v2)
+                return;
+            
+            const xmin = Math.min(v1.x, v2.x);
+            const xmax = Math.max(v1.x, v2.x);
+            const ymin = Math.min(v1.y, v2.y);
+            const ymax = Math.max(v1.y, v2.y);
 
-    Line.prototype.draw = function(ctx, noStroke) {
-        noStroke = noStroke===true || false;
+            // out of bbox
+            if (xmax < 0 || xmin > view.width || ymax < 0 || ymin > view.height) {
+                return;
+            }
 
-        ctx.beginPath();
-        ctx.moveTo(this.x1, this.y1);
-        ctx.lineTo(this.x2, this.y2);
+            var baseColor = this.color;
+            if (!baseColor && this.overlay) {
+                baseColor = this.overlay.color;
+            }
+            if (!baseColor) {
+                baseColor = '#ff0000';
+            }
 
-        if (!noStroke) {
-            ctx.stroke();
-        }
-    };
+            if (!this.lineWidth) {
+                this.lineWidth = this.overlay.lineWidth || 2;
+            }
 
-    Line.intersectLine = function(x1, y1, x2, y2, x3, y3, x4, y4) {
-        // Calculate the direction of the lines
-        let uA = ((x4-x3)*(y1-y3) - (y4-y3)*(x1-x3)) / ((y4-y3)*(x2-x1) - (x4-x3)*(y2-y1));
-        let uB = ((x2-x1)*(y1-y3) - (y2-y1)*(x1-x3)) / ((y4-y3)*(x2-x1) - (x4-x3)*(y2-y1));
-    
-        // If uA and uB are between 0-1, lines are colliding
-        if (uA >= 0 && uA <= 1 && uB >= 0 && uB <= 1) {
-            return true;
-        }
-        return false;
-    };
+            // too small
+            if ((xmax - xmin) < this.lineWidth || (ymax - ymin) < this.lineWidth) {
+                return;
+            }
 
-    Line.prototype.isInStroke = function(ctx, view, x, y) {
-        this.draw(ctx, view, true);
-        return ctx.isPointInStroke(x, y);
-    };
+            if (this.isSelected) {
+                ctx.strokeStyle = this.selectionColor || Overlay.increaseBrightness(baseColor, 50);
+            } else if (this.isHovered) {
+                ctx.strokeStyle = this.hoverColor || Overlay.increaseBrightness(baseColor, 25);
+            } else {
+                ctx.strokeStyle = baseColor;
+            }
 
-    Line.prototype.intersectsBBox = function(x, y, w, h) {
-        // todo
+            ctx.lineWidth = this.lineWidth;
+            ctx.globalAlpha = this.opacity;
+
+            ctx.beginPath();
+            ctx.moveTo(v1[0], v1[1]);
+            ctx.lineTo(v2[0], v2[1]);
+
+            if (this.arrow) {
+                // draw the arrow
+                var angle, x, y, xh, yh;
+                var arrowRad = this.lineWidth * 3;
+
+                angle = Math.atan2(v2[1] - v1[1], v2[0] - v1[0])
+                xh = v2[0];
+                yh = v2[1];
+
+                //ctx.moveTo(xh, yh);
+
+                var t = angle + Math.PI * 3 / 4;
+                x = arrowRad * Math.cos(t) + v2[0];
+                y = arrowRad * Math.sin(t) + v2[1];
+
+                ctx.moveTo(x, y);
+                ctx.lineTo(xh, yh);
+
+                var t = angle - Math.PI * 3 / 4;
+                x = arrowRad *Math.cos(t) + v2[0];
+                y = arrowRad *Math.sin(t) + v2[1];
+
+                ctx.lineTo(x, y);
+            }
+
+            if (!noStroke) {
+                ctx.stroke();
+            }
+        },
+
+        isInStroke: function(ctx, view, x, y) {
+            this.draw(ctx, view, true);
+            return ctx.isPointInStroke(x, y);
+        },
+        /*Line.prototype.intersectsBBox = function(x, y, w, h) {
+            // todo
+        };*/
     };
 
     return Line;

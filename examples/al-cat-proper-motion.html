@@ -1,0 +1,49 @@
+<!doctype html>
+<html>
+<head>
+</head>
+<body>
+
+<div id="aladin-lite-div" style="width: 1024px; height: 768px"></div>
+<script>let aladin;</script>
+<script type="module">
+  import A from '../src/js/A.js';
+  A.init.then(() => {
+      // Start up Aladin Lite
+      aladin = A.aladin('#aladin-lite-div', {
+        target: "LMC",
+        fov: 2,
+        showContextMenu: true,
+        fullScreen: true,
+        showSimbadPointerControl: true,
+        showShareControl: true,
+        showSettingsControl: true,
+        showStackLayerControl: true,
+        samp: true,
+      });
+
+      aladin.addCatalog(A.catalogFromSimbad("LMC", 10, {
+        limit: 10000,
+        onClick: 'showTable',
+        orderBy: 'nb_ref',
+        color: 'yellow',
+        hoverColor: 'yellow',
+        shape: (s) => {
+          let pmra = +s.data.pmra;
+          let pmdec = +s.data.pmdec;
+
+          let mag2 = pmra * pmra + pmdec * pmdec;
+          if (mag2 > 1000) {
+            return;
+          }
+
+          let mag = Math.sqrt(mag2)
+
+          return A.line(+s.ra, +s.dec, +s.ra + (0.5 * pmra / mag), +s.dec + (0.5 * pmdec / mag), null, {lineWidth: 3, arrow: true, color: +s.data.rvz_radvel < 0 ? 'blue' : 'red'})
+        }
+      }));
+  });
+</script>
+
+</body>
+</html>

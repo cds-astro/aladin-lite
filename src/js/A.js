@@ -33,6 +33,7 @@ import { Overlay } from "./Overlay.js";
 import { Circle } from "./Circle.js";
 import { Ellipse } from "./Ellipse.js";
 import { Polyline } from "./Polyline.js";
+import { Line } from "./Line.js";
 import { Catalog } from "./Catalog.js";
 import { ProgressiveCat } from "./ProgressiveCat.js";
 import { Source } from "./Source.js";
@@ -260,6 +261,26 @@ A.circle = function (ra, dec, radiusDeg, options) {
  */
 A.ellipse = function (ra, dec, radiusRaDeg, radiusDecDeg, rotationDeg, options) {
     return new Ellipse([ra, dec], radiusRaDeg, radiusDecDeg, rotationDeg, options);
+};
+
+/**
+ * Creates a ellipse object
+ *
+ * @function
+ * @memberof A
+ * @name line
+ *
+ * @param {number} ra1 - Right Ascension (RA) coordinate of the center in degrees.
+ * @param {number} dec1 - Declination (Dec) coordinate of the center in degrees.
+ * @param {number} ra2 - Right Ascension (RA) coordinate of the center in degrees.
+ * @param {number} dec2 - Declination (Dec) coordinate of the center in degrees.
+ * @param {CooFrame} [frame] - Right Ascension (RA) coordinate of the center in degrees.
+ * @param {Object} options - Options for configuring the ellipse.
+ * 
+ * @returns {Line}
+ */
+ A.line = function (ra1, dec1, ra2, dec2, frame, options) {
+    return new Line(ra1, dec1, ra2, dec2, frame, options);
 };
 
 /**

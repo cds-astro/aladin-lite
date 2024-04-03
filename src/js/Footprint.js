@@ -57,9 +57,13 @@ export let Footprint= (function() {
     Footprint.prototype.setCatalog = function(catalog) {
         if (this.source) {
             this.source.setCatalog(catalog);
-
+            
+            /*
             // Take the color properties of the catalog
-            this.setColor(catalog.color);
+            if (this.color === undefined) {
+                this.setColor(catalog.color);
+            }*/
+
             this.setSelectionColor(catalog.selectionColor);
             this.setHoverColor(catalog.hoverColor);
         }

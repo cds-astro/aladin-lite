@@ -33,24 +33,35 @@
  *
  *****************************************************************************/
 
-import { AladinUtils } from './AladinUtils.js';
-import { Line } from './Line.js';
 import { Utils } from './Utils';
 import { Overlay } from "./Overlay.js";
 import { ProjectionEnum } from "./ProjectionEnum.js";
 
 
-export let Polyline= (function() {
-    function _calculateMag2ForNoSinProjections(line, view) {
+export let Polyline = (function() {
+
+    function _calculateMag2ForNoSinProjections(l, view) {
         // check if the line is too big (in the clip space) to be drawn
-        const [x1, y1] = view.wasm.screenToClip(line.x1, line.y1);
-        const [x2, y2] = view.wasm.screenToClip(line.x2, line.y2);
+        const [x1, y1] = view.wasm.screenToClip(l.x1, l.y1);
+        const [x2, y2] = view.wasm.screenToClip(l.x2, l.y2);
 
         const mag2 = (x1 - x2)*(x1 - x2) + (y1 - y2)*(y1 - y2);
         return mag2;
     }
 
-    function _isAcrossCollignonZoneForHpxProjection(line, view) {
+    function _drawLine(l, ctx, noStroke) {
+        noStroke = noStroke===true || false;
+
+        ctx.beginPath();
+        ctx.moveTo(l.x1, l.y1);
+        ctx.lineTo(l.x2, l.y2);
+
+        if (!noStroke) {
+            ctx.stroke();
+        }
+    }
+
+    /*function _isAcrossCollignonZoneForHpxProjection(line, view) {
         const [x1, y1] = view.wasm.screenToClip(line.x1, line.y1);
         const [x2, y2] = view.wasm.screenToClip(line.x2, line.y2);
 
@@ -73,7 +84,7 @@ export let Polyline= (function() {
         }
 
         return false;
-    }
+    }*/
 
     // constructor
     let Polyline = function(radecArray, options) {
@@ -277,8 +288,12 @@ export let Polyline= (function() {
             ymax = Math.max(ymax, xyview[1]);
         }
 
-        // 2. do not draw the polygon if it lies in less than 1 pixel
-        if ((xmax - xmin) < 1 || (ymax - ymin) < 1) {
+        // 2. do not draw the polygon if it lies in less than linewidth pixels
+        if (xmax < 0 || xmin > view.width || ymax < 0 || ymin > view.height) {
+            return;
+        }
+
+        if ((xmax - xmin) < this.lineWidth || (ymax - ymin) < this.lineWidth) {
             return;
         }
 
@@ -287,21 +302,22 @@ export let Polyline= (function() {
 
         if (view.projection === ProjectionEnum.SIN) {
             drawLine = (v0, v1) => {
-                const line = new Line(v0.x, v0.y, v1.x, v1.y);
+                const l = {x1: v0.x, y1: v0.y, x2: v1.x, y2: v1.y};
 
-                if (line.isInsideView(view.width, view.height)) {
-                    line.draw(ctx);
+                if (Polyline.isInsideView(l.x1, l.y1, l.x2, l.y2, view.width, view.height)) {
+                    _drawLine(l, ctx);
                 }
             };
 
             if (this.closed && this.fill) {
                 fillPoly = (v0, v1, index) => {
-                    const line = new Line(v0.x, v0.y, v1.x, v1.y);
+                    const l = {x1: v0.x, y1: v0.y, x2: v1.x, y2: v1.y};
+
                     if (index === 0) {
                         ctx.beginPath();
-                        ctx.moveTo(line.x1, line.y1);
+                        ctx.moveTo(l.x1, l.y1);
                     } else {
-                        ctx.lineTo(line.x1, line.y1);
+                        ctx.lineTo(l.x1, l.y1);
                     }
 
                     return true;
@@ -350,28 +366,28 @@ export let Polyline= (function() {
             }*/
         } else {
             drawLine = (v0, v1) => {
-                const line = new Line(v0.x, v0.y, v1.x, v1.y);
+                const l = {x1: v0.x, y1: v0.y, x2: v1.x, y2: v1.y};
 
-                if (line.isInsideView(view.width, view.height)) {
-                    const mag2 = _calculateMag2ForNoSinProjections(line, view);
+                if (Polyline.isInsideView(l.x1, l.y1, l.x2, l.y2, view.width, view.height)) {
+                    const mag2 = _calculateMag2ForNoSinProjections(l, view);
 
                     if (mag2 < 0.1) {
-                        line.draw(ctx);
+                        _drawLine(l, ctx);
                     }
                 }
             };
             if (this.closed && this.fill) {
                 fillPoly = (v0, v1, index) => {
-                    const line = new Line(v0.x, v0.y, v1.x, v1.y);
+                    const l = {x1: v0.x, y1: v0.y, x2: v1.x, y2: v1.y};
 
-                    const mag2 = _calculateMag2ForNoSinProjections(line, view);
+                    const mag2 = _calculateMag2ForNoSinProjections(l, view);
 
                     if (mag2 < 0.1) {
                         if (index === 0) {
                             ctx.beginPath();
-                            ctx.moveTo(line.x1, line.y1);
+                            ctx.moveTo(l.x1, l.y1);
                         } else {
-                            ctx.lineTo(line.x1, line.y1);
+                            ctx.lineTo(l.x1, l.y1);
                         }
 
                         return true;
@@ -416,7 +432,7 @@ export let Polyline= (function() {
                 v1 = v1 + 1;
             }
 
-            ctx.globalAlpha = 1;
+            //ctx.globalAlpha = 1;
             ctx.save();
             ctx.fillStyle = this.fillColor;
             ctx.globalAlpha = this.opacity;
@@ -442,8 +458,8 @@ export let Polyline= (function() {
 
         const lastPointIdx = pointXY.length - 1;
         for (var l = 0; l < lastPointIdx; l++) {
-            const line = new Line(pointXY[l].x, pointXY[l].y, pointXY[l + 1].x, pointXY[l + 1].y);                                   // new segment
-            line.draw(ctx, true);
+            const line = {x1: pointXY[l].x, y1: pointXY[l].y, x2: pointXY[l + 1].x, y2: pointXY[l + 1].y};                                   // new segment
+            _drawLine(line, ctx, true);
 
             if (ctx.isPointInStroke(x, y)) {                    // x,y is on line?
                 return true;
@@ -451,8 +467,8 @@ export let Polyline= (function() {
         }
 
         if(this.closed) {
-            const line = new Line(pointXY[lastPointIdx].x, pointXY[lastPointIdx].y, pointXY[0].x, pointXY[0].y);                                   // new segment
-            line.draw(ctx, true);
+            const line = {x1: pointXY[lastPointIdx].x, y1: pointXY[lastPointIdx].y, x2: pointXY[0].x, y2: pointXY[0].y};                                   // new segment
+            _drawLine(line, ctx, true);
 
             if (ctx.isPointInStroke(x, y)) {                    // x,y is on line?
                 return true;
@@ -464,6 +480,45 @@ export let Polyline= (function() {
 
     Polyline.prototype.intersectsBBox = function(x, y, w, h) {
         // todo
+    };
+
+    // static methods
+    // Method for testing whether a line is inside the view
+    // http://www.jeffreythompson.org/collision-detection/line-rect.php
+    Polyline.isInsideView = function(x1, y1, x2, y2, rw, rh) {
+        if (x1 >= 0 && x1 <= rw && y1 >= 0 && y1 <= rh) {
+            return true;
+        }
+        if (x2 >= 0 && x2 <= rw && y2 >= 0 && y2 <= rh) {
+            return true;
+        }
+
+        // check if the line has hit any of the rectangle's sides
+        // uses the Line/Line function below
+        let left =   Polyline._intersectLine(x1, y1, x2, y2, 0, 0, 0, rh);
+        let right =  Polyline._intersectLine(x1, y1, x2, y2, rw, 0, rw, rh);
+        let top =    Polyline._intersectLine(x1, y1, x2, y2, 0, 0, rw, 0);
+        let bottom = Polyline._intersectLine(x1, y1, x2, y2, 0, rh, rw, rh);
+    
+        // if ANY of the above are true, the line
+        // has hit the rectangle
+        if (left || right || top || bottom) {
+            return true;
+        }
+
+        return false;
+    };
+
+    Polyline._intersectLine = function(x1, y1, x2, y2, x3, y3, x4, y4) {
+        // Calculate the direction of the lines
+        let uA = ((x4-x3)*(y1-y3) - (y4-y3)*(x1-x3)) / ((y4-y3)*(x2-x1) - (x4-x3)*(y2-y1));
+        let uB = ((x2-x1)*(y1-y3) - (y2-y1)*(x1-x3)) / ((y4-y3)*(x2-x1) - (x4-x3)*(y2-y1));
+    
+        // If uA and uB are between 0-1, lines are colliding
+        if (uA >= 0 && uA <= 1 && uB >= 0 && uB <= 1) {
+            return true;
+        }
+        return false;
     };
 
     return Polyline;

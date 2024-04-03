@@ -40,7 +40,7 @@
             }
 
             let angle = +s.data.size_angle || 0.0;
-            return A.ellipse(s.ra, s.dec, a / 60, b / 60, angle, {lineWidth: 3, hoverColor: 'yellow'});
+            return A.ellipse(s.ra, s.dec, a / 60, b / 60, angle, {lineWidth: 3, color: 'cyan'});
         };
 
         var hips = A.catalogHiPS('https://axel.u-strasbg.fr/HiPSCatService/Simbad', {onClick: 'showTable', name: 'Simbad', color: 'cyan', hoverColor: 'red', shape: drawFunctionFootprint});

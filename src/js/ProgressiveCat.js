@@ -33,11 +33,6 @@ import { Color } from "./Color.js";
 import { Coo } from "./libs/astro/coo.js";
 import { Utils } from "./Utils";
 import { CooFrameEnum } from "./CooFrameEnum.js";
-import { Footprint } from "./Footprint.js";
-import { Circle } from "./Circle.js";
-import { Ellipse } from "./Ellipse.js";
-import { Line } from "./Line.js";
-import { Polyline } from "./Polyline.js";
 // TODO: index sources according to their HEALPix ipix
 // TODO : merge parsing with class Catalog
 export let ProgressiveCat = (function() {

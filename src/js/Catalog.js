@@ -37,6 +37,7 @@ import { VOTable } from "./vo/VOTable.js";
 import { ObsCore } from "./vo/ObsCore.js";
 import A from "./A.js";
 import { Polyline } from "./Polyline.js";
+import { Line } from "./Line.js";
 import { Ellipse } from "./Ellipse.js";
 import { Circle } from "./Circle.js";
 import { Footprint } from "./Footprint.js";
@@ -534,7 +535,7 @@ export let Catalog = (function() {
                 try {
                     let shape = this.shape(source)
                     // convert simple shapes to footprints
-                    if (shape instanceof Circle || shape instanceof Polyline || shape instanceof Ellipse) {
+                    if (shape instanceof Circle || shape instanceof Polyline || shape instanceof Ellipse || shape instanceof Line) {
                         shape = new Footprint(shape, source);
                     }
 

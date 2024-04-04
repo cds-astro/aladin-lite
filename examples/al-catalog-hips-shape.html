@@ -35,12 +35,11 @@
             let a = +s.data.size_maj;
             let b = +s.data.size_min;
 
-            if (a < 0.1 || b < 0.1) {
+            if (a < 0.1 || b < 0.1)
                 return;
-            }
 
             let angle = +s.data.size_angle || 0.0;
-            return A.ellipse(s.ra, s.dec, a / 60, b / 60, angle, {lineWidth: 3, color: 'cyan'});
+            return A.ellipse(s.ra, s.dec, a / 60, b / 60, angle, {color: 'cyan'});
         };
 
         var hips = A.catalogHiPS('https://axel.u-strasbg.fr/HiPSCatService/Simbad', {onClick: 'showTable', name: 'Simbad', color: 'cyan', hoverColor: 'red', shape: drawFunctionFootprint});

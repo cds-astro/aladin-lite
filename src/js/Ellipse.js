@@ -200,9 +200,17 @@ export let Ellipse = (function() {
 
     // TODO
     Ellipse.prototype.draw = function(ctx, view, noStroke) {
+        
+
         if (! this.isShowing) {
             return;
         }
+
+        let px_per_deg = view.width / view.fov;
+
+        /*if (this.a * 2 * px_per_deg < this.lineWidth || this.b * 2 * px_per_deg < this.lineWidth) {
+            return;
+        }*/
 
         var originScreen = view.aladin.world2pix(this.centerRaDec[0], this.centerRaDec[1]);
         if (!originScreen) {
@@ -290,7 +298,7 @@ export let Ellipse = (function() {
 
         ctx.lineWidth = this.lineWidth;
         ctx.beginPath();
-        let px_per_deg = view.width / view.fov;
+
         ctx.ellipse(originScreen[0], originScreen[1], px_per_deg * this.a, px_per_deg * this.b, theta, 0, 2*Math.PI, false);
         if (!noStroke) {
             if (this.fillColor) {

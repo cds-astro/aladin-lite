@@ -12,7 +12,7 @@
     A.init.then(() => {
         aladin = A.aladin('#aladin-lite-div', {fullScreen: true, target: "Abell 194", fov: 180, projection: 'AIT', showContextMenu: true});
         aladin.setImageSurvey('astron.nl/P/lotss_dr2_high')
-        A.catalogFromSKAORucio("Abell 194", 90, {onClick: 'showTable'}, (cat) => {
+        A.catalogFromSKAORucio("Abell 194", 90, {onClick: 'showTable', hoverColor: 'yellow'}, (cat) => {
             aladin.addCatalog(cat);
         });
 

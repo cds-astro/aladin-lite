@@ -58,14 +58,17 @@ export let Footprint= (function() {
         if (this.source) {
             this.source.setCatalog(catalog);
             
-            /*
-            // Take the color properties of the catalog
-            if (this.color === undefined) {
-                this.setColor(catalog.color);
-            }*/
-
-            this.setSelectionColor(catalog.selectionColor);
-            this.setHoverColor(catalog.hoverColor);
+            for (var s of this.shapes) {
+                if (!s.color) {
+                    s.setColor(catalog.color);
+                }
+                if (!s.selectionColor) {
+                    s.setSelectionColor(catalog.selectionColor);
+                }
+                if (!s.hoverColor) {
+                    s.setHoverColor(catalog.hoverColor);
+                }
+            }
         }
     };
 

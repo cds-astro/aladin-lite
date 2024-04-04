@@ -249,7 +249,7 @@ export let Polyline = (function() {
         }
 
         if (!this.lineWidth) {
-            this.lineWidth = this.overlay.lineWidth || 2;
+            this.lineWidth = (this.overlay && this.overlay.lineWidth) || 2;
         }
 
         if (this.isSelected) {

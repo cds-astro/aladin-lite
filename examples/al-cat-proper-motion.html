@@ -22,27 +22,90 @@
         samp: true,
       });
 
-      aladin.addCatalog(A.catalogFromSimbad("LMC", 10, {
-        limit: 10000,
-        onClick: 'showTable',
-        orderBy: 'nb_ref',
-        color: 'yellow',
-        hoverColor: 'yellow',
-        shape: (s) => {
-          let pmra = +s.data.pmra;
-          let pmdec = +s.data.pmdec;
+      let pmraMean = null, pmdecMean = null;
+      //aladin.addCatalog(A.catalogFromSimbad('LMC', 2.5, {
+      //aladin.addCatalog(A.catalogFromVizieR('J/A+A/663/A107/table5', 'LMC', 5, {
+    
+      const pmCat = A.catalogFromURL('./data/proper_motion.xml', {
+          onClick: 'showTable',
+          name: 'mean pm over HPX cells around LMC from GaiaDR2',
+          hoverColor: 'yellow',
+          // Footprint associated to sources
+          shape: (s) => {
+            // compute the mean of pm over the catalog sources
+            if (!pmraMean || !pmdecMean) {
+              pmraMean = 0, pmdecMean = 0;
+              for (var s of pmCat.getSources()) {
+                pmraMean += +s.data.pmra;
+                pmdecMean += +s.data.pmdec;
+              }
 
-          let mag2 = pmra * pmra + pmdec * pmdec;
-          if (mag2 > 1000) {
-            return;
+              const numSources = pmCat.getSources().length;
+
+              pmraMean /= numSources
+              pmdecMean /= numSources
+            }
+
+            let dra = +s.data.pmra - pmraMean;
+            let ddec = +s.data.pmdec - pmdecMean;
+
+            let mag = Math.sqrt(dra * dra + ddec * ddec);
+            // discard drawing a vector for big pm
+            if (mag > 1) {
+              return;
+            }
+
+            let color = rainbowColorMap(mag * 2)
+
+            return A.line(
+              s.ra,
+              s.dec,
+              s.ra + dra,
+              s.dec + ddec,
+              null,
+              {lineWidth: 3, arrow: true, color}
+            )
           }
-
-          let mag = Math.sqrt(mag2)
-
-          return A.line(+s.ra, +s.dec, +s.ra + (0.5 * pmra / mag), +s.dec + (0.5 * pmdec / mag), null, {lineWidth: 3, arrow: true, color: +s.data.rvz_radvel < 0 ? 'blue' : 'red'})
-        }
-      }));
+        },
+      );
+      aladin.addCatalog(pmCat);
   });
+
+  function rainbowColorMap(value) {
+    // Ensure value is within range [0, 1]
+    value = Math.max(0, Math.min(1, value));
+
+    // Convert value to hue
+    var hue = (1 - value) * 240; // 240 is the maximum hue value for blue
+
+    // Convert HSV to RGB
+    var chroma = 1;
+    var x = chroma * (1 - Math.abs((hue / 60) % 2 - 1));
+    var r1, g1, b1;
+
+    if (hue >= 0 && hue < 60) {
+        [r1, g1, b1] = [chroma, x, 0];
+    } else if (hue >= 60 && hue < 120) {
+        [r1, g1, b1] = [x, chroma, 0];
+    } else if (hue >= 120 && hue < 180) {
+        [r1, g1, b1] = [0, chroma, x];
+    } else if (hue >= 180 && hue < 240) {
+        [r1, g1, b1] = [0, x, chroma];
+    }
+
+    var m = 1 - chroma;
+    var r = r1 + m;
+    var g = g1 + m;
+    var b = b1 + m;
+
+    // Convert RGB to HEX
+    r = Math.round(r * 255);
+    g = Math.round(g * 255);
+    b = Math.round(b * 255);
+    var colorHex = "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+
+    return colorHex;
+  }
 </script>
 
 </body>

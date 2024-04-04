@@ -61,6 +61,11 @@ export let Line = (function() {
     };
 
     Line.prototype = {
+        setToPosition: function(ra2, dec2) {
+            this.ra2 = ra2;
+            this.dec2 = dec2;
+        },
+
         setOverlay: Polyline.prototype.setOverlay,
         isFootprint: Polyline.prototype.isFootprint,
         show: Polyline.prototype.show,

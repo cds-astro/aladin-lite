@@ -310,17 +310,24 @@ Utils.getAjaxObject = function (url, method, dataType, useProxy) {
 */
 
 Utils.fetch = function(params) {
-    let url = new URL(params.url);
-    if (params.useProxy === true) {
-        url = Utils.handleCORSNotSameOrigin(url)
-    }
-
-    if (params.data) {
-        // add the search params to the url object 
-        for (const key in params.data) {
-            url.searchParams.append(key, params.data[key]);
+    let url;
+    try {
+        url = new URL(params.url);
+        if (params.useProxy === true) {
+            url = Utils.handleCORSNotSameOrigin(url)
         }
+    
+        if (params.data) {
+            // add the search params to the url object 
+            for (const key in params.data) {
+                url.searchParams.append(key, params.data[key]);
+            }
+        }
+    } catch(e) {
+        // localhost url
+        url = params.url;
     }
+    
 
     let request = new Request(url, {
         method: params.method || 'GET',

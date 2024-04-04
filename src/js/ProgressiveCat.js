@@ -210,12 +210,7 @@ export let ProgressiveCat = (function() {
             newSource.setCatalog(instance);
         }
 
-        let footprints = instance.parseFootprintsFromSources(sources);
-        footprints.forEach(f => {
-            f.setCatalog(instance);
-        }) 
-        sources = sources.filter((s) => s.hasFootprint !== true);
-
+        let footprints = instance.computeFootprints(sources);
         return [sources, footprints];
     };
 
@@ -648,7 +643,7 @@ export let ProgressiveCat = (function() {
             }
         },
 
-        parseFootprintsFromSources: Catalog.prototype.parseFootprintsFromSources,
+        computeFootprints: Catalog.prototype.computeFootprints,
 
         reportChange: function() { // TODO: to be shared with Catalog
             this.view && this.view.requestRedraw();

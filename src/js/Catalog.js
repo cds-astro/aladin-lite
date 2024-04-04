@@ -293,14 +293,14 @@ export let Catalog = (function() {
                     var name = field.name || field.ID || '';
                     name = name.toLowerCase();
 
-                    if ( ! raFieldIdx) {
-                        if (name.indexOf('ra')==0 || name.indexOf('_ra')==0 || name.indexOf('ra(icrs)')==0 || name.indexOf('_ra')==0 || name.indexOf('alpha')==0) {
+                    if (raFieldIdx === null) {
+                        if (name.indexOf('ra')==0 || name.indexOf('_ra')==0 || name.indexOf('ra(icrs)')==0 || name.indexOf('alpha')==0) {
                             raFieldIdx = l;
                             continue;
                         }
                     }
 
-                    if ( ! decFieldIdx) {
+                    if (decFieldIdx === null) {
                         if (name.indexOf('dej2000')==0 || name.indexOf('_dej2000')==0 || name.indexOf('de')==0 || name.indexOf('de(icrs)')==0 || name.indexOf('_de')==0 || name.indexOf('delta')==0) {
                             decFieldIdx = l;
                             continue;
@@ -323,7 +323,6 @@ export let Catalog = (function() {
     Catalog.parseFields = function(fields, raField, decField) {
         // This votable is not an obscore one
         let [raFieldIdx, decFieldIdx] = findRADecFields(fields, raField, decField);
-
         let parsedFields = {};
         let fieldIdx = 0;
         fields.forEach((field) => {
@@ -366,19 +365,16 @@ export let Catalog = (function() {
                 }
 
                 let { fields, rows } = table;
-                let type;
                 try {
                     fields = ObsCore.parseFields(fields);
                     //fields.subtype = "ObsCore";
-                    type = 'ObsCore';
                 } catch(e) {
                     // It is not an ObsCore table
                     fields = Catalog.parseFields(fields, raField, decField);
-                    type = 'sources';
                 }
 
                 let sources = [];
-                let footprints = [];
+                //let footprints = [];
 
                 var coo = new Coo();
 
@@ -408,22 +404,23 @@ export let Catalog = (function() {
                             dec = coo.lat;
                         }
 
-                        source = new Source(ra, dec, mesures);
+                        source = new Source(parseFloat(ra), parseFloat(dec), mesures);
                         source.rowIdx = rowIdx;
                     }
 
-                    let footprint = null;
-                    if (region) {
+                    //let footprint = null;
+                    /*if (region) {
                         let shapes = A.footprintsFromSTCS(region, {lineWidth: 2})
                         footprint = new Footprint(shapes, source);
-                    }
+                    }*/
 
-                    if (footprint) {
+                    /*if (footprint) {
                         footprints.push(footprint);
                         if (maxNbSources && footprints.length == maxNbSources) {
                             return false;
                         }
-                    } else if(source) {
+                    } else */
+                    if (source) {
                         sources.push(source);
                         if (maxNbSources && sources.length == maxNbSources) {
                             return false;
@@ -437,9 +434,8 @@ export let Catalog = (function() {
                 if (successCallback) {
                     successCallback({
                         sources,
-                        footprints,
+                        //footprints,
                         fields,
-                        type
                     });
                 }
             },
@@ -489,7 +485,7 @@ export let Catalog = (function() {
             return;
         }
 
-        if(!this.fields) {
+        if (!this.fields) {
             // Case where we create a catalog from scratch
             // We have to define its fields by looking at the source data
             let fields = [];
@@ -501,9 +497,9 @@ export let Catalog = (function() {
             this.setFields(fields);
         }
 
-        let footprints = this.parseFootprintsFromSources(sources);
-        sources = sources.filter((s) => s.hasFootprint !== true);
-        this.addFootprints(footprints);
+        //let footprints = this.parseFootprintsFromSources(sources);
+        //sources = sources.filter((s) => s.hasFootprint !== true);
+        //this.addFootprints(footprints);
 
     	this.sources = this.sources.concat(sources);
     	for (var k=0, len=sources.length; k<len; k++) {
@@ -514,10 +510,12 @@ export let Catalog = (function() {
             this.dec.push(sources[k].dec);
     	}
 
+        this.recomputeFootprints = true;
+
         this.reportChange();
     };
 
-    Catalog.prototype.addFootprints = function(footprintsToAdd) {
+    /*Catalog.prototype.addFootprints = function(footprintsToAdd) {
         footprintsToAdd = [].concat(footprintsToAdd); // make sure we have an array and not an individual footprints
     	this.footprints = this.footprints.concat(footprintsToAdd);
 
@@ -526,23 +524,28 @@ export let Catalog = (function() {
         })
 
         this.reportChange();
-    };
+    };*/
 
-    Catalog.prototype.parseFootprintsFromSources = function(sources) {
+    Catalog.prototype.computeFootprints = function(sources) {
         let footprints = [];
+
         if (this._shapeIsFunction) {
             for(const source of sources) {
                 try {
                     let shape = this.shape(source)
+                    
                     // convert simple shapes to footprints
                     if (shape instanceof Circle || shape instanceof Polyline || shape instanceof Ellipse || shape instanceof Line) {
                         shape = new Footprint(shape, source);
                     }
 
                     if (shape instanceof Footprint) {
+                        let footprint = shape;
                         this._shapeIsFootprintFunction = true;
+                        footprint.setCatalog(this);
+
                         // store the footprints
-                        footprints.push(shape);
+                        footprints.push(footprint);
                     }
                 } catch(e) {
                     // do not create the footprint
@@ -696,6 +699,8 @@ export let Catalog = (function() {
         this.ra.splice(idx, 1);
         this.dec.splice(idx, 1);
 
+        this.recomputeFootprints = true;
+
         this.reportChange();
     };
 
@@ -712,7 +717,7 @@ export let Catalog = (function() {
             return;
         }
         // tracé simple
-        ctx.strokeStyle= this.color;
+        ctx.strokeStyle = this.color;
 
         // Draw the footprints
         this.drawFootprints(ctx);
@@ -811,6 +816,11 @@ export let Catalog = (function() {
     };
 
     Catalog.prototype.drawFootprints = function(ctx) {
+        if (this.recomputeFootprints) {
+            this.footprints = this.computeFootprints(this.sources);
+            this.recomputeFootprints = false;
+        }
+
         for(let k = 0; k < this.footprints.length; k++) {
             this.footprints[k].draw(ctx, this.view)
         };

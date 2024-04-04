@@ -523,17 +523,23 @@ A.catalogFromURL = function (url, options, successCallback, errorCallback, usePr
     options.url = url;
     var catalog = A.catalog(options);
     const processVOTable = function (table) {
-        let {sources, footprints, fields, type} = table;
+        let {sources, fields} = table;
         catalog.setFields(fields);
-
-        if (catalog.type === 'ObsCore') {
-            // The fields corresponds to obscore ones
-            // Set the name of the catalog to be ObsCore:<catalog name>
-            catalog.name = "ObsCore:" + url;
-        }
-
-        catalog.addFootprints(footprints)
         catalog.addSources(sources);
+
+        if ('s_region' in fields && typeof catalog.shape !== 'function') {
+            // set the shape
+            catalog.setShape((s) => {
+                if (!s.data.s_region)
+                    return;
+
+                const shapes = A.footprintsFromSTCS(s.data.s_region, options)
+                let fp = new Footprint(shapes, s);
+                fp.setColor(catalog.color);
+
+                return fp;
+            })
+        }
 
         if (successCallback) {
             successCallback(catalog);
@@ -646,7 +652,7 @@ A.catalogFromSimbad = function (target, radius, options, successCallback, errorC
     }).then((coo) => {
         const url = URLBuilder.buildSimbadCSURL(coo.lon, coo.lat, radius, options)
         const processVOTable = function (table) {
-            let {sources, footprints, fields, type} = table;
+            let {sources, fields} = table;
             cat.setFields(fields);
 
             if (cat.type === 'ObsCore') {
@@ -655,7 +661,6 @@ A.catalogFromSimbad = function (target, radius, options, successCallback, errorC
                 cat.name = "ObsCore:" + url;
             }
 
-            cat.addFootprints(footprints)
             cat.addSources(sources);
 
             if (successCallback) {

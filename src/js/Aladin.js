@@ -216,9 +216,16 @@ export let Aladin = (function () {
         }
 
         // merge with default options
-        var options = {
-            gridOptions: {}
-        };
+        var options = {};
+
+        for (var key in Aladin.DEFAULT_OPTIONS) {
+            if (requestedOptions[key] !== undefined) {
+                options[key] = requestedOptions[key];
+            }
+            else {
+                options[key] = Aladin.DEFAULT_OPTIONS[key];
+            }
+        }
 
         // 'gridOptions' is an object, so it need it own loop
         if ('gridOptions' in requestedOptions) {
@@ -228,14 +235,7 @@ export let Aladin = (function () {
                 }
             }
         }
-        for (var key in Aladin.DEFAULT_OPTIONS) {
-            if (requestedOptions[key] !== undefined) {
-                options[key] = requestedOptions[key];
-            }
-            else {
-                options[key] = Aladin.DEFAULT_OPTIONS[key];
-            }
-        }
+
         for (var key in requestedOptions) {
             if (Aladin.DEFAULT_OPTIONS[key] === undefined) {
                 options[key] = requestedOptions[key];
@@ -271,6 +271,7 @@ export let Aladin = (function () {
 
         // Grid
         let gridOptions = options.gridOptions;
+        console.log(options.gridOptions)
         // color and opacity can be defined by two variables. The item in gridOptions
         // should take precedence.
         gridOptions["color"] = options.gridOptions.color || options.gridColor;
@@ -278,6 +279,7 @@ export let Aladin = (function () {
         if (options && options.showCooGrid) {
             gridOptions.enabled = true;
         }
+        console.log(gridOptions)
         this.setCooGrid(gridOptions);
 
         this.gotoObject(options.target, undefined);
@@ -697,18 +699,18 @@ export let Aladin = (function () {
      * Sets the coordinate frame of the Aladin instance to the specified frame.
      *
      * @memberof Aladin
-     * @param {string} frameName - The name of the coordinate frame. Possible values: 'J2000', 'J2000d', 'GALACTIC'.
+     * @param {string} frame - The name of the coordinate frame. Possible values: 'j2000d', 'j2000', 'gal', 'icrs'. The given string is case insensitive.
      *
      * @example
      * // Set the coordinate frame to 'J2000'
      * const aladin = A.aladin('#aladin-lite-div');
      * aladin.setFrame('J2000');
      */
-    Aladin.prototype.setFrame = function (frameName) {
-        if (!frameName) {
+    Aladin.prototype.setFrame = function (frame) {
+        if (!frame) {
             return;
         }
-        var newFrame = CooFrameEnum.fromString(frameName, CooFrameEnum.J2000);
+        var newFrame = CooFrameEnum.fromString(frame, CooFrameEnum.J2000);
         if (newFrame == this.view.cooFrame) {
             return;
         }

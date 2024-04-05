@@ -82,27 +82,10 @@ impl TextRenderManager {
 
         Ok(())
     }
-
-    pub fn draw(
-        &mut self,
-        _camera: &CameraViewPort,
-        _color: &ColorRGBA,
-        _scale: f32,
-    ) -> Result<(), JsValue> {
-        Ok(())
-    }
 }
 
 impl Renderer for TextRenderManager {
     fn begin(&mut self) {
-        self.ctx = self
-            .canvas
-            .get_context("2d")
-            .unwrap_abort()
-            .unwrap_abort()
-            .dyn_into::<web_sys::CanvasRenderingContext2d>()
-            .unwrap_abort();
-
         //self.clear_text_canvas();
         // Clear the Aladin Lite 2d canvas
         // This canvas is where catalogs, grid labels, Hpx grid are drawn

@@ -62,12 +62,10 @@ export let Footprint= (function() {
                 if (!s.color) {
                     s.setColor(catalog.color);
                 }
-                if (!s.selectionColor) {
-                    s.setSelectionColor(catalog.selectionColor);
-                }
-                if (!s.hoverColor) {
-                    s.setHoverColor(catalog.hoverColor);
-                }
+
+                // Selection and hover color are catalog options
+                s.setSelectionColor(catalog.selectionColor);
+                s.setHoverColor(catalog.hoverColor);
             }
         }
     };

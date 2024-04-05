@@ -927,6 +927,11 @@ impl WebClient {
         self.app.is_rendering()
     }
 
+    #[wasm_bindgen(js_name = drawGridLabels)]
+    pub fn draw_grid_labels(&mut self) -> Result<(), JsValue> {
+        self.app.draw_grid_labels()
+    }
+
     #[wasm_bindgen(js_name = parseVOTable)]
     pub fn parse_votable(&mut self, s: &str) -> Result<JsValue, JsValue> {
         /*let votable: VOTableWrapper<votable::impls::mem::InMemTableDataRows> =

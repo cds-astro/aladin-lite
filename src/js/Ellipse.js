@@ -31,10 +31,41 @@
 import { Utils } from "./Utils";
 import { Overlay } from "./Overlay.js";
 
-// TODO : Ellipse, Circle and Footprint should inherit from the same root object
+/**
+* @typedef {Object} ShapeOptions
+* @description Options for describing a shape
+*
+* @property {Object} options - Configuration options for the shape.
+* @property {string} [options.color] - The color of the shape
+* @property {string} [options.fill=false] - Fill the shape with fillColor
+* @property {string} [options.fillColor] - A filling color for the shape
+* @property {number} [options.lineWidth=2] - The line width in pixels
+* @property {number} [options.opacity=1] - The opacity, between 0 (totally transparent) and 1 (totally opaque)
+* @property {string} [options.selectionColor='#00ff00'] - A selection color
+* @property {string} [options.hoverColor] -  A hovered color
+*/
+
+/**
+ * Represents an ellipse shape
+ *
+ * @namespace
+ * @typedef {Object} Ellipse
+ */
 export let Ellipse = (function() {
-    // constructor
-    let Ellipse = function(centerRaDec, rayonXDegrees, rayonYDegrees, rotationDegrees, options) {
+    /**
+     * Constructor function for creating a new ellipse.
+     *
+     * @constructor
+     * @memberof Ellipse
+     * @param {number[]} center - right-ascension/declination 2-tuple of the ellipse's center in degrees
+     * @param {number} a - semi-major axis length in degrees
+     * @param {number} b - semi-minor axis length in degrees
+     * @param {number} theta - angle of the ellipse in degrees
+     * @param {ShapeOptions} options - Configuration options for the ellipse
+     * 
+     * @returns {Ellipse} - The ellipse shape object
+     */
+    let Ellipse = function(center, a, b, theta, options) {
         options = options || {};
 
         this.color = options['color'] || undefined;
@@ -42,13 +73,14 @@ export let Ellipse = (function() {
         this.lineWidth = options["lineWidth"] || 2;
         this.selectionColor = options["selectionColor"] || '#00ff00';
         this.hoverColor = options["hoverColor"] || undefined;
+        this.opacity   = options['opacity']   || 1;
 
         // TODO : all graphic overlays should have an id
         this.id = 'ellipse-' + Utils.uuidv4();
 
-        this.setCenter(centerRaDec);
-        this.setRadiuses(rayonXDegrees, rayonYDegrees);
-        this.setRotation(rotationDegrees);
+        this.setCenter(center);
+        this.setAxisLength(a, b);
+        this.setRotation(theta);
     	this.overlay = null;
     	
     	this.isShowing = true;
@@ -185,9 +217,9 @@ export let Ellipse = (function() {
         }
     };
 
-    Ellipse.prototype.setRadiuses = function(radiusXDegrees, radiusYDegrees) {
-        this.a = radiusXDegrees;
-        this.b = radiusYDegrees;
+    Ellipse.prototype.setAxisLength = function(a, b) {
+        this.a = a;
+        this.b = b;
 
         if (this.overlay) {
             this.overlay.reportChange();
@@ -200,8 +232,6 @@ export let Ellipse = (function() {
 
     // TODO
     Ellipse.prototype.draw = function(ctx, view, noStroke) {
-        
-
         if (! this.isShowing) {
             return;
         }
@@ -297,6 +327,7 @@ export let Ellipse = (function() {
         }
 
         ctx.lineWidth = this.lineWidth;
+        ctx.globalAlpha = this.opacity;
         ctx.beginPath();
 
         ctx.ellipse(originScreen[0], originScreen[1], px_per_deg * this.a, px_per_deg * this.b, theta, 0, 2*Math.PI, false);

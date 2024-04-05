@@ -147,7 +147,7 @@ A.imageFITS = function (url, options) {
  * @memberof A
  * @param {number} ra - Right Ascension (RA) coordinate in degrees.
  * @param {number} dec - Declination (Dec) coordinate in degrees.
- * @param {*} [data] - Additional data associated with the source.
+ * @param {Object} [data] - Additional data associated with the source.
  * @param {SourceOptions} [options] - Options for configuring the source object.
  * @returns {Source} A celestial source object.
  * @example
@@ -166,7 +166,7 @@ A.source = function (ra, dec, data, options) {
  * @param {number} ra - Right Ascension (RA) coordinate in degrees.
  * @param {number} dec - Declination (Dec) coordinate in degrees.
  * @param {MarkerOptions} [options] - Options for configuring the marker.
- * @param {*} [data] - Additional data associated with the marker.
+ * @param {Object} [data] - Additional data associated with the marker.
  * @returns {Source} A marker source object.
  * @example
  * const markerObj = A.marker(180.0, 30.0, data, options);
@@ -184,10 +184,11 @@ A.marker = function (ra, dec, options, data) {
  * @memberof A
  * @name polygon
  *
- * @param {Array} raDecArray - Array of celestial coordinates representing the vertices of the polygon.
- *   Each element should be an object with properties `ra` (Right Ascension) in degrees and `dec` (Declination) in degrees.
- * @param {Object} options - Options for configuring the polygon.
+ * @param {Array.<number[]>} radecArray - right-ascension/declination 2-tuple array describing the polyline's vertices in degrees
+ * @param {ShapeOptions} options - Options for configuring the polygon
  * @throws {string} Throws an error if the number of vertices is less than 3.
+ * 
+ * @returns {Polyline}
  */
 A.polygon = function (raDecArray, options) {
     const numVertices = raDecArray.length;
@@ -212,15 +213,16 @@ A.polygon = function (raDecArray, options) {
 };
 
 /**
- * Creates a polyline object using an array of celestial coordinates (RA, Dec).
+ * Creates a polyline shape
  *
  * @function
  * @memberof A
  * @name polyline
  *
- * @param {Array} raDecArray - Array of celestial coordinates representing the vertices of the polyline.
- *   Each element should be an object with properties `ra` (Right Ascension) in degrees and `dec` (Declination) in degrees.
- * @param {Object} options - Options for configuring the polyline.
+ * @param {Array.<number[]>} radecArray - right-ascension/declination 2-tuple array describing the polyline's vertices in degrees
+ * @param {ShapeOptions} options - Options for configuring the polyline.
+ * 
+ * @returns {Polyline}
  */
 A.polyline = function (raDecArray, options) {
     return new Polyline(raDecArray, options);
@@ -228,7 +230,7 @@ A.polyline = function (raDecArray, options) {
 
 
 /**
- * Creates a circle object
+ * Creates a circle shape
  *
  * @function
  * @memberof A
@@ -238,14 +240,15 @@ A.polyline = function (raDecArray, options) {
  * @param {number} dec - Declination (Dec) coordinate of the center in degrees.
  * @param {number} radiusDeg - Radius in degrees.
 
- * @param {Object} options - Options for configuring the circle.
+ * @param {ShapeOptions} options - Options for configuring the circle.
+ * @returns {Circle}
  */
 A.circle = function (ra, dec, radiusDeg, options) {
     return new Circle([ra, dec], radiusDeg, options);
 };
 
 /**
- * Creates a ellipse object
+ * Creates an ellipse shape
  *
  * @function
  * @memberof A
@@ -257,14 +260,15 @@ A.circle = function (ra, dec, radiusDeg, options) {
  * @param {number} radiusDecDeg - the radius along the dec axis in degrees
  * @param {number} rotationDeg - the rotation angle in degrees
 
- * @param {Object} options - Options for configuring the ellipse.
+ * @param {ShapeOptions} options - Options for configuring the ellipse.
+ * @returns {Ellipse}
  */
 A.ellipse = function (ra, dec, radiusRaDeg, radiusDecDeg, rotationDeg, options) {
     return new Ellipse([ra, dec], radiusRaDeg, radiusDecDeg, rotationDeg, options);
 };
 
 /**
- * Creates a ellipse object
+ * Creates a line shape
  *
  * @function
  * @memberof A
@@ -274,14 +278,36 @@ A.ellipse = function (ra, dec, radiusRaDeg, radiusDecDeg, rotationDeg, options) 
  * @param {number} dec1 - Declination (Dec) coordinate of the center in degrees.
  * @param {number} ra2 - Right Ascension (RA) coordinate of the center in degrees.
  * @param {number} dec2 - Declination (Dec) coordinate of the center in degrees.
- * @param {CooFrame} [frame] - Right Ascension (RA) coordinate of the center in degrees.
- * @param {Object} options - Options for configuring the ellipse.
+ * @param {CooFrame} [frame] - Frame in which the coordinates are given. If none, the frame used is icrs/j2000.
+ * @param {ShapeOptions} options - Options for configuring the line.
  * 
  * @returns {Line}
  */
  A.line = function (ra1, dec1, ra2, dec2, frame, options) {
     return new Line(ra1, dec1, ra2, dec2, frame, options);
 };
+
+/**
+ * Creates a vector shape
+ *
+ * @function
+ * @memberof A
+ * @name vector
+ *
+ * @param {number} ra1 - Right Ascension (RA) coordinate of the center in degrees.
+ * @param {number} dec1 - Declination (Dec) coordinate of the center in degrees.
+ * @param {number} ra2 - Right Ascension (RA) coordinate of the center in degrees.
+ * @param {number} dec2 - Declination (Dec) coordinate of the center in degrees.
+ * @param {CooFrame} [frame] - Frame in which the coordinates are given. If none, the frame used is icrs/j2000.
+ * @param {ShapeOptions} options - Options for configuring the vector.
+ * 
+ * @returns {Line}
+ */
+A.vector = function (ra1, dec1, ra2, dec2, frame, options) {
+    options['arrow'] = true;
+
+    return A.line(ra1, dec1, ra2, dec2, frame, options);
+}
 
 /**
  * Creates a graphic overlay on the Aladin Lite view.
@@ -338,15 +364,19 @@ A.coo = function (longitude, latitude, prec) {
     return new Coo(longitude, latitude, prec);
 };
 
-// API
-A.footprint = function(shapes) {
-    return new Footprint(shapes);
-};
-
-// API
+/**
+ * Parse shapes from a STC-S string
+ *
+ * @function
+ * @memberof A
+ * @name footprintsFromSTCS
+ *
+ * @param {string} stcs - The STC-S string describing the shapes
+ * @param {ShapeOptions} [options] - Options for the shape
+ * @returns {Array.<Polyline|Circle>} Returns a list of shapes from the STC-S string
+ */
 A.footprintsFromSTCS = function (stcs, options) {
     var footprints = Overlay.parseSTCS(stcs, options);
-
     return footprints;
 }
 

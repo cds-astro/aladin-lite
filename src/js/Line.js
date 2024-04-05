@@ -33,8 +33,28 @@ import { Polyline } from "./Polyline.js";
 import { Utils } from './Utils';
 import { Overlay } from "./Overlay.js";
 
+/**
+ * Represents an line shape
+ *
+ * @namespace
+ * @typedef {Object} Line
+ */
 export let Line = (function() {
-    // constructor
+    /**
+     * Constructor function for creating a new line.
+     *
+     * @constructor
+     * @memberof Line
+     * @param {number} ra1 - Right Ascension (RA) coordinate of the center in degrees.
+     * @param {number} dec1 - Declination (Dec) coordinate of the center in degrees.
+     * @param {number} ra2 - Right Ascension (RA) coordinate of the center in degrees.
+     * @param {number} dec2 - Declination (Dec) coordinate of the center in degrees.
+     * @param {CooFrame} [frame] - Frame in which the coordinates are given. If none, the frame used is icrs/j2000.
+     * @param {ShapeOptions} options - Options for configuring the line. Additional properties:
+     * @param {boolean} [options.arrow=false] - Add an arrow pointing from (ra1, dec1) to (ra2, dec2)
+     * 
+     * @returns {Line} - The line shape object
+     */
     let Line = function(ra1, dec1, ra2, dec2, frame, options) {
         options = options || {};
         this.color     = options['color']     || undefined;
@@ -61,11 +81,6 @@ export let Line = (function() {
     };
 
     Line.prototype = {
-        setToPosition: function(ra2, dec2) {
-            this.ra2 = ra2;
-            this.dec2 = dec2;
-        },
-
         setOverlay: Polyline.prototype.setOverlay,
         isFootprint: Polyline.prototype.isFootprint,
         show: Polyline.prototype.show,
@@ -105,20 +120,11 @@ export let Line = (function() {
                 return;
             }
 
-            var baseColor = this.color;
-            if (!baseColor && this.overlay) {
-                baseColor = this.overlay.color;
-            }
-            if (!baseColor) {
-                baseColor = '#ff0000';
-            }
-
-            if (!this.lineWidth) {
-                this.lineWidth = this.overlay.lineWidth || 2;
-            }
+            let baseColor = this.color || (this.overlay && this.overlay.color) || '#ff0000';
+            let lineWidth = this.lineWidth || this.overlay.lineWidth || 3;
 
             // too small
-            if ((xmax - xmin) < this.lineWidth || (ymax - ymin) < this.lineWidth) {
+            if ((xmax - xmin) < lineWidth || (ymax - ymin) < lineWidth) {
                 return;
             }
 
@@ -130,7 +136,7 @@ export let Line = (function() {
                 ctx.strokeStyle = baseColor;
             }
 
-            ctx.lineWidth = this.lineWidth;
+            ctx.lineWidth = lineWidth;
             ctx.globalAlpha = this.opacity;
 
             ctx.beginPath();

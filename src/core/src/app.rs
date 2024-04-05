@@ -821,6 +821,10 @@ impl App {
         }
     }
 
+    pub(crate) fn draw_grid_labels(&mut self) -> Result<(), JsValue> {
+        self.grid.draw_labels(&self.camera)
+    }
+
     pub(crate) fn draw(&mut self, force_render: bool) -> Result<(), JsValue> {
         /*let scene_redraw = self.rendering | force_render;
         let mut ui = self.ui.lock();

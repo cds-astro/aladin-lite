@@ -54,18 +54,6 @@
     padding-top: 58.45%; /* aspect ratio of the background image */
 }
 
-.aladin-col {
-    float: left;
-    width: 45.00%;
-    margin-right: 5.0%;
-}
-  /* Clear floats after the columns */
-.aladin-row:after {
-    content: "";
-    display: table;
-    clear: both;
-}
-
 .aladin-clipboard::before {
     content: ' 📋';
     cursor:pointer;

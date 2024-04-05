@@ -38,6 +38,12 @@ import { Overlay } from "./Overlay.js";
 import { ProjectionEnum } from "./ProjectionEnum.js";
 
 
+/**
+ * Represents a polyline shape
+ *
+ * @namespace
+ * @typedef {Object} Polyline
+ */
 export let Polyline = (function() {
 
     function _calculateMag2ForNoSinProjections(l, view) {
@@ -86,7 +92,17 @@ export let Polyline = (function() {
         return false;
     }*/
 
-    // constructor
+    /**
+     * Constructor function for creating a new polyline.
+     *
+     * @constructor
+     * @memberof Polyline
+     * @param {Array.<number[]>} radecArray - right-ascension/declination 2-tuple array describing the polyline's vertices in degrees
+     * @param {ShapeOptions} options - Configuration options for the polyline. Additional properties:
+     * @param {boolean} [options.closed=false] - Close the polyline, default to false.
+     * 
+     * @returns {Polyline} - The polyline shape object
+     */
     let Polyline = function(radecArray, options) {
         options = options || {};
         this.color     = options['color']     || undefined;
@@ -97,11 +113,7 @@ export let Polyline = (function() {
         this.selectionColor = options["selectionColor"] || '#00ff00';
         this.hoverColor = options["hoverColor"] || undefined;
 
-        if (options["closed"]) {
-            this.closed = options["closed"];
-        } else {
-            this.closed = false;
-        }
+        this.closed = (options["closed"] !== undefined) ? options["closed"] : false;
 
         // All graphics overlay have an id
         this.id = 'polyline-' + Utils.uuidv4();

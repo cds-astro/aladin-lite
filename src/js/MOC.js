@@ -37,12 +37,12 @@ import { ALEvent } from "./events/ALEvent.js";
  * @typedef {Object} MOC
  */
 export let MOC = (function() {
- /**
+    /**
      * Constructor function for creating a new catalog instance.
      *
      * @constructor
      * @memberof MOC
-    * @param {MOCOptions} options - Configuration options for the MOC.
+     * @param {MOCOptions} options - Configuration options for the MOC.
      */
     let MOC = function(options) {
         //this.order = undefined;

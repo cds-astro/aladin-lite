@@ -2,6 +2,7 @@ pub mod label;
 pub mod meridian;
 pub mod parallel;
 
+use crate::grid::parallel::Parallel;
 use crate::math::projection::coo_space::XYScreen;
 use crate::Abort;
 
@@ -31,6 +32,9 @@ pub struct ProjetedGrid {
     fmt: angle::SerializeFmt,
 
     line_style: line::Style,
+
+    meridians: Vec<Meridian>,
+    parallels: Vec<Parallel>,
 }
 
 use crate::shader::ShaderManager;
@@ -39,6 +43,8 @@ use wasm_bindgen::JsValue;
 use crate::renderable::line::RasterizedLineRenderer;
 use crate::renderable::text::TextRenderManager;
 use web_sys::HtmlElement;
+
+use self::meridian::Meridian;
 
 impl ProjetedGrid {
     pub fn new(aladin_div: &HtmlElement) -> Result<ProjetedGrid, JsValue> {
@@ -56,6 +62,8 @@ impl ProjetedGrid {
         let line_style = line::Style::None;
         let fmt = angle::SerializeFmt::DMS;
         let thickness = 2.0;
+        let meridians = Vec::new();
+        let parallels = Vec::new();
 
         let grid = ProjetedGrid {
             color,
@@ -66,6 +74,8 @@ impl ProjetedGrid {
             thickness,
 
             text_renderer,
+            meridians,
+            parallels,
             fmt,
         };
         // Initialize the vertices & labels
@@ -147,7 +157,7 @@ impl ProjetedGrid {
         let step_line_px = max_dim_px * 0.2;
 
         // update meridians
-        let meridians = {
+        self.meridians = {
             // Select the good step with a binary search
             let step_lon_precised =
                 (bbox.get_lon_size() as f64) * step_line_px / (camera.get_width() as f64);
@@ -173,7 +183,7 @@ impl ProjetedGrid {
             meridians
         };
 
-        let parallels = {
+        self.parallels = {
             let step_lat_precised =
                 (bbox.get_lat_size() as f64) * step_line_px / (camera.get_height() as f64);
             let step_lat = select_fixed_step(step_lat_precised);
@@ -196,11 +206,12 @@ impl ProjetedGrid {
         };
 
         // update the line buffers
-        let paths = meridians
+        let paths = self
+            .meridians
             .iter()
             .map(|meridian| meridian.get_lines_vertices())
             .chain(
-                parallels
+                self.parallels
                     .iter()
                     .map(|parallel| parallel.get_lines_vertices()),
             )
@@ -213,12 +224,16 @@ impl ProjetedGrid {
         let m = camera.get_screen_size().magnitude();
         rasterizer.add_stroke_paths(paths, self.thickness, &self.color, &self.line_style);
 
-        // update labels
-        if self.show_labels {
-            let labels = meridians
+        Ok(())
+    }
+
+    pub fn draw_labels(&mut self, camera: &CameraViewPort) -> Result<(), JsValue> {
+        if self.enabled && self.show_labels {
+            let labels = self
+                .meridians
                 .iter()
                 .filter_map(|m| m.get_label())
-                .chain(parallels.iter().filter_map(|p| p.get_label()));
+                .chain(self.parallels.iter().filter_map(|p| p.get_label()));
 
             let dpi = camera.get_dpi();
             self.text_renderer.begin();

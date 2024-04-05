@@ -1302,6 +1302,16 @@ export let View = (function () {
             }
         }
 
+        // display grid labels
+        if (this.gridCfg.enabled && this.gridCfg.showLabels) {
+            if (!this.catalogCanvasCleared) {
+                ctx.clearRect(0, 0, this.width, this.height);
+                this.catalogCanvasCleared = true;
+            }
+
+            this.wasm.drawGridLabels();
+        }
+
         if (this.mode === View.SELECT) {
             this.selector.dispatch('draw')
         }

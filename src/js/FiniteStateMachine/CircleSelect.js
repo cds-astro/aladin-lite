@@ -112,7 +112,7 @@ export class CircleSelect extends FSM {
             }
 
             // execute selection callback only
-            (typeof this.callback === 'function') && this.callback(s);
+            (typeof this.callback === 'function') && this.callback(s, Selector.getObjects(s, view));
 
             this.dispatch("off");
         };

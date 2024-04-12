@@ -99,7 +99,7 @@ export class RectSelect extends FSM {
                 }
             };
 
-            (typeof this.callback === 'function') && this.callback(s);
+            (typeof this.callback === 'function') && this.callback(s, Selector.getObjects(s, view));
 
             // TODO: remove these modes in the future
             view.aladin.showReticle(true)

@@ -170,7 +170,7 @@ export let Footprint= (function() {
     }
 
     Footprint.prototype.draw = function(ctx, view, noStroke) {
-        this.shapes.forEach((shape) => shape.draw(ctx, view, noStroke))
+        return this.shapes.some((shape) => {return shape.draw(ctx, view, noStroke)})
     };
 
     Footprint.prototype.actionClicked = function() {
@@ -190,6 +190,10 @@ export let Footprint= (function() {
     // If one shape is is stroke then the whole footprint is
     Footprint.prototype.isInStroke = function(ctx, view, x, y) {
         return this.shapes.some((shape) => shape.isInStroke(ctx, view, x, y));
+    };
+
+    Footprint.prototype.isTooSmall = function(view) {
+        return this.shapes.every((shape) => shape.isTooSmall);
     };
 
     Footprint.prototype.getCatalog = function() {

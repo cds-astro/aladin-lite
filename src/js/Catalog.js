@@ -42,7 +42,6 @@ import { Ellipse } from "./Ellipse.js";
 import { Circle } from "./Circle.js";
 import { Footprint } from "./Footprint.js";
 
-
 /**
  * Represents a catalog with configurable options for display and interaction.
  *
@@ -497,10 +496,6 @@ export let Catalog = (function() {
             this.setFields(fields);
         }
 
-        //let footprints = this.parseFootprintsFromSources(sources);
-        //sources = sources.filter((s) => s.hasFootprint !== true);
-        //this.addFootprints(footprints);
-
     	this.sources = this.sources.concat(sources);
     	for (var k=0, len=sources.length; k<len; k++) {
     	    sources[k].setCatalog(this);
@@ -713,19 +708,20 @@ export let Catalog = (function() {
     };
 
     Catalog.prototype.draw = function(ctx, width, height) {
-        if (! this.isShowing) {
+        if (!this.isShowing) {
             return;
         }
         // tracé simple
         ctx.strokeStyle = this.color;
 
-        // Draw the footprints
+        // Draw the footprints first
         this.drawFootprints(ctx);
 
         if (this._shapeIsFunction) {
             ctx.save();
         }
-        const sourcesInView = this.drawSources(ctx, width, height);
+
+        const drawnSources = this.drawSources(ctx, width, height);
 
         if (this._shapeIsFunction) {
             ctx.restore();
@@ -735,18 +731,19 @@ export let Catalog = (function() {
         if (this.displayLabel) {
             ctx.fillStyle = this.labelColor;
             ctx.font = this.labelFont;
-            sourcesInView.forEach((s) => {
+            drawnSources.forEach((s) => {
                 this.drawSourceLabel(s, ctx);
             })
         }
     };
 
     Catalog.prototype.drawSources = function(ctx, width, height) {
+        let inside = [];
+
         if (!this.sources) {
             return;
         }
-
-        let sourcesInsideView = [];
+    
         let xy = this.view.wasm.worldToScreenVec(this.ra, this.dec);
 
         let self = this;
@@ -757,12 +754,12 @@ export let Catalog = (function() {
                     s.y = xy[2*idx + 1];
 
                     self.drawSource(s, ctx, width, height)
-                    sourcesInsideView.push(s);
+                    inside.push(s);
                 }
             }
         });
 
-        return sourcesInsideView;
+        return inside;
     };
 
     Catalog.prototype.drawSource = function(s, ctx, width, height) {
@@ -770,7 +767,7 @@ export let Catalog = (function() {
             return false;
         }
 
-        if (s.hasFootprint) {
+        if (s.hasFootprint && !s.tooSmallFootprint) {
             return false;
         }
 
@@ -821,8 +818,14 @@ export let Catalog = (function() {
             this.recomputeFootprints = false;
         }
 
+        var f;
         for(let k = 0; k < this.footprints.length; k++) {
-            this.footprints[k].draw(ctx, this.view)
+            f = this.footprints[k];
+
+            f.draw(ctx, this.view)
+            f.source.tooSmallFootprint = f.isTooSmall()
+            // propagate the info that the footprint is too small
+            //f.source.tooSmallFootprint = f.isTooSmall
         };
     };
 

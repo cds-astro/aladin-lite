@@ -73,6 +73,7 @@ extern "C" {
 #[macro_use]
 mod utils;
 
+use al_core::log::console_log;
 use math::projection::*;
 use renderable::coverage::moc::MOC;
 //use votable::votable::VOTableWrapper;
@@ -480,6 +481,13 @@ impl WebClient {
 
         self.app.set_fov(fov);
         //self.projection.set_fov(&mut self.app, ArcDeg(fov).into());
+
+        Ok(())
+    }
+
+    #[wasm_bindgen(js_name = setInertia)]
+    pub fn set_inertia(&mut self, inertia: bool) -> Result<(), JsValue> {
+        self.app.set_inertia(inertia);
 
         Ok(())
     }

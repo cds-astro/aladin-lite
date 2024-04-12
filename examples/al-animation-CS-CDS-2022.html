@@ -15,10 +15,8 @@
         </div>
     </div>
 </div>
-
 <script type="module">
     import A from '../src/js/A.js';
-    let aladin;
     A.init.then(() => {
         aladin = A.aladin('#aladin-lite-div', {projection: 'MOL', cooFrame: 'galactic', fov: 360, fullScreen: true, showCooGrid: false, showReticle: false})
         aladin.gotoRaDec(79.9525321, -69.2742586)

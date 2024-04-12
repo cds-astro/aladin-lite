@@ -5,11 +5,10 @@
 <body>
 
 <div id="aladin-lite-div" style="width: 1024px; height: 768px"></div>
-
+<script>    let aladin;
+</script>
 <script type="module">
     import A from '../src/js/A.js';
-    var aladin;
-
     A.init.then(() => {
         aladin = A.aladin(
             '#aladin-lite-div',
@@ -22,8 +21,9 @@
                 reticleColor: '#00ff00', // change reticle color
                 reticleSize: 40, // change reticle size
                 gridOptions: {color: 'pink'},
-                showCooGrid: true, // set the grid
+                showCooGrid: false, // set the grid
                 fullScreen: true,
+                inertia: false,
                 showStatusBar: false,
                 showShareControl: true,
                 showSettingsControl: true,

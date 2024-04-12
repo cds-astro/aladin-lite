@@ -62,7 +62,7 @@ export let SimbadPointer = (function() {
                     }
                     content += '<br><a target="_blank" href="http://cdsportal.u-strasbg.fr/?target=' + encodeURIComponent(objName) + '">Query in CDS portal</a>';
                     content += '</div>';
-        
+
                     aladinInstance.showPopup(objCoo.lon, objCoo.lat, title, content);
                 }
                 else {

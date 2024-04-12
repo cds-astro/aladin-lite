@@ -304,7 +304,7 @@ export class DOMElement {
     attachTo(target, position = 'beforeend') {
         if(target) {
             if (typeof position === 'number') {
-                target.insertChildAtIndex(this.element(), position)
+                target.insertBefore(this.element(), target.childNodes[position]);
             } else {
                 target.insertAdjacentElement(position, this.element());
             }

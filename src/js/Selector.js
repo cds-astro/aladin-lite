@@ -99,13 +99,14 @@ export class Selector {
         if (view.catalogs) {
             for (var k = 0; k < view.catalogs.length; k++) {
                 cat = view.catalogs[k];
+
                 if (!cat.isShowing) {
                     continue;
                 }
                 sources = cat.getSources();
                 for (var l = 0; l < sources.length; l++) {
                     s = sources[l];
-                    if (!s.isShowing || !s.x || !s.y) {
+                    if (!s.isShowing || !s.x || !s.y || s.tooSmallFootprint === false) {
                         continue;
                     }
                     if (selection.contains(s)) {

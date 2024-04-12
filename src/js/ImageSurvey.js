@@ -355,6 +355,7 @@ export let ImageSurvey = (function () {
                 minCut = self.colorCfg.minCut || 0.0;
                 maxCut = self.colorCfg.maxCut || 1.0;
             }
+
             self.colorCfg.setCuts(minCut, maxCut);
 
             // Coo frame
@@ -469,6 +470,7 @@ export let ImageSurvey = (function () {
                     // Switch from png/webp/jpeg to fits
                     if ((self.imgFormat === 'png' || self.imgFormat === "webp" || self.imgFormat === "jpeg") && imgFormat === 'fits') {
                         if (self.minCut && self.maxCut) {
+                            // reset cuts to those given from the properties
                             self.setCuts(self.minCut, self.maxCut)
                         }
                     // Switch from fits to png/webp/jpeg
@@ -891,7 +893,7 @@ export let ImageSurvey = (function () {
             imgFormat: 'jpeg',
             cooFrame: 'equatorial'
         },
-        /*SDSS9_g: {
+        SDSS9_g: {
             creatorDid: "ivo://CDS/P/SDSS9/g",
             id: "P/SDSS9/g",
             name: "SDSS9 band-g",
@@ -905,7 +907,7 @@ export let ImageSurvey = (function () {
             maxCut: 1.8,
             stretch: 'linear',
             colormap: "redtemperature",
-        }*/
+        }
         /*
         {
             id: "P/Finkbeiner",

@@ -30,6 +30,7 @@
 
 import { Utils } from "./Utils";
 import { Overlay } from "./Overlay.js";
+import { requestAnimFrame } from "./libs/RequestAnimationFrame";
 
 /**
 * @typedef {Object} ShapeOptions
@@ -231,22 +232,25 @@ export let Ellipse = (function() {
     }
 
     // TODO
-    Ellipse.prototype.draw = function(ctx, view, noStroke) {
+    Ellipse.prototype.draw = function(ctx, view, noStroke, noSmallCheck) {
         if (! this.isShowing) {
-            return;
+            return false;
         }
 
-        let px_per_deg = view.width / view.fov;
-
-        /*if (this.a * 2 * px_per_deg < this.lineWidth || this.b * 2 * px_per_deg < this.lineWidth) {
-            return;
-        }*/
+        const px_per_deg = view.width / view.fov;
+        noSmallCheck = noSmallCheck===true || false;
+        if (!noSmallCheck) {
+            this.isTooSmall = this.b * 2 * px_per_deg < this.lineWidth;
+            if (this.isTooSmall) {
+                return false;
+            }
+        }
 
         var originScreen = view.aladin.world2pix(this.centerRaDec[0], this.centerRaDec[1]);
         if (!originScreen) {
             // the center goes out of the projection
             // we do not draw it
-            return;
+            return false;
         }
 
         // 1. Find the spherical tangent vector going to the north
@@ -256,7 +260,7 @@ export let Ellipse = (function() {
         let toNorthScreen = view.aladin.world2pix(toNorth[0], toNorth[1]);
 
         if(!toNorthScreen) {
-            return;
+            return false;
         }
 
         // 3. normalize this vector
@@ -338,10 +342,15 @@ export let Ellipse = (function() {
             }
             ctx.stroke();
         }
+
+        return true;
     };
 
     Ellipse.prototype.isInStroke = function(ctx, view, x, y) {
-        this.draw(ctx, view, true);
+        if (!this.draw(ctx, view, true, true)) {
+            return false;
+        }
+
         return ctx.isPointInStroke(x, y);
     };
 

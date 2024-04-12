@@ -199,7 +199,7 @@ export let Circle = (function() {
     // TODO
     Circle.prototype.draw = function(ctx, view, noStroke) {
         if (! this.isShowing) {
-            return;
+            return false;
         }
         noStroke = noStroke===true || false;
 
@@ -207,7 +207,7 @@ export let Circle = (function() {
         if (!centerXyview) {
             // the center goes out of the projection
             // we do not draw it
-            return;
+            return false;
         }
         this.center = {
             x: centerXyview[0],
@@ -237,7 +237,7 @@ export let Circle = (function() {
         });
 
         if (hidden) {
-            return;
+            return false;
         }
         // Then we can draw
 
@@ -271,6 +271,8 @@ export let Circle = (function() {
             }
             ctx.stroke();
         }
+
+        return true;
     };
 
     Circle.prototype.isInStroke = function(ctx, view, x, y) {

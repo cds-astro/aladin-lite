@@ -125,6 +125,39 @@ Utils.isInt = function (n: string | number) {
     return Utils.isNumber(n) && Math.floor(n as number) === n
 }
 
+// Newton-Raphson method to find the approximate inverse of f(x)
+Utils.inverseNewtonRaphson = function(y: number, f: Function, fPrime: Function, tolerance=1e-6, maxIterations=100) {
+    let x_guess = 0.5; // Initial guess
+    let iteration = 0;
+
+    while (iteration < maxIterations) {
+        let f_x = f(x_guess);
+        let error = Math.abs(f_x - y);
+
+        if (error < tolerance) {
+            return x_guess; // Found approximate inverse
+        }
+
+        let derivative = fPrime(x_guess);
+        x_guess = x_guess - (f_x - y) / derivative; // Newton-Raphson update
+        iteration++;
+    }
+
+    return null; // No convergence within maxIterations
+}
+
+Utils.binarySearch = function(array, value) {
+    var low = 0,
+        high = array.length;
+
+    while (low < high) {
+        var mid = (low + high) >>> 1;
+        if (array[mid] > value) low = mid + 1;
+        else high = mid;
+    }
+    return low;
+}
+
 /* a debounce function, used to prevent multiple calls to the same function if less than delay milliseconds have passed */
 Utils.debounce = function (fn, delay) {
     var timer = null

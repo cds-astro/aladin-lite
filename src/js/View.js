@@ -43,7 +43,7 @@ import { CooFrameEnum } from "./CooFrameEnum.js";
 import { requestAnimFrame } from "./libs/RequestAnimationFrame.js";
 import { WebGLCtx } from "./WebGL.js";
 import { ALEvent } from "./events/ALEvent.js";
-import { ColorCfg } from "./ColorCfg.js";
+import { Zoom } from './Zoom.js'
 import { Footprint } from "./Footprint.js";
 import { Selector } from "./Selector.js";
 import { ObsCore } from "./vo/ObsCore.js";
@@ -133,14 +133,11 @@ export let View = (function () {
         lon = lat = 0;
 
         // FoV init settings
-        const si = 500000.0;
-        const alpha = 40.0;
         let initialFov = this.options.fov || 180.0;
         this.pinchZoomParameters = {
             isPinching: false, // true if a pinch zoom is ongoing
             initialFov: undefined,
             initialDistance: undefined,
-            initialAccDelta: Math.pow(si / initialFov, 1.0 / alpha)
         };
 
         // Projection definition
@@ -148,7 +145,8 @@ export let View = (function () {
         this.setProjection(projName)
 
         // Then set the zoom properly once the projection is defined
-        this.setZoom(initialFov);
+        this.wasm.setFieldOfView(initialFov);
+        this.updateZoomState();
 
         // Target position settings
         this.viewCenter = { lon, lat }; // position of center of view
@@ -216,6 +214,7 @@ export let View = (function () {
             initialFingerAngle: undefined,
             rotationInitiated: false
         }
+        this.zoom = new Zoom(this);
 
         this.fadingLatestUpdate = null;
         this.dateRequestRedraw = null;
@@ -665,8 +664,6 @@ export let View = (function () {
                 view.dragging = false;
 
                 view.pinchZoomParameters.isPinching = true;
-                //var fov = view.aladin.getFov();
-                //view.pinchZoomParameters.initialFov = Math.max(fov[0], fov[1]);
                 var fov = view.wasm.getFieldOfView();
                 view.pinchZoomParameters.initialFov = fov;
                 view.pinchZoomParameters.initialDistance = Math.sqrt(Math.pow(e.targetTouches[0].clientX - e.targetTouches[1].clientX, 2) + Math.pow(e.targetTouches[0].clientY - e.targetTouches[1].clientY, 2));
@@ -1062,13 +1059,21 @@ export let View = (function () {
         var eventCount = 0;
         var eventCountStart;
         var isTouchPad;
-        var scale = 0.0;
+        let id;
+
         Utils.on(view.catalogCanvas, 'wheel', function (e) {
             e.preventDefault();
             e.stopPropagation();
 
-            const xymouse = Utils.relMouseCoords(e);
+            view.wheelTriggered = true;
 
+            clearTimeout(id);
+            id = setTimeout(() => {
+                view.wheelTriggered = false;
+            }, 100);
+
+            const xymouse = Utils.relMouseCoords(e);
+            view.xy = xymouse
             ALEvent.CANVAS_EVENT.dispatchedTo(view.aladinDiv, {
                 state: {
                     mode: view.mode,
@@ -1083,21 +1088,25 @@ export let View = (function () {
                 return;
             }
 
-            var delta = e.deltaY || e.detail || (-e.wheelDelta);
+            if (!view.debounceProgCatOnZoom) {
+                var self = view;
+                view.debounceProgCatOnZoom = Utils.debounce(function () {
+                    self.refreshProgressiveCats();
+                    self.drawAllOverlays();
+                }, 300);
+            }
 
-            // Limit the minimum and maximum zoom levels
-            //var delta = e.deltaY;
-            // this seems to happen in context of Jupyter notebook --> we have to invert the direction of scroll
-            // hope this won't trigger some side effects ...
-            /*if (e.hasOwnProperty('originalEvent')) {
-                delta = -e.deltaY;
-            }*/
+            view.debounceProgCatOnZoom();
+            view.throttledZoomChanged();
 
+            // Zoom heuristic
+            // First detect the device
             // See https://stackoverflow.com/questions/10744645/detect-touchpad-vs-mouse-in-javascript
             // for detecting the use of a touchpad
-            var isTouchPadDefined = isTouchPad || typeof isTouchPad !== "undefined";
-            if (!isTouchPadDefined) {
+            view.isTouchPadDefined = isTouchPad || typeof isTouchPad !== "undefined";
+            if (!view.isTouchPadDefined) {
                 if (eventCount === 0) {
+                    view.delta = 0;
                     eventCountStart = new Date().getTime();
                 }
 
@@ -1109,50 +1118,75 @@ export let View = (function () {
                     } else {
                         isTouchPad = false;
                     }
-                    isTouchPadDefined = true;
+                    view.isTouchPadDefined = true;
                 }
             }
 
-            // The value of the field of view is determined
-            // inside the backend
-            const triggerZoom = (amount) => {
-                if (delta < 0.0) {
-                    view.increaseZoom(amount);
-                } else {
-                    view.decreaseZoom(amount);
-                }
-            };
-
-            if (isTouchPadDefined) {
-                let dt = performance.now() - view.then
-
-                let a0, a1;
-
-                // touchpad
-                if (isTouchPad) {
-                    a1 = 0.002;
-                    a0 = 0.0002;
-                } else {
-                    a1 = 0.01;
-                    a0 = 0.0004;
-                }
-
-                const alpha = Math.pow(view.fov / view.projection.fov, 0.5);
-
-                const lerp = a0 * alpha + a1 * (1.0 - alpha);
-                triggerZoom(lerp);
+            // only ensure the touch pad test has been done before zooming
+            if (!view.isTouchPadDefined) {
+                return false;
             }
 
-            if (!view.debounceProgCatOnZoom) {
-                var self = view;
-                view.debounceProgCatOnZoom = Utils.debounce(function () {
-                    self.refreshProgressiveCats();
-                    self.drawAllOverlays();
-                }, 300);
-            }
+            // touch pad defined
 
-            view.debounceProgCatOnZoom();
-            view.throttledZoomChanged();
+            if (isTouchPad) {
+                view.delta = e.deltaY || e.detail || (-e.wheelDelta);
+
+                if (!view.throttledTouchPadZoom) {
+                    let radec;
+                    view.throttledTouchPadZoom = Utils.throttle(() => {
+                        if (!view.zoom.isZooming && !view.wheelTriggered) {
+                            // start zooming detected
+                            radec = view.aladin.pix2world(view.xy.x, view.xy.y);
+                        }
+        
+                        let amount = view.delta > 0 ? -Zoom.MAX_IDX_DELTA_PER_TROTTLE : Zoom.MAX_IDX_DELTA_PER_TROTTLE;
+                        if (amount === 0)
+                            return;
+        
+                        // change the zoom level
+                        let newFov = Zoom.determineNextFov(view, amount);
+                        view.zoom.apply({
+                            stop: newFov,
+                            duration: 300
+                        });
+                        //view.setZoom(newFov)
+        
+                        /*if (amount > 0 && radec) {
+                            let sRaDec = view.aladin.getRaDec();
+        
+                            let moveTo = function() {
+                                const t = 1 - (view.x - view.x1) / (view.x2 - view.x1);
+        
+                                let ra = (0.5 + t*0.5) * sRaDec[0] + (0.5 - t*0.5) * radec[0]
+                                let dec = (0.5 + t*0.5) * sRaDec[1] + (0.5 - t*0.5) * radec[1]
+        
+                                view.aladin.gotoRaDec(ra, dec)
+        
+                                if (t >= 1e-2)
+                                    requestAnimFrame(moveTo)
+                            }
+                            //requestAnimFrame(moveTo)
+                        }*/
+                    }, 30);
+                }
+
+                view.throttledTouchPadZoom();
+            } else {
+                if (!view.throttledMouseScrollZoom) {
+                    view.throttledMouseScrollZoom = Utils.throttle(() => {
+                        let newFov = view.delta > 0 ? view.fov * 1.15 : view.fov / 1.15;
+                        // standard mouse wheel zooming
+    
+                        view.zoom.apply({
+                            stop: newFov,
+                            duration: 300
+                        });
+                    }, 30);
+                }
+                
+                view.throttledMouseScrollZoom()
+            }
 
             return false;
         });
@@ -1257,11 +1291,11 @@ export let View = (function () {
                 this.catalogCanvasCleared = true;
             }
 
-            this.catalogForPopup.draw(ctx, this.cooFrame, this.width, this.height, this.largestDim);
+            this.catalogForPopup.draw(ctx, this.width, this.height);
 
             // draw popup overlay layer
             if (this.overlayForPopup.isShowing) {
-                this.overlayForPopup.draw(ctx, this.cooFrame, this.width, this.height, this.largestDim);
+                this.overlayForPopup.draw(ctx);
             }
         }
 
@@ -1313,6 +1347,11 @@ export let View = (function () {
         }
 
         if (this.mode === View.SELECT) {
+            if (!this.catalogCanvasCleared) {
+                ctx.clearRect(0, 0, this.width, this.height);
+                this.catalogCanvasCleared = true;
+            }
+
             this.selector.dispatch('draw')
         }
     };
@@ -1425,7 +1464,6 @@ export let View = (function () {
     };
 
     // Called for touchmove events
-    // initialAccDelta must be consistent with fovDegrees here
     View.prototype.setZoom = function (fov) {
         // limit the fov in function of the projection
         fov = Math.min(fov, this.projection.fov);
@@ -1443,43 +1481,21 @@ export let View = (function () {
         }
 
         this.wasm.setFieldOfView(fov);
-
         this.updateZoomState();
     };
 
-    View.prototype.increaseZoom = function (amount) {
-        const si = 500000.0;
-        const alpha = 40.0;
-
-        let initialAccDelta = this.pinchZoomParameters.initialAccDelta + amount;
-        let new_fov = si / Math.pow(initialAccDelta, alpha);
-
-        if (new_fov < 0.00002777777) {
-            new_fov = 0.00002777777;
-        }
-
-        this.pinchZoomParameters.initialAccDelta = initialAccDelta;
-        this.setZoom(new_fov);
+    View.prototype.increaseZoom = function () {
+        this.zoom.apply({
+            stop: Zoom.determineNextFov(this, 6),
+            duration: 300
+        });
     }
 
-    View.prototype.decreaseZoom = function (amount) {
-        const si = 500000.0;
-        const alpha = 40.0;
-
-        let initialAccDelta = this.pinchZoomParameters.initialAccDelta - amount;
-
-        if (initialAccDelta <= 0.0) {
-            initialAccDelta = 1e-3;
-        }
-
-        let new_fov = si / Math.pow(initialAccDelta, alpha);
-
-        if (new_fov >= this.projection.fov) {
-            new_fov = this.projection.fov;
-        }
-
-        this.pinchZoomParameters.initialAccDelta = initialAccDelta;
-        this.setZoom(new_fov);
+    View.prototype.decreaseZoom = function () {
+        this.zoom.apply({
+            stop: Zoom.determineNextFov(this, -6),
+            duration: 300
+        });
     }
 
     View.prototype.setRotation = function(rotation) {
@@ -1506,11 +1522,6 @@ export let View = (function () {
     View.prototype.updateZoomState = function () {
         // Get the new zoom values from the backend
         let fov = this.wasm.getFieldOfView();
-
-        // Update the pinch zoom parameters consequently
-        const si = 500000.0;
-        const alpha = 40.0;
-        this.pinchZoomParameters.initialAccDelta = Math.pow(si / fov, 1.0 / alpha);
 
         // Save it
         this.fov = fov;
@@ -1987,17 +1998,19 @@ export let View = (function () {
         let closest = null;
 
         footprints.forEach((footprint) => {
-            // Hidden footprints are not considered
-            let lineWidth = footprint.getLineWidth();
+            if (!footprint.source.tooSmallFootprint) {
+                // Hidden footprints are not considered
+                let lineWidth = footprint.getLineWidth();
 
-            footprint.setLineWidth(10.0);
-            if (footprint.isShowing && footprint.isInStroke(ctx, this, x * window.devicePixelRatio, y * window.devicePixelRatio)) {
-                closest = footprint;
-            }
-            footprint.setLineWidth(lineWidth);
+                footprint.setLineWidth(10.0);
+                if (footprint.isShowing && footprint.isInStroke(ctx, this, x * window.devicePixelRatio, y * window.devicePixelRatio)) {
+                    closest = footprint;
+                }
+                footprint.setLineWidth(lineWidth);
 
-            if (closest) {
-                return closest;
+                if (closest) {
+                    return closest;
+                }
             }
         })
 

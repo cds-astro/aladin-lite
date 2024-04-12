@@ -699,7 +699,40 @@ export class OverlayStack extends ContextMenu {
             };
 
             l.subMenu = [];
+            l.subMenu.push({
+                label: {
+                    icon: {
+                        url: searchIconImg,
+                        monochrome: true,
+                        tooltip: {content: 'Find a specific survey <br /> in our database...', position: { direction: 'bottom' }},
+                        cssStyle: {
+                            cursor: 'help',
+                        },
+                    },
+                    content: 'More...'
+                },
+                action(o) {
+                    o.stopPropagation();
+                    o.preventDefault();
+
+                    self._hide();
+
+                    self.hipsBox = new HiPSSelectorBox(self.aladin)
+
+                    self.hipsBox.attach((HiPSId) => {            
+                        self.aladin.setOverlayImageLayer(HiPSId, layer.layer);
+                        self.show();
+                    });
     
+                    self.hipsBox._show({
+                        position: self.position,
+                    })
+    
+                    self.mode = 'hips';
+                }
+            })
+
+
             for(const [id, ll] of defaultLayers) {
                 backgroundUrl = OverlayStack.previewImagesUrl[ll.name];
                 if (!backgroundUrl) {
@@ -731,41 +764,6 @@ export class OverlayStack extends ContextMenu {
                     }
                 })
             }
-
-            l.subMenu.push({
-                label: {
-                    icon: {
-                        url: searchIconImg,
-                        monochrome: true,
-                        tooltip: {content: 'Find a specific survey <br /> in our database...', position: { direction: 'top' }},
-                        cssStyle: {
-                            cursor: 'help',
-                        },
-                    },
-                    content: 'More...'
-                },
-                action(o) {
-                    o.stopPropagation();
-                    o.preventDefault();
-
-                    self._hide();
-
-                    self.hipsBox = new HiPSSelectorBox(self.aladin)
-
-                    self.hipsBox.attach(
-                        (HiPSId) => {            
-                            self.aladin.setOverlayImageLayer(HiPSId, layer.layer);
-                            self.show();
-                        }
-                    );
-    
-                    self.hipsBox._show({
-                        position: self.position,
-                    })
-    
-                    self.mode = 'hips';
-                }
-            })
 
             l.action = (o) => {
                 let oldLayerClassName = 'a' + self.aladin.getSelectedLayer().replace(/[.\/ ]/g, '')

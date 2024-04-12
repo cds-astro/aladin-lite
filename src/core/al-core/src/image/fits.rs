@@ -17,45 +17,34 @@ pub enum Data<'a> {
     I32(Cow<'a, [i32]>),
     F32(Cow<'a, [f32]>),
 }
+use fitsrs::{fits::Fits as FitsData, hdu::data::InMemData};
 use std::io::Cursor;
-use fitsrs::{
-    hdu::data::InMemData,
-    fits::Fits as FitsData,
-};
 
 impl<'a> Fits<'a> {
     pub fn from_byte_slice(bytes_reader: &'a mut Cursor<&[u8]>) -> Result<Self, JsValue> {
         let FitsData { hdu } = FitsData::from_reader(bytes_reader)
-            .map_err(|_| {
-                JsValue::from_str(&"Parsing fits error")
-            })?;
+            .map_err(|_| JsValue::from_str(&"Parsing fits error"))?;
 
         let header = hdu.get_header();
         let xtension = header.get_xtension();
-        let width = xtension.get_naxisn(1)
+        let width = xtension
+            .get_naxisn(1)
             .ok_or_else(|| JsValue::from_str("NAXIS1 not found in the fits"))?;
 
-        let height = xtension.get_naxisn(2)
+        let height = xtension
+            .get_naxisn(2)
             .ok_or_else(|| JsValue::from_str("NAXIS2 not found in the fits"))?;
-        
+
         let data = hdu.get_data();
         let data = match *data {
-            InMemData::U8(slice) => {
-                Data::U8(Cow::Borrowed(slice))
-            },
-            InMemData::I16(slice) => {
-                Data::I16(Cow::Borrowed(slice))
-            },
-            InMemData::I32(slice) => {
-                Data::I32(Cow::Borrowed(slice))
-            },
+            InMemData::U8(slice) => Data::U8(Cow::Borrowed(slice)),
+            InMemData::I16(slice) => Data::I16(Cow::Borrowed(slice)),
+            InMemData::I32(slice) => Data::I32(Cow::Borrowed(slice)),
             InMemData::I64(slice) => {
                 let data = slice.iter().map(|v| *v as i32).collect();
                 Data::I32(Cow::Owned(data))
-            },
-            InMemData::F32(slice) => {
-                Data::F32(Cow::Borrowed(slice))
-            },
+            }
+            InMemData::F32(slice) => Data::F32(Cow::Borrowed(slice)),
             InMemData::F64(slice) => {
                 let data = slice.iter().map(|v| *v as f32).collect();
                 Data::F32(Cow::Owned(data))
@@ -66,8 +55,8 @@ impl<'a> Fits<'a> {
             // Tile size
             size: Vector2::new(*width as i32, *height as i32),
 
-            // Allocation info of the layout            
-            data
+            // Allocation info of the layout
+            data,
         })
     }
 
@@ -121,14 +110,14 @@ impl<'a> Fits<'a> {
             // Tile size
             size: Vector2::new(*width as i32, *height as i32),
 
-            // Allocation info of the layout            
+            // Allocation info of the layout
             data
         })
     }
 }*/
 
-use crate::Texture2DArray;
 use crate::image::Image;
+use crate::Texture2DArray;
 impl Image for Fits<'_> {
     fn tex_sub_image_3d(
         &self,
@@ -138,7 +127,7 @@ impl Image for Fits<'_> {
         offset: &Vector3<i32>,
     ) -> Result<(), JsValue> {
         match &self.data {
-            Data::U8(data) => { 
+            Data::U8(data) => {
                 let view = unsafe { R8UI::view(&data) };
                 textures[offset.z as usize]
                     .bind()
@@ -150,7 +139,7 @@ impl Image for Fits<'_> {
                         Some(view.as_ref()),
                     );
             }
-            Data::I16(data) => { 
+            Data::I16(data) => {
                 let view = unsafe { R16I::view(&data) };
                 textures[offset.z as usize]
                     .bind()
@@ -162,7 +151,7 @@ impl Image for Fits<'_> {
                         Some(view.as_ref()),
                     );
             }
-            Data::I32(data) => { 
+            Data::I32(data) => {
                 let view = unsafe { R32I::view(&data) };
                 textures[offset.z as usize]
                     .bind()
@@ -174,7 +163,7 @@ impl Image for Fits<'_> {
                         Some(view.as_ref()),
                     );
             }
-            Data::F32(data) => { 
+            Data::F32(data) => {
                 let view = unsafe { R32F::view(&data) };
                 textures[offset.z as usize]
                     .bind()
@@ -192,8 +181,8 @@ impl Image for Fits<'_> {
     }
 }
 
-use wasm_bindgen::JsValue;
 use crate::image::format::ImageFormat;
+use wasm_bindgen::JsValue;
 
 pub trait FitsImageFormat: ImageFormat {
     const BITPIX: i8;
@@ -205,7 +194,7 @@ impl FitsImageFormat for R32F {
 }
 
 #[cfg(feature = "webgl2")]
-use crate::image::{R16I, R32I, R8UI, R64F};
+use crate::image::{R16I, R32I, R64F, R8UI};
 #[cfg(feature = "webgl2")]
 impl FitsImageFormat for R64F {
     const BITPIX: i8 = -64;

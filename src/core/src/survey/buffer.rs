@@ -384,29 +384,20 @@ impl ImageSurveyTextures {
                 &mut self.base_textures[idx as usize]
             };*/
 
-            if let Some(image) = image {
-                send_to_gpu(cell, texture, image, &self.texture_2d_array, &self.config)?;
-                // Once the texture has been received in the GPU
-                texture.append(
-                    cell, // The tile cell
-                    &self.config,
-                    false,
-                );
-            } else {
-                send_to_gpu(
-                    cell,
-                    texture,
-                    self.config.get_default_image(),
-                    &self.texture_2d_array,
-                    &self.config,
-                )?;
-                // Once the texture has been received in the GPU
-                texture.append(
-                    cell, // The tile cell
-                    &self.config,
-                    true,
-                );
-            };
+            let missing = image.is_none();
+            send_to_gpu(
+                cell,
+                texture,
+                image,
+                &self.texture_2d_array,
+                &mut self.config,
+            )?;
+
+            texture.append(
+                cell, // The tile cell
+                &self.config,
+                missing,
+            );
 
             self.available_tiles_during_frame = true;
             //self.ready = true;
@@ -638,9 +629,9 @@ impl ImageSurveyTextures {
 fn send_to_gpu<I: Image>(
     cell: &HEALPixCell,
     texture: &Texture,
-    image: I,
+    image: Option<I>,
     texture_array: &Texture2DArray,
-    cfg: &HiPSConfig,
+    cfg: &mut HiPSConfig,
 ) -> Result<(), JsValue> {
     // Index of the texture in the total set of textures
     let texture_idx = texture.idx();
@@ -672,7 +663,12 @@ fn send_to_gpu<I: Image>(
         idx_slice,
     );
 
-    image.tex_sub_image_3d(&texture_array, &offset)
+    if let Some(image) = image {
+        image.tex_sub_image_3d(&texture_array, &offset)
+    } else {
+        cfg.get_default_image()
+            .tex_sub_image_3d(&texture_array, &offset)
+    }
 }
 
 impl SendUniforms for ImageSurveyTextures {

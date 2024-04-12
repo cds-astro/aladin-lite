@@ -606,11 +606,11 @@ impl App {
             for rsc in rscs_received {
                 match rsc {
                     Resource::Tile(tile) => {
-                        if !has_camera_moved {
+                        if !_has_camera_zoomed {
                             if let Some(survey) =
                                 self.layers.get_mut_hips_from_cdid(&tile.get_hips_cdid())
                             {
-                                let cfg = survey.get_config();
+                                let cfg = survey.get_config_mut();
 
                                 if cfg.get_format() == tile.format {
                                     let delta_depth = cfg.delta_depth();
@@ -649,6 +649,63 @@ impl App {
                                         } else {
                                             Some(image)
                                         };
+                                        use al_core::image::ImageType;
+                                        use fitsrs::fits::Fits;
+                                        use std::{io::Cursor, rc::Rc};
+                                        if let Some(image) = image.as_ref() {
+                                            match &*image.lock().unwrap_abort() {
+                                                Some(ImageType::FitsImage {
+                                                    raw_bytes: raw_bytes_buf,
+                                                }) => {
+                                                    // check if the metadata has not been set
+                                                    if !cfg.fits_metadata {
+                                                        let num_bytes =
+                                                            raw_bytes_buf.length() as usize;
+                                                        let mut raw_bytes = vec![0; num_bytes];
+                                                        raw_bytes_buf.copy_to(&mut raw_bytes[..]);
+
+                                                        let mut bytes_reader =
+                                                            Cursor::new(raw_bytes.as_slice());
+                                                        let Fits { hdu } =
+                                                            Fits::from_reader(&mut bytes_reader)
+                                                                .map_err(|_| {
+                                                                    JsValue::from_str(
+                                                                        "Parsing fits error",
+                                                                    )
+                                                                })?;
+
+                                                        let header = hdu.get_header();
+                                                        let bscale = if let Some(
+                                                            fitsrs::card::Value::Float(bscale),
+                                                        ) = header.get(b"BSCALE  ")
+                                                        {
+                                                            *bscale as f32
+                                                        } else {
+                                                            1.0
+                                                        };
+                                                        let bzero = if let Some(
+                                                            fitsrs::card::Value::Float(bzero),
+                                                        ) = header.get(b"BZERO   ")
+                                                        {
+                                                            *bzero as f32
+                                                        } else {
+                                                            0.0
+                                                        };
+                                                        let blank = if let Some(
+                                                            fitsrs::card::Value::Float(blank),
+                                                        ) = header.get(b"BLANK   ")
+                                                        {
+                                                            *blank as f32
+                                                        } else {
+                                                            std::f32::NAN
+                                                        };
+
+                                                        cfg.set_fits_metadata(bscale, bzero, blank);
+                                                    }
+                                                }
+                                                _ => (),
+                                            }
+                                        }
 
                                         survey.add_tile(&cell, image, time_req)?;
                                         self.request_redraw = true;
@@ -1499,6 +1556,10 @@ impl App {
         self.camera.set_aperture(fov, &self.projection);
         self.request_for_new_tiles = true;
         self.request_redraw = true;
+    }
+
+    pub(crate) fn set_inertia(&mut self, inertia: bool) {
+        *self.disable_inertia.borrow_mut() = !inertia;
     }
 
     /*pub(crate) fn project_line(&self, lon1: f64, lat1: f64, lon2: f64, lat2: f64) -> Vec<Vector2<f64>> {

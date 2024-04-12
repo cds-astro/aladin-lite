@@ -49,6 +49,7 @@ import { ImageFITS } from "./ImageFITS.js";
 import { DefaultActionsForContextMenu } from "./DefaultActionsForContextMenu.js";
 import { SAMPConnector } from "./vo/samp.js";
 import { Reticle } from "./Reticle.js";
+import { requestAnimFrame } from "./libs/RequestAnimationFrame.js";
 
 // GUI
 import { AladinLogo } from "./gui/AladinLogo.js";
@@ -271,7 +272,7 @@ export let Aladin = (function () {
 
         // Grid
         let gridOptions = options.gridOptions;
-        console.log(options.gridOptions)
+
         // color and opacity can be defined by two variables. The item in gridOptions
         // should take precedence.
         gridOptions["color"] = options.gridOptions.color || options.gridColor;
@@ -279,7 +280,7 @@ export let Aladin = (function () {
         if (options && options.showCooGrid) {
             gridOptions.enabled = true;
         }
-        console.log(gridOptions)
+
         this.setCooGrid(gridOptions);
 
         this.gotoObject(options.target, undefined);
@@ -366,6 +367,10 @@ export let Aladin = (function () {
 
         if (options.samp) {
             this.samp = new SAMPConnector(this);
+        }
+
+        if (options.inertia !== undefined) {
+            this.wasm.setInertia(options.inertia)
         }
 
         this._setupUI(options);
@@ -493,6 +498,7 @@ export let Aladin = (function () {
         target: "0 +0",
         cooFrame: "J2000",
         fov: 60,
+        inertia: true,
         backgroundColor: "rgb(60, 60, 60)",
         // Zoom toolbar
         showZoomControl: false,
@@ -935,9 +941,9 @@ export let Aladin = (function () {
 
     var idTimeoutAnim;
     var doAnimation = function (aladin) {
-        if (idTimeoutAnim) {
+        /*if (idTimeoutAnim) {
             clearTimeout(idTimeoutAnim)
-        }
+        }*/
 
         var params = aladin.animationParams;
         if (params == null || !params['running']) {
@@ -964,8 +970,11 @@ export let Aladin = (function () {
         //var curDec = params['decStart'] + (params['decEnd'] - params['decStart']) * (now-params['start']) / (params['end'] - params['start']);
 
         aladin.gotoRaDec(curRa, curDec);
-
-        idTimeoutAnim = setTimeout(function () { doAnimation(aladin); }, 10);
+        
+        //idTimeoutAnim = setTimeout(function () { doAnimation(aladin); }, 10);
+        requestAnimFrame(() => {
+            doAnimation(aladin)
+        })
     };
 
     /*

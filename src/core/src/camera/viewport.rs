@@ -11,6 +11,7 @@ use crate::healpix::cell::HEALPixCell;
 use crate::healpix::coverage::HEALPixCoverage;
 use crate::math::angle::ToAngle;
 use crate::math::{projection::coo_space::XYZWModel, projection::domain::sdf::ProjDef};
+use al_core::log::console_log;
 use al_core::{info, inforec, log};
 
 use cgmath::{Matrix4, Vector2};
@@ -379,6 +380,8 @@ impl CameraViewPort {
                 1.0
             }
         };
+
+        //console_log(&format!("clip factor {:?}", self.aperture));
 
         // Project this vertex into the screen
         self.moved = true;

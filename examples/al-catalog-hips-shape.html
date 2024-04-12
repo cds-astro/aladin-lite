@@ -35,7 +35,8 @@
             let a = +s.data.size_maj;
             let b = +s.data.size_min;
 
-            if (a < 0.1 || b < 0.1)
+            let galaxy = ['Seyfert', 'Gin', 'StarburstG', 'LINER', 'AGN', 'Galaxy'].some((n) => s.data.main_type.indexOf(n) >= 0)
+            if (!galaxy)
                 return;
 
             let angle = +s.data.size_angle || 0.0;

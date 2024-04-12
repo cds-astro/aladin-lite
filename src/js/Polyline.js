@@ -243,11 +243,11 @@ export let Polyline = (function() {
 
     Polyline.prototype.draw = function(ctx, view, noStroke) {
         if (! this.isShowing) {
-            return;
+            return false;
         }
 
         if (! this.radecArray || this.radecArray.length<2) {
-            return;
+            return false;
         }
 
         noStroke = noStroke===true || false;
@@ -289,7 +289,7 @@ export let Polyline = (function() {
         for (var k=0; k<len; k++) {
             var xyview = view.aladin.world2pix(this.radecArray[k][0], this.radecArray[k][1]);
             if (!xyview) {
-                return;
+                return false;
             }
 
             xyView.push({x: xyview[0], y: xyview[1]});
@@ -302,11 +302,11 @@ export let Polyline = (function() {
 
         // 2. do not draw the polygon if it lies in less than linewidth pixels
         if (xmax < 0 || xmin > view.width || ymax < 0 || ymin > view.height) {
-            return;
+            return false;
         }
 
         if ((xmax - xmin) < this.lineWidth || (ymax - ymin) < this.lineWidth) {
-            return;
+            return false;
         }
 
         let drawLine;
@@ -451,6 +451,8 @@ export let Polyline = (function() {
             ctx.fill();
             ctx.restore();
         }
+
+        return true;
     };
 
     Polyline.prototype.isInStroke = function(ctx, view, x, y) {

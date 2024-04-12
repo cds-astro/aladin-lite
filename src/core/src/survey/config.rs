@@ -156,6 +156,7 @@ pub struct HiPSConfig {
     // TODO: store this values in the ImageSurvey
     // These are proper to the survey (FITS one) and not
     // to a specific survey color
+    pub fits_metadata: bool,
     pub scale: f32,
     pub offset: f32,
     pub blank: f32,
@@ -180,7 +181,7 @@ use wasm_bindgen::JsValue;
 
 const NUM_TEXTURES_BY_SIDE_SLICE: i32 = 8;
 const NUM_TEXTURES_BY_SLICE: i32 = NUM_TEXTURES_BY_SIDE_SLICE * NUM_TEXTURES_BY_SIDE_SLICE;
-const NUM_SLICES: i32 = 2;
+const NUM_SLICES: i32 = 1;
 
 impl HiPSConfig {
     /// Define a HiPS configuration
@@ -328,6 +329,7 @@ impl HiPSConfig {
 
             is_allsky,
 
+            fits_metadata: false,
             scale: 1.0,
             offset: 0.0,
             blank: -1.0, // by default, set it to -1
@@ -449,6 +451,7 @@ impl HiPSConfig {
         self.scale = bscale;
         self.offset = bzero;
         self.blank = blank;
+        self.fits_metadata = true;
     }
 
     #[inline(always)]

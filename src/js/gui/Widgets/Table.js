@@ -30,7 +30,6 @@
  * 
  *****************************************************************************/
 
-import { Utils } from "../Utils.js";
 import { DOMElement } from "./Widget.js";
 
 export class Table extends DOMElement {

@@ -32,6 +32,7 @@
 import { Polyline } from "./Polyline.js";
 import { Utils } from './Utils';
 import { Overlay } from "./Overlay.js";
+import { Ellipse } from "./Ellipse.js";
 
 /**
  * Represents an line shape
@@ -99,33 +100,36 @@ export let Line = (function() {
         setSelectionColor: Polyline.prototype.setSelectionColor,
         setHoverColor: Polyline.prototype.setHoverColor,
 
-        draw: function(ctx, view, noStroke) {
+        draw: function(ctx, view, noStroke, noSmallCheck) {
             noStroke = noStroke===true || false;
-
+            noSmallCheck = noSmallCheck===true || false;
             // project
             const v1 = view.aladin.world2pix(this.ra1, this.dec1, this.frame);
             if (!v1)
-                return;
+                return false;
             const v2 = view.aladin.world2pix(this.ra2, this.dec2, this.frame);
             if (!v2)
-                return;
+                return false;
             
-            const xmin = Math.min(v1.x, v2.x);
-            const xmax = Math.max(v1.x, v2.x);
-            const ymin = Math.min(v1.y, v2.y);
-            const ymax = Math.max(v1.y, v2.y);
+            const xmin = Math.min(v1[0], v2[0]);
+            const xmax = Math.max(v1[0], v2[0]);
+            const ymin = Math.min(v1[1], v2[1]);
+            const ymax = Math.max(v1[1], v2[1]);
 
             // out of bbox
             if (xmax < 0 || xmin > view.width || ymax < 0 || ymin > view.height) {
-                return;
+                return false;
             }
 
             let baseColor = this.color || (this.overlay && this.overlay.color) || '#ff0000';
             let lineWidth = this.lineWidth || this.overlay.lineWidth || 3;
 
             // too small
-            if ((xmax - xmin) < lineWidth || (ymax - ymin) < lineWidth) {
-                return;
+            if(!noSmallCheck) {
+                this.isTooSmall = (xmax - xmin) < 1 && (ymax - ymin) < 1;
+                if (this.isTooSmall) {
+                    return false;
+                }
             }
 
             if (this.isSelected) {
@@ -171,12 +175,12 @@ export let Line = (function() {
             if (!noStroke) {
                 ctx.stroke();
             }
+
+            return true;
         },
 
-        isInStroke: function(ctx, view, x, y) {
-            this.draw(ctx, view, true);
-            return ctx.isPointInStroke(x, y);
-        },
+        isInStroke: Ellipse.prototype.isInStroke,
+
         /*Line.prototype.intersectsBBox = function(x, y, w, h) {
             // todo
         };*/

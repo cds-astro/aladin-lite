@@ -2,7 +2,6 @@
 	position: relative;
 	border: 0px solid #ddd;
     /* SVG inside divs add a 4px height: https://stackoverflow.com/questions/75751593/why-there-is-additional-4px-height-for-div-when-there-is-svg-inside-it */
-
     /* disable x swipe on chrome, firefox */
     /* see. https://stackoverflow.com/questions/30636930/disable-web-page-navigation-on-swipeback-and-forward */
     overscroll-behavior-x: none;
@@ -16,12 +15,6 @@
 	left: 0;
 	top: 0;
 }
-
-/*.aladin-gridCanvas {
-	position: absolute;
-	left: 0;
-	top: 0;
-}*/
 
 .aladin-catalogCanvas {
     position: absolute;
@@ -451,6 +444,7 @@ canvas {
     background-image:none;
     text-indent: 0rem;
     font-size: 1rem;
+    line-height: 1.2rem;
 }
 
 .aladin-input-text.search.aladin-unknownObject {

@@ -370,15 +370,16 @@ export let ImageSurvey = (function () {
 
             self.formats = self.formats || [self.imgFormat];
 
-            self._save();
+            self._saveInCache();
 
             return self;
         })();
     }
 
-    ImageSurvey.prototype._save = function() {
+    ImageSurvey.prototype._saveInCache = function() {
         let self = this;
 
+        let colorOpt = Object.fromEntries(Object.entries(this.colorCfg));
         let surveyOpt = {
             creatorDid: self.creatorDid,
             name: self.name,
@@ -387,6 +388,7 @@ export let ImageSurvey = (function () {
             maxOrder: self.maxOrder,
             tileSize: self.tileSize,
             imgFormat: self.imgFormat,
+            ...colorOpt
         }
 
         if (self.numBitsPerPixel) {
@@ -664,6 +666,9 @@ export let ImageSurvey = (function () {
                 // once the meta have been well parsed, we can set the meta
                 ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.view.aladinDiv, { layer: this });
             }
+
+            // save it in the JS HiPS cache
+            this._saveInCache()
         } catch (e) {
             // Display the error message
             console.error(e);

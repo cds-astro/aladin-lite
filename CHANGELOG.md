@@ -2,6 +2,9 @@
 
 ## 3.3.3
 
+* [feat] Zoom smoothing using hermite cubic interpolation functions
+* [feat] shape option of Catalog and ProgressiveCat accepts a function returning a Footprint. This allow user to
+         associate a footprint to a specific source
 * [feat] Hover color support by @pmatsson and @bmatthieu3 in <https://github.com/cds-astro/aladin-lite/pull/145>
 
 ## 3.3.2

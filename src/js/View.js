@@ -1128,10 +1128,9 @@ export let View = (function () {
             }
 
             // touch pad defined
+            view.delta = e.deltaY || e.detail || (-e.wheelDelta);
 
             if (isTouchPad) {
-                view.delta = e.deltaY || e.detail || (-e.wheelDelta);
-
                 if (!view.throttledTouchPadZoom) {
                     let radec;
                     view.throttledTouchPadZoom = Utils.throttle(() => {
@@ -1175,8 +1174,11 @@ export let View = (function () {
             } else {
                 if (!view.throttledMouseScrollZoom) {
                     view.throttledMouseScrollZoom = Utils.throttle(() => {
-                        let newFov = view.delta > 0 ? view.fov * 1.15 : view.fov / 1.15;
+                        const factor = 5
+                        let newFov = view.delta > 0 ? view.fov * factor : view.fov / factor;
                         // standard mouse wheel zooming
+                             
+                        newFov = Math.max(Math.min(newFov, Zoom.MAX), Zoom.MIN)
     
                         view.zoom.apply({
                             stop: newFov,

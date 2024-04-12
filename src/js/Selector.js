@@ -110,7 +110,7 @@ export class Selector {
 
         var objList = [];
         var cat, sources, s;
-        var footprints, f;
+        var overlayItems, f;
         var objListPerCatalog = [];
         if (view.catalogs) {
             for (var k = 0; k < view.catalogs.length; k++) {
@@ -130,11 +130,11 @@ export class Selector {
                     }
                 }
                 // footprints
-                footprints = cat.getFootprints();
-                if (footprints) {
+                overlayItems = cat.getFootprints();
+                if (overlayItems) {
                     const {x, y, w, h} = selection.bbox();
-                    for (var l = 0; l < footprints.length; l++) {
-                        f = footprints[l];
+                    for (var l = 0; l < overlayItems.length; l++) {
+                        f = overlayItems[l];
                         if (f.intersectsBBox(x, y, w, h, view)) {
                             objListPerCatalog.push(f);
                         }
@@ -145,6 +145,27 @@ export class Selector {
                     objList.push(objListPerCatalog);
                 }
                 objListPerCatalog = [];
+            }
+        }
+
+        if (view.overlays) {
+            const {x, y, w, h} = selection.bbox();
+            for (var k = 0; k < view.overlays.length; k++) {
+                let overlay = view.overlays[k];
+                if (!overlay.isShowing) {
+                    continue;
+                }
+                var overlayItems = overlay.overlayItems;
+                for (var l = 0; l < overlayItems.length; l++) {
+                    let o = overlayItems[l];
+                    if (!o.isShowing) {
+                        continue;
+                    }
+
+                    if (o.intersectsBBox(x, y, w, h, view)) {
+                        objList.push(o);
+                    }
+                }
             }
         }
 

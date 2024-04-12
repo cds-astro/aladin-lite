@@ -207,7 +207,7 @@ export let View = (function () {
         const cooFrame = CooFrameEnum.fromString(this.options.cooFrame, CooFrameEnum.J2000);
         this.changeFrame(cooFrame);
 
-        this.selector = new Selector(this);
+        this.selector = new Selector(this, this.options.selector);
 
         // current reference image survey displayed
         this.imageLayers = new Map();

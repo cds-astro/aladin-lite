@@ -466,7 +466,50 @@ export let Polyline = (function() {
     };
 
     Polyline.prototype.intersectsBBox = function(x, y, w, h) {
-        // todo
+        for (let i = 0; i < this.radecArray.length - 1; i++) {
+            let p1 = this.radecArray[i];
+            let p2 = this.radecArray[i + 1];
+
+            let xy1 = AladinUtils.radecToViewXy(p1[0], p1[1], this.overlay.view.aladin);
+            let xy2 = AladinUtils.radecToViewXy(p2[0], p2[1], this.overlay.view.aladin);
+
+            if (!xy1 || !xy2) {
+                return false;
+            }
+
+            xy1 = {x: xy1[0], y: xy1[1]};
+            xy2 = {x: xy2[0], y: xy2[1]};
+    
+            // Check if line segment intersects with the bounding box
+            if (this.lineIntersectsBox(xy1, xy2, x, y, w, h)) {
+                return true;
+            }
+        }
+
+        return false;
+    };
+
+    Polyline.prototype.lineIntersectsBox = function(p1, p2, x, y, w, h) {
+        // Check if line segment is completely outside the box
+        if ((p1.x < x && p2.x < x) || 
+            (p1.y < y && p2.y < y) || 
+            (p1.x > x + w && p2.x > x + w) || 
+            (p1.y > y + h && p2.y > y + h)) {
+            return false;
+        }
+
+        let m = (p2.y - p1.y) / (p2.x - p1.x);  // Slope of the line
+        let c = p1.y - m * p1.x;  // y-intercept of the line
+
+        // Check if line intersects with the sides of the box
+        if ((p1.y >= y && p1.y <= y + h) || 
+            (p2.y >= y && p2.y <= y + h) || 
+            (m * x + c >= y && m * x + c <= y + h) || 
+            (m * (x + w) + c >= y && m * (x + w) + c <= y + h)) {
+            return true;
+        }
+
+        return false;       
     };
 
     // static methods

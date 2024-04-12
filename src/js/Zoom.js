@@ -118,9 +118,7 @@ import { requestAnimFrame } from "./libs/RequestAnimationFrame.js";
             //stepSize = (desiredZoom - currentZoom) / totalFrames;
             interpolatedZoom = Zoom.hermiteCubic.f(self.x, self.x1, self.x2, self.y1, self.y2, self.m1, self.m2);
             // Clamp the interpolation in case it is < 0 for a time
-            if (interpolatedZoom < Zoom.min()) {
-                interpolatedZoom = Zoom.min();
-            }
+            interpolatedZoom = Math.max(Zoom.MIN, interpolatedZoom);
 
             // Apply zoom level to map or perform any necessary rendering
             self.view.setZoom(interpolatedZoom);
@@ -142,13 +140,8 @@ import { requestAnimFrame } from "./libs/RequestAnimationFrame.js";
         requestAnimFrame(interpolateFrame);
     }
 
-    Zoom.max = function() {
-        return Zoom.LEVELS[0];
-    }
-
-    Zoom.min = function() {
-        return Zoom.LEVELS[Zoom.LEVELS.length - 1];
-    }
+    Zoom.MAX = Zoom.LEVELS[0];
+    Zoom.MIN = Zoom.LEVELS[Zoom.LEVELS.length - 1];
 
     Zoom.hermiteCubic = {
         f: function(x, x1, x2, y1, y2, m1, m2) {

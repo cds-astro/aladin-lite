@@ -1948,7 +1948,7 @@ export let Aladin = (function () {
             y2 = (k == 1 || k == 2) ? this.view.height - 1 : 0;
 
             for (var step = 0; step < nbSteps; step++) {
-                let radec = this.wasm.screenToWorld(x1 + step / nbSteps * (x2 - x1), y1 + step / nbSteps * (y2 - y1));
+                let radec = this.pix2world(x1 + step / nbSteps * (x2 - x1), y1 + step / nbSteps * (y2 - y1));
                 points.push(radec);
             }
         }

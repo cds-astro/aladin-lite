@@ -319,10 +319,11 @@ A.vector = function (ra1, dec1, ra2, dec2, options) {
  * @param {Object} options - Options for configuring the graphic overlay.
  * @param {string} [options.color] - The color of the graphic overlay.
  * @param {number} [options.lineWidth] - The width of the lines in the graphic overlay.
+ * @param {Array} [options.lineDash] - The dash pattern for the lines in the graphic overlay.
  * @returns {Overlay} Returns a new Overlay object representing the graphic overlay.
  *
  * @example
- * var overlay = A.graphicOverlay({ color: '#ee2345', lineWidth: 3 });
+ * var overlay = A.graphicOverlay({ color: '#ee2345', lineWidth: 3, lineDash: [2, 4]});
  */
 A.graphicOverlay = function (options) {
     return new Overlay(options);

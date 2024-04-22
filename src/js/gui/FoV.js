@@ -42,29 +42,25 @@ export class FoV extends DOMElement {
     // constructor
     constructor(aladin, options) {
         let layout = [];
-
+        
         if (options.showZoomControl) {
-            layout.push(new ActionButton({
+            let zoomIn = new ActionButton({
+                classList: 'aladin-zoom-in',
                 size: 'small',
+                tooltip: {content: 'zoom in', position: {direction: 'top'}},
                 icon: {
                     monochrome: true,
                     size: 'small',
                     url: plusIconUrl,
                 },
-                cssStyle: {
-                    marginRight: 0,
-                    borderRight: 'none',
-                    borderRadius: '5px 0px 0px 5px'
-                },
                 action(o) {
                     aladin.increaseZoom();
                 }
-            }))
-            layout.push(new ActionButton({
+            })
+            let zoomOut = new ActionButton({
                 size: 'small',
-                cssStyle: {
-                    borderRadius: '0px 5px 5px 0px'
-                },
+                classList: 'aladin-zoom-out',
+                tooltip: {content: 'zoom out', position: {direction: 'top'}},
                 icon: {
                     monochrome: true,
                     size: 'small',
@@ -73,7 +69,12 @@ export class FoV extends DOMElement {
                 action(o) {
                     aladin.decreaseZoom();
                 }
-            }))
+            });
+            zoomIn.el.classList.add('aladin-zoom-in');
+            zoomOut.el.classList.add('aladin-zoom-out');
+
+            layout.push(zoomIn)
+            layout.push(zoomOut)
         }
 
         if (options.showFov) {
@@ -82,10 +83,10 @@ export class FoV extends DOMElement {
             '<div class="aladin-monospace-text"></div>'])
         }
 
-        let el = Layout.horizontal({layout, tooltip: { content: 'FoV', position: {direction: "top"}}});
-        if (el.tooltip) {
-            el.tooltip.addClass('aladin-fov');
-            el.tooltip.addClass('aladin-dark-theme')
+        let el = Layout.horizontal({layout});
+        if (el) {
+            el.addClass('aladin-fov');
+            el.addClass('aladin-dark-theme')
         }
 
         super(el)

@@ -469,6 +469,14 @@ Utils.fixURLForHTTPS = function (url) {
     return url
 }
 
+Utils.isUrl = function(url) {
+    try {
+        return new URL(url).href;
+    } catch(e) {
+        return undefined;
+    }
+}
+
 // generate an absolute URL from a relative URL
 // example: getAbsoluteURL('foo/bar/toto') return http://cds.unistra.fr/AL/foo/bar/toto if executed from page http://cds.unistra.fr/AL/
 Utils.getAbsoluteURL = function (url) {

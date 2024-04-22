@@ -214,14 +214,15 @@ HiPSProperties.getFasterMirrorUrl = function (metadata, currUrl) {
                 newUrlResp = validResponses[0];
             } else {
                 // no valid response => we return an error
-                return Promise.reject('Survey not found. All mirrors urls have been tested:' + urls)
+                return Promise.reject('All mirrors urls have been tested:' + urls)
             }
 
             // check if there is a big difference from the current one
             let currUrlResp = validResponses.find((r) => r.baseUrl === currUrl)
-
+            // it may happen that the url requested by the user is too slow hence discarded
+            // for these cases, we automatically switch to the new fastest url.
             let urlChosen;
-            if (Math.abs(currUrlResp.duration - newUrlResp.duration) / Math.min(currUrlResp.duration, newUrlResp.duration) < 0.10) {
+            if (currUrlResp && Math.abs(currUrlResp.duration - newUrlResp.duration) / Math.min(currUrlResp.duration, newUrlResp.duration) < 0.10) {
                 // there is not enough difference => do not switch
                 urlChosen = currUrlResp.baseUrl;
             } else {

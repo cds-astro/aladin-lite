@@ -38,7 +38,7 @@ import { Icon } from "../Widgets/Icon";
 
 export class StatusBarBox extends Box {
     constructor(aladin, options) {
-        super(options, aladin.aladinDiv)
+        super({...options, close: false}, aladin.aladinDiv)
 
         this.addClass("aladin-status-bar");
 

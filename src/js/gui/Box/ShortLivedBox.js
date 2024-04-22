@@ -35,6 +35,7 @@ export class ShortLivedBox extends Box {
     constructor(aladin) {
         super(
             {
+                close: false,
                 cssStyle: {
                     color: 'white',
                     backgroundColor: 'black',

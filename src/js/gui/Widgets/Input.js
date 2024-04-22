@@ -135,7 +135,7 @@ export class Input extends DOMElement {
                     }
                     this.el.appendChild(datalist);
 
-                    this.el.autocomplete = 'on';
+                    this.el.autocomplete = 'off';
                 } else {
                     this.el.autocomplete = autocomplete;
                 }
@@ -197,6 +197,10 @@ export class Input extends DOMElement {
 
         if (this.options.name) {
             this.el.name = this.options.name;
+        }
+
+        if (this.options.title) {
+            this.el.title = this.options.title;
         }
 
         this.el.classList.add('aladin-input');

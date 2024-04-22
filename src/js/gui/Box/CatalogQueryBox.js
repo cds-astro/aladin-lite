@@ -131,6 +131,7 @@ import { CtxMenuActionButtonOpener } from "../Button/CtxMenuOpener.js";
         }, aladin)
 
         super({
+            close: false,
             content: Layout.horizontal({
                 layout: [inputText, loadBtn]
             }),
@@ -238,10 +239,10 @@ import { CtxMenuActionButtonOpener } from "../Button/CtxMenuOpener.js";
             this.loadBtn.update({disable: true}, aladin)
         } else {
             let self = this;
-            let layout = [];
+            let ctxMenu = [];
 
             if (item && item.cs_service_url) {
-                layout.push({
+                ctxMenu.push({
                     label: 'Cone search',
                     disable: !item.cs_service_url,
                     action(o) {
@@ -263,6 +264,8 @@ import { CtxMenuActionButtonOpener } from "../Button/CtxMenuOpener.js";
                                 })
 
                                 self._hide();
+
+                                self.callback && self.callback();
                             },
                             position: {
                                 anchor: 'center center',
@@ -270,13 +273,12 @@ import { CtxMenuActionButtonOpener } from "../Button/CtxMenuOpener.js";
                         })
                         self.box._show();
                         self.loadBtn.hideMenu()
-
                     }
                 })
             }
             
             if (item && item.hips_service_url) {
-                layout.push({
+                ctxMenu.push({
                     label: 'HiPS catalogue',
                     disable: !item.hips_service_url,
                     action(o) {
@@ -286,13 +288,20 @@ import { CtxMenuActionButtonOpener } from "../Button/CtxMenuOpener.js";
                         })
 
                         self._hide();
+
+                        self.callback && self.callback();
                     }
                 })
             }
-            this.loadBtn.update({ctxMenu: layout, disable: false}, aladin)
+            this.loadBtn.update({ctxMenu, disable: false}, aladin)
         }
 
         this.loadBtn.hideMenu()
+    }
+
+    attach(options) {
+        this.callback = options.callback;
+        super.update(options)
     }
 
     _hide() {

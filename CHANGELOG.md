@@ -2,6 +2,7 @@
 
 ## 3.3.3
 
+* [feat] New `hipsList` option parameter when instancing a new Aladin object.
 * [feat] Zoom smoothing using hermite cubic interpolation functions
 * [feat] shape option of Catalog and ProgressiveCat accepts a function returning a Footprint. This allow user to
          associate a footprint to a specific source

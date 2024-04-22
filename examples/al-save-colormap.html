@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+<head>
+<!--<link rel="stylesheet" href="./layers.css" />-->
+</head>
+<body>
+
+<div id="aladin-lite-div" style="width: 1024px; height: 768px"></div>
+
+<script type="module">
+    import A from '../src/js/A.js';
+    var aladin;
+    A.init.then(() => {
+        aladin = A.aladin('#aladin-lite-div', {fullScreen: true, cooFrame: "ICRSd", showSimbadPointerControl: true, showShareControl: true, showShareControl: true, survey: 'https://alasky.cds.unistra.fr/DSS/DSSColor/', fov: 180, showContextMenu: true});
+        // manage URL parameters
+        let survey1 = aladin.getBaseImageLayer();
+        survey1.setColormap('magma', {stretch: 'linear'});
+
+        let survey2 = aladin.newImageSurvey("CSIRO/P/RACS/low/I");
+        aladin.setImageLayer(survey2)
+        survey2.setColormap('rdbu', {stretch: 'linear'});
+
+        let survey3 = aladin.newImageSurvey("CSIRO/P/RACS/mid/I");
+        aladin.setImageLayer(survey3)
+        survey3.setColormap('cubehelix', {stretch: 'asinh'});
+
+        aladin.setImageLayer(survey2);
+    });
+</script>
+
+</body>
+</html>

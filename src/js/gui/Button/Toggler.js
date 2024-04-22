@@ -43,20 +43,26 @@ export class TogglerActionButton extends ActionButton {
             ...options,
             toggled,
             action(o) {
-                toggled = !toggled;
-
-                self.update({toggled, tooltip: toggled ? options.tooltipOn : options.tooltipOff})
-                if (toggled && options.actionOn) {
-                    options.actionOn(o)
-                }
-
-                if (!toggled && options.actionOff) { 
-                    options.actionOff(o)
-                }
-
-                options.action && options.action(o)
+                self.toggle(o);
             }
         })
+        this.toggled = toggled;
+
         self = this;
+    }
+
+    toggle(o) {
+        this.toggled = !this.toggled;
+        
+        if (this.toggled && this.options.actionOn) {
+            this.options.actionOn(o)
+        }
+
+        if (!this.toggled && this.options.actionOff) { 
+            this.options.actionOff(o)
+        }
+
+        // once the actions has been executed, modify the styling
+        this.update({toggled: this.toggled, tooltip: this.toggled ? this.options.tooltipOn : this.options.tooltipOff})
     }
 }

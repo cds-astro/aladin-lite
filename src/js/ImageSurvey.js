@@ -144,8 +144,7 @@ export let ImageSurvey = (function () {
      * @class
      * @constructs ImageSurvey
      * 
-     * @param {string} id - Mandatory unique identifier for the layer.
-     * Can be an arbitrary name
+     * @param {string} id - Mandatory unique identifier for the layer. Can be an arbitrary name
      * @param {string} url - Can be an url to the survey or a "CDS" ID pointing towards a HiPS. One can found the list of IDs {@link https://aladin.cds.unistra.fr/hips/list| here}
      * @param {ImageSurveyOptions} [options] - The option for the survey
      * 
@@ -193,32 +192,29 @@ export let ImageSurvey = (function () {
 
         self.query = (async () => {
             if (isMOCServerToBeQueried) {
-                let properties;
                 let isCDSId = false;
-                try {
-                    properties = await HiPSProperties.fetchFromUrl(self.url)
-                        /*.catch((e) => {
-                            // try with the proxy
-                            url = Utils.handleCORSNotSameOrigin(url).href;
 
-                            return HiPSProperties.fetchFromUrl(url);
-                        })*/
-                        .catch(async (e) => {
-                            // url not valid so we try with the id
-                            try {
-                                isCDSId = true;
-                                // the url stores a "CDS ID" we take it prioritaly
-                                // if the url is null, take the id, this is for some tests
-                                // to pass because some users might just give null as url param and a "CDS ID" as id param
-                                let id = self.url || self.id;
-                                return await HiPSProperties.fetchFromID(id);
-                            } catch(e) {
-                                throw e;
-                            }
-                        })
-                } catch(e) {
-                    throw e;
-                }
+                let properties = await HiPSProperties.fetchFromUrl(self.url)
+                    /*.catch((e) => {
+                        // try with the proxy
+                        url = Utils.handleCORSNotSameOrigin(url).href;
+
+                        return HiPSProperties.fetchFromUrl(url);
+                    })*/
+                    .catch(async (e) => {
+                        // url not valid so we try with the id
+                        try {
+                            isCDSId = true;
+                            // the url stores a "CDS ID" we take it prioritaly
+                            // if the url is null, take the id, this is for some tests
+                            // to pass because some users might just give null as url param and a "CDS ID" as id param
+                            let id = self.url || self.id;
+                            return await HiPSProperties.fetchFromID(id);
+                        } catch(e) {
+                            throw e;
+                        }
+                    })
+
 
                 //obsTitle = properties.obs_title;
                 self.creatorDid = properties.creator_did || self.creatorDid;
@@ -238,24 +234,25 @@ export let ImageSurvey = (function () {
                             if (self.url !== url) {
                                 console.info("Change url of ", self.id, " from ", self.url, " to ", url)
                     
+                                self.url = url;
+
+                                // save the new url to the cache
+                                self._saveInCache();
+
                                 // If added to the backend, then we need to tell it the url has changed
                                 if (self.added) {
                                     self.view.wasm.setHiPSUrl(self.creatorDid, url);
                                 }
-                    
-                                self.url = url;
-
-                                // save the new url to the cache
-                                ImageSurvey.cache[self.id].url = self.url;
                             }
                         })
-                        /*.catch(e => {
+                        .catch(e => {
                             //alert(e);
+                            console.error(self)
                             console.error(e);
                             // the survey has been added so we remove it from the stack
-                            self.view.removeImageLayer(self.layer)
+                            //self.view.removeImageLayer(self.layer)
                             //throw e;
-                        })*/
+                        })
                 }
 
                 // Max order
@@ -402,7 +399,13 @@ export let ImageSurvey = (function () {
             // append new important infos from the properties queried
             ...surveyOpt,
         }
-    } 
+
+        //console.log('new CACHE', ImageSurvey.cache, self.id, surveyOpt, ImageSurvey.cache[self.id], ImageSurvey.cache["CSIRO/P/RACS/mid/I"])
+
+        // Tell that the HiPS List has been updated
+        ALEvent.HIPS_LIST_UPDATED.dispatchedTo(this.view.aladin.aladinDiv);
+
+    }
 
     /**
          * Checks if the ImageSurvey represents a planetary body.
@@ -704,7 +707,7 @@ export let ImageSurvey = (function () {
             },
         });
 
-        this.added = true;
+        //this.added = true;
 
         return Promise.resolve(this);
     }
@@ -748,7 +751,7 @@ export let ImageSurvey = (function () {
 
     // A cache storing directly surveys important information to not query for the properties each time
     ImageSurvey.cache = {
-        DSS2_color: {
+        /*DSS2_color: {
             creatorDid: "ivo://CDS/P/DSS2/color",
             name: "DSS colored",
             url: "https://alasky.cds.unistra.fr/DSS/DSSColor",
@@ -913,6 +916,7 @@ export let ImageSurvey = (function () {
             stretch: 'linear',
             colormap: "redtemperature",
         }
+        */
         /*
         {
             id: "P/Finkbeiner",

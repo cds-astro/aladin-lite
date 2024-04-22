@@ -429,7 +429,7 @@ canvas {
 }
 
 .aladin-input-text.aladin-dark-theme.search {
-    width: 14rem;
+    width: 15rem;
     text-shadow: 0px 0px 2px #000;
 }
 
@@ -824,6 +824,7 @@ canvas {
     border-radius: 5px;
     font-family: monospace;
     font-size: 1rem;
+    box-sizing: border-box;
 }
 
 .aladin-input-text.aladin-dark-theme, .aladin-input-number.aladin-dark-theme {
@@ -853,17 +854,19 @@ canvas {
     /* Remove focus outline */
     /* Remove IE arrow */
 }
+
 .aladin-input-select option {
     color: inherit;
     background-color: #320a28;
 }
+
 .aladin-input-select:focus {
     outline: none;
 }
+
 .aladin-input-select::-ms-expand {
     display: none;
 }
-
 
 /* Frames */
 .aladin-input-color {
@@ -1104,6 +1107,19 @@ canvas {
     height: 1.7rem;
 }
 
+.aladin-input-text.aladin-dark-theme.search.aladin-HiPS-search {
+    width: 100%;
+
+}
+
+.aladin-stack-box {
+    width: 17rem;
+}
+
+.aladin-stack-box .content > * {
+    margin-bottom: 0.5rem;
+}
+
 .aladin-location {
     position: absolute;
     top: 0.2rem;
@@ -1122,11 +1138,23 @@ canvas {
     bottom: 0.2rem;
     left: 0.2rem;
 
+    background-color: red;
+
     font-family: monospace;
 
     font-size: 1rem;
     border-radius: 5px;
     line-height: 1.7rem;
+}
+
+.aladin-fov .aladin-zoom-in {
+    margin-right: 0;
+    border-right: none;
+    border-radius: 5px 0px 0px 5px;
+}
+
+.aladin-fov .aladin-zoom-out {
+    border-radius: 0px 5px 5px 0px;
 }
 
 .aladin-status-bar {

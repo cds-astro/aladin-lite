@@ -488,8 +488,10 @@ export let View = (function () {
 
     View.prototype.selectLayer = function (layer) {
         if (!this.imageLayers.has(layer)) {
-            throw layer + ' does not exists. So cannot be selected';
+            console.warn(layer + ' does not exists. So cannot be selected');
+            return;
         }
+
         this.selectedLayer = layer;
     };
 
@@ -1167,7 +1169,7 @@ export let View = (function () {
                             }
                             //requestAnimFrame(moveTo)
                         }*/
-                    }, 30);
+                    }, 40);
                 }
 
                 view.throttledTouchPadZoom();
@@ -1578,9 +1580,19 @@ export let View = (function () {
         if (idxOverlayLayer == -1) {
             // it does not exist so we add it to the stack
             this.overlayLayers.push(layerName);
+        } else {
+            // it exists
+            let alreadyPresentImageLayer = this.imageLayers.get(layerName);
+            alreadyPresentImageLayer.added = false;
         }
 
+        imageLayer.added = true;
         this.imageLayers.set(layerName, imageLayer);
+
+        // select the layer if he is on top
+        if (idxOverlayLayer == -1) {
+            this.selectLayer(layerName);
+        }
 
         ALEvent.HIPS_LAYER_ADDED.dispatchedTo(this.aladinDiv, { layer: imageLayer });
     }
@@ -1678,11 +1690,6 @@ export let View = (function () {
         this.imageLayers.delete(layer);
         this.imageLayers.set(newLayer, imageLayer);
 
-        // Change the selected layer if this is the one renamed
-        /*if (this.selectedLayer === layer) {
-            this.selectedLayer = newLayer;
-        }*/
-
         // Tell the layer hierarchy has changed
         ALEvent.HIPS_LAYER_RENAMED.dispatchedTo(this.aladinDiv, { layer, newLayer });
     }
@@ -1734,7 +1741,7 @@ export let View = (function () {
             this.empty = true;
         } else if (this.selectedLayer === layer) {
             // If the layer removed was selected then we select the base layer
-            this.selectedLayer = 'base';
+            this.selectLayer(this.overlayLayers[this.overlayLayers.length - 1]);
         }
 
         ALEvent.HIPS_LAYER_REMOVED.dispatchedTo(this.aladinDiv, { layer });
@@ -1857,11 +1864,11 @@ export let View = (function () {
         ra = parseFloat(ra);
         dec = parseFloat(dec);
 
-        if (isNaN(ra) || isNaN(dec)) {
+        if (!ra || !dec) {
             return;
         }
         this.viewCenter.lon = ra;
-        this.viewCenter.lat = dec;
+        this.viewCenter.lat = dec;  
         //this.updateLocation({lon: this.viewCenter.lon, lat: this.viewCenter.lat});
 
         // Put a javascript code here to do some animation
@@ -1905,7 +1912,13 @@ export let View = (function () {
         this.catalogs = [];
         this.overlays = [];
         this.mocs = [];
+
+        this.allOverlayLayers.forEach((overlay) => {
+            ALEvent.GRAPHIC_OVERLAY_LAYER_REMOVED.dispatchedTo(this.aladinDiv, { layer: overlay });
+        })
         this.allOverlayLayers = [];
+
+        this.mustClearCatalog = true;
         this.requestRedraw();
     };
 
@@ -1929,7 +1942,7 @@ export let View = (function () {
             this.overlays.splice(indexToDelete, 1);
         }
 
-        ALEvent.GRAPHIC_OVERLAY_LAYER_REMOVED.dispatchedTo(this.aladinDiv, { layer: layer });
+        ALEvent.GRAPHIC_OVERLAY_LAYER_REMOVED.dispatchedTo(this.aladinDiv, { layer });
 
         this.mustClearCatalog = true;
         this.requestRedraw();
@@ -2000,7 +2013,7 @@ export let View = (function () {
         let closest = null;
 
         footprints.forEach((footprint) => {
-            if (!footprint.source.tooSmallFootprint) {
+            if (!footprint.source || !footprint.source.tooSmallFootprint) {
                 // Hidden footprints are not considered
                 let lineWidth = footprint.getLineWidth();
 

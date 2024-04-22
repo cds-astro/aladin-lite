@@ -110,7 +110,7 @@ export let MOC = (function() {
      * set MOC data by parsing a MOC serialized in JSON
      * (as defined in IVOA MOC document, section 3.1.1)
      */
-    MOC.prototype.parse = function(data, successCallback) {
+    MOC.prototype.parse = function(data, successCallback, errorCallback) {
         if (typeof data === 'string' || data instanceof String) {
             let url = data;
             this.promiseFetchData = fetch(url)
@@ -120,7 +120,7 @@ export let MOC = (function() {
         }
 
         this.successCallback = successCallback;
-        this.errorCallback = this.errorCallback;
+        this.errorCallback = errorCallback;
     };
 
     MOC.prototype.setView = function(view) {
@@ -166,7 +166,11 @@ export let MOC = (function() {
 
                 self.view.requestRedraw();
             })
-            .catch(e => alert('MOC load error:' + e))
+            .catch(e => {
+                console.error('MOC load error:' + e)
+                if (self.errorCallback)
+                    self.errorCallback(self);
+            })
     };
 
     MOC.prototype.reportChange = function() {

@@ -20,6 +20,8 @@
 import { CtxMenuActionButtonOpener } from "./CtxMenuOpener";
 import stackOverlayIconUrl from './../../../../assets/icons/stack.svg';
 import { OverlayStack } from "../CtxMenu/OverlayStack";
+import { OverlayStackBox } from "../Box/StackBox";
+import { TogglerActionButton } from "./Toggler";
 /******************************************************************************
  * Aladin Lite project
  *
@@ -35,14 +37,15 @@ import { OverlayStack } from "../CtxMenu/OverlayStack";
  * Class representing a Tabs layout
  * @extends CtxMenuActionButtonOpener
  */
- export class OverlayStackButton extends CtxMenuActionButtonOpener {
+ export class OverlayStackButton extends TogglerActionButton {
     /**
      * UI responsible for displaying the viewport infos
      * @param {Aladin} aladin - The aladin instance.
      */
     constructor(aladin, options) {
         let self;
-        let stack = new OverlayStack(aladin);
+        let stack = new OverlayStackBox(aladin);
+
         super({
             icon: {
                 size: 'medium',
@@ -56,7 +59,18 @@ import { OverlayStack } from "../CtxMenu/OverlayStack";
                     direction: 'top right'
                 }
             },
-            ctxMenu: stack,
+            toggled: false,
+            actionOn: (e) => {
+                stack._show({
+                    position: {
+                        nextTo: self,
+                        direction: 'right'
+                    }
+                })
+            },
+            actionOff: (e) => {
+                stack._hide()
+            },
             ...options
         }, aladin);
 

@@ -34,7 +34,7 @@
             console.log("Object hovered stopped: ", object, "mouse coords xy: ", xyMouseCoords.x, xyMouseCoords.y);
         })
 
-        const cat = A.catalogFromVizieR('B/assocdata/obscore', 'M 1', 100, {onClick: 'showTable', hoverColor: 'purple', limit: 1000});
+        const cat = A.catalogFromVizieR('B/assocdata/obscore', 'M 1', 10, {onClick: 'showTable', hoverColor: 'purple', limit: 10000});
         aladin.addCatalog(cat);
     });
 </script>

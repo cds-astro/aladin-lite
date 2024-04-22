@@ -146,9 +146,9 @@ export class DOMElement {
         }
 
         const aladinDiv = options && options.aladin && options.aladin.aladinDiv;
-        if (!aladinDiv) {
-            return;
-        }
+        let innerWidth = aladinDiv && aladinDiv.offsetWidth;
+        let innerHeight = aladinDiv && aladinDiv.offsetHeight;
+
 
         let left, top, bottom, right;
         let x, y;
@@ -156,11 +156,8 @@ export class DOMElement {
         // handle the anchor/dir case with higher priority
         const {offsetWidth, offsetHeight} = el;
         
-        const innerWidth = aladinDiv.offsetWidth;
-        const innerHeight = aladinDiv.offsetHeight;
-
         // take on less priority the left and top
-        if (options && (options.left || options.top || options.right || options.bottom)) {
+        if (options && (options.left !== undefined || options.top !== undefined || options.right !== undefined || options.bottom !== undefined)) {
             el.style.position = 'absolute';
 
             if (options.top !== undefined) {
@@ -177,7 +174,7 @@ export class DOMElement {
             }
 
             if (typeof top === 'number') {
-                if (top + offsetHeight >= innerHeight) {
+                if (innerHeight && top + offsetHeight >= innerHeight) {
                     y = '-' + (top + offsetHeight - innerHeight) + 'px';
                 } else if (top < 0) {
                     y = Math.abs(top) + 'px';
@@ -189,7 +186,7 @@ export class DOMElement {
                 bottom = bottom + 'px';
             }
             if (typeof left === 'number') {
-                if (left + offsetWidth > innerWidth) {
+                if (innerWidth && left + offsetWidth > innerWidth) {
                     x = '-' + (left + offsetWidth - innerWidth) + 'px';
                 } else if (left < 0) {
                     x = Math.abs(left) + 'px';

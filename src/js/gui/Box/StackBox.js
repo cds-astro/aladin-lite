@@ -1,0 +1,874 @@
+// Copyright 2013 - UDS/CNRS
+// The Aladin Lite program is distributed under the terms
+// of the GNU General Public License version 3.
+//
+// This file is part of Aladin Lite.
+//
+//    Aladin Lite is free software: you can redistribute it and/or modify
+//    it under the terms of the GNU General Public License as published by
+//    the Free Software Foundation, version 3 of the License.
+//
+//    Aladin Lite is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//    GNU General Public License for more details.
+//
+//    The GNU General Public License is available in COPYING file
+//    along with Aladin Lite.
+//
+
+
+/******************************************************************************
+ * Aladin Lite project
+ *
+ * File gui/Stack/Menu.js
+ *
+ *
+ * Author: Matthieu Baumann [CDS, matthieu.baumann@astro.unistra.fr]
+ *
+ *****************************************************************************/
+import { CatalogQueryBox } from "./CatalogQueryBox.js";
+ import { ALEvent } from "../../events/ALEvent.js";
+ import { Layout } from "../Layout.js";
+ import { ContextMenu } from "../Widgets/ContextMenu.js";
+ import { ActionButton } from "../Widgets/ActionButton.js";
+import A from "../../A.js";
+import { Utils } from "../../Utils";
+import { View } from "../../View.js";
+import { HiPSSettingsBox } from "./HiPSSettingsBox.js";
+import searchIconUrl from '../../../../assets/icons/search.svg';
+import showIconUrl from '../../../../assets/icons/show.svg';
+import addIconUrl from '../../../../assets/icons/plus.svg';
+import hideIconUrl from '../../../../assets/icons/hide.svg';
+import removeIconUrl from '../../../../assets/icons/remove.svg';
+import settingsIconUrl from '../../../../assets/icons/settings.svg';
+import { ImageFITS } from "../../ImageFITS.js";
+import searchIconImg from '../../../../assets/icons/search.svg';
+import { TogglerActionButton } from "../Button/Toggler.js";
+import { Icon } from "../Widgets/Icon.js";
+import { ImageSurvey } from "../../ImageSurvey.js";
+import { Box } from "../Widgets/Box.js";
+import { CtxMenuActionButtonOpener } from "../Button/CtxMenuOpener.js";
+import { HiPSSearch } from "../Input/HiPSSearch.js";
+
+export class OverlayStackBox extends Box {
+    /*static previewImagesUrl = {
+        'AllWISE color': 'https://aladin.cds.unistra.fr/AladinLite/survey-previews/P_allWISE_color.jpg',
+        'DSS colored': 'https://aladin.cds.unistra.fr/AladinLite/survey-previews/P_DSS2_color.jpg',
+        'DSS2 Red (F+R)': 'https://aladin.cds.unistra.fr/AladinLite/survey-previews/P_DSS2_red.jpg',
+        'Fermi color': 'https://aladin.cds.unistra.fr/AladinLite/survey-previews/P_Fermi_color.jpg',
+        'GALEXGR6_7 NUV': 'https://aladin.cds.unistra.fr/AladinLite/survey-previews/P_GALEXGR6_7_color.jpg',
+        'GLIMPSE360': 'https://aladin.cds.unistra.fr/AladinLite/survey-previews/P_GLIMPSE360.jpg',
+        'Halpha': 'https://aladin.cds.unistra.fr/AladinLite/survey-previews/P_VTSS_Ha.jpg',
+        'IRAC color I1,I2,I4 - (GLIMPSE, SAGE, SAGE-SMC, SINGS)': 'https://aladin.cds.unistra.fr/AladinLite/survey-previews/P_SPITZER_color.jpg',
+        'IRIS colored': 'https://aladin.cds.unistra.fr/AladinLite/survey-previews/P_IRIS_color.jpg',
+        'Mellinger colored': 'https://aladin.cds.unistra.fr/AladinLite/survey-previews/P_Mellinger_color.jpg',
+        'PanSTARRS DR1 color': 'https://aladin.cds.unistra.fr/AladinLite/survey-previews/P_PanSTARRS_DR1_color-z-zg-g.jpg',
+        '2MASS colored': 'https://aladin.cds.unistra.fr/AladinLite/survey-previews/P_2MASS_color.jpg',
+        'AKARI colored': 'https://aladin.cds.unistra.fr/AladinLite/survey-previews/P_AKARI_FIS_Color.jpg',
+        'SWIFT': 'https://aladin.cds.unistra.fr/AladinLite/survey-previews/P_SWIFT_BAT_FLUX.jpg',
+        'VTSS-Ha': 'https://aladin.cds.unistra.fr/AladinLite/survey-previews/P_Finkbeiner.jpg',
+        'XMM PN colored': 'https://aladin.cds.unistra.fr/AladinLite/survey-previews/P_XMM_PN_color.jpg',
+        'SDSS9 colored': 'https://aladin.cds.unistra.fr/AladinLite/survey-previews/P_SDSS9_color.jpg',
+    };*/
+    static predefinedCats = {
+        simbad: {url: 'https://axel.u-strasbg.fr/HiPSCatService/SIMBAD', options: {id: 'simbad', name: 'SIMBAD', shape: 'circle', sourceSize: 8, color: '#318d80', onClick: 'showTable'}},
+        gaia: {url: 'https://axel.u-strasbg.fr/HiPSCatService/I/355/gaiadr3', options: {id: 'gaia-dr3', name: 'Gaia DR3', shape: 'square', sourceSize: 8, color: '#6baed6', onClick: 'showTable'}},
+        twomass: {url: 'https://axel.u-strasbg.fr/HiPSCatService/II/246/out', options: {id: '2mass', name: '2MASS', shape: 'plus', sourceSize: 8, color: '#dd2233', onClick: 'showTable'}}
+    };
+    // Constructor
+    constructor(aladin) {
+        super({
+            close: false,
+            header: {
+                title: 'Stack',
+            },
+            classList: ['aladin-stack-box'],
+            content: []
+        },
+        aladin.aladinDiv);
+        this.aladin = aladin;
+
+        this.mode = 'stack';
+
+        this._addListeners();
+
+        this.mocHiPSUrls = {}
+        this.HiPSui = {}
+        let self = this;
+        // Add overlay button
+        this.addOverlayBtn = new CtxMenuActionButtonOpener({
+            icon: {
+                url: addIconUrl,
+                size: 'small',
+                monochrome: true,
+            },
+            tooltip: {content: 'A catalog, MOC or footprint', position: { direction: 'top' }},
+            ctxMenu: [
+                    {
+                        label: 'Catalogue',
+                        subMenu: [
+                            {
+                                label: {
+                                    icon: {
+                                        url: 'https://aladin.cds.unistra.fr/AladinLite/logos/SIMBAD.svg',
+                                        cssStyle: {
+                                            width: '3rem',
+                                            height: '3rem',
+                                            cursor: 'help',
+                                        },
+                                        action(o) {
+                                            window.open('https://simbad.cds.unistra.fr/simbad/')
+                                        }
+                                    },
+                                    content: 'database',
+                                    tooltip: {content: 'Click to go to the SIMBAD database', position: {direction: 'bottom'}},
+                                },
+                                action(o) {
+                                    o.stopPropagation();
+                                    o.preventDefault();
+                                    
+                                    //self._hide();
+
+                                    const simbadHiPS = A.catalogHiPS(OverlayStackBox.predefinedCats.simbad.url, OverlayStackBox.predefinedCats.simbad.options);
+                                    self.aladin.addCatalog(simbadHiPS);
+                                }
+                            },
+                            {
+                                label: 'Gaia DR3',
+                                action(o) {
+                                    o.stopPropagation();
+                                    o.preventDefault();
+                                    
+                                    //self._hide();
+
+                                    const simbadHiPS = A.catalogHiPS(OverlayStackBox.predefinedCats.gaia.url, OverlayStackBox.predefinedCats.gaia.options);
+                                    self.aladin.addCatalog(simbadHiPS);
+                                }
+                            },
+                            {
+                                label: '2MASS',
+                                action(o) {
+                                    o.stopPropagation();
+                                    o.preventDefault();
+                                    
+                                    //self._hide();
+
+                                    const simbadHiPS = A.catalogHiPS(OverlayStackBox.predefinedCats.twomass.url, OverlayStackBox.predefinedCats.twomass.options);
+                                    self.aladin.addCatalog(simbadHiPS);
+                                }
+                            },
+                            ContextMenu.fileLoaderItem({
+                                label: 'From a VOTable File',
+                                accept: '.xml,.vot',
+                                action(file) {
+                                    let url = URL.createObjectURL(file);
+
+                                    A.catalogFromURL(
+                                        url,
+                                        {onClick: 'showTable'},
+                                        (catalog) => {
+                                            self.aladin.addCatalog(catalog)
+                                        },
+                                        e => alert(e)
+                                    );
+                                }
+                            }),
+                            {
+                                label: {
+                                    icon: {
+                                        url: searchIconImg,
+                                        monochrome: true,
+                                        tooltip: {content: 'Find a specific catalogue <br /> in our database...', position: { direction: 'top' }},
+                                        cssStyle: {
+                                            cursor: 'help',
+                                        },
+                                    },
+                                    content: 'More...'
+                                },
+                                action(o) {
+                                    o.stopPropagation();
+                                    o.preventDefault();
+                                    
+                                    self._hide();
+
+                                    if (!self.catBox) {
+                                        self.catBox = new CatalogQueryBox(self.aladin);
+                                        self.catBox.attach({callback: () => {
+                                            self._show();
+                                        }});
+                                    }
+
+                                    self.catBox._show({position: self.position});
+                                }
+                            },
+                        ]
+                    },
+                    {
+                        label: {
+                            icon: {
+                                url: Icon.dataURLFromSVG({svg: Icon.SVG_ICONS.MOC}),
+                                size: 'small',
+                                tooltip: {content: 'Define a selection coverage', position: {direction: 'bottom'}},
+                                monochrome: true,
+                                cssStyle: {
+                                    cursor: 'pointer',
+                                },
+                            },
+                            content: 'MOC'
+                        },
+                        subMenu: [
+                            ContextMenu.fileLoaderItem({
+                                label: 'FITS File',
+                                accept: '.fits',
+                                action(file) {
+                                    let url = URL.createObjectURL(file);
+
+                                    let moc = A.MOCFromURL(
+                                        url,
+                                        {name: file.name, lineWidth: 3.0},
+                                    );
+                                    self.aladin.addMOC(moc)
+                                }
+                            }),
+                            {
+                                label: 'From selection',
+                                subMenu: [
+                                    {
+                                        label: '◌ Circle',
+                                        disabled: self.aladin.view.mode !== View.PAN ? {
+                                            reason: 'Exit your current mode<br/>(e.g. disable the SIMBAD pointer mode)'
+                                        } : false,
+                                        action(o) {
+                                            o.preventDefault();
+                                            o.stopPropagation();
+
+                                            //self._hide();
+
+                                            self.aladin.select('circle', c => {
+                                                try {
+                                                    let [ra, dec] = self.aladin.pix2world(c.x, c.y, 'j2000');
+                                                    let radius = self.aladin.angularDist(c.x, c.y, c.x + c.r, c.y);
+        
+                                                    // the moc needs a 
+                                                    let moc = A.MOCFromCone(
+                                                        {ra, dec, radius},
+                                                        {name: 'cone', lineWidth: 3.0},
+                                                    );
+                                                    self.aladin.addMOC(moc)
+                                                } catch {
+                                                    console.error('Circle out of projection. Selection canceled')
+                                                }
+                                            })
+                                        }
+                                    },
+                                    {
+                                        label: '⬚ Rect',
+                                        disabled: self.aladin.view.mode !== View.PAN ? {
+                                            reason: 'Exit your current mode<br/>(e.g. disable the SIMBAD pointer mode)'
+                                        } : false,
+                                        action(o) {
+                                            o.stopPropagation();
+                                            o.preventDefault();
+
+                                            //self._hide();
+
+                                            self.aladin.select('rect', r => {
+                                                try {
+                                                    let [ra1, dec1] = self.aladin.pix2world(r.x, r.y, 'j2000');
+                                                    let [ra2, dec2] = self.aladin.pix2world(r.x + r.w, r.y, 'j2000');
+                                                    let [ra3, dec3] = self.aladin.pix2world(r.x + r.w, r.y + r.h, 'j2000');
+                                                    let [ra4, dec4] = self.aladin.pix2world(r.x, r.y + r.h, 'j2000');
+        
+                                                    let moc = A.MOCFromPolygon(
+                                                        {
+                                                            ra: [ra1, ra2, ra3, ra4],
+                                                            dec: [dec1, dec2, dec3, dec4]
+                                                        },
+                                                        {name: 'rect', lineWidth: 3.0},
+                                                    );
+                                                    self.aladin.addMOC(moc)
+                                                } catch(_) {
+                                                    alert('Selection covers a region out of the projection definition domain.');
+                                                }
+                                            })
+                                        }
+                                    },
+                                    {
+                                        label: '⛉ Polygon',
+                                        disabled: self.aladin.view.mode !== View.PAN ? {
+                                            reason: 'Exit your current mode<br/>(e.g. disable the SIMBAD pointer mode)'
+                                        } : false,
+                                        action(o) {
+                                            o.stopPropagation();
+                                            o.preventDefault();
+
+                                            //self._hide();
+
+                                            self.aladin.select('poly', p => {
+                                                try {
+                                                    let ra = []
+                                                    let dec = []
+                                                    for (const v of p.vertices) {
+                                                        let [lon, lat] = self.aladin.pix2world(v.x, v.y, 'j2000');
+                                                        ra.push(lon)
+                                                        dec.push(lat)
+                                                    }
+                                                    
+                                                    let moc = A.MOCFromPolygon(
+                                                        {ra, dec},
+                                                        {name: 'poly', lineWidth: 3.0},
+                                                    );
+                                                    self.aladin.addMOC(moc)
+
+                                                } catch(_) {
+                                                    alert('Selection covers a region out of the projection definition domain.');
+                                                }
+                                            })
+                                        }
+                                    },
+                                ]
+                            }
+                        ]                    
+                    }
+                ],
+        }, this.aladin)
+
+        this.addHiPSBtn = new CtxMenuActionButtonOpener({
+            icon: {
+                url: addIconUrl,
+                size: 'small',
+                monochrome: true,
+            },
+            ctxMenu: [
+                {
+                    label: {
+                        icon: {
+                            url: searchIconUrl,
+                            monochrome: true,
+                            tooltip: {content: 'From our database...', position: { direction: 'right' }},
+                            cssStyle: {
+                                cursor: 'help',
+                            },
+                        },
+                        content: 'Add new survey'
+                    },
+                    action: (e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+
+                        /*self._hide();
+
+                        self.hipsSelectorBox = new HiPSSelectorBox(self.aladin);
+                        // attach a callback
+                        self.hipsSelectorBox.attach( 
+                            (HiPSId) => {
+                                let name = Utils.uuidv4()
+                                self.aladin.setOverlayImageLayer(HiPSId, name)
+
+                                self.show();
+                            }
+                        );
+
+                        self.hipsSelectorBox._show({
+                            position: self.position,
+                        });*/
+                        self.aladin.addNewImageLayer()
+                    }
+                },
+                ContextMenu.fileLoaderItem({
+                    label: 'FITS image file',
+                    accept: '.fits',
+                    action(file) {
+                        let url = URL.createObjectURL(file);
+
+                        const image = self.aladin.createImageFITS(
+                            url,
+                            file.name,
+                            undefined,
+                            (ra, dec, fov, _) => {
+                                // Center the view around the new fits object
+                                self.aladin.gotoRaDec(ra, dec);
+                                self.aladin.setFoV(fov * 1.1);
+                                //self.aladin.selectLayer(image.layer);
+                            },
+                            undefined
+                        );
+
+                        self.aladin.setOverlayImageLayer(image, Utils.uuidv4())
+                    }
+                }),
+            ],
+            tooltip: { content: 'Add a HiPS or an FITS image', position: {direction: 'top'} },
+        }, this.aladin);
+
+        this.update({content: this.createLayout()});
+    }
+
+    _addListeners() {
+        let self = this;
+
+        let updateOverlayList = () => {
+            let wasHidden = self.isHidden;
+            self._hide();
+            // recompute the ui
+            // If it is shown, update it
+            // show will update the content of the stack
+            self.update({content: self.createLayout()});
+
+            if (!wasHidden)
+                self._show();
+        };
+        
+        ALEvent.GRAPHIC_OVERLAY_LAYER_ADDED.listenedBy(this.aladin.aladinDiv, function (e) {
+            updateOverlayList();
+        });
+
+        ALEvent.GRAPHIC_OVERLAY_LAYER_REMOVED.listenedBy(this.aladin.aladinDiv, function (e) {
+            updateOverlayList();
+        });
+
+        ALEvent.GRAPHIC_OVERLAY_LAYER_CHANGED.listenedBy(this.aladin.aladinDiv, function (e) {
+            updateOverlayList();
+        });
+        
+        ALEvent.HIPS_LAYER_ADDED.listenedBy(this.aladin.aladinDiv, function (e) {
+            updateOverlayList();
+        });
+
+        ALEvent.HIPS_LAYER_RENAMED.listenedBy(this.aladin.aladinDiv, function (e) {
+            updateOverlayList();    
+        });
+
+        ALEvent.HIPS_LAYER_SWAP.listenedBy(this.aladin.aladinDiv, function (e) {
+            updateOverlayList();
+        });
+
+        ALEvent.HIPS_LAYER_REMOVED.listenedBy(this.aladin.aladinDiv, function (e) {
+            updateOverlayList();
+        });
+
+        ALEvent.HIPS_LAYER_CHANGED.listenedBy(this.aladin.aladinDiv, function (e) {
+            const hips = e.detail.layer;
+            let ui = self.HiPSui[hips.layer];
+
+            // change the ui from parameter changes
+            // show button
+            const opacity = hips.getOpacity();
+            if (opacity !== 0.0) {
+                ui.showBtn.update({icon: {monochrome: true, url: showIconUrl}, tooltip: {content: 'Hide'}});
+            } else {
+                ui.showBtn.update({icon: {monochrome: true, url: hideIconUrl}, tooltip: {content: 'Show'}});
+            }
+        });
+
+        updateOverlayList();
+
+        // Add a listener for HiPS list changes
+        ALEvent.HIPS_LIST_UPDATED.listenedBy(this.aladin.aladinDiv, () => {
+            // Recompute the autocompletion as the cache has changed
+            HiPSSearch.HiPSList = {};
+            for (var key in ImageSurvey.cache) {
+                let HiPS = ImageSurvey.cache[key];
+                // search with the name or id
+                HiPSSearch.HiPSList[HiPS.name] = HiPS;
+            }
+
+            let keys = Object.keys(HiPSSearch.HiPSList)
+            // change the autocomplete of all the search input text
+            for (var key in this.HiPSui) {
+                let hips = this.HiPSui[key];
+                hips.searchInput.setAutocompletionList(keys)
+            }
+        });
+    }
+
+    _hide() {
+        for (var key in this.HiPSui) {
+            let hips = this.HiPSui[key];
+            if (hips.settingsBtn.toggled) {
+                // toggle off
+                hips.settingsBtn.toggle();
+            }
+        }
+
+        if (this.catBox) {
+            this.catBox._hide();
+        }
+
+        if (this.addOverlayBtn)
+            this.addOverlayBtn.hideMenu();
+
+        if (this.addHiPSBtn)
+            this.addHiPSBtn.hideMenu();
+
+        super._hide()
+    }
+
+    createLayout() {
+        this.HiPSui = {};
+
+        let layout = [
+            Layout.horizontal([this.addOverlayBtn, 'Overlays'])
+        ];
+
+        layout = layout.concat(this._createOverlaysList());
+
+        layout.push(Layout.horizontal({
+            layout: [this.addHiPSBtn, 'Surveys'],
+        }))
+        layout = layout.concat(this._createSurveysList());
+
+        return new Layout({layout, classList: ['content']});
+    }
+
+    _createOverlaysList() {
+        let self = this;
+
+        let layout = []
+        const overlays = Array.from(this.aladin.getOverlays()).reverse().map((overlay) => {
+            return overlay;
+        });
+        // list of overlays
+        for(const overlay of overlays) {
+            const name = overlay.name;
+            let showBtn = new ActionButton({
+                size: 'small',
+                icon: {
+                    url: overlay.isShowing ? showIconUrl : hideIconUrl,
+                    monochrome: true,
+                },
+                /*cssStyle: {
+                    visibility: Utils.hasTouchScreen() ? 'visible' : 'hidden',
+                },*/
+                tooltip: {content: overlay.isShowing ? 'Hide' : 'Show', position: {direction: 'top'}},
+                action(e, btn) {
+                    if (overlay.isShowing) {
+                        overlay.hide()
+                        btn.update({icon: {monochrome: true, url: hideIconUrl}, tooltip: {content: 'Show'}});
+                    } else {
+                        overlay.show()
+                        btn.update({icon: {monochrome: true, url: showIconUrl}, tooltip: {content: 'Hide'}});
+                    }
+                }
+            });
+
+            let deleteBtn = new ActionButton({
+                icon: {
+                    url: removeIconUrl,
+                    monochrome: true,
+                },
+                size: 'small',
+                /*cssStyle: {
+                    visibility: Utils.hasTouchScreen() ? 'visible' : 'hidden',
+                },*/
+                tooltip: {
+                    content: 'Remove',
+                    position: {direction: 'top'}
+                },
+                action(e) {
+                    self.aladin.removeLayer(overlay)
+                }
+            });
+
+            let item = Layout.horizontal({
+                layout: [
+                    this._addOverlayIcon(overlay),
+                    '<div style="background-color: rgba(0, 0, 0, 0.6); padding: 3px; border-radius: 3px; word-break: break-word;">' + name + '</div>',
+                    Layout.horizontal({layout: [showBtn, deleteBtn]})
+                ],
+                cssStyle: {
+                    textAlign: 'center',
+                    display: 'flex',
+                    alignItems: 'center',
+                    listStyle: 'none',
+                    justifyContent: 'space-between',
+                    width: '100%',
+                }
+            });
+
+            /*if(!Utils.hasTouchScreen()) {
+                layout.push({
+                    label: item,
+                    cssStyle,
+                    hover(e) {
+                        showBtn.el.style.visibility = 'visible'
+                        deleteBtn.el.style.visibility = 'visible'
+                    },
+                    unhover(e) {
+                        showBtn.el.style.visibility = 'hidden'
+                        deleteBtn.el.style.visibility = 'hidden'
+                    },
+                })
+            } else {
+                layout.push({
+                    label: item,
+                    cssStyle
+                })
+            }*/
+            layout.push(item)
+        }
+
+        return layout;
+    }
+
+    _createSurveysList() {
+        let self = this;
+
+        const layers = Array.from(self.aladin.getImageOverlays()).reverse().map((name) => {
+            let overlay = self.aladin.getOverlayImageLayer(name);
+            return overlay;
+        });
+        // survey list
+        let selectedLayer = self.aladin.getSelectedLayer();
+
+        /*if (!layers) {
+            super.attach(layout);
+            return;
+        }*/
+
+        let layout = [];
+        const defaultLayers = Object.entries(ImageSurvey.cache).sort(function (e1, e2) {
+            let a = e1[1]
+            let b = e2[1]
+
+            if (!a.order) {
+                return a.name > b.name ? 1 : -1;
+            }
+
+            return a.maxOrder && a.maxOrder > b.maxOrder ? 1 : -1;
+        });
+        
+        for(const layer of layers) {
+            let searchInput = new HiPSSearch(self.aladin, {layer})
+
+            let deleteBtn = ActionButton.createSmallSizedIconBtn({
+                icon: {url: removeIconUrl, monochrome: true},
+                
+                disable: layer.layer === 'base',
+                tooltip: {content: 'Remove', position: {direction: 'top'}},
+                action(e) {
+                    self.aladin.removeImageLayer(layer.layer);
+                }
+            });
+
+            let showBtn = ActionButton.createSmallSizedIconBtn({
+                icon: {
+                    url: layer.getOpacity() === 0.0 ? hideIconUrl : showIconUrl,
+                    monochrome: true,
+                },
+                tooltip: {content: layer.getOpacity() === 0.0 ? 'Show' : 'Hide', position: {direction: 'top'}},
+                action(e, btn) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    let opacity = layer.getOpacity();
+                    if (opacity === 0.0) {
+                        layer.setOpacity(1.0);
+                        btn.update({icon: {monochrome: true, url: showIconUrl}, tooltip: {content: 'Hide'}});
+                    } else {
+                        layer.setOpacity(0.0);
+                        btn.update({icon: {monochrome: true, url: hideIconUrl}, tooltip: {content: 'Show'}});
+                    }
+                }
+            });
+
+            let settingsBox = new HiPSSettingsBox(self.aladin);
+            settingsBox.update({layer})
+            settingsBox._hide();
+
+            let settingsBtn = new TogglerActionButton({
+                icon: {url: settingsIconUrl, monochrome: true},
+                size: 'small',
+                tooltip: {content: 'Settings', position: {direction: 'top'}},
+                toggled: false,
+                actionOn: (e) => {
+                    settingsBox._show({position: {nextTo: settingsBtn, direction: 'right', aladin: self.aladin}});
+                },
+                actionOff: (e) => {
+                    settingsBox._hide();
+                },
+            });
+
+            let loadMOCBtn = new ActionButton({
+                size: 'small',
+                
+                icon: {url: Icon.dataURLFromSVG({svg: Icon.SVG_ICONS.MOC}), monochrome: true},
+                tooltip: {content: 'Add coverage', position: {direction: 'top'}},
+                toggled: (() => {
+                    let overlays = self.aladin.getOverlays();
+                    let found = overlays.find((o) => o.type === "moc" && o.name === layer.name);
+                    return found !== undefined;
+                })(),
+                action: (e, btn) => {
+                    if (!btn.options.toggled) {
+                        // load the moc
+                        let moc = A.MOCFromURL(
+                            layer.url + '/Moc.fits',
+                            {lineWidth: 3, name: layer.name},
+                            () => {
+                                self.mocHiPSUrls[layer.url] = moc;
+            
+                                if (self.aladin.statusBar) {
+                                    self.aladin.statusBar.appendMessage({
+                                        message: 'Coverage of ' + layer.name + ' loaded',
+                                        duration: 2000,
+                                        type: 'info'
+                                    })
+                                }
+
+                                btn.update({
+                                    toggled: true,
+                                    tooltip: {content: 'Remove coverage',
+                                    position: {direction: 'top'}}
+                                })
+                            }
+                        );
+                        self.aladin.addMOC(moc)
+                    } else {
+                        // unload the moc
+                        let moc = self.mocHiPSUrls[layer.url];
+                        self.aladin.removeLayer(moc)
+    
+                        delete self.mocHiPSUrls[layer.url];
+        
+                        if (self.aladin.statusBar) {
+                            self.aladin.statusBar.appendMessage({
+                                message: 'Coverage of ' + layer.name + ' removed',
+                                duration: 2000,
+                                type: 'info'
+                            })
+                        }
+
+                        btn.update({
+                            toggled: false,
+                            tooltip: {content: 'Add coverage', position: {direction: 'top'}}
+                        })
+                    }
+                },
+            });
+
+            let layerClassName = 'a' + layer.layer.replace(/[.\/ ]/g, '')
+
+            let btns = [showBtn, settingsBtn];
+
+            if (layer.subtype !== 'fits') {
+                btns.push(loadMOCBtn)
+            }
+            btns.push(deleteBtn)
+
+            let item = Layout.horizontal({
+                layout: [
+                    searchInput,
+                    //'<div class="' + layerClassName + '" style="background-color: rgba(0, 0, 0, 0.6); line-height: 1rem; padding: 3px; border-radius: 3px; word-break: break-word;' + (selectedLayer === layer.layer ? 'border: 1px solid white;' : '') + '">' + (layer.name) + '</div>',
+                    Layout.horizontal(btns)
+                ],
+                cssStyle: {
+                    display: 'flex',
+                    alignItems: 'center',
+                    listStyle: 'none',
+                    justifyContent: 'space-between',
+                    width: '100%',
+                }
+            });
+
+            layout.push(item);
+
+            if (!(layer.layer in self.HiPSui)) {
+                self.HiPSui[layer.layer] = {
+                    searchInput,
+                    settingsBox,
+                    settingsBtn,
+                    showBtn,
+                };
+            }
+        }
+
+        return layout;
+    }
+
+    /*_findPreviewImageUrl(layer) {
+        if (layer instanceof ImageFITS) {
+            return;
+        }
+
+        if (!layer.creatorDid) {
+            return;
+        }
+
+        const creatorDid = layer.creatorDid;
+        
+        for (const key in Stack.previewImagesUrl) {
+            if (creatorDid.includes(key)) {
+                return Stack.previewImagesUrl[key];
+            }
+        }
+        // if not found
+        return layer.url + '/preview.jpg'
+    }*/
+
+    _addOverlayIcon(overlay) {
+        var tooltipText;
+        var svg = '';
+        if (overlay.type == 'catalog' || overlay.type == 'progressivecat') {
+            var nbSources = overlay.getSources().length;
+            tooltipText = nbSources + ' source' + (nbSources > 1 ? 's' : '');
+
+            svg = Icon.SVG_ICONS.CATALOG;
+        }
+        else if (overlay.type == 'moc') {
+            tooltipText = 'Coverage: ' + (100 * overlay.skyFraction()).toFixed(2) + ' % of sky';
+
+            svg = Icon.SVG_ICONS.MOC;
+        }
+        else if (overlay.type == 'overlay') {
+            svg = Icon.SVG_ICONS.OVERLAY;
+        }
+
+        let tooltip;
+        if (tooltipText) {
+            tooltip = { content: tooltipText, position: {direction: 'bottom'} }
+        }
+
+        // retrieve SVG icon, and apply the layer color
+        return new Icon({
+            size: 'small',
+            url: Icon.dataURLFromSVG({svg, color: overlay.color}),
+            tooltip
+        });
+    }
+
+    _show(options) {
+        if (!this.aladin) {
+            return;
+        }
+
+        this.position = (options && options.position) || this.position;
+
+        if (!this.position)
+            return;
+
+        this.position.aladin = this.aladin;
+
+        super._show({
+            ...options,
+            ...{position: this.position},
+        })
+        
+        const innerHeight = this.aladin.aladinDiv.offsetHeight;
+        this.element().querySelectorAll(".surveyItem")
+            .forEach((surveyItem) => {
+                surveyItem.querySelectorAll(".aladin-context-sub-menu")
+                    // skip the first menu
+                    .forEach((subMenu) => {
+                        subMenu.style.display = 'block'
+
+                        let Y = innerHeight - (subMenu.getBoundingClientRect().y - this.aladin.aladinDiv.getBoundingClientRect().y);
+                        subMenu.style.display = 'none'
+
+                        subMenu.style.maxHeight = Y + 'px';
+                        subMenu.style.overflowY = 'scroll';
+                    })
+                })
+    }
+}

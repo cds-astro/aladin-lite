@@ -10,26 +10,8 @@
     import A from '../src/js/A.js';
     let aladin;
     A.init.then(() => {
-        aladin = A.aladin('#aladin-lite-div', {target: '12 25 41.512 +12 48 47.2', fov: 1, showContextMenu: true});
+        aladin = A.aladin('#aladin-lite-div', {target: '12 25 41.512 +12 48 47.2', inertia: false, fov: 1, showContextMenu: true});
         // define custom draw function
-        var drawFunction = function(source, canvasCtx, viewParams) {
-            canvasCtx.beginPath();
-            canvasCtx.arc(source.x, source.y, source.data['coo_err_min'] * 5, 0, 2 * Math.PI, false);
-            canvasCtx.closePath();
-            canvasCtx.strokeStyle = '#c38';
-            canvasCtx.lineWidth = 3;
-            canvasCtx.globalAlpha = 0.7,
-            canvasCtx.stroke();
-            var fov = Math.max(viewParams['fov'][0], viewParams['fov'][1]);
-
-            // object name is displayed only if fov<10°
-            if (fov>10) {
-                return;
-            }
-
-            canvasCtx.globalAlpha = 0.9;
-            canvasCtx.globalAlpha = 1;
-        };
 
         var drawFunctionFootprint = function(s) {
             let a = +s.data.size_maj;
@@ -39,8 +21,8 @@
             if (!galaxy)
                 return;
 
-            let angle = +s.data.size_angle || 0.0;
-            return A.ellipse(s.ra, s.dec, a / 60, b / 60, angle, {color: 'cyan'});
+            let theta = +s.data.size_angle || 0.0;
+            return A.ellipse(s.ra, s.dec, a / 60, b / 60, theta, {color: 'cyan'});
         };
 
         var hips = A.catalogHiPS('https://axel.u-strasbg.fr/HiPSCatService/Simbad', {onClick: 'showTable', name: 'Simbad', color: 'cyan', hoverColor: 'red', shape: drawFunctionFootprint});

@@ -67,6 +67,25 @@ export class Box extends DOMElement {
 
         let self = this;
 
+        let close = this.options.close === false ? false : true;  
+        if (close) {
+            new ActionButton({
+                size: 'small',
+                content: '❌',
+                //tooltip: {content: 'Close the window', position: {direction: 'bottom'}},
+                action(e) {
+                    self._hide();
+                },
+                cssStyle: {
+                    position: 'absolute',
+                },
+                position: {
+                    top: 0,
+                    right: 0,
+                }
+            }, this.el);
+        }
+
         // Check for the title
         if (this.options.header) {
             let header = this.options.header;
@@ -98,23 +117,11 @@ export class Box extends DOMElement {
                 titleEl.style.cursor = 'move'
             }
     
-            let closedEl = new ActionButton({
-                size: 'small',
-                content: '❌',
-                tooltip: {content: 'Close the window', position: {direction: 'bottom'}},
-                cssStyle: {
-                    cursor: 'pointer',
-                },
-                action(e) {
-                    self._hide();
-                }
-            });
-    
             Layout.horizontal({
                 cssStyle: {
                     justifyContent: 'space-between',
                 },
-                layout: [draggableEl, titleEl, closedEl]
+                layout: [draggableEl, titleEl]
             }, this.el);
 
             let separatorEl = document.createElement('div')

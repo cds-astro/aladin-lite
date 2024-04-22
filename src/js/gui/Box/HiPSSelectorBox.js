@@ -79,6 +79,7 @@ import { Input } from "../Widgets/Input.js";
 
         super(
             {
+                close: false,
                 content: Layout.horizontal({
                     layout: [
                         inputText,

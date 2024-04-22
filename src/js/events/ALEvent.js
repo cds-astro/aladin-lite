@@ -53,6 +53,8 @@ export class ALEvent {
   static HIPS_LAYER_RENAMED = new ALEvent("AL:HiPSLayer.renamed");
   static HIPS_LAYER_SWAP = new ALEvent("AL:HiPSLayer.swap");
 
+  static HIPS_LIST_UPDATED = new ALEvent("AL:HiPSList.updated");
+
   static HIPS_LAYER_CHANGED  = new ALEvent("AL:HiPSLayer.changed");
 
   static GRAPHIC_OVERLAY_LAYER_ADDED  = new ALEvent("AL:GraphicOverlayLayer.added");

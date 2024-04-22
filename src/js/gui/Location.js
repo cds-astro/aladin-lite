@@ -28,7 +28,7 @@
  * 
  *****************************************************************************/
 
-
+import { CooConversion } from "../CooConversion.js";
 import { Coo }            from "../libs/astro/coo.js";
 import { CooFrameEnum }   from "../CooFrameEnum.js";
 
@@ -146,7 +146,15 @@ export class Location extends DOMElement {
             let param = e.detail;
 
             if (param.type === 'mouseout') {
-                let [lon, lat] = aladin.getRaDec();
+                let radec = aladin.getRaDec();
+                // convert to the view frame
+                let lonlat = radec;
+                if (aladin.getFrame() === "Galactic") {
+                    lonlat = CooConversion.J2000ToGalactic(radec)
+                }
+
+                let [lon, lat] = lonlat;
+
                 self.update({
                     lon, lat,
                     frame: aladin.view.cooFrame,

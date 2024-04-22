@@ -40,6 +40,7 @@ import { MeasurementTable } from "./MeasurementTable.js";
 import { ImageSurvey } from "./ImageSurvey.js";
 import { Coo } from "./libs/astro/coo.js";
 import { CooConversion } from "./CooConversion.js";
+import { MocServer } from './MocServer';
 
 import { ProjectionEnum } from "./ProjectionEnum.js";
 
@@ -77,6 +78,10 @@ import { CooFrame } from './gui/Input/CooFrame';
  * @property {string} [survey="CDS/P/DSS2/color"] URL or ID of the survey to use
  * @property {string[]} [surveyUrl]
  *   Array of URLs for the survey images. This replaces the survey parameter.
+ * @property {Object[]|string[]} [hipsList] A list of predefined HiPS for the Aladin instance.
+ *   This option is used for searching for a HiPS in a list of surveys
+ *   This list can have string item (either a CDS ID or an HiPS url) or an object that describes the HiPS
+ *   more exhaustively. See the example below to see the different form that this item can have to describe a HiPS.
  * @property {string} [target="0 +0"] - Target coordinates for the initial view.
  * @property {CooFrame} [cooFrame="J2000"] - Coordinate frame.
  * @property {number} [fov=60] - Field of view in degrees.
@@ -86,6 +91,8 @@ import { CooFrame } from './gui/Input/CooFrame';
  * This element belongs to the FoV UI thus its CSS class is `aladin-fov` 
  * @property {boolean} [showLayersControl=true] - Whether to show the layers control toolbar.
  * CSS class for that button is `aladin-stack-control` 
+ * @property {boolean} [expandLayersControl=false] - Whether to show the stack box at starting
+ * CSS class for the stack box is `aladin-stack-box`
  * @property {boolean} [showFullscreenControl=true] - Whether to show the fullscreen control toolbar.
  * CSS class for that button is `aladin-fullScreen-control` 
  * @property {boolean} [showSimbadPointerControl=false] - Whether to show the Simbad pointer control toolbar.
@@ -133,7 +140,53 @@ import { CooFrame } from './gui/Input/CooFrame';
  * @property {boolean} [samp=false] - Whether to enable SAMP (Simple Application Messaging Protocol).
  * @property {boolean} [realFullscreen=false] - Whether to use real fullscreen mode.
  * @property {boolean} [pixelateCanvas=true] - Whether to pixelate the canvas.
- */
+ * @example
+ * let aladin = A.aladin({
+    target: 'galactic center',
+    fov: 10,
+    hipsList: [
+        // url
+        "https://alaskybis.unistra.fr/DSS/DSSColor",
+        // ID from HiPS list
+        "CDS/P/2MASS/color",
+        // Not full HiPS described
+        {
+            name: 'DESI Legacy Surveys color (g, r, i, z)',
+            id: 'CDS/P/DESI-Legacy-Surveys/DR10/color',
+        },
+        // Fully described HiPS
+        {
+            name: "DECaPS DR2 color",
+            url: "https://alasky.cds.unistra.fr/DECaPS/DR2/CDS_P_DECaPS_DR2_color/",
+            properties: {
+                creatorDid: "ivo://CDS/P/DECaPS/DR2/color",
+                maxOrder: 11,
+                cooFrame: "equatorial",
+                tileSize: 512,
+                imgFormat: 'png',
+            },
+        },
+        // HiPS with options
+        {
+            name: "SDSS9 band-g",
+            id: "P/SDSS9/g",
+            properties: {
+                creatorDid: "ivo://CDS/P/SDSS9/g",
+                maxOrder: 10,
+                tileSize: 512,
+                numBitsPerPixel: 16,
+                imgFormat: 'fits',
+                cooFrame: 'equatorial',
+            },
+            options: {
+                minCut: 0,
+                maxCut: 1.8,
+                stretch: 'linear',
+                colormap: "redtemperature",
+            }
+        }
+    ]
+})*/
 
 /**
  * @typedef {Object} CircleSelection
@@ -335,6 +388,84 @@ export let Aladin = (function () {
             this.setBaseImageLayer(url);
         }
 
+        let hipsList = [].concat(options.hipsList);
+
+        const fillHiPSCache = () => {
+            for (var survey of hipsList) {
+                let id, url, name;
+                let cachedSurvey = {};
+
+                if (typeof survey === "string") {
+                    try {
+                        url = new URL(survey).href;
+                    } catch(e) {
+                        id = survey;
+                    }
+
+                    name = url || id;
+                } else if (survey instanceof Object) {
+                    if (survey.id) {
+                        id = survey.id;
+                    }
+                    if (survey.url) {
+                        url = survey.url;
+                    }
+                    
+                    name = survey.name || survey.id || survey.url;
+
+                    if (id && url) {
+                        console.warn('Both "CDS ID" and url are given for ', survey, '. ID is chosen.')
+                        url = null;
+                    }
+
+                    if (survey.properties) {
+                        cachedSurvey = {...cachedSurvey, ...survey.properties}
+                    }
+                    if (survey.options) {
+                        cachedSurvey = {...cachedSurvey, ...survey.options}
+                    }
+                } else {
+                    console.warn('unable to parse the survey list item: ', survey)
+                    continue;
+                }
+
+                if (id) {
+                    cachedSurvey['id'] = id;
+                }
+                if (url) {
+                    cachedSurvey['url'] = url;
+                }
+                if (name) {
+                    cachedSurvey['name'] = name;
+                }
+
+                // at least id or url is defined
+                let key = id || url;
+
+                if (!(key in ImageSurvey.cache)) {
+                    ImageSurvey.cache[key] = cachedSurvey
+                }
+            }
+
+            ALEvent.HIPS_LIST_UPDATED.dispatchedTo(this.aladinDiv);
+        }
+
+        if (hipsList.length === 0) {
+            MocServer.getAllHiPSes()
+                .then((HiPSes) => {
+                    HiPSes.forEach((h) => {
+                        hipsList.push({
+                            id: h.ID,
+                            name: h.obs_title
+                        })
+                    });
+
+                    fillHiPSCache();
+                });
+        } else {
+            fillHiPSCache();
+        }
+
         this.view.showCatalog(options.showCatalog);
 
         // FullScreen toolbar icon
@@ -412,6 +543,7 @@ export let Aladin = (function () {
         if (!options.showLayersControl) {
             stack._hide();
         }
+
         // Add the simbad pointer control
         if (!options.showSimbadPointerControl) {
             simbad._hide();
@@ -441,6 +573,10 @@ export let Aladin = (function () {
 
         if (options.showFullscreenControl) {
             this.addUI(new FullScreenActionButton(self))
+        }
+
+        if (options.expandLayersControl) {
+            stack.toggle();
         }
 
         this._applyMediaQueriesUI();
@@ -494,6 +630,8 @@ export let Aladin = (function () {
     Aladin.wasmLibs = {};
     Aladin.DEFAULT_OPTIONS = {
         survey: ImageSurvey.DEFAULT_SURVEY_ID,
+        // surveys suggestion list
+        hipsList: [],
         //surveyUrl: ["https://alaskybis.unistra.fr/DSS/DSSColor", "https://alasky.unistra.fr/DSS/DSSColor"],
         target: "0 +0",
         cooFrame: "J2000",
@@ -504,6 +642,7 @@ export let Aladin = (function () {
         showZoomControl: false,
         // Menu toolbar
         showLayersControl: true,
+        expandLayersControl: false,
         showFullscreenControl: true,
         showSimbadPointerControl: false,
         showCooGridControl: false,
@@ -539,7 +678,7 @@ export let Aladin = (function () {
         log: true,
         samp: false,
         realFullscreen: false,
-        pixelateCanvas: true
+        pixelateCanvas: true,
     };
 
     // realFullscreen: AL div expands not only to the size of its parent, but takes the whole available screen estate
@@ -851,10 +990,11 @@ export let Aladin = (function () {
         // try to parse as a position
         if (!isObjectName) {
             var coo = new Coo();
-
             coo.parse(targetName);
             // Convert from view coo sys to icrs
+
             const [ra, dec] = this.wasm.viewToICRSCooSys(coo.lon, coo.lat);
+
             this.view.pointTo(ra, dec);
 
             (typeof successCallback === 'function') && successCallback(this.getRaDec());
@@ -914,14 +1054,14 @@ export let Aladin = (function () {
      * @memberof Aladin
      * @param {number} lon - longitude in degrees
      * @param {number} lat - latitude in degrees
-     * @param {string} frame - Optional callback options.
+     * @param {string} [frame] - The name of the coordinate frame. Possible values: 'j2000d', 'j2000', 'gal', 'icrs'. The given string is case insensitive.
      *
      * @example
      * // Move to position 
      * const aladin = A.aladin('#aladin-lite-div');
      * aladin.gotoPosition(20, 10, "galactic");
      */
-    Aladin.prototype.gotoPosition = function (lon, lat, frame = undefined) {
+    Aladin.prototype.gotoPosition = function (lon, lat, frame) {
         var radec;
         // convert the frame from string to CooFrameEnum
         if (frame) {
@@ -936,7 +1076,7 @@ export let Aladin = (function () {
             radec = [lon, lat];
         }
 
-        this.view.pointTo(radec[0], radec[1]);
+        this.gotoRaDec(radec[0], radec[1]);
     };
 
     var idTimeoutAnim;
@@ -1140,9 +1280,15 @@ export let Aladin = (function () {
     };
 
     /**
-     * point to a given position, expressed as a ra,dec coordinate
+     * Moves the Aladin instance to the specified position given in ICRS frame
      *
-     * @API
+     * @memberof Aladin
+     * @param {number} ra - Right-ascension in degrees
+     * @param {number} dec - Declination in degrees
+     *
+     * @example
+     * const aladin = A.aladin('#aladin-lite-div');
+     * aladin.gotoRaDec(20, 10);
      */
     Aladin.prototype.gotoRaDec = function (ra, dec) {
         this.view.pointTo(ra, dec);
@@ -1239,7 +1385,15 @@ export let Aladin = (function () {
         let surveyOptions = ImageSurvey.cache[id];
 
         if (!surveyOptions) {
-            surveyOptions = {url, name, maxOrder, cooFrame, ...options};
+            surveyOptions = {name, maxOrder, cooFrame, ...options};
+
+            // differenciate url from CDS Id in the url param given
+            if (!Utils.isUrl(url)) {
+                surveyOptions.id = url;
+            } else {
+                surveyOptions.url = url;
+            }
+
             ImageSurvey.cache[id] = surveyOptions;
         }
 

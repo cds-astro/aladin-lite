@@ -35,7 +35,7 @@ import { CatalogQueryBox } from "../Box/CatalogQueryBox.js";
 import A from "../../A.js";
 import { Utils } from "../../../js/Utils";
 import { View } from "../../View.js";
-import { LayerEditBox } from "../Box/SurveyEditBox.js";
+import { HiPSSettingsBox } from "../Box/HiPSSettingsBox.js";
 import { HiPSSelectorBox } from "../Box/HiPSSelectorBox.js";
 import searchIconUrl from '../../../../assets/icons/search.svg';
 import showIconUrl from '../../../../assets/icons/show.svg';
@@ -456,70 +456,6 @@ export class OverlayStack extends ContextMenu {
             }
         }
 
-        layout.push({
-            label: 'Add survey',
-            subMenu: [
-                {
-                    label: {
-                        icon: {
-                            url: searchIconUrl,
-                            monochrome: true,
-                            tooltip: {content: 'From our database...', position: { direction: 'right' }},
-                            cssStyle: {
-                                cursor: 'help',
-                            },
-                        },
-                        content: 'Search for a survey'
-                    },
-                    action: (e) => {
-                        e.stopPropagation();
-                        e.preventDefault();
-
-                        self._hide();
-
-                        self.hipsSelectorBox = new HiPSSelectorBox(self.aladin);
-                        // attach a callback
-                        self.hipsSelectorBox.attach( 
-                            (HiPSId) => {
-                                let name = Utils.uuidv4()
-                                self.aladin.setOverlayImageLayer(HiPSId, name)
-
-                                self.show();
-                            }
-                        );
-
-                        self.hipsSelectorBox._show({
-                            position: self.position,
-                        });
-
-                        self.mode = 'hips';
-                    }
-                },
-                ContextMenu.fileLoaderItem({
-                    label: 'FITS image file',
-                    accept: '.fits',
-                    action(file) {
-                        let url = URL.createObjectURL(file);
-
-                        const image = self.aladin.createImageFITS(
-                            url,
-                            file.name,
-                            undefined,
-                            (ra, dec, fov, _) => {
-                                // Center the view around the new fits object
-                                self.aladin.gotoRaDec(ra, dec);
-                                self.aladin.setFoV(fov * 1.1);
-                                //self.aladin.selectLayer(image.layer);
-                            },
-                            undefined
-                        );
-
-                        self.aladin.setOverlayImageLayer(image, Utils.uuidv4())
-                    }
-                }),
-            ]
-        })
-
         // survey list
         let selectedLayer = self.aladin.getSelectedLayer();
 
@@ -669,7 +605,7 @@ export class OverlayStack extends ContextMenu {
             let item = Layout.horizontal({
                 layout: [
                     '<div class="' + layerClassName + '" style="background-color: rgba(0, 0, 0, 0.6); line-height: 1rem; padding: 3px; border-radius: 3px; word-break: break-word;' + (selectedLayer === layer.layer ? 'border: 1px solid white;' : '') + '">' + (layer.name) + '</div>',
-                    Layout.horizontal({layout: btns})
+                    Layout.horizontal(btns)
                 ],
                 /*cssStyle: {
                     display: 'flex',

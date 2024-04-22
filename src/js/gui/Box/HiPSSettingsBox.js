@@ -40,15 +40,15 @@ import { ColorCfg } from "../../ColorCfg.js";
  import { Layout } from "../Layout.js";
  import { Input } from "../Widgets/Input.js";
 
- export class LayerEditBox extends Box {
+ export class HiPSSettingsBox extends Box {
      // Constructor
      constructor(aladin, options) {
-        super(
-            {
+        super({
                 cssStyle: {
                     padding: '4px',
                     backgroundColor: 'black',
                 },
+                close: false,
                 ...options
             },
             aladin.aladinDiv
@@ -162,21 +162,19 @@ import { ColorCfg } from "../../ColorCfg.js";
 
             let layerOpacity = layer.getOpacity()
 
-            self.opacitySettingsContent = Layout.horizontal([
-                Input.slider({
-                    tooltip: {content: layerOpacity, position: {direction: 'bottom'}},
-                    name: 'opacitySlider',
-                    type: 'range',
-                    min: 0.0,
-                    max: 1.0,
-                    value: layerOpacity,
-                    change(e, slider) {
-                        const opacity = +e.target.value;
-                        layer.setOpacity(opacity)
-                        slider.update({value: opacity, tooltip: {content: opacity.toFixed(2), position: {direction: 'bottom'}}})
-                    }
-                }),
-            ]);
+            self.opacitySettingsContent = Input.slider({
+                tooltip: {content: layerOpacity, position: {direction: 'bottom'}},
+                name: 'opacitySlider',
+                type: 'range',
+                min: 0.0,
+                max: 1.0,
+                value: layerOpacity,
+                change(e, slider) {
+                    const opacity = +e.target.value;
+                    layer.setOpacity(opacity)
+                    slider.update({value: opacity, tooltip: {content: opacity.toFixed(2), position: {direction: 'bottom'}}})
+                }
+            })
 
             let brightness = layer.getColorCfg().getBrightness()
             let saturation = layer.getColorCfg().getSaturation()
@@ -311,10 +309,10 @@ import { ColorCfg } from "../../ColorCfg.js";
 
     _addListeners() {
         ALEvent.HIPS_LAYER_CHANGED.listenedBy(this.aladin.aladinDiv, (e) => {
-            const layerChanged = e.detail.layer;
+            const hips = e.detail.layer;
             let selectedLayer = this.options.layer;
-            if (selectedLayer && layerChanged.layer === selectedLayer.layer) {
-                let colorCfg = layerChanged.getColorCfg();
+            if (selectedLayer && hips.layer === selectedLayer.layer) {
+                let colorCfg = hips.getColorCfg();
 
                 let cmap = colorCfg.getColormap();
                 let reversed = colorCfg.getReversed();
@@ -323,7 +321,9 @@ import { ColorCfg } from "../../ColorCfg.js";
                 let [minCut, maxCut] = colorCfg.getCuts();
                 this.minCutInput.set(+minCut.toFixed(2));
                 this.maxCutInput.set(+maxCut.toFixed(2));
-                this.stretchSelector.update({value: stretch})
+                this.stretchSelector.update({value: stretch});
+
+                this.opacitySettingsContent.set(hips.getOpacity())
             }
         });
     }

@@ -418,12 +418,17 @@ export let Aladin = (function () {
                         url = null;
                     }
 
+                    cachedSurvey = {...cachedSurvey, ...survey}
+
                     if (survey.properties) {
+                        delete cachedSurvey.properties;
                         cachedSurvey = {...cachedSurvey, ...survey.properties}
                     }
                     if (survey.options) {
+                        delete cachedSurvey.options;
                         cachedSurvey = {...cachedSurvey, ...survey.options}
                     }
+
                 } else {
                     console.warn('unable to parse the survey list item: ', survey)
                     continue;
@@ -456,14 +461,36 @@ export let Aladin = (function () {
                     HiPSes.forEach((h) => {
                         hipsList.push({
                             id: h.ID,
-                            name: h.obs_title
+                            name: h.obs_title,
+                            regime: h.obs_regime,
                         })
                     });
 
                     fillHiPSCache();
                 });
         } else {
-            fillHiPSCache();
+            let IDs = hipsList.map((h) => {
+                if (h instanceof Object) {
+                    return h.id;
+                } else {
+                    return h;
+                }
+            });
+
+            MocServer.getHiPSesFromIDs(IDs)
+            .then((HiPSes) => {
+                // Erase the HiPSlist with the one completed from the MOCServer
+                hipsList = [];
+                HiPSes.forEach((h) => {
+                    hipsList.push({
+                        id: h.ID,
+                        name: h.obs_title,
+                        regime: h.obs_regime,
+                    })
+                });
+
+                fillHiPSCache();
+            });
         }
 
         this.view.showCatalog(options.showCatalog);

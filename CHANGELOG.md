@@ -2,6 +2,7 @@
 
 ## 3.3.3
 
+* [feat] UI: add HiPS basic filter that filters the `hipsList` given
 * [feat] New `hipsList` option parameter when instancing a new Aladin object.
 * [feat] Zoom smoothing using hermite cubic interpolation functions
 * [feat] shape option of Catalog and ProgressiveCat accepts a function returning a Footprint. This allow user to

@@ -403,8 +403,9 @@ export let ImageSurvey = (function () {
         //console.log('new CACHE', ImageSurvey.cache, self.id, surveyOpt, ImageSurvey.cache[self.id], ImageSurvey.cache["CSIRO/P/RACS/mid/I"])
 
         // Tell that the HiPS List has been updated
-        ALEvent.HIPS_LIST_UPDATED.dispatchedTo(this.view.aladin.aladinDiv);
-
+        if (this.view) {
+            ALEvent.HIPS_LIST_UPDATED.dispatchedTo(this.view.aladin.aladinDiv);
+        }
     }
 
     /**

@@ -23,9 +23,7 @@
       });
 
       let pmraMean = null, pmdecMean = null;
-      //aladin.addCatalog(A.catalogFromSimbad('LMC', 2.5, {
-      //aladin.addCatalog(A.catalogFromVizieR('J/A+A/663/A107/table5', 'LMC', 5, {
-    
+
       const pmCat = A.catalogFromURL('./data/proper_motion.xml', {
         onClick: 'showTable',
         name: 'mean pm over HPX cells around LMC from GaiaDR2',

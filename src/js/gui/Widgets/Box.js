@@ -117,12 +117,7 @@ export class Box extends DOMElement {
                 titleEl.style.cursor = 'move'
             }
     
-            Layout.horizontal({
-                cssStyle: {
-                    justifyContent: 'space-between',
-                },
-                layout: [draggableEl, titleEl]
-            }, this.el);
+            Layout.horizontal([draggableEl, titleEl], this.el);
 
             let separatorEl = document.createElement('div')
             separatorEl.classList.add("aladin-box-separator");

@@ -45,8 +45,7 @@ import { ColorCfg } from "../../ColorCfg.js";
      constructor(aladin, options) {
         super({
                 cssStyle: {
-                    padding: '4px',
-                    backgroundColor: 'black',
+                    backgroundColor: '#333333'
                 },
                 close: false,
                 ...options

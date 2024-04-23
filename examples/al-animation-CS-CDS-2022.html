@@ -17,6 +17,7 @@
 </div>
 <script type="module">
     import A from '../src/js/A.js';
+    var aladin;
     A.init.then(() => {
         aladin = A.aladin('#aladin-lite-div', {projection: 'MOL', cooFrame: 'galactic', fov: 360, fullScreen: true, showCooGrid: false, showReticle: false})
         aladin.gotoRaDec(79.9525321, -69.2742586)
@@ -50,8 +51,7 @@
             }
         }
 
-        aladin.setCooGrid({opacity: 0, color: {r: 51/255, g: 209/255, b: 1}})
-        aladin.setCooGrid({enabled: true})
+        aladin.setCooGrid({enabled: true, opacity: 0, color: {r: 51, g: 209, b: 255}})
 
         async function s_1() {
             return new Promise((resolve, reject) => {

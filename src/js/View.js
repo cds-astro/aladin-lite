@@ -121,6 +121,38 @@ export let View = (function () {
 
         this.aladinDiv.ondragover = Utils.dragOverHandler;
 
+        this.throttledPositionChanged = Utils.throttle(
+            () => {
+                var posChangedFn = this.aladin.callbacksByEventName && this.aladin.callbacksByEventName['positionChanged'];
+                if (typeof posChangedFn === 'function') {
+                    var pos = this.aladin.pix2world(this.width / 2, this.height / 2);
+                    if (pos !== undefined) {
+                        posChangedFn({
+                            ra: pos[0],
+                            dec: pos[1],
+                            dragging: true
+                        });
+                    }
+                }
+            },
+            View.CALLBACKS_THROTTLE_TIME_MS,
+        );
+
+        this.throttledZoomChanged = Utils.throttle(
+            () => {
+                const fov = this.fov;
+                // trigger callback only if FoV (zoom) has changed !
+                if (fov !== this.oldFov) {
+                    const fovChangedFn = this.aladin.callbacksByEventName['zoomChanged'];
+                    (typeof fovChangedFn === 'function') && fovChangedFn(fov);
+
+                    // finally, save fov value
+                    this.oldFov = fov;
+                }
+            },
+            View.CALLBACKS_THROTTLE_TIME_MS,
+        );
+
         this.mustClearCatalog = true;
         this.mode = View.PAN;
 
@@ -231,7 +263,6 @@ export let View = (function () {
             self.fixLayoutDimensions();
         }
 
-        let doit;
         this.resizeObserver = new ResizeObserver(() => {
             //clearTimeout(doit);
             //doit = setTimeout(resizeLayout, 100);
@@ -239,38 +270,6 @@ export let View = (function () {
         });
 
         self.resizeObserver.observe(this.aladinDiv)
-
-        this.throttledPositionChanged = Utils.throttle(
-            () => {
-                var posChangedFn = this.aladin.callbacksByEventName && this.aladin.callbacksByEventName['positionChanged'];
-                if (typeof posChangedFn === 'function') {
-                    var pos = this.aladin.pix2world(this.width / 2, this.height / 2);
-                    if (pos !== undefined) {
-                        posChangedFn({
-                            ra: pos[0],
-                            dec: pos[1],
-                            dragging: true
-                        });
-                    }
-                }
-            },
-            View.CALLBACKS_THROTTLE_TIME_MS,
-        );
-
-        this.throttledZoomChanged = Utils.throttle(
-            () => {
-                const fov = this.fov;
-                // trigger callback only if FoV (zoom) has changed !
-                if (fov !== this.oldFov) {
-                    const fovChangedFn = this.aladin.callbacksByEventName['zoomChanged'];
-                    (typeof fovChangedFn === 'function') && fovChangedFn(fov);
-
-                    // finally, save fov value
-                    this.oldFov = fov;
-                }
-            },
-            View.CALLBACKS_THROTTLE_TIME_MS,
-        );
 
         self.fixLayoutDimensions();
         self.redraw()
@@ -1099,7 +1098,7 @@ export let View = (function () {
             }
 
             view.debounceProgCatOnZoom();
-            view.throttledZoomChanged();
+            //view.throttledZoomChanged();
 
             // Zoom heuristic
             // First detect the device
@@ -1537,6 +1536,8 @@ export let View = (function () {
         fovY = Math.min(fovY, 180);
 
         ALEvent.ZOOM_CHANGED.dispatchedTo(this.aladinDiv, { fovX: fovX, fovY: fovY });
+
+        this.throttledZoomChanged();
     };
 
     /**

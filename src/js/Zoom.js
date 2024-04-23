@@ -66,7 +66,19 @@ import { requestAnimFrame } from "./libs/RequestAnimationFrame.js";
             view.idx = Zoom.LEVELS.length - 1
         }
 
-        return Zoom.LEVELS[view.idx];
+        let nextFov = Zoom.LEVELS[view.idx];
+
+        if (view.minFoV) {
+            nextFov = Math.max(nextFov, view.minFoV)
+            view.idx = Utils.binarySearch(Zoom.LEVELS, nextFov);
+        }
+
+        if (view.maxFoV) {
+            nextFov = Math.min(nextFov, view.maxFoV)
+            view.idx = Utils.binarySearch(Zoom.LEVELS, nextFov);
+        }
+
+        return nextFov;
     }
 
     Zoom.prototype.apply = function(options) {

@@ -12,10 +12,12 @@
     A.init.then(() => {
         aladin = A.aladin('#aladin-lite-div', {
             fullScreen: true,
-            target: "orion",
+            target: "centaurus A",
             fov: 10,
             projection: 'SIN',
             showContextMenu: true,
+            showSimbadPointerControl: true,
+            expandLayersControl: true,
             hipsList: [
                 // High energy (Gamma and X-rays)
                 'CDS/P/HGPS/Flux',
@@ -73,8 +75,8 @@
             ]
         });
 
-        const c1 = A.catalogFromURL('./data/eso.xml', {onClick: 'showTable'});
-        aladin.addCatalog(c1);
+        //const c1 = A.catalogFromURL('./data/eso.xml', {onClick: 'showTable'});
+        //aladin.addCatalog(c1);
     });
 </script>
 </body>

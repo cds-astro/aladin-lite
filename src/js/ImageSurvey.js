@@ -378,6 +378,7 @@ export let ImageSurvey = (function () {
 
         let colorOpt = Object.fromEntries(Object.entries(this.colorCfg));
         let surveyOpt = {
+            id: self.id,
             creatorDid: self.creatorDid,
             name: self.name,
             url: self.url,

@@ -21,6 +21,9 @@ import { Box } from "../Widgets/Box.js";
 import { Layout } from "../Layout.js";
 import { ActionButton } from "../Widgets/ActionButton.js";
 import { ALEvent } from "../../events/ALEvent.js";
+import { Icon } from "../Widgets/Icon.js";
+import infoIconUrl from '../../../../assets/icons/info.svg';
+
 /******************************************************************************
  * Aladin Lite project
  * 
@@ -62,6 +65,7 @@ import { ALEvent } from "../../events/ALEvent.js";
  *****************************************************************************/
  
  import { Input } from "./../Widgets/Input.js";
+import { Utils } from "../../Utils.ts";
  
  export class HiPSSearch extends Input {
     static HiPSList = {};
@@ -74,13 +78,31 @@ import { ALEvent } from "../../events/ALEvent.js";
         aladin.view.catalogCanvas.addEventListener('click', (e) => {
             self.el.blur();
         });
-
+        
         let prevKey = layer.name;
+        let hips = HiPSSearch.HiPSList[layer.name];
+
+        let content = [new Icon({
+            size: 'medium',
+            monochrome: true,
+            url: infoIconUrl,
+            cssStyle: {
+                cursor: "help",
+            },
+        })];
+        content.push('<a style="color: white;" href="' + layer.url + '" target="_blank">See more...</a>')
+        let tooltip = {
+            content: new Layout({layout: content, orientation: 'horizontal'}),
+            hoverable: true,
+            position: {
+                direction: 'bottom',
+            }
+        }
         super({
             name: 'HiPS search',
             type: 'text',
-            classList: ['search'],
-            name: 'survey',
+            name: 'survey' + Utils.uuidv4(),
+            tooltip,
             placeholder: "Survey keywords or url",
             autocomplete: {options: Object.keys(HiPSSearch.HiPSList)},
             title: layer.name,
@@ -92,14 +114,14 @@ import { ALEvent } from "../../events/ALEvent.js";
                         return;
                     }
 
-                    let image;
+                    let image, hips;
                     // A user can put an url
                     try {
                         image = new URL(key).href;
                     } catch(e) {
                         // Or he can select a HiPS from the list given
-                        let hips = HiPSSearch.HiPSList[key]
-                        //console.log("HIPS", key, hips)
+                        hips = HiPSSearch.HiPSList[key]
+
                         if (hips) {
                             image = hips.id || hips.url || undefined;
                         } else {
@@ -109,25 +131,22 @@ import { ALEvent } from "../../events/ALEvent.js";
                     }
 
                     self.el.blur();
-
                     if (image) {
-                        prevKey = key;
-                        aladin.setOverlayImageLayer(image, layer.layer);
+                        prevKey = image;
+                        // set the layer to the new value
+                        self.layer = aladin.setOverlayImageLayer(image, layer.layer);
                     }
-                },
-                /*input(e) {
-                    let value = e.target.value;
-
-                    self.update({value, title: value})
-                }*/
+                }
             },
             value: layer.name,
             ...options
         })
-        this.addClass('aladin-HiPS-search')
+        this.el.classList.add('aladin-HiPS-search', 'search')
 
         self = this;
         this.layer = layer;
+
+        console.log(this.el)
 
         this._addEventListeners(aladin);
     }

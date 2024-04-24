@@ -452,22 +452,14 @@ export let Aladin = (function () {
                 }
             }
 
+            console.log('cache', ImageSurvey.cache)
+
             ALEvent.HIPS_LIST_UPDATED.dispatchedTo(this.aladinDiv);
         }
 
+        let HiPSQuery;
         if (hipsList.length === 0) {
-            MocServer.getAllHiPSes()
-                .then((HiPSes) => {
-                    HiPSes.forEach((h) => {
-                        hipsList.push({
-                            id: h.ID,
-                            name: h.obs_title,
-                            regime: h.obs_regime,
-                        })
-                    });
-
-                    fillHiPSCache();
-                });
+            HiPSQuery = MocServer.getAllHiPSes()
         } else {
             let IDs = hipsList.map((h) => {
                 if (h instanceof Object) {
@@ -477,21 +469,23 @@ export let Aladin = (function () {
                 }
             });
 
-            MocServer.getHiPSesFromIDs(IDs)
-            .then((HiPSes) => {
-                // Erase the HiPSlist with the one completed from the MOCServer
-                hipsList = [];
-                HiPSes.forEach((h) => {
-                    hipsList.push({
-                        id: h.ID,
-                        name: h.obs_title,
-                        regime: h.obs_regime,
-                    })
-                });
-
-                fillHiPSCache();
-            });
+            HiPSQuery = MocServer.getHiPSesFromIDs(IDs)
         }
+
+        HiPSQuery.then((HiPSes) => {
+            hipsList = [];
+            HiPSes.forEach((h) => {
+                hipsList.push({
+                    id: h.ID,
+                    name: h.obs_title,
+                    regime: h.obs_regime,
+                })
+            });
+
+            console.log(hipsList);
+
+            fillHiPSCache();
+        });
 
         this.view.showCatalog(options.showCatalog);
 

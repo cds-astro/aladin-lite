@@ -130,9 +130,10 @@ export class Input extends DOMElement {
                     datalist.id = 'ticks-' + this.options.name;
                     this.el.setAttribute('list', datalist.id);
                     
-                    if (this.el.querySelector('#' + datalist.id)) {
+                    //console.log(this.el, this.el.querySelector('#' + datalist.id), datalist)
+                    /*if (this.el.querySelector('#' + datalist.id)) {
                         this.el.querySelector('#' + datalist.id).remove()
-                    }
+                    }*/
                     this.el.appendChild(datalist);
 
                     this.el.autocomplete = 'off';

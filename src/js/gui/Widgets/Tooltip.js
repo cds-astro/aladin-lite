@@ -136,15 +136,17 @@ export class Tooltip extends DOMElement {
         }
 
         if (this.options.content) {
-            let content = this.options.content;
-            if (content instanceof DOMElement) {
-                content.attachTo(tooltipEl)
-            } else if (content instanceof Element) {                
-                tooltipEl.insertAdjacentElement('beforeend', content);
-            } else {
-                let wrapEl = document.createElement('div');
-                wrapEl.innerHTML = content;
-                tooltipEl.insertAdjacentElement('beforeend', wrapEl);
+            let content = [].concat(this.options.content);
+            for (var c of content) {
+                if (c instanceof DOMElement) {
+                    c.attachTo(tooltipEl)
+                } else if (c instanceof Element) {                
+                    tooltipEl.insertAdjacentElement('beforeend', c);
+                } else {
+                    let wrapEl = document.createElement('div');
+                    wrapEl.innerHTML = c;
+                    tooltipEl.insertAdjacentElement('beforeend', wrapEl);
+                }
             }
         }
 

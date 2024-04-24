@@ -523,6 +523,10 @@ export class OverlayStackBox extends Box {
             const hips = e.detail.layer;
             let ui = self.HiPSui[hips.layer];
 
+            if (!ui) {
+                return;
+            }
+
             // change the ui from parameter changes
             // show button
             const opacity = hips.getOpacity();
@@ -548,8 +552,6 @@ export class OverlayStackBox extends Box {
                     HiPSSearch.HiPSList[HiPS.name] = HiPS;
                 }
             }
-
-            //console.log(HiPSSearch.HiPSList)
 
             let keys = Object.keys(HiPSSearch.HiPSList)
             // Change the autocomplete of all the search input text
@@ -829,8 +831,6 @@ export class OverlayStackBox extends Box {
                 },
             });
 
-            let layerClassName = 'a' + layer.layer.replace(/[.\/ ]/g, '')
-
             let btns = [showBtn, settingsBtn];
 
             if (layer.subtype !== 'fits') {
@@ -841,16 +841,8 @@ export class OverlayStackBox extends Box {
             let item = Layout.horizontal({
                 layout: [
                     searchInput,
-                    //'<div class="' + layerClassName + '" style="background-color: rgba(0, 0, 0, 0.6); line-height: 1rem; padding: 3px; border-radius: 3px; word-break: break-word;' + (selectedLayer === layer.layer ? 'border: 1px solid white;' : '') + '">' + (layer.name) + '</div>',
                     Layout.horizontal(btns)
                 ],
-                cssStyle: {
-                    display: 'flex',
-                    alignItems: 'center',
-                    listStyle: 'none',
-                    justifyContent: 'space-between',
-                    width: '100%',
-                }
             });
 
             layout.push(item);

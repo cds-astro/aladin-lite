@@ -1865,9 +1865,10 @@ export let View = (function () {
         ra = parseFloat(ra);
         dec = parseFloat(dec);
 
-        if (!ra || !dec) {
+        if (!Number.isFinite(ra) || !Number.isFinite(dec)) {
             return;
         }
+
         this.viewCenter.lon = ra;
         this.viewCenter.lat = dec;  
         //this.updateLocation({lon: this.viewCenter.lon, lat: this.viewCenter.lat});

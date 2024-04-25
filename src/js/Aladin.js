@@ -1009,7 +1009,6 @@ export let Aladin = (function () {
             var coo = new Coo();
             coo.parse(targetName);
             // Convert from view coo sys to icrs
-
             const [ra, dec] = this.wasm.viewToICRSCooSys(coo.lon, coo.lat);
 
             this.view.pointTo(ra, dec);

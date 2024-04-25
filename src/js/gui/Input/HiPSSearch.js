@@ -90,7 +90,13 @@ import { Utils } from "../../Utils.ts";
                 cursor: "help",
             },
         })];
-        content.push('<a style="color: white;" href="' + layer.url + '" target="_blank">See more...</a>')
+        let link;
+        if (layer.subtype === "fits") {
+            link = 'Download file...'
+        } else {
+            link = 'See more...'
+        }
+        content.push('<a style="color: white;" href="' + layer.url + '" target="_blank">' + link + '</a>')
         let tooltip = {
             content: new Layout({layout: content, orientation: 'horizontal'}),
             hoverable: true,
@@ -145,8 +151,6 @@ import { Utils } from "../../Utils.ts";
 
         self = this;
         this.layer = layer;
-
-        console.log(this.el)
 
         this._addEventListeners(aladin);
     }

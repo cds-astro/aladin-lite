@@ -452,8 +452,6 @@ export let Aladin = (function () {
                 }
             }
 
-            console.log('cache', ImageSurvey.cache)
-
             ALEvent.HIPS_LIST_UPDATED.dispatchedTo(this.aladinDiv);
         }
 
@@ -481,8 +479,6 @@ export let Aladin = (function () {
                     regime: h.obs_regime,
                 })
             });
-
-            console.log(hipsList);
 
             fillHiPSCache();
         });

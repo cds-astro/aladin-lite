@@ -17,7 +17,6 @@
 //    along with Aladin Lite.
 //
 
-
 /******************************************************************************
  * Aladin Lite project
  *
@@ -28,25 +27,25 @@
  *
  *****************************************************************************/
 import { CatalogQueryBox } from "./CatalogQueryBox.js";
- import { ALEvent } from "../../events/ALEvent.js";
- import { Layout } from "../Layout.js";
- import { ContextMenu } from "../Widgets/ContextMenu.js";
- import { ActionButton } from "../Widgets/ActionButton.js";
+import { ALEvent } from "../../events/ALEvent.js";
+import { Layout } from "../Layout.js";
+import { ContextMenu } from "../Widgets/ContextMenu.js";
+import { ActionButton } from "../Widgets/ActionButton.js";
 import A from "../../A.js";
 import { Utils } from "../../Utils";
 import { View } from "../../View.js";
 import { HiPSSettingsBox } from "./HiPSSettingsBox.js";
-import searchIconUrl from '../../../../assets/icons/search.svg';
-import showIconUrl from '../../../../assets/icons/show.svg';
-import addIconUrl from '../../../../assets/icons/plus.svg';
-import hideIconUrl from '../../../../assets/icons/hide.svg';
-import removeIconUrl from '../../../../assets/icons/remove.svg';
-import settingsIconUrl from '../../../../assets/icons/settings.svg';
-import filterOnUrl from '../../../../assets/icons/filter-on.svg';
-import filterOffUrl from '../../../../assets/icons/filter-off.svg';
+import searchIconUrl from "../../../../assets/icons/search.svg";
+import showIconUrl from "../../../../assets/icons/show.svg";
+import addIconUrl from "../../../../assets/icons/plus.svg";
+import hideIconUrl from "../../../../assets/icons/hide.svg";
+import removeIconUrl from "../../../../assets/icons/remove.svg";
+import settingsIconUrl from "../../../../assets/icons/settings.svg";
+import filterOnUrl from "../../../../assets/icons/filter-on.svg";
+import filterOffUrl from "../../../../assets/icons/filter-off.svg";
 
 import { ImageFITS } from "../../ImageFITS.js";
-import searchIconImg from '../../../../assets/icons/search.svg';
+import searchIconImg from "../../../../assets/icons/search.svg";
 import { TogglerActionButton } from "../Button/Toggler.js";
 import { Icon } from "../Widgets/Icon.js";
 import { ImageSurvey } from "../../ImageSurvey.js";
@@ -76,301 +75,471 @@ export class OverlayStackBox extends Box {
         'SDSS9 colored': 'https://aladin.cds.unistra.fr/AladinLite/survey-previews/P_SDSS9_color.jpg',
     };*/
     static predefinedCats = {
-        simbad: {url: 'https://axel.u-strasbg.fr/HiPSCatService/SIMBAD', options: {id: 'simbad', name: 'SIMBAD', shape: 'circle', sourceSize: 8, color: '#318d80', onClick: 'showTable'}},
-        gaia: {url: 'https://axel.u-strasbg.fr/HiPSCatService/I/355/gaiadr3', options: {id: 'gaia-dr3', name: 'Gaia DR3', shape: 'square', sourceSize: 8, color: '#6baed6', onClick: 'showTable'}},
-        twomass: {url: 'https://axel.u-strasbg.fr/HiPSCatService/II/246/out', options: {id: '2mass', name: '2MASS', shape: 'plus', sourceSize: 8, color: '#dd2233', onClick: 'showTable'}}
+        simbad: {
+            url: "https://axel.u-strasbg.fr/HiPSCatService/SIMBAD",
+            options: {
+                id: "simbad",
+                name: "SIMBAD",
+                shape: "circle",
+                sourceSize: 8,
+                color: "#318d80",
+                hoverColor: 'red',
+                onClick: "showTable",
+                shape: (s) => {
+                    let a = +s.data.size_maj;
+                    let b = +s.data.size_min;
+        
+                    let galaxy = ['Seyfert', 'Gin', 'StarburstG', 'LINER', 'AGN', 'Galaxy'].some((n) => s.data.main_type.indexOf(n) >= 0)
+                    if (!galaxy)
+                        return;
+        
+                    let theta = +s.data.size_angle || 0.0;
+                    return A.ellipse(s.ra, s.dec, a / 60, b / 60, theta);
+                }
+            },
+        },
+        gaia: {
+            url: "https://axel.u-strasbg.fr/HiPSCatService/I/355/gaiadr3",
+            options: {
+                id: "gaia-dr3",
+                name: "Gaia DR3",
+                shape: "square",
+                sourceSize: 8,
+                color: "#6baed6",
+                onClick: "showTable",
+            },
+        },
+        twomass: {
+            url: "https://axel.u-strasbg.fr/HiPSCatService/II/246/out",
+            options: {
+                id: "2mass",
+                name: "2MASS",
+                shape: "plus",
+                sourceSize: 8,
+                color: "#dd2233",
+                onClick: "showTable",
+            },
+        },
     };
     // Constructor
     constructor(aladin) {
-        super({
-            close: false,
-            header: {
-                title: 'Stack',
+        super(
+            {
+                close: false,
+                header: {
+                    title: "Stack",
+                },
+                classList: ["aladin-stack-box"],
+                content: [],
             },
-            classList: ['aladin-stack-box'],
-            content: []
-        },
-        aladin.aladinDiv);
+            aladin.aladinDiv
+        );
         this.aladin = aladin;
 
         this.filterHiPSOn = false;
         this.filterCallback = (HiPS) => {
-            if (this.filterParams.regime && HiPS.regime && this.filterParams.regime.toLowerCase() !== HiPS.regime.toLowerCase()) {
+            if (!HiPS.regime) {
+                return false;
+            }
+
+            if (
+                this.filterParams.regime &&
+                HiPS.regime &&
+                this.filterParams.regime.toLowerCase() !==
+                    HiPS.regime.toLowerCase()
+            ) {
                 return false;
             }
 
             return true;
         };
 
-        this.mode = 'stack';
+        this.mode = "stack";
 
         this._addListeners();
 
-        this.mocHiPSUrls = {}
-        this.HiPSui = {}
+        this.mocHiPSUrls = {};
+        this.HiPSui = {};
         let self = this;
         // Add overlay button
-        this.addOverlayBtn = new CtxMenuActionButtonOpener({
-            icon: {
-                url: addIconUrl,
-                size: 'small',
-                monochrome: true,
-            },
-            tooltip: {content: 'A catalog, MOC or footprint', position: { direction: 'top' }},
-            ctxMenu: [
+        this.addOverlayBtn = new CtxMenuActionButtonOpener(
+            {
+                icon: {
+                    url: addIconUrl,
+                    size: "small",
+                    monochrome: true,
+                },
+                tooltip: {
+                    content: "A catalog, MOC or footprint",
+                    position: { direction: "top" },
+                },
+                ctxMenu: [
                     {
-                        label: 'Catalogue',
+                        label: "Catalogue",
                         subMenu: [
                             {
                                 label: {
                                     icon: {
-                                        url: 'https://aladin.cds.unistra.fr/AladinLite/logos/SIMBAD.svg',
+                                        url: "https://aladin.cds.unistra.fr/AladinLite/logos/SIMBAD.svg",
                                         cssStyle: {
-                                            width: '3rem',
-                                            height: '3rem',
-                                            cursor: 'help',
+                                            width: "3rem",
+                                            height: "3rem",
+                                            cursor: "help",
                                         },
                                         action(o) {
-                                            window.open('https://simbad.cds.unistra.fr/simbad/')
-                                        }
+                                            window.open(
+                                                "https://simbad.cds.unistra.fr/simbad/"
+                                            );
+                                        },
                                     },
-                                    content: 'database',
-                                    tooltip: {content: 'Click to go to the SIMBAD database', position: {direction: 'bottom'}},
+                                    content: "database",
+                                    tooltip: {
+                                        content:
+                                            "Click to go to the SIMBAD database",
+                                        position: { direction: "bottom" },
+                                    },
                                 },
                                 action(o) {
                                     o.stopPropagation();
                                     o.preventDefault();
-                                    
+
                                     //self._hide();
 
-                                    const simbadHiPS = A.catalogHiPS(OverlayStackBox.predefinedCats.simbad.url, OverlayStackBox.predefinedCats.simbad.options);
+                                    const simbadHiPS = A.catalogHiPS(
+                                        OverlayStackBox.predefinedCats.simbad
+                                            .url,
+                                        OverlayStackBox.predefinedCats.simbad
+                                            .options
+                                    );
                                     self.aladin.addCatalog(simbadHiPS);
-                                }
+                                },
                             },
                             {
-                                label: 'Gaia DR3',
+                                label: "Gaia DR3",
                                 action(o) {
                                     o.stopPropagation();
                                     o.preventDefault();
-                                    
+
                                     //self._hide();
 
-                                    const simbadHiPS = A.catalogHiPS(OverlayStackBox.predefinedCats.gaia.url, OverlayStackBox.predefinedCats.gaia.options);
+                                    const simbadHiPS = A.catalogHiPS(
+                                        OverlayStackBox.predefinedCats.gaia.url,
+                                        OverlayStackBox.predefinedCats.gaia
+                                            .options
+                                    );
                                     self.aladin.addCatalog(simbadHiPS);
-                                }
+                                },
                             },
                             {
-                                label: '2MASS',
+                                label: "2MASS",
                                 action(o) {
                                     o.stopPropagation();
                                     o.preventDefault();
-                                    
+
                                     //self._hide();
 
-                                    const simbadHiPS = A.catalogHiPS(OverlayStackBox.predefinedCats.twomass.url, OverlayStackBox.predefinedCats.twomass.options);
+                                    const simbadHiPS = A.catalogHiPS(
+                                        OverlayStackBox.predefinedCats.twomass
+                                            .url,
+                                        OverlayStackBox.predefinedCats.twomass
+                                            .options
+                                    );
                                     self.aladin.addCatalog(simbadHiPS);
-                                }
+                                },
                             },
                             ContextMenu.fileLoaderItem({
-                                label: 'From a VOTable File',
-                                accept: '.xml,.vot',
+                                label: "From a VOTable File",
+                                accept: ".xml,.vot",
                                 action(file) {
                                     let url = URL.createObjectURL(file);
 
                                     A.catalogFromURL(
                                         url,
-                                        {onClick: 'showTable'},
+                                        { onClick: "showTable" },
                                         (catalog) => {
-                                            self.aladin.addCatalog(catalog)
+                                            self.aladin.addCatalog(catalog);
                                         },
-                                        e => alert(e)
+                                        (e) => alert(e)
                                     );
-                                }
+                                },
                             }),
                             {
                                 label: {
                                     icon: {
                                         url: searchIconImg,
                                         monochrome: true,
-                                        tooltip: {content: 'Find a specific catalogue <br /> in our database...', position: { direction: 'top' }},
+                                        tooltip: {
+                                            content:
+                                                "Find a specific catalogue <br /> in our database...",
+                                            position: { direction: "top" },
+                                        },
                                         cssStyle: {
-                                            cursor: 'help',
+                                            cursor: "help",
                                         },
                                     },
-                                    content: 'More...'
+                                    content: "More...",
                                 },
                                 action(o) {
                                     o.stopPropagation();
                                     o.preventDefault();
-                                    
+
                                     self._hide();
 
                                     if (!self.catBox) {
-                                        self.catBox = new CatalogQueryBox(self.aladin);
-                                        self.catBox.attach({callback: () => {
-                                            self._show();
-                                        }});
+                                        self.catBox = new CatalogQueryBox(
+                                            self.aladin
+                                        );
+                                        self.catBox.attach({
+                                            callback: () => {
+                                                self._show();
+                                            },
+                                        });
                                     }
 
-                                    self.catBox._show({position: self.position});
-                                }
+                                    self.catBox._show({
+                                        position: self.position,
+                                    });
+                                },
                             },
-                        ]
+                        ],
                     },
                     {
                         label: {
                             icon: {
-                                url: Icon.dataURLFromSVG({svg: Icon.SVG_ICONS.MOC}),
-                                size: 'small',
-                                tooltip: {content: 'Define a selection coverage', position: {direction: 'bottom'}},
+                                url: Icon.dataURLFromSVG({
+                                    svg: Icon.SVG_ICONS.MOC,
+                                }),
+                                size: "small",
+                                tooltip: {
+                                    content: "Define a selection coverage",
+                                    position: { direction: "bottom" },
+                                },
                                 monochrome: true,
                                 cssStyle: {
-                                    cursor: 'pointer',
+                                    cursor: "pointer",
                                 },
                             },
-                            content: 'MOC'
+                            content: "MOC",
                         },
                         subMenu: [
                             ContextMenu.fileLoaderItem({
-                                label: 'FITS File',
-                                accept: '.fits',
+                                label: "FITS File",
+                                accept: ".fits",
                                 action(file) {
                                     let url = URL.createObjectURL(file);
 
-                                    let moc = A.MOCFromURL(
-                                        url,
-                                        {name: file.name, lineWidth: 3.0},
-                                    );
-                                    self.aladin.addMOC(moc)
-                                }
+                                    let moc = A.MOCFromURL(url, {
+                                        name: file.name,
+                                        lineWidth: 3.0,
+                                    });
+                                    self.aladin.addMOC(moc);
+                                },
                             }),
                             {
-                                label: 'From selection',
+                                label: "From selection",
                                 subMenu: [
                                     {
-                                        label: '◌ Circle',
-                                        disabled: self.aladin.view.mode !== View.PAN ? {
-                                            reason: 'Exit your current mode<br/>(e.g. disable the SIMBAD pointer mode)'
-                                        } : false,
+                                        label: "◌ Circle",
+                                        disabled:
+                                            self.aladin.view.mode !== View.PAN
+                                                ? {
+                                                      reason: "Exit your current mode<br/>(e.g. disable the SIMBAD pointer mode)",
+                                                  }
+                                                : false,
                                         action(o) {
                                             o.preventDefault();
                                             o.stopPropagation();
 
                                             //self._hide();
 
-                                            self.aladin.select('circle', c => {
-                                                try {
-                                                    let [ra, dec] = self.aladin.pix2world(c.x, c.y, 'j2000');
-                                                    let radius = self.aladin.angularDist(c.x, c.y, c.x + c.r, c.y);
-        
-                                                    // the moc needs a 
-                                                    let moc = A.MOCFromCone(
-                                                        {ra, dec, radius},
-                                                        {name: 'cone', lineWidth: 3.0},
-                                                    );
-                                                    self.aladin.addMOC(moc)
-                                                } catch {
-                                                    console.error('Circle out of projection. Selection canceled')
+                                            self.aladin.select(
+                                                "circle",
+                                                (c) => {
+                                                    try {
+                                                        let [ra, dec] =
+                                                            self.aladin.pix2world(
+                                                                c.x,
+                                                                c.y,
+                                                                "j2000"
+                                                            );
+                                                        let radius =
+                                                            self.aladin.angularDist(
+                                                                c.x,
+                                                                c.y,
+                                                                c.x + c.r,
+                                                                c.y
+                                                            );
+
+                                                        // the moc needs a
+                                                        let moc = A.MOCFromCone(
+                                                            { ra, dec, radius },
+                                                            {
+                                                                name: "cone",
+                                                                lineWidth: 3.0,
+                                                            }
+                                                        );
+                                                        self.aladin.addMOC(moc);
+                                                    } catch {
+                                                        console.error(
+                                                            "Circle out of projection. Selection canceled"
+                                                        );
+                                                    }
                                                 }
-                                            })
-                                        }
+                                            );
+                                        },
                                     },
                                     {
-                                        label: '⬚ Rect',
-                                        disabled: self.aladin.view.mode !== View.PAN ? {
-                                            reason: 'Exit your current mode<br/>(e.g. disable the SIMBAD pointer mode)'
-                                        } : false,
+                                        label: "⬚ Rect",
+                                        disabled:
+                                            self.aladin.view.mode !== View.PAN
+                                                ? {
+                                                      reason: "Exit your current mode<br/>(e.g. disable the SIMBAD pointer mode)",
+                                                  }
+                                                : false,
                                         action(o) {
                                             o.stopPropagation();
                                             o.preventDefault();
 
                                             //self._hide();
 
-                                            self.aladin.select('rect', r => {
+                                            self.aladin.select("rect", (r) => {
                                                 try {
-                                                    let [ra1, dec1] = self.aladin.pix2world(r.x, r.y, 'j2000');
-                                                    let [ra2, dec2] = self.aladin.pix2world(r.x + r.w, r.y, 'j2000');
-                                                    let [ra3, dec3] = self.aladin.pix2world(r.x + r.w, r.y + r.h, 'j2000');
-                                                    let [ra4, dec4] = self.aladin.pix2world(r.x, r.y + r.h, 'j2000');
-        
+                                                    let [ra1, dec1] =
+                                                        self.aladin.pix2world(
+                                                            r.x,
+                                                            r.y,
+                                                            "j2000"
+                                                        );
+                                                    let [ra2, dec2] =
+                                                        self.aladin.pix2world(
+                                                            r.x + r.w,
+                                                            r.y,
+                                                            "j2000"
+                                                        );
+                                                    let [ra3, dec3] =
+                                                        self.aladin.pix2world(
+                                                            r.x + r.w,
+                                                            r.y + r.h,
+                                                            "j2000"
+                                                        );
+                                                    let [ra4, dec4] =
+                                                        self.aladin.pix2world(
+                                                            r.x,
+                                                            r.y + r.h,
+                                                            "j2000"
+                                                        );
+
                                                     let moc = A.MOCFromPolygon(
                                                         {
-                                                            ra: [ra1, ra2, ra3, ra4],
-                                                            dec: [dec1, dec2, dec3, dec4]
+                                                            ra: [
+                                                                ra1,
+                                                                ra2,
+                                                                ra3,
+                                                                ra4,
+                                                            ],
+                                                            dec: [
+                                                                dec1,
+                                                                dec2,
+                                                                dec3,
+                                                                dec4,
+                                                            ],
                                                         },
-                                                        {name: 'rect', lineWidth: 3.0},
+                                                        {
+                                                            name: "rect",
+                                                            lineWidth: 3.0,
+                                                        }
                                                     );
-                                                    self.aladin.addMOC(moc)
-                                                } catch(_) {
-                                                    alert('Selection covers a region out of the projection definition domain.');
+                                                    self.aladin.addMOC(moc);
+                                                } catch (_) {
+                                                    alert(
+                                                        "Selection covers a region out of the projection definition domain."
+                                                    );
                                                 }
-                                            })
-                                        }
+                                            });
+                                        },
                                     },
                                     {
-                                        label: '⛉ Polygon',
-                                        disabled: self.aladin.view.mode !== View.PAN ? {
-                                            reason: 'Exit your current mode<br/>(e.g. disable the SIMBAD pointer mode)'
-                                        } : false,
+                                        label: "⛉ Polygon",
+                                        disabled:
+                                            self.aladin.view.mode !== View.PAN
+                                                ? {
+                                                      reason: "Exit your current mode<br/>(e.g. disable the SIMBAD pointer mode)",
+                                                  }
+                                                : false,
                                         action(o) {
                                             o.stopPropagation();
                                             o.preventDefault();
 
                                             //self._hide();
 
-                                            self.aladin.select('poly', p => {
+                                            self.aladin.select("poly", (p) => {
                                                 try {
-                                                    let ra = []
-                                                    let dec = []
+                                                    let ra = [];
+                                                    let dec = [];
                                                     for (const v of p.vertices) {
-                                                        let [lon, lat] = self.aladin.pix2world(v.x, v.y, 'j2000');
-                                                        ra.push(lon)
-                                                        dec.push(lat)
+                                                        let [lon, lat] =
+                                                            self.aladin.pix2world(
+                                                                v.x,
+                                                                v.y,
+                                                                "j2000"
+                                                            );
+                                                        ra.push(lon);
+                                                        dec.push(lat);
                                                     }
-                                                    
+
                                                     let moc = A.MOCFromPolygon(
-                                                        {ra, dec},
-                                                        {name: 'poly', lineWidth: 3.0},
+                                                        { ra, dec },
+                                                        {
+                                                            name: "poly",
+                                                            lineWidth: 3.0,
+                                                        }
                                                     );
-                                                    self.aladin.addMOC(moc)
-
-                                                } catch(_) {
-                                                    alert('Selection covers a region out of the projection definition domain.');
+                                                    self.aladin.addMOC(moc);
+                                                } catch (_) {
+                                                    alert(
+                                                        "Selection covers a region out of the projection definition domain."
+                                                    );
                                                 }
-                                            })
-                                        }
+                                            });
+                                        },
                                     },
-                                ]
-                            }
-                        ]                    
-                    }
-                ],
-        }, this.aladin)
-
-        this.addHiPSBtn = new CtxMenuActionButtonOpener({
-            icon: {
-                url: addIconUrl,
-                size: 'small',
-                monochrome: true,
-            },
-            ctxMenu: [
-                {
-                    label: {
-                        icon: {
-                            url: searchIconUrl,
-                            monochrome: true,
-                            tooltip: {content: 'From our database...', position: { direction: 'right' }},
-                            cssStyle: {
-                                cursor: 'help',
+                                ],
                             },
-                        },
-                        content: 'Add new survey'
+                        ],
                     },
-                    action: (e) => {
-                        e.stopPropagation();
-                        e.preventDefault();
+                ],
+            },
+            this.aladin
+        );
 
-                        /*self._hide();
+        this.addHiPSBtn = new CtxMenuActionButtonOpener(
+            {
+                icon: {
+                    url: addIconUrl,
+                    size: "small",
+                    monochrome: true,
+                },
+                ctxMenu: [
+                    {
+                        label: {
+                            icon: {
+                                url: searchIconUrl,
+                                monochrome: true,
+                                tooltip: {
+                                    content: "From our database...",
+                                    position: { direction: "right" },
+                                },
+                                cssStyle: {
+                                    cursor: "help",
+                                },
+                            },
+                            content: "Add new survey",
+                        },
+                        action: (e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+
+                            /*self._hide();
 
                         self.hipsSelectorBox = new HiPSSelectorBox(self.aladin);
                         // attach a callback
@@ -386,94 +555,135 @@ export class OverlayStackBox extends Box {
                         self.hipsSelectorBox._show({
                             position: self.position,
                         });*/
-                        self.aladin.addNewImageLayer()
-                    }
+                            self.aladin.addNewImageLayer();
+                        },
+                    },
+                    ContextMenu.fileLoaderItem({
+                        label: "FITS image file",
+                        accept: ".fits",
+                        action(file) {
+                            let url = URL.createObjectURL(file);
+
+                            const image = self.aladin.createImageFITS(
+                                url,
+                                file.name,
+                                undefined,
+                                (ra, dec, fov, _) => {
+                                    // Center the view around the new fits object
+                                    self.aladin.gotoRaDec(ra, dec);
+                                    self.aladin.setFoV(fov * 1.1);
+                                    //self.aladin.selectLayer(image.layer);
+                                },
+                                undefined
+                            );
+
+                            self.aladin.setOverlayImageLayer(
+                                image,
+                                Utils.uuidv4()
+                            );
+                        },
+                    }),
+                ],
+                tooltip: {
+                    content: "Add a HiPS or an FITS image",
+                    position: { direction: "top" },
                 },
-                ContextMenu.fileLoaderItem({
-                    label: 'FITS image file',
-                    accept: '.fits',
-                    action(file) {
-                        let url = URL.createObjectURL(file);
-
-                        const image = self.aladin.createImageFITS(
-                            url,
-                            file.name,
-                            undefined,
-                            (ra, dec, fov, _) => {
-                                // Center the view around the new fits object
-                                self.aladin.gotoRaDec(ra, dec);
-                                self.aladin.setFoV(fov * 1.1);
-                                //self.aladin.selectLayer(image.layer);
-                            },
-                            undefined
-                        );
-
-                        self.aladin.setOverlayImageLayer(image, Utils.uuidv4())
-                    }
-                }),
-            ],
-            tooltip: { content: 'Add a HiPS or an FITS image', position: {direction: 'top'} },
-        }, this.aladin);
+            },
+            this.aladin
+        );
 
         this.filterParams = {
-            regime: 'Optical',
+            regime: "Optical",
         };
-        this.filterBox = new Box({
-            close: false,
-            content: [
-                Input.select({
-                    name: 'regime',
-                    value: 'Optical',
-                    options: ['Optical', 'UV', 'Radio', 'Infrared', 'X-ray', 'Gamma-ray'],
-                    change() {
-                        self.filterParams['regime'] = this.value;
+        this.filterBox = new Box(
+            {
+                close: false,
+                content: [
+                    Input.select({
+                        name: "regime",
+                        value: "Optical",
+                        options: [
+                            "Optical",
+                            "UV",
+                            "Radio",
+                            "Infrared",
+                            "X-ray",
+                            "Gamma-ray",
+                        ],
+                        change() {
+                            self.filterParams["regime"] = this.value;
 
-                        if (self.filterHiPSOn) {
-                            ALEvent.HIPS_LIST_UPDATED.dispatchedTo(self.aladin.aladinDiv);
-                        }
-                    },
-                    tooltip: {content: 'Observation regime', position: {direction: 'right'}}
-                })
-            ],
-        }, self.aladin.aladinDiv);
+                            if (self.filterHiPSOn) {
+                                ALEvent.HIPS_LIST_UPDATED.dispatchedTo(
+                                    self.aladin.aladinDiv
+                                );
+                            }
+                        },
+                        tooltip: {
+                            content: "Observation regime",
+                            position: { direction: "right" },
+                        },
+                    }),
+                ],
+            },
+            self.aladin.aladinDiv
+        );
         this.filterBox._hide();
 
         this.filterEnabler = Input.checkbox({
-            name: 'filter-enabler',
+            name: "filter-enabler",
             checked: this.filterHiPSOn,
-            tooltip: { content: self.filterHiPSOn ? 'Filtering on' : 'Filtering off' },
+            tooltip: {
+                content: self.filterHiPSOn ? "Filtering on" : "Filtering off",
+            },
             click(e) {
                 self.filterHiPSOn = e.target.checked;
                 self.filterBtn.update({
                     icon: {
                         url: self.filterHiPSOn ? filterOnUrl : filterOffUrl,
-                        monochrome: true
+                        monochrome: true,
                     },
-                })
+                });
 
                 self.filterEnabler.update({
-                    tooltip: { content: self.filterHiPSOn ? 'Filtering on' : 'Filtering off' },
+                    tooltip: {
+                        content: self.filterHiPSOn
+                            ? "Filtering on"
+                            : "Filtering off",
+                    },
                     checked: self.filterHiPSOn,
-                })
+                });
 
                 ALEvent.HIPS_LIST_UPDATED.dispatchedTo(self.aladin.aladinDiv);
-            }
-        })
+            },
+        });
 
         this.filterBtn = new TogglerActionButton({
-            icon: {url: this.filterHiPSOn ? filterOnUrl : filterOffUrl, monochrome: true},
-            size: 'small',
-            tooltip: {content: 'Want to filter HiPS surveys by criteria ?', position: {direction: 'top'}},
+            icon: {
+                url: this.filterHiPSOn ? filterOnUrl : filterOffUrl,
+                monochrome: true,
+            },
+            size: "small",
+            tooltip: {
+                content: "Want to filter HiPS surveys by criteria ?",
+                position: { direction: "top" },
+            },
             toggled: false,
             actionOn: (e) => {
-                self.filterBox._show({position: {nextTo: self.filterBtn, direction: 'right', aladin: self.aladin}});
+                self.filterBox._show({
+                    position: {
+                        nextTo: self.filterBtn,
+                        direction: "right",
+                        aladin: self.aladin,
+                    },
+                });
             },
             actionOff: (e) => {
                 self.filterBox._hide();
             },
         });
 
-        this.update({content: this.createLayout()});
+        this.update({ content: this.createLayout() });
     }
 
     _addListeners() {
@@ -485,57 +695,83 @@ export class OverlayStackBox extends Box {
             // recompute the ui
             // If it is shown, update it
             // show will update the content of the stack
-            self.update({content: self.createLayout()});
+            self.update({ content: self.createLayout() });
 
-            if (!wasHidden)
-                self._show();
+            if (!wasHidden) self._show();
         };
-        
-        ALEvent.GRAPHIC_OVERLAY_LAYER_ADDED.listenedBy(this.aladin.aladinDiv, function (e) {
-            updateOverlayList();
-        });
 
-        ALEvent.GRAPHIC_OVERLAY_LAYER_REMOVED.listenedBy(this.aladin.aladinDiv, function (e) {
-            updateOverlayList();
-        });
+        ALEvent.GRAPHIC_OVERLAY_LAYER_ADDED.listenedBy(
+            this.aladin.aladinDiv,
+            function (e) {
+                updateOverlayList();
+            }
+        );
 
-        ALEvent.GRAPHIC_OVERLAY_LAYER_CHANGED.listenedBy(this.aladin.aladinDiv, function (e) {
-            updateOverlayList();
-        });
-        
-        ALEvent.HIPS_LAYER_ADDED.listenedBy(this.aladin.aladinDiv, function (e) {
-            updateOverlayList();
-        });
+        ALEvent.GRAPHIC_OVERLAY_LAYER_REMOVED.listenedBy(
+            this.aladin.aladinDiv,
+            function (e) {
+                updateOverlayList();
+            }
+        );
 
-        ALEvent.HIPS_LAYER_RENAMED.listenedBy(this.aladin.aladinDiv, function (e) {
-            updateOverlayList();    
-        });
+        ALEvent.GRAPHIC_OVERLAY_LAYER_CHANGED.listenedBy(
+            this.aladin.aladinDiv,
+            function (e) {
+                updateOverlayList();
+            }
+        );
+
+        ALEvent.HIPS_LAYER_ADDED.listenedBy(
+            this.aladin.aladinDiv,
+            function (e) {
+                updateOverlayList();
+            }
+        );
+
+        ALEvent.HIPS_LAYER_RENAMED.listenedBy(
+            this.aladin.aladinDiv,
+            function (e) {
+                updateOverlayList();
+            }
+        );
 
         ALEvent.HIPS_LAYER_SWAP.listenedBy(this.aladin.aladinDiv, function (e) {
             updateOverlayList();
         });
 
-        ALEvent.HIPS_LAYER_REMOVED.listenedBy(this.aladin.aladinDiv, function (e) {
-            updateOverlayList();
-        });
-
-        ALEvent.HIPS_LAYER_CHANGED.listenedBy(this.aladin.aladinDiv, function (e) {
-            const hips = e.detail.layer;
-            let ui = self.HiPSui[hips.layer];
-
-            if (!ui) {
-                return;
+        ALEvent.HIPS_LAYER_REMOVED.listenedBy(
+            this.aladin.aladinDiv,
+            function (e) {
+                updateOverlayList();
             }
+        );
 
-            // change the ui from parameter changes
-            // show button
-            const opacity = hips.getOpacity();
-            if (opacity !== 0.0) {
-                ui.showBtn.update({icon: {monochrome: true, url: showIconUrl}, tooltip: {content: 'Hide'}});
-            } else {
-                ui.showBtn.update({icon: {monochrome: true, url: hideIconUrl}, tooltip: {content: 'Show'}});
+        ALEvent.HIPS_LAYER_CHANGED.listenedBy(
+            this.aladin.aladinDiv,
+            function (e) {
+                const hips = e.detail.layer;
+                let ui = self.HiPSui[hips.layer];
+
+                if (!ui) {
+                    return;
+                }
+
+                // change the ui from parameter changes
+                // show button
+                const opacity = hips.getOpacity();
+                if (opacity !== 0.0) {
+                    ui.showBtn.update({
+                        icon: { monochrome: true, url: showIconUrl },
+                        tooltip: { content: "Hide" },
+                    });
+                } else {
+                    ui.showBtn.update({
+                        icon: { monochrome: true, url: hideIconUrl },
+                        tooltip: { content: "Show" },
+                    });
+                }
             }
-        });
+        );
 
         updateOverlayList();
 
@@ -547,17 +783,23 @@ export class OverlayStackBox extends Box {
                 let HiPS = ImageSurvey.cache[key];
 
                 // apply filtering
-                if (!self.filterHiPSOn || (self.filterHiPSOn && !self.filterCallback) || (self.filterHiPSOn && self.filterCallback && self.filterCallback(HiPS))) {
+                if (
+                    !self.filterHiPSOn ||
+                    (self.filterHiPSOn && !self.filterCallback) ||
+                    (self.filterHiPSOn &&
+                        self.filterCallback &&
+                        self.filterCallback(HiPS))
+                ) {
                     // search with the name or id
                     HiPSSearch.HiPSList[HiPS.name] = HiPS;
                 }
             }
 
-            let keys = Object.keys(HiPSSearch.HiPSList)
+            let keys = Object.keys(HiPSSearch.HiPSList);
             // Change the autocomplete of all the search input text
             for (var key in this.HiPSui) {
                 let hips = this.HiPSui[key];
-                hips.searchInput.setAutocompletionList(keys)
+                hips.searchInput.setAutocompletionList(keys);
             }
         });
     }
@@ -579,44 +821,49 @@ export class OverlayStackBox extends Box {
             this.filterBtn.toggle();
         }
 
-        if (this.addOverlayBtn)
-            this.addOverlayBtn.hideMenu();
+        if (this.addOverlayBtn) this.addOverlayBtn.hideMenu();
 
-        if (this.addHiPSBtn)
-            this.addHiPSBtn.hideMenu();
+        if (this.addHiPSBtn) this.addHiPSBtn.hideMenu();
 
-        super._hide()
+        super._hide();
     }
 
     createLayout() {
         this.HiPSui = {};
 
-        let layout = [
-            Layout.horizontal([this.addOverlayBtn, 'Overlays'])
-        ];
+        let layout = [Layout.horizontal([this.addOverlayBtn, "Overlays"])];
 
         layout = layout.concat(this._createOverlaysList());
 
-        layout.push(Layout.horizontal({
-            layout: [this.addHiPSBtn, 'Surveys', this.filterEnabler, this.filterBtn],
-        }))
+        layout.push(
+            Layout.horizontal({
+                layout: [
+                    this.addHiPSBtn,
+                    "Surveys",
+                    this.filterEnabler,
+                    this.filterBtn,
+                ],
+            })
+        );
         layout = layout.concat(this._createSurveysList());
 
-        return new Layout({layout, classList: ['content']});
+        return new Layout({ layout, classList: ["content"] });
     }
 
     _createOverlaysList() {
         let self = this;
 
-        let layout = []
-        const overlays = Array.from(this.aladin.getOverlays()).reverse().map((overlay) => {
-            return overlay;
-        });
+        let layout = [];
+        const overlays = Array.from(this.aladin.getOverlays())
+            .reverse()
+            .map((overlay) => {
+                return overlay;
+            });
         // list of overlays
-        for(const overlay of overlays) {
+        for (const overlay of overlays) {
             const name = overlay.name;
             let showBtn = new ActionButton({
-                size: 'small',
+                size: "small",
                 icon: {
                     url: overlay.isShowing ? showIconUrl : hideIconUrl,
                     monochrome: true,
@@ -624,16 +871,25 @@ export class OverlayStackBox extends Box {
                 /*cssStyle: {
                     visibility: Utils.hasTouchScreen() ? 'visible' : 'hidden',
                 },*/
-                tooltip: {content: overlay.isShowing ? 'Hide' : 'Show', position: {direction: 'top'}},
+                tooltip: {
+                    content: overlay.isShowing ? "Hide" : "Show",
+                    position: { direction: "top" },
+                },
                 action(e, btn) {
                     if (overlay.isShowing) {
-                        overlay.hide()
-                        btn.update({icon: {monochrome: true, url: hideIconUrl}, tooltip: {content: 'Show'}});
+                        overlay.hide();
+                        btn.update({
+                            icon: { monochrome: true, url: hideIconUrl },
+                            tooltip: { content: "Show" },
+                        });
                     } else {
-                        overlay.show()
-                        btn.update({icon: {monochrome: true, url: showIconUrl}, tooltip: {content: 'Hide'}});
+                        overlay.show();
+                        btn.update({
+                            icon: { monochrome: true, url: showIconUrl },
+                            tooltip: { content: "Hide" },
+                        });
                     }
-                }
+                },
             });
 
             let deleteBtn = new ActionButton({
@@ -641,33 +897,35 @@ export class OverlayStackBox extends Box {
                     url: removeIconUrl,
                     monochrome: true,
                 },
-                size: 'small',
+                size: "small",
                 /*cssStyle: {
                     visibility: Utils.hasTouchScreen() ? 'visible' : 'hidden',
                 },*/
                 tooltip: {
-                    content: 'Remove',
-                    position: {direction: 'top'}
+                    content: "Remove",
+                    position: { direction: "top" },
                 },
                 action(e) {
-                    self.aladin.removeLayer(overlay)
-                }
+                    self.aladin.removeLayer(overlay);
+                },
             });
 
             let item = Layout.horizontal({
                 layout: [
                     this._addOverlayIcon(overlay),
-                    '<div style="background-color: rgba(0, 0, 0, 0.6); padding: 3px; border-radius: 3px; word-break: break-word;">' + name + '</div>',
-                    Layout.horizontal({layout: [showBtn, deleteBtn]})
+                    '<div style="background-color: rgba(0, 0, 0, 0.6); padding: 3px; border-radius: 3px; word-break: break-word;">' +
+                        name +
+                        "</div>",
+                    Layout.horizontal({ layout: [showBtn, deleteBtn] }),
                 ],
                 cssStyle: {
-                    textAlign: 'center',
-                    display: 'flex',
-                    alignItems: 'center',
-                    listStyle: 'none',
-                    justifyContent: 'space-between',
-                    width: '100%',
-                }
+                    textAlign: "center",
+                    display: "flex",
+                    alignItems: "center",
+                    listStyle: "none",
+                    justifyContent: "space-between",
+                    width: "100%",
+                },
             });
 
             /*if(!Utils.hasTouchScreen()) {
@@ -689,7 +947,7 @@ export class OverlayStackBox extends Box {
                     cssStyle
                 })
             }*/
-            layout.push(item)
+            layout.push(item);
         }
 
         return layout;
@@ -698,10 +956,12 @@ export class OverlayStackBox extends Box {
     _createSurveysList() {
         let self = this;
 
-        const layers = Array.from(self.aladin.getImageOverlays()).reverse().map((name) => {
-            let overlay = self.aladin.getOverlayImageLayer(name);
-            return overlay;
-        });
+        const layers = Array.from(self.aladin.getImageOverlays())
+            .reverse()
+            .map((name) => {
+                let overlay = self.aladin.getOverlayImageLayer(name);
+                return overlay;
+            });
         // survey list
         let selectedLayer = self.aladin.getSelectedLayer();
 
@@ -711,9 +971,12 @@ export class OverlayStackBox extends Box {
         }*/
 
         let layout = [];
-        const defaultLayers = Object.entries(ImageSurvey.cache).sort(function (e1, e2) {
-            let a = e1[1]
-            let b = e2[1]
+        const defaultLayers = Object.entries(ImageSurvey.cache).sort(function (
+            e1,
+            e2
+        ) {
+            let a = e1[1];
+            let b = e2[1];
 
             if (!a.order) {
                 return a.name > b.name ? 1 : -1;
@@ -721,18 +984,18 @@ export class OverlayStackBox extends Box {
 
             return a.maxOrder && a.maxOrder > b.maxOrder ? 1 : -1;
         });
-        
-        for(const layer of layers) {
-            let searchInput = new HiPSSearch(self.aladin, {layer})
+
+        for (const layer of layers) {
+            let searchInput = new HiPSSearch(self.aladin, { layer });
 
             let deleteBtn = ActionButton.createSmallSizedIconBtn({
-                icon: {url: removeIconUrl, monochrome: true},
-                
-                disable: layer.layer === 'base',
-                tooltip: {content: 'Remove', position: {direction: 'top'}},
+                icon: { url: removeIconUrl, monochrome: true },
+
+                disable: layer.layer === "base",
+                tooltip: { content: "Remove", position: { direction: "top" } },
                 action(e) {
                     self.aladin.removeImageLayer(layer.layer);
-                }
+                },
             });
 
             let showBtn = ActionButton.createSmallSizedIconBtn({
@@ -740,33 +1003,51 @@ export class OverlayStackBox extends Box {
                     url: layer.getOpacity() === 0.0 ? hideIconUrl : showIconUrl,
                     monochrome: true,
                 },
-                tooltip: {content: layer.getOpacity() === 0.0 ? 'Show' : 'Hide', position: {direction: 'top'}},
+                tooltip: {
+                    content: layer.getOpacity() === 0.0 ? "Show" : "Hide",
+                    position: { direction: "top" },
+                },
                 action(e, btn) {
                     e.preventDefault();
                     e.stopPropagation();
-                    
+
                     let opacity = layer.getOpacity();
                     if (opacity === 0.0) {
                         layer.setOpacity(1.0);
-                        btn.update({icon: {monochrome: true, url: showIconUrl}, tooltip: {content: 'Hide'}});
+                        btn.update({
+                            icon: { monochrome: true, url: showIconUrl },
+                            tooltip: { content: "Hide" },
+                        });
                     } else {
                         layer.setOpacity(0.0);
-                        btn.update({icon: {monochrome: true, url: hideIconUrl}, tooltip: {content: 'Show'}});
+                        btn.update({
+                            icon: { monochrome: true, url: hideIconUrl },
+                            tooltip: { content: "Show" },
+                        });
                     }
-                }
+                },
             });
 
             let settingsBox = new HiPSSettingsBox(self.aladin);
-            settingsBox.update({layer})
+            settingsBox.update({ layer });
             settingsBox._hide();
 
             let settingsBtn = new TogglerActionButton({
-                icon: {url: settingsIconUrl, monochrome: true},
-                size: 'small',
-                tooltip: {content: 'Settings', position: {direction: 'top'}},
+                icon: { url: settingsIconUrl, monochrome: true },
+                size: "small",
+                tooltip: {
+                    content: "Settings",
+                    position: { direction: "top" },
+                },
                 toggled: false,
                 actionOn: (e) => {
-                    settingsBox._show({position: {nextTo: settingsBtn, direction: 'right', aladin: self.aladin}});
+                    settingsBox._show({
+                        position: {
+                            nextTo: settingsBtn,
+                            direction: "right",
+                            aladin: self.aladin,
+                        },
+                    });
                 },
                 actionOff: (e) => {
                     settingsBox._hide();
@@ -774,75 +1055,89 @@ export class OverlayStackBox extends Box {
             });
 
             let loadMOCBtn = new ActionButton({
-                size: 'small',
-                
-                icon: {url: Icon.dataURLFromSVG({svg: Icon.SVG_ICONS.MOC}), monochrome: true},
-                tooltip: {content: 'Add coverage', position: {direction: 'top'}},
+                size: "small",
+
+                icon: {
+                    url: Icon.dataURLFromSVG({ svg: Icon.SVG_ICONS.MOC }),
+                    monochrome: true,
+                },
+                tooltip: {
+                    content: "Add coverage",
+                    position: { direction: "top" },
+                },
                 toggled: (() => {
                     let overlays = self.aladin.getOverlays();
-                    let found = overlays.find((o) => o.type === "moc" && o.name === layer.name);
+                    let found = overlays.find(
+                        (o) => o.type === "moc" && o.name === layer.name
+                    );
                     return found !== undefined;
                 })(),
                 action: (e, btn) => {
                     if (!btn.options.toggled) {
                         // load the moc
                         let moc = A.MOCFromURL(
-                            layer.url + '/Moc.fits',
-                            {lineWidth: 3, name: layer.name},
+                            layer.url + "/Moc.fits",
+                            { lineWidth: 3, name: layer.name },
                             () => {
                                 self.mocHiPSUrls[layer.url] = moc;
-            
+
                                 if (self.aladin.statusBar) {
                                     self.aladin.statusBar.appendMessage({
-                                        message: 'Coverage of ' + layer.name + ' loaded',
+                                        message:
+                                            "Coverage of " +
+                                            layer.name +
+                                            " loaded",
                                         duration: 2000,
-                                        type: 'info'
-                                    })
+                                        type: "info",
+                                    });
                                 }
 
                                 btn.update({
                                     toggled: true,
-                                    tooltip: {content: 'Remove coverage',
-                                    position: {direction: 'top'}}
-                                })
+                                    tooltip: {
+                                        content: "Remove coverage",
+                                        position: { direction: "top" },
+                                    },
+                                });
                             }
                         );
-                        self.aladin.addMOC(moc)
+                        self.aladin.addMOC(moc);
                     } else {
                         // unload the moc
                         let moc = self.mocHiPSUrls[layer.url];
-                        self.aladin.removeLayer(moc)
-    
+                        self.aladin.removeLayer(moc);
+
                         delete self.mocHiPSUrls[layer.url];
-        
+
                         if (self.aladin.statusBar) {
                             self.aladin.statusBar.appendMessage({
-                                message: 'Coverage of ' + layer.name + ' removed',
+                                message:
+                                    "Coverage of " + layer.name + " removed",
                                 duration: 2000,
-                                type: 'info'
-                            })
+                                type: "info",
+                            });
                         }
 
                         btn.update({
                             toggled: false,
-                            tooltip: {content: 'Add coverage', position: {direction: 'top'}}
-                        })
+                            tooltip: {
+                                content: "Add coverage",
+                                position: { direction: "top" },
+                            },
+                        });
                     }
                 },
             });
 
             let btns = [showBtn, settingsBtn];
 
-            if (layer.subtype !== 'fits') {
-                btns.push(loadMOCBtn)
+            if (layer.subtype !== "fits") {
+                btns.push(loadMOCBtn);
             }
-            btns.push(deleteBtn)
+            btns.push(deleteBtn);
 
             let item = Layout.horizontal({
-                layout: [
-                    searchInput,
-                    Layout.horizontal(btns)
-                ],
+                layout: [searchInput, Layout.horizontal(btns)],
             });
 
             layout.push(item);
@@ -860,54 +1155,38 @@ export class OverlayStackBox extends Box {
         return layout;
     }
 
-    /*_findPreviewImageUrl(layer) {
-        if (layer instanceof ImageFITS) {
-            return;
-        }
-
-        if (!layer.creatorDid) {
-            return;
-        }
-
-        const creatorDid = layer.creatorDid;
-        
-        for (const key in Stack.previewImagesUrl) {
-            if (creatorDid.includes(key)) {
-                return Stack.previewImagesUrl[key];
-            }
-        }
-        // if not found
-        return layer.url + '/preview.jpg'
-    }*/
-
     _addOverlayIcon(overlay) {
         var tooltipText;
-        var svg = '';
-        if (overlay.type == 'catalog' || overlay.type == 'progressivecat') {
+        var svg = "";
+        if (overlay.type == "catalog" || overlay.type == "progressivecat") {
             var nbSources = overlay.getSources().length;
-            tooltipText = nbSources + ' source' + (nbSources > 1 ? 's' : '');
+            tooltipText = nbSources + " source" + (nbSources > 1 ? "s" : "");
 
             svg = Icon.SVG_ICONS.CATALOG;
-        }
-        else if (overlay.type == 'moc') {
-            tooltipText = 'Coverage: ' + (100 * overlay.skyFraction()).toFixed(2) + ' % of sky';
+        } else if (overlay.type == "moc") {
+            tooltipText =
+                "Coverage: " +
+                (100 * overlay.skyFraction()).toFixed(2) +
+                " % of sky";
 
             svg = Icon.SVG_ICONS.MOC;
-        }
-        else if (overlay.type == 'overlay') {
+        } else if (overlay.type == "overlay") {
             svg = Icon.SVG_ICONS.OVERLAY;
         }
 
         let tooltip;
         if (tooltipText) {
-            tooltip = { content: tooltipText, position: {direction: 'bottom'} }
+            tooltip = {
+                content: tooltipText,
+                position: { direction: "bottom" },
+            };
         }
 
         // retrieve SVG icon, and apply the layer color
         return new Icon({
-            size: 'small',
-            url: Icon.dataURLFromSVG({svg, color: overlay.color}),
-            tooltip
+            size: "small",
+            url: Icon.dataURLFromSVG({ svg, color: overlay.color }),
+            tooltip,
         });
     }
 
@@ -918,30 +1197,35 @@ export class OverlayStackBox extends Box {
 
         this.position = (options && options.position) || this.position;
 
-        if (!this.position)
-            return;
+        if (!this.position) return;
 
         this.position.aladin = this.aladin;
 
         super._show({
             ...options,
-            ...{position: this.position},
-        })
-        
-        const innerHeight = this.aladin.aladinDiv.offsetHeight;
-        this.element().querySelectorAll(".surveyItem")
+            ...{ position: this.position },
+        });
+
+        /*const innerHeight = this.aladin.aladinDiv.offsetHeight;
+        this.element()
+            .querySelectorAll(".surveyItem")
             .forEach((surveyItem) => {
-                surveyItem.querySelectorAll(".aladin-context-sub-menu")
+                surveyItem
+                    .querySelectorAll(".aladin-context-sub-menu")
                     // skip the first menu
                     .forEach((subMenu) => {
-                        subMenu.style.display = 'block'
+                        subMenu.style.display = "block";
 
-                        let Y = innerHeight - (subMenu.getBoundingClientRect().y - this.aladin.aladinDiv.getBoundingClientRect().y);
-                        subMenu.style.display = 'none'
+                        let Y =
+                            innerHeight -
+                            (subMenu.getBoundingClientRect().y -
+                                this.aladin.aladinDiv.getBoundingClientRect()
+                                    .y);
+                        subMenu.style.display = "none";
 
-                        subMenu.style.maxHeight = Y + 'px';
-                        subMenu.style.overflowY = 'scroll';
-                    })
-                })
+                        subMenu.style.maxHeight = Y + "px";
+                        subMenu.style.overflowY = "scroll";
+                    });
+            });*/
     }
 }

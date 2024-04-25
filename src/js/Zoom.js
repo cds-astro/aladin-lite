@@ -48,34 +48,31 @@ import { requestAnimFrame } from "./libs/RequestAnimationFrame.js";
         9/3600, 8/3600, 7/3600, 6/3600, 5/3600, 4/3600, 3/3600, 2/3600, 1/3600,
         9/36000, 8/36000, 7/36000, 6/36000, 5/36000, 4/36000, 3/36000, 2/36000, 1/36000
     ];
-    Zoom.MAX_IDX_DELTA_PER_TROTTLE = 2;
+    Zoom.MAX_IDX_DELTA_PER_TROTTLE = 6;
 
     Zoom.determineNextFov = function(view, amount) {
-        if (!view.idx)
-            view.idx = Utils.binarySearch(Zoom.LEVELS, view.fov);
+        const currIdx = Utils.binarySearch(Zoom.LEVELS, view.fov);
 
         let deltaIdx = amount;
-        view.idx += deltaIdx;
+        let nextIdx = currIdx + deltaIdx;
 
         // clamp to the array indices
-        if (view.idx < 0) {
-            view.idx = 0
+        if (nextIdx < 0) {
+            nextIdx = 0
         }
 
-        if (view.idx >= Zoom.LEVELS.length) {
-            view.idx = Zoom.LEVELS.length - 1
+        if (nextIdx >= Zoom.LEVELS.length) {
+            nextIdx = Zoom.LEVELS.length - 1
         }
 
-        let nextFov = Zoom.LEVELS[view.idx];
+        let nextFov = Zoom.LEVELS[nextIdx];
 
         if (view.minFoV) {
             nextFov = Math.max(nextFov, view.minFoV)
-            view.idx = Utils.binarySearch(Zoom.LEVELS, nextFov);
         }
 
         if (view.maxFoV) {
             nextFov = Math.min(nextFov, view.maxFoV)
-            view.idx = Utils.binarySearch(Zoom.LEVELS, nextFov);
         }
 
         return nextFov;

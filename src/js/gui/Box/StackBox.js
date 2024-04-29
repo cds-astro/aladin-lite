@@ -44,15 +44,14 @@ import settingsIconUrl from "../../../../assets/icons/settings.svg";
 import filterOnUrl from "../../../../assets/icons/filter-on.svg";
 import filterOffUrl from "../../../../assets/icons/filter-off.svg";
 
-import { ImageFITS } from "../../ImageFITS.js";
 import searchIconImg from "../../../../assets/icons/search.svg";
 import { TogglerActionButton } from "../Button/Toggler.js";
 import { Icon } from "../Widgets/Icon.js";
 import { ImageSurvey } from "../../ImageSurvey.js";
 import { Box } from "../Widgets/Box.js";
 import { CtxMenuActionButtonOpener } from "../Button/CtxMenuOpener.js";
-import { HiPSSearch } from "../Input/HiPSSearch.js";
 import { Input } from "../Widgets/Input.js";
+import { ImageFITS } from "../../ImageFITS.js";
 
 export class OverlayStackBox extends Box {
     /*static previewImagesUrl = {
@@ -134,6 +133,8 @@ export class OverlayStackBox extends Box {
             },
             aladin.aladinDiv
         );
+        this.cachedHiPS = {};
+
         this.aladin = aladin;
 
         this.filterHiPSOn = false;
@@ -159,6 +160,7 @@ export class OverlayStackBox extends Box {
         this._addListeners();
 
         this.mocHiPSUrls = {};
+
         this.HiPSui = {};
         let self = this;
         // Add overlay button
@@ -692,12 +694,14 @@ export class OverlayStackBox extends Box {
         let updateOverlayList = () => {
             let wasHidden = self.isHidden;
             self._hide();
+
             // recompute the ui
             // If it is shown, update it
             // show will update the content of the stack
             self.update({ content: self.createLayout() });
 
             if (!wasHidden) self._show();
+
         };
 
         ALEvent.GRAPHIC_OVERLAY_LAYER_ADDED.listenedBy(
@@ -759,13 +763,16 @@ export class OverlayStackBox extends Box {
                 // change the ui from parameter changes
                 // show button
                 const opacity = hips.getOpacity();
-                if (opacity !== 0.0) {
-                    ui.showBtn.update({
+                let showBtn = ui.showBtn;
+                let hiddenBtn = showBtn.options.icon.url === hideIconUrl;
+                
+                if (opacity !== 0.0 && hiddenBtn) {
+                    showBtn.update({
                         icon: { monochrome: true, url: showIconUrl },
                         tooltip: { content: "Hide" },
                     });
-                } else {
-                    ui.showBtn.update({
+                } else if (opacity === 0.0 && !hiddenBtn) {
+                    showBtn.update({
                         icon: { monochrome: true, url: hideIconUrl },
                         tooltip: { content: "Show" },
                     });
@@ -777,6 +784,25 @@ export class OverlayStackBox extends Box {
 
         // Add a listener for HiPS list changes
         ALEvent.HIPS_LIST_UPDATED.listenedBy(this.aladin.aladinDiv, () => {
+            self.cachedHiPS = {};
+
+            for (var key in ImageSurvey.cache) {
+                let HiPS = ImageSurvey.cache[key];
+
+                self.cachedHiPS[HiPS.name] = HiPS;
+            }
+
+            // Update the options of the selector
+            const options = Object.keys(self.cachedHiPS);
+            options.sort();
+
+            for (var key in self.HiPSui) {
+                let hips = self.HiPSui[key];
+                hips.HiPSSelector.update({options});
+            }
+        });
+
+        /*ALEvent.HIPS_LIST_UPDATED.listenedBy(this.aladin.aladinDiv, () => {
             // Recompute the autocompletion as the cache has changed
             HiPSSearch.HiPSList = {};
             for (var key in ImageSurvey.cache) {
@@ -801,7 +827,7 @@ export class OverlayStackBox extends Box {
                 let hips = this.HiPSui[key];
                 hips.searchInput.setAutocompletionList(keys);
             }
-        });
+        });*/
     }
 
     _hide() {
@@ -962,31 +988,34 @@ export class OverlayStackBox extends Box {
                 let overlay = self.aladin.getOverlayImageLayer(name);
                 return overlay;
             });
+
         // survey list
-        let selectedLayer = self.aladin.getSelectedLayer();
-
-        /*if (!layers) {
-            super.attach(layout);
-            return;
-        }*/
-
         let layout = [];
-        const defaultLayers = Object.entries(ImageSurvey.cache).sort(function (
-            e1,
-            e2
-        ) {
-            let a = e1[1];
-            let b = e2[1];
 
-            if (!a.order) {
-                return a.name > b.name ? 1 : -1;
-            }
-
-            return a.maxOrder && a.maxOrder > b.maxOrder ? 1 : -1;
-        });
+        let hipsOptions = Object.keys(self.cachedHiPS);
+        hipsOptions.sort()
 
         for (const layer of layers) {
-            let searchInput = new HiPSSearch(self.aladin, { layer });
+            let HiPSSelector = Input.select({
+                value: layer.name,
+                options: hipsOptions,
+                title: layer.name,
+                change: (e) => {
+                    let name = e.target.value;
+                    // search for the 
+                    let HiPS = self.cachedHiPS[name];
+
+                    let image;
+                    if (HiPS instanceof ImageFITS) {
+                        image = HiPS;
+                    } else {
+                        // HiPS
+                        image = HiPS.id || HiPS.url || undefined;
+                    }
+
+                    self.aladin.setOverlayImageLayer(image, layer.layer);
+                }
+            });
 
             let deleteBtn = ActionButton.createSmallSizedIconBtn({
                 icon: { url: removeIconUrl, monochrome: true },
@@ -1137,14 +1166,14 @@ export class OverlayStackBox extends Box {
             btns.push(deleteBtn);
 
             let item = Layout.horizontal({
-                layout: [searchInput, Layout.horizontal(btns)],
+                layout: [HiPSSelector, Layout.horizontal(btns)],
             });
 
             layout.push(item);
 
             if (!(layer.layer in self.HiPSui)) {
                 self.HiPSui[layer.layer] = {
-                    searchInput,
+                    HiPSSelector,
                     settingsBox,
                     settingsBtn,
                     showBtn,
@@ -1205,27 +1234,5 @@ export class OverlayStackBox extends Box {
             ...options,
             ...{ position: this.position },
         });
-
-        /*const innerHeight = this.aladin.aladinDiv.offsetHeight;
-        this.element()
-            .querySelectorAll(".surveyItem")
-            .forEach((surveyItem) => {
-                surveyItem
-                    .querySelectorAll(".aladin-context-sub-menu")
-                    // skip the first menu
-                    .forEach((subMenu) => {
-                        subMenu.style.display = "block";
-
-                        let Y =
-                            innerHeight -
-                            (subMenu.getBoundingClientRect().y -
-                                this.aladin.aladinDiv.getBoundingClientRect()
-                                    .y);
-                        subMenu.style.display = "none";
-
-                        subMenu.style.maxHeight = Y + "px";
-                        subMenu.style.overflowY = "scroll";
-                    });
-            });*/
     }
 }

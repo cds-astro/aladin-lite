@@ -14,7 +14,7 @@
             fullScreen: true,
             target: "centaurus A",
             fov: 10,
-            projection: 'SIN',
+            projection: 'AIT',
             showContextMenu: true,
             showSimbadPointerControl: true,
             expandLayersControl: true,
@@ -74,6 +74,18 @@
                 'ov-gso/P/GLEAM/072-103'
             ]
         });
+
+        const gleam072_103 = aladin.newImageSurvey('ov-gso/P/GLEAM/072-103', {imgFormat: 'fits', colormap: "red", stretch: "asinh"});
+        const gleam103_134 = aladin.newImageSurvey('ov-gso/P/GLEAM/103-134', {imgFormat: 'fits', colormap: "green", additive: true, stretch: "asinh"});
+        const gleam170_231 = aladin.newImageSurvey('ov-gso/P/GLEAM/170-231', {imgFormat: 'fits', colormap: "blue", additive: true, stretch: "asinh"});
+
+        //const HSCBlueSurvey = aladin.newImageSurvey('CDS/P/HSC/DR2/deep/z', {imgFormat: 'fits', colormap: "blue", minCut: -0.01218, maxCut: 2.27397, additive: true, stretch: "asinh"});
+
+        aladin.setBaseImageLayer(gleam072_103);
+        aladin.setOverlayImageLayer(gleam103_134, 'gl2');
+        aladin.setOverlayImageLayer(gleam170_231, 'gl3');
+
+        //aladin.setOverlayImageLayer('CDS/P/HSC/DR2/deep/z', 'hsc blue layer');
 
         //const c1 = A.catalogFromURL('./data/eso.xml', {onClick: 'showTable'});
         //aladin.addCatalog(c1);

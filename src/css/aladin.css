@@ -417,17 +417,6 @@ canvas {
     height: 1.7rem;
 }
 
-.aladin-toolbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-
-    position: absolute;
-    top: 0px;
-    left: 0px;
-    width: 100%;
-}
-
 .aladin-input-text.aladin-dark-theme.search {
     width: 15rem;
     text-shadow: 0px 0px 2px #000;
@@ -439,7 +428,7 @@ canvas {
     background-repeat: no-repeat;
     text-indent: 1.8rem;
 }
-   
+
 .aladin-input-text.search {
     background-image:none;
     text-indent: 0rem;
@@ -1118,6 +1107,10 @@ canvas {
 
 .aladin-stack-box .content > * {
     margin-bottom: 0.5rem;
+}
+
+.aladin-stack-box .aladin-input-select {
+    width: 100%;
 }
 
 .aladin-location {

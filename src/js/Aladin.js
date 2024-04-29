@@ -91,7 +91,7 @@ import { CooFrame } from './gui/Input/CooFrame';
  * This element belongs to the FoV UI thus its CSS class is `aladin-fov` 
  * @property {boolean} [showLayersControl=true] - Whether to show the layers control toolbar.
  * CSS class for that button is `aladin-stack-control` 
- * @property {boolean} [expandLayersControl=false] - Whether to show the stack box at starting
+ * @property {boolean} [expandLayersControl=false] - Whether to show the stack box opened at starting
  * CSS class for the stack box is `aladin-stack-box`
  * @property {boolean} [showFullscreenControl=true] - Whether to show the fullscreen control toolbar.
  * CSS class for that button is `aladin-fullScreen-control` 
@@ -223,6 +223,27 @@ import { CooFrame } from './gui/Input/CooFrame';
 /**
  * @typedef {string} CooFrame
  * String with possible values: 'equatorial', 'ICRS', 'ICRSd', 'j2000', 'gal, 'galactic'
+ */
+
+/**
+ * @typedef {string} ListenerCallback
+ * String with possible values: 'select',
+        'objectClicked',
+        'objectHovered',
+        'objectHoveredStop',
+
+        'footprintClicked',
+        'footprintHovered',
+
+        'positionChanged',
+        'zoomChanged',
+
+        'click',
+        'rightClickMove',
+        'mouseMove',
+
+        'fullScreenToggled',
+        'cooFrameChanged'
  */
 
 export let Aladin = (function () {
@@ -420,14 +441,14 @@ export let Aladin = (function () {
 
                     cachedSurvey = {...cachedSurvey, ...survey}
 
-                    if (survey.properties) {
+                    /*if (survey.properties) {
                         delete cachedSurvey.properties;
                         cachedSurvey = {...cachedSurvey, ...survey.properties}
                     }
                     if (survey.options) {
                         delete cachedSurvey.options;
                         cachedSurvey = {...cachedSurvey, ...survey.options}
-                    }
+                    }*/
 
                 } else {
                     console.warn('unable to parse the survey list item: ', survey)
@@ -447,41 +468,38 @@ export let Aladin = (function () {
                 // at least id or url is defined
                 let key = id || url;
 
-                if (!(key in ImageSurvey.cache)) {
-                    ImageSurvey.cache[key] = cachedSurvey
-                }
+                //if (!(key in ImageSurvey.cache)) {
+                // Merge what is already in the cache for that HiPS with new properties
+                // coming from the MOCServer
+                ImageSurvey.cache[key] = {...ImageSurvey.cache[key], ...cachedSurvey}
+                //}
             }
 
             ALEvent.HIPS_LIST_UPDATED.dispatchedTo(this.aladinDiv);
         }
 
-        let HiPSQuery;
-        if (hipsList.length === 0) {
-            HiPSQuery = MocServer.getAllHiPSes()
-        } else {
-            let IDs = hipsList.map((h) => {
-                if (h instanceof Object) {
-                    return h.id;
-                } else {
-                    return h;
-                }
-            });
+        /*let IDs = hipsList.map((h) => {
+            if (h instanceof Object) {
+                return h.id;
+            } else {
+                return h;
+            }
+        });
 
-            HiPSQuery = MocServer.getHiPSesFromIDs(IDs)
-        }
-
-        HiPSQuery.then((HiPSes) => {
+        MocServer.getHiPSesFromIDs(IDs).then((HiPSes) => {
             hipsList = [];
             HiPSes.forEach((h) => {
                 hipsList.push({
                     id: h.ID,
                     name: h.obs_title,
                     regime: h.obs_regime,
+                    
                 })
             });
 
             fillHiPSCache();
-        });
+        });*/
+        fillHiPSCache();
 
         this.view.showCatalog(options.showCatalog);
 
@@ -648,7 +666,7 @@ export let Aladin = (function () {
     Aladin.DEFAULT_OPTIONS = {
         survey: ImageSurvey.DEFAULT_SURVEY_ID,
         // surveys suggestion list
-        hipsList: [],
+        hipsList: ImageSurvey.DEFAULT_HIPS_LIST,
         //surveyUrl: ["https://alaskybis.unistra.fr/DSS/DSSColor", "https://alasky.unistra.fr/DSS/DSSColor"],
         target: "0 +0",
         cooFrame: "J2000",
@@ -1448,13 +1466,15 @@ export let Aladin = (function () {
             url = new URL(url);
         }
 
+        url = url.toString()
+
         // Do not use proxy with CORS headers until we solve that: https://github.com/MattiasBuelens/wasm-streams/issues/20
         //url = Utils.handleCORSNotSameOrigin(url);
 
-        let image = ImageFITS.cache[url];
+        let image = ImageSurvey.cache[url];
         if (!image) {
             image = new ImageFITS(url, name, options, successCallback, errorCallback)
-            ImageFITS.cache[url] = image;
+            ImageSurvey.cache[url] = image;
         }
 
         return image;
@@ -1702,9 +1722,51 @@ export let Aladin = (function () {
         'fullScreenToggled',
         'cooFrameChanged'
     ];
-    // API
-    //
-    // setting callbacks
+
+     /**
+     * Listen aladin for specific events
+     *
+     * @memberof Aladin
+     * @param {ListenerCallback} what - e.g. objectHovered, select, zoomChanged, positionChanged
+     * @param {function} myFunction - a callback function
+     * 
+     * @example
+// define function triggered when  a source is hovered
+aladin.on('objectHovered', function(object, xyMouseCoords) {
+    if (object) {
+        msg = 'You hovered object ' + object.data.name + ' located at ' + object.ra + ', ' + object.dec + '; mouse coords - x: '
+            + xyMouseCoords.x + ', y: ' + xyMouseCoords.y;
+    }
+    else {
+        msg = 'No object hovered';
+    }
+    $('#infoDiv').html(msg);
+});
+
+aladin.on('objectHoveredStop', function(object, xyMouseCoords) {
+    if (object) {
+        msg = 'You stopped hove object ' + object.data.name + ' located at ' + object.ra + ', ' + object.dec + '; mouse coords - x: '
+            + xyMouseCoords.x + ', y: ' + xyMouseCoords.y;
+    }
+    $('#infoDiv').html(msg);
+});
+
+// define function triggered when an object is clicked
+var objClicked;
+aladin.on('objectClicked', function(object, xyMouseCoords) {
+    if (object) {
+        objClicked = object;
+        object.select();
+        msg = 'You clicked object ' + object.data.name + ' located at ' + object.ra + ', ' + object.dec + '; mouse coords - x: '
+            + xyMouseCoords.x + ', y: ' + xyMouseCoords.y;
+    }
+    else {
+        objClicked.deselect();
+        msg = 'You clicked in void';
+    }
+    $('#infoDiv').html(msg);
+});
+     */
     Aladin.prototype.on = function (what, myFunction) {
         if (Aladin.AVAILABLE_CALLBACKS.indexOf(what) < 0) {
             return;

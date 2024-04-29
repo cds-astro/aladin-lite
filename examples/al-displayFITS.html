@@ -26,7 +26,6 @@
             }, // no optional params
             (ra, dec, fov, image) => {
                 // ra, dec and fov are centered around the fits image
-                console.log("jjj", image)
                 image.setColormap("magma", {stretch: "asinh"});
 
                 aladin.gotoRaDec(ra, dec);

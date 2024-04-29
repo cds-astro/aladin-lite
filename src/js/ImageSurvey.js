@@ -154,7 +154,7 @@ export let ImageSurvey = (function () {
         this.added = false;
         // Unique identifier for a survey
         this.id = id;
-        this.name = options.name || id || url;
+        this.name = options && options.name || undefined;
         this.subtype = "survey";
 
         this.url = url;
@@ -295,10 +295,10 @@ export let ImageSurvey = (function () {
                 }
 
                 // Give a better name if we have the HiPS metadata
-                self.name = self.name || properties.obsTitle;
-
-                self.cooFrame = properties.cooFrame || self.cooFrame;
+                self.name = self.name || properties.obs_title;
             }
+
+            self.name = self.name || self.id || self.url;
 
             self.creatorDid = self.creatorDid || self.id || self.url;
 
@@ -752,29 +752,31 @@ export let ImageSurvey = (function () {
     ImageSurvey.DEFAULT_SURVEY_ID = "CDS/P/DSS2/color";
 
     // A cache storing directly surveys important information to not query for the properties each time
-    ImageSurvey.cache = {
-        /*DSS2_color: {
+    ImageSurvey.cache = {};
+
+    ImageSurvey.DEFAULT_HIPS_LIST = [
+        {
             creatorDid: "ivo://CDS/P/DSS2/color",
             name: "DSS colored",
-            url: "https://alasky.cds.unistra.fr/DSS/DSSColor",
+            id: "CDS/P/DSS2/color",
             maxOrder: 9,
             tileSize: 512,
             imgFormat: 'jpeg',
             cooFrame: "ICRS"
         },
-        MASS2_color: {
+        {
             creatorDid: "ivo://CDS/P/2MASS/color",
             name: "2MASS colored",
-            url: "https://alasky.cds.unistra.fr/2MASS/Color",
+            id: "CDS/P/2MASS/color",
             maxOrder: 9,
             tileSize: 512,
             imgFormat: 'jpeg',
             cooFrame: "ICRS"
         },
-        DSS2_red: {
+        {
             creatorDid: "ivo://CDS/P/DSS2/red",
             name: "DSS2 Red (F+R)",
-            url: "https://alasky.cds.unistra.fr/DSS/DSS2Merged",
+            id: "CDS/P/DSS2/red",
             maxOrder: 9,
             tileSize: 512,
             imgFormat: 'fits',
@@ -787,10 +789,10 @@ export let ImageSurvey = (function () {
             stretch: 'Linear',
             imgFormat: "fits"
         },
-        GAIA_EDR3: {
+        {
             creatorDid: "ivo://CDS/P/DM/I/350/gaiaedr3",
             name: "Density map for Gaia EDR3 (I/350/gaiaedr3)",
-            url: "https://alasky.cds.unistra.fr/ancillary/GaiaEDR3/density-map",
+            id: "CDS/P/DM/I/350/gaiaedr3",
             maxOrder: 7,
             tileSize: 512,
             numBitsPerPixel: -32,
@@ -801,10 +803,10 @@ export let ImageSurvey = (function () {
             colormap: "rdylbu",
             imgFormat: "fits",
         },
-        PanSTARRS_DR1_g: {
+        {
             creatorDid: "ivo://CDS/P/PanSTARRS/DR1/g",
             name: "PanSTARRS DR1 g",
-            url: "https://alasky.cds.unistra.fr/Pan-STARRS/DR1/g",
+            id: "CDS/P/PanSTARRS/DR1/g",
             maxOrder: 11,
             tileSize: 512,
             imgFormat: 'fits',
@@ -816,98 +818,91 @@ export let ImageSurvey = (function () {
             stretch: 'asinh',
             colormap: "redtemperature",
         },
-        PanSTARRS_DR1_color: {
+        {
             creatorDid: "ivo://CDS/P/PanSTARRS/DR1/color-z-zg-g",
             name: "PanSTARRS DR1 color",
-            url: "https://alasky.cds.unistra.fr/Pan-STARRS/DR1/color-z-zg-g",
+            id: "CDS/P/PanSTARRS/DR1/color-z-zg-g",
             maxOrder: 11,
             tileSize: 512,
             imgFormat: 'jpeg',
             cooFrame: "ICRS",
         },
-        DECaPS_DR2_color: {
+        {
             creatorDid: "ivo://CDS/P/DECaPS/DR2/color",
             name: "DECaPS DR2 color",
-            url: "https://alasky.cds.unistra.fr/DECaPS/DR2/CDS_P_DECaPS_DR2_color/",
+            id: "CDS/P/DECaPS/DR2/color",
             maxOrder: 11,
             cooFrame: "equatorial",
             tileSize: 512,
             imgFormat: 'png',
         },
-        Fermi_color: {
+        {
             creatorDid: "ivo://CDS/P/Fermi/color",
             name: "Fermi color",
-            url: "https://alasky.cds.unistra.fr/Fermi/Color",
+            id: "CDS/P/Fermi/color",
             maxOrder: 3,
             imgFormat: 'jpeg',
             tileSize: 512,
             cooFrame: 'equatorial'
         },
-        Galex_NUV: {
+        {
             creatorDid: "ivo://CDS/P/GALEXGR6_7/NUV",
             id: "P/GALEXGR6_7/NUV",
             name: "GALEXGR6_7 NUV",
-            url: "http://alasky.cds.unistra.fr/GALEX/GALEXGR6_7_NUV/",
             maxOrder: 8,
             imgFormat: 'png',
             tileSize: 512,
             cooFrame: 'equatorial'
         },
-        IRIS_color: {
+        {
             creatorDid: "ivo://CDS/P/IRIS/color",
-            id: "P/IRIS/color",
+            id: "CDS/P/IRIS/color",
             name: "IRIS colored",
-            url: "https://alasky.cds.unistra.fr/IRISColor",
             maxOrder: 3,
             tileSize: 256,
             imgFormat: 'jpeg',
             cooFrame: 'galactic'
         },
-        Mellinger_color: {
+        {
             creatorDid: "ivo://CDS/P/Mellinger/color",
-            id: "P/Mellinger/color",
+            id: "CDS/P/Mellinger/color",
             name: "Mellinger colored",
-            url: "https://alasky.cds.unistra.fr/MellingerRGB",
             maxOrder: 4,
             tileSize: 512,
             imgFormat: 'jpeg',
             cooFrame: 'galactic'
         },
-        SDSS9_color: {
+        {
             creatorDid: "ivo://CDS/P/SDSS9/color",
-            id: "P/SDSS9/color",
+            id: "CDS/P/SDSS9/color",
             name: "SDSS9 colored",
-            url: "https://alasky.cds.unistra.fr/SDSS/DR9/color",
             maxOrder: 10,
             tileSize: 512,
             imgFormat: 'jpeg',
             cooFrame: 'equatorial'
         },
-        SPITZER_color: {
+        {
             creatorDid: "ivo://CDS/P/SPITZER/color",
-            id: "P/SPITZER/color",
+            id: "CDS/P/SPITZER/color",
             name: "IRAC color I1,I2,I4 - (GLIMPSE, SAGE, SAGE-SMC, SINGS)",
-            url: "http://alasky.cds.unistra.fr/Spitzer/SpitzerI1I2I4color/",
             maxOrder: 9,
             tileSize: 512,
             imgFormat: 'jpeg',
             cooFrame: 'galactic'
         },
-        allWISE_color: {
+        {
             creatorDid: "ivo://CDS/P/allWISE/color",
-            id: "P/allWISE/color",
+            id: "CDS/P/allWISE/color",
             name: "AllWISE color",
-            url: "https://alasky.cds.unistra.fr/AllWISE/RGB-W4-W2-W1/",
             maxOrder: 8,
             tileSize: 512,
             imgFormat: 'jpeg',
             cooFrame: 'equatorial'
         },
-        SDSS9_g: {
+        {
             creatorDid: "ivo://CDS/P/SDSS9/g",
-            id: "P/SDSS9/g",
+            id: "CDS/P/SDSS9/g",
             name: "SDSS9 band-g",
-            url: "https://alasky.cds.unistra.fr/SDSS/DR9/band-g",
             maxOrder: 10,
             tileSize: 512,
             numBitsPerPixel: 16,
@@ -917,105 +912,46 @@ export let ImageSurvey = (function () {
             maxCut: 1.8,
             stretch: 'linear',
             colormap: "redtemperature",
-        }
-        */
-        /*
+        },
         {
-            id: "P/Finkbeiner",
+            id: "CDS/P/Finkbeiner",
             name: "Halpha",
-            url: "https://alasky.cds.unistra.fr/FinkbeinerHalpha",
             maxOrder: 3,
-            subtype: "survey",
-            // options
-            options: {
-                minCut: -10,
-                maxCut: 800,
-                colormap: "rdbu",
-                imgFormat: "fits",
-            }
-        },
-        
-        {
-            id: "P/IRIS/color",
-            name: "IRIS colored",
-            url: "https://alasky.cds.unistra.fr/IRISColor",
-            maxOrder: 3,
-            subtype: "survey",
+            minCut: -10,
+            maxCut: 800,
+            colormap: "rdbu",
+            imgFormat: "fits",
         },
         {
-            id: "P/Mellinger/color",
-            name: "Mellinger colored",
-            url: "https://alasky.cds.unistra.fr/MellingerRGB",
-            maxOrder: 4,
-            subtype: "survey",
-        },
-        {
-            id: "P/SDSS9/color",
-            name: "SDSS9 colored",
-            url: "https://alasky.cds.unistra.fr/SDSS/DR9/color",
-            maxOrder: 10,
-            subtype: "survey",
-        },
-        {
-            id: "P/SDSS9/g",
-            name: "SDSS9 band-g",
-            url: "https://alasky.cds.unistra.fr/SDSS/DR9/band-g",
-            maxOrder: 10,
-            subtype: "survey",
-            options: {
-                stretch: 'asinh',
-                colormap: "redtemperature",
-                imgFormat: 'fits'
-            }
-        },
-        {
-            id: "P/SPITZER/color",
-            name: "IRAC color I1,I2,I4 - (GLIMPSE, SAGE, SAGE-SMC, SINGS)",
-            url: "http://alasky.cds.unistra.fr/Spitzer/SpitzerI1I2I4color/",
-            maxOrder: 9,
-            subtype: "survey",
-        },
-        {
-            id: "P/VTSS/Ha",
+            id: "CDS/P/VTSS/Ha",
             name: "VTSS-Ha",
-            url: "https://alasky.cds.unistra.fr/VTSS/Ha",
             maxOrder: 3,
-            subtype: "survey",
-            options: {
-                minCut: -10.0,
-                maxCut: 100.0,
-                colormap: "grayscale",
-                imgFormat: "fits"
-            }
+            minCut: -10.0,
+            maxCut: 100.0,
+            colormap: "grayscale",
+            imgFormat: "fits"
         },
         {
             id: "xcatdb/P/XMM/PN/color",
             name: "XMM PN colored",
-            url: "https://alasky.cds.unistra.fr/cgi/JSONProxy?url=https://saada.unistra.fr/PNColor",
             maxOrder: 7,
-            subtype: "survey",
         },
         {
-            id: "P/allWISE/color",
+            id: "CDS/P/allWISE/color",
             name: "AllWISE color",
-            url: "https://alasky.cds.unistra.fr/AllWISE/RGB-W4-W2-W1/",
             maxOrder: 8,
-            subtype: "survey",
         },
-        {
-            id: "P/GLIMPSE360",
+        /*{
+            id: "CDS/P/GLIMPSE360",
             name: "GLIMPSE360",
             // This domain is not giving the CORS headers
             // We need to query by with a proxy equipped with CORS header.
-            url: "https://alasky.cds.unistra.fr/cgi/JSONProxy?url=https://www.spitzer.caltech.edu/glimpse360/aladin/data",
-            subtype: "survey",
-            options: {
-                maxOrder: 9,
-                imgFormat: "jpg",
-                minOrder: 3,
-            }
-        },*/
-    };
+            //url: "https://alasky.cds.unistra.fr/cgi/JSONProxy?url=https://www.spitzer.caltech.edu/glimpse360/aladin/data",
+            maxOrder: 9,
+            imgFormat: "jpeg",
+            minOrder: 3,
+        }*/
+    ];
 
     return ImageSurvey;
 })();

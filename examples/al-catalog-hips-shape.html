@@ -1,36 +1,42 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
-<head>
-</head>
-<body>
+    <head> </head>
+    <body>
+        <div id="aladin-lite-div" style="width: 1024px; height: 768px"></div>
 
-<div id="aladin-lite-div" style="width: 1024px; height: 768px"></div>
+        <script type="module">
+            import A from "../src/js/A.js";
+            let aladin;
+            A.init.then(() => {
+                aladin = A.aladin("#aladin-lite-div", {
+                    target: "12 25 41.512 +12 48 47.2",
+                    inertia: false,
+                    fov: 1,
+                    showContextMenu: true,
+                });
+                // define custom draw function
 
-<script type="module">
-    import A from '../src/js/A.js';
-    let aladin;
-    A.init.then(() => {
-        aladin = A.aladin('#aladin-lite-div', {target: '12 25 41.512 +12 48 47.2', inertia: false, fov: 1, showContextMenu: true});
-        // define custom draw function
+                var hips = A.catalogHiPS(
+                    "https://axel.u-strasbg.fr/HiPSCatService/Simbad",
+                    {
+                        onClick: "showTable",
+                        name: "Simbad",
+                        color: "cyan",
+                        hoverColor: "red",
+                        shape: (s) => {
+                            let a = +s.data.size_maj;
+                            let b = +s.data.size_min;
 
-        var drawFunctionFootprint = function(s) {
-            let a = +s.data.size_maj;
-            let b = +s.data.size_min;
+                            let galaxy = ["Seyfert","Gin","StarburstG","LINER","AGN","Galaxy"].some((n) => s.data.main_type.indexOf(n) >= 0);
+                            if (!galaxy) return;
 
-            let galaxy = ['Seyfert', 'Gin', 'StarburstG', 'LINER', 'AGN', 'Galaxy'].some((n) => s.data.main_type.indexOf(n) >= 0)
-            if (!galaxy)
-                return;
-
-            let theta = +s.data.size_angle || 0.0;
-            return A.ellipse(s.ra, s.dec, a / 60, b / 60, theta, {color: 'cyan'});
-        };
-
-        var hips = A.catalogHiPS('https://axel.u-strasbg.fr/HiPSCatService/Simbad', {onClick: 'showTable', name: 'Simbad', color: 'cyan', hoverColor: 'red', shape: drawFunctionFootprint});
-        aladin.addCatalog(hips);
-    });
-</script>
-
-</body>
+                            let theta = +s.data.size_angle || 0.0;
+                            return A.ellipse(s.ra, s.dec, a / 60, b / 60, theta, { color: "cyan" });
+                        },
+                    }
+                );
+                aladin.addCatalog(hips);
+            });
+        </script>
+    </body>
 </html>
-
-

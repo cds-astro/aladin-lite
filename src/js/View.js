@@ -1643,7 +1643,7 @@ export let View = (function () {
             .catch((e) => {
                 // remove it from the cache
                 delete ImageSurvey.cache[imageLayer.id]
-                delete ImageFITS.cache[imageLayer.id]
+                ALEvent.HIPS_LIST_UPDATED.dispatchedTo(this.aladin.aladinDiv);
 
                 throw e;
             })

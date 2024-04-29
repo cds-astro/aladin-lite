@@ -106,13 +106,6 @@ export class Layout extends DOMElement {
         return layout;
     }
 
-    static toolbar(options, target, position = "beforeend") {
-        let layout = new Layout(options, target, position);
-        layout.addClass('aladin-toolbar');
-
-        return layout;
-    }
-
     /**
      * Append an item at the beginning
      * @param {DOMElement} item - Represents the structure of the Tabs

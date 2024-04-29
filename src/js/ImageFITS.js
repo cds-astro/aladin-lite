@@ -30,6 +30,8 @@
 import { ALEvent } from "./events/ALEvent.js";
 import { ColorCfg } from "./ColorCfg.js";
 import { Utils } from "./Utils";
+import { ImageSurvey } from "./ImageSurvey.js";
+
 
 export let ImageFITS = (function () {
 
@@ -39,9 +41,8 @@ export let ImageFITS = (function () {
         this.added = false;
         this.subtype = "fits";
         // Set it to a default value
-        this.url = url.toString();
-
-        this.id = url.toString();
+        this.url = url;
+        this.id = url;
         this.name = name || this.url;
 
         this.imgFormat = "fits";
@@ -59,10 +60,33 @@ export let ImageFITS = (function () {
         let self = this;
 
         this.query = Promise.resolve(self);
+        this._saveInCache();
+    }
+
+    ImageFITS.prototype._saveInCache = function() {
+        let self = this;
+
+        let colorOpt = Object.fromEntries(Object.entries(this.colorCfg));
+        let fitsOpt = {
+            id: self.id,
+            name: self.name,
+            url: self.url,
+            imgFormat: self.imgFormat,
+            ...colorOpt
+        }
+
+        ImageSurvey.cache[self.id] = self;
+
+        //console.log('new CACHE', ImageSurvey.cache, self.id, surveyOpt, ImageSurvey.cache[self.id], ImageSurvey.cache["CSIRO/P/RACS/mid/I"])
+
+        // Tell that the HiPS List has been updated
+        if (this.view) {
+            ALEvent.HIPS_LIST_UPDATED.dispatchedTo(this.view.aladin.aladinDiv);
+        }
     }
     
     // A cache storing directly the images to not query for the properties each time
-    ImageFITS.cache = {};
+    //ImageFITS.cache = {};
 
     ImageFITS.prototype.setView = function(view) {
         this.view = view;
@@ -139,6 +163,9 @@ export let ImageFITS = (function () {
                 });
                 ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.view.aladinDiv, { layer: this });
             }
+
+            // save it in the JS HiPS cache
+            this._saveInCache()
         } catch (e) {
             // Display the error message
             console.error(e);

@@ -421,7 +421,7 @@ impl Layers {
         Ok(())
     }
 
-    pub fn add_image_survey(
+    pub fn add_image_hips(
         &mut self,
         gl: &WebGlContext,
         hips: HiPSCfg,

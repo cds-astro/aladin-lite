@@ -50,8 +50,7 @@ import { ObsCore } from "./vo/ObsCore.js";
 import { DefaultActionsForContextMenu } from "./DefaultActionsForContextMenu.js";
 import { Layout } from "./gui/Layout.js";
 import { SAMPActionButton } from "./gui/Button/SAMP.js";
-import { ImageSurvey } from "./ImageSurvey.js";
-import { ImageFITS } from "./ImageFITS.js";
+import { HiPSCache } from "./DefaultHiPSCache.js";
 
 export let View = (function () {
 
@@ -1613,7 +1612,7 @@ export let View = (function () {
         Promise.allSettled(this.promises)
             .then(() => imageLayerPromise)
             // The promise is resolved and we now have access
-            // to the image layer objet (whether it is an ImageSurvey or an ImageFITS)
+            // to the image layer objet (whether it is an ImageHiPS or an ImageFITS)
             .then((imageLayer) => {
                 // Add to the backend
                 const promise = imageLayer.add(layer);
@@ -1642,8 +1641,7 @@ export let View = (function () {
             })
             .catch((e) => {
                 // remove it from the cache
-                delete ImageSurvey.cache[imageLayer.id]
-                ALEvent.HIPS_LIST_UPDATED.dispatchedTo(this.aladin.aladinDiv);
+                HiPSCache.delete(imageLayer.id)
 
                 throw e;
             })
@@ -1662,7 +1660,7 @@ export let View = (function () {
                 if (noMoreLayersToWaitFor) {
                     if (self.empty) {
                         // no promises to launch!
-                        //self.aladin.setBaseImageLayer(self.aladin.createImageSurvey(ImageSurvey.DEFAULT_SURVEY_ID));
+                        //self.aladin.setBaseImageLayer(self.aladin.createImageSurvey(ImageHiPS.DEFAULT_SURVEY_ID));
                     } else {
                         // there is surveys that have been queried
                         // rename the first overlay layer to "base"

@@ -1024,10 +1024,10 @@ impl App {
         Ok(())
     }
 
-    pub(crate) fn add_image_survey(&mut self, hips_cfg: HiPSCfg) -> Result<(), JsValue> {
+    pub(crate) fn add_image_hips(&mut self, hips_cfg: HiPSCfg) -> Result<(), JsValue> {
         let hips =
             self.layers
-                .add_image_survey(&self.gl, hips_cfg, &mut self.camera, &self.projection)?;
+                .add_image_hips(&self.gl, hips_cfg, &mut self.camera, &self.projection)?;
         self.tile_fetcher
             .launch_starting_hips_requests(hips, &mut self.downloader);
 

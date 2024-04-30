@@ -19,7 +19,6 @@
 
 import { CtxMenuActionButtonOpener } from "./CtxMenuOpener";
 import stackOverlayIconUrl from './../../../../assets/icons/stack.svg';
-import { OverlayStack } from "../CtxMenu/OverlayStack";
 import { OverlayStackBox } from "../Box/StackBox";
 import { TogglerActionButton } from "./Toggler";
 /******************************************************************************

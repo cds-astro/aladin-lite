@@ -364,11 +364,11 @@ impl WebClient {
     /// * If the number of surveys is greater than 4. For the moment, due to the limitations
     ///   of WebGL2 texture units on some architectures, the total number of surveys rendered is
     ///   limited to 4.
-    #[wasm_bindgen(js_name = addImageSurvey)]
-    pub fn add_image_survey(&mut self, hips: JsValue) -> Result<(), JsValue> {
+    #[wasm_bindgen(js_name = addImageHiPS)]
+    pub fn add_image_hips(&mut self, hips: JsValue) -> Result<(), JsValue> {
         // Deserialize the survey objects that compose the survey
         let hips = serde_wasm_bindgen::from_value(hips)?;
-        self.app.add_image_survey(hips)?;
+        self.app.add_image_hips(hips)?;
 
         Ok(())
     }

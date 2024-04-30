@@ -47,11 +47,12 @@ import filterOffUrl from "../../../../assets/icons/filter-off.svg";
 import searchIconImg from "../../../../assets/icons/search.svg";
 import { TogglerActionButton } from "../Button/Toggler.js";
 import { Icon } from "../Widgets/Icon.js";
-import { ImageSurvey } from "../../ImageSurvey.js";
+import { ImageHiPS } from "../../ImageHiPS.js";
 import { Box } from "../Widgets/Box.js";
 import { CtxMenuActionButtonOpener } from "../Button/CtxMenuOpener.js";
 import { Input } from "../Widgets/Input.js";
 import { ImageFITS } from "../../ImageFITS.js";
+import { HiPSCache } from "../../DefaultHiPSCache.js";
 
 export class OverlayStackBox extends Box {
     /*static previewImagesUrl = {
@@ -783,11 +784,12 @@ export class OverlayStackBox extends Box {
         updateOverlayList();
 
         // Add a listener for HiPS list changes
-        ALEvent.HIPS_LIST_UPDATED.listenedBy(this.aladin.aladinDiv, () => {
+        ALEvent.HIPS_LIST_UPDATED.listenedBy(document.body, () => {
             self.cachedHiPS = {};
 
-            for (var key in ImageSurvey.cache) {
-                let HiPS = ImageSurvey.cache[key];
+            for (var key in HiPSCache.cache) {
+
+                let HiPS = HiPSCache.cache[key];
 
                 self.cachedHiPS[HiPS.name] = HiPS;
             }
@@ -805,8 +807,8 @@ export class OverlayStackBox extends Box {
         /*ALEvent.HIPS_LIST_UPDATED.listenedBy(this.aladin.aladinDiv, () => {
             // Recompute the autocompletion as the cache has changed
             HiPSSearch.HiPSList = {};
-            for (var key in ImageSurvey.cache) {
-                let HiPS = ImageSurvey.cache[key];
+            for (var key in ImageHiPS.cache) {
+                let HiPS = ImageHiPS.cache[key];
 
                 // apply filtering
                 if (

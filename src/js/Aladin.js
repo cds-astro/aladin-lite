@@ -37,10 +37,10 @@ import { Sesame } from "./Sesame.js";
 import { PlanetaryFeaturesNameResolver } from "./PlanetaryFeaturesNameResolver.js";
 import { CooFrameEnum } from "./CooFrameEnum.js";
 import { MeasurementTable } from "./MeasurementTable.js";
-import { ImageSurvey } from "./ImageSurvey.js";
+import { ImageHiPS } from "./ImageHiPS.js";
 import { Coo } from "./libs/astro/coo.js";
 import { CooConversion } from "./CooConversion.js";
-import { MocServer } from './MocServer';
+import { HiPSCache } from './DefaultHiPSCache';
 
 import { ProjectionEnum } from "./ProjectionEnum.js";
 
@@ -382,9 +382,9 @@ export let Aladin = (function () {
                     }
                     i++;
                 });
-            } else if (options.survey === ImageSurvey.DEFAULT_SURVEY_ID) {
-                // DSS is cached inside ImageSurvey class, no need to provide any further information
-                const survey = this.createImageSurvey(ImageSurvey.DEFAULT_SURVEY_ID);
+            } else if (options.survey === ImageHiPS.DEFAULT_SURVEY_ID) {
+                // DSS is cached inside ImageHiPS class, no need to provide any further information
+                const survey = this.createImageSurvey(ImageHiPS.DEFAULT_SURVEY_ID);
 
                 this.setBaseImageLayer(survey);
             } else {
@@ -468,11 +468,9 @@ export let Aladin = (function () {
                 // at least id or url is defined
                 let key = id || url;
 
-                //if (!(key in ImageSurvey.cache)) {
                 // Merge what is already in the cache for that HiPS with new properties
                 // coming from the MOCServer
-                ImageSurvey.cache[key] = {...ImageSurvey.cache[key], ...cachedSurvey}
-                //}
+                HiPSCache.append(key, {...HiPSCache.get(key), ...cachedSurvey})
             }
 
             ALEvent.HIPS_LIST_UPDATED.dispatchedTo(this.aladinDiv);
@@ -664,9 +662,9 @@ export let Aladin = (function () {
     // access to WASM libraries
     Aladin.wasmLibs = {};
     Aladin.DEFAULT_OPTIONS = {
-        survey: ImageSurvey.DEFAULT_SURVEY_ID,
+        survey: ImageHiPS.DEFAULT_SURVEY_ID,
         // surveys suggestion list
-        hipsList: ImageSurvey.DEFAULT_HIPS_LIST,
+        hipsList: HiPSCache.DEFAULT_HIPS_LIST,
         //surveyUrl: ["https://alaskybis.unistra.fr/DSS/DSSColor", "https://alasky.unistra.fr/DSS/DSSColor"],
         target: "0 +0",
         cooFrame: "J2000",
@@ -792,7 +790,7 @@ export let Aladin = (function () {
             options.frame = requestedFrame;
         }
         var requestedSurveyId = Utils.urlParam('survey');
-        if (requestedSurveyId && ImageSurvey.getSurveyInfoFromId(requestedSurveyId)) {
+        if (requestedSurveyId && ImageHiPS.getSurveyInfoFromId(requestedSurveyId)) {
             options.survey = requestedSurveyId;
         }
         var requestedZoom = Utils.urlParam('zoom');
@@ -1412,11 +1410,11 @@ export let Aladin = (function () {
      * </ul>
      * @param {string} [cooFrame] - Values accepted: 'equatorial', 'icrs', 'icrsd', 'j2000', 'gal', 'galactic'
      * @param {number} [maxOrder] - The maximum HEALPix order of the HiPS, i.e the HEALPix order of the most refined tile images of the HiPS. 
-     * @param {ImageSurveyOptions} [options] - Options describing the survey
-     * @returns {ImageSurvey} A HiPS image object.
+     * @param {ImageOptions} [options] - Options describing the survey
+     * @returns {ImageHiPS} A HiPS image object.
      */
     Aladin.prototype.createImageSurvey = function(id, name, url, cooFrame, maxOrder, options) {
-        let surveyOptions = ImageSurvey.cache[id];
+        let surveyOptions = HiPSCache.get(id);
 
         if (!surveyOptions) {
             surveyOptions = {name, maxOrder, cooFrame, ...options};
@@ -1428,10 +1426,10 @@ export let Aladin = (function () {
                 surveyOptions.url = url;
             }
 
-            ImageSurvey.cache[id] = surveyOptions;
+            HiPSCache.append(id, surveyOptions);
         }
 
-        return new ImageSurvey(id, surveyOptions.url, surveyOptions);
+        return new ImageHiPS(id, surveyOptions.url, surveyOptions);
     };
 
     /**
@@ -1451,8 +1449,8 @@ export let Aladin = (function () {
      * </ul>
      * @param {string} [cooFrame] - Values accepted: 'equatorial', 'icrs', 'icrsd', 'j2000', 'gal', 'galactic'
      * @param {number} [maxOrder] - The maximum HEALPix order of the HiPS, i.e the HEALPix order of the most refined tile images of the HiPS. 
-     * @param {ImageSurveyOptions} [options] - Options describing the survey
-     * @returns {ImageSurvey} A HiPS image object.
+     * @param {ImageOptions} [options] - Options describing the survey
+     * @returns {ImageHiPS} A HiPS image object.
      */
     Aladin.createImageSurvey = Aladin.prototype.createImageSurvey;
 
@@ -1471,10 +1469,11 @@ export let Aladin = (function () {
         // Do not use proxy with CORS headers until we solve that: https://github.com/MattiasBuelens/wasm-streams/issues/20
         //url = Utils.handleCORSNotSameOrigin(url);
 
-        let image = ImageSurvey.cache[url];
+        let image = HiPSCache.get(url);
         if (!image) {
-            image = new ImageFITS(url, name, options, successCallback, errorCallback)
-            ImageSurvey.cache[url] = image;
+            options = { name, successCallback, errorCallback, ...options };
+            image = new ImageFITS(url, options);
+            HiPSCache.append(url, image);
         }
 
         return image;
@@ -1488,10 +1487,10 @@ export let Aladin = (function () {
      * @static
      * @param {string} url - The url of the fits.
      * @param {string} [name] - The url of the fits.
-     * @param {ImageSurveyOptions} [options] - Options for rendering the image
+     * @param {ImageOptions} [options] - Options for rendering the image
      * @param {function} [success] - A success callback
      * @param {function} [error] - A success callback
-     * @returns {ImageSurvey} A FITS image object.
+     * @returns {ImageFITS} A FITS image object.
      */
     Aladin.createImageFITS = Aladin.prototype.createImageFITS;
 
@@ -1508,10 +1507,10 @@ export let Aladin = (function () {
      * <li>1. An url that refers to a HiPS.</li>
      * <li>Or it can be a "CDS ID" that refers to a HiPS. One can found the list of IDs {@link https://aladin.cds.unistra.fr/hips/list| here}</li>
      * </ul>
-     * @param {ImageSurveyOptions} [options] - Options for rendering the image
+     * @param {ImageHiPSOptions} [options] - Options for rendering the image
      * @param {function} [success] - A success callback
      * @param {function} [error] - A success callback
-     * @returns {ImageSurvey} A FITS image object.
+     * @returns {ImageHiPS} A FITS image object.
      */
     Aladin.prototype.newImageSurvey = function(url, options) {
         const id = url;
@@ -1523,30 +1522,30 @@ export let Aladin = (function () {
      * Add a new HiPS layer to the view on top of the others
      *
      * @memberof Aladin
-     * @param {string|ImageSurvey} [survey="CDS/P/DSS2/color"] - Can be:
+     * @param {string|ImageHiPS} [survey="CDS/P/DSS2/color"] - Can be:
      * <ul>
      * <li>1. An url that refers to a HiPS.</li>
      * <li>2. Or it can be a CDS ID that refers to a HiPS. One can found the list of IDs {@link https://aladin.cds.unistra.fr/hips/list| here}</li>
-     * <li>3. It can also be an {@link ImageSurvey} HiPS object created from {@link A.imageHiPS}</li>
+     * <li>3. It can also be an {@link ImageHiPS} HiPS object created from {@link A.imageHiPS}</li>
      * </ul>
      * By default, the {@link https://alasky.cds.unistra.fr/DSS/DSSColor/|Digital Sky Survey 2} survey will be displayed
      */
     Aladin.prototype.addNewImageLayer = function(survey="CDS/P/DSS2/color") {
         let layerName = Utils.uuidv4();
-        this.setOverlayImageLayer(survey, layerName);
+        return this.setOverlayImageLayer(survey, layerName);
     }
 
     /**
      * Change the base layer of the view
      * 
-     * It internally calls {@link Aladin#setBaseImageLayer|Aladin.setBaseImageLayer} with the url/{@link ImageSurvey}/{@link ImageFITS} given
+     * It internally calls {@link Aladin#setBaseImageLayer|Aladin.setBaseImageLayer} with the url/{@link ImageHiPS}/{@link ImageFITS} given
      *
      * @memberof Aladin
-     * @param {string|ImageSurvey|ImageFITS} urlOrHiPSOrFITS - Can be:
+     * @param {string|ImageHiPS|ImageFITS} urlOrHiPSOrFITS - Can be:
      * <ul>
      * <li>1. An url that refers to a HiPS.</li>
      * <li>2. Or it can be a CDS identifier that refers to a HiPS. One can found the list of IDs {@link https://aladin.cds.unistra.fr/hips/list| here}</li>
-     * <li>3. A {@link ImageSurvey} HiPS object created from {@link A.imageHiPS}</li>
+     * <li>3. A {@link ImageHiPS} HiPS object created from {@link A.imageHiPS}</li>
      * <li>4. A {@link ImageFITS} FITS image object</li>
      * </ul>
      */
@@ -1557,14 +1556,14 @@ export let Aladin = (function () {
     /**
      * Change the base layer of the view
      * 
-     * It internally calls {@link Aladin#setBaseImageLayer|Aladin.setBaseImageLayer} with the url/{@link ImageSurvey}/{@link ImageFITS} given
+     * It internally calls {@link Aladin#setBaseImageLayer|Aladin.setBaseImageLayer} with the url/{@link ImageHiPS}/{@link ImageFITS} given
      *
      * @memberof Aladin
-     * @param {string|ImageSurvey|ImageFITS} urlOrHiPSOrFITS - Can be:
+     * @param {string|ImageHiPS|ImageFITS} urlOrHiPSOrFITS - Can be:
      * <ul>
      * <li>1. An url that refers to a HiPS.</li>
      * <li>2. Or it can be a CDS ID that refers to a HiPS. One can found the list of IDs {@link https://aladin.cds.unistra.fr/hips/list| here}</li>
-     * <li>3. A {@link ImageSurvey} HiPS object created from {@link A.imageHiPS}</li>
+     * <li>3. A {@link ImageHiPS} HiPS object created from {@link A.imageHiPS}</li>
      * <li>4. A {@link ImageFITS} FITS image object</li>
      * </ul>
      */
@@ -1598,11 +1597,11 @@ export let Aladin = (function () {
      * Change the base layer of the view 
      *
      * @memberof Aladin
-     * @param {string|ImageSurvey|ImageFITS} urlOrHiPSOrFITS - Can be:
+     * @param {string|ImageHiPS|ImageFITS} urlOrHiPSOrFITS - Can be:
      * <ul>
      * <li>1. An url that refers to a HiPS.</li>
      * <li>2. Or it can be a CDS ID that refers to a HiPS. One can found the list of IDs {@link https://aladin.cds.unistra.fr/hips/list| here}</li>
-     * <li>3. A {@link ImageSurvey} HiPS object created from {@link A.imageHiPS}</li>
+     * <li>3. A {@link ImageHiPS} HiPS object created from {@link A.imageHiPS}</li>
      * <li>4. A {@link ImageFITS} FITS image object</li>
      * </ul>
      */
@@ -1619,11 +1618,11 @@ export let Aladin = (function () {
      * Add a new HiPS/FITS image layer in the view 
      *
      * @memberof Aladin
-     * @param {string|ImageSurvey|ImageFITS} urlOrHiPSOrFITS - Can be:
+     * @param {string|ImageHiPS|ImageFITS} urlOrHiPSOrFITS - Can be:
      * <ul>
      * <li>1. An url that refers to a HiPS.</li>
      * <li>2. Or it can be a CDS ID that refers to a HiPS. One can found the list of IDs {@link https://aladin.cds.unistra.fr/hips/list| here}</li>
-     * <li>3. A {@link ImageSurvey} HiPS object created from {@link A.imageHiPS}</li>
+     * <li>3. A {@link ImageHiPS} HiPS object created from {@link A.imageHiPS}</li>
      * <li>4. A {@link ImageFITS} FITS image object</li>
      * </ul>
      * @param {string} [layer="overlay"] - A layer name. By default 'overlay' is chosen and it is destined to be plot

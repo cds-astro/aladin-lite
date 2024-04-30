@@ -17,25 +17,50 @@
 //    along with Aladin Lite.
 //
 
-
-
 /******************************************************************************
  * Aladin Lite project
- * 
+ *
  * File ImageFITS
- * 
+ *
  * Authors: Matthieu Baumann [CDS]
- * 
+ *
  *****************************************************************************/
 import { ALEvent } from "./events/ALEvent.js";
 import { ColorCfg } from "./ColorCfg.js";
 import { Utils } from "./Utils";
-import { ImageSurvey } from "./ImageSurvey.js";
+import { HiPSCache } from "./DefaultHiPSCache";
 
+/**
+ * @typedef {Object} ImageFITSOptions
+ *
+ * @property {string} [name] - A human-readable name for the FITS image
+ * @property {Function} [successCallback] - A callback executed when the FITS has been loaded
+ * @property {Function} [errorCallback] - A callback executed when the FITS could not be loaded
+ * @property {number} [opacity=1.0] - Opacity of the survey or image (value between 0 and 1).
+ * @property {string} [colormap="native"] - The colormap configuration for the survey or image.
+ * @property {string} [stretch="linear"] - The stretch configuration for the survey or image.
+ * @property {boolean} [reversed=false] - If true, the colormap is reversed; otherwise, it is not reversed.
+ * @property {number} [minCut] - The minimum cut value for the color configuration. If not given, 0.0 for JPEG/PNG surveys, the value of the property file for FITS surveys
+ * @property {number} [maxCut] - The maximum cut value for the color configuration. If not given, 1.0 for JPEG/PNG surveys, the value of the property file for FITS surveys
+ * @property {boolean} [additive=false] - If true, additive blending is applied; otherwise, it is not applied.
+ * @property {number} [gamma=1.0] - The gamma correction value for the color configuration.
+ * @property {number} [saturation=0.0] - The saturation value for the color configuration.
+ * @property {number} [brightness=0.0] - The brightness value for the color configuration.
+ * @property {number} [contrast=0.0] - The contrast value for the color configuration.
+ */
 
 export let ImageFITS = (function () {
-
-    function ImageFITS(url, name, options, successCallback = undefined, errorCallback = undefined) {
+    /**
+     * The object describing a FITS image
+     *
+     * @class
+     * @constructs ImageFITS
+     *
+     * @param {string} url - Mandatory unique identifier for the layer. Can be an arbitrary name
+     * @param {ImageFITSOptions} [options] - The option for the survey
+     *
+     */
+    function ImageFITS(url, options) {
         // Name of the layer
         this.layer = null;
         this.added = false;
@@ -43,13 +68,13 @@ export let ImageFITS = (function () {
         // Set it to a default value
         this.url = url;
         this.id = url;
-        this.name = name || this.url;
+        this.name = (options && options.name) || this.url;
 
         this.imgFormat = "fits";
-        this.formats = ["fits"]
+        this.formats = ["fits"];
         // callbacks
-        this.successCallback = successCallback;
-        this.errorCallback = errorCallback;
+        this.successCallback = options && options.successCallback;
+        this.errorCallback = options && options.errorCallback;
         // initialize the color meta data here
         // set a asinh stretch by default if there is none
         /*if (options) {
@@ -60,37 +85,27 @@ export let ImageFITS = (function () {
         let self = this;
 
         this.query = Promise.resolve(self);
-        this._saveInCache();
     }
 
-    ImageFITS.prototype._saveInCache = function() {
-        let self = this;
-
-        let colorOpt = Object.fromEntries(Object.entries(this.colorCfg));
-        let fitsOpt = {
-            id: self.id,
-            name: self.name,
-            url: self.url,
-            imgFormat: self.imgFormat,
-            ...colorOpt
-        }
-
-        ImageSurvey.cache[self.id] = self;
-
-        //console.log('new CACHE', ImageSurvey.cache, self.id, surveyOpt, ImageSurvey.cache[self.id], ImageSurvey.cache["CSIRO/P/RACS/mid/I"])
+    ImageFITS.prototype._saveInCache = function () {
+        /*ImageHiPS.cache[this.id] = this;
 
         // Tell that the HiPS List has been updated
         if (this.view) {
             ALEvent.HIPS_LIST_UPDATED.dispatchedTo(this.view.aladin.aladinDiv);
-        }
-    }
-    
+        }*/
+
+        HiPSCache.append(this.id, this);
+    };
+
     // A cache storing directly the images to not query for the properties each time
     //ImageFITS.cache = {};
 
-    ImageFITS.prototype.setView = function(view) {
+    ImageFITS.prototype.setView = function (view) {
         this.view = view;
-    }
+
+        this._saveInCache();
+    };
 
     // @api
     ImageFITS.prototype.setOpacity = function (opacity) {
@@ -112,7 +127,7 @@ export let ImageFITS = (function () {
         this._updateMetadata(() => {
             this.colorCfg.setColormap(colormap, options);
         });
-    }
+    };
 
     // @api
     ImageFITS.prototype.setCuts = function (lowCut, highCut) {
@@ -159,94 +174,104 @@ export let ImageFITS = (function () {
                 this.view.wasm.setImageMetadata(this.layer, {
                     ...this.colorCfg.get(),
                     longitudeReversed: false,
-                    imgFormat: this.imgFormat
+                    imgFormat: this.imgFormat,
                 });
-                ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.view.aladinDiv, { layer: this });
+                ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.view.aladinDiv, {
+                    layer: this,
+                });
             }
 
             // save it in the JS HiPS cache
-            this._saveInCache()
+            this._saveInCache();
         } catch (e) {
             // Display the error message
             console.error(e);
         }
-    }
+    };
 
     ImageFITS.prototype.add = function (layer) {
         this.layer = layer;
 
         let self = this;
 
-        const promise = self.view.wasm.addImageFITS({
-            layer: self.layer,
-            url: self.url,
-            meta: {
-                ...this.colorCfg.get(),
-                longitudeReversed: false,
-                imgFormat: this.imgFormat
-            }
-        }).then((imagesParams) => {
-            // There is at least one entry in imageParams
-            self.added = true;
+        const promise = self.view.wasm
+            .addImageFITS({
+                layer: self.layer,
+                url: self.url,
+                meta: {
+                    ...this.colorCfg.get(),
+                    longitudeReversed: false,
+                    imgFormat: this.imgFormat,
+                },
+            })
+            .then((imagesParams) => {
+                // There is at least one entry in imageParams
+                self.added = true;
 
-            self.children = [];
+                self.children = [];
 
-            let hduIdx = 0;
-            imagesParams.forEach((imageParams) => {
-                // This fits has HDU extensions
-                let image = new ImageFITS(
-                    imageParams.url,
-                    self.name + "_ext_" + hduIdx.toString(),
-                    null,
-                    null,
-                    null
-                );
+                let hduIdx = 0;
+                imagesParams.forEach((imageParams) => {
+                    // This fits has HDU extensions
+                    let image = new ImageFITS(imageParams.url, {
+                        name: self.name + "_ext_" + hduIdx.toString(),
+                    });
 
-                // Set the layer corresponding to the onein the backend
-                image.layer = imageParams.layer;
-                image.added = true;
-                image.setView(self.view);
-                // deep copy of the color object of self
-                image.colorCfg = Utils.deepCopy(self.colorCfg);
-                // Set the automatic computed cuts
-                image.setCuts(imageParams.automatic_min_cut, imageParams.automatic_max_cut);
+                    // Set the layer corresponding to the onein the backend
+                    image.layer = imageParams.layer;
+                    image.added = true;
+                    image.setView(self.view);
+                    // deep copy of the color object of self
+                    image.colorCfg = Utils.deepCopy(self.colorCfg);
+                    // Set the automatic computed cuts
+                    image.setCuts(
+                        imageParams.automatic_min_cut,
+                        imageParams.automatic_max_cut
+                    );
 
-                image.ra = imageParams.centered_fov.ra;
-                image.dec = imageParams.centered_fov.dec;
-                image.fov = imageParams.centered_fov.fov;
+                    image.ra = imageParams.centered_fov.ra;
+                    image.dec = imageParams.centered_fov.dec;
+                    image.fov = imageParams.centered_fov.fov;
 
-                if (!self.ra) { self.ra = image.ra; }
-                if (!self.dec) { self.dec = image.dec; }
-                if (!self.fov) { self.fov = image.fov; }
+                    if (!self.ra) {
+                        self.ra = image.ra;
+                    }
+                    if (!self.dec) {
+                        self.dec = image.dec;
+                    }
+                    if (!self.fov) {
+                        self.fov = image.fov;
+                    }
 
-                self.children.push(image)
+                    self.children.push(image);
 
-                hduIdx += 1;
+                    hduIdx += 1;
+                });
+
+                // Call the success callback on the first HDU image parsed
+                if (self.successCallback) {
+                    self.successCallback(
+                        self.children[0].ra,
+                        self.children[0].dec,
+                        self.children[0].fov,
+                        self.children[0]
+                    );
+                }
+
+                return self;
+            })
+            .catch((e) => {
+                if (self.errorCallback) {
+                    self.errorCallback();
+                }
+
+                // This error result from a promise
+                // If I throw it, it will not be catched because
+                // it is run async
+                self.view.removeImageLayer(layer);
+
+                return Promise.reject(e);
             });
-
-            // Call the success callback on the first HDU image parsed
-            if (self.successCallback) {
-                self.successCallback(
-                    self.children[0].ra,
-                    self.children[0].dec,
-                    self.children[0].fov,
-                    self.children[0]
-                );
-            }
-
-            return self;
-        }).catch((e) => {
-            if (self.errorCallback) {
-                self.errorCallback()
-            }
-
-            // This error result from a promise
-            // If I throw it, it will not be catched because
-            // it is run async
-            self.view.removeImageLayer(layer)
-
-            return Promise.reject(e);
-        });
 
         return promise;
     };
@@ -261,9 +286,9 @@ export let ImageFITS = (function () {
     };
 
     // FITS images does not mean to be used for storing planetary data
-    ImageFITS.prototype.isPlanetaryBody = function() {
+    ImageFITS.prototype.isPlanetaryBody = function () {
         return false;
-    }
+    };
 
     // @api
     ImageFITS.prototype.focusOn = function () {
@@ -307,4 +332,3 @@ export let ImageFITS = (function () {
 
     return ImageFITS;
 })();
-

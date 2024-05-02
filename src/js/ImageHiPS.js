@@ -181,7 +181,6 @@ export let ImageHiPS = (function () {
         this.id = id;
         this.name = (options && options.name) || undefined;
         this.subtype = "survey";
-
         this.url = url;
         this.maxOrder = options.maxOrder;
         this.minOrder = options.minOrder || 0;
@@ -296,12 +295,8 @@ export let ImageHiPS = (function () {
                             }
                         })
                         .catch((e) => {
-                            //alert(e);
                             console.error(self);
                             console.error(e);
-                            // the survey has been added so we remove it from the stack
-                            //self.view.removeImageLayer(self.layer)
-                            //throw e;
                         });
                 }
 
@@ -490,21 +485,6 @@ export let ImageHiPS = (function () {
             // append new important infos from the properties queried
             ...surveyOpt,
         });
-
-        /*ImageHiPS.cache[self.id] = {
-            // Erase by the cache already put values which is considered
-            // as the ground truth
-            ...ImageHiPS.cache[self.id],
-            // append new important infos from the properties queried
-            ...surveyOpt,
-        }*/
-
-        //console.log('new CACHE', ImageHiPS.cache, self.id, surveyOpt, ImageHiPS.cache[self.id], ImageHiPS.cache["CSIRO/P/RACS/mid/I"])
-
-        // Tell that the HiPS List has been updated
-        /*if (this.view) {
-            ALEvent.HIPS_LIST_UPDATED.dispatchedTo(this.view.aladin.aladinDiv);
-        }*/
     };
 
     /**

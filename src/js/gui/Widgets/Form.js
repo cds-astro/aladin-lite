@@ -53,6 +53,9 @@ Exemple of layout object
 export class Form extends DOMElement {
     constructor(options, target, position = "beforeend") {
         let el = document.createElement('form');
+        el.onsubmit = (e) => {
+            e.preventDefault();
+        };
         el.className = "aladin-form";
 
         super(el, options);

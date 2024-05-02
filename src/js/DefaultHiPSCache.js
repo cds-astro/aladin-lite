@@ -33,13 +33,13 @@ export let HiPSCache = (function () {
     HiPSCache.append = function (key, image) {
         HiPSCache.cache[key] = image;
 
-        ALEvent.HIPS_LIST_UPDATED.dispatchedTo(document.body);
+        ALEvent.HIPS_CACHE_UPDATED.dispatchedTo(document.body);
     };
 
     HiPSCache.delete = function (key) {
         delete HiPSCache.cache[key];
 
-        ALEvent.HIPS_LIST_UPDATED.dispatchedTo(document.body);
+        ALEvent.HIPS_CACHE_UPDATED.dispatchedTo(document.body);
     };
 
     HiPSCache.get = function (key) {

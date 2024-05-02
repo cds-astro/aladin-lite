@@ -2,10 +2,13 @@
 // Class Coo
 //=================================
 import { Format } from "./coo";
+
 /**
- * Constructor
- * @param angle angle (precision in degrees)
- * @param prec precision
+ * Creates an angle of the Aladin interactive sky atlas.
+ * @class
+ * @constructs Angle
+ * @param {number} angle - precision in degrees
+ * @param {number} prec - precision
  * (8: 1/1000th sec, 7: 1/100th sec, 6: 1/10th sec, 5: sec, 4: 1/10th min, 3: min, 2: 1/10th deg, 1: deg
  */
 export let Angle = function(angle, prec) {
@@ -43,28 +46,66 @@ Angle.prototype = {
         return Format.toDecimal(fov, this.prec) + suffix;
     },
 
+    /**
+     * @memberof Angle
+     * 
+     * @param {string} str - A string in the form [<deg>°<minutes>'<seconds>"]. [hms] form is not supported
+     * @returns {boolean} - Whether the string has been successfully parsed
+     */
+
     parse: function(str) {
         // check for degrees
-        let idxUnit;
-        idxUnit = str.indexOf('°');
-        if (idxUnit > 0) {
-            this.angle = +str.substring(0, idxUnit)
-            return true;
+        let idx = str.indexOf('°');
+
+        let angleDeg = NaN;
+        if (idx > 0) {
+            const deg = parseFloat(str.substring(0, idx));
+            if (!Number.isFinite(deg)) {
+                return false
+            }
+
+            angleDeg = deg;
+
+            str = str.substring(idx + 1)
         }
 
-        idxUnit = str.indexOf('\'');
-        if (idxUnit > 0) {
-            this.angle = (+str.substring(0, idxUnit)) / 60.0
-            return true;
+        idx = str.indexOf('\'');
+        if (idx > 0) {
+            const minutes = parseFloat(str.substring(0, idx))
+
+            if (!Number.isFinite(minutes)) {
+                return false
+            }
+
+            if (!Number.isFinite(angleDeg)) {
+                angleDeg = 0;
+            }
+            angleDeg += minutes / 60.0
+
+            str = str.substring(idx + 1);
         }
 
-        idxUnit = str.indexOf('"');
-        if (idxUnit > 0) {
-            this.angle = (+str.substring(0, idxUnit)) / 3600.0
-            return true;
+        idx = str.indexOf('"');
+        if (idx > 0) {
+            const seconds = parseFloat(str.substring(0, idx))
+
+            if (!Number.isFinite(seconds)) {
+                return false;
+            }
+
+            if (!Number.isFinite(angleDeg)) {
+                angleDeg = 0;
+            }
+
+            angleDeg += seconds / 3600.0
         }
 
-        return false
+        if (Number.isFinite(angleDeg)) {
+            this.angle = angleDeg;
+            return true;
+        } else {
+            return false
+        }
     },
 
     degrees: function() {

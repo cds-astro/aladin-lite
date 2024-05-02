@@ -76,7 +76,7 @@ export class Location extends DOMElement {
                 keydown: (e) => {
                     e.stopPropagation();
 
-                    field.removeClass('aladin-unknownObject'); // remove red border
+                    field.removeClass('aladin-not-valid'); // remove red border
 
                     if (e.key === 'Enter') {
                         field.el.blur();
@@ -90,7 +90,7 @@ export class Location extends DOMElement {
                             object,
                             {
                                 error: function () {
-                                    field.addClass('aladin-unknownObject');
+                                    field.addClass('aladin-not-valid');
                                     field.update({placeholder: object + ' not found...'})
                                     field.set('');
                                     field.el.focus();
@@ -220,7 +220,7 @@ export class Location extends DOMElement {
             else {
                 self.field.set(coo.format('d/'))
             }
-            self.field.removeClass('aladin-unknownObject');
+            self.field.removeClass('aladin-not-valid');
 
             self.field.element().style.color = options.isViewCenter ? aladin.getReticle().getColor() : 'white';
             //self.field.el.blur()

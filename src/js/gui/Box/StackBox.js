@@ -41,18 +41,17 @@ import addIconUrl from "../../../../assets/icons/plus.svg";
 import hideIconUrl from "../../../../assets/icons/hide.svg";
 import removeIconUrl from "../../../../assets/icons/remove.svg";
 import settingsIconUrl from "../../../../assets/icons/settings.svg";
-import filterOnUrl from "../../../../assets/icons/filter-on.svg";
-import filterOffUrl from "../../../../assets/icons/filter-off.svg";
 
 import searchIconImg from "../../../../assets/icons/search.svg";
+
 import { TogglerActionButton } from "../Button/Toggler.js";
 import { Icon } from "../Widgets/Icon.js";
-import { ImageHiPS } from "../../ImageHiPS.js";
 import { Box } from "../Widgets/Box.js";
 import { CtxMenuActionButtonOpener } from "../Button/CtxMenuOpener.js";
 import { Input } from "../Widgets/Input.js";
 import { ImageFITS } from "../../ImageFITS.js";
 import { HiPSCache } from "../../DefaultHiPSCache.js";
+import { HiPSBrowserBox } from "./HiPSBrowserBox.js";
 
 export class OverlayStackBox extends Box {
     /*static previewImagesUrl = {
@@ -137,24 +136,6 @@ export class OverlayStackBox extends Box {
         this.cachedHiPS = {};
 
         this.aladin = aladin;
-
-        this.filterHiPSOn = false;
-        this.filterCallback = (HiPS) => {
-            if (!HiPS.regime) {
-                return false;
-            }
-
-            if (
-                this.filterParams.regime &&
-                HiPS.regime &&
-                this.filterParams.regime.toLowerCase() !==
-                    HiPS.regime.toLowerCase()
-            ) {
-                return false;
-            }
-
-            return true;
-        };
 
         this.mode = "stack";
 
@@ -526,10 +507,10 @@ export class OverlayStackBox extends Box {
                     {
                         label: {
                             icon: {
-                                url: searchIconUrl,
+                                url: addIconUrl,
                                 monochrome: true,
                                 tooltip: {
-                                    content: "From our database...",
+                                    content: "Add a new layer",
                                     position: { direction: "right" },
                                 },
                                 cssStyle: {
@@ -544,21 +525,48 @@ export class OverlayStackBox extends Box {
 
                             /*self._hide();
 
-                        self.hipsSelectorBox = new HiPSSelectorBox(self.aladin);
-                        // attach a callback
-                        self.hipsSelectorBox.attach( 
-                            (HiPSId) => {
-                                let name = Utils.uuidv4()
-                                self.aladin.setOverlayImageLayer(HiPSId, name)
+                            self.hipsSelectorBox = new HiPSSelectorBox(self.aladin);
+                            // attach a callback
+                            self.hipsSelectorBox.attach( 
+                                (HiPSId) => {
+                                    let name = Utils.uuidv4()
+                                    self.aladin.setOverlayImageLayer(HiPSId, name)
 
-                                self.show();
-                            }
-                        );
+                                    self.show();
+                                }
+                            );
 
-                        self.hipsSelectorBox._show({
-                            position: self.position,
-                        });*/
+                            self.hipsSelectorBox._show({
+                                position: self.position,
+                            });*/
                             self.aladin.addNewImageLayer();
+                        },
+                    },
+                    {
+                        label: {
+                            icon: {
+                                url: searchIconUrl,
+                                monochrome: true,
+                                tooltip: {
+                                    content: "From our database...",
+                                    position: { direction: "right" },
+                                },
+                                cssStyle: {
+                                    cursor: "help",
+                                },
+                            },
+                            content: "Browse HiPS",
+                        },
+                        action: (e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+
+                            if (!self.hipsBrowser)
+                                self.hipsBrowser = new HiPSBrowserBox(aladin);
+
+                            self.hipsBrowser._show({position: {
+                                anchor: 'center center'
+                            }});
                         },
                     },
                     ContextMenu.fileLoaderItem({
@@ -594,97 +602,6 @@ export class OverlayStackBox extends Box {
             },
             this.aladin
         );
-
-        this.filterParams = {
-            regime: "Optical",
-        };
-        this.filterBox = new Box(
-            {
-                close: false,
-                content: [
-                    Input.select({
-                        name: "regime",
-                        value: "Optical",
-                        options: [
-                            "Optical",
-                            "UV",
-                            "Radio",
-                            "Infrared",
-                            "X-ray",
-                            "Gamma-ray",
-                        ],
-                        change() {
-                            self.filterParams["regime"] = this.value;
-
-                            if (self.filterHiPSOn) {
-                                ALEvent.HIPS_LIST_UPDATED.dispatchedTo(
-                                    self.aladin.aladinDiv
-                                );
-                            }
-                        },
-                        tooltip: {
-                            content: "Observation regime",
-                            position: { direction: "right" },
-                        },
-                    }),
-                ],
-            },
-            self.aladin.aladinDiv
-        );
-        this.filterBox._hide();
-
-        this.filterEnabler = Input.checkbox({
-            name: "filter-enabler",
-            checked: this.filterHiPSOn,
-            tooltip: {
-                content: self.filterHiPSOn ? "Filtering on" : "Filtering off",
-            },
-            click(e) {
-                self.filterHiPSOn = e.target.checked;
-                self.filterBtn.update({
-                    icon: {
-                        url: self.filterHiPSOn ? filterOnUrl : filterOffUrl,
-                        monochrome: true,
-                    },
-                });
-
-                self.filterEnabler.update({
-                    tooltip: {
-                        content: self.filterHiPSOn
-                            ? "Filtering on"
-                            : "Filtering off",
-                    },
-                    checked: self.filterHiPSOn,
-                });
-
-                ALEvent.HIPS_LIST_UPDATED.dispatchedTo(self.aladin.aladinDiv);
-            },
-        });
-
-        this.filterBtn = new TogglerActionButton({
-            icon: {
-                url: this.filterHiPSOn ? filterOnUrl : filterOffUrl,
-                monochrome: true,
-            },
-            size: "small",
-            tooltip: {
-                content: "Want to filter HiPS surveys by criteria ?",
-                position: { direction: "top" },
-            },
-            toggled: false,
-            actionOn: (e) => {
-                self.filterBox._show({
-                    position: {
-                        nextTo: self.filterBtn,
-                        direction: "right",
-                        aladin: self.aladin,
-                    },
-                });
-            },
-            actionOff: (e) => {
-                self.filterBox._hide();
-            },
-        });
 
         this.update({ content: this.createLayout() });
     }
@@ -784,13 +701,11 @@ export class OverlayStackBox extends Box {
         updateOverlayList();
 
         // Add a listener for HiPS list changes
-        ALEvent.HIPS_LIST_UPDATED.listenedBy(document.body, () => {
+        ALEvent.HIPS_CACHE_UPDATED.listenedBy(document.body, () => {
             self.cachedHiPS = {};
 
             for (var key in HiPSCache.cache) {
-
                 let HiPS = HiPSCache.cache[key];
-
                 self.cachedHiPS[HiPS.name] = HiPS;
             }
 
@@ -803,33 +718,6 @@ export class OverlayStackBox extends Box {
                 hips.HiPSSelector.update({options});
             }
         });
-
-        /*ALEvent.HIPS_LIST_UPDATED.listenedBy(this.aladin.aladinDiv, () => {
-            // Recompute the autocompletion as the cache has changed
-            HiPSSearch.HiPSList = {};
-            for (var key in ImageHiPS.cache) {
-                let HiPS = ImageHiPS.cache[key];
-
-                // apply filtering
-                if (
-                    !self.filterHiPSOn ||
-                    (self.filterHiPSOn && !self.filterCallback) ||
-                    (self.filterHiPSOn &&
-                        self.filterCallback &&
-                        self.filterCallback(HiPS))
-                ) {
-                    // search with the name or id
-                    HiPSSearch.HiPSList[HiPS.name] = HiPS;
-                }
-            }
-
-            let keys = Object.keys(HiPSSearch.HiPSList);
-            // Change the autocomplete of all the search input text
-            for (var key in this.HiPSui) {
-                let hips = this.HiPSui[key];
-                hips.searchInput.setAutocompletionList(keys);
-            }
-        });*/
     }
 
     _hide() {
@@ -841,12 +729,12 @@ export class OverlayStackBox extends Box {
             }
         }
 
-        if (this.catBox) {
-            this.catBox._hide();
+        if (this.hipsBrowser) {
+            this.hipsBrowser._hide();
         }
 
-        if (this.filterBtn && this.filterBtn.toggled) {
-            this.filterBtn.toggle();
+        if (this.catBox) {
+            this.catBox._hide();
         }
 
         if (this.addOverlayBtn) this.addOverlayBtn.hideMenu();
@@ -984,7 +872,7 @@ export class OverlayStackBox extends Box {
     _createSurveysList() {
         let self = this;
 
-        const layers = Array.from(self.aladin.getImageOverlays())
+        const layers = Array.from(self.aladin.getStackLayers())
             .reverse()
             .map((name) => {
                 let overlay = self.aladin.getOverlayImageLayer(name);
@@ -1103,8 +991,8 @@ export class OverlayStackBox extends Box {
                     );
                     return found !== undefined;
                 })(),
-                action: (e, btn) => {
-                    if (!btn.options.toggled) {
+                action: (e) => {
+                    if (!loadMOCBtn.options.toggled) {
                         // load the moc
                         let moc = A.MOCFromURL(
                             layer.url + "/Moc.fits",
@@ -1123,7 +1011,7 @@ export class OverlayStackBox extends Box {
                                     });
                                 }
 
-                                btn.update({
+                                loadMOCBtn.update({
                                     toggled: true,
                                     tooltip: {
                                         content: "Remove coverage",
@@ -1149,7 +1037,7 @@ export class OverlayStackBox extends Box {
                             });
                         }
 
-                        btn.update({
+                        loadMOCBtn.update({
                             toggled: false,
                             tooltip: {
                                 content: "Add coverage",

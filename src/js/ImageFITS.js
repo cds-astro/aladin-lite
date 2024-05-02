@@ -88,13 +88,6 @@ export let ImageFITS = (function () {
     }
 
     ImageFITS.prototype._saveInCache = function () {
-        /*ImageHiPS.cache[this.id] = this;
-
-        // Tell that the HiPS List has been updated
-        if (this.view) {
-            ALEvent.HIPS_LIST_UPDATED.dispatchedTo(this.view.aladin.aladinDiv);
-        }*/
-
         HiPSCache.append(this.id, this);
     };
 

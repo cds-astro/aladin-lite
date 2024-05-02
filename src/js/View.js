@@ -1742,7 +1742,7 @@ export let View = (function () {
         if (this.overlayLayers.length === 0) {
             this.empty = true;
         } else if (this.selectedLayer === layer) {
-            // If the layer removed was selected then we select the base layer
+            // If the layer removed was selected then we select the last layer
             this.selectLayer(this.overlayLayers[this.overlayLayers.length - 1]);
         }
 

@@ -17,7 +17,6 @@
 //    along with Aladin Lite.
 //
 
-
 /******************************************************************************
  * Aladin Lite project
  *
@@ -27,7 +26,7 @@
  * Author: Thomas Boch[CDS], Matthieu Baumann[CDS]
  *
  *****************************************************************************/
-import { version } from './../../package.json';
+import { version } from "./../../package.json";
 import { View } from "./View.js";
 import { Utils } from "./Utils";
 import { Overlay } from "./Overlay.js";
@@ -40,12 +39,12 @@ import { MeasurementTable } from "./MeasurementTable.js";
 import { ImageHiPS } from "./ImageHiPS.js";
 import { Coo } from "./libs/astro/coo.js";
 import { CooConversion } from "./CooConversion.js";
-import { HiPSCache } from './DefaultHiPSCache';
+import { HiPSCache } from "./DefaultHiPSCache";
 
 import { ProjectionEnum } from "./ProjectionEnum.js";
 
 import { ALEvent } from "./events/ALEvent.js";
-import { Color } from './Color.js';
+import { Color } from "./Color.js";
 import { ImageFITS } from "./ImageFITS.js";
 import { DefaultActionsForContextMenu } from "./DefaultActionsForContextMenu.js";
 import { SAMPConnector } from "./vo/samp.js";
@@ -68,8 +67,8 @@ import { ProjectionActionButton } from "./gui/Button/Projection.js";
 import { SettingsButton } from "./gui/Button/Settings";
 import { SimbadPointer } from "./gui/Button/SimbadPointer";
 import { OverlayStackButton } from "./gui/Button/OverlayStack";
-import { GridEnabler } from './gui/Button/GridEnabler';
-import { CooFrame } from './gui/Input/CooFrame';
+import { GridEnabler } from "./gui/Button/GridEnabler";
+import { CooFrame } from "./gui/Input/CooFrame";
 
 /**
  * @typedef {Object} AladinOptions
@@ -196,7 +195,7 @@ import { CooFrame } from './gui/Input/CooFrame';
  * @property {number} y - y coordinate of the center's circle in pixels
  * @property {number} r - radius of the circle in pixels
  * @property {function} contains - function taking a {x, y} object telling if the vertex is contained or not
- * @property {function} bbox - returns the bbox of the selection in pixels 
+ * @property {function} bbox - returns the bbox of the selection in pixels
  */
 
 /**
@@ -208,7 +207,7 @@ import { CooFrame } from './gui/Input/CooFrame';
  * @property {number} w - width of the selection in pixels
  * @property {number} h - height of the selection in pixels
  * @property {function} contains - function taking a {x, y} object telling if the vertex is contained in the selection or not
- * @property {function} bbox - returns the bbox of the selection in pixels 
+ * @property {function} bbox - returns the bbox of the selection in pixels
  */
 
 /**
@@ -217,7 +216,7 @@ import { CooFrame } from './gui/Input/CooFrame';
  *
  * @property {Object[]} vertices - vertices of the polygon selection in pixels. Each vertex has a x and y key in pixels.
  * @property {function} contains - function taking a {x, y} object telling if the vertex is contained in the selection or not
- * @property {function} bbox - returns the bbox of the selection in pixels 
+ * @property {function} bbox - returns the bbox of the selection in pixels
  */
 
 /**
@@ -247,7 +246,7 @@ import { CooFrame } from './gui/Input/CooFrame';
  */
 
 export let Aladin = (function () {
-   /**
+    /**
      * Creates an instance of the Aladin interactive sky atlas.
      *
      * @class
@@ -256,7 +255,7 @@ export let Aladin = (function () {
      *                                         where the Aladin sky atlas will be rendered.
      * @param {AladinOptions} requestedOptions - Options to customize the behavior and appearance of the Aladin atlas.
      * @throws {Error} Throws an error if aladinDiv is not provided or is invalid.
-     * 
+     *
      * @example
      * // Usage example:
      * import { A } from 'aladin-lite';
@@ -268,7 +267,9 @@ export let Aladin = (function () {
 
         // check that aladinDiv exists, stop immediately otherwise
         if (!aladinDiv) {
-            console.error("Aladin div has not been found. Please check its name!");
+            console.error(
+                "Aladin div has not been found. Please check its name!"
+            );
             return;
         }
         this.wasm = null;
@@ -282,9 +283,8 @@ export let Aladin = (function () {
         }
         requestedOptions = requestedOptions || {};
 
-
         // 'fov' option was previsouly called 'zoom'
-        if ('zoom' in requestedOptions) {
+        if ("zoom" in requestedOptions) {
             var fovValue = requestedOptions.zoom;
             delete requestedOptions.zoom;
             requestedOptions.fov = fovValue;
@@ -296,17 +296,17 @@ export let Aladin = (function () {
         for (var key in Aladin.DEFAULT_OPTIONS) {
             if (requestedOptions[key] !== undefined) {
                 options[key] = requestedOptions[key];
-            }
-            else {
+            } else {
                 options[key] = Aladin.DEFAULT_OPTIONS[key];
             }
         }
 
         // 'gridOptions' is an object, so it need it own loop
-        if ('gridOptions' in requestedOptions) {
+        if ("gridOptions" in requestedOptions) {
             for (var key in Aladin.DEFAULT_OPTIONS.gridOptions) {
                 if (requestedOptions.gridOptions[key] === undefined) {
-                    options.gridOptions[key] = Aladin.DEFAULT_OPTIONS.gridOptions[key]
+                    options.gridOptions[key] =
+                        Aladin.DEFAULT_OPTIONS.gridOptions[key];
                 }
             }
         }
@@ -341,7 +341,7 @@ export let Aladin = (function () {
         // Background color
         if (options.backgroundColor) {
             this.backgroundColor = options.backgroundColor;
-            this.setBackgroundColor(this.backgroundColor)
+            this.setBackgroundColor(this.backgroundColor);
         }
 
         // Grid
@@ -350,7 +350,8 @@ export let Aladin = (function () {
         // color and opacity can be defined by two variables. The item in gridOptions
         // should take precedence.
         gridOptions["color"] = options.gridOptions.color || options.gridColor;
-        gridOptions["opacity"] = options.gridOptions.opacity || options.gridOpacity;
+        gridOptions["opacity"] =
+            options.gridOptions.opacity || options.gridOpacity;
         if (options && options.showCooGrid) {
             gridOptions.enabled = true;
         }
@@ -361,7 +362,7 @@ export let Aladin = (function () {
 
         if (options.log) {
             var params = options;
-            params['version'] = Aladin.VERSION;
+            params["version"] = Aladin.VERSION;
             Logger.log("startup", params);
         }
 
@@ -384,11 +385,13 @@ export let Aladin = (function () {
                 });
             } else if (options.survey === ImageHiPS.DEFAULT_SURVEY_ID) {
                 // DSS is cached inside ImageHiPS class, no need to provide any further information
-                const survey = this.createImageSurvey(ImageHiPS.DEFAULT_SURVEY_ID);
+                const survey = this.createImageSurvey(
+                    ImageHiPS.DEFAULT_SURVEY_ID
+                );
 
                 this.setBaseImageLayer(survey);
             } else {
-                this.setBaseImageLayer(options.survey)
+                this.setBaseImageLayer(options.survey);
             }
         } else {
             // Add the image layers
@@ -401,7 +404,7 @@ export let Aladin = (function () {
                 // mirrors given, take randomly one
                 let numMirrors = options.surveyUrl.length;
                 let id = Math.floor(Math.random() * numMirrors);
-                url = options.surveyUrl[id]
+                url = options.surveyUrl[id];
             } else {
                 url = options.surveyUrl;
             }
@@ -419,7 +422,7 @@ export let Aladin = (function () {
                 if (typeof survey === "string") {
                     try {
                         url = new URL(survey).href;
-                    } catch(e) {
+                    } catch (e) {
                         id = survey;
                     }
 
@@ -431,15 +434,19 @@ export let Aladin = (function () {
                     if (survey.url) {
                         url = survey.url;
                     }
-                    
+
                     name = survey.name || survey.id || survey.url;
 
                     if (id && url) {
-                        console.warn('Both "CDS ID" and url are given for ', survey, '. ID is chosen.')
+                        console.warn(
+                            'Both "CDS ID" and url are given for ',
+                            survey,
+                            ". ID is chosen."
+                        );
                         url = null;
                     }
 
-                    cachedSurvey = {...cachedSurvey, ...survey}
+                    cachedSurvey = { ...cachedSurvey, ...survey };
 
                     /*if (survey.properties) {
                         delete cachedSurvey.properties;
@@ -449,20 +456,22 @@ export let Aladin = (function () {
                         delete cachedSurvey.options;
                         cachedSurvey = {...cachedSurvey, ...survey.options}
                     }*/
-
                 } else {
-                    console.warn('unable to parse the survey list item: ', survey)
+                    console.warn(
+                        "unable to parse the survey list item: ",
+                        survey
+                    );
                     continue;
                 }
 
                 if (id) {
-                    cachedSurvey['id'] = id;
+                    cachedSurvey["id"] = id;
                 }
                 if (url) {
-                    cachedSurvey['url'] = url;
+                    cachedSurvey["url"] = url;
                 }
                 if (name) {
-                    cachedSurvey['name'] = name;
+                    cachedSurvey["name"] = name;
                 }
 
                 // at least id or url is defined
@@ -470,11 +479,12 @@ export let Aladin = (function () {
 
                 // Merge what is already in the cache for that HiPS with new properties
                 // coming from the MOCServer
-                HiPSCache.append(key, {...HiPSCache.get(key), ...cachedSurvey})
+                HiPSCache.append(key, {
+                    ...HiPSCache.get(key),
+                    ...cachedSurvey,
+                });
             }
-
-            ALEvent.HIPS_LIST_UPDATED.dispatchedTo(this.aladinDiv);
-        }
+        };
 
         /*let IDs = hipsList.map((h) => {
             if (h instanceof Object) {
@@ -512,21 +522,33 @@ export let Aladin = (function () {
         // maximize control
         if (options.showFullscreenControl) {
             // react to fullscreenchange event to restore initial width/height (if user pressed ESC to go back from full screen)
-            Utils.on(document, 'fullscreenchange webkitfullscreenchange mozfullscreenchange MSFullscreenChange', function (e) {
-                var fullscreenElt = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
-                if (fullscreenElt === null || fullscreenElt === undefined) {
-                    //self.aladinDiv.classList.remove('aladin-fullscreen');
-    
-                    var fullScreenToggledFn = self.callbacksByEventName['fullScreenToggled'];
-                    (typeof fullScreenToggledFn === 'function') && fullScreenToggledFn(self.isInFullscreen);
+            Utils.on(
+                document,
+                "fullscreenchange webkitfullscreenchange mozfullscreenchange MSFullscreenChange",
+                function (e) {
+                    var fullscreenElt =
+                        document.fullscreenElement ||
+                        document.webkitFullscreenElement ||
+                        document.mozFullScreenElement ||
+                        document.msFullscreenElement;
+                    if (fullscreenElt === null || fullscreenElt === undefined) {
+                        //self.aladinDiv.classList.remove('aladin-fullscreen');
+
+                        var fullScreenToggledFn =
+                            self.callbacksByEventName["fullScreenToggled"];
+                        typeof fullScreenToggledFn === "function" &&
+                            fullScreenToggledFn(self.isInFullscreen);
+                    }
                 }
-            });
+            );
         }
 
         // set right click context menu
         if (options.showContextMenu) {
             this.contextMenu = new ContextMenu(this);
-            this.contextMenu.attach(DefaultActionsForContextMenu.getDefaultActions(this));
+            this.contextMenu.attach(
+                DefaultActionsForContextMenu.getDefaultActions(this)
+            );
         }
 
         if (options.samp) {
@@ -534,24 +556,24 @@ export let Aladin = (function () {
         }
 
         if (options.inertia !== undefined) {
-            this.wasm.setInertia(options.inertia)
+            this.wasm.setInertia(options.inertia);
         }
 
         this._setupUI(options);
     };
 
-    Aladin.prototype._setupUI = function(options) {
+    Aladin.prototype._setupUI = function (options) {
         let self = this;
 
         // Status bar
         if (options.showStatusBar) {
             this.statusBar = new StatusBarBox(this);
-            this.addUI(this.statusBar)
+            this.addUI(this.statusBar);
         }
 
         // Add the frame control
         if (options.showFrame) {
-            this.addUI(new CooFrame(this))
+            this.addUI(new CooFrame(this));
         }
 
         // Add the location info
@@ -561,16 +583,16 @@ export let Aladin = (function () {
 
         // Add the FoV info
         if (options.showFov || options.showZoomControl) {
-            this.addUI(new FoV(this, options))
+            this.addUI(new FoV(this, options));
         }
 
         ////////////////////////////////////////////////////
         let stack = new OverlayStackButton(this);
         let simbad = new SimbadPointer(this);
         let grid = new GridEnabler(this);
-        this.addUI(stack)
-        this.addUI(simbad)
-        this.addUI(grid)
+        this.addUI(stack);
+        this.addUI(simbad);
+        this.addUI(grid);
 
         // Add the layers control
         if (!options.showLayersControl) {
@@ -590,8 +612,10 @@ export let Aladin = (function () {
 
         // Settings control
         if (options.showSettingsControl) {
-            let settings = new SettingsButton(this, {features: {stack, simbad, grid}});
-            this.addUI(settings)
+            let settings = new SettingsButton(this, {
+                features: { stack, simbad, grid },
+            });
+            this.addUI(settings);
         }
 
         // share control panel
@@ -601,11 +625,11 @@ export let Aladin = (function () {
 
         if (options.showProjectionControl) {
             this.projBtn = new ProjectionActionButton(this);
-            this.addUI(this.projBtn)            
+            this.addUI(this.projBtn);
         }
 
         if (options.showFullscreenControl) {
-            this.addUI(new FullScreenActionButton(self))
+            this.addUI(new FullScreenActionButton(self));
         }
 
         if (options.expandLayersControl) {
@@ -613,43 +637,50 @@ export let Aladin = (function () {
         }
 
         this._applyMediaQueriesUI();
-    }
+    };
 
-    Aladin.prototype._applyMediaQueriesUI = function() {
-        const applyMediaQuery = function(maxWidth, matchingCallback, unmatchingCallback) {
+    Aladin.prototype._applyMediaQueriesUI = function () {
+        const applyMediaQuery = function (
+            maxWidth,
+            matchingCallback,
+            unmatchingCallback
+        ) {
             function mqFunction(x) {
-                if (x.matches) { // If media query matches
-                    matchingCallback()
+                if (x.matches) {
+                    // If media query matches
+                    matchingCallback();
                 } else {
-                    unmatchingCallback()
+                    unmatchingCallback();
                 }
             }
-    
+
             // Create a MediaQueryList object
-            var mq = window.matchMedia("(max-width: " + maxWidth + ")")
-    
+            var mq = window.matchMedia("(max-width: " + maxWidth + ")");
+
             // Attach listener function on state changes
-            mq.addEventListener("change", function() {
+            mq.addEventListener("change", function () {
                 mqFunction(mq);
             });
 
             mqFunction(mq);
-        }
+        };
 
         let self = this;
 
-
-        applyMediaQuery('48rem', () => {
-            if (self.projBtn) {
-                self.projBtn.update({verbosity: 'reduced'})
+        applyMediaQuery(
+            "48rem",
+            () => {
+                if (self.projBtn) {
+                    self.projBtn.update({ verbosity: "reduced" });
+                }
+            },
+            () => {
+                if (self.projBtn) {
+                    self.projBtn.update({ verbosity: "full" });
+                }
             }
-        },
-        () => {
-            if (self.projBtn) {
-                self.projBtn.update({verbosity: 'full'})
-            }
-        })
-    }
+        );
+    };
 
     /**** CONSTANTS ****/
     Aladin.VERSION = version;
@@ -657,7 +688,7 @@ export let Aladin = (function () {
     Aladin.JSONP_PROXY = "https://alaskybis.cds.unistra.fr/cgi/JSONProxy";
     //Aladin.JSONP_PROXY = "https://alaskybis.unistra.fr/cgi/JSONProxy";
 
-    Aladin.URL_PREVIEWER = 'https://aladin.cds.unistra.fr/AladinLite/';
+    Aladin.URL_PREVIEWER = "https://aladin.cds.unistra.fr/AladinLite/";
 
     // access to WASM libraries
     Aladin.wasmLibs = {};
@@ -705,9 +736,9 @@ export let Aladin = (function () {
             enabled: false,
             showLabels: true,
             thickness: 3,
-            labelSize: 15
+            labelSize: 15,
         },
-        projection: 'SIN',
+        projection: "SIN",
         log: true,
         samp: false,
         realFullscreen: false,
@@ -721,14 +752,21 @@ export let Aladin = (function () {
         realFullscreen = Boolean(realFullscreen);
         self.isInFullscreen = !self.isInFullscreen;
 
-        ContextMenu.hideAll()
+        ContextMenu.hideAll();
+
+        this.ui.forEach(ui => {
+            if (ui.toggle) {
+                ui.toggle();
+                ui.toggle();
+            }
+        })
 
         //this.fullScreenBtn.attr('title', isInFullscreen ? 'Restore original size' : 'Full screen');
 
-        if (this.aladinDiv.classList.contains('aladin-fullscreen')) {
-            this.aladinDiv.classList.remove('aladin-fullscreen');
+        if (this.aladinDiv.classList.contains("aladin-fullscreen")) {
+            this.aladinDiv.classList.remove("aladin-fullscreen");
         } else {
-            this.aladinDiv.classList.add('aladin-fullscreen');
+            this.aladinDiv.classList.add("aladin-fullscreen");
         }
 
         if (realFullscreen) {
@@ -738,14 +776,12 @@ export let Aladin = (function () {
 
                 if (d.requestFullscreen) {
                     d.requestFullscreen();
-                }
-                else if (d.webkitRequestFullscreen) {
+                } else if (d.webkitRequestFullscreen) {
                     d.webkitRequestFullscreen();
-                }
-                else if (d.mozRequestFullScreen) { // notice the difference in capitalization for Mozilla functions ...
+                } else if (d.mozRequestFullScreen) {
+                    // notice the difference in capitalization for Mozilla functions ...
                     d.mozRequestFullScreen();
-                }
-                else if (d.msRequestFullscreen) {
+                } else if (d.msRequestFullscreen) {
                     d.msRequestFullscreen();
                 }
             }
@@ -753,14 +789,11 @@ export let Aladin = (function () {
             else {
                 if (document.exitFullscreen) {
                     document.exitFullscreen();
-                }
-                else if (document.webkitExitFullscreen) {
+                } else if (document.webkitExitFullscreen) {
                     document.webkitExitFullscreen();
-                }
-                else if (document.mozCancelFullScreen) {
+                } else if (document.mozCancelFullScreen) {
                     document.mozCancelFullScreen();
-                }
-                else if (document.webkitExitFullscreen) {
+                } else if (document.webkitExitFullscreen) {
                     document.webkitExitFullscreen();
                 }
             }
@@ -772,43 +805,48 @@ export let Aladin = (function () {
         }, 1000);*/
 
         // force call to zoomChanged callback
-        var fovChangedFn = self.callbacksByEventName['zoomChanged'];
-        (typeof fovChangedFn === 'function') && fovChangedFn(self.view.fov);
+        var fovChangedFn = self.callbacksByEventName["zoomChanged"];
+        typeof fovChangedFn === "function" && fovChangedFn(self.view.fov);
 
-        var fullScreenToggledFn = self.callbacksByEventName['fullScreenToggled'];
-        (typeof fullScreenToggledFn === 'function') && fullScreenToggledFn(isInFullscreen);
+        var fullScreenToggledFn =
+            self.callbacksByEventName["fullScreenToggled"];
+        typeof fullScreenToggledFn === "function" &&
+            fullScreenToggledFn(isInFullscreen);
     };
 
     Aladin.prototype.getOptionsFromQueryString = function () {
         var options = {};
-        var requestedTarget = Utils.urlParam('target');
+        var requestedTarget = Utils.urlParam("target");
         if (requestedTarget) {
             options.target = requestedTarget;
         }
-        var requestedFrame = Utils.urlParam('frame');
+        var requestedFrame = Utils.urlParam("frame");
         if (requestedFrame && CooFrameEnum[requestedFrame]) {
             options.frame = requestedFrame;
         }
-        var requestedSurveyId = Utils.urlParam('survey');
-        if (requestedSurveyId && ImageHiPS.getSurveyInfoFromId(requestedSurveyId)) {
+        var requestedSurveyId = Utils.urlParam("survey");
+        if (
+            requestedSurveyId &&
+            ImageHiPS.getSurveyInfoFromId(requestedSurveyId)
+        ) {
             options.survey = requestedSurveyId;
         }
-        var requestedZoom = Utils.urlParam('zoom');
+        var requestedZoom = Utils.urlParam("zoom");
         if (requestedZoom && requestedZoom > 0 && requestedZoom < 180) {
             options.zoom = requestedZoom;
         }
 
-        var requestedShowreticle = Utils.urlParam('showReticle');
+        var requestedShowreticle = Utils.urlParam("showReticle");
         if (requestedShowreticle) {
-            options.showReticle = requestedShowreticle.toLowerCase() == 'true';
+            options.showReticle = requestedShowreticle.toLowerCase() == "true";
         }
 
-        var requestedCooFrame = Utils.urlParam('cooFrame');
+        var requestedCooFrame = Utils.urlParam("cooFrame");
         if (requestedCooFrame) {
             options.cooFrame = requestedCooFrame;
         }
 
-        var requestedFullscreen = Utils.urlParam('fullScreen');
+        var requestedFullscreen = Utils.urlParam("fullScreen");
         if (requestedFullscreen !== undefined) {
             options.fullScreen = requestedFullscreen;
         }
@@ -816,7 +854,7 @@ export let Aladin = (function () {
         return options;
     };
 
-   /**
+    /**
      * Sets the field of view (FoV) of the Aladin instance to the specified angle in degrees.
      *
      * @memberof Aladin
@@ -830,7 +868,7 @@ export let Aladin = (function () {
         this.view.setZoom(FoV);
     };
 
-    Aladin.prototype.setFov =  Aladin.prototype.setFoV;
+    Aladin.prototype.setFov = Aladin.prototype.setFoV;
 
     // @API
     // (experimental) try to adjust the FoV to the given object name. Does nothing if object is not known from Simbad
@@ -841,37 +879,46 @@ export let Aladin = (function () {
         });
     };
 
+    Aladin.prototype.getFovForObject = Aladin.prototype.getFoVForObject =
+        function (objectName, callback) {
+            var query =
+                "SELECT galdim_majaxis, V FROM basic JOIN ident ON oid=ident.oidref JOIN allfluxes ON oid=allfluxes.oidref WHERE id='" +
+                objectName +
+                "'";
+            var url =
+                "//simbad.u-strasbg.fr/simbad/sim-tap/sync?query=" +
+                encodeURIComponent(query) +
+                "&request=doQuery&lang=adql&format=json&phase=run";
 
-    Aladin.prototype.getFovForObject = Aladin.prototype.getFoVForObject = function (objectName, callback) {
-        var query = "SELECT galdim_majaxis, V FROM basic JOIN ident ON oid=ident.oidref JOIN allfluxes ON oid=allfluxes.oidref WHERE id='" + objectName + "'";
-        var url = '//simbad.u-strasbg.fr/simbad/sim-tap/sync?query=' + encodeURIComponent(query) + '&request=doQuery&lang=adql&format=json&phase=run';
+            Utils.fetch({
+                url,
+                method: "GET",
+                dataType: "json",
+                success: (result) => {
+                    var defaultFov = 4 / 60; // 4 arcmin
+                    var fov = defaultFov;
 
-        Utils.fetch({
-            url,
-            method: 'GET',
-            dataType: 'json',
-            success: (result) => {
-                var defaultFov = 4 / 60; // 4 arcmin
-                var fov = defaultFov;
-    
-                if ('data' in result && result.data.length > 0) {
-                    var galdimMajAxis = Utils.isNumber(result.data[0][0]) ? result.data[0][0] / 60.0 : null; // result gives galdim in arcmin
-                    var magV = Utils.isNumber(result.data[0][1]) ? result.data[0][1] : null;
-    
-                    if (galdimMajAxis !== null) {
-                        fov = 2 * galdimMajAxis;
-                    }
-                    else if (magV !== null) {
-                        if (magV < 10) {
-                            fov = 2 * Math.pow(2.0, (6 - magV / 2.0)) / 60;
+                    if ("data" in result && result.data.length > 0) {
+                        var galdimMajAxis = Utils.isNumber(result.data[0][0])
+                            ? result.data[0][0] / 60.0
+                            : null; // result gives galdim in arcmin
+                        var magV = Utils.isNumber(result.data[0][1])
+                            ? result.data[0][1]
+                            : null;
+
+                        if (galdimMajAxis !== null) {
+                            fov = 2 * galdimMajAxis;
+                        } else if (magV !== null) {
+                            if (magV < 10) {
+                                fov = (2 * Math.pow(2.0, 6 - magV / 2.0)) / 60;
+                            }
                         }
                     }
-                }
-    
-                (typeof callback === 'function') && callback(fov);
-            }
-        })
-    };
+
+                    typeof callback === "function" && callback(fov);
+                },
+            });
+        };
 
     /**
      * Sets the coordinate frame of the Aladin instance to the specified frame.
@@ -895,8 +942,8 @@ export let Aladin = (function () {
 
         this.view.changeFrame(newFrame);
 
-        var frameChangedFunction = this.callbacksByEventName['cooFrameChanged'];
-        if (typeof frameChangedFunction === 'function') {
+        var frameChangedFunction = this.callbacksByEventName["cooFrameChanged"];
+        if (typeof frameChangedFunction === "function") {
             frameChangedFunction(newFrame.label);
         }
     };
@@ -913,19 +960,21 @@ export let Aladin = (function () {
      * <br>"MER" (Mercator projection)
      * <br>"AIT" (Hammer-Aitoff projection)
      * <br>"MOL" (Mollweide projection)
-    *
-    * @example
-    * // Set the projection to 'orthographic'
-    * let aladin = A.aladin('#aladin-lite-div');
-    * aladin.setProjection('SIN');
-    */
+     *
+     * @example
+     * // Set the projection to 'orthographic'
+     * let aladin = A.aladin('#aladin-lite-div');
+     * aladin.setProjection('SIN');
+     */
     Aladin.prototype.setProjection = function (projection) {
         if (!projection) {
             return;
         }
         this.view.setProjection(projection);
 
-        ALEvent.PROJECTION_CHANGED.dispatchedTo(this.aladinDiv, {projection: projection});
+        ALEvent.PROJECTION_CHANGED.dispatchedTo(this.aladinDiv, {
+            projection: projection,
+        });
     };
 
     /**
@@ -937,22 +986,22 @@ export let Aladin = (function () {
      * @param {string} options.message - The message to display
      * @param {string|number} options.duration - The duration of the message. Accepts a time in milliseconds or 'unlimited'
      * @param {string} options.type - The type of the message. Can be 'loading', 'tooltip', 'info'
-     * 
+     *
      * @example
-     * 
+     *
      * aladin.addStatusBarMessage({
      *       duration: 10000,
      *       type: 'info',
      *       message: 'Aladin Lite v3.3 is out. New features available:<ul><li>New Button, Box objects</li><li>Polygonal, circular selection</li></ul>'
      * })
      */
-    Aladin.prototype.addStatusBarMessage = function(options) {
+    Aladin.prototype.addStatusBarMessage = function (options) {
         if (this.statusBar) {
-            this.statusBar.appendMessage(options)
+            this.statusBar.appendMessage(options);
         }
     };
 
-    Aladin.prototype.getProjectionName = function() {
+    Aladin.prototype.getProjectionName = function () {
         const self = this;
 
         let projName = undefined;
@@ -961,10 +1010,11 @@ export let Aladin = (function () {
                 projName = key;
                 break;
             }
-        };
+        }
 
         return projName;
-    };``
+    };
+    ``;
 
     /**
      * Returns the current coordinate system: possible values are 'J2000', 'J2000d', and 'Galactic' .
@@ -977,9 +1027,9 @@ export let Aladin = (function () {
      * let cooFrame = aladin.getFrame();
      * assert(cooFrame, 'galactic')
      */
-    Aladin.prototype.getFrame = function() {
+    Aladin.prototype.getFrame = function () {
         return this.view.cooFrame.label;
-    }
+    };
 
     /**
      * Moves the Aladin instance to the specified astronomical object.
@@ -1004,17 +1054,17 @@ export let Aladin = (function () {
      */
     Aladin.prototype.gotoObject = function (targetName, callbackOptions) {
         let successCallback = undefined;
-        let errorCallback   = undefined;
-        if (typeof callbackOptions === 'object') {
-            if (callbackOptions.hasOwnProperty('success')) {
+        let errorCallback = undefined;
+        if (typeof callbackOptions === "object") {
+            if (callbackOptions.hasOwnProperty("success")) {
                 successCallback = callbackOptions.success;
             }
-            if (callbackOptions.hasOwnProperty('error')) {
+            if (callbackOptions.hasOwnProperty("error")) {
                 errorCallback = callbackOptions.error;
             }
         }
         // this is for compatibility reason with the previous method signature which was function(targetName, errorCallback)
-        else if (typeof callbackOptions === 'function') {
+        else if (typeof callbackOptions === "function") {
             errorCallback = callbackOptions;
         }
 
@@ -1029,7 +1079,8 @@ export let Aladin = (function () {
 
             this.view.pointTo(ra, dec);
 
-            (typeof successCallback === 'function') && successCallback(this.getRaDec());
+            typeof successCallback === "function" &&
+                successCallback(this.getRaDec());
         }
         // ask resolution by Sesame
         else {
@@ -1040,39 +1091,59 @@ export let Aladin = (function () {
                 if (this.getBaseImageLayer()) {
                     baseImageLayer = await this.getBaseImageLayer().query;
                 }
-                if (this.getBaseImageLayer() === undefined || !baseImageLayer.isPlanetaryBody()) {
-                    Sesame.resolve(targetName,
-                        function (data) { // success callback
+                if (
+                    this.getBaseImageLayer() === undefined ||
+                    !baseImageLayer.isPlanetaryBody()
+                ) {
+                    Sesame.resolve(
+                        targetName,
+                        function (data) {
+                            // success callback
                             // Location given in icrs at J2000
                             const coo = data.coo;
                             self.view.pointTo(coo.jradeg, coo.jdedeg);
-    
-                            (typeof successCallback === 'function') && successCallback(self.getRaDec());
+
+                            typeof successCallback === "function" &&
+                                successCallback(self.getRaDec());
                         },
-                        function (data) { // errror callback
+                        function (data) {
+                            // errror callback
                             if (console) {
-                                console.log("Could not resolve object name " + targetName);
+                                console.log(
+                                    "Could not resolve object name " +
+                                        targetName
+                                );
                                 console.log(data);
                             }
-                            (typeof errorCallback === 'function') && errorCallback();
+                            typeof errorCallback === "function" &&
+                                errorCallback();
                         }
                     );
                 }
                 // planetary case
                 else {
                     const body = baseImageLayer.hipsBody;
-                    PlanetaryFeaturesNameResolver.resolve(targetName, body,
-                        function (data) { // success callback
+                    PlanetaryFeaturesNameResolver.resolve(
+                        targetName,
+                        body,
+                        function (data) {
+                            // success callback
                             self.view.pointTo(data.lon, data.lat);
-    
-                            (typeof successCallback === 'function') && successCallback(self.getRaDec());
+
+                            typeof successCallback === "function" &&
+                                successCallback(self.getRaDec());
                         },
-                        function (data) { // error callback
+                        function (data) {
+                            // error callback
                             if (console) {
-                                console.log("Could not resolve object name " + targetName);
+                                console.log(
+                                    "Could not resolve object name " +
+                                        targetName
+                                );
                                 console.log(data);
                             }
-                            (typeof errorCallback === 'function') && errorCallback();
+                            typeof errorCallback === "function" &&
+                                errorCallback();
                         }
                     );
                 }
@@ -1080,7 +1151,7 @@ export let Aladin = (function () {
         }
     };
 
-   /**
+    /**
      * Moves the Aladin instance to the specified position.
      *
      * @memberof Aladin
@@ -1089,7 +1160,7 @@ export let Aladin = (function () {
      * @param {string} [frame] - The name of the coordinate frame. Possible values: 'j2000d', 'j2000', 'gal', 'icrs'. The given string is case insensitive.
      *
      * @example
-     * // Move to position 
+     * // Move to position
      * const aladin = A.aladin('#aladin-lite-div');
      * aladin.gotoPosition(20, 10, "galactic");
      */
@@ -1097,7 +1168,10 @@ export let Aladin = (function () {
         var radec;
         // convert the frame from string to CooFrameEnum
         if (frame) {
-            frame = CooFrameEnum.fromString(this.options.cooFrame, CooFrameEnum.J2000);
+            frame = CooFrameEnum.fromString(
+                this.options.cooFrame,
+                CooFrameEnum.J2000
+            );
         }
         // both are CooFrameEnum
         let positionGivenFrame = frame || this.view.cooFrame;
@@ -1118,35 +1192,42 @@ export let Aladin = (function () {
         }*/
 
         var params = aladin.animationParams;
-        if (params == null || !params['running']) {
+        if (params == null || !params["running"]) {
             return;
         }
         var now = new Date().getTime();
         // this is the animation end: set the view to the end position, and call complete callback
-        if (now > params['end']) {
-            aladin.gotoRaDec(params['raEnd'], params['decEnd']);
+        if (now > params["end"]) {
+            aladin.gotoRaDec(params["raEnd"], params["decEnd"]);
 
-            if (params['complete']) {
-                params['complete']();
+            if (params["complete"]) {
+                params["complete"]();
             }
 
             return;
         }
 
         // compute current position
-        var fraction = (now - params['start']) / (params['end'] - params['start']);
-        var curPos = intermediatePoint(params['raStart'], params['decStart'], params['raEnd'], params['decEnd'], fraction);
+        var fraction =
+            (now - params["start"]) / (params["end"] - params["start"]);
+        var curPos = intermediatePoint(
+            params["raStart"],
+            params["decStart"],
+            params["raEnd"],
+            params["decEnd"],
+            fraction
+        );
         var curRa = curPos[0];
         var curDec = curPos[1];
         //var curRa =  params['raStart'] + (params['raEnd'] - params['raStart']) * (now-params['start']) / (params['end'] - params['start']);
         //var curDec = params['decStart'] + (params['decEnd'] - params['decStart']) * (now-params['start']) / (params['end'] - params['start']);
 
         aladin.gotoRaDec(curRa, curDec);
-        
+
         //idTimeoutAnim = setTimeout(function () { doAnimation(aladin); }, 10);
         requestAnimFrame(() => {
-            doAnimation(aladin)
-        })
+            doAnimation(aladin);
+        });
     };
 
     /*
@@ -1156,12 +1237,12 @@ export let Aladin = (function () {
      */
     Aladin.prototype.stopAnimation = function () {
         if (this.zoomAnimationParams) {
-            this.zoomAnimationParams['running'] = false;
+            this.zoomAnimationParams["running"] = false;
         }
         if (this.animationParams) {
-            this.animationParams['running'] = false;
+            this.animationParams["running"] = false;
         }
-    }
+    };
 
     /*
      * animate smoothly from the current position to the given ra, dec
@@ -1179,15 +1260,15 @@ export let Aladin = (function () {
         this.animationParams = null;
 
         var animationParams = {};
-        animationParams['start'] = new Date().getTime();
-        animationParams['end'] = new Date().getTime() + 1000 * duration;
+        animationParams["start"] = new Date().getTime();
+        animationParams["end"] = new Date().getTime() + 1000 * duration;
         var raDec = this.getRaDec();
-        animationParams['raStart'] = raDec[0];
-        animationParams['decStart'] = raDec[1];
-        animationParams['raEnd'] = ra;
-        animationParams['decEnd'] = dec;
-        animationParams['complete'] = complete;
-        animationParams['running'] = true;
+        animationParams["raStart"] = raDec[0];
+        animationParams["decStart"] = raDec[1];
+        animationParams["raEnd"] = ra;
+        animationParams["decEnd"] = dec;
+        animationParams["complete"] = complete;
+        animationParams["running"] = true;
 
         this.animationParams = animationParams;
 
@@ -1196,28 +1277,33 @@ export let Aladin = (function () {
 
     var doZoomAnimation = function (aladin) {
         var params = aladin.zoomAnimationParams;
-        if (params == null || !params['running']) {
+        if (params == null || !params["running"]) {
             return;
         }
         var now = new Date().getTime();
         // this is the zoom animation end: set the view to the end fov, and call complete callback
-        if (now > params['end']) {
-            aladin.setFoV(params['fovEnd']);
+        if (now > params["end"]) {
+            aladin.setFoV(params["fovEnd"]);
 
-            if (params['complete']) {
-                params['complete']();
+            if (params["complete"]) {
+                params["complete"]();
             }
 
             return;
         }
 
         // compute current position
-        var fraction = (now - params['start']) / (params['end'] - params['start']);
-        var curFov = params['fovStart'] + (params['fovEnd'] - params['fovStart']) * Math.sqrt(fraction);
+        var fraction =
+            (now - params["start"]) / (params["end"] - params["start"]);
+        var curFov =
+            params["fovStart"] +
+            (params["fovEnd"] - params["fovStart"]) * Math.sqrt(fraction);
 
         aladin.setFoV(curFov);
 
-        setTimeout(function () { doZoomAnimation(aladin); }, 50);
+        setTimeout(function () {
+            doZoomAnimation(aladin);
+        }, 50);
     };
     /*
      * zoom smoothly from the current FoV to the given new fov to the given ra, dec
@@ -1235,19 +1321,17 @@ export let Aladin = (function () {
         this.zoomAnimationParams = null;
 
         var zoomAnimationParams = {};
-        zoomAnimationParams['start'] = new Date().getTime();
-        zoomAnimationParams['end'] = new Date().getTime() + 1000 * duration;
+        zoomAnimationParams["start"] = new Date().getTime();
+        zoomAnimationParams["end"] = new Date().getTime() + 1000 * duration;
         var fovArray = this.getFov();
-        zoomAnimationParams['fovStart'] = Math.max(fovArray[0], fovArray[1]);
-        zoomAnimationParams['fovEnd'] = fov;
-        zoomAnimationParams['complete'] = complete;
-        zoomAnimationParams['running'] = true;
+        zoomAnimationParams["fovStart"] = Math.max(fovArray[0], fovArray[1]);
+        zoomAnimationParams["fovEnd"] = fov;
+        zoomAnimationParams["complete"] = complete;
+        zoomAnimationParams["running"] = true;
 
         this.zoomAnimationParams = zoomAnimationParams;
         doZoomAnimation(this);
     };
-
-
 
     /**
      *  Compute intermediate point between points (lng1, lat1) and (lng2, lat2)
@@ -1258,36 +1342,39 @@ export let Aladin = (function () {
      */
     function intermediatePoint(lng1, lat1, lng2, lat2, fraction) {
         function degToRad(d) {
-            return d * Math.PI / 180;
+            return (d * Math.PI) / 180;
         }
         function radToDeg(r) {
-            return r * 180 / Math.PI;
+            return (r * 180) / Math.PI;
         }
         var lat1 = degToRad(lat1);
         var lng1 = degToRad(lng1);
         var lat2 = degToRad(lat2);
         var lng2 = degToRad(lng2);
-        var d = 2 * Math.asin(
-            Math.sqrt(Math.pow((Math.sin((lat1 - lat2) / 2)),
-                2) +
-                Math.cos(lat1) * Math.cos(lat2) *
-                Math.pow(Math.sin((lng1 - lng2) / 2), 2)));
+        var d =
+            2 *
+            Math.asin(
+                Math.sqrt(
+                    Math.pow(Math.sin((lat1 - lat2) / 2), 2) +
+                        Math.cos(lat1) *
+                            Math.cos(lat2) *
+                            Math.pow(Math.sin((lng1 - lng2) / 2), 2)
+                )
+            );
         var A = Math.sin((1 - fraction) * d) / Math.sin(d);
         var B = Math.sin(fraction * d) / Math.sin(d);
-        var x = A * Math.cos(lat1) * Math.cos(lng1) + B *
-            Math.cos(lat2) * Math.cos(lng2);
-        var y = A * Math.cos(lat1) * Math.sin(lng1) + B *
-            Math.cos(lat2) * Math.sin(lng2);
+        var x =
+            A * Math.cos(lat1) * Math.cos(lng1) +
+            B * Math.cos(lat2) * Math.cos(lng2);
+        var y =
+            A * Math.cos(lat1) * Math.sin(lng1) +
+            B * Math.cos(lat2) * Math.sin(lng2);
         var z = A * Math.sin(lat1) + B * Math.sin(lat2);
         var lon = Math.atan2(y, x);
-        var lat = Math.atan2(z, Math.sqrt(Math.pow(x, 2) +
-            Math.pow(y, 2)));
+        var lat = Math.atan2(z, Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2)));
 
         return [radToDeg(lon), radToDeg(lat)];
-    };
-
-
-
+    }
 
     /**
      * Gets the current [Right Ascension, Declination] position of the center of the Aladin view.
@@ -1304,7 +1391,7 @@ export let Aladin = (function () {
         // We must convert it to ICRS
         const radec_j2000 = this.wasm.viewToICRSCooSys(radec[0], radec[1]);
 
-        if (radec_j2000[0]<0) {
+        if (radec_j2000[0] < 0) {
             return [radec_j2000[0] + 360.0, radec_j2000[1]];
         }
 
@@ -1341,7 +1428,7 @@ export let Aladin = (function () {
         this.view.showCatalog(show);
     };
     Aladin.prototype.showReticle = function (show) {
-        this.reticle.update({show})
+        this.reticle.update({ show });
     };
 
     Aladin.prototype.getReticle = function () {
@@ -1352,13 +1439,17 @@ export let Aladin = (function () {
     Aladin.prototype.addCatalog = function (catalog) {
         this.view.addCatalog(catalog);
 
-        ALEvent.GRAPHIC_OVERLAY_LAYER_ADDED.dispatchedTo(this.aladinDiv, {layer: catalog});
+        ALEvent.GRAPHIC_OVERLAY_LAYER_ADDED.dispatchedTo(this.aladinDiv, {
+            layer: catalog,
+        });
     };
 
     Aladin.prototype.addOverlay = function (overlay) {
         this.view.addOverlay(overlay);
 
-        ALEvent.GRAPHIC_OVERLAY_LAYER_ADDED.dispatchedTo(this.aladinDiv, {layer: overlay});
+        ALEvent.GRAPHIC_OVERLAY_LAYER_ADDED.dispatchedTo(this.aladinDiv, {
+            layer: overlay,
+        });
     };
 
     Aladin.prototype.addMOC = function (moc) {
@@ -1367,39 +1458,64 @@ export let Aladin = (function () {
 
     Aladin.prototype.addUI = function (ui) {
         this.ui.push(ui);
-        ui.attachTo(this.aladinDiv)
+        ui.attachTo(this.aladinDiv);
 
         // as the ui is pushed to the dom, setting position may need the aladin instance to work
         // so we recompute it
         if (ui.options) {
-            ui.update({position: {...ui.options.position, aladin: this}})
+            ui.update({ position: { ...ui.options.position, aladin: this } });
         }
     };
 
     // @API
-    Aladin.prototype.findLayerByUUID = function(uuid) {
-        const result = this.view.allOverlayLayers.filter(layer => layer.uuid===uuid);
-        if (result.length==0) {
+    Aladin.prototype.findLayerByUUID = function (uuid) {
+        const result = this.view.allOverlayLayers.filter(
+            (layer) => layer.uuid === uuid
+        );
+        if (result.length == 0) {
             return null;
         }
 
         return result[0];
-    }
+    };
 
-    Aladin.prototype.removeLayers = function () {
+    /**
+     * Remove all the overlays (MOC, Overlay, ProgressiveCat, Catalog) from the view
+     * @memberof Aladin
+     */
+    Aladin.prototype.removeOverlays = function () {
         this.view.removeLayers();
     };
 
-    // @API
-    Aladin.prototype.removeLayer = function(layer) {
+    /**
+     * @deprecated
+     * Old method name, use {@link Aladin.prototype.removeOverlays} instead.
+     * @memberof Aladin
+     */
+    Aladin.prototype.removeLayers = Aladin.prototype.removeOverlays;
+
+    /**
+     * Remove a overlay by its layer name
+     * 
+     * @memberof Aladin
+     * @param {string} layer 
+     */
+    Aladin.prototype.removeOverlay = function (layer) {
         this.view.removeLayer(layer);
     };
 
     /**
      * @deprecated
+     * Old method name, use {@link Aladin.prototype.removeOverlay} instead.
+     * @memberof Aladin
+     */
+    Aladin.prototype.removeLayer = Aladin.prototype.removeOverlay;
+
+    /**
+     * @deprecated
      * Creates and return an image survey (HiPS) object
      * Please use {@link A.imageHiPS} instead for creating a new survey image
-     * 
+     *
      * @memberof Aladin
      * @param {string} id - Mandatory unique identifier for the survey.
      * @param {string} [name] - A convinient name for the survey, optional
@@ -1409,22 +1525,30 @@ export let Aladin = (function () {
      * <li>Or it can be a "CDS ID" that refers to a HiPS. One can found the list of IDs {@link https://aladin.cds.unistra.fr/hips/list| here}</li>
      * </ul>
      * @param {string} [cooFrame] - Values accepted: 'equatorial', 'icrs', 'icrsd', 'j2000', 'gal', 'galactic'
-     * @param {number} [maxOrder] - The maximum HEALPix order of the HiPS, i.e the HEALPix order of the most refined tile images of the HiPS. 
-     * @param {ImageOptions} [options] - Options describing the survey
+     * @param {number} [maxOrder] - The maximum HEALPix order of the HiPS, i.e the HEALPix order of the most refined tile images of the HiPS.
+     * @param {ImageHiPSOptions} [options] - Options describing the survey
      * @returns {ImageHiPS} A HiPS image object.
      */
-    Aladin.prototype.createImageSurvey = function(id, name, url, cooFrame, maxOrder, options) {
+    Aladin.prototype.createImageSurvey = function (
+        id,
+        name,
+        url,
+        cooFrame,
+        maxOrder,
+        options
+    ) {
         let surveyOptions = HiPSCache.get(id);
 
         if (!surveyOptions) {
-            surveyOptions = {name, maxOrder, cooFrame, ...options};
+            surveyOptions = { name, maxOrder, cooFrame, ...options };
 
             // differenciate url from CDS Id in the url param given
-            if (!Utils.isUrl(url)) {
+            /*if (!Utils.isUrl(url)) {
                 surveyOptions.id = url;
             } else {
                 surveyOptions.url = url;
-            }
+            }*/
+            surveyOptions.url = url;
 
             HiPSCache.append(id, surveyOptions);
         }
@@ -1448,23 +1572,28 @@ export let Aladin = (function () {
      * <li>Or it can be a "CDS ID" that refers to a HiPS. One can found the list of IDs {@link https://aladin.cds.unistra.fr/hips/list| here}</li>
      * </ul>
      * @param {string} [cooFrame] - Values accepted: 'equatorial', 'icrs', 'icrsd', 'j2000', 'gal', 'galactic'
-     * @param {number} [maxOrder] - The maximum HEALPix order of the HiPS, i.e the HEALPix order of the most refined tile images of the HiPS. 
-     * @param {ImageOptions} [options] - Options describing the survey
+     * @param {number} [maxOrder] - The maximum HEALPix order of the HiPS, i.e the HEALPix order of the most refined tile images of the HiPS.
+     * @param {ImageHiPSOptions} [options] - Options describing the survey
      * @returns {ImageHiPS} A HiPS image object.
      */
     Aladin.createImageSurvey = Aladin.prototype.createImageSurvey;
 
-    
-    Aladin.prototype.createImageFITS = function(url, name, options, successCallback, errorCallback) {
+    Aladin.prototype.createImageFITS = function (
+        url,
+        name,
+        options,
+        successCallback,
+        errorCallback
+    ) {
         try {
             url = new URL(url);
-        } catch(e) {
+        } catch (e) {
             // The url could be created
-            url = Utils.getAbsoluteURL(url)
+            url = Utils.getAbsoluteURL(url);
             url = new URL(url);
         }
 
-        url = url.toString()
+        url = url.toString();
 
         // Do not use proxy with CORS headers until we solve that: https://github.com/MattiasBuelens/wasm-streams/issues/20
         //url = Utils.handleCORSNotSameOrigin(url);
@@ -1486,23 +1615,22 @@ export let Aladin = (function () {
      * @memberof Aladin
      * @static
      * @param {string} url - The url of the fits.
-     * @param {string} [name] - The url of the fits.
-     * @param {ImageOptions} [options] - Options for rendering the image
+     * @param {string} [name] - A human readable name for that fits.
+     * @param {ImageFITSOptions} [options] - Options for rendering the image
      * @param {function} [success] - A success callback
      * @param {function} [error] - A success callback
      * @returns {ImageFITS} A FITS image object.
      */
     Aladin.createImageFITS = Aladin.prototype.createImageFITS;
 
-
-     /**
+    /**
      * @deprecated
      * Create a new layer from an url or CDS ID.
      * Please use {@link A.imageHiPS} instead for creating a new survey image
      *
      * @memberof Aladin
      * @static
-     * @param {string} url - Can be:
+     * @param {string} id - Can be:
      * <ul>
      * <li>1. An url that refers to a HiPS.</li>
      * <li>Or it can be a "CDS ID" that refers to a HiPS. One can found the list of IDs {@link https://aladin.cds.unistra.fr/hips/list| here}</li>
@@ -1512,17 +1640,15 @@ export let Aladin = (function () {
      * @param {function} [error] - A success callback
      * @returns {ImageHiPS} A FITS image object.
      */
-    Aladin.prototype.newImageSurvey = function(url, options) {
-        const id = url;
-        return A.imageHiPS(id, url, options);
-    }
-
+    Aladin.prototype.newImageSurvey = function (id, options) {
+        return A.imageHiPS(id, options);
+    };
 
     /**
      * Add a new HiPS layer to the view on top of the others
      *
      * @memberof Aladin
-     * @param {string|ImageHiPS} [survey="CDS/P/DSS2/color"] - Can be:
+     * @param {string|ImageHiPS|ImageFITS} [survey="CDS/P/DSS2/color"] - Can be:
      * <ul>
      * <li>1. An url that refers to a HiPS.</li>
      * <li>2. Or it can be a CDS ID that refers to a HiPS. One can found the list of IDs {@link https://aladin.cds.unistra.fr/hips/list| here}</li>
@@ -1530,14 +1656,14 @@ export let Aladin = (function () {
      * </ul>
      * By default, the {@link https://alasky.cds.unistra.fr/DSS/DSSColor/|Digital Sky Survey 2} survey will be displayed
      */
-    Aladin.prototype.addNewImageLayer = function(survey="CDS/P/DSS2/color") {
+    Aladin.prototype.addNewImageLayer = function (survey = "CDS/P/DSS2/color") {
         let layerName = Utils.uuidv4();
         return this.setOverlayImageLayer(survey, layerName);
-    }
+    };
 
     /**
      * Change the base layer of the view
-     * 
+     *
      * It internally calls {@link Aladin#setBaseImageLayer|Aladin.setBaseImageLayer} with the url/{@link ImageHiPS}/{@link ImageFITS} given
      *
      * @memberof Aladin
@@ -1549,13 +1675,13 @@ export let Aladin = (function () {
      * <li>4. A {@link ImageFITS} FITS image object</li>
      * </ul>
      */
-    Aladin.prototype.setImageLayer = function(imageLayer) {
+    Aladin.prototype.setImageLayer = function (imageLayer) {
         this.setBaseImageLayer(imageLayer);
     };
 
     /**
      * Change the base layer of the view
-     * 
+     *
      * It internally calls {@link Aladin#setBaseImageLayer|Aladin.setBaseImageLayer} with the url/{@link ImageHiPS}/{@link ImageFITS} given
      *
      * @memberof Aladin
@@ -1572,29 +1698,36 @@ export let Aladin = (function () {
     // @param imageSurvey : ImageSurvey object or image survey identifier
     // @api
     // @old
-    Aladin.prototype.setBackgroundColor = function(rgb) {
-        
-
+    Aladin.prototype.setBackgroundColor = function (rgb) {
         this.backgroundColor = new Color(rgb);
         // Once the wasm is ready, send the color to change it
 
-        ALEvent.AL_USE_WASM.dispatchedTo(this.aladinDiv, {callback: (wasm) => {
-            wasm.setBackgroundColor(this.backgroundColor);
-            ALEvent.BACKGROUND_COLOR_CHANGED.dispatchedTo(this.aladinDiv, {color: this.backgroundColor});
-        }})
+        ALEvent.AL_USE_WASM.dispatchedTo(this.aladinDiv, {
+            callback: (wasm) => {
+                wasm.setBackgroundColor(this.backgroundColor);
+                ALEvent.BACKGROUND_COLOR_CHANGED.dispatchedTo(this.aladinDiv, {
+                    color: this.backgroundColor,
+                });
+            },
+        });
     };
 
-    Aladin.prototype.getBackgroundColor = function() {
+    Aladin.prototype.getBackgroundColor = function () {
         return this.backgroundColor;
     };
 
-    // @api
-    Aladin.prototype.removeImageLayer = function(layer) {
+    /**
+     * Remove a specific layer
+     *
+     * @memberof Aladin
+     * @param {string} layer - The name of the layer to remove
+     */
+    Aladin.prototype.removeImageLayer = function (layer) {
         this.view.removeImageLayer(layer);
     };
 
     /**
-     * Change the base layer of the view 
+     * Change the base layer of the view
      *
      * @memberof Aladin
      * @param {string|ImageHiPS|ImageFITS} urlOrHiPSOrFITS - Can be:
@@ -1605,17 +1738,22 @@ export let Aladin = (function () {
      * <li>4. A {@link ImageFITS} FITS image object</li>
      * </ul>
      */
-    Aladin.prototype.setBaseImageLayer = function(urlOrHiPSOrFITS) {
+    Aladin.prototype.setBaseImageLayer = function (urlOrHiPSOrFITS) {
         return this.setOverlayImageLayer(urlOrHiPSOrFITS, "base");
     };
 
-    // @api
+    /**
+     * Get the base image layer object
+     *
+     * @memberof Aladin
+     * @returns {ImageHiPS|ImageFITS} - Returns the image layer corresponding to the base layer
+     */
     Aladin.prototype.getBaseImageLayer = function () {
         return this.view.getImageLayer("base");
     };
 
     /**
-     * Add a new HiPS/FITS image layer in the view 
+     * Add a new HiPS/FITS image layer in the view
      *
      * @memberof Aladin
      * @param {string|ImageHiPS|ImageFITS} urlOrHiPSOrFITS - Can be:
@@ -1628,15 +1766,18 @@ export let Aladin = (function () {
      * @param {string} [layer="overlay"] - A layer name. By default 'overlay' is chosen and it is destined to be plot
      * on top the 'base' layer. If the layer is already present in the view, it will be replaced by the new HiPS/FITS image given here.
      */
-    Aladin.prototype.setOverlayImageLayer = function (urlOrHiPSOrFITS, layer = "overlay") {
+    Aladin.prototype.setOverlayImageLayer = function (
+        urlOrHiPSOrFITS,
+        layer = "overlay"
+    ) {
         let imageLayer;
         // 1. User gives an ID
         if (typeof urlOrHiPSOrFITS === "string") {
             const idOrUrl = urlOrHiPSOrFITS;
 
-            imageLayer = A.imageHiPS(idOrUrl, idOrUrl);
+            imageLayer = A.imageHiPS(idOrUrl);
 
-        // 2. User gives a non resolved promise
+            // 2. User gives a non resolved promise
         } else {
             imageLayer = urlOrHiPSOrFITS;
         }
@@ -1644,8 +1785,15 @@ export let Aladin = (function () {
         return this.view.setOverlayImageLayer(imageLayer, layer);
     };
 
-    // @api
-    Aladin.prototype.getOverlayImageLayer = function(layer = "overlay") {
+    /**
+     * Get an image layer from a layer name
+     *
+     * @memberof Aladin
+     * @param {string} [layer="overlay"] - The name of the layer
+
+     * @returns {ImageHiPS|ImageFITS} - The requested image layer.
+     */
+    Aladin.prototype.getOverlayImageLayer = function (layer = "overlay") {
         const survey = this.view.getImageLayer(layer);
         return survey;
     };
@@ -1659,75 +1807,99 @@ export let Aladin = (function () {
         this.view.decreaseZoom(0.01);
     };
 
-    Aladin.prototype.setRotation = function(rotation) {
+    Aladin.prototype.setRotation = function (rotation) {
         this.view.setRotation(rotation);
-    }
+    };
 
     // @api
     // Set the current layer that is targeted
     // Rightclicking for changing the cuts is done the targeted layer
     Aladin.prototype.selectLayer = function (layer) {
         this.view.selectLayer(layer);
-    }
+    };
 
     Aladin.prototype.getSelectedLayer = function () {
         return this.view.selectedLayer;
-    }
+    };
 
-    // Get the list of overlays
+    /**
+     * Get list of overlays layers
+     *
+     * @memberof Aladin
+     * @returns {MOC[]|Catalog[]|ProgressiveCat[]|Overlay[]} - Returns the ordered list of image layers. Items can be {@link ImageHiPS} or {@link ImageFITS} objects.
+     */
     Aladin.prototype.getOverlays = function () {
         return this.view.allOverlayLayers;
-    }
+    };
 
-    // Get the list of overlays
-    Aladin.prototype.getImageOverlays = function () {
+    /**
+     * Get list of layers
+     *
+     * @memberof Aladin
+     * @returns {ImageHiPS[]|ImageFITS[]} - Returns the ordered list of image layers. Items can be {@link ImageHiPS} or {@link ImageFITS} objects.
+     */
+    Aladin.prototype.getStackLayers = function () {
         return this.view.overlayLayers;
-    }
+    };
 
     Aladin.prototype.isHpxGridDisplayed = function () {
         return this.view.displayHpxGrid;
-    }
+    };
 
     Aladin.prototype.isReticleDisplayed = function () {
         return this.reticle.isVisible();
-    }
+    };
 
-    Aladin.prototype.createProgressiveCatalog = function (url, frame, maxOrder, options) {
+    /**
+     * @deprecated
+     * Please use {@link A.catalogHiPS} instead
+     */
+    Aladin.prototype.createProgressiveCatalog = function (
+        url,
+        frame,
+        maxOrder,
+        options
+    ) {
         return new ProgressiveCat(url, frame, maxOrder, options);
     };
 
+    /**
+     * @deprecated
+     * Please use {@link A.graphicOverlay} instead
+     */
     Aladin.prototype.createOverlay = function (options) {
         return new Overlay(options);
     };
 
     // Select corresponds to rectangular selection
     Aladin.AVAILABLE_CALLBACKS = [
-        'select',
+        "select",
 
-        'objectClicked',
-        'objectHovered',
-        'objectHoveredStop',
+        "objectClicked",
+        "objectHovered",
+        "objectHoveredStop",
 
-        'footprintClicked',
-        'footprintHovered',
+        "footprintClicked",
+        "footprintHovered",
 
-        'positionChanged',
-        'zoomChanged',
+        "positionChanged",
+        "zoomChanged",
 
-        'click',
-        'rightClickMove',
-        'mouseMove',
+        "click",
+        "rightClickMove",
+        "mouseMove",
 
-        'fullScreenToggled',
-        'cooFrameChanged'
+        "fullScreenToggled",
+        "cooFrameChanged",
     ];
 
-     /**
+    /**
      * Listen aladin for specific events
      *
      * @memberof Aladin
      * @param {ListenerCallback} what - e.g. objectHovered, select, zoomChanged, positionChanged
-     * @param {function} myFunction - a callback function
+     * @param {function} myFunction - a callback function.
+     * Note: positionChanged and zoomChanged are throttled every 100ms.
      * 
      * @example
 // define function triggered when  a source is hovered
@@ -1776,23 +1948,24 @@ aladin.on('objectClicked', function(object, xyMouseCoords) {
         /*if (what === "positionChanged") {
             // tell the backend about that callback
             // because it needs to be called when the inertia is done
-            ALEvent.AL_USE_WASM.dispatchedTo(this.aladinDiv, {callback: (wasm) => {
-                let myFunctionThrottled = Utils.throttle(
-                    myFunction,
-                    View.CALLBACKS_THROTTLE_TIME_MS,
-                );
+            ALEvent.AL_USE_WASM.dispatchedTo(this.aladinDiv, {
+                callback: (wasm) => {
+                    let myFunctionThrottled = Utils.throttle(
+                        myFunction,
+                        View.CALLBACKS_THROTTLE_TIME_MS
+                    );
 
-                wasm.setCallbackPositionChanged(myFunctionThrottled.bind(this));
+                wasm.setCallbackPositionChanged(myFunctionThrottled);
             }})
         }*/
     };
 
-    Aladin.prototype.addListener = function(alEventName, customFn) {
+    Aladin.prototype.addListener = function (alEventName, customFn) {
         new ALEvent(alEventName).listenedBy(this.aladinDiv, customFn);
     };
 
-    Aladin.prototype.selectObjects = function(objects) {
-        this.view.selectObjects(objects)
+    Aladin.prototype.selectObjects = function (objects) {
+        this.view.selectObjects(objects);
     };
 
     /**
@@ -1805,43 +1978,42 @@ aladin.on('objectClicked', function(object, xyMouseCoords) {
      * - If mode='circle' that parameter is of type {@link CircleSelection} <br/>
      * - If mode='rect' that parameter is of type {@link RectSelection} <br/>
      * - If mode='poly' that parameter is of type {@link PolygonSelection}
-    *
-    * @example
-    * // Creates and add a MOC from the user polygonal selection
-    * aladin.select('poly', p => {
-    *    try {
-    *        let ra = []
-    *        let dec = []
-    *        for (const v of p.vertices) {
-    *            let [lon, lat] = aladin.pix2world(v.x, v.y);
-    *            ra.push(lon)
-    *            dec.push(lat)
-    *        }
-    *
-    *        let moc = A.MOCFromPolygon(
-    *            {ra, dec},
-    *            {name: 'poly', lineWidth: 3.0, color: 'pink'},
-    *        );
-    *        aladin.addMOC(moc)
-    *    } catch(_) {
-    *        alert('Selection covers a region out of the projection definition domain.');
-    *    }
-    *})
-    */
-    Aladin.prototype.select = async function (mode = 'rect', callback) {
+     *
+     * @example
+     * // Creates and add a MOC from the user polygonal selection
+     * aladin.select('poly', p => {
+     *    try {
+     *        let ra = []
+     *        let dec = []
+     *        for (const v of p.vertices) {
+     *            let [lon, lat] = aladin.pix2world(v.x, v.y);
+     *            ra.push(lon)
+     *            dec.push(lat)
+     *        }
+     *
+     *        let moc = A.MOCFromPolygon(
+     *            {ra, dec},
+     *            {name: 'poly', lineWidth: 3.0, color: 'pink'},
+     *        );
+     *        aladin.addMOC(moc)
+     *    } catch(_) {
+     *        alert('Selection covers a region out of the projection definition domain.');
+     *    }
+     *})
+     */
+    Aladin.prototype.select = async function (mode = "rect", callback) {
         await this.reticle.loaded;
 
-        this.fire('selectstart', {mode, callback});
+        this.fire("selectstart", { mode, callback });
     };
 
     Aladin.prototype.fire = function (what, params) {
-        if (what === 'selectstart') {
-            const {mode, callback} = params;
+        if (what === "selectstart") {
+            const { mode, callback } = params;
             this.view.startSelection(mode, callback);
-        }
-        else if (what === 'simbad') {
+        } else if (what === "simbad") {
             this.view.setMode(View.TOOL_SIMBAD_POINTER);
-        } else if (what === 'default') {
+        } else if (what === "default") {
             this.view.setMode(View.PAN);
         }
     };
@@ -1881,10 +2053,10 @@ aladin.on('objectClicked', function(object, xyMouseCoords) {
      * // Enable the coordinate grid
      * aladin.setCooGrid({ enabled: true });
      */
-    Aladin.prototype.setCooGrid = function(options) {
+    Aladin.prototype.setCooGrid = function (options) {
         if (options.color) {
             // 1. the user has maybe given some
-            options.color = new Color(options.color)
+            options.color = new Color(options.color);
             // 3. convert from 0-255 to 0-1
             options.color.r /= 255;
             options.color.g /= 255;
@@ -1892,19 +2064,19 @@ aladin.on('objectClicked', function(object, xyMouseCoords) {
         }
 
         this.view.setGridOptions(options);
-    }
-
-    Aladin.prototype.getGridOptions = function() {
-        return this.view.getGridOptions();
-    }
-
-    Aladin.prototype.showCooGrid = function () {
-        this.setCooGrid({enabled: true});
     };
 
-    Aladin.prototype.hideCooGrid = function() {
-        this.setCooGrid({enabled: false});
-    }
+    Aladin.prototype.getGridOptions = function () {
+        return this.view.getGridOptions();
+    };
+
+    Aladin.prototype.showCooGrid = function () {
+        this.setCooGrid({ enabled: true });
+    };
+
+    Aladin.prototype.hideCooGrid = function () {
+        this.setCooGrid({ enabled: false });
+    };
 
     Aladin.prototype.layerByName = function (name) {
         var c = this.view.allOverlayLayers;
@@ -1925,8 +2097,10 @@ aladin.on('objectClicked', function(object, xyMouseCoords) {
             } else {
                 // open a new window
                 var w = window.open();
-                w.document.write('<img src="' + url + '" width="' + this.view.width + 'px">');
-                w.document.title = 'Aladin Lite snapshot';
+                w.document.write(
+                    '<img src="' + url + '" width="' + this.view.width + 'px">'
+                );
+                w.document.title = "Aladin Lite snapshot";
             }
         })();
     };
@@ -1940,26 +2114,30 @@ aladin.on('objectClicked', function(object, xyMouseCoords) {
      *     * height: height in pixels of the image to output
      *
      * @API
-    */
+     */
     Aladin.prototype.getViewDataURL = async function (options) {
         var options = options || {};
         // support for old API signature
-        if (typeof options !== 'object') {
+        if (typeof options !== "object") {
             var imgFormat = options;
             options = { format: imgFormat };
         }
-        const canvasDataURL = await this.view.getCanvasDataURL(options.format, options.width, options.height);
+        const canvasDataURL = await this.view.getCanvasDataURL(
+            options.format,
+            options.width,
+            options.height
+        );
         return canvasDataURL;
-    }
+    };
 
     /**
      * Return the current view WCS as a key-value dictionary
      * Can be useful in coordination with getViewDataURL
      *
      * NOTE + TODO : Rotations are not implemented yet
-     * 
+     *
      * @API
-    */
+     */
     Aladin.prototype.getViewWCS = function () {
         // get general view properties
         const center = this.wasm.getCenter();
@@ -1983,17 +2161,17 @@ aladin.on('objectClicked', function(object, xyMouseCoords) {
         // solar system object dict from planetary fits standard
         // https://agupubs.onlinelibrary.wiley.com/doi/10.1029/2018EA000388
         const solarSystemObjects = {
-            "earth": "EA",
-            "moon": "SE",
-            "mercury": "ME",
-            "venus": "VE",
-            "mars": "MA",
-            "jupiter": "JU",
-            "saturn": "SA",
-            "uranus": "UR",
-            "neptune": "NE",
+            earth: "EA",
+            moon: "SE",
+            mercury: "ME",
+            venus: "VE",
+            mars: "MA",
+            jupiter: "JU",
+            saturn: "SA",
+            uranus: "UR",
+            neptune: "NE",
             // satellites other than the Moon
-            "satellite": "ST" // not findable in the hips properties?
+            satellite: "ST", // not findable in the hips properties?
         };
 
         // we define a generic LON LAT keyword for unknown body types
@@ -2004,12 +2182,11 @@ aladin.on('objectClicked', function(object, xyMouseCoords) {
         let radecsys;
 
         if (this.getBaseImageLayer().isPlanetaryBody()) {
-            const body = this.getBaseImageLayer().hipsBody
+            const body = this.getBaseImageLayer().hipsBody;
             if (body in solarSystemObjects) {
                 cooType1 = `${solarSystemObjects[body]}LN-`;
                 cooType2 = `${solarSystemObjects[body]}LT-`;
             }
-           
         } else {
             switch (this.getFrame()) {
                 case "J2000":
@@ -2037,17 +2214,15 @@ aladin.on('objectClicked', function(object, xyMouseCoords) {
             CUNIT1: "deg     ",
             CUNIT2: "deg     ",
             CDELT1: cdelt1,
-            CDELT2: cdelt2
+            CDELT2: cdelt2,
         };
 
-        // handle the case of equatorial coordinates that need 
+        // handle the case of equatorial coordinates that need
         // the radecsys keyword
-        if (radecsys == "ICRS    ")
-            WCS.RADECSYS = radecsys;
+        if (radecsys == "ICRS    ") WCS.RADECSYS = radecsys;
 
         return WCS;
-    }
-
+    };
 
     /**
      * Restrict the FoV range between a min and a max value
@@ -2071,7 +2246,7 @@ aladin.on('objectClicked', function(object, xyMouseCoords) {
         this.view.maxFoV = maxFoV;
 
         // reset the field of view
-        this.setFoV(this.view.fov)
+        this.setFoV(this.view.fov);
     };
 
     Aladin.prototype.setFOVRange = Aladin.prototype.setFoVRange;
@@ -2089,7 +2264,7 @@ aladin.on('objectClicked', function(object, xyMouseCoords) {
      *
      * @returns {number[]} - An array representing the [Right Ascension, Declination] coordinates in degrees in the `frame`.
      * If not specified, returns the coo in the frame of the current view.
-     * 
+     *
      * @throws {Error} Throws an error if an issue occurs during the transformation.
      */
     Aladin.prototype.pix2world = function (x, y, frame) {
@@ -2099,8 +2274,8 @@ aladin.on('objectClicked', function(object, xyMouseCoords) {
         frame = CooFrameEnum.fromString(frame, CooFrameEnum.J2000);
 
         if (frame !== this.view.cooFrame) {
-            if (frame.label === 'Galactic') {
-                console.warn('Conversion from icrs to galactic not yet impl')
+            if (frame.label === "Galactic") {
+                console.warn("Conversion from icrs to galactic not yet impl");
             } else {
                 radec = this.view.wasm.viewToICRSCooSys(radec[0], radec[1]);
             }
@@ -2130,7 +2305,7 @@ aladin.on('objectClicked', function(object, xyMouseCoords) {
         return this.view.wasm.worldToScreen(ra, dec);
     };
 
-     /**
+    /**
      * Get the angular distance in degrees between two locations
      *
      * @memberof Aladin
@@ -2156,11 +2331,11 @@ aladin.on('objectClicked', function(object, xyMouseCoords) {
      * Gets a set of points along the current Field of View (FoV) corners.
      *
      * @memberof Aladin
-     * @param {number} nbSteps - The number of points to return along each side (the total number of points returned is 4 * nbSteps).
+     * @param {number} [nbSteps=1] - The number of points to return along each side (the total number of points returned is 4 * nbSteps).
      *
      * @returns {number[][]} - A set of positions along the current FoV with the following format: [[ra1, dec1], [ra2, dec2], ..., [ra_n, dec_n]].
      *                         The positions will be given in degrees
-     * 
+     *
      * @throws {Error} Throws an error if an issue occurs during the transformation.
      *
      */
@@ -2173,19 +2348,21 @@ aladin.on('objectClicked', function(object, xyMouseCoords) {
         var points = [];
         var x1, y1, x2, y2;
         for (var k = 0; k < 4; k++) {
-            x1 = (k == 0 || k == 3) ? 0 : this.view.width - 1;
-            y1 = (k < 2) ? 0 : this.view.height - 1;
-            x2 = (k < 2) ? this.view.width - 1 : 0;
-            y2 = (k == 1 || k == 2) ? this.view.height - 1 : 0;
+            x1 = k == 0 || k == 3 ? 0 : this.view.width - 1;
+            y1 = k < 2 ? 0 : this.view.height - 1;
+            x2 = k < 2 ? this.view.width - 1 : 0;
+            y2 = k == 1 || k == 2 ? this.view.height - 1 : 0;
 
             for (var step = 0; step < nbSteps; step++) {
-                let radec = this.pix2world(x1 + step / nbSteps * (x2 - x1), y1 + step / nbSteps * (y2 - y1));
+                let radec = this.pix2world(
+                    x1 + (step / nbSteps) * (x2 - x1),
+                    y1 + (step / nbSteps) * (y2 - y1)
+                );
                 points.push(radec);
             }
         }
 
         return points;
-
     };
 
     /**
@@ -2202,7 +2379,7 @@ aladin.on('objectClicked', function(object, xyMouseCoords) {
 
         // constrain to the projection definition domain
         fovX = Math.min(fovX, this.view.projection.fov);
-        var fovY = s[1] / s[0] * fovX;
+        var fovY = (s[1] / s[0]) * fovX;
 
         fovY = Math.min(fovY, 180);
         // TODO : take into account AITOFF projection where fov can be larger than 180
@@ -2235,8 +2412,8 @@ aladin.on('objectClicked', function(object, xyMouseCoords) {
 
     // @API
     /*
-    * return a Box GUI element to insert content
-    */
+     * return a Box GUI element to insert content
+     */
     /*Aladin.prototype.box = function (options) {
         var box = new Box(options);
         box.$parentDiv.appendTo(this.aladinDiv);
@@ -2246,21 +2423,38 @@ aladin.on('objectClicked', function(object, xyMouseCoords) {
 
     // @API
     /*
-    * show popup at ra, dec position with given title and content
-    *
-    * If circleRadius, the corresponding circle will also be plotted
-    */
-    Aladin.prototype.showPopup = function (ra, dec, title, content, circleRadius) {
+     * show popup at ra, dec position with given title and content
+     *
+     * If circleRadius, the corresponding circle will also be plotted
+     */
+    Aladin.prototype.showPopup = function (
+        ra,
+        dec,
+        title,
+        content,
+        circleRadius
+    ) {
         this.view.catalogForPopup.removeAll();
         this.view.overlayForPopup.removeAll();
 
         let marker;
         if (circleRadius !== undefined) {
-            this.view.overlayForPopup.add(A.circle(ra, dec, circleRadius, {fillColor: 'rgba(255, 0, 0, 0.2)'}));
-            marker = A.marker(ra, dec, { popupTitle: title, popupDesc: content, useMarkerDefaultIcon: true });
-        }
-        else {
-            marker = A.marker(ra, dec, { popupTitle: title, popupDesc: content, useMarkerDefaultIcon: false });
+            this.view.overlayForPopup.add(
+                A.circle(ra, dec, circleRadius, {
+                    fillColor: "rgba(255, 0, 0, 0.2)",
+                })
+            );
+            marker = A.marker(ra, dec, {
+                popupTitle: title,
+                popupDesc: content,
+                useMarkerDefaultIcon: true,
+            });
+        } else {
+            marker = A.marker(ra, dec, {
+                popupTitle: title,
+                popupDesc: content,
+                useMarkerDefaultIcon: false,
+            });
         }
 
         this.view.catalogForPopup.addSources(marker);
@@ -2277,16 +2471,16 @@ aladin.on('objectClicked', function(object, xyMouseCoords) {
 
     // @API
     /*
-    * hide popup
-    */
+     * hide popup
+     */
     Aladin.prototype.hidePopup = function () {
         this.popup.hide();
     };
 
     // @API
     /*
-    * return a URL allowing to share the current view
-    */
+     * return a URL allowing to share the current view
+     */
     Aladin.prototype.getShareURL = function () {
         var radec = this.getRaDec();
         var coo = new Coo();
@@ -2294,14 +2488,23 @@ aladin.on('objectClicked', function(object, xyMouseCoords) {
         coo.lon = radec[0];
         coo.lat = radec[1];
 
-        return Aladin.URL_PREVIEWER + '?target=' + encodeURIComponent(coo.format('s')) +
-            '&fov=' + this.getFov()[0].toFixed(2) + '&survey=' + encodeURIComponent(this.getBaseImageLayer().id || this.getBaseImageLayer().rootUrl);
+        return (
+            Aladin.URL_PREVIEWER +
+            "?target=" +
+            encodeURIComponent(coo.format("s")) +
+            "&fov=" +
+            this.getFov()[0].toFixed(2) +
+            "&survey=" +
+            encodeURIComponent(
+                this.getBaseImageLayer().id || this.getBaseImageLayer().rootUrl
+            )
+        );
     };
 
     // @API
     /*
-    * return, as a string, the HTML embed code
-    */
+     * return, as a string, the HTML embed code
+     */
     Aladin.prototype.getEmbedCode = function () {
         var radec = this.getRaDec();
         var coo = new Coo();
@@ -2311,45 +2514,63 @@ aladin.on('objectClicked', function(object, xyMouseCoords) {
 
         var survey = this.getBaseImageLayer().url;
         var fov = this.getFov()[0];
-        let s = '';
+        let s = "";
         const NL = "\n";
-        s += '<div id="aladin-lite-div" style="width:400px;height:400px;"></div>' + NL;
-        s += '<script src="https://aladin.cds.unistra.fr/AladinLite/api/v3/latest/aladin.js" charset="utf-8"></script>' + NL;
-        s += '<script>' + NL;
-        s += "let aladin;" + NL + "A.init.then(() => {" + NL + "   aladin = A.aladin('#aladin-lite-div', {survey: '" + survey + "', fov: " + fov.toFixed(2) + ', target: "' + coo.format('s') + '"});' + NL + '});' + NL;
-        s += '</script>';
+        s +=
+            '<div id="aladin-lite-div" style="width:400px;height:400px;"></div>' +
+            NL;
+        s +=
+            '<script src="https://aladin.cds.unistra.fr/AladinLite/api/v3/latest/aladin.js" charset="utf-8"></script>' +
+            NL;
+        s += "<script>" + NL;
+        s +=
+            "let aladin;" +
+            NL +
+            "A.init.then(() => {" +
+            NL +
+            "   aladin = A.aladin('#aladin-lite-div', {survey: '" +
+            survey +
+            "', fov: " +
+            fov.toFixed(2) +
+            ', target: "' +
+            coo.format("s") +
+            '"});' +
+            NL +
+            "});" +
+            NL;
+        s += "</script>";
 
         return s;
     };
 
-/**
- * Display a JPEG image in the Aladin Lite view.
- *
- * @memberof Aladin
- * @param {string} url - The URL of the JPEG image.
- * @param {Object} options - Options to customize the display. Can include the following properties:
- * @param {string} options.label  - A label for the displayed image.
- * @param {number} options.order - The desired HEALPix order format.
- * @param {boolean} options.nocache - True if you want to disable the cache
- * @param {number} options.transparency - Opacity of the image rendered in aladin lite. Between 0 and 1.
- * @param {Function} successCallback - The callback function to be executed on a successful display.
- *      The callback gives the ra, dec, and fov of the image;
- * @param {Function} errorCallback - The callback function to be executed if an error occurs during display.
- * @param {string} [layer="base"] - The name of the layer. If not specified, it will be replace the base layer.
-* 
- * @example
- * aladin.displayJPG(
- *  // the JPG to transform to HiPS
- *   'https://noirlab.edu/public/media/archives/images/large/noirlab1912a.jpg',
- *   {
- *       transparency: 0.6,
- *       label: 'NOIRLab image'
- *   },
- *   (ra, dec, fov) => {
- *      // your code here
- *   })
- *);
- */
+    /**
+     * Display a FITS image in the Aladin Lite.
+     *
+     * @memberof Aladin
+     * @param {string} url - The URL of the FITS image.
+     * @param {ImageFITSOptions} [options] - Options to customize the display
+     * @param {Function} [successCallback=<center the view on the FITS file>] - The callback function to be executed on a successful display.
+     *      The callback gives the ra, dec, and fov of the image; By default, it centers the view on the FITS file loaded.
+     * @param {Function} [errorCallback] - The callback function to be executed if an error occurs during display.
+     * @param {string} [layer="base"] - The name of the layer. If not specified, it will be replace the base layer.
+     *
+     * @example
+aladin.displayFITS(
+    'https://fits.gsfc.nasa.gov/samples/FOCx38i0101t_c0f.fits', // url of the fits file
+    {
+        minCut: 5000,
+        maxCut: 17000,
+        colormap: 'viridis'
+    },
+    (ra, dec, fov, image) => {
+        // ra, dec and fov are centered around the fits image
+        image.setColormap("magma", {stretch: "asinh"});
+
+        aladin.gotoRaDec(ra, dec);
+        aladin.setFoV(fov);
+    },
+);
+     */
     Aladin.prototype.displayFITS = function (
         url,
         options,
@@ -2357,47 +2578,61 @@ aladin.on('objectClicked', function(object, xyMouseCoords) {
         errorCallback,
         layer = "base"
     ) {
-        successCallback = successCallback || ((ra, dec, fov, _) => {
-            this.gotoRaDec(ra, dec);
-            this.setFoV(fov);
-        });
-        const imageFits = this.createImageFITS(url, url, options, successCallback, errorCallback);
+        successCallback =
+            successCallback ||
+            ((ra, dec, fov, _) => {
+                this.gotoRaDec(ra, dec);
+                this.setFoV(fov);
+            });
+        const imageFits = this.createImageFITS(
+            url,
+            url,
+            options,
+            successCallback,
+            errorCallback
+        );
         return this.setOverlayImageLayer(imageFits, layer);
     };
 
-/**
- * Display a JPEG image in the Aladin Lite view.
- *
- * @memberof Aladin
- * @param {string} url - The URL of the JPEG image.
- * @param {Object} options - Options to customize the display. Can include the following properties:
- * @param {string} options.label  - A label for the displayed image.
- * @param {number} options.order - The desired HEALPix order format.
- * @param {boolean} options.nocache - True if you want to disable the cache
- * @param {number} options.transparency - Opacity of the image rendered in aladin lite. Between 0 and 1.
- * @param {Function} successCallback - The callback function to be executed on a successful display.
- *      The callback gives the ra, dec, and fov of the image;
- * @param {Function} errorCallback - The callback function to be executed if an error occurs during display.
- * @param {string} [layer="overlay"] - The name of the layer. If not specified, it will add a new overlay layer on top of the base. 
- * 
- * @example
- * aladin.displayJPG(
- *  // the JPG to transform to HiPS
- *   'https://noirlab.edu/public/media/archives/images/large/noirlab1912a.jpg',
- *   {
- *       transparency: 0.6,
- *       label: 'NOIRLab image'
- *   },
- *   (ra, dec, fov) => {
- *      // your code here
- *   })
- *);
- */
-    Aladin.prototype.displayJPG = function (url, options, successCallback, errorCallback, layer = "overlay") {
+    /**
+     * Display a JPEG image in the Aladin Lite view.
+     *
+     * @memberof Aladin
+     * @param {string} url - The URL of the JPEG image.
+     * @param {Object} [options] - Options to customize the display. Can include the following properties:
+     * @param {string} [options.label="JPG/PNG image"]  - A label for the displayed image.
+     * @param {number} [options.order] - The desired HEALPix order format.
+     * @param {boolean} [options.nocache] - True if you want to disable the cache
+     * @param {number} [options.transparency=1.0] - Opacity of the image rendered in aladin lite. Between 0 and 1.
+     * @param {Function} [successCallback] - The callback function to be executed on a successful display.
+     *      The callback gives the ra, dec, and fov of the image;
+     * @param {Function} [errorCallback] - The callback function to be executed if an error occurs during display.
+     * @param {string} [layer="overlay"] - The name of the layer. If not specified, it will add a new overlay layer on top of the base.
+     *
+     * @example
+     * aladin.displayJPG(
+     *  // the JPG to transform to HiPS
+     *   'https://noirlab.edu/public/media/archives/images/large/noirlab1912a.jpg',
+     *   {
+     *       transparency: 0.6,
+     *       label: 'NOIRLab image'
+     *   },
+     *   (ra, dec, fov) => {
+     *      // your code here
+     *   })
+     *);
+     */
+    Aladin.prototype.displayJPG = function (
+        url,
+        options,
+        successCallback,
+        errorCallback,
+        layer = "overlay"
+    ) {
         options = options || {};
         options.color = true;
         options.label = options.label || "JPG/PNG image";
-        options.outputFormat = 'png';
+        options.outputFormat = "png";
 
         options = options || {};
 
@@ -2416,24 +2651,24 @@ aladin.on('objectClicked', function(object, xyMouseCoords) {
         }
         let self = this;
 
-        const request = ( url, params = {}, method = 'GET' ) => {
+        const request = (url, params = {}, method = "GET") => {
             let options = {
-                method
+                method,
             };
-            if ( 'GET' === method ) {
-                url += '?' + ( new URLSearchParams( params ) ).toString();
+            if ("GET" === method) {
+                url += "?" + new URLSearchParams(params).toString();
             } else {
-                options.body = JSON.stringify( params );
+                options.body = JSON.stringify(params);
             }
 
-            return fetch( url, options ).then( response => response.json() );
+            return fetch(url, options).then((response) => response.json());
         };
-        const get = ( url, params ) => request( url, params, 'GET' );
+        const get = (url, params) => request(url, params, "GET");
 
-        get('https://alasky.unistra.fr/cgi/fits2HiPS', data)
-            .then(async (response) => {
-                if (response.status != 'success') {
-                    console.error('An error occured: ' + response.message);
+        get("https://alasky.unistra.fr/cgi/fits2HiPS", data).then(
+            async (response) => {
+                if (response.status != "success") {
+                    console.error("An error occured: " + response.message);
                     if (errorCallback) {
                         errorCallback(response.message);
                     }
@@ -2442,7 +2677,11 @@ aladin.on('objectClicked', function(object, xyMouseCoords) {
                 var label = options.label;
                 var meta = response.data.meta;
 
-                const survey = self.createImageSurvey(response.data.url, label, response.data.url);
+                const survey = self.createImageSurvey(
+                    response.data.url,
+                    label,
+                    response.data.url
+                );
                 self.setOverlayImageLayer(survey, layer);
 
                 var transparency = (options && options.transparency) || 1.0;
@@ -2450,7 +2689,11 @@ aladin.on('objectClicked', function(object, xyMouseCoords) {
 
                 var executeDefaultSuccessAction = true;
                 if (successCallback) {
-                    executeDefaultSuccessAction = successCallback(meta.ra, meta.dec, meta.fov);
+                    executeDefaultSuccessAction = successCallback(
+                        meta.ra,
+                        meta.dec,
+                        meta.fov
+                    );
                 }
                 if (executeDefaultSuccessAction === true) {
                     self.wasm.setCenter(meta.ra, meta.dec);
@@ -2462,7 +2705,8 @@ aladin.on('objectClicked', function(object, xyMouseCoords) {
                 // downloading the base tiles of the other surveys loading!
                 // This has to be fixed in the backend but a fast fix is just to wait
                 // before setting a new image survey
-            });
+            }
+        );
     };
 
     Aladin.prototype.displayPNG = Aladin.prototype.displayJPG;

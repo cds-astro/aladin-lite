@@ -353,14 +353,13 @@ canvas {
 .aladin-btn.aladin-dark-theme.toggled {
     border-color: greenyellow;
 }
+.aladin-btn.aladin-dark-theme:hover, .aladin-input-select.aladin-dark-theme:hover {
+    border-color: red;
+}
 
 .aladin-btn.disabled {
     cursor: not-allowed;
     filter: brightness(70%);
-}
-
-.aladin-btn:not(.disabled):hover {
-    filter: brightness(105%);
 }
 
 .aladin-btn.svg-icon {
@@ -417,6 +416,10 @@ canvas {
     height: 1.7rem;
 }
 
+.aladin-input-text.aladin-dark-theme:focus {
+    border-color: dodgerblue;
+}
+
 .aladin-input-text.aladin-dark-theme.search {
     width: 15rem;
     text-shadow: 0px 0px 2px #000;
@@ -436,12 +439,18 @@ canvas {
     line-height: 1.2rem;
 }
 
-.aladin-input-text.search.aladin-unknownObject {
+.aladin-input-text.search.aladin-not-valid {
     -webkit-box-shadow:inset 0px 0px 0px 1px #f00;
     -moz-box-shadow:inset 0px 0px 0px 1px #f00;
     box-shadow:inset 0px 0px 0px 1px #f00;
+}
 
+.aladin-input-text.aladin-dark-theme.aladin-not-valid {
     border: 1px solid red;
+}
+
+.aladin-input-text.aladin-dark-theme.aladin-valid {
+    border: 1px solid yellowgreen;
 }
 
 .aladin-cancelBtn {
@@ -1096,10 +1105,11 @@ canvas {
     height: 1.7rem;
 }
 
+/*
 .aladin-input-text.aladin-dark-theme.search.aladin-HiPS-search {
     width: 100%;
 
-}
+}*/
 
 .aladin-stack-box {
     width: 17rem;

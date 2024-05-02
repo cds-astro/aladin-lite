@@ -265,7 +265,7 @@ Utils.loadFromUrls = function (urls, options) {
     const mode = options && options.mode || 'cors';
     const contentType = options && options.contentType || undefined;
     const dataType = (options && options.dataType) || 'text';
-    
+    const desc = options && options.desc;
     // A controller that can abort the query when a timeout is reached
     const controller = new AbortController()
 
@@ -289,7 +289,9 @@ Utils.loadFromUrls = function (urls, options) {
         cache: 'default',
         // Abort the request when a timeout exceeded
         signal: controller.signal,
-        dataType
+        dataType,
+        // message description
+        desc
     }
 
     if (contentType) {

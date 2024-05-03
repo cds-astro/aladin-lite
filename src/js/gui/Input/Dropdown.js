@@ -82,7 +82,7 @@ export class Dropdown extends Input {
             autocomplete: {options: options.options},
             ...options
         })
-        //this.el.classList.add('search')
+        this.el.classList.add('search')
 
         self = this;
         this._addListeners(aladin);

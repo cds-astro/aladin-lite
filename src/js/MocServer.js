@@ -75,7 +75,7 @@ export class MocServer {
         };
 
         try {
-            const corners = aladin.getFoVCorners();
+            const corners = aladin.getFoVCorners(1, 'icrs');
             let stc = 'Polygon '
             for (var radec of corners) {
                 stc += radec[0] + ' ' + radec[1] + ' ';

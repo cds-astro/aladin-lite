@@ -254,10 +254,6 @@ export let ImageFITS = (function () {
                 return self;
             })
             .catch((e) => {
-                if (self.errorCallback) {
-                    self.errorCallback();
-                }
-
                 // This error result from a promise
                 // If I throw it, it will not be catched because
                 // it is run async

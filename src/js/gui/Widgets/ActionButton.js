@@ -167,6 +167,10 @@ export class ActionButton extends DOMElement {
         super._show();
     }
 
+    click() {
+        this.el.click()
+    }
+
     static createIconBtn(opt, target, position = 'beforeend') {
         let btn = new ActionButton({...opt, size: 'medium'}, target, position);
 

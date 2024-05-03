@@ -5,6 +5,8 @@
     /* disable x swipe on chrome, firefox */
     /* see. https://stackoverflow.com/questions/30636930/disable-web-page-navigation-on-swipeback-and-forward */
     overscroll-behavior-x: none;
+    /* Hide the draggable boxes that goes out of the view */
+    overflow: hidden;
     /* media query on the aladin lite container. not supported everywhere.
     There can be a more supported alternative here: https://caniuse.com/?search=grid-template-columns */
     /*container-type: inline-size;*/
@@ -429,7 +431,7 @@ canvas {
     background-image: url(../../assets/icons/search-white.svg);
     background-size: 1.8rem;
     background-repeat: no-repeat;
-    text-indent: 1.8rem;
+    padding-left: 1.8rem;
 }
 
 .aladin-input-text.search {
@@ -493,7 +495,7 @@ canvas {
 }
 
 .aladin-vertical-list > * {
-    margin-top: 0.2rem;
+    margin-top: 0.5rem;
 }
 
 .aladin-horizontal-list {
@@ -1115,8 +1117,9 @@ canvas {
     width: 17rem;
 }
 
-.aladin-stack-box .content > * {
-    margin-bottom: 0.5rem;
+.aladin-HiPS-browser-box .aladin-input-text {
+    width: 30vw;
+    padding: 0.5rem;
 }
 
 .aladin-stack-box .aladin-input-select {

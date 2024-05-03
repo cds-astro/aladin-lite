@@ -1542,12 +1542,7 @@ export let Aladin = (function () {
         if (!surveyOptions) {
             surveyOptions = { name, maxOrder, cooFrame, ...options };
 
-            // differenciate url from CDS Id in the url param given
-            /*if (!Utils.isUrl(url)) {
-                surveyOptions.id = url;
-            } else {
-                surveyOptions.url = url;
-            }*/
+
             surveyOptions.url = url;
 
             HiPSCache.append(id, surveyOptions);
@@ -1652,7 +1647,7 @@ export let Aladin = (function () {
      * <ul>
      * <li>1. An url that refers to a HiPS.</li>
      * <li>2. Or it can be a CDS ID that refers to a HiPS. One can found the list of IDs {@link https://aladin.cds.unistra.fr/hips/list| here}</li>
-     * <li>3. It can also be an {@link ImageHiPS} HiPS object created from {@link A.imageHiPS}</li>
+     * <li>3. It can also be an {@link A.ImageHiPS} HiPS object created from {@link A.imageHiPS}</li>
      * </ul>
      * By default, the {@link https://alasky.cds.unistra.fr/DSS/DSSColor/|Digital Sky Survey 2} survey will be displayed
      */
@@ -2332,6 +2327,7 @@ aladin.on('objectClicked', function(object, xyMouseCoords) {
      *
      * @memberof Aladin
      * @param {number} [nbSteps=1] - The number of points to return along each side (the total number of points returned is 4 * nbSteps).
+     * @param {CooFrame} [frame] - The frame in which the coo will be given. Default to the view frame.
      *
      * @returns {number[][]} - A set of positions along the current FoV with the following format: [[ra1, dec1], [ra2, dec2], ..., [ra_n, dec_n]].
      *                         The positions will be given in degrees
@@ -2339,7 +2335,7 @@ aladin.on('objectClicked', function(object, xyMouseCoords) {
      * @throws {Error} Throws an error if an issue occurs during the transformation.
      *
      */
-    Aladin.prototype.getFoVCorners = function (nbSteps) {
+    Aladin.prototype.getFoVCorners = function (nbSteps, frame) {
         // default value: 1
         if (!nbSteps || nbSteps < 1) {
             nbSteps = 1;
@@ -2356,7 +2352,8 @@ aladin.on('objectClicked', function(object, xyMouseCoords) {
             for (var step = 0; step < nbSteps; step++) {
                 let radec = this.pix2world(
                     x1 + (step / nbSteps) * (x2 - x1),
-                    y1 + (step / nbSteps) * (y2 - y1)
+                    y1 + (step / nbSteps) * (y2 - y1),
+                    frame
                 );
                 points.push(radec);
             }

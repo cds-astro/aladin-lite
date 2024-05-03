@@ -18,7 +18,6 @@
 //
 
 import { Box } from "../Widgets/Box.js";
-import { Input } from "../Widgets/Input.js";
 import { Form } from "../Widgets/Form.js";
 import { MocServer } from "../../MocServer.js";
 import { TogglerActionButton } from "../Button/Toggler.js";
@@ -74,12 +73,12 @@ export class HiPSFilterBox extends Box {
         super(
             {
                 header: {
-                    title: 'HiPS Filter'
+                    title: 'Filter'
                 },
                 close: false,
-                content: new Layout([
+                content: Layout.vertical([
                     'Filters:',
-                    new Layout([regimeBtn, spatialBtn, resolutionBtn]),
+                    Layout.horizontal([regimeBtn, spatialBtn, resolutionBtn]),
                     'Parameters:',
                     new Form({
                         subInputs: [

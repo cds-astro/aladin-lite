@@ -90,7 +90,7 @@ export class Form extends DOMElement {
             );
         }
 
-        this.appendContent(new Layout(layout))
+        this.appendContent(Layout.vertical(layout))
         super._show();
     }
 

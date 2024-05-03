@@ -460,20 +460,7 @@ export let ImageHiPS = (function () {
             self._saveInCache();
 
             return self;
-        })()/*.then((hips) => {
-            if (this.successCallback) {
-                this.successCallback();
-            }
-
-            return hips;
-        }).catch(e => {
-            if (this.errorCallback) {
-                this.errorCallback();
-            }
-
-            console.log("error")
-            throw e;
-        })*/
+        })()
     };
 
     ImageHiPS.prototype._saveInCache = function () {
@@ -489,6 +476,8 @@ export let ImageHiPS = (function () {
             maxOrder: self.maxOrder,
             tileSize: self.tileSize,
             imgFormat: self.imgFormat,
+            successCallback: self.successCallback,
+            errorCallback: self.errorCallback,
             ...colorOpt,
         };
 
@@ -829,7 +818,14 @@ export let ImageHiPS = (function () {
             },
         });
 
-        return Promise.resolve(this);
+        return Promise.resolve(this)
+            .then((hips) => {
+                if (hips.successCallback) {
+                    hips.successCallback(hips)
+                }
+
+                return hips
+            });
     };
 
     // @api

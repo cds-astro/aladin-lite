@@ -67,7 +67,8 @@ export class Box extends DOMElement {
 
         let self = this;
 
-        let close = this.options.close === false ? false : true;  
+        let close = this.options.close === false ? false : true;
+        let draggable = false;
         if (close) {
             new ActionButton({
                 size: 'small',
@@ -86,6 +87,10 @@ export class Box extends DOMElement {
             }, this.el);
         }
 
+        if (this.options.onDragged) {
+            draggable = true;
+        }
+
         // Check for the title
         if (this.options.header) {
             let header = this.options.header;
@@ -99,6 +104,10 @@ export class Box extends DOMElement {
     
             let draggableEl;
             if (header.draggable) {
+                draggable = true;
+            }
+
+            if (draggable) {
                 draggableEl = new ActionButton({
                     icon: {
                         url: moveIconImg,
@@ -111,13 +120,13 @@ export class Box extends DOMElement {
                     },
                     action(e) {}
                 });
-    
-                dragElement(draggableEl.element(), this.el)
-                dragElement(titleEl, this.el)
-                titleEl.style.cursor = 'move'
             }
     
-            Layout.horizontal([draggableEl, titleEl], this.el);
+            let headerEl = Layout.horizontal([draggableEl, titleEl], this.el);
+            if (draggable) {
+                dragElement(headerEl.element(), this.el, this.options.onDragged);
+                headerEl.element().style.cursor = 'move';
+            }
 
             let separatorEl = document.createElement('div')
             separatorEl.classList.add("aladin-box-separator");
@@ -130,12 +139,11 @@ export class Box extends DOMElement {
 
         if (this.options.content) {
             let content = this.options.content
-
-            if (Array.isArray(content)) {
-                this.appendContent(new Layout({layout: content}));
-            } else {
+            //if (Array.isArray(content)) {
                 this.appendContent(content);
-            }
+            //} else {
+            //    this.appendContent(content);
+            //}
         }
 
         if (this.options.position) {
@@ -151,7 +159,7 @@ export class Box extends DOMElement {
 }
 
 // Heavily inspired from https://www.w3schools.com/howto/howto_js_draggable.asp
-function dragElement(triggerElt, elmnt) {
+function dragElement(triggerElt, elmnt, onDragged) {
     var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
     // otherwise, move the DIV from anywhere inside the DIV:
 
@@ -166,6 +174,10 @@ function dragElement(triggerElt, elmnt) {
         document.onmouseup = closeDragElement;
         // call a function whenever the cursor moves:
         document.onmousemove = elementDrag;
+
+        if (onDragged) {
+            onDragged();
+        }
     }
   
     function elementDrag(e) {
@@ -177,6 +189,7 @@ function dragElement(triggerElt, elmnt) {
         pos3 = e.clientX;
         pos4 = e.clientY;
         // set the element's new position:
+
         elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
         elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
     }

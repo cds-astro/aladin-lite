@@ -732,9 +732,9 @@ export class OverlayStackBox extends Box {
             }
         }
 
-        if (this.hipsBrowser) {
+        /*if (this.hipsBrowser) {
             this.hipsBrowser._hide();
-        }
+        }*/
 
         if (this.catBox) {
             this.catBox._hide();
@@ -766,7 +766,7 @@ export class OverlayStackBox extends Box {
         );
         layout = layout.concat(this._createSurveysList());
 
-        return new Layout({ layout, classList: ["content"] });
+        return Layout.vertical({ layout, classList: ["content"] });
     }
 
     _createOverlaysList() {

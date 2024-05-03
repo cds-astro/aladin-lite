@@ -59,7 +59,7 @@ HiPSProperties.fetchFromID = async function(ID) {
                 result = matching;
             } else {
                 result = metadata[0];
-                console.warn("Multiple surveys are matching, please choose one. The chosen one is: " + result);
+                console.warn("Multiple surveys are matching, please choose one. The chosen one is: " + result.ID);
             }
         } else {
             // Exactly one matching

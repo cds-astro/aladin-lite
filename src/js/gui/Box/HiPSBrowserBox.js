@@ -27,8 +27,8 @@ import { Input } from "../Widgets/Input.js";
 import { TogglerActionButton } from "../Button/Toggler.js";
 import { Layout } from "../Layout.js";
 import { HiPSFilterBox } from "./HiPSFilterBox.js";
-import { ActionButton } from "../Widgets/ActionButton.js";
-import addIconUrl from "../../../../assets/icons/plus.svg";
+import A from "../../A.js";
+import { Utils } from "../../Utils.ts";
 
 /******************************************************************************
  * Aladin Lite project
@@ -49,51 +49,66 @@ export class HiPSBrowserBox extends Box {
         MocServer.getAllHiPSes().then((HiPSes) => {
             // Fill the HiPSList from the MOCServer
             HiPSes.forEach((h) => {
-                HiPSBrowserBox.HiPSList[h.ID] = h;
+                HiPSBrowserBox.HiPSList[h.obs_title] = h;
             });
 
             // Initialize the autocompletion without any filtering
             self._filterHiPSList({})
         });
 
+        const _parseHiPS = (e) => {
+            const value = e.target.value;
+
+            let image;
+            // A user can put an url
+            try {
+                image = new URL(value).href;
+            } catch (e) {
+                // Or he can select a HiPS from the list given
+                const hips = HiPSBrowserBox.HiPSList[value];
+                console.log(hips)
+                if (hips) {
+                    image = hips.ID || hips.hips_service_url;
+                } else {
+                    // Finally if not found, interpret the input text value as the HiPS (e.g. ID)
+                    image = value;
+                }
+            }
+
+
+            if (image) {
+                self._addHiPS(image)
+            }
+        };
+
         let searchDropdown = new Dropdown(aladin, {
             name: "HiPS browser",
-            placeholder: "HiPS name, URL or ID",
+            placeholder: "Browser a HiPS by an URL, ID or keywords",
             tooltip: {
-                content: 'Type an url, CDS ID or a name to search for a HiPS'
+                content: 'Type an url, CDS ID or a name to search for a HiPS',
+                position: {
+                    direction: 'bottom'
+                }
             },
             actions: {
+                focus(e) {
+                    searchDropdown.removeClass('aladin-valid')
+                    searchDropdown.removeClass('aladin-not-valid')
+                },
+                keydown(e) {
+                    e.stopPropagation();
+
+                    if (e.key === 'Enter') {
+                        e.preventDefault()
+                        _parseHiPS(e)
+                    }
+                },
+                input(e) {
+                    searchDropdown.removeClass('aladin-valid')
+                    searchDropdown.removeClass('aladin-not-valid')
+                },
                 change(e) {
-                    const value = e.target.value;
-                    /*if (!key) {
-                        self.update({value: prevKey, title: prevKey});
-                        return;
-                    }*/
-
-                    let image;
-                    // A user can put an url
-                    try {
-                        image = new URL(value).href;
-                    } catch (e) {
-                        // Or he can select a HiPS from the list given
-                        const hips = HiPSBrowserBox.HiPSList[value];
-
-                        if (hips) {
-                            image = hips.id || hips.url || undefined;
-                        } else {
-                            // Finally if not found, interpret the input text value as the HiPS (e.g. ID)
-                            image = value;
-                        }
-                    }
-
-                    self.el.blur();
-
-                    if (image) {
-                        self.image = image;
-                        //prevKey = image;
-                        // set the layer to the new value
-                        //aladin.setOverlayImageLayer(image, layer.layer);
-                    }
+                    _parseHiPS(e)
                 },
             },
         });
@@ -158,32 +173,22 @@ export class HiPSBrowserBox extends Box {
             },
         });
 
-        let addBtn = new ActionButton({
-            icon: {
-                url: addIconUrl,
-                size: "small",
-                monochrome: true,
-            },
-            tooltip: {
-                content: "Add the HiPS",
-                position: { direction: "top" },
-            },
-            action(e) {
-                aladin.addNewImageLayer("sdfff");
-            } 
-        });
-
         super(
             {
                 close: true,
                 header: {
                     title: "HiPS browser",
                 },
-                content: new Layout([
+                onDragged: () => {
+                    if (self.filterBtn.toggled) {
+                        self.filterBtn.toggle();
+                    }
+                },
+                classList: ['aladin-HiPS-browser-box'],
+                content: Layout.vertical([
                     Layout.horizontal(["Filter:", filterEnabler, filterBtn]),
-                    "Browse:",
-                    searchDropdown,
-                    addBtn,
+                    Layout.horizontal(["Search:", searchDropdown]),
+                    //addBtn,
                 ]),
                 ...options,
             },
@@ -232,6 +237,22 @@ export class HiPSBrowserBox extends Box {
         };
     }
 
+    _addHiPS(id) {
+        let self = this;
+        let hips = A.imageHiPS(id, {
+            successCallback: (hips) => {
+                console.log('success')
+                self.searchDropdown.removeClass('aladin-not-valid');
+                self.searchDropdown.addClass('aladin-valid');
+            },
+            errorCallback: (e) => {
+                self.searchDropdown.removeClass('aladin-valid');
+                self.searchDropdown.addClass('aladin-not-valid');
+            }
+        });
+        this.aladin.setOverlayImageLayer(hips, self.layer);
+    }
+
     // This method is executed only if the filter is enabled
     _filterHiPSList(params) {
         let self = this;
@@ -265,6 +286,9 @@ export class HiPSBrowserBox extends Box {
     }
 
     _show(options) {
+        // Regenerate a new layer name
+        this.layer = Utils.uuidv4()
+
         if (this.filterBox)
             this.filterBox.signalBrowserStatus(false)
 

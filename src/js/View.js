@@ -1646,6 +1646,10 @@ export let View = (function () {
                 // remove it from the cache
                 HiPSCache.delete(imageLayer.id)
 
+                if (imageLayer.errorCallback) {
+                    imageLayer.errorCallback(e);
+                }
+
                 throw e;
             })
             .finally(() => {

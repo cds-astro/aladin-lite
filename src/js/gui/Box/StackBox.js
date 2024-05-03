@@ -706,7 +706,10 @@ export class OverlayStackBox extends Box {
 
             for (var key in HiPSCache.cache) {
                 let HiPS = HiPSCache.cache[key];
-                self.cachedHiPS[HiPS.name] = HiPS;
+
+                if (HiPS.name) {
+                    self.cachedHiPS[HiPS.name.toString()] = HiPS;
+                }
             }
 
             // Update the options of the selector
@@ -715,7 +718,7 @@ export class OverlayStackBox extends Box {
 
             for (var key in self.HiPSui) {
                 let hips = self.HiPSui[key];
-                hips.HiPSSelector.update({options});
+                hips.HiPSSelector.update({value: hips.HiPSSelector.options.value, options});
             }
         });
     }

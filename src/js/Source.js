@@ -117,7 +117,12 @@ export let Source = (function() {
         }
     }
 
-    // function called when a source is clicked. Called by the View object
+    /**
+     * Simulates a click on the source
+     * @memberof Source
+     * 
+     * @param {Footprint|Source} [obj] - If not given, the source is taken as the object to be selected 
+     */
     Source.prototype.actionClicked = function(obj) {
         if (this.catalog && this.catalog.onClick) {
             var view = this.catalog.view;

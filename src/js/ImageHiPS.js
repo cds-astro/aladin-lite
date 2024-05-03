@@ -142,6 +142,8 @@ PropertyParser.isPlanetaryBody = function (properties) {
  * @typedef {Object} ImageHiPSOptions
  *
  * @property {string} [name] - The name of the survey to be displayed in the UI
+ * @property {Function} [successCallback] - A callback executed when the HiPS has been loaded
+ * @property {Function} [errorCallback] - A callback executed when the HiPS could not be loaded
  * @property {string} [imgFormat] - Formats accepted 'webp', 'png', 'jpeg' or 'fits'. Will raise an error if the HiPS does not contain tiles in this format
  * @property {CooFrame} [cooFrame="J2000"] - Coordinate frame of the survey tiles
  * @property {number} [maxOrder] - The maximum HEALPix order of the HiPS, i.e the HEALPix order of the most refined tile images of the HiPS.
@@ -193,6 +195,8 @@ export let ImageHiPS = (function () {
         this.imgFormat = options.imgFormat;
         this.numBitsPerPixel = options.numBitsPerPixel;
         this.creatorDid = options.creatorDid;
+        this.errorCallback = options.errorCallback;
+        this.successCallback = options.successCallback;
 
         this.colorCfg = new ColorCfg(options);
     }
@@ -356,6 +360,7 @@ export let ImageHiPS = (function () {
             }
 
             self.name = self.name || self.id || self.url;
+            self.name = self.name.replace(/  +/g, ' ');
 
             self.creatorDid = self.creatorDid || self.id || self.url;
 
@@ -455,7 +460,20 @@ export let ImageHiPS = (function () {
             self._saveInCache();
 
             return self;
-        })();
+        })()/*.then((hips) => {
+            if (this.successCallback) {
+                this.successCallback();
+            }
+
+            return hips;
+        }).catch(e => {
+            if (this.errorCallback) {
+                this.errorCallback();
+            }
+
+            console.log("error")
+            throw e;
+        })*/
     };
 
     ImageHiPS.prototype._saveInCache = function () {

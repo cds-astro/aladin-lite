@@ -14,12 +14,12 @@
         aladin = A.aladin('#aladin-lite-div', {target: "30 0", fov: 360, fullScreen: true, cooFrame: 'galactic', showCooGridControl: true, showSimbadPointerControl: true, showCooGrid: true});
         aladin.setProjection('AIT');
 
-
         aladin.on("zoomChanged", () => {
             console.log("zoomChanged")
         })
-        aladin.on("positionChanged", ({ra, dec, dragging}) => {
-            console.log("positionChanged", ra, dec)
+
+        aladin.on("positionChanged", ({ra, dec}) => {
+
         })
 
         aladin.gotoRaDec(0, 20);

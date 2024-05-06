@@ -106,9 +106,8 @@ pub struct App {
 
     ack_send: async_channel::Sender<ImageParams>,
     ack_recv: async_channel::Receiver<ImageParams>,
-
     // callbacks
-    callback_position_changed: js_sys::Function,
+    //callback_position_changed: js_sys::Function,
 }
 
 use cgmath::{Vector2, Vector3};
@@ -131,7 +130,7 @@ impl App {
         mut shaders: ShaderManager,
         resources: Resources,
         // Callbacks
-        callback_position_changed: js_sys::Function,
+        //callback_position_changed: js_sys::Function,
     ) -> Result<Self, JsValue> {
         let gl = gl.clone();
         //let exec = Rc::new(RefCell::new(TaskExecutor::new()));
@@ -261,8 +260,7 @@ impl App {
             fits_recv,
             ack_send,
             ack_recv,
-
-            callback_position_changed,
+            //callback_position_changed,
         })
     }
 
@@ -540,8 +538,12 @@ impl App {
         Ok(())
     }
 
-    pub(crate) fn set_callback_position_changed(&mut self, callback: js_sys::Function) {
+    /*pub(crate) fn set_callback_position_changed(&mut self, callback: js_sys::Function) {
         self.callback_position_changed = callback;
+    }*/
+
+    pub(crate) fn is_inerting(&self) -> bool {
+        return self.inertia.is_some();
     }
 
     pub(crate) fn update(&mut self, _dt: DeltaTime) -> Result<bool, JsValue> {
@@ -560,7 +562,7 @@ impl App {
             let cur_speed = inertia.get_cur_speed();
 
             // Create the javascript object to pass to the callback
-            let args: js_sys::Object = js_sys::Object::new();
+            /*let args: js_sys::Object = js_sys::Object::new();
             let center = self.camera.get_center().lonlat();
             js_sys::Reflect::set(
                 &args,
@@ -578,6 +580,7 @@ impl App {
             // Position has changed, we call the callback
             self.callback_position_changed
                 .call1(&JsValue::null(), &args)?;
+            */
 
             if cur_speed < thresh_speed {
                 self.inertia = None;

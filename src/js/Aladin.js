@@ -1773,7 +1773,7 @@ aladin.on('objectClicked', function(object, xyMouseCoords) {
 
         this.callbacksByEventName[what] = myFunction;
 
-        if (what === "positionChanged") {
+        /*if (what === "positionChanged") {
             // tell the backend about that callback
             // because it needs to be called when the inertia is done
             ALEvent.AL_USE_WASM.dispatchedTo(this.aladinDiv, {callback: (wasm) => {
@@ -1782,9 +1782,9 @@ aladin.on('objectClicked', function(object, xyMouseCoords) {
                     View.CALLBACKS_THROTTLE_TIME_MS,
                 );
 
-                wasm.setCallbackPositionChanged(myFunctionThrottled);
+                wasm.setCallbackPositionChanged(myFunctionThrottled.bind(this));
             }})
-        }
+        }*/
     };
 
     Aladin.prototype.addListener = function(alEventName, customFn) {

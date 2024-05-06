@@ -166,13 +166,10 @@ impl WebClient {
         let shaders = ShaderManager::new(&gl, shaders).unwrap_abort();
 
         // Event listeners callbacks
-        let callback_position_changed = js_sys::Function::new_no_args("");
+        //let callback_position_changed = js_sys::Function::new_no_args("");
         let app = App::new(
-            &gl,
-            aladin_div,
-            shaders,
-            resources,
-            callback_position_changed,
+            &gl, aladin_div, shaders, resources,
+            //callback_position_changed,
         )?;
 
         let dt = DeltaTime::zero();
@@ -182,9 +179,14 @@ impl WebClient {
         Ok(webclient)
     }
 
-    #[wasm_bindgen(js_name = setCallbackPositionChanged)]
+    /*#[wasm_bindgen(js_name = setCallbackPositionChanged)]
     pub fn set_callback_position_changed(&mut self, callback: js_sys::Function) {
         self.app.set_callback_position_changed(callback);
+    }*/
+
+    #[wasm_bindgen(js_name = isInerting)]
+    pub fn is_inerting(&self) -> bool {
+        return self.app.is_inerting();
     }
 
     /// Update the view

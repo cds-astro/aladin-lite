@@ -124,7 +124,7 @@ export let View = (function () {
             () => {
                 var posChangedFn = this.aladin.callbacksByEventName && this.aladin.callbacksByEventName['positionChanged'];
                 if (typeof posChangedFn === 'function') {
-                    var pos = this.aladin.pix2world(this.width / 2, this.height / 2);
+                    var pos = this.aladin.pix2world(this.width / 2, this.height / 2, 'icrs');
                     if (pos !== undefined) {
                         posChangedFn({
                             ra: pos[0],
@@ -1246,9 +1246,12 @@ export let View = (function () {
             // Drawing code
             //try {
             this.moving = this.wasm.update(elapsedTime);
-            //} catch (e) {
-            //    console.error(e)
-            //}
+            
+            // inertia run throttled position
+            if (this.moving && this.aladin.callbacksByEventName && this.aladin.callbacksByEventName['positionChanged'] && this.wasm.isInerting()) {
+                // run the trottled position
+                this.throttledPositionChanged();
+            }
 
             ////// 2. Draw catalogues////////
             const isViewRendering = this.wasm.isRendering();

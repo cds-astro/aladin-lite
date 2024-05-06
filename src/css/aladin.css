@@ -98,54 +98,27 @@
     color: white;
 }
 
-.aladin-measurement-div table td.aladin-href-td-container a:hover {
-    overflow: visible;
-    display: inline-block;
-    animation: leftright 5s infinite normal linear;
-}
-
-@keyframes leftright {
-    0%,
-    20% {
-        transform: translateX(0%);
-        left: 0%;
-    }
-    80%,
-    100% {
-        /* the max width is 150px and a padding of 0.8em is added for href link */
-        transform: translateX(-100%);
-        left: -100%;
-    }
-}
-
 .aladin-measurement-div table th {
     padding: 0.3em 0.5em;
 }
 
-.aladin-measurement-div table td.aladin-href-td-container {
-    border: 1px solid #d2d2d2;
+.aladin-measurement-div table tr td a {
+    display: block;
+}
 
-    border-radius: 3px;
+.aladin-measurement-div table tr td {
+    padding: 0.5rem 0;
+}
 
-    padding: 0.5em;
+.aladin-measurement-div table tr td, .aladin-measurement-div table tr td a {
+    max-width: 10rem;
+    text-overflow: ellipsis;
+
     white-space: nowrap;
     overflow: hidden;
     text-align: center;
-    /*max-width: 150px;
-    text-overflow: ellipsis;*/
-}
 
-.aladin-measurement-div table td.aladin-text-td-container {
-    padding: 0.5em;
-    white-space: nowrap;
-    overflow: hidden;
-
-    /*max-width: 150px;
-    text-overflow: ellipsis;*/
-}
-
-.aladin-measurement-div table td.aladin-href-td-container:hover {
-    background-color: #fff;
+    word-wrap:break-word;
 }
 
 .aladin-marker-measurement {
@@ -159,10 +132,6 @@
 .aladin-marker-measurement table {
     table-layout: fixed;
     width: 100%;
-}
-
-.aladin-marker-measurement table tr td{
-    word-wrap:break-word;
 }
 
 .aladin-marker-measurement tr:nth-child(even) {
@@ -423,11 +392,10 @@ canvas {
 }
 
 .aladin-input-text.aladin-dark-theme.search {
-    width: 15rem;
     text-shadow: 0px 0px 2px #000;
 }
 
-.aladin-input-text.aladin-dark-theme.search:focus, .aladin-input-text.aladin-dark-theme.search:hover {
+.aladin-input-text.search:focus, .aladin-input-text.search:hover {
     background-image: url(../../assets/icons/search-white.svg);
     background-size: 1.8rem;
     background-repeat: no-repeat;
@@ -523,6 +491,11 @@ canvas {
 
 .aladin-form .aladin-form-group {
     margin-bottom: 1rem;
+    width: 100%;
+}
+
+.aladin-form .aladin-form-group:last-of-type {
+    margin-bottom: 0rem;
 }
 
 .aladin-form .aladin-form-input select {
@@ -1137,6 +1110,10 @@ canvas {
     font-size: 1rem;
     border-radius: 5px;
     height: 1.7rem;
+}
+
+.aladin-location .aladin-input-text {
+    width: 15rem;
 }
 
 .aladin-fov {

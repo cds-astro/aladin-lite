@@ -119,8 +119,8 @@ export let Source = (function() {
 
     /**
      * Simulates a click on the source
-     * @memberof Source
-     * 
+     *
+     * @memberof Source 
      * @param {Footprint|Source} [obj] - If not given, the source is taken as the object to be selected 
      */
     Source.prototype.actionClicked = function(obj) {

@@ -389,13 +389,15 @@ Utils.fetch = function(params) {
             if (params.success) {
                 return params.success(data)
             }
+
+            return Promise.resolve(data);
         })
         .catch(e => {
             if (params.error) {
-                params.error(e)
-            } else {
-                alert(e)
+                return params.error(e)
             }
+
+            return Promise.reject(e);
         })
         .finally(() => {
             ALEvent.RESOURCE_FETCHED.dispatchedTo(document, {task});

@@ -258,14 +258,9 @@ export let View = (function () {
                 self.fixLayoutDimensions();
             })
         } else {*/
-        let resizeLayout = () => {
-            self.fixLayoutDimensions();
-        }
 
         this.resizeObserver = new ResizeObserver(() => {
-            //clearTimeout(doit);
-            //doit = setTimeout(resizeLayout, 100);
-            resizeLayout();
+            self.fixLayoutDimensions();
         });
 
         self.resizeObserver.observe(this.aladinDiv)

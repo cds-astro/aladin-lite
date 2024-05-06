@@ -1541,12 +1541,13 @@ export let Aladin = (function () {
 
         if (!surveyOptions) {
             surveyOptions = { name, maxOrder, cooFrame, ...options };
-
-
             surveyOptions.url = url;
-
-            HiPSCache.append(id, surveyOptions);
+        } else {
+            // update the cached survey
+            surveyOptions = {...surveyOptions, ...options};
         }
+
+        HiPSCache.append(id, surveyOptions);
 
         return new ImageHiPS(id, surveyOptions.url, surveyOptions);
     };
@@ -1894,8 +1895,10 @@ export let Aladin = (function () {
      * @memberof Aladin
      * @param {ListenerCallback} what - e.g. objectHovered, select, zoomChanged, positionChanged
      * @param {function} myFunction - a callback function.
-     * Note: positionChanged and zoomChanged are throttled every 100ms.
-     * 
+     * Note: <ul>
+     * <li>positionChanged and zoomChanged are throttled every 100ms.</li>
+     * <li>positionChanged's callback gives an object having ra and dec keywords of the current position in ICRS frame. See the below example.</li>
+     * </ul>
      * @example
 // define function triggered when  a source is hovered
 aladin.on('objectHovered', function(object, xyMouseCoords) {
@@ -1932,6 +1935,10 @@ aladin.on('objectClicked', function(object, xyMouseCoords) {
     }
     $('#infoDiv').html(msg);
 });
+
+aladin.on("positionChanged", ({ra, dec}) => {
+    console.log("positionChanged", ra, dec)
+})
      */
     Aladin.prototype.on = function (what, myFunction) {
         if (Aladin.AVAILABLE_CALLBACKS.indexOf(what) < 0) {

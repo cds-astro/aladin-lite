@@ -17,9 +17,9 @@
         aladin.on("zoomChanged", () => {
             console.log("zoomChanged")
         })
-
         aladin.on("positionChanged", ({ra, dec}) => {
-
+            console.log('call to aladin', aladin.pix2world(0, 0))
+            console.log('positionChanged in icrs', ra, dec)
         })
 
         aladin.gotoRaDec(0, 20);

@@ -40,7 +40,8 @@ export class HiPSFilterBox extends Box {
         let self;
 
         let regimeBtn = new TogglerActionButton({
-            content: 'Optical',
+            content: 'Regime',
+            tooltip: {content: 'Observation regime'},
             toggled: true,
             actionOn: () => {
                 self._triggerFilteringCallback();
@@ -51,6 +52,7 @@ export class HiPSFilterBox extends Box {
         });
         let spatialBtn = new TogglerActionButton({
             content: 'Spatial',
+            tooltip: {content: 'Check for HiPS having observation in the view!'},
             toggled: false,
             actionOn: () => {
                 self._triggerFilteringCallback();
@@ -60,7 +62,8 @@ export class HiPSFilterBox extends Box {
             }
         });
         let resolutionBtn = new TogglerActionButton({
-            content: '<=1°',
+            content: 'Resolution',
+            tooltip: {content: 'Check for HiPS with a specific pixel resolution.'},
             toggled: false,
             actionOn: () => {
                 self._triggerFilteringCallback();
@@ -72,14 +75,11 @@ export class HiPSFilterBox extends Box {
 
         super(
             {
-                header: {
-                    title: 'Filter'
-                },
                 close: false,
                 content: Layout.vertical([
-                    'Filters:',
+                    '<h3>Filters:</h3>',
                     Layout.horizontal([regimeBtn, spatialBtn, resolutionBtn]),
-                    'Parameters:',
+                    '<h3>Parameters:</h3>',
                     new Form({
                         subInputs: [
                             {
@@ -102,7 +102,7 @@ export class HiPSFilterBox extends Box {
                                             let regime = e.target.value;
                                             self.params["regime"] = regime;
 
-                                            regimeBtn.update({content: regime});
+                                            //regimeBtn.update({content: regime});
 
                                             self._triggerFilteringCallback();
                                         },
@@ -131,7 +131,7 @@ export class HiPSFilterBox extends Box {
                                                     self.params["resolution"] = resolution.degrees();
 
                                                     e.target.classList.add('aladin-valid');
-                                                    resolutionBtn.update({content: '<=' + value});
+                                                    //resolutionBtn.update({content: '<=' + value});
 
                                                     self._triggerFilteringCallback();
                                                 } else {

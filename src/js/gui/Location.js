@@ -77,9 +77,10 @@ export class Location extends DOMElement {
                     e.stopPropagation();
 
                     field.removeClass('aladin-not-valid'); // remove red border
+                    field.removeClass('aladin-valid'); // remove red border
 
                     if (e.key === 'Enter') {
-                        field.el.blur();
+                        //field.el.blur();
 
                         let object = field.get();
 
@@ -96,6 +97,8 @@ export class Location extends DOMElement {
                                     field.el.focus();
                                 },
                                 success: function() {
+                                    field.addClass('aladin-valid');
+
                                     field.update({placeholder:'Search for an object...', value: object});
                                 }
                             }
@@ -154,12 +157,16 @@ export class Location extends DOMElement {
                 }
 
                 let [lon, lat] = lonlat;
-
+                self.field.el.blur()
                 self.update({
                     lon, lat,
                     frame: aladin.view.cooFrame,
                     isViewCenter: true,
                 }, aladin);
+            }
+
+            if(param.state.dragging) {
+                self.field.el.blur()
             }
 
             if (param.type === 'mousemove' && param.state.dragging === false) {
@@ -177,6 +184,7 @@ export class Location extends DOMElement {
         });
 
         ALEvent.POSITION_CHANGED.listenedBy(aladin.aladinDiv, function (e) {
+
             self.update({
                 lon: e.detail.lon, 
                 lat: e.detail.lat,
@@ -221,6 +229,7 @@ export class Location extends DOMElement {
                 self.field.set(coo.format('d/'))
             }
             self.field.removeClass('aladin-not-valid');
+            self.field.removeClass('aladin-valid'); 
 
             self.field.element().style.color = options.isViewCenter ? aladin.getReticle().getColor() : 'white';
             //self.field.el.blur()

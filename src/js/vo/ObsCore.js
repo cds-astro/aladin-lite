@@ -191,7 +191,7 @@
                 let accessUrlEl = document.createElement('div');
                 try {
                     let _ = new URL(url);
-                    accessUrlEl.classList.add('aladin-href-td-container');
+                    accessUrlEl.classList.add('aladin-href-link');
 
                     accessUrlEl.innerHTML = '<a href=' + url + ' target="_blank">' + url + '</a>';
 
@@ -238,20 +238,21 @@
 
                 return accessUrlEl;
             },
-            'access_format': (data) => {
+            /*'access_format': (data) => {
                 let accessFormat = data['access_format'];
 
                 if (accessFormat && accessFormat.includes('datalink')) {
                     return new ActionButton({
                         size: 'small',
                         content: '🔗',
-                        tooltip: {content: accessFormat, position: {direction: 'left'}},
+                        tooltip: {content: accessFormat, position: {direction: 'right'}},
                         action(e) {}
                     }).element();
+                    return accessFormat;
                 } else {
                     return accessFormat;
                 }
-            }
+            }*/
         }
     };
  

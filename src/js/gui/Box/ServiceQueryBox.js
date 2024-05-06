@@ -74,7 +74,10 @@ export class ServiceQueryBox extends Box {
                 // Tackle CORS problems
                 Utils.loadFromUrls([url, Utils.handleCORSNotSameOrigin(url)], {timeout: 30000, dataType: 'blob'})
                     .then((blob) => {
+                        console.log("azer", blob)
+
                         const url = URL.createObjectURL(blob);
+
                         try {
                             let image = self.aladin.createImageFITS(url, name);   
                             self.aladin.setOverlayImageLayer(image, Utils.uuidv4())
@@ -83,6 +86,7 @@ export class ServiceQueryBox extends Box {
                         }
                     })
                     .catch((e) => {
+                        console.log("jjaaz")
                         window.alert(e)
                     })
             },

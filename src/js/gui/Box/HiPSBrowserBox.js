@@ -66,7 +66,7 @@ export class HiPSBrowserBox extends Box {
             } catch (e) {
                 // Or he can select a HiPS from the list given
                 const hips = HiPSBrowserBox.HiPSList[value];
-                console.log(hips)
+
                 if (hips) {
                     image = hips.ID || hips.hips_service_url;
                 } else {
@@ -75,9 +75,9 @@ export class HiPSBrowserBox extends Box {
                 }
             }
 
-
             if (image) {
                 self._addHiPS(image)
+                self.searchDropdown.update({title: value});
             }
         };
 
@@ -85,10 +85,9 @@ export class HiPSBrowserBox extends Box {
             name: "HiPS browser",
             placeholder: "Browser a HiPS by an URL, ID or keywords",
             tooltip: {
-                content: 'Type an url, CDS ID or a name to search for a HiPS',
-                position: {
-                    direction: 'bottom'
-                }
+                global: true,
+                aladin,
+                content: 'HiPS url, ID or keyword accepted',
             },
             actions: {
                 focus(e) {
@@ -188,7 +187,6 @@ export class HiPSBrowserBox extends Box {
                 content: Layout.vertical([
                     Layout.horizontal(["Filter:", filterEnabler, filterBtn]),
                     Layout.horizontal(["Search:", searchDropdown]),
-                    //addBtn,
                 ]),
                 ...options,
             },
@@ -241,7 +239,6 @@ export class HiPSBrowserBox extends Box {
         let self = this;
         let hips = A.imageHiPS(id, {
             successCallback: (hips) => {
-                console.log('success')
                 self.searchDropdown.removeClass('aladin-not-valid');
                 self.searchDropdown.addClass('aladin-valid');
             },

@@ -81,6 +81,7 @@ export class Table extends DOMElement {
                     let val = row.data[key] || '--';
                     tdEl.innerHTML = val;
                     tdEl.classList.add("aladin-text-td-container");
+                    tdEl.title = val;
                 }
 
                 trEl.appendChild(tdEl);

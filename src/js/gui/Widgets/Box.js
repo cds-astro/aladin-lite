@@ -162,7 +162,7 @@ export class Box extends DOMElement {
 function dragElement(triggerElt, elmnt, onDragged) {
     var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
     // otherwise, move the DIV from anywhere inside the DIV:
-
+    var t, l;
     triggerElt.onmousedown = dragMouseDown;
   
     function dragMouseDown(e) {
@@ -188,15 +188,37 @@ function dragElement(triggerElt, elmnt, onDragged) {
         pos2 = pos4 - e.clientY;
         pos3 = e.clientX;
         pos4 = e.clientY;
-        // set the element's new position:
 
-        elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
-        elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+        // set the element's new position:
+        t = elmnt.offsetTop - pos2
+        l = elmnt.offsetLeft - pos1
+        elmnt.style.top = t + "px";
+        elmnt.style.left = l + "px";
     }
   
     function closeDragElement() {
         // stop moving when mouse button is released:
         document.onmouseup = null;
         document.onmousemove = null;
+
+        var r = elmnt.getBoundingClientRect();
+
+        if (t < r.height / 2) {
+            elmnt.style.top = r.height / 2 + "px";
+        }
+
+        if (l < r.width / 2) {
+            elmnt.style.left = r.width / 2 + "px";
+        }
+
+        const aladinDiv = elmnt.closest('.aladin-container');
+        
+        if (l + r.width / 2 > aladinDiv.offsetWidth) {
+            elmnt.style.left = (aladinDiv.offsetWidth - r.width / 2) + "px";
+        }
+
+        if (t + r.height / 2 > aladinDiv.offsetHeight) {
+            elmnt.style.top = (aladinDiv.offsetHeight - r.height / 2) + "px";
+        }
     }
 }

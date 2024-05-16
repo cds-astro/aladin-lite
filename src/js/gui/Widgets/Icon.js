@@ -103,9 +103,6 @@ export class Icon extends DOMElement {
         if (this.options.url) {
             let img = document.createElement('img');
             img.src = this.options.url;
-            img.style.objectFit = 'contain';
-            img.style.verticalAlign = 'middle';
-            img.style.width = '100%';
 
             this.el.appendChild(img);
         }
@@ -155,6 +152,9 @@ export class Icon extends DOMElement {
 
             elt.querySelector('svg').setAttribute('width', size);
             elt.querySelector('svg').setAttribute('height', size);
+
+            elt.style.width = size;
+            elt.style.height = size;
 
             return elt.innerHTML;
         };

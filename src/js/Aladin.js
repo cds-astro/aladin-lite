@@ -1574,6 +1574,20 @@ export let Aladin = (function () {
      */
     Aladin.createImageSurvey = Aladin.prototype.createImageSurvey;
 
+    /**
+     * Creates a FITS image object
+     * @deprecated prefer use {@link A.imageFITS}
+     *
+     * @function createImageFITS
+     * @memberof Aladin
+     * @static
+     * @param {string} url - The url of the fits.
+     * @param {string} [name] - A human readable name for that fits.
+     * @param {ImageFITSOptions} [options] - Options for rendering the image
+     * @param {function} [success] - A success callback
+     * @param {function} [error] - A success callback
+     * @returns {ImageFITS} A FITS image object.
+     */
     Aladin.prototype.createImageFITS = function (
         url,
         name,
@@ -1592,7 +1606,7 @@ export let Aladin = (function () {
         url = url.toString();
 
         // Do not use proxy with CORS headers until we solve that: https://github.com/MattiasBuelens/wasm-streams/issues/20
-        //url = Utils.handleCORSNotSameOrigin(url);
+        //url = Utils.handleCORSNotSameOrigin(url).href;
 
         let image = HiPSCache.get(url);
         if (!image) {
@@ -1605,6 +1619,7 @@ export let Aladin = (function () {
     };
 
     /**
+     * @deprecated prefer use {@link A.imageFITS} instead
      * Creates a FITS image object
      *
      * @function createImageFITS

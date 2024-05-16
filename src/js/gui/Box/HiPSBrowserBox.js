@@ -29,6 +29,8 @@ import { Layout } from "../Layout.js";
 import { HiPSFilterBox } from "./HiPSFilterBox.js";
 import A from "../../A.js";
 import { Utils } from "../../Utils.ts";
+import { ActionButton } from "../Widgets/ActionButton.js";
+import infoIconUrl from "../../../../assets/icons/info.svg"
 
 /******************************************************************************
  * Aladin Lite project
@@ -83,7 +85,7 @@ export class HiPSBrowserBox extends Box {
 
         let searchDropdown = new Dropdown(aladin, {
             name: "HiPS browser",
-            placeholder: "Browser a HiPS by an URL, ID or keywords",
+            placeholder: "Browse a HiPS by an URL, ID or keywords",
             tooltip: {
                 global: true,
                 aladin,
@@ -103,6 +105,10 @@ export class HiPSBrowserBox extends Box {
                     }
                 },
                 input(e) {
+                    self.infoCurrentHiPSBtn.update({
+                        disable: true,
+                    })
+
                     searchDropdown.removeClass('aladin-valid')
                     searchDropdown.removeClass('aladin-not-valid')
                 },
@@ -117,6 +123,7 @@ export class HiPSBrowserBox extends Box {
             checked: false,
             tooltip: {
                 content: "Filter off",
+                position: {direction: 'left'},
             },
             click(e) {
                 let on = e.target.checked;
@@ -139,12 +146,27 @@ export class HiPSBrowserBox extends Box {
                 filterEnabler.update({
                     tooltip: {
                         content: on
-                            ? "Filtering on"
-                            : "Filtering off",
+                            ? "Filter on"
+                            : "Filter off",
+                        position: {direction: 'left'},
                     },
                     checked: on,
                 });
             },
+        });
+
+        let infoCurrentHiPSBtn = new ActionButton({
+            disable: true,
+            icon: {
+                size: 'medium',
+                monochrome: true,
+                url: infoIconUrl,
+            },
+            tooltip: {
+                global: true,
+                aladin,
+                content: "More about that survey?"
+            }
         });
 
         let filterBtn = new TogglerActionButton({
@@ -185,8 +207,8 @@ export class HiPSBrowserBox extends Box {
                 },
                 classList: ['aladin-HiPS-browser-box'],
                 content: Layout.vertical([
-                    Layout.horizontal(["Filter:", filterEnabler, filterBtn]),
-                    Layout.horizontal(["Search:", searchDropdown]),
+                    Layout.horizontal(["Search:", searchDropdown, infoCurrentHiPSBtn]),
+                    Layout.horizontal(["Filter:", Layout.horizontal([filterEnabler, filterBtn])]),
                 ]),
                 ...options,
             },
@@ -203,6 +225,8 @@ export class HiPSBrowserBox extends Box {
         this.searchDropdown = searchDropdown;
         this.filterBtn = filterBtn;
         this.aladin = aladin;
+
+        this.infoCurrentHiPSBtn = infoCurrentHiPSBtn;
 
         self = this;
 
@@ -241,6 +265,14 @@ export class HiPSBrowserBox extends Box {
             successCallback: (hips) => {
                 self.searchDropdown.removeClass('aladin-not-valid');
                 self.searchDropdown.addClass('aladin-valid');
+
+
+                self.infoCurrentHiPSBtn.update({
+                    disable: false,
+                    action(e) {
+                        window.open(hips.url);
+                    }
+                })
             },
             errorCallback: (e) => {
                 self.searchDropdown.removeClass('aladin-valid');
@@ -252,6 +284,7 @@ export class HiPSBrowserBox extends Box {
 
     // This method is executed only if the filter is enabled
     _filterHiPSList(params) {
+        console.log("update dropdown")
         let self = this;
         let HiPSIDs = [];
 

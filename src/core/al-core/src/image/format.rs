@@ -44,7 +44,9 @@ impl ImageFormat for RGB8U {
 
     fn decode(raw_bytes: &[u8]) -> Result<Bytes<'_>, &'static str> {
         let mut decoder = jpeg::Decoder::new(raw_bytes);
-        let bytes = decoder.decode().map_err(|_| "Cannot decoder jpeg. This image may not be compressed.")?;
+        let bytes = decoder
+            .decode()
+            .map_err(|_| "Cannot decoder jpeg. This image may not be compressed.")?;
 
         Ok(Bytes::Owned(bytes))
     }
@@ -70,7 +72,9 @@ impl ImageFormat for RGBA8U {
 
     fn decode(raw_bytes: &[u8]) -> Result<Bytes<'_>, &'static str> {
         let mut decoder = jpeg::Decoder::new(raw_bytes);
-        let bytes = decoder.decode().map_err(|_| "Cannot decoder png. This image may not be compressed.")?;
+        let bytes = decoder
+            .decode()
+            .map_err(|_| "Cannot decoder png. This image may not be compressed.")?;
 
         Ok(Bytes::Owned(bytes))
     }
@@ -93,7 +97,9 @@ impl ImageFormat for RGBA8U {
 
     fn decode(raw_bytes: &[u8]) -> Result<Bytes<'_>, &'static str> {
         let mut decoder = jpeg::Decoder::new(raw_bytes);
-        let bytes = decoder.decode().map_err(|_| "Cannot decoder png. This image may not be compressed.")?;
+        let bytes = decoder
+            .decode()
+            .map_err(|_| "Cannot decoder png. This image may not be compressed.")?;
 
         Ok(Bytes::Owned(bytes))
     }
@@ -187,7 +193,6 @@ impl ImageFormat for R32F {
         Self::ArrayBufferView::view(s)
     }
 }
-
 
 #[cfg(feature = "webgl2")]
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
@@ -310,6 +315,8 @@ pub enum ChannelType {
     R32I,
 }
 
+pub const NUM_CHANNELS: usize = 9;
+
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq)]
 pub struct ImageFormatType {
     pub ext: ImageExt,
@@ -327,8 +334,11 @@ impl ImageFormatType {
 
     pub fn is_colored(&self) -> bool {
         match self.channel {
-            ChannelType::RGBA32F | ChannelType::RGB32F | ChannelType::RGBA8U | ChannelType::RGB8U => true,
-            _ => false
+            ChannelType::RGBA32F
+            | ChannelType::RGB32F
+            | ChannelType::RGBA8U
+            | ChannelType::RGB8U => true,
+            _ => false,
         }
     }
 }

@@ -50,11 +50,10 @@ export class Box extends DOMElement {
         //el.style.display = "initial";
 
         super(el, options);
-        this._show();
-
-        this.addClass('aladin-dark-theme')
 
         this.attachTo(target, position);
+        this._show();
+        this.addClass('aladin-dark-theme')
     }
 
     _show(options) {

@@ -106,7 +106,7 @@ A.aladin = function (divSelector, options) {
  * @function
  * @name A.imageHiPS
  * @memberof A
- * @param {string} id - Can be an `url` that refers to a HiPS.
+ * @param {string} id - Can be either an `url` that refers to a HiPS.
  * Or it can be a "CDS ID" pointing towards a HiPS. One can found the list of IDs {@link https://aladin.cds.unistra.fr/hips/list| here}.
  * @param {ImageHiPSOptions} [options] - Options describing the survey
  * @returns {ImageHiPS} - A HiPS image object

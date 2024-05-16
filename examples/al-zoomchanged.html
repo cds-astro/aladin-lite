@@ -18,12 +18,11 @@
             console.log("zoomChanged")
         })
         aladin.on("positionChanged", ({ra, dec}) => {
-            console.log('call to aladin', aladin.pix2world(0, 0))
+            console.log('call to aladin', aladin.pix2world(300, 300))
             console.log('positionChanged in icrs', ra, dec)
         })
 
         aladin.gotoRaDec(0, 20);
-
 
         aladin.on('rightClickMove', (x, y) => {
             console.log("right click move", x, y)

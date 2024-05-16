@@ -25,6 +25,8 @@ import { Layout } from "../Layout.js";
 import { Angle } from "../../libs/astro/angle.js";
 import { ALEvent } from "../../events/ALEvent.js";
 import { Utils } from "../../Utils.ts";
+import { AladinUtils } from "../../AladinUtils.js";
+import { Input } from "../Widgets/Input.js";
 /******************************************************************************
  * Aladin Lite project
  *
@@ -41,7 +43,7 @@ export class HiPSFilterBox extends Box {
 
         let regimeBtn = new TogglerActionButton({
             content: 'Regime',
-            tooltip: {content: 'Observation regime'},
+            tooltip: {content: 'Observation regime', position: {direction: 'bottom'}},
             toggled: true,
             actionOn: () => {
                 self._triggerFilteringCallback();
@@ -51,19 +53,19 @@ export class HiPSFilterBox extends Box {
             }
         });
         let spatialBtn = new TogglerActionButton({
-            content: 'Spatial',
-            tooltip: {content: 'Check for HiPS having observation in the view!'},
+            content: 'Inside view',
+            tooltip: {content: 'Check for HiPS having observation in the view!', position: {direction: 'bottom'}},
             toggled: false,
             actionOn: () => {
-                self._triggerFilteringCallback();
+                self._requestMOCServer();
             },
             actionOff: () => {
                 self._triggerFilteringCallback();
             }
         });
         let resolutionBtn = new TogglerActionButton({
-            content: 'Resolution',
-            tooltip: {content: 'Check for HiPS with a specific pixel resolution.'},
+            content: 'Pixel res',
+            tooltip: {content: 'Check for HiPS with a specific pixel resolution.', position: {direction: 'bottom'}},
             toggled: false,
             actionOn: () => {
                 self._triggerFilteringCallback();
@@ -73,13 +75,37 @@ export class HiPSFilterBox extends Box {
             }
         });
 
+        let logSlider = new Input({
+            label: "Max res [°/px]:",
+            name: "res",
+            value: 0.1,
+            type: 'range',
+            cssStyle: {
+                width: '100%'
+            },
+            tooltip: {content: AladinUtils.degreesToString(0.1), position: {direction: 'bottom'}},
+            ticks: [0.1 / 3600, 1 / 3600, 1 / 60, 0.1],
+            stretch: "log",
+            min: 0.1 / 3600,
+            max: 0.1,
+            reversed: true,
+            change: (e, slider, deg) => {
+                slider.update({value: e.target.value, tooltip: {content: AladinUtils.degreesToString(deg), position:{direction:'bottom'}}});
+
+                let resolution = new Angle(deg);
+                self.params["resolution"] = resolution.degrees();
+
+                self._triggerFilteringCallback();
+            },
+        });
         super(
             {
+                classList: ['aladin-HiPS-filter-box'],
                 close: false,
                 content: Layout.vertical([
-                    '<h3>Filters:</h3>',
+                    '<b>Filter by:</b>',
                     Layout.horizontal([regimeBtn, spatialBtn, resolutionBtn]),
-                    '<h3>Parameters:</h3>',
+                    '<b>Details:</b>',
                     new Form({
                         subInputs: [
                             {
@@ -91,10 +117,12 @@ export class HiPSFilterBox extends Box {
                                         value: "Optical",
                                         type: 'select',
                                         options: [
-                                            "Optical",
-                                            "UV",
                                             "Radio",
                                             "Infrared",
+                                            "Millimeter",
+                                            "Optical",
+                                            "UV",
+                                            "EUV",
                                             "X-ray",
                                             "Gamma-ray",
                                         ],
@@ -111,39 +139,7 @@ export class HiPSFilterBox extends Box {
                                             position: { direction: "right" },
                                         },
                                     },
-                                    {
-                                        label: "Angular res/px:",
-                                        name: "res",
-                                        value: "1°",
-                                        type: 'text',
-                                        classList: ['aladin-valid'],
-                                        autocomplete: 'off',
-                                        actions: {
-                                            input: (e) => {
-                                                e.target.classList.remove('aladin-not-valid');
-                                                e.target.classList.remove('aladin-valid');
-
-                                                let value = e.target.value;
-                                                let resolution = new Angle();
-                                                if (resolution.parse(value)) {
-                                                    // The angle has been parsed
-                                                    console.log(resolution.degrees())
-                                                    self.params["resolution"] = resolution.degrees();
-
-                                                    e.target.classList.add('aladin-valid');
-                                                    //resolutionBtn.update({content: '<=' + value});
-
-                                                    self._triggerFilteringCallback();
-                                                } else {
-                                                    e.target.classList.add('aladin-not-valid');
-                                                }
-                                            },
-                                            change: (e) => {
-                                                e.preventDefault();
-                                                e.stopPropagation();
-                                            }
-                                        }
-                                    },
+                                    logSlider
                                 ],
                             },
                         ],

@@ -25,6 +25,7 @@ Always prefer using the latest version. If you want the new features without min
 ## API documentation
 
 There is a new in progress API documentation at [this link](https://cds-astro.github.io/aladin-lite).
+Editable examples showing the API can also be found [here](https://aladin.cds.unistra.fr/AladinLite/doc/API/examples/).
 
 ## Embed it into your projects
 

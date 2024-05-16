@@ -126,11 +126,15 @@ export let View = (function () {
                 if (typeof posChangedFn === 'function') {
                     var pos = this.aladin.pix2world(this.width / 2, this.height / 2, 'icrs');
                     if (pos !== undefined) {
-                        posChangedFn({
-                            ra: pos[0],
-                            dec: pos[1],
-                            dragging: true
-                        });
+                        try {
+                            posChangedFn({
+                                ra: pos[0],
+                                dec: pos[1],
+                                dragging: true
+                            });
+                        } catch(e) {
+                            console.error(e)
+                        }
                     }
                 }
             },
@@ -1930,7 +1934,10 @@ export let View = (function () {
 
         if (layer.type == 'catalog' || layer.type == 'progressivecat') {
             indexToDelete = this.catalogs.indexOf(layer);
+            
             this.catalogs.splice(indexToDelete, 1);
+
+            this.unselectObjects();
         }
         else if (layer.type == 'moc') {
             indexToDelete = this.mocs.indexOf(layer);

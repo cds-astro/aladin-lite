@@ -64,7 +64,6 @@ export let ImageFITS = (function () {
         // Name of the layer
         this.layer = null;
         this.added = false;
-        this.subtype = "fits";
         // Set it to a default value
         this.url = url;
         this.id = url;

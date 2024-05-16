@@ -138,7 +138,7 @@ pub struct ImageSurveyTextures {
     //pub cutoff_values_tile: Rc<RefCell<HashMap<HEALPixCell, (f32, f32)>>>,
 
     // Array of 2D textures
-    texture_2d_array: Texture2DArray,
+    pub texture_2d_array: Texture2DArray,
 
     // A boolean ensuring the root textures
     // have already been loaded
@@ -168,11 +168,7 @@ fn create_texture_array<F: ImageFormat>(
 }
 
 impl ImageSurveyTextures {
-    pub fn new(
-        gl: &WebGlContext,
-        config: HiPSConfig,
-        //exec: Rc<RefCell<TaskExecutor>>,
-    ) -> Result<ImageSurveyTextures, JsValue> {
+    pub fn new(gl: &WebGlContext, config: HiPSConfig) -> Result<ImageSurveyTextures, JsValue> {
         let size = config.num_textures();
         // Ensures there is at least space for the 12
         // root textures
@@ -212,7 +208,6 @@ impl ImageSurveyTextures {
             #[cfg(feature = "webgl2")]
             ChannelType::R64F => create_texture_array::<R64F>(gl, &config)?,
         };
-
         // The root textures have not been loaded
         //let ready = false;
         //let num_root_textures_available = 0;

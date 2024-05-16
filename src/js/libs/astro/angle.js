@@ -7,12 +7,16 @@ import { Format } from "./coo";
  * Creates an angle of the Aladin interactive sky atlas.
  * @class
  * @constructs Angle
- * @param {number} angle - precision in degrees
+ * @param {number} angle - angle in degrees
  * @param {number} prec - precision
  * (8: 1/1000th sec, 7: 1/100th sec, 6: 1/10th sec, 5: sec, 4: 1/10th min, 3: min, 2: 1/10th deg, 1: deg
  */
 export let Angle = function(angle, prec) {
 	this.angle = angle;
+
+    if (prec === undefined || prec === null) {
+        prec = 0;
+    }
 	this.prec = prec;
 };
 

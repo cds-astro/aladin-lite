@@ -12,6 +12,7 @@ use al_core::image::Image;
 use al_core::log::console_log;
 use al_core::shader::Shader;
 use al_core::webgl_ctx::GlWrapper;
+use al_core::Texture2DArray;
 use al_core::VecData;
 use al_core::VertexArrayObject;
 use al_core::WebGlContext;
@@ -43,6 +44,7 @@ use uv::{TileCorner, TileUVW};
 
 use cgmath::{Matrix, Matrix4};
 use std::fmt::Debug;
+use std::rc::Rc;
 use wasm_bindgen::JsValue;
 use web_sys::WebGl2RenderingContext;
 
@@ -381,11 +383,7 @@ pub struct HiPS {
 }
 
 impl HiPS {
-    pub fn new(
-        config: HiPSConfig,
-        gl: &WebGlContext,
-        _camera: &CameraViewPort,
-    ) -> Result<Self, JsValue> {
+    pub fn new(config: HiPSConfig, gl: &WebGlContext) -> Result<Self, JsValue> {
         let mut vao = VertexArrayObject::new(gl);
 
         // layout (location = 0) in vec2 lonlat;
@@ -497,8 +495,6 @@ impl HiPS {
             .unbind();
 
         let num_idx = 0;
-        //let min_depth_tile = config.get_min_depth_tile();
-
         let textures = ImageSurveyTextures::new(gl, config)?;
 
         let gl = gl.clone();

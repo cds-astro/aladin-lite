@@ -458,19 +458,19 @@ export class VOTable {
                             subInputs: [{
                                 name: 'ra',
                                 label: 'ra[' + unit + ']',
-                                type: 'number',
+                                type: 'text',
                                 value: values && values[0],
                             },
                             {
                                 name: 'dec',
                                 label: 'dec[' + unit + ']',
-                                type: 'number',
+                                type: 'text',
                                 value: values && values[1],
                             },
                             {
                                 name: 'rad',
                                 label: 'rad[' + unit + ']',
-                                type: 'number',
+                                type: 'text',
                                 value: values && values[2],
                             }]
                         };

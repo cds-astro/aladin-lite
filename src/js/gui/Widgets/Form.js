@@ -59,6 +59,7 @@ export class Form extends DOMElement {
         el.className = "aladin-form";
 
         super(el, options);
+
         this.attachTo(target, position)
 
         this._show()
@@ -70,7 +71,7 @@ export class Form extends DOMElement {
         let layout = [];
         if (this.options && this.options.subInputs) {
             this.options.subInputs.forEach(subInput => {
-                layout.push(Form._createInput(subInput))
+                layout.push(this._createInput(subInput))
             });
         }
 
@@ -94,17 +95,23 @@ export class Form extends DOMElement {
         super._show();
     }
 
-    static _createInput(layout) {
-        if (!layout.subInputs) {
-            let input = new Input(layout);
-
+    _createInput(layout) {
+        if (layout instanceof DOMElement || !layout.subInputs) {
+            let input;
             let label = document.createElement('label');
-            if (layout.labelContent) {
-                DOMElement.appendTo(layout.labelContent, label);
+            if (layout instanceof DOMElement) {
+                input = layout;
+                label.textContent = input.options.label;
             } else {
-                label.textContent = layout.label;
+                input = new Input(layout);
+                
+                if (layout.labelContent) {
+                    DOMElement.appendTo(layout.labelContent, label);
+                } else {
+                    label.textContent = layout.label;
+                }
             }
-    
+
             label.for = input.el.id;
 
             let item = new Layout([label, input]);
@@ -118,7 +125,7 @@ export class Form extends DOMElement {
             }
 
             layout.subInputs.map((subInput) => {
-                let input = Form._createInput(subInput)
+                let input = this._createInput(subInput)
                 groupLayout.push(input)
             });
 

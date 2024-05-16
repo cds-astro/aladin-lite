@@ -125,15 +125,6 @@ PropertyParser.bitpix = function (properties) {
     return bitpix;
 };
 
-PropertyParser.dataproductSubtype = function (properties) {
-    let dataproductSubtype =
-        (properties && properties.dataproduct_subtype) || "color";
-    dataproductSubtype = dataproductSubtype
-        .split(" ")
-        .map((subtype) => subtype.toLowerCase());
-    return dataproductSubtype;
-};
-
 PropertyParser.isPlanetaryBody = function (properties) {
     return properties && properties.hips_body !== undefined;
 };
@@ -182,12 +173,12 @@ export let ImageHiPS = (function () {
         // Unique identifier for a survey
         this.id = id;
         this.name = (options && options.name) || undefined;
-        this.subtype = "survey";
         this.url = url;
         this.maxOrder = options.maxOrder;
         this.minOrder = options.minOrder || 0;
         this.cooFrame = options.cooFrame;
         this.tileSize = options.tileSize;
+        this.skyFraction = options.skyFraction;
         this.longitudeReversed =
             options.longitudeReversed === undefined
                 ? false
@@ -472,6 +463,7 @@ export let ImageHiPS = (function () {
             creatorDid: self.creatorDid,
             name: self.name,
             url: self.url,
+            skyFraction: self.skyFraction,
             cooFrame: self.cooFrame,
             maxOrder: self.maxOrder,
             tileSize: self.tileSize,

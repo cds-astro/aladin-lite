@@ -12,7 +12,7 @@
 aladin = A.aladin("#aladin-lite-div", {
     fullScreen: true,
     target: "m51",
-    fov: 90,
+    fov: 15,
     projection: "AIT",
     showContextMenu: true,
     showShareControl: true,
@@ -76,8 +76,8 @@ aladin = A.aladin("#aladin-lite-div", {
                 aladin.setImageLayer(A.imageHiPS("P/DSS2/color"));
 
                 aladin.addCatalog(
-                    A.catalogFromSKAORucio("m51", 10, {
-                        onClick: "showTable",
+                    A.catalogFromSKAORucio("m51", 15, {
+                        onClick: 'showTable',
                         hoverColor: "yellow",
                     })
                 );

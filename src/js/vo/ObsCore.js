@@ -238,21 +238,20 @@
 
                 return accessUrlEl;
             },
-            /*'access_format': (data) => {
+            'access_format': (data) => {
                 let accessFormat = data['access_format'];
 
                 if (accessFormat && accessFormat.includes('datalink')) {
                     return new ActionButton({
                         size: 'small',
                         content: '🔗',
-                        tooltip: {content: accessFormat, position: {direction: 'right'}},
+                        tooltip: {content: 'Datalink VOTable', aladin: aladinInstance, global: true},
                         action(e) {}
                     }).element();
-                    return accessFormat;
                 } else {
                     return accessFormat;
                 }
-            }*/
+            }
         }
     };
  

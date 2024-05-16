@@ -10,6 +10,7 @@ pub mod utils;
 use crate::renderable::image::Image;
 
 use al_core::image::format::ChannelType;
+use al_core::Texture2DArray;
 pub use hips::HiPS;
 
 pub use catalog::Manager;
@@ -20,6 +21,7 @@ use al_api::hips::ImageMetadata;
 use al_api::image::ImageParams;
 
 use al_core::colormap::Colormaps;
+use al_core::image::format::NUM_CHANNELS;
 use al_core::shader::Shader;
 use al_core::SliceData;
 use al_core::VertexArrayObject;
@@ -38,6 +40,7 @@ use hips::raytracing::RayTracer;
 
 use std::borrow::Cow;
 use std::collections::HashMap;
+use std::rc::Rc;
 use wasm_bindgen::JsValue;
 use web_sys::WebGl2RenderingContext;
 
@@ -481,7 +484,7 @@ impl Layers {
             }*/
             camera.register_view_frame(cfg.get_frame(), proj);
 
-            let hips = HiPS::new(cfg, gl, camera)?;
+            let hips = HiPS::new(cfg, gl)?;
             // add the frame to the camera
 
             self.surveys.insert(creator_did.clone(), hips);
@@ -612,16 +615,6 @@ impl Layers {
 
         Ok(())
     }
-
-    /*pub fn is_ready(&self) -> bool {
-        let ready = self
-            .surveys
-            .iter()
-            .map(|(_, survey)| survey.is_ready())
-            .fold(true, |acc, x| acc & x);
-
-        ready
-    }*/
 
     // Accessors
     // HiPSes getters

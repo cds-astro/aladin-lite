@@ -34,6 +34,10 @@ import { Utils } from './../Utils';
 import { ActionButton } from "../gui/Widgets/ActionButton.js";
 import { Catalog } from "../Catalog.js";
 import { ServiceQueryBox } from "../gui/Box/ServiceQueryBox.js";
+import { Input } from "../gui/Widgets/Input.js";
+import { Layout } from "../gui/Layout.js";
+import { HiPSProperties } from "../HiPSProperties.js";
+import A from "../A.js";
 
 export let Datalink = (function() {
 
@@ -68,11 +72,25 @@ export let Datalink = (function() {
                     })
                     let self = this;
                     let datalinkTable = {
-                        'name': 'Datalink:' + url,
-                        'color': 'purple',
-                        'rows': measures,
-                        'fields': fields,
-                        'showCallback': {
+                        name: 'Datalink:' + url,
+                        color: 'purple',
+                        rows: measures,
+                        fields,
+                        showCallback: {
+                            content_type: (data) => {
+                                let contentType = data['content_type'];
+
+                                if (contentType && contentType.includes('datalink')) {
+                                    return new ActionButton({
+                                        size: 'small',
+                                        content: '🔗',
+                                        tooltip: {content: 'Datalink VOTable', aladin: aladinInstance, global: true},
+                                        action(e) {}
+                                    }).element();
+                                } else {
+                                    return contentType;
+                                }
+                            },
                             'service_def': (data) => {
                                 const serviceName = data['service_def'];
 
@@ -80,7 +98,7 @@ export let Datalink = (function() {
                                     return new ActionButton({
                                         size: 'small',
                                         content: '📡',
-                                        tooltip: {content: 'Open the cutout service form', position: {direction: 'top'}},
+                                        tooltip: {global: true, aladin: aladinInstance, content: 'Open the cutout service form'},
                                         action(e) {
                                             if (self.serviceQueryBox) {
                                                 self.serviceQueryBox.remove()
@@ -137,8 +155,90 @@ export let Datalink = (function() {
                                                     break;
                                                 case 'application/hips':
                                                     // Clic on a HiPS
-                                                    let survey = aladinInstance.newImageSurvey(url);
-                                                    aladinInstance.setOverlayImageLayer(survey, Utils.uuidv4())
+                                                    let layer = Utils.uuidv4();
+                                                    if (contentQualifier === "cube") {
+                                                        let cubeOnTheFlyUrl = url + '/';
+
+                                                        HiPSProperties.fetchFromUrl(cubeOnTheFlyUrl)
+                                                            .then(properties => {
+                                                                let numSlices = +properties.hips_cube_depth;
+                                                                let idxSlice = +properties.hips_cube_firstframe;
+                                                
+                                                                let updateSlice = () => {
+                                                                    let colorCfg = aladinInstance.getOverlayImageLayer(layer).getColorCfg();
+                                                                    let hips = aladinInstance.setOverlayImageLayer(cubeOnTheFlyUrl + idxSlice, layer)
+                                                                    hips.setColorCfg(colorCfg)
+                                                
+                                                                    slicer.update({
+                                                                        value: idxSlice,
+                                                                        tooltip: {content: (idxSlice + 1) + '/' + numSlices, position: {direction: 'bottom'}},
+                                                                    })
+                                                                };
+                                                
+                                                                let slicer = Input.slider({
+                                                                    label: "Slice",
+                                                                    name: "cube slicer",
+                                                                    ticks: [idxSlice],
+                                                                    tooltip: {content: (idxSlice + 1) + '/' + numSlices , position: {direction: 'bottom'}},
+                                                                    min: 0,
+                                                                    max: numSlices - 1,
+                                                                    value: idxSlice,
+                                                                    actions: {
+                                                                        change: (e) => {
+                                                                            idxSlice = Math.round(e.target.value);
+                                                
+                                                                            updateSlice();
+                                                                        },
+                                                                        input: (e) => {
+                                                                            idxSlice = Math.round(e.target.value);
+
+                                                                            slicer.update({
+                                                                                value: idxSlice,
+                                                                                tooltip: {content: (idxSlice + 1) + '/' + numSlices, position: {direction: 'bottom'}},
+                                                                            })
+                                                                        }
+                                                                    },
+                                                                    cssStyle: {
+                                                                        width: '300px'
+                                                                    }
+                                                                });
+                                                
+                                                                let prevBtn = A.button({
+                                                                    size: 'small',
+                                                                    content: '<',
+                                                                    action(o) {
+                                                                        idxSlice = Math.max(idxSlice - 1, 0);
+                                                                        updateSlice()
+                                                                    }
+                                                                })
+                                                
+                                                                let nextBtn = A.button({
+                                                                    size: 'small',
+                                                                    content: '>',
+                                                                    action(o) {
+                                                                        idxSlice = Math.min(idxSlice + 1, numSlices - 1);
+                                                                        updateSlice()
+                                                                    }
+                                                                })
+                                                
+                                                                let cubeDisplayer = A.box({
+                                                                    close: true,
+                                                                    header: {
+                                                                        title: 'HiPS cube player',
+                                                                        draggable: true,
+                                                                    },
+                                                                    content: Layout.horizontal([prevBtn, nextBtn, slicer]),
+                                                                    position: {anchor: 'center top'},
+                                                                });
+                                                                aladinInstance.addUI(cubeDisplayer)
+                                                
+                                                                aladinInstance.setOverlayImageLayer(cubeOnTheFlyUrl + idxSlice, layer)
+                                                            })
+                                                    } else {
+                                                        let survey = aladinInstance.newImageSurvey(url);
+                                                        aladinInstance.setOverlayImageLayer(survey, layer)
+                                                    }
+                                                   
                                                     break;
                                                 // Any generic FITS file
                                                 case 'application/fits':
@@ -159,7 +259,7 @@ export let Datalink = (function() {
                                                     break;
                                                 default:
                                                     // When all has been done, download what's under the link
-                                                    //Utils.download(url);
+                                                    Utils.openNewTab(url);
                                                     break;
                                             }
                                         });

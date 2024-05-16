@@ -52,6 +52,7 @@ import { Input } from "../Widgets/Input.js";
 import { ImageFITS } from "../../ImageFITS.js";
 import { HiPSCache } from "../../DefaultHiPSCache.js";
 import { HiPSBrowserBox } from "./HiPSBrowserBox.js";
+import { ImageHiPS } from "../../ImageHiPS.js";
 
 export class OverlayStackBox extends Box {
     /*static previewImagesUrl = {
@@ -1053,7 +1054,7 @@ export class OverlayStackBox extends Box {
 
             let btns = [showBtn, settingsBtn];
 
-            if (layer.subtype !== "fits") {
+            if (!(layer instanceof ImageFITS)) {
                 btns.push(loadMOCBtn);
             }
             btns.push(deleteBtn);

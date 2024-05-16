@@ -20,6 +20,7 @@
 import { DOMElement } from "./Widget";
 import { Tooltip } from "./Tooltip";
 import { Utils } from "../../Utils";
+
 /******************************************************************************
  * Aladin Lite project
  *
@@ -59,9 +60,9 @@ export class Input extends DOMElement {
 
         super(el, options);
 
-        this._show()
-
         this.attachTo(target, position)
+        this.target = target;
+        this._show()
     }
 
     _show() {
@@ -105,7 +106,95 @@ export class Input extends DOMElement {
                 this.el.step = "any";
             }
 
+            let self = this;
+
+
+            function logPositionMinMax(value, minp, maxp) {
+                // position will be between 1 / 3600 and 1.0
+                var minv = Math.log(minp);
+                var maxv = Math.log(maxp);
+                
+                // calculate adjustment factor
+                var scale = (maxv-minv) / (maxp-minp);
+                console.log('value', value)
+
+                return (Math.log(value)-minv) / scale + minp;
+            }
+
+            function logPosition(value) {
+                // position will be between 1 / 3600 and 1.0
+                var minp = self.options.min; // 1 arcsec
+                var maxp = self.options.max; // 1 deg
+                
+                var minv = Math.log(self.options.min);
+                var maxv = Math.log(self.options.max);
+                
+                // calculate adjustment factor
+                var scale = (maxv-minv) / (maxp-minp);
+                console.log(minv, maxv)
+
+                return (Math.log(value)-minv) / scale + minp;
+            }
+
+            function logSliderMinMax(position, minp, maxp) {
+            
+                var minv = Math.log(minp);
+                var maxv = Math.log(maxp);
+                
+                // calculate adjustment factor
+                var scale = (maxv-minv) / (maxp-minp);
+                
+                return Math.exp(minv + scale*(position-minp));
+            }
+
+            function logSlider(position) {
+                // position will be between 1 / 3600 and 1.0
+                var minp = self.options.min; // 1 arcsec
+                var maxp = self.options.max; // 1 deg
+                
+                var minv = Math.log(self.options.min);
+                var maxv = Math.log(self.options.max);
+                
+                // calculate adjustment factor
+                var scale = (maxv-minv) / (maxp-minp);
+                
+                return Math.exp(minv + scale*(position-minp));
+            }
+
             if (this.options.type === "range") {
+                if (this.options.reversed === true) {
+                    this.addClass('aladin-reversed');
+                }
+
+                if (this.options.stretch) {
+                    let stretch = this.options.stretch || 'linear';
+                    if (stretch === 'log') {
+                        // Refers to this StackOverflow post: https://stackoverflow.com/questions/846221/logarithmic-slider
+                        
+                        
+
+                        if (this.options.ticks) {
+                            this.options.ticks = this.options.ticks.map((t) => logPosition(t));
+                        }
+
+                        
+
+                        if (this.options.change) {
+                            let change = this.options.change;
+                            this.options.change = (e) => {
+                                const value = logSlider(e.target.value)
+                                /*let p = 100 * (e.target.value - this.options.min) / (this.options.max - this.options.min);
+                                if (this.options.reversed === true) {
+                                    p = 100 - p;
+                                }
+                                this.el.style.background = 'linear-gradient(to right, lightgreen ' + p + '%, #bababa ' + p + '%)';
+                                */
+                                change(e, this, value);
+                            };
+                        }
+                    }
+                }
+
                 if (this.options.ticks) {
                     this.options.autocomplete = {options: this.options.ticks};
                     delete this.options.ticks;
@@ -119,22 +208,55 @@ export class Input extends DOMElement {
             if (this.options.autocomplete) {
                 const autocomplete = this.options.autocomplete
                 if (autocomplete instanceof Object && autocomplete !== null) {
-                    let datalist = document.createElement('datalist');
+                    let datalist = null;
+                    if (this.el.parentNode) {
+                        datalist = this.el.parentNode.querySelector('#' + 'ticks-' + this.options.name);
+                    }
+
+                    if (datalist) {
+                        // it has been found, remove what's inside it
+                        datalist.innerHTML = "";
+                    } else {
+                        // it has not been found, then create it
+                        if (this.options.type === 'range') {
+                            datalist = document.createElement('datalist');
+                        } else {
+                            datalist = document.createElement('datalist');
+                        }
+                        datalist.id = 'ticks-' + this.options.name;
+                        if (this.options.type === "range")
+                            datalist.classList.add('aladin-input-range-datalist')
+
+                        // and insert it into the dom
+                        this.el.appendChild(datalist);
+
+                        this.el.setAttribute('list', datalist.id);
+                    }
 
                     autocomplete.options.forEach((o) => {
-                        let option = document.createElement('option');
-                        option.value = o;
-                        datalist.appendChild(option);
-                    })
+                        
+                        let optionEl;
+                        if (this.options.type === 'range') {
+                            optionEl = document.createElement('option');
+                            let p = (o - this.options.min) / (this.options.max - this.options.min);
+                            optionEl.value = o;
 
-                    datalist.id = 'ticks-' + this.options.name;
-                    this.el.setAttribute('list', datalist.id);
-                    
-                    //console.log(this.el, this.el.querySelector('#' + datalist.id), datalist)
-                    /*if (this.el.querySelector('#' + datalist.id)) {
-                        this.el.querySelector('#' + datalist.id).remove()
-                    }*/
-                    this.el.appendChild(datalist);
+                            const lerp = (x, min, max) => {
+                                return x * max + (1 - x) * min;
+                            };
+    
+                            if (this.options.reversed) {
+                                p = 1 - p;
+                            }
+    
+                            optionEl.style.left = 'calc(' + 100.0 * p + '% + ' + lerp(p, 0.5, -0.5) + 'rem)';
+                        } else {
+                            optionEl = document.createElement('option');  
+                            optionEl.value = o;
+                        }
+
+                        datalist.appendChild(optionEl);
+                    })
 
                     this.el.autocomplete = 'off';
                 } else {
@@ -164,13 +286,17 @@ export class Input extends DOMElement {
             if (this.options.change) {
                 if (this.options.type === 'color' || this.options.type === 'range' || this.options.type === "text") {
                     this.el.removeEventListener('input', this.action);
+
                     this.action = (e) => {
                         this.options.change(e, this);
                     };
+                    
                     this.el.addEventListener('input', this.action);
                 } else {
                     this.el.removeEventListener('change', this.action);
+
                     this.action = this.options.change;
+                    
                     this.el.addEventListener('change', this.action);
                 }
             }
@@ -228,9 +354,16 @@ export class Input extends DOMElement {
         super._show()
     }
 
-    /*setPlaceholder(placeholder) {
-        this.el.placeholder = placeholder;
-    }*/
+    attachTo(target, position = 'beforeend') {
+        super.attachTo(target, position);
+
+        if (this.options.type === "range") {
+            // Dirty workaround for plotting the slider ticks
+            // The input slider must have a parent so that
+            // its datalist can be put into the DOM
+            this._show()
+        }
+    }
 
     update(options) {
         // if no options given, use the previous one set

@@ -74,8 +74,6 @@ export class ServiceQueryBox extends Box {
                 // Tackle CORS problems
                 Utils.loadFromUrls([url, Utils.handleCORSNotSameOrigin(url)], {timeout: 30000, dataType: 'blob'})
                     .then((blob) => {
-                        console.log("azer", blob)
-
                         const url = URL.createObjectURL(blob);
 
                         try {
@@ -86,7 +84,6 @@ export class ServiceQueryBox extends Box {
                         }
                     })
                     .catch((e) => {
-                        console.log("jjaaz")
                         window.alert(e)
                     })
             },
@@ -153,8 +150,8 @@ export class ServiceQueryBox extends Box {
             
                                 let fov = new Angle(radius, 1).degrees();
                                 //selectorBtn.update({tooltip: {content: 'center: ' + ra.toFixed(2) + ', ' + dec.toFixed(2) + '<br\>radius: ' + radius.toFixed(2), position: {direction: 'left'}}})    
-                                self.form.set('ra', +lon)
-                                self.form.set('dec', +lat)
+                                self.form.set('ra', lon)
+                                self.form.set('dec', lat)
                                 self.form.set('rad', fov)
                             } catch (e) {
                                 alert(e, 'Cone search out of projection')

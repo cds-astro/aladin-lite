@@ -184,7 +184,7 @@ export class HiPSBrowserBox extends Box {
                 self.filterBox._show({
                     position: {
                         nextTo: filterBtn,
-                        direction: "right",
+                        direction: "bottom",
                         aladin,
                     },
                 });
@@ -193,6 +193,8 @@ export class HiPSBrowserBox extends Box {
                 self.filterBox._hide();
             },
         });
+
+        let filterNumberElt = document.createElement("div");
 
         super(
             {
@@ -208,7 +210,7 @@ export class HiPSBrowserBox extends Box {
                 classList: ['aladin-HiPS-browser-box'],
                 content: Layout.vertical([
                     Layout.horizontal(["Search:", searchDropdown, infoCurrentHiPSBtn]),
-                    Layout.horizontal(["Filter:", Layout.horizontal([filterEnabler, filterBtn])]),
+                    Layout.horizontal(["Filter:", Layout.horizontal([filterEnabler, filterBtn, filterNumberElt])]),
                 ]),
                 ...options,
             },
@@ -220,6 +222,7 @@ export class HiPSBrowserBox extends Box {
                 self._filterHiPSList(params);
             },
         })
+        this.filterNumberElt = filterNumberElt;
         this.filterBox._hide();
 
         this.searchDropdown = searchDropdown;
@@ -231,24 +234,30 @@ export class HiPSBrowserBox extends Box {
         self = this;
 
         this.filterCallback = (HiPS, params) => {
-            if (!HiPS.obs_regime || (
-                params.regime &&
-                HiPS.obs_regime &&
-                params.regime.toLowerCase() !==
-                    HiPS.obs_regime.toLowerCase()
-            )) {
-                return false;
+            if (params.regime) {
+                if (!HiPS.obs_regime)
+                    return false;
+
+                if (params.regime.toLowerCase() !== HiPS.obs_regime.toLowerCase()) {
+                    return false;
+                }
             }
 
-            if (Array.isArray(params.spatial) && HiPS.ID && !(params.spatial.includes(HiPS.ID))) {
-                return false;
-            }
+            if (params.spatial) {
+                if (!HiPS.ID)
+                    return false;
 
-            if (!HiPS.hips_tile_width || !HiPS.hips_order)
-                return false;
+                if (Array.isArray(params.spatial) && !(params.spatial.includes(HiPS.ID))) {
+                    return false;
+                }
+            }
 
             if (params.resolution) {
-                let pixelHEALPixOrder = Math.log2(HiPS.hips_tile_width) + HiPS.hips_order;
+                if (!HiPS.hips_tile_width || !HiPS.hips_order) {
+                    return false;
+                }
+
+                let pixelHEALPixOrder = Math.log2(HiPS.hips_tile_width) + (+HiPS.hips_order);
                 let resPixel = Math.sqrt(Math.PI / (3*Math.pow(4, pixelHEALPixOrder)));
 
                 if (resPixel > params.resolution)
@@ -284,7 +293,6 @@ export class HiPSBrowserBox extends Box {
 
     // This method is executed only if the filter is enabled
     _filterHiPSList(params) {
-        console.log("update dropdown")
         let self = this;
         let HiPSIDs = [];
 
@@ -302,6 +310,7 @@ export class HiPSBrowserBox extends Box {
         }
 
         self.searchDropdown.update({ options: HiPSIDs });
+        self.filterNumberElt.innerHTML = HiPSIDs.length + "/" + Object.keys(HiPSBrowserBox.HiPSList).length;
     }
 
     _hide() {

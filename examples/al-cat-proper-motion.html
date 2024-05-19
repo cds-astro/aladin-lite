@@ -31,7 +31,14 @@
         selectionColor: 'white',
         // Footprint associated to sources
         shape: (s) => {
-          
+          // discard drawing a vector for big pm
+          let totalPmSquared = s.data.pmra*s.data.pmra + s.data.pmdec*s.data.pmdec;
+          if (totalPmSquared > 6) {
+            return;
+          }
+
+          let color = rainbowColorMap((totalPmSquared - 2.5) / 2)
+
           // Compute the mean of pm over the catalog sources
           if (!pmraMean || !pmdecMean) {
             pmraMean = 0, pmdecMean = 0;
@@ -46,27 +53,14 @@
             pmdecMean /= numSources
           }
 
-          console.log("mean", pmraMean, pmdecMean)
-
           let dra = +s.data.pmra - pmraMean;
           let ddec = +s.data.pmdec - pmdecMean;
-
-          // discard drawing a vector for big pm
-         
-
-          let totalPmSquared = s.data.pmra*s.data.pmra + s.data.pmdec*s.data.pmdec;
-          if (totalPmSquared > 6) {
-            return;
-          }
-
-          let color = rainbowColorMap((totalPmSquared - 2.5) / 2)
 
           return A.vector(
             s.ra,
             s.dec,
             s.ra + dra,
             s.dec + ddec,
-            null,
             {lineWidth: 3, color}
           )
         }

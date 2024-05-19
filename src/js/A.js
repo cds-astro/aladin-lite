@@ -298,15 +298,14 @@ A.ellipse = function (ra, dec, radiusRaDeg, radiusDecDeg, rotationDeg, options) 
  * @param {number} dec1 - Declination (Dec) coordinate of the center in degrees.
  * @param {number} ra2 - Right Ascension (RA) coordinate of the center in degrees.
  * @param {number} dec2 - Declination (Dec) coordinate of the center in degrees.
- * @param {CooFrame} [frame] - Frame in which the coordinates are given. If none, the frame used is icrs/j2000.
  * @param {ShapeOptions} options - Options for configuring the vector.
  * 
  * @returns {Line}
  */
-A.vector = function (ra1, dec1, ra2, dec2, frame, options) {
+A.vector = function (ra1, dec1, ra2, dec2, options) {
     options['arrow'] = true;
 
-    return A.line(ra1, dec1, ra2, dec2, frame, options);
+    return A.line(ra1, dec1, ra2, dec2, options);
 }
 
 /**

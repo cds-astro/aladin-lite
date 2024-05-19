@@ -225,6 +225,9 @@ export class HiPSFilterBox extends Box {
     enable(enable) {
         this.on = enable;
 
+        if (this.on)
+            this._requestMOCServer();
+
         this._triggerFilteringCallback();
     }
 }

@@ -173,6 +173,8 @@ export let Datalink = (function() {
                                                                         value: idxSlice,
                                                                         tooltip: {content: (idxSlice + 1) + '/' + numSlices, position: {direction: 'bottom'}},
                                                                     })
+
+                                                                    cubeDisplayer.update({content: Layout.horizontal([prevBtn, nextBtn, slicer, (idxSlice + 1) + '/' + numSlices])})
                                                                 };
                                                 
                                                                 let slicer = Input.slider({
@@ -227,7 +229,7 @@ export let Datalink = (function() {
                                                                         title: 'HiPS cube player',
                                                                         draggable: true,
                                                                     },
-                                                                    content: Layout.horizontal([prevBtn, nextBtn, slicer]),
+                                                                    content: Layout.horizontal([prevBtn, nextBtn, slicer, (idxSlice + 1) + '/' + numSlices]),
                                                                     position: {anchor: 'center top'},
                                                                 });
                                                                 aladinInstance.addUI(cubeDisplayer)

@@ -1433,6 +1433,10 @@ impl App {
         crate::math::projection::screen_to_clip_space(pos, &self.camera)
     }
 
+    pub(crate) fn get_coo_system(&self) -> CooSystem {
+        self.camera.get_coo_system()
+    }
+
     pub(crate) fn view_to_icrs_coosys(&self, lonlat: &LonLatT<f64>) -> LonLatT<f64> {
         let icrs_pos: Vector4<_> = lonlat.vector();
         let view_system = self.camera.get_coo_system();

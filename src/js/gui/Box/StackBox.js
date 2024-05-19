@@ -86,15 +86,14 @@ export class OverlayStackBox extends Box {
                 hoverColor: 'red',
                 onClick: "showTable",
                 shape: (s) => {
+                    let galaxy = ["Seyfert","Seyfert_1", "Seyfert_2","LSB_G","PartofG","RadioG","Gin","GinPair","HII_G","LensedG","BClG","BlueCompG","EmG","GinCl","GinGroup","StarburstG","LINER","AGN","Galaxy"].some((n) => s.data.main_type.indexOf(n) >= 0);
+                    if (!galaxy) return;
+
                     let a = +s.data.size_maj;
                     let b = +s.data.size_min;
-        
-                    let galaxy = ['Seyfert', 'Gin', 'StarburstG', 'LINER', 'AGN', 'Galaxy'].some((n) => s.data.main_type.indexOf(n) >= 0)
-                    if (!galaxy)
-                        return;
-        
+
                     let theta = +s.data.size_angle || 0.0;
-                    return A.ellipse(s.ra, s.dec, a / 60, b / 60, theta);
+                    return A.ellipse(s.ra, s.dec, a / 60, b / 60, theta, { color: "cyan" });
                 }
             },
         },

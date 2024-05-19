@@ -2,18 +2,20 @@ use cgmath::{BaseFloat, Vector4};
 
 use al_api::coo_system::CooBaseFloat;
 use al_api::coo_system::CooSystem;
+
+use crate::math::lonlat::LonLat;
 /// This is conversion method returning a transformation
 /// matrix when the system requested by the user is not
 /// icrs j2000.
 /// The core projections are always performed in icrs j2000
 /// so one must call these methods to convert them to icrs before.
 #[inline]
-pub fn apply_coo_system<S>(c1: CooSystem, c2: CooSystem, v1: &Vector4<S>) -> Vector4<S>
+pub fn apply_coo_system<S>(c1: CooSystem, c2: CooSystem, v: &Vector4<S>) -> Vector4<S>
 where
     S: BaseFloat + CooBaseFloat,
 {
     let c1_2_c2_mat = c1.to::<S>(c2);
-    c1_2_c2_mat * (*v1)
+    c1_2_c2_mat * (*v)
 }
 
 mod tests {

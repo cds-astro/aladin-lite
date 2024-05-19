@@ -50,13 +50,12 @@ export let Line = (function() {
      * @param {number} dec1 - Declination (Dec) coordinate of the center in degrees.
      * @param {number} ra2 - Right Ascension (RA) coordinate of the center in degrees.
      * @param {number} dec2 - Declination (Dec) coordinate of the center in degrees.
-     * @param {CooFrame} [frame] - Frame in which the coordinates are given. If none, the frame used is icrs/j2000.
      * @param {ShapeOptions} options - Options for configuring the line. Additional properties:
      * @param {boolean} [options.arrow=false] - Add an arrow pointing from (ra1, dec1) to (ra2, dec2)
      * 
      * @returns {Line} - The line shape object
      */
-    let Line = function(ra1, dec1, ra2, dec2, frame, options) {
+    let Line = function(ra1, dec1, ra2, dec2, options) {
         options = options || {};
         this.color     = options['color']     || undefined;
         this.opacity   = options['opacity']   || undefined;
@@ -78,7 +77,7 @@ export let Line = (function() {
         this.dec1 = dec1;
         this.ra2 = ra2;
         this.dec2 = dec2;
-        this.frame = frame;
+        this.frame = options.frame || "icrs";
     };
 
     Line.prototype = {
@@ -104,10 +103,10 @@ export let Line = (function() {
             noStroke = noStroke===true || false;
             noSmallCheck = noSmallCheck===true || false;
             // project
-            const v1 = view.aladin.world2pix(this.ra1, this.dec1, this.frame);
+            const v1 = view.aladin.world2pix(this.ra1, this.dec1);
             if (!v1)
                 return false;
-            const v2 = view.aladin.world2pix(this.ra2, this.dec2, this.frame);
+            const v2 = view.aladin.world2pix(this.ra2, this.dec2);
             if (!v2)
                 return false;
             

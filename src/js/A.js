@@ -684,14 +684,8 @@ A.catalogFromSimbad = function (target, radius, options, successCallback, errorC
         const processVOTable = function (table) {
             let {sources, fields} = table;
             cat.setFields(fields);
-
-            if (cat.type === 'ObsCore') {
-                // The fields corresponds to obscore ones
-                // Set the name of the catalog to be ObsCore:<catalog name>
-                cat.name = "ObsCore:" + url;
-            }
-
             cat.addSources(sources);
+            cat.url = url;
 
             if (successCallback) {
                 successCallback(cat);
@@ -700,13 +694,8 @@ A.catalogFromSimbad = function (target, radius, options, successCallback, errorC
             if (sources.length === 0) {
                 console.warn(cat.name + ' has no sources!')
             }
-
-            // Even if the votable is not a proper ObsCore one, try to see if specific columns are given
-            // e.g. access_format and access_url
-            //ObsCore.handleActions(catalog);
         };
 
-        
         Catalog.parseVOTable(
             url,
             processVOTable,

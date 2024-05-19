@@ -440,7 +440,7 @@ export let Catalog = (function () {
                     }
 
                     let source = null;
-                    if (ra && dec) {
+                    if (ra !== undefined && ra !== null && dec !== undefined && dec !== null) {
                         if (!Utils.isNumber(ra) || !Utils.isNumber(dec)) {
                             coo.parse(ra + " " + dec);
                             ra = coo.lon;
@@ -453,21 +453,7 @@ export let Catalog = (function () {
                             mesures
                         );
                         source.rowIdx = rowIdx;
-                    }
 
-                    //let footprint = null;
-                    /*if (region) {
-                        let shapes = A.footprintsFromSTCS(region, {lineWidth: 2})
-                        footprint = new Footprint(shapes, source);
-                    }*/
-
-                    /*if (footprint) {
-                        footprints.push(footprint);
-                        if (maxNbSources && footprints.length == maxNbSources) {
-                            return false;
-                        }
-                    } else */
-                    if (source) {
                         sources.push(source);
                         if (maxNbSources && sources.length == maxNbSources) {
                             return false;

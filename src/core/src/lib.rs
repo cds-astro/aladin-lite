@@ -625,8 +625,23 @@ impl WebClient {
     ///
     /// * `lon` - A longitude in degrees
     /// * `lat` - A latitude in degrees
-    #[wasm_bindgen(js_name = worldToScreen)]
-    pub fn world_to_screen(&self, lon: f64, lat: f64) -> Option<Box<[f64]>> {
+    #[wasm_bindgen(js_name = world2pix)]
+    pub fn world_to_pixel(
+        &self,
+        mut lon: f64,
+        mut lat: f64,
+        frame: Option<CooSystem>,
+    ) -> Option<Box<[f64]>> {
+        if let Some(frame) = frame {
+            // first convert the coo to the view frame
+            use crate::math::lonlat::LonLat;
+            let xyz =
+                LonLatT::new(lon.to_radians().to_angle(), lat.to_radians().to_angle()).vector();
+            let lonlat = coosys::apply_coo_system(frame, self.app.get_coo_system(), &xyz).lonlat();
+            lon = lonlat.lon().to_degrees();
+            lat = lonlat.lat().to_degrees();
+        }
+
         self.app
             .world_to_screen(lon, lat)
             .map(|v| Box::new([v.x, v.y]) as Box<[f64]>)
@@ -700,11 +715,24 @@ impl WebClient {
     ///
     /// * `pos_x` - The x screen coordinate in pixels
     /// * `pos_y` - The y screen coordinate in pixels
-    #[wasm_bindgen(js_name = screenToWorld)]
-    pub fn screen_to_world(&self, pos_x: f64, pos_y: f64) -> Option<Box<[f64]>> {
+    /// * `frame` - If not given, use the current view frame
+    #[wasm_bindgen(js_name = pix2world)]
+    pub fn pixel_to_world(
+        &self,
+        pos_x: f64,
+        pos_y: f64,
+        frame: Option<CooSystem>,
+    ) -> Option<Box<[f64]>> {
         self.app
             .screen_to_world(&Vector2::new(pos_x, pos_y))
-            .map(|lonlat| {
+            .map(|mut lonlat| {
+                if let Some(frame) = frame {
+                    use crate::math::lonlat::LonLat;
+                    let xyz = lonlat.vector();
+                    lonlat =
+                        coosys::apply_coo_system(self.app.get_coo_system(), frame, &xyz).lonlat();
+                }
+
                 let lon_deg: ArcDeg<f64> = lonlat.lon().into();
                 let lat_deg: ArcDeg<f64> = lonlat.lat().into();
 

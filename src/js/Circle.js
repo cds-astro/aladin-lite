@@ -68,6 +68,7 @@ export let Circle = (function() {
     	this.isShowing = true;
     	this.isSelected = false;
         this.isHovered = false;
+        this.frame = options.frame || "icrs";
     };
 
     Circle.prototype.setColor = function(color) {

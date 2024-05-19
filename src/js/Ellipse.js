@@ -44,6 +44,7 @@ import { requestAnimFrame } from "./libs/RequestAnimationFrame";
 * @property {number} [options.opacity=1] - The opacity, between 0 (totally transparent) and 1 (totally opaque)
 * @property {string} [options.selectionColor='#00ff00'] - A selection color
 * @property {string} [options.hoverColor] -  A hovered color
+* @property {CooFrame} [options.frame] - Frame in which the coordinates are given. If none, the frame used is icrs/j2000.
 */
 
 /**

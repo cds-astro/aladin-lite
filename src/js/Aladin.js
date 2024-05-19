@@ -2285,18 +2285,17 @@ aladin.on("positionChanged", ({ra, dec}) => {
      * @throws {Error} Throws an error if an issue occurs during the transformation.
      */
     Aladin.prototype.pix2world = function (x, y, frame) {
-        let radec = this.view.wasm.screenToWorld(x, y);
-
-        frame = frame || this.view.cooFrame.label;
-        frame = CooFrameEnum.fromString(frame, CooFrameEnum.J2000);
-
-        if (frame !== this.view.cooFrame) {
-            if (frame.label === "Galactic") {
-                console.warn("Conversion from icrs to galactic not yet impl");
-            } else {
-                radec = this.view.wasm.viewToICRSCooSys(radec[0], radec[1]);
+        if (frame) {
+            frame = CooFrameEnum.fromString(frame, CooFrameEnum.J2000);
+            if (frame.label == CooFrameEnum.SYSTEMS.GAL) {
+                frame = Aladin.wasmLibs.core.CooSystem.GAL;
+            }
+            else {
+                frame = Aladin.wasmLibs.core.CooSystem.ICRS;
             }
         }
+
+        let radec = this.view.wasm.pix2world(x, y, frame);
 
         let [ra, dec] = radec;
 
@@ -2311,15 +2310,26 @@ aladin.on("positionChanged", ({ra, dec}) => {
      * Transform world coordinates to pixel coordinates in the view.
      *
      * @memberof Aladin
-     * @param {number} ra - The Right Ascension (RA) coordinate in degrees. Frame considered is the current view frame
-     * @param {number} dec - The Declination (Dec) coordinate in degrees. Frame considered is the current view frame
-     *
+     * @param {number} ra - The Right Ascension (RA) coordinate in degrees.
+     * @param {number} dec - The Declination (Dec) coordinate in degrees.
+     * @param {CooFrame} [frame] - If not specified, the frame considered is the current view frame
+
      * @returns {number[]} - An array representing the [x, y] coordinates in pixel coordinates in the view.
      *
      * @throws {Error} Throws an error if an issue occurs during the transformation.
      */
-    Aladin.prototype.world2pix = function (ra, dec) {
-        return this.view.wasm.worldToScreen(ra, dec);
+    Aladin.prototype.world2pix = function (ra, dec, frame) {
+        if (frame) {
+            frame = CooFrameEnum.fromString(frame, CooFrameEnum.J2000);
+            if (frame.label == CooFrameEnum.SYSTEMS.GAL) {
+                frame = Aladin.wasmLibs.core.CooSystem.GAL;
+            }
+            else {
+                frame = Aladin.wasmLibs.core.CooSystem.ICRS;
+            }
+        }
+
+        return this.view.wasm.world2pix(ra, dec, frame);
     };
 
     /**

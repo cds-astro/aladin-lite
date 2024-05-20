@@ -192,7 +192,7 @@ export class SAMPConnector {
         this._pushMsgToAllClients(mtype, params);
 
         if (!this.connected) {
-            let warnMsg = 'Please connect the client. Go to menu Settings -> SAMP';
+            let warnMsg = 'Please connect the client. Go to Settings (gear icon) -> SAMP';
             alert(warnMsg);
             throw warnMsg;
         }

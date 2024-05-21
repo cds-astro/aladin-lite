@@ -34,9 +34,32 @@ import { Utils } from './Utils';
 import A from "./A.js";
 import { Color } from './Color';
 
+/**
+* @typedef {Object} GraphicOverlayOptions
+* @description Options for configuring the graphic overlay
+*
+* @property {Object} options - Configuration options for the MOC.
+* @property {string} [options.name="overlay"] - The name of the catalog.
+* @property {string} [options.color] - A string parsed as CSS <color> value. See {@link https://developer.mozilla.org/en-US/docs/Web/CSS/color_value| here}
+* @property {number} [options.lineWidth=3] - The line width in pixels
+* @property {Array.<number>} [options.lineDash=[]] - Dash line option. See the segments property {@link https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/setLineDash#segments| here}
+*/
 
-export let Overlay = (function() {
-   let Overlay = function(options) {
+/**
+ * Represents an overlay containing Footprints, whether it is 
+ *
+ * @namespace
+ * @typedef {Object} GraphicOverlay
+ */
+export let GraphicOverlay = (function() {
+    /**
+     * Constructor function for creating a new graphical overlay instance.
+     *
+     * @constructor
+     * @memberof GraphicOverlay
+     * @param {GraphicOverlayOptions} options - Configuration options for the overlay.
+     */
+   let GraphicOverlay = function(options) {
         options = options || {};
 
         this.uuid = Utils.uuidv4();
@@ -45,7 +68,7 @@ export let Overlay = (function() {
     	this.name = options.name || "overlay";
     	this.color = options.color || Color.getNextColor();
 
-    	this.lineWidth = options["lineWidth"] || 2;
+    	this.lineWidth = options["lineWidth"] || 3;
         this.lineDash = options["lineDash"] || [];
 
     	//this.indexationNorder = 5; // at which level should we index overlays?
@@ -59,7 +82,7 @@ export let Overlay = (function() {
 
 
     // TODO : show/hide methods should be integrated in a parent class
-    Overlay.prototype.show = function() {
+    GraphicOverlay.prototype.show = function() {
         if (this.isShowing) {
             return;
         }
@@ -70,7 +93,7 @@ export let Overlay = (function() {
         this.reportChange();
     };
 
-    Overlay.prototype.hide = function() {
+    GraphicOverlay.prototype.hide = function() {
         if (! this.isShowing) {
             return;
         }
@@ -81,7 +104,7 @@ export let Overlay = (function() {
         this.reportChange();
     };
 
-    Overlay.prototype.toggle = function() {
+    GraphicOverlay.prototype.toggle = function() {
         if (! this.isShowing) {
             this.show()
         } else {
@@ -90,7 +113,7 @@ export let Overlay = (function() {
     };
 
     // return an array of Footprint from a STC-S string
-    Overlay.parseSTCS = function(stcs, options) {
+    GraphicOverlay.parseSTCS = function(stcs, options) {
         options = options || {};
 
         var footprints = [];
@@ -151,7 +174,7 @@ export let Overlay = (function() {
     };
 
     // ajout d'un tableau d'overlays (= objets Footprint, Circle ou Polyline)
-    Overlay.prototype.addFootprints = function(overlaysToAdd) {
+    GraphicOverlay.prototype.addFootprints = function(overlaysToAdd) {
     	for (var k=0, len=overlaysToAdd.length; k<len; k++) {
             this.add(overlaysToAdd[k], false);
         }
@@ -160,7 +183,7 @@ export let Overlay = (function() {
     };
 
     // TODO : item doit pouvoir prendre n'importe quoi en param (footprint, circle, polyline)
-    Overlay.prototype.add = function(item, requestRedraw) {
+    GraphicOverlay.prototype.add = function(item, requestRedraw) {
         requestRedraw = requestRedraw !== undefined ? requestRedraw : true;
 
         //if (item instanceof Footprint) {
@@ -178,7 +201,7 @@ export let Overlay = (function() {
 
 
     // return a footprint by index
-   Overlay.prototype.getFootprint = function(idx) {
+    GraphicOverlay.prototype.getFootprint = function(idx) {
         if (idx<this.footprints.length) {
             return this.footprints[idx];
         }
@@ -187,21 +210,22 @@ export let Overlay = (function() {
         }
     };
 
-    Overlay.prototype.setView = function(view) {
+    GraphicOverlay.prototype.setView = function(view) {
         this.view = view;
     };
 
-    Overlay.prototype.removeAll = function() {
+    GraphicOverlay.prototype.removeAll = function() {
         // TODO : RAZ de l'index
         //this.overlays = [];
         this.overlayItems = [];
     };
 
-    Overlay.prototype.draw = function(ctx) {
+    GraphicOverlay.prototype.draw = function(ctx) {
         if (!this.isShowing) {
             return;
         }
 
+        ctx.save();
         // simple drawing
         ctx.strokeStyle= this.color;
         ctx.lineWidth = this.lineWidth;
@@ -233,9 +257,11 @@ export let Overlay = (function() {
     	for (var k=0; k<this.overlayItems.length; k++) {
     	    this.overlayItems[k].draw(ctx, this.view);
     	}
+
+        ctx.restore();
     };
 
-    Overlay.increaseBrightness = function(hex, percent){
+    GraphicOverlay.increaseBrightness = function(hex, percent){
         // strip the leading # if it's there
         hex = hex.replace(/^\s*#|\s*$/g, '');
 
@@ -254,25 +280,25 @@ export let Overlay = (function() {
                 ((0|(1<<8) + b + (256 - b) * percent / 100).toString(16)).substr(1);
     };
 
-    Overlay.prototype.setColor = function(color) {
+    GraphicOverlay.prototype.setColor = function(color) {
         this.color = color;
         this.reportChange();
     };
 
-    Overlay.prototype.setLineWidth = function(lineWidth) {
+    GraphicOverlay.prototype.setLineWidth = function(lineWidth) {
         this.lineWidth = lineWidth;
         this.reportChange();
     };
 
-    Overlay.prototype.setLineDash = function(lineDash) {
+    GraphicOverlay.prototype.setLineDash = function(lineDash) {
         this.lineDash = lineDash;
         this.reportChange();
     }
 
     // callback function to be called when the status of one of the footprints has changed
-    Overlay.prototype.reportChange = function() {
+    GraphicOverlay.prototype.reportChange = function() {
         this.view && this.view.requestRedraw();
     };
 
-    return Overlay;
+    return GraphicOverlay;
 })();

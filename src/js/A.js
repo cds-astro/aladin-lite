@@ -29,7 +29,7 @@
  *****************************************************************************/
 
 import { MOC } from "./MOC.js";
-import { Overlay } from "./Overlay.js";
+import { GraphicOverlay } from "./Overlay.js";
 import { Circle } from "./shapes/Circle.js";
 import { Ellipse } from "./shapes/Ellipse.js";
 import { Polyline } from "./shapes/Polyline.js";
@@ -326,7 +326,7 @@ A.vector = function (ra1, dec1, ra2, dec2, options) {
  * var overlay = A.graphicOverlay({ color: '#ee2345', lineWidth: 3, lineDash: [2, 4]});
  */
 A.graphicOverlay = function (options) {
-    return new Overlay(options);
+    return new GraphicOverlay(options);
 };
 
 /**
@@ -377,7 +377,7 @@ A.coo = function (longitude, latitude, prec) {
  * @returns {Array.<Polyline|Circle>} Returns a list of shapes from the STC-S string
  */
 A.footprintsFromSTCS = function (stcs, options) {
-    var footprints = Overlay.parseSTCS(stcs, options);
+    var footprints = GraphicOverlay.parseSTCS(stcs, options);
     return footprints;
 }
 

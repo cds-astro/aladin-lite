@@ -29,7 +29,7 @@
  *****************************************************************************/
 
 import { Utils } from "./../Utils";
-import { Overlay } from "./../Overlay.js";
+import { GraphicOverlay } from "./../Overlay.js";
 
 /**
 * @typedef {Object} ShapeOptions
@@ -294,10 +294,10 @@ export let Ellipse = (function() {
             if(this.selectionColor) {
                 ctx.strokeStyle = this.selectionColor;
             } else {
-                ctx.strokeStyle = Overlay.increaseBrightness(baseColor, 50);
+                ctx.strokeStyle = GraphicOverlay.increaseBrightness(baseColor, 50);
             }
         } else if (this.isHovered) {
-            ctx.strokeStyle = this.hoverColor || Overlay.increaseBrightness(baseColor, 25);
+            ctx.strokeStyle = this.hoverColor || GraphicOverlay.increaseBrightness(baseColor, 25);
         } else {
             ctx.strokeStyle = baseColor;
         }

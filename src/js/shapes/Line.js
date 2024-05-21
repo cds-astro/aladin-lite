@@ -31,7 +31,7 @@
  *****************************************************************************/
 import { Polyline } from "./Polyline.js";
 import { Utils } from '../Utils';
-import { Overlay } from "../Overlay.js";
+import { GraphicOverlay } from "../Overlay.js";
 import { Ellipse } from "./Ellipse.js";
 
 /**
@@ -131,9 +131,9 @@ export let Line = (function() {
             }
 
             if (this.isSelected) {
-                ctx.strokeStyle = this.selectionColor || Overlay.increaseBrightness(baseColor, 50);
+                ctx.strokeStyle = this.selectionColor || GraphicOverlay.increaseBrightness(baseColor, 50);
             } else if (this.isHovered) {
-                ctx.strokeStyle = this.hoverColor || Overlay.increaseBrightness(baseColor, 25);
+                ctx.strokeStyle = this.hoverColor || GraphicOverlay.increaseBrightness(baseColor, 25);
             } else {
                 ctx.strokeStyle = baseColor;
             }

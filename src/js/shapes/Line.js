@@ -30,8 +30,8 @@
  * 
  *****************************************************************************/
 import { Polyline } from "./Polyline.js";
-import { Utils } from './Utils';
-import { Overlay } from "./Overlay.js";
+import { Utils } from '../Utils';
+import { Overlay } from "../Overlay.js";
 import { Ellipse } from "./Ellipse.js";
 
 /**
@@ -77,7 +77,6 @@ export let Line = (function() {
         this.dec1 = dec1;
         this.ra2 = ra2;
         this.dec2 = dec2;
-        this.frame = options.frame || "icrs";
     };
 
     Line.prototype = {

@@ -2295,32 +2295,35 @@ aladin.on("positionChanged", ({ra, dec}) => {
             }
         }
 
-        let radec = this.view.wasm.pix2world(x, y, frame);
+        let lonlat = this.view.wasm.pix2world(x, y, frame);
 
-        let [ra, dec] = radec;
+        let [lon, lat] = lonlat;
 
-        if (ra < 0) {
-            return [ra + 360.0, dec];
+        if (lon < 0) {
+            return [lon + 360.0, lat];
         }
 
-        return [ra, dec];
+        return [lon, lat];
     };
 
     /**
      * Transform world coordinates to pixel coordinates in the view.
      *
      * @memberof Aladin
-     * @param {number} ra - The Right Ascension (RA) coordinate in degrees.
-     * @param {number} dec - The Declination (Dec) coordinate in degrees.
-     * @param {CooFrame} [frame] - If not specified, the frame considered is the current view frame
+     * @param {number} lon - Londitude coordinate in degrees.
+     * @param {number} lat - Latitude coordinate in degrees.
+     * @param {CooFrame} [frame] - If not specified, the frame used is ICRS
 
      * @returns {number[]} - An array representing the [x, y] coordinates in pixel coordinates in the view.
      *
      * @throws {Error} Throws an error if an issue occurs during the transformation.
      */
-    Aladin.prototype.world2pix = function (ra, dec, frame) {
+    Aladin.prototype.world2pix = function (lon, lat, frame) {
         if (frame) {
-            frame = CooFrameEnum.fromString(frame, CooFrameEnum.J2000);
+            if (frame instanceof string) {
+                frame = CooFrameEnum.fromString(frame, CooFrameEnum.J2000);
+            }
+    
             if (frame.label == CooFrameEnum.SYSTEMS.GAL) {
                 frame = Aladin.wasmLibs.core.CooSystem.GAL;
             }
@@ -2329,7 +2332,7 @@ aladin.on("positionChanged", ({ra, dec}) => {
             }
         }
 
-        return this.view.wasm.world2pix(ra, dec, frame);
+        return this.view.wasm.world2pix(lon, lat, frame);
     };
 
     /**

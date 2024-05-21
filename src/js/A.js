@@ -30,10 +30,11 @@
 
 import { MOC } from "./MOC.js";
 import { Overlay } from "./Overlay.js";
-import { Circle } from "./Circle.js";
-import { Ellipse } from "./Ellipse.js";
-import { Polyline } from "./Polyline.js";
-import { Line } from "./Line.js";
+import { Circle } from "./shapes/Circle.js";
+import { Ellipse } from "./shapes/Ellipse.js";
+import { Polyline } from "./shapes/Polyline.js";
+import { Line } from "./shapes/Line.js";
+
 import { Catalog } from "./Catalog.js";
 import { ProgressiveCat } from "./ProgressiveCat.js";
 import { Source } from "./Source.js";

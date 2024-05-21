@@ -11,11 +11,11 @@
 
     let aladin;
     A.init.then(() => {
-        aladin = A.aladin('#aladin-lite-div', {target: 'Gamma Cas', fov: 10});
+        aladin = A.aladin('#aladin-lite-div', {target: 'Gamma Cas', fov: 10, cooFrame: 'icrs'});
 
-        var overlay = A.graphicOverlay({color: '#ee2345', lineWidth: 2});
+        var overlay = A.graphicOverlay({lineWidth: 2});
         aladin.addOverlay(overlay);
-        overlay.add(A.polyline([ [2.29452158, 59.14978110], [10.12683778, 56.53733116], [14.1772154, 60.7167403], [21.45396446, 60.23528403], [28.59885697, 63.67010079] ]));
+        overlay.add(A.polyline([ [2.29452158, 59.14978110], [10.12683778, 56.53733116], [14.1772154, 60.7167403], [21.45396446, 60.23528403], [28.59885697, 63.67010079] ], {color: 'green'}));
     });
 </script>
 </body>

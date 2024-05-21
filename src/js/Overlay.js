@@ -32,6 +32,7 @@
 
 import { Utils } from './Utils';
 import A from "./A.js";
+import { Color } from './Color';
 
 
 export let Overlay = (function() {

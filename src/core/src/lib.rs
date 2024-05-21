@@ -637,7 +637,7 @@ impl WebClient {
             use crate::math::lonlat::LonLat;
             let xyz =
                 LonLatT::new(lon.to_radians().to_angle(), lat.to_radians().to_angle()).vector();
-            let lonlat = coosys::apply_coo_system(frame, self.app.get_coo_system(), &xyz).lonlat();
+            let lonlat = coosys::apply_coo_system(frame, CooSystem::ICRS, &xyz).lonlat();
             lon = lonlat.lon().to_degrees();
             lat = lonlat.lat().to_degrees();
         }
@@ -715,7 +715,7 @@ impl WebClient {
     ///
     /// * `pos_x` - The x screen coordinate in pixels
     /// * `pos_y` - The y screen coordinate in pixels
-    /// * `frame` - If not given, use the current view frame
+    /// * `frame` - If not given, the coo given will be in the current view frame
     #[wasm_bindgen(js_name = pix2world)]
     pub fn pixel_to_world(
         &self,

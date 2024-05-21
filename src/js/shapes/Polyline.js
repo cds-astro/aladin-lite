@@ -33,10 +33,9 @@
  *
  *****************************************************************************/
 
-import { Utils } from './Utils';
-import { Overlay } from "./Overlay.js";
-import { ProjectionEnum } from "./ProjectionEnum.js";
-
+import { Utils } from '../Utils';
+import { Overlay } from "../Overlay.js";
+import { ProjectionEnum } from "../ProjectionEnum.js";
 
 /**
  * Represents a polyline shape
@@ -97,13 +96,13 @@ export let Polyline = (function() {
      *
      * @constructor
      * @memberof Polyline
-     * @param {Array.<number[]>} radecArray - right-ascension/declination 2-tuple array describing the polyline's vertices in degrees
+     * @param {Array.<number[]>} raDecArray - right-ascension/declination 2-tuple array describing the polyline's vertices in degrees
      * @param {ShapeOptions} options - Configuration options for the polyline. Additional properties:
      * @param {boolean} [options.closed=false] - Close the polyline, default to false.
      * 
      * @returns {Polyline} - The polyline shape object
      */
-    let Polyline = function(radecArray, options) {
+    let Polyline = function(raDecArray, options) {
         options = options || {};
         this.color     = options['color']     || undefined;
         this.fill      = options['fill']      || false;
@@ -118,7 +117,7 @@ export let Polyline = (function() {
         // All graphics overlay have an id
         this.id = 'polyline-' + Utils.uuidv4();
 
-        this.radecArray = radecArray;
+        this.raDecArray = raDecArray;
         this.overlay = null;
 
     	this.isShowing = true;
@@ -246,7 +245,7 @@ export let Polyline = (function() {
             return false;
         }
 
-        if (! this.radecArray || this.radecArray.length<2) {
+        if (! this.raDecArray || this.raDecArray.length<2) {
             return false;
         }
 
@@ -279,7 +278,7 @@ export let Polyline = (function() {
         // 1. project the vertices into the screen
         //    and computes a BBox
         let xyView = [];
-        let len = this.radecArray.length;
+        let len = this.raDecArray.length;
 
         let xmin = Number.POSITIVE_INFINITY
         let xmax = Number.NEGATIVE_INFINITY
@@ -287,7 +286,7 @@ export let Polyline = (function() {
         let ymax = Number.NEGATIVE_INFINITY;
 
         for (var k=0; k<len; k++) {
-            var xyview = view.aladin.world2pix(this.radecArray[k][0], this.radecArray[k][1]);
+            var xyview = view.aladin.world2pix(this.raDecArray[k][0], this.raDecArray[k][1]);
             if (!xyview) {
                 return false;
             }
@@ -459,8 +458,8 @@ export let Polyline = (function() {
         ctx.lineWidth = this.lineWidth;
 
         let pointXY = [];
-        for (var j = 0; j < this.radecArray.length; j++) {
-            var xy = view.aladin.world2pix(this.radecArray[j][0], this.radecArray[j][1]);
+        for (var j = 0; j < this.raDecArray.length; j++) {
+            var xy = view.aladin.world2pix(this.raDecArray[j][0], this.raDecArray[j][1]);
             if (!xy) {
                 return false;
             }

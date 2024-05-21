@@ -33,10 +33,10 @@ import { Coo } from "./libs/astro/coo.js";
 import { VOTable } from "./vo/VOTable.js";
 import { ObsCore } from "./vo/ObsCore.js";
 import A from "./A.js";
-import { Polyline } from "./Polyline.js";
-import { Line } from "./Line.js";
-import { Ellipse } from "./Ellipse.js";
-import { Circle } from "./Circle.js";
+import { Polyline } from "./shapes/Polyline.js";
+import { Line } from "./shapes/Line.js";
+import { Ellipse } from "./shapes/Ellipse.js";
+import { Circle } from "./shapes/Circle.js";
 import { Footprint } from "./Footprint.js";
 
 /**

@@ -28,8 +28,8 @@
  *
  *****************************************************************************/
 
-import { Utils } from "./Utils";
-import { Overlay } from "./Overlay.js";
+import { Utils } from "./../Utils";
+import { Overlay } from "./../Overlay.js";
 
 /**
  * Represents an circle shape
@@ -43,13 +43,13 @@ export let Circle = (function() {
      *
      * @constructor
      * @memberof Circle
-     * @param {number[]} center - right-ascension/declination 2-tuple of the circle's center in degrees
+     * @param {number[]} centerRaDec - right-ascension/declination 2-tuple of the circle's center in degrees
      * @param {number} radius - radius in degrees
      * @param {ShapeOptions} options - Configuration options for the circle
      * 
      * @returns {Circle} - The circle shape object
      */
-    let Circle = function(center, radius, options) {
+    let Circle = function(centerRaDec, radius, options) {
         options = options || {};
 
         this.color     = options['color']     || undefined;
@@ -61,7 +61,7 @@ export let Circle = (function() {
         // TODO : all graphic overlays should have an id
         this.id = 'circle-' + Utils.uuidv4();
 
-        this.setCenter(center);
+        this.setCenter(centerRaDec);
         this.setRadius(radius);
     	this.overlay = null;
 

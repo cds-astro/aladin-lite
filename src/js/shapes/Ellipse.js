@@ -28,9 +28,8 @@
  * 
  *****************************************************************************/
 
-import { Utils } from "./Utils";
-import { Overlay } from "./Overlay.js";
-import { requestAnimFrame } from "./libs/RequestAnimationFrame";
+import { Utils } from "./../Utils";
+import { Overlay } from "./../Overlay.js";
 
 /**
 * @typedef {Object} ShapeOptions
@@ -44,7 +43,6 @@ import { requestAnimFrame } from "./libs/RequestAnimationFrame";
 * @property {number} [options.opacity=1] - The opacity, between 0 (totally transparent) and 1 (totally opaque)
 * @property {string} [options.selectionColor='#00ff00'] - A selection color
 * @property {string} [options.hoverColor] -  A hovered color
-* @property {CooFrame} [options.frame] - Frame in which the coordinates are given. If none, the frame used is icrs/j2000.
 */
 
 /**
@@ -59,7 +57,7 @@ export let Ellipse = (function() {
      *
      * @constructor
      * @memberof Ellipse
-     * @param {number[]} center - right-ascension/declination 2-tuple of the ellipse's center in degrees
+     * @param {number[]} centerRaDec - right-ascension/declination 2-tuple of the ellipse's center in degrees
      * @param {number} a - semi-major axis length in degrees
      * @param {number} b - semi-minor axis length in degrees
      * @param {number} theta - angle of the ellipse in degrees
@@ -67,7 +65,7 @@ export let Ellipse = (function() {
      * 
      * @returns {Ellipse} - The ellipse shape object
      */
-    let Ellipse = function(center, a, b, theta, options) {
+    let Ellipse = function(centerRaDec, a, b, theta, options) {
         options = options || {};
 
         this.color = options['color'] || undefined;
@@ -80,7 +78,7 @@ export let Ellipse = (function() {
         // TODO : all graphic overlays should have an id
         this.id = 'ellipse-' + Utils.uuidv4();
 
-        this.setCenter(center);
+        this.setCenter(centerRaDec);
         this.setAxisLength(a, b);
         this.setRotation(theta);
     	this.overlay = null;
@@ -198,7 +196,7 @@ export let Ellipse = (function() {
             this.overlay.reportChange();
         }
     }
-    
+
     Ellipse.prototype.setCenter = function(centerRaDec) {
         this.centerRaDec = centerRaDec;
         if (this.overlay) {
@@ -280,34 +278,7 @@ export let Ellipse = (function() {
 
         // 5. Get the correct ellipse angle
         let theta = -this.rotation + westToNorthAngle;
-        //let ct = Math.cos(theta);
-        //let st = Math.sin(theta);
 
-        /*let circlePtXyViewRa = view.aladin.world2pix(view.viewCenter.lon + 1.0, view.viewCenter.lat);
-        let circlePtXyViewDec = view.aladin.world2pix(view.viewCenter.lon, view.viewCenter.lat + 1.0);
-
-        if (!circlePtXyViewRa || !circlePtXyViewDec) {
-            // the circle border goes out of the projection
-            // we do not draw it
-            return;
-        }
-
-        var dxRa = circlePtXyViewRa[0] - centerXyview[0];
-        var dyRa = circlePtXyViewRa[1] - centerXyview[1];
-        var dRa = Math.sqrt(dxRa*dxRa + dyRa*dyRa);
-
-        var dxDec = circlePtXyViewDec[0] - centerXyview[0];
-        var dyDec = circlePtXyViewDec[1] - centerXyview[1];
-        var dDec = Math.sqrt(dxDec*dxDec + dyDec*dyDec);*/
-
-        //var radiusInPixX = Math.abs(this.a * ct * dRa) + Math.abs(this.a * st * dDec);
-        //var radiusInPixY = Math.abs(this.b * st * dRa) + Math.abs(this.b * ct * dDec);
-
-        // Ellipse crossing the projection
-        /*if ((dxRa*dyDec - dxDec*dyRa) <= 0.0) {
-            // We do not draw it
-            return;
-        }*/
         noStroke = noStroke===true || false;
 
         // TODO : check each 4 point until show

@@ -29,7 +29,7 @@
 import { version } from "./../../package.json";
 import { View } from "./View.js";
 import { Utils } from "./Utils";
-import { Overlay } from "./Overlay.js";
+import { GraphicOverlay } from "./Overlay.js";
 import { Logger } from "./Logger.js";
 import { ProgressiveCat } from "./ProgressiveCat.js";
 import { Sesame } from "./Sesame.js";
@@ -1837,7 +1837,7 @@ export let Aladin = (function () {
      * Get list of overlays layers
      *
      * @memberof Aladin
-     * @returns {MOC[]|Catalog[]|ProgressiveCat[]|Overlay[]} - Returns the ordered list of image layers. Items can be {@link ImageHiPS} or {@link ImageFITS} objects.
+     * @returns {MOC[]|Catalog[]|ProgressiveCat[]|GraphicOverlay[]} - Returns the ordered list of image layers. Items can be {@link ImageHiPS} or {@link ImageFITS} objects.
      */
     Aladin.prototype.getOverlays = function () {
         return this.view.allOverlayLayers;
@@ -1879,7 +1879,7 @@ export let Aladin = (function () {
      * Please use {@link A.graphicOverlay} instead
      */
     Aladin.prototype.createOverlay = function (options) {
-        return new Overlay(options);
+        return new GraphicOverlay(options);
     };
 
     // Select corresponds to rectangular selection

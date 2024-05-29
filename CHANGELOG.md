@@ -1,5 +1,9 @@
 # Changelogs
 
+## Unreleased
+
+* [fixed] Change `RADECSYS` to `RADESYS` for `Aladin#getViewWCS` to follow fits standard deprecation
+
 ## 3.3.3
 
 * [feat] UI: add HiPS basic filter that filters the `hipsList` given

@@ -9,9 +9,10 @@
             let aladin;
             A.init.then(() => {
                 aladin = A.aladin("#aladin-lite-div", {
-                    target: "12 25 41.512 +12 48 47.2",
-                    inertia: false,
-                    fov: 1,
+                    target: "03 36 31.65 -35 17 43.1",
+                    survey: "CDS/P/DES-DR2/ColorIRG",
+                    fov: 3 / 60,
+                    fullScreen: true,
                     showContextMenu: true,
                     showZoomControl: true,
                     showSettingsControl: true,
@@ -20,7 +21,7 @@
                 });
                 // define custom draw function
 
-                var hips = A.catalogHiPS(
+                /*var hips = A.catalogHiPS(
                     "https://axel.u-strasbg.fr/HiPSCatService/Simbad",
                     {
                         onClick: "showTable",
@@ -38,7 +39,24 @@
                             return A.ellipse(s.ra, s.dec, a / 60, b / 60, theta, { color: "cyan" });
                         },
                     }
-                );
+                );*/
+                var hips = A.catalogHiPS(
+                    "https://axel.cds.unistra.fr/HiPSCatService/II/371/des_dr2",
+                    {
+                        onClick: "showTable",
+                        name: "Simbad",
+                        color: "cyan",
+                        hoverColor: "red",
+                        shape: (s) => {
+                            let a = +s.data['Aimg']/3600;
+                            let b = +s.data['Bimg']/3600;
+
+                            let theta = +s.data['PA'];
+
+                            return A.ellipse(s.ra, s.dec, a, b, theta, { color: "cyan" });
+                        },
+                    }
+                )
                 aladin.addCatalog(hips);
             });
         </script>

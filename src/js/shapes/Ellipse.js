@@ -31,26 +31,7 @@
 import { Utils } from "./../Utils";
 import { GraphicOverlay } from "./../Overlay.js";
 
-/**
-* @typedef {Object} ShapeOptions
-* @description Options for describing a shape
-*
-* @property {Object} options - Configuration options for the shape.
-* @property {string} [options.color] - The color of the shape
-* @property {string} [options.fill=false] - Fill the shape with fillColor
-* @property {string} [options.fillColor] - A filling color for the shape
-* @property {number} [options.lineWidth=2] - The line width in pixels
-* @property {number} [options.opacity=1] - The opacity, between 0 (totally transparent) and 1 (totally opaque)
-* @property {string} [options.selectionColor='#00ff00'] - A selection color
-* @property {string} [options.hoverColor] -  A hovered color
-*/
 
-/**
- * Represents an ellipse shape
- *
- * @namespace
- * @typedef {Object} Ellipse
- */
 export let Ellipse = (function() {
     /**
      * Constructor function for creating a new ellipse.
@@ -58,9 +39,9 @@ export let Ellipse = (function() {
      * @constructor
      * @memberof Ellipse
      * @param {number[]} centerRaDec - right-ascension/declination 2-tuple of the ellipse's center in degrees
-     * @param {number} a - semi-major axis length in degrees
-     * @param {number} b - semi-minor axis length in degrees
-     * @param {number} theta - angle of the ellipse in degrees
+     * @param {number} a - half-major axis length in degrees
+     * @param {number} b - half-minor axis length in degrees
+     * @param {number} theta - angle of the ellipse in degrees. Origin aligns the ellipsis' major axis with the north pole. Positive angle points towards the east.
      * @param {ShapeOptions} options - Configuration options for the ellipse
      * 
      * @returns {Ellipse} - The ellipse shape object
@@ -230,7 +211,6 @@ export let Ellipse = (function() {
         return true;
     }
 
-    // TODO
     Ellipse.prototype.draw = function(ctx, view, noStroke, noSmallCheck) {
         if (! this.isShowing) {
             return false;

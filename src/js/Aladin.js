@@ -69,6 +69,9 @@ import { SimbadPointer } from "./gui/Button/SimbadPointer";
 import { OverlayStackButton } from "./gui/Button/OverlayStack";
 import { GridEnabler } from "./gui/Button/GridEnabler";
 import { CooFrame } from "./gui/Input/CooFrame";
+import { Circle } from "./shapes/Circle";
+import { Ellipse } from "./shapes/Ellipse";
+import { Polyline } from "./shapes/Polyline";
 
 /**
  * @typedef {Object} AladinOptions
@@ -1981,7 +1984,34 @@ aladin.on("positionChanged", ({ra, dec}) => {
         new ALEvent(alEventName).listenedBy(this.aladinDiv, customFn);
     };
 
+    /**
+     * Select specific objects in the view
+     * 
+     * @memberof Aladin
+     * @param {?Array.<Source, Footprint, Circle, Ellipse, Polyline, Line>} objects - If null is passed then nothing will be selected and sources already selected will be deselected
+     */
     Aladin.prototype.selectObjects = function (objects) {
+        if (!objects) {
+            this.view.unselectObjects();
+            return;
+        }
+
+        let objListPerCatalog = {};
+
+        for (let o of objects) {
+            let cat = o.getCatalog();
+            if (cat) {
+                let objList = objListPerCatalog[cat.name];
+                if (!objList) {
+                    objList = [];
+                } else {
+                    objList.push(o);
+                }
+            }
+        }
+        objects = Object.values(objListPerCatalog);
+        console.log(objects);
+
         this.view.selectObjects(objects);
     };
 

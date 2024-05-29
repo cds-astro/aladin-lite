@@ -166,7 +166,9 @@ export let AladinUtils = {
         },
 
         /**
-        * @function degreesToString
+        * @function
+        * @memberof AladinUtils
+        * @name degreesToString
         * Convert a number in degrees into a string<br>
         *
         * @param numberDegrees number in degrees (integer or decimal)

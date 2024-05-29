@@ -17,10 +17,16 @@ use crate::renderable::line::RasterizedLineRenderer;
 use al_api::color::ColorRGBA;
 use al_api::coo_system::CooSystem;
 
+use moclib::moc::RangeMOCIntoIterator;
+use moclib::moc::RangeMOCIterator;
+
 use super::mode::Node;
 
+use crate::HEALPixCell;
 use cgmath::Vector2;
 use wasm_bindgen::prelude::*;
+
+use healpix::compass_point::OrdinalMap;
 
 pub struct MOC {
     pub sky_fraction: f32,
@@ -149,11 +155,34 @@ pub enum RenderModeType {
 
 impl MOCIntern {
     fn new(moc: &HEALPixCoverage, mode: RenderModeType) -> Self {
-        let nodes = match mode {
+        /*let nodes = match mode {
             RenderModeType::Edge { .. } => super::mode::edge::Edge::build(moc),
             RenderModeType::Filled { .. } => super::mode::filled::Fill::build(moc),
             RenderModeType::Perimeter { .. } => super::mode::perimeter::Perimeter::build(moc),
-        };
+        };*/
+        let mut sides = OrdinalMap::new();
+        sides.put(healpix::compass_point::Ordinal::SE, 1);
+        sides.put(healpix::compass_point::Ordinal::SW, 1);
+        sides.put(healpix::compass_point::Ordinal::NE, 1);
+        sides.put(healpix::compass_point::Ordinal::NW, 1);
+
+        let nodes = (&moc.0)
+            .into_range_moc_iter()
+            .cells()
+            .flat_map(|cell| {
+                let cell = HEALPixCell(cell.depth, cell.idx);
+                let dd = if 3 >= cell.depth() {
+                    3 - cell.depth()
+                } else {
+                    0
+                };
+                cell.get_tile_cells(dd)
+            })
+            .map(|cell| Node {
+                vertices: cell.path_along_sides(&sides),
+                cell,
+            })
+            .collect::<Vec<_>>();
 
         let hpx_idx_vec = IdxVec::from_hpx_cells(nodes.iter().map(|n| &n.cell));
 

@@ -40,13 +40,11 @@ rand = "0.8"
 
 [dependencies.healpix]
 package = "cdshealpix"
-git = "https://github.com/bmatthieu3/cds-healpix-rust"
-branch = "polygonIntersectVertices"
+version = "0.6.9"
 
 [dependencies.moclib]
 package = "moc"
-git = "https://github.com/bmatthieu3/cds-moc-rust"
-branch = "cellsWithUnidirectionalNeigs"
+version = "0.14.2"
 
 [dependencies.serde]
 version = "^1.0.183"

@@ -4,18 +4,9 @@ use super::RenderMode;
 
 use crate::HEALPixCoverage;
 
-use healpix::{
-    compass_point::{Ordinal, OrdinalMap},
-};
+use healpix::compass_point::{Ordinal, OrdinalMap};
 
-
-
-
-
-
-
-
-
+/*
 
 pub struct Edge;
 
@@ -198,3 +189,4 @@ impl RenderMode for Edge {
             .collect()
     }
 }
+*/

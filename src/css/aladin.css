@@ -104,7 +104,9 @@
 }
 
 .aladin-measurement-div table tr td a {
-    display: block;
+    color: green;
+}
+.aladin-measurement-div table tr td a:hover {
     color: greenyellow;
 }
 

@@ -4,8 +4,9 @@ use super::RenderMode;
 
 use crate::HEALPixCoverage;
 use healpix::compass_point::{Ordinal, OrdinalMap};
-
+/*
 use super::super::graph::G;
+
 pub struct Fill;
 
 impl RenderMode for Fill {
@@ -189,3 +190,4 @@ impl RenderMode for Fill {
             .collect()
     }
 }
+*/

@@ -1,7 +1,7 @@
 use crate::healpix::coverage::HEALPixCoverage;
 
 use moclib::elem::cell::Cell;
-use moclib::moc::range::CellAndNeighs;
+//use moclib::moc::range::CellAndNeighs;
 use moclib::moc::RangeMOCIntoIterator;
 use moclib::moc::RangeMOCIterator;
 
@@ -91,11 +91,10 @@ impl NodeEdgeNeigs {
         1 << delta_depth
     }
 }
-
-pub(super) struct G {
+/*pub(super) struct G {
     nodes: Vec<NodeEdgeNeigs>,
 }
-
+use crate::renderable::coverage::mode::Node;
 impl G {
     pub(super) fn new(moc: &HEALPixCoverage) -> Self {
         let mut nodes: Vec<_> = (&moc.0)
@@ -294,3 +293,4 @@ fn find_neig_dir(mut cell: HEALPixCell, mut neig: HEALPixCell) -> Option<Ordinal
 
     None
 }
+*/

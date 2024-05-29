@@ -1,17 +1,12 @@
 use super::Node;
 use super::RenderMode;
 use crate::healpix::cell::HEALPixCell;
-
-use healpix::{
-    compass_point::{Ordinal, OrdinalMap},
-};
+use healpix::compass_point::{Ordinal, OrdinalMap};
 use moclib::elem::cell::Cell;
-
-
-
 
 use crate::HEALPixCoverage;
 use moclib::moc::range::CellAndEdges;
+/*
 pub struct Perimeter;
 
 impl RenderMode for Perimeter {
@@ -43,3 +38,4 @@ impl RenderMode for Perimeter {
             .collect()
     }
 }
+*/

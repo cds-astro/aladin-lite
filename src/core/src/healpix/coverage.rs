@@ -3,7 +3,11 @@ use crate::math::PI;
 use crate::math::{self, lonlat::LonLat};
 
 use cgmath::{Vector3, Vector4};
-use moclib::{moc::range::RangeMOC, qty::Hpx, ranges::SNORanges};
+use moclib::{
+    moc::range::{CellSelection, RangeMOC},
+    qty::Hpx,
+    ranges::SNORanges,
+};
 pub type Smoc = RangeMOC<u64, Hpx<u64>>;
 
 use crate::healpix::cell::HEALPixCell;
@@ -29,8 +33,12 @@ impl HEALPixCoverage {
             .collect::<Vec<_>>();
 
         let LonLatT(in_lon, in_lat) = inside.lonlat();
-        let moc =
-            RangeMOC::from_polygon_with_control_point(&lonlat[..], (in_lon.0, in_lat.0), depth);
+        let moc = RangeMOC::from_polygon_with_control_point(
+            &lonlat[..],
+            (in_lon.0, in_lat.0),
+            depth,
+            CellSelection::All,
+        );
         HEALPixCoverage(moc)
     }
 
@@ -64,6 +72,7 @@ impl HEALPixCoverage {
                 rad,
                 depth,
                 0,
+                CellSelection::All,
             ))
         }
     }

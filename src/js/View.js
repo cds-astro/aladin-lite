@@ -547,38 +547,41 @@ export let View = (function () {
             // Deselect objects if any
             view.unselectObjects();
             if (objs) {
-                var o = objs[0];
-
-                // footprint selection code adapted from Fabrizio Giordano dev. from Serco for ESA/ESDC
-                if (o.marker) {
-                    // could be factorized in Source.actionClicked
-                    view.aladin.popup.setTitle(o.popupTitle);
-                    view.aladin.popup.setText(o.popupDesc);
-                    view.aladin.popup.setSource(o);
-                    view.aladin.popup.show();
-                }
-                else {
-                    if (view.lastClickedObject) {
-                        view.lastClickedObject.actionOtherObjectClicked && view.lastClickedObject.actionOtherObjectClicked();
-                    }
-                }
-
-                // show measurements
-                if (o.actionClicked) {
-                    o.actionClicked();
-                }
-
                 var objClickedFunction = view.aladin.callbacksByEventName['objectClicked'];
-                (typeof objClickedFunction === 'function') && objClickedFunction(o, xy);
+                var footprintClickedFunction = view.aladin.callbacksByEventName['footprintClicked'];
 
-                if (o.isFootprint()) {
-                    var footprintClickedFunction = view.aladin.callbacksByEventName['footprintClicked'];
-                    if (typeof footprintClickedFunction === 'function' && o != view.lastClickedObject) {
-                        var ret = footprintClickedFunction(o, xy);
+                for (let o of objs) {
+                    // footprint selection code adapted from Fabrizio Giordano dev. from Serco for ESA/ESDC
+                    if (o.marker) {
+                        // could be factorized in Source.actionClicked
+                        view.aladin.popup.setTitle(o.popupTitle);
+                        view.aladin.popup.setText(o.popupDesc);
+                        view.aladin.popup.setSource(o);
+                        view.aladin.popup.show();
+                    }
+                    /*else {
+                        if (view.lastClickedObject) {
+                            view.lastClickedObject.actionOtherObjectClicked
+                            view.lastClickedObject.actionOtherObjectClicked();
+                        }
+                    }*/
+
+                    // show measurements
+                    /*if (o.actionClicked) {
+                        o.actionClicked();
+                    }*/
+
+                    (typeof objClickedFunction === 'function') && objClickedFunction(o, xy);
+
+                    if (o.isFootprint()) {
+                        if (typeof footprintClickedFunction === 'function' && (!view.lastClickedObject || !view.lastClickedObject.includes(o))) {
+                            footprintClickedFunction(o, xy);
+                        }
                     }
                 }
 
-                view.lastClickedObject = o;
+                view.selectObjects([objs]);
+                view.lastClickedObject = objs;
             } else {
                 // If there is a past clicked object
                 if (view.lastClickedObject) {
@@ -587,13 +590,14 @@ export let View = (function () {
                     view.aladin.popup.hide();
 
                     // Deselect the last clicked object
-                    if (view.lastClickedObject instanceof Ellipse || view.lastClickedObject instanceof Circle || view.lastClickedObject instanceof Polyline) {
+                    /*if (view.lastClickedObject instanceof Ellipse || view.lastClickedObject instanceof Circle || view.lastClickedObject instanceof Polyline) {
                         view.lastClickedObject.deselect();
                     } else {
                         // Case where lastClickedObject is a Source
                         view.lastClickedObject.actionOtherObjectClicked();
-                    }
+                    }*/
 
+                    // TODO: do we need to keep that triggering ?
                     var objClickedFunction = view.aladin.callbacksByEventName['objectClicked'];
                     (typeof objClickedFunction === 'function') && objClickedFunction(null, xy);
 
@@ -968,48 +972,63 @@ export let View = (function () {
 
                 // closestObjects is very costly, we would like to not do it
                 // especially if the objectHovered function is not defined.
-                var closest = view.closestObjects(xymouse.x, xymouse.y, 5);
+                var closests = view.closestObjects(xymouse.x, xymouse.y, 5);
 
-                if (closest) {
-                    let o = closest[0];
+                if (closests) {
                     var objHoveredFunction = view.aladin.callbacksByEventName['objectHovered'];
                     var footprintHoveredFunction = view.aladin.callbacksByEventName['footprintHovered'];
 
                     view.setCursor('pointer');
-                    if (typeof objHoveredFunction === 'function' && o != lastHoveredObject) {
-                        var ret = objHoveredFunction(o, xymouse);
-                    }
 
-                    if (o.isFootprint()) {
-                        if (typeof footprintHoveredFunction === 'function' && o != lastHoveredObject) {
-                            var ret = footprintHoveredFunction(o, xymouse);
+                    for (let o of closests) {
+                        if (typeof objHoveredFunction === 'function' && (!lastHoveredObject || !lastHoveredObject.includes(o))) {
+                            var ret = objHoveredFunction(o, xymouse);
+                        }
+    
+                        if (o.isFootprint()) {
+                            if (typeof footprintHoveredFunction === 'function' && (!lastHoveredObject || !lastHoveredObject.includes(o))) {
+                                var ret = footprintHoveredFunction(o, xymouse);
+                            }
+                        }
+    
+                        if (!lastHoveredObject || !lastHoveredObject.includes(o)) {
+                            o.hover();
                         }
                     }
 
-                    if (lastHoveredObject && o != lastHoveredObject) {
-                        lastHoveredObject.unhover();
-
+                    // unhover the objects in lastHoveredObjects that are not in closest anymore
+                    if (lastHoveredObject) {
                         var objHoveredStopFunction = view.aladin.callbacksByEventName['objectHoveredStop'];
 
-                        if (typeof objHoveredStopFunction === 'function') {
-                            objHoveredStopFunction(lastHoveredObject, xymouse);
+                        for (let lho of lastHoveredObject) {
+                            if (!closests.includes(lho)) {
+                                lho.unhover();
+
+                                if (typeof objHoveredStopFunction === 'function') {
+                                    objHoveredStopFunction(lho, xymouse);
+                                }
+                            }
                         }
                     }
-
-                    if (o != lastHoveredObject) {
-                        o.hover();
-                    }
-                    lastHoveredObject = o;
+                    lastHoveredObject = closests;
                 } else {
                     view.setCursor('default');
-                    var objHoveredStopFunction = view.aladin.callbacksByEventName['objectHoveredStop'];
                     if (lastHoveredObject) {
-                        if (typeof objHoveredStopFunction === 'function') {
+                        var objHoveredStopFunction = view.aladin.callbacksByEventName['objectHoveredStop'];
+
+                        /*if (typeof objHoveredStopFunction === 'function') {
                             // call callback function to notify we left the hovered object
                             var ret = objHoveredStopFunction(lastHoveredObject, xymouse);
                         }
 
-                        lastHoveredObject.unhover();
+                        lastHoveredObject.unhover();*/
+                        for (let lho of lastHoveredObject) {
+                            lho.unhover();
+
+                            if (typeof objHoveredStopFunction === 'function') {
+                                objHoveredStopFunction(lho, xymouse);
+                            }
+                        }
                     }
                     
                     lastHoveredObject = null;
@@ -1406,42 +1425,47 @@ export let View = (function () {
         this.unselectObjects();
 
         if (Array.isArray(selection)) {
-            this.selection = [selection];
+            this.selection = selection;
         } else {
             // select the new 
             this.selection = Selector.getObjects(selection, this);
         }
 
-
         if (this.selection.length > 0) {
             this.selection.forEach((objListPerCatalog) => {
-                objListPerCatalog.forEach((obj) => obj.select())
+                objListPerCatalog.forEach((obj) => {
+                    obj.select()
+                })
             });
 
-            let tables = this.selection.map((objList) => {
-                // Get the catalog containing that list of objects
-                let catalog = objList[0].getCatalog();
+            let tables = this.selection
+                .filter(objList => {
+                    return objList[0].getCatalog;
+                })
+                .map(objList => {
+                    // Get the catalog containing that list of objects
+                    let catalog = objList[0].getCatalog();
 
-                let source;
-                let sources = objList.map((o) => {
-                    if (o instanceof Footprint) {
-                        source = o.source;
-                    } else {
-                        source = o;
-                    }
-
-                    return source;
-                });
-                let table = {
-                    'name': catalog.name,
-                    'color': catalog.color,
-                    'rows': sources,
-                    'fields': catalog.fields,
-                    'showCallback': ObsCore.SHOW_CALLBACKS(this.aladin)
-                };
-
-                return table;
-            })
+                    let source;
+                    let sources = objList.map((o) => {
+                        if (o instanceof Footprint) {
+                            source = o.source;
+                        } else {
+                            source = o;
+                        }
+    
+                        return source;
+                    });
+                    let table = {
+                        'name': catalog.name,
+                        'color': catalog.color,
+                        'rows': sources,
+                        'fields': catalog.fields,
+                        'showCallback': ObsCore.SHOW_CALLBACKS(this.aladin)
+                    };
+    
+                    return table;
+                })
 
             this.aladin.measurementTable.showMeasurement(tables);
             let a = this.aladin;
@@ -2019,8 +2043,8 @@ export let View = (function () {
             return null;
         }
 
+        let closests = [];
         let closest = null;
-
         footprints.forEach((footprint) => {
             if (!footprint.source || !footprint.source.tooSmallFootprint) {
                 // Hidden footprints are not considered
@@ -2029,16 +2053,15 @@ export let View = (function () {
                 footprint.setLineWidth(10.0);
                 if (footprint.isShowing && footprint.isInStroke(ctx, this, x * window.devicePixelRatio, y * window.devicePixelRatio)) {
                     closest = footprint;
+                    if (closest) {
+                        closests.push(closest);
+                    }
                 }
                 footprint.setLineWidth(lineWidth);
-
-                if (closest) {
-                    return closest;
-                }
             }
         })
 
-        return closest;
+        return closests;
     };
 
     // return closest object within a radius of maxRadius pixels. maxRadius is an integer
@@ -2050,15 +2073,12 @@ export let View = (function () {
         // this makes footprint selection easier as the catch-zone is larger
         //let pastLineWidth = ctx.lineWidth;
 
+        let closests = [];
         if (this.overlays) {
             for (var k = 0; k < this.overlays.length; k++) {
                 overlay = this.overlays[k];
 
-                let closest = this.closestFootprints(overlay.overlayItems, ctx, x, y);
-                if (closest) {
-                    //ctx.lineWidth = pastLineWidth;
-                    return [closest];
-                }
+                closests = closests.concat(this.closestFootprints(overlay.overlayItems, ctx, x, y));
             }
         }
 
@@ -2068,11 +2088,7 @@ export let View = (function () {
                 let catalog = this.catalogs[k];
                 let footprints = catalog.getFootprints();
 
-                let closest = this.closestFootprints(footprints, ctx, x, y);
-                if (closest) {
-                    //ctx.lineWidth = pastLineWidth;
-                    return [closest];
-                }
+                closests = closests.concat(this.closestFootprints(footprints, ctx, x, y));
             }
         }
 
@@ -2083,28 +2099,34 @@ export let View = (function () {
 
         //ctx.lineWidth = pastLineWidth;
 
-        var closest, dist;
-        for (var r = 0; r <= maxRadius; r++) {
-            closest = dist = null;
+        //var closest, dist;
+        //for (var r = 0; r <= maxRadius; r++) {
+            //closest = dist = null;
             for (var dx = -maxRadius; dx <= maxRadius; dx++) {
                 if (!this.objLookup[x + dx]) {
                     continue;
                 }
                 for (var dy = -maxRadius; dy <= maxRadius; dy++) {
                     if (this.objLookup[x + dx][y + dy]) {
-                        var d = dx * dx + dy * dy;
-                        if (!closest || d < dist) {
+                        //var d = dx * dx + dy * dy;
+                        /*if (!closest || d < dist) {
                             closest = this.objLookup[x + dx][y + dy];
-                            dist = d;
-                        }
+                            //dist = d;
+                        }*/
+                        closests = closests.concat(this.objLookup[x + dx][y + dy])
                     }
                 }
             }
-            if (closest) {
-                return closest;
-            }
-        }
-        return null;
+
+            /*if (closest) {
+                closests = closests.concat(closest);
+            }*/
+        //}
+
+        if (closests.length === 0)
+            return null;
+
+        return closests;
     };
 
     return View;

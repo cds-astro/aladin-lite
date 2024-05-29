@@ -372,23 +372,26 @@ export let ProgressiveCat = (function() {
             }
 
             // Order must be >= 0
+            if (this.order1Footprints) {
+                this.order1Footprints.forEach((f) => {
+                    f.draw(ctx, this.view);
+                    f.source.tooSmallFootprint = f.isTooSmall();
+                });
+            }
             if (this.order1Sources) {
                 this.drawSources(this.order1Sources, ctx, width, height);
             }
-            if (this.order1Footprints) {
-                this.order1Footprints.forEach((f) => {
-                    f.draw(ctx, this.view)
-                });
-            }
 
             if (this.view.realNorder >= 1) {
-                if (this.order2Sources) {
-                    this.drawSources(this.order2Sources, ctx, width, height);
-                }
                 if (this.order2Footprints) {
                     this.order2Footprints.forEach((f) => {
                         f.draw(ctx, this.view)
+                        f.source.tooSmallFootprint = f.isTooSmall();
                     });
+                }
+
+                if (this.order2Sources) {
+                    this.drawSources(this.order2Sources, ctx, width, height);
                 }
             }
 
@@ -396,13 +399,15 @@ export let ProgressiveCat = (function() {
             // For new allsky, tilesInView will contains order3 sources
             if (this.maxOrderAllsky === 3) {
                 if (this.view.realNorder >= 2) {
-                    if (this.order3Sources) {
-                        this.drawSources(this.order3Sources, ctx, width, height);
-                    }
                     if (this.order3Footprints) {
                         this.order3Footprints.forEach((f) => {
                             f.draw(ctx, this.view)
+                            f.source.tooSmallFootprint = f.isTooSmall();
                         });
+                    }
+
+                    if (this.order3Sources) {
+                        this.drawSources(this.order3Sources, ctx, width, height);
                     }
                 }
             }
@@ -413,14 +418,15 @@ export let ProgressiveCat = (function() {
                 sources = this.sourcesCache.get(key);
                 footprints = this.footprintsCache.get(key);
 
-                if (sources) {
-                    this.drawSources(sources, ctx, width, height);
-                }
-
                 if (footprints) {
                     footprints.forEach((f) => {
                         f.draw(ctx, this.view)
+                        f.source.tooSmallFootprint = f.isTooSmall();
                     });
+                }
+
+                if (sources) {
+                    this.drawSources(sources, ctx, width, height);
                 }
             });
 

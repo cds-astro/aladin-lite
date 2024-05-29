@@ -2226,7 +2226,7 @@ aladin.on("positionChanged", ({ra, dec}) => {
         let cooType2 = "LAT--";
 
         // just in case it would be equatorial
-        let radecsys;
+        let radesys;
 
         if (this.getBaseImageLayer().isPlanetaryBody()) {
             const body = this.getBaseImageLayer().hipsBody;
@@ -2240,7 +2240,7 @@ aladin.on("positionChanged", ({ra, dec}) => {
                 case "J2000d":
                     cooType1 = "RA---";
                     cooType2 = "DEC--";
-                    radecsys = "ICRS    ";
+                    radesys = "ICRS    ";
                     break;
                 case "Galactic":
                     cooType1 = "GLON-";
@@ -2266,7 +2266,7 @@ aladin.on("positionChanged", ({ra, dec}) => {
 
         // handle the case of equatorial coordinates that need
         // the radecsys keyword
-        if (radecsys == "ICRS    ") WCS.RADECSYS = radecsys;
+        if (radesys == "ICRS    ") WCS.RADESYS = radesys;
 
         return WCS;
     };

@@ -3,6 +3,7 @@
 ## Unreleased
 
 * [fixed] Change `RADECSYS` to `RADESYS` for `Aladin#getViewWCS` to follow fits standard deprecation
+* [feat] Add new method `Aladin#getViewImageBuffer` to get the current view as a PNG buffer
 
 ## 3.3.3
 

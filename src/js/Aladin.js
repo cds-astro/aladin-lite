@@ -26,6 +26,7 @@
  * Author: Thomas Boch[CDS], Matthieu Baumann[CDS]
  *
  *****************************************************************************/
+
 import { version } from "./../../package.json";
 import { View } from "./View.js";
 import { Utils } from "./Utils";
@@ -2153,14 +2154,16 @@ aladin.on("positionChanged", ({ra, dec}) => {
     };
 
     /**
-     * Return the current view as a data URL (base64-formatted string)
-     * Parameters:
-     * - options (optional): object with attributs
-     *     * format (optional): 'image/png' or 'image/jpeg'
-     *     * width: width in pixels of the image to output
-     *     * height: height in pixels of the image to output
+     * Return the current view as a png data URL (base64-formatted string)
      *
-     * @API
+     * @memberof Aladin
+     *
+     * @param {Object} [options] Object with attributs, options are:
+     * @param {Object} [options.format] 'image/png' or 'image/jpeg'
+     * @param {Object} options.width Width in pixels of the image to output
+     * @param {Object} options.height Height in pixels of the image to output
+     * @param {Object} [options.logo=true] Boolean to display the Aladin Lite logo
+     * @returns {Promise<string>} The image as a png data URL
      */
     Aladin.prototype.getViewDataURL = async function (options) {
         var options = options || {};
@@ -2172,10 +2175,46 @@ aladin.on("positionChanged", ({ra, dec}) => {
         const canvasDataURL = await this.view.getCanvasDataURL(
             options.format,
             options.width,
-            options.height
+            options.height,
+            options.logo
         );
         return canvasDataURL;
     };
+
+    /**
+     * Return the current view as a png ArrayBuffer
+     *
+     * @memberof Aladin
+     *
+     * @param {boolean} withLogo Display or not the Aladin Lite logo
+     * @returns {Promise<ArrayBuffer>} The image as a png ArrayBuffer
+     */
+    Aladin.prototype.getViewArrayBuffer = async function (withLogo) {
+        return await this.view.getCanvasArrayBuffer("image/png", null, null, withLogo);
+    }
+
+    /**
+     * Return the current view as a png Blob
+     *
+     * @memberof Aladin
+     *
+     * @param {string} dataType The type of data to return. Can be 'url', 'arraybuffer' or 'blob'
+     * @param {string} [imgType='image/png'] The type of image to return. Can be 'image/png', 'image/jpeg' or 'image/webp'
+     * @param {boolean} [withLogo=true] Display or not the Aladin Lite logo
+     * @returns {Promise<any>}
+     */
+    Aladin.prototype.getViewData = async function (dataType, imgType="image/png", withLogo=true){
+        switch (dataType) {
+            case "url":
+                return await this.view.getCanvasDataURL(imgType, null, null, withLogo);
+            case "arraybuffer":
+                return await this.view.getCanvasArrayBuffer(imgType, null, null, withLogo);
+            case "blob":
+                return await this.view.getCanvasBlob(imgType, null, null, withLogo);
+            default:
+                throw new Error("Unknown data type: " + dataType);
+        }
+    }
 
     /**
      * Return the current view WCS as a key-value dictionary

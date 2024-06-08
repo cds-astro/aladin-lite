@@ -6,7 +6,6 @@ pub struct MOCHierarchy {
     full_res_depth: u8,
     // MOC at different resolution
     mocs: Vec<MOC>,
-    coverage: HEALPixCoverage,
 }
 
 impl MOCHierarchy {
@@ -14,15 +13,14 @@ impl MOCHierarchy {
         let full_res_depth = full_res_moc.depth();
 
         let mut mocs: Vec<_> = (0..full_res_depth)
-            .map(|d| MOC::new(&HEALPixCoverage(full_res_moc.degraded(d)), cfg))
+            .map(|d| MOC::new(HEALPixCoverage(full_res_moc.degraded(d)), cfg))
             .collect();
 
-        mocs.push(MOC::new(&full_res_moc, cfg));
+        mocs.push(MOC::new(full_res_moc, cfg));
 
         Self {
             mocs,
             full_res_depth,
-            coverage: full_res_moc,
         }
     }
 
@@ -53,7 +51,7 @@ impl MOCHierarchy {
             (smallest_cell_size_px / w_screen_px) * camera.get_aperture().to_radians();
 
         while d > 0 {
-            self.mocs[d].cell_indices_in_view(camera);
+            //self.mocs[d].cell_indices_in_view(camera);
 
             if (crate::healpix::utils::MEAN_HPX_CELL_RES[d] > hpx_cell_size_rad) {
                 break;
@@ -66,7 +64,7 @@ impl MOCHierarchy {
     }
 
     pub fn get_full_moc(&self) -> &HEALPixCoverage {
-        &self.coverage
+        &self.mocs.last().unwrap().moc
     }
 
     pub fn get_full_res_depth(&self) -> u8 {

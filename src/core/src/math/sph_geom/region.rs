@@ -99,7 +99,7 @@ impl Region {
                 Region::AllSky => Intersection::Included,
                 Region::Polygon { polygon, .. } => {
                     let vertices = polygon
-                        .intersect_parallel(lat)
+                        .intersect_parallel_all(lat)
                         .iter()
                         .map(|v| XYZWModel::new(v.y(), v.z(), v.x(), 1.0))
                         .collect::<Vec<_>>();
@@ -134,7 +134,7 @@ impl Region {
                     Coo3D::from_sph_coo(lonlat2.lon().to_radians(), lonlat2.lat().to_radians());
 
                 let vertices: Vec<cgmath::Vector4<f64>> = polygon
-                    .intersect_great_circle_arc(&coo1, &coo2)
+                    .intersect_great_circle_arc_all(&coo1, &coo2)
                     .iter()
                     .map(|v| XYZWModel::new(v.y(), v.z(), v.x(), 1.0))
                     .collect::<Vec<_>>();
@@ -160,13 +160,13 @@ impl Region {
         self.intersects_great_circle_arc(&s_pole_lonlat, &n_pole_lonlat)
     }
 
-    pub fn intersects_great_circle(&self, n: &Vector3<f64>) -> Intersection {
+    fn intersects_great_circle(&self, n: &Vector3<f64>) -> Intersection {
         match self {
             // The polygon is included inside the region
             Region::AllSky => Intersection::Included,
             Region::Polygon { polygon, .. } => {
                 let vertices: Vec<cgmath::Vector4<f64>> = polygon
-                    .intersect_great_circle(&UnitVect3::new_unsafe(n.z, n.x, n.y))
+                    .intersect_great_circle_all(&UnitVect3::new_unsafe(n.z, n.x, n.y))
                     .iter()
                     .map(|v| XYZWModel::new(v.y(), v.z(), v.x(), 1.0))
                     .collect::<Vec<_>>();

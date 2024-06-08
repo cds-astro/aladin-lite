@@ -113,8 +113,14 @@ export let MOC = (function() {
     MOC.prototype.parse = function(data, successCallback, errorCallback) {
         if (typeof data === 'string' || data instanceof String) {
             let url = data;
-            this.promiseFetchData = fetch(url)
-                .then((resp) => resp.arrayBuffer());
+            this.promiseFetchData = Utils.fetch({
+                url,
+                method: 'GET',
+                dataType: 'blob',
+                error: function(err) {
+                    console.log('Something went wrong: ' + err);
+                }
+            }).then(blob => blob.arrayBuffer());
         } else {
             this.promiseFetchData = Promise.resolve(data)
         }

@@ -6,11 +6,11 @@ use moclib::elem::cell::Cell;
 
 use crate::HEALPixCoverage;
 use moclib::moc::range::CellAndEdges;
-/*
+
 pub struct Perimeter;
 
 impl RenderMode for Perimeter {
-    fn build(moc: &HEALPixCoverage) -> Vec<Node> {
+    fn build(moc: &HEALPixCoverage) -> impl Iterator<Item = Node> {
         moc.0
             .border_elementary_edges()
             .map(|CellAndEdges { uniq, edges }| {
@@ -18,16 +18,16 @@ impl RenderMode for Perimeter {
                 let cell = HEALPixCell(c.depth, c.idx);
 
                 let mut map = OrdinalMap::new();
-                if edges.get(Ordinal::SE) {
+                if edges.get(moclib::moc::range::Ordinal::SE) {
                     map.put(Ordinal::SE, 1);
                 }
-                if edges.get(Ordinal::SW) {
+                if edges.get(moclib::moc::range::Ordinal::SW) {
                     map.put(Ordinal::SW, 1);
                 }
-                if edges.get(Ordinal::NE) {
+                if edges.get(moclib::moc::range::Ordinal::NE) {
                     map.put(Ordinal::NE, 1);
                 }
-                if edges.get(Ordinal::NW) {
+                if edges.get(moclib::moc::range::Ordinal::NW) {
                     map.put(Ordinal::NW, 1);
                 }
 
@@ -35,7 +35,5 @@ impl RenderMode for Perimeter {
 
                 Node { cell, vertices }
             })
-            .collect()
     }
 }
-*/

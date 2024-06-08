@@ -17,6 +17,8 @@ use crate::renderable::line::RasterizedLineRenderer;
 use al_api::color::ColorRGBA;
 use al_api::coo_system::CooSystem;
 
+use moclib::elem::cell::Cell;
+use moclib::moc::range::CellAndEdges;
 use moclib::moc::RangeMOCIntoIterator;
 use moclib::moc::RangeMOCIterator;
 
@@ -33,23 +35,22 @@ pub struct MOC {
     pub max_order: u8,
 
     inner: [Option<MOCIntern>; 3],
+
+    pub moc: HEALPixCoverage,
 }
 
 impl MOC {
-    pub(super) fn new(moc: &HEALPixCoverage, cfg: &Cfg) -> Self {
+    pub(super) fn new(moc: HEALPixCoverage, cfg: &Cfg) -> Self {
         let sky_fraction = moc.sky_fraction() as f32;
         let max_order = moc.depth_max();
 
         let inner = [
             if cfg.perimeter {
                 // draw only perimeter
-                Some(MOCIntern::new(
-                    moc,
-                    RenderModeType::Perimeter {
-                        thickness: cfg.line_width,
-                        color: cfg.color,
-                    },
-                ))
+                Some(MOCIntern::new(RenderModeType::Perimeter {
+                    thickness: cfg.line_width,
+                    color: cfg.color,
+                }))
             } else {
                 None
             },
@@ -57,21 +58,15 @@ impl MOC {
                 // change color
                 let fill_color = cfg.fill_color;
                 // draw the edges
-                Some(MOCIntern::new(
-                    moc,
-                    RenderModeType::Filled { color: fill_color },
-                ))
+                Some(MOCIntern::new(RenderModeType::Filled { color: fill_color }))
             } else {
                 None
             },
             if cfg.edges {
-                Some(MOCIntern::new(
-                    moc,
-                    RenderModeType::Edge {
-                        thickness: cfg.line_width,
-                        color: cfg.color,
-                    },
-                ))
+                Some(MOCIntern::new(RenderModeType::Edge {
+                    thickness: cfg.line_width,
+                    color: cfg.color,
+                }))
             } else {
                 None
             },
@@ -81,24 +76,25 @@ impl MOC {
             inner,
             max_order,
             sky_fraction,
+            moc,
         }
     }
 
-    pub(super) fn cell_indices_in_view(&mut self, camera: &mut CameraViewPort) {
+    /*pub(super) fn cell_indices_in_view(&mut self, camera: &mut CameraViewPort) {
         for render in &mut self.inner {
             if let Some(render) = render.as_mut() {
                 render.cell_indices_in_view(camera);
             }
         }
-    }
+    }*/
 
-    pub(super) fn num_cells_in_view(&self, camera: &mut CameraViewPort) -> usize {
+    /*pub(super) fn num_cells_in_view(&self, camera: &mut CameraViewPort) -> usize {
         self.inner
             .iter()
             .filter_map(|moc| moc.as_ref())
             .map(|moc| moc.num_cells_in_view(camera))
             .sum()
-    }
+    }*/
 
     /*pub(super) fn num_vertices_in_view(&self, camera: &mut CameraViewPort) -> usize {
         let mut num_vertices = 0;
@@ -127,7 +123,7 @@ impl MOC {
     ) {
         for render in &self.inner {
             if let Some(render) = render.as_ref() {
-                render.draw(camera, proj, rasterizer)
+                render.draw(&self.moc, camera, proj, rasterizer)
             }
         }
     }
@@ -136,13 +132,10 @@ impl MOC {
 struct MOCIntern {
     // HEALPix index vector
     // Used for fast HEALPix cell retrieval
-    hpx_idx_vec: IdxVec,
+    //hpx_idx_vec: IdxVec,
 
     // Node indices in view
-    indices: Vec<Range<usize>>,
-
-    nodes: Vec<Node>,
-
+    //indices: Vec<Range<usize>>,
     mode: RenderModeType,
 }
 
@@ -152,59 +145,40 @@ pub enum RenderModeType {
     Edge { thickness: f32, color: ColorRGBA },
     Filled { color: ColorRGBA },
 }
-
+use healpix::compass_point::Ordinal;
 impl MOCIntern {
-    fn new(moc: &HEALPixCoverage, mode: RenderModeType) -> Self {
-        /*let nodes = match mode {
-            RenderModeType::Edge { .. } => super::mode::edge::Edge::build(moc),
-            RenderModeType::Filled { .. } => super::mode::filled::Fill::build(moc),
-            RenderModeType::Perimeter { .. } => super::mode::perimeter::Perimeter::build(moc),
-        };*/
-        let mut sides = OrdinalMap::new();
-        sides.put(healpix::compass_point::Ordinal::SE, 1);
-        sides.put(healpix::compass_point::Ordinal::SW, 1);
-        sides.put(healpix::compass_point::Ordinal::NE, 1);
-        sides.put(healpix::compass_point::Ordinal::NW, 1);
-
-        let nodes = (&moc.0)
-            .into_range_moc_iter()
-            .cells()
-            .flat_map(|cell| {
-                let cell = HEALPixCell(cell.depth, cell.idx);
-                let dd = if 3 >= cell.depth() {
-                    3 - cell.depth()
-                } else {
-                    0
-                };
-                cell.get_tile_cells(dd)
-            })
-            .map(|cell| Node {
-                vertices: cell.path_along_sides(&sides),
-                cell,
-            })
-            .collect::<Vec<_>>();
-
-        let hpx_idx_vec = IdxVec::from_hpx_cells(nodes.iter().map(|n| &n.cell));
-
+    fn new(mode: RenderModeType) -> Self {
+        /*let hpx_idx_vec =
+        IdxVec::from_hpx_cells((&moc.0).into_range_moc_iter().cells().flat_map(|cell| {
+            let cell = HEALPixCell(cell.depth, cell.idx);
+            let dd = if 3 >= cell.depth() {
+                3 - cell.depth()
+            } else {
+                0
+            };
+            cell.get_tile_cells(dd)
+        }));
+        */
         Self {
-            nodes,
-            hpx_idx_vec,
-            indices: vec![],
+            //nodes,
+            //moc,
+            //hpx_idx_vec,
+            //indices: vec![],
             mode,
         }
     }
 
-    fn cell_indices_in_view(&mut self, camera: &mut CameraViewPort) {
+    /*fn cell_indices_in_view(&mut self, moc: &HEALPixCoverage, camera: &mut CameraViewPort) {
         // Cache it for several reuse during the same frame
         let view_depth = camera.get_texture_depth();
         let cells_iter = camera.get_hpx_cells(view_depth, CooSystem::ICRS);
 
-        if self.nodes.is_empty() {
+        if moc.is_empty() {
             self.indices = vec![0..0];
             return;
         }
 
-        let indices: Vec<_> = if view_depth > 7 {
+        /*let indices: Vec<_> = if view_depth > 7 {
             // Binary search version, we are using this alternative for retrieving
             // MOC's cells to render for deep fields of view
             let first_cell_rng = &self.nodes[0].cell.z_29_rng();
@@ -257,11 +231,14 @@ impl MOCIntern {
             cells_iter
                 .map(|cell| self.hpx_idx_vec.get_item_indices_inside_hpx_cell(&cell))
                 .collect()
-        };
+        };*/
 
+        let indices = cells_iter
+            .map(|cell| self.hpx_idx_vec.get_item_indices_inside_hpx_cell(&cell))
+            .collect();
         let indices = crate::utils::merge_overlapping_intervals(indices);
         self.indices = indices;
-    }
+    }*/
 
     /*fn num_vertices_in_view(&self, camera: &CameraViewPort) -> usize {
         self.cells_in_view(camera)
@@ -276,36 +253,102 @@ impl MOCIntern {
             .sum()
     }*/
 
-    fn num_cells_in_view(&self, _camera: &CameraViewPort) -> usize {
+    /*fn num_cells_in_view(&self, _camera: &CameraViewPort) -> usize {
         self.indices
             .iter()
             .map(|range| range.end - range.start)
             .sum()
-    }
+    }*/
 
-    fn cells_in_view<'a>(&'a self, _camera: &CameraViewPort) -> impl Iterator<Item = &'a Node> {
+    /*fn cells_in_view<'a>(&'a self, _camera: &CameraViewPort) -> impl Iterator<Item = Node> {
         let nodes = &self.nodes;
         self.indices
             .iter()
             .map(move |indices| nodes[indices.start..indices.end].iter())
             .flatten()
-    }
+    }*/
 
     fn vertices_in_view<'a>(
-        &'a self,
+        &self,
+        view_moc: &'a HEALPixCoverage,
+        moc: &'a HEALPixCoverage,
         camera: &mut CameraViewPort,
-        _projection: &ProjectionType,
-    ) -> impl Iterator<Item = &'a CellVertices> {
-        self.cells_in_view(camera)
-            .filter_map(move |node| node.vertices.as_ref())
+    ) -> impl Iterator<Item = [(f64, f64); 4]> + 'a {
+        //self.cells_in_view(camera)
+        //    .filter_map(move |node| node.vertices.as_ref())
+        moc.overlapped_by_iter(&view_moc)
+            .cells()
+            .flat_map(|cell| {
+                let Cell { idx, depth } = cell;
+                let cell = HEALPixCell(depth, idx);
+                let dd = if 3 >= cell.depth() {
+                    3 - cell.depth()
+                } else {
+                    0
+                };
+                cell.get_tile_cells(dd)
+            })
+            .map(|hpx_cell| hpx_cell.vertices())
+
+        //.map(|Cell { idx, depth }| HEALPixCell(depth, idx).vertices())
     }
 
     fn draw(
         &self,
+        moc: &HEALPixCoverage,
         camera: &mut CameraViewPort,
         proj: &ProjectionType,
         rasterizer: &mut RasterizedLineRenderer,
     ) {
+        let view_depth = camera.get_texture_depth();
+
+        let view_moc = HEALPixCoverage::from_fixed_hpx_cells(
+            view_depth,
+            camera
+                .get_hpx_cells(view_depth, CooSystem::ICRS)
+                .map(|c| c.idx()),
+            None,
+        );
+
+        crate::Time::measure_perf("rasterize moc", move || {
+            match self.mode {
+                RenderModeType::Perimeter { thickness, color } => {
+                    let moc_in_view =
+                        HEALPixCoverage(moc.overlapped_by_iter(&view_moc).into_range_moc());
+                    rasterizer.add_stroke_paths(
+                        self.compute_perimeter_paths_iter(&moc_in_view, &view_moc, camera, proj),
+                        thickness,
+                        &color,
+                        &super::line::Style::None,
+                    );
+                }
+                RenderModeType::Edge { thickness, color } => {
+                    rasterizer.add_stroke_paths(
+                        self.compute_edge_paths_iter(moc, &view_moc, camera, proj),
+                        thickness,
+                        &color,
+                        &super::line::Style::None,
+                    );
+                }
+                RenderModeType::Filled { color } => {
+                    rasterizer.add_fill_paths(
+                        self.compute_edge_paths_iter(moc, &view_moc, camera, proj),
+                        &color,
+                    );
+                }
+            }
+            Ok(())
+        });
+    }
+
+    fn compute_edge_paths_iter<'a>(
+        &self,
+        moc: &'a HEALPixCoverage,
+        view_moc: &'a HEALPixCoverage,
+        camera: &'a mut CameraViewPort,
+        proj: &'a ProjectionType,
+    ) -> impl Iterator<Item = PathVertices<[[f32; 2]; 5]>> + 'a {
+        let camera_coosys = camera.get_coo_system();
         // Determine if the view may lead to crossing edges/triangles
         // This is dependant on the projection used
         let crossing_edges_testing = if proj.is_allsky() {
@@ -317,13 +360,96 @@ impl MOCIntern {
             false
         };
 
-        let camera_coosys = camera.get_coo_system();
+        self.vertices_in_view(view_moc, moc, camera)
+            .filter_map(move |cell_vertices| {
+                let mut ndc: [[f32; 2]; 5] =
+                    [[0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0]];
 
-        let paths_iter = self
-            .vertices_in_view(camera, proj)
-            .filter_map(|cell_vertices| {
-                let vertices = &cell_vertices.vertices[..];
-                let mut ndc: Vec<[f32; 2]> = vec![];
+                let vertices = cell_vertices;
+
+                for i in 0..4 {
+                    let line_vertices = vertices[i];
+
+                    //for k in 0..line_vertices.len() {
+                    let (lon, lat) = line_vertices;
+
+                    let xyzw = crate::math::lonlat::radec_to_xyzw(Angle(lon), Angle(lat));
+                    let xyzw =
+                        crate::coosys::apply_coo_system(CooSystem::ICRS, camera_coosys, &xyzw);
+
+                    if let Some(p) = proj.model_to_normalized_device_space(&xyzw, camera) {
+                        if i > 0 && crossing_edges_testing {
+                            let mag2 = crate::math::vector::dist2(
+                                crate::math::projection::ndc_to_clip_space(&p, camera).as_ref(),
+                                crate::math::projection::ndc_to_clip_space(
+                                    &Vector2::new(ndc[i - 1][0] as f64, ndc[i - 1][1] as f64),
+                                    camera,
+                                )
+                                .as_ref(),
+                            );
+                            //al_core::info!("mag", i, mag2);
+                            if mag2 > 0.1 {
+                                return None;
+                            }
+                        }
+
+                        ndc[i] = [p.x as f32, p.y as f32];
+                    } else {
+                        return None;
+                    }
+
+                    //ndc[i] = [xyzw.x as f32, xyzw.y as f32];
+                    //ndc[i] = [lon as f32, lat as f32];
+                }
+
+                ndc[4] = ndc[0].clone();
+
+                Some(PathVertices { vertices: ndc })
+            })
+    }
+
+    fn compute_perimeter_paths_iter<'a>(
+        &self,
+        moc: &'a HEALPixCoverage,
+        view_moc: &'a HEALPixCoverage,
+        camera: &'a mut CameraViewPort,
+        proj: &'a ProjectionType,
+    ) -> impl Iterator<Item = PathVertices<Vec<[f32; 2]>>> + 'a {
+        let camera_coosys = camera.get_coo_system();
+        // Determine if the view may lead to crossing edges/triangles
+        // This is dependant on the projection used
+        let crossing_edges_testing = if proj.is_allsky() {
+            let sky_percent_covered = camera.get_cov(CooSystem::ICRS).sky_fraction();
+            //al_core::info!("sky covered: ", sky_percent_covered);
+            sky_percent_covered > 0.80
+        } else {
+            // The projection is not allsky.
+            false
+        };
+
+        moc.border_elementary_edges()
+            .filter_map(|CellAndEdges { uniq, edges }| {
+                let c = Cell::from_uniq_hpx(uniq);
+                let cell = HEALPixCell(c.depth, c.idx);
+
+                let mut map = OrdinalMap::new();
+                if edges.get(moclib::moc::range::Ordinal::SE) {
+                    map.put(Ordinal::SE, 1);
+                }
+                if edges.get(moclib::moc::range::Ordinal::SW) {
+                    map.put(Ordinal::SW, 1);
+                }
+                if edges.get(moclib::moc::range::Ordinal::NE) {
+                    map.put(Ordinal::NE, 1);
+                }
+                if edges.get(moclib::moc::range::Ordinal::NW) {
+                    map.put(Ordinal::NW, 1);
+                }
+
+                cell.path_along_sides(&map)
+            })
+            .filter_map(move |CellVertices { vertices }| {
+                let mut ndc = Vec::<[f32; 2]>::with_capacity(vertices.len() * 2);
 
                 for i in 0..vertices.len() {
                     let line_vertices = &vertices[i];
@@ -361,45 +487,7 @@ impl MOCIntern {
                     }
                 }
 
-                // Check the last
-                if cell_vertices.closed && crossing_edges_testing {
-                    let mag2 = crate::math::vector::dist2(
-                        crate::math::projection::ndc_to_clip_space(
-                            &Vector2::new(ndc[0][0] as f64, ndc[0][1] as f64),
-                            camera,
-                        )
-                        .as_ref(),
-                        crate::math::projection::ndc_to_clip_space(
-                            &Vector2::new(
-                                ndc[ndc.len() - 1][0] as f64,
-                                ndc[ndc.len() - 1][1] as f64,
-                            ),
-                            camera,
-                        )
-                        .as_ref(),
-                    );
-                    if mag2 > 0.1 {
-                        return None;
-                    }
-                }
-
-                Some(PathVertices {
-                    vertices: ndc,
-                    closed: cell_vertices.closed,
-                })
-            });
-
-        match self.mode {
-            RenderModeType::Perimeter { thickness, color }
-            | RenderModeType::Edge { thickness, color } => {
-                rasterizer.add_stroke_paths(
-                    paths_iter,
-                    thickness,
-                    &color,
-                    &super::line::Style::None,
-                );
-            }
-            RenderModeType::Filled { color } => rasterizer.add_fill_paths(paths_iter, &color),
-        }
+                Some(PathVertices { vertices: ndc })
+            })
     }
 }

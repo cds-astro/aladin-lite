@@ -1834,7 +1834,7 @@ export let View = (function () {
         }
 
         // Set the grid label format
-        if (this.cooFrame.label == "J2000d") {
+        if (this.cooFrame.label == "ICRSd") {
             this.setGridOptions({fmt: "HMS"});
         }
         else {

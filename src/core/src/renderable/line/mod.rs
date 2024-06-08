@@ -48,12 +48,13 @@ use crate::camera::CameraViewPort;
 
 use lyon::tessellation::*;
 
+#[repr(C)]
 pub struct PathVertices<T>
 where
     T: AsRef<[[f32; 2]]>,
 {
     pub vertices: T,
-    pub closed: bool,
+    //pub closed: bool,
 }
 
 impl RasterizedLineRenderer {
@@ -114,7 +115,9 @@ impl RasterizedLineRenderer {
         for path in paths {
             let mut path_builder = Path::builder();
 
-            let PathVertices { vertices, closed } = path;
+            let PathVertices {
+                vertices, /*, closed */
+            } = path;
 
             let line: &[[f32; 2]] = vertices.as_ref();
 
@@ -127,7 +130,7 @@ impl RasterizedLineRenderer {
                     path_builder.line_to(point(v[0], v[1]));
                 }
 
-                path_builder.end(closed);
+                path_builder.end(false);
             }
 
             // Create the destination vertex and index buffers.
@@ -183,9 +186,10 @@ impl RasterizedLineRenderer {
 
         match &style {
             Style::None => {
-                for path in paths {
-                    let PathVertices { vertices, closed } = path;
-
+                for PathVertices {
+                    vertices, /* , closed */
+                } in paths
+                {
                     let line: &[[f32; 2]] = vertices.as_ref();
                     if !line.is_empty() {
                         //let v = clamp_ndc_vertex(&line[0]);
@@ -197,7 +201,7 @@ impl RasterizedLineRenderer {
                             path_builder.line_to(point(v[0], v[1]));
                         }
 
-                        path_builder.end(closed);
+                        path_builder.end(false);
                     }
                 }
 
@@ -205,7 +209,9 @@ impl RasterizedLineRenderer {
             }
             Style::Dashed => {
                 for path in paths {
-                    let PathVertices { vertices, closed } = path;
+                    let PathVertices {
+                        vertices, /* , closed */
+                    } = path;
                     let line: &[[f32; 2]] = vertices.as_ref();
 
                     if !line.is_empty() {
@@ -220,7 +226,7 @@ impl RasterizedLineRenderer {
                             line_path_builder.line_to(point(v[0], v[1]));
                         }
 
-                        line_path_builder.end(closed);
+                        line_path_builder.end(false);
                         let path = line_path_builder.build();
 
                         // Build the acceleration structure.

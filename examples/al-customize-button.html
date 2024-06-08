@@ -1,7 +1,8 @@
 <!doctype html>
 <html>
-<head>
-</head>
+    <head>
+        <meta name="viewport" content="width=device-width, height=device-height, maximum-scale=1.0, initial-scale=1.0, user-scalable=no">
+    </head>
 <body>
 
 
@@ -22,6 +23,7 @@
                 reticleColor: '#ff89ff', // change reticle color
                 reticleSize: 64, // change reticle size
                 showContextMenu: true,
+                fullScreen: true,
             }
         );
 
@@ -89,16 +91,33 @@
 
     .myButton {
         position: absolute;
-        bottom: 0;
+        bottom: 100px;
         left: 0;
 
         background-color: pink;
     }
 
-    .aladin-cooFrame {
-        position: absolute;
-        top: 10rem;
+    @media screen and (max-width:480px)  {
+        /* smartphones, Android phones, landscape iPhone */
+        .aladin-cooFrame {
+            top: unset;
+            position: absolute;
+            bottom: 0;
+        }
+
+        .aladin-location {
+            left: 0.2rem;
+        }
+
+        .aladin-fov {
+            left: 6rem;
+        }
+
+        .aladin-projection-control {
+            display: none;
+        }
     }
+    
 </style>
 </body>
 </html>

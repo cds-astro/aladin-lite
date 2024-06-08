@@ -152,7 +152,7 @@ export class Location extends DOMElement {
                 let radec = aladin.getRaDec();
                 // convert to the view frame
                 let lonlat = radec;
-                if (aladin.getFrame() === "Galactic") {
+                if (aladin.getFrame() === "GAL") {
                     lonlat = CooConversion.J2000ToGalactic(radec)
                 }
 

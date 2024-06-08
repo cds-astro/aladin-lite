@@ -40,11 +40,18 @@ rand = "0.8"
 
 [dependencies.healpix]
 package = "cdshealpix"
-version = "0.6.9"
+git = "https://github.com/cds-astro/cds-healpix-rust"
+branch = "master"
+
+#[dependencies.moclib]
+#package = "moc"
+#version = "0.14.2"
 
 [dependencies.moclib]
 package = "moc"
-version = "0.14.2"
+#path = "../../../cds-moc-rust/"
+git = "https://github.com/bmatthieu3/cds-moc-rust"
+branch = "overlap"
 
 [dependencies.serde]
 version = "^1.0.183"

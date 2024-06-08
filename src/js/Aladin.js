@@ -2236,13 +2236,13 @@ aladin.on("positionChanged", ({ra, dec}) => {
             }
         } else {
             switch (this.getFrame()) {
-                case "J2000":
-                case "J2000d":
+                case "ICRS":
+                case "ICRSd":
                     cooType1 = "RA---";
                     cooType2 = "DEC--";
                     radecsys = "ICRS    ";
                     break;
-                case "Galactic":
+                case "GAL":
                     cooType1 = "GLON-";
                     cooType2 = "GLAT-";
             }

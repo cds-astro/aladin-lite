@@ -163,9 +163,9 @@ impl FieldOfView {
         self.reg.intersects_meridian(lon)
     }
 
-    pub fn intersects_great_circle(&self, n: &Vector3<f64>) -> Intersection {
+    /*pub fn intersects_great_circle(&self, n: &Vector3<f64>) -> Intersection {
         self.reg.intersects_great_circle(n)
-    }
+    }*/
 
     pub fn intersects_great_circle_arc(
         &self,

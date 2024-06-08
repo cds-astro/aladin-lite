@@ -6,7 +6,6 @@ pub struct HEALPixCell(pub u8, pub u64);
 #[derive(Debug)]
 pub struct CellVertices {
     pub vertices: Vec<Box<[(f64, f64)]>>,
-    pub closed: bool,
 }
 
 const BIT_MASK_ALL_ONE_EXCEPT_FIRST: u32 = !0x1;
@@ -281,26 +280,21 @@ impl HEALPixCell {
                     self.path_along_cell_side(Cardinal::S, Cardinal::E, false, *se),
                     self.path_along_cell_side(Cardinal::E, Cardinal::N, true, *ne),
                 ],
-                closed: true,
             }),
             // no edges
             (None, None, None, None) => None,
             // 1 edge found
             (Some(s), None, None, None) => Some(CellVertices {
                 vertices: vec![self.path_along_cell_side(Cardinal::N, Cardinal::W, true, *s)],
-                closed: false,
             }),
             (None, Some(s), None, None) => Some(CellVertices {
                 vertices: vec![self.path_along_cell_side(Cardinal::W, Cardinal::S, true, *s)],
-                closed: false,
             }),
             (None, None, Some(s), None) => Some(CellVertices {
                 vertices: vec![self.path_along_cell_side(Cardinal::S, Cardinal::E, true, *s)],
-                closed: false,
             }),
             (None, None, None, Some(s)) => Some(CellVertices {
                 vertices: vec![self.path_along_cell_side(Cardinal::E, Cardinal::N, true, *s)],
-                closed: false,
             }),
             // 2 edges cases
             (Some(nw), Some(sw), None, None) => Some(CellVertices {
@@ -308,42 +302,36 @@ impl HEALPixCell {
                     &[Cardinal::N, Cardinal::W, Cardinal::S],
                     &[*nw, *sw],
                 )],
-                closed: false,
             }),
             (Some(nw), None, Some(se), None) => Some(CellVertices {
                 vertices: vec![
                     self.path_along_cell_side(Cardinal::N, Cardinal::W, true, *nw),
                     self.path_along_cell_side(Cardinal::S, Cardinal::E, true, *se),
                 ],
-                closed: false,
             }),
             (Some(nw), None, None, Some(ne)) => Some(CellVertices {
                 vertices: vec![chain_edge_vertices(
                     &[Cardinal::E, Cardinal::N, Cardinal::W],
                     &[*ne, *nw],
                 )],
-                closed: false,
             }),
             (None, Some(sw), Some(se), None) => Some(CellVertices {
                 vertices: vec![chain_edge_vertices(
                     &[Cardinal::W, Cardinal::S, Cardinal::E],
                     &[*sw, *se],
                 )],
-                closed: false,
             }),
             (None, Some(sw), None, Some(ne)) => Some(CellVertices {
                 vertices: vec![
                     self.path_along_cell_side(Cardinal::W, Cardinal::S, true, *sw),
                     self.path_along_cell_side(Cardinal::E, Cardinal::N, true, *ne),
                 ],
-                closed: false,
             }),
             (None, None, Some(se), Some(ne)) => Some(CellVertices {
                 vertices: vec![chain_edge_vertices(
                     &[Cardinal::S, Cardinal::E, Cardinal::N],
                     &[*se, *ne],
                 )],
-                closed: false,
             }),
             // 3 edges cases
             (Some(nw), Some(sw), Some(se), None) => Some(CellVertices {
@@ -351,28 +339,24 @@ impl HEALPixCell {
                     &[Cardinal::N, Cardinal::W, Cardinal::S, Cardinal::E],
                     &[*nw, *sw, *se],
                 )],
-                closed: false,
             }),
             (Some(nw), Some(sw), None, Some(ne)) => Some(CellVertices {
                 vertices: vec![chain_edge_vertices(
                     &[Cardinal::E, Cardinal::N, Cardinal::W, Cardinal::S],
                     &[*ne, *nw, *sw],
                 )],
-                closed: false,
             }),
             (Some(nw), None, Some(se), Some(ne)) => Some(CellVertices {
                 vertices: vec![chain_edge_vertices(
                     &[Cardinal::S, Cardinal::E, Cardinal::N, Cardinal::W],
                     &[*se, *ne, *nw],
                 )],
-                closed: false,
             }),
             (None, Some(sw), Some(se), Some(ne)) => Some(CellVertices {
                 vertices: vec![chain_edge_vertices(
                     &[Cardinal::W, Cardinal::S, Cardinal::E, Cardinal::N],
                     &[*sw, *se, *ne],
                 )],
-                closed: false,
             }),
         }
     }

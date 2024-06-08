@@ -216,10 +216,7 @@ impl ProjetedGrid {
                     .map(|parallel| parallel.get_lines_vertices()),
             )
             .flatten()
-            .map(|vertices| PathVertices {
-                closed: false,
-                vertices,
-            });
+            .map(|vertices| PathVertices { vertices });
 
         let m = camera.get_screen_size().magnitude();
         rasterizer.add_stroke_paths(paths, self.thickness, &self.color, &self.line_style);

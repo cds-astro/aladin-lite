@@ -30,13 +30,13 @@
 
 export let CooFrameEnum = (function() {
 
-    var systems = {J2000: 'J2000', GAL: 'Galactic'};
+    var systems = {J2000: 'J2000', GAL: 'GAL'};
     return {
         SYSTEMS: systems,
 
-        J2000: {label: "J2000", system: systems.J2000},
-        J2000d: {label: "J2000d", system: systems.J2000},
-        GAL:  {label: "Galactic", system: systems.GAL},
+        J2000: {label: "ICRS", system: systems.J2000},
+        J2000d: {label: "ICRSd", system: systems.J2000},
+        GAL:  {label: "GAL", system: systems.GAL},
 
         fromString: function(str, defaultValue) {
             if (! str) {

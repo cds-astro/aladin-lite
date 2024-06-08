@@ -7,7 +7,7 @@ pub mod filled;
 pub mod perimeter;
 
 pub(super) trait RenderMode {
-    fn build(moc: &HEALPixCoverage) -> Vec<Node>;
+    fn build(moc: &HEALPixCoverage) -> impl Iterator<Item = Node>;
 }
 
 #[derive(Debug)]

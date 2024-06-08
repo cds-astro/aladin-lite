@@ -1,7 +1,8 @@
 <!doctype html>
 <html>
-<head>
-</head>
+    <head>
+        <meta name="viewport" content="width=device-width, height=device-height, maximum-scale=1.0, initial-scale=1.0, user-scalable=no">
+    </head>
 <body>
     <div id="aladin-lite-div" style="width: 1024px; height: 768px">
       <div id="ui" class="ui">
@@ -11,8 +12,8 @@
     import A from '../src/js/A.js';
     let aladin;
     A.init.then(() => {
-        aladin = A.aladin('#aladin-lite-div', {target: '00 00 00 +07 00 00', fov: 130, survey: 'P/Mellinger/color'});
-        var moc11 = A.MOCFromURL('http://skies.esac.esa.int/HST/NICMOS/Moc.fits', {color: '#84f', lineWidth: 3, perimeter: true}, (moc) => {
+        aladin = A.aladin('#aladin-lite-div', {target: '00 00 00 +07 00 00', fov: 130, survey: 'P/Mellinger/color', showContextMenu: true});
+        var moc11 = A.MOCFromURL('http://skies.esac.esa.int/HST/NICMOS/Moc.fits', {color: '#84f', lineWidth: 3}, (moc) => {
             // moc is ready
             console.log(moc.contains(205.9019247, +2.4492764));
             console.log(moc.contains(-205.9019247, +2.4492764));

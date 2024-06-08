@@ -39,7 +39,7 @@ impl Label {
         options: LabelOptions,
         camera: &CameraViewPort,
         projection: &ProjectionType,
-        fmt: &SerializeFmt,
+        _fmt: &SerializeFmt,
     ) -> Option<Self> {
         let fov = camera.get_field_of_view();
         let d = if fov.contains_north_pole() {

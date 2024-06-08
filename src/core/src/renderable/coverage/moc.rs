@@ -1,17 +1,12 @@
 use al_api::moc::MOC as Cfg;
-use std::cmp::Ordering;
-
-use std::ops::Range;
-use std::vec;
 
 use crate::camera::CameraViewPort;
 use crate::healpix::cell::CellVertices;
 use crate::healpix::coverage::HEALPixCoverage;
 use crate::math::projection::ProjectionType;
-use crate::renderable::coverage::mode::RenderMode;
+
 use crate::renderable::coverage::Angle;
 
-use crate::renderable::coverage::IdxVec;
 use crate::renderable::line::PathVertices;
 use crate::renderable::line::RasterizedLineRenderer;
 use al_api::color::ColorRGBA;
@@ -19,14 +14,11 @@ use al_api::coo_system::CooSystem;
 
 use moclib::elem::cell::Cell;
 use moclib::moc::range::CellAndEdges;
-use moclib::moc::RangeMOCIntoIterator;
-use moclib::moc::RangeMOCIterator;
 
-use super::mode::Node;
+use moclib::moc::RangeMOCIterator;
 
 use crate::HEALPixCell;
 use cgmath::Vector2;
-use wasm_bindgen::prelude::*;
 
 use healpix::compass_point::OrdinalMap;
 
@@ -121,9 +113,18 @@ impl MOC {
         proj: &ProjectionType,
         rasterizer: &mut RasterizedLineRenderer,
     ) {
+        let view_depth = camera.get_texture_depth();
+        let view_moc = HEALPixCoverage::from_fixed_hpx_cells(
+            view_depth,
+            camera
+                .get_hpx_cells(view_depth, CooSystem::ICRS)
+                .map(|c| c.idx()),
+            None,
+        );
+
         for render in &self.inner {
             if let Some(render) = render.as_ref() {
-                render.draw(&self.moc, camera, proj, rasterizer)
+                render.draw(&view_moc, &self.moc, camera, proj, rasterizer)
             }
         }
     }
@@ -272,7 +273,7 @@ impl MOCIntern {
         &self,
         view_moc: &'a HEALPixCoverage,
         moc: &'a HEALPixCoverage,
-        camera: &mut CameraViewPort,
+        _camera: &mut CameraViewPort,
     ) -> impl Iterator<Item = [(f64, f64); 4]> + 'a {
         //self.cells_in_view(camera)
         //    .filter_map(move |node| node.vertices.as_ref())
@@ -295,28 +296,19 @@ impl MOCIntern {
 
     fn draw(
         &self,
+        view_moc: &HEALPixCoverage,
         moc: &HEALPixCoverage,
         camera: &mut CameraViewPort,
         proj: &ProjectionType,
         rasterizer: &mut RasterizedLineRenderer,
     ) {
-        let view_depth = camera.get_texture_depth();
-
-        let view_moc = HEALPixCoverage::from_fixed_hpx_cells(
-            view_depth,
-            camera
-                .get_hpx_cells(view_depth, CooSystem::ICRS)
-                .map(|c| c.idx()),
-            None,
-        );
-
-        crate::Time::measure_perf("rasterize moc", move || {
+        let _ = crate::Time::measure_perf("rasterize moc", move || {
             match self.mode {
                 RenderModeType::Perimeter { thickness, color } => {
                     let moc_in_view =
-                        HEALPixCoverage(moc.overlapped_by_iter(&view_moc).into_range_moc());
+                        HEALPixCoverage(moc.overlapped_by_iter(view_moc).into_range_moc());
                     rasterizer.add_stroke_paths(
-                        self.compute_perimeter_paths_iter(&moc_in_view, &view_moc, camera, proj),
+                        self.compute_perimeter_paths_iter(&moc_in_view, view_moc, camera, proj),
                         thickness,
                         &color,
                         &super::line::Style::None,
@@ -324,7 +316,7 @@ impl MOCIntern {
                 }
                 RenderModeType::Edge { thickness, color } => {
                     rasterizer.add_stroke_paths(
-                        self.compute_edge_paths_iter(moc, &view_moc, camera, proj),
+                        self.compute_edge_paths_iter(moc, view_moc, camera, proj),
                         thickness,
                         &color,
                         &super::line::Style::None,
@@ -332,7 +324,7 @@ impl MOCIntern {
                 }
                 RenderModeType::Filled { color } => {
                     rasterizer.add_fill_paths(
-                        self.compute_edge_paths_iter(moc, &view_moc, camera, proj),
+                        self.compute_edge_paths_iter(moc, view_moc, camera, proj),
                         &color,
                     );
                 }
@@ -411,7 +403,7 @@ impl MOCIntern {
     fn compute_perimeter_paths_iter<'a>(
         &self,
         moc: &'a HEALPixCoverage,
-        view_moc: &'a HEALPixCoverage,
+        _view_moc: &'a HEALPixCoverage,
         camera: &'a mut CameraViewPort,
         proj: &'a ProjectionType,
     ) -> impl Iterator<Item = PathVertices<Vec<[f32; 2]>>> + 'a {

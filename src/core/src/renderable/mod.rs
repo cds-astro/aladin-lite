@@ -10,7 +10,7 @@ pub mod utils;
 use crate::renderable::image::Image;
 
 use al_core::image::format::ChannelType;
-use al_core::Texture2DArray;
+
 pub use hips::HiPS;
 
 pub use catalog::Manager;
@@ -21,7 +21,7 @@ use al_api::hips::ImageMetadata;
 use al_api::image::ImageParams;
 
 use al_core::colormap::Colormaps;
-use al_core::image::format::NUM_CHANNELS;
+
 use al_core::shader::Shader;
 use al_core::SliceData;
 use al_core::VertexArrayObject;
@@ -40,7 +40,7 @@ use hips::raytracing::RayTracer;
 
 use std::borrow::Cow;
 use std::collections::HashMap;
-use std::rc::Rc;
+
 use wasm_bindgen::JsValue;
 use web_sys::WebGl2RenderingContext;
 
@@ -182,7 +182,7 @@ impl Layers {
     }
 
     pub fn set_survey_url(&mut self, cdid: &CreatorDid, new_url: String) -> Result<(), JsValue> {
-        if let Some(mut survey) = self.surveys.get_mut(cdid) {
+        if let Some(survey) = self.surveys.get_mut(cdid) {
             // update the root_url
             survey.get_config_mut().set_root_url(new_url.clone());
 

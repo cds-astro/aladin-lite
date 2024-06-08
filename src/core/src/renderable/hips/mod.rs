@@ -7,12 +7,12 @@ use al_api::hips::ImageMetadata;
 use al_core::colormap::Colormap;
 use al_core::colormap::Colormaps;
 use al_core::image::format::ChannelType;
-use al_core::image::format::ImageFormatType;
+
 use al_core::image::Image;
-use al_core::log::console_log;
+
 use al_core::shader::Shader;
 use al_core::webgl_ctx::GlWrapper;
-use al_core::Texture2DArray;
+
 use al_core::VecData;
 use al_core::VertexArrayObject;
 use al_core::WebGlContext;
@@ -21,16 +21,16 @@ use crate::math::{angle::Angle, vector::dist2};
 use crate::ProjectionType;
 
 use crate::camera::CameraViewPort;
-use crate::renderable::utils::index_patch::DefaultPatchIndexIter;
+
 use crate::{math::lonlat::LonLatT, utils};
 use crate::{shader::ShaderManager, survey::config::HiPSConfig};
 
 use crate::downloader::request::allsky::Allsky;
 use crate::healpix::{cell::HEALPixCell, coverage::HEALPixCoverage};
-use crate::math::angle::ToAngle;
+
 use crate::math::lonlat::LonLat;
 use crate::time::Time;
-use al_core::log;
+
 use std::collections::HashSet;
 
 // Recursively compute the number of subdivision needed for a cell
@@ -42,9 +42,9 @@ use crate::survey::texture::Texture;
 use raytracing::RayTracer;
 use uv::{TileCorner, TileUVW};
 
-use cgmath::{Matrix, Matrix4};
+use cgmath::{Matrix};
 use std::fmt::Debug;
-use std::rc::Rc;
+
 use wasm_bindgen::JsValue;
 use web_sys::WebGl2RenderingContext;
 

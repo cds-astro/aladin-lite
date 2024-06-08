@@ -238,8 +238,6 @@ pub fn get_grid_vertices(
 
 #[cfg(test)]
 mod tests {
-    use wcs::ImgXY;
-
     #[test]
     fn test_grid_vertices() {
         let (x, y) = super::get_grid_params(&(0.0, 0.0), &(40.0, 40.0), 20, 4);

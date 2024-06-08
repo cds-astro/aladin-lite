@@ -1,10 +1,9 @@
 use super::Renderer;
-use al_core::log::console_log;
+
 use web_sys::CanvasRenderingContext2d;
 
 pub struct TextRenderManager {
     // The text canvas
-    canvas: HtmlCanvasElement,
     ctx: CanvasRenderingContext2d,
     color: JsValue,
     font_size: u32,
@@ -13,9 +12,7 @@ pub struct TextRenderManager {
 use cgmath::{Rad, Vector2};
 use wasm_bindgen::JsValue;
 
-use crate::camera::CameraViewPort;
-use al_api::color::{ColorRGB, ColorRGBA};
-use web_sys::HtmlCanvasElement;
+use al_api::color::ColorRGBA;
 
 use crate::Abort;
 use wasm_bindgen::JsCast;
@@ -42,7 +39,6 @@ impl TextRenderManager {
         Ok(Self {
             font_size,
             color,
-            canvas,
             ctx,
         })
     }

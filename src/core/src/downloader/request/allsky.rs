@@ -28,7 +28,6 @@ use crate::renderable::Url;
 use wasm_bindgen_futures::JsFuture;
 use web_sys::{RequestInit, RequestMode, Response};
 
-use crate::downloader::query::Query;
 use al_core::{image::raw::ImageBuffer, texture::pixel::Pixel};
 use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;

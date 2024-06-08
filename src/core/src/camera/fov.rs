@@ -5,7 +5,7 @@ use crate::math::projection::coo_space::{XYZWModel, XYZWWorld, XYNDC};
 use crate::math::sph_geom::region::{Intersection, PoleContained, Region};
 use crate::math::{projection::Projection, sph_geom::bbox::BoundingBox};
 use crate::LonLatT;
-use cgmath::Vector3;
+
 
 use crate::ProjectionType;
 use std::iter;

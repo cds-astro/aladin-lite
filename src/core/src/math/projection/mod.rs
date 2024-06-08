@@ -9,17 +9,17 @@
 // World space
 use crate::camera::CameraViewPort;
 use crate::domain::sdf::ProjDefType;
-use crate::LonLatT;
+
 use coo_space::XYZWModel;
 //use crate::num_traits::FloatConst;
 use crate::math::PI;
-use crate::math::{rotation::Rotation, HALF_PI};
+
 use cgmath::Vector2;
 
 pub mod coo_space;
 pub mod domain;
 
-use domain::{basic, cod::Cod, full::FullScreen, hpx::Hpx, par::Par};
+use domain::{basic, full::FullScreen};
 
 /* S <-> NDC space conversion methods */
 pub fn screen_to_ndc_space(
@@ -98,7 +98,6 @@ pub fn screen_to_clip_space(
 }
 
 use al_api::coo_system::CooSystem;
-use cgmath::InnerSpace;
 
 use crate::coo_space::{XYClip, XYZWWorld};
 
@@ -658,7 +657,6 @@ use mapproj::ProjXY;
 
 use self::coo_space::XYNDC;
 
-use super::angle::ToAngle;
 impl<'a, P> Projection for &'a P
 where
     P: CanonicalProjection,
@@ -734,10 +732,12 @@ where
     }
 }
 
+#[cfg(test)]
 mod tests {
     #[test]
     fn generate_maps() {
         use super::*;
+        use cgmath::InnerSpace;
         use cgmath::Vector2;
         use image_decoder::{Rgb, RgbImage};
 

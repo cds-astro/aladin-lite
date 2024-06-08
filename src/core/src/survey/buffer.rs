@@ -1,10 +1,10 @@
 use std::cmp::Ordering;
 use std::collections::BinaryHeap;
 use std::collections::HashMap;
-use std::rc::Rc;
+
 
 use al_core::image::format::ChannelType;
-use al_core::log::console_log;
+
 use cgmath::Vector3;
 
 use al_api::hips::ImageExt;
@@ -176,7 +176,7 @@ impl ImageSurveyTextures {
         let heap = HEALPixCellHeap::with_capacity(size);
         let textures = HashMap::with_capacity(size);
 
-        let now = Time::now();
+        let _now = Time::now();
         /*let base_textures = [
             Texture::new(&HEALPixCell(0, 0), 0, now),
             Texture::new(&HEALPixCell(0, 1), 1, now),
@@ -252,7 +252,7 @@ impl ImageSurveyTextures {
             ChannelType::R64F => create_texture_array::<R64F>(gl, &self.config)?,
         };
 
-        let now = Time::now();
+        let _now = Time::now();
         /*self.base_textures = [
             Texture::new(&HEALPixCell(0, 0), 0, now),
             Texture::new(&HEALPixCell(0, 1), 1, now),
@@ -318,7 +318,7 @@ impl ImageSurveyTextures {
             // Get the texture cell in which the tile has to be
             let tex_cell = cell.get_texture_cell(self.config.delta_depth());
 
-            let tex_cell_is_root = tex_cell.is_root(self.config.delta_depth());
+            let _tex_cell_is_root = tex_cell.is_root(self.config.delta_depth());
             if !self.textures.contains_key(&tex_cell) {
                 // The texture is not among the essential ones
                 // (i.e. is not a root texture)

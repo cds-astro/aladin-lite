@@ -16,7 +16,6 @@ use crate::ProjectionType;
 use al_api::color::ColorRGBA;
 
 use al_api::grid::GridCfg;
-use cgmath::InnerSpace;
 
 use crate::grid::label::Label;
 pub struct ProjetedGrid {
@@ -218,13 +217,12 @@ impl ProjetedGrid {
             .flatten()
             .map(|vertices| PathVertices { vertices });
 
-        let m = camera.get_screen_size().magnitude();
         rasterizer.add_stroke_paths(paths, self.thickness, &self.color, &self.line_style);
 
         Ok(())
     }
 
-    pub fn draw_labels(&mut self, camera: &CameraViewPort) -> Result<(), JsValue> {
+    pub fn draw_labels(&mut self) -> Result<(), JsValue> {
         if self.enabled && self.show_labels {
             let labels = self
                 .meridians
@@ -232,7 +230,7 @@ impl ProjetedGrid {
                 .filter_map(|m| m.get_label())
                 .chain(self.parallels.iter().filter_map(|p| p.get_label()));
 
-            let dpi = camera.get_dpi();
+            //let dpi = camera.get_dpi();
             self.text_renderer.begin();
             for Label {
                 content,

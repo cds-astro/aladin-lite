@@ -3,7 +3,7 @@ use cgmath::{BaseFloat, Vector4};
 use al_api::coo_system::CooBaseFloat;
 use al_api::coo_system::CooSystem;
 
-use crate::math::lonlat::LonLat;
+
 /// This is conversion method returning a transformation
 /// matrix when the system requested by the user is not
 /// icrs j2000.

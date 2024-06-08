@@ -1,7 +1,7 @@
 pub mod viewport;
 use crate::math::lonlat::LonLat;
 use crate::math::projection::coo_space::XYZWModel;
-pub use viewport::{CameraViewPort, UserAction};
+pub use viewport::{CameraViewPort};
 
 pub mod fov;
 pub use fov::FieldOfView;

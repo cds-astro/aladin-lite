@@ -1,7 +1,7 @@
 pub mod query;
 pub mod request;
 
-use crate::renderable::Url;
+
 use std::collections::HashSet;
 
 use query::QueryId;

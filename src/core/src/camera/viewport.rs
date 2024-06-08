@@ -11,8 +11,8 @@ use crate::healpix::cell::HEALPixCell;
 use crate::healpix::coverage::HEALPixCoverage;
 use crate::math::angle::ToAngle;
 use crate::math::{projection::coo_space::XYZWModel, projection::domain::sdf::ProjDef};
-use al_core::log::console_log;
-use al_core::{info, inforec, log};
+
+
 
 use cgmath::{Matrix4, Vector2};
 pub struct CameraViewPort {
@@ -212,7 +212,7 @@ impl CameraViewPort {
 
     pub fn get_hpx_cells<'a>(
         &'a mut self,
-        mut depth: u8,
+        depth: u8,
         frame: CooSystem,
     ) -> impl Iterator<Item = &'a HEALPixCell> {
         self.view_hpx_cells.get_cells(depth, frame)
@@ -341,7 +341,7 @@ impl CameraViewPort {
             self.last_user_action
         };
 
-        let can_unzoom_more = match proj {
+        let _can_unzoom_more = match proj {
             ProjectionType::Tan(_)
             | ProjectionType::Mer(_)
             //| ProjectionType::Air(_)
@@ -443,7 +443,7 @@ impl CameraViewPort {
             (smallest_cell_size_px / w_screen_px) * self.get_aperture().to_radians();
 
         while depth_pixel > 0 {
-            if (crate::healpix::utils::MEAN_HPX_CELL_RES[depth_pixel] > hpx_cell_size_rad) {
+            if crate::healpix::utils::MEAN_HPX_CELL_RES[depth_pixel] > hpx_cell_size_rad {
                 break;
             }
 

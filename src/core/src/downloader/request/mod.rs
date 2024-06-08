@@ -87,7 +87,7 @@ pub enum RequestType {
     PixelMetadata(PixelMetadataRequest),
     Moc(MOCRequest), //..
 }
-use super::query::Url;
+
 use crate::downloader::QueryId;
 impl RequestType {
     pub fn id(&self) -> &QueryId {

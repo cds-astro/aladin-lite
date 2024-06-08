@@ -65,6 +65,7 @@ pub unsafe fn transmute_vec<I, O>(mut s: Vec<I>) -> Result<Vec<O>, &'static str>
     }
 }
 
+#[allow(unused)]
 pub(super) fn merge_overlapping_intervals(mut intervals: Vec<Range<usize>>) -> Vec<Range<usize>> {
     intervals.sort_unstable_by(|a, b| {
         let cmp = a.start.cmp(&b.start);

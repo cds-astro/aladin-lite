@@ -7,7 +7,7 @@ use crate::{
     inertia::Inertia,
     math::{
         self,
-        angle::{Angle, ArcDeg, ToAngle},
+        angle::{Angle, ArcDeg},
         lonlat::{LonLat, LonLatT},
     },
     renderable::Layers,
@@ -17,10 +17,6 @@ use crate::{
     shader::ShaderManager,
     tile_fetcher::TileFetcherQueue,
     time::DeltaTime,
-};
-use al_core::{
-    info, inforec,
-    log::{self, console_log},
 };
 
 use wasm_bindgen::prelude::*;
@@ -111,7 +107,7 @@ pub struct App {
 }
 
 use cgmath::{Vector2, Vector3};
-use futures::{io::BufReader, stream::StreamExt}; // for `next`
+use futures::io::BufReader; // for `next`
 
 use crate::math::projection::*;
 pub const BLENDING_ANIM_DURATION: DeltaTime = DeltaTime::from_millis(200.0); // in ms
@@ -268,7 +264,7 @@ impl App {
         // Move the views of the different active surveys
         self.tile_fetcher.clear();
         // Loop over the surveys
-        let raytracer = self.layers.get_raytracer();
+        let _raytracer = self.layers.get_raytracer();
 
         for survey in self.layers.values_mut_hips() {
             if self.camera.get_texture_depth() == 0
@@ -408,7 +404,7 @@ use al_api::cell::HEALPixCellProjeted;
 
 use crate::downloader::request::tile::Tile;
 use crate::healpix::cell::HEALPixCell;
-use crate::renderable::coverage::moc::MOC;
+
 use al_api::color::ColorRGB;
 
 impl App {
@@ -504,7 +500,7 @@ impl App {
 
     pub(crate) fn add_moc(
         &mut self,
-        mut cfg: al_api::moc::MOC,
+        cfg: al_api::moc::MOC,
         moc: HEALPixCoverage,
     ) -> Result<(), JsValue> {
         self.moc
@@ -654,7 +650,7 @@ impl App {
                                         };
                                         use al_core::image::ImageType;
                                         use fitsrs::fits::Fits;
-                                        use std::{io::Cursor, rc::Rc};
+                                        use std::io::Cursor;
                                         if let Some(image) = image.as_ref() {
                                             match &*image.lock().unwrap_abort() {
                                                 Some(ImageType::FitsImage {
@@ -755,7 +751,7 @@ impl App {
                     Resource::PixelMetadata(metadata) => {
                         if let Some(hips) = self.layers.get_mut_hips_from_cdid(&metadata.hips_cdid)
                         {
-                            let mut cfg = hips.get_config_mut();
+                            let cfg = hips.get_config_mut();
 
                             if let Some(metadata) = *metadata.value.lock().unwrap_abort() {
                                 cfg.blank = metadata.blank;
@@ -882,7 +878,7 @@ impl App {
     }
 
     pub(crate) fn draw_grid_labels(&mut self) -> Result<(), JsValue> {
-        self.grid.draw_labels(&self.camera)
+        self.grid.draw_labels()
     }
 
     pub(crate) fn draw(&mut self, force_render: bool) -> Result<(), JsValue> {
@@ -1320,9 +1316,9 @@ impl App {
         self.camera.get_longitude_reversed()
     }
 
-    pub(crate) fn add_catalog(&mut self, name: String, table: JsValue, _colormap: String) {
+    pub(crate) fn add_catalog(&mut self, _name: String, table: JsValue, _colormap: String) {
         //let mut exec_ref = self.exec.borrow_mut();
-        let table = table;
+        let _table = table;
 
         /*exec_ref
         .spawner()

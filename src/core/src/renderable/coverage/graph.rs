@@ -1,13 +1,9 @@
-use crate::healpix::coverage::HEALPixCoverage;
-
-use moclib::elem::cell::Cell;
 //use moclib::moc::range::CellAndNeighs;
-use moclib::moc::RangeMOCIntoIterator;
-use moclib::moc::RangeMOCIterator;
 
-use crate::renderable::coverage::HEALPixCell;
+/*use crate::renderable::coverage::HEALPixCell;
 
-use healpix::compass_point::{MainWind, Ordinal};
+use healpix::compass_point::Ordinal;
+
 #[derive(Debug)]
 pub(super) struct EdgeNeigs {
     // Indices of the neighbors in the stack
@@ -91,6 +87,7 @@ impl NodeEdgeNeigs {
         1 << delta_depth
     }
 }
+*/
 /*pub(super) struct G {
     nodes: Vec<NodeEdgeNeigs>,
 }

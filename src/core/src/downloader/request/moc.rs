@@ -2,7 +2,7 @@ use crate::downloader::query;
 use crate::renderable::CreatorDid;
 
 use super::{Request, RequestType};
-use crate::downloader::QueryId;
+
 use crate::healpix::coverage::Smoc;
 use moclib::deser::fits::MocType;
 use moclib::qty::Hpx;
@@ -37,7 +37,7 @@ pub fn from_fits_hpx<T: Idx>(moc: MocType<T, Hpx<T>, Cursor<&[u8]>>) -> Smoc {
         }
     }
 }
-use crate::downloader::query::Query;
+
 use crate::healpix::coverage::HEALPixCoverage;
 use crate::Abort;
 use moclib::deser::fits::MocIdxType;

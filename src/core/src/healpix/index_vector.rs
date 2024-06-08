@@ -64,6 +64,7 @@ impl IdxVec {
     }
 
     // Create an index vector from a list of segments
+    #[allow(unused)]
     pub fn from_great_circle_arc(arcs: &mut [GreatCircleArc]) -> Self {
         arcs.sort_unstable_by(|a1, a2| {
             let bbox1 = a1.get_containing_hpx_cell();

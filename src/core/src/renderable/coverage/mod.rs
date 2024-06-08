@@ -1,6 +1,5 @@
-use crate::renderable::coverage::moc::MOC;
 use crate::{
-    healpix::{cell::HEALPixCell, coverage::HEALPixCoverage, index_vector::IdxVec},
+    healpix::{cell::HEALPixCell, coverage::HEALPixCoverage},
     math::angle::Angle,
     CameraViewPort, ShaderManager,
 };
@@ -12,7 +11,6 @@ pub mod moc;
 
 use crate::renderable::line::RasterizedLineRenderer;
 
-use super::utils::triangle::Triangle;
 use wasm_bindgen::JsValue;
 
 use hierarchy::MOCHierarchy;
@@ -26,15 +24,16 @@ pub struct MOCRenderer {
     cfgs: Vec<Cfg>,
 }
 
+/*
 use cgmath::Vector2;
-
+use super::utils::triangle::Triangle;
 fn is_crossing_projection(
     cell: &HEALPixCell,
     camera: &CameraViewPort,
     projection: &ProjectionType,
 ) -> bool {
     let vertices = cell
-        .path_along_cell_edge(1)
+        .vertices()
         .iter()
         .filter_map(|(lon, lat)| {
             let xyzw = crate::math::lonlat::radec_to_xyzw(Angle(*lon), Angle(*lat));
@@ -63,8 +62,9 @@ fn is_crossing_projection(
         true
     }
 }
+
 use al_api::cell::HEALPixCellProjeted;
-pub fn rasterize_hpx_cell(
+fn rasterize_hpx_cell(
     cell: &HEALPixCell,
     n_segment_by_side: usize,
     camera: &CameraViewPort,
@@ -159,7 +159,7 @@ pub fn rasterize_hpx_cell(
     } else {
         None
     }
-}
+}*/
 
 use crate::ProjectionType;
 

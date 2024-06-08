@@ -73,9 +73,8 @@ extern "C" {
 #[macro_use]
 mod utils;
 
-use al_core::log::console_log;
 use math::projection::*;
-use renderable::coverage::moc::MOC;
+
 //use votable::votable::VOTableWrapper;
 use wasm_bindgen::prelude::*;
 use web_sys::HtmlElement;
@@ -971,7 +970,7 @@ impl WebClient {
     }
 
     #[wasm_bindgen(js_name = parseVOTable)]
-    pub fn parse_votable(&mut self, s: &str) -> Result<JsValue, JsValue> {
+    pub fn parse_votable(&mut self, _s: &str) -> Result<JsValue, JsValue> {
         /*let votable: VOTableWrapper<votable::impls::mem::InMemTableDataRows> =
             votable::votable::VOTableWrapper::from_ivoa_xml_str(s)
                 .map_err(|err| JsValue::from_str(&format!("Error parsing votable: {:?}", err)))?;
@@ -1052,7 +1051,6 @@ impl WebClient {
         ra_deg: &[f64],
         dec_deg: &[f64],
     ) -> Result<(), JsValue> {
-        use cgmath::InnerSpace;
         let tile_d = self.app.get_norder();
         let pixel_d = tile_d + 9;
 
@@ -1118,14 +1116,14 @@ impl WebClient {
 
 #[wasm_bindgen]
 #[derive(Clone, Copy)]
-struct LonLat {
+pub struct LonLat {
     pub lon: f64,
     pub lat: f64,
 }
 
 #[wasm_bindgen]
 #[derive(Clone, Copy)]
-struct HPXVertices {
+pub struct HPXVertices {
     pub v1: LonLat,
     pub v2: LonLat,
     pub v3: LonLat,

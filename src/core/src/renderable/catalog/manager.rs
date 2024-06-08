@@ -1,4 +1,3 @@
-use crate::survey::texture::Texture;
 use crate::ShaderManager;
 
 use al_api::coo_system::CooSystem;
@@ -7,9 +6,7 @@ use al_api::resources::Resources;
 use al_core::colormap::Colormap;
 use al_core::Colormaps;
 use al_core::FrameBufferObject;
-use al_core::{Texture2D, VecData, VertexArrayObject, WebGlContext};
-
-use al_core::image::format::{R8UI, RGBA8U};
+use al_core::{VecData, VertexArrayObject, WebGlContext};
 
 use crate::ProjectionType;
 use std::collections::HashMap;
@@ -29,7 +26,7 @@ impl From<Error> for JsValue {
     }
 }
 
-const NUM_SHAPES: usize = 5;
+const _NUM_SHAPES: usize = 5;
 pub struct Manager {
     gl: WebGlContext,
     //kernels: HashMap<&'static str, Texture2D>,
@@ -50,8 +47,8 @@ impl Manager {
         resources: &Resources,
     ) -> Result<Self, JsValue> {
         // Load the texture of the gaussian kernel
-        let kernel_filename = resources.get_filename("kernel").unwrap_abort();
-        let params = &[
+        let _kernel_filename = resources.get_filename("kernel").unwrap_abort();
+        let _params = &[
             (
                 WebGl2RenderingContext::TEXTURE_MIN_FILTER,
                 WebGl2RenderingContext::LINEAR,
@@ -104,10 +101,10 @@ impl Manager {
                 -1.0_f32, -1.0_f32, 0.0_f32, 0.0_f32, 1.0_f32, -1.0_f32, 1.0_f32, 0.0_f32, 1.0_f32,
                 1.0_f32, 1.0_f32, 1.0_f32, -1.0_f32, 1.0_f32, 0.0_f32, 1.0_f32,
             ];
-            let position = [
+            let _position = [
                 -1.0_f32, -1.0_f32, 1.0_f32, -1.0_f32, 1.0_f32, 1.0_f32, -1.0_f32, 1.0_f32,
             ];
-            let uv = [
+            let _uv = [
                 0.0_f32, 0.0_f32, 1.0_f32, 0.0_f32, 1.0_f32, 1.0_f32, 0.0_f32, 1.0_f32,
             ];
 

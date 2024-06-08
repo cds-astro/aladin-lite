@@ -11,7 +11,7 @@ pub trait Query: Sized {
 pub type QueryId = String;
 
 use al_core::image::format::ImageFormatType;
-use al_core::log::console_log;
+
 #[derive(Eq, Hash, PartialEq, Clone)]
 pub struct Tile {
     pub cell: HEALPixCell,

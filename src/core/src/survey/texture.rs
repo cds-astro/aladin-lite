@@ -188,7 +188,6 @@ impl<'a> TextureUniforms<'a> {
 }
 
 use al_core::{
-    log::console_log,
     shader::{SendUniforms, ShaderBound},
 };
 impl<'a> SendUniforms for TextureUniforms<'a> {

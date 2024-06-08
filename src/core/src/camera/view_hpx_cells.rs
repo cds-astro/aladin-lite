@@ -9,56 +9,6 @@ use crate::HEALPixCoverage;
 
 use std::ops::Range;
 
-use al_api::cell::HEALPixCellProjeted;
-use al_core::log::console_log;
-
-pub fn project(
-    cell: HEALPixCellProjeted,
-    camera: &CameraViewPort,
-    projection: &ProjectionType,
-) -> Option<HEALPixCellProjeted> {
-    match projection {
-        /*ProjectionType::Hpx(_) => {
-            let tri_idx_in_collignon_zone = |x: f64, y: f64| -> u8 {
-                let zoom_factor = camera.get_clip_zoom_factor() as f32;
-                let x = (((x as f32) / camera.get_width()) - 0.5) * zoom_factor;
-                let y = (((y as f32) / camera.get_height()) - 0.5) * zoom_factor;
-
-                let x_zone = ((x + 0.5) * 4.0).floor() as u8;
-                x_zone + 4 * ((y > 0.0) as u8)
-            };
-
-            let is_in_collignon = |_x: f64, y: f64| -> bool {
-                let y = (((y as f32) / camera.get_height()) - 0.5)
-                    * (camera.get_clip_zoom_factor() as f32);
-                !(-0.25..=0.25).contains(&y)
-            };
-
-            if is_in_collignon(cell.vx[0], cell.vy[0])
-                && is_in_collignon(cell.vx[1], cell.vy[1])
-                && is_in_collignon(cell.vx[2], cell.vy[2])
-                && is_in_collignon(cell.vx[3], cell.vy[3])
-            {
-                let all_vertices_in_same_collignon_region =
-                    tri_idx_in_collignon_zone(cell.vx[0], cell.vy[0])
-                        == tri_idx_in_collignon_zone(cell.vx[1], cell.vy[1])
-                        && (tri_idx_in_collignon_zone(cell.vx[0], cell.vy[0])
-                            == tri_idx_in_collignon_zone(cell.vx[2], cell.vy[2]))
-                        && (tri_idx_in_collignon_zone(cell.vx[0], cell.vy[0])
-                            == tri_idx_in_collignon_zone(cell.vx[3], cell.vy[3]));
-                if !all_vertices_in_same_collignon_region {
-                    None
-                } else {
-                    Some(cell)
-                }
-            } else {
-                Some(cell)
-            }
-        }*/
-        _ => Some(cell),
-    }
-}
-
 pub(super) struct ViewHpxCells {
     hpx_cells: [HpxCells; NUM_COOSYSTEM],
     reg_frames: [u8; NUM_COOSYSTEM],
@@ -162,7 +112,6 @@ impl Default for HpxCells {
     }
 }
 
-use crate::camera::CameraViewPort;
 use al_api::coo_system::{CooSystem, NUM_COOSYSTEM};
 
 use super::FieldOfView;

@@ -1,4 +1,4 @@
-use cgmath::BaseFloat;
+
 use std::ops::RangeInclusive;
 
 use super::triangle::Triangle;

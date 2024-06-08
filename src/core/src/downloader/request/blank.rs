@@ -38,7 +38,6 @@ impl From<PixelMetadataRequest> for RequestType {
     }
 }
 
-use crate::downloader::query::Query;
 use crate::renderable::Url;
 use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;

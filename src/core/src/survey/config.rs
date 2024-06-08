@@ -1,5 +1,5 @@
 use al_api::hips::ImageExt;
-use al_core::log::console_log;
+
 use al_core::{image::format::ImageFormat, image::raw::ImageBuffer};
 
 #[derive(Debug)]

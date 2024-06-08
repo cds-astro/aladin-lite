@@ -6,7 +6,6 @@ use crate::downloader::query;
 use al_core::image::ImageType;
 
 use super::{Request, RequestType};
-use crate::downloader::query::Query;
 use crate::downloader::QueryId;
 
 pub struct TileRequest {

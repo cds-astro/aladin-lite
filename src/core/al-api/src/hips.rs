@@ -47,6 +47,7 @@ pub struct HiPSProperties {
     tile_size: i32,
     formats: Vec<ImageExt>,
 
+    #[allow(unused)]
     is_planetary_body: Option<bool>,
 
     bitpix: Option<i32>,
@@ -58,7 +59,9 @@ pub struct HiPSProperties {
     hips_initial_dec: Option<f64>,
 
     // Parametrable by the user
+    #[allow(unused)]
     min_cutout: Option<f32>,
+    #[allow(unused)]
     max_cutout: Option<f32>,
 
     creator_did: String,

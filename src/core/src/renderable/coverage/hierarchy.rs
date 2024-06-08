@@ -53,7 +53,7 @@ impl MOCHierarchy {
         while d > 0 {
             //self.mocs[d].cell_indices_in_view(camera);
 
-            if (crate::healpix::utils::MEAN_HPX_CELL_RES[d] > hpx_cell_size_rad) {
+            if crate::healpix::utils::MEAN_HPX_CELL_RES[d] > hpx_cell_size_rad {
                 break;
             }
 

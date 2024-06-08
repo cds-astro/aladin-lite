@@ -2,7 +2,7 @@ use crate::math::lonlat::LonLatT;
 use crate::math::PI;
 use crate::math::{self, lonlat::LonLat};
 
-use cgmath::{Vector3, Vector4};
+use cgmath::{Vector4};
 use moclib::{
     moc::range::{CellSelection, RangeMOC},
     qty::Hpx,

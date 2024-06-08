@@ -1,8 +1,8 @@
 use crate::domain::sdf::ProjDefType;
-use crate::survey::config::HiPSConfig;
-use crate::{camera::CameraViewPort, math::projection::Projection};
 
-use al_api::hips::HiPSCfg;
+use crate::{math::projection::Projection};
+
+
 use al_core::VecData;
 use al_core::{shader::ShaderBound, Texture2D, VertexArrayObject, WebGlContext};
 

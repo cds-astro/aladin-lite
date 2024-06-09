@@ -91,7 +91,7 @@ export class ContextMenu extends DOMElement {
         ContextMenu._menus.push(this);
     }
 
-    static lastHoveredItem;
+    //static lastHoveredItem;
 
     _attachOption(target, opt, e, cssStyle) {
         let item = document.createElement('li');
@@ -202,7 +202,8 @@ export class ContextMenu extends DOMElement {
         }
 
         if (opt.subMenu && opt.subMenu.length > 0) {
-            item.appendChild(new Icon({url: nextIconSvg, size: 'small', monochrome: true}).element());
+            let iconElt = new Icon({url: nextIconSvg, size: 'small', monochrome: true}).element();
+            item.appendChild(iconElt);
             item.style.display = 'flex';
             item.style.alignItems = 'center';
             item.style.justifyContent = 'space-between';
@@ -218,18 +219,26 @@ export class ContextMenu extends DOMElement {
         }
 
         if (opt.subMenu) {
+            // User
             item.addEventListener('click', e => {
                 e.stopPropagation();
 
-                if (item.parentNode) {
-                    let subMenus = item.parentNode.querySelectorAll(".aladin-context-sub-menu")
-                    for (let subMenuChild of subMenus) {
-                        subMenuChild.style.display = 'none';
-                    }  
+                /* Add the ability to deploy the menu/sub-menus for touch screen devices */
+                if (Utils.hasTouchScreen()) {
+                    let subMenu = item.querySelector(".aladin-context-sub-menu")
+                    let subMenuIsShown = subMenu.style.display === "block";
+    
+                    if (item.parentNode) {
+                        let subMenus = item.parentNode.querySelectorAll(".aladin-context-sub-menu")
+                        for (let subMenuChild of subMenus) {
+                            subMenuChild.style.display = 'none';
+                        }
+                    }
+    
+                    if (!subMenuIsShown) {
+                        subMenu.style.setProperty('display', 'block');
+                    }
                 }
-
-                item.querySelector(".aladin-context-sub-menu")
-                    .style.display = 'block';
 
                 if (opt.action && (!opt.disabled || opt.disabled === false)) {
                     opt.action(e, self);
@@ -278,7 +287,7 @@ export class ContextMenu extends DOMElement {
                 opt.hover(e, item);
             }
 
-            if (ContextMenu.lastHoveredItem) {
+            /*if (ContextMenu.lastHoveredItem) {
                 let parent = ContextMenu.lastHoveredItem.parentNode;
                 if (parent && (areSiblings(parent, item) || item.contains(parent) || item === parent)) {
                     ContextMenu.lastHoveredItem.style.display = 'none';
@@ -289,7 +298,7 @@ export class ContextMenu extends DOMElement {
             if (subMenu) {
                 subMenu.style.display = 'block';
                 ContextMenu.lastHoveredItem = subMenu;
-            }
+            }*/
         })
 
         item.addEventListener('mouseout', e => {
@@ -308,44 +317,47 @@ export class ContextMenu extends DOMElement {
         target.appendChild(item);
     }
 
-    _subMenuDisplay(parent) {
-        const {offsetWidth, offsetHeight} = this.aladin.aladinDiv;
-        const aladinRect = this.aladin.aladinDiv.getBoundingClientRect();
+    _subMenuDisplay(parent, child) {
+        parent.style.display = "block";
+        child.style.display = "block";
+    
+        if (child.classList.contains('aladin-context-sub-menu')) {
+            const aladinRect = this.aladin.aladinDiv.getBoundingClientRect();
 
-        let leftDir = 0;
-        let topDir = 0;
+            let o = parent.getBoundingClientRect();
+            let c = child.getBoundingClientRect();
 
-        for (let item of parent.children) {
-            item.style.display = "block";
+            child.classList.remove('left', 'right', 'top', 'bottom');
 
-            let r = item.getBoundingClientRect();
+            // first check if there is place towards the right, which is the desired behaviour
+            console.log( parent, o)
+            if (aladinRect.right - (o.x + o.width) >= c.width) {
+                // do nothing
+                console.log("right")
+            // a good second option would be to plot it on the bottom
+            } else if (aladinRect.bottom - (o.y + o.height) >= c.height) {
+                child.classList.add('bottom');
 
-            if (r.x - aladinRect.left <= aladinRect.right - (r.x + r.width)) {
-                leftDir -= 1;
+                console.log("bottom")
+
             } else {
-                leftDir += 1;
+                console.log("else")
             }
 
-            if (r.y - aladinRect.top <= offsetHeight / 2.0) {
+            /*if (r.y - aladinRect.top <= offsetHeight / 2.0) {
                 topDir -= 1;
             } else {
                 topDir += 1;
-            }
-
-            item.style.display = "";
+            }*/
+            
         }
 
-        if (leftDir > 0) {
-            this.el.classList.add('left');
-        } else {
-            this.el.classList.add('right');
+        for (let grandChild of child.children) {
+            this._subMenuDisplay(child, grandChild);
         }
 
-        if (topDir > 0) {
-            this.el.classList.add('top');
-        } else {
-            this.el.classList.add('bottom');
-        }
+        child.style.display = "";
+        parent.style.display = "";
     }
 
     show(options) {
@@ -370,10 +382,9 @@ export class ContextMenu extends DOMElement {
             {left: mouseCoords.x, top: mouseCoords.y};
         this.setPosition({...position, aladin: this.aladin})
 
-        this.el.classList.remove('left')
-        this.el.classList.remove('top')
-
-        this._subMenuDisplay(this.el)
+        for (let childEl of this.el.children) {
+            this._subMenuDisplay(this.el, childEl);
+        }
 
         super._show()
     }

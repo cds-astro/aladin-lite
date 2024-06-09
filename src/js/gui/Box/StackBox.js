@@ -539,7 +539,17 @@ export class OverlayStackBox extends Box {
                             self.hipsSelectorBox._show({
                                 position: self.position,
                             });*/
-                            self.aladin.addNewImageLayer();
+                            self.aladin.addNewImageLayer(
+                                A.imageHiPS('CDS/P/DSS2/color', {
+                                    errorCallback: (e) => {
+                                        aladin.addStatusBarMessage({
+                                            duration: 2000,
+                                            type: 'info',
+                                            message: 'DSS2 colored HiPS could not plot',
+                                        })
+                                    }
+                                })
+                            );
                         },
                     },
                     {

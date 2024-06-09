@@ -107,9 +107,6 @@ export class Location extends DOMElement {
                 }
             },
             value: parseCoo(),
-            cssStyle: {
-                borderRadius: "0px 5px 5px 0px",
-            }
         });
 
         let copyBtn = new ActionButton({
@@ -122,15 +119,8 @@ export class Location extends DOMElement {
             action(e) {
                 self.copyCoordinatesToClipboard()
             },
-            cssStyle: {
-                height: '1.4rem',
-                width: '1.4rem',
-                paddingRight: '0.2rem',
-                borderRadius: "5px 0px 0px 5px",
-                borderRight: 'none',
-            }
         })
-        copyBtn.element().style.marginRight = 0;
+        copyBtn.el.classList.add("aladin-location-copy");
  
         let el = Layout.horizontal({
             layout: [

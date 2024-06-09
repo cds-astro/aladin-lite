@@ -11,7 +11,7 @@
     There can be a more supported alternative here: https://caniuse.com/?search=grid-template-columns */
     /*container-type: inline-size;*/
 
-    font-size: 1rem;
+    font-size: 0.9rem;
 }
 
 .aladin-imageCanvas {
@@ -58,7 +58,6 @@
 
 .aladin-measurement-div {
     font-family: monospace;
-    font-size: 0.8rem;
 
     display: block;
 
@@ -132,7 +131,7 @@
     overflow-y: auto;
     overflow-x: hidden;
     /*font-family: monospace;*/
-	font-size: 11px;
+
     color: #000;
 }
 .aladin-marker-measurement table {
@@ -205,8 +204,8 @@
     border-radius: 2px;
     position: absolute;
     max-width: 15em;
-
     font-size: 0.8rem;
+
     font-family: monospace;
     background: #fff;
 
@@ -234,7 +233,7 @@ canvas {
 }
 
 .aladin-box-title {
-  font-size: 16px;
+  font-size: 1.0rem;
   /*font-family: Verdana, Geneva, Tahoma, sans-serif;*/
   line-height: 1.5em;
   font-weight: bold;
@@ -256,7 +255,7 @@ canvas {
     border: 1px solid #AEAEAE!important;
 
     border-radius: 3px;
-    font-size: 13px!important;
+    font-size: 1rem;
     background: #fff!important;
     margin-right: 0.2em!important;
 
@@ -277,7 +276,7 @@ canvas {
     border: 1px solid #AEAEAE;
     border-radius: 3px;
     background: #fff;
-    font-size: 15px;
+    font-size: 1.0rem;
     font-weight: bold;
     line-height: 0px;
     padding: 8px 2px;       
@@ -313,7 +312,8 @@ canvas {
     margin: 0;
     padding: 0.2rem;
 
-    font-size: 1rem;
+    font-size: inherit;
+
     font-weight: normal;
     text-align: center;
     white-space: nowrap;
@@ -418,7 +418,6 @@ canvas {
 .aladin-input-text.search {
     background-image:none;
     text-indent: 0rem;
-    font-size: 1rem;
     line-height: 1.2rem;
 }
 
@@ -541,7 +540,6 @@ canvas {
 
 .aladin-window {
     /*font-family: Verdana, Geneva, Tahoma, sans-serif;*/
-    font-size: 13px;
     background: white;
     border: 1px solid #bbb;
     border-radius: 2px;
@@ -560,7 +558,6 @@ canvas {
 
 .aladin-popup {
     /*font-family: Verdana, Geneva, Tahoma, sans-serif;*/
-    font-size: 13px;
     background: white;
     border: 1px solid #bbb;
     border-radius: 2px;
@@ -637,8 +634,6 @@ canvas {
     scrollbar-width: none;
 
     max-width: 20rem;
-
-    font-size: 1rem;
 }
 
 .aladin-sp-title a {
@@ -646,14 +641,9 @@ canvas {
     color: #317d8d;
 }
 
-.aladin-sp-content {
-    font-size: 1rem;
-}
-
 .aladin-sp-content a {
     text-decoration: none;
     color: #478ade;
-    font-size: 11px;
 }
 
 .aladin-cuts {
@@ -705,7 +695,6 @@ canvas {
     padding: 0;
 
     box-shadow: 0 0 8px rgba(0,0,0,0.2);
-    font-size: 0.9rem;
     /*font-family: Verdana, Geneva, Tahoma, sans-serif;*/
 
     border-radius: 3px;
@@ -754,10 +743,20 @@ canvas {
     margin-left: 2px;
 }
 
+.aladin-context-menu-item:hover > .aladin-context-sub-menu {
+    display: block;
+}
 
-.aladin-context-menu-item:hover {
- /* This is for the tooltip to appear outside the item, i.e. over the sibling item */
+.aladin-context-menu-item:hover  {
+    color: greenyellow;
+}
+
+.aladin-context-menu-item:not(hover)  {
     color: white;
+}
+
+.aladin-context-menu-item .aladin-context-sub-menu {
+    display: none;
 }
 
 .aladin-context-menu .aladin-context-menu-item span {
@@ -776,19 +775,29 @@ canvas {
     display: block;
 }
 */
-.aladin-context-menu.left .aladin-context-sub-menu {
+.aladin-context-menu .aladin-context-sub-menu.left {
     left: 0;
     transform: translateX(-100%);
 }
 
-.aladin-context-menu.top .aladin-context-sub-menu {
+.aladin-context-menu .aladin-context-sub-menu.right {
+    right: 0;
+}
+
+.aladin-context-menu .aladin-context-sub-menu.top {
     top: 100%;
     transform: translateY(-100%);
 }
 
-.aladin-context-menu.left.top .aladin-context-sub-menu {
+.aladin-context-menu .aladin-context-sub-menu.bottom {
+    top: 100%;
+    left: 0;
+}
+
+.aladin-context-menu .aladin-context-sub-menu.left.top {
     transform: translate(-100%, -100%);
 }
+
 
 .aladin-reticle {
     position: absolute;
@@ -816,7 +825,6 @@ canvas {
     padding: 0.3rem;
     border-radius: 5px;
     font-family: monospace;
-    font-size: 1rem;
     box-sizing: border-box;
 }
 
@@ -835,14 +843,14 @@ canvas {
     /* Reset */
     border: 1px solid white;
     outline: 0;
-    font: inherit;
+    /*font: inherit;*/
     /* Personalize */
     padding: 2px;
+    font-size: inherit;
     border-radius: 0.25em;
     box-shadow: 0 0 1em 0 rgba(0, 0, 0, 0.2);
     cursor: pointer;
     font-family: monospace;
-    font-size: 1rem;
     width: 100%;
     /* <option> colors */
     /* Remove focus outline */
@@ -989,7 +997,6 @@ canvas {
     position: absolute;
 
     /*font-family: Verdana, Geneva, Tahoma, sans-serif;*/
-    font-size: 0.9rem;
 
     transition-delay: 100ms;
 }
@@ -1097,10 +1104,9 @@ canvas {
 
     color: white;
 
-    font-size: 1rem;
     border-radius: 5px;
     height: 1.7rem;
-    width: 5rem;
+    width: 4.5rem;
 }
 
 /*
@@ -1125,18 +1131,29 @@ canvas {
 .aladin-location {
     position: absolute;
     top: 0.2rem;
-    left: 5.4rem;
+    left: 5.0rem;
     font-family: monospace;
 
     color: white;
 
-    font-size: 1rem;
     border-radius: 5px;
     height: 1.7rem;
 }
 
+.aladin-input-text {
+    font-size: inherit;
+}
+
 .aladin-location .aladin-input-text {
-    width: 15rem;
+    width: 13.5rem;
+    height: 100%;
+    border-radius: 0 0.4rem 0.4rem 0;
+}
+
+.aladin-location .aladin-location-copy {
+    margin-right: -0.2rem;
+    border-radius: 0.4rem 0px 0px 0.4rem;
+    border-right: none;
 }
 
 .aladin-fov {
@@ -1148,7 +1165,6 @@ canvas {
 
     font-family: monospace;
 
-    font-size: 1rem;
     border-radius: 5px;
     line-height: 1.7rem;
 }
@@ -1224,6 +1240,35 @@ canvas {
 }
 
 /* Media query */
+@media screen and (max-width:480px)  {
+    /* smartphones, Android phones, landscape iPhone */
+    .aladin-location > .aladin-btn {
+        display: none;
+    }
+
+    .aladin-location > .aladin-input-text {
+        border-radius: 0.4rem;
+    }
+
+    .aladin-projection-control {
+        display: none;
+    }
+
+    .aladin-location .aladin-location-copy {
+        display: none;
+    }
+}
+
+@media screen and (max-width:370px)  {
+    /* smartphones, Android phones, landscape iPhone */
+    .aladin-location {
+        left: 0.2rem;
+    }
+    .aladin-cooFrame {
+        display: none;
+    }
+}
+
 /*@media screen and (max-width: 31rem) {
     .aladin-projection-control {
         display: none;

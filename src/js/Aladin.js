@@ -1988,7 +1988,7 @@ aladin.on("positionChanged", ({ra, dec}) => {
      * Select specific objects in the view
      * 
      * @memberof Aladin
-     * @param {?Array.<Source, Footprint, Circle, Ellipse, Polyline, Line>} objects - If null is passed then nothing will be selected and sources already selected will be deselected
+     * @param {?Array.<Source, Footprint, Circle, Ellipse, Polyline, Vector>} objects - If null is passed then nothing will be selected and sources already selected will be deselected
      */
     Aladin.prototype.selectObjects = function (objects) {
         if (!objects) {

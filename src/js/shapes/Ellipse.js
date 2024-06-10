@@ -36,8 +36,8 @@ export let Ellipse = (function() {
     /**
      * Constructor function for creating a new ellipse.
      *
-     * @constructor
-     * @memberof Ellipse
+     * @class
+     * @constructs Ellipse
      * @param {number[]} centerRaDec - right-ascension/declination 2-tuple of the ellipse's center in degrees
      * @param {number} a - half-major axis length in degrees
      * @param {number} b - half-minor axis length in degrees

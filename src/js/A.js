@@ -33,7 +33,7 @@ import { GraphicOverlay } from "./Overlay.js";
 import { Circle } from "./shapes/Circle.js";
 import { Ellipse } from "./shapes/Ellipse.js";
 import { Polyline } from "./shapes/Polyline.js";
-import { Line } from "./shapes/Line.js";
+import { Vector } from "./shapes/Vector.js";
 
 import { Catalog } from "./Catalog.js";
 import { ProgressiveCat } from "./ProgressiveCat.js";
@@ -192,14 +192,7 @@ A.marker = function (ra, dec, options, data) {
  * @returns {Polyline}
  */
 A.polygon = function (raDecArray, options) {
-    const numVertices = raDecArray.length;
-
-    if (numVertices < 3) {
-        // Cannot define a polygon from that
-        throw 'Cannot define a polygon from less than 3 vertices';
-    }
-
-    const lastVertexIdx = numVertices - 1;
+    const lastVertexIdx = raDecArray.length - 1;
 
     // User gave a closed polygon, so we remove the last vertex
     if (raDecArray[0][0] == raDecArray[lastVertexIdx][0] && raDecArray[0][1] == raDecArray[lastVertexIdx][1]) {
@@ -208,7 +201,7 @@ A.polygon = function (raDecArray, options) {
     }
 
     options = options || {};
-    options.closed = true;
+    //options.closed = true;
 
     return new Polyline(raDecArray, options);
 };
@@ -269,26 +262,6 @@ A.ellipse = function (ra, dec, radiusRaDeg, radiusDecDeg, rotationDeg, options) 
 };
 
 /**
- * Creates a line shape
- *
- * @function
- * @memberof A
- * @name line
- *
- * @param {number} ra1 - Right Ascension (RA) coordinate of the center in degrees.
- * @param {number} dec1 - Declination (Dec) coordinate of the center in degrees.
- * @param {number} ra2 - Right Ascension (RA) coordinate of the center in degrees.
- * @param {number} dec2 - Declination (Dec) coordinate of the center in degrees.
- * @param {CooFrame} [frame] - Frame in which the coordinates are given. If none, the frame used is icrs/j2000.
- * @param {ShapeOptions} options - Options for configuring the line.
- * 
- * @returns {Line}
- */
- A.line = function (ra1, dec1, ra2, dec2, frame, options) {
-    return new Line(ra1, dec1, ra2, dec2, frame, options);
-};
-
-/**
  * Creates a vector shape
  *
  * @function
@@ -301,12 +274,12 @@ A.ellipse = function (ra, dec, radiusRaDeg, radiusDecDeg, rotationDeg, options) 
  * @param {number} dec2 - Declination (Dec) coordinate of the center in degrees.
  * @param {ShapeOptions} options - Options for configuring the vector.
  * 
- * @returns {Line}
+ * @returns {Vector}
  */
 A.vector = function (ra1, dec1, ra2, dec2, options) {
     options['arrow'] = true;
 
-    return A.line(ra1, dec1, ra2, dec2, options);
+    return new Vector(ra1, dec1, ra2, dec2, options);
 }
 
 /**

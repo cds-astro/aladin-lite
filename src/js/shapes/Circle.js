@@ -31,18 +31,12 @@
 import { Utils } from "./../Utils";
 import { GraphicOverlay } from "./../Overlay.js";
 
-/**
- * Represents an circle shape
- *
- * @namespace
- * @typedef {Object} Circle
- */
 export let Circle = (function() {
     /**
      * Constructor function for creating a new circle.
      *
-     * @constructor
-     * @memberof Circle
+     * @class
+     * @constructs Circle
      * @param {number[]} centerRaDec - right-ascension/declination 2-tuple of the circle's center in degrees
      * @param {number} radius - radius in degrees
      * @param {ShapeOptions} options - Configuration options for the circle

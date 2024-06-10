@@ -51,12 +51,6 @@ import { ProjectionEnum } from "../ProjectionEnum.js";
 * @property {string} [options.hoverColor] -  A hovered color
 */
 
-/**
- * Represents a polyline shape
- *
- * @namespace
- * @typedef {Object} Polyline
- */
 export let Polyline = (function() {
 
     function _calculateMag2ForNoSinProjections(l, view) {
@@ -106,10 +100,10 @@ export let Polyline = (function() {
     }*/
 
     /**
-     * Constructor function for creating a new polyline.
+     * Represents a polyline shape
      *
-     * @constructor
-     * @memberof Polyline
+     * @class
+     * @constructs Polyline
      * @param {Array.<number[]>} raDecArray - right-ascension/declination 2-tuple array describing the polyline's vertices in degrees
      * @param {ShapeOptions} options - Configuration options for the polyline. Additional properties:
      * @param {boolean} [options.closed=false] - Close the polyline, default to false.
@@ -348,47 +342,6 @@ export let Polyline = (function() {
                     return true;
                 };
             }
-        /*} else if (view.projection === ProjectionEnum.HPX) {
-            drawLine = (v0, v1) => {
-                const line = new Line(v0.x, v0.y, v1.x, v1.y);
-
-                if (_isAcrossCollignonZoneForHpxProjection(line, view)) {
-                    return;
-                } 
-
-                if (line.isInsideView(view.width, view.height)) {
-                    const mag2 = _calculateMag2ForNoSinProjections(line, view);
-
-                    if (mag2 < 0.1) {
-                        line.draw(ctx);
-                    }
-                }
-            };
-
-            if (this.closed && this.fill) {
-                fillPoly = (v0, v1, index) => {
-                    const line = new Line(v0.x, v0.y, v1.x, v1.y);
-
-                    if (_isAcrossCollignonZoneForHpxProjection(line, view)) {
-                        return;
-                    } 
-
-                    const mag2 = _calculateMag2ForNoSinProjections(line, view);
-
-                    if (mag2 < 0.1) {
-                        if (index === 0) {
-                            ctx.beginPath();
-                            ctx.moveTo(line.x1, line.y1);
-                        } else {
-                            ctx.lineTo(line.x1, line.y1);
-                        }
-
-                        return true;
-                    } else {
-                        return false;
-                    }
-                };
-            }*/
         } else {
             drawLine = (v0, v1) => {
                 const l = {x1: v0.x, y1: v0.y, x2: v1.x, y2: v1.y};

@@ -30,18 +30,12 @@ import { ALEvent } from "./events/ALEvent.js";
 * @property {number} [options.opacity=1.0] - The opacity of the MOC
 */
 
-/**
- * Represents a Multi-Order-Coverage with configurable options for display and interaction.
- *
- * @namespace
- * @typedef {Object} MOC
- */
 export let MOC = (function() {
     /**
-     * Constructor function for creating a new catalog instance.
+     * Represents a Multi-Order-Coverage with configurable options for display and interaction.
      *
-     * @constructor
-     * @memberof MOC
+     * @class
+     * @constructs MOC
      * @param {MOCOptions} options - Configuration options for the MOC.
      */
     let MOC = function(options) {

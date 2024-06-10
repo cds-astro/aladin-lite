@@ -45,18 +45,12 @@ import { Color } from './Color';
 * @property {Array.<number>} [options.lineDash=[]] - Dash line option. See the segments property {@link https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/setLineDash#segments| here}
 */
 
-/**
- * Represents an overlay containing Footprints, whether it is 
- *
- * @namespace
- * @typedef {Object} GraphicOverlay
- */
 export let GraphicOverlay = (function() {
     /**
-     * Constructor function for creating a new graphical overlay instance.
+     * Represents an overlay containing Footprints, whether it is 
      *
-     * @constructor
-     * @memberof GraphicOverlay
+     * @class
+     * @constructs GraphicOverlay
      * @param {GraphicOverlayOptions} options - Configuration options for the overlay.
      */
    let GraphicOverlay = function(options) {

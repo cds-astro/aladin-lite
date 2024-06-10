@@ -180,7 +180,7 @@ export let DefaultActionsForContextMenu = (function () {
 
                                 files.forEach(file => {
                                     const url = URL.createObjectURL(file);
-                                    A.catalogFromURL(url, { name: file.name, onClick: 'showTable'}, (catalog) => {
+                                    A.catalogFromURL(url, { name: file.name, hoverColor: 'yellow', onClick: 'showTable'}, (catalog) => {
                                         a.addCatalog(catalog);
                                     }, false);
                                 });

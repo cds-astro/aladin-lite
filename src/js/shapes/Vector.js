@@ -22,9 +22,9 @@
 /******************************************************************************
  * Aladin Lite project
  * 
- * Class Line
+ * Class Vector
  * 
- * A line is a graphical overlay connecting 2 points
+ * A vector is a graphical overlay connecting 2 points with end or begin arrows on it
  * 
  * Author: Matthieu Baumann[CDS]
  * 
@@ -34,28 +34,24 @@ import { Utils } from '../Utils';
 import { GraphicOverlay } from "../Overlay.js";
 import { Ellipse } from "./Ellipse.js";
 
-/**
- * Represents an line shape
- *
- * @namespace
- * @typedef {Object} Line
- */
-export let Line = (function() {
+export let Vector = (function() {
     /**
-     * Constructor function for creating a new line.
+     * Represents an vector.
+     * 
+     * A vector is a graphical overlay connecting 2 sky positions with end or begin arrows on it
      *
-     * @constructor
-     * @memberof Line
+     * @class
+     * @constructs Vector
      * @param {number} ra1 - Right Ascension (RA) coordinate of the center in degrees.
      * @param {number} dec1 - Declination (Dec) coordinate of the center in degrees.
      * @param {number} ra2 - Right Ascension (RA) coordinate of the center in degrees.
      * @param {number} dec2 - Declination (Dec) coordinate of the center in degrees.
-     * @param {ShapeOptions} options - Options for configuring the line. Additional properties:
+     * @param {ShapeOptions} options - Options for configuring the vector. Additional properties:
      * @param {boolean} [options.arrow=false] - Add an arrow pointing from (ra1, dec1) to (ra2, dec2)
      * 
-     * @returns {Line} - The line shape object
+     * @returns {Vector} - The vector shape object
      */
-    let Line = function(ra1, dec1, ra2, dec2, options) {
+    let Vector = function(ra1, dec1, ra2, dec2, options) {
         options = options || {};
         this.color     = options['color']     || undefined;
         this.opacity   = options['opacity']   || undefined;
@@ -65,7 +61,7 @@ export let Line = (function() {
         this.arrow = options["arrow"] === undefined ? false : options["arrow"];
 
         // All graphics overlay have an id
-        this.id = 'line-' + Utils.uuidv4();
+        this.id = ' vector-' + Utils.uuidv4();
 
         this.overlay = null;
 
@@ -79,7 +75,7 @@ export let Line = (function() {
         this.dec2 = dec2;
     };
 
-    Line.prototype = {
+    Vector.prototype = {
         setOverlay: Polyline.prototype.setOverlay,
         isFootprint: Polyline.prototype.isFootprint,
         show: Polyline.prototype.show,
@@ -154,8 +150,6 @@ export let Line = (function() {
                 xh = v2[0];
                 yh = v2[1];
 
-                //ctx.moveTo(xh, yh);
-
                 var t = angle + Math.PI * 3 / 4;
                 x = arrowRad * Math.cos(t) + v2[0];
                 y = arrowRad * Math.sin(t) + v2[1];
@@ -184,5 +178,5 @@ export let Line = (function() {
         };*/
     };
 
-    return Line;
+    return Vector;
 })();

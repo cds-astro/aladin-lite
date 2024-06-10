@@ -34,23 +34,22 @@ import { VOTable } from "./vo/VOTable.js";
 import { ObsCore } from "./vo/ObsCore.js";
 import A from "./A.js";
 import { Polyline } from "./shapes/Polyline.js";
-import { Line } from "./shapes/Line.js";
+import { Vector } from "./shapes/Vector.js";
 import { Ellipse } from "./shapes/Ellipse.js";
 import { Circle } from "./shapes/Circle.js";
 import { Footprint } from "./Footprint.js";
 
 /**
- * Represents a catalog with configurable options for display and interaction.
  *
  * @namespace
  * @typedef {Object} Catalog
  */
 export let Catalog = (function () {
     /**
-     * Constructor function for creating a new catalog instance.
+     * Represents a catalog with configurable options for display and interaction.
      *
-     * @constructor
-     * @memberof Catalog
+     * @class
+     * @constructs Catalog
      * @param {Object} options - Configuration options for the catalog.
      * @param {string} options.url - The URL of the catalog.
      * @param {string} [options.name="catalog"] - The name of the catalog.
@@ -583,7 +582,7 @@ export let Catalog = (function () {
                         shape instanceof Circle ||
                         shape instanceof Polyline ||
                         shape instanceof Ellipse ||
-                        shape instanceof Line
+                        shape instanceof Vector
                     ) {
                         shape = new Footprint(shape, source);
                     }

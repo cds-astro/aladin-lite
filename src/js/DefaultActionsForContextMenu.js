@@ -34,6 +34,7 @@ import { CatalogQueryBox } from "./gui/Box/CatalogQueryBox.js";
 import cameraIconUrl from '../../assets/icons/camera.svg'
 import targetIconUrl from '../../assets/icons/target.svg';
 import uploadIconUrl from '../../assets/icons/upload.svg';
+import selectIconUrl from '../../assets/icons/select.svg';
 
 export let DefaultActionsForContextMenu = (function () {
 
@@ -164,7 +165,11 @@ export let DefaultActionsForContextMenu = (function () {
 
                                 files.forEach(file => {
                                     const url = URL.createObjectURL(file);
+<<<<<<< HEAD
                                     let moc = A.MOCFromURL(url, { name: file.name, edge: true });
+=======
+                                    let moc = A.MOCFromURL(url, { name: file.name, opacity: 0.4 });
+>>>>>>> cfa6574e (fix context sub menu deploy for small screen)
                                     a.addMOC(moc);
                                 });
                             };
@@ -186,6 +191,30 @@ export let DefaultActionsForContextMenu = (function () {
                                 });
                             };
                             input.click();
+                        }
+                    }
+                ]
+            },
+            {
+                label: {
+                    icon: {
+                        monochrome: true,
+                        url: selectIconUrl,
+                        size: 'small',
+                    },
+                    content: "Select sources"
+                },
+                subMenu: [
+                    {
+                        label: 'Circular',
+                        action(o) {
+                            a.select('circle', selectObjects)
+                        }
+                    },
+                    {
+                        label: 'Rectangular',
+                        action(o) {        
+                            a.select('rect', selectObjects)
                         }
                     }
                 ]
@@ -218,23 +247,6 @@ export let DefaultActionsForContextMenu = (function () {
                     hips2fitsUrl += 'ra=' + radec[0] + '&dec=' + radec[1] + '&fov=' + fov + '&projection=' + proj + '&hips=' + encodeURIComponent(hipsId);
                     window.open(hips2fitsUrl, '_blank');
                 }
-            },
-            {
-                label: "Select sources",
-                subMenu: [
-                    {
-                        label: 'Circular',
-                        action(o) {
-                            a.select('circle', selectObjects)
-                        }
-                    },
-                    {
-                        label: 'Rectangular',
-                        action(o) {        
-                            a.select('rect', selectObjects)
-                        }
-                    }
-                ]
             },
         ]
     }

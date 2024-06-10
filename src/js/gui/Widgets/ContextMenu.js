@@ -329,19 +329,15 @@ export class ContextMenu extends DOMElement {
 
             child.classList.remove('left', 'right', 'top', 'bottom');
 
-            // first check if there is place towards the right, which is the desired behaviour
-            console.log( parent, o)
+            // First check if there is place towards the right, which is the desired behaviour
             if (aladinRect.right - (o.x + o.width) >= c.width) {
-                // do nothing
-                console.log("right")
-            // a good second option would be to plot it on the bottom
+                // do nothing as it is by default considering this case
+            } else if (o.x - aladinRect.left >= c.width) {
+                child.classList.add('left');
             } else if (aladinRect.bottom - (o.y + o.height) >= c.height) {
                 child.classList.add('bottom');
-
-                console.log("bottom")
-
             } else {
-                console.log("else")
+                child.classList.add('top');
             }
 
             /*if (r.y - aladinRect.top <= offsetHeight / 2.0) {
@@ -378,8 +374,9 @@ export class ContextMenu extends DOMElement {
         let mouseCoords = options && options.e && Utils.relMouseCoords(options.e)
         // Set position
         const position =
-            options && options.position ||
-            {left: mouseCoords.x, top: mouseCoords.y};
+        options && options.position ||
+        {left: mouseCoords.x, top: mouseCoords.y};
+
         this.setPosition({...position, aladin: this.aladin})
 
         for (let childEl of this.el.children) {

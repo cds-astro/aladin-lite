@@ -204,7 +204,7 @@
     border-radius: 2px;
     position: absolute;
     max-width: 15em;
-    font-size: 0.8rem;
+    font-size: inherit;
 
     font-family: monospace;
     background: #fff;
@@ -694,7 +694,6 @@ canvas {
     margin: 0;
     padding: 0;
 
-    box-shadow: 0 0 8px rgba(0,0,0,0.2);
     /*font-family: Verdana, Geneva, Tahoma, sans-serif;*/
 
     border-radius: 3px;
@@ -784,14 +783,15 @@ canvas {
     right: 0;
 }
 
-.aladin-context-menu .aladin-context-sub-menu.top {
-    top: 100%;
-    transform: translateY(-100%);
-}
-
 .aladin-context-menu .aladin-context-sub-menu.bottom {
     top: 100%;
     left: 0;
+}
+
+.aladin-context-menu .aladin-context-sub-menu.top {
+    top: 0;
+    left: 0;
+    transform: translateY(-100%);
 }
 
 .aladin-context-menu .aladin-context-sub-menu.left.top {
@@ -845,7 +845,7 @@ canvas {
     outline: 0;
     /*font: inherit;*/
     /* Personalize */
-    padding: 2px;
+    padding: 0.2em;
     font-size: inherit;
     border-radius: 0.25em;
     box-shadow: 0 0 1em 0 rgba(0, 0, 0, 0.2);

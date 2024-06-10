@@ -1,4 +1,4 @@
-# User guide
+# Customization
 
 This is a guide for users wanting to customize the apparence of Aladin Lite user interface.
 

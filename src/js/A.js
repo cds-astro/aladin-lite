@@ -453,28 +453,6 @@ A.MOCFromPolygon= function (polygon, options, successCallback, errorCallback) {
 };
 
 /**
- * Represents options for configuring a catalog.
- *
- * @typedef {Object} CatalogOptions
- * @property {string} url - The URL of the catalog.
- * @property {string} [name="catalog"] - The name of the catalog.
- * @property {string} [color] - The color associated with the catalog.
- * @property {number} [sourceSize=8] - The size of the sources in the catalog.
- * @property {number} [markerSize=12] - The size of the markers associated with sources.
- * @property {string} [shape="square"] - The shape of the sources (e.g., "square", "circle", "rhomb", "triangle", "cross").
- * @property {number} [limit] - The maximum number of sources to display.
- * @property {function} [onClick] - The callback function to execute on a source click.
- * @property {boolean} [readOnly=false] - Whether the catalog is read-only.
- * @property {string} [raField] - The ID or name of the field holding Right Ascension (RA).
- * @property {string} [decField] - The ID or name of the field holding Declination (dec).
- * @property {function} [filter] - The filtering function for sources. Returns a boolean
- * @property {boolean} [displayLabel=false] - Whether to display labels for sources.
- * @property {string} [labelColumn] - The name of the column to be used for the label.
- * @property {string} [labelColor] - The color of the source labels.
- * @property {string} [labelFont="10px sans-serif"] - The font for the source labels.
- */
-
-/**
  * Represents a catalog with configurable options for display and interaction.
  *
  * @function

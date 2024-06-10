@@ -40,34 +40,35 @@ import { Circle } from "./shapes/Circle.js";
 import { Footprint } from "./Footprint.js";
 
 /**
+ * Represents options for configuring a catalog.
  *
- * @namespace
- * @typedef {Object} Catalog
+ * @typedef {Object} CatalogOptions
+* @property {string} url - The URL of the catalog.
+* @property {string} [name="catalog"] - The name of the catalog.
+* @property {string} [color] - The color associated with the catalog.
+* @property {number} [sourceSize=8] - The size of the sources in the catalog.
+* @property {string|function|Image|HTMLCanvasElement} [shape="square"] - The shape of the sources (can be, "square", "circle", "plus", "cross", "rhomb", "triangle").
+* @property {number} [limit] - The maximum number of sources to display.
+* @property {string|Function} [onClick] - Whether the source data appears as a table row or a in popup. Can be 'showTable' string, 'showPopup' string or a custom user defined function that handles the click.
+* @property {boolean} [readOnly=false] - Whether the catalog is read-only.
+* @property {string} [raField] - The ID or name of the field holding Right Ascension (RA).
+* @property {string} [decField] - The ID or name of the field holding Declination (dec).
+* @property {function} [filter] - The filtering function for sources.
+* @property {string} [selectionColor="#00ff00"] - The color to apply to selected sources in the catalog.
+* @property {string} [hoverColor=color] - The color to apply to sources in the catalog when they are hovered.
+* @property {boolean} [displayLabel=false] - Whether to display labels for sources.
+* @property {string} [labelColumn] - The name of the column to be used for the label.
+* @property {string} [labelColor=color] - The color of the source labels.
+* @property {string} [labelFont="10px sans-serif"] - The font for the source labels.
  */
+
 export let Catalog = (function () {
     /**
      * Represents a catalog with configurable options for display and interaction.
      *
      * @class
      * @constructs Catalog
-     * @param {Object} options - Configuration options for the catalog.
-     * @param {string} options.url - The URL of the catalog.
-     * @param {string} [options.name="catalog"] - The name of the catalog.
-     * @param {string} [options.color] - The color associated with the catalog.
-     * @param {number} [options.sourceSize=8] - The size of the sources in the catalog.
-     * @param {string|function|Image|HTMLCanvasElement} [options.shape="square"] - The shape of the sources (can be, "square", "circle", "plus", "cross", "rhomb", "triangle").
-     * @param {number} [options.limit] - The maximum number of sources to display.
-     * @param {string|Function} [options.onClick] - Whether the source data appears as a table row or a in popup. Can be 'showTable' string, 'showPopup' string or a custom user defined function that handles the click.
-     * @param {boolean} [options.readOnly=false] - Whether the catalog is read-only.
-     * @param {string} [options.raField] - The ID or name of the field holding Right Ascension (RA).
-     * @param {string} [options.decField] - The ID or name of the field holding Declination (dec).
-     * @param {function} [options.filter] - The filtering function for sources.
-     * @param {string} [options.selectionColor] - The color to apply to selected sources in the catalog.
-     * @param {string} [options.hoverColor] - The color to apply to sources in the catalog when they are hovered.
-     * @param {boolean} [options.displayLabel=false] - Whether to display labels for sources.
-     * @param {string} [options.labelColumn] - The name of the column to be used for the label.
-     * @param {string} [options.labelColor] - The color of the source labels.
-     * @param {string} [options.labelFont="10px sans-serif"] - The font for the source labels.
+     * @param {CatalogOptions} options - Configuration options for the catalog.
      *
      * @example
      * const catalogOptions = {

@@ -11,7 +11,7 @@
 
     A.init.then(() => {
         // Start up Aladin Lite
-        let aladin = A.aladin('#aladin-lite-div', {survey: "CDS/P/DSS2/color", target: 'Sgr a*', fov: 0.5, showContextMenu: true});
+        let aladin = A.aladin('#aladin-lite-div', {survey: "CDS/P/DSS2/color", target: 'Sgr a*', fov: 0.5, showContextMenu: true, showCooGrid: true});
         // This table contains a s_region column containing stcs expressed regions
         // that are automatically parsed
         aladin.addCatalog(A.catalogFromURL('https://aladin.cds.unistra.fr/AladinLite/doc/API/examples/data/alma-footprints.xml', {name: 'ALMA footprints', onClick: 'showTable', hoverColor: 'lightgreen'}));

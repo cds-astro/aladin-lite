@@ -6,6 +6,7 @@ use crate::webgl_ctx::WebGlContext;
 pub struct ArrayBufferInstanced {
     buffer: WebGlBuffer,
 
+    len: usize,
     num_packed_data: usize,
     offset_idx: u32,
 
@@ -39,7 +40,7 @@ impl ArrayBufferInstanced {
         offset_idx: u32,
         stride: usize,
         sizes: &[usize],
-        _offsets: &[usize],
+        offsets: &[usize],
         usage: u32,
         data: B,
     ) -> ArrayBufferInstanced {
@@ -49,29 +50,43 @@ impl ArrayBufferInstanced {
         let num_f32_in_buf = data.len() as i32;
 
         let num_instances = num_f32_in_buf / (num_f32_per_instance as i32);
+        let len = data.len();
 
-        let buffer = gl.create_buffer().ok_or("failed to create buffer").unwrap_abort();
+        let buffer = gl
+            .create_buffer()
+            .ok_or("failed to create buffer")
+            .unwrap_abort();
 
         // Bind the buffer
         gl.bind_buffer(WebGlRenderingCtx::ARRAY_BUFFER, Some(buffer.as_ref()));
         // Pass the vertices data to the buffer
         f32::buffer_data_with_array_buffer_view(gl, data, WebGlRenderingCtx::ARRAY_BUFFER, usage);
         // Link to the shader
-        let idx = offset_idx;
+        for (idx, (size, offset)) in sizes.iter().zip(offsets.iter()).enumerate() {
+            let idx = (idx as u32) + offset_idx;
 
-        f32::vertex_attrib_pointer_with_i32(gl, idx, *sizes.first().unwrap_abort() as i32, 0, 0);
-        gl.enable_vertex_attrib_array(idx);
+            f32::vertex_attrib_pointer_with_i32(
+                gl,
+                idx,
+                *size as i32,
+                stride as i32,
+                *offset as i32,
+            );
 
-        #[cfg(feature = "webgl2")]
-        gl.vertex_attrib_divisor(idx, 1);
-        #[cfg(feature = "webgl1")]
-        gl.ext.angles.vertex_attrib_divisor_angle(idx, 1);
+            gl.enable_vertex_attrib_array(idx);
+
+            #[cfg(feature = "webgl2")]
+            gl.vertex_attrib_divisor(idx, 1);
+            #[cfg(feature = "webgl1")]
+            gl.ext.angles.vertex_attrib_divisor_angle(idx, 1);
+        }
 
         let num_packed_data = sizes.len();
         let gl = gl.clone();
         // Returns an instance that keeps only the buffer
         ArrayBufferInstanced {
             buffer,
+            len,
             num_packed_data,
             offset_idx,
 
@@ -119,13 +134,30 @@ impl ArrayBufferInstanced {
         self.gl.disable_vertex_attrib_array(loc as u32);
     }
 
-    pub fn update<'a, B: BufferDataStorage<'a, f32>>(&self, buffer: B) {
+    pub fn update<'a, B: BufferDataStorage<'a, f32>>(&mut self, usage: u32, data: B) {
         self.bind();
-        f32::buffer_sub_data_with_i32_and_array_buffer_view(
+        if self.len >= data.len() {
+            f32::buffer_sub_data_with_i32_and_array_buffer_view(
+                &self.gl,
+                data,
+                WebGlRenderingCtx::ARRAY_BUFFER,
+            );
+        } else {
+            self.len = data.len();
+
+            f32::buffer_data_with_array_buffer_view(
+                &self.gl,
+                data,
+                WebGlRenderingCtx::ARRAY_BUFFER,
+                usage,
+            );
+        }
+
+        /*f32::buffer_sub_data_with_i32_and_array_buffer_view(
             &self.gl,
             buffer,
             WebGlRenderingCtx::ARRAY_BUFFER,
-        );
+        );*/
         /*self.gl.buffer_sub_data_with_i32_and_array_buffer_view(
             WebGlRenderingCtx::ARRAY_BUFFER,
             0,

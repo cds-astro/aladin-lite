@@ -11,14 +11,11 @@ use super::Renderer;
 use al_api::color::ColorRGBA;
 use al_core::SliceData;
 
-use lyon::algorithms::{
-    math::point,
-    measure::{PathMeasurements, SampleType},
-    path::Path,
-};
+use lyon::algorithms::{math::point, path::Path};
 
 struct Meta {
     color: ColorRGBA,
+    thickness: f32,
     off_indices: usize,
     num_indices: usize,
 }
@@ -35,9 +32,16 @@ pub struct RasterizedLineRenderer {
     shader: Shader,
     vao: VertexArrayObject,
 
+    shader_line_instanced: Shader,
+
+    vao_idx: usize,
+
     vertices: Vec<f32>,
     indices: Vec<u32>,
     meta: Vec<Meta>,
+
+    instanced_line_vaos: Vec<VertexArrayObject>,
+    meta_instanced: Vec<Meta>,
 }
 use wasm_bindgen::JsValue;
 
@@ -68,6 +72,38 @@ impl RasterizedLineRenderer {
             include_str!("../../../../glsl/webgl2/line/line_vertex.glsl"),
             include_str!("../../../../glsl/webgl2/line/line_frag.glsl"),
         )?;
+        let shader_line_instanced = Shader::new(
+            &gl,
+            r#"#version 300 es
+            precision lowp float;
+            layout (location = 0) in vec2 p_a;
+            layout (location = 1) in vec2 p_b;
+            layout (location = 2) in vec2 vertex;
+
+            out vec2 out_uv;
+            out vec3 out_p;
+
+            uniform float u_width;
+
+            void main() {
+                vec2 x_b = p_b - p_a;
+                vec2 y_b = normalize(vec2(-x_b.y, x_b.x));
+
+                vec2 p = p_a + x_b * vertex.x + y_b * u_width * 0.001 * vertex.y;
+                gl_Position = vec4(p, 0.f, 1.f);
+            }"#,
+            r#"#version 300 es
+            precision lowp float;
+            out vec4 color;
+
+            uniform vec4 u_color;
+
+            void main() {
+                // Multiply vertex color with texture color (in linear space).
+                // Linear color is written and blended in Framebuffer and converted to sRGB later
+                color = u_color;
+            }"#,
+        )?;
         let mut vao = VertexArrayObject::new(&gl);
 
         vao.bind_for_update()
@@ -87,10 +123,17 @@ impl RasterizedLineRenderer {
             .unbind();
 
         let meta = vec![];
+        let meta_instanced = vec![];
         let gl = gl.clone();
+
+        let instanced_line_vaos = vec![];
         Ok(Self {
             gl,
             shader,
+            shader_line_instanced,
+            vao_idx: 0,
+            instanced_line_vaos,
+            meta_instanced,
             vao,
             meta,
             vertices,
@@ -167,8 +210,43 @@ impl RasterizedLineRenderer {
         self.meta.push(Meta {
             off_indices,
             num_indices,
+            thickness: 1.0,
             color: color.clone(),
         });
+    }
+
+    fn create_instanced_vao(&mut self) {
+        let mut vao = VertexArrayObject::new(&self.gl);
+
+        vao.bind_for_update()
+            // Store the cartesian position of the center of the source in the a instanced VBO
+            .add_instanced_array_buffer(
+                "ndc_pos",
+                4 * std::mem::size_of::<f32>(),
+                &[2, 2],
+                &[0, 2 * std::mem::size_of::<f32>()],
+                WebGl2RenderingContext::DYNAMIC_DRAW,
+                SliceData(&[]),
+            )
+            .add_array_buffer(
+                "vertices",
+                2 * std::mem::size_of::<f32>(),
+                &[2],
+                &[0],
+                WebGl2RenderingContext::STATIC_DRAW,
+                SliceData(&[
+                    0_f32, -0.5_f32, 1_f32, -0.5_f32, 1_f32, 0.5_f32, 0_f32, 0.5_f32,
+                ]),
+            )
+            // Set the element buffer
+            .add_element_buffer(
+                WebGl2RenderingContext::STATIC_DRAW,
+                SliceData(&[0_u16, 1_u16, 2_u16, 0_u16, 2_u16, 3_u16]),
+            )
+            // Unbind the buffer
+            .unbind();
+
+        self.instanced_line_vaos.push(vao);
     }
 
     pub fn add_stroke_paths<T>(
@@ -176,13 +254,13 @@ impl RasterizedLineRenderer {
         paths: impl Iterator<Item = PathVertices<T>>,
         thickness: f32,
         color: &ColorRGBA,
-        style: &Style,
+        _style: &Style,
     ) where
         T: AsRef<[[f32; 2]]>,
     {
-        let num_vertices = (self.vertices.len() / 2) as u32;
+        //let num_vertices = (self.vertices.len() / 2) as u32;
 
-        let mut path_builder = Path::builder();
+        /*let mut path_builder = Path::builder();
 
         match &style {
             Style::None => {
@@ -268,17 +346,40 @@ impl RasterizedLineRenderer {
                 .unwrap_abort();
         }
 
-        let VertexBuffers { vertices, indices } = geometry;
+        let VertexBuffers { vertices, indices } = geometry;*/
+        if self.vao_idx == self.instanced_line_vaos.len() {
+            // create a vao
+            self.create_instanced_vao();
+        }
 
-        let num_indices = indices.len();
-        let off_indices = self.indices.len();
+        let vao = &mut self.instanced_line_vaos[self.vao_idx];
+        self.vao_idx += 1;
 
-        self.vertices.extend(vertices.iter().flatten());
-        self.indices.extend(indices.iter());
+        let mut buf: Vec<f32> = vec![];
 
-        self.meta.push(Meta {
-            off_indices,
-            num_indices,
+        for PathVertices { vertices } in paths {
+            let vertices = vertices.as_ref();
+            let path_vertices_buf_iter = vertices
+                .iter()
+                .zip(vertices.iter().skip(1))
+                .map(|(a, b)| [a[0], a[1], b[0], b[1]])
+                .flatten();
+
+            buf.extend(path_vertices_buf_iter);
+        }
+
+        vao.bind_for_update().update_instanced_array(
+            "ndc_pos",
+            WebGl2RenderingContext::DYNAMIC_DRAW,
+            VecData(&buf),
+        );
+
+        let num_instances = buf.len() / 4;
+
+        self.meta_instanced.push(Meta {
+            off_indices: 0,
+            thickness,
+            num_indices: num_instances,
             color: color.clone(),
         });
     }
@@ -308,6 +409,21 @@ impl RasterizedLineRenderer {
         }
 
         //self.gl.enable(WebGl2RenderingContext::CULL_FACE);
+
+        // draw the lines
+        let shader_bound = self.shader_line_instanced.bind(&self.gl);
+        for (idx, meta) in self.meta_instanced.iter().enumerate() {
+            let vao_bound = shader_bound
+                .attach_uniform("u_color", &meta.color)
+                .attach_uniform("u_width", &meta.thickness)
+                .bind_vertex_array_object_ref(&self.instanced_line_vaos[idx]);
+
+            vao_bound.draw_elements_instanced_with_i32(
+                WebGl2RenderingContext::TRIANGLES,
+                0,
+                meta.num_indices as i32,
+            );
+        }
         self.gl.disable(WebGl2RenderingContext::BLEND);
 
         Ok(())
@@ -318,8 +434,10 @@ impl Renderer for RasterizedLineRenderer {
     fn begin(&mut self) {
         self.vertices.clear();
         self.indices.clear();
-
         self.meta.clear();
+
+        self.meta_instanced.clear();
+        self.vao_idx = 0;
     }
 
     fn end(&mut self) {

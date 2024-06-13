@@ -26,6 +26,7 @@ impl From<Error> for JsValue {
     }
 }
 
+// Num of shapes
 const _NUM_SHAPES: usize = 5;
 pub struct Manager {
     gl: WebGlContext,
@@ -457,7 +458,11 @@ impl Catalog {
         #[cfg(feature = "webgl2")]
         self.vertex_array_object_catalog
             .bind_for_update()
-            .update_instanced_array("center", VecData(&sources));
+            .update_instanced_array(
+                "center",
+                WebGl2RenderingContext::DYNAMIC_DRAW,
+                VecData(&sources),
+            );
     }
 
     fn draw(

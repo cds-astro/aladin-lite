@@ -9,8 +9,8 @@ pub mod vao {
     use crate::object::element_array_buffer::ElementArrayBuffer;
 
     use crate::webgl_ctx::WebGlContext;
-    use std::collections::HashMap;
     use crate::Abort;
+    use std::collections::HashMap;
 
     pub struct VertexArrayObject {
         array_buffer: HashMap<&'static str, ArrayBuffer>,
@@ -88,7 +88,10 @@ pub mod vao {
         }*/
 
         pub fn num_elements(&self) -> usize {
-            self.element_array_buffer.as_ref().unwrap_abort().num_elements()
+            self.element_array_buffer
+                .as_ref()
+                .unwrap_abort()
+                .num_elements()
         }
 
         pub fn num_instances(&self) -> i32 {
@@ -143,13 +146,14 @@ pub mod vao {
         pub fn update_instanced_array<B: BufferDataStorage<'a, f32>>(
             &mut self,
             attr: &'static str,
+            usage: u32,
             array_data: B,
         ) -> &mut Self {
             self.vao
                 .array_buffer_instanced
                 .get_mut(attr)
                 .unwrap_abort()
-                .update(array_data);
+                .update(usage, array_data);
             self
         }
 
@@ -333,13 +337,14 @@ pub mod vao {
         pub fn update_instanced_array<B: BufferDataStorage<'a, f32>>(
             &mut self,
             attr: &'static str,
+            usage: u32,
             array_data: B,
         ) -> &mut Self {
             self.vao
                 .array_buffer_instanced
                 .get_mut(attr)
                 .unwrap_abort()
-                .update(array_data);
+                .update(usage, array_data);
             self
         }
 
@@ -444,7 +449,10 @@ pub mod vao {
         }*/
 
         pub fn num_elements(&self) -> usize {
-            self.element_array_buffer.as_ref().unwrap_abort().num_elements()
+            self.element_array_buffer
+                .as_ref()
+                .unwrap_abort()
+                .num_elements()
         }
 
         pub fn num_instances(&self) -> i32 {
@@ -694,13 +702,14 @@ pub mod vao {
         pub fn update_instanced_array<B: BufferDataStorage<'a, f32>>(
             &mut self,
             attr: &'static str,
+            usage: u32,
             array_data: B,
         ) -> &mut Self {
             self.vao
                 .array_buffer_instanced
                 .get_mut(attr)
                 .expect("cannot get attribute from the array buffer")
-                .update(array_data);
+                .update(usage, array_data);
 
             self
         }

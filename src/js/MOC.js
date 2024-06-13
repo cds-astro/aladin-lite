@@ -36,7 +36,7 @@ export let MOC = (function() {
      *
      * @class
      * @constructs MOC
-     * @param {MOCOptions} options - Configuration options for the MOC.
+     * @param {MOCOptions} options - Configuration options for the MOC
      */
     let MOC = function(options) {
         //this.order = undefined;

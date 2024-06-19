@@ -466,9 +466,9 @@ export let Polyline = (function() {
     };
 
     Polyline.prototype.intersectsBBox = function(x, y, w, h) {
-        for (let i = 0; i < this.radecArray.length - 1; i++) {
-            let p1 = this.radecArray[i];
-            let p2 = this.radecArray[i + 1];
+        for (let i = 0; i < this.raDecArray.length - 1; i++) {
+            let p1 = this.raDecArray[i];
+            let p2 = this.raDecArray[i + 1];
 
             let xy1 = AladinUtils.radecToViewXy(p1[0], p1[1], this.overlay.view.aladin);
             let xy2 = AladinUtils.radecToViewXy(p2[0], p2[1], this.overlay.view.aladin);

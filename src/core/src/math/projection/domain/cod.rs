@@ -1,16 +1,13 @@
 use crate::math::projection::coo_space::XYClip;
 use cgmath::Vector2;
 
-use crate::math::HALF_PI;
-use crate::math::angle::PI;
 use super::{
-    sdf::ProjDef,
+    basic::{ellipse::Ellipse, triangle::Triangle},
     op::{Diff, Translate},
-    basic::{
-        triangle::Triangle,
-        ellipse::Ellipse,
-    }
+    sdf::ProjDef,
 };
+use crate::math::angle::PI;
+use crate::math::HALF_PI;
 
 pub struct Cod {
     pub r_max: f64,
@@ -41,7 +38,7 @@ impl Cod {
         }
     }
 
-    fn to_clip(&self, xy: &Vector2<f64>) -> XYClip {
+    fn to_clip(&self, xy: &Vector2<f64>) -> XYClip<f64> {
         let x = (xy.x - self.x_min) / (self.x_max - self.x_min);
         let y = (xy.y - self.y_min) / (self.y_max - self.y_min);
 
@@ -50,20 +47,26 @@ impl Cod {
 }
 
 impl ProjDef for Cod {
-    fn sdf(&self, xy: &XYClip) -> f64 {
-        let y_mean = (self.y_min + self.y_max)*0.5;
+    fn sdf(&self, xy: &XYClip<f64>) -> f64 {
+        let y_mean = (self.y_min + self.y_max) * 0.5;
         let center_ellipse = self.to_clip(&Vector2::new(0.0, self.y0 + y_mean));
 
         // Big frontier ellipse
         let a = 1.0;
         let b = 2.0 * (2.356194490192345 + self.y0) / (2.356194490192345 + 3.0328465566001492);
         let e = b / a;
-        let ext_ellipse = Translate { off: center_ellipse, def: Ellipse { a: a, b: b } };
+        let ext_ellipse = Translate {
+            off: center_ellipse,
+            def: Ellipse { a: a, b: b },
+        };
 
         // Small ellipse where projection is not defined
         let b_int = 2.0 * self.r_min / (2.356194490192345 + 3.0328465566001492);
         let a_int = b_int / e;
-        let int_ellipse = Translate { off: center_ellipse, def: Ellipse { a: a_int, b: b_int } };
+        let int_ellipse = Translate {
+            off: center_ellipse,
+            def: Ellipse { a: a_int, b: b_int },
+        };
 
         // The top edges
         let gamma = PI * self.c - HALF_PI;
@@ -75,7 +78,7 @@ impl ProjDef for Cod {
         let tri = Triangle {
             p0: center_ellipse,
             p1: self.to_clip(&b),
-            p2: self.to_clip(&c)
+            p2: self.to_clip(&c),
         };
 
         Diff::new(Diff::new(ext_ellipse, int_ellipse), tri).sdf(xy)

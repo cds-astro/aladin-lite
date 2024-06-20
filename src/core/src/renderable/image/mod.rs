@@ -572,19 +572,30 @@ impl Image {
         } = cfg;
 
         let shader = match self.channel {
-            ChannelType::R32F => crate::shader::get_shader(&self.gl, shaders, "FitsVS", "FitsFS")?,
-            #[cfg(feature = "webgl2")]
-            ChannelType::R32I => {
-                crate::shader::get_shader(&self.gl, shaders, "FitsVS", "FitsFSInteger")?
+            ChannelType::R32F => {
+                crate::shader::get_shader(&self.gl, shaders, "fits_base.vert", "fits_sampler.frag")?
             }
             #[cfg(feature = "webgl2")]
-            ChannelType::R16I => {
-                crate::shader::get_shader(&self.gl, shaders, "FitsVS", "FitsFSInteger")?
-            }
+            ChannelType::R32I => crate::shader::get_shader(
+                &self.gl,
+                shaders,
+                "fits_base.vert",
+                "fits_isampler.frag",
+            )?,
             #[cfg(feature = "webgl2")]
-            ChannelType::R8UI => {
-                crate::shader::get_shader(&self.gl, shaders, "FitsVS", "FitsFSUnsigned")?
-            }
+            ChannelType::R16I => crate::shader::get_shader(
+                &self.gl,
+                shaders,
+                "fits_base.vert",
+                "fits_isampler.frag",
+            )?,
+            #[cfg(feature = "webgl2")]
+            ChannelType::R8UI => crate::shader::get_shader(
+                &self.gl,
+                shaders,
+                "fits_base.vert",
+                "fits_usampler.frag",
+            )?,
             _ => return Err(JsValue::from_str("Image format type not supported")),
         };
 

@@ -11,6 +11,7 @@ pub trait LonLat<S: BaseFloat> {
 
 use crate::math::angle::Angle;
 #[derive(Clone, Copy, Debug)]
+#[repr(C)]
 pub struct LonLatT<S: BaseFloat>(pub Angle<S>, pub Angle<S>);
 
 impl<S> LonLatT<S>
@@ -107,11 +108,10 @@ where
         let theta = lonlat.lon();
         let delta = lonlat.lat();
 
-        Vector3::<S>::new(
-            delta.cos() * theta.sin(),
-            delta.sin(),
-            delta.cos() * theta.cos(),
-        )
+        let (dc, ds) = (delta.cos(), delta.sin());
+        let (tc, ts) = (theta.cos(), theta.sin());
+
+        Vector3::<S>::new(dc * ts, ds, dc * tc)
     }
 }
 
@@ -180,19 +180,17 @@ pub fn xyzw_to_radec<S: BaseFloat>(v: &Vector4<S>) -> (Angle<S>, Angle<S>) {
 
 #[inline]
 pub fn radec_to_xyz<S: BaseFloat>(theta: Angle<S>, delta: Angle<S>) -> Vector3<S> {
-    Vector3::<S>::new(
-        delta.cos() * theta.sin(),
-        delta.sin(),
-        delta.cos() * theta.cos(),
-    )
+    let (dc, ds) = (delta.cos(), delta.sin());
+    let (tc, ts) = (theta.cos(), theta.sin());
+
+    Vector3::<S>::new(dc * ts, ds, dc * tc)
 }
 
 #[inline]
 pub fn radec_to_xyzw<S: BaseFloat>(theta: Angle<S>, delta: Angle<S>) -> Vector4<S> {
-    let (dc, ds) = (delta.cos(), delta.sin());
-    let (tc, ts) = (theta.cos(), theta.sin());
+    let xyz = radec_to_xyz(theta, delta);
 
-    Vector4::<S>::new(dc * ts, ds, dc * tc, S::one())
+    Vector4::<S>::new(xyz.x, xyz.y, xyz.z, S::one())
 }
 
 #[inline]
@@ -223,14 +221,14 @@ pub fn proj(
     lonlat: &LonLatT<f64>,
     projection: &ProjectionType,
     camera: &CameraViewPort,
-) -> Option<XYNDC> {
+) -> Option<XYNDC<f64>> {
     let xyzw = lonlat.vector();
     projection.model_to_normalized_device_space(&xyzw, camera)
 }
 
 #[inline]
 pub fn unproj(
-    ndc_xy: &XYNDC,
+    ndc_xy: &XYNDC<f64>,
     projection: &ProjectionType,
     camera: &CameraViewPort,
 ) -> Option<LonLatT<f64>> {
@@ -244,14 +242,14 @@ pub fn proj_to_screen(
     lonlat: &LonLatT<f64>,
     projection: &ProjectionType,
     camera: &CameraViewPort,
-) -> Option<XYScreen> {
+) -> Option<XYScreen<f64>> {
     let xyzw = lonlat.vector();
     projection.model_to_screen_space(&xyzw, camera)
 }
 
 #[inline]
 pub fn unproj_from_screen(
-    xy: &XYScreen,
+    xy: &XYScreen<f64>,
     projection: &ProjectionType,
     camera: &CameraViewPort,
 ) -> Option<LonLatT<f64>> {

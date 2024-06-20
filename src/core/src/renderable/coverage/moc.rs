@@ -1,9 +1,9 @@
-use al_api::moc::MOC as Cfg;
-
 use crate::camera::CameraViewPort;
+use crate::coo_space::CooSpace;
 use crate::healpix::cell::CellVertices;
 use crate::healpix::coverage::HEALPixCoverage;
 use crate::math::projection::ProjectionType;
+use al_api::moc::MOC as Cfg;
 
 use crate::renderable::coverage::Angle;
 
@@ -312,6 +312,7 @@ impl MOCIntern {
                         thickness,
                         &color,
                         &super::line::Style::None,
+                        CooSpace::NDC,
                     );
                 }
                 RenderModeType::Edge { thickness, color } => {
@@ -320,12 +321,14 @@ impl MOCIntern {
                         thickness,
                         &color,
                         &super::line::Style::None,
+                        CooSpace::LonLat,
                     );
                 }
                 RenderModeType::Filled { color } => {
                     rasterizer.add_fill_paths(
                         self.compute_edge_paths_iter(moc, view_moc, camera, proj),
                         &color,
+                        CooSpace::NDC,
                     );
                 }
             }
@@ -352,52 +355,63 @@ impl MOCIntern {
             false
         };
 
-        self.vertices_in_view(view_moc, moc, camera)
-            .filter_map(move |cell_vertices| {
-                let mut ndc: [[f32; 2]; 5] =
-                    [[0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0]];
+        /*self.vertices_in_view(view_moc, moc, camera)
+        .filter_map(move |cell_vertices| {
+            let mut ndc: [[f32; 2]; 5] =
+                [[0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0]];
 
-                let vertices = cell_vertices;
+            let vertices = cell_vertices;
 
-                for i in 0..4 {
-                    let line_vertices = vertices[i];
+            for i in 0..4 {
+                let line_vertices = vertices[i];
 
-                    //for k in 0..line_vertices.len() {
-                    let (lon, lat) = line_vertices;
+                //for k in 0..line_vertices.len() {
+                let (lon, lat) = line_vertices;
 
-                    let xyzw = crate::math::lonlat::radec_to_xyzw(Angle(lon), Angle(lat));
-                    let xyzw =
-                        crate::coosys::apply_coo_system(CooSystem::ICRS, camera_coosys, &xyzw);
+                let xyzw = crate::math::lonlat::radec_to_xyzw(Angle(lon), Angle(lat));
+                let xyzw =
+                    crate::coosys::apply_coo_system(CooSystem::ICRS, camera_coosys, &xyzw);
 
-                    if let Some(p) = proj.model_to_normalized_device_space(&xyzw, camera) {
-                        if i > 0 && crossing_edges_testing {
-                            let mag2 = crate::math::vector::dist2(
-                                crate::math::projection::ndc_to_clip_space(&p, camera).as_ref(),
-                                crate::math::projection::ndc_to_clip_space(
-                                    &Vector2::new(ndc[i - 1][0] as f64, ndc[i - 1][1] as f64),
-                                    camera,
-                                )
-                                .as_ref(),
-                            );
-                            //al_core::info!("mag", i, mag2);
-                            if mag2 > 0.1 {
-                                return None;
-                            }
+                if let Some(p) = proj.model_to_normalized_device_space(&xyzw, camera) {
+                    if i > 0 && crossing_edges_testing {
+                        let mag2 = crate::math::vector::dist2(
+                            crate::math::projection::ndc_to_clip_space(&p, camera).as_ref(),
+                            crate::math::projection::ndc_to_clip_space(
+                                &Vector2::new(ndc[i - 1][0] as f64, ndc[i - 1][1] as f64),
+                                camera,
+                            )
+                            .as_ref(),
+                        );
+                        //al_core::info!("mag", i, mag2);
+                        if mag2 > 0.1 {
+                            return None;
                         }
-
-                        ndc[i] = [p.x as f32, p.y as f32];
-                    } else {
-                        return None;
                     }
 
-                    //ndc[i] = [xyzw.x as f32, xyzw.y as f32];
-                    //ndc[i] = [lon as f32, lat as f32];
+                    ndc[i] = [p.x as f32, p.y as f32];
+                } else {
+                    return None;
                 }
 
-                ndc[4] = ndc[0].clone();
+                //ndc[i] = [xyzw.x as f32, xyzw.y as f32];
+                //ndc[i] = [lon as f32, lat as f32];
+            }
 
-                Some(PathVertices { vertices: ndc })
-            })
+            ndc[4] = ndc[0].clone();
+
+            Some(PathVertices { vertices: ndc })
+        })*/
+        self.vertices_in_view(view_moc, moc, camera).map(|v| {
+            let vertices = [
+                [v[0].0 as f32, v[0].1 as f32],
+                [v[1].0 as f32, v[1].1 as f32],
+                [v[2].0 as f32, v[2].1 as f32],
+                [v[3].0 as f32, v[3].1 as f32],
+                [v[0].0 as f32, v[0].1 as f32],
+            ];
+
+            PathVertices { vertices }
+        })
     }
 
     fn compute_perimeter_paths_iter<'a>(

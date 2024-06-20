@@ -79,16 +79,19 @@ const DEFAULT_BACKGROUND_COLOR: ColorRGB = ColorRGB {
     b: 0.05,
 };
 
-fn get_backgroundcolor_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager) -> &'a Shader {
+fn get_backgroundcolor_shader<'a>(
+    gl: &WebGlContext,
+    shaders: &'a mut ShaderManager,
+) -> Result<&'a Shader, JsValue> {
     shaders
         .get(
             gl,
-            &ShaderId(
-                Cow::Borrowed("RayTracerFontVS"),
-                Cow::Borrowed("RayTracerFontFS"),
+            ShaderId(
+                "hips_raytracer_backcolor.vert",
+                "hips_raytracer_backcolor.frag",
             ),
         )
-        .unwrap_abort()
+        .map_err(|e| e.into())
 }
 
 pub struct ImageCfg {
@@ -258,7 +261,7 @@ impl Layers {
                 &self.screen_vao
             };
 
-            get_backgroundcolor_shader(&self.gl, shaders)
+            get_backgroundcolor_shader(&self.gl, shaders)?
                 .bind(&self.gl)
                 .attach_uniforms_from(camera)
                 .attach_uniform("color", &background_color)

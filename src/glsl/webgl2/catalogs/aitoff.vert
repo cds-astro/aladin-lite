@@ -15,7 +15,7 @@ uniform vec2 kernel_size;
 out vec2 out_uv;
 out vec3 out_p;
 
-#include ../hips/projection.glsl;
+#include ../projection/projection.glsl;
 
 void main() {
     vec3 p = vec3(inv_model * vec4(center, 1.0f));

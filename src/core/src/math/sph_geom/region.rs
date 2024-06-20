@@ -38,11 +38,11 @@ pub enum Intersection {
     // The segment does not intersect the region
     Empty,
     // The segment does intersect the region
-    Intersect { vertices: Box<[XYZWModel]> },
+    Intersect { vertices: Box<[XYZWModel<f64>]> },
 }
 
 impl Region {
-    pub fn from_vertices(vertices: &[XYZWModel], control_point: &XYZWModel) -> Self {
+    pub fn from_vertices(vertices: &[XYZWModel<f64>], control_point: &XYZWModel<f64>) -> Self {
         let (vertices, (lon, lat)): (Vec<_>, (Vec<_>, Vec<_>)) = vertices
             .iter()
             .map(|v| {

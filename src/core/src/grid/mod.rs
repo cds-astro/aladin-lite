@@ -7,6 +7,7 @@ use crate::math::projection::coo_space::XYScreen;
 use crate::Abort;
 
 use crate::camera::CameraViewPort;
+use crate::coo_space::CooSpace;
 use crate::math::angle;
 use crate::math::HALF_PI;
 use crate::renderable::line;
@@ -36,7 +37,6 @@ pub struct ProjetedGrid {
     parallels: Vec<Parallel>,
 }
 
-use crate::shader::ShaderManager;
 use wasm_bindgen::JsValue;
 
 use crate::renderable::line::RasterizedLineRenderer;
@@ -217,7 +217,13 @@ impl ProjetedGrid {
             .flatten()
             .map(|vertices| PathVertices { vertices });
 
-        rasterizer.add_stroke_paths(paths, self.thickness, &self.color, &self.line_style);
+        rasterizer.add_stroke_paths(
+            paths,
+            self.thickness,
+            &self.color,
+            &self.line_style,
+            CooSpace::NDC,
+        );
 
         Ok(())
     }
@@ -251,7 +257,6 @@ impl ProjetedGrid {
     pub fn draw(
         &mut self,
         camera: &CameraViewPort,
-        _shaders: &mut ShaderManager,
         projection: &ProjectionType,
         rasterizer: &mut RasterizedLineRenderer,
     ) -> Result<(), JsValue> {

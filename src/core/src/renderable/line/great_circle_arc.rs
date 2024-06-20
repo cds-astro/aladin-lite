@@ -1,17 +1,12 @@
-
-
-
-use cgmath::Vector3;
-use crate::ProjectionType;
 use crate::CameraViewPort;
+use crate::ProjectionType;
+use cgmath::Vector3;
 
-use cgmath::InnerSpace;
 use crate::math::angle::ToAngle;
+use cgmath::InnerSpace;
 
-
-use crate::coo_space::XYNDC;
 use crate::coo_space::XYZModel;
-
+use crate::coo_space::XYNDC;
 
 use crate::LonLatT;
 const MAX_ITERATION: usize = 5;
@@ -21,7 +16,14 @@ const MAX_ITERATION: usize = 5;
 // * Longitudes between [0; 2\pi[
 // * (lon1 - lon2).abs() < PI so that is can only either cross the preimary meridian or opposite primary meridian
 //   (the latest is handled because of the longitudes intervals)
-pub fn project(lon1: f64, lat1: f64, lon2: f64, lat2: f64, camera: &CameraViewPort, projection: &ProjectionType) -> Vec<XYNDC> {
+pub fn project(
+    lon1: f64,
+    lat1: f64,
+    lon2: f64,
+    lat2: f64,
+    camera: &CameraViewPort,
+    projection: &ProjectionType,
+) -> Vec<XYNDC<f64>> {
     let mut vertices = vec![];
 
     let lonlat1 = LonLatT::new(lon1.to_angle(), lat1.to_angle());
@@ -36,18 +38,16 @@ pub fn project(lon1: f64, lat1: f64, lon2: f64, lat2: f64, camera: &CameraViewPo
     match (p1, p2) {
         (Some(_), Some(_)) => {
             project_line(&mut vertices, &v1, &v2, camera, projection, 0);
-        },
+        }
         (None, Some(_)) => {
             let (v1, v2) = sub_valid_domain(v2, v1, projection, camera);
             project_line(&mut vertices, &v1, &v2, camera, projection, 0);
-        },
+        }
         (Some(_), None) => {
             let (v1, v2) = sub_valid_domain(v1, v2, projection, camera);
             project_line(&mut vertices, &v1, &v2, camera, projection, 0);
-        },
-        (None, None) => {
-            
         }
+        (None, None) => {}
     }
 
     vertices
@@ -57,7 +57,12 @@ pub fn project(lon1: f64, lat1: f64, lon2: f64, lat2: f64, camera: &CameraViewPo
 // * angular distance between valid_lon and invalid_lon is < PI
 // * valid_lon and invalid_lon are well defined, i.e. they can be between [-PI; PI] or [0, 2PI] depending
 //   whether they cross or not the zero meridian
-fn sub_valid_domain(valid_v: XYZModel, invalid_v: XYZModel, projection: &ProjectionType, camera: &CameraViewPort) -> (XYZModel, XYZModel) {
+fn sub_valid_domain(
+    valid_v: XYZModel<f64>,
+    invalid_v: XYZModel<f64>,
+    projection: &ProjectionType,
+    camera: &CameraViewPort,
+) -> (XYZModel<f64>, XYZModel<f64>) {
     let d_alpha = camera.get_aperture().to_radians() * 0.02;
 
     let mut vv = valid_v;
@@ -77,9 +82,9 @@ fn sub_valid_domain(valid_v: XYZModel, invalid_v: XYZModel, projection: &Project
 }
 
 fn project_line(
-    vertices: &mut Vec<XYNDC>,
-    v1: &XYZModel,
-    v2: &XYZModel,
+    vertices: &mut Vec<XYNDC<f64>>,
+    v1: &XYZModel<f64>,
+    v2: &XYZModel<f64>,
     camera: &CameraViewPort,
     projection: &ProjectionType,
     iter: usize,
@@ -91,25 +96,14 @@ fn project_line(
         // Project them. We are always facing the camera
         let vm = (v1 + v2).normalize();
         let pm = projection.model_to_normalized_device_space(&vm.extend(1.0), camera);
-    
+
         match (p1, pm, p2) {
             (Some(p1), Some(pm), Some(p2)) => {
                 let d12 = crate::math::vector::angle3(v1, v2).to_radians();
 
                 // Subdivide when until it is > 30 degrees
                 if d12 > 30.0_f64.to_radians() {
-                    subdivide(
-                        vertices,
-                        v1,
-                        v2,
-                        &vm,
-                        p1,
-                        p2,
-                        pm,
-                        camera,
-                        projection,
-                        iter
-                    );
+                    subdivide(vertices, v1, v2, &vm, p1, p2, pm, camera, projection, iter);
                 } else {
                     // enough to stop the recursion
                     let ab = pm - p1;
@@ -131,7 +125,7 @@ fn project_line(
                             // not colinear but enough to stop
                             vertices.push(p1);
                             vertices.push(pm);
-            
+
                             vertices.push(pm);
                             vertices.push(p2);
                         }
@@ -151,65 +145,39 @@ fn project_line(
                             }
                         } else {
                             // Subdivide a->b and b->c
-                            subdivide(
-                                vertices,
-                                v1,
-                                v2,
-                                &vm,
-                                p1,
-                                p2,
-                                pm,
-                                camera,
-                                projection,
-                                iter
-                            );
+                            subdivide(vertices, v1, v2, &vm, p1, p2, pm, camera, projection, iter);
                         }
                     }
                 }
 
                 true
-            },
-            _ => false
+            }
+            _ => false,
         }
     } else {
         false
     }
 }
 
-
 fn subdivide(
-    vertices: &mut Vec<XYNDC>,
-    v1: &XYZModel,
-    v2: &XYZModel,
-    vm: &XYZModel,
-    p1: XYNDC,
-    p2: XYNDC,
-    pm: XYNDC,
+    vertices: &mut Vec<XYNDC<f64>>,
+    v1: &XYZModel<f64>,
+    v2: &XYZModel<f64>,
+    vm: &XYZModel<f64>,
+    p1: XYNDC<f64>,
+    p2: XYNDC<f64>,
+    pm: XYNDC<f64>,
     camera: &CameraViewPort,
     projection: &ProjectionType,
-    iter: usize
+    iter: usize,
 ) {
     // Subdivide a->b and b->c
-    if !project_line(
-        vertices,
-        v1,
-        vm,
-        camera,
-        projection,
-        iter + 1
-    ) {
+    if !project_line(vertices, v1, vm, camera, projection, iter + 1) {
         vertices.push(p1);
         vertices.push(pm);
     }
 
-    if !project_line(
-        vertices,
-        vm,
-        v2,
-        camera,
-        projection,
-        iter + 1
-    ) {
+    if !project_line(vertices, vm, v2, camera, projection, iter + 1) {
         vertices.push(pm);
         vertices.push(p2);
     }

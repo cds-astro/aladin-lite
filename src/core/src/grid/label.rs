@@ -26,7 +26,7 @@ pub enum LabelOptions {
 #[derive(Debug)]
 pub struct Label {
     // The position
-    pub position: XYScreen,
+    pub position: XYScreen<f64>,
     // the string content
     pub content: String,
     // in radians

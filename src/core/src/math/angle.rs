@@ -244,7 +244,7 @@ pub enum SerializeFmt {
     DMS,
     HMS,
     DMM,
-    DD
+    DD,
 }
 
 use al_api::angle_fmt::AngleSerializeFmt;
@@ -452,14 +452,14 @@ where
 
 pub trait ToAngle<S>
 where
-    S: BaseFloat
+    S: BaseFloat,
 {
     fn to_angle(self) -> Angle<S>;
 }
 
 impl<S> ToAngle<S> for S
 where
-    S: BaseFloat
+    S: BaseFloat,
 {
     fn to_angle(self) -> Angle<S> {
         Angle(self)

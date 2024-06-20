@@ -32,7 +32,7 @@ impl ViewHpxCells {
         &mut self,
         camera_depth: u8,
         fov: &FieldOfView,
-        center: &XYZWModel,
+        center: &XYZWModel<f64>,
         camera_frame: CooSystem,
         proj: &ProjectionType,
         // survey frame
@@ -50,7 +50,7 @@ impl ViewHpxCells {
         &mut self,
         camera_depth: u8,
         fov: &FieldOfView,
-        center: &XYZWModel,
+        center: &XYZWModel<f64>,
         camera_frame: CooSystem,
         proj: &ProjectionType,
         // survey frame
@@ -70,7 +70,7 @@ impl ViewHpxCells {
         &mut self,
         camera_depth: u8,
         fov: &FieldOfView,
-        center: &XYZWModel,
+        center: &XYZWModel<f64>,
         camera_frame: CooSystem,
         proj: &ProjectionType,
     ) {
@@ -140,7 +140,7 @@ impl HpxCells {
         &mut self,
         camera_depth: u8,
         fov: &FieldOfView,
-        center: &XYZWModel,
+        center: &XYZWModel<f64>,
         camera_frame: CooSystem,
         proj: &ProjectionType,
     ) {

@@ -23,9 +23,9 @@ use domain::{basic, full::FullScreen};
 
 /* S <-> NDC space conversion methods */
 pub fn screen_to_ndc_space(
-    pos_screen_space: &Vector2<f64>,
+    pos_screen_space: &XYScreen<f64>,
     camera: &CameraViewPort,
-) -> Vector2<f64> {
+) -> XYNDC<f64> {
     // Screen space in pixels to homogeneous screen space (values between [-1, 1])
     let window_size = camera.get_screen_size();
     let window_size = Vector2::new(window_size.x as f64, window_size.y as f64);
@@ -42,9 +42,9 @@ pub fn screen_to_ndc_space(
 }
 
 pub fn ndc_to_screen_space(
-    pos_normalized_device: &Vector2<f64>,
+    pos_normalized_device: &XYNDC<f64>,
     camera: &CameraViewPort,
-) -> Vector2<f64> {
+) -> XYScreen<f64> {
     let window_size = camera.get_screen_size();
     let dpi = camera.get_dpi() as f64;
 
@@ -57,7 +57,7 @@ pub fn ndc_to_screen_space(
 }
 
 /* NDC <-> CLIP space conversion methods */
-pub fn clip_to_ndc_space(pos_clip_space: &Vector2<f64>, camera: &CameraViewPort) -> Vector2<f64> {
+pub fn clip_to_ndc_space(pos_clip_space: &XYClip<f64>, camera: &CameraViewPort) -> XYNDC<f64> {
     let ndc_to_clip = camera.get_ndc_to_clip();
     let clip_zoom_factor = camera.get_clip_zoom_factor();
 
@@ -68,9 +68,9 @@ pub fn clip_to_ndc_space(pos_clip_space: &Vector2<f64>, camera: &CameraViewPort)
 }
 
 pub fn ndc_to_clip_space(
-    pos_normalized_device: &Vector2<f64>,
+    pos_normalized_device: &XYNDC<f64>,
     camera: &CameraViewPort,
-) -> Vector2<f64> {
+) -> XYClip<f64> {
     let ndc_to_clip = camera.get_ndc_to_clip();
     let clip_zoom_factor = camera.get_clip_zoom_factor();
 
@@ -82,17 +82,17 @@ pub fn ndc_to_clip_space(
 
 /* S <-> CLIP space conversion methods */
 pub fn clip_to_screen_space(
-    pos_clip_space: &Vector2<f64>,
+    pos_clip_space: &XYClip<f64>,
     camera: &CameraViewPort,
-) -> Vector2<f64> {
+) -> XYScreen<f64> {
     let pos_normalized_device = clip_to_ndc_space(pos_clip_space, camera);
     ndc_to_screen_space(&pos_normalized_device, camera)
 }
 
 pub fn screen_to_clip_space(
-    pos_screen_space: &Vector2<f64>,
+    pos_screen_space: &XYScreen<f64>,
     camera: &CameraViewPort,
-) -> Vector2<f64> {
+) -> XYClip<f64> {
     let pos_normalized_device = screen_to_ndc_space(pos_screen_space, camera);
     ndc_to_clip_space(&pos_normalized_device, camera)
 }
@@ -161,9 +161,9 @@ impl ProjectionType {
     /// * ``camera`` - The camera object
     pub fn screen_to_world_space(
         &self,
-        pos_screen_space: &Vector2<f64>,
+        pos_screen_space: &XYScreen<f64>,
         camera: &CameraViewPort,
-    ) -> Option<Vector4<f64>> {
+    ) -> Option<XYZWWorld<f64>> {
         // Change the screen position according to the dpi
         //let dpi = camera.get_dpi();
         let pos_screen_space = *pos_screen_space;
@@ -171,13 +171,6 @@ impl ProjectionType {
 
         let pos_clip_space = ndc_to_clip_space(&pos_normalized_device, camera);
         self.clip_to_world_space(&pos_clip_space)
-        /*.map(|mut pos_world_space| {
-            if camera.get_longitude_reversed() {
-                pos_world_space.x = -pos_world_space.x;
-            }
-
-            pos_world_space.normalize()
-        })*/
     }
 
     /// Screen to model space deprojection
@@ -190,27 +183,27 @@ impl ProjectionType {
     /// * ``camera`` - The camera object
     pub fn screen_to_model_space(
         &self,
-        pos_screen_space: &Vector2<f64>,
+        pos_screen_space: &XYScreen<f64>,
         camera: &CameraViewPort,
-    ) -> Option<Vector4<f64>> {
+    ) -> Option<XYZWModel<f64>> {
         self.screen_to_world_space(pos_screen_space, camera)
             .map(|world_pos| camera.get_w2m() * world_pos)
     }
 
     pub fn normalized_device_to_model_space(
         &self,
-        ndc_pos: &XYNDC,
+        ndc_pos: &XYNDC<f64>,
         camera: &CameraViewPort,
-    ) -> Option<XYZWModel> {
+    ) -> Option<XYZWModel<f64>> {
         self.normalized_device_to_world_space(ndc_pos, camera)
             .map(|world_pos| camera.get_w2m() * world_pos)
     }
 
     pub fn model_to_screen_space(
         &self,
-        pos_model_space: &Vector4<f64>,
+        pos_model_space: &XYZWModel<f64>,
         camera: &CameraViewPort,
-    ) -> Option<Vector2<f64>> {
+    ) -> Option<XYScreen<f64>> {
         let m2w = camera.get_m2w();
         let pos_world_space = m2w * pos_model_space;
         self.world_to_screen_space(&pos_world_space, camera)
@@ -218,23 +211,23 @@ impl ProjectionType {
 
     pub fn view_to_screen_space(
         &self,
-        pos_model_space: &Vector4<f64>,
+        pos_model_space: &XYZWModel<f64>,
         camera: &CameraViewPort,
-    ) -> Option<Vector2<f64>> {
+    ) -> Option<XYScreen<f64>> {
         self.view_to_normalized_device_space(pos_model_space, camera)
             .map(|ndc_pos| crate::ndc_to_screen_space(&ndc_pos, camera))
     }
 
     pub fn view_to_normalized_device_space(
         &self,
-        pos_view_space: &Vector4<f64>,
+        pos_model_space: &XYZWModel<f64>,
         camera: &CameraViewPort,
-    ) -> Option<Vector2<f64>> {
+    ) -> Option<XYNDC<f64>> {
         let view_coosys = camera.get_coo_system();
         let c = CooSystem::ICRS.to::<f64>(view_coosys);
 
         let m2w = camera.get_m2w();
-        let pos_world_space = m2w * c * pos_view_space;
+        let pos_world_space = m2w * c * pos_model_space;
         self.world_to_normalized_device_space(&pos_world_space, camera)
     }
 
@@ -253,9 +246,9 @@ impl ProjectionType {
 
     pub fn model_to_normalized_device_space(
         &self,
-        pos_model_space: &XYZWModel,
+        pos_model_space: &XYZWModel<f64>,
         camera: &CameraViewPort,
-    ) -> Option<XYNDC> {
+    ) -> Option<XYNDC<f64>> {
         let m2w = camera.get_m2w();
         let pos_world_space = m2w * pos_model_space;
         self.world_to_normalized_device_space(&pos_world_space, camera)
@@ -263,9 +256,9 @@ impl ProjectionType {
 
     pub fn model_to_clip_space(
         &self,
-        pos_model_space: &XYZWModel,
+        pos_model_space: &XYZWModel<f64>,
         camera: &CameraViewPort,
-    ) -> Option<XYClip> {
+    ) -> Option<XYClip<f64>> {
         let m2w = camera.get_m2w();
         let pos_world_space = m2w * pos_model_space;
         self.world_to_clip_space(&pos_world_space)
@@ -281,27 +274,27 @@ impl ProjectionType {
     /// * `y` - Y mouse position in homogenous screen space (between [-1, 1])
     pub fn world_to_normalized_device_space(
         &self,
-        pos_world_space: &Vector4<f64>,
+        pos_world_space: &XYZWWorld<f64>,
         camera: &CameraViewPort,
-    ) -> Option<Vector2<f64>> {
+    ) -> Option<XYNDC<f64>> {
         self.world_to_clip_space(pos_world_space)
             .map(|pos_clip_space| clip_to_ndc_space(&pos_clip_space, camera))
     }
 
     pub fn normalized_device_to_world_space(
         &self,
-        ndc_pos: &XYNDC,
+        ndc_pos: &XYNDC<f64>,
         camera: &CameraViewPort,
-    ) -> Option<XYZWWorld> {
+    ) -> Option<XYZWWorld<f64>> {
         let clip_pos = ndc_to_clip_space(ndc_pos, camera);
         self.clip_to_world_space(&clip_pos)
     }
 
     pub fn world_to_screen_space(
         &self,
-        pos_world_space: &Vector4<f64>,
+        pos_world_space: &XYZWWorld<f64>,
         camera: &CameraViewPort,
-    ) -> Option<Vector2<f64>> {
+    ) -> Option<XYScreen<f64>> {
         self.world_to_normalized_device_space(pos_world_space, camera)
             .map(|pos_normalized_device| ndc_to_screen_space(&pos_normalized_device, camera))
     }
@@ -523,7 +516,7 @@ impl ProjectionType {
 
 impl Projection for ProjectionType {
     /// Deprojection
-    fn clip_to_world_space(&self, xy: &XYClip) -> Option<XYZWWorld> {
+    fn clip_to_world_space(&self, xy: &XYClip<f64>) -> Option<XYZWWorld<f64>> {
         match self {
             // Zenithal projections
             /* TAN,      Gnomonic projection        */
@@ -579,7 +572,7 @@ impl Projection for ProjectionType {
     }
 
     // Projection
-    fn world_to_clip_space(&self, xyzw: &XYZWWorld) -> Option<XYClip> {
+    fn world_to_clip_space(&self, xyzw: &XYZWWorld<f64>) -> Option<XYClip<f64>> {
         match self {
             // Zenithal projections
             /* TAN,      Gnomonic projection        */
@@ -635,6 +628,35 @@ impl Projection for ProjectionType {
     }
 }
 
+use al_core::shader::UniformType;
+use al_core::WebGlContext;
+use web_sys::WebGlUniformLocation;
+impl UniformType for ProjectionType {
+    fn uniform(gl: &WebGlContext, location: Option<&WebGlUniformLocation>, value: &Self) {
+        match value {
+            // Zenithal projections
+            /* TAN,      Gnomonic projection        */
+            ProjectionType::Tan(_) => gl.uniform1i(location, 0),
+            /* STG,	     Stereographic projection   */
+            ProjectionType::Stg(_) => gl.uniform1i(location, 1),
+            /* SIN,	     Orthographic		        */
+            ProjectionType::Sin(_) => gl.uniform1i(location, 2),
+            /* ZEA,	     Equal-area 		        */
+            ProjectionType::Zea(_) => gl.uniform1i(location, 3),
+
+            // Pseudo-cylindrical projections
+            /* AIT,      Aitoff                     */
+            ProjectionType::Ait(_) => gl.uniform1i(location, 4),
+            // MOL,      Mollweide                  */
+            ProjectionType::Mol(_) => gl.uniform1i(location, 5),
+
+            // Cylindrical projections
+            // MER,      Mercator                   */
+            ProjectionType::Mer(_) => gl.uniform1i(location, 6),
+        }
+    }
+}
+
 use cgmath::Vector4;
 
 use mapproj::CanonicalProjection;
@@ -644,17 +666,18 @@ pub trait Projection {
     /// # Arguments
     ///
     /// * ``pos_clip_space`` - The position in the clipping space (orthonorlized space)
-    fn clip_to_world_space(&self, xy_clip: &XYClip) -> Option<XYZWWorld>;
+    fn clip_to_world_space(&self, xy_clip: &XYClip<f64>) -> Option<XYZWWorld<f64>>;
     /// World to the clipping space deprojection
     ///
     /// # Arguments
     ///
     /// * ``pos_world_space`` - The position in the world space
-    fn world_to_clip_space(&self, pos_world_space: &XYZWWorld) -> Option<XYClip>;
+    fn world_to_clip_space(&self, pos_world_space: &XYZWWorld<f64>) -> Option<XYClip<f64>>;
 }
 
 use mapproj::ProjXY;
 
+use self::coo_space::XYScreen;
 use self::coo_space::XYNDC;
 
 impl<'a, P> Projection for &'a P
@@ -666,7 +689,7 @@ where
     /// # Arguments
     ///
     /// * ``pos_clip_space`` - The position in the clipping space (orthonorlized space)
-    fn clip_to_world_space(&self, xy_clip: &XYClip) -> Option<XYZWWorld> {
+    fn clip_to_world_space(&self, xy_clip: &XYClip<f64>) -> Option<XYZWWorld<f64>> {
         let proj_bounds = self.bounds();
         // Scale the xy_clip space so that it maps the proj definition domain of mapproj
         let xy_mapproj = {
@@ -699,7 +722,7 @@ where
     /// # Arguments
     ///
     /// * ``pos_world_space`` - The position in the world space
-    fn world_to_clip_space(&self, pos_world_space: &XYZWWorld) -> Option<XYClip> {
+    fn world_to_clip_space(&self, pos_world_space: &XYZWWorld<f64>) -> Option<XYClip<f64>> {
         // Xmpp <-> Zal
         // -Ympp <-> Xal
         // Zmpp <-> Yal

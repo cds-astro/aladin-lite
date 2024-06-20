@@ -957,6 +957,7 @@ impl App {
                 &self.colormaps,
                 &self.projection,
             )?;
+            use al_core::log::console_log;
 
             // Draw the catalog
             //let fbo_view = &self.fbo_view;
@@ -974,14 +975,11 @@ impl App {
             //    Ok(())
             //})?;
 
-            self.grid.draw(
-                &self.camera,
-                &mut self.shaders,
-                &self.projection,
-                &mut self.line_renderer,
-            )?;
+            self.grid
+                .draw(&self.camera, &self.projection, &mut self.line_renderer)?;
             self.line_renderer.end();
-            self.line_renderer.draw(&self.camera)?;
+            self.line_renderer
+                .draw(&mut self.shaders, &self.camera, &self.projection)?;
 
             //let dpi  = self.camera.get_dpi();
             //ui.draw(&gl, dpi)?;

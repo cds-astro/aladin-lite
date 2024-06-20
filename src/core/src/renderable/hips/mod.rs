@@ -2,6 +2,7 @@ pub mod raytracing;
 mod triangulation;
 pub mod uv;
 
+use al_api::coo_system::CooSystem;
 use al_api::hips::ImageExt;
 use al_api::hips::ImageMetadata;
 use al_core::colormap::Colormap;
@@ -42,7 +43,7 @@ use crate::survey::texture::Texture;
 use raytracing::RayTracer;
 use uv::{TileCorner, TileUVW};
 
-use cgmath::{Matrix};
+use cgmath::Matrix;
 use std::fmt::Debug;
 
 use wasm_bindgen::JsValue;
@@ -286,28 +287,33 @@ pub fn get_raster_shader<'a>(
     config: &HiPSConfig,
 ) -> Result<&'a Shader, JsValue> {
     if config.get_format().is_colored() && cmap.label() == "native" {
-        crate::shader::get_shader(gl, shaders, "RasterizerVS", "RasterizerColorFS")
+        crate::shader::get_shader(
+            gl,
+            shaders,
+            "hips_rasterizer_raster.vert",
+            "hips_rasterizer_color.frag",
+        )
     } else {
         if config.tex_storing_unsigned_int {
             crate::shader::get_shader(
                 gl,
                 shaders,
-                "RasterizerVS",
-                "RasterizerGrayscale2ColormapUnsignedFS",
+                "hips_rasterizer_raster.vert",
+                "hips_rasterizer_grayscale_to_colormap_u.frag",
             )
         } else if config.tex_storing_integers {
             crate::shader::get_shader(
                 gl,
                 shaders,
-                "RasterizerVS",
-                "RasterizerGrayscale2ColormapIntegerFS",
+                "hips_rasterizer_raster.vert",
+                "hips_rasterizer_grayscale_to_colormap_i.frag",
             )
         } else {
             crate::shader::get_shader(
                 gl,
                 shaders,
-                "RasterizerVS",
-                "RasterizerGrayscale2ColormapFS",
+                "hips_rasterizer_raster.vert",
+                "hips_rasterizer_grayscale_to_colormap.frag",
             )
         }
     }
@@ -321,24 +327,34 @@ pub fn get_raytracer_shader<'a>(
 ) -> Result<&'a Shader, JsValue> {
     //let colored_hips = config.is_colored();
     if config.get_format().is_colored() && cmap.label() == "native" {
-        crate::shader::get_shader(gl, shaders, "RayTracerVS", "RayTracerColorFS")
+        crate::shader::get_shader(
+            gl,
+            shaders,
+            "hips_raytracer_raytracer.vert",
+            "hips_raytracer_color.frag",
+        )
     } else {
         if config.tex_storing_unsigned_int {
             crate::shader::get_shader(
                 gl,
                 shaders,
-                "RayTracerVS",
-                "RayTracerGrayscale2ColormapUnsignedFS",
+                "hips_raytracer_raytracer.vert",
+                "hips_raytracer_grayscale_to_colormap_u.frag",
             )
         } else if config.tex_storing_integers {
             crate::shader::get_shader(
                 gl,
                 shaders,
-                "RayTracerVS",
-                "RayTracerGrayscale2ColormapIntegerFS",
+                "hips_raytracer_raytracer.vert",
+                "hips_raytracer_grayscale_to_colormap_i.frag",
             )
         } else {
-            crate::shader::get_shader(gl, shaders, "RayTracerVS", "RayTracerGrayscale2ColormapFS")
+            crate::shader::get_shader(
+                gl,
+                shaders,
+                "hips_raytracer_raytracer.vert",
+                "hips_raytracer_grayscale_to_colormap.frag",
+            )
         }
     }
 }
@@ -700,12 +716,12 @@ impl HiPS {
         let hips_frame = cfg.get_frame();
 
         // Retrieve the model and inverse model matrix
-
         let mut off_indices = 0;
 
         let depth = camera.get_texture_depth().min(cfg.get_max_depth_texture());
 
         let view_cells: Vec<_> = camera.get_hpx_cells(depth, hips_frame).cloned().collect();
+
         for cell in &view_cells {
             // filter textures that are not in the moc
             let cell = if let Some(moc) = self.footprint_moc.as_ref() {
@@ -812,11 +828,14 @@ impl HiPS {
                     let n_vertices_per_segment = n_segments_by_side + 1;
 
                     let mut pos = vec![];
-                    for (idx, lonlat) in
-                        crate::healpix::utils::grid_lonlat::<f64>(cell, n_segments_by_side as u16)
-                            .iter()
-                            .enumerate()
-                    {
+
+                    let grid_lonlat =
+                        healpix::nested::grid(cell.depth(), cell.idx(), n_segments_by_side as u16);
+                    let grid_lonlat_iter = grid_lonlat
+                        .into_iter()
+                        .map(|(lon, lat)| LonLatT::new(Angle(*lon), Angle(*lat)));
+
+                    for (idx, lonlat) in grid_lonlat_iter.enumerate() {
                         let lon = lonlat.lon();
                         let lat = lonlat.lat();
 
@@ -1073,13 +1092,10 @@ impl HiPS {
                 let shader = get_raster_shader(cmap, &self.gl, shaders, &config)?.bind(&self.gl);
 
                 shader
-                    .attach_uniforms_from(camera)
                     .attach_uniforms_from(&self.textures)
                     // send the cmap appart from the color config
                     .attach_uniforms_with_params_from(cmap, colormaps)
                     .attach_uniforms_from(color)
-                    .attach_uniform("model", &w2v)
-                    .attach_uniform("inv_model", &v2w)
                     .attach_uniform("current_time", &utils::get_current_time())
                     .attach_uniform("opacity", opacity)
                     .attach_uniforms_from(colormaps)

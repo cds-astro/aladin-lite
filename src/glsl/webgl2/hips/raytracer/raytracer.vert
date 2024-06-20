@@ -8,11 +8,9 @@ out vec3 frag_pos;
 
 uniform vec2 ndc_to_clip;
 uniform float czf;
-
 uniform mat4 model;
-uniform sampler2D position_tex;
 
-#include ../projection.glsl;
+uniform sampler2D position_tex;
 
 void main() {
     vec2 uv = pos_clip_space * 0.5 + 0.5;

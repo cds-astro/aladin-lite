@@ -6,16 +6,15 @@ use crate::math::sph_geom::region::{Intersection, PoleContained, Region};
 use crate::math::{projection::Projection, sph_geom::bbox::BoundingBox};
 use crate::LonLatT;
 
-
 use crate::ProjectionType;
 use std::iter;
 
 fn ndc_to_world(
-    ndc_coo: &[XYNDC],
+    ndc_coo: &[XYNDC<f64>],
     ndc_to_clip: &Vector2<f64>,
     clip_zoom_factor: f64,
     projection: &ProjectionType,
-) -> Option<Vec<XYZWWorld>> {
+) -> Option<Vec<XYZWWorld<f64>>> {
     // Deproject the FOV from ndc to the world space
     let mut world_coo = Vec::with_capacity(ndc_coo.len());
 
@@ -35,7 +34,7 @@ fn ndc_to_world(
 
     Some(world_coo)
 }
-fn world_to_model(world_coo: &[XYZWWorld], w2m: &Matrix4<f64>) -> Vec<XYZWModel> {
+fn world_to_model(world_coo: &[XYZWWorld<f64>], w2m: &Matrix4<f64>) -> Vec<XYZWModel<f64>> {
     let mut model_coo = Vec::with_capacity(world_coo.len());
 
     for w in world_coo.iter() {
@@ -61,9 +60,9 @@ const NUM_VERTICES: usize = 4 + 2 * NUM_VERTICES_WIDTH + 2 * NUM_VERTICES_HEIGHT
 // This struct belongs to the CameraViewPort
 pub struct FieldOfView {
     // Vertices
-    ndc_vertices: Vec<XYNDC>,
-    world_vertices: Option<Vec<XYZWWorld>>,
-    model_vertices: Option<Vec<XYZWModel>>,
+    ndc_vertices: Vec<XYNDC<f64>>,
+    world_vertices: Option<Vec<XYZWWorld<f64>>>,
+    model_vertices: Option<Vec<XYZWModel<f64>>>,
 
     reg: Region,
 }
@@ -183,7 +182,7 @@ impl FieldOfView {
         }
     }
 
-    pub fn get_vertices(&self) -> Option<&Vec<XYZWModel>> {
+    pub fn get_vertices(&self) -> Option<&Vec<XYZWModel<f64>>> {
         self.model_vertices.as_ref()
     }
 

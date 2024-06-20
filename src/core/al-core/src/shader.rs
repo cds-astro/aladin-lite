@@ -1,8 +1,8 @@
-use web_sys::{WebGlProgram, WebGlShader, WebGlUniformLocation};
 use wasm_bindgen::JsValue;
+use web_sys::{WebGlProgram, WebGlShader, WebGlUniformLocation};
 
-use crate::Colormaps;
 use crate::webgl_ctx::WebGlRenderingCtx;
+use crate::Colormaps;
 fn compile_shader(
     gl: &WebGlContext,
     shader_type: u32,
@@ -289,17 +289,6 @@ impl UniformType for TransferFunction {
     }
 }
 
-/*use al_api::hips::GrayscaleParameter;
-impl SendUniforms for GrayscaleParameter {
-    fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
-        shader
-            .attach_uniforms_from(&self.h)
-            .attach_uniform("min_value", &self.min_value)
-            .attach_uniform("max_value", &self.max_value);
-
-        shader
-    }
-}*/
 use al_api::hips::HiPSColor;
 use al_api::hips::ImageMetadata;
 
@@ -314,7 +303,7 @@ impl SendUniforms for ImageMetadata {
 }
 
 impl SendUniforms for HiPSColor {
-    fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {     
+    fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
         let reversed = self.reversed as u8 as f32;
 
         shader
@@ -326,14 +315,17 @@ impl SendUniforms for HiPSColor {
             .attach_uniform("k_brightness", &self.k_brightness)
             .attach_uniform("k_contrast", &self.k_contrast)
             .attach_uniform("reversed", &reversed);
-    
+
         shader
     }
 }
 
-
 impl SendUniformsWithParams<Colormaps> for HiPSColor {
-    fn attach_uniforms_with_params<'a>(&self, shader: &'a ShaderBound<'a>, cmaps: &Colormaps) -> &'a ShaderBound<'a> {     
+    fn attach_uniforms_with_params<'a>(
+        &self,
+        shader: &'a ShaderBound<'a>,
+        cmaps: &Colormaps,
+    ) -> &'a ShaderBound<'a> {
         let reversed = self.reversed as u8 as f32;
 
         let cmap = cmaps.get(&self.cmap_name.as_ref());
@@ -347,7 +339,7 @@ impl SendUniformsWithParams<Colormaps> for HiPSColor {
             .attach_uniform("k_brightness", &self.k_brightness)
             .attach_uniform("k_contrast", &self.k_contrast)
             .attach_uniform("reversed", &reversed);
-    
+
         shader
     }
 }
@@ -375,7 +367,11 @@ impl<'a> ShaderBound<'a> {
         self
     }
 
-    pub fn attach_uniforms_with_params_from<P, T: SendUniformsWithParams<P>>(&'a self, t: &T, params: &P) -> &'a Self {
+    pub fn attach_uniforms_with_params_from<P, T: SendUniformsWithParams<P>>(
+        &'a self,
+        t: &T,
+        params: &P,
+    ) -> &'a Self {
         t.attach_uniforms_with_params(self, params);
 
         self
@@ -422,5 +418,9 @@ pub trait SendUniforms {
 }
 
 pub trait SendUniformsWithParams<T> {
-    fn attach_uniforms_with_params<'a>(&self, shader: &'a ShaderBound<'a>, params: &T) -> &'a ShaderBound<'a>;
+    fn attach_uniforms_with_params<'a>(
+        &self,
+        shader: &'a ShaderBound<'a>,
+        params: &T,
+    ) -> &'a ShaderBound<'a>;
 }

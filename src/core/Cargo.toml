@@ -30,10 +30,12 @@ fitsrs = "0.2.9"
 wcs = "0.2.8"
 colorgrad = "0.6.2"
 lyon = "1.0.1"
+console_error_panic_hook = {version = "0.1.7", optional = true}
 
 [features]
 webgl1 = [ "al-core/webgl1", "al-api/webgl1", "web-sys/WebGlRenderingContext", "web-sys/AngleInstancedArrays", "web-sys/ExtSRgb", "web-sys/OesTextureFloat",]
 webgl2 = [ "al-core/webgl2", "al-api/webgl2", "web-sys/WebGl2RenderingContext", "web-sys/WebGlVertexArrayObject", "web-sys/ExtColorBufferFloat",]
+dbg = ['dep:console_error_panic_hook']
 
 [dev-dependencies]
 rand = "0.8"
@@ -42,10 +44,6 @@ rand = "0.8"
 package = "cdshealpix"
 git = "https://github.com/cds-astro/cds-healpix-rust"
 branch = "master"
-
-#[dependencies.moclib]
-#package = "moc"
-#version = "0.14.2"
 
 [dependencies.moclib]
 package = "moc"
@@ -73,16 +71,12 @@ version = "0.24.2"
 default-features = false
 features = [ "jpeg", "png",]
 
+[build-dependencies]
+# Shader preprocessing
+walkdir = "2.3.2"
+
 [profile.dev]
-opt-level = "z"
 debug = true
-debug-assertions = true
-overflow-checks = true
-lto = true
-panic = "unwind"
-incremental = true
-codegen-units = 256
-rpath = false
 
 [profile.release]
 opt-level = "z"

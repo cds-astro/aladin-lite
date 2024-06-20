@@ -26,7 +26,7 @@ struct TileColor {
 };
 
 #include ../color.glsl;
-#include ./healpix.glsl;
+#include ../../projection/hpx.glsl;
 
 vec4 get_tile_color(vec3 pos) {
     HashDxDy result = hash_with_dxdy(0, pos.zxy);

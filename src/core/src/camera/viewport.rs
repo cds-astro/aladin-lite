@@ -6,13 +6,16 @@ pub enum UserAction {
     Starting = 4,
 }
 
+// Longitude reversed identity matrix
+const ID_R: &Matrix4<f64> = &Matrix4::new(
+    -1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
+);
+
 use super::{fov::FieldOfView, view_hpx_cells::ViewHpxCells};
 use crate::healpix::cell::HEALPixCell;
 use crate::healpix::coverage::HEALPixCoverage;
 use crate::math::angle::ToAngle;
 use crate::math::{projection::coo_space::XYZWModel, projection::domain::sdf::ProjDef};
-
-
 
 use cgmath::{Matrix4, Vector2};
 pub struct CameraViewPort {
@@ -558,7 +561,7 @@ impl CameraViewPort {
         self.clip_zoom_factor
     }
 
-    pub fn get_vertices(&self) -> Option<&Vec<XYZWModel>> {
+    pub fn get_vertices(&self) -> Option<&Vec<XYZWModel<f64>>> {
         self.fov.get_vertices()
     }
 
@@ -654,11 +657,6 @@ impl CameraViewPort {
     }
 
     fn update_center(&mut self) {
-        // Longitude reversed identity matrix
-        const ID_R: &Matrix4<f64> = &Matrix4::new(
-            -1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
-        );
-
         // The center position is on the 3rd column of the w2m matrix
         self.center = self.w2m.z;
 

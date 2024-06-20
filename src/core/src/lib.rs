@@ -84,6 +84,7 @@ use crate::math::angle::ToAngle;
 mod app;
 pub mod async_task;
 mod camera;
+mod shaders;
 
 mod coosys;
 mod downloader;
@@ -139,8 +140,8 @@ pub struct WebClient {
 }
 
 use al_api::hips::ImageMetadata;
+use al_core::log::console_log;
 use std::convert::TryInto;
-
 #[wasm_bindgen]
 impl WebClient {
     /// Create the Aladin Lite webgl backend
@@ -153,16 +154,18 @@ impl WebClient {
     #[wasm_bindgen(constructor)]
     pub fn new(
         aladin_div: &HtmlElement,
-        shaders: JsValue,
+        //_shaders: JsValue,
         resources: JsValue,
     ) -> Result<WebClient, JsValue> {
-        //panic::set_hook(Box::new(console_error_panic_hook::hook));
+        #[cfg(feature = "dbg")]
+        panic::set_hook(Box::new(console_error_panic_hook::hook));
 
-        let shaders = serde_wasm_bindgen::from_value(shaders)?;
+        //let shaders = serde_wasm_bindgen::from_value(shaders)?;
         let resources = serde_wasm_bindgen::from_value(resources)?;
         let gl = WebGlContext::new(aladin_div)?;
 
-        let shaders = ShaderManager::new(&gl, shaders).unwrap_abort();
+        let shaders = ShaderManager::new().unwrap_abort();
+        console_log("jkjk2");
 
         // Event listeners callbacks
         //let callback_position_changed = js_sys::Function::new_no_args("");

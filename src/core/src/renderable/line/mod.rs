@@ -2,7 +2,10 @@
 pub mod great_circle_arc;
 pub mod parallel_arc;
 
+use crate::math::projection::ProjectionType;
+use crate::shader::ShaderManager;
 use crate::Abort;
+use al_api::coo_system::CooSystem;
 use al_core::shader::Shader;
 use al_core::VertexArrayObject;
 use al_core::WebGlContext;
@@ -18,6 +21,7 @@ struct Meta {
     thickness: f32,
     off_indices: usize,
     num_indices: usize,
+    coo_space: CooSpace,
 }
 
 #[derive(Clone)]
@@ -29,10 +33,7 @@ pub enum Style {
 
 pub struct RasterizedLineRenderer {
     gl: WebGlContext,
-    shader: Shader,
     vao: VertexArrayObject,
-
-    shader_line_instanced: Shader,
 
     vao_idx: usize,
 
@@ -52,13 +53,37 @@ use crate::camera::CameraViewPort;
 
 use lyon::tessellation::*;
 
+use crate::coo_space::CooSpace;
+
+/*impl<S: BaseFloat> GPUVertexAttribute<S> for XYZModel<S> {
+    const Space: CooSpace = CooSpace::Model;
+
+    fn as_ref(&self) -> &[S] {
+        &self[..]
+    }
+}
+impl<S: BaseFloat> GPUVertexAttribute<S> for LonLatT<S> {
+    const Space: CooSpace = CooSpace::LonLat;
+
+    fn as_ref(&self) -> &[S] {
+        let addr = self as *const LonLatT<S> as *const S;
+        unsafe { std::slice::from_raw_parts(addr, 2) }
+    }
+}*/
+/*
+impl<S: BaseFloat> GPUVertexAttribute for XYZModel<S> {
+    const Space: CooSpace = CooSpace::Model;
+}
+impl<S: BaseFloat> GPUVertexAttribute for LonLatT<S> {
+    const Space: CooSpace = CooSpace::LonLat;
+}*/
+
 #[repr(C)]
-pub struct PathVertices<T>
+pub struct PathVertices<V>
 where
-    T: AsRef<[[f32; 2]]>,
+    V: AsRef<[[f32; 2]]>,
 {
-    pub vertices: T,
-    //pub closed: bool,
+    pub vertices: V,
 }
 
 impl RasterizedLineRenderer {
@@ -67,43 +92,6 @@ impl RasterizedLineRenderer {
         let vertices = vec![];
         let indices = vec![];
         // Create the VAO for the screen
-        let shader = Shader::new(
-            &gl,
-            include_str!("../../../../glsl/webgl2/line/line_vertex.glsl"),
-            include_str!("../../../../glsl/webgl2/line/line_frag.glsl"),
-        )?;
-        let shader_line_instanced = Shader::new(
-            &gl,
-            r#"#version 300 es
-            precision lowp float;
-            layout (location = 0) in vec2 p_a;
-            layout (location = 1) in vec2 p_b;
-            layout (location = 2) in vec2 vertex;
-
-            out vec2 out_uv;
-            out vec3 out_p;
-
-            uniform float u_width;
-
-            void main() {
-                vec2 x_b = p_b - p_a;
-                vec2 y_b = normalize(vec2(-x_b.y, x_b.x));
-
-                vec2 p = p_a + x_b * vertex.x + y_b * u_width * 0.001 * vertex.y;
-                gl_Position = vec4(p, 0.f, 1.f);
-            }"#,
-            r#"#version 300 es
-            precision lowp float;
-            out vec4 color;
-
-            uniform vec4 u_color;
-
-            void main() {
-                // Multiply vertex color with texture color (in linear space).
-                // Linear color is written and blended in Framebuffer and converted to sRGB later
-                color = u_color;
-            }"#,
-        )?;
         let mut vao = VertexArrayObject::new(&gl);
 
         vao.bind_for_update()
@@ -129,8 +117,6 @@ impl RasterizedLineRenderer {
         let instanced_line_vaos = vec![];
         Ok(Self {
             gl,
-            shader,
-            shader_line_instanced,
             vao_idx: 0,
             instanced_line_vaos,
             meta_instanced,
@@ -141,12 +127,13 @@ impl RasterizedLineRenderer {
         })
     }
 
-    pub fn add_fill_paths<T>(
+    pub fn add_fill_paths<V>(
         &mut self,
-        paths: impl Iterator<Item = PathVertices<T>>,
+        paths: impl Iterator<Item = PathVertices<V>>,
         color: &ColorRGBA,
+        coo_space: CooSpace,
     ) where
-        T: AsRef<[[f32; 2]]>,
+        V: AsRef<[[f32; 2]]>,
     {
         let mut num_indices = 0;
         let off_indices = self.indices.len();
@@ -162,7 +149,7 @@ impl RasterizedLineRenderer {
                 vertices, /*, closed */
             } = path;
 
-            let line: &[[f32; 2]] = vertices.as_ref();
+            let line = vertices.as_ref();
 
             if !line.is_empty() {
                 let v = &line[0];
@@ -212,6 +199,7 @@ impl RasterizedLineRenderer {
             num_indices,
             thickness: 1.0,
             color: color.clone(),
+            coo_space,
         });
     }
 
@@ -249,14 +237,15 @@ impl RasterizedLineRenderer {
         self.instanced_line_vaos.push(vao);
     }
 
-    pub fn add_stroke_paths<T>(
+    pub fn add_stroke_paths<V>(
         &mut self,
-        paths: impl Iterator<Item = PathVertices<T>>,
+        paths: impl Iterator<Item = PathVertices<V>>,
         thickness: f32,
         color: &ColorRGBA,
         _style: &Style,
+        coo_space: CooSpace,
     ) where
-        T: AsRef<[[f32; 2]]>,
+        V: AsRef<[[f32; 2]]>,
     {
         //let num_vertices = (self.vertices.len() / 2) as u32;
 
@@ -381,10 +370,16 @@ impl RasterizedLineRenderer {
             thickness,
             num_indices: num_instances,
             color: color.clone(),
+            coo_space,
         });
     }
 
-    pub fn draw(&mut self, _camera: &CameraViewPort) -> Result<(), JsValue> {
+    pub fn draw(
+        &mut self,
+        shaders: &mut ShaderManager,
+        camera: &CameraViewPort,
+        proj: &ProjectionType,
+    ) -> Result<(), JsValue> {
         self.gl.enable(WebGl2RenderingContext::BLEND);
         self.gl.blend_func_separate(
             WebGl2RenderingContext::SRC_ALPHA,
@@ -394,35 +389,70 @@ impl RasterizedLineRenderer {
         );
 
         //self.gl.disable(WebGl2RenderingContext::CULL_FACE);
-
-        let shader = self.shader.bind(&self.gl);
-        for meta in self.meta.iter() {
-            shader
-                .attach_uniform("u_color", &meta.color) // Strengh of the kernel
-                .bind_vertex_array_object_ref(&self.vao)
-                .draw_elements_with_i32(
-                    WebGl2RenderingContext::TRIANGLES,
-                    Some(meta.num_indices as i32),
-                    WebGl2RenderingContext::UNSIGNED_INT,
-                    ((meta.off_indices as usize) * std::mem::size_of::<u32>()) as i32,
-                );
+        {
+            let shader =
+                crate::shader::get_shader(&self.gl, shaders, "line_base.vert", "line_base.frag")?
+                    .bind(&self.gl);
+            for meta in self.meta.iter() {
+                shader
+                    .attach_uniform("u_color", &meta.color) // Strengh of the kernel
+                    .bind_vertex_array_object_ref(&self.vao)
+                    .draw_elements_with_i32(
+                        WebGl2RenderingContext::TRIANGLES,
+                        Some(meta.num_indices as i32),
+                        WebGl2RenderingContext::UNSIGNED_INT,
+                        ((meta.off_indices as usize) * std::mem::size_of::<u32>()) as i32,
+                    );
+            }
         }
-
         //self.gl.enable(WebGl2RenderingContext::CULL_FACE);
 
-        // draw the lines
-        let shader_bound = self.shader_line_instanced.bind(&self.gl);
+        // draw the instanced lines
         for (idx, meta) in self.meta_instanced.iter().enumerate() {
-            let vao_bound = shader_bound
-                .attach_uniform("u_color", &meta.color)
-                .attach_uniform("u_width", &meta.thickness)
-                .bind_vertex_array_object_ref(&self.instanced_line_vaos[idx]);
+            match meta.coo_space {
+                CooSpace::NDC => {
+                    crate::shader::get_shader(
+                        &self.gl,
+                        shaders,
+                        "line_inst_ndc.vert",
+                        "line_base.frag",
+                    )?
+                    .bind(&self.gl)
+                    .attach_uniform("u_color", &meta.color)
+                    .attach_uniform("u_width", &meta.thickness)
+                    .bind_vertex_array_object_ref(&self.instanced_line_vaos[idx])
+                    .draw_elements_instanced_with_i32(
+                        WebGl2RenderingContext::TRIANGLES,
+                        0,
+                        meta.num_indices as i32,
+                    );
+                }
+                CooSpace::LonLat => {
+                    let icrs2view = CooSystem::ICRS.to(camera.get_coo_system());
+                    let view2world = camera.get_m2w();
+                    let icrs2world = view2world * icrs2view;
 
-            vao_bound.draw_elements_instanced_with_i32(
-                WebGl2RenderingContext::TRIANGLES,
-                0,
-                meta.num_indices as i32,
-            );
+                    crate::shader::get_shader(
+                        &self.gl,
+                        shaders,
+                        "line_inst_lonlat.vert",
+                        "line_base.frag",
+                    )?
+                    .bind(&self.gl)
+                    .attach_uniforms_from(camera)
+                    .attach_uniform("u_2world", &icrs2world)
+                    .attach_uniform("u_color", &meta.color)
+                    .attach_uniform("u_width", &meta.thickness)
+                    .attach_uniform("u_proj", proj)
+                    .bind_vertex_array_object_ref(&self.instanced_line_vaos[idx])
+                    .draw_elements_instanced_with_i32(
+                        WebGl2RenderingContext::TRIANGLES,
+                        0,
+                        meta.num_indices as i32,
+                    );
+                }
+                _ => (),
+            }
         }
         self.gl.disable(WebGl2RenderingContext::BLEND);
 

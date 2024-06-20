@@ -1,17 +1,16 @@
+use al_core::log::console_log;
 use al_core::shader::Shader;
 use al_core::WebGlContext;
 
-pub type VertId = Cow<'static, str>;
-pub type FragId = Cow<'static, str>;
-type FileId = Cow<'static, str>;
+pub type VertId = &'static str;
+pub type FragId = &'static str;
 #[derive(PartialEq, Eq, Hash, Debug, Clone)]
 pub struct ShaderId(pub VertId, pub FragId);
 
 pub struct ShaderManager {
     // Compiled shaders stored in an HashMap
     shaders: HashMap<ShaderId, Shader>,
-    // Shaders sources coming from the javascript
-    src: HashMap<FileId, String>,
+    src: HashMap<&'static str, &'static str>,
 }
 
 #[derive(Debug)]
@@ -20,6 +19,7 @@ pub enum Error {
     ShaderNotFound { message: &'static str },
     ShaderCompilingLinking { message: JsValue },
     FileNotFound { message: &'static str },
+    Io { message: String },
 }
 
 use wasm_bindgen::JsValue;
@@ -35,7 +35,8 @@ impl From<Error> for JsValue {
             Error::FileNotFound { message } => {
                 JsValue::from_str(&format!("Shader not found: {:?}", message))
             }
-            Error::ShaderCompilingLinking { message } => message
+            Error::ShaderCompilingLinking { message } => message,
+            Error::Io { message } => message.into(),
         }
     }
 }
@@ -49,15 +50,41 @@ pub struct FileSrc {
 
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
+use std::fs::File;
+use std::io::Read;
 impl ShaderManager {
-    pub fn new(_gl: &WebGlContext, files: Vec<FileSrc>) -> Result<ShaderManager, Error> {
-        let src = files
-            .into_iter()
-            .map(|file| {
-                let FileSrc { id, content } = file;
-                (Cow::Owned(id), content)
-            })
-            .collect::<HashMap<_, _>>();
+    pub fn new() -> Result<ShaderManager, Error> {
+        let src = crate::shaders::get_all();
+        // Loop over the entries in the directory
+        /*let _src = std::fs::read_dir("./shaders")
+        .map_err(|e| Error::Io {
+            message: e.to_string(),
+        })?
+        .into_iter()
+        .filter_map(|entry| {
+            let entry = entry.ok()?;
+            let path = entry.path();
+
+            console_log(&format!("aaa"));
+
+            if path.is_file() {
+                let file_name = path.to_str()?;
+
+                console_log(&format!("{}", file_name));
+
+                // read the file into a bufreader
+                let file = File::open(file_name).ok()?;
+                let mut reader = std::io::BufReader::new(file);
+                let mut content = String::new();
+
+                reader.read_to_string(&mut content).ok()?;
+
+                Some((Cow::Owned(file_name.to_owned()), content))
+            } else {
+                None
+            }
+        })
+        .collect::<HashMap<_, _>>();*/
 
         Ok(ShaderManager {
             shaders: HashMap::new(),
@@ -65,21 +92,23 @@ impl ShaderManager {
         })
     }
 
-    pub fn get(&mut self, gl: &WebGlContext, id: &ShaderId) -> Result<&Shader, Error> {
+    pub fn get(&mut self, gl: &WebGlContext, id: ShaderId) -> Result<&Shader, Error> {
         let shader = match self.shaders.entry(id.clone()) {
             Entry::Occupied(o) => o.into_mut(),
             Entry::Vacant(v) => {
                 let ShaderId(vert_id, frag_id) = id;
-                let vert_src = self.src.get(vert_id).ok_or(Error::FileNotFound {
-                    message: "Vert not found",
-                })?;
-                let frag_src = self.src.get(frag_id).ok_or(Error::FileNotFound {
-                    message: "Frag not found",
-                })?;
 
-                let shader = Shader::new(gl, vert_src, frag_src).map_err(|err| Error::ShaderCompilingLinking {
-                    message: err,
-                })?;
+                let &vert_src = self
+                    .src
+                    .get(vert_id)
+                    .ok_or(Error::FileNotFound { message: vert_id })?;
+                let &frag_src = self
+                    .src
+                    .get(frag_id)
+                    .ok_or(Error::FileNotFound { message: frag_id })?;
+
+                let shader = Shader::new(gl, vert_src, frag_src)
+                    .map_err(|err| Error::ShaderCompilingLinking { message: err })?;
                 v.insert(shader)
             }
         };
@@ -88,59 +117,14 @@ impl ShaderManager {
     }
 }
 use std::borrow::Cow;
-/*use paste::paste;
-macro_rules! define_shader_getter {
-    ($renderer_type:ident, $shader_type:ident, $vert_key:tt, $frag_key:tt) => {
-        paste! {
-            pub fn [< get_ $renderer_type _shader_ $shader_type >]<'a>(
-                gl: &WebGlContext,
-                shaders: &'a mut ShaderManager
-            ) -> &'a Shader {
-                shaders.get(
-                    gl,
-                    &ShaderId(
-                        Cow::Borrowed($vert_key),
-                        Cow::Borrowed($frag_key),
-                    ),
-                )
-                .unwrap_abort()
-            }
-        }
-    }
-}
 
-/* Raytracer shaders */
-define_shader_getter!(raytracer, color, "RayTracerVS", "RayTracerColorFS");
-define_shader_getter!(raytracer, gray2colormap, "RayTracerVS", "RayTracerGrayscale2ColormapFS");
-define_shader_getter!(raytracer, gray2color, "RayTracerVS", "RayTracerGrayscale2ColorFS");
-define_shader_getter!(raytracer, gray2colormap_integer, "RayTracerVS", "RayTracerGrayscale2ColormapIntegerFS");
-define_shader_getter!(raytracer, gray2color_integer, "RayTracerVS", "RayTracerGrayscale2ColorIntegerFS");
-define_shader_getter!(raytracer, gray2colormap_unsigned, "RayTracerVS", "RayTracerGrayscale2ColormapUnsignedFS");
-define_shader_getter!(raytracer, gray2color_unsigned, "RayTracerVS", "RayTracerGrayscale2ColorUnsignedFS");
-
-/* Rasterizer shaders */
-define_shader_getter!(raster, color, "RasterizerVS", "RasterizerColorFS");
-define_shader_getter!(raster, gray2colormap, "RasterizerVS", "RasterizerGrayscale2ColormapFS");
-define_shader_getter!(raster, gray2color, "RasterizerVS", "RasterizerGrayscale2ColorFS");
-define_shader_getter!(raster, gray2colormap_integer, "RasterizerVS", "RasterizerGrayscale2ColormapIntegerFS");
-define_shader_getter!(raster, gray2color_integer, "RasterizerVS", "RasterizerGrayscale2ColorIntegerFS");
-define_shader_getter!(raster, gray2colormap_unsigned, "RasterizerVS", "RasterizerGrayscale2ColormapUnsignedFS");
-define_shader_getter!(raster, gray2color_unsigned, "RasterizerVS", "RasterizerGrayscale2ColorUnsignedFS");
-
-/* Pass shaders */
-define_shader_getter!(pass, post, "PostVS", "PostFS");
-
-/* Catalog shaders */
-define_shader_getter!(catalog, ait, "CatalogAitoffVS", "CatalogFS");
-define_shader_getter!(catalog, mol, "CatalogMollVS", "CatalogFS");
-define_shader_getter!(catalog, arc, "CatalogArcVS", "CatalogFS");
-define_shader_getter!(catalog, hpx, "CatalogHEALPixVS", "CatalogFS");
-define_shader_getter!(catalog, mer, "CatalogMercatVS", "CatalogFS");
-define_shader_getter!(catalog, ort, "CatalogOrthoVS", "CatalogOrthoFS");
-define_shader_getter!(catalog, tan, "CatalogTanVS", "CatalogFS");*/
-pub(crate) fn get_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager, vert: &'static str, frag: &'static str) -> Result<&'a Shader, JsValue> {
-    shaders.get(
-        gl,
-        &ShaderId(Cow::Borrowed(vert), Cow::Borrowed(frag)),
-    ).map_err(|err| err.into())
+pub(crate) fn get_shader<'a>(
+    gl: &WebGlContext,
+    shaders: &'a mut ShaderManager,
+    vert: &'static str,
+    frag: &'static str,
+) -> Result<&'a Shader, JsValue> {
+    shaders
+        .get(gl, ShaderId(vert, frag))
+        .map_err(|err| err.into())
 }

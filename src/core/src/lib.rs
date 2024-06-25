@@ -16,7 +16,8 @@
 //extern crate itertools_num;
 //extern crate num;
 //extern crate num_traits;
-use crate::time::Time;
+//use crate::time::Time;
+#[cfg(feature = "dbg")]
 use std::panic;
 
 pub trait Abort {
@@ -140,7 +141,6 @@ pub struct WebClient {
 }
 
 use al_api::hips::ImageMetadata;
-use al_core::log::console_log;
 use std::convert::TryInto;
 #[wasm_bindgen]
 impl WebClient {
@@ -165,7 +165,6 @@ impl WebClient {
         let gl = WebGlContext::new(aladin_div)?;
 
         let shaders = ShaderManager::new().unwrap_abort();
-        console_log("jkjk2");
 
         // Event listeners callbacks
         //let callback_position_changed = js_sys::Function::new_no_args("");

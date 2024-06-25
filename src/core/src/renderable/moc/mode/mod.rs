@@ -1,5 +1,5 @@
 use crate::healpix::cell::CellVertices;
-use crate::renderable::coverage::HEALPixCell;
+use crate::HEALPixCell;
 use crate::HEALPixCoverage;
 
 pub mod edge;

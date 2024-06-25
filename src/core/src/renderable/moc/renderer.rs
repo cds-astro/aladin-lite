@@ -1,22 +1,10 @@
-use crate::{
-    healpix::{cell::HEALPixCell, coverage::HEALPixCoverage},
-    math::angle::Angle,
-    CameraViewPort, ShaderManager,
-};
-mod graph;
-pub mod mode;
-
-pub mod hierarchy;
-pub mod moc;
-
+use crate::{healpix::coverage::HEALPixCoverage, CameraViewPort, ShaderManager};
 use web_sys::WebGl2RenderingContext;
 
-use crate::renderable::line::RasterizedLineRenderer;
-
-use al_core::{log::console_log, WebGlContext};
+use al_core::WebGlContext;
 use wasm_bindgen::JsValue;
 
-use hierarchy::MOCHierarchy;
+use super::hierarchy::MOCHierarchy;
 
 use al_api::coo_system::CooSystem;
 
@@ -167,7 +155,6 @@ fn rasterize_hpx_cell(
 
 use crate::ProjectionType;
 
-use super::line;
 impl MOCRenderer {
     pub fn new(gl: &WebGlContext) -> Result<Self, JsValue> {
         // layout (location = 0) in vec2 ndc_pos;
@@ -273,7 +260,7 @@ impl MOCRenderer {
             let old_cfg = self.cfgs[idx].clone();
             self.cfgs[idx] = cfg;
 
-            self.draw(camera, projection, shaders);
+            let _ = self.draw(camera, projection, shaders);
 
             Some(old_cfg)
         } else {
@@ -291,20 +278,20 @@ impl MOCRenderer {
         camera: &mut CameraViewPort,
         proj: &ProjectionType,
         shaders: &mut ShaderManager,
-    ) {
-        if self.is_empty() {
-            return;
-        }
+    ) -> Result<(), JsValue> {
+        if !self.is_empty() {
+            self.gl.enable(WebGl2RenderingContext::CULL_FACE);
 
-        self.gl.enable(WebGl2RenderingContext::CULL_FACE);
-
-        for (hmoc, cfg) in self.mocs.iter_mut().zip(self.cfgs.iter()) {
-            if cfg.show {
-                let moc = hmoc.select_moc_from_view(camera);
-                moc.draw(camera, proj, shaders);
+            for (hmoc, cfg) in self.mocs.iter_mut().zip(self.cfgs.iter()) {
+                if cfg.show {
+                    let moc = hmoc.select_moc_from_view(camera);
+                    moc.draw(camera, proj, shaders)?;
+                }
             }
+
+            self.gl.disable(WebGl2RenderingContext::CULL_FACE);
         }
 
-        self.gl.disable(WebGl2RenderingContext::CULL_FACE);
+        Ok(())
     }
 }

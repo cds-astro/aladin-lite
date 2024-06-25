@@ -1,4 +1,4 @@
-use super::moc::MOC;
+use super::MOC;
 use crate::{camera::CameraViewPort, HEALPixCoverage};
 use al_api::moc::MOC as Cfg;
 

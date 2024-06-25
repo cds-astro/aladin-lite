@@ -36,9 +36,6 @@ import { ProjectionEnum } from "./ProjectionEnum.js";
 import { Utils } from "./Utils";
 import { GenericPointer } from "./GenericPointer.js";
 import { Stats } from "./libs/Stats.js";
-import { Circle } from "./shapes/Circle.js";
-import { Ellipse } from "./shapes/Ellipse.js";
-import { Polyline } from "./shapes/Polyline.js";
 import { CooFrameEnum } from "./CooFrameEnum.js";
 import { requestAnimFrame } from "./libs/RequestAnimationFrame.js";
 import { WebGLCtx } from "./WebGL.js";
@@ -1127,7 +1124,9 @@ export let View = (function () {
             clearTimeout(id);
             id = setTimeout(() => {
                 view.wheelTriggered = false;
+                view.zoom.stopAnimation();
             }, 100);
+
 
             const xymouse = Utils.relMouseCoords(e);
             view.xy = xymouse
@@ -1189,24 +1188,35 @@ export let View = (function () {
 
             if (isTouchPad) {
                 if (!view.throttledTouchPadZoom) {
-                    let radec;
+                    //let radec;
                     view.throttledTouchPadZoom = Utils.throttle(() => {
-                        if (!view.zoom.isZooming && !view.wheelTriggered) {
+                        /*if (!view.zoom.isZooming && !view.wheelTriggered) {
                             // start zooming detected
                             radec = view.aladin.pix2world(view.xy.x, view.xy.y);
+                        }*/
+        
+                        const factor = 4;
+                        let newFov = view.delta > 0 ? view.fov * factor : view.fov / factor;
+
+                        // standard mouse wheel zooming
+                        newFov = Math.min(newFov, view.projection.fov);
+
+                        // then clamp the fov between minFov and maxFov
+                        const minFoV = view.minFoV;
+                        const maxFoV = view.maxFoV;
+                
+                        if (minFoV) {
+                            fov = Math.max(fov, minFoV);
                         }
-        
-                        let amount = view.delta > 0 ? -Zoom.MAX_IDX_DELTA_PER_TROTTLE : Zoom.MAX_IDX_DELTA_PER_TROTTLE;
-                        if (amount === 0)
-                            return;
-        
-                        // change the zoom level
-                        let newFov = Zoom.determineNextFov(view, amount);
+                
+                        if (maxFoV) {
+                            fov = Math.min(fov, maxFoV);
+                        }
+
                         view.zoom.apply({
                             stop: newFov,
                             duration: 300
                         });
-                        //view.setZoom(newFov)
         
                         /*if (amount > 0 && radec) {
                             let sRaDec = view.aladin.getRaDec();
@@ -1224,7 +1234,7 @@ export let View = (function () {
                             }
                             //requestAnimFrame(moveTo)
                         }*/
-                    }, 40);
+                    }, 100);
                 }
 
                 view.throttledTouchPadZoom();
@@ -1241,7 +1251,7 @@ export let View = (function () {
                             stop: newFov,
                             duration: 300
                         });
-                    }, 30);
+                    }, 50);
                 }
                 
                 view.throttledMouseScrollZoom()
@@ -1599,7 +1609,7 @@ export let View = (function () {
         fovX = Math.min(fovX, 360);
         fovY = Math.min(fovY, 180);
 
-        ALEvent.ZOOM_CHANGED.dispatchedTo(this.aladinDiv, { fovX: fovX, fovY: fovY });
+        ALEvent.ZOOM_CHANGED.dispatchedTo(this.aladinDiv, { fovX, fovY });
 
         this.throttledZoomChanged();
     };

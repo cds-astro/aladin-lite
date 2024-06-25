@@ -299,14 +299,14 @@ impl ProjectionType {
             .map(|pos_normalized_device| ndc_to_screen_space(&pos_normalized_device, camera))
     }
 
-    pub(crate) fn is_allsky(&self) -> bool {
+    /*pub(crate) fn is_allsky(&self) -> bool {
         match self {
             ProjectionType::Sin(_) | ProjectionType::Tan(_) => false,
             //| ProjectionType::Feye(_)
             //| ProjectionType::Ncp(_) => false,
             _ => true,
         }
-    }
+    }*/
 
     pub fn bounds_size_ratio(&self) -> f64 {
         match self {

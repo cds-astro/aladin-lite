@@ -1,13 +1,9 @@
-use crate::healpix::cell::HEALPixCell;
-use crate::healpix::cell::MAX_HPX_DEPTH;
-
 use crate::camera::XYZWModel;
+use crate::healpix::cell::HEALPixCell;
 
 use crate::math::projection::*;
 
 use crate::HEALPixCoverage;
-
-use std::ops::Range;
 
 use moclib::moc::{range::op::degrade::degrade, RangeMOCIterator};
 

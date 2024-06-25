@@ -36,47 +36,6 @@ import { requestAnimFrame } from "./libs/RequestAnimationFrame.js";
 	function Zoom(view) {
         this.view = view;
 	};
-	
-    Zoom.LEVELS = [
-        360, 330, 300, 275, 250, 225, 200, 190,
-        180, 170, 160, 150, 140, 130, 120, 110, 100,
-        95, 90, 85, 80, 75, 70, 65, 60, 55, 50, 45, 40, 35, 30, 25, 20, 18, 16, 14, 12, 10,
-        9, 8, 7, 6, 5, 4, 3, 2, 1.75, 1.5, 1.25, 1,
-        55/60, 50/60, 45/60, 40/60, 35/60, 30/60, 25/60, 20/60, 15/60, 10/60,
-        9/60, 8/60, 7/60, 6/60, 5/60, 4/60, 3/60, 2/60, 1/60,
-        50/3600, 40/3600, 30/3600, 20/3600, 10/3600,
-        9/3600, 8/3600, 7/3600, 6/3600, 5/3600, 4/3600, 3/3600, 2/3600, 1/3600,
-        9/36000, 8/36000, 7/36000, 6/36000, 5/36000, 4/36000, 3/36000, 2/36000, 1/36000
-    ];
-    Zoom.MAX_IDX_DELTA_PER_TROTTLE = 6;
-
-    Zoom.determineNextFov = function(view, amount) {
-        const currIdx = Utils.binarySearch(Zoom.LEVELS, view.fov);
-
-        let deltaIdx = amount;
-        let nextIdx = currIdx + deltaIdx;
-
-        // clamp to the array indices
-        if (nextIdx < 0) {
-            nextIdx = 0
-        }
-
-        if (nextIdx >= Zoom.LEVELS.length) {
-            nextIdx = Zoom.LEVELS.length - 1
-        }
-
-        let nextFov = Zoom.LEVELS[nextIdx];
-
-        if (view.minFoV) {
-            nextFov = Math.max(nextFov, view.minFoV)
-        }
-
-        if (view.maxFoV) {
-            nextFov = Math.min(nextFov, view.maxFoV)
-        }
-
-        return nextFov;
-    }
 
     Zoom.prototype.apply = function(options) {
         let startZoom = options['start'] || this.view.fov;
@@ -112,6 +71,9 @@ import { requestAnimFrame } from "./libs/RequestAnimationFrame.js";
             this.y2 = finalZoom;
             this.m1 = m1;
             this.m2 = 0;
+
+            // we must delete the current request anim frame
+            window.cancelAnimationFrame(this.requestAnimID)
         }
 
         // Initialize current zoom to the current zoom level
@@ -119,7 +81,6 @@ import { requestAnimFrame } from "./libs/RequestAnimationFrame.js";
         let self = this;
         // Recursive function to perform interpolation for each frame
         function interpolateFrame() {
-            //console.log('zooming')
             //fps = 1000 / self.dt;
             //totalFrames = interpolationDuration * fps; // Total number of frames
             self.x = ( performance.now() - self.startTime ) / interpolationDuration;
@@ -127,7 +88,7 @@ import { requestAnimFrame } from "./libs/RequestAnimationFrame.js";
             //stepSize = (desiredZoom - currentZoom) / totalFrames;
             interpolatedZoom = Zoom.hermiteCubic.f(self.x, self.x1, self.x2, self.y1, self.y2, self.m1, self.m2);
             // Clamp the interpolation in case it is < 0 for a time
-            interpolatedZoom = Math.max(Zoom.MIN, interpolatedZoom);
+            interpolatedZoom = Math.max(0, interpolatedZoom);
 
             // Apply zoom level to map or perform any necessary rendering
             self.view.setZoom(interpolatedZoom);
@@ -135,22 +96,28 @@ import { requestAnimFrame } from "./libs/RequestAnimationFrame.js";
             self.fov = interpolatedZoom;
     
             // Check if interpolation is complete
-            if (self.x >= self.x2 || Math.abs(interpolatedZoom - self.finalZoom) < 1e-4) {
+            if (self.stop) {
+                self.isZooming = false;
+                self.stop = false;
+            } else if (self.x >= self.x2 || Math.abs(interpolatedZoom - self.finalZoom) < 1e-4) {
                 self.view.setZoom(self.finalZoom);
 
                 self.isZooming = false;
             } else {
                 // Request the next frame
-                requestAnimFrame(interpolateFrame);
+                self.requestAnimID = requestAnimFrame(interpolateFrame);
             }
         }
     
         // Start interpolation by requesting the first frame
-        requestAnimFrame(interpolateFrame);
+        self.requestAnimID = requestAnimFrame(interpolateFrame);
     }
 
-    Zoom.MAX = Zoom.LEVELS[0];
-    Zoom.MIN = Zoom.LEVELS[Zoom.LEVELS.length - 1];
+    Zoom.prototype.stopAnimation = function() {
+        if (this.isZooming) {
+            this.stop = true;
+        }
+    }
 
     Zoom.hermiteCubic = {
         f: function(x, x1, x2, y1, y2, m1, m2) {

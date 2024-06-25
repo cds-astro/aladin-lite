@@ -10,7 +10,6 @@ use al_core::image::format::ChannelType;
 
 use al_core::image::Image;
 
-use al_core::log::console_log;
 use al_core::shader::Shader;
 use al_core::webgl_ctx::GlWrapper;
 
@@ -635,7 +634,6 @@ impl HiPS {
         let new_cells_in_view = self.retrieve_cells_in_camera(camera);
 
         if new_cells_in_view || available_tiles {
-            console_log("recompute vertices/buffer");
             self.recompute_vertices(camera, projection);
         }
     }

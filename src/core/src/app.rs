@@ -12,7 +12,7 @@ use crate::{
     },
     renderable::Layers,
     renderable::{
-        catalog::Manager, coverage::MOCRenderer, line::RasterizedLineRenderer, ImageCfg, Renderer,
+        catalog::Manager, line::RasterizedLineRenderer, moc::MOCRenderer, ImageCfg, Renderer,
     },
     shader::ShaderManager,
     tile_fetcher::TileFetcherQueue,
@@ -963,7 +963,7 @@ impl App {
                 &self.projection,
                 &mut self.shaders,
                 //&mut self.line_renderer,
-            );
+            )?;
 
             self.line_renderer.begin();
             //Time::measure_perf("moc draw", || {

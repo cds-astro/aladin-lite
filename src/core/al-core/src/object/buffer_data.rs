@@ -51,7 +51,7 @@ where
     }
 
     fn len(&self) -> usize {
-        self.len()
+        self.as_ref().len()
     }
 
     fn ptr(&self) -> *const T {

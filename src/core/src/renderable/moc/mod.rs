@@ -1,21 +1,22 @@
-use core::num;
+mod graph;
+mod mode;
+
+pub mod hierarchy;
+pub mod renderer;
+pub use renderer::MOCRenderer;
 
 use crate::camera::CameraViewPort;
-use crate::coo_space::CooSpace;
-use crate::healpix::cell::CellVertices;
 use crate::healpix::coverage::HEALPixCoverage;
 use crate::math::projection::ProjectionType;
 use crate::renderable::WebGl2RenderingContext;
 use crate::shader::ShaderManager;
 use al_api::moc::MOC as Cfg;
 
-use crate::renderable::coverage::Angle;
+use wasm_bindgen::JsValue;
+
 use crate::WebGlContext;
-use al_core::SliceData;
 use al_core::VertexArrayObject;
 
-use crate::renderable::line::PathVertices;
-use crate::renderable::line::RasterizedLineRenderer;
 use al_api::color::ColorRGBA;
 use al_api::coo_system::CooSystem;
 
@@ -25,10 +26,8 @@ use moclib::moc::range::CellAndEdges;
 use moclib::moc::RangeMOCIterator;
 
 use crate::HEALPixCell;
-use cgmath::Vector2;
 
 use al_core::VecData;
-use healpix::compass_point::OrdinalMap;
 
 pub struct MOC {
     pub sky_fraction: f32,
@@ -129,12 +128,14 @@ impl MOC {
         camera: &mut CameraViewPort,
         proj: &ProjectionType,
         shaders: &mut ShaderManager,
-    ) {
+    ) -> Result<(), JsValue> {
         for render in &mut self.inner {
             if let Some(render) = render.as_mut() {
-                render.draw(&self.moc, camera, proj, shaders)
+                render.draw(&self.moc, camera, proj, shaders)?
             }
         }
+
+        Ok(())
     }
 }
 
@@ -157,7 +158,6 @@ pub enum RenderModeType {
     Edge { thickness: f32, color: ColorRGBA },
     Filled { color: ColorRGBA },
 }
-use healpix::compass_point::Ordinal;
 impl MOCIntern {
     fn new(gl: WebGlContext, mode: RenderModeType) -> Self {
         let lonlat = vec![];
@@ -184,10 +184,10 @@ impl MOCIntern {
                         &[2],
                         &[0],
                         WebGl2RenderingContext::STATIC_DRAW,
-                        SliceData(&vertices),
+                        &vertices as &[f32],
                     )
                     // Set the element buffer
-                    .add_element_buffer(WebGl2RenderingContext::STATIC_DRAW, SliceData(&indices))
+                    .add_element_buffer(WebGl2RenderingContext::STATIC_DRAW, &indices as &[u16])
                     // Unbind the buffer
                     .unbind();
 
@@ -369,213 +369,210 @@ impl MOCIntern {
         camera: &mut CameraViewPort,
         proj: &ProjectionType,
         shaders: &mut ShaderManager,
-    ) {
-        let _ = crate::Time::measure_perf("rasterize moc", move || {
-            match self.mode {
-                RenderModeType::Perimeter { thickness, color } => {
-                    let moc_in_view = moc
-                        .overlapped_by_iter(&camera.get_cov(CooSystem::ICRS))
-                        .into_range_moc();
-                    let perimeter_vertices_iter = moc_in_view
-                        .border_elementary_edges()
-                        .filter_map(|CellAndEdges { uniq, edges }| {
-                            if edges.is_empty() {
-                                None
-                            } else {
-                                let mut paths = vec![];
+    ) -> Result<(), JsValue> {
+        //let _ = crate::Time::measure_perf("rasterize moc", move || {
+        match self.mode {
+            RenderModeType::Perimeter { thickness, color } => {
+                let moc_in_view = moc
+                    .overlapped_by_iter(&camera.get_cov(CooSystem::ICRS))
+                    .into_range_moc();
+                let perimeter_vertices_iter = moc_in_view
+                    .border_elementary_edges()
+                    .filter_map(|CellAndEdges { uniq, edges }| {
+                        if edges.is_empty() {
+                            None
+                        } else {
+                            let mut paths = vec![];
 
-                                let c = Cell::from_uniq_hpx(uniq);
-                                let cell = HEALPixCell(c.depth, c.idx);
-                                let v = cell.vertices();
+                            let c = Cell::from_uniq_hpx(uniq);
+                            let cell = HEALPixCell(c.depth, c.idx);
+                            let v = cell.vertices();
 
-                                if edges.get(moclib::moc::range::Ordinal::SE) {
-                                    paths.extend([
-                                        v[0].0 as f32,
-                                        v[0].1 as f32,
-                                        v[1].0 as f32,
-                                        v[1].1 as f32,
-                                    ]);
-                                }
-                                if edges.get(moclib::moc::range::Ordinal::NE) {
-                                    paths.extend([
-                                        v[1].0 as f32,
-                                        v[1].1 as f32,
-                                        v[2].0 as f32,
-                                        v[2].1 as f32,
-                                    ]);
-                                }
-                                if edges.get(moclib::moc::range::Ordinal::NW) {
-                                    paths.extend([
-                                        v[2].0 as f32,
-                                        v[2].1 as f32,
-                                        v[3].0 as f32,
-                                        v[3].1 as f32,
-                                    ]);
-                                }
-                                if edges.get(moclib::moc::range::Ordinal::SW) {
-                                    paths.extend([
-                                        v[3].0 as f32,
-                                        v[3].1 as f32,
-                                        v[0].0 as f32,
-                                        v[0].1 as f32,
-                                    ])
-                                }
-
-                                Some(paths)
+                            if edges.get(moclib::moc::range::Ordinal::SE) {
+                                paths.extend([
+                                    v[0].0 as f32,
+                                    v[0].1 as f32,
+                                    v[1].0 as f32,
+                                    v[1].1 as f32,
+                                ]);
                             }
-                        })
-                        .flatten();
+                            if edges.get(moclib::moc::range::Ordinal::NE) {
+                                paths.extend([
+                                    v[1].0 as f32,
+                                    v[1].1 as f32,
+                                    v[2].0 as f32,
+                                    v[2].1 as f32,
+                                ]);
+                            }
+                            if edges.get(moclib::moc::range::Ordinal::NW) {
+                                paths.extend([
+                                    v[2].0 as f32,
+                                    v[2].1 as f32,
+                                    v[3].0 as f32,
+                                    v[3].1 as f32,
+                                ]);
+                            }
+                            if edges.get(moclib::moc::range::Ordinal::SW) {
+                                paths.extend([
+                                    v[3].0 as f32,
+                                    v[3].1 as f32,
+                                    v[0].0 as f32,
+                                    v[0].1 as f32,
+                                ])
+                            }
 
-                    let mut buf: Vec<_> = vec![];
-                    buf.extend(perimeter_vertices_iter);
+                            Some(paths)
+                        }
+                    })
+                    .flatten();
 
-                    self.vao.bind_for_update().update_instanced_array(
-                        "lonlat",
-                        WebGl2RenderingContext::DYNAMIC_DRAW,
-                        VecData::<f32>(&buf),
-                    );
+                let mut buf: Vec<_> = vec![];
+                buf.extend(perimeter_vertices_iter);
 
-                    let num_instances = buf.len() / 4;
+                self.vao.bind_for_update().update_instanced_array(
+                    "lonlat",
+                    WebGl2RenderingContext::DYNAMIC_DRAW,
+                    VecData::<f32>(&buf),
+                );
 
-                    let icrs2view = CooSystem::ICRS.to(camera.get_coo_system());
-                    let view2world = camera.get_m2w();
-                    let icrs2world = view2world * icrs2view;
+                let num_instances = buf.len() / 4;
 
-                    crate::shader::get_shader(
-                        &self.gl,
-                        shaders,
-                        "line_inst_lonlat.vert",
-                        "line_base.frag",
-                    )?
-                    .bind(&self.gl)
-                    .attach_uniforms_from(camera)
-                    .attach_uniform("u_2world", &icrs2world)
-                    .attach_uniform("u_color", &color)
-                    .attach_uniform("u_width", &thickness)
-                    .attach_uniform("u_proj", proj)
-                    .bind_vertex_array_object_ref(&self.vao)
-                    .draw_elements_instanced_with_i32(
-                        WebGl2RenderingContext::TRIANGLES,
-                        0,
-                        num_instances as i32,
-                    );
-                }
-                RenderModeType::Edge { thickness, color } => {
-                    let mut buf: Vec<_> = vec![];
-                    buf.extend(self.compute_edge_paths_iter(moc, camera));
-                    //let mut buf = self.compute_edge_paths_iter(moc, camera).collect();
+                let icrs2view = CooSystem::ICRS.to(camera.get_coo_system());
+                let view2world = camera.get_m2w();
+                let icrs2world = view2world * icrs2view;
 
-                    self.vao.bind_for_update().update_instanced_array(
-                        "lonlat",
-                        WebGl2RenderingContext::DYNAMIC_DRAW,
-                        VecData::<f32>(&buf),
-                    );
-
-                    let num_instances = buf.len() / 4;
-
-                    let icrs2view = CooSystem::ICRS.to(camera.get_coo_system());
-                    let view2world = camera.get_m2w();
-                    let icrs2world = view2world * icrs2view;
-
-                    crate::shader::get_shader(
-                        &self.gl,
-                        shaders,
-                        "line_inst_lonlat.vert",
-                        "line_base.frag",
-                    )?
-                    .bind(&self.gl)
-                    .attach_uniforms_from(camera)
-                    .attach_uniform("u_2world", &icrs2world)
-                    .attach_uniform("u_color", &color)
-                    .attach_uniform("u_width", &thickness)
-                    .attach_uniform("u_proj", proj)
-                    .bind_vertex_array_object_ref(&self.vao)
-                    .draw_elements_instanced_with_i32(
-                        WebGl2RenderingContext::TRIANGLES,
-                        0,
-                        num_instances as i32,
-                    );
-
-                    /*rasterizer.add_stroke_paths(
-                        ,
-                        thickness,
-                        &color,
-                        &super::line::Style::None,
-                        CooSpace::LonLat,
-                    );*/
-                }
-                RenderModeType::Filled { color } => {
-                    let mut off_idx = 0;
-                    let mut indices: Vec<u32> = vec![];
-                    let vertices = self
-                        .vertices_in_view(moc, camera)
-                        .map(|v| {
-                            let vertices = [
-                                v[0].0 as f32,
-                                v[0].1 as f32,
-                                v[1].0 as f32,
-                                v[1].1 as f32,
-                                v[2].0 as f32,
-                                v[2].1 as f32,
-                                v[3].0 as f32,
-                                v[3].1 as f32,
-                            ];
-
-                            indices.extend_from_slice(&[
-                                off_idx + 1,
-                                off_idx + 0,
-                                off_idx + 3,
-                                off_idx + 1,
-                                off_idx + 3,
-                                off_idx + 2,
-                            ]);
-
-                            off_idx += 4;
-
-                            vertices
-                        })
-                        .flatten()
-                        .collect();
-
-                    let num_idx = indices.len() as i32;
-
-                    self.vao
-                        .bind_for_update()
-                        .update_array(
-                            "lonlat",
-                            WebGl2RenderingContext::DYNAMIC_DRAW,
-                            VecData(&vertices),
-                        )
-                        .update_element_array(
-                            WebGl2RenderingContext::DYNAMIC_DRAW,
-                            VecData(&indices),
-                        );
-
-                    let icrs2view = CooSystem::ICRS.to(camera.get_coo_system());
-                    let view2world = camera.get_m2w();
-                    let icrs2world = view2world * icrs2view;
-
-                    self.gl.enable(WebGl2RenderingContext::BLEND);
-
-                    crate::shader::get_shader(&self.gl, shaders, "moc_base.vert", "moc_base.frag")?
-                        .bind(&self.gl)
-                        .attach_uniforms_from(camera)
-                        .attach_uniform("u_2world", &icrs2world)
-                        .attach_uniform("u_color", &color)
-                        .attach_uniform("u_proj", proj)
-                        .bind_vertex_array_object_ref(&self.vao)
-                        .draw_elements_with_i32(
-                            WebGl2RenderingContext::TRIANGLES,
-                            Some(num_idx),
-                            WebGl2RenderingContext::UNSIGNED_INT,
-                            0,
-                        );
-
-                    self.gl.disable(WebGl2RenderingContext::BLEND);
-                }
+                crate::shader::get_shader(
+                    &self.gl,
+                    shaders,
+                    "line_inst_lonlat.vert",
+                    "line_base.frag",
+                )?
+                .bind(&self.gl)
+                .attach_uniforms_from(camera)
+                .attach_uniform("u_2world", &icrs2world)
+                .attach_uniform("u_color", &color)
+                .attach_uniform("u_width", &thickness)
+                .attach_uniform("u_proj", proj)
+                .bind_vertex_array_object_ref(&self.vao)
+                .draw_elements_instanced_with_i32(
+                    WebGl2RenderingContext::TRIANGLES,
+                    0,
+                    num_instances as i32,
+                );
             }
-            Ok(())
-        });
+            RenderModeType::Edge { thickness, color } => {
+                let mut buf: Vec<_> = vec![];
+                buf.extend(self.compute_edge_paths_iter(moc, camera));
+                //let mut buf = self.compute_edge_paths_iter(moc, camera).collect();
+
+                self.vao.bind_for_update().update_instanced_array(
+                    "lonlat",
+                    WebGl2RenderingContext::DYNAMIC_DRAW,
+                    VecData::<f32>(&buf),
+                );
+
+                let num_instances = buf.len() / 4;
+
+                let icrs2view = CooSystem::ICRS.to(camera.get_coo_system());
+                let view2world = camera.get_m2w();
+                let icrs2world = view2world * icrs2view;
+
+                crate::shader::get_shader(
+                    &self.gl,
+                    shaders,
+                    "line_inst_lonlat.vert",
+                    "line_base.frag",
+                )?
+                .bind(&self.gl)
+                .attach_uniforms_from(camera)
+                .attach_uniform("u_2world", &icrs2world)
+                .attach_uniform("u_color", &color)
+                .attach_uniform("u_width", &thickness)
+                .attach_uniform("u_proj", proj)
+                .bind_vertex_array_object_ref(&self.vao)
+                .draw_elements_instanced_with_i32(
+                    WebGl2RenderingContext::TRIANGLES,
+                    0,
+                    num_instances as i32,
+                );
+
+                /*rasterizer.add_stroke_paths(
+                    ,
+                    thickness,
+                    &color,
+                    &super::line::Style::None,
+                    CooSpace::LonLat,
+                );*/
+            }
+            RenderModeType::Filled { color } => {
+                let mut off_idx = 0;
+                let mut indices: Vec<u32> = vec![];
+                let vertices = self
+                    .vertices_in_view(moc, camera)
+                    .map(|v| {
+                        let vertices = [
+                            v[0].0 as f32,
+                            v[0].1 as f32,
+                            v[1].0 as f32,
+                            v[1].1 as f32,
+                            v[2].0 as f32,
+                            v[2].1 as f32,
+                            v[3].0 as f32,
+                            v[3].1 as f32,
+                        ];
+
+                        indices.extend_from_slice(&[
+                            off_idx + 1,
+                            off_idx + 0,
+                            off_idx + 3,
+                            off_idx + 1,
+                            off_idx + 3,
+                            off_idx + 2,
+                        ]);
+
+                        off_idx += 4;
+
+                        vertices
+                    })
+                    .flatten()
+                    .collect();
+
+                let num_idx = indices.len() as i32;
+
+                self.vao
+                    .bind_for_update()
+                    .update_array(
+                        "lonlat",
+                        WebGl2RenderingContext::DYNAMIC_DRAW,
+                        VecData(&vertices),
+                    )
+                    .update_element_array(WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&indices));
+
+                let icrs2view = CooSystem::ICRS.to(camera.get_coo_system());
+                let view2world = camera.get_m2w();
+                let icrs2world = view2world * icrs2view;
+
+                self.gl.enable(WebGl2RenderingContext::BLEND);
+
+                crate::shader::get_shader(&self.gl, shaders, "moc_base.vert", "moc_base.frag")?
+                    .bind(&self.gl)
+                    .attach_uniforms_from(camera)
+                    .attach_uniform("u_2world", &icrs2world)
+                    .attach_uniform("u_color", &color)
+                    .attach_uniform("u_proj", proj)
+                    .bind_vertex_array_object_ref(&self.vao)
+                    .draw_elements_with_i32(
+                        WebGl2RenderingContext::TRIANGLES,
+                        Some(num_idx),
+                        WebGl2RenderingContext::UNSIGNED_INT,
+                        0,
+                    );
+
+                self.gl.disable(WebGl2RenderingContext::BLEND);
+            }
+        }
+        Ok(())
+        //});
     }
 
     fn compute_edge_paths_iter<'a>(

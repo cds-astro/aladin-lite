@@ -1,9 +1,9 @@
 pub mod catalog;
-pub mod coverage;
 pub mod final_pass;
 pub mod hips;
 pub mod image;
 pub mod line;
+pub mod moc;
 pub mod text;
 pub mod utils;
 
@@ -23,7 +23,6 @@ use al_api::image::ImageParams;
 use al_core::colormap::Colormaps;
 
 use al_core::shader::Shader;
-use al_core::SliceData;
 use al_core::VertexArrayObject;
 use al_core::WebGlContext;
 
@@ -138,29 +137,12 @@ impl Layers {
                 2,
                 "pos_clip_space",
                 WebGl2RenderingContext::STATIC_DRAW,
-                SliceData::<f32>(&[-1.0, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0]),
+                &[-1.0_f32, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0] as &[f32],
             )
             // Set the element buffer
             .add_element_buffer(
                 WebGl2RenderingContext::STATIC_DRAW,
-                SliceData::<u16>(&[0, 1, 2, 0, 2, 3]),
-            )
-            // Unbind the buffer
-            .unbind();
-
-        #[cfg(feature = "webgl1")]
-        screen_vao
-            .bind_for_update()
-            .add_array_buffer(
-                2,
-                "pos_clip_space",
-                WebGl2RenderingContext::STATIC_DRAW,
-                SliceData::<f32>(&[-1.0, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0]),
-            )
-            // Set the element buffer
-            .add_element_buffer(
-                WebGl2RenderingContext::STATIC_DRAW,
-                SliceData::<u16>(&[0, 1, 2, 0, 2, 3]),
+                &[0_u16, 1, 2, 0, 2, 3] as &[u16],
             )
             // Unbind the buffer
             .unbind();

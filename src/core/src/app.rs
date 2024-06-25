@@ -145,6 +145,7 @@ impl App {
 
         //gl.enable(WebGl2RenderingContext::CULL_FACE);
         //gl.cull_face(WebGl2RenderingContext::BACK);
+        //gl.enable(WebGl2RenderingContext::CULL_FACE);
 
         // The tile buffer responsible for the tile requests
         let downloader = Downloader::new();
@@ -190,7 +191,7 @@ impl App {
 
         let request_for_new_tiles = true;
 
-        let moc = MOCRenderer::new()?;
+        let moc = MOCRenderer::new(&gl)?;
         gl.clear_color(0.15, 0.15, 0.15, 1.0);
 
         let (fits_send, fits_recv) = async_channel::unbounded::<ImageCfg>();
@@ -522,12 +523,7 @@ impl App {
 
     pub(crate) fn set_moc_cfg(&mut self, cfg: al_api::moc::MOC) -> Result<(), JsValue> {
         self.moc
-            .set_cfg(
-                cfg,
-                &mut self.camera,
-                &self.projection,
-                &mut self.line_renderer,
-            )
+            .set_cfg(cfg, &mut self.camera, &self.projection, &mut self.shaders)
             .ok_or_else(|| JsValue::from_str("MOC not found"))?;
         self.request_redraw = true;
 
@@ -957,20 +953,20 @@ impl App {
                 &self.colormaps,
                 &self.projection,
             )?;
-            use al_core::log::console_log;
 
             // Draw the catalog
             //let fbo_view = &self.fbo_view;
             //catalogs.draw(&gl, shaders, camera, colormaps, fbo_view)?;
             //catalogs.draw(&gl, shaders, camera, colormaps, None, self.projection)?;
-            self.line_renderer.begin();
-            //Time::measure_perf("moc draw", || {
             self.moc.draw(
-                &mut self.shaders,
                 &mut self.camera,
                 &self.projection,
-                &mut self.line_renderer,
+                &mut self.shaders,
+                //&mut self.line_renderer,
             );
+
+            self.line_renderer.begin();
+            //Time::measure_perf("moc draw", || {
 
             //    Ok(())
             //})?;

@@ -41,3 +41,20 @@ where
         self.0.as_ptr()
     }
 }
+
+impl<'a, T> BufferDataStorage<'a, T> for &'a [T]
+where
+    T: VertexAttribPointerType,
+{
+    fn get_slice(&self) -> &[T] {
+        self
+    }
+
+    fn len(&self) -> usize {
+        self.len()
+    }
+
+    fn ptr(&self) -> *const T {
+        self.as_ptr()
+    }
+}

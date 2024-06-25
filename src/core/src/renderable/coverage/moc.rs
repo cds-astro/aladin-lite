@@ -1,11 +1,18 @@
+use core::num;
+
 use crate::camera::CameraViewPort;
 use crate::coo_space::CooSpace;
 use crate::healpix::cell::CellVertices;
 use crate::healpix::coverage::HEALPixCoverage;
 use crate::math::projection::ProjectionType;
+use crate::renderable::WebGl2RenderingContext;
+use crate::shader::ShaderManager;
 use al_api::moc::MOC as Cfg;
 
 use crate::renderable::coverage::Angle;
+use crate::WebGlContext;
+use al_core::SliceData;
+use al_core::VertexArrayObject;
 
 use crate::renderable::line::PathVertices;
 use crate::renderable::line::RasterizedLineRenderer;
@@ -20,6 +27,7 @@ use moclib::moc::RangeMOCIterator;
 use crate::HEALPixCell;
 use cgmath::Vector2;
 
+use al_core::VecData;
 use healpix::compass_point::OrdinalMap;
 
 pub struct MOC {
@@ -32,17 +40,20 @@ pub struct MOC {
 }
 
 impl MOC {
-    pub(super) fn new(moc: HEALPixCoverage, cfg: &Cfg) -> Self {
+    pub(super) fn new(gl: WebGlContext, moc: HEALPixCoverage, cfg: &Cfg) -> Self {
         let sky_fraction = moc.sky_fraction() as f32;
         let max_order = moc.depth_max();
 
         let inner = [
             if cfg.perimeter {
                 // draw only perimeter
-                Some(MOCIntern::new(RenderModeType::Perimeter {
-                    thickness: cfg.line_width,
-                    color: cfg.color,
-                }))
+                Some(MOCIntern::new(
+                    gl.clone(),
+                    RenderModeType::Perimeter {
+                        thickness: cfg.line_width,
+                        color: cfg.color,
+                    },
+                ))
             } else {
                 None
             },
@@ -50,15 +61,21 @@ impl MOC {
                 // change color
                 let fill_color = cfg.fill_color;
                 // draw the edges
-                Some(MOCIntern::new(RenderModeType::Filled { color: fill_color }))
+                Some(MOCIntern::new(
+                    gl.clone(),
+                    RenderModeType::Filled { color: fill_color },
+                ))
             } else {
                 None
             },
             if cfg.edges {
-                Some(MOCIntern::new(RenderModeType::Edge {
-                    thickness: cfg.line_width,
-                    color: cfg.color,
-                }))
+                Some(MOCIntern::new(
+                    gl,
+                    RenderModeType::Edge {
+                        thickness: cfg.line_width,
+                        color: cfg.color,
+                    },
+                ))
             } else {
                 None
             },
@@ -108,23 +125,14 @@ impl MOC {
     }
 
     pub(super) fn draw(
-        &self,
+        &mut self,
         camera: &mut CameraViewPort,
         proj: &ProjectionType,
-        rasterizer: &mut RasterizedLineRenderer,
+        shaders: &mut ShaderManager,
     ) {
-        let view_depth = camera.get_texture_depth();
-        let view_moc = HEALPixCoverage::from_fixed_hpx_cells(
-            view_depth,
-            camera
-                .get_hpx_cells(view_depth, CooSystem::ICRS)
-                .map(|c| c.idx()),
-            None,
-        );
-
-        for render in &self.inner {
-            if let Some(render) = render.as_ref() {
-                render.draw(&view_moc, &self.moc, camera, proj, rasterizer)
+        for render in &mut self.inner {
+            if let Some(render) = render.as_mut() {
+                render.draw(&self.moc, camera, proj, shaders)
             }
         }
     }
@@ -138,6 +146,9 @@ struct MOCIntern {
     // Node indices in view
     //indices: Vec<Range<usize>>,
     mode: RenderModeType,
+
+    gl: WebGlContext,
+    vao: VertexArrayObject,
 }
 
 #[derive(Clone)]
@@ -148,7 +159,65 @@ pub enum RenderModeType {
 }
 use healpix::compass_point::Ordinal;
 impl MOCIntern {
-    fn new(mode: RenderModeType) -> Self {
+    fn new(gl: WebGlContext, mode: RenderModeType) -> Self {
+        let lonlat = vec![];
+        let vertices = [
+            0_f32, -0.5_f32, 1_f32, -0.5_f32, 1_f32, 0.5_f32, 0_f32, 0.5_f32,
+        ];
+        let indices = [0_u16, 1_u16, 2_u16, 0_u16, 2_u16, 3_u16];
+        let vao = match mode {
+            RenderModeType::Perimeter { .. } | RenderModeType::Edge { .. } => {
+                let mut vao = VertexArrayObject::new(&gl);
+                vao.bind_for_update()
+                    // Store the cartesian position of the center of the source in the a instanced VBO
+                    .add_instanced_array_buffer(
+                        "lonlat",
+                        4 * std::mem::size_of::<f32>(),
+                        &[2, 2],
+                        &[0, 2 * std::mem::size_of::<f32>()],
+                        WebGl2RenderingContext::DYNAMIC_DRAW,
+                        VecData::<f32>(&lonlat),
+                    )
+                    .add_array_buffer(
+                        "vertices",
+                        2 * std::mem::size_of::<f32>(),
+                        &[2],
+                        &[0],
+                        WebGl2RenderingContext::STATIC_DRAW,
+                        SliceData(&vertices),
+                    )
+                    // Set the element buffer
+                    .add_element_buffer(WebGl2RenderingContext::STATIC_DRAW, SliceData(&indices))
+                    // Unbind the buffer
+                    .unbind();
+
+                vao
+            }
+            RenderModeType::Filled { .. } => {
+                let mut vao = VertexArrayObject::new(&gl);
+                let indices = vec![];
+                vao.bind_for_update()
+                    // Store the cartesian position of the center of the source in the a instanced VBO
+                    .add_array_buffer(
+                        "lonlat",
+                        2 * std::mem::size_of::<f32>(),
+                        &[2],
+                        &[0],
+                        WebGl2RenderingContext::DYNAMIC_DRAW,
+                        VecData::<f32>(&lonlat),
+                    )
+                    // Set the element buffer
+                    .add_element_buffer(
+                        WebGl2RenderingContext::DYNAMIC_DRAW,
+                        VecData::<u32>(&indices),
+                    )
+                    // Unbind the buffer
+                    .unbind();
+
+                vao
+            }
+        };
+
         /*let hpx_idx_vec =
         IdxVec::from_hpx_cells((&moc.0).into_range_moc_iter().cells().flat_map(|cell| {
             let cell = HEALPixCell(cell.depth, cell.idx);
@@ -165,6 +234,8 @@ impl MOCIntern {
             //moc,
             //hpx_idx_vec,
             //indices: vec![],
+            vao,
+            gl,
             mode,
         }
     }
@@ -271,13 +342,13 @@ impl MOCIntern {
 
     fn vertices_in_view<'a>(
         &self,
-        view_moc: &'a HEALPixCoverage,
         moc: &'a HEALPixCoverage,
-        _camera: &mut CameraViewPort,
+        camera: &'a mut CameraViewPort,
     ) -> impl Iterator<Item = [(f64, f64); 4]> + 'a {
+        let view_moc = camera.get_cov(CooSystem::ICRS);
         //self.cells_in_view(camera)
         //    .filter_map(move |node| node.vertices.as_ref())
-        moc.overlapped_by_iter(&view_moc)
+        moc.overlapped_by_iter(view_moc)
             .cells()
             .flat_map(|cell| {
                 let Cell { idx, depth } = cell;
@@ -290,46 +361,217 @@ impl MOCIntern {
                 cell.get_tile_cells(dd)
             })
             .map(|hpx_cell| hpx_cell.vertices())
-
-        //.map(|Cell { idx, depth }| HEALPixCell(depth, idx).vertices())
     }
 
     fn draw(
-        &self,
-        view_moc: &HEALPixCoverage,
+        &mut self,
         moc: &HEALPixCoverage,
         camera: &mut CameraViewPort,
         proj: &ProjectionType,
-        rasterizer: &mut RasterizedLineRenderer,
+        shaders: &mut ShaderManager,
     ) {
         let _ = crate::Time::measure_perf("rasterize moc", move || {
             match self.mode {
                 RenderModeType::Perimeter { thickness, color } => {
-                    let moc_in_view =
-                        HEALPixCoverage(moc.overlapped_by_iter(view_moc).into_range_moc());
-                    rasterizer.add_stroke_paths(
-                        self.compute_perimeter_paths_iter(&moc_in_view, view_moc, camera, proj),
-                        thickness,
-                        &color,
-                        &super::line::Style::None,
-                        CooSpace::NDC,
+                    let moc_in_view = moc
+                        .overlapped_by_iter(&camera.get_cov(CooSystem::ICRS))
+                        .into_range_moc();
+                    let perimeter_vertices_iter = moc_in_view
+                        .border_elementary_edges()
+                        .filter_map(|CellAndEdges { uniq, edges }| {
+                            if edges.is_empty() {
+                                None
+                            } else {
+                                let mut paths = vec![];
+
+                                let c = Cell::from_uniq_hpx(uniq);
+                                let cell = HEALPixCell(c.depth, c.idx);
+                                let v = cell.vertices();
+
+                                if edges.get(moclib::moc::range::Ordinal::SE) {
+                                    paths.extend([
+                                        v[0].0 as f32,
+                                        v[0].1 as f32,
+                                        v[1].0 as f32,
+                                        v[1].1 as f32,
+                                    ]);
+                                }
+                                if edges.get(moclib::moc::range::Ordinal::NE) {
+                                    paths.extend([
+                                        v[1].0 as f32,
+                                        v[1].1 as f32,
+                                        v[2].0 as f32,
+                                        v[2].1 as f32,
+                                    ]);
+                                }
+                                if edges.get(moclib::moc::range::Ordinal::NW) {
+                                    paths.extend([
+                                        v[2].0 as f32,
+                                        v[2].1 as f32,
+                                        v[3].0 as f32,
+                                        v[3].1 as f32,
+                                    ]);
+                                }
+                                if edges.get(moclib::moc::range::Ordinal::SW) {
+                                    paths.extend([
+                                        v[3].0 as f32,
+                                        v[3].1 as f32,
+                                        v[0].0 as f32,
+                                        v[0].1 as f32,
+                                    ])
+                                }
+
+                                Some(paths)
+                            }
+                        })
+                        .flatten();
+
+                    let mut buf: Vec<_> = vec![];
+                    buf.extend(perimeter_vertices_iter);
+
+                    self.vao.bind_for_update().update_instanced_array(
+                        "lonlat",
+                        WebGl2RenderingContext::DYNAMIC_DRAW,
+                        VecData::<f32>(&buf),
+                    );
+
+                    let num_instances = buf.len() / 4;
+
+                    let icrs2view = CooSystem::ICRS.to(camera.get_coo_system());
+                    let view2world = camera.get_m2w();
+                    let icrs2world = view2world * icrs2view;
+
+                    crate::shader::get_shader(
+                        &self.gl,
+                        shaders,
+                        "line_inst_lonlat.vert",
+                        "line_base.frag",
+                    )?
+                    .bind(&self.gl)
+                    .attach_uniforms_from(camera)
+                    .attach_uniform("u_2world", &icrs2world)
+                    .attach_uniform("u_color", &color)
+                    .attach_uniform("u_width", &thickness)
+                    .attach_uniform("u_proj", proj)
+                    .bind_vertex_array_object_ref(&self.vao)
+                    .draw_elements_instanced_with_i32(
+                        WebGl2RenderingContext::TRIANGLES,
+                        0,
+                        num_instances as i32,
                     );
                 }
                 RenderModeType::Edge { thickness, color } => {
-                    rasterizer.add_stroke_paths(
-                        self.compute_edge_paths_iter(moc, view_moc, camera, proj),
+                    let mut buf: Vec<_> = vec![];
+                    buf.extend(self.compute_edge_paths_iter(moc, camera));
+                    //let mut buf = self.compute_edge_paths_iter(moc, camera).collect();
+
+                    self.vao.bind_for_update().update_instanced_array(
+                        "lonlat",
+                        WebGl2RenderingContext::DYNAMIC_DRAW,
+                        VecData::<f32>(&buf),
+                    );
+
+                    let num_instances = buf.len() / 4;
+
+                    let icrs2view = CooSystem::ICRS.to(camera.get_coo_system());
+                    let view2world = camera.get_m2w();
+                    let icrs2world = view2world * icrs2view;
+
+                    crate::shader::get_shader(
+                        &self.gl,
+                        shaders,
+                        "line_inst_lonlat.vert",
+                        "line_base.frag",
+                    )?
+                    .bind(&self.gl)
+                    .attach_uniforms_from(camera)
+                    .attach_uniform("u_2world", &icrs2world)
+                    .attach_uniform("u_color", &color)
+                    .attach_uniform("u_width", &thickness)
+                    .attach_uniform("u_proj", proj)
+                    .bind_vertex_array_object_ref(&self.vao)
+                    .draw_elements_instanced_with_i32(
+                        WebGl2RenderingContext::TRIANGLES,
+                        0,
+                        num_instances as i32,
+                    );
+
+                    /*rasterizer.add_stroke_paths(
+                        ,
                         thickness,
                         &color,
                         &super::line::Style::None,
                         CooSpace::LonLat,
-                    );
+                    );*/
                 }
                 RenderModeType::Filled { color } => {
-                    rasterizer.add_fill_paths(
-                        self.compute_edge_paths_iter(moc, view_moc, camera, proj),
-                        &color,
-                        CooSpace::NDC,
-                    );
+                    let mut off_idx = 0;
+                    let mut indices: Vec<u32> = vec![];
+                    let vertices = self
+                        .vertices_in_view(moc, camera)
+                        .map(|v| {
+                            let vertices = [
+                                v[0].0 as f32,
+                                v[0].1 as f32,
+                                v[1].0 as f32,
+                                v[1].1 as f32,
+                                v[2].0 as f32,
+                                v[2].1 as f32,
+                                v[3].0 as f32,
+                                v[3].1 as f32,
+                            ];
+
+                            indices.extend_from_slice(&[
+                                off_idx + 1,
+                                off_idx + 0,
+                                off_idx + 3,
+                                off_idx + 1,
+                                off_idx + 3,
+                                off_idx + 2,
+                            ]);
+
+                            off_idx += 4;
+
+                            vertices
+                        })
+                        .flatten()
+                        .collect();
+
+                    let num_idx = indices.len() as i32;
+
+                    self.vao
+                        .bind_for_update()
+                        .update_array(
+                            "lonlat",
+                            WebGl2RenderingContext::DYNAMIC_DRAW,
+                            VecData(&vertices),
+                        )
+                        .update_element_array(
+                            WebGl2RenderingContext::DYNAMIC_DRAW,
+                            VecData(&indices),
+                        );
+
+                    let icrs2view = CooSystem::ICRS.to(camera.get_coo_system());
+                    let view2world = camera.get_m2w();
+                    let icrs2world = view2world * icrs2view;
+
+                    self.gl.enable(WebGl2RenderingContext::BLEND);
+
+                    crate::shader::get_shader(&self.gl, shaders, "moc_base.vert", "moc_base.frag")?
+                        .bind(&self.gl)
+                        .attach_uniforms_from(camera)
+                        .attach_uniform("u_2world", &icrs2world)
+                        .attach_uniform("u_color", &color)
+                        .attach_uniform("u_proj", proj)
+                        .bind_vertex_array_object_ref(&self.vao)
+                        .draw_elements_with_i32(
+                            WebGl2RenderingContext::TRIANGLES,
+                            Some(num_idx),
+                            WebGl2RenderingContext::UNSIGNED_INT,
+                            0,
+                        );
+
+                    self.gl.disable(WebGl2RenderingContext::BLEND);
                 }
             }
             Ok(())
@@ -339,22 +581,8 @@ impl MOCIntern {
     fn compute_edge_paths_iter<'a>(
         &self,
         moc: &'a HEALPixCoverage,
-        view_moc: &'a HEALPixCoverage,
         camera: &'a mut CameraViewPort,
-        proj: &'a ProjectionType,
-    ) -> impl Iterator<Item = PathVertices<[[f32; 2]; 5]>> + 'a {
-        let camera_coosys = camera.get_coo_system();
-        // Determine if the view may lead to crossing edges/triangles
-        // This is dependant on the projection used
-        let crossing_edges_testing = if proj.is_allsky() {
-            let sky_percent_covered = camera.get_cov(CooSystem::ICRS).sky_fraction();
-            //al_core::info!("sky covered: ", sky_percent_covered);
-            sky_percent_covered > 0.80
-        } else {
-            // The projection is not allsky.
-            false
-        };
-
+    ) -> impl Iterator<Item = f32> + 'a {
         /*self.vertices_in_view(view_moc, moc, camera)
         .filter_map(move |cell_vertices| {
             let mut ndc: [[f32; 2]; 5] =
@@ -401,99 +629,29 @@ impl MOCIntern {
 
             Some(PathVertices { vertices: ndc })
         })*/
-        self.vertices_in_view(view_moc, moc, camera).map(|v| {
-            let vertices = [
-                [v[0].0 as f32, v[0].1 as f32],
-                [v[1].0 as f32, v[1].1 as f32],
-                [v[2].0 as f32, v[2].1 as f32],
-                [v[3].0 as f32, v[3].1 as f32],
-                [v[0].0 as f32, v[0].1 as f32],
-            ];
+        self.vertices_in_view(moc, camera)
+            .map(|v| {
+                let vertices = [
+                    v[0].0 as f32,
+                    v[0].1 as f32,
+                    v[1].0 as f32,
+                    v[1].1 as f32,
+                    v[1].0 as f32,
+                    v[1].1 as f32,
+                    v[2].0 as f32,
+                    v[2].1 as f32,
+                    v[2].0 as f32,
+                    v[2].1 as f32,
+                    v[3].0 as f32,
+                    v[3].1 as f32,
+                    v[3].0 as f32,
+                    v[3].1 as f32,
+                    v[0].0 as f32,
+                    v[0].1 as f32,
+                ];
 
-            PathVertices { vertices }
-        })
-    }
-
-    fn compute_perimeter_paths_iter<'a>(
-        &self,
-        moc: &'a HEALPixCoverage,
-        _view_moc: &'a HEALPixCoverage,
-        camera: &'a mut CameraViewPort,
-        proj: &'a ProjectionType,
-    ) -> impl Iterator<Item = PathVertices<Vec<[f32; 2]>>> + 'a {
-        let camera_coosys = camera.get_coo_system();
-        // Determine if the view may lead to crossing edges/triangles
-        // This is dependant on the projection used
-        let crossing_edges_testing = if proj.is_allsky() {
-            let sky_percent_covered = camera.get_cov(CooSystem::ICRS).sky_fraction();
-            //al_core::info!("sky covered: ", sky_percent_covered);
-            sky_percent_covered > 0.80
-        } else {
-            // The projection is not allsky.
-            false
-        };
-
-        moc.border_elementary_edges()
-            .filter_map(|CellAndEdges { uniq, edges }| {
-                let c = Cell::from_uniq_hpx(uniq);
-                let cell = HEALPixCell(c.depth, c.idx);
-
-                let mut map = OrdinalMap::new();
-                if edges.get(moclib::moc::range::Ordinal::SE) {
-                    map.put(Ordinal::SE, 1);
-                }
-                if edges.get(moclib::moc::range::Ordinal::SW) {
-                    map.put(Ordinal::SW, 1);
-                }
-                if edges.get(moclib::moc::range::Ordinal::NE) {
-                    map.put(Ordinal::NE, 1);
-                }
-                if edges.get(moclib::moc::range::Ordinal::NW) {
-                    map.put(Ordinal::NW, 1);
-                }
-
-                cell.path_along_sides(&map)
+                vertices
             })
-            .filter_map(move |CellVertices { vertices }| {
-                let mut ndc = Vec::<[f32; 2]>::with_capacity(vertices.len() * 2);
-
-                for i in 0..vertices.len() {
-                    let line_vertices = &vertices[i];
-
-                    for k in 0..line_vertices.len() {
-                        let (lon, lat) = line_vertices[k];
-
-                        let xyzw = crate::math::lonlat::radec_to_xyzw(Angle(lon), Angle(lat));
-                        let xyzw =
-                            crate::coosys::apply_coo_system(CooSystem::ICRS, camera_coosys, &xyzw);
-
-                        if let Some(p) = proj.model_to_normalized_device_space(&xyzw, camera) {
-                            if ndc.len() > 0 && crossing_edges_testing {
-                                let mag2 = crate::math::vector::dist2(
-                                    crate::math::projection::ndc_to_clip_space(&p, camera).as_ref(),
-                                    crate::math::projection::ndc_to_clip_space(
-                                        &Vector2::new(
-                                            ndc[ndc.len() - 1][0] as f64,
-                                            ndc[ndc.len() - 1][1] as f64,
-                                        ),
-                                        camera,
-                                    )
-                                    .as_ref(),
-                                );
-                                //al_core::info!("mag", i, mag2);
-                                if mag2 > 0.1 {
-                                    return None;
-                                }
-                            }
-
-                            ndc.push([p.x as f32, p.y as f32]);
-                        } else {
-                            return None;
-                        }
-                    }
-                }
-
-                Some(PathVertices { vertices: ndc })
-            })
+            .flatten()
     }
 }

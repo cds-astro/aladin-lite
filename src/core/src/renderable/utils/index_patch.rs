@@ -1,4 +1,3 @@
-
 use std::ops::RangeInclusive;
 
 use super::triangle::Triangle;

@@ -7,16 +7,16 @@ pub struct MOCHierarchy {
     // MOC at different resolution
     mocs: Vec<MOC>,
 }
-
+use al_core::WebGlContext;
 impl MOCHierarchy {
-    pub fn from_full_res_moc(full_res_moc: HEALPixCoverage, cfg: &Cfg) -> Self {
+    pub fn from_full_res_moc(gl: WebGlContext, full_res_moc: HEALPixCoverage, cfg: &Cfg) -> Self {
         let full_res_depth = full_res_moc.depth();
 
         let mut mocs: Vec<_> = (0..full_res_depth)
-            .map(|d| MOC::new(HEALPixCoverage(full_res_moc.degraded(d)), cfg))
+            .map(|d| MOC::new(gl.clone(), HEALPixCoverage(full_res_moc.degraded(d)), cfg))
             .collect();
 
-        mocs.push(MOC::new(full_res_moc, cfg));
+        mocs.push(MOC::new(gl, full_res_moc, cfg));
 
         Self {
             mocs,

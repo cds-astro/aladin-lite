@@ -999,7 +999,7 @@ export class OverlayStackBox extends Box {
                         // load the moc
                         let moc = A.MOCFromURL(
                             layer.url + "/Moc.fits",
-                            { lineWidth: 3, name: layer.name },
+                            { name: layer.name },
                             () => {
                                 self.mocHiPSUrls[layer.url] = moc;
 

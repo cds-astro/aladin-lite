@@ -14,6 +14,7 @@ use healpix::compass_point::Cardinal;
 use healpix::compass_point::MainWind;
 use healpix::compass_point::Ordinal;
 use healpix::compass_point::OrdinalMap;
+use healpix::compass_point::OrdinalSet;
 
 use crate::utils;
 use crate::Abort;

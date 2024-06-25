@@ -38,7 +38,6 @@ use crate::{shader::ShaderManager, survey::config::HiPSConfig};
 
 use hips::raytracing::RayTracer;
 
-use std::borrow::Cow;
 use std::collections::HashMap;
 
 use wasm_bindgen::JsValue;

@@ -6,7 +6,6 @@ use crate::math::projection::ProjectionType;
 use crate::shader::ShaderManager;
 use crate::Abort;
 use al_api::coo_system::CooSystem;
-use al_core::shader::Shader;
 use al_core::VertexArrayObject;
 use al_core::WebGlContext;
 

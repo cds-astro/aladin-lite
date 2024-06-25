@@ -9,8 +9,11 @@ pub mod mode;
 pub mod hierarchy;
 pub mod moc;
 
+use web_sys::WebGl2RenderingContext;
+
 use crate::renderable::line::RasterizedLineRenderer;
 
+use al_core::{log::console_log, WebGlContext};
 use wasm_bindgen::JsValue;
 
 use hierarchy::MOCHierarchy;
@@ -22,6 +25,7 @@ use al_api::moc::MOC as Cfg;
 pub struct MOCRenderer {
     mocs: Vec<MOCHierarchy>,
     cfgs: Vec<Cfg>,
+    gl: WebGlContext,
 }
 
 /*
@@ -165,7 +169,7 @@ use crate::ProjectionType;
 
 use super::line;
 impl MOCRenderer {
-    pub fn new() -> Result<Self, JsValue> {
+    pub fn new(gl: &WebGlContext) -> Result<Self, JsValue> {
         // layout (location = 0) in vec2 ndc_pos;
         //let vertices = vec![0.0; MAX_NUM_FLOATS_TO_DRAW];
         //let indices = vec![0_u16; MAX_NUM_INDICES_TO_DRAW];
@@ -206,7 +210,11 @@ impl MOCRenderer {
         let mocs = Vec::new();
         let cfgs = Vec::new();
 
-        Ok(Self { mocs, cfgs })
+        Ok(Self {
+            gl: gl.clone(),
+            mocs,
+            cfgs,
+        })
     }
 
     pub fn push_back(
@@ -216,7 +224,8 @@ impl MOCRenderer {
         camera: &mut CameraViewPort,
         proj: &ProjectionType,
     ) {
-        self.mocs.push(MOCHierarchy::from_full_res_moc(moc, &cfg));
+        self.mocs
+            .push(MOCHierarchy::from_full_res_moc(self.gl.clone(), moc, &cfg));
         self.cfgs.push(cfg);
 
         camera.register_view_frame(CooSystem::ICRS, proj);
@@ -256,7 +265,7 @@ impl MOCRenderer {
         cfg: Cfg,
         camera: &mut CameraViewPort,
         projection: &ProjectionType,
-        line_renderer: &mut RasterizedLineRenderer,
+        shaders: &mut ShaderManager,
     ) -> Option<Cfg> {
         let name = cfg.get_uuid();
 
@@ -264,7 +273,7 @@ impl MOCRenderer {
             let old_cfg = self.cfgs[idx].clone();
             self.cfgs[idx] = cfg;
 
-            self.update(camera, projection, line_renderer);
+            self.draw(camera, projection, shaders);
 
             Some(old_cfg)
         } else {
@@ -273,51 +282,29 @@ impl MOCRenderer {
         }
     }
 
-    /*pub fn get(&self, cfg: &Cfg) -> Option<&HEALPixCoverage> {
-        let key = cfg.get_uuid();
-        self.mocs.get(key).map(|coverage| coverage.get_full_moc())
-    }*/
-
-    fn update(
-        &mut self,
-        camera: &mut CameraViewPort,
-        proj: &ProjectionType,
-        line_renderer: &mut RasterizedLineRenderer,
-    ) {
-        for (hmoc, cfg) in self.mocs.iter_mut().zip(self.cfgs.iter()) {
-            if cfg.show {
-                let moc = hmoc.select_moc_from_view(camera);
-                moc.draw(camera, proj, line_renderer);
-            }
-        }
-
-        /*self.vao.bind_for_update()
-        .update_array(
-            "ndc_pos",
-            WebGl2RenderingContext::DYNAMIC_DRAW,
-            VecData(&self.position),
-        )
-        .update_element_array(
-            WebGl2RenderingContext::DYNAMIC_DRAW,
-            VecData::<u32>(&self.indices),
-        );*/
-    }
-
     pub fn is_empty(&self) -> bool {
         self.cfgs.is_empty()
     }
 
     pub fn draw(
         &mut self,
-        _shaders: &mut ShaderManager,
         camera: &mut CameraViewPort,
-        projection: &ProjectionType,
-        line_renderer: &mut RasterizedLineRenderer,
+        proj: &ProjectionType,
+        shaders: &mut ShaderManager,
     ) {
         if self.is_empty() {
             return;
         }
 
-        self.update(camera, projection, line_renderer);
+        self.gl.enable(WebGl2RenderingContext::CULL_FACE);
+
+        for (hmoc, cfg) in self.mocs.iter_mut().zip(self.cfgs.iter()) {
+            if cfg.show {
+                let moc = hmoc.select_moc_from_view(camera);
+                moc.draw(camera, proj, shaders);
+            }
+        }
+
+        self.gl.disable(WebGl2RenderingContext::CULL_FACE);
     }
 }

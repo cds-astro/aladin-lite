@@ -1,4 +1,3 @@
-use al_core::log::console_log;
 use al_core::shader::Shader;
 use al_core::WebGlContext;
 
@@ -50,8 +49,7 @@ pub struct FileSrc {
 
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
-use std::fs::File;
-use std::io::Read;
+
 impl ShaderManager {
     pub fn new() -> Result<ShaderManager, Error> {
         let src = crate::shaders::get_all();
@@ -116,7 +114,6 @@ impl ShaderManager {
         Ok(shader)
     }
 }
-use std::borrow::Cow;
 
 pub(crate) fn get_shader<'a>(
     gl: &WebGlContext,

@@ -209,15 +209,15 @@ impl CameraViewPort {
         );
     }
 
+    /*pub fn has_new_hpx_cells(&mut self) -> bool {
+        self.view_hpx_cells.has_changed()
+    }*/
+
     pub fn get_cov(&self, frame: CooSystem) -> &HEALPixCoverage {
         self.view_hpx_cells.get_cov(frame)
     }
 
-    pub fn get_hpx_cells<'a>(
-        &'a mut self,
-        depth: u8,
-        frame: CooSystem,
-    ) -> impl Iterator<Item = &'a HEALPixCell> {
+    pub fn get_hpx_cells(&self, depth: u8, frame: CooSystem) -> Vec<HEALPixCell> {
         self.view_hpx_cells.get_cells(depth, frame)
     }
 
@@ -231,12 +231,12 @@ impl CameraViewPort {
         // check the projection
         match proj {
             ProjectionType::Tan(_) => self.aperture >= 100.0_f64.to_radians().to_angle(),
-            ProjectionType::Mer(_) => self.aperture >= 200.0_f64.to_radians().to_angle(),
+            ProjectionType::Mer(_) => self.aperture >= 120.0_f64.to_radians().to_angle(),
             ProjectionType::Stg(_) => self.aperture >= 200.0_f64.to_radians().to_angle(),
             ProjectionType::Sin(_) => false,
-            ProjectionType::Ait(_) => false,
-            ProjectionType::Mol(_) => false,
-            ProjectionType::Zea(_) => false,
+            ProjectionType::Ait(_) => self.aperture >= 100.0_f64.to_radians().to_angle(),
+            ProjectionType::Mol(_) => self.aperture >= 100.0_f64.to_radians().to_angle(),
+            ProjectionType::Zea(_) => self.aperture >= 140.0_f64.to_radians().to_angle(),
         }
     }
 
@@ -679,15 +679,8 @@ use al_core::shader::{SendUniforms, ShaderBound};
 impl SendUniforms for CameraViewPort {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
         shader
-            //.attach_uniforms_from(&self.last_user_action)
-            //.attach_uniform("to_icrs", &self.system.to_icrs_j2000::<f32>())
-            //.attach_uniform("to_galactic", &self.system.to_gal::<f32>())
-            //.attach_uniform("model", &self.w2m)
-            //.attach_uniform("inv_model", &self.m2w)
             .attach_uniform("ndc_to_clip", &self.ndc_to_clip) // Send ndc to clip
-            .attach_uniform("czf", &self.clip_zoom_factor) // Send clip zoom factor
-            .attach_uniform("window_size", &self.get_screen_size()) // Window size
-            .attach_uniform("fov", &self.aperture);
+            .attach_uniform("czf", &self.clip_zoom_factor); // Send clip zoom factor
 
         shader
     }

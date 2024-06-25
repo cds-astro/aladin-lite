@@ -131,6 +131,7 @@ export let MOC = (function() {
 
         this.promiseFetchData
             .then((data) => {
+                console.log("jjj")
                 if (data instanceof ArrayBuffer) {
                     // from an url
                     const buf = data;
@@ -145,8 +146,13 @@ export let MOC = (function() {
                     self.view.wasm.addPolyMOC(self.mocParams, p.ra, p.dec);
                 } else {
                     // json moc
+                    console.log("22")
+
                     self.view.wasm.addJSONMoc(self.mocParams, data);
                 }
+
+                console.log("33")
+
                 // Add the fetched moc to the rust backend
                 self.ready = true;
 
@@ -154,8 +160,14 @@ export let MOC = (function() {
                     self.successCallback(self)
                 }
 
+                console.log("44")
+
+
                 // Cache the sky fraction
                 self.skyFrac = self.view.wasm.getMOCSkyFraction(this.mocParams);
+
+
+                console.log("55")
 
                 // Add it to the view
                 self.view.mocs.push(self);

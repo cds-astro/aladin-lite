@@ -9,6 +9,8 @@ use crate::HEALPixCoverage;
 
 use std::ops::Range;
 
+use moclib::moc::{range::op::degrade::degrade, RangeMOCIterator};
+
 pub(super) struct ViewHpxCells {
     hpx_cells: [HpxCells; NUM_COOSYSTEM],
     reg_frames: [u8; NUM_COOSYSTEM],
@@ -82,28 +84,38 @@ impl ViewHpxCells {
         }
     }
 
-    pub(super) fn get_cells<'a>(
-        &'a mut self,
-        depth: u8,
-        frame: CooSystem,
-    ) -> impl Iterator<Item = &'a HEALPixCell> {
+    pub(super) fn get_cells(&self, depth: u8, frame: CooSystem) -> Vec<HEALPixCell> {
         self.hpx_cells[frame as usize].get_cells(depth)
     }
 
     pub(super) fn get_cov(&self, frame: CooSystem) -> &HEALPixCoverage {
         self.hpx_cells[frame as usize].get_cov()
     }
+
+    /*pub(super) fn has_changed(&mut self) -> bool {
+        let mut c = false;
+        for (frame, num_req) in self.reg_frames.iter().enumerate() {
+            // if there are surveys/camera requesting the coverage
+            if *num_req > 0 {
+                c |= self.hpx_cells[frame].has_view_changed();
+            }
+        }
+
+        c
+    }*/
 }
 
 // Contains the cells being in the FOV for a specific
 pub struct HpxCells {
     frame: CooSystem,
     // the set of cells all depth
-    cells: Vec<HEALPixCell>,
+    //cells: Vec<HEALPixCell>,
     // An index vector referring to the indices of each depth cells
-    idx_rng: [Option<Range<usize>>; MAX_HPX_DEPTH as usize + 1],
+    //idx_rng: [Option<Range<usize>>; MAX_HPX_DEPTH as usize + 1],
     // Coverage created in the frame
     cov: HEALPixCoverage,
+    // boolean refering to if the cells in the view has changed
+    //new_cells: bool,
 }
 
 impl Default for HpxCells {
@@ -113,22 +125,23 @@ impl Default for HpxCells {
 }
 
 use al_api::coo_system::{CooSystem, NUM_COOSYSTEM};
+use moclib::moc::RangeMOCIntoIterator;
 
 use super::FieldOfView;
 impl HpxCells {
     pub fn new(frame: CooSystem) -> Self {
-        let cells = Vec::new();
+        //let cells = Vec::new();
         let cov = HEALPixCoverage::empty(29);
 
-        let idx_rng = Default::default();
+        //let idx_rng = Default::default();
 
         Self {
-            cells,
+            //cells,
 
-            idx_rng,
-
+            //idx_rng,
             cov,
             frame,
+            //new_cells: true,
         }
     }
 
@@ -149,63 +162,72 @@ impl HpxCells {
             super::build_fov_coverage(camera_depth, fov, center, camera_frame, self.frame, proj);
 
         // Clear the old cells
-        self.cells.clear();
+        /*let r = self.idx_rng[camera_depth as usize]
+            .as_ref()
+            .unwrap_or(&(0..0));
+        let old_cells = &self.cells[r.clone()];
+
         self.idx_rng = Default::default();
 
+        let mut new_cells = false;
         // Compute the cells at the tile_depth
-        let tile_depth_cells_iter = self
+        let cells = self
             .cov
             .flatten_to_fixed_depth_cells()
-            .map(|idx| HEALPixCell(camera_depth, idx));
+            .enumerate()
+            .map(|(j, idx)| {
+                let c = HEALPixCell(camera_depth, idx);
 
-        let num_past = self.cells.len();
-        self.cells.extend(tile_depth_cells_iter);
+                if j >= old_cells.len() || old_cells[j] != c {
+                    new_cells = true;
+                }
+
+                c
+            })
+            .collect::<Vec<_>>();
+
+        if cells.len() != old_cells.len() {
+            new_cells = true;
+        }
+
+        self.cells = cells;
         let num_cur = self.cells.len();
+        self.idx_rng[camera_depth as usize] = Some(0..num_cur);
 
-        self.idx_rng[camera_depth as usize] = Some(num_past..num_cur);
+        if new_cells {
+            self.new_cells = true;
+        }*/
     }
 
     // Accessors
     // depth MUST be < to camera tile depth
-    pub fn get_cells<'a>(&'a mut self, depth: u8) -> impl Iterator<Item = &'a HEALPixCell> {
-        let Range { start, end } = if let Some(idx) = self.idx_rng[depth as usize].as_ref() {
-            idx.start..idx.end
+    pub fn get_cells(&self, depth: u8) -> Vec<HEALPixCell> {
+        let cov_depth = self.cov.depth_max();
+
+        if depth == cov_depth {
+            self.cov
+                .flatten_to_fixed_depth_cells()
+                .map(move |idx| HEALPixCell(depth, idx))
+                .collect()
         } else if depth > self.cov.depth_max() {
             let cov_d = self.cov.depth_max();
             let dd = depth - cov_d;
             // compute the cells from the coverage
-            let cells_iter = self
-                .cov
+
+            self.cov
                 .flatten_to_fixed_depth_cells()
-                .map(|idx| {
+                .flat_map(move |idx| {
                     // idx is at depth_max
                     HEALPixCell(cov_d, idx).get_children_cells(dd)
                 })
-                .flatten();
-            // add them and store the cells for latter reuse
-            let num_past = self.cells.len();
-            self.cells.extend(cells_iter);
-            let num_cur = self.cells.len();
-
-            self.idx_rng[depth as usize] = Some(num_past..num_cur);
-            num_past..num_cur
+                .collect()
         } else {
             // compute the cells from the coverage
-            let degraded_moc = self.cov.degraded(depth);
-            let cells_iter = degraded_moc
+            degrade((&self.cov.0).into_range_moc_iter(), depth)
                 .flatten_to_fixed_depth_cells()
-                .map(|idx| HEALPixCell(depth, idx));
-
-            // add them and store the cells for latter reuse
-            let num_past = self.cells.len();
-            self.cells.extend(cells_iter);
-            let num_cur = self.cells.len();
-
-            self.idx_rng[depth as usize] = Some(num_past..num_cur);
-            num_past..num_cur
-        };
-
-        self.cells[start..end].iter()
+                .map(move |idx| HEALPixCell(depth, idx))
+                .collect()
+        }
     }
 
     /*
@@ -250,8 +272,9 @@ impl HpxCells {
     }*/
 
     /*#[inline]
-    pub fn has_view_changed(&self) -> bool {
-        //self.new_cells.is_there_new_cells_added()
-        !self.view_unchanged
+    pub fn has_view_changed(&mut self) -> bool {
+        let new_cells = self.new_cells;
+        self.new_cells = false;
+        new_cells
     }*/
 }

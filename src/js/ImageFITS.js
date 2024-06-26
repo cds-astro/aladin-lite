@@ -87,7 +87,9 @@ export let ImageFITS = (function () {
     }
 
     ImageFITS.prototype._saveInCache = function () {
-        HiPSCache.append(this.id, this);
+        if (HiPSCache.contains(self.id)) {
+            HiPSCache.append(this.id, this);
+        }
     };
 
     // A cache storing directly the images to not query for the properties each time

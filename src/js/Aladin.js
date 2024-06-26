@@ -1579,6 +1579,49 @@ export let Aladin = (function () {
     Aladin.createImageSurvey = Aladin.prototype.createImageSurvey;
 
     /**
+     * Remove a HiPS/FITS image from the list of favorites.
+     * 
+     * @throws A warning when the asset is currently present in the view
+     *
+     * @memberof Aladin
+     * @param {string|ImageHiPS|ImageFITS} urlOrHiPSOrFITS - Can be:
+     * <ul>
+     * <li>1. An url that refers to a HiPS</li>
+     * <li>2. Or it can be a CDS identifier that refers to a HiPS. One can found the list of IDs {@link https://aladin.cds.unistra.fr/hips/list| here}</li>
+     * <li>3. A {@link ImageHiPS} HiPS object created from {@link A.imageHiPS}</li>
+     * <li>4. A {@link ImageFITS} FITS image object</li>
+     * </ul>
+     */
+    Aladin.prototype.removeHiPSFromFavorites = function (survey) {
+        if (this.contains(survey)) {
+            // TODO: handle this case
+            console.warn(survey + ' is among the list of HiPS currently in the view.');
+        }
+
+        if (typeof survey !== "string") {
+            survey = survey.id;
+        }
+        
+        HiPSCache.delete(survey);
+    }
+
+    /**
+     * Check whether a survey is currently in the view
+     *
+     * @memberof Aladin
+     * @param {string|ImageHiPS|ImageFITS} urlOrHiPSOrFITS - Can be:
+     * <ul>
+     * <li>1. An url that refers to a HiPS</li>
+     * <li>2. Or it can be a CDS identifier that refers to a HiPS. One can found the list of IDs {@link https://aladin.cds.unistra.fr/hips/list| here}</li>
+     * <li>3. A {@link ImageHiPS} HiPS object created from {@link A.imageHiPS}</li>
+     * <li>4. A {@link ImageFITS} FITS image object</li>
+     * </ul>
+     */
+    Aladin.prototype.contains = function(survey) {
+        this.view.contains(survey)
+    }
+
+    /**
      * Creates a FITS image object
      * @deprecated prefer use {@link A.imageFITS}
      *
@@ -2011,7 +2054,6 @@ aladin.on("positionChanged", ({ra, dec}) => {
             }
         }
         objects = Object.values(objListPerCatalog);
-        console.log(objects);
 
         this.view.selectObjects(objects);
     };

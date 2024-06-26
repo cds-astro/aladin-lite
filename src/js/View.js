@@ -1662,6 +1662,7 @@ export let View = (function () {
         }
 
         imageLayer.added = true;
+
         this.imageLayers.set(layerName, imageLayer);
 
         // select the layer if he is on top
@@ -1835,6 +1836,42 @@ export let View = (function () {
             this.aladin.setBaseImageLayer(dssId);
         }
     };
+
+    View.prototype.contains = function(survey) {
+        if (survey instanceof ImageHiPS || survey instanceof ImageFITS) {
+            if (survey.added === true) {
+                return true;
+            }
+
+            // maybe it has not been added yet
+            let found = this.imageLayersBeingQueried
+                .values()
+                .some((s) => {
+                    return s === survey;
+                });
+
+            return found;
+        }
+
+        // Case where survey is a string
+        if(this.imageLayers
+            .values()
+            .some((s) => {
+                return s.id === survey;
+            })) {
+                return true;
+            }
+
+        if(this.imageLayersBeingQueried
+            .values()
+            .some((s) => {
+                return s.id === survey;
+            })) {
+                return true;
+            }
+
+        return false;
+    }
 
     View.prototype.setHiPSUrl = function (pastUrl, newUrl) {
         try {

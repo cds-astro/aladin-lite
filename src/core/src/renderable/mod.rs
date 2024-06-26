@@ -1,5 +1,6 @@
 pub mod catalog;
 pub mod final_pass;
+pub mod grid;
 pub mod hips;
 pub mod image;
 pub mod line;

@@ -6,9 +6,9 @@ use crate::ProjectionType;
 use cgmath::InnerSpace;
 use cgmath::Vector3;
 
-use crate::grid::XYScreen;
 use crate::math::angle::SerializeFmt;
 use crate::math::lonlat::LonLat;
+use crate::math::projection::coo_space::XYScreen;
 use crate::math::TWICE_PI;
 
 use crate::math::angle::ToAngle;

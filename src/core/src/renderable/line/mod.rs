@@ -213,7 +213,7 @@ impl RasterizedLineRenderer {
                 &[2, 2],
                 &[0, 2 * std::mem::size_of::<f32>()],
                 WebGl2RenderingContext::DYNAMIC_DRAW,
-                SliceData(&[]),
+                &[] as &[f32],
             )
             .add_array_buffer(
                 "vertices",
@@ -221,14 +221,14 @@ impl RasterizedLineRenderer {
                 &[2],
                 &[0],
                 WebGl2RenderingContext::STATIC_DRAW,
-                SliceData(&[
+                &[
                     0_f32, -0.5_f32, 1_f32, -0.5_f32, 1_f32, 0.5_f32, 0_f32, 0.5_f32,
-                ]),
+                ] as &[f32],
             )
             // Set the element buffer
             .add_element_buffer(
                 WebGl2RenderingContext::STATIC_DRAW,
-                SliceData(&[0_u16, 1_u16, 2_u16, 0_u16, 2_u16, 3_u16]),
+                &[0_u16, 1_u16, 2_u16, 0_u16, 2_u16, 3_u16] as &[u16],
             )
             // Unbind the buffer
             .unbind();

@@ -1738,8 +1738,11 @@ export let View = (function () {
 
                 if (noMoreLayersToWaitFor) {
                     if (self.empty) {
-                        // no promises to launch!
-                        //self.aladin.setBaseImageLayer(self.aladin.createImageSurvey(ImageHiPS.DEFAULT_SURVEY_ID));
+                        // no promises to launch and the view has no HiPS.
+                        // This situation can occurs if the MOCServer is out
+                        // If so we can directly put the url of the DSS hosted in alasky,
+                        // it the best I can do if the MOCServer is out
+                        self.aladin.setBaseImageLayer("https://alaskybis.cds.unistra.fr/DSS/DSSColor/");
                     } else {
                         // there is surveys that have been queried
                         // rename the first overlay layer to "base"

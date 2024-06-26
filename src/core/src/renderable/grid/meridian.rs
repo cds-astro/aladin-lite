@@ -7,7 +7,7 @@ use core::ops::Range;
 use crate::math::MINUS_HALF_PI;
 use crate::ProjectionType;
 
-use crate::grid::angle::SerializeFmt;
+use super::angle::SerializeFmt;
 use crate::math::HALF_PI;
 
 pub fn get_intersecting_meridian(

@@ -90,7 +90,6 @@ mod shaders;
 mod coosys;
 mod downloader;
 mod fifo_cache;
-mod grid;
 mod healpix;
 mod inertia;
 pub mod math;

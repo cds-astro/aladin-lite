@@ -2,7 +2,6 @@ use crate::{
     //async_task::{BuildCatalogIndex, ParseTableTask, TaskExecutor, TaskResult, TaskType},
     camera::CameraViewPort,
     downloader::Downloader,
-    grid::ProjetedGrid,
     healpix::coverage::HEALPixCoverage,
     inertia::Inertia,
     math::{
@@ -10,6 +9,7 @@ use crate::{
         angle::{Angle, ArcDeg},
         lonlat::{LonLat, LonLatT},
     },
+    renderable::grid::ProjetedGrid,
     renderable::Layers,
     renderable::{
         catalog::Manager, line::RasterizedLineRenderer, moc::MOCRenderer, ImageCfg, Renderer,
@@ -166,7 +166,7 @@ impl App {
         let manager = Manager::new(&gl, &mut shaders, &camera, &resources)?;
 
         // Grid definition
-        let grid = ProjetedGrid::new(aladin_div)?;
+        let grid = ProjetedGrid::new(gl.clone(), aladin_div)?;
 
         // Variable storing the location to move to
         let inertia = None;
@@ -972,7 +972,7 @@ impl App {
             //})?;
 
             self.grid
-                .draw(&self.camera, &self.projection, &mut self.line_renderer)?;
+                .draw(&self.camera, &self.projection, &mut self.shaders)?;
             self.line_renderer.end();
             self.line_renderer
                 .draw(&mut self.shaders, &self.camera, &self.projection)?;

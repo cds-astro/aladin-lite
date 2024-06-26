@@ -46,6 +46,10 @@ export let HiPSCache = (function () {
         return HiPSCache.cache[key];
     };
 
+    HiPSCache.contains = function (key) {
+        return HiPSCache.cache[key] !== undefined && HiPSCache.cache[key] !== null;
+    };
+
     // A cache storing directly surveys important information to not query for the properties each time
     HiPSCache.cache = {};
 

@@ -1428,9 +1428,11 @@ export let Aladin = (function () {
     Aladin.prototype.showSurvey = function (show) {
         this.view.showSurvey(show);
     };
+
     Aladin.prototype.showCatalog = function (show) {
         this.view.showCatalog(show);
     };
+
     Aladin.prototype.showReticle = function (show) {
         this.reticle.update({ show });
     };

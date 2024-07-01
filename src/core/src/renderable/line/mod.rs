@@ -4,7 +4,6 @@ pub mod parallel_arc;
 
 use crate::math::projection::ProjectionType;
 use crate::shader::ShaderManager;
-use crate::Abort;
 use al_api::coo_system::CooSystem;
 use al_core::VertexArrayObject;
 use al_core::WebGlContext;
@@ -12,8 +11,6 @@ use al_core::WebGlContext;
 use super::Renderer;
 use al_api::color::ColorRGBA;
 use al_core::SliceData;
-
-use lyon::algorithms::{math::point, path::Path};
 
 struct Meta {
     color: ColorRGBA,
@@ -50,32 +47,7 @@ use web_sys::WebGl2RenderingContext;
 
 use crate::camera::CameraViewPort;
 
-use lyon::tessellation::*;
-
 use crate::coo_space::CooSpace;
-
-/*impl<S: BaseFloat> GPUVertexAttribute<S> for XYZModel<S> {
-    const Space: CooSpace = CooSpace::Model;
-
-    fn as_ref(&self) -> &[S] {
-        &self[..]
-    }
-}
-impl<S: BaseFloat> GPUVertexAttribute<S> for LonLatT<S> {
-    const Space: CooSpace = CooSpace::LonLat;
-
-    fn as_ref(&self) -> &[S] {
-        let addr = self as *const LonLatT<S> as *const S;
-        unsafe { std::slice::from_raw_parts(addr, 2) }
-    }
-}*/
-/*
-impl<S: BaseFloat> GPUVertexAttribute for XYZModel<S> {
-    const Space: CooSpace = CooSpace::Model;
-}
-impl<S: BaseFloat> GPUVertexAttribute for LonLatT<S> {
-    const Space: CooSpace = CooSpace::LonLat;
-}*/
 
 #[repr(C)]
 pub struct PathVertices<V>
@@ -126,7 +98,7 @@ impl RasterizedLineRenderer {
         })
     }
 
-    pub fn add_fill_paths<V>(
+    /*pub fn add_fill_paths<V>(
         &mut self,
         paths: impl Iterator<Item = PathVertices<V>>,
         color: &ColorRGBA,
@@ -200,7 +172,7 @@ impl RasterizedLineRenderer {
             color: color.clone(),
             coo_space,
         });
-    }
+    }*/
 
     fn create_instanced_vao(&mut self) {
         let mut vao = VertexArrayObject::new(&self.gl);

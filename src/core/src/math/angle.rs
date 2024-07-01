@@ -24,6 +24,7 @@ where
 }
 
 use cgmath::{Deg, Rad};
+use serde::Deserialize;
 // Convert a Rad<T> to an ArcDeg<T>
 impl<T> From<Rad<T>> for ArcDeg<T>
 where
@@ -362,7 +363,8 @@ impl FormatType for HMS {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, Hash)]
+#[derive(Clone, Copy, Debug, Eq, Hash, Deserialize)]
+#[serde(rename_all = "camelCase")]
 #[repr(C)]
 pub struct Angle<S: BaseFloat>(pub S);
 impl<S> Angle<S>

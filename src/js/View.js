@@ -48,6 +48,8 @@ import { DefaultActionsForContextMenu } from "./DefaultActionsForContextMenu.js"
 import { Layout } from "./gui/Layout.js";
 import { SAMPActionButton } from "./gui/Button/SAMP.js";
 import { HiPSCache } from "./DefaultHiPSCache.js";
+import { ImageHiPS } from "./ImageHiPS.js";
+import { ImageFITS } from "./ImageFITS.js";
 
 export let View = (function () {
 

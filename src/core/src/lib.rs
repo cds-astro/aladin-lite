@@ -165,12 +165,7 @@ impl WebClient {
 
         let shaders = ShaderManager::new().unwrap_abort();
 
-        // Event listeners callbacks
-        //let callback_position_changed = js_sys::Function::new_no_args("");
-        let app = App::new(
-            &gl, aladin_div, shaders, resources,
-            //callback_position_changed,
-        )?;
+        let app = App::new(&gl, aladin_div, shaders, resources)?;
 
         let dt = DeltaTime::zero();
 

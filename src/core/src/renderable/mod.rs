@@ -5,6 +5,7 @@ pub mod hips;
 pub mod image;
 pub mod line;
 pub mod moc;
+pub mod shape;
 pub mod text;
 pub mod utils;
 

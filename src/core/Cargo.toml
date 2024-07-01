@@ -29,7 +29,7 @@ mapproj = "0.3.0"
 fitsrs = "0.2.9"
 wcs = "0.2.8"
 colorgrad = "0.6.2"
-lyon = "1.0.1"
+#lyon = "1.0.1"
 console_error_panic_hook = {version = "0.1.7", optional = true}
 
 [features]

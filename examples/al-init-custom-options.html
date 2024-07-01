@@ -7,10 +7,9 @@
 
 
 <div id="aladin-lite-div" style="width: 768px; height: 512px"></div>
-
+<script>let aladin;</script>
 <script type="module">
     import A from '../src/js/A.js';
-    let aladin;
     A.init.then(() => {
         aladin = A.aladin(
             '#aladin-lite-div',

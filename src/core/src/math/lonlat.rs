@@ -8,9 +8,10 @@ pub trait LonLat<S: BaseFloat> {
     fn lonlat(&self) -> LonLatT<S>;
     fn from_lonlat(lonlat: &LonLatT<S>) -> Self;
 }
-
 use crate::math::angle::Angle;
-#[derive(Clone, Copy, Debug)]
+use serde::Deserialize;
+#[derive(Clone, Copy, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 #[repr(C)]
 pub struct LonLatT<S: BaseFloat>(pub Angle<S>, pub Angle<S>);
 

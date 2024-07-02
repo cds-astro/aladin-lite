@@ -1,7 +1,8 @@
 use crate::math;
-use cgmath::Quaternion;
 use cgmath::{BaseFloat, InnerSpace};
+use cgmath::{Euler, Quaternion};
 use cgmath::{Vector3, Vector4};
+use core::f64::consts::PI;
 
 #[derive(Clone, Copy, Debug)]
 // Internal structure of a rotation, a quaternion
@@ -135,6 +136,31 @@ where
         let m2w = w2m.transpose();
 
         m2w * pos_model_space
+    }
+
+    pub fn euler(&self) -> Euler<Rad<S>> {
+        self.0.into()
+    }
+
+    /// Extract the 3 euler angles from the quaternion
+    /// Aladin Lite rotation basis is formed by Z, X, Y axis:
+    /// * Z axis is pointing towards us
+    /// * Y is pointing upward
+    /// * X is defined from the right-hand rule to form a basis
+    ///
+    /// The first euler angle describes the longitude (rotation around the Y axis) <=> pitch
+    /// The second euler angle describes the latitude (rotation around the X' modified axis) <=> yaw
+    /// The third euler angle describes a rotation deviation from the north pole (rotation around the Z'' modified axis) <=> roll
+    ///
+    /// Equations come from this paper (Appendix 6):
+    /// https://ntrs.nasa.gov/api/citations/19770024290/downloads/19770024290.pdf
+    pub fn euler_YXZ(&self) -> (Angle<S>, Angle<S>, Angle<S>) {
+        let m: Matrix4<S> = self.0.into();
+
+        let a = m.x.z.atan2(m.z.z);
+        let b = (-m.z.y).atan2((S::one() - m.z.y * m.z.y).sqrt());
+        let c = m.x.y.atan2(m.y.y);
+        (Angle(a), Angle(b), Angle(c))
     }
 }
 

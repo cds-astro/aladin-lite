@@ -546,6 +546,8 @@ export let View = (function () {
             try {
                 const [lon, lat] = view.aladin.pix2world(xymouse.x, xymouse.y, 'icrs');
                 view.pointTo(lon, lat);
+                // reset the rotation around center view
+                view.setViewCenterPosAngle(0.0);
             }
             catch (err) {
                 return;
@@ -709,7 +711,7 @@ export let View = (function () {
                 view.pinchZoomParameters.initialFov = fov;
                 view.pinchZoomParameters.initialDistance = Math.sqrt(Math.pow(e.targetTouches[0].clientX - e.targetTouches[1].clientX, 2) + Math.pow(e.targetTouches[0].clientY - e.targetTouches[1].clientY, 2));
 
-                view.fingersRotationParameters.initialViewAngleFromCenter = view.wasm.getRotationAroundCenter();
+                view.fingersRotationParameters.initialViewAngleFromCenter = view.wasm.getNorthShiftAngle();
                 view.fingersRotationParameters.initialFingerAngle = Math.atan2(e.targetTouches[1].clientY - e.targetTouches[0].clientY, e.targetTouches[1].clientX - e.targetTouches[0].clientX) * 180.0 / Math.PI;
 
                 return;
@@ -973,7 +975,7 @@ export let View = (function () {
                         // planetary survey case
                         rotation -= fingerAngleDiff;
                     }
-                    view.wasm.setRotationAroundCenter(rotation);
+                    view.setViewCenterPosAngle(rotation);
                 }
 
                 // zoom
@@ -1577,8 +1579,8 @@ export let View = (function () {
         });
     }
 
-    View.prototype.setRotation = function(rotation) {
-        this.wasm.setRotationAroundCenter(rotation);
+    View.prototype.setViewCenterPosAngle = function(rotation) {
+        this.wasm.setViewCenterPosAngle(rotation);
     }
 
     View.prototype.setGridOptions = function (options) {

@@ -52,7 +52,7 @@ pub struct App {
 
     //ui: GuiRef,
     shaders: ShaderManager,
-    camera: CameraViewPort,
+    pub camera: CameraViewPort,
 
     downloader: Downloader,
     tile_fetcher: TileFetcherQueue,
@@ -94,7 +94,7 @@ pub struct App {
 
     colormaps: Colormaps,
 
-    projection: ProjectionType,
+    pub projection: ProjectionType,
 
     // Async data receivers
     fits_send: async_channel::Sender<ImageCfg>,
@@ -849,16 +849,6 @@ impl App {
         Ok(has_camera_moved)
     }
 
-    pub(crate) fn reset_north_orientation(&mut self) {
-        // Reset the rotation around the center if there is one
-        self.camera
-            .set_rotation_around_center(Angle(0.0), &self.projection);
-        // Reset the camera position to its current position
-        // this will keep the current position but reset the orientation
-        // so that the north pole is at the top of the center.
-        self.set_center(&self.get_center());
-    }
-
     pub(crate) fn read_pixel(&self, pos: &Vector2<f64>, layer: &str) -> Result<JsValue, JsValue> {
         if let Some(lonlat) = self.screen_to_world(pos) {
             if let Some(survey) = self.layers.get_hips_from_layer(layer) {
@@ -1405,10 +1395,10 @@ impl App {
 
     pub(crate) fn world_to_screen(&self, ra: f64, dec: f64) -> Option<Vector2<f64>> {
         let lonlat = LonLatT::new(ArcDeg(ra).into(), ArcDeg(dec).into());
-        let model_pos_xyz = lonlat.vector();
+        let icrs_pos = lonlat.vector();
 
         self.projection
-            .view_to_screen_space(&model_pos_xyz, &self.camera)
+            .icrs_celestial_to_screen_space(&icrs_pos, &self.camera)
     }
 
     pub(crate) fn screen_to_world(&self, pos: &Vector2<f64>) -> Option<LonLatT<f64>> {
@@ -1439,11 +1429,11 @@ impl App {
         LonLatT::new(ra, dec)
     }
 
+    /// lonlat must be given in icrs frame
     pub(crate) fn set_center(&mut self, lonlat: &LonLatT<f64>) {
         self.prev_cam_position = self.camera.get_center().truncate();
 
-        self.camera
-            .set_center(lonlat, CooSystem::ICRS, &self.projection);
+        self.camera.set_center(lonlat, &self.projection);
         self.request_for_new_tiles = true;
 
         // And stop the current inertia as well if there is one
@@ -1534,17 +1524,17 @@ impl App {
         self.inertia = Some(Inertia::new(ampl.to_radians(), axis))
     }
 
-    pub(crate) fn rotate_around_center(&mut self, theta: ArcDeg<f64>) {
+    pub(crate) fn set_view_center_pos_angle(&mut self, theta: ArcDeg<f64>) {
         self.camera
-            .set_rotation_around_center(theta.into(), &self.projection);
+            .set_view_center_pos_angle(theta.into(), &self.projection);
         // New tiles can be needed and some tiles can be removed
         self.request_for_new_tiles = true;
 
         self.request_redraw = true;
     }
 
-    pub(crate) fn get_rotation_around_center(&self) -> &Angle<f64> {
-        self.camera.get_rotation_around_center()
+    pub(crate) fn get_north_shift_angle(&self) -> Angle<f64> {
+        self.camera.get_north_shift_angle()
     }
 
     pub(crate) fn set_fov(&mut self, fov: Angle<f64>) {

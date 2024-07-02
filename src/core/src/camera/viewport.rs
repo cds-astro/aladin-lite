@@ -17,14 +17,16 @@ use crate::healpix::coverage::HEALPixCoverage;
 use crate::math::angle::ToAngle;
 use crate::math::{projection::coo_space::XYZWModel, projection::domain::sdf::ProjDef};
 
+use al_core::log::console_log;
 use cgmath::{Matrix4, Vector2};
 pub struct CameraViewPort {
     // The field of view angle
     aperture: Angle<f64>,
-    center: Vector4<f64>,
     // The rotation of the camera
     rotation_center_angle: Angle<f64>,
+    center: Vector4<f64>,
     w2m_rot: Rotation<f64>,
+    center_rot: Angle<f64>,
 
     w2m: Matrix4<f64>,
     m2w: Matrix4<f64>,
@@ -74,6 +76,7 @@ pub struct CameraViewPort {
 }
 use al_api::coo_system::CooSystem;
 use al_core::WebGlContext;
+use js_sys::Math::atan2;
 
 use crate::{
     coosys,
@@ -101,8 +104,8 @@ impl CameraViewPort {
 
         let w2m = Matrix4::identity();
         let m2w = w2m;
-        let center = Vector4::new(0.0, 0.0, 1.0, 1.0);
-
+        let center_rot = Angle(0.0);
+        let center = Vector4::new(0.0, 0.0, 0.0, 1.0);
         let moved = false;
         let zoomed = false;
 
@@ -122,9 +125,6 @@ impl CameraViewPort {
         let width = width * dpi;
         let height = height * dpi;
 
-        //let dpi = 1.0;
-        //gl.scissor(0, 0, width as i32, height as i32);
-
         let aspect = height / width;
         let ndc_to_clip = Vector2::new(1.0, (height as f64) / (width as f64));
         let clip_zoom_factor = 1.0;
@@ -143,6 +143,7 @@ impl CameraViewPort {
         CameraViewPort {
             // The field of view angle
             aperture,
+            center_rot,
             center,
             // The rotation of the cameraq
             w2m_rot,
@@ -477,10 +478,11 @@ impl CameraViewPort {
         self.update_rot_matrices(proj);
     }
 
-    pub fn set_center(&mut self, lonlat: &LonLatT<f64>, coo_sys: CooSystem, proj: &ProjectionType) {
+    /// lonlat must be given in icrs frame
+    pub fn set_center(&mut self, lonlat: &LonLatT<f64>, proj: &ProjectionType) {
         let icrs_pos: Vector4<_> = lonlat.vector();
 
-        let view_pos = coosys::apply_coo_system(coo_sys, self.get_coo_system(), &icrs_pos);
+        let view_pos = CooSystem::ICRS.to(self.get_coo_system()) * icrs_pos;
         let rot = Rotation::from_sky_position(&view_pos);
 
         // Apply the rotation to the camera to go
@@ -527,13 +529,8 @@ impl CameraViewPort {
         if self.reversed_longitude != reversed_longitude {
             self.reversed_longitude = reversed_longitude;
 
-            self.rotation_center_angle = -self.rotation_center_angle;
             self.update_rot_matrices(proj);
         }
-
-        // The camera is reversed => it has moved
-        self.moved = true;
-        self.time_last_move = Time::now();
     }
 
     pub fn get_longitude_reversed(&self) -> bool {
@@ -599,14 +596,17 @@ impl CameraViewPort {
         self.zoomed = false;
     }
 
+    #[inline]
     pub fn get_aperture(&self) -> Angle<f64> {
         self.aperture
     }
 
+    #[inline]
     pub fn get_center(&self) -> &Vector4<f64> {
         &self.center
     }
 
+    #[inline]
     pub fn is_allsky(&self) -> bool {
         self.is_allsky
     }
@@ -619,13 +619,14 @@ impl CameraViewPort {
         self.coo_sys
     }
 
-    pub fn set_rotation_around_center(&mut self, theta: Angle<f64>, proj: &ProjectionType) {
-        self.rotation_center_angle = theta;
+    pub fn set_view_center_pos_angle(&mut self, phi: Angle<f64>, proj: &ProjectionType) {
+        self.center_rot = phi;
+
         self.update_rot_matrices(proj);
     }
 
-    pub fn get_rotation_around_center(&self) -> &Angle<f64> {
-        &self.rotation_center_angle
+    pub fn get_north_shift_angle(&self) -> Angle<f64> {
+        (self.w2m.x.y).atan2(self.w2m.y.y).to_angle()
     }
 }
 use crate::ProjectionType;
@@ -657,16 +658,14 @@ impl CameraViewPort {
     }
 
     fn update_center(&mut self) {
-        // The center position is on the 3rd column of the w2m matrix
         self.center = self.w2m.z;
-
-        let axis = &self.center.truncate();
-        let center_rot = Rotation::from_axis_angle(axis, self.rotation_center_angle);
-
+        // The center position is on the 3rd column of the w2m matrix
+        let center_axis = &self.center.truncate();
         // Re-update the model matrix to take into account the rotation
         // by theta around the center axis
-        let final_rot = center_rot * self.w2m_rot;
-        self.w2m = (&final_rot).into();
+        let r = Rotation::from_axis_angle(center_axis, self.center_rot) * self.w2m_rot;
+
+        self.w2m = (&r).into();
         if self.reversed_longitude {
             self.w2m = self.w2m * ID_R;
         }

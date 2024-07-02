@@ -494,20 +494,30 @@ impl WebClient {
     /// # Arguments
     ///
     /// * `theta` - The rotation angle in degrees
-    #[wasm_bindgen(js_name = setRotationAroundCenter)]
-    pub fn rotate_around_center(&mut self, theta: f64) -> Result<(), JsValue> {
+    #[wasm_bindgen(js_name = setViewCenterPosAngle)]
+    pub fn set_view_center_pos_angle(&mut self, theta: f64) -> Result<(), JsValue> {
         let theta = ArcDeg(theta);
-        self.app.rotate_around_center(theta);
+        self.app.set_view_center_pos_angle(theta);
 
         Ok(())
     }
 
     /// Get the absolute orientation angle of the view
-    #[wasm_bindgen(js_name = getRotationAroundCenter)]
-    pub fn get_rotation_around_center(&mut self) -> Result<f64, JsValue> {
-        let theta = self.app.get_rotation_around_center();
+    #[wasm_bindgen(js_name = getViewCenterFromNorthPoleAngle)]
+    pub fn get_north_shift_angle(&mut self) -> Result<f64, JsValue> {
+        let phi = self.app.get_north_shift_angle();
+        Ok(phi.to_degrees())
+    }
 
-        Ok(theta.0 * 360.0 / (2.0 * std::f64::consts::PI))
+    #[wasm_bindgen(js_name = getNorthPoleCelestialPosition)]
+    pub fn get_north_pole_celestial_position(&mut self) -> Result<Box<[f64]>, JsValue> {
+        let np = self
+            .app
+            .projection
+            .north_pole_celestial_space(&self.app.camera);
+
+        let (lon, lat) = (np.lon().to_degrees(), np.lat().to_degrees());
+        Ok(Box::new([lon, lat]))
     }
 
     /// Get if the longitude axis is reversed
@@ -569,12 +579,6 @@ impl WebClient {
         let lat_deg: ArcDeg<f64> = lat.into();
 
         Ok(Box::new([lon_deg.0, lat_deg.0]))
-    }
-
-    /// Rest the north pole orientation to the top of the screen
-    #[wasm_bindgen(js_name = resetNorthOrientation)]
-    pub fn reset_north_orientation(&mut self) {
-        self.app.reset_north_orientation();
     }
 
     /// Go from a location to another one

@@ -2,7 +2,6 @@ use crate::math;
 use cgmath::{BaseFloat, InnerSpace};
 use cgmath::{Euler, Quaternion};
 use cgmath::{Vector3, Vector4};
-use core::f64::consts::PI;
 
 #[derive(Clone, Copy, Debug)]
 // Internal structure of a rotation, a quaternion
@@ -154,7 +153,7 @@ where
     ///
     /// Equations come from this paper (Appendix 6):
     /// https://ntrs.nasa.gov/api/citations/19770024290/downloads/19770024290.pdf
-    pub fn euler_YXZ(&self) -> (Angle<S>, Angle<S>, Angle<S>) {
+    pub fn euler_yxz(&self) -> (Angle<S>, Angle<S>, Angle<S>) {
         let m: Matrix4<S> = self.0.into();
 
         let a = m.x.z.atan2(m.z.z);

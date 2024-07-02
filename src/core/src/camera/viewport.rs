@@ -17,13 +17,11 @@ use crate::healpix::coverage::HEALPixCoverage;
 use crate::math::angle::ToAngle;
 use crate::math::{projection::coo_space::XYZWModel, projection::domain::sdf::ProjDef};
 
-use al_core::log::console_log;
 use cgmath::{Matrix4, Vector2};
 pub struct CameraViewPort {
     // The field of view angle
     aperture: Angle<f64>,
     // The rotation of the camera
-    rotation_center_angle: Angle<f64>,
     center: Vector4<f64>,
     w2m_rot: Rotation<f64>,
     center_rot: Angle<f64>,
@@ -76,7 +74,6 @@ pub struct CameraViewPort {
 }
 use al_api::coo_system::CooSystem;
 use al_core::WebGlContext;
-use js_sys::Math::atan2;
 
 use crate::{
     coosys,
@@ -134,7 +131,6 @@ impl CameraViewPort {
 
         let is_allsky = true;
         let time_last_move = Time::now();
-        let rotation_center_angle = Angle(0.0);
         let reversed_longitude = false;
 
         let texture_depth = 0;
@@ -151,7 +147,6 @@ impl CameraViewPort {
             m2w,
 
             dpi,
-            rotation_center_angle,
             // The width over height ratio
             aspect,
             // The width of the screen in pixels

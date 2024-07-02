@@ -50,7 +50,7 @@ pub enum Style {
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct Footprint {
+pub struct Footprint {
     shapes: Vec<Shape>,
     /// Some styling meta data
     color: ColorRGBA,
@@ -59,4 +59,4 @@ struct Footprint {
     style: Style,
 }
 
-type Catalog = Footprint;
+pub type Catalog = Footprint;

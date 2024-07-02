@@ -58,7 +58,7 @@ fn is_too_large(cell: &HEALPixCell, camera: &CameraViewPort, projection: &Projec
         .iter()
         .filter_map(|(lon, lat)| {
             let vertex = crate::math::lonlat::radec_to_xyzw(Angle(*lon), Angle(*lat));
-            projection.view_to_screen_space(&vertex, camera)
+            projection.icrs_celestial_to_screen_space(&vertex, camera)
         })
         .collect::<Vec<_>>();
 

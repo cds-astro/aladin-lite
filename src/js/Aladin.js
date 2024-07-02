@@ -1867,8 +1867,26 @@ export let Aladin = (function () {
         this.view.decreaseZoom(0.01);
     };
 
-    Aladin.prototype.setRotation = function (rotation) {
-        this.view.setRotation(rotation);
+     /**
+     * Set the view center rotation in degrees
+     *
+     * @memberof Aladin
+     * @param {number} rotation - The center rotation in degrees. Positive angles rotates the
+     * view in the counter clockwise order (or towards the east)
+     */
+    Aladin.prototype.setViewCenterPosAngle = function (rotation) {
+        this.view.setViewCenterPosAngle(rotation);
+    };
+
+     /**
+     * Get the view center to north pole angle in degrees. This is equivalent to getting the 3rd Euler angle
+     *
+     * @memberof Aladin
+     * 
+     * @returns {number} - Angle between the position center and the north pole
+     */
+    Aladin.prototype.getCenter2NorthPoleAngle = function () {
+        return this.view.wasm.getViewCenterFromNorthPoleAngle();
     };
 
     // @api
@@ -2264,9 +2282,8 @@ aladin.on("positionChanged", ({ra, dec}) => {
      * Return the current view WCS as a key-value dictionary
      * Can be useful in coordination with getViewDataURL
      *
-     * NOTE + TODO : Rotations are not implemented yet
-     *
-     * @API
+     * @memberof Aladin
+     * @returns {Object} - A JS object describing the WCS of the view.
      */
     Aladin.prototype.getViewWCS = function () {
         // get general view properties
@@ -2276,11 +2293,11 @@ aladin.on("positionChanged", ({ra, dec}) => {
         const height = this.view.height;
 
         // get values common for all
-        let cdelt1 = fov[0] / width;
+        let cdelt1 = -fov[0] / width;
         const cdelt2 = fov[1] / height;
-        const projectionName = this.getProjectionName();
+        const projName = this.getProjectionName();
 
-        if (projectionName == "FEYE")
+        if (projName == "FEYE")
             return "Fish eye projection is not supported by WCS standards.";
 
         // reversed longitude case
@@ -2339,8 +2356,8 @@ aladin.on("positionChanged", ({ra, dec}) => {
             CRPIX2: height / 2 + 0.5,
             CRVAL1: center[0],
             CRVAL2: center[1],
-            CTYPE1: cooType1 + projectionName,
-            CTYPE2: cooType2 + projectionName,
+            CTYPE1: cooType1 + projName,
+            CTYPE2: cooType2 + projName,
             CUNIT1: "deg     ",
             CUNIT2: "deg     ",
             CDELT1: cdelt1,
@@ -2350,6 +2367,48 @@ aladin.on("positionChanged", ({ra, dec}) => {
         // handle the case of equatorial coordinates that need
         // the radecsys keyword
         if (radesys == "ICRS    ") WCS.RADESYS = radesys;
+
+        const isProjZenithal = ['TAN', 'SIN', 'STG', 'ZEA'].some((p) => p === projName)
+        if (isProjZenithal) {
+            // zenithal projections
+            // express the 3rd euler angle for zenithal projection
+            let thirdEulerAngle = this.getCenter2NorthPoleAngle();
+            WCS.LONPOLE = 180 - thirdEulerAngle
+        } else {
+            // cylindrical or pseudo-cylindrical projections
+            if (!radesys) {
+                console.warn('TODO: Galactic frame 3rd euler rotation not handled for cylindrical projections')
+            } else if (WCS.CRVAL2 === 0) {
+                // ref point on the equator not handled (yet)
+                console.warn('TODO: 3rd euler rotation is not handled for ref point located at delta_0 = 0')
+            } else {
+                // ref point not on the equator
+                const npLonlat = this.view.wasm.getNorthPoleCelestialPosition();
+                let dLon = WCS.CRVAL1 - npLonlat[0];
+
+                // dlon angle must lie between -PI and PI
+                // For dlon angle between -PI;-PI/2 or PI/2;PI one must invert LATPOLE
+                if (dLon < -90 || dLon > 90) {
+                    // so that the south pole becomes upward to the ref point
+                    WCS.LATPOLE = -90
+                }
+
+                const toRad = Math.PI / 180
+                const toDeg = 1.0 / toRad;
+
+                // Reverse the Eq 9 from the WCS II paper from Mark Calabretta to obtain LONPOLE
+                // function of CRVAL2 and native coordinates of the fiducial ref point, i.e. (phi_0, theta_0) = (0, 0)
+                // for cylindrical projections 
+                WCS.LONPOLE = Math.asin(Math.sin(dLon * toRad) * Math.cos(WCS.CRVAL2 * toRad)) * toDeg;
+
+                if (WCS.CRVAL2 < 0) {
+                    // ref point is located in the south hemisphere
+                    WCS.LONPOLE = -180 - WCS.LONPOLE;
+                }
+
+                console.log("euler rot ?:", 180 - WCS.LONPOLE)
+            }
+        }
 
         return WCS;
     };

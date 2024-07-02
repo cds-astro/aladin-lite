@@ -150,7 +150,16 @@ pub enum ProjectionType {
     //Hpx(mapproj::hybrid::hpx::Hpx),
 }
 
+use crate::math::lonlat::LonLat;
 impl ProjectionType {
+    pub fn north_pole_celestial_space(&self, camera: &CameraViewPort) -> LonLatT<f64> {
+        // This is always defined
+        let np_world = self.north_pole_world_space();
+
+        let np_celestial = camera.get_w2m() * np_world;
+        np_celestial.lonlat()
+    }
+
     /// Screen to model space deprojection
 
     /// Perform a screen to the world space deprojection
@@ -209,40 +218,27 @@ impl ProjectionType {
         self.world_to_screen_space(&pos_world_space, camera)
     }
 
-    pub fn view_to_screen_space(
+    pub fn icrs_celestial_to_screen_space(
         &self,
-        pos_model_space: &XYZWModel<f64>,
+        icrs_celestial_pos: &XYZWModel<f64>,
         camera: &CameraViewPort,
     ) -> Option<XYScreen<f64>> {
-        self.view_to_normalized_device_space(pos_model_space, camera)
+        self.icrs_celestial_to_normalized_device_space(icrs_celestial_pos, camera)
             .map(|ndc_pos| crate::ndc_to_screen_space(&ndc_pos, camera))
     }
 
-    pub fn view_to_normalized_device_space(
+    pub fn icrs_celestial_to_normalized_device_space(
         &self,
-        pos_model_space: &XYZWModel<f64>,
+        icrs_celestial_pos: &XYZWModel<f64>,
         camera: &CameraViewPort,
     ) -> Option<XYNDC<f64>> {
         let view_coosys = camera.get_coo_system();
         let c = CooSystem::ICRS.to::<f64>(view_coosys);
 
         let m2w = camera.get_m2w();
-        let pos_world_space = m2w * c * pos_model_space;
+        let pos_world_space = m2w * c * icrs_celestial_pos;
         self.world_to_normalized_device_space(&pos_world_space, camera)
     }
-
-    /*pub fn view_to_normalized_device_space_unchecked(
-        &self,
-        pos_view_space: &Vector4<f64>,
-        camera: &CameraViewPort,
-    ) -> Vector2<f64> {
-        let view_coosys = camera.get_coo_system();
-        let c = CooSystem::ICRS.to::<f64>(view_coosys);
-
-        let m2w = camera.get_m2w();
-        let pos_world_space = m2w * c * pos_view_space;
-        self.world_to_normalized_device_space_unchecked(&pos_world_space, camera)
-    }*/
 
     pub fn model_to_normalized_device_space(
         &self,
@@ -673,12 +669,29 @@ pub trait Projection {
     ///
     /// * ``pos_world_space`` - The position in the world space
     fn world_to_clip_space(&self, pos_world_space: &XYZWWorld<f64>) -> Option<XYClip<f64>>;
+
+    /// (`alpha_p`, `delta_p`) in the WCS II paper from Mark Calabretta.
+    #[inline]
+    fn north_pole_world_space(&self) -> XYZWWorld<f64> {
+        // This is always defined
+        self.clip_to_world_space(&XYClip::new(0.0, 1.0 - 1e-5))
+            .unwrap()
+    }
+
+    #[inline]
+    fn south_pole_world_space(&self) -> XYZWWorld<f64> {
+        // This is always defined
+        self.clip_to_world_space(&XYClip::new(0.0, -1.0 + 1e-5))
+            .unwrap()
+    }
 }
 
 use mapproj::ProjXY;
 
 use self::coo_space::XYScreen;
 use self::coo_space::XYNDC;
+
+use super::lonlat::LonLatT;
 
 impl<'a, P> Projection for &'a P
 where

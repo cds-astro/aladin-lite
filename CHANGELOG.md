@@ -2,6 +2,7 @@
 
 ## 3.4.2-beta
 
+* [impr] Improve smartphone support by setting media queries + a better logic for deploying the contextual menu sub options.
 * [impr] Improve `WCS` view export with 3rd euler rotation encoding: <https://github.com/cds-astro/aladin-lite/issues/170>. Still some cases are to be handled like: crval on the equator or cylindrical with a galactic frame rotation.
 * [fixed] Change `RADECSYS` to `RADESYS` for `Aladin#getViewWCS` to follow fits standard deprecation
 * [feat] Add new method `Aladin#getViewImageBuffer` to get the current view as a PNG buffer

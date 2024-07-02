@@ -165,11 +165,7 @@ export let DefaultActionsForContextMenu = (function () {
 
                                 files.forEach(file => {
                                     const url = URL.createObjectURL(file);
-<<<<<<< HEAD
-                                    let moc = A.MOCFromURL(url, { name: file.name, edge: true });
-=======
-                                    let moc = A.MOCFromURL(url, { name: file.name, opacity: 0.4 });
->>>>>>> cfa6574e (fix context sub menu deploy for small screen)
+                                    let moc = A.MOCFromURL(url, { name: file.name });
                                     a.addMOC(moc);
                                 });
                             };

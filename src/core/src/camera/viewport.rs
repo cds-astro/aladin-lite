@@ -460,7 +460,7 @@ impl CameraViewPort {
         self.texture_depth
     }
 
-    pub fn rotate(
+    pub fn apply_rotation(
         &mut self,
         axis: &cgmath::Vector3<f64>,
         angle: Angle<f64>,
@@ -483,6 +483,14 @@ impl CameraViewPort {
         // Apply the rotation to the camera to go
         // to the next lonlat
         self.set_rotation(&rot, proj);
+    }
+
+    pub fn set_center_pos_angle(&mut self, phi: Angle<f64>, proj: &ProjectionType) {
+        let rot_to_center = Rotation::from_sky_position(&self.center);
+        let third_euler_rot = Rotation::from_axis_angle(&self.center.truncate(), phi);
+
+        let total_rot = third_euler_rot * rot_to_center;
+        self.set_rotation(&total_rot, proj);
     }
 
     fn set_rotation(&mut self, rot: &Rotation<f64>, proj: &ProjectionType) {
@@ -614,13 +622,7 @@ impl CameraViewPort {
         self.coo_sys
     }
 
-    pub fn set_view_center_pos_angle(&mut self, phi: Angle<f64>, proj: &ProjectionType) {
-        self.center_rot = phi;
-
-        self.update_rot_matrices(proj);
-    }
-
-    pub fn get_north_shift_angle(&self) -> Angle<f64> {
+    pub fn get_center_pos_angle(&self) -> Angle<f64> {
         (self.w2m.x.y).atan2(self.w2m.y.y).to_angle()
     }
 }
@@ -632,8 +634,12 @@ impl CameraViewPort {
     fn update_rot_matrices(&mut self, proj: &ProjectionType) {
         self.w2m = (&(self.w2m_rot)).into();
 
-        // Update the center with the new rotation
-        self.update_center();
+        if self.reversed_longitude {
+            self.w2m = self.w2m * ID_R;
+        }
+        self.m2w = self.w2m.transpose();
+
+        self.center = self.w2m.z;
 
         // Rotate the fov vertices
         self.fov.set_rotation(&self.w2m);
@@ -650,22 +656,6 @@ impl CameraViewPort {
             self.get_coo_system(),
             proj,
         );
-    }
-
-    fn update_center(&mut self) {
-        self.center = self.w2m.z;
-        // The center position is on the 3rd column of the w2m matrix
-        let center_axis = &self.center.truncate();
-        // Re-update the model matrix to take into account the rotation
-        // by theta around the center axis
-        let r = Rotation::from_axis_angle(center_axis, self.center_rot) * self.w2m_rot;
-
-        self.w2m = (&r).into();
-        if self.reversed_longitude {
-            self.w2m = self.w2m * ID_R;
-        }
-
-        self.m2w = self.w2m.transpose();
     }
 }
 

@@ -11699,7 +11699,7 @@
         aladin.addOverlay(overlay);
         var polygons = [];
         verticesArr.forEach(function(vertices) {
-            polygons.push(A.polygon(vertices, {color: '#808080', fillColor: '#808080', opacity: .4, lineWidth: 1, fill: true}))
+            polygons.push(A.polygon(vertices, {closed: true, color: '#808080', fillColor: '#808080', opacity: .4, lineWidth: 1, fill: true}))
         });
         overlay.addFootprints(polygons);
         aladin.gotoRaDec(156.2162606, 63.8522344);

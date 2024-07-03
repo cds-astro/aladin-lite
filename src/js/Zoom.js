@@ -27,9 +27,7 @@
  * Author: Matthieu Baumann[CDS]
  * 
  *****************************************************************************/
-import { Utils } from "./Utils";
 import { requestAnimFrame } from "./libs/RequestAnimationFrame.js";
-
 
  export let Zoom = (function() {
     // constructor
@@ -43,6 +41,21 @@ import { requestAnimFrame } from "./libs/RequestAnimationFrame.js";
         let interpolationDuration = options['duration'] || 1000; // default to 1seconds
         if (!finalZoom)
             return;
+
+        // clamp the zoom to the view params minFov and maxFov and the projection bounds
+        finalZoom = Math.min(finalZoom, this.view.projection.fov);
+
+        // then clamp the fov between minFov and maxFov
+        const minFoV = this.view.minFoV;
+        const maxFoV = this.view.maxFoV;
+
+        if (minFoV) {
+            finalZoom = Math.max(finalZoom, minFoV);
+        }
+
+        if (maxFoV) {
+            finalZoom = Math.min(finalZoom, maxFoV);
+        }
 
         this.finalZoom = finalZoom;
 

@@ -29,16 +29,21 @@ mapproj = "0.3.0"
 fitsrs = "0.2.9"
 wcs = "0.2.8"
 colorgrad = "0.6.2"
-#lyon = "1.0.1"
-console_error_panic_hook = {version = "0.1.7", optional = true}
 
 [features]
 webgl1 = [ "al-core/webgl1", "al-api/webgl1", "web-sys/WebGlRenderingContext", "web-sys/AngleInstancedArrays", "web-sys/ExtSRgb", "web-sys/OesTextureFloat",]
 webgl2 = [ "al-core/webgl2", "al-api/webgl2", "web-sys/WebGl2RenderingContext", "web-sys/WebGlVertexArrayObject", "web-sys/ExtColorBufferFloat",]
-dbg = ['dep:console_error_panic_hook']
+dbg = [ "dep:console_error_panic_hook",]
 
 [dev-dependencies]
 rand = "0.8"
+
+[build-dependencies]
+walkdir = "2.3.2"
+
+[dependencies.console_error_panic_hook]
+version = "0.1.7"
+optional = true
 
 [dependencies.healpix]
 package = "cdshealpix"
@@ -47,7 +52,6 @@ branch = "master"
 
 [dependencies.moclib]
 package = "moc"
-#path = "../../../cds-moc-rust/"
 git = "https://github.com/bmatthieu3/cds-moc-rust"
 branch = "overlap"
 
@@ -70,10 +74,6 @@ package = "image"
 version = "0.24.2"
 default-features = false
 features = [ "jpeg", "png",]
-
-[build-dependencies]
-# Shader preprocessing
-walkdir = "2.3.2"
 
 [profile.dev]
 debug = true

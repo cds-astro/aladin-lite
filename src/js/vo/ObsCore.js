@@ -204,7 +204,7 @@
                                 aladinInstance.setFoV(fov);
                             });
             
-                            let image = aladinInstance.createImageFITS(url, name, {}, successCallback);
+                            let image = aladinInstance.createImageFITS(url, {name}, successCallback);
 
                             aladinInstance.setOverlayImageLayer(image, Utils.uuidv4())
                         };

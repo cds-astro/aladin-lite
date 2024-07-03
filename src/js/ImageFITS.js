@@ -67,6 +67,7 @@ export let ImageFITS = (function () {
         // Set it to a default value
         this.url = url;
         this.id = url;
+        this.ext = options && options.ext;
         this.name = (options && options.name) || this.url;
 
         this.imgFormat = "fits";
@@ -208,7 +209,8 @@ export let ImageFITS = (function () {
                 imagesParams.forEach((imageParams) => {
                     // This fits has HDU extensions
                     let image = new ImageFITS(imageParams.url, {
-                        name: self.name + "_ext_" + hduIdx.toString(),
+                        name: self.name,
+                        ext: hduIdx.toString()
                     });
 
                     // Set the layer corresponding to the onein the backend

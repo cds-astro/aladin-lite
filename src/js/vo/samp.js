@@ -81,8 +81,7 @@ export class SAMPConnector {
             let params = message["samp.params"];
 
             const {url, name} = params;
-
-            const image = aladin.createImageFITS(url, name, options, (e) => window.alert(e));
+            const image = aladin.createImageFITS(url, {name}, (e) => window.alert(e));
 
             aladin.setOverlayImageLayer(image, name);
         };

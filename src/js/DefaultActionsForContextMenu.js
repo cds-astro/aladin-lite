@@ -140,14 +140,12 @@ export let DefaultActionsForContextMenu = (function () {
                                     // Consider other cases
                                     const image = a.createImageFITS(
                                         url,
-                                        name,
-                                        undefined,
+                                        {name},
                                         (ra, dec, fov, _) => {
                                             // Center the view around the new fits object
                                             a.gotoRaDec(ra, dec);
                                             a.setFoV(fov * 1.1);
-                                        },
-                                        undefined
+                                        }
                                     );
 
                                     a.setOverlayImageLayer(image, name)

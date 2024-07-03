@@ -77,7 +77,7 @@ export class ServiceQueryBox extends Box {
                         const url = URL.createObjectURL(blob);
 
                         try {
-                            let image = self.aladin.createImageFITS(url, name);   
+                            let image = self.aladin.createImageFITS(url, {name});   
                             self.aladin.setOverlayImageLayer(image, Utils.uuidv4())
                         } catch(e) {
                             throw('Fail to interpret ' + url + ' as a fits file')

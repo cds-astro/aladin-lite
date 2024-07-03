@@ -195,7 +195,7 @@
 
         async function s10() {
             for await(const it of interval(50, 80)) {
-                aladin.setRotation(0.5 * it)
+                aladin.setViewCenter2NorthPoleAngle(0.5 * it)
             }
         }
 
@@ -264,7 +264,7 @@
             for await(const it of interval(intervalMs, nbIt+1)) {
                 fov = fovStart / Math.pow(fovEnd/fovStart, -it/nbIt)
                 aladin.setFoV(fov)
-                aladin.setRotation(40 - 40 * it/nbIt)
+                aladin.setViewCenter2NorthPoleAngle(40 - 40 * it/nbIt)
             }
             aladin.setFoV(fovEnd)
 

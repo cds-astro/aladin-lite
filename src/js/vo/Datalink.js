@@ -144,7 +144,7 @@ export let Datalink = (function() {
                                                     aladinInstance.setFoV(fov);
                                                 });
 
-                                                let image = aladinInstance.createImageFITS(url, url, {}, successCallback);
+                                                let image = aladinInstance.createImageFITS(url, {name: url}, successCallback);
                                                 aladinInstance.setOverlayImageLayer(image, Utils.uuidv4())
                                             };
 

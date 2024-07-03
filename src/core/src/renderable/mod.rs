@@ -290,10 +290,8 @@ impl Layers {
                     // 2. Draw it if its opacity is not null
                     survey.draw(shaders, colormaps, camera, raytracer, draw_opt, projection)?;
                 } else if let Some(image) = self.images.get_mut(id) {
-                    image.update(camera, projection)?;
-
                     // 2. Draw it if its opacity is not null
-                    image.draw(shaders, colormaps, draw_opt)?;
+                    image.draw(shaders, colormaps, draw_opt, camera, projection)?;
                 }
             }
         }

@@ -7,6 +7,7 @@ use std::marker::Unpin;
 use std::vec;
 
 use al_api::coo_system::CooSystem;
+use al_core::log::console_log;
 use cgmath::Zero;
 use futures::stream::TryStreamExt;
 use futures::AsyncRead;
@@ -407,18 +408,6 @@ impl Image {
         Ok(image)
     }
 
-    pub fn update(
-        &mut self,
-        camera: &CameraViewPort,
-        projection: &ProjectionType,
-    ) -> Result<(), JsValue> {
-        if camera.has_moved() {
-            self.recompute_vertices(camera, projection)?;
-        }
-
-        Ok(())
-    }
-
     pub fn recompute_vertices(
         &mut self,
         camera: &CameraViewPort,
@@ -517,7 +506,7 @@ impl Image {
         let num_vertices =
             ((self.centered_fov.fov / 360.0) * (MAX_NUM_TRI_PER_SIDE_IMAGE as f64)).ceil() as u64;
 
-        let (pos, uv, indices, num_indices) = grid::get_grid_vertices(
+        let (pos, uv, indices, num_indices) = grid::vertices(
             &(x_mesh_range.start, y_mesh_range.start),
             &(x_mesh_range.end.ceil(), y_mesh_range.end.ceil()),
             self.max_tex_size as u64,
@@ -527,8 +516,8 @@ impl Image {
             self.image_coo_sys,
             projection,
         );
-        self.pos = unsafe { crate::utils::transmute_vec(pos).map_err(|s| JsValue::from_str(s))? };
-        self.uv = unsafe { crate::utils::transmute_vec(uv).map_err(|s| JsValue::from_str(s))? };
+        self.pos = pos;
+        self.uv = uv;
 
         // Update num_indices
         self.indices = indices;
@@ -557,11 +546,21 @@ impl Image {
 
     // Draw the image
     pub fn draw(
-        &self,
+        &mut self,
         shaders: &mut ShaderManager,
         colormaps: &Colormaps,
         cfg: &ImageMetadata,
+        camera: &CameraViewPort,
+        projection: &ProjectionType,
     ) -> Result<(), JsValue> {
+        if camera.has_moved() {
+            self.recompute_vertices(camera, projection)?;
+        }
+
+        if self.num_indices.is_empty() {
+            return Ok(());
+        }
+
         self.gl.enable(WebGl2RenderingContext::BLEND);
 
         let ImageMetadata {
@@ -602,6 +601,7 @@ impl Image {
         //self.gl.disable(WebGl2RenderingContext::CULL_FACE);
 
         // 2. Draw it if its opacity is not null
+        
         blend_cfg.enable(&self.gl, || {
             let mut off_indices = 0;
             for (idx, &idx_tex) in self.idx_tex.iter().enumerate() {
@@ -625,7 +625,7 @@ impl Image {
                         ((off_indices as usize) * std::mem::size_of::<u16>()) as i32,
                     );
 
-                off_indices += self.num_indices[idx];
+                off_indices += num_indices;
             }
 
             Ok(())

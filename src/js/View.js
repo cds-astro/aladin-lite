@@ -97,14 +97,12 @@ export let View = (function () {
                 try {
                     const image = self.aladin.createImageFITS(
                         url,
-                        file.name,
-                        undefined,
+                        {name: file.name},
                         (ra, dec, fov, _) => {
                             // Center the view around the new fits object
                             aladin.gotoRaDec(ra, dec);
                             aladin.setFoV(fov * 1.1);
-                        },
-                        undefined
+                        }
                     );
                     self.setOverlayImageLayer(image, file.name)
                 } catch(e) {
@@ -158,7 +156,9 @@ export let View = (function () {
         this.mustClearCatalog = true;
         this.mode = View.PAN;
 
-        this.minFOV = this.maxFOV = null; // by default, no restriction
+        // 0.1 arcsec
+        this.minFoV = 1 / 36000;
+        this.maxFoV = null;
 
         this.healpixGrid = new HealpixGrid();
         this.then = Date.now();
@@ -337,6 +337,20 @@ export let View = (function () {
         //this.gridCanvas = createCanvas('aladin-gridCanvas');
         this.imageCanvas = createCanvas('aladin-imageCanvas');
     };
+
+    View.prototype.setFoVRange = function(minFoV, maxFoV) {
+        if (minFoV && maxFoV && minFoV > maxFoV) {
+            var tmp = minFoV;
+            minFoV = maxFoV;
+            maxFoV = tmp;
+        }
+
+        this.minFoV = minFoV || (1.0 / 36000);
+        this.maxFoV = maxFoV;
+
+        // reset the field of view
+        this.setZoom(this.fov);
+    }
 
     // called at startup and when window is resized
     // The WebGL backend is resized
@@ -547,7 +561,7 @@ export let View = (function () {
                 const [lon, lat] = view.aladin.pix2world(xymouse.x, xymouse.y, 'icrs');
                 view.pointTo(lon, lat);
                 // reset the rotation around center view
-                view.setViewCenterPosAngle(0.0);
+                view.setViewCenter2NorthPoleAngle(0.0);
             }
             catch (err) {
                 return;
@@ -711,7 +725,7 @@ export let View = (function () {
                 view.pinchZoomParameters.initialFov = fov;
                 view.pinchZoomParameters.initialDistance = Math.sqrt(Math.pow(e.targetTouches[0].clientX - e.targetTouches[1].clientX, 2) + Math.pow(e.targetTouches[0].clientY - e.targetTouches[1].clientY, 2));
 
-                view.fingersRotationParameters.initialViewAngleFromCenter = view.wasm.getNorthShiftAngle();
+                view.fingersRotationParameters.initialViewAngleFromCenter = view.wasm.getViewCenter2NorthPoleAngle();
                 view.fingersRotationParameters.initialFingerAngle = Math.atan2(e.targetTouches[1].clientY - e.targetTouches[0].clientY, e.targetTouches[1].clientX - e.targetTouches[0].clientX) * 180.0 / Math.PI;
 
                 return;
@@ -934,6 +948,7 @@ export let View = (function () {
 
                 if(view.selectedLayer) {
                     let selectedLayer = view.imageLayers.get(view.selectedLayer);
+
                     // We try to match DS9 contrast adjustment behaviour with right click
                     const cs = {
                         x: view.catalogCanvas.clientWidth * 0.5,
@@ -975,7 +990,7 @@ export let View = (function () {
                         // planetary survey case
                         rotation -= fingerAngleDiff;
                     }
-                    view.setViewCenterPosAngle(rotation);
+                    view.setViewCenter2NorthPoleAngle(rotation);
                 }
 
                 // zoom
@@ -1202,21 +1217,6 @@ export let View = (function () {
                         const factor = 4;
                         let newFov = view.delta > 0 ? view.fov * factor : view.fov / factor;
 
-                        // standard mouse wheel zooming
-                        newFov = Math.min(newFov, view.projection.fov);
-
-                        // then clamp the fov between minFov and maxFov
-                        const minFoV = view.minFoV;
-                        const maxFoV = view.maxFoV;
-                
-                        if (minFoV) {
-                            fov = Math.max(fov, minFoV);
-                        }
-                
-                        if (maxFoV) {
-                            fov = Math.min(fov, maxFoV);
-                        }
-
                         view.zoom.apply({
                             stop: newFov,
                             duration: 300
@@ -1248,8 +1248,6 @@ export let View = (function () {
                         const factor = 5
                         let newFov = view.delta > 0 ? view.fov * factor : view.fov / factor;
                         // standard mouse wheel zooming
-                             
-                        newFov = Math.max(Math.min(newFov, Zoom.MAX), Zoom.MIN)
     
                         view.zoom.apply({
                             stop: newFov,
@@ -1567,20 +1565,20 @@ export let View = (function () {
 
     View.prototype.increaseZoom = function () {
         this.zoom.apply({
-            stop: Zoom.determineNextFov(this, 6),
+            stop: this.fov / 3,
             duration: 300
         });
     }
 
     View.prototype.decreaseZoom = function () {
         this.zoom.apply({
-            stop: Zoom.determineNextFov(this, -6),
+            stop: this.fov * 3,
             duration: 300
         });
     }
 
-    View.prototype.setViewCenterPosAngle = function(rotation) {
-        this.wasm.setViewCenterPosAngle(rotation);
+    View.prototype.setViewCenter2NorthPoleAngle = function(rotation) {
+        this.wasm.setViewCenter2NorthPoleAngle(rotation);
     }
 
     View.prototype.setGridOptions = function (options) {
@@ -1705,9 +1703,12 @@ export let View = (function () {
                 this.empty = false;
 
                 if (imageLayer.children) {
-                    imageLayer.children.forEach((imageLayer) => {
-                        this._addLayer(imageLayer);
+                    imageLayer.children.forEach((imageExtLayer) => {
+                        this._addLayer(imageExtLayer);
                     })
+
+                    // remove the original fits from the cache as we add separately its extensions instead
+                    //HiPSCache.delete(imageLayer.id)
                 } else {
                     this._addLayer(imageLayer);
                 }
@@ -1775,6 +1776,10 @@ export let View = (function () {
         // Change in imageLayers
         this.imageLayers.delete(layer);
         this.imageLayers.set(newLayer, imageLayer);
+
+        if (this.selectedLayer === layer) {
+            this.selectedLayer = newLayer;
+        }
 
         // Tell the layer hierarchy has changed
         ALEvent.HIPS_LAYER_RENAMED.dispatchedTo(this.aladinDiv, { layer, newLayer });

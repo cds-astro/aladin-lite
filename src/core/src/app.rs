@@ -1526,7 +1526,7 @@ impl App {
 
     pub(crate) fn set_view_center_pos_angle(&mut self, theta: ArcDeg<f64>) {
         self.camera
-            .set_view_center_pos_angle(theta.into(), &self.projection);
+            .set_center_pos_angle(theta.into(), &self.projection);
         // New tiles can be needed and some tiles can be removed
         self.request_for_new_tiles = true;
 
@@ -1534,7 +1534,7 @@ impl App {
     }
 
     pub(crate) fn get_north_shift_angle(&self) -> Angle<f64> {
-        self.camera.get_north_shift_angle()
+        self.camera.get_center_pos_angle()
     }
 
     pub(crate) fn set_fov(&mut self, fov: Angle<f64>) {
@@ -1578,7 +1578,7 @@ impl App {
                 let d = math::vector::angle3(&prev_pos, &cur_pos);
 
                 self.prev_cam_position = self.camera.get_center().truncate();
-                self.camera.rotate(&(-axis), d, &self.projection);
+                self.camera.apply_rotation(&(-axis), d, &self.projection);
 
                 /* 2. Or just set the center to the current position */
                 //self.set_center(&cur_pos.lonlat());

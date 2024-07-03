@@ -6,10 +6,9 @@
 <body>
 
 <div id="aladin-lite-div" style="width: 1024px; height: 768px"></div>
-
+<script>var aladin;</script>
 <script type="module">
     import A from '../src/js/A.js';
-    let aladin;
     A.init.then(() => {
         // Start up Aladin Lite
         aladin = A.aladin('#aladin-lite-div', {
@@ -17,7 +16,6 @@
             target: '0 0',
             fullScreen: true,
             survey: ["azef", "jfjfj", "jfj", "P/allWISE/color"],
-            showCooGrid: true,
         });
     });
 </script>

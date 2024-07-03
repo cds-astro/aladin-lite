@@ -30,22 +30,34 @@ import { ALEvent } from "./events/ALEvent.js";
 export let HiPSCache = (function () {
     function HiPSCache() {}
 
+    /*
+    * key can be a CDS ID or an url. TODO could be an options.name too.
+    */
     HiPSCache.append = function (key, image) {
         HiPSCache.cache[key] = image;
 
         ALEvent.HIPS_CACHE_UPDATED.dispatchedTo(document.body);
     };
 
+    /*
+    * key can be a CDS ID or an url. TODO could be an options.name too.
+    */
     HiPSCache.delete = function (key) {
         delete HiPSCache.cache[key];
 
         ALEvent.HIPS_CACHE_UPDATED.dispatchedTo(document.body);
     };
 
+    /*
+    * key can be a CDS ID or an url. TODO could be an options.name too.
+    */
     HiPSCache.get = function (key) {
         return HiPSCache.cache[key];
     };
 
+    /*
+    * key can be a CDS ID or an url. TODO could be an options.name too.
+    */
     HiPSCache.contains = function (key) {
         return HiPSCache.cache[key] !== undefined && HiPSCache.cache[key] !== null;
     };

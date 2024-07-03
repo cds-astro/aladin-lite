@@ -587,15 +587,13 @@ export class OverlayStackBox extends Box {
 
                             const image = self.aladin.createImageFITS(
                                 url,
-                                file.name,
-                                undefined,
+                                {name: file.name},
                                 (ra, dec, fov, _) => {
                                     // Center the view around the new fits object
                                     self.aladin.gotoRaDec(ra, dec);
                                     self.aladin.setFoV(fov * 1.1);
                                     //self.aladin.selectLayer(image.layer);
-                                },
-                                undefined
+                                }
                             );
 
                             self.aladin.setOverlayImageLayer(
@@ -723,12 +721,21 @@ export class OverlayStackBox extends Box {
             }
 
             // Update the options of the selector
-            const options = Object.keys(self.cachedHiPS);
-            options.sort();
+            const favorites = Object.keys(self.cachedHiPS);
+
+            // one must add the current HiPS too!
+            favorites.sort();
 
             for (var key in self.HiPSui) {
                 let hips = self.HiPSui[key];
-                hips.HiPSSelector.update({value: hips.HiPSSelector.options.value, options});
+                let currentHiPS = hips.HiPSSelector.options.value
+
+                let favoritesCopy = [...favorites];
+                if (!(currentHiPS in favoritesCopy)) {
+                    favoritesCopy.push(currentHiPS)
+                }
+
+                hips.HiPSSelector.update({value: currentHiPS, options: favoritesCopy});
             }
         });
     }

@@ -41,7 +41,7 @@ impl Inertia {
         /*let alpha = 1_f32 + (0_f32 - 1_f32) * (10_f32 * t + 1_f32) * (-10_f32 * t).exp();
         let alpha = alpha * alpha;
         let fov = start_fov * (1_f32 - alpha) + goal_fov * alpha;*/
-        camera.rotate(&self.axis, self.speed.to_angle(), proj)
+        camera.apply_rotation(&self.axis, self.speed.to_angle(), proj)
     }
 
     pub fn get_start_ampl(&self) -> f64 {

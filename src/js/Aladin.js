@@ -376,6 +376,8 @@ export let Aladin = (function () {
             }
         }
 
+        this._setupUI(options);
+
         if (options.survey) {
             if (Array.isArray(options.survey)) {
                 let i = 0;
@@ -562,8 +564,6 @@ export let Aladin = (function () {
         if (options.inertia !== undefined) {
             this.wasm.setInertia(options.inertia);
         }
-
-        this._setupUI(options);
     };
 
     Aladin.prototype._setupUI = function (options) {
@@ -1631,7 +1631,6 @@ export let Aladin = (function () {
      * @memberof Aladin
      * @static
      * @param {string} url - The url of the fits.
-     * @param {string} [name] - A human readable name for that fits.
      * @param {ImageFITSOptions} [options] - Options for rendering the image
      * @param {function} [success] - A success callback
      * @param {function} [error] - A success callback
@@ -1639,7 +1638,6 @@ export let Aladin = (function () {
      */
     Aladin.prototype.createImageFITS = function (
         url,
-        name,
         options,
         successCallback,
         errorCallback
@@ -1675,7 +1673,6 @@ export let Aladin = (function () {
      * @memberof Aladin
      * @static
      * @param {string} url - The url of the fits.
-     * @param {string} [name] - A human readable name for that fits.
      * @param {ImageFITSOptions} [options] - Options for rendering the image
      * @param {function} [success] - A success callback
      * @param {function} [error] - A success callback
@@ -1874,8 +1871,8 @@ export let Aladin = (function () {
      * @param {number} rotation - The center rotation in degrees. Positive angles rotates the
      * view in the counter clockwise order (or towards the east)
      */
-    Aladin.prototype.setViewCenterPosAngle = function (rotation) {
-        this.view.setViewCenterPosAngle(rotation);
+    Aladin.prototype.setViewCenter2NorthPoleAngle = function (rotation) {
+        this.view.setViewCenter2NorthPoleAngle(rotation);
     };
 
      /**
@@ -1885,8 +1882,8 @@ export let Aladin = (function () {
      * 
      * @returns {number} - Angle between the position center and the north pole
      */
-    Aladin.prototype.getCenter2NorthPoleAngle = function () {
-        return this.view.wasm.getViewCenterFromNorthPoleAngle();
+    Aladin.prototype.getViewCenter2NorthPoleAngle = function () {
+        return this.view.wasm.getViewCenter2NorthPoleAngle();
     };
 
     // @api
@@ -2372,7 +2369,7 @@ aladin.on("positionChanged", ({ra, dec}) => {
         if (isProjZenithal) {
             // zenithal projections
             // express the 3rd euler angle for zenithal projection
-            let thirdEulerAngle = this.getCenter2NorthPoleAngle();
+            let thirdEulerAngle = this.getViewCenter2NorthPoleAngle();
             WCS.LONPOLE = 180 - thirdEulerAngle
         } else {
             // cylindrical or pseudo-cylindrical projections
@@ -2388,7 +2385,7 @@ aladin.on("positionChanged", ({ra, dec}) => {
 
                 // dlon angle must lie between -PI and PI
                 // For dlon angle between -PI;-PI/2 or PI/2;PI one must invert LATPOLE
-                if (dLon < -90 || dLon > 90) {
+                if (this.getViewCenter2NorthPoleAngle() < -90 || this.getViewCenter2NorthPoleAngle() > 90) {
                     // so that the south pole becomes upward to the ref point
                     WCS.LATPOLE = -90
                 }
@@ -2405,8 +2402,6 @@ aladin.on("positionChanged", ({ra, dec}) => {
                     // ref point is located in the south hemisphere
                     WCS.LONPOLE = -180 - WCS.LONPOLE;
                 }
-
-                console.log("euler rot ?:", 180 - WCS.LONPOLE)
             }
         }
 
@@ -2425,17 +2420,7 @@ aladin.on("positionChanged", ({ra, dec}) => {
      * aladin.setFoVRange(30, 60);
      */
     Aladin.prototype.setFoVRange = function (minFoV, maxFoV) {
-        if (minFoV > maxFoV) {
-            var tmp = minFoV;
-            minFoV = maxFoV;
-            maxFoV = tmp;
-        }
-
-        this.view.minFoV = minFoV;
-        this.view.maxFoV = maxFoV;
-
-        // reset the field of view
-        this.setFoV(this.view.fov);
+        this.view.setFoVRange(minFoV, maxFoV);
     };
 
     Aladin.prototype.setFOVRange = Aladin.prototype.setFoVRange;
@@ -2789,7 +2774,6 @@ aladin.displayFITS(
                 this.setFoV(fov);
             });
         const imageFits = this.createImageFITS(
-            url,
             url,
             options,
             successCallback,

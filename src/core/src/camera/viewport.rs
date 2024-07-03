@@ -24,7 +24,6 @@ pub struct CameraViewPort {
     // The rotation of the camera
     center: Vector4<f64>,
     w2m_rot: Rotation<f64>,
-    center_rot: Angle<f64>,
 
     w2m: Matrix4<f64>,
     m2w: Matrix4<f64>,
@@ -139,7 +138,6 @@ impl CameraViewPort {
         CameraViewPort {
             // The field of view angle
             aperture,
-            center_rot,
             center,
             // The rotation of the cameraq
             w2m_rot,

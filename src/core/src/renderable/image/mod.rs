@@ -7,7 +7,6 @@ use std::marker::Unpin;
 use std::vec;
 
 use al_api::coo_system::CooSystem;
-use al_core::log::console_log;
 use cgmath::Zero;
 use futures::stream::TryStreamExt;
 use futures::AsyncRead;
@@ -601,7 +600,7 @@ impl Image {
         //self.gl.disable(WebGl2RenderingContext::CULL_FACE);
 
         // 2. Draw it if its opacity is not null
-        
+
         blend_cfg.enable(&self.gl, || {
             let mut off_indices = 0;
             for (idx, &idx_tex) in self.idx_tex.iter().enumerate() {

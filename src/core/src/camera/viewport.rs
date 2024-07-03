@@ -100,7 +100,6 @@ impl CameraViewPort {
 
         let w2m = Matrix4::identity();
         let m2w = w2m;
-        let center_rot = Angle(0.0);
         let center = Vector4::new(0.0, 0.0, 0.0, 1.0);
         let moved = false;
         let zoomed = false;

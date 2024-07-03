@@ -90,7 +90,7 @@ import { Polyline } from "./shapes/Polyline";
  * @property {number} [fov=60] - Field of view in degrees.
  * @property {string} [backgroundColor="rgb(60, 60, 60)"] - Background color in RGB format.
  *
- * @property {boolean} [showZoomControl=false] - Whether to show the zoom control toolbar.
+ * @property {boolean} [showZoomControl=true] - Whether to show the zoom control toolbar.
  * This element belongs to the FoV UI thus its CSS class is `aladin-fov` 
  * @property {boolean} [showLayersControl=true] - Whether to show the layers control toolbar.
  * CSS class for that button is `aladin-stack-control` 
@@ -707,7 +707,7 @@ export let Aladin = (function () {
         inertia: true,
         backgroundColor: "rgb(60, 60, 60)",
         // Zoom toolbar
-        showZoomControl: false,
+        showZoomControl: true,
         // Menu toolbar
         showLayersControl: true,
         expandLayersControl: false,

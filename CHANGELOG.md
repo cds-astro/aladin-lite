@@ -1,5 +1,9 @@
 # Changelogs
 
+## 3.4.3-beta
+
+* [bugfix] zoom control buttons
+
 ## 3.4.2-beta
 
 * [impr] Improve smartphone support by setting media queries + a better logic for deploying the contextual menu sub options.

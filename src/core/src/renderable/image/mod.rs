@@ -2,11 +2,13 @@ pub mod grid;
 pub mod subdivide_texture;
 
 use std::cmp::Ordering;
+use std::f64::consts::PI;
 use std::fmt::Debug;
 use std::marker::Unpin;
 use std::vec;
 
 use al_api::coo_system::CooSystem;
+use cgmath::Vector3;
 use cgmath::Zero;
 use futures::stream::TryStreamExt;
 use futures::AsyncRead;
@@ -28,10 +30,13 @@ use al_core::WebGlContext;
 use al_core::{Texture2D, VertexArrayObject};
 
 use crate::camera::CameraViewPort;
+use crate::math::angle::ToAngle;
 use crate::math::lonlat::LonLat;
 use crate::Colormaps;
+use crate::LonLatT;
 use crate::ProjectionType;
 use crate::ShaderManager;
+use cgmath::InnerSpace;
 
 use std::ops::Range;
 
@@ -65,6 +70,9 @@ pub struct Image {
     idx_tex: Vec<usize>,
     /// The maximum webgl supported texture size
     max_tex_size: usize,
+
+    // Is the increasing longitude on the image goes towards the east ?
+    towards_east: bool,
 }
 
 use fitsrs::hdu::header::extension;
@@ -350,6 +358,12 @@ impl Image {
             .unproj_lonlat(&ImgXY::new(0.0, height / 2.0))
             .ok_or(JsValue::from_str("(0, h / 2) px cannot be unprojected"))?;
 
+        let a_xyz: Vector3<f64> =
+            LonLatT::new(left_lonlat.lon().to_angle(), left_lonlat.lat().to_angle()).vector();
+        let b_xyz = LonLatT::new(center.lon().to_angle(), center.lat().to_angle()).vector();
+
+        let towards_east = a_xyz.cross(b_xyz).dot(Vector3::unit_y()) <= 0.0;
+
         let half_fov1 =
             crate::math::lonlat::ang_between_lonlat(top_lonlat.into(), center.clone().into());
         let half_fov2 =
@@ -391,6 +405,7 @@ impl Image {
             scale,
             offset,
             blank,
+            towards_east,
 
             // Centered field of view allowing to locate the fits
             centered_fov,
@@ -514,6 +529,7 @@ impl Image {
             &self.wcs,
             self.image_coo_sys,
             projection,
+            self.towards_east,
         );
         self.pos = pos;
         self.uv = uv;

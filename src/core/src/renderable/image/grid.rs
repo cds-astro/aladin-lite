@@ -175,6 +175,7 @@ pub fn vertices(
     wcs: &WCS,
     image_coo_sys: CooSystem,
     projection: &ProjectionType,
+    towards_east: bool,
 ) -> (Vec<f32>, Vec<f32>, Vec<u16>, Vec<u32>) {
     let (x_it, y_it) = get_grid_params(xy_min, xy_max, max_tex_size, num_tri_per_tex_patch);
 
@@ -219,8 +220,14 @@ pub fn vertices(
     let mut num_indices = vec![];
     for idx_x_range in &idx_x_ranges {
         for idx_y_range in &idx_y_ranges {
-            let build_indices_iter =
-                CCWCheckPatchIndexIter::new(idx_x_range, idx_y_range, num_x_vertices, &pos, camera);
+            let build_indices_iter = CCWCheckPatchIndexIter::new(
+                idx_x_range,
+                idx_y_range,
+                num_x_vertices,
+                &pos,
+                camera,
+                towards_east,
+            );
 
             let patch_indices = build_indices_iter
                 .flatten()

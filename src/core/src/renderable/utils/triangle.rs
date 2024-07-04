@@ -18,7 +18,7 @@ where
         Self { v1, v2, v3 }
     }
 
-    pub fn is_invalid(&self, camera: &CameraViewPort) -> bool {
+    pub fn is_valid(&self, camera: &CameraViewPort) -> bool {
         let tri_ccw = self.is_ccw();
         let reversed_longitude = camera.get_longitude_reversed();
 

@@ -2373,9 +2373,7 @@ aladin.on("positionChanged", ({ra, dec}) => {
             WCS.LONPOLE = 180 - thirdEulerAngle
         } else {
             // cylindrical or pseudo-cylindrical projections
-            if (!radesys) {
-                console.warn('TODO: Galactic frame 3rd euler rotation not handled for cylindrical projections')
-            } else if (WCS.CRVAL2 === 0) {
+            if (WCS.CRVAL2 === 0) {
                 // ref point on the equator not handled (yet)
                 console.warn('TODO: 3rd euler rotation is not handled for ref point located at delta_0 = 0')
             } else {

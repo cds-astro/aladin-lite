@@ -12,6 +12,7 @@ pub struct CCWCheckPatchIndexIter<'a> {
 
     ndc: &'a [Option<[f32; 2]>],
     camera: &'a CameraViewPort,
+    towards_east: bool,
 }
 
 impl<'a> CCWCheckPatchIndexIter<'a> {
@@ -21,6 +22,7 @@ impl<'a> CCWCheckPatchIndexIter<'a> {
         num_x_vertices: usize,
         ndc: &'a [Option<[f32; 2]>],
         camera: &'a CameraViewPort,
+        towards_east: bool,
     ) -> Self {
         let patch_iter = DefaultPatchIndexIter::new(idx_x_range, idx_y_range, num_x_vertices);
 
@@ -28,6 +30,7 @@ impl<'a> CCWCheckPatchIndexIter<'a> {
             patch_iter,
             ndc,
             camera,
+            towards_east,
         }
     }
 }
@@ -52,10 +55,14 @@ impl<'a> Iterator for CCWCheckPatchIndexIter<'a> {
                     let t1 = Triangle::new(&ndc_tl, &ndc_tr, &ndc_bl);
                     let t2 = Triangle::new(&ndc_tr, &ndc_br, &ndc_bl);
 
-                    if !t1.is_invalid(&self.camera) || !t2.is_invalid(&self.camera) {
-                        self.next() // crossing projection tri
-                    } else {
+                    if (self.towards_east && t1.is_valid(&self.camera) && t2.is_valid(&self.camera))
+                        || (!self.towards_east
+                            && !t1.is_valid(&self.camera)
+                            && !t2.is_valid(&self.camera))
+                    {
                         Some(indices)
+                    } else {
+                        self.next() // crossing projection tri
                     }
                 }
                 _ => self.next(), // out of proj

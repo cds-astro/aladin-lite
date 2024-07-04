@@ -717,7 +717,7 @@ export let View = (function () {
             }
 
             // zoom pinching
-            if (e.type === 'touchstart' && e.targetTouches && e.targetTouches.length == 2) {
+            if (e.type === 'touchstart' && e.targetTouches && e.targetTouches.length >= 2) {
                 view.dragging = false;
 
                 view.pinchZoomParameters.isPinching = true;
@@ -877,7 +877,7 @@ export let View = (function () {
                         const elapsedTime = Date.now() - touchStartTime;
                         if (elapsedTime < 100) {
                             view.updateObjectsLookup();
-                            handleSelect(xymouse, 10);
+                            handleSelect(xymouse, 30);
                         }
                     }
                 } else {
@@ -970,7 +970,7 @@ export let View = (function () {
                 return;
             }
 
-            if (e.type === 'touchmove' && view.pinchZoomParameters.isPinching && e.touches && e.touches.length == 2) {
+            if (e.type === 'touchmove' && view.pinchZoomParameters.isPinching && e.touches && e.touches.length >= 2) {
                 // rotation
                 var currentFingerAngle = Math.atan2(e.targetTouches[1].clientY - e.targetTouches[0].clientY, e.targetTouches[1].clientX - e.targetTouches[0].clientX) * 180.0 / Math.PI;
                 var fingerAngleDiff = view.fingersRotationParameters.initialFingerAngle - currentFingerAngle;

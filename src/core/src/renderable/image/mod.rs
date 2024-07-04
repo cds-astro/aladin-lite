@@ -2,7 +2,6 @@ pub mod grid;
 pub mod subdivide_texture;
 
 use std::cmp::Ordering;
-use std::f64::consts::PI;
 use std::fmt::Debug;
 use std::marker::Unpin;
 use std::vec;
@@ -373,7 +372,6 @@ impl Image {
 
         // ra and dec must be given in ICRS coo system
         let center = {
-            use crate::LonLatT;
             let center: LonLatT<_> = center.into();
             let center =
                 crate::coosys::apply_coo_system(image_coo_sys, CooSystem::ICRS, &center.vector());

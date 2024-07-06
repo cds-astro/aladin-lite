@@ -44,48 +44,50 @@ export class ServiceQueryBox extends Box {
         let self;
         // Define the form once for all
         let form = new Form({
-            submit(params) {
-                // Construct the SODA url
-                let url = new URL(self.service.baseUrl)
+            submit: {
+                action(params) {
+                    // Construct the SODA url
+                    let url = new URL(self.service.baseUrl)
 
-                if (params['ra'] && params['dec'] && params['rad']) {
-                    url.searchParams.append('CIRCLE', params['ra'] + ' ' + params['dec'] + ' ' + params['rad']);
+                    if (params['ra'] && params['dec'] && params['rad']) {
+                        url.searchParams.append('CIRCLE', params['ra'] + ' ' + params['dec'] + ' ' + params['rad']);
+                    }
+
+                    if (params['ramin'] && params['ramax'] && params['decmin'] && params['decmax']) {
+                        url.searchParams.append('RANGE', params['ramin'] + ' ' + params['ramax'] + ' ' + params['decmin'] + ' ' + params['decmax']);
+                    }
+
+                    if (params['fmin'] && params['fmax']) {
+                        url.searchParams.append('BAND', params['fmin'] + ' ' + params['fmax']);
+                    }
+
+                    if (params['ID']) {
+                        url.searchParams.append('ID', params['ID']);
+                    }
+
+                    /*let loadingBtn = ActionButton.create(
+                        ActionButton.DEFAULT_BTN["loading"],
+                        'Waiting to get the image response...',
+                        submitFormDiv
+                    );*/
+
+                    let name = url.searchParams.toString();
+                    // Tackle CORS problems
+                    Utils.loadFromUrls([url, Utils.handleCORSNotSameOrigin(url)], {timeout: 30000, dataType: 'blob'})
+                        .then((blob) => {
+                            const url = URL.createObjectURL(blob);
+
+                            try {
+                                let image = self.aladin.createImageFITS(url, {name});   
+                                self.aladin.setOverlayImageLayer(image, Utils.uuidv4())
+                            } catch(e) {
+                                throw('Fail to interpret ' + url + ' as a fits file')
+                            }
+                        })
+                        .catch((e) => {
+                            window.alert(e)
+                        })
                 }
-
-                if (params['ramin'] && params['ramax'] && params['decmin'] && params['decmax']) {
-                    url.searchParams.append('RANGE', params['ramin'] + ' ' + params['ramax'] + ' ' + params['decmin'] + ' ' + params['decmax']);
-                }
-
-                if (params['fmin'] && params['fmax']) {
-                    url.searchParams.append('BAND', params['fmin'] + ' ' + params['fmax']);
-                }
-
-                if (params['ID']) {
-                    url.searchParams.append('ID', params['ID']);
-                }
-
-                /*let loadingBtn = ActionButton.create(
-                    ActionButton.DEFAULT_BTN["loading"],
-                    'Waiting to get the image response...',
-                    submitFormDiv
-                );*/
-
-                let name = url.searchParams.toString();
-                // Tackle CORS problems
-                Utils.loadFromUrls([url, Utils.handleCORSNotSameOrigin(url)], {timeout: 30000, dataType: 'blob'})
-                    .then((blob) => {
-                        const url = URL.createObjectURL(blob);
-
-                        try {
-                            let image = self.aladin.createImageFITS(url, {name});   
-                            self.aladin.setOverlayImageLayer(image, Utils.uuidv4())
-                        } catch(e) {
-                            throw('Fail to interpret ' + url + ' as a fits file')
-                        }
-                    })
-                    .catch((e) => {
-                        window.alert(e)
-                    })
             },
             subInputs: []
         });

@@ -877,7 +877,7 @@ export let View = (function () {
                         const elapsedTime = Date.now() - touchStartTime;
                         if (elapsedTime < 100) {
                             view.updateObjectsLookup();
-                            handleSelect(xymouse, 30);
+                            handleSelect(xymouse, 15);
                         }
                     }
                 } else {
@@ -1863,16 +1863,16 @@ export let View = (function () {
         }
 
         // Case where survey is a string
-        if(this.imageLayers
-            .values()
+        if(Array.from(this.imageLayers
+            .values())
             .some((s) => {
                 return s.id === survey;
             })) {
                 return true;
             }
 
-        if(this.imageLayersBeingQueried
-            .values()
+        if(Array.from(this.imageLayersBeingQueried
+            .values())
             .some((s) => {
                 return s.id === survey;
             })) {

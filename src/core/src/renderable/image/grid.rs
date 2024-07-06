@@ -194,7 +194,7 @@ pub fn vertices(
 
                     let xyzw = crate::math::lonlat::radec_to_xyzw(lon.to_angle(), lat.to_angle());
                     let xyzw = crate::coosys::apply_coo_system(
-                        image_coo_sys,
+                        CooSystem::ICRS,
                         camera.get_coo_system(),
                         &xyzw,
                     );

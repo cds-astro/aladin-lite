@@ -856,7 +856,7 @@ impl HiPS {
 
                     let grid_lonlat =
                         healpix::nested::grid(cell.depth(), cell.idx(), n_segments_by_side as u16);
-                    let grid_lonlat_iter = grid_lonlat.into_iter();
+                    let grid_lonlat_iter = grid_lonlat.iter();
 
                     for (idx, &(lon, lat)) in grid_lonlat_iter.enumerate() {
                         //let xyzw = crate::math::lonlat::radec_to_xyzw(lon, lat);

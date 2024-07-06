@@ -21,10 +21,16 @@ import { MocServer } from "../../MocServer.js";
 
 import { Box } from "../Widgets/Box.js";
 import { Layout } from "../Layout.js";
-import { Input } from "../Widgets/Input.js";
+import { Coo } from "../../libs/astro/coo.js";
+import { Form } from "../Widgets/Form.js";
+import { Angle } from "../../libs/astro/angle.js";
 import A from "../../A.js";
-import { ConeSearchBox } from "./ConeSearchBox.js";
-import { CtxMenuActionButtonOpener } from "../Button/CtxMenuOpener.js";
+import { Dropdown } from "../Input/Dropdown.js";
+import { ConeSearchActionButton } from "../Button/ConeSearch.js";
+import targetIconUrl from '../../../../assets/icons/target.svg';
+import downloadIconUrl from '../../../../assets/icons/download.svg';
+import { ActionButton } from "../Widgets/ActionButton.js";
+
 /******************************************************************************
  * Aladin Lite project
  * 
@@ -43,7 +49,6 @@ import { CtxMenuActionButtonOpener } from "../Button/CtxMenuOpener.js";
             .then((catalogs) => {
                 catalogs.forEach((cat) => {
                     CatalogQueryBox.catalogs[cat.obs_title] = cat;
-                    CatalogQueryBox.catalogs[cat.ID] = cat;
                 });
 
                 inputText.update({autocomplete: {options: Object.keys(CatalogQueryBox.catalogs)}})
@@ -96,207 +101,287 @@ import { CtxMenuActionButtonOpener } from "../Button/CtxMenuOpener.js";
             else if (type=='hips') {
                 const hips = A.catalogHiPS(params.hipsURL, {onClick: 'showTable', name: params.id});
                 aladin.addCatalog(hips);
+            } else if (type=='votable') {
+                A.catalogFromURL(params.url, {name: params.url}, (catalog) => {
+                    aladin.addCatalog(catalog)
+                    params.success()
+                }, params.error);
             }
         };
 
-        let inputText = Input.text({
-            //tooltip: {content: 'Search for a VizieR catalogue', position: {direction :'bottom'}},
-            name: 'catalogs',
-            placeholder: "Type ID, title, keyword or URL",
-            actions: {
-                change() {
-                    const catalog = CatalogQueryBox.catalogs[this.value];
-                    inputText.set(catalog.ID);
-                    loadBtn.update({disable: false});
+        const _parseEntry = (e) => {
+            // parse the value
+            const value = e.target.value;
+        
+            // A user can put an url
+            try {
+                let votableUrl = new URL(value).href;
 
+                self.fnIdSelected('votable', {
+                    url: votableUrl,
+                    success: () => {
+                        inputText.addClass('aladin-valid');
+                    },
+                    error: () => {
+                        inputText.addClass('aladin-not-valid')
+                        self.csForm.submit.update({disable: true})
+                        self.hipsCatLoad.update({disable: true});
+                    }
+                })
+            } catch (e) {
+                // Or he can select a HiPS from the list given
+                const catalog = CatalogQueryBox.catalogs[value];
+
+                if (catalog) {
                     self._selectItem(catalog, aladin);
-                },
-                keydown() {
-                    loadBtn.update({disable: true});
+                    inputText.addClass('aladin-valid');
+                } else {
+                    // consider it as a cat ID and search in catalogs for it
+                    const foundCat = Object.values(CatalogQueryBox.catalogs)
+                        .find((c) => c.ID === value);
+                    if (foundCat) {
+                        self._selectItem(foundCat, aladin);
+                        inputText.addClass('aladin-valid')
+                    } else {
+                        inputText.addClass('aladin-not-valid')
+                        self.csForm.submit.update({disable: true})
+                        self.hipsCatLoad.update({disable: true});
+                    }
                 }
             }
-            
-            /*change(e) {
-                self._selectItem(undefined, aladin)
-                //resetCatalogueSelection();
-                // Unfocus the keyboard on android devices (maybe it concerns all smartphones) when the user click on enter
-                //input.element().blur();
-            }*/
+        }
+
+        let inputText = new Dropdown(aladin, {
+            name: 'catalogs',
+            placeholder: "Type ID, title, keyword or URL",
+            tooltip: {
+                global: true,
+                aladin,
+                content: 'HiPS url, ID or keyword accepted',
+            },
+            actions: {
+                input(e) {
+                    inputText.removeClass('aladin-valid')
+                    inputText.removeClass('aladin-not-valid')
+                },
+                focus(e) {
+                    inputText.removeClass('aladin-valid')
+                    inputText.removeClass('aladin-not-valid')
+                },
+                change(e) {
+                    e.stopPropagation();
+                    e.preventDefault()
+
+                    _parseEntry(e)
+                },
+            },
         });
+
         let self;
 
-        let loadBtn = new CtxMenuActionButtonOpener({
-            content: 'Load',
+        let hipsCatLoad = new ActionButton({
+            icon: {
+                monochrome: true,
+                url: downloadIconUrl,
+                size: 'small',
+            },
+            content: 'HiPS',
             disable: true,
+            action() {
+                self.fnIdSelected('hips', {
+                    hipsURL: self.selectedItem.hips_service_url,
+                    id: self.selectedItem.ID,
+                })
+
+                self._hide();
+
+                self.callback && self.callback();
+            }
+        })
+
+        let selectorBtn = new ConeSearchActionButton({
+            tooltip: {content: 'Select the area to query the catalogue with', position: {direction: 'left'}},
+            onBeforeClick(e) {
+                self._hide();
+            },
+            action(circle) {
+                // convert to ra, dec and radius in deg
+                try {
+                    let [ra, dec] = aladin.pix2world(circle.x, circle.y, 'icrs');
+                    let radius = aladin.angularDist(circle.x, circle.y, circle.x + circle.r, circle.y, 'icrs');
+    
+                    //var hlon = this.lon/15.0;
+                    //var strlon = Numbers.toSexagesimal(hlon, this.prec+1, false);
+                    let coo = new Coo(ra, dec, 7);
+                    let [lon, lat] = coo.format('s2');
+
+                    let fov = new Angle(radius, 1).format();
+                    //selectorBtn.update({tooltip: {content: 'center: ' + ra.toFixed(2) + ', ' + dec.toFixed(2) + '<br\>radius: ' + radius.toFixed(2), position: {direction: 'left'}}})    
+                    form.set('ra', lon)
+                    form.set('dec', lat)
+                    form.set('rad', fov)
+                } catch (e) {
+                    alert(e, 'Cone search out of projection')
+                }
+
+                self._show()
+            }
         }, aladin)
 
+        let [ra, dec] = aladin.getRaDec();
+        let centerCoo = new Coo(ra, dec, 5);
+        let [defaultRa, defaultDec] = centerCoo.format('s2');
+
+        let fov = aladin.getFov();
+        let fovAngle = new Angle(Math.min(fov[0], fov[1]) / 2, 1).format()
+
+        let form = new Form({
+            submit: {
+                disable: true,
+                icon: {
+                    monochrome: true,
+                    url: targetIconUrl,
+                    size: 'small',
+                    cssStyle: {
+                        cursor: 'help',
+                    }
+                },
+                content: "Query",
+                tooltip: { position: {direction: 'bottom'}, content: 'Call the cone search service'},
+                action(values) {
+                    self._hide();
+
+                    let coo = new Coo();
+                    coo.parse(values.ra + ' ' + values.dec)
+    
+                    let rad = new Angle();
+                    rad.parse(values.rad)
+
+                    self.fnIdSelected('coneSearch', {
+                        baseURL: self.selectedItem.cs_service_url,
+                        id: self.selectedItem.ID,
+                        ra: coo.lon,
+                        dec: coo.lat,
+                        radiusDeg: rad.degrees(),
+                        limit: values.limit
+                    })
+    
+                    self.callback && self.callback()
+                }
+            },
+            subInputs: [
+                {
+                    type: 'group',
+                    header: Layout.horizontal([selectorBtn, 'Cone search']),
+                    subInputs: [
+                        {
+                            label: "ra:",
+                            name: "ra",
+                            type: "text",
+                            value: defaultRa,
+                            placeholder: 'Right ascension',
+                            actions: {
+                                change(e, input) {
+                                    input.addEventListener('blur', (event) => {});
+                                },
+                            }
+                        },
+                        {
+                            label: "dec:",
+                            name: "dec",
+                            type: "text",
+                            value: defaultDec,
+                            placeholder: 'Declination',
+                            actions: {
+                                change(e, input) {
+                                    input.addEventListener('blur', (event) => {});
+                                },
+                            }
+                        },
+                        {
+                            label: "Rad:",
+                            name: "rad",
+                            type: 'text',
+                            value: fovAngle,
+                            placeholder: 'Radius',
+                            actions: {
+                                change(e, input) {
+                                    input.addEventListener('blur', (event) => {});
+                                },
+                            }
+                        }
+                    ]
+                },
+                {
+                    type: 'group',
+                    header: 'Max number of sources',
+                    subInputs: [{
+                        label: "Limit:",
+                        name: "limit",
+                        step: '1',
+                        value: 1000,
+                        type: "number",
+                        placeholder: 'Limit number of sources',
+                        actions: {
+                            change(e, input) {
+                                input.addEventListener('blur', (event) => {});
+                            },
+                        }
+                    }]
+                },
+            ]
+        });
+
         super({
-            close: false,
-            content: Layout.horizontal({
-                layout: [inputText, loadBtn]
-            }),
+            close: true,
+            header: {
+                title: "Catalog browser",
+            },
+            classList: ['aladin-cat-browser-box'],
+            content: Layout.vertical(
+                [
+                    Layout.horizontal({
+                        layout: ["Search:", inputText], cssStyle: {width: '100%'}
+                    }),
+                    Layout.horizontal({
+                        layout: ["Progressive catalog:", hipsCatLoad],
+                        cssStyle: {
+                            textAlign: "center",
+                            display: "flex",
+                            alignItems: "center",
+                            listStyle: "none",
+                            justifyContent: "space-between",
+                            width: "100%",
+                        },
+                    }),
+                    form
+                ]
+            ),
             ...options
         }, aladin.aladinDiv)
 
         self = this;
-        this.loadBtn = loadBtn;
+        this.hipsCatLoad = hipsCatLoad;
+        this.csForm = form;
         this.inputText = inputText;
         this.fnIdSelected = fnIdSelected;
-        
-        /*autocomplete({
-            input: catNameTextInput.element(),
-            minLength: 3,
-            fetch: function(text, update) {
-                text = text.toLowerCase();
-
-                const filterCats = function(item) {
-                    const ID = item.ID;
-                    const obsTitle = item.obs_title || '';
-                    const obsDescription = item.obs_description || '';
-
-                    return ID.toLowerCase().includes(text) || obsTitle.toLowerCase().includes(text) || obsDescription.toLowerCase().includes(text);
-                }
-
-                // filter suggestions
-                const suggestions = MocServer.getAllCatalogHiPSes().filter(filterCats);
-                // sort suggestions
-                suggestions.sort( function(a , b) {
-                    let scoreForA = 0;
-                    let scoreForB = 0;
-
-                    if (a.ID.toLowerCase().includes(text)) {
-                        scoreForA += 100;
-                    }
-                    if (b.ID.toLowerCase().includes(text)) {
-                        scoreForB += 100;
-                    }
-
-                    if (a.obs_title.toLowerCase().includes(text)) {
-                        scoreForA += 50;
-                    }
-                    if (b.obs_title.toLowerCase().includes(text)) {
-                        scoreForB += 50;
-                    }
-
-                    if (a.obs_description.toLowerCase().includes(text)) {
-                        scoreForA += 10;
-                    }
-                    if (b.obs_description.toLowerCase().includes(text)) {
-                        scoreForB += 10;
-                    }
-
-                    // HiPS catalogue available
-                    if (a.hips_service_url) {
-                        scoreForA += 20;
-                    }
-                    if (b.hips_service_url) {
-                        scoreForB += 20;
-                    }
-
-                    if (scoreForA > scoreForB) {
-                        return -1;
-                    }
-                    if (scoreForB > scoreForA) {
-                        return  1;
-                    }
-
-                    return 0;
-                });
-
-                // limit to 50 first suggestions
-                const returnedSuggestions = suggestions.slice(0, 50);
-                update(returnedSuggestions);
-            },
-            onSelect: function(item) {
-                catNameTextInput.set(item.ID);
-                self._selectItem(item, aladin);
-
-                // enable the load button
-                //loadBtn.update({disable: false});
-
-                catNameTextInput.element().blur();
-            },
-            // attach container to AL div if needed (to prevent it from being hidden in full screen mode)
-            customize: function(input, inputRect, container, maxHeight) {
-                // this tests if we are in full screen mode
-                if (aladin.isInFullscreen) {
-                    aladin.aladinDiv.appendChild(container);
-                }
-            },
-            render: function(item, currentValue) {
-                const itemElement = document.createElement("div");
-                itemElement.innerHTML = (item.obs_title || '') + ' - '  + '<span style="color: #ae8de1">' + item.ID + '</span>';
-
-                return itemElement;
-            },
-        });*/
     }
 
     _selectItem(item, aladin) {
         this.selectedItem = item;
 
         if (!item) {
-            this.loadBtn.update({disable: true}, aladin)
+            this.csForm.submit.update({disable: true})
+            this.hipsCatLoad.update({disable: true});
         } else {
-            let self = this;
-            let ctxMenu = [];
-
             if (item && item.cs_service_url) {
-                ctxMenu.push({
-                    label: 'Cone search',
-                    disable: !item.cs_service_url,
-                    action(o) {
-                        if (self.box) {
-                            self.box.remove();
-                        }
-                        // output the resulting cone search in the icrs frame
-                        self.box = new ConeSearchBox(aladin, {frame: 'icrs'});
-                        self.box.attach({
-                            callback: (cs) => {
-                                // the cone search services are asking for 
-                                self.fnIdSelected('coneSearch', {
-                                    baseURL: self.selectedItem.cs_service_url,
-                                    id: self.selectedItem.ID,
-                                    ra: cs.ra,
-                                    dec: cs.dec,
-                                    radiusDeg: cs.rad,
-                                    limit: cs.limit
-                                })
-
-                                self._hide();
-
-                                self.callback && self.callback();
-                            },
-                            position: {
-                                anchor: 'center center',
-                            }
-                        })
-                        self.box._show();
-                        self.loadBtn.hideMenu()
-                    }
-                })
+                this.csForm.submit.update({disable: false});
             }
             
             if (item && item.hips_service_url) {
-                ctxMenu.push({
-                    label: 'HiPS catalogue',
-                    disable: !item.hips_service_url,
-                    action(o) {
-                        self.fnIdSelected('hips', {
-                            hipsURL: item.hips_service_url,
-                            id: item.ID,
-                        })
-
-                        self._hide();
-
-                        self.callback && self.callback();
-                    }
-                })
+                this.hipsCatLoad.update({disable: false});
             }
-            this.loadBtn.update({ctxMenu, disable: false}, aladin)
         }
-
-        this.loadBtn.hideMenu()
     }
 
     attach(options) {
@@ -307,10 +392,6 @@ import { CtxMenuActionButtonOpener } from "../Button/CtxMenuOpener.js";
     _hide() {
         if (this.box) {
             this.box.remove();
-        }
-
-        if (this.loadBtn) {
-            this.loadBtn.hideMenu()
         }
 
         super._hide()

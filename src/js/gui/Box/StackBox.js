@@ -52,7 +52,6 @@ import { Input } from "../Widgets/Input.js";
 import { ImageFITS } from "../../ImageFITS.js";
 import { HiPSCache } from "../../DefaultHiPSCache.js";
 import { HiPSBrowserBox } from "./HiPSBrowserBox.js";
-import { ImageHiPS } from "../../ImageHiPS.js";
 
 export class OverlayStackBox extends Box {
     /*static previewImagesUrl = {
@@ -261,28 +260,18 @@ export class OverlayStackBox extends Box {
                                             cursor: "help",
                                         },
                                     },
-                                    content: "More...",
+                                    content: "Browse...",
                                 },
                                 action(o) {
                                     o.stopPropagation();
                                     o.preventDefault();
 
-                                    self._hide();
+                                    if (!self.catBox)
+                                        self.catBox = new CatalogQueryBox(aladin);
 
-                                    if (!self.catBox) {
-                                        self.catBox = new CatalogQueryBox(
-                                            self.aladin
-                                        );
-                                        self.catBox.attach({
-                                            callback: () => {
-                                                self._show();
-                                            },
-                                        });
-                                    }
-
-                                    self.catBox._show({
-                                        position: self.position,
-                                    });
+                                    self.catBox._show({position: {
+                                        anchor: 'center center'
+                                    }});
                                 },
                             },
                         ],
@@ -753,9 +742,9 @@ export class OverlayStackBox extends Box {
             this.hipsBrowser._hide();
         }*/
 
-        if (this.catBox) {
+        /*if (this.catBox) {
             this.catBox._hide();
-        }
+        }*/
 
         if (this.addOverlayBtn) this.addOverlayBtn.hideMenu();
 

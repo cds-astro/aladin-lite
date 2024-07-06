@@ -142,7 +142,7 @@ impl Image {
             .unwrap() as f32;
 
         // Create a WCS from a specific header unit
-        let wcs = WCS::new(&header)
+        let wcs = WCS::from_fits_header(&header)
             .map_err(|e| JsValue::from_str(&format!("WCS parsing error: reason: {}", e)))?;
 
         let image_coo_sys = match wcs.coo_system() {
@@ -357,9 +357,18 @@ impl Image {
             .unproj_lonlat(&ImgXY::new(0.0, height / 2.0))
             .ok_or(JsValue::from_str("(0, h / 2) px cannot be unprojected"))?;
 
-        let a_xyz: Vector3<f64> =
-            LonLatT::new(left_lonlat.lon().to_angle(), left_lonlat.lat().to_angle()).vector();
-        let b_xyz = LonLatT::new(center.lon().to_angle(), center.lat().to_angle()).vector();
+        let a_xyz: Vector3<f64> = crate::coosys::apply_coo_system(
+            CooSystem::ICRS,
+            image_coo_sys,
+            &LonLatT::new(left_lonlat.lon().to_angle(), left_lonlat.lat().to_angle()).vector(),
+        )
+        .truncate();
+        let b_xyz = crate::coosys::apply_coo_system(
+            CooSystem::ICRS,
+            image_coo_sys,
+            &LonLatT::new(center.lon().to_angle(), center.lat().to_angle()).vector(),
+        )
+        .truncate();
 
         let towards_east = a_xyz.cross(b_xyz).dot(Vector3::unit_y()) <= 0.0;
 
@@ -370,14 +379,8 @@ impl Image {
 
         let half_fov = half_fov1.max(half_fov2);
 
-        // ra and dec must be given in ICRS coo system
-        let center = {
-            let center: LonLatT<_> = center.into();
-            let center =
-                crate::coosys::apply_coo_system(image_coo_sys, CooSystem::ICRS, &center.vector());
-            center.lonlat()
-        };
-
+        // ra and dec must be given in ICRS coo system, which is the case because wcs returns
+        // only icrs coo
         let centered_fov = CenteredFoV {
             ra: center.lon().to_degrees(),
             dec: center.lat().to_degrees(),
@@ -440,7 +443,7 @@ impl Image {
             for vertex in vertices.iter() {
                 let xyzw = crate::coosys::apply_coo_system(
                     camera.get_coo_system(),
-                    self.image_coo_sys,
+                    CooSystem::ICRS,
                     vertex,
                 );
 

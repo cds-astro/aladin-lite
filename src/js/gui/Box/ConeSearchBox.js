@@ -16,10 +16,10 @@
 //    The GNU General Public License is available in COPYING file
 //    along with Aladin Lite.
 //
-import { Coo } from "../../libs/astro/coo.js";
 import { Box } from "../Widgets/Box.js";
 import { Layout } from "../Layout.js";
 import { ConeSearchActionButton } from "../Button/ConeSearch.js";
+import { Coo } from "../../libs/astro/coo.js";
 import { Form } from "../Widgets/Form.js";
 import { Angle } from "../../libs/astro/angle.js";
 /******************************************************************************
@@ -72,19 +72,22 @@ import { Angle } from "../../libs/astro/angle.js";
         let fovAngle = new Angle(Math.min(fov[0], fov[1]) / 2, 1).format()
 
         let form = new Form({
-            submit(values) {
-                self._hide();
-                let coo = new Coo();
-                coo.parse(values.ra + ' ' + values.dec)
-
-                let theta = new Angle();
-                theta.parse(values.rad)
-                self.callback && self.callback({
-                    ra: coo.lon,
-                    dec: coo.lat,
-                    rad: theta.degrees(),
-                    limit: values.limit,
-                })
+            submit: {
+                content: 'Accept',
+                action(values) {
+                    self._hide();
+                    let coo = new Coo();
+                    coo.parse(values.ra + ' ' + values.dec)
+    
+                    let theta = new Angle();
+                    theta.parse(values.rad)
+                    self.callback && self.callback({
+                        ra: coo.lon,
+                        dec: coo.lat,
+                        rad: theta.degrees(),
+                        limit: values.limit,
+                    })
+                }
             },
             subInputs: [
                 {

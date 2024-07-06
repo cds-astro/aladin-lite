@@ -372,7 +372,7 @@ canvas {
 }
 
 .aladin-measurement-div.aladin-dark-theme {
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: rgba(0, 0, 0, 0.8);
     border: 1px solid white;
 }
 
@@ -1127,6 +1127,13 @@ canvas {
     width: 300px;
     padding: 0.5rem;
 }
+
+.aladin-cat-browser-box .aladin-input-text.search {
+    width: 300px;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+}
+
 
 .aladin-location {
     position: absolute;

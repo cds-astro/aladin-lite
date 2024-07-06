@@ -150,8 +150,8 @@ export class Icon extends DOMElement {
             let elt = document.createElement('div');
             elt.innerHTML = str;
 
-            elt.querySelector('svg').setAttribute('width', size);
-            elt.querySelector('svg').setAttribute('height', size);
+            //elt.querySelector('svg').setAttribute('width', size);
+            //elt.querySelector('svg').setAttribute('height', size);
 
             elt.style.width = size;
             elt.style.height = size;

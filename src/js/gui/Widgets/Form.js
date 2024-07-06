@@ -76,19 +76,23 @@ export class Form extends DOMElement {
         }
 
         let self = this;
+       
         // submit button
         if (this.options && this.options.submit) {
-            layout.push(
-                new ActionButton({
-                    content: 'Send',
-                    cssStyle: {
-                        cursor: 'pointer',
-                    },
-                    action(e) {
-                        self.options.submit(self.values())
-                    }
-                })
-            );
+            this.submit = new ActionButton({
+                ...this.options.submit,
+                cssStyle: {
+                    cursor: 'pointer',
+                },
+                action(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    if (self.options.submit.action)
+                        self.options.submit.action(self.values())
+                }
+            })
+            layout.push(this.submit);
         }
 
         this.appendContent(Layout.vertical(layout))

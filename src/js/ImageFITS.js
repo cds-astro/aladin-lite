@@ -50,6 +50,40 @@ import { Aladin } from "./Aladin.js";
  * @property {Object} [wcs] - an object describing the WCS of the image. In case of a fits image
  * this property will be ignored as the WCS taken will be the one present in the fits file.
  * @property {number} [imgFormat='fits'] - The image format of the image to load.
+ * 
+ * @example
+ * 
+ *  aladin.setOverlayImageLayer(A.image(
+ *       "https://nova.astrometry.net/image/25038473?filename=M61.jpg",
+ *       {
+ *           name: "M61",
+ *           imgFormat: 'jpeg',
+ *           wcs: {
+ *               NAXIS: 0, // Minimal header
+ *               CTYPE1: 'RA---TAN', // TAN (gnomic) projection + SIP distortions
+ *               CTYPE2: 'DEC--TAN', // TAN (gnomic) projection + SIP distortions
+ *               EQUINOX: 2000.0, // Equatorial coordinates definition (yr)
+ *               LONPOLE: 180.0, // no comment
+ *               LATPOLE: 0.0, // no comment
+ *               CRVAL1: 185.445488837, // RA of reference point
+ *               CRVAL2: 4.47896032431, // DEC of reference point
+ *               CRPIX1: 588.995094299, // X reference pixel
+ *               CRPIX2: 308.307905197, // Y reference pixel
+ *               CUNIT1: 'deg', // X pixel scale units
+ *               CUNIT2: 'deg', // Y pixel scale units
+ *               CD1_1: -0.000223666022989, // Transformation matrix
+ *               CD1_2: 0.000296578064584, // no comment
+ *               CD2_1: -0.000296427555509, // no comment
+ *               CD2_2: -0.000223774308964, // no comment
+ *               NAXIS1: 1080, // Image width, in pixels.
+ *               NAXIS2: 705 // Image height, in pixels.
+ *           },
+ *           successCallback: (ra, dec, fov, image) => {
+ *               aladin.gotoRaDec(ra, dec);
+ *               aladin.setFoV(fov * 5)
+ *           }
+ *       },
+ *   ));
  */
 
 export let Image = (function () {

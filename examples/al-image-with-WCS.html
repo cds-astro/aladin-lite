@@ -7,7 +7,7 @@
     <script type="module">
         import A from '../src/js/A.js';
         A.init.then(() => {
-            let aladin = A.aladin('#aladin-lite-div', {fov: 30, survey: "CDS/P/GALEXGR6/AIS/FUV", target: "280 +0", projection: "AIT", showShareControl:true, showContextMenu:true});
+            let aladin = A.aladin('#aladin-lite-div', {fov: 30, survey: "CDS/P/GALEXGR6/AIS/FUV", target: "280 +0", projection: "AIT", showShareControl:true, showSettingsControl: true, showContextMenu:true});
             
             aladin.setOverlayImageLayer(A.image(
                 "https://nova.astrometry.net/image/25038473?filename=M61.jpg",

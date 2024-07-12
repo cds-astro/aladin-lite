@@ -27,9 +27,6 @@ wasm-streams = "0.3.0"
 async-channel = "1.8.0"
 mapproj = "0.3.0"
 fitsrs = "0.2.9"
-wcs = { git = "https://github.com/cds-astro/wcs-rs", branch = 'master' }
-#wcs = { path = "../../../wcs"  }
-
 colorgrad = "0.6.2"
 
 [features]
@@ -42,6 +39,10 @@ rand = "0.8"
 
 [build-dependencies]
 walkdir = "2.3.2"
+
+[dependencies.wcs]
+git = "https://github.com/cds-astro/wcs-rs"
+branch = "master"
 
 [dependencies.console_error_panic_hook]
 version = "0.1.7"

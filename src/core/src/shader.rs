@@ -41,6 +41,7 @@ impl From<Error> for JsValue {
 }
 
 use serde::Deserialize;
+#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 pub struct FileSrc {
     pub id: String,

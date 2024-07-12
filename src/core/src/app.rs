@@ -1,3 +1,4 @@
+use crate::renderable::ImageLayer;
 use crate::{
     //async_task::{BuildCatalogIndex, ParseTableTask, TaskExecutor, TaskResult, TaskType},
     camera::CameraViewPort,
@@ -11,13 +12,12 @@ use crate::{
     },
     renderable::grid::ProjetedGrid,
     renderable::Layers,
-    renderable::{
-        catalog::Manager, line::RasterizedLineRenderer, moc::MOCRenderer, ImageCfg, Renderer,
-    },
+    renderable::{catalog::Manager, line::RasterizedLineRenderer, moc::MOCRenderer, Renderer},
     shader::ShaderManager,
     tile_fetcher::TileFetcherQueue,
     time::DeltaTime,
 };
+use wcs::WCS;
 
 use wasm_bindgen::prelude::*;
 
@@ -29,11 +29,10 @@ use crate::Abort;
 use al_api::{
     coo_system::CooSystem,
     grid::GridCfg,
-    hips::{FITSCfg, HiPSCfg, ImageMetadata},
+    hips::{HiPSCfg, ImageMetadata},
 };
 use cgmath::Vector4;
 use fitsrs::{fits::AsyncFits, hdu::extension::AsyncXtensionHDU};
-use wasm_bindgen_futures::JsFuture;
 
 use web_sys::{HtmlElement, WebGl2RenderingContext};
 
@@ -97,11 +96,11 @@ pub struct App {
     pub projection: ProjectionType,
 
     // Async data receivers
-    fits_send: async_channel::Sender<ImageCfg>,
-    fits_recv: async_channel::Receiver<ImageCfg>,
+    img_send: async_channel::Sender<ImageLayer>,
+    img_recv: async_channel::Receiver<ImageLayer>,
 
-    ack_send: async_channel::Sender<ImageParams>,
-    ack_recv: async_channel::Receiver<ImageParams>,
+    ack_img_send: async_channel::Sender<ImageParams>,
+    ack_img_recv: async_channel::Receiver<ImageParams>,
     // callbacks
     //callback_position_changed: js_sys::Function,
 }
@@ -194,8 +193,8 @@ impl App {
         let moc = MOCRenderer::new(&gl)?;
         gl.clear_color(0.15, 0.15, 0.15, 1.0);
 
-        let (fits_send, fits_recv) = async_channel::unbounded::<ImageCfg>();
-        let (ack_send, ack_recv) = async_channel::unbounded::<ImageParams>();
+        let (img_send, img_recv) = async_channel::unbounded::<ImageLayer>();
+        let (ack_img_send, ack_img_recv) = async_channel::unbounded::<ImageParams>();
 
         let line_renderer = RasterizedLineRenderer::new(&gl)?;
 
@@ -253,11 +252,10 @@ impl App {
             colormaps,
             projection,
 
-            fits_send,
-            fits_recv,
-            ack_send,
-            ack_recv,
-            //callback_position_changed,
+            img_send,
+            img_recv,
+            ack_img_send,
+            ack_img_recv,
         })
     }
 
@@ -460,7 +458,7 @@ impl App {
 
                     let mut j = c.len() - 1;
                     for i in 0..c.len() {
-                        if crate::math::vector::dist2(&c[j], &c[i]) > 0.04 {
+                        if crate::math::vector::dist2(&c[j], &c[i]) > 0.05 {
                             return None;
                         }
 
@@ -828,16 +826,16 @@ impl App {
         //}
 
         // Check for async retrieval
-        if let Ok(fits) = self.fits_recv.try_recv() {
-            let params = fits.get_params();
+        if let Ok(img) = self.img_recv.try_recv() {
+            let params = img.get_params();
             self.layers
-                .add_image_fits(fits, &mut self.camera, &self.projection)?;
+                .add_image(img, &mut self.camera, &self.projection)?;
             self.request_redraw = true;
 
             // Send the ack to the js promise so that she finished
-            let ack_send = self.ack_send.clone();
+            let ack_img_send = self.ack_img_send.clone();
             wasm_bindgen_futures::spawn_local(async move {
-                ack_send.send(params).await.unwrap_throw();
+                ack_img_send.send(params).await.unwrap_throw();
             })
         }
 
@@ -1022,17 +1020,24 @@ impl App {
         Ok(())
     }
 
-    pub(crate) fn add_image_fits(&mut self, cfg: FITSCfg) -> Result<js_sys::Promise, JsValue> {
-        let FITSCfg { layer, url, meta } = cfg;
+    pub(crate) fn add_image_from_blob_and_wcs(
+        &mut self,
+        layer: String,
+        stream: web_sys::ReadableStream,
+        wcs: WCS,
+        cfg: ImageMetadata,
+    ) -> Result<js_sys::Promise, JsValue> {
         let gl = self.gl.clone();
 
-        let fits_sender = self.fits_send.clone();
-        let ack_recv = self.ack_recv.clone();
+        let img_sender = self.img_send.clone();
+        let ack_img_recv = self.ack_img_recv.clone();
         // Stop the current inertia
         self.inertia = None;
         // And disable it while the fits has not been loaded
         let disable_inertia = self.disable_inertia.clone();
         *(disable_inertia.borrow_mut()) = true;
+
+        let camera_coo_sys = self.camera.get_coo_system();
 
         let fut = async move {
             use crate::renderable::image::Image;
@@ -1040,23 +1045,102 @@ impl App {
             use futures::TryStreamExt;
             use js_sys::Uint8Array;
             use wasm_streams::ReadableStream;
-            use web_sys::window;
-            use web_sys::Response;
-            use web_sys::{Request, RequestInit, RequestMode};
 
-            let mut opts = RequestInit::new();
-            opts.method("GET");
-            opts.mode(RequestMode::Cors);
+            let body = ReadableStream::from_raw(stream.dyn_into()?);
 
-            let window = window().unwrap();
-            let request = Request::new_with_str_and_init(&url, &opts)?;
+            // Convert the JS ReadableStream to a Rust stream
+            let bytes_reader = match body.try_into_async_read() {
+                Ok(async_read) => Either::Left(async_read),
+                Err((_err, body)) => Either::Right(
+                    body.into_stream()
+                        .map_ok(|js_value| {
+                            js_value.dyn_into::<Uint8Array>().unwrap_throw().to_vec()
+                        })
+                        .map_err(|_js_error| {
+                            std::io::Error::new(std::io::ErrorKind::Other, "failed to read")
+                        })
+                        .into_async_read(),
+                ),
+            };
+            use al_core::image::format::RGBA8U;
+            match Image::from_reader_and_wcs::<_, RGBA8U>(
+                &gl,
+                bytes_reader,
+                wcs,
+                None,
+                None,
+                None,
+                camera_coo_sys,
+            )
+            .await
+            {
+                Ok(image) => {
+                    let img = ImageLayer {
+                        images: vec![image],
+                        id: layer.clone(),
+                        layer,
+                        meta: cfg,
+                    };
 
-            let resp_value = JsFuture::from(window.fetch_with_request(&request)).await?;
-            let resp: Response = resp_value.dyn_into()?;
+                    img_sender.send(img).await.unwrap();
+
+                    // Wait for the ack here
+                    let image_params = ack_img_recv
+                        .recv()
+                        .await
+                        .map_err(|_| JsValue::from_str("Problem receiving fits"))?;
+
+                    serde_wasm_bindgen::to_value(&image_params).map_err(|e| e.into())
+                }
+                Err(error) => Err(error),
+            }
+        };
+
+        let reenable_inertia = Closure::new(move || {
+            // renable inertia again
+            *(disable_inertia.borrow_mut()) = false;
+        });
+
+        let promise = wasm_bindgen_futures::future_to_promise(fut)
+            // Reenable inertia independantly from whether the
+            // fits has been correctly parsed or not
+            .finally(&reenable_inertia);
+
+        // forget the closure, it is not very proper to do this as
+        // it won't be deallocated
+        reenable_inertia.forget();
+
+        Ok(promise)
+    }
+
+    pub(crate) fn add_image_fits(
+        &mut self,
+        id: String,
+        stream: web_sys::ReadableStream,
+        meta: ImageMetadata,
+        layer: String,
+    ) -> Result<js_sys::Promise, JsValue> {
+        let gl = self.gl.clone();
+
+        let fits_sender = self.img_send.clone();
+        let ack_fits_recv = self.ack_img_recv.clone();
+        // Stop the current inertia
+        self.inertia = None;
+        // And disable it while the fits has not been loaded
+        let disable_inertia = self.disable_inertia.clone();
+        *(disable_inertia.borrow_mut()) = true;
+
+        let camera_coo_sys = self.camera.get_coo_system();
+
+        let fut = async move {
+            use crate::renderable::image::Image;
+            use futures::future::Either;
+            use futures::TryStreamExt;
+            use js_sys::Uint8Array;
+            use wasm_streams::ReadableStream;
 
             // Get the response's body as a JS ReadableStream
-            let raw_body = resp.body().unwrap();
-            let body = ReadableStream::from_raw(raw_body.dyn_into()?);
+            let body = ReadableStream::from_raw(stream.dyn_into()?);
 
             // Convert the JS ReadableStream to a Rust stream
             let bytes_reader = match body.try_into_async_read() {
@@ -1080,29 +1164,11 @@ impl App {
                 .map_err(|e| JsValue::from_str(&format!("Fits file parsing: reason: {}", e)))?;
 
             let mut hdu_ext_idx = 0;
-            let mut images_params = vec![];
+            let mut images = vec![];
 
-            match Image::from_fits_hdu_async(&gl, &mut hdu.0).await {
+            match Image::from_fits_hdu_async(&gl, &mut hdu.0, camera_coo_sys).await {
                 Ok(image) => {
-                    let layer_ext = layer.clone();
-                    let url_ext = url.clone();
-
-                    let fits = ImageCfg {
-                        image: image,
-                        layer: layer_ext,
-                        url: url_ext,
-                        meta: meta.clone(),
-                    };
-
-                    fits_sender.send(fits).await.unwrap();
-
-                    // Wait for the ack here
-                    let image_params = ack_recv
-                        .recv()
-                        .await
-                        .map_err(|_| JsValue::from_str("Problem receiving fits"))?;
-
-                    images_params.push(image_params);
+                    images.push(image);
 
                     let mut hdu_ext = hdu.next().await;
 
@@ -1110,27 +1176,11 @@ impl App {
                     while let Ok(Some(mut xhdu)) = hdu_ext {
                         match &mut xhdu {
                             AsyncXtensionHDU::Image(xhdu_img) => {
-                                match Image::from_fits_hdu_async(&gl, xhdu_img).await {
+                                match Image::from_fits_hdu_async(&gl, xhdu_img, camera_coo_sys)
+                                    .await
+                                {
                                     Ok(image) => {
-                                        let layer_ext =
-                                            layer.clone() + "_ext_" + &format!("{hdu_ext_idx}");
-                                        let url_ext =
-                                            url.clone() + "_ext_" + &format!("{hdu_ext_idx}");
-
-                                        let fits_ext = ImageCfg {
-                                            image: image,
-                                            layer: layer_ext,
-                                            url: url_ext,
-                                            meta: meta.clone(),
-                                        };
-
-                                        fits_sender.send(fits_ext).await.unwrap();
-
-                                        let image_params = ack_recv.recv().await.map_err(|_| {
-                                            JsValue::from_str("Problem receving fits")
-                                        })?;
-
-                                        images_params.push(image_params);
+                                        images.push(image);
                                     }
                                     Err(error) => {
                                         al_core::log::console_warn(&
@@ -1161,27 +1211,11 @@ impl App {
                     while let Ok(Some(mut xhdu)) = hdu_ext {
                         match &mut xhdu {
                             AsyncXtensionHDU::Image(xhdu_img) => {
-                                match Image::from_fits_hdu_async(&gl, xhdu_img).await {
+                                match Image::from_fits_hdu_async(&gl, xhdu_img, camera_coo_sys)
+                                    .await
+                                {
                                     Ok(image) => {
-                                        let layer_ext =
-                                            layer.clone() + "_ext_" + &format!("{hdu_ext_idx}");
-                                        let url_ext =
-                                            url.clone() + "_ext_" + &format!("{hdu_ext_idx}");
-
-                                        let fits_ext = ImageCfg {
-                                            image: image,
-                                            layer: layer_ext,
-                                            url: url_ext,
-                                            meta: meta.clone(),
-                                        };
-
-                                        fits_sender.send(fits_ext).await.unwrap();
-
-                                        let image_params = ack_recv.recv().await.map_err(|_| {
-                                            JsValue::from_str("Problem receving fits")
-                                        })?;
-
-                                        images_params.push(image_params);
+                                        images.push(image);
                                     }
                                     Err(error) => {
                                         al_core::log::console_warn(&
@@ -1206,10 +1240,25 @@ impl App {
                 }
             }
 
-            if !images_params.is_empty() {
-                serde_wasm_bindgen::to_value(&images_params).map_err(|e| e.into())
+            if images.is_empty() {
+                Err(JsValue::from_str("no images have been parsed"))
             } else {
-                Err(JsValue::from_str("The fits could not be parsed"))
+                let fits = ImageLayer {
+                    images,
+                    layer,
+                    id,
+                    meta,
+                };
+
+                fits_sender.send(fits).await.unwrap();
+
+                // Wait for the ack here
+                let image_params = ack_fits_recv
+                    .recv()
+                    .await
+                    .map_err(|_| JsValue::from_str("Problem receiving fits"))?;
+
+                serde_wasm_bindgen::to_value(&image_params).map_err(|e| e.into())
             }
         };
 

@@ -139,7 +139,7 @@ options = {
                 for (const objects of aladin.view.selection) {
                     let s0 = getSource(objects[0]);
                     const cat = s0.catalog;
-                    console.log(cat)
+
                     const {url, name} = cat;
                     conn.loadVOTable(url, name, url);
 

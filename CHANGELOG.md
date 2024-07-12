@@ -3,6 +3,9 @@
 ## 3.4.3-beta
 
 * [bugfix] zoom control buttons
+* [feat] save a MOC as a JSON file from the UI <https://github.com/cds-astro/aladin-lite/issues/154>
+* [feat] save a source selection from the measurement table as a CSV file
+* [feat] allow to display jpeg/jpg images with a wcs passed as a JS dictionary: <https://github.com/cds-astro/aladin-lite/issues/173>
 
 ## 3.4.2-beta
 

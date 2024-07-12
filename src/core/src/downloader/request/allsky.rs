@@ -24,7 +24,8 @@ impl From<AllskyRequest> for RequestType {
     }
 }
 
-use crate::renderable::Url;
+use super::Url;
+
 use wasm_bindgen_futures::JsFuture;
 use web_sys::{RequestInit, RequestMode, Response};
 

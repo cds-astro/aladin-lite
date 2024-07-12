@@ -2,8 +2,7 @@ use wasm_bindgen::prelude::*;
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Deserialize, Serialize)]
-#[derive(Clone)]
+#[derive(Deserialize, Serialize, Clone, Debug)]
 #[wasm_bindgen]
 pub struct CenteredFoV {
     /// Position of the field of view

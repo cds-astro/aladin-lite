@@ -25,16 +25,6 @@ impl HiPSCfg {
     }
 }
 
-#[derive(Deserialize, Debug, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct FITSCfg {
-    /// Layer name
-    pub layer: String,
-    pub url: String,
-    /// Its color
-    pub meta: ImageMetadata,
-}
-
 use crate::coo_system::CooSystem;
 
 #[derive(Deserialize, Debug, Clone)]

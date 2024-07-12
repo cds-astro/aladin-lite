@@ -48,6 +48,7 @@ pub enum Style {
     Dotted,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Footprint {

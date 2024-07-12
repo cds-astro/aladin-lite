@@ -11,6 +11,7 @@ use crate::time::Time;
 use std::cell::Cell;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
+pub type Url = String;
 pub struct Request<R> {
     data: Arc<Mutex<Option<R>>>,
     time_request: Time,

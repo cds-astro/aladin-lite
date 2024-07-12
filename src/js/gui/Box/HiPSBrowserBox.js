@@ -22,6 +22,7 @@ import { MocServer } from "../../MocServer.js";
 import { Box } from "../Widgets/Box.js";
 import { Dropdown } from "../Input/Dropdown.js";
 import filterOnUrl from "../../../../assets/icons/filter-on.svg";
+import hipsIconUrl from "../../../../assets/icons/hips.svg";
 import filterOffUrl from "../../../../assets/icons/filter-off.svg";
 import { Input } from "../Widgets/Input.js";
 import { TogglerActionButton } from "../Button/Toggler.js";
@@ -31,6 +32,7 @@ import A from "../../A.js";
 import { Utils } from "../../Utils.ts";
 import { ActionButton } from "../Widgets/ActionButton.js";
 import infoIconUrl from "../../../../assets/icons/info.svg"
+import { Icon } from "../Widgets/Icon.js";
 
 /******************************************************************************
  * Aladin Lite project
@@ -200,7 +202,11 @@ export class HiPSBrowserBox extends Box {
             {
                 close: true,
                 header: {
-                    title: "HiPS browser",
+                    title: Layout.horizontal([new Icon({
+                        size: 'medium',
+                        url: hipsIconUrl,
+                        monochrome: true,
+                    }), "HiPS browser"])
                 },
                 onDragged: () => {
                     if (self.filterBtn.toggled) {

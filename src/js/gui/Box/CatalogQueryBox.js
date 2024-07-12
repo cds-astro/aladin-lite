@@ -28,7 +28,7 @@ import A from "../../A.js";
 import { Dropdown } from "../Input/Dropdown.js";
 import { ConeSearchActionButton } from "../Button/ConeSearch.js";
 import targetIconUrl from '../../../../assets/icons/target.svg';
-import downloadIconUrl from '../../../../assets/icons/download.svg';
+import hipsIconUrl from '../../../../assets/icons/hips.svg';
 import { ActionButton } from "../Widgets/ActionButton.js";
 
 /******************************************************************************
@@ -64,7 +64,7 @@ import { ActionButton } from "../Widgets/ActionButton.js";
                         params.id.replace('CDS/', ''),
                         params.ra + ' ' + params.dec,
                         params.radiusDeg,
-                        {limit: params.limit, onClick: 'showTable'},
+                        {limit: params.limit, onClick: 'showTable', hoverColor: 'red'},
                         (catalog) => {
                             aladin.addCatalog(catalog)
                         },
@@ -75,7 +75,7 @@ import { ActionButton } from "../Widgets/ActionButton.js";
                     A.catalogFromSimbad(
                         params.ra + ' ' + params.dec,
                         params.radiusDeg,
-                        {limit: params.limit, onClick: 'showTable'},
+                        {limit: params.limit, onClick: 'showTable', hoverColor: 'red'},
                         (catalog) => {
                             aladin.addCatalog(catalog)
                         },
@@ -90,7 +90,7 @@ import { ActionButton } from "../Widgets/ActionButton.js";
                     url += 'RA=' + params.ra + '&DEC=' + params.dec + '&SR=' + params.radiusDeg;
                     A.catalogFromURL(
                         url,
-                        {limit: params.limit, onClick: 'showTable'},
+                        {limit: params.limit, onClick: 'showTable', hoverColor: 'red'},
                         (catalog) => {
                             aladin.addCatalog(catalog)
                         },
@@ -102,7 +102,7 @@ import { ActionButton } from "../Widgets/ActionButton.js";
                 const hips = A.catalogHiPS(params.hipsURL, {onClick: 'showTable', name: params.id});
                 aladin.addCatalog(hips);
             } else if (type=='votable') {
-                A.catalogFromURL(params.url, {name: params.url}, (catalog) => {
+                A.catalogFromURL(params.url, {name: params.url, hoverColor: 'red'}, (catalog) => {
                     aladin.addCatalog(catalog)
                     params.success()
                 }, params.error);
@@ -182,8 +182,12 @@ import { ActionButton } from "../Widgets/ActionButton.js";
         let hipsCatLoad = new ActionButton({
             icon: {
                 monochrome: true,
-                url: downloadIconUrl,
+                url: hipsIconUrl,
                 size: 'small',
+            },
+            tooltip: {
+                content: "Load the progressive tiled catalog.<br/>Adapted for rendering big catalogs",
+                position: {direction: "bottom"}
             },
             content: 'HiPS',
             disable: true,

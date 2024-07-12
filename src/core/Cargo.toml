@@ -28,6 +28,8 @@ async-channel = "1.8.0"
 mapproj = "0.3.0"
 fitsrs = "0.2.9"
 wcs = { git = "https://github.com/cds-astro/wcs-rs", branch = 'master' }
+#wcs = { path = "../../../wcs"  }
+
 colorgrad = "0.6.2"
 
 [features]

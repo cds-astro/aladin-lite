@@ -56,10 +56,10 @@ export class Table extends DOMElement {
         this.addClass("aladin-dark-theme")
     }
  
-    static _createTableBody = function(opt) {
+    static _createTableBody = function(options) {
         const tbody = document.createElement('tbody');
 
-        opt.rows.forEach((row) => {
+        options.rows.forEach((row) => {
             let trEl = document.createElement('tr');
 
             for (let key in row.data) {
@@ -68,8 +68,8 @@ export class Table extends DOMElement {
                 let tdEl = document.createElement('td');
                 tdEl.classList.add(key);
 
-                if (opt.showCallback && opt.showCallback[key]) {
-                    let showFieldCallback = opt.showCallback[key];
+                if (options.showCallback && options.showCallback[key]) {
+                    let showFieldCallback = options.showCallback[key];
 
                     let el = showFieldCallback(row.data);
                     if (el instanceof Element) {
@@ -93,11 +93,11 @@ export class Table extends DOMElement {
         return tbody;
     }
  
-    static _createTableHeader = function(opt) {
+    static _createTableHeader = function(options) {
         let theadElement = document.createElement('thead');
         var content = '<tr>';
 
-        for (let [_, field] of Object.entries(opt.fields)) {
+        for (let [_, field] of Object.entries(options.fields)) {
             if (field.name) {
                 content += '<th>' + field.name + '</th>';
             }

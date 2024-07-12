@@ -119,6 +119,66 @@ impl Region {
         }
     }
 
+    pub fn intersects(&self, other: &Self) -> bool {
+        match (self, other) {
+            (
+                Region::Polygon {
+                    polygon: p1,
+                    bbox: bbox1,
+                    ..
+                },
+                Region::Polygon {
+                    polygon: p2,
+                    bbox: bbox2,
+                    ..
+                },
+            ) => {
+                if !bbox1.intersects(bbox2) {
+                    return false;
+                }
+
+                for v1 in p1.vertices() {
+                    let ll = v1.lonlat();
+                    let ll = LonLatT::new(ll.0.to_angle(), ll.1.to_angle());
+                    if other.contains(&ll) {
+                        return true;
+                    }
+                }
+
+                for v2 in p2.vertices() {
+                    let ll = v2.lonlat();
+                    let ll = LonLatT::new(ll.0.to_angle(), ll.1.to_angle());
+                    if self.contains(&ll) {
+                        return true;
+                    }
+                }
+
+                let vertices = p2.vertices();
+                let mut j = vertices.len() - 1;
+                for i in 0..vertices.len() {
+                    let llj = vertices[j].lonlat();
+                    let lli = vertices[i].lonlat();
+
+                    let llj = LonLatT::new(llj.0.to_angle(), llj.1.to_angle());
+                    let lli = LonLatT::new(lli.0.to_angle(), lli.1.to_angle());
+
+                    let inter = self.intersects_great_circle_arc(&llj, &lli);
+                    match inter {
+                        Intersection::Empty => {}
+                        _ => {
+                            return true;
+                        }
+                    }
+
+                    j = i;
+                }
+
+                false
+            }
+            _ => true,
+        }
+    }
+
     pub fn intersects_great_circle_arc(
         &self,
         lonlat1: &LonLatT<f64>,

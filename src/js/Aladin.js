@@ -46,7 +46,7 @@ import { ProjectionEnum } from "./ProjectionEnum.js";
 
 import { ALEvent } from "./events/ALEvent.js";
 import { Color } from "./Color.js";
-import { ImageFITS } from "./ImageFITS.js";
+import { Image } from "./ImageFITS.js";
 import { DefaultActionsForContextMenu } from "./DefaultActionsForContextMenu.js";
 import { SAMPConnector } from "./vo/samp.js";
 import { Reticle } from "./Reticle.js";
@@ -1586,12 +1586,12 @@ export let Aladin = (function () {
      * @throws A warning when the asset is currently present in the view
      *
      * @memberof Aladin
-     * @param {string|ImageHiPS|ImageFITS} urlOrHiPSOrFITS - Can be:
+     * @param {string|ImageHiPS|Image} urlOrHiPSOrFITS - Can be:
      * <ul>
      * <li>1. An url that refers to a HiPS</li>
      * <li>2. Or it can be a CDS identifier that refers to a HiPS. One can found the list of IDs {@link https://aladin.cds.unistra.fr/hips/list| here}</li>
      * <li>3. A {@link ImageHiPS} HiPS object created from {@link A.imageHiPS}</li>
-     * <li>4. A {@link ImageFITS} FITS image object</li>
+     * <li>4. A {@link Image} FITS image object</li>
      * </ul>
      */
     Aladin.prototype.removeHiPSFromFavorites = function (survey) {
@@ -1611,12 +1611,12 @@ export let Aladin = (function () {
      * Check whether a survey is currently in the view
      *
      * @memberof Aladin
-     * @param {string|ImageHiPS|ImageFITS} urlOrHiPSOrFITS - Can be:
+     * @param {string|ImageHiPS|Image} urlOrHiPSOrFITS - Can be:
      * <ul>
      * <li>1. An url that refers to a HiPS</li>
      * <li>2. Or it can be a CDS identifier that refers to a HiPS. One can found the list of IDs {@link https://aladin.cds.unistra.fr/hips/list| here}</li>
      * <li>3. A {@link ImageHiPS} HiPS object created from {@link A.imageHiPS}</li>
-     * <li>4. A {@link ImageFITS} FITS image object</li>
+     * <li>4. A {@link Image} Image object</li>
      * </ul>
      */
     Aladin.prototype.contains = function(survey) {
@@ -1625,16 +1625,16 @@ export let Aladin = (function () {
 
     /**
      * Creates a FITS image object
-     * @deprecated prefer use {@link A.imageFITS}
+     * @deprecated prefer use {@link A.image}
      *
      * @function createImageFITS
      * @memberof Aladin
      * @static
      * @param {string} url - The url of the fits.
-     * @param {ImageFITSOptions} [options] - Options for rendering the image
+     * @param {ImageOptions} [options] - Options for rendering the image
      * @param {function} [success] - A success callback
      * @param {function} [error] - A success callback
-     * @returns {ImageFITS} A FITS image object.
+     * @returns {Image} A FITS image object.
      */
     Aladin.prototype.createImageFITS = function (
         url,
@@ -1657,8 +1657,8 @@ export let Aladin = (function () {
 
         let image = HiPSCache.get(url);
         if (!image) {
-            options = { name, successCallback, errorCallback, ...options };
-            image = new ImageFITS(url, options);
+            options = { successCallback, errorCallback, ...options };
+            image = new Image(url, options);
             HiPSCache.append(url, image);
         }
 
@@ -1673,10 +1673,10 @@ export let Aladin = (function () {
      * @memberof Aladin
      * @static
      * @param {string} url - The url of the fits.
-     * @param {ImageFITSOptions} [options] - Options for rendering the image
+     * @param {ImageOptions} [options] - Options for rendering the image
      * @param {function} [success] - A success callback
      * @param {function} [error] - A success callback
-     * @returns {ImageFITS} A FITS image object.
+     * @returns {Image} A FITS image object.
      */
     Aladin.createImageFITS = Aladin.prototype.createImageFITS;
 
@@ -1705,7 +1705,7 @@ export let Aladin = (function () {
      * Add a new HiPS layer to the view on top of the others
      *
      * @memberof Aladin
-     * @param {string|ImageHiPS|ImageFITS} [survey="CDS/P/DSS2/color"] - Can be:
+     * @param {string|ImageHiPS|Image} [survey="CDS/P/DSS2/color"] - Can be:
      * <ul>
      * <li>1. An url that refers to a HiPS.</li>
      * <li>2. Or it can be a CDS ID that refers to a HiPS. One can found the list of IDs {@link https://aladin.cds.unistra.fr/hips/list| here}</li>
@@ -1721,15 +1721,15 @@ export let Aladin = (function () {
     /**
      * Change the base layer of the view
      *
-     * It internally calls {@link Aladin#setBaseImageLayer|Aladin.setBaseImageLayer} with the url/{@link ImageHiPS}/{@link ImageFITS} given
+     * It internally calls {@link Aladin#setBaseImageLayer|Aladin.setBaseImageLayer} with the url/{@link ImageHiPS}/{@link Image} given
      *
      * @memberof Aladin
-     * @param {string|ImageHiPS|ImageFITS} urlOrHiPSOrFITS - Can be:
+     * @param {string|ImageHiPS|Image} urlOrHiPSOrFITS - Can be:
      * <ul>
      * <li>1. An url that refers to a HiPS.</li>
      * <li>2. Or it can be a CDS identifier that refers to a HiPS. One can found the list of IDs {@link https://aladin.cds.unistra.fr/hips/list| here}</li>
      * <li>3. A {@link ImageHiPS} HiPS object created from {@link A.imageHiPS}</li>
-     * <li>4. A {@link ImageFITS} FITS image object</li>
+     * <li>4. A {@link Image} FITS image object</li>
      * </ul>
      */
     Aladin.prototype.setImageLayer = function (imageLayer) {
@@ -1739,15 +1739,15 @@ export let Aladin = (function () {
     /**
      * Change the base layer of the view
      *
-     * It internally calls {@link Aladin#setBaseImageLayer|Aladin.setBaseImageLayer} with the url/{@link ImageHiPS}/{@link ImageFITS} given
+     * It internally calls {@link Aladin#setBaseImageLayer|Aladin.setBaseImageLayer} with the url/{@link ImageHiPS}/{@link Image} given
      *
      * @memberof Aladin
-     * @param {string|ImageHiPS|ImageFITS} urlOrHiPSOrFITS - Can be:
+     * @param {string|ImageHiPS|Image} urlOrHiPSOrFITS - Can be:
      * <ul>
      * <li>1. An url that refers to a HiPS.</li>
      * <li>2. Or it can be a CDS ID that refers to a HiPS. One can found the list of IDs {@link https://aladin.cds.unistra.fr/hips/list| here}</li>
      * <li>3. A {@link ImageHiPS} HiPS object created from {@link A.imageHiPS}</li>
-     * <li>4. A {@link ImageFITS} FITS image object</li>
+     * <li>4. A {@link Image} FITS image object</li>
      * </ul>
      */
     Aladin.prototype.setImageSurvey = Aladin.prototype.setImageLayer;
@@ -1787,12 +1787,12 @@ export let Aladin = (function () {
      * Change the base layer of the view
      *
      * @memberof Aladin
-     * @param {string|ImageHiPS|ImageFITS} urlOrHiPSOrFITS - Can be:
+     * @param {string|ImageHiPS|Image} urlOrHiPSOrFITS - Can be:
      * <ul>
      * <li>1. An url that refers to a HiPS.</li>
      * <li>2. Or it can be a CDS ID that refers to a HiPS. One can found the list of IDs {@link https://aladin.cds.unistra.fr/hips/list| here}</li>
      * <li>3. A {@link ImageHiPS} HiPS object created from {@link A.imageHiPS}</li>
-     * <li>4. A {@link ImageFITS} FITS image object</li>
+     * <li>4. A {@link Image} FITS image object</li>
      * </ul>
      */
     Aladin.prototype.setBaseImageLayer = function (urlOrHiPSOrFITS) {
@@ -1803,7 +1803,7 @@ export let Aladin = (function () {
      * Get the base image layer object
      *
      * @memberof Aladin
-     * @returns {ImageHiPS|ImageFITS} - Returns the image layer corresponding to the base layer
+     * @returns {ImageHiPS|Image} - Returns the image layer corresponding to the base layer
      */
     Aladin.prototype.getBaseImageLayer = function () {
         return this.view.getImageLayer("base");
@@ -1813,12 +1813,12 @@ export let Aladin = (function () {
      * Add a new HiPS/FITS image layer in the view
      *
      * @memberof Aladin
-     * @param {string|ImageHiPS|ImageFITS} urlOrHiPSOrFITS - Can be:
+     * @param {string|ImageHiPS|Image} urlOrHiPSOrFITS - Can be:
      * <ul>
      * <li>1. An url that refers to a HiPS.</li>
      * <li>2. Or it can be a CDS ID that refers to a HiPS. One can found the list of IDs {@link https://aladin.cds.unistra.fr/hips/list| here}</li>
      * <li>3. A {@link ImageHiPS} HiPS object created from {@link A.imageHiPS}</li>
-     * <li>4. A {@link ImageFITS} FITS image object</li>
+     * <li>4. A {@link Image} FITS image object</li>
      * </ul>
      * @param {string} [layer="overlay"] - A layer name. By default 'overlay' is chosen and it is destined to be plot
      * on top the 'base' layer. If the layer is already present in the view, it will be replaced by the new HiPS/FITS image given here.
@@ -1848,7 +1848,7 @@ export let Aladin = (function () {
      * @memberof Aladin
      * @param {string} [layer="overlay"] - The name of the layer
 
-     * @returns {ImageHiPS|ImageFITS} - The requested image layer.
+     * @returns {ImageHiPS|Image} - The requested image layer.
      */
     Aladin.prototype.getOverlayImageLayer = function (layer = "overlay") {
         const survey = this.view.getImageLayer(layer);
@@ -1901,7 +1901,7 @@ export let Aladin = (function () {
      * Get list of overlays layers
      *
      * @memberof Aladin
-     * @returns {MOC[]|Catalog[]|ProgressiveCat[]|GraphicOverlay[]} - Returns the ordered list of image layers. Items can be {@link ImageHiPS} or {@link ImageFITS} objects.
+     * @returns {MOC[]|Catalog[]|ProgressiveCat[]|GraphicOverlay[]} - Returns the ordered list of image layers. Items can be {@link ImageHiPS} or {@link Image} objects.
      */
     Aladin.prototype.getOverlays = function () {
         return this.view.allOverlayLayers;
@@ -1911,7 +1911,7 @@ export let Aladin = (function () {
      * Get list of layers
      *
      * @memberof Aladin
-     * @returns {ImageHiPS[]|ImageFITS[]} - Returns the ordered list of image layers. Items can be {@link ImageHiPS} or {@link ImageFITS} objects.
+     * @returns {ImageHiPS[]|Image[]} - Returns the ordered list of image layers. Items can be {@link ImageHiPS} or {@link Image} objects.
      */
     Aladin.prototype.getStackLayers = function () {
         return this.view.overlayLayers;
@@ -2198,7 +2198,9 @@ aladin.on("positionChanged", ({ra, dec}) => {
     // TODO : integrate somehow into API ?
     Aladin.prototype.exportAsPNG = function (downloadFile = false) {
         (async () => {
+
             const url = await this.getViewDataURL();
+
             if (downloadFile) {
                 Utils.download(url, "screenshot");
             } else {
@@ -2231,12 +2233,14 @@ aladin.on("positionChanged", ({ra, dec}) => {
             var imgFormat = options;
             options = { format: imgFormat };
         }
+
         const canvasDataURL = await this.view.getCanvasDataURL(
             options.format,
             options.width,
             options.height,
             options.logo
         );
+
         return canvasDataURL;
     };
 
@@ -2735,7 +2739,7 @@ aladin.on("positionChanged", ({ra, dec}) => {
      *
      * @memberof Aladin
      * @param {string} url - The URL of the FITS image.
-     * @param {ImageFITSOptions} [options] - Options to customize the display
+     * @param {ImageOptions} [options] - Options to customize the display
      * @param {Function} [successCallback=<center the view on the FITS file>] - The callback function to be executed on a successful display.
      *      The callback gives the ra, dec, and fov of the image; By default, it centers the view on the FITS file loaded.
      * @param {Function} [errorCallback] - The callback function to be executed if an error occurs during display.
@@ -2771,13 +2775,13 @@ aladin.displayFITS(
                 this.gotoRaDec(ra, dec);
                 this.setFoV(fov);
             });
-        const imageFits = this.createImageFITS(
+        const image = this.createImageFITS(
             url,
             options,
             successCallback,
             errorCallback
         );
-        return this.setOverlayImageLayer(imageFits, layer);
+        return this.setOverlayImageLayer(image, layer);
     };
 
     /**

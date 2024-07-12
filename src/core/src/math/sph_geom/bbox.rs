@@ -1,16 +1,18 @@
-use super::super::{ZERO, PI, HALF_PI, TWICE_PI, MINUS_HALF_PI};
-use crate::math::{sph_geom::region::PoleContained, lonlat::LonLatT};
+use super::super::{HALF_PI, MINUS_HALF_PI, PI, TWICE_PI, ZERO};
+use crate::math::{lonlat::LonLatT, sph_geom::region::PoleContained};
 
 pub const ALLSKY_BBOX: BoundingBox = BoundingBox {
     lon: ZERO..TWICE_PI,
     lat: MINUS_HALF_PI..HALF_PI,
+    intersect_zero_meridian: true,
 };
 
-use std::ops::{Range};
+use std::ops::Range;
 #[derive(Debug)]
 pub struct BoundingBox {
     pub lon: Range<f64>,
     pub lat: Range<f64>,
+    intersect_zero_meridian: bool,
 }
 
 impl BoundingBox {
@@ -82,7 +84,11 @@ impl BoundingBox {
             ),
         };
 
-        BoundingBox { lon, lat }
+        BoundingBox {
+            lon,
+            lat,
+            intersect_zero_meridian,
+        }
     }
 
     #[inline]
@@ -136,20 +142,62 @@ impl BoundingBox {
     }
 
     #[inline]
-    pub fn contains_meridian(&self, lon: f64) -> bool {
+    pub fn contains_longitude(&self, mut lon: f64) -> bool {
+        lon = if self.intersect_zero_meridian && lon > PI {
+            lon - TWICE_PI
+        } else {
+            lon
+        };
+
         self.lon.contains(&lon)
     }
 
     #[inline]
     pub fn contains_lonlat(&self, lonlat: &LonLatT<f64>) -> bool {
-        self.contains_meridian(lonlat.lon().to_radians()) && self.contains_latitude(lonlat.lat().to_radians())
-    } 
+        self.contains_longitude(lonlat.lon().to_radians())
+            && self.contains_latitude(lonlat.lat().to_radians())
+    }
+
+    #[inline]
+    pub fn intersects(&self, other: &Self) -> bool {
+        let (sl, ol) = match (self.intersect_zero_meridian, other.intersect_zero_meridian) {
+            (true, false) => {
+                // self lon are in [-PI; PI]
+                // other lon are in [0; 2PI]
+                if other.lon.start >= PI {
+                    (
+                        self.lon.clone(),
+                        (other.lon.start - TWICE_PI)..(other.lon.end - TWICE_PI),
+                    )
+                } else {
+                    (self.lon.clone(), other.lon.clone())
+                }
+            }
+            (false, true) => {
+                // self lon are in [0; 2PI]
+                // other lon are in [-PI; PI]
+                if self.lon.start >= PI {
+                    (
+                        (self.lon.start - TWICE_PI)..(self.lon.end - TWICE_PI),
+                        other.lon.clone(),
+                    )
+                } else {
+                    (self.lon.clone(), other.lon.clone())
+                }
+            }
+            _ => (self.lon.clone(), other.lon.clone()),
+        };
+
+        (sl.start <= ol.end && ol.start <= sl.end)
+            && (self.lat.start <= other.lat.end && other.lat.start <= self.lat.end)
+    }
 
     #[inline]
     pub const fn fullsky() -> Self {
         BoundingBox {
             lon: ZERO..TWICE_PI,
             lat: MINUS_HALF_PI..HALF_PI,
+            intersect_zero_meridian: true,
         }
     }
 }

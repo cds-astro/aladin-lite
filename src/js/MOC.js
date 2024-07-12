@@ -219,6 +219,20 @@ export let MOC = (function() {
         return this.view.wasm.mocContains(this.mocParams, ra, dec);
     };
 
+     /**
+     * Serialize a MOC into different format
+     *
+     * @memberof Aladin
+     * @param {string} [format='json'] - The output format. Only json is currently supported but 'fits' could be added.
+     */
+    MOC.prototype.serialize = function(format) {
+        if (!this.ready) {
+            throw this.name + " is not yet ready, either because it has not been downloaded yet or because it has not been added to the aladin instance."
+        }
+
+        return this.view.wasm.mocSerialize(this.mocParams, format);
+    }
+
     return MOC;
 
 })();

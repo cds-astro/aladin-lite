@@ -5,6 +5,8 @@ use super::buffer_data::BufferDataStorage;
 
 pub trait VertexBufferObject {
     fn bind(&self);
+
+    #[allow(dead_code)]
     fn unbind(&self);
 }
 
@@ -45,7 +47,10 @@ pub trait VertexAttribPointerType: std::marker::Sized {
         usage: u32,
         data: B,
     ) -> WebGlBuffer {
-        let buffer = gl.create_buffer().ok_or("failed to create buffer").unwrap_abort();
+        let buffer = gl
+            .create_buffer()
+            .ok_or("failed to create buffer")
+            .unwrap_abort();
         // Bind the buffer
         gl.bind_buffer(WebGlRenderingCtx::ARRAY_BUFFER, Some(buffer.as_ref()));
 
@@ -311,8 +316,7 @@ impl VertexAttribPointerType for f32 {
 
         let len = data.len();
         let ptr = data.as_ptr() as u32 / 4;
-        Float32Array::new(&memory_buffer)
-            .subarray(ptr, ptr + len as u32)
+        Float32Array::new(&memory_buffer).subarray(ptr, ptr + len as u32)
     }
 
     fn buffer_sub_data_with_i32_and_array_buffer_view<'a, B: BufferDataStorage<'a, Self>>(

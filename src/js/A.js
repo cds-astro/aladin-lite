@@ -128,16 +128,16 @@ A.imageHiPS = function (id, options) {
  * Creates a celestial source object with the given coordinates.
  *
  * @function
- * @name A.imageFITS
+ * @name A.image
  * @memberof A
  * @param {string} url - Options describing the fits file. An url is mandatory
- * @param {ImageFITSOptions} [options] - Options describing the fits file. An url is mandatory
- * @returns {ImageFITS} - A HiPS image object
+ * @param {ImageOptions} [options] - Options describing the fits file. An url is mandatory
+ * @returns {Image} - A HiPS image object
  * @example
  * const sourceObj = A.source(180.0, 30.0, data, options);
  */
-A.imageFITS = function (url, options) {
-    return Aladin.createImageFITS(url, options.name, options, options.successCallback, options.errorCallback);
+A.image = function (url, options) {
+    return Aladin.createImageFITS(url, options, options.successCallback, options.errorCallback);
 }
 
 /**
@@ -509,7 +509,9 @@ A.catalogFromURL = function (url, options, successCallback, errorCallback, usePr
         catalog.setFields(fields);
         catalog.addSources(sources);
 
-        if ('s_region' in fields && typeof catalog.shape !== 'function') {
+        const s_regionFieldFound = Array.from(Object.keys(fields)).find((f) => f.toLowerCase() === 's_region');
+
+        if (s_regionFieldFound && typeof catalog.shape !== 'function') {
             // set the shape
             catalog.setShape((s) => {
                 if (!s.data.s_region)

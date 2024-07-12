@@ -1,9 +1,10 @@
+extern crate futures;
 extern crate jpeg_decoder as jpeg;
 extern crate png;
 extern crate serde_json;
-extern crate futures;
 extern crate wasm_streams;
 
+pub mod convert;
 pub mod image;
 mod object;
 pub mod shader;
@@ -17,8 +18,8 @@ pub mod colormap;
 pub use colormap::{Colormap, Colormaps};
 
 pub use texture::pixel;
-pub use texture::{Texture2D, Texture2DBound};
 pub use texture::Texture2DArray;
+pub use texture::{Texture2D, Texture2DBound};
 
 pub use webgl_ctx::WebGlContext;
 
@@ -36,12 +37,14 @@ pub use object::vertex_array_object::vao::{
 
 pub trait Abort {
     type Item;
-    fn unwrap_abort(self) -> Self::Item where Self: Sized;
+    fn unwrap_abort(self) -> Self::Item
+    where
+        Self: Sized;
 }
 
 impl<T> Abort for Option<T> {
     type Item = T;
-    
+
     #[inline]
     fn unwrap_abort(self) -> Self::Item {
         use std::process;

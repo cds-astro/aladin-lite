@@ -5,6 +5,7 @@ use al_core::image::format::{ChannelType, ImageFormatType, RGB8U, RGBA8U};
 use crate::downloader::query;
 use al_core::image::ImageType;
 
+use super::Url;
 use super::{Request, RequestType};
 use crate::downloader::QueryId;
 
@@ -44,7 +45,6 @@ async fn query_html_image(url: &str) -> Result<HtmlImageElement, JsValue> {
     Ok(image)
 }
 
-use crate::renderable::Url;
 use al_core::image::html::HTMLImage;
 use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;

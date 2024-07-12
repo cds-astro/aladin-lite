@@ -116,7 +116,6 @@ export class Input extends DOMElement {
                 
                 // calculate adjustment factor
                 var scale = (maxv-minv) / (maxp-minp);
-                console.log('value', value)
 
                 return (Math.log(value)-minv) / scale + minp;
             }
@@ -131,7 +130,6 @@ export class Input extends DOMElement {
                 
                 // calculate adjustment factor
                 var scale = (maxv-minv) / (maxp-minp);
-                console.log(minv, maxv)
 
                 return (Math.log(value)-minv) / scale + minp;
             }

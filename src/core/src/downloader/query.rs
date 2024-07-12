@@ -4,7 +4,6 @@ use super::request::RequestType;
 pub trait Query: Sized {
     type Request: From<Self> + Into<RequestType>;
 
-    fn hips_cdid(&self) -> &CreatorDid;
     fn id(&self) -> &QueryId;
 }
 
@@ -59,10 +58,6 @@ use super::request::tile::TileRequest;
 impl Query for Tile {
     type Request = TileRequest;
 
-    fn hips_cdid(&self) -> &CreatorDid {
-        &self.hips_cdid
-    }
-
     fn id(&self) -> &QueryId {
         &self.id
     }
@@ -107,10 +102,6 @@ use super::request::allsky::AllskyRequest;
 impl Query for Allsky {
     type Request = AllskyRequest;
 
-    fn hips_cdid(&self) -> &CreatorDid {
-        &self.hips_cdid
-    }
-
     fn id(&self) -> &QueryId {
         &self.id
     }
@@ -148,10 +139,6 @@ use super::request::blank::PixelMetadataRequest;
 impl Query for PixelMetadata {
     type Request = PixelMetadataRequest;
 
-    fn hips_cdid(&self) -> &CreatorDid {
-        &self.hips_cdid
-    }
-
     fn id(&self) -> &QueryId {
         &self.id
     }
@@ -177,10 +164,6 @@ impl Moc {
 use super::request::moc::MOCRequest;
 impl Query for Moc {
     type Request = MOCRequest;
-
-    fn hips_cdid(&self) -> &CreatorDid {
-        &self.hips_cdid
-    }
 
     fn id(&self) -> &QueryId {
         &self.url

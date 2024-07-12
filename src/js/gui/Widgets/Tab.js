@@ -19,6 +19,8 @@
 
 import { Tooltip } from "./Tooltip";
 import { SAMPActionButton } from '../Button/SAMP.js';
+import downloadIconUrl from '../../../../assets/icons/download.svg';
+import { Utils } from "../../Utils";
 
 /******************************************************************************
  * Aladin Lite project
@@ -33,6 +35,7 @@ import { SAMPActionButton } from '../Button/SAMP.js';
  *****************************************************************************/
 import { DOMElement } from "./Widget";
 import { Layout } from "../Layout";
+import { ActionButton } from "./ActionButton";
 /**
  * Class representing a Tabs layout
  * @extends DOMElement
@@ -49,7 +52,8 @@ export class Tabs extends DOMElement {
         let contentTabOptions = [];
         let tabsLayout = [];
 
-        for (const tab of options.layout) {
+        let self;
+        options.layout.forEach((tab, index) => {
             // Create the content tab div
             let contentTabOptionEl = document.createElement("div");
             contentTabOptionEl.style.display = 'none';
@@ -83,16 +87,57 @@ export class Tabs extends DOMElement {
                     }
 
                     tab.label.update({toggled: true})
+                    self.tabSelectedIdx = index;
                 },
             });
             tab.label.addClass('tab')
 
             tabsLayout.push(tab.label);
-        }
+        })
 
         if (options.aladin && options.aladin.samp) {
             tabsLayout.push(SAMPActionButton.sendSources(options.aladin))
         }
+
+        let aladin = options.aladin;
+        tabsLayout.push(new ActionButton({
+            icon: {
+                url: downloadIconUrl,
+                monochrome: true,
+            },
+            size: "small",
+            tooltip: {
+                content: "Download the selected tab as CSV",
+                position: { direction: "top" },
+            },
+            action(e) {
+                // retrieve the sources of the currently selected tab
+                let getSource = (o) => {
+                    let s = o;
+                    if (o.source) {
+                        s = o.source
+                    }
+
+                    return s;
+                };
+
+                let fieldNames = Object.keys(aladin.view.selection[self.tabSelectedIdx][0].data).join(";");
+                var lineArray = [fieldNames];
+
+                aladin.view.selection[self.tabSelectedIdx].forEach((obj) => {
+                    let source = getSource(obj)
+
+                    let line = Array.from(Object.values(source.data)).join(";");
+                    lineArray.push(line);
+                })
+
+                var csvContent = lineArray.join("\n");
+                var blob = new Blob([csvContent]);
+                let cat = aladin.view.selection[self.tabSelectedIdx][0].getCatalog();
+
+                Utils.download(URL.createObjectURL(blob), cat.name + '-selection.csv');
+            },
+        }));
 
         let contentTabEl = document.createElement("div");
         contentTabEl.style.maxWidth = '100%';
@@ -114,6 +159,8 @@ export class Tabs extends DOMElement {
 
         super(el, options);
         this._show();
+        self = this;
+        this.tabSelectedIdx = 0;
 
         this.attachTo(target, position);
     }

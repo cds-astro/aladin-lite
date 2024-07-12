@@ -20,6 +20,15 @@
 #[cfg(feature = "dbg")]
 use std::panic;
 
+#[macro_export]
+macro_rules! log {
+    // The pattern for a single `eval`
+    ($arg:tt) => {
+        let s = format!("{:?}", $arg);
+        web_sys::console::log_1(&s.into());
+    };
+}
+
 pub trait Abort {
     type Item;
     fn unwrap_abort(self) -> Self::Item
@@ -76,6 +85,7 @@ mod utils;
 
 use math::projection::*;
 
+use moclib::moc::RangeMOCIntoIterator;
 //use votable::votable::VOTableWrapper;
 use wasm_bindgen::prelude::*;
 use web_sys::HtmlElement;
@@ -112,7 +122,6 @@ use std::io::Cursor;
 
 use al_api::color::{Color, ColorRGBA};
 use al_api::coo_system::CooSystem;
-use al_api::hips::FITSCfg;
 use al_api::hips::HiPSProperties;
 
 use al_core::colormap::Colormaps;
@@ -371,10 +380,33 @@ impl WebClient {
     }
 
     #[wasm_bindgen(js_name = addImageFITS)]
-    pub fn add_image_fits(&mut self, fits_cfg: JsValue) -> Result<js_sys::Promise, JsValue> {
-        let fits_cfg: FITSCfg = serde_wasm_bindgen::from_value(fits_cfg)?;
+    pub fn add_image_fits(
+        &mut self,
+        id: String,
+        stream: web_sys::ReadableStream,
+        cfg: JsValue,
+        layer: String,
+    ) -> Result<js_sys::Promise, JsValue> {
+        let cfg: ImageMetadata = serde_wasm_bindgen::from_value(cfg)?;
+        //let wcs: Option<WCSParams> = serde_wasm_bindgen::from_value(wcs)?;
 
-        self.app.add_image_fits(fits_cfg)
+        self.app.add_image_fits(id, stream, cfg, layer)
+    }
+
+    #[wasm_bindgen(js_name = addImageWithWCS)]
+    pub fn add_image_with_wcs(
+        &mut self,
+        data: web_sys::ReadableStream,
+        wcs: JsValue,
+        cfg: JsValue,
+        layer: String,
+    ) -> Result<js_sys::Promise, JsValue> {
+        use wcs::{WCSParams, WCS};
+        let cfg: ImageMetadata = serde_wasm_bindgen::from_value(cfg)?;
+        let wcs_params: WCSParams = serde_wasm_bindgen::from_value(wcs)?;
+        let wcs = WCS::new(&wcs_params).map_err(|e| JsValue::from_str(&format!("{:?}", e)))?;
+
+        self.app.add_image_from_blob_and_wcs(layer, data, wcs, cfg)
     }
 
     #[wasm_bindgen(js_name = removeLayer)]
@@ -1102,6 +1134,28 @@ impl WebClient {
         let location = LonLatT::new(ArcDeg(lon).into(), ArcDeg(lat).into());
 
         Ok(moc.contains_lonlat(&location))
+    }
+
+    #[wasm_bindgen(js_name = mocSerialize)]
+    pub fn moc_serialize(
+        &mut self,
+        params: &al_api::moc::MOC,
+        _format: String, // todo support the fits/ascii serialization
+    ) -> Result<JsValue, JsValue> {
+        let moc = self
+            .app
+            .get_moc(params)
+            .ok_or_else(|| JsValue::from(js_sys::Error::new("MOC not found")))?;
+
+        let mut buf: Vec<u8> = Default::default();
+        let json = (&moc.0)
+            .into_range_moc_iter()
+            .cells()
+            .to_json_aladin(None, &mut buf)
+            .map(|()| unsafe { String::from_utf8_unchecked(buf) })
+            .map_err(|err| JsValue::from_str(&format!("{:?}", err)))?;
+
+        serde_wasm_bindgen::to_value(&json).map_err(|err| JsValue::from_str(&format!("{:?}", err)))
     }
 
     #[wasm_bindgen(js_name = getMOCSkyFraction)]

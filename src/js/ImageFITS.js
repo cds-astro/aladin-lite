@@ -27,11 +27,11 @@
  *****************************************************************************/
 import { ALEvent } from "./events/ALEvent.js";
 import { ColorCfg } from "./ColorCfg.js";
-import { Utils } from "./Utils";
 import { HiPSCache } from "./DefaultHiPSCache";
+import { Aladin } from "./Aladin.js";
 
 /**
- * @typedef {Object} ImageFITSOptions
+ * @typedef {Object} ImageOptions
  *
  * @property {string} [name] - A human-readable name for the FITS image
  * @property {Function} [successCallback] - A callback executed when the FITS has been loaded
@@ -47,31 +47,32 @@ import { HiPSCache } from "./DefaultHiPSCache";
  * @property {number} [saturation=0.0] - The saturation value for the color configuration.
  * @property {number} [brightness=0.0] - The brightness value for the color configuration.
  * @property {number} [contrast=0.0] - The contrast value for the color configuration.
+ * @property {Object} [wcs] - an object describing the WCS of the image. In case of a fits image
+ * this property will be ignored as the WCS taken will be the one present in the fits file.
+ * @property {number} [imgFormat='fits'] - The image format of the image to load.
  */
 
-export let ImageFITS = (function () {
+export let Image = (function () {
     /**
      * The object describing a FITS image
      *
      * @class
-     * @constructs ImageFITS
+     * @constructs Image
      *
      * @param {string} url - Mandatory unique identifier for the layer. Can be an arbitrary name
-     * @param {ImageFITSOptions} [options] - The option for the survey
+     * @param {ImageOptions} [options] - The option for the survey
      *
      */
-    function ImageFITS(url, options) {
+    function Image(url, options) {
         // Name of the layer
         this.layer = null;
         this.added = false;
         // Set it to a default value
         this.url = url;
         this.id = url;
-        this.ext = options && options.ext;
         this.name = (options && options.name) || this.url;
-
-        this.imgFormat = "fits";
-        this.formats = ["fits"];
+        this.imgFormat = (options && options.imgFormat) || "fits";
+        this.formats = [this.imgFormat];
         // callbacks
         this.successCallback = options && options.successCallback;
         this.errorCallback = options && options.errorCallback;
@@ -81,29 +82,29 @@ export let ImageFITS = (function () {
             options.stretch = options.stretch || "asinh";
         }*/
         this.colorCfg = new ColorCfg(options);
+        this.options = options;
 
         let self = this;
-
         this.query = Promise.resolve(self);
     }
 
-    ImageFITS.prototype._saveInCache = function () {
+    Image.prototype._saveInCache = function () {
         if (HiPSCache.contains(self.id)) {
             HiPSCache.append(this.id, this);
         }
     };
 
     // A cache storing directly the images to not query for the properties each time
-    //ImageFITS.cache = {};
+    //Image.cache = {};
 
-    ImageFITS.prototype.setView = function (view) {
+    Image.prototype.setView = function (view) {
         this.view = view;
 
         this._saveInCache();
     };
 
     // @api
-    ImageFITS.prototype.setOpacity = function (opacity) {
+    Image.prototype.setOpacity = function (opacity) {
         let self = this;
         this._updateMetadata(() => {
             self.colorCfg.setOpacity(opacity);
@@ -111,54 +112,54 @@ export let ImageFITS = (function () {
     };
 
     // @api
-    ImageFITS.prototype.setBlendingConfig = function (additive = false) {
+    Image.prototype.setBlendingConfig = function (additive = false) {
         this._updateMetadata(() => {
             this.colorCfg.setBlendingConfig(additive);
         });
     };
 
     // @api
-    ImageFITS.prototype.setColormap = function (colormap, options) {
+    Image.prototype.setColormap = function (colormap, options) {
         this._updateMetadata(() => {
             this.colorCfg.setColormap(colormap, options);
         });
     };
 
     // @api
-    ImageFITS.prototype.setCuts = function (lowCut, highCut) {
+    Image.prototype.setCuts = function (lowCut, highCut) {
         this._updateMetadata(() => {
             this.colorCfg.setCuts(lowCut, highCut);
         });
     };
 
     // @api
-    ImageFITS.prototype.setGamma = function (gamma) {
+    Image.prototype.setGamma = function (gamma) {
         this._updateMetadata(() => {
             this.colorCfg.setGamma(gamma);
         });
     };
 
     // @api
-    ImageFITS.prototype.setSaturation = function (saturation) {
+    Image.prototype.setSaturation = function (saturation) {
         this._updateMetadata(() => {
             this.colorCfg.setSaturation(saturation);
         });
     };
 
-    ImageFITS.prototype.setBrightness = function (brightness) {
+    Image.prototype.setBrightness = function (brightness) {
         this._updateMetadata(() => {
             this.colorCfg.setBrightness(brightness);
         });
     };
 
-    ImageFITS.prototype.setContrast = function (contrast) {
+    Image.prototype.setContrast = function (contrast) {
         this._updateMetadata(() => {
             this.colorCfg.setContrast(contrast);
         });
     };
 
     // Private method for updating the view with the new meta
-    ImageFITS.prototype._updateMetadata = function (callback) {
+    Image.prototype._updateMetadata = function (callback) {
         if (callback) {
             callback();
         }
@@ -184,92 +185,124 @@ export let ImageFITS = (function () {
         }
     };
 
-    ImageFITS.prototype.add = function (layer) {
+    Image.prototype.add = function (layer) {
         this.layer = layer;
 
         let self = this;
 
-        const promise = self.view.wasm
-            .addImageFITS({
-                layer: self.layer,
-                url: self.url,
-                meta: {
-                    ...this.colorCfg.get(),
-                    longitudeReversed: false,
-                    imgFormat: this.imgFormat,
-                },
-            })
-            .then((imagesParams) => {
-                // There is at least one entry in imageParams
-                self.added = true;
+        let promise;
+        if (this.imgFormat === 'fits') {
+            let id = this.url;
+            promise = fetch(this.url)
+                .then((resp) => resp.body)
+                .then((readableStream) => {
+                    return self.view.wasm
+                        .addImageFITS(
+                            id,
+                            readableStream,
+                            {
+                                ...self.colorCfg.get(),
+                                longitudeReversed: false,
+                                imgFormat: self.imgFormat,
+                            },
+                            layer
+                        )
+                })
+        } else if (this.imgFormat === 'jpg' || this.imgFormat === 'jpeg') {
+            let img = document.createElement('img');
 
-                self.children = [];
+            promise =
+                new Promise((resolve, reject) => {
+                    img.src = Aladin.JSONP_PROXY + '?url=' + this.url;
+                    img.crossOrigin = "Anonymous";
+                    img.onload = () => {
+                        var canvas = document.createElement("canvas");
+        
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                    
+                        // Copy the image contents to the canvas
+                        var ctx = canvas.getContext("2d");
+                        ctx.drawImage(img, 0, 0, img.width, img.height);
+        
+                        const imageData = ctx.getImageData(0, 0, img.width, img.height);
 
-                let hduIdx = 0;
-                imagesParams.forEach((imageParams) => {
-                    // This fits has HDU extensions
-                    let image = new ImageFITS(imageParams.url, {
-                        name: self.name,
-                        ext: hduIdx.toString()
-                    });
+                        const blob = new Blob([imageData.data]);
+                        const stream = blob.stream(1024);
 
-                    // Set the layer corresponding to the onein the backend
-                    image.layer = imageParams.layer;
-                    image.added = true;
-                    image.setView(self.view);
-                    // deep copy of the color object of self
-                    image.colorCfg = Utils.deepCopy(self.colorCfg);
-                    // Set the automatic computed cuts
-                    image.setCuts(
-                        imageParams.automatic_min_cut,
-                        imageParams.automatic_max_cut
-                    );
-
-                    image.ra = imageParams.centered_fov.ra;
-                    image.dec = imageParams.centered_fov.dec;
-                    image.fov = imageParams.centered_fov.fov;
-
-                    if (!self.ra) {
-                        self.ra = image.ra;
+                        return resolve(stream)
                     }
-                    if (!self.dec) {
-                        self.dec = image.dec;
+        
+                    img.onerror = () => {
+                        return reject('Error parsing img ' + self.url)
                     }
-                    if (!self.fov) {
-                        self.fov = image.fov;
-                    }
+                })
+                .then((readableStream) => {
+                    let wcs = self.options && self.options.wcs;
+                    wcs.NAXIS1 = wcs.NAXIS1 || img.width;
+                    wcs.NAXIS2 = wcs.NAXIS2 || img.height;
 
-                    self.children.push(image);
+                    return self.view.wasm
+                        .addImageWithWCS(
+                            readableStream,
+                            wcs,
+                            {
+                                ...self.colorCfg.get(),
+                                longitudeReversed: false,
+                                imgFormat: self.imgFormat,
+                            },
+                            layer
+                        )
+                })
+                .finally(() => {
+                    img.remove();
+                })
+        } else {
+            console.warn(`Image format: ${this.imgFormat} not supported`);
+            promise = Promise.reject();
+        };
 
-                    hduIdx += 1;
-                });
+        promise = promise.then((imageParams) => {
+            // There is at least one entry in imageParams
+            self.added = true;
+            self.setView(self.view);
 
-                // Call the success callback on the first HDU image parsed
-                if (self.successCallback) {
-                    self.successCallback(
-                        self.children[0].ra,
-                        self.children[0].dec,
-                        self.children[0].fov,
-                        self.children[0]
-                    );
-                }
+            // Set the automatic computed cuts
+            self.setCuts(
+                imageParams.min_cut,
+                imageParams.max_cut
+            );
 
-                return self;
-            })
-            .catch((e) => {
-                // This error result from a promise
-                // If I throw it, it will not be catched because
-                // it is run async
-                self.view.removeImageLayer(layer);
+            self.ra = imageParams.centered_fov.ra;
+            self.dec = imageParams.centered_fov.dec;
+            self.fov = imageParams.centered_fov.fov;
 
-                return Promise.reject(e);
-            });
+            // Call the success callback on the first HDU image parsed
+            if (self.successCallback) {
+                self.successCallback(
+                    self.ra,
+                    self.dec,
+                    self.fov,
+                    self
+                );
+            }
+
+            return self;
+        })
+        .catch((e) => {
+            // This error result from a promise
+            // If I throw it, it will not be catched because
+            // it is run async
+            self.view.removeImageLayer(layer);
+
+            return Promise.reject(e);
+        });
 
         return promise;
     };
 
     // @api
-    ImageFITS.prototype.toggle = function () {
+    Image.prototype.toggle = function () {
         if (this.colorCfg.getOpacity() != 0.0) {
             this.colorCfg.setOpacity(0.0);
         } else {
@@ -278,12 +311,12 @@ export let ImageFITS = (function () {
     };
 
     // FITS images does not mean to be used for storing planetary data
-    ImageFITS.prototype.isPlanetaryBody = function () {
+    Image.prototype.isPlanetaryBody = function () {
         return false;
     };
 
     // @api
-    ImageFITS.prototype.focusOn = function () {
+    Image.prototype.focusOn = function () {
         // ensure the fits have been parsed
         if (this.added) {
             this.view.aladin.gotoRaDec(this.ra, this.dec);
@@ -292,35 +325,35 @@ export let ImageFITS = (function () {
     };
 
     // @oldapi
-    ImageFITS.prototype.setAlpha = ImageFITS.prototype.setOpacity;
+    Image.prototype.setAlpha = Image.prototype.setOpacity;
 
-    ImageFITS.prototype.setColorCfg = function (colorCfg) {
+    Image.prototype.setColorCfg = function (colorCfg) {
         this._updateMetadata(() => {
             this.colorCfg = colorCfg;
         });
     };
 
     // @api
-    ImageFITS.prototype.getColorCfg = function () {
+    Image.prototype.getColorCfg = function () {
         return this.colorCfg;
     };
 
     // @api
-    ImageFITS.prototype.getCuts = function () {
+    Image.prototype.getCuts = function () {
         return this.colorCfg.getCuts();
     };
 
     // @api
-    ImageFITS.prototype.getOpacity = function () {
+    Image.prototype.getOpacity = function () {
         return this.colorCfg.getOpacity();
     };
 
-    ImageFITS.prototype.getAlpha = ImageFITS.prototype.getOpacity;
+    Image.prototype.getAlpha = Image.prototype.getOpacity;
 
     // @api
-    ImageFITS.prototype.readPixel = function (x, y) {
+    Image.prototype.readPixel = function (x, y) {
         return this.view.wasm.readPixel(x, y, this.layer);
     };
 
-    return ImageFITS;
+    return Image;
 })();

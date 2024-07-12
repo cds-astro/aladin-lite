@@ -1,8 +1,8 @@
+use cgmath::Vector4;
 use std::ops::RangeInclusive;
 use wcs::ImgXY;
 
 use crate::camera::CameraViewPort;
-use crate::math::angle::ToAngle;
 use crate::math::projection::ProjectionType;
 use crate::renderable::utils::index_patch::CCWCheckPatchIndexIter;
 use al_api::coo_system::CooSystem;
@@ -173,9 +173,7 @@ pub fn vertices(
     num_tri_per_tex_patch: u64,
     camera: &CameraViewPort,
     wcs: &WCS,
-    image_coo_sys: CooSystem,
     projection: &ProjectionType,
-    towards_east: bool,
 ) -> (Vec<f32>, Vec<f32>, Vec<u16>, Vec<u32>) {
     let (x_it, y_it) = get_grid_params(xy_min, xy_max, max_tex_size, num_tri_per_tex_patch);
 
@@ -188,15 +186,11 @@ pub fn vertices(
     let pos = y_it
         .map(|(y, uvy)| {
             x_it.clone().map(move |(x, uvx)| {
-                let ndc = if let Some(lonlat) = wcs.unproj(&ImgXY::new(x as f64, y as f64)) {
-                    let lon = lonlat.lon();
-                    let lat = lonlat.lat();
-
-                    let xyzw = crate::math::lonlat::radec_to_xyzw(lon.to_angle(), lat.to_angle());
+                let ndc = if let Some(xyz) = wcs.unproj_xyz(&ImgXY::new(x as f64, y as f64)) {
                     let xyzw = crate::coosys::apply_coo_system(
                         CooSystem::ICRS,
                         camera.get_coo_system(),
-                        &xyzw,
+                        &Vector4::new(xyz.y(), xyz.z(), xyz.x(), 1.0),
                     );
 
                     projection
@@ -220,14 +214,8 @@ pub fn vertices(
     let mut num_indices = vec![];
     for idx_x_range in &idx_x_ranges {
         for idx_y_range in &idx_y_ranges {
-            let build_indices_iter = CCWCheckPatchIndexIter::new(
-                idx_x_range,
-                idx_y_range,
-                num_x_vertices,
-                &pos,
-                camera,
-                towards_east,
-            );
+            let build_indices_iter =
+                CCWCheckPatchIndexIter::new(idx_x_range, idx_y_range, num_x_vertices, &pos, camera);
 
             let patch_indices = build_indices_iter
                 .flatten()

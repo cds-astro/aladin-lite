@@ -68,11 +68,6 @@ export let MeasurementTable = (function() {
                 title: table.name,
                 label,
                 content,
-                /*cssStyle: {
-                    backgroundColor: rgbColor,
-                    color: labelColor,
-                    padding: '2px',
-                }*/
             }
         });
 

@@ -1,14 +1,13 @@
+pub mod cuts;
 pub mod grid;
 pub mod subdivide_texture;
 
-use std::cmp::Ordering;
 use std::fmt::Debug;
 use std::marker::Unpin;
 use std::vec;
 
 use al_api::coo_system::CooSystem;
-use cgmath::Vector3;
-use cgmath::Zero;
+use cgmath::Vector4;
 use futures::stream::TryStreamExt;
 use futures::AsyncRead;
 
@@ -29,13 +28,10 @@ use al_core::WebGlContext;
 use al_core::{Texture2D, VertexArrayObject};
 
 use crate::camera::CameraViewPort;
-use crate::math::angle::ToAngle;
-use crate::math::lonlat::LonLat;
+use crate::math::sph_geom::region::Region;
 use crate::Colormaps;
-use crate::LonLatT;
 use crate::ProjectionType;
 use crate::ShaderManager;
-use cgmath::InnerSpace;
 
 use std::ops::Range;
 
@@ -52,12 +48,10 @@ pub struct Image {
 
     /// Parameters extracted from the fits
     wcs: WCS,
-    image_coo_sys: CooSystem,
-    blank: f32,
-    scale: f32,
-    offset: f32,
-    pub cuts: Range<f32>,
-
+    blank: Option<f32>,
+    scale: Option<f32>,
+    offset: Option<f32>,
+    cuts: Option<Range<f32>>,
     /// The center of the fits
     centered_fov: CenteredFoV,
 
@@ -70,222 +64,51 @@ pub struct Image {
     /// The maximum webgl supported texture size
     max_tex_size: usize,
 
-    // Is the increasing longitude on the image goes towards the east ?
-    towards_east: bool,
+    reg: Region,
+    // The coo system in which the polygonal region has been defined
+    coo_sys: CooSystem,
 }
 
 use fitsrs::hdu::header::extension;
 use fitsrs::hdu::AsyncHDU;
 use futures::io::BufReader;
-
-pub fn compute_automatic_cuts<T>(
-    slice: &mut [T],
-    first_percent: i32,
-    second_percent: i32,
-) -> Range<T>
-where
-    T: PartialOrd + Copy,
-{
-    let n = slice.len();
-    let first_pct_idx = ((first_percent as f32) * 0.01 * (n as f32)) as usize;
-    let last_pct_idx = ((second_percent as f32) * 0.01 * (n as f32)) as usize;
-
-    let min_val = {
-        let (_, min_val, _) = slice.select_nth_unstable_by(first_pct_idx, |a, b| {
-            a.partial_cmp(b).unwrap_or(Ordering::Greater)
-        });
-        *min_val
-    };
-    let max_val = {
-        let (_, max_val, _) = slice.select_nth_unstable_by(last_pct_idx, |a, b| {
-            a.partial_cmp(b).unwrap_or(Ordering::Greater)
-        });
-        *max_val
-    };
-
-    min_val..max_val
-}
-
+use futures::AsyncReadExt;
 impl Image {
-    pub async fn from_fits_hdu_async<'a, R>(
+    pub async fn from_reader_and_wcs<R, F>(
         gl: &WebGlContext,
-        hdu: &mut AsyncHDU<'a, BufReader<R>, extension::image::Image>,
-        //reader: &'a mut BufReader<R>,
+        reader: R,
+        wcs: WCS,
+        mut scale: Option<f32>,
+        mut offset: Option<f32>,
+        mut blank: Option<f32>,
+        // Coo sys of the view
+        coo_sys: CooSystem,
     ) -> Result<Self, JsValue>
     where
-        R: AsyncRead + Unpin + Debug + 'a,
+        F: ImageFormat,
+        R: AsyncReadExt + Unpin,
     {
-        // Load the fits file
-        let header = hdu.get_header();
+        let (width, height) = wcs.img_dimensions();
 
-        let naxis = header.get_xtension().get_naxis();
-
-        if naxis == 0 {
-            return Err(JsValue::from_str("The fits is empty, NAXIS=0"));
-        }
         let max_tex_size =
             WebGl2RenderingContext::get_parameter(gl, WebGl2RenderingContext::MAX_TEXTURE_SIZE)?
                 .as_f64()
                 .unwrap_or(4096.0) as usize;
+        let (textures, mut cuts) =
+            subdivide_texture::build::<F, R>(gl, width, height, reader, max_tex_size, blank)
+                .await?;
 
-        let scale = header
-            .get_parsed::<f64>(b"BSCALE  ")
-            .unwrap_or(Ok(1.0))
-            .unwrap() as f32;
-        let offset = header
-            .get_parsed::<f64>(b"BZERO   ")
-            .unwrap_or(Ok(0.0))
-            .unwrap() as f32;
-        let blank = header
-            .get_parsed::<f64>(b"BLANK   ")
-            .unwrap_or(Ok(std::f64::NAN))
-            .unwrap() as f32;
-
-        // Create a WCS from a specific header unit
-        let wcs = WCS::from_fits_header(&header)
-            .map_err(|e| JsValue::from_str(&format!("WCS parsing error: reason: {}", e)))?;
-
-        let image_coo_sys = match wcs.coo_system() {
-            wcs::coo_system::CooSystem::GALACTIC => CooSystem::GAL,
-            _ => CooSystem::ICRS,
-        };
-
-        let (w, h) = wcs.img_dimensions();
-        let width = w as f64;
-        let height = h as f64;
-
-        let data = hdu.get_data_mut();
-
-        let (textures, channel, mut cuts) = match data {
-            stream::Data::U8(data) => {
-                let reader = data.map_ok(|v| v[0].to_le_bytes()).into_async_read();
-
-                let (textures, samples) =
-                    subdivide_texture::build::<R8UI, _>(gl, w, h, reader, max_tex_size).await?;
-
-                let mut samples = samples
-                    .into_iter()
-                    .filter_map(|v| if v == (blank as u8) { None } else { Some(v) })
-                    .collect::<Vec<_>>();
-
-                let cuts = compute_automatic_cuts(&mut samples, 1, 99);
-                (
-                    textures,
-                    ChannelType::R8UI,
-                    (cuts.start as f32)..(cuts.end as f32),
-                )
-            }
-            stream::Data::I16(data) => {
-                let reader = data.map_ok(|v| v[0].to_le_bytes()).into_async_read();
-
-                let (textures, samples) =
-                    subdivide_texture::build::<R16I, _>(gl, w, h, reader, max_tex_size).await?;
-
-                let mut samples = samples
-                    .into_iter()
-                    .filter_map(|v| if v == (blank as i16) { None } else { Some(v) })
-                    .collect::<Vec<_>>();
-
-                let cuts = compute_automatic_cuts(&mut samples, 1, 99);
-                (
-                    textures,
-                    ChannelType::R16I,
-                    (cuts.start as f32)..(cuts.end as f32),
-                )
-            }
-            stream::Data::I32(data) => {
-                let reader = data.map_ok(|v| v[0].to_le_bytes()).into_async_read();
-
-                let (textures, samples) =
-                    subdivide_texture::build::<R32I, _>(gl, w, h, reader, max_tex_size).await?;
-
-                let mut samples = samples
-                    .into_iter()
-                    .filter_map(|v| if v == (blank as i32) { None } else { Some(v) })
-                    .collect::<Vec<_>>();
-
-                let cuts = compute_automatic_cuts(&mut samples, 1, 99);
-                (
-                    textures,
-                    ChannelType::R32I,
-                    (cuts.start as f32)..(cuts.end as f32),
-                )
-            }
-            stream::Data::I64(data) => {
-                let reader = data
-                    .map_ok(|v| {
-                        let v = v[0] as i32;
-                        v.to_le_bytes()
-                    })
-                    .into_async_read();
-
-                let (textures, samples) =
-                    subdivide_texture::build::<R32I, _>(gl, w, h, reader, max_tex_size).await?;
-
-                let mut samples = samples
-                    .into_iter()
-                    .filter_map(|v| {
-                        if v == (blank as i32) {
-                            None
-                        } else {
-                            Some(v as i32)
-                        }
-                    })
-                    .collect::<Vec<_>>();
-
-                let cuts = compute_automatic_cuts(&mut samples, 1, 99);
-                (
-                    textures,
-                    ChannelType::R32I,
-                    (cuts.start as f32)..(cuts.end as f32),
-                )
-            }
-            stream::Data::F32(data) => {
-                let reader = data.map_ok(|v| v[0].to_le_bytes()).into_async_read();
-                let (textures, samples) =
-                    subdivide_texture::build::<R32F, _>(gl, w, h, reader, max_tex_size).await?;
-
-                let mut samples = samples
-                    .into_iter()
-                    .filter_map(|v| {
-                        if v == blank || v.is_nan() || v.is_zero() {
-                            None
-                        } else {
-                            Some(v)
-                        }
-                    })
-                    .collect::<Vec<_>>();
-
-                let cuts = compute_automatic_cuts(&mut samples, 1, 99);
-                (textures, ChannelType::R32F, cuts)
-            }
-            stream::Data::F64(data) => {
-                let reader = data
-                    .map_ok(|v| {
-                        let v = v[0] as f32;
-                        v.to_le_bytes()
-                    })
-                    .into_async_read();
-
-                let (textures, samples) =
-                    subdivide_texture::build::<R32F, _>(gl, w, h, reader, max_tex_size).await?;
-
-                let mut samples = samples
-                    .into_iter()
-                    .filter_map(|v| {
-                        if v == blank || v.is_nan() || v.is_zero() {
-                            None
-                        } else {
-                            Some(v)
-                        }
-                    })
-                    .collect::<Vec<_>>();
-
-                let cuts = compute_automatic_cuts(&mut samples, 1, 99);
-
-                (textures, ChannelType::R32F, cuts)
-            }
-        };
+        // apply bscale to the cuts
+        if F::NUM_CHANNELS == 1 {
+            offset = offset.or(Some(0.0));
+            scale = scale.or(Some(1.0));
+            blank = blank.or(Some(std::f32::NAN));
+            cuts = cuts.map(|cuts| {
+                let start = cuts.start * scale.unwrap() + offset.unwrap();
+                let end = cuts.end * scale.unwrap() + offset.unwrap();
+                start..end
+            });
+        }
 
         let num_indices = vec![];
         let indices = vec![];
@@ -316,80 +139,57 @@ impl Image {
                     VecData::<u16>(&indices),
                 )
                 .unbind();
-            #[cfg(feature = "webgl1")]
-            vao.bind_for_update()
-                .add_array_buffer_single(
-                    2,
-                    "ndc_pos",
-                    WebGl2RenderingContext::DYNAMIC_DRAW,
-                    VecData::<f32>(&pos),
-                )
-                .add_array_buffer_single(
-                    2,
-                    "uv",
-                    WebGl2RenderingContext::DYNAMIC_DRAW,
-                    VecData::<f32>(&uv),
-                )
-                // Set the element buffer
-                .add_element_buffer(
-                    WebGl2RenderingContext::DYNAMIC_DRAW,
-                    VecData::<u16>(&indices),
-                )
-                .unbind();
 
             vao
         };
-
-        // apply bscale to the cuts
-        cuts.start = cuts.start * scale + offset;
-        cuts.end = cuts.end * scale + offset;
-
         let gl = gl.clone();
 
         // Compute the fov
         let center = wcs
-            .unproj_lonlat(&ImgXY::new(width / 2.0, height / 2.0))
+            .unproj_lonlat(&ImgXY::new(width as f64 / 2.0, height as f64 / 2.0))
             .ok_or(JsValue::from_str("(w / 2, h / 2) px cannot be unprojected"))?;
-        let top_lonlat = wcs
-            .unproj_lonlat(&ImgXY::new(width / 2.0, height))
-            .ok_or(JsValue::from_str("(w / 2, h) px cannot be unprojected"))?;
-        let left_lonlat = wcs
-            .unproj_lonlat(&ImgXY::new(0.0, height / 2.0))
-            .ok_or(JsValue::from_str("(0, h / 2) px cannot be unprojected"))?;
-
-        let a_xyz: Vector3<f64> = crate::coosys::apply_coo_system(
+        let center_xyz = center.to_xyz();
+        let inside = crate::coosys::apply_coo_system(
             CooSystem::ICRS,
-            image_coo_sys,
-            &LonLatT::new(left_lonlat.lon().to_angle(), left_lonlat.lat().to_angle()).vector(),
-        )
-        .truncate();
-        let b_xyz = crate::coosys::apply_coo_system(
-            CooSystem::ICRS,
-            image_coo_sys,
-            &LonLatT::new(center.lon().to_angle(), center.lat().to_angle()).vector(),
-        )
-        .truncate();
+            coo_sys,
+            &Vector4::new(center_xyz.y(), center_xyz.z(), center_xyz.x(), 1.0),
+        );
 
-        let towards_east = a_xyz.cross(b_xyz).dot(Vector3::unit_y()) <= 0.0;
+        let vertices = [
+            wcs.unproj_lonlat(&ImgXY::new(0.0, 0.0))
+                .ok_or(JsValue::from_str("(0, 0) does not lie in the sky"))?,
+            wcs.unproj_lonlat(&ImgXY::new(width as f64 - 1.0, 0.0))
+                .ok_or(JsValue::from_str("(w - 1, 0) does not lie in the sky"))?,
+            wcs.unproj_lonlat(&ImgXY::new(width as f64 - 1.0, height as f64 - 1.0))
+                .ok_or(JsValue::from_str("(w - 1, h - 1) does not lie in the sky"))?,
+            wcs.unproj_lonlat(&ImgXY::new(0.0, height as f64 - 1.0))
+                .ok_or(JsValue::from_str("(0, h - 1) does not lie in the sky"))?,
+        ]
+        .iter()
+        .map(|lonlat| {
+            let xyz = lonlat.to_xyz();
 
-        let half_fov1 =
-            crate::math::lonlat::ang_between_lonlat(top_lonlat.into(), center.clone().into());
-        let half_fov2 =
-            crate::math::lonlat::ang_between_lonlat(left_lonlat.into(), center.clone().into());
+            crate::coosys::apply_coo_system(
+                CooSystem::ICRS,
+                coo_sys,
+                &Vector4::new(xyz.y(), xyz.z(), xyz.x(), 1.0),
+            )
+        })
+        .collect::<Vec<_>>();
 
-        let half_fov = half_fov1.max(half_fov2);
+        let reg = Region::from_vertices(&vertices, &inside);
 
         // ra and dec must be given in ICRS coo system, which is the case because wcs returns
         // only icrs coo
         let centered_fov = CenteredFoV {
             ra: center.lon().to_degrees(),
             dec: center.lat().to_degrees(),
-            fov: 2.0 * half_fov.to_degrees(),
+            fov: wcs.field_of_view().0,
         };
 
         let idx_tex = (0..textures.len()).collect();
 
-        let image = Image {
+        Ok(Image {
             gl,
 
             // The positions
@@ -402,25 +202,158 @@ impl Image {
             // Metadata extracted from the fits
             wcs,
             // CooSystem of the wcs, this should belong to the WCS
-            image_coo_sys,
             scale,
             offset,
             blank,
-            towards_east,
 
             // Centered field of view allowing to locate the fits
             centered_fov,
 
             // Texture parameters
-            channel,
+            channel: F::CHANNEL_TYPE,
             textures,
             cuts,
             max_tex_size,
             // Indices of textures that must be drawn
             idx_tex,
-        };
+            // The polygonal region in the sky
+            reg,
+            // The coo system in which the polygonal region has been defined
+            coo_sys,
+        })
+    }
 
-        Ok(image)
+    pub fn get_cuts(&self) -> &Option<Range<f32>> {
+        &self.cuts
+    }
+
+    pub async fn from_fits_hdu_async<'a, R>(
+        gl: &WebGlContext,
+        hdu: &mut AsyncHDU<'a, BufReader<R>, extension::image::Image>,
+        coo_sys: CooSystem,
+        //reader: &'a mut BufReader<R>,
+    ) -> Result<Self, JsValue>
+    where
+        R: AsyncRead + Unpin + Debug + 'a,
+    {
+        // Load the fits file
+        let header = hdu.get_header();
+
+        let scale = header
+            .get_parsed::<f64>(b"BSCALE  ")
+            .unwrap_or(Ok(1.0))
+            .unwrap() as f32;
+        let offset = header
+            .get_parsed::<f64>(b"BZERO   ")
+            .unwrap_or(Ok(0.0))
+            .unwrap() as f32;
+        let blank = header
+            .get_parsed::<f64>(b"BLANK   ")
+            .unwrap_or(Ok(std::f64::NAN))
+            .unwrap() as f32;
+
+        // Create a WCS from a specific header unit
+        let wcs = WCS::from_fits_header(&header)
+            .map_err(|e| JsValue::from_str(&format!("WCS parsing error: reason: {}", e)))?;
+
+        let data = hdu.get_data_mut();
+
+        match data {
+            stream::Data::U8(data) => {
+                let reader = data.map_ok(|v| v[0].to_le_bytes()).into_async_read();
+
+                Self::from_reader_and_wcs::<_, R8UI>(
+                    gl,
+                    reader,
+                    wcs,
+                    Some(scale),
+                    Some(offset),
+                    Some(blank),
+                    coo_sys,
+                )
+                .await
+            }
+            stream::Data::I16(data) => {
+                let reader = data.map_ok(|v| v[0].to_le_bytes()).into_async_read();
+
+                Self::from_reader_and_wcs::<_, R16I>(
+                    gl,
+                    reader,
+                    wcs,
+                    Some(scale),
+                    Some(offset),
+                    Some(blank),
+                    coo_sys,
+                )
+                .await
+            }
+            stream::Data::I32(data) => {
+                let reader = data.map_ok(|v| v[0].to_le_bytes()).into_async_read();
+
+                Self::from_reader_and_wcs::<_, R32I>(
+                    gl,
+                    reader,
+                    wcs,
+                    Some(scale),
+                    Some(offset),
+                    Some(blank),
+                    coo_sys,
+                )
+                .await
+            }
+            stream::Data::I64(data) => {
+                let reader = data
+                    .map_ok(|v| {
+                        let v = v[0] as i32;
+                        v.to_le_bytes()
+                    })
+                    .into_async_read();
+
+                Self::from_reader_and_wcs::<_, R32I>(
+                    gl,
+                    reader,
+                    wcs,
+                    Some(scale),
+                    Some(offset),
+                    Some(blank),
+                    coo_sys,
+                )
+                .await
+            }
+            stream::Data::F32(data) => {
+                let reader = data.map_ok(|v| v[0].to_le_bytes()).into_async_read();
+
+                Self::from_reader_and_wcs::<_, R32F>(
+                    gl,
+                    reader,
+                    wcs,
+                    Some(scale),
+                    Some(offset),
+                    Some(blank),
+                    coo_sys,
+                )
+                .await
+            }
+            stream::Data::F64(data) => {
+                let reader = data
+                    .map_ok(|v| {
+                        let v = v[0] as f32;
+                        v.to_le_bytes()
+                    })
+                    .into_async_read();
+
+                Self::from_reader_and_wcs::<_, R32F>(
+                    gl,
+                    reader,
+                    wcs,
+                    Some(scale),
+                    Some(offset),
+                    Some(blank),
+                    coo_sys,
+                )
+                .await
+            }
+        }
     }
 
     pub fn recompute_vertices(
@@ -431,7 +364,7 @@ impl Image {
         let (width, height) = self.wcs.img_dimensions();
         let width = width as f64;
         let height = height as f64;
-
+        /*
         // Determine the x and y pixels ranges that must be drawn into the screen
         let (x_mesh_range, y_mesh_range) = if let Some(vertices) = camera.get_vertices() {
             // The field of view is defined, so we can compute its projection into the wcs
@@ -439,31 +372,40 @@ impl Image {
                 std::f64::INFINITY..std::f64::NEG_INFINITY,
                 std::f64::INFINITY..std::f64::NEG_INFINITY,
             );
-
-            for vertex in vertices.iter() {
-                let xyzw = crate::coosys::apply_coo_system(
+            use crate::math::lonlat::LonLat;
+            for xyzw in vertices.iter() {
+                /*let xyzw = crate::coosys::apply_coo_system(
                     camera.get_coo_system(),
                     CooSystem::ICRS,
                     vertex,
-                );
+                );*/
 
                 let lonlat = xyzw.lonlat();
 
-                let lon = lonlat.lon();
-                let lat = lonlat.lat();
+                let mut lon = lonlat.lon().to_radians();
+                let lat = lonlat.lat().to_radians();
+                use crate::math::angle::PI;
+                if lon > PI {
+                    lon -= TWICE_PI;
+                }
 
-                let img_vert = self
-                    .wcs
-                    .proj(&wcs::LonLat::new(lon.to_radians(), lat.to_radians()));
+                if let Some(xy) = self.wcs.proj_xyz(&(xyzw.z, xyzw.x, xyzw.y)) {
+                    //dbg!((img_vert.x(), img_vert.y()));
+                    x_fov_proj_range.start = x_fov_proj_range.start.min(xy.x());
+                    x_fov_proj_range.end = x_fov_proj_range.end.max(xy.x());
 
-                if let Some(img_vert) = img_vert {
-                    x_fov_proj_range.start = x_fov_proj_range.start.min(img_vert.x());
-                    x_fov_proj_range.end = x_fov_proj_range.end.max(img_vert.x());
-
-                    y_fov_proj_range.start = y_fov_proj_range.start.min(img_vert.y());
-                    y_fov_proj_range.end = y_fov_proj_range.end.max(img_vert.y());
+                    y_fov_proj_range.start = y_fov_proj_range.start.min(xy.y());
+                    y_fov_proj_range.end = y_fov_proj_range.end.max(xy.y());
                 }
             }
+
+            console_log(&format!(
+                "fov: {:?}",
+                (x_fov_proj_range.clone(), y_fov_proj_range.clone())
+            ));
+
+            let x_fov_proj_range = (0.0..width);
+            let y_fov_proj_range = (0.0..height);
 
             // Check if the FoV is overlapping the image
             // If not we can exit this update faster
@@ -515,11 +457,29 @@ impl Image {
             self.idx_tex = (0..self.textures.len()).collect();
 
             (0.0..width, 0.0..height)
-        };
+        };*/
 
-        const MAX_NUM_TRI_PER_SIDE_IMAGE: usize = 25;
+        let (x_mesh_range, y_mesh_range) =
+            if camera.get_field_of_view().intersects_region(&self.reg) {
+                self.idx_tex = (0..self.textures.len()).collect();
+
+                (0.0..width, 0.0..height)
+            } else {
+                // out of field of view
+                self.idx_tex.clear();
+
+                // terminate here
+                return Ok(());
+            };
+
+        /*console_log(&format!(
+            "{:?}",
+            (x_mesh_range.clone(), y_mesh_range.clone())
+        ));*/
+
+        const MAX_NUM_TRI_PER_SIDE_IMAGE: usize = 15;
         let num_vertices =
-            ((self.centered_fov.fov / 360.0) * (MAX_NUM_TRI_PER_SIDE_IMAGE as f64)).ceil() as u64;
+            ((self.centered_fov.fov / 180.0) * (MAX_NUM_TRI_PER_SIDE_IMAGE as f64)).ceil() as u64;
 
         let (pos, uv, indices, num_indices) = grid::vertices(
             &(x_mesh_range.start, y_mesh_range.start),
@@ -528,10 +488,9 @@ impl Image {
             num_vertices,
             camera,
             &self.wcs,
-            self.image_coo_sys,
             projection,
-            self.towards_east,
         );
+
         self.pos = pos;
         self.uv = uv;
 
@@ -569,9 +528,55 @@ impl Image {
         camera: &CameraViewPort,
         projection: &ProjectionType,
     ) -> Result<(), JsValue> {
-        if camera.has_moved() {
-            self.recompute_vertices(camera, projection)?;
+        if self.coo_sys != camera.get_coo_system() {
+            self.coo_sys = camera.get_coo_system();
+
+            let (width, height) = self.wcs.img_dimensions();
+
+            // the camera coo system is not sync with the one in which the region
+            // has been defined
+            // let's redefine the region
+            let center = self
+                .wcs
+                .unproj_lonlat(&ImgXY::new(width as f64 / 2.0, height as f64 / 2.0))
+                .ok_or(JsValue::from_str("(w / 2, h / 2) px cannot be unprojected"))?;
+            let center_xyz = center.to_xyz();
+            let inside = crate::coosys::apply_coo_system(
+                CooSystem::ICRS,
+                self.coo_sys,
+                &Vector4::new(center_xyz.y(), center_xyz.z(), center_xyz.x(), 1.0),
+            );
+
+            let vertices = [
+                self.wcs
+                    .unproj_lonlat(&ImgXY::new(0.0, 0.0))
+                    .ok_or(JsValue::from_str("(0, 0) does not lie in the sky"))?,
+                self.wcs
+                    .unproj_lonlat(&ImgXY::new(width as f64 - 1.0, 0.0))
+                    .ok_or(JsValue::from_str("(w - 1, 0) does not lie in the sky"))?,
+                self.wcs
+                    .unproj_lonlat(&ImgXY::new(width as f64 - 1.0, height as f64 - 1.0))
+                    .ok_or(JsValue::from_str("(w - 1, h - 1) does not lie in the sky"))?,
+                self.wcs
+                    .unproj_lonlat(&ImgXY::new(0.0, height as f64 - 1.0))
+                    .ok_or(JsValue::from_str("(0, h - 1) does not lie in the sky"))?,
+            ]
+            .iter()
+            .map(|lonlat| {
+                let xyz = lonlat.to_xyz();
+
+                crate::coosys::apply_coo_system(
+                    CooSystem::ICRS,
+                    self.coo_sys,
+                    &Vector4::new(xyz.y(), xyz.z(), xyz.x(), 1.0),
+                )
+            })
+            .collect::<Vec<_>>();
+
+            self.reg = Region::from_vertices(&vertices, &inside);
         }
+
+        self.recompute_vertices(camera, projection)?;
 
         if self.num_indices.is_empty() {
             return Ok(());
@@ -587,6 +592,12 @@ impl Image {
         } = cfg;
 
         let shader = match self.channel {
+            ChannelType::RGBA8U => crate::shader::get_shader(
+                &self.gl,
+                shaders,
+                "image_base.vert",
+                "image_sampler.frag",
+            )?,
             ChannelType::R32F => {
                 crate::shader::get_shader(&self.gl, shaders, "fits_base.vert", "fits_sampler.frag")?
             }
@@ -630,9 +641,9 @@ impl Image {
                     .attach_uniforms_with_params_from(color, colormaps)
                     .attach_uniform("opacity", opacity)
                     .attach_uniform("tex", texture)
-                    .attach_uniform("scale", &self.scale)
-                    .attach_uniform("offset", &self.offset)
-                    .attach_uniform("blank", &self.blank)
+                    .attach_uniform("scale", &self.scale.unwrap_or(1.0))
+                    .attach_uniform("offset", &self.offset.unwrap_or(0.0))
+                    .attach_uniform("blank", &self.blank.unwrap_or(std::f32::NAN))
                     .bind_vertex_array_object_ref(&self.vao)
                     .draw_elements_with_i32(
                         WebGl2RenderingContext::TRIANGLES,

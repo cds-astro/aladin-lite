@@ -159,6 +159,28 @@ export let GraphicOverlay = (function() {
 
                     k += 3;
                 }
+            } else if (s=='ellipse') {
+                var frame;
+                k++;
+                frame = parts[k].toLowerCase();
+                if (Utils.isNumber(frame)) {
+                    frame = 'icrs'
+                    k--;
+                }
+
+                if (frame=='icrs' || frame=='j2000' || frame=='fk5') {
+                    var ra, dec, a, b, theta;
+
+                    ra = parseFloat(parts[k+1]);
+                    dec = parseFloat(parts[k+2]);
+                    a = parseFloat(parts[k+3]);
+                    b = parseFloat(parts[k+4]);
+                    theta = parseFloat(parts[k+5]);
+
+                    footprints.push(A.ellipse(ra, dec, a, b, theta, options));
+
+                    k += 5;
+                }
             }
 
             k++;

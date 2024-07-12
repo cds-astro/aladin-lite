@@ -19,7 +19,8 @@ impl From<MOCRequest> for RequestType {
         RequestType::Moc(request)
     }
 }
-use crate::renderable::Url;
+use super::Url;
+
 use moclib::deser::fits;
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::JsFuture;

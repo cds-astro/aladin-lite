@@ -23,30 +23,3 @@ pub fn console_warn(s: impl Into<JsValue>) {
 pub fn console_error(s: impl Into<JsValue>) {
     web_sys::console::error_1(&s.into());
 }
-
-#[macro_export]
-macro_rules! log {
-    // The pattern for a single `eval`
-    ($($arg:tt)*) => {
-        $( self::log(&format!("{:?}", $arg)); )*
-    };
-}
-
-#[macro_export]
-macro_rules! inforec {
-    // The pattern for a single `eval`
-    // Base case:
-    ($x:tt) => (format!("{:?}", $x));
-    // `$x` followed by at least one `$y,`
-    ($x:tt, $($y:tt),+) => {
-        // Call `find_min!` on the tail `$y`
-        ( format!( "{} {}", inforec!($x), inforec!($($y),+) ) );
-    }
-}
-
-#[macro_export]
-macro_rules! info {
-    ($($arg:tt),*) => {
-        self::log( &inforec!( $( $arg ),* ) );
-    };
-}

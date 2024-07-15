@@ -451,7 +451,9 @@ impl MOCIntern {
                 .attach_uniforms_from(camera)
                 .attach_uniform("u_2world", &icrs2world)
                 .attach_uniform("u_color", &color)
-                .attach_uniform("u_width", &thickness)
+                .attach_uniform("u_width", &(camera.get_width()))
+                .attach_uniform("u_height", &(camera.get_height()))
+                .attach_uniform("u_thickness", &thickness)
                 .attach_uniform("u_proj", proj)
                 .bind_vertex_array_object_ref(&self.vao)
                 .draw_elements_instanced_with_i32(
@@ -487,7 +489,9 @@ impl MOCIntern {
                 .attach_uniforms_from(camera)
                 .attach_uniform("u_2world", &icrs2world)
                 .attach_uniform("u_color", &color)
-                .attach_uniform("u_width", &thickness)
+                .attach_uniform("u_width", &(camera.get_width()))
+                .attach_uniform("u_height", &(camera.get_height()))
+                .attach_uniform("u_thickness", &thickness)
                 .attach_uniform("u_proj", proj)
                 .bind_vertex_array_object_ref(&self.vao)
                 .draw_elements_instanced_with_i32(

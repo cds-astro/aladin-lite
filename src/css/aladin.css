@@ -328,10 +328,10 @@ canvas {
 }
 
 .aladin-btn.aladin-dark-theme.toggled {
-    border-color: greenyellow;
+    border-color: dodgerblue;
 }
 .aladin-btn.aladin-dark-theme:hover, .aladin-input-select.aladin-dark-theme:hover {
-    border-color: red;
+    border-color: greenyellow;
 }
 
 .aladin-btn.disabled {
@@ -1176,13 +1176,13 @@ canvas {
     line-height: 1.7rem;
 }
 
-.aladin-fov .aladin-zoom-in {
+.aladin-fov .aladin-zoom-out {
     margin-right: 0;
     border-right: none;
     border-radius: 5px 0px 0px 5px;
 }
 
-.aladin-fov .aladin-zoom-out {
+.aladin-fov .aladin-zoom-in {
     border-radius: 0px 5px 5px 0px;
 }
 

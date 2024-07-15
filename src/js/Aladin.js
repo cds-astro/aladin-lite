@@ -88,6 +88,8 @@ import { Polyline } from "./shapes/Polyline";
  * @property {string} [target="0 +0"] - Target coordinates for the initial view.
  * @property {CooFrame} [cooFrame="J2000"] - Coordinate frame.
  * @property {number} [fov=60] - Field of view in degrees.
+ * @property {number} [northPoleOrientation=0] - North pole orientation in degrees. By default it is set to 0 deg i.e. the north pole will be found vertically north to the view.
+ *  Positive orientation goes towards east i.e. in counter clockwise order as the east lies in the left direction of the view.
  * @property {string} [backgroundColor="rgb(60, 60, 60)"] - Background color in RGB format.
  *
  * @property {boolean} [showZoomControl=true] - Whether to show the zoom control toolbar.
@@ -246,7 +248,9 @@ import { Polyline } from "./shapes/Polyline";
         'mouseMove',
 
         'fullScreenToggled',
-        'cooFrameChanged'
+        'cooFrameChanged',
+        'resizeChanged',
+        'projectionChanged',
  */
 
 export let Aladin = (function () {
@@ -564,6 +568,10 @@ export let Aladin = (function () {
         if (options.inertia !== undefined) {
             this.wasm.setInertia(options.inertia);
         }
+
+        if (options.northPoleOrientation) {
+            this.setViewCenter2NorthPoleAngle(options.northPoleOrientation);
+        }
     };
 
     Aladin.prototype._setupUI = function (options) {
@@ -704,6 +712,7 @@ export let Aladin = (function () {
         target: "0 +0",
         cooFrame: "J2000",
         fov: 60,
+        northPoleOrientation: 0,
         inertia: true,
         backgroundColor: "rgb(60, 60, 60)",
         // Zoom toolbar
@@ -739,7 +748,7 @@ export let Aladin = (function () {
         gridOptions: {
             enabled: false,
             showLabels: true,
-            thickness: 3,
+            thickness: 2,
             labelSize: 15,
         },
         projection: "SIN",
@@ -815,7 +824,7 @@ export let Aladin = (function () {
         var fullScreenToggledFn =
             self.callbacksByEventName["fullScreenToggled"];
         typeof fullScreenToggledFn === "function" &&
-            fullScreenToggledFn(isInFullscreen);
+            fullScreenToggledFn(self.isInFullscreen);
     };
 
     Aladin.prototype.getOptionsFromQueryString = function () {
@@ -1966,6 +1975,8 @@ export let Aladin = (function () {
 
         "fullScreenToggled",
         "cooFrameChanged",
+        "resizeChanged",
+        "projectionChanged"
     ];
 
     /**

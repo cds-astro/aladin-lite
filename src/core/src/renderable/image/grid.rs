@@ -11,7 +11,8 @@ use wcs::WCS;
 pub fn get_grid_params(
     xy_min: &(f64, f64),
     xy_max: &(f64, f64),
-    max_tex_size: u64,
+    max_tex_size_x: u64,
+    max_tex_size_y: u64,
     num_tri_per_tex_patch: u64,
 ) -> (
     impl Iterator<Item = (u64, f32)> + Clone,
@@ -31,8 +32,8 @@ pub fn get_grid_params(
     let step = (step_x.max(step_y)).max(1); // at least one pixel!
 
     (
-        get_coord_uv_it(xmin, xmax, step, max_tex_size),
-        get_coord_uv_it(ymin, ymax, step, max_tex_size),
+        get_coord_uv_it(xmin, xmax, step, max_tex_size_x),
+        get_coord_uv_it(ymin, ymax, step, max_tex_size_y),
     )
 }
 
@@ -169,13 +170,20 @@ fn build_range_indices(it: impl Iterator<Item = (u64, f32)> + Clone) -> Vec<Rang
 pub fn vertices(
     xy_min: &(f64, f64),
     xy_max: &(f64, f64),
-    max_tex_size: u64,
+    max_tex_size_x: u64,
+    max_tex_size_y: u64,
     num_tri_per_tex_patch: u64,
     camera: &CameraViewPort,
     wcs: &WCS,
     projection: &ProjectionType,
 ) -> (Vec<f32>, Vec<f32>, Vec<u16>, Vec<u32>) {
-    let (x_it, y_it) = get_grid_params(xy_min, xy_max, max_tex_size, num_tri_per_tex_patch);
+    let (x_it, y_it) = get_grid_params(
+        xy_min,
+        xy_max,
+        max_tex_size_x,
+        max_tex_size_y,
+        num_tri_per_tex_patch,
+    );
 
     let idx_x_ranges = build_range_indices(x_it.clone());
     let idx_y_ranges = build_range_indices(y_it.clone());
@@ -240,7 +248,7 @@ pub fn vertices(
 mod tests {
     #[test]
     fn test_grid_vertices() {
-        let (x, y) = super::get_grid_params(&(0.0, 0.0), &(40.0, 40.0), 20, 4);
+        let (x, y) = super::get_grid_params(&(0.0, 0.0), &(40.0, 40.0), 20, 20, 4);
 
         let x = x.collect::<Vec<_>>();
         let y = y.collect::<Vec<_>>();
@@ -248,7 +256,7 @@ mod tests {
         assert_eq!(x.len(), 6);
         assert_eq!(y.len(), 6);
 
-        let (x, y) = super::get_grid_params(&(0.0, 0.0), &(50.0, 40.0), 20, 5);
+        let (x, y) = super::get_grid_params(&(0.0, 0.0), &(50.0, 40.0), 20, 20, 5);
 
         let x = x.collect::<Vec<_>>();
         let y = y.collect::<Vec<_>>();
@@ -256,7 +264,7 @@ mod tests {
         assert_eq!(x.len(), 8);
         assert_eq!(y.len(), 6);
 
-        let (x, y) = super::get_grid_params(&(0.0, 0.0), &(7000.0, 7000.0), 4096, 2);
+        let (x, y) = super::get_grid_params(&(0.0, 0.0), &(7000.0, 7000.0), 4096, 4096, 2);
 
         let x = x.collect::<Vec<_>>();
         let y = y.collect::<Vec<_>>();
@@ -264,7 +272,7 @@ mod tests {
         assert_eq!(x.len(), 5);
         assert_eq!(y.len(), 5);
 
-        let (x, y) = super::get_grid_params(&(0.0, 0.0), &(3000.0, 7000.0), 4096, 2);
+        let (x, y) = super::get_grid_params(&(0.0, 0.0), &(3000.0, 7000.0), 4096, 4096, 2);
 
         let x = x.collect::<Vec<_>>();
         let y = y.collect::<Vec<_>>();
@@ -281,7 +289,7 @@ mod tests {
             ]
         );
 
-        let (x, y) = super::get_grid_params(&(0.0, 0.0), &(4096.0, 4096.0), 4096, 1);
+        let (x, y) = super::get_grid_params(&(0.0, 0.0), &(4096.0, 4096.0), 4096, 4096, 1);
 
         let x_idx_rng = super::build_range_indices(x.clone());
         let y_idx_rng = super::build_range_indices(y.clone());
@@ -295,7 +303,7 @@ mod tests {
         assert_eq!(x_idx_rng, &[0..=1]);
         assert_eq!(y_idx_rng, &[0..=1]);
 
-        let (x, y) = super::get_grid_params(&(0.0, 0.0), &(11000.0, 7000.0), 4096, 1);
+        let (x, y) = super::get_grid_params(&(0.0, 0.0), &(11000.0, 7000.0), 4096, 4096, 1);
 
         let x = x.collect::<Vec<_>>();
         let y = y.collect::<Vec<_>>();
@@ -313,7 +321,7 @@ mod tests {
         );
         assert_eq!(y, &[(0, 0.0), (4096, 1.0), (4096, 0.0), (7000, 0.7089844)]);
 
-        let (x, y) = super::get_grid_params(&(0.0, 0.0), &(4096.0, 4096.0), 4096, 1);
+        let (x, y) = super::get_grid_params(&(0.0, 0.0), &(4096.0, 4096.0), 4096, 4096, 1);
 
         let x = x.collect::<Vec<_>>();
         let y = y.collect::<Vec<_>>();
@@ -321,7 +329,7 @@ mod tests {
         assert_eq!(x, &[(0, 0.0), (4096, 1.0)]);
         assert_eq!(y, &[(0, 0.0), (4096, 1.0)]);
 
-        let (x, y) = super::get_grid_params(&(3000.0, 4000.0), &(4096.0, 7096.0), 4096, 1);
+        let (x, y) = super::get_grid_params(&(3000.0, 4000.0), &(4096.0, 7096.0), 4096, 4096, 1);
 
         let x = x.collect::<Vec<_>>();
         let y = y.collect::<Vec<_>>();

@@ -10,26 +10,30 @@ use al_core::Texture2D;
 use al_core::WebGlContext;
 use std::ops::Range;
 
-pub async fn build<'a, F, R>(
+pub async fn crop_image<'a, F, R>(
     gl: &WebGlContext,
     width: u64,
     height: u64,
     mut reader: R,
-    max_tex_size: usize,
+    max_tex_size: u64,
     blank: Option<f32>,
 ) -> Result<(Vec<Texture2D>, Option<Range<f32>>), JsValue>
 where
     F: ImageFormat,
     R: AsyncReadExt + Unpin,
 {
-    let mut buf =
-        vec![0; max_tex_size * std::mem::size_of::<<F::P as Pixel>::Item>() * F::NUM_CHANNELS];
-    let max_tex_size = max_tex_size as u64;
+    let mut tex_chunks = vec![];
 
     // Subdivision
     let num_textures = ((width / max_tex_size) + 1) * ((height / max_tex_size) + 1);
 
-    let mut tex_chunks = vec![];
+    let mut buf = vec![
+        0;
+        (max_tex_size as usize)
+            * std::mem::size_of::<<F::P as Pixel>::Item>()
+            * F::NUM_CHANNELS
+    ];
+
     for _ in 0..num_textures {
         tex_chunks.push(Texture2D::create_from_raw_pixels::<F>(
             gl,

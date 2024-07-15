@@ -470,12 +470,17 @@ impl CameraViewPort {
         self.update_rot_matrices(proj);
     }
 
-    /// lonlat must be given in icrs frame
+    /// center lonlat must be given in icrs frame
     pub fn set_center(&mut self, lonlat: &LonLatT<f64>, proj: &ProjectionType) {
         let icrs_pos: Vector4<_> = lonlat.vector();
 
         let view_pos = CooSystem::ICRS.to(self.get_coo_system()) * icrs_pos;
-        let rot = Rotation::from_sky_position(&view_pos);
+        let rot_to_center = Rotation::from_sky_position(&view_pos);
+
+        let phi = self.get_center_pos_angle();
+        let third_euler_rot = Rotation::from_axis_angle(&view_pos.truncate(), phi);
+
+        let rot = third_euler_rot * rot_to_center;
 
         // Apply the rotation to the camera to go
         // to the next lonlat

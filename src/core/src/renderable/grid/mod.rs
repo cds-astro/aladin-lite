@@ -297,7 +297,9 @@ impl ProjetedGrid {
             crate::shader::get_shader(&self.gl, shaders, "line_inst_ndc.vert", "line_base.frag")?
                 .bind(&self.gl)
                 .attach_uniform("u_color", &self.color)
-                .attach_uniform("u_width", &self.thickness)
+                .attach_uniform("u_width", &(camera.get_width()))
+                .attach_uniform("u_height", &(camera.get_height()))
+                .attach_uniform("u_thickness", &self.thickness)
                 .bind_vertex_array_object_ref(&self.vao)
                 .draw_elements_instanced_with_i32(
                     WebGl2RenderingContext::TRIANGLES,

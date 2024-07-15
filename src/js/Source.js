@@ -131,7 +131,7 @@ export let Source = (function() {
                 if (!obj) {
                     obj = this;
                 }
-                view.selectObjects([obj]);
+                view.selectObjects([[obj]]);
             }
             else if (this.catalog.onClick == 'showPopup') {
                 view.aladin.popup.setTitle('<br><br>');

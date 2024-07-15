@@ -201,7 +201,7 @@ A.polygon = function (raDecArray, options) {
     }
 
     options = options || {};
-    //options.closed = true;
+    options.closed = true;
 
     return new Polyline(raDecArray, options);
 };

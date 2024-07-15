@@ -144,7 +144,8 @@ export class SAMPConnector {
             let catalog = selectCatalog(id, url)
 
             if (catalog) {
-                aladin.selectObjects([catalog.sources[row]]);
+                const source = catalog.sources[row];
+                aladin.selectObjects([[source]]);
             }
         };
 

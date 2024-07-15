@@ -62,13 +62,15 @@ pub struct Image {
     /// Texture indices that must be drawn
     idx_tex: Vec<usize>,
     /// The maximum webgl supported texture size
-    max_tex_size: usize,
+    max_tex_size_x: usize,
+    max_tex_size_y: usize,
 
     reg: Region,
     // The coo system in which the polygonal region has been defined
     coo_sys: CooSystem,
 }
-
+use al_core::pixel::Pixel;
+use al_core::texture::TEX_PARAMS;
 use fitsrs::hdu::header::extension;
 use fitsrs::hdu::AsyncHDU;
 use futures::io::BufReader;
@@ -76,7 +78,7 @@ use futures::AsyncReadExt;
 impl Image {
     pub async fn from_reader_and_wcs<R, F>(
         gl: &WebGlContext,
-        reader: R,
+        mut reader: R,
         wcs: WCS,
         mut scale: Option<f32>,
         mut offset: Option<f32>,
@@ -94,20 +96,87 @@ impl Image {
             WebGl2RenderingContext::get_parameter(gl, WebGl2RenderingContext::MAX_TEXTURE_SIZE)?
                 .as_f64()
                 .unwrap_or(4096.0) as usize;
-        let (textures, mut cuts) =
-            subdivide_texture::build::<F, R>(gl, width, height, reader, max_tex_size, blank)
-                .await?;
+
+        let mut max_tex_size_x = max_tex_size;
+        let mut max_tex_size_y = max_tex_size;
 
         // apply bscale to the cuts
         if F::NUM_CHANNELS == 1 {
             offset = offset.or(Some(0.0));
             scale = scale.or(Some(1.0));
             blank = blank.or(Some(std::f32::NAN));
-            cuts = cuts.map(|cuts| {
-                let start = cuts.start * scale.unwrap() + offset.unwrap();
-                let end = cuts.end * scale.unwrap() + offset.unwrap();
-                start..end
-            });
+        }
+
+        let (textures, mut cuts) = if width <= max_tex_size as u64 && height <= max_tex_size as u64
+        {
+            max_tex_size_x = width as usize;
+            max_tex_size_y = height as usize;
+            // can fit in one texture
+
+            let num_pixels_to_read = (width as usize) * (height as usize);
+            let num_bytes_to_read =
+                num_pixels_to_read * std::mem::size_of::<<F::P as Pixel>::Item>() * F::NUM_CHANNELS;
+            let mut buf = vec![0; num_bytes_to_read];
+
+            let _ = reader
+                .read_exact(&mut buf[..])
+                .await
+                .map_err(|e| JsValue::from_str(&format!("{:?}", e)))?;
+
+            unsafe {
+                let slice = std::slice::from_raw_parts(
+                    buf.as_mut_ptr() as *const <F::P as Pixel>::Item,
+                    num_bytes_to_read / std::mem::size_of::<<F::P as Pixel>::Item>(),
+                );
+
+                let cuts = if F::NUM_CHANNELS == 1 {
+                    let mut samples = slice
+                        .iter()
+                        .filter_map(|item| {
+                            let t: f32 =
+                                <<F::P as Pixel>::Item as al_core::convert::Cast<f32>>::cast(*item);
+                            if t.is_nan() || t == blank.unwrap() {
+                                None
+                            } else {
+                                Some(t)
+                            }
+                        })
+                        .collect::<Vec<_>>();
+
+                    let cuts = cuts::first_and_last_percent(&mut samples, 1, 99);
+                    Some(cuts)
+                } else {
+                    None
+                };
+
+                (
+                    vec![Texture2D::create_from_raw_pixels::<F>(
+                        gl,
+                        width as i32,
+                        height as i32,
+                        TEX_PARAMS,
+                        Some(slice),
+                    )?],
+                    cuts,
+                )
+            }
+        } else {
+            subdivide_texture::crop_image::<F, R>(
+                gl,
+                width,
+                height,
+                reader,
+                max_tex_size as u64,
+                blank,
+            )
+            .await?
+        };
+
+        if let Some(cuts) = cuts.as_mut() {
+            let start = cuts.start * scale.unwrap() + offset.unwrap();
+            let end = cuts.end * scale.unwrap() + offset.unwrap();
+
+            *cuts = start..end;
         }
 
         let num_indices = vec![];
@@ -213,7 +282,8 @@ impl Image {
             channel: F::CHANNEL_TYPE,
             textures,
             cuts,
-            max_tex_size,
+            max_tex_size_x,
+            max_tex_size_y,
             // Indices of textures that must be drawn
             idx_tex,
             // The polygonal region in the sky
@@ -484,7 +554,8 @@ impl Image {
         let (pos, uv, indices, num_indices) = grid::vertices(
             &(x_mesh_range.start, y_mesh_range.start),
             &(x_mesh_range.end.ceil(), y_mesh_range.end.ceil()),
-            self.max_tex_size as u64,
+            self.max_tex_size_x as u64,
+            self.max_tex_size_y as u64,
             num_vertices,
             camera,
             &self.wcs,

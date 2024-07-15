@@ -73,8 +73,8 @@ export class FoV extends DOMElement {
             zoomIn.el.classList.add('aladin-zoom-in');
             zoomOut.el.classList.add('aladin-zoom-out');
 
-            layout.push(zoomIn)
             layout.push(zoomOut)
+            layout.push(zoomIn)
         }
 
         if (options.showFov) {

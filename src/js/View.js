@@ -153,6 +153,14 @@ export let View = (function () {
             View.CALLBACKS_THROTTLE_TIME_MS,
         );
 
+        this.throttledDivResized = Utils.throttle(
+            () => {
+                const resizeFn = self.aladin.callbacksByEventName['resizeChanged'];
+                (typeof resizeFn === 'function') && resizeFn(self.width, self.height);
+            },
+            View.CALLBACKS_THROTTLE_TIME_MS,
+        );
+
         this.mustClearCatalog = true;
         this.mode = View.PAN;
 
@@ -416,6 +424,8 @@ export let View = (function () {
         this.computeNorder();
 
         this.aladinDiv.style.removeProperty('line-height');
+
+        this.throttledDivResized();
     };
 
     var pixelateCanvasContext = function (ctx, pixelateFlag) {
@@ -1907,10 +1917,13 @@ export let View = (function () {
         }
 
         this.projection = ProjectionEnum[projName];
-
+        
         // Change the projection here
         this.wasm.setProjection(projName);
         this.updateZoomState();
+
+        const projFn = this.aladin.callbacksByEventName['projectionChanged'];
+        (typeof projFn === 'function') && projFn(projName);
 
         this.requestRedraw();
     };
@@ -1992,7 +2005,6 @@ export let View = (function () {
 
         this.viewCenter.lon = ra;
         this.viewCenter.lat = dec;  
-        //this.updateLocation({lon: this.viewCenter.lon, lat: this.viewCenter.lat});
 
         // Put a javascript code here to do some animation
         this.wasm.setCenter(this.viewCenter.lon, this.viewCenter.lat);

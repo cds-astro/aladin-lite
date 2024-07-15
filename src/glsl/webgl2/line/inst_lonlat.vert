@@ -8,6 +8,8 @@ uniform mat4 u_2world;
 uniform vec2 ndc_to_clip;
 uniform float czf;
 uniform float u_width;
+uniform float u_height;
+uniform float u_thickness;
 
 out float l;
 
@@ -34,6 +36,7 @@ void main() {
     vec2 x_b = p_b_ndc - p_a_ndc;
     vec2 y_b = normalize(vec2(-x_b.y, x_b.x));
 
-    vec2 p_ndc = p_a_ndc + x_b * vertex.x + y_b * u_width * 0.001 * vertex.y;
+    float ndc2pix = 2.0 / u_width;
+    vec2 p_ndc = p_a_ndc + x_b * vertex.x + u_thickness * y_b * vertex.y * vec2(1.0, u_width/u_height) * ndc2pix;
     gl_Position = vec4(p_ndc, 0.f, 1.f);
 }

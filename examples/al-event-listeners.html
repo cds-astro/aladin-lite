@@ -52,6 +52,14 @@
             $('#infoDiv').html(msg);
         });
 
+        aladin.on('resizeChanged', function() {
+            console.log("resize")
+        });
+
+        aladin.on('projectionChanged', function(proj) {
+            console.log(proj)
+        });
+
         cat.sources[0].actionClicked();
     });
 </script>

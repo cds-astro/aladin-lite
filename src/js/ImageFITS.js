@@ -247,7 +247,7 @@ export let Image = (function () {
 
             promise =
                 new Promise((resolve, reject) => {
-                    img.src = Aladin.JSONP_PROXY + '?url=' + this.url;
+                    img.src = this.url;
                     img.crossOrigin = "Anonymous";
                     img.onload = () => {
                         var canvas = document.createElement("canvas");
@@ -264,11 +264,19 @@ export let Image = (function () {
                         const blob = new Blob([imageData.data]);
                         const stream = blob.stream(1024);
 
-                        return resolve(stream)
+                        resolve(stream)
                     }
         
+                    let proxyUsed = false;
                     img.onerror = () => {
-                        return reject('Error parsing img ' + self.url)
+                        // use proxy
+                        if (proxyUsed) {
+                            reject('Error parsing img ' + self.url)
+                            return;
+                        }
+
+                        proxyUsed = true;
+                        img.src = Aladin.JSONP_PROXY + '?url=' + self.url;                   
                     }
                 })
                 .then((readableStream) => {

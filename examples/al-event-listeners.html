@@ -60,6 +60,10 @@
             console.log(proj)
         });
 
+        aladin.on('layerChanged', function(imageLayer, layer){
+            console.log(imageLayer, layer)
+        });
+
         cat.sources[0].actionClicked();
     });
 </script>

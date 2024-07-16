@@ -286,6 +286,17 @@ export let Aladin = (function () {
 
         const self = this;
 
+        ALEvent.HIPS_LAYER_ADDED.listenedBy(aladinDiv, (imageLayer) => {
+            this.callbacksByEventName["layerChanged"] &&
+            this.callbacksByEventName["layerChanged"](imageLayer.detail.layer, imageLayer.detail.layer.layer, "ADDED");
+        });
+
+        ALEvent.HIPS_LAYER_REMOVED.listenedBy(aladinDiv, (imageLayer) => {
+            console.log(imageLayer)
+            this.callbacksByEventName["layerChanged"] &&
+            this.callbacksByEventName["layerChanged"](imageLayer.detail.layer, imageLayer.detail.layer.layer, "REMOVED");
+        });
+
         // if not options was set, try to retrieve them from the query string
         if (requestedOptions === undefined) {
             requestedOptions = this.getOptionsFromQueryString();

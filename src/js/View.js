@@ -1763,9 +1763,6 @@ export let View = (function () {
                         self.renameLayer(this.overlayLayers[0], "base");
                     }
                 }
-
-                const layerChangedFn = this.aladin.callbacksByEventName["layerChanged"];
-                (typeof layerChangedFn === "function") && layerChangedFn(imageLayer, layer);
             })
     }
 

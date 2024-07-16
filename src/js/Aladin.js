@@ -251,6 +251,7 @@ import { Polyline } from "./shapes/Polyline";
         'cooFrameChanged',
         'resizeChanged',
         'projectionChanged',
+        'layerChanged'
  */
 
 export let Aladin = (function () {
@@ -1957,7 +1958,8 @@ export let Aladin = (function () {
         "fullScreenToggled",
         "cooFrameChanged",
         "resizeChanged",
-        "projectionChanged"
+        "projectionChanged",
+        "layerChanged"
     ];
 
     /**

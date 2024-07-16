@@ -188,17 +188,4 @@ export class ActionButton extends DOMElement {
 
         return new ActionButton(opt, target, position);
     }
-
-    static DEFAULT_BTN = {
-        'loading': {
-            content: '⏳',
-            width: '28px',
-            height: '28px',
-            cssStyle: {
-                backgroundColor: '#bababa',
-                borderColor: '#484848',
-            },
-            action(e) {}
-        },
-    }
 }

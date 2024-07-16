@@ -1675,6 +1675,9 @@ export let View = (function () {
             // it exists
             let alreadyPresentImageLayer = this.imageLayers.get(layerName);
             alreadyPresentImageLayer.added = false;
+
+            // Notify that this image layer has been replaced by the wasm part
+            ALEvent.HIPS_LAYER_REMOVED.dispatchedTo(this.aladinDiv, { layer: alreadyPresentImageLayer });
         }
 
         imageLayer.added = true;
@@ -1840,7 +1843,7 @@ export let View = (function () {
             this.selectLayer(this.overlayLayers[this.overlayLayers.length - 1]);
         }
 
-        ALEvent.HIPS_LAYER_REMOVED.dispatchedTo(this.aladinDiv, { layer });
+        ALEvent.HIPS_LAYER_REMOVED.dispatchedTo(this.aladinDiv, { layer: imageLayer });
 
         // check if there are no more surveys
         const noMoreLayersToWaitFor = this.promises.length === 0;

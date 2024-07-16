@@ -21,6 +21,7 @@ import { DOMElement } from "./Widget";
 import { FSM } from "../../FiniteStateMachine";
 import { ActionButton } from "./ActionButton";
 import { ContextMenu } from "./ContextMenu";
+import { Layout } from "../Layout";
 
 /******************************************************************************
  * Aladin Lite project
@@ -88,6 +89,9 @@ export class SelectorButton extends DOMElement {
                         self._show();
 
                         self.fsm.dispatch('closeCtxMenu')
+                    },
+                    cssStyle: {
+                        padding: "0",
                     }
                 })
             }
@@ -96,9 +100,6 @@ export class SelectorButton extends DOMElement {
                 position: {
                     nextTo: this.el,
                     direction: 'bottom',
-                },
-                cssStyle: {
-                    padding: '0',
                 }
             })
         };
@@ -137,6 +138,7 @@ export class SelectorButton extends DOMElement {
         const selectedId = this.options.selected;
 
         let {target, position} = this.remove();
+        
         this.el = new ActionButton({
             ...this.options[selectedId],
             action: (e) => {

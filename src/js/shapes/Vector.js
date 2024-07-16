@@ -116,7 +116,7 @@ export let Vector = (function() {
             }
 
             let baseColor = this.color || (this.overlay && this.overlay.color) || '#ff0000';
-            let lineWidth = this.lineWidth || this.overlay.lineWidth || 3;
+            let lineWidth = this.lineWidth || (this.overlay && this.overlay.lineWidth) || 2;
 
             // too small
             if(!noSmallCheck) {
@@ -144,7 +144,7 @@ export let Vector = (function() {
             if (this.arrow) {
                 // draw the arrow
                 var angle, x, y, xh, yh;
-                var arrowRad = this.lineWidth * 3;
+                var arrowRad = lineWidth * 3;
 
                 angle = Math.atan2(v2[1] - v1[1], v2[0] - v1[0])
                 xh = v2[0];

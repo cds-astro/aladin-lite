@@ -70,9 +70,10 @@ export class Form extends DOMElement {
 
         let layout = [];
         if (this.options && this.options.subInputs) {
-            this.options.subInputs.forEach(subInput => {
+            /*this.options.subInputs.forEach(subInput => {
                 layout.push(this._createInput(subInput))
-            });
+            });*/
+            layout.push(this._createInput(this.options))
         }
 
         let self = this;

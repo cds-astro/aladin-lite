@@ -27,7 +27,7 @@
  * Author: Matthieu Baumann [CDS, matthieu.baumann@astro.unistra.fr]
  *
  *****************************************************************************/
-
+import { Form } from "../Widgets/Form.js";
 import { ColorCfg } from "../../ColorCfg.js";
  import { Box } from "../Widgets/Box.js";
  import { ALEvent } from "../../events/ALEvent.js";
@@ -35,37 +35,24 @@ import { ColorCfg } from "../../ColorCfg.js";
  import luminosityIconUrl from '../../../../assets/icons/brightness.svg';
  import colorIconUrl from '../../../../assets/icons/color.svg';
  import pixelHistIconUrl from '../../../../assets/icons/pixel_histogram.svg';
- import { SelectorButton } from "../Widgets/Selector";
+ import { RadioButton } from "../Widgets/Radio.js";
 
  import { Layout } from "../Layout.js";
- import { Input } from "../Widgets/Input.js";
 
  export class HiPSSettingsBox extends Box {
      // Constructor
      constructor(aladin, options) {
-        super({
-                cssStyle: {
-                    backgroundColor: '#333333'
-                },
-                close: false,
-                ...options
-            },
-            aladin.aladinDiv
-        )
-
-        this.aladin = aladin;
-
-        let self = this;
-        this.selector = new SelectorButton({
+        let self;
+        let selector = new RadioButton({
             luminosity: {
                 icon: {
                     size: 'small',
                     monochrome: true,
                     url: luminosityIconUrl
                 },
-                tooltip: {content: 'Luminosity sliders', position: {direction: 'right'}},
-                change(e) {
-                    const content = Layout.horizontal({
+                tooltip: {content: 'Luminosity sliders', position: {direction: 'bottom'}},
+                action: (e) => {
+                    const content = Layout.vertical({
                         layout: [self.selector, self.luminositySettingsContent]
                     });
                     self.update({content})
@@ -77,9 +64,9 @@ import { ColorCfg } from "../../ColorCfg.js";
                     monochrome: true,
                     url: opacityIconUrl
                 },
-                tooltip: {content: 'Opacity slider', position: {direction: 'right'}},
-                change(e) {
-                    const content = Layout.horizontal({layout: [self.selector, self.opacitySettingsContent]});
+                tooltip: {content: 'Opacity slider', position: {direction: 'bottom'}},
+                action: (e) => {
+                    const content = Layout.vertical({layout: [self.selector, self.opacitySettingsContent]});
                     self.update({content})
                 }
             },
@@ -88,9 +75,9 @@ import { ColorCfg } from "../../ColorCfg.js";
                     size: 'small',
                     url: colorIconUrl
                 },
-                tooltip: {content: 'Colormap', position: {direction: 'right'}},
-                change(e) {
-                    const content = Layout.horizontal({layout: [self.selector, self.colorSettingsContent]});
+                tooltip: {content: 'Colormap', position: {direction: 'bottom'}},
+                action: (e) => {
+                    const content = Layout.vertical({layout: [self.selector, self.colorSettingsContent]});
                     self.update({content})
                 }
             },
@@ -100,208 +87,207 @@ import { ColorCfg } from "../../ColorCfg.js";
                     monochrome: true,
                     url: pixelHistIconUrl
                 },
-                tooltip: {content: 'Pixel cutouts', position: {direction: 'right'}},
-                change(e) {
-                    const content = Layout.horizontal({layout: [self.selector, self.pixelSettingsContent]});
+                tooltip: {content: 'Pixel cutouts', position: {direction: 'bottom'}},
+                action: (e) => {
+                    const content = Layout.vertical({layout: [self.selector, self.pixelSettingsContent]});
                     self.update({content})
                 }
             },
             selected: 'opacity'
         }, aladin);
 
+        // Define the contents
 
-
-        // content 
-        this.minCutInput = Input.number({
-            cssStyle: {
-                padding: '0',
-                width: '8ex',
-                'font-family': 'monospace',
-            },
-            tooltip: {content: 'Min cut', position: {direction: 'bottom'}},
-            name: 'mincut',
-            change(e) {
-                let layer = self.options.layer;
-                layer.setCuts(+e.target.value, layer.getColorCfg().getCuts()[1])
-            }
+        let opacitySettingsContent = new Form({
+            subInputs: [
+                {
+                    label: 'opacity:',
+                    name: 'opacity',
+                    tooltip: {content: 1.0, position: {direction: 'bottom'}},
+                    name: 'opacitySlider',
+                    type: 'range',
+                    min: 0.0,
+                    max: 1.0,
+                    value: 1.0,
+                    change: (e, slider) => {
+                        const opacity = +e.target.value;
+                        self.options.layer.setOpacity(opacity)
+                        slider.update({value: opacity, tooltip: {content: opacity.toFixed(2), position: {direction: 'bottom'}}})
+                    }
+                }
+            ]
         })
 
-        this.maxCutInput = Input.number({
-            cssStyle: {
-                padding: '0',
-                width: '8ex',
-                'font-family': 'monospace',
+        let luminositySettingsContent = new Form({
+            subInputs: [
+                {
+                    label: 'brightness:',
+                    tooltip: {content: 'brightness', position: {direction: 'right'}},
+                    name: 'brightness',
+                    type: 'range',
+                    min: -1,
+                    max: 1,
+                    ticks: [0.0],
+                    value: 0.0,
+                    change: (e, slider) => {
+                        const brightness = +e.target.value;
+                        self.options.layer.setBrightness(brightness)
+                        slider.update({value: brightness, tooltip: {content: `${brightness.toFixed(3)}`, position: {direction: 'right'}}})
+                    }
+                },
+                {
+                    label: 'saturation:',
+                    tooltip: {content: 'saturation', position: {direction: 'right'}},
+                    name: 'saturation',
+                    type: 'range',
+                    min: -1,
+                    max: 1,
+                    ticks: [0.0],
+                    value: 0.0,
+                    change: (e, slider) => {
+                        const saturation = +e.target.value
+                        self.options.layer.setSaturation(saturation)
+                        slider.update({value: saturation, tooltip: {content: `${saturation.toFixed(3)}`, position: {direction: 'right'}}})
+                    }
+                },
+                {
+                    label: 'contrast:',
+                    tooltip: {content: 'contrast', position: {direction: 'right'}},
+                    name: 'contrast',
+                    type: 'range',
+                    min: -1,
+                    max: 1,
+                    ticks: [0.0],
+                    value: 0.0,
+                    change: (e, slider) => {
+                        const contrast = +e.target.value
+                        self.options.layer.setContrast(contrast)
+                        slider.update({value: contrast, tooltip: {content: `${contrast.toFixed(3)}`, position: {direction: 'right'}}})
+                    }
+                },
+            ]
+        });
+        let pixelSettingsContent = new Form({
+            type: 'group',
+            subInputs: [{
+                label: 'format:',
+                type: 'select',
+                name: 'fmt',
+                value: 'jpeg',
+                options: ['jpeg'],
+                change(e) {
+                    if (self.options.layer.imgFormat !== e.target.value)
+                        self.options.layer.setImageFormat(e.target.value);
+                },
+                tooltip: {content: 'Formats availables', position: {direction: 'bottom'}}
             },
-            tooltip: {content: 'Max cut', position: {direction: 'bottom'}},
-            name: 'maxcut',
-            change(e) {
-                let layer = self.options.layer;
-                layer.setCuts(layer.getColorCfg().getCuts()[0], +e.target.value)
-            }
-        })
-        self.stretchSelector = Input.select({
-            name: 'stretch',
-            value: self.options.layer && self.options.layer.getColorCfg().stretch || 'linear',
-            options: ['sqrt', 'linear', 'asinh', 'pow2', 'log'],
-            change() {
-                let layer = self.options.layer;
-                layer.setColormap(layer.getColorCfg().getColormap(), {stretch: this.value});
+            {
+                label: 'stretch:',
+                type: 'select',
+                name: 'stretch',
+                value: 'linear',
+                options: ['sqrt', 'linear', 'asinh', 'pow2', 'log'],
+                change(e) {
+                    self.options.layer.setColormap(self.options.layer.getColorCfg().getColormap(), {stretch: e.target.value});
+                },
+                tooltip: {content: 'stretch function', position: {direction: 'bottom'}}
             },
-            tooltip: {content: 'stretch function', position: {direction: 'right'}}
+            {
+                label: 'min cut:',
+                type: 'number',
+                cssStyle: {
+                    width: '6rem',
+                },
+                tooltip: {content: 'Min cut', position: {direction: 'bottom'}},
+                name: 'mincut',
+                value: 0.0,
+                change: (e) => {
+                    self.options.layer.setCuts(+e.target.value, self.options.layer.getColorCfg().getCuts()[1])
+                }
+            },
+            {
+                type: 'number',
+                label: 'max cut:',
+                cssStyle: {
+                    width: '6rem',
+                },
+                tooltip: {content: 'Max cut', position: {direction: 'bottom'}},
+                name: 'maxcut',
+                value: 1.0,
+                change: (e) => {
+                    self.options.layer.setCuts(self.options.layer.getColorCfg().getCuts()[0], +e.target.value)
+                }
+            }]
+        }); 
+
+        let colorSettingsContent = new Form({
+            subInputs: [{
+                label: 'colormap:',
+                type: 'select',
+                name: 'cmap',
+                value: 'native',
+                options: ColorCfg.COLORMAPS,
+                change: (e, cmapSelector) => {
+                    self.options.layer.setColormap(e.target.value)
+                    //cmapSelector.update({value: e.target.value})
+                },
+            }]
         });
 
-        self._addListeners()
+        super({
+            close: false,
+            ...options,
+            content: Layout.vertical([selector, opacitySettingsContent]),
+        },
+        aladin.aladinDiv)
+        self = this;
+
+        this.aladin = aladin;
+        this._addListeners()
+
+        this.selector = selector;
+        this.opacitySettingsContent = opacitySettingsContent;
+        this.colorSettingsContent = colorSettingsContent;
+        this.pixelSettingsContent = pixelSettingsContent;
+        this.luminositySettingsContent = luminositySettingsContent;
     }
 
     update(options) {
-        let self = this;
-        if (options && options.layer) {
-            let layer = options.layer;
-            // Define the contents
+        if (options.layer) {
+            let hips = options.layer;
+            let colorCfg = hips.getColorCfg();
+            let stretch = colorCfg.stretch;
+            let colormap = colorCfg.getColormap();
 
-            let layerOpacity = layer.getOpacity()
+            let [minCut, maxCut] = colorCfg.getCuts();
+            this.pixelSettingsContent.set('mincut', +minCut.toFixed(4))
+            this.pixelSettingsContent.set('maxcut', +maxCut.toFixed(4))
+            this.pixelSettingsContent.set('stretch', stretch)
+            let fmtInput = this.pixelSettingsContent.getInput('fmt')
 
-            self.opacitySettingsContent = Input.slider({
-                tooltip: {content: layerOpacity, position: {direction: 'bottom'}},
-                name: 'opacitySlider',
-                type: 'range',
-                min: 0.0,
-                max: 1.0,
-                value: layerOpacity,
-                change(e, slider) {
-                    const opacity = +e.target.value;
-                    layer.setOpacity(opacity)
-                    slider.update({value: opacity, tooltip: {content: opacity.toFixed(2), position: {direction: 'bottom'}}})
-                }
-            })
+            fmtInput.innerHTML = '';
+            for (const option of hips.formats) {
+                fmtInput.innerHTML += "<option>" + option + "</option>";
+            }
+            fmtInput.value = hips.imgFormat;
 
-            let brightness = layer.getColorCfg().getBrightness()
-            let saturation = layer.getColorCfg().getSaturation()
-            let contrast = layer.getColorCfg().getContrast()
 
-            self.luminositySettingsContent = Layout.vertical({
-                layout: [
-                    Input.slider({
-                        tooltip: {content: 'brightness', position: {direction: 'right'}},
-                        name: 'brightness',
-                        type: 'range',
-                        min: -1,
-                        max: 1,
-                        ticks: [0.0],
-                        value: brightness,
-                        change(e, slider) {
-                            const brightness = +e.target.value;
-                            layer.setBrightness(brightness)
-                            slider.update({value: brightness, tooltip: {content: `brightness: ${brightness.toFixed(3)}`, position: {direction: 'right'}}})
-                        }
-                    }),
-                    Input.slider({
-                        tooltip: {content: 'saturation', position: {direction: 'right'}},
-                        name: 'saturation',
-                        type: 'range',
-                        min: -1,
-                        max: 1,
-                        ticks: [0.0],
-                        value: saturation,
-                        change(e, slider) {
-                            const saturation = +e.target.value
-                            layer.setSaturation(saturation)
-                            slider.update({value: saturation, tooltip: {content: `saturation: ${saturation.toFixed(3)}`, position: {direction: 'right'}}})
-                        }
-                    }),
-                    Input.slider({
-                        tooltip: {content: 'contrast', position: {direction: 'right'}},
-                        name: 'contrast',
-                        type: 'range',
-                        min: -1,
-                        max: 1,
-                        ticks: [0.0],
-                        value: contrast,
-                        change(e, slider) {
-                            const contrast = +e.target.value
-                            layer.setContrast(contrast)
-                            slider.update({value: contrast, tooltip: {content: `contrast: ${contrast.toFixed(3)}`, position: {direction: 'right'}}})
-                        }
-                    }),
-                ]
-            });
-            const [minCut, maxCut] = layer.getColorCfg().getCuts();
-            self.minCutInput.set(minCut);
-            self.maxCutInput.set(maxCut)
-            self.stretchSelector.update({value: layer.getColorCfg().stretch})
-
-            self.pixelSettingsContent = Layout.horizontal({
-                layout: [
-                    self.stretchSelector,
-                    self.minCutInput,
-                    self.maxCutInput
-                ]
-            });
-
-            let cmap = layer.getColorCfg().getColormap();
-
-            this.colorSettingsContent = Input.select({
-                name: 'colormap',
-                value: cmap,
-                options: ColorCfg.COLORMAPS,
-                change() {
-                    let colormap = this.value;
-                    layer.setColormap(colormap)
-                },
-            });
-
-            //this.colorSettingsContent = new CmapSelector(optionsCmapSelector, this.aladin);
-            let content = (() => {
-                let selected = self.selector.options.selected;
-                switch (selected) {
-                    case 'colors':
-                        return self.colorSettingsContent;
-                    case 'pixel':
-                        return self.pixelSettingsContent;
-                    case 'opacity':
-                        return self.opacitySettingsContent;
-                    case 'luminosity':
-                        return self.luminositySettingsContent;
-                    default:
-                        return self.opacitySettingsContent;
-                }
-            })();
-            options.content = Layout.horizontal({layout: [self.selector, content]});
+            this.colorSettingsContent.set('cmap', colormap)
+            this.opacitySettingsContent.set('opacity', hips.getOpacity())
         }
 
         super.update(options)
     }
 
     _show(options) {
-        this._hide();
-
-        if (this.selector) {
+        /*if (this.selector) {
             this.selector._show();
-        }
-
-        if (this.stretchSelector) {
-            this.stretchSelector._show();
-        }
-
-        if (this.colorSettingsContent) {
-            this.colorSettingsContent._show();
-        }
+        }*/
 
         super._show(options)
     }
 
     _hide() {
-        if (this.colorSettingsContent) {
-            this.colorSettingsContent._hide();
-        }
-
-        if (this.stretchSelector) {
-            this.stretchSelector._hide();
-        }
-
-        if (this.selector) {
-            this.selector._hide();
-        }
 
         super._hide()
     }
@@ -312,17 +298,15 @@ import { ColorCfg } from "../../ColorCfg.js";
             let selectedLayer = this.options.layer;
             if (selectedLayer && hips.layer === selectedLayer.layer) {
                 let colorCfg = hips.getColorCfg();
-
-                let cmap = colorCfg.getColormap();
-                let reversed = colorCfg.getReversed();
                 let stretch = colorCfg.stretch;
+                let colormap = colorCfg.getColormap();
 
                 let [minCut, maxCut] = colorCfg.getCuts();
-                this.minCutInput.set(+minCut.toFixed(2));
-                this.maxCutInput.set(+maxCut.toFixed(2));
-                this.stretchSelector.update({value: stretch});
-
-                this.opacitySettingsContent.set(hips.getOpacity())
+                this.pixelSettingsContent.set('mincut', +minCut.toFixed(4))
+                this.pixelSettingsContent.set('maxcut', +maxCut.toFixed(4))
+                this.pixelSettingsContent.set('stretch', stretch)
+                this.colorSettingsContent.set('cmap', colormap)
+                this.opacitySettingsContent.set('opacity', hips.getOpacity())
             }
         });
     }

@@ -45,6 +45,7 @@ export class ServiceQueryBox extends Box {
         // Define the form once for all
         let form = new Form({
             submit: {
+                content: 'Query',
                 action(params) {
                     // Construct the SODA url
                     let url = new URL(self.service.baseUrl)
@@ -64,12 +65,6 @@ export class ServiceQueryBox extends Box {
                     if (params['ID']) {
                         url.searchParams.append('ID', params['ID']);
                     }
-
-                    /*let loadingBtn = ActionButton.create(
-                        ActionButton.DEFAULT_BTN["loading"],
-                        'Waiting to get the image response...',
-                        submitFormDiv
-                    );*/
 
                     let name = url.searchParams.toString();
                     // Tackle CORS problems

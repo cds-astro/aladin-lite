@@ -380,8 +380,6 @@ export let Aladin = (function () {
             }
         }
 
-        this._setupUI(options);
-
         if (options.survey) {
             if (Array.isArray(options.survey)) {
                 let i = 0;
@@ -496,27 +494,7 @@ export let Aladin = (function () {
             }
         };
 
-        /*let IDs = hipsList.map((h) => {
-            if (h instanceof Object) {
-                return h.id;
-            } else {
-                return h;
-            }
-        });
-
-        MocServer.getHiPSesFromIDs(IDs).then((HiPSes) => {
-            hipsList = [];
-            HiPSes.forEach((h) => {
-                hipsList.push({
-                    id: h.ID,
-                    name: h.obs_title,
-                    regime: h.obs_regime,
-                    
-                })
-            });
-
-            fillHiPSCache();
-        });*/
+       
         fillHiPSCache();
 
         this.view.showCatalog(options.showCatalog);
@@ -572,6 +550,9 @@ export let Aladin = (function () {
         if (options.northPoleOrientation) {
             this.setViewCenter2NorthPoleAngle(options.northPoleOrientation);
         }
+
+        this._setupUI(options);
+
     };
 
     Aladin.prototype._setupUI = function (options) {

@@ -901,10 +901,9 @@ canvas {
 .aladin-input-range {
     background: transparent;
     cursor: pointer;
-    width: 5em;
-    height: 0.1rem;
-    margin:0;
-    margin: 1rem 0;
+    margin: 0.8rem 0;
+    box-sizing: border-box;
+    width: 5rem;
  }
 
 
@@ -1117,10 +1116,6 @@ canvas {
 
 .aladin-stack-box {
     width: 17rem;
-}
-
-.aladin-HiPS-filter-box {
-    border: 1px solid white;
 }
 
 .aladin-HiPS-browser-box .aladin-input-text {

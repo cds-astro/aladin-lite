@@ -96,7 +96,10 @@ export class Input extends DOMElement {
             if (this.options.change) {
                 this.el.removeEventListener('change', this.action);
 
-                this.action = this.options.change;
+                this.action = (e) => {
+                    this.options.change(e, this);
+                };
+
                 this.el.addEventListener('change', this.action);
             }    
         } else {
@@ -168,25 +171,15 @@ export class Input extends DOMElement {
                     let stretch = this.options.stretch || 'linear';
                     if (stretch === 'log') {
                         // Refers to this StackOverflow post: https://stackoverflow.com/questions/846221/logarithmic-slider
-                        
-                        
-
                         if (this.options.ticks) {
                             this.options.ticks = this.options.ticks.map((t) => logPosition(t));
                         }
-
-                        
 
                         if (this.options.change) {
                             let change = this.options.change;
                             this.options.change = (e) => {
                                 const value = logSlider(e.target.value)
-                                /*let p = 100 * (e.target.value - this.options.min) / (this.options.max - this.options.min);
-                                if (this.options.reversed === true) {
-                                    p = 100 - p;
-                                }
-                                this.el.style.background = 'linear-gradient(to right, lightgreen ' + p + '%, #bababa ' + p + '%)';
-                                */
+
                                 change(e, this, value);
                             };
                         }
@@ -342,12 +335,6 @@ export class Input extends DOMElement {
         if (this.options.classList) {
             this.element().classList.add(this.options.classList)
         }
-
-        /*// Add padding for inputs except color ones
-        if (Utils.hasTouchScreen() && this.options.type !== "color") {
-            // Add a little padding 
-            this.el.style.padding = "0.5em";
-        }*/
 
         super._show()
     }

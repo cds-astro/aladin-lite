@@ -1,5 +1,8 @@
 # Changelogs
 
+## Unreleased
+* [feat] add `layerChanged` event when a layer is added or removed
+
 ## 3.4.3-beta
 
 * [bugfix] zoom control buttons

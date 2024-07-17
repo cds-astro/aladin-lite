@@ -184,6 +184,9 @@ export let ImageHiPS = (function () {
                 ? false
                 : options.longitudeReversed;
         this.imgFormat = options.imgFormat;
+        this.formats = options.formats;
+        this.defaultFitsMinCut = options.defaultFitsMinCut;
+        this.defaultFitsMaxCut = options.defaultFitsMaxCut;
         this.numBitsPerPixel = options.numBitsPerPixel;
         this.creatorDid = options.creatorDid;
         this.errorCallback = options.errorCallback;
@@ -331,8 +334,8 @@ export let ImageHiPS = (function () {
 
                 // Cutouts
                 const cutoutFromProperties = PropertyParser.cutouts(properties);
-                self.minCut = cutoutFromProperties[0];
-                self.maxCut = cutoutFromProperties[1];
+                self.defaultFitsMinCut = cutoutFromProperties[0];
+                self.defaultFitsMaxCut = cutoutFromProperties[1];
 
                 // Bitpix
                 self.numBitsPerPixel =
@@ -418,8 +421,8 @@ export let ImageHiPS = (function () {
             let minCut, maxCut;
             if (self.imgFormat === "fits") {
                 // Take into account the default cuts given by the property file (this is true especially for FITS HiPSes)
-                minCut = self.colorCfg.minCut || self.minCut || 0.0;
-                maxCut = self.colorCfg.maxCut || self.maxCut || 1.0;
+                minCut = self.colorCfg.minCut || self.defaultFitsMinCut || 0.0;
+                maxCut = self.colorCfg.maxCut || self.defaultFitsMaxCut || 1.0;
             } else {
                 minCut = self.colorCfg.minCut || 0.0;
                 maxCut = self.colorCfg.maxCut || 1.0;
@@ -456,7 +459,6 @@ export let ImageHiPS = (function () {
 
     ImageHiPS.prototype._saveInCache = function () {
         let self = this;
-
         let colorOpt = Object.fromEntries(Object.entries(this.colorCfg));
         let surveyOpt = {
             id: self.id,
@@ -467,9 +469,12 @@ export let ImageHiPS = (function () {
             cooFrame: self.cooFrame,
             maxOrder: self.maxOrder,
             tileSize: self.tileSize,
+            formats: self.formats,
             imgFormat: self.imgFormat,
             successCallback: self.successCallback,
             errorCallback: self.errorCallback,
+            defaultFitsMinCut: self.defaultFitsMinCut,
+            defaultFitsMaxCut: self.defaultFitsMaxCut,
             ...colorOpt,
         };
 
@@ -577,9 +582,9 @@ export let ImageHiPS = (function () {
                         self.imgFormat === "jpeg") &&
                     imgFormat === "fits"
                 ) {
-                    if (self.minCut && self.maxCut) {
+                    if (Number.isFinite(self.defaultFitsMinCut) && Number.isFinite(self.defaultFitsMaxCut)) {
                         // reset cuts to those given from the properties
-                        self.setCuts(self.minCut, self.maxCut);
+                        self.setCuts(self.defaultFitsMinCut, self.defaultFitsMaxCut);
                     }
                     // Switch from fits to png/webp/jpeg
                 } else if (self.imgFormat === "fits") {

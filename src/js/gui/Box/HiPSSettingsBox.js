@@ -99,12 +99,12 @@ import { ColorCfg } from "../../ColorCfg.js";
         // Define the contents
 
         let opacitySettingsContent = new Form({
+            type: 'group',
             subInputs: [
                 {
                     label: 'opacity:',
-                    name: 'opacity',
                     tooltip: {content: 1.0, position: {direction: 'bottom'}},
-                    name: 'opacitySlider',
+                    name: 'opacity',
                     type: 'range',
                     min: 0.0,
                     max: 1.0,
@@ -229,7 +229,6 @@ import { ColorCfg } from "../../ColorCfg.js";
                 options: ColorCfg.COLORMAPS,
                 change: (e, cmapSelector) => {
                     self.options.layer.setColormap(e.target.value)
-                    //cmapSelector.update({value: e.target.value})
                 },
             }]
         });
@@ -271,12 +270,18 @@ import { ColorCfg } from "../../ColorCfg.js";
             }
             fmtInput.value = hips.imgFormat;
 
-
-            this.colorSettingsContent.set('cmap', colormap)
-            this.opacitySettingsContent.set('opacity', hips.getOpacity())
+            this.colorSettingsContent.set('cmap', colormap);
+            this.opacitySettingsContent.set('opacity', hips.getOpacity());
+            this.luminositySettingsContent.set('brightness', colorCfg.getBrightness());
+            this.luminositySettingsContent.set('contrast', colorCfg.getContrast());
+            this.luminositySettingsContent.set('saturation', colorCfg.getSaturation());
         }
 
         super.update(options)
+    }
+
+    _updateCursors() {
+        
     }
 
     _show(options) {
@@ -300,13 +305,24 @@ import { ColorCfg } from "../../ColorCfg.js";
                 let colorCfg = hips.getColorCfg();
                 let stretch = colorCfg.stretch;
                 let colormap = colorCfg.getColormap();
-
+    
                 let [minCut, maxCut] = colorCfg.getCuts();
                 this.pixelSettingsContent.set('mincut', +minCut.toFixed(4))
                 this.pixelSettingsContent.set('maxcut', +maxCut.toFixed(4))
                 this.pixelSettingsContent.set('stretch', stretch)
-                this.colorSettingsContent.set('cmap', colormap)
-                this.opacitySettingsContent.set('opacity', hips.getOpacity())
+                let fmtInput = this.pixelSettingsContent.getInput('fmt')
+    
+                fmtInput.innerHTML = '';
+                for (const option of hips.formats) {
+                    fmtInput.innerHTML += "<option>" + option + "</option>";
+                }
+                fmtInput.value = hips.imgFormat;
+    
+                this.colorSettingsContent.set('cmap', colormap);
+                this.opacitySettingsContent.set('opacity', hips.getOpacity());
+                this.luminositySettingsContent.set('brightness', colorCfg.getBrightness());
+                this.luminositySettingsContent.set('contrast', colorCfg.getContrast());
+                this.luminositySettingsContent.set('saturation', colorCfg.getSaturation());
             }
         });
     }

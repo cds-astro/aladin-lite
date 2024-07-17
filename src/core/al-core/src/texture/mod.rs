@@ -180,6 +180,52 @@ impl Texture2D {
         Ok(texture)
     }
 
+    pub fn create_from_raw_bytes<F: ImageFormat>(
+        gl: &WebGlContext,
+        width: i32,
+        height: i32,
+        tex_params: &'static [(u32, u32)],
+        bytes: Option<&[u8]>,
+    ) -> Result<Texture2D, JsValue> {
+        let texture = gl.create_texture();
+
+        gl.bind_texture(WebGlRenderingCtx::TEXTURE_2D, texture.as_ref());
+
+        for (pname, param) in tex_params.iter() {
+            gl.tex_parameteri(WebGlRenderingCtx::TEXTURE_2D, *pname, *param as i32);
+        }
+
+        gl.tex_image_2d_with_i32_and_i32_and_i32_and_format_and_type_and_opt_u8_array(
+            WebGlRenderingCtx::TEXTURE_2D,
+            0,
+            F::INTERNAL_FORMAT,
+            width,
+            height,
+            0,
+            F::FORMAT,
+            F::TYPE,
+            bytes,
+        )
+        .expect("Texture 2D");
+
+        let gl = gl.clone();
+        let metadata = Some(Rc::new(RefCell::new(Texture2DMeta {
+            width: width as u32,
+            height: height as u32,
+            internal_format: F::INTERNAL_FORMAT,
+            format: F::FORMAT,
+            type_: F::TYPE,
+        })));
+
+        Ok(Texture2D {
+            texture,
+
+            gl,
+
+            metadata,
+        })
+    }
+
     pub fn create_empty_unsized(
         gl: &WebGlContext,
         tex_params: &'static [(u32, u32)],
@@ -591,10 +637,6 @@ impl<'a> Texture2DBoundMut<'a> {
         src_type: u32,
         pixels: Option<&[u8]>,
     ) {
-        //let Texture2DMeta {format, type_, ..} = self.texture_2d.metadata.unwrap_abort();
-        /*self.texture_2d
-        .gl
-        .pixel_storei(WebGlRenderingCtx::UNPACK_ALIGNMENT, 1);*/
         self.texture_2d
             .gl
             .tex_image_2d_with_i32_and_i32_and_i32_and_format_and_type_and_opt_u8_array(

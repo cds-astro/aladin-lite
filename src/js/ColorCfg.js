@@ -46,8 +46,13 @@
             this.reversed = true;
         }
 
-        this.minCut = (options && options.minCut) || undefined;
-        this.maxCut = (options && options.maxCut) || undefined;
+        if (options && Number.isFinite(options.minCut)) {
+            this.minCut = options.minCut;
+        }
+
+        if (options && Number.isFinite(options.maxCut)) {
+            this.maxCut = options.maxCut;
+        }
 
         this.additiveBlending = options && options.additive;
         if (this.additiveBlending === undefined)  {

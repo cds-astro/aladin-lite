@@ -48,10 +48,10 @@ pub struct Image {
 
     /// Parameters extracted from the fits
     wcs: WCS,
-    blank: Option<f32>,
-    scale: Option<f32>,
-    offset: Option<f32>,
-    cuts: Option<Range<f32>>,
+    blank: f32,
+    scale: f32,
+    offset: f32,
+    cuts: Range<f32>,
     /// The center of the fits
     centered_fov: CenteredFoV,
 
@@ -80,9 +80,9 @@ impl Image {
         gl: &WebGlContext,
         mut reader: R,
         wcs: WCS,
-        mut scale: Option<f32>,
-        mut offset: Option<f32>,
-        mut blank: Option<f32>,
+        scale: Option<f32>,
+        offset: Option<f32>,
+        blank: Option<f32>,
         // Coo sys of the view
         coo_sys: CooSystem,
     ) -> Result<Self, JsValue>
@@ -101,11 +101,9 @@ impl Image {
         let mut max_tex_size_y = max_tex_size;
 
         // apply bscale to the cuts
-        if F::NUM_CHANNELS == 1 {
-            offset = offset.or(Some(0.0));
-            scale = scale.or(Some(1.0));
-            blank = blank.or(Some(std::f32::NAN));
-        }
+        let offset = offset.unwrap_or(0.0);
+        let scale = scale.unwrap_or(1.0);
+        let blank = blank.unwrap_or(std::f32::NAN);
 
         let (textures, mut cuts) = if width <= max_tex_size as u64 && height <= max_tex_size as u64
         {
@@ -119,14 +117,15 @@ impl Image {
             let mut buf = vec![0; num_bytes_to_read];
 
             let _ = reader
-                .read_exact(&mut buf[..])
+                .read_exact(&mut buf[..num_bytes_to_read])
                 .await
                 .map_err(|e| JsValue::from_str(&format!("{:?}", e)))?;
 
+            // bytes aligned
             unsafe {
                 let slice = std::slice::from_raw_parts(
-                    buf.as_mut_ptr() as *const <F::P as Pixel>::Item,
-                    num_bytes_to_read / std::mem::size_of::<<F::P as Pixel>::Item>(),
+                    buf[..].as_ptr() as *const <F::P as Pixel>::Item,
+                    (num_pixels_to_read as usize) * F::NUM_CHANNELS,
                 );
 
                 let cuts = if F::NUM_CHANNELS == 1 {
@@ -135,7 +134,7 @@ impl Image {
                         .filter_map(|item| {
                             let t: f32 =
                                 <<F::P as Pixel>::Item as al_core::convert::Cast<f32>>::cast(*item);
-                            if t.is_nan() || t == blank.unwrap() {
+                            if t.is_nan() || t == blank {
                                 None
                             } else {
                                 Some(t)
@@ -143,22 +142,20 @@ impl Image {
                         })
                         .collect::<Vec<_>>();
 
-                    let cuts = cuts::first_and_last_percent(&mut samples, 1, 99);
-                    Some(cuts)
+                    cuts::first_and_last_percent(&mut samples, 1, 99)
                 } else {
-                    None
+                    0.0..1.0
                 };
 
-                (
-                    vec![Texture2D::create_from_raw_pixels::<F>(
-                        gl,
-                        width as i32,
-                        height as i32,
-                        TEX_PARAMS,
-                        Some(slice),
-                    )?],
-                    cuts,
-                )
+                let texture = Texture2D::create_from_raw_pixels::<F>(
+                    gl,
+                    width as i32,
+                    height as i32,
+                    TEX_PARAMS,
+                    Some(slice),
+                )?;
+
+                (vec![texture], cuts)
             }
         } else {
             subdivide_texture::crop_image::<F, R>(
@@ -172,12 +169,10 @@ impl Image {
             .await?
         };
 
-        if let Some(cuts) = cuts.as_mut() {
-            let start = cuts.start * scale.unwrap() + offset.unwrap();
-            let end = cuts.end * scale.unwrap() + offset.unwrap();
+        let start = cuts.start * scale + offset;
+        let end = cuts.end * scale + offset;
 
-            *cuts = start..end;
-        }
+        cuts = start..end;
 
         let num_indices = vec![];
         let indices = vec![];
@@ -293,7 +288,7 @@ impl Image {
         })
     }
 
-    pub fn get_cuts(&self) -> &Option<Range<f32>> {
+    pub fn get_cuts(&self) -> &Range<f32> {
         &self.cuts
     }
 
@@ -712,9 +707,9 @@ impl Image {
                     .attach_uniforms_with_params_from(color, colormaps)
                     .attach_uniform("opacity", opacity)
                     .attach_uniform("tex", texture)
-                    .attach_uniform("scale", &self.scale.unwrap_or(1.0))
-                    .attach_uniform("offset", &self.offset.unwrap_or(0.0))
-                    .attach_uniform("blank", &self.blank.unwrap_or(std::f32::NAN))
+                    .attach_uniform("scale", &self.scale)
+                    .attach_uniform("offset", &self.offset)
+                    .attach_uniform("blank", &self.blank)
                     .bind_vertex_array_object_ref(&self.vao)
                     .draw_elements_with_i32(
                         WebGl2RenderingContext::TRIANGLES,

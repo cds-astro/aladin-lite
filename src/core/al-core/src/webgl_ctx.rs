@@ -40,14 +40,6 @@ impl WebGlContext {
         let context_options =
             js_sys::JSON::parse("{\"antialias\":false, \"preserveDrawingBuffer\": true}")?;
 
-        #[cfg(feature = "webgl1")]
-        let gl = Rc::new(
-            canvas
-                .get_context_with_context_options("webgl", context_options.as_ref())?
-                .unwrap_abort()
-                .dyn_into::<WebGlRenderingCtx>()
-                .unwrap_abort(),
-        );
         #[cfg(feature = "webgl2")]
         let gl = Rc::new(
             canvas
@@ -56,6 +48,9 @@ impl WebGlContext {
                 .dyn_into::<WebGlRenderingCtx>()
                 .unwrap_abort(),
         );
+        // https://webgl2fundamentals.org/webgl/lessons/webgl-data-textures.html
+        #[cfg(feature = "webgl2")]
+        gl.pixel_storei(WebGlRenderingCtx::UNPACK_ALIGNMENT, 1);
 
         #[cfg(feature = "webgl2")]
         {

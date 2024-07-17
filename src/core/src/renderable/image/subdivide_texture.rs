@@ -16,8 +16,8 @@ pub async fn crop_image<'a, F, R>(
     height: u64,
     mut reader: R,
     max_tex_size: u64,
-    blank: Option<f32>,
-) -> Result<(Vec<Texture2D>, Option<Range<f32>>), JsValue>
+    blank: f32,
+) -> Result<(Vec<Texture2D>, Range<f32>), JsValue>
 where
     F: ImageFormat,
     R: AsyncReadExt + Unpin,
@@ -35,12 +35,11 @@ where
     ];
 
     for _ in 0..num_textures {
-        tex_chunks.push(Texture2D::create_from_raw_pixels::<F>(
+        tex_chunks.push(Texture2D::create_empty_with_format::<F>(
             gl,
             max_tex_size as i32,
             max_tex_size as i32,
             TEX_PARAMS,
-            None,
         )?);
     }
 
@@ -101,11 +100,7 @@ where
                                     f32,
                                 >>::cast(slice[j]);
                                 if !sj.is_nan() {
-                                    if let Some(b) = blank {
-                                        if b != sj {
-                                            samples.push(sj);
-                                        }
-                                    } else {
+                                    if blank != sj {
                                         samples.push(sj);
                                     }
                                 }
@@ -136,9 +131,9 @@ where
     }
 
     let cuts = if F::NUM_CHANNELS == 1 {
-        Some(cuts::first_and_last_percent(&mut samples, 1, 99))
+        cuts::first_and_last_percent(&mut samples, 1, 99)
     } else {
-        None
+        0.0..1.0
     };
 
     Ok((tex_chunks, cuts))

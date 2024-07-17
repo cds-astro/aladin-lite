@@ -7,6 +7,6 @@ use crate::fov::CenteredFoV;
 pub struct ImageParams {
     pub centered_fov: CenteredFoV,
 
-    pub min_cut: Option<f32>,
-    pub max_cut: Option<f32>,
+    pub min_cut: f32,
+    pub max_cut: f32,
 }

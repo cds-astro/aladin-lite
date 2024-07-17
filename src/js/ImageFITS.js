@@ -20,7 +20,7 @@
 /******************************************************************************
  * Aladin Lite project
  *
- * File ImageFITS
+ * File Image
  *
  * Authors: Matthieu Baumann [CDS]
  *
@@ -40,8 +40,8 @@ import { Aladin } from "./Aladin.js";
  * @property {string} [colormap="native"] - The colormap configuration for the survey or image.
  * @property {string} [stretch="linear"] - The stretch configuration for the survey or image.
  * @property {boolean} [reversed=false] - If true, the colormap is reversed; otherwise, it is not reversed.
- * @property {number} [minCut] - The minimum cut value for the color configuration. If not given, 0.0 for JPEG/PNG surveys, the value of the property file for FITS surveys
- * @property {number} [maxCut] - The maximum cut value for the color configuration. If not given, 1.0 for JPEG/PNG surveys, the value of the property file for FITS surveys
+ * @property {number} [minCut=0.0] - The minimum cut value for the color configuration. If not given, 0.0 is chosen
+ * @property {number} [maxCut=1.0] - The maximum cut value for the color configuration. If not given, 1.0 is chosen
  * @property {boolean} [additive=false] - If true, additive blending is applied; otherwise, it is not applied.
  * @property {number} [gamma=1.0] - The gamma correction value for the color configuration.
  * @property {number} [saturation=0.0] - The saturation value for the color configuration.
@@ -115,10 +115,12 @@ export let Image = (function () {
         /*if (options) {
             options.stretch = options.stretch || "asinh";
         }*/
+
         this.colorCfg = new ColorCfg(options);
         this.options = options;
 
         let self = this;
+
         this.query = Promise.resolve(self);
     }
 
@@ -310,9 +312,12 @@ export let Image = (function () {
             self.setView(self.view);
 
             // Set the automatic computed cuts
+            let [minCut, maxCut] = self.getCuts();
+            minCut = minCut || imageParams.min_cut;
+            maxCut = maxCut || imageParams.max_cut;
             self.setCuts(
-                imageParams.min_cut,
-                imageParams.max_cut
+                minCut,
+                maxCut
             );
 
             self.ra = imageParams.centered_fov.ra;

@@ -106,16 +106,13 @@ pub struct ImageLayer {
 
 impl ImageLayer {
     pub fn get_params(&self) -> ImageParams {
-        let (min_cut, max_cut) = self.images[0]
-            .get_cuts()
-            .as_ref()
-            .map_or((None, None), |r| (Some(r.start), Some(r.end)));
+        let cuts = self.images[0].get_cuts();
 
         let centered_fov = self.images[0].get_centered_fov().clone();
         ImageParams {
             centered_fov,
-            min_cut,
-            max_cut,
+            min_cut: cuts.start,
+            max_cut: cuts.end,
         }
     }
 }

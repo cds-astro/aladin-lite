@@ -232,7 +232,9 @@ import { Polyline } from "./shapes/Polyline";
 
 /**
  * @typedef {string} ListenerCallback
- * String with possible values: 'select',
+ * String with possible values:
+ *      'select' (deprecated, use objectsSelected instead),
+ *      'objectsSelected',
         'objectClicked',
         'objectHovered',
         'objectHoveredStop',
@@ -1949,7 +1951,8 @@ export let Aladin = (function () {
 
     // Select corresponds to rectangular selection
     Aladin.AVAILABLE_CALLBACKS = [
-        "select",
+        "select", // deprecated, use objectsSelected instead
+        "objectsSelected",
 
         "objectClicked",
         "objectHovered",
@@ -2019,12 +2022,16 @@ aladin.on('objectClicked', function(object, xyMouseCoords) {
     $('#infoDiv').html(msg);
 });
 
+aladin.on("objectsSelected", (objs) => {
+    console.log("objs", objs)
+})
+
 aladin.on("positionChanged", ({ra, dec}) => {
     console.log("positionChanged", ra, dec)
 })
 
-aladin.on("layerChanged", (imageHips, layerName, state) => {
-    console.log("positionChanged", imageHips, layerName, state)
+aladin.on("layerChanged", (layer, layerName, state) => {
+    console.log("layerChanged", layer, layerName, state)
 })
      */
     Aladin.prototype.on = function (what, myFunction) {

@@ -102,9 +102,11 @@ export class CircleSelect extends FSM {
 
             // execute general callback
             if (view.aladin.callbacksByEventName) {
-                var callback = view.aladin.callbacksByEventName['select'];
+                var callback = view.aladin.callbacksByEventName['objectsSelected'] || view.aladin.callbacksByEventName['select'];
+
                 if (typeof callback === "function") {
                     let objList = Selector.getObjects(s, view);
+                    view.selectObjects(objList);
                     callback(objList);
                 }
             }

@@ -171,7 +171,7 @@ export class PolySelect extends FSM {
 
             // execute general callback
             if (view.aladin.callbacksByEventName) {
-                var callback = view.aladin.callbacksByEventName['select'];
+                var callback = view.aladin.callbacksByEventName['objectsSelected'] || view.aladin.callbacksByEventName['select'];
                 if (typeof callback === "function") {
                     console.warn('polygon selection is not fully implemented, PolySelect.contains is needed for finding sources inside a polygon')
                 }

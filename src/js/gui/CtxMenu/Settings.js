@@ -60,6 +60,9 @@ export class SettingsCtxMenu extends ContextMenu {
             value: reticleColor.toHex(),
             name: 'reticleColor',
             change(e) {
+                e.stopPropagation()
+                e.preventDefault();
+
                 let hex = e.target.value;
                 let reticle = aladin.getReticle();
                 reticle.update({color: hex})
@@ -170,7 +173,7 @@ export class SettingsCtxMenu extends ContextMenu {
                     {
                         label: {
                             content: [self.reticleColorInput, 'Color']
-                        }
+                        },
                     },
                     {
                         label: Layout.horizontal(['Size', sliderReticleSize]),

@@ -646,13 +646,6 @@ export class OverlayStackBox extends Box {
             }
         );
 
-        ALEvent.HIPS_LAYER_RENAMED.listenedBy(
-            this.aladin.aladinDiv,
-            function (e) {
-                updateOverlayList();
-            }
-        );
-
         ALEvent.HIPS_LAYER_SWAP.listenedBy(this.aladin.aladinDiv, function (e) {
             updateOverlayList();
         });
@@ -912,6 +905,7 @@ export class OverlayStackBox extends Box {
         hipsOptions.sort()
 
         for (const layer of layers) {
+
             let HiPSSelector = Input.select({
                 value: layer.name,
                 options: hipsOptions,
@@ -974,8 +968,10 @@ export class OverlayStackBox extends Box {
             });
 
             let settingsBox = new HiPSSettingsBox(self.aladin);
+
             settingsBox.update({ layer });
             settingsBox._hide();
+
 
             let settingsBtn = new TogglerActionButton({
                 icon: { url: settingsIconUrl, monochrome: true },
@@ -986,6 +982,15 @@ export class OverlayStackBox extends Box {
                 },
                 toggled: false,
                 actionOn: (e) => {
+                    // toggle off the other settings if opened
+                    for (var l in self.HiPSui) {
+                        let ui = self.HiPSui[l]
+
+                        if (l != layer.layer) {
+                            ui.settingsBtn.close();
+                        }
+                    }
+
                     settingsBox._show({
                         position: {
                             nextTo: settingsBtn,

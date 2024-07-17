@@ -1668,16 +1668,16 @@ export let View = (function () {
         const layerName = imageLayer.layer;
         // Check whether this layer already exist
         const idxOverlayLayer = this.overlayLayers.findIndex(overlayLayer => overlayLayer == layerName);
+        let alreadyPresentImageLayer;
         if (idxOverlayLayer == -1) {
             // it does not exist so we add it to the stack
             this.overlayLayers.push(layerName);
         } else {
             // it exists
-            let alreadyPresentImageLayer = this.imageLayers.get(layerName);
+            alreadyPresentImageLayer = this.imageLayers.get(layerName);
             alreadyPresentImageLayer.added = false;
 
-            // Notify that this image layer has been replaced by the wasm part
-            ALEvent.HIPS_LAYER_REMOVED.dispatchedTo(this.aladinDiv, { layer: alreadyPresentImageLayer });
+            this.imageLayers.delete(layerName);
         }
 
         imageLayer.added = true;
@@ -1687,6 +1687,11 @@ export let View = (function () {
         // select the layer if he is on top
         if (idxOverlayLayer == -1) {
             this.selectLayer(layerName);
+        }
+        
+        // Notify that this image layer has been replaced by the wasm part
+        if (alreadyPresentImageLayer) {
+            ALEvent.HIPS_LAYER_REMOVED.dispatchedTo(this.aladinDiv, { layer: alreadyPresentImageLayer });
         }
 
         ALEvent.HIPS_LAYER_ADDED.dispatchedTo(this.aladinDiv, { layer: imageLayer });

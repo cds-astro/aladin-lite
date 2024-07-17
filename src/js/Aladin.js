@@ -292,7 +292,6 @@ export let Aladin = (function () {
         });
 
         ALEvent.HIPS_LAYER_REMOVED.listenedBy(aladinDiv, (imageLayer) => {
-            console.log(imageLayer)
             this.callbacksByEventName["layerChanged"] &&
             this.callbacksByEventName["layerChanged"](imageLayer.detail.layer, imageLayer.detail.layer.layer, "REMOVED");
         });

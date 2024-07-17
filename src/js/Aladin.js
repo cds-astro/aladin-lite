@@ -2022,6 +2022,10 @@ aladin.on('objectClicked', function(object, xyMouseCoords) {
 aladin.on("positionChanged", ({ra, dec}) => {
     console.log("positionChanged", ra, dec)
 })
+
+aladin.on("layerChanged", (imageHips, layerName, state) => {
+    console.log("positionChanged", imageHips, layerName, state)
+})
      */
     Aladin.prototype.on = function (what, myFunction) {
         if (Aladin.AVAILABLE_CALLBACKS.indexOf(what) < 0) {

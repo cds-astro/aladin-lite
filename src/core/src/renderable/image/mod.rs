@@ -318,7 +318,7 @@ impl Image {
             .unwrap() as f32;
 
         // Create a WCS from a specific header unit
-        let wcs = WCS::from_fits_header(&header)
+        let wcs = WCS::from_fits_header(header)
             .map_err(|e| JsValue::from_str(&format!("WCS parsing error: reason: {}", e)))?;
 
         let data = hdu.get_data_mut();

@@ -438,15 +438,16 @@ export let ImageHiPS = (function () {
                 self.cooFrame == "j2000"
             ) {
                 self.cooFrame = "ICRS";
-            } else if (self.cooFrame == "galactic") {
+            } else if (self.cooFrame == "galactic" || self.cooFrame == "GAL") {
                 self.cooFrame = "GAL";
             } else {
-                self.cooFrame = "ICRS";
                 console.warn(
                     "Invalid cooframe given: " +
                         self.cooFrame +
                         '. Coordinate systems supported: "ICRS", "ICRSd", "j2000" or "galactic". ICRS is chosen by default'
                 );
+                self.cooFrame = "ICRS";
+
             }
 
             self.formats = self.formats || [self.imgFormat];

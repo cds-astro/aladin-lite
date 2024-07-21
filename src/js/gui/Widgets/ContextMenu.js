@@ -278,7 +278,6 @@ export class ContextMenu extends DOMElement {
             opt.subMenu.forEach(subOpt => this._attachOption(subMenu, subOpt, e, cssStyle));
         }
 
-        const areSiblings = (elm1, elm2) => (elm1 !== elm2 && elm1.parentNode == elm2.parentNode);
         item.addEventListener('mouseover', e => {
             e.stopPropagation();
             e.preventDefault();
@@ -286,19 +285,6 @@ export class ContextMenu extends DOMElement {
             if (opt.hover) {
                 opt.hover(e, item);
             }
-
-            /*if (ContextMenu.lastHoveredItem) {
-                let parent = ContextMenu.lastHoveredItem.parentNode;
-                if (parent && (areSiblings(parent, item) || item.contains(parent) || item === parent)) {
-                    ContextMenu.lastHoveredItem.style.display = 'none';
-                }
-            }
-
-            const subMenu = item.querySelector('.aladin-context-sub-menu');
-            if (subMenu) {
-                subMenu.style.display = 'block';
-                ContextMenu.lastHoveredItem = subMenu;
-            }*/
         })
 
         item.addEventListener('mouseout', e => {
@@ -339,13 +325,6 @@ export class ContextMenu extends DOMElement {
             } else {
                 child.classList.add('top');
             }
-
-            /*if (r.y - aladinRect.top <= offsetHeight / 2.0) {
-                topDir -= 1;
-            } else {
-                topDir += 1;
-            }*/
-            
         }
 
         for (let grandChild of child.children) {

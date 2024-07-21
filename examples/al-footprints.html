@@ -20,6 +20,7 @@
             A.polygon([[8.62807, 220.06330], [83.58397, 10.02280], [150.62792, 87.02258]])
         ]);
         overlay.add(A.circle(83.66067, 22.03081, 0.04, {color: 'cyan'})); // radius in degrees
+        overlay.add(A.vector(83.66067, 22.03081, 0.04, {color: 'cyan'})); // radius in degrees
 
         aladin.on("footprintClicked", (footprint, xyMouseCoords) => {
             console.log("footprint clicked catched: ", footprint, "mouse coords xy: ", xyMouseCoords.x, xyMouseCoords.y);

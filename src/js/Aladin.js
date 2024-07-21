@@ -46,7 +46,7 @@ import { ProjectionEnum } from "./ProjectionEnum.js";
 
 import { ALEvent } from "./events/ALEvent.js";
 import { Color } from "./Color.js";
-import { Image } from "./ImageFITS.js";
+import { Image } from "./Image.js";
 import { DefaultActionsForContextMenu } from "./DefaultActionsForContextMenu.js";
 import { SAMPConnector } from "./vo/samp.js";
 import { Reticle } from "./Reticle.js";

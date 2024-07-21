@@ -50,7 +50,7 @@ import { Icon } from "../Widgets/Icon.js";
 import { Box } from "../Widgets/Box.js";
 import { CtxMenuActionButtonOpener } from "../Button/CtxMenuOpener.js";
 import { Input } from "../Widgets/Input.js";
-import { Image } from "../../ImageFITS.js";
+import { Image } from "../../Image.js";
 import { HiPSCache } from "../../DefaultHiPSCache.js";
 import { HiPSBrowserBox } from "./HiPSBrowserBox.js";
 
@@ -121,10 +121,10 @@ export class OverlayStackBox extends Box {
         },
     };
     // Constructor
-    constructor(aladin) {
+    constructor(aladin, stackBtn) {
         super(
             {
-                close: false,
+                close: true,
                 header: {
                     title: "Stack",
                 },
@@ -133,6 +133,7 @@ export class OverlayStackBox extends Box {
             },
             aladin.aladinDiv
         );
+        this.stackBtn = stackBtn;
         this.cachedHiPS = {};
 
         this.aladin = aladin;
@@ -742,6 +743,9 @@ export class OverlayStackBox extends Box {
 
         if (this.addHiPSBtn) this.addHiPSBtn.hideMenu();
 
+        // toggle the button because the window is closed
+        this.stackBtn.update({toggled: false});
+
         super._hide();
     }
 
@@ -1156,5 +1160,7 @@ export class OverlayStackBox extends Box {
             ...options,
             ...{ position: this.position },
         });
+
+        this.stackBtn.update({toggled: true});
     }
 }

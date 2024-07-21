@@ -293,7 +293,9 @@ impl ProjetedGrid {
             );
 
             let num_instances = buf.len() / 4;
-
+            let c = self.color.clone();
+            log!(c);
+            self.gl.enable(WebGl2RenderingContext::BLEND);
             crate::shader::get_shader(&self.gl, shaders, "line_inst_ndc.vert", "line_base.frag")?
                 .bind(&self.gl)
                 .attach_uniform("u_color", &self.color)
@@ -306,6 +308,7 @@ impl ProjetedGrid {
                     0,
                     num_instances as i32,
                 );
+            self.gl.disable(WebGl2RenderingContext::BLEND);
         }
 
         Ok(())

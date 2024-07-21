@@ -49,7 +49,7 @@ import { Layout } from "./gui/Layout.js";
 import { SAMPActionButton } from "./gui/Button/SAMP.js";
 import { HiPSCache } from "./DefaultHiPSCache.js";
 import { ImageHiPS } from "./ImageHiPS.js";
-import { Image } from "./ImageFITS.js";
+import { Image } from "./Image.js";
 
 export let View = (function () {
 

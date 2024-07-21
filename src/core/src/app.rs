@@ -953,7 +953,7 @@ impl App {
                 //&mut self.line_renderer,
             )?;
 
-            self.line_renderer.begin();
+            //self.line_renderer.begin();
             //Time::measure_perf("moc draw", || {
 
             //    Ok(())
@@ -961,9 +961,9 @@ impl App {
 
             self.grid
                 .draw(&self.camera, &self.projection, &mut self.shaders)?;
-            self.line_renderer.end();
-            self.line_renderer
-                .draw(&mut self.shaders, &self.camera, &self.projection)?;
+            //self.line_renderer.end();
+            //self.line_renderer
+            //    .draw(&mut self.shaders, &self.camera, &self.projection)?;
 
             //let dpi  = self.camera.get_dpi();
             //ui.draw(&gl, dpi)?;

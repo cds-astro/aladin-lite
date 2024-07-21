@@ -60,9 +60,6 @@ export class SettingsCtxMenu extends ContextMenu {
             value: reticleColor.toHex(),
             name: 'reticleColor',
             change(e) {
-                e.stopPropagation()
-                e.preventDefault();
-
                 let hex = e.target.value;
                 let reticle = aladin.getReticle();
                 reticle.update({color: hex})
@@ -156,7 +153,9 @@ export class SettingsCtxMenu extends ContextMenu {
             //ProjectionCtxMenu.getLayout(self.aladin),
             GridSettingsCtxMenu.getLayout(self.aladin),
             {
-                label: 'Reticle',
+                label: {
+                    content: ['Reticle']
+                },
                 subMenu: [
                     {
                         label: {

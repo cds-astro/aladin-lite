@@ -307,6 +307,7 @@ A.ellipse = function (ra, dec, radiusRaDeg, radiusDecDeg, rotationDeg, options) 
  * @returns {Vector}
  */
 A.vector = function (ra1, dec1, ra2, dec2, options) {
+    options = options || {};
     options['arrow'] = true;
 
     return new Vector(ra1, dec1, ra2, dec2, options);

@@ -293,8 +293,7 @@ impl ProjetedGrid {
             );
 
             let num_instances = buf.len() / 4;
-            let c = self.color.clone();
-            log!(c);
+
             self.gl.enable(WebGl2RenderingContext::BLEND);
             crate::shader::get_shader(&self.gl, shaders, "line_inst_ndc.vert", "line_base.frag")?
                 .bind(&self.gl)

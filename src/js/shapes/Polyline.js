@@ -349,7 +349,7 @@ export let Polyline = (function() {
                 if (Polyline.isInsideView(l.x1, l.y1, l.x2, l.y2, view.width, view.height)) {
                     const mag2 = _calculateMag2ForNoSinProjections(l, view);
 
-                    if (mag2 < 0.1) {
+                    if (mag2 < 0.2) {
                         _drawLine(l, ctx);
                     }
                 }
@@ -360,7 +360,7 @@ export let Polyline = (function() {
 
                     const mag2 = _calculateMag2ForNoSinProjections(l, view);
 
-                    if (mag2 < 0.1) {
+                    if (mag2 < 0.2) {
                         if (index === 0) {
                             ctx.beginPath();
                             ctx.moveTo(l.x1, l.y1);

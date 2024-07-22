@@ -5,14 +5,16 @@
 <body>
 
 <div id="aladin-lite-div" style="width: 1024px; height: 768px"></div>
+<!--<script type="text/javascript" src="./../dist/aladin.umd.cjs" charset="utf-8"></script>-->
 
 <script type="module">
     import A from '../src/js/A.js';
+
     let aladin;
     A.init.then(() => {
-        aladin = A.aladin('#aladin-lite-div', {target: 'galactic center'});
+        aladin = A.aladin('#aladin-lite-div', {target: "05 40 59.12 -02 27 04.1", fov: 2});
         
-        let survey = aladin.createImageSurvey('hips gaia', "hips gaia name", "data/hips/gaia", undefined, undefined, {colormap:"viridis"});
+        let survey = aladin.createImageSurvey('DSS2 local', "local hips", "hips/CDS_P_DSS2_color");
         aladin.setBaseImageLayer(survey);
     });
 </script>

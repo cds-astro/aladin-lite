@@ -27,7 +27,6 @@
  *****************************************************************************/
 import { ALEvent } from "./events/ALEvent.js";
 import { ColorCfg } from "./ColorCfg.js";
-import { HiPSCache } from "./DefaultHiPSCache";
 import { Aladin } from "./Aladin.js";
 
 /**
@@ -124,14 +123,13 @@ export let Image = (function () {
         this.query = Promise.resolve(self);
     }
 
+    /* Precondition: view is already attached */
     Image.prototype._saveInCache = function () {
-        if (HiPSCache.contains(self.id)) {
-            HiPSCache.append(this.id, this);
+        let hipsCache = this.view.aladin.hipsCache;
+        if (hipsCache.contains(self.id)) {
+            hipsCache.append(this.id, this);
         }
     };
-
-    // A cache storing directly the images to not query for the properties each time
-    //Image.cache = {};
 
     Image.prototype.setView = function (view) {
         this.view = view;

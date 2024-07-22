@@ -74,6 +74,11 @@ export let MeasurementTable = (function() {
         this.hide();
 
         this.table = new Tabs({
+            tooltip: {
+                global: true,
+                aladin: this.aladin,
+                content: 'Press Shift + mouse wheel for scrolling horizontally'
+            },
             aladin: this.aladin,
             layout,
         }, this.aladin.aladinDiv);

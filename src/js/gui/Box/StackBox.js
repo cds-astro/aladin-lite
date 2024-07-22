@@ -51,7 +51,6 @@ import { Box } from "../Widgets/Box.js";
 import { CtxMenuActionButtonOpener } from "../Button/CtxMenuOpener.js";
 import { Input } from "../Widgets/Input.js";
 import { Image } from "../../Image.js";
-import { HiPSCache } from "../../DefaultHiPSCache.js";
 import { HiPSBrowserBox } from "./HiPSBrowserBox.js";
 
 export class OverlayStackBox extends Box {
@@ -689,13 +688,14 @@ export class OverlayStackBox extends Box {
         );
 
         updateOverlayList();
+        let hipsCache = this.aladin.hipsCache;
 
         // Add a listener for HiPS list changes
         ALEvent.HIPS_CACHE_UPDATED.listenedBy(document.body, () => {
             self.cachedHiPS = {};
 
-            for (var key in HiPSCache.cache) {
-                let HiPS = HiPSCache.cache[key];
+            for (var key in hipsCache.cache) {
+                let HiPS = hipsCache.cache[key];
 
                 if (HiPS.name) {
                     self.cachedHiPS[HiPS.name.toString()] = HiPS;

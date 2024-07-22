@@ -15,20 +15,16 @@
 
         aladin.displayFITS(
             //'https://fits.gsfc.nasa.gov/samples/FOCx38i0101t_c0f.fits', // url of the fits file
-            'data/fits/HorseHead.fits',
+            'images/panstarrs-g-m61.fits',
             //'data/fits/neowise.fits',
             //'data/fits/irac.fits',
             //'data/fits/FOCx38i0101t_c0f.fits',
             {
-                name: 'horsehead',
-                minCut: 5000,
-                maxCut: 17000,
+                name: 'm61',
                 colormap: 'viridis'
             }, // no optional params
-            (ra, dec, fov, image) => {
+            (ra, dec, fov, _) => {
                 // ra, dec and fov are centered around the fits image
-                image.setColormap("magma", {stretch: "asinh"});
-
                 aladin.gotoRaDec(ra, dec);
                 aladin.setFoV(fov);
             },

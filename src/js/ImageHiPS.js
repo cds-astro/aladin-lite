@@ -29,7 +29,6 @@ import { Utils } from "./Utils";
 import { ALEvent } from "./events/ALEvent.js";
 import { ColorCfg } from "./ColorCfg.js";
 import { HiPSProperties } from "./HiPSProperties.js";
-import { HiPSCache } from "./DefaultHiPSCache.js";
 
 let PropertyParser = {};
 // Utilitary functions for parsing the properties and giving default values
@@ -201,11 +200,10 @@ export let ImageHiPS = (function () {
         // do not allow to call setView multiple times otherwise
         // the querying to the properties and the search to the best
         // HiPS node will be done again for the same imageHiPS
-        if (self.view) {
+        if (this.view) {
             return;
         }
-
-        self.view = view;
+        this.view = view;
 
         let isMOCServerToBeQueried = true;
         if (this.imgFormat === "fits") {
@@ -458,9 +456,10 @@ export let ImageHiPS = (function () {
         })()
     };
 
+    /* Precondition: view is attached */
     ImageHiPS.prototype._saveInCache = function () {
         let self = this;
-        let colorOpt = Object.fromEntries(Object.entries(this.colorCfg));
+        /*let colorOpt = Object.fromEntries(Object.entries(this.colorCfg));
         let surveyOpt = {
             id: self.id,
             creatorDid: self.creatorDid,
@@ -481,9 +480,12 @@ export let ImageHiPS = (function () {
 
         if (self.numBitsPerPixel) {
             surveyOpt.numBitsPerPixel = self.numBitsPerPixel;
-        }
+        }*/
 
-        if (HiPSCache.contains(self.id)) {
+        let hipsCache = this.view.aladin.hipsCache;
+
+
+        if (hipsCache.contains(self.id)) {
             /*HiPSCache.append(self.id, {
                 // Erase by the cache already put values which is considered
                 // as the ground truth
@@ -491,7 +493,7 @@ export let ImageHiPS = (function () {
                 // append new important infos from the properties queried
                 ...surveyOpt,
             });*/
-            HiPSCache.append(self.id, this)
+            hipsCache.append(self.id, this)
         }
     };
 

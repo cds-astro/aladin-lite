@@ -63,13 +63,20 @@
 
     max-height: 30vh;
     max-width: 100%;
-    -ms-overflow-style: none;
     overscroll-behavior-x: none;
     overflow-y: scroll;
+
+    /* Hide scrollbar for IE, Edge and Firefox */
+    -ms-overflow-style: none;
     scrollbar-width: none;
 
     border-radius: 3px;
     border-top-left-radius: 0;
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.aladin-measurement-div::-webkit-scrollbar {
+    display: none;
 }
 
 .aladin-btn.tab {
@@ -632,8 +639,10 @@ canvas {
     overscroll-behavior-x: none;
     overflow-y: scroll;
     scrollbar-width: none;
+}
 
-    max-width: 20rem;
+.aladin-status-bar-message::-webkit-scrollbar {
+    display: none;
 }
 
 .aladin-sp-title a {

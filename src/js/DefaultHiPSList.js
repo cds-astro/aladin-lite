@@ -1,72 +1,7 @@
-// Copyright 2013 - UDS/CNRS
-// The Aladin Lite program is distributed under the terms
-// of the GNU General Public License version 3.
-//
-// This file is part of Aladin Lite.
-//
-//    Aladin Lite is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, version 3 of the License.
-//
-//    Aladin Lite is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
-//
-//    The GNU General Public License is available in COPYING file
-//    along with Aladin Lite.
-//
+export let HiPSList = (function () {
+    function HiPSList() {}
 
-/******************************************************************************
- * Aladin Lite project
- *
- * File ImageHiPS
- *
- * Authors: Thomas Boch & Matthieu Baumann [CDS]
- *
- *****************************************************************************/
-import { ALEvent } from "./events/ALEvent.js";
-
-export let HiPSCache = (function () {
-    function HiPSCache() {}
-
-    /*
-    * key can be a CDS ID or an url. TODO could be an options.name too.
-    */
-    HiPSCache.append = function (key, image) {
-        HiPSCache.cache[key] = image;
-
-        console.log(HiPSCache.cache)
-        ALEvent.HIPS_CACHE_UPDATED.dispatchedTo(document.body);
-    };
-
-    /*
-    * key can be a CDS ID or an url. TODO could be an options.name too.
-    */
-    HiPSCache.delete = function (key) {
-        delete HiPSCache.cache[key];
-
-        ALEvent.HIPS_CACHE_UPDATED.dispatchedTo(document.body);
-    };
-
-    /*
-    * key can be a CDS ID or an url. TODO could be an options.name too.
-    */
-    HiPSCache.get = function (key) {
-        return HiPSCache.cache[key];
-    };
-
-    /*
-    * key can be a CDS ID or an url. TODO could be an options.name too.
-    */
-    HiPSCache.contains = function (key) {
-        return HiPSCache.cache[key] !== undefined && HiPSCache.cache[key] !== null;
-    };
-
-    // A cache storing directly surveys important information to not query for the properties each time
-    HiPSCache.cache = {};
-
-    HiPSCache.DEFAULT_HIPS_LIST = [
+    HiPSList.DEFAULT = [
         {
             creatorDid: "ivo://CDS/P/DSS2/color",
             name: "DSS colored",
@@ -254,16 +189,16 @@ export let HiPSCache = (function () {
             maxOrder: 8,
         },
         /*{
-                id: "CDS/P/GLIMPSE360",
-                name: "GLIMPSE360",
-                // This domain is not giving the CORS headers
-                // We need to query by with a proxy equipped with CORS header.
-                //url: "https://alasky.cds.unistra.fr/cgi/JSONProxy?url=https://www.spitzer.caltech.edu/glimpse360/aladin/data",
-                maxOrder: 9,
-                imgFormat: "jpeg",
-                minOrder: 3,
-            }*/
+            id: "CDS/P/GLIMPSE360",
+            name: "GLIMPSE360",
+            // This domain is not giving the CORS headers
+            // We need to query by with a proxy equipped with CORS header.
+            //url: "https://alasky.cds.unistra.fr/cgi/JSONProxy?url=https://www.spitzer.caltech.edu/glimpse360/aladin/data",
+            maxOrder: 9,
+            imgFormat: "jpeg",
+            minOrder: 3,
+        }*/
     ];
 
-    return HiPSCache;
+    return HiPSList;
 })();

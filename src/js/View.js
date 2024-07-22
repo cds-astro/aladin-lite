@@ -47,7 +47,7 @@ import { ObsCore } from "./vo/ObsCore.js";
 import { DefaultActionsForContextMenu } from "./DefaultActionsForContextMenu.js";
 import { Layout } from "./gui/Layout.js";
 import { SAMPActionButton } from "./gui/Button/SAMP.js";
-import { HiPSCache } from "./DefaultHiPSCache.js";
+import { HiPSCache } from "./HiPSCache.js";
 import { ImageHiPS } from "./ImageHiPS.js";
 import { Image } from "./Image.js";
 
@@ -104,7 +104,7 @@ export let View = (function () {
                             aladin.setFoV(fov * 1.1);
                         }
                     );
-                    self.setOverlayImageLayer(image, file.name)
+                    self.aladin.setOverlayImageLayer(image, file.name)
                 } catch(e) {
                     let moc = A.MOCFromURL(url);
                     self.aladin.addMOC(moc);
@@ -1735,7 +1735,7 @@ export let View = (function () {
             })
             .catch((e) => {
                 // remove it from the cache
-                HiPSCache.delete(imageLayer.id)
+                this.aladin.hipsCache.delete(imageLayer.id)
 
                 if (imageLayer.errorCallback) {
                     imageLayer.errorCallback(e);
@@ -1866,8 +1866,8 @@ export let View = (function () {
             }
 
             // maybe it has not been added yet
-            let found = this.imageLayersBeingQueried
-                .values()
+            let found = Array.from(this.imageLayersBeingQueried
+                .values())
                 .some((s) => {
                     return s === survey;
                 });
@@ -2157,23 +2157,33 @@ export let View = (function () {
         }
 
         let closests = [];
-        let closest = null;
-        footprints.forEach((footprint) => {
-            if (!footprint.source || !footprint.source.tooSmallFootprint) {
-                // Hidden footprints are not considered
-                let lineWidth = footprint.getLineWidth();
-
-                footprint.setLineWidth(10.0);
-                if (footprint.isShowing && footprint.isInStroke(ctx, this, x * window.devicePixelRatio, y * window.devicePixelRatio)) {
-                    closest = footprint;
-                    if (closest) {
-                        closests.push(closest);
+        const startLw = (footprints && footprints[0] && footprints[0].getLineWidth()) || 1;
+        let endLw = 10;
+        let finish = false;
+        for (var lw = startLw; lw <= endLw; lw++) {
+            footprints.forEach((footprint) => {
+                if (!footprint.source || !footprint.source.tooSmallFootprint) {
+                    // Hidden footprints are not considered
+                    //let originLineWidth = footprint.getLineWidth();
+    
+                    footprint.setLineWidth(lw);
+                    if (footprint.isShowing && footprint.isInStroke(ctx, this, x * window.devicePixelRatio, y * window.devicePixelRatio)) {
+                        closests.push(footprint);
                     }
+                    footprint.setLineWidth(startLw);
                 }
-                footprint.setLineWidth(lineWidth);
-            }
-        })
+            })
 
+            if (closests.length > 0 && !finish) {
+                endLw = lw + 3;
+                finish = true;
+            }
+
+            if (finish && lw === endLw) {
+                break;
+            }
+        }
+       
         return closests;
     };
 
@@ -2212,7 +2222,8 @@ export let View = (function () {
 
         //ctx.lineWidth = pastLineWidth;
 
-        //var closest, dist;
+        var dist = Number.POSITIVE_INFINITY;
+        var closest = null;
         //for (var r = 0; r <= maxRadius; r++) {
             //closest = dist = null;
             for (var dx = -maxRadius; dx <= maxRadius; dx++) {
@@ -2221,14 +2232,19 @@ export let View = (function () {
                 }
                 for (var dy = -maxRadius; dy <= maxRadius; dy++) {
                     if (this.objLookup[x + dx][y + dy]) {
-                        //var d = dx * dx + dy * dy;
-                        /*if (!closest || d < dist) {
-                            closest = this.objLookup[x + dx][y + dy];
-                            //dist = d;
-                        }*/
-                        closests = closests.concat(this.objLookup[x + dx][y + dy])
+                        var d = dx * dx + dy * dy;
+                        if (d < dist) {
+                            dist = d;
+                            closest = this.objLookup[x + dx][y + dy]
+                        } else if (d == dist) {
+                            closest.concat(this.objLookup[x + dx][y + dy])
+                        }
                     }
                 }
+            }
+
+            if (closest && closest.length > 0) {
+                closests = closests.concat(closest)
             }
 
             /*if (closest) {

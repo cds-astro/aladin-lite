@@ -12,7 +12,7 @@ use crate::{
     },
     renderable::grid::ProjetedGrid,
     renderable::Layers,
-    renderable::{catalog::Manager, line::RasterizedLineRenderer, moc::MOCRenderer, Renderer},
+    renderable::{catalog::Manager, moc::MOCRenderer},
     shader::ShaderManager,
     tile_fetcher::TileFetcherQueue,
     time::DeltaTime,
@@ -89,7 +89,7 @@ pub struct App {
     _final_rendering_pass: RenderPass,
     _fbo_view: FrameBufferObject,
     _fbo_ui: FrameBufferObject,
-    line_renderer: RasterizedLineRenderer,
+    //line_renderer: RasterizedLineRenderer,
 
     colormaps: Colormaps,
 
@@ -196,7 +196,7 @@ impl App {
         let (img_send, img_recv) = async_channel::unbounded::<ImageLayer>();
         let (ack_img_send, ack_img_recv) = async_channel::unbounded::<ImageParams>();
 
-        let line_renderer = RasterizedLineRenderer::new(&gl)?;
+        //let line_renderer = RasterizedLineRenderer::new(&gl)?;
 
         let dist_dragging = 0.0;
         let time_start_dragging = Time::now();
@@ -231,7 +231,7 @@ impl App {
             _fbo_ui,
             _final_rendering_pass,
 
-            line_renderer,
+            //line_renderer,
 
             // inertia
             inertia,

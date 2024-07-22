@@ -40,7 +40,8 @@ import { MeasurementTable } from "./MeasurementTable.js";
 import { ImageHiPS } from "./ImageHiPS.js";
 import { Coo } from "./libs/astro/coo.js";
 import { CooConversion } from "./CooConversion.js";
-import { HiPSCache } from "./DefaultHiPSCache";
+import { HiPSCache } from "./HiPSCache.js";
+import { HiPSList } from "./DefaultHiPSList.js";
 
 import { ProjectionEnum } from "./ProjectionEnum.js";
 
@@ -159,36 +160,20 @@ import { Polyline } from "./shapes/Polyline";
             name: 'DESI Legacy Surveys color (g, r, i, z)',
             id: 'CDS/P/DESI-Legacy-Surveys/DR10/color',
         },
-        // Fully described HiPS
-        {
-            name: "DECaPS DR2 color",
-            url: "https://alasky.cds.unistra.fr/DECaPS/DR2/CDS_P_DECaPS_DR2_color/",
-            properties: {
-                creatorDid: "ivo://CDS/P/DECaPS/DR2/color",
-                maxOrder: 11,
-                cooFrame: "equatorial",
-                tileSize: 512,
-                imgFormat: 'png',
-            },
-        },
-        // HiPS with options
+        // HiPS with options. Fields accepted are those described in {@link A.imageHiPSOptions}.
         {
             name: "SDSS9 band-g",
             id: "P/SDSS9/g",
-            properties: {
-                creatorDid: "ivo://CDS/P/SDSS9/g",
-                maxOrder: 10,
-                tileSize: 512,
-                numBitsPerPixel: 16,
-                imgFormat: 'fits',
-                cooFrame: 'equatorial',
-            },
-            options: {
-                minCut: 0,
-                maxCut: 1.8,
-                stretch: 'linear',
-                colormap: "redtemperature",
-            }
+            creatorDid: "ivo://CDS/P/SDSS9/g",
+            maxOrder: 10,
+            tileSize: 512,
+            numBitsPerPixel: 16,
+            imgFormat: 'fits',
+            cooFrame: 'equatorial',
+            minCut: 0,
+            maxCut: 1.8,
+            stretch: 'linear',
+            colormap: "redtemperature",
         }
     ]
 })*/
@@ -275,7 +260,9 @@ export let Aladin = (function () {
      */
     var Aladin = function (aladinDiv, requestedOptions) {
         this.callbacksByEventName = {}; // we store the callback functions (on 'zoomChanged', 'positionChanged', ...) here
+        this.hipsCache = new HiPSCache();
 
+        console.log(this.hipsCache)
         // check that aladinDiv exists, stop immediately otherwise
         if (!aladinDiv) {
             console.error(
@@ -468,15 +455,6 @@ export let Aladin = (function () {
                     }
 
                     cachedSurvey = { ...cachedSurvey, ...survey };
-
-                    /*if (survey.properties) {
-                        delete cachedSurvey.properties;
-                        cachedSurvey = {...cachedSurvey, ...survey.properties}
-                    }
-                    if (survey.options) {
-                        delete cachedSurvey.options;
-                        cachedSurvey = {...cachedSurvey, ...survey.options}
-                    }*/
                 } else {
                     console.warn(
                         "unable to parse the survey list item: ",
@@ -506,7 +484,7 @@ export let Aladin = (function () {
                     ...cachedSurvey,
                 });*/
                 let hips = new ImageHiPS(key, cachedSurvey.url, cachedSurvey)
-                HiPSCache.append(key, hips);
+                self.hipsCache.append(key, hips);
             }
         };
 
@@ -642,7 +620,7 @@ export let Aladin = (function () {
         }
 
         if (options.expandLayersControl) {
-            stack.toggle();
+            stack.click();
         }
 
         this._applyMediaQueriesUI();
@@ -704,7 +682,7 @@ export let Aladin = (function () {
     Aladin.DEFAULT_OPTIONS = {
         survey: ImageHiPS.DEFAULT_SURVEY_ID,
         // surveys suggestion list
-        hipsList: HiPSCache.DEFAULT_HIPS_LIST,
+        hipsList: HiPSList.DEFAULT,
         //surveyUrl: ["https://alaskybis.unistra.fr/DSS/DSSColor", "https://alasky.unistra.fr/DSS/DSSColor"],
         target: "0 +0",
         cooFrame: "J2000",
@@ -1559,12 +1537,15 @@ export let Aladin = (function () {
             surveyOptions = {...surveyOptions, ...options};
         }*/
 
-        let hips = HiPSCache.get(id);
+        /*let hips = this.hipsCache.get(id);
         if (!hips) {
             options = { name, maxOrder, url, cooFrame, ...options };
             hips = new ImageHiPS(id, options.url, options)
-            HiPSCache.append(id, hips);
-        } 
+            this.hipsCache.append(id, hips);
+        } */
+
+        let hips = new ImageHiPS(id, url, { name, maxOrder, url, cooFrame, ...options })
+
 
         return hips;
     };
@@ -1615,7 +1596,7 @@ export let Aladin = (function () {
             survey = survey.id;
         }
         
-        HiPSCache.delete(survey);
+        this.hipsCache.delete(survey);
     }
 
     /**
@@ -1666,12 +1647,13 @@ export let Aladin = (function () {
         // Do not use proxy with CORS headers until we solve that: https://github.com/MattiasBuelens/wasm-streams/issues/20
         //url = Utils.handleCORSNotSameOrigin(url).href;
 
-        let image = HiPSCache.get(url);
+        /*let image = this.hipsCache.get(url);
         if (!image) {
             options = { successCallback, errorCallback, ...options };
             image = new Image(url, options);
-            HiPSCache.append(url, image);
-        }
+            this.hipsCache.append(url, image);
+        }*/
+        let image = new Image(url, {...options, successCallback, errorCallback});
 
         return image;
     };
@@ -1829,7 +1811,7 @@ export let Aladin = (function () {
      * <li>1. An url that refers to a HiPS.</li>
      * <li>2. Or it can be a CDS ID that refers to a HiPS. One can found the list of IDs {@link https://aladin.cds.unistra.fr/hips/list| here}</li>
      * <li>3. A {@link ImageHiPS} HiPS object created from {@link A.imageHiPS}</li>
-     * <li>4. A {@link Image} FITS image object</li>
+     * <li>4. A {@link Image} FITS/jped/png image</li>
      * </ul>
      * @param {string} [layer="overlay"] - A layer name. By default 'overlay' is chosen and it is destined to be plot
      * on top the 'base' layer. If the layer is already present in the view, it will be replaced by the new HiPS/FITS image given here.
@@ -1848,6 +1830,15 @@ export let Aladin = (function () {
             // 2. User gives a non resolved promise
         } else {
             imageLayer = urlOrHiPSOrFITS;
+        }
+
+
+        let hipsCache = this.hipsCache;
+        let cachedLayer = hipsCache.get(imageLayer.id)
+        if (cachedLayer && !cachedLayer.added) {
+            imageLayer = cachedLayer
+        } else {
+            this.hipsCache.append(imageLayer.id, imageLayer);
         }
 
         return this.view.setOverlayImageLayer(imageLayer, layer);

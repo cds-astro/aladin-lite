@@ -500,10 +500,13 @@ export let Aladin = (function () {
 
                 // Merge what is already in the cache for that HiPS with new properties
                 // coming from the MOCServer
-                HiPSCache.append(key, {
+
+                /*HiPSCache.append(key, {
                     ...HiPSCache.get(key),
                     ...cachedSurvey,
-                });
+                });*/
+                let hips = new ImageHiPS(key, cachedSurvey.url, cachedSurvey)
+                HiPSCache.append(key, hips);
             }
         };
 
@@ -1546,7 +1549,7 @@ export let Aladin = (function () {
         maxOrder,
         options
     ) {
-        let surveyOptions = HiPSCache.get(id);
+        /*let surveyOptions = HiPSCache.get(id);
 
         if (!surveyOptions) {
             surveyOptions = { name, maxOrder, cooFrame, ...options };
@@ -1554,11 +1557,16 @@ export let Aladin = (function () {
         } else {
             // update the cached survey
             surveyOptions = {...surveyOptions, ...options};
-        }
+        }*/
 
-        HiPSCache.append(id, surveyOptions);
+        let hips = HiPSCache.get(id);
+        if (!hips) {
+            options = { name, maxOrder, url, cooFrame, ...options };
+            hips = new ImageHiPS(id, options.url, options)
+            HiPSCache.append(id, hips);
+        } 
 
-        return new ImageHiPS(id, surveyOptions.url, surveyOptions);
+        return hips;
     };
 
     /**

@@ -36,6 +36,7 @@ export let HiPSCache = (function () {
     HiPSCache.append = function (key, image) {
         HiPSCache.cache[key] = image;
 
+        console.log(HiPSCache.cache)
         ALEvent.HIPS_CACHE_UPDATED.dispatchedTo(document.body);
     };
 

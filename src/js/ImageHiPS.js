@@ -484,13 +484,14 @@ export let ImageHiPS = (function () {
         }
 
         if (HiPSCache.contains(self.id)) {
-            HiPSCache.append(self.id, {
+            /*HiPSCache.append(self.id, {
                 // Erase by the cache already put values which is considered
                 // as the ground truth
                 ...HiPSCache.get[self.id],
                 // append new important infos from the properties queried
                 ...surveyOpt,
-            });
+            });*/
+            HiPSCache.append(self.id, this)
         }
     };
 

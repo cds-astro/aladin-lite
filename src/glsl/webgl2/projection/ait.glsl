@@ -6,7 +6,7 @@ vec2 w2c_ait(vec3 p) {
     float y2d = p.y / w;
 
     float x2d = 0.0;
-    if (abs(p.x) < 5e-3) {
+    if (abs(p.x) < 1e-3) {
         float x_over_r = p.x/r;
         x2d = -p.x * (1.0 - x_over_r*x_over_r/21.0) / w;
     } else {

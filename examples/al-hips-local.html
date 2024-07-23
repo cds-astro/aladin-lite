@@ -14,7 +14,7 @@
     A.init.then(() => {
         aladin = A.aladin('#aladin-lite-div', {target: "05 40 59.12 -02 27 04.1", fov: 2});
         
-        let survey = aladin.createImageSurvey('DSS2 local', "local hips", "hips/CDS_P_DSS2_color");
+        let survey = aladin.createImageSurvey('DSS2 local', "local hips", "./hips/CDS_P_DSS2_color");
         aladin.setBaseImageLayer(survey);
     });
 </script>

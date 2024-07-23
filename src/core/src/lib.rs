@@ -382,21 +382,19 @@ impl WebClient {
     #[wasm_bindgen(js_name = addImageFITS)]
     pub fn add_image_fits(
         &mut self,
-        id: String,
         stream: web_sys::ReadableStream,
         cfg: JsValue,
         layer: String,
     ) -> Result<js_sys::Promise, JsValue> {
         let cfg: ImageMetadata = serde_wasm_bindgen::from_value(cfg)?;
-        //let wcs: Option<WCSParams> = serde_wasm_bindgen::from_value(wcs)?;
 
-        self.app.add_image_fits(id, stream, cfg, layer)
+        self.app.add_image_fits(stream, cfg, layer)
     }
 
     #[wasm_bindgen(js_name = addImageWithWCS)]
     pub fn add_image_with_wcs(
         &mut self,
-        data: web_sys::ReadableStream,
+        stream: web_sys::ReadableStream,
         wcs: JsValue,
         cfg: JsValue,
         layer: String,
@@ -406,7 +404,7 @@ impl WebClient {
         let wcs_params: WCSParams = serde_wasm_bindgen::from_value(wcs)?;
         let wcs = WCS::new(&wcs_params).map_err(|e| JsValue::from_str(&format!("{:?}", e)))?;
 
-        self.app.add_image_from_blob_and_wcs(layer, data, wcs, cfg)
+        self.app.add_image_from_blob_and_wcs(layer, stream, wcs, cfg)
     }
 
     #[wasm_bindgen(js_name = removeLayer)]

@@ -1115,7 +1115,6 @@ impl App {
 
     pub(crate) fn add_image_fits(
         &mut self,
-        id: String,
         stream: web_sys::ReadableStream,
         meta: ImageMetadata,
         layer: String,
@@ -1245,8 +1244,9 @@ impl App {
             } else {
                 let fits = ImageLayer {
                     images,
+                    id: layer.clone(),
+
                     layer,
-                    id,
                     meta,
                 };
 
@@ -1301,6 +1301,7 @@ impl App {
     ) -> Result<(), JsValue> {
         let old_meta = self.layers.get_layer_cfg(&layer)?;
         // Set the new meta
+        // keep the old meta data
         let new_img_fmt = meta.img_format;
         self.layers
             .set_layer_cfg(layer.clone(), meta, &mut self.camera, &self.projection)?;

@@ -17,6 +17,10 @@
         var msg;
 
         // define function triggered when  a source is hovered
+        aladin.on('click', function(e) {
+            console.log(e)
+        });
+
         aladin.on('objectHovered', function(object, xyMouseCoords) {
             if (object) {
                 msg = 'You hovered object ' + object.data.name + ' located at ' + object.ra + ', ' + object.dec + '; mouse coords - x: '

@@ -901,7 +901,7 @@ export let View = (function () {
             // call listener of 'click' event
             var onClickFunction = view.aladin.callbacksByEventName['click'];
             if (typeof onClickFunction === 'function') {
-                var pos = view.aladin.pix2world(xymouse.x, xymouse.y);
+                var pos = view.aladin.pix2world(xymouse.x, xymouse.y, "icrs");
                 if (pos !== undefined) {
                     onClickFunction({ ra: pos[0], dec: pos[1], x: xymouse.x, y: xymouse.y, isDragging: wasDragging });
                 }

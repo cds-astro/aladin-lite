@@ -90,7 +90,6 @@ pub struct App {
     _fbo_view: FrameBufferObject,
     _fbo_ui: FrameBufferObject,
     //line_renderer: RasterizedLineRenderer,
-
     colormaps: Colormaps,
 
     pub projection: ProjectionType,

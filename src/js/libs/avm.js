@@ -117,6 +117,7 @@ export let AVM = (function() {
                 var oAVM = _obj.findAVMinJPEG(view);
                 _obj.avmdata = true;
                 _obj.tags = oAVM || {};
+
                 if (typeof fnCallback=="function") fnCallback(_obj);
             })
     }
@@ -137,18 +138,16 @@ export let AVM = (function() {
         var iLength = oFile.byteLength;
         while (iOffset < iLength) {
             if (oFile.getUint8(iOffset) != 0xFF) return false; // not a valid marker, something is wrong
-            var iMarker = oFile.getUint8(iOffset+1)+1;
-
+            var iMarker = oFile.getUint8(iOffset+1);
 
             // we could implement handling for other markers here, 
             // but we're only looking for 0xFFE1 for AVM data
             if (iMarker == 22400) {
                 return this.readAVMData(oFile, iOffset + 4, oFile.getUint16(iOffset+2, false)-2);
-                iOffset += 2 + oFile.getUint16(iOffset+2, false);
+                //iOffset += 2 + oFile.getUint16(iOffset+2, false);
 
             } else if (iMarker == 225) {
                 // 0xE1 = Application-specific 1 (for AVM)
-                console.log("jkjk")
                 var oTags = this.readAVMData(oFile, iOffset + 4, oFile.getUint16(iOffset+2, false)-2);
                 return oTags;
             } else {
@@ -157,11 +156,42 @@ export let AVM = (function() {
         }
     }
 
-    AVM.prototype.readAVMData = function(oFile, iStart, iLength){
+    AVM.prototype.readAVMData = function(oFile) {
         var oTags = {};
         this.xmp = this.readXMP(oFile);
         console.log("xmp read", this.xmp)
-        if (this.xmp) oTags = this.readAVM(this.xmp);
+        if (this.xmp) {
+            oTags = this.readAVM(this.xmp);
+            let wcs = {};
+
+            if (oTags) {
+                wcs.CTYPE1 = obj.tags['Spatial.CoordinateFrame'] === 'ICRS' ? 'RA---' : 'GLON-';
+                wcs.CTYPE1 += obj.tags['Spatial.CoordsystemProjection'];
+                wcs.CTYPE2 = obj.tags['Spatial.CoordinateFrame'] === 'ICRS' ? 'DEC--' : 'GLAT-';
+                wcs.CTYPE2 += obj.tags['Spatial.CoordsystemProjection'];
+
+                if (obj.tags['Spatial.Equinox'])
+                    wcs.EQUINOX = +obj.tags['Spatial.Equinox'];
+
+                wcs.NAXIS1 = obj.tags['Spatial.ReferenceDimension'] && +obj.tags['Spatial.ReferenceDimension'][0] || img.width;
+                wcs.NAXIS2 = obj.tags['Spatial.ReferenceDimension'] && +obj.tags['Spatial.ReferenceDimension'][1] || img.height;
+
+                wcs.CDELT1 = obj.tags['Spatial.Scale'] && +obj.tags['Spatial.Scale'][0];
+                wcs.CDELT2 = obj.tags['Spatial.Scale'] && +obj.tags['Spatial.Scale'][1];
+                wcs.CRPIX1 = obj.tags['Spatial.ReferencePixel'] && +obj.tags['Spatial.ReferencePixel'][0];
+                wcs.CRPIX2 = obj.tags['Spatial.ReferencePixel'] && +obj.tags['Spatial.ReferencePixel'][1];
+
+                wcs.CRVAL1 = obj.tags['Spatial.ReferenceValue'] && +obj.tags['Spatial.ReferenceValue'][0];
+                wcs.CRVAL2 = obj.tags['Spatial.ReferenceValue'] && +obj.tags['Spatial.ReferenceValue'][1];
+
+                if (obj.tags['Spatial.Rotation'] !== undefined)
+                    wcs.CROTA2 = +obj.tags['Spatial.Rotation'];
+
+                
+            } else {
+                // try to read directly the WCS
+            }
+        }
         return oTags;
     }
 
@@ -178,7 +208,6 @@ export let AVM = (function() {
         var byteStr = '';
         var iEntryOffset = -1;
         console.log(iEntryOffset)
-
         // Here we want to search for the XMP packet starting string
         // There is probably a more efficient way to search for a byte string
         for (var i=0;i<iEntries;i++) {

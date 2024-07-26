@@ -55,8 +55,10 @@ pub fn build_fov_coverage(
             moc
         }
     } else {
+        let center_xyzw = crate::coosys::apply_coo_system(camera_frame, frame, camera_center);
+
         let biggest_fov_rad = proj.aperture_start().to_radians();
-        let lonlat = camera_center.lonlat();
+        let lonlat = center_xyzw.lonlat();
         HEALPixCoverage::from_cone(&lonlat, biggest_fov_rad * 0.5, depth)
     }
 }

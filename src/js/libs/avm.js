@@ -6,12 +6,15 @@
  *
  * Licensed under the MPL http://www.mozilla.org/MPL/MPL-1.1.txt
  *
+ * S
  */
 
 export let AVM = (function() {
 
     function AVM(input) {
         if (input instanceof HTMLImageElement) {
+            this.img = input;
+        } else if (input instanceof ArrayBuffer) {
             this.img = input;
         } else {
             // suppose that input is a string
@@ -20,8 +23,7 @@ export let AVM = (function() {
         }
 
         this.xmp = "";	// Will hold the XMP string (for test purposes)
-        this.avmdata = false;
-        this.tags = {}
+        this.wcsdata = false;
         this.AVMdefinedTags = {
             'Creator':'photoshop:Source',
             'CreatorURL':'Iptc4xmpCore:CiUrlWork',
@@ -83,6 +85,12 @@ export let AVM = (function() {
         if(!this.img && this.id) {
             this.img = document.getElementById(this.id);
         }
+        console.log("jksjdk2f")
+
+        if (this.img instanceof ArrayBuffer) {
+            this.getData(fnCallback);
+            return;
+        }
 
         if(!this.img.complete) {
             var _obj = this;
@@ -91,12 +99,14 @@ export let AVM = (function() {
                     _obj.getData(fnCallback);
                 }
             ); 
-        }else{
+        } else {
             this.getData(fnCallback);
         }
     }
 
     AVM.prototype.getData = function(fnCallback){
+        console.log("jksjdk2f")
+
         if(!this.imageHasData()){
             this.getImageData(this.img, fnCallback);
         }else{
@@ -107,19 +117,30 @@ export let AVM = (function() {
 
     AVM.prototype.getImageData = function(oImg, fnCallback) {
         var _obj = this;
-        let reqwst = new Request(oImg.src, {
-            method: 'GET',
-        })
-        fetch(reqwst)
-            .then((resp) => resp.arrayBuffer())
-            .then(arrayBuffer => {
-                const view = new DataView(arrayBuffer);
-                var oAVM = _obj.findAVMinJPEG(view);
-                _obj.avmdata = true;
-                _obj.tags = oAVM || {};
 
-                if (typeof fnCallback=="function") fnCallback(_obj);
+        const findAVM = (arrayBuffer) => {
+            const view = new DataView(arrayBuffer);
+            var oAVM = _obj.findAVMinJPEG(view);
+            _obj.wcs = oAVM || {};
+
+            _obj.wcsdata = _obj.wcs !== undefined && Object.keys(_obj.wcs).length > 0;
+
+            if (typeof fnCallback=="function") fnCallback(_obj);
+        };
+        if (oImg instanceof ArrayBuffer) {
+            console.log("jksjdkf")
+            findAVM(oImg)
+        } else {
+            let reqwst = new Request(oImg.src, {
+                method: 'GET',
             })
+            fetch(reqwst)
+                .then((resp) => resp.arrayBuffer())
+                .then(arrayBuffer => {
+                    findAVM(arrayBuffer)
+                })
+        }
+        
     }
 
     function addEvent(oElement, strEvent, fncHandler){
@@ -128,7 +149,7 @@ export let AVM = (function() {
     }
 
     AVM.prototype.imageHasData = function() {
-        return (this.img.avmdata);
+        return (this.img.wcsdata);
     }
 
     AVM.prototype.findAVMinJPEG = function(oFile) {
@@ -143,56 +164,104 @@ export let AVM = (function() {
             // we could implement handling for other markers here, 
             // but we're only looking for 0xFFE1 for AVM data
             if (iMarker == 22400) {
-                return this.readAVMData(oFile, iOffset + 4, oFile.getUint16(iOffset+2, false)-2);
+                return this.readAVMDataAsWCS(oFile, iOffset + 4, oFile.getUint16(iOffset+2, false)-2);
                 //iOffset += 2 + oFile.getUint16(iOffset+2, false);
 
             } else if (iMarker == 225) {
                 // 0xE1 = Application-specific 1 (for AVM)
-                var oTags = this.readAVMData(oFile, iOffset + 4, oFile.getUint16(iOffset+2, false)-2);
-                return oTags;
+                return this.readAVMDataAsWCS(oFile, iOffset + 4, oFile.getUint16(iOffset+2, false)-2);
             } else {
                 iOffset += 2 + oFile.getUint16(iOffset+2, false);
             }
         }
     }
 
-    AVM.prototype.readAVMData = function(oFile) {
-        var oTags = {};
+    AVM.prototype.readAVMDataAsWCS = function(oFile) {
+        var tags = undefined;
+
+        let wcs = {};
+
         this.xmp = this.readXMP(oFile);
-        console.log("xmp read", this.xmp)
+
         if (this.xmp) {
-            oTags = this.readAVM(this.xmp);
-            let wcs = {};
+            tags = this.readAVM(this.xmp);
 
-            if (oTags) {
-                wcs.CTYPE1 = obj.tags['Spatial.CoordinateFrame'] === 'ICRS' ? 'RA---' : 'GLON-';
-                wcs.CTYPE1 += obj.tags['Spatial.CoordsystemProjection'];
-                wcs.CTYPE2 = obj.tags['Spatial.CoordinateFrame'] === 'ICRS' ? 'DEC--' : 'GLAT-';
-                wcs.CTYPE2 += obj.tags['Spatial.CoordsystemProjection'];
+            if (tags) {
+                this.tags = tags;
+                console.log(tags)
 
-                if (obj.tags['Spatial.Equinox'])
-                    wcs.EQUINOX = +obj.tags['Spatial.Equinox'];
+                let unwindTag = (tag) => {
+                    if (Array.isArray(tag)) {
+                        return tag[0]
+                    } else {
+                        return tag;
+                    }
+                }
 
-                wcs.NAXIS1 = obj.tags['Spatial.ReferenceDimension'] && +obj.tags['Spatial.ReferenceDimension'][0] || img.width;
-                wcs.NAXIS2 = obj.tags['Spatial.ReferenceDimension'] && +obj.tags['Spatial.ReferenceDimension'][1] || img.height;
+                wcs.CTYPE1 = unwindTag(tags['Spatial.CoordinateFrame']) === 'ICRS' ? 'RA---' : 'GLON-';
+                wcs.CTYPE1 += unwindTag(tags['Spatial.CoordsystemProjection']);
+                wcs.CTYPE2 = unwindTag(tags['Spatial.CoordinateFrame']) === 'ICRS' ? 'DEC--' : 'GLAT-';
+                wcs.CTYPE2 += unwindTag(tags['Spatial.CoordsystemProjection']);
 
-                wcs.CDELT1 = obj.tags['Spatial.Scale'] && +obj.tags['Spatial.Scale'][0];
-                wcs.CDELT2 = obj.tags['Spatial.Scale'] && +obj.tags['Spatial.Scale'][1];
-                wcs.CRPIX1 = obj.tags['Spatial.ReferencePixel'] && +obj.tags['Spatial.ReferencePixel'][0];
-                wcs.CRPIX2 = obj.tags['Spatial.ReferencePixel'] && +obj.tags['Spatial.ReferencePixel'][1];
+                if (unwindTag(tags['Spatial.Equinox']))
+                    wcs.EQUINOX = +unwindTag(tags['Spatial.Equinox']);
 
-                wcs.CRVAL1 = obj.tags['Spatial.ReferenceValue'] && +obj.tags['Spatial.ReferenceValue'][0];
-                wcs.CRVAL2 = obj.tags['Spatial.ReferenceValue'] && +obj.tags['Spatial.ReferenceValue'][1];
+                wcs.NAXIS1 = tags['Spatial.ReferenceDimension'] && +tags['Spatial.ReferenceDimension'][0];
+                wcs.NAXIS2 = tags['Spatial.ReferenceDimension'] && +tags['Spatial.ReferenceDimension'][1];
 
-                if (obj.tags['Spatial.Rotation'] !== undefined)
-                    wcs.CROTA2 = +obj.tags['Spatial.Rotation'];
+                if (tags['Spatial.CDMatrix']) {
+                    console.warn("Spatial.CDMatrix is deprecated");
 
-                
+                    wcs.CD1_1 = +tags['Spatial.CDMatrix'][0];
+                    wcs.CD1_2 = +tags['Spatial.CDMatrix'][1];
+                    wcs.CD2_1 = +tags['Spatial.CDMatrix'][2];
+                    wcs.CD2_2 = +tags['Spatial.CDMatrix'][3];
+                } else {
+                    wcs.CDELT1 = tags['Spatial.Scale'] && +tags['Spatial.Scale'][0];
+                    wcs.CDELT2 = tags['Spatial.Scale'] && +tags['Spatial.Scale'][1];
+
+                    if (unwindTag(tags['Spatial.Rotation']) !== undefined) {
+                        wcs.CROTA2 = +unwindTag(tags['Spatial.Rotation']);
+                    }
+                }
+
+                wcs.CRPIX1 = tags['Spatial.ReferencePixel'] && +tags['Spatial.ReferencePixel'][0];
+                wcs.CRPIX2 = tags['Spatial.ReferencePixel'] && +tags['Spatial.ReferencePixel'][1];
+
+                wcs.CRVAL1 = tags['Spatial.ReferenceValue'] && +tags['Spatial.ReferenceValue'][0];
+                wcs.CRVAL2 = tags['Spatial.ReferenceValue'] && +tags['Spatial.ReferenceValue'][1];
             } else {
-                // try to read directly the WCS
+                var equalReached = false;
+                for(var key of ['NAXIS1', 'NAXIS2', 'CTYPE1', 'CTYPE2', 'CRPIX1', 'CRPIX2', 'CRVAL1', 'CRVAL2', 'LONPOLE', 'LATPOLE', 'CDELT1', 'CDELT2', 'PC1_1', 'PC2_2', 'PC1_2', 'PC2_1', 'CD1_1', 'CD2_2', 'CD1_2', 'CD2_1']) {
+                    equalReached = false;
+                    // try to read directly the WCS
+                    let beginCard = this.xmp.slice(this.xmp.indexOf(key));
+                    let values = beginCard.split(" ");
+                    
+                    for (var v of values) {
+
+                        if (equalReached && v !== "") {
+                            wcs[key] = parseFloat(v);
+                            if (Number.isNaN(wcs[key])) {
+                                if (v[0] === "'" || v[0] === "\"") {
+                                    v = v.slice(1, v.length - 1)
+                                }
+                                wcs[key] = v;
+                            }
+
+                            break;
+                        }
+
+                        if (v === "=") {
+                            equalReached = true;
+                        }
+                    }
+                }
+
+                console.log(wcs)
             }
         }
-        return oTags;
+        return wcs;
     }
 
     AVM.prototype.readXMP = function(oFile) {
@@ -207,7 +276,7 @@ export let AVM = (function() {
         var xmpBytes = 14;
         var byteStr = '';
         var iEntryOffset = -1;
-        console.log(iEntryOffset)
+
         // Here we want to search for the XMP packet starting string
         // There is probably a more efficient way to search for a byte string
         for (var i=0;i<iEntries;i++) {
@@ -224,7 +293,6 @@ export let AVM = (function() {
             }
             if(record){
                 byteStr += n_hex+' ';
-                console.log(byteStr, recordn)
 
                 recordn--;
                 if(recordn < 0){
@@ -237,7 +305,7 @@ export let AVM = (function() {
             }
             prev_n_hex = n_hex;
         }
-        console.log(iEntryOffset)
+
         if(iEntryOffset >= 0){
             var str = '';
             var i = iEntryOffset;
@@ -250,8 +318,9 @@ export let AVM = (function() {
     }
 
     AVM.prototype.readAVM = function(str) {
-        var oTags = {};
+        var tags = undefined;
         if(str.indexOf('xmlns:avm') >= 0){
+            tags = {}
             for (var keyname in this.AVMdefinedTags) {
                 var key = this.AVMdefinedTags[keyname];
                 key.toLowerCase();
@@ -260,7 +329,7 @@ export let AVM = (function() {
                 // Find out what the character is after the key
                 var char = str.substring(start-2,start-1);
                 if(char == "="){
-                    oTags[keyname] = str.substring(start,final);
+                    tags[keyname] = str.substring(start,final);
                 }else if(char == ">"){
                     final = str.indexOf('</'+key+'>',start);
                     // Parse out the HTML tags and build an array of the resulting values
@@ -274,11 +343,11 @@ export let AVM = (function() {
                     for(var i = 0;i<tmparr.length;i++){
                         if(tmparr[i].length > 0) newarr.push(tmparr[i]);
                     }
-                    oTags[keyname] = newarr;
+                    tags[keyname] = newarr;
                 }
             }
         }
-        return oTags;
+        return tags;
     }
 
     return AVM;

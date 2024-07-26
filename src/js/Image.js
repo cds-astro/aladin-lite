@@ -30,7 +30,7 @@ import { ColorCfg } from "./ColorCfg.js";
 import { Aladin } from "./Aladin.js";
 import { Utils } from "./Utils";
 import { AVM } from "./libs/avm.js";
-
+import * as tiff from "tiff";
 
 /**
  * @typedef {Object} ImageOptions
@@ -236,7 +236,7 @@ export let Image = (function () {
                         imgFormat: 'fits',
                     },
                     layer
-                );
+                )
             },
             error: (e) => {
                 // try as cors 
@@ -254,7 +254,14 @@ export let Image = (function () {
                                 imgFormat: 'fits',
                             },
                             layer
-                        );
+                        ).catch(e => {
+                            //console.log(e)
+                            console.log('jj')
+                            const reader = stream.getReader();
+                            reader.releaseLock();
+                            console.log("jjjjj")
+                            return Promise.reject(e);
+                        });
                     },
                 });
             }
@@ -263,7 +270,97 @@ export let Image = (function () {
             self.imgFormat = 'fits';
 
             return Promise.resolve(imageParams);
-        });
+        })
+    }
+
+    Image.prototype._addTiff = function(layer) {
+        let self = this;
+        const url = Aladin.JSONP_PROXY + '?url=' + self.url;
+        console.log("parse through proxy", url)
+        console.log("test tiff")
+
+        return Utils.fetch({
+            url,
+            dataType: "blob",
+            cors: "Anonymous"
+        })
+        .then((blob) => {
+            return blob.arrayBuffer()
+        })
+        .then((arrayBuffer) => {
+            return new Promise((resolve, reject) => {
+                var ifds = tiff.decode(arrayBuffer);
+                //var rgba = UTIF.toRGBA8(ifds[0]);  // Uint8Array with RGBA pixels
+                console.log(ifds[0].width, ifds[0].height, ifds[0]);
+
+                let try2FindAVM = [];
+                for(var v of ifds[0].fields.values()) {
+                    try2FindAVM.push(new Promise((resolve, reject) => {
+                        let string = new TextDecoder().decode(v)
+                        console.log(string, v)
+                        let avm = new AVM(v);
+                        avm.load((obj) => {
+                            // obj contains the following information:
+                            // obj.id (string) = The ID provided for the image
+                            // obj.img (object) = The image object
+                            // obj.xmp (string) = The raw XMP header
+                            // obj.wcsdata (Boolean) = If WCS have been loaded
+                            // obj.tags (object) = An array containing all the loaded tags e.g. obj.tags['Headline']
+                            // obj.wcs (object) = The wcs parsed from the image
+                            console.log(obj)
+                            if (obj.wcsdata) {
+                                if (img.width !== obj.wcs.NAXIS1) {
+                                    obj.wcs.NAXIS1 = img.width;
+                                }
+            
+                                if (img.height !== obj.wcs.NAXIS2) {
+                                    obj.wcs.NAXIS2 = img.height;
+                                }
+            
+                                self.options.wcs = obj.wcs;
+            
+                                const blob = new Blob([ifds[0]]);
+                                const stream = blob.stream(1024);
+                                resolve(stream)
+                            } else {
+                                // no tags found
+                                reject('No WCS have been found in the image')
+                            }
+                        })
+                    }))
+                }
+                
+                return Promise.any(try2FindAVM);
+            })
+        })
+        .then((readableStream) => {
+            console.log("blob", readableStream)
+            let wcs = self.options && self.options.wcs;
+            wcs.NAXIS1 = wcs.NAXIS1 || img.width;
+            wcs.NAXIS2 = wcs.NAXIS2 || img.height;
+
+            return self.view.wasm
+                .addImageWithWCS(
+                    readableStream,
+                    wcs,
+                    {
+                        ...self.colorCfg.get(),
+                        longitudeReversed: false,
+                        imgFormat: 'jpeg',
+                    },
+                    layer
+                )
+        })
+        .then((imageParams) => {
+            self.imgFormat = 'tiff';
+            return Promise.resolve(imageParams);
+        })
+        .catch(e => {
+            console.error(e)
+            console.log("aaa", e)
+
+            return Promise.reject(e)
+        })
     }
 
     Image.prototype._addJPGOrPNG = function(layer) {
@@ -289,9 +386,6 @@ export let Image = (function () {
                     const blob = new Blob([imageData.data]);
                     const stream = blob.stream(1024);
     
-                    console.log(self.options, stream)
-
-
                     resolve(stream)
                 };
 
@@ -304,19 +398,24 @@ export let Image = (function () {
                         // obj.id (string) = The ID provided for the image
                         // obj.img (object) = The image object
                         // obj.xmp (string) = The raw XMP header
-                        // obj.avmdata (Boolean) = If AVM tags have been loaded
+                        // obj.wcsdata (Boolean) = If WCS have been loaded
                         // obj.tags (object) = An array containing all the loaded tags e.g. obj.tags['Headline']
-                        console.log(obj)
+                        // obj.wcs (object) = The wcs parsed from the image
+                        if (obj.wcsdata) {
+                            if (img.width !== obj.wcs.NAXIS1) {
+                                obj.wcs.NAXIS1 = img.width;
+                            }
 
-                        if (obj.avmdata) {
-                            self.options.wcs = obj.oTags;
+                            if (img.height !== obj.wcs.NAXIS2) {
+                                obj.wcs.NAXIS2 = img.height;
+                            }
 
-                            console.log(wcs)
+                            self.options.wcs = obj.wcs;
 
                             img2Blob()
                         } else {
                             // no tags found
-                            reject('No AVM tags have been found in the image')
+                            reject('No WCS have been found in the image')
                             return;
                         }
                     })
@@ -326,15 +425,17 @@ export let Image = (function () {
             }
 
             let proxyUsed = false;
-            img.onerror = () => {
+            img.onerror = (e) => {
                 // use proxy
                 if (proxyUsed) {
-                    reject('Error parsing img ' + self.url)
+                    console.error(e);
+
+                    reject('Error parsing image located at: ' + self.url)
                     return;
                 }
 
                 proxyUsed = true;
-                img.src = Aladin.JSONP_PROXY + '?url=' + self.url;                   
+                img.src = Aladin.JSONP_PROXY + '?url=' + self.url;
             }
         })
         .then((readableStream) => {
@@ -381,15 +482,24 @@ export let Image = (function () {
                     console.error(`Image located at ${this.url} could not be parsed as a ${this.imgFormat} file. Is the imgFormat specified correct?`);
                     return Promise.reject(e)
                 })
+        } else if (this.imgFormat === 'tiff') {
+            promise = this._addTiff(layer)
+                .catch(e => {
+                    console.error(`Image located at ${this.url} could not be parsed as a ${this.imgFormat} file. Is the imgFormat specified correct?`);
+                    return Promise.reject(e)
+                })
         } else {
             // imgformat not defined we will try first supposing it is a fits file and then use the jpg heuristic
-            promise = this._addFITS(layer)
+            promise = this._addTiff(layer)
                 .catch(e => {
                     console.warn(`Image located at ${self.url} could not be parsed as fits file. Try as a jpg/png image...:`, e)
                     return self._addJPGOrPNG(layer)
                         .catch(e => {
-                            console.error(`Image located at ${self.url} could not be parsed as jpg/png image file. Aborting...`)
-                            return Promise.reject(e);
+                            return self._addFITS(layer)
+                                .catch(e => {
+                                    console.error(`Image located at ${self.url} could not be parsed as jpg/png/tif image file. Aborting...`)
+                                    return Promise.reject(e);
+                                })
                         })
                 })
         }

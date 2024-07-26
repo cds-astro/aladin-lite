@@ -237,6 +237,26 @@ export let Image = (function () {
                     },
                     layer
                 );
+            },
+            error: (e) => {
+                // try as cors 
+                const url = Aladin.JSONP_PROXY + '?url=' + self.url;
+
+                return Utils.fetch({
+                    url: url,
+                    dataType: 'readableStream',
+                    success: (stream) => {
+                        return self.view.wasm.addImageFITS(
+                            stream,
+                            {
+                                ...self.colorCfg.get(),
+                                longitudeReversed: false,
+                                imgFormat: 'fits',
+                            },
+                            layer
+                        );
+                    },
+                });
             }
         })
         .then((imageParams) => {
@@ -278,7 +298,7 @@ export let Image = (function () {
                 if (!self.options.wcs) {
                     /* look for avm tags if no wcs is given */
                     let avm = new AVM(img);
-                    console.log(img.complete)
+
                     avm.load((obj) => {
                         // obj contains the following information:
                         // obj.id (string) = The ID provided for the image
@@ -289,31 +309,9 @@ export let Image = (function () {
                         console.log(obj)
 
                         if (obj.avmdata) {
-                            let wcs = {};
-                            wcs.CTYPE1 = obj.tags['Spatial.CoordinateFrame'] === 'ICRS' ? 'RA---' : 'GLON-';
-                            wcs.CTYPE1 += obj.tags['Spatial.CoordsystemProjection'];
-                            wcs.CTYPE2 = obj.tags['Spatial.CoordinateFrame'] === 'ICRS' ? 'DEC--' : 'GLAT-';
-                            wcs.CTYPE2 += obj.tags['Spatial.CoordsystemProjection'];
+                            self.options.wcs = obj.oTags;
 
-                            if (obj.tags['Spatial.Equinox'])
-                                wcs.EQUINOX = +obj.tags['Spatial.Equinox'];
-
-                            wcs.NAXIS1 = +obj.tags['Spatial.ReferenceDimension'][0];
-                            wcs.NAXIS2 = +obj.tags['Spatial.ReferenceDimension'][1];
-
-                            wcs.CDELT1 = +obj.tags['Spatial.Scale'][0];
-                            wcs.CDELT2 = +obj.tags['Spatial.Scale'][1];
-
-                            wcs.CRPIX1 = +obj.tags['Spatial.ReferencePixel'][0];
-                            wcs.CRPIX2 = +obj.tags['Spatial.ReferencePixel'][1];
-
-                            wcs.CRVAL1 = +obj.tags['Spatial.ReferenceValue'][0];
-                            wcs.CRVAL2 = +obj.tags['Spatial.ReferenceValue'][1];
-
-                            if (obj.tags['Spatial.Rotation'] !== undefined)
-                                wcs.CROTA2 = +obj.tags['Spatial.Rotation'];
-
-                            self.options.wcs = wcs;
+                            console.log(wcs)
 
                             img2Blob()
                         } else {
@@ -321,7 +319,6 @@ export let Image = (function () {
                             reject('No AVM tags have been found in the image')
                             return;
                         }
-
                     })
                 } else {
                     img2Blob()
@@ -387,8 +384,8 @@ export let Image = (function () {
         } else {
             // imgformat not defined we will try first supposing it is a fits file and then use the jpg heuristic
             promise = this._addFITS(layer)
-                .catch(_ => {
-                    console.warn(`Image located at ${self.url} could not be parsed as fits file. Try as a jpg/png image...`)
+                .catch(e => {
+                    console.warn(`Image located at ${self.url} could not be parsed as fits file. Try as a jpg/png image...:`, e)
                     return self._addJPGOrPNG(layer)
                         .catch(e => {
                             console.error(`Image located at ${self.url} could not be parsed as jpg/png image file. Aborting...`)

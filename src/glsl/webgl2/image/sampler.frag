@@ -11,6 +11,6 @@ uniform float opacity;
 #include ../hips/color.glsl;
 
 void main() {
-    out_frag_color = texture(tex, frag_uv);
+    out_frag_color = texture(tex, vec2(frag_uv.x, 1.0 - frag_uv.y));
     out_frag_color.a = out_frag_color.a * opacity;
 }

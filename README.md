@@ -12,7 +12,7 @@ More details on [Aladin Lite documentation page](http://aladin.u-strasbg.fr/Alad
 A new [API technical documentation](https://cds-astro.github.io/aladin-lite/) is now available.
 
 [![Run tests](https://github.com/cds-astro/aladin-lite/actions/workflows/test.yml/badge.svg)](https://github.com/cds-astro/aladin-lite/actions/workflows/test.yml)
-[![API Documentation](https://img.shields.io/badge/docs-latest-blue.svg)](https://cds-astro.github.io/aladin-lite)
+[![API Documentation](https://img.shields.io/badge/API-documentation-blue.svg)](https://cds-astro.github.io/aladin-lite)
 
 # How to test it ?
 

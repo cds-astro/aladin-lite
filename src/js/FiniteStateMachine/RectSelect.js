@@ -58,8 +58,10 @@ export class RectSelect extends FSM {
             let ctx = view.catalogCtx;
 
             // draw the selection
-            ctx.fillStyle = options.color + '7f';
-            ctx.strokeStyle = options.color;
+            let colorValue = (typeof options.color === 'function') ? options.color(this.startCoo, this.coo) : options.color;
+
+            ctx.fillStyle = colorValue;
+            ctx.strokeStyle = colorValue;
             ctx.lineWidth = options.lineWidth;
 
             var w = this.coo.x - this.startCoo.x;

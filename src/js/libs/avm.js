@@ -85,7 +85,6 @@ export let AVM = (function() {
         if(!this.img && this.id) {
             this.img = document.getElementById(this.id);
         }
-        console.log("jksjdk2f")
 
         if (this.img instanceof ArrayBuffer) {
             this.getData(fnCallback);
@@ -105,8 +104,6 @@ export let AVM = (function() {
     }
 
     AVM.prototype.getData = function(fnCallback){
-        console.log("jksjdk2f")
-
         if(!this.imageHasData()){
             this.getImageData(this.img, fnCallback);
         }else{
@@ -128,7 +125,6 @@ export let AVM = (function() {
             if (typeof fnCallback=="function") fnCallback(_obj);
         };
         if (oImg instanceof ArrayBuffer) {
-            console.log("jksjdkf")
             findAVM(oImg)
         } else {
             let reqwst = new Request(oImg.src, {
@@ -188,7 +184,6 @@ export let AVM = (function() {
 
             if (tags) {
                 this.tags = tags;
-                console.log(tags)
 
                 let unwindTag = (tag) => {
                     if (Array.isArray(tag)) {
@@ -210,7 +205,7 @@ export let AVM = (function() {
                 wcs.NAXIS2 = tags['Spatial.ReferenceDimension'] && +tags['Spatial.ReferenceDimension'][1];
 
                 if (tags['Spatial.CDMatrix']) {
-                    console.warn("Spatial.CDMatrix is deprecated");
+                    console.warn("Spatial.CDMatrix is deprecated in favor of Spatial.Scale + Spatial.Rotation");
 
                     wcs.CD1_1 = +tags['Spatial.CDMatrix'][0];
                     wcs.CD1_2 = +tags['Spatial.CDMatrix'][1];
@@ -257,8 +252,6 @@ export let AVM = (function() {
                         }
                     }
                 }
-
-                console.log(wcs)
             }
         }
         return wcs;
@@ -266,7 +259,6 @@ export let AVM = (function() {
 
     AVM.prototype.readXMP = function(oFile) {
         var iEntries = oFile.byteLength;
-        var bBigEnd = false;
         var prev_n_hex = '';
         var record = false;
         var recordn = 0;
@@ -334,7 +326,7 @@ export let AVM = (function() {
                     final = str.indexOf('</'+key+'>',start);
                     // Parse out the HTML tags and build an array of the resulting values
                     var tmps = str.substring(start-1,final);
-                    console.log(tmps)
+
                     var tmparr = new Array(0);
                     var tmpstr = tmps.replace(/[\n\r]/g,"");
                     tmpstr = tmpstr.replace(/ +/g," ");

@@ -30,7 +30,6 @@ import { ColorCfg } from "./ColorCfg.js";
 import { Aladin } from "./Aladin.js";
 import { Utils } from "./Utils";
 import { AVM } from "./libs/avm.js";
-import * as tiff from "tiff";
 
 /**
  * @typedef {Object} ImageOptions
@@ -51,7 +50,7 @@ import * as tiff from "tiff";
  * @property {number} [contrast=0.0] - The contrast value for the color configuration.
  * @property {Object} [wcs] - an object describing the WCS of the image. In case of a fits image
  * this property will be ignored as the WCS taken will be the one present in the fits file.
- * @property {string} [imgFormat] - Optional image format. Giving it will prevent the auto extension determination algorithm to be triggered. Possible values are 'jpeg', 'png' or 'fits'.
+ * @property {string} [imgFormat] - Optional image format. Giving it will prevent the auto extension determination algorithm to be triggered. Possible values are 'jpeg', 'png' or 'fits'. tiff files are not supported. You can convert your tiff files to jpg ones by using the fantastic image magick suite.
  * 
  * @example
  * 
@@ -60,24 +59,24 @@ import * as tiff from "tiff";
  *       {
  *           name: "M61",
  *           wcs: {
- *               NAXIS: 0, // Minimal header
- *               CTYPE1: 'RA---TAN', // TAN (gnomic) projection + SIP distortions
- *               CTYPE2: 'DEC--TAN', // TAN (gnomic) projection + SIP distortions
- *               EQUINOX: 2000.0, // Equatorial coordinates definition (yr)
- *               LONPOLE: 180.0, // no comment
- *               LATPOLE: 0.0, // no comment
- *               CRVAL1: 185.445488837, // RA of reference point
- *               CRVAL2: 4.47896032431, // DEC of reference point
- *               CRPIX1: 588.995094299, // X reference pixel
- *               CRPIX2: 308.307905197, // Y reference pixel
- *               CUNIT1: 'deg', // X pixel scale units
- *               CUNIT2: 'deg', // Y pixel scale units
- *               CD1_1: -0.000223666022989, // Transformation matrix
- *               CD1_2: 0.000296578064584, // no comment
- *               CD2_1: -0.000296427555509, // no comment
- *               CD2_2: -0.000223774308964, // no comment
- *               NAXIS1: 1080, // Image width, in pixels.
- *               NAXIS2: 705 // Image height, in pixels.
+                NAXIS: 0, // Minimal header
+                CTYPE1: 'RA---TAN', // TAN (gnomic) projection
+                CTYPE2: 'DEC--TAN', // TAN (gnomic) projection
+                EQUINOX: 2000.0, // Equatorial coordinates definition (yr)
+                LONPOLE: 180.0, // no comment
+                LATPOLE: 0.0, // no comment
+                CRVAL1: 185.445488837, // RA of reference point
+                CRVAL2: 4.47896032431, // DEC of reference point
+                CRPIX1: 588.995094299, // X reference pixel
+                CRPIX2: 308.307905197, // Y reference pixel
+                CUNIT1: 'deg', // X pixel scale units
+                CUNIT2: 'deg', // Y pixel scale units
+                CD1_1: -0.000223666022989, // Transformation matrix
+                CD1_2: -0.000296578064584, // no comment
+                CD2_1: -0.000296427555509, // no comment
+                CD2_2: 0.000223774308964, // no comment
+                NAXIS1: 1080, // Image width, in pixels.
+                NAXIS2: 705 // Image height, in pixels.
  *           },
  *           successCallback: (ra, dec, fov, image) => {
  *               aladin.gotoRaDec(ra, dec);
@@ -254,14 +253,7 @@ export let Image = (function () {
                                 imgFormat: 'fits',
                             },
                             layer
-                        ).catch(e => {
-                            //console.log(e)
-                            console.log('jj')
-                            const reader = stream.getReader();
-                            reader.releaseLock();
-                            console.log("jjjjj")
-                            return Promise.reject(e);
-                        });
+                        )
                     },
                 });
             }
@@ -270,96 +262,6 @@ export let Image = (function () {
             self.imgFormat = 'fits';
 
             return Promise.resolve(imageParams);
-        })
-    }
-
-    Image.prototype._addTiff = function(layer) {
-        let self = this;
-        const url = Aladin.JSONP_PROXY + '?url=' + self.url;
-        console.log("parse through proxy", url)
-        console.log("test tiff")
-
-        return Utils.fetch({
-            url,
-            dataType: "blob",
-            cors: "Anonymous"
-        })
-        .then((blob) => {
-            return blob.arrayBuffer()
-        })
-        .then((arrayBuffer) => {
-            return new Promise((resolve, reject) => {
-                var ifds = tiff.decode(arrayBuffer);
-                //var rgba = UTIF.toRGBA8(ifds[0]);  // Uint8Array with RGBA pixels
-                console.log(ifds[0].width, ifds[0].height, ifds[0]);
-
-                let try2FindAVM = [];
-                for(var v of ifds[0].fields.values()) {
-                    try2FindAVM.push(new Promise((resolve, reject) => {
-                        let string = new TextDecoder().decode(v)
-                        console.log(string, v)
-                        let avm = new AVM(v);
-                        avm.load((obj) => {
-                            // obj contains the following information:
-                            // obj.id (string) = The ID provided for the image
-                            // obj.img (object) = The image object
-                            // obj.xmp (string) = The raw XMP header
-                            // obj.wcsdata (Boolean) = If WCS have been loaded
-                            // obj.tags (object) = An array containing all the loaded tags e.g. obj.tags['Headline']
-                            // obj.wcs (object) = The wcs parsed from the image
-                            console.log(obj)
-                            if (obj.wcsdata) {
-                                if (img.width !== obj.wcs.NAXIS1) {
-                                    obj.wcs.NAXIS1 = img.width;
-                                }
-            
-                                if (img.height !== obj.wcs.NAXIS2) {
-                                    obj.wcs.NAXIS2 = img.height;
-                                }
-            
-                                self.options.wcs = obj.wcs;
-            
-                                const blob = new Blob([ifds[0]]);
-                                const stream = blob.stream(1024);
-                                resolve(stream)
-                            } else {
-                                // no tags found
-                                reject('No WCS have been found in the image')
-                            }
-                        })
-                    }))
-                }
-                
-                return Promise.any(try2FindAVM);
-            })
-        })
-        .then((readableStream) => {
-            console.log("blob", readableStream)
-            let wcs = self.options && self.options.wcs;
-            wcs.NAXIS1 = wcs.NAXIS1 || img.width;
-            wcs.NAXIS2 = wcs.NAXIS2 || img.height;
-
-            return self.view.wasm
-                .addImageWithWCS(
-                    readableStream,
-                    wcs,
-                    {
-                        ...self.colorCfg.get(),
-                        longitudeReversed: false,
-                        imgFormat: 'jpeg',
-                    },
-                    layer
-                )
-        })
-        .then((imageParams) => {
-            self.imgFormat = 'tiff';
-            return Promise.resolve(imageParams);
-        })
-        .catch(e => {
-            console.error(e)
-            console.log("aaa", e)
-
-            return Promise.reject(e)
         })
     }
 
@@ -482,24 +384,14 @@ export let Image = (function () {
                     console.error(`Image located at ${this.url} could not be parsed as a ${this.imgFormat} file. Is the imgFormat specified correct?`);
                     return Promise.reject(e)
                 })
-        } else if (this.imgFormat === 'tiff') {
-            promise = this._addTiff(layer)
-                .catch(e => {
-                    console.error(`Image located at ${this.url} could not be parsed as a ${this.imgFormat} file. Is the imgFormat specified correct?`);
-                    return Promise.reject(e)
-                })
         } else {
             // imgformat not defined we will try first supposing it is a fits file and then use the jpg heuristic
-            promise = this._addTiff(layer)
+            promise = self._addFITS(layer)
                 .catch(e => {
-                    console.warn(`Image located at ${self.url} could not be parsed as fits file. Try as a jpg/png image...:`, e)
                     return self._addJPGOrPNG(layer)
                         .catch(e => {
-                            return self._addFITS(layer)
-                                .catch(e => {
-                                    console.error(`Image located at ${self.url} could not be parsed as jpg/png/tif image file. Aborting...`)
-                                    return Promise.reject(e);
-                                })
+                            console.error(`Image located at ${self.url} could not be parsed as jpg/png/tif image file. Aborting...`)
+                            return Promise.reject(e);
                         })
                 })
         }

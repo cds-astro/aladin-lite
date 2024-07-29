@@ -45,6 +45,8 @@ export class ALEvent {
   static PROJECTION_CHANGED  = new ALEvent("AL:projection.changed");
   static FRAME_CHANGED  = new ALEvent("AL:frame.changed");
 
+  static UPDATE_CMAP_LIST  = new ALEvent("AL:cmap.updated");
+
   static POSITION_CHANGED  = new ALEvent("AL:position.changed");
   static ZOOM_CHANGED  = new ALEvent("AL:zoom.changed");
 

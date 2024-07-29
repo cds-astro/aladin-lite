@@ -47,7 +47,6 @@ import { ObsCore } from "./vo/ObsCore.js";
 import { DefaultActionsForContextMenu } from "./DefaultActionsForContextMenu.js";
 import { Layout } from "./gui/Layout.js";
 import { SAMPActionButton } from "./gui/Button/SAMP.js";
-import { HiPSCache } from "./HiPSCache.js";
 import { ImageHiPS } from "./ImageHiPS.js";
 import { Image } from "./Image.js";
 

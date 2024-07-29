@@ -961,7 +961,7 @@ export let Aladin = (function () {
         this.view.setProjection(projection);
 
         ALEvent.PROJECTION_CHANGED.dispatchedTo(this.aladinDiv, {
-            projection: projection,
+            projection,
         });
     };
 
@@ -2914,6 +2914,40 @@ aladin.displayFITS(
     };
 
     Aladin.prototype.displayPNG = Aladin.prototype.displayJPG;
+
+    /**
+     * Add a custom colormap from a list of colors
+     *
+     * @memberof Aladin
+     * 
+     * @returns - The list of all the colormap labels
+     */
+    Aladin.prototype.getListOfColormaps = function() {
+        return this.view.wasm.getAvailableColormapList();
+    };
+
+    /**
+     * Add a custom colormap from a list of colors
+     *
+     * @memberof Aladin
+     * @param {string} label - The label of the colormap
+     * @param {string[]} colors - A list string colors
+     * 
+     * @example
+     * 
+     * aladin.addColormap('mycmap', ["lightblue", "red", "violet", "#ff00aaff"])
+     */
+    Aladin.prototype.addColormap = function(label, colors) {
+        colors = colors.map((label) => {
+            return new Color(label).toHex() + 'ff';
+        });
+
+        this.view.wasm.createCustomColormap(label, colors);
+
+        ALEvent.UPDATE_CMAP_LIST.dispatchedTo(this.aladinDiv, {
+            cmaps: this.getListOfColormaps()
+        });
+    };
 
     /*
     Aladin.prototype.setReduceDeformations = function (reduce) {

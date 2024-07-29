@@ -176,12 +176,12 @@
         /// colormap
         // Make it case insensitive
         colormap = colormap.toLowerCase();
-        if (!ColorCfg.COLORMAPS.includes(colormap)) {
+        /*if (!ColorCfg.COLORMAPS.includes(colormap)) {
             console.warn("The colormap \'" + colormap + "\' is not supported. You should use one of the following: " + ColorCfg.COLORMAPS + "\n\'grayscale\' has been chosen by default.")
             // If the user specify a colormap that is not supported,
             // then set it to grayscale
             colormap = "grayscale";
-        }
+        }*/
 
         return colormap;
     }
@@ -227,7 +227,7 @@
         return [this.minCut, this.maxCut];
     };
 
-    ColorCfg.COLORMAPS = [
+    /*ColorCfg.COLORMAPS = [
         "blues",
         "cividis",
         "cubehelix",
@@ -251,7 +251,7 @@
         "red",
         "green",
         "blue"
-    ];
+    ];*/
 
     return ColorCfg;
  })();

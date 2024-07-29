@@ -954,10 +954,6 @@ A.box = function(options) {
     return new Box(options)
 }
 
-A.getAvailableListOfColormaps = function() {
-    return ColorCfg.COLORMAPS;
-};
-
 /**
  * Returns utils object
  * 

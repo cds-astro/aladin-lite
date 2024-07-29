@@ -644,11 +644,13 @@ export let View = (function () {
                             footprintClickedFunction(o, xy);
                         }
                     }
+                    
+                    
                 }
 
-                // rewrite objs
-                objs = Array.from(Object.values(objsByCats));
+                //view.selectObjects([objs]);
                 view.lastClickedObject = objs;
+                
             } else {
                 // If there is a past clicked object
                 if (view.lastClickedObject) {

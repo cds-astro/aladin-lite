@@ -121,11 +121,12 @@ export class PolySelect extends FSM {
 
         let draw = () => {
             let ctx = view.catalogCtx;
-
+            
             // draw the selection
             ctx.save();
-            ctx.fillStyle = options.color + '7f';
-            ctx.strokeStyle = options.color;
+            let colorValue = (typeof options.color === 'function') ? options.color() : options.color;
+            ctx.fillStyle = colorValue;
+            ctx.strokeStyle = colorValue;
             ctx.lineWidth = options.lineWidth;
 
             ctx.beginPath();

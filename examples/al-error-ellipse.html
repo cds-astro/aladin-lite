@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+<head>
+</head>
+<body>
+
+<div id="aladin-lite-div" style="width: 500px; height: 400px"></div>
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
+
+<script type="module">
+    import A from '../src/js/A.js';
+    var aladin;
+A.init.then(() => {
+    aladin = A.aladin('#aladin-lite-div', {survey: 'https://alasky.cds.unistra.fr/DSS/DSSColor/', target: 'm1', fov: 5, showContextMenu: true, showSettingsControl:true, samp:true});
+
+    const cat = A.catalogFromVizieR('II/246/out', 'm1', 0.1, {onClick: 'showTable', hoverColor: 'purple', limit: 1000, colnames: ["errMin", "errMaj", "errPA"], shape: (s) => {
+        let a = +s.data['errMaj']/3600;
+        let b = +s.data['errMin']/3600;
+
+        let theta = +s.data['errPA'];
+
+        return A.ellipse(s.ra, s.dec, a, b, theta);
+    }});
+    aladin.addCatalog(cat);
+});
+</script>
+</body>
+</html>

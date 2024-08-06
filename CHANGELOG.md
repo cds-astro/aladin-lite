@@ -1,10 +1,14 @@
 # Changelogs
 
+## 3.5.0-beta
+
+* [enhancement] add `options.colnames` to A.catalogFromVizieR
+
 ## 3.4.5-beta
 
 * [feat] add `layerChanged` event when a layer is added or removed
 * [deprecate] of `select` event, use `objectsSelected` event instead
-* [ui] add the ability to switch the tile format to download 
+* [ui] add the ability to switch the tile format to download
 
 ## 3.4.3-beta
 

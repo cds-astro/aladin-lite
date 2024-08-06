@@ -2,7 +2,7 @@
   "homepage": "https://aladin.u-strasbg.fr/",
   "name": "aladin-lite",
   "type": "module",
-  "version": "3.4.6-beta",
+  "version": "3.5.0-beta",
   "description": "An astronomical HiPS visualizer in the browser",
   "author": "Thomas Boch and Matthieu Baumann",
   "license": "GPL-3",

@@ -432,7 +432,7 @@ impl CameraViewPort {
         };*/
 
         let w_screen_px = self.width as f64;
-        let smallest_cell_size_px = 1.0;
+        let smallest_cell_size_px = self.dpi as f64;
         let mut depth_pixel = 29 as usize;
 
         let hpx_cell_size_rad =
@@ -445,6 +445,7 @@ impl CameraViewPort {
 
             depth_pixel = depth_pixel - 1;
         }
+        depth_pixel += 1;
         const DEPTH_OFFSET_TEXTURE: usize = 9;
         self.texture_depth = if DEPTH_OFFSET_TEXTURE > depth_pixel {
             0_u8

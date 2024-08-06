@@ -1,10 +1,7 @@
-use crate::domain::sdf::ProjDefType;
-
-use crate::{math::projection::Projection};
-
+use crate::math::projection::Projection;
 
 use al_core::VecData;
-use al_core::{shader::ShaderBound, Texture2D, VertexArrayObject, WebGlContext};
+use al_core::{shader::ShaderBound, VertexArrayObject, WebGlContext};
 
 pub use super::triangulation::Triangulation;
 
@@ -12,15 +9,23 @@ pub trait RayTracingProjection {
     fn get_raytracer_vertex_array_object(raytracer: &RayTracer) -> &VertexArrayObject;
 }
 
-fn create_vertices_array(proj_area: &ProjDefType) -> (Vec<f32>, Vec<u16>) {
-    let Triangulation { vertices, idx } = Triangulation::build(proj_area);
+fn create_vertices_array(proj: &ProjectionType) -> (Vec<f32>, Vec<u16>) {
+    let Triangulation { vertices, idx } = Triangulation::build(proj.get_area());
 
     let vertices = vertices
-        .into_iter().flat_map(|pos_clip_space| {
+        .into_iter()
+        .flat_map(|pos_clip_space| {
             // Cast all the double into float
             // simple precision because this buffer
             // is sent to the GPU
-            vec![pos_clip_space.x as f32, pos_clip_space.y as f32/*, pos_world_space.x as f32, pos_world_space.y as f32, pos_world_space.z as f32*/]
+            let pos_world_space = proj.clip_to_world_space(&(pos_clip_space * 0.99)).unwrap();
+            [
+                pos_clip_space.x as f32,
+                pos_clip_space.y as f32,
+                pos_world_space.x as f32,
+                pos_world_space.y as f32,
+                pos_world_space.z as f32,
+            ]
         })
         .collect::<Vec<_>>();
 
@@ -31,13 +36,9 @@ use web_sys::WebGl2RenderingContext;
 
 pub struct RayTracer {
     vao: VertexArrayObject,
-    position_tex: Texture2D,
-    #[cfg(feature = "webgl1")]
-    ang2pix_tex: Texture2D,
 }
-use cgmath::{InnerSpace, Vector2};
 
-const SIZE_POSITION_TEX: usize = 512;
+/*const SIZE_POSITION_TEX: usize = 512;
 fn generate_xyz_position(projection: &ProjectionType) -> Vec<f32> {
     let (w, h) = (SIZE_POSITION_TEX, SIZE_POSITION_TEX);
     let mut data = vec![0.0; SIZE_POSITION_TEX * SIZE_POSITION_TEX * 3];
@@ -93,38 +94,13 @@ fn generate_xyz_position(projection: &ProjectionType) -> Vec<f32> {
     }
 
     data
-}
+}*/
 
-#[cfg(feature = "webgl1")]
-use cgmath::Rad;
-#[cfg(feature = "webgl1")]
-fn generate_hash_dxdy<P: Projection>(depth: u8) -> Vec<f32> {
-    let (w, h) = (SIZE_POSITION_TEX as f64, SIZE_POSITION_TEX as f64);
-    let mut data = vec![];
-    for y in 0..(h as u32) {
-        for x in 0..(w as u32) {
-            let xy = Vector2::new(x, y);
-            let lonlat = LonLatT::new(
-                Rad(((xy.x as f64) / (w as f64)) * std::f64::consts::PI * 2.0
-                    + std::f64::consts::PI)
-                .into(),
-                Rad((2.0 * ((xy.y as f64) / (h as f64)) - 1.0) * std::f64::consts::FRAC_PI_2)
-                    .into(),
-            );
-            let (idx, dx, dy) =
-                cdshealpix::nested::hash_with_dxdy(depth, lonlat.lon().0, lonlat.lat().0);
-            data.extend(&[(idx as f32), dx as f32, dy as f32]);
-        }
-    }
-
-    data
-}
 use crate::ProjectionType;
 use wasm_bindgen::JsValue;
 impl RayTracer {
     pub fn new(gl: &WebGlContext, proj: &ProjectionType) -> Result<RayTracer, JsValue> {
-        let proj_area = proj.get_area();
-        let (vertices, idx) = create_vertices_array(proj_area);
+        let (vertices, idx) = create_vertices_array(proj);
 
         let mut vao = VertexArrayObject::new(gl);
         // layout (location = 0) in vec2 pos_clip_space;
@@ -132,9 +108,9 @@ impl RayTracer {
         vao.bind_for_update()
             .add_array_buffer(
                 "vertices",
-                2 * std::mem::size_of::<f32>(),
-                &[2],
-                &[0],
+                5 * std::mem::size_of::<f32>(),
+                &[2, 3],
+                &[0, 2 * std::mem::size_of::<f32>()],
                 WebGl2RenderingContext::STATIC_DRAW,
                 VecData::<f32>(&vertices),
             )
@@ -149,20 +125,9 @@ impl RayTracer {
             .add_element_buffer(WebGl2RenderingContext::STATIC_DRAW, VecData::<u16>(&idx))
             // Unbind the buffer
             .unbind();
-        #[cfg(feature = "webgl1")]
-        vao.bind_for_update()
-            .add_array_buffer(
-                2,
-                "pos_clip_space",
-                WebGl2RenderingContext::STATIC_DRAW,
-                VecData::<f32>(&vertices),
-            )
-            // Set the element buffer
-            .add_element_buffer(WebGl2RenderingContext::STATIC_DRAW, VecData::<u16>(&idx))
-            // Unbind the buffer
-            .unbind();
+
         // create position data
-        let data = generate_xyz_position(proj);
+        /*let data = generate_xyz_position(proj);
         let position_tex = Texture2D::create_from_raw_pixels::<al_core::image::format::RGB32F>(
             gl,
             SIZE_POSITION_TEX as i32,
@@ -188,28 +153,9 @@ impl RayTracer {
                 ),
             ],
             Some(&data),
-        )?;
+        )?;*/
 
-        // create ang2pix texture for webgl1 app
-        #[cfg(feature = "webgl1")]
-        let ang2pix_tex = {
-            let data = generate_hash_dxdy(0, proj);
-            create_f32_texture_from_raw(
-                &gl,
-                SIZE_POSITION_TEX as i32,
-                SIZE_POSITION_TEX as i32,
-                &data,
-            )
-        };
-
-        Ok(RayTracer {
-            vao,
-
-            position_tex,
-
-            #[cfg(feature = "webgl1")]
-            ang2pix_tex,
-        })
+        Ok(RayTracer { vao })
     }
 
     pub fn get_vao(&self) -> &VertexArrayObject {
@@ -217,20 +163,8 @@ impl RayTracer {
     }
 
     pub fn draw<'a>(&self, shader: &ShaderBound<'a>) {
-        #[cfg(feature = "webgl1")]
-        shader
-            .attach_uniform("position_tex", &self.position_tex)
-            .attach_uniform("u_ang2pixd", &self.ang2pix_tex)
-            .bind_vertex_array_object_ref(&self.vao)
-            .draw_elements_with_i32(
-                WebGl2RenderingContext::TRIANGLES,
-                None,
-                WebGl2RenderingContext::UNSIGNED_SHORT,
-                0,
-            );
         #[cfg(feature = "webgl2")]
         shader
-            .attach_uniform("position_tex", &self.position_tex)
             .bind_vertex_array_object_ref(&self.vao)
             .draw_elements_with_i32(
                 WebGl2RenderingContext::TRIANGLES,

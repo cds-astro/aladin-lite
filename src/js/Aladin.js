@@ -262,7 +262,6 @@ export let Aladin = (function () {
         this.callbacksByEventName = {}; // we store the callback functions (on 'zoomChanged', 'positionChanged', ...) here
         this.hipsCache = new HiPSCache();
 
-        console.log(this.hipsCache)
         // check that aladinDiv exists, stop immediately otherwise
         if (!aladinDiv) {
             console.error(
@@ -1522,7 +1521,7 @@ export let Aladin = (function () {
      * </ul>
      * @param {string} [cooFrame] - Values accepted: 'equatorial', 'icrs', 'icrsd', 'j2000', 'gal', 'galactic'
      * @param {number} [maxOrder] - The maximum HEALPix order of the HiPS, i.e the HEALPix order of the most refined tile images of the HiPS.
-     * @param {ImageHiPSOptions} [options] - Options describing the survey
+     * @param {HiPSOptions} [options] - Options describing the survey
      * @returns {ImageHiPS} A HiPS image object.
      */
     Aladin.prototype.createImageSurvey = function (
@@ -1573,7 +1572,7 @@ export let Aladin = (function () {
      * </ul>
      * @param {string} [cooFrame] - Values accepted: 'equatorial', 'icrs', 'icrsd', 'j2000', 'gal', 'galactic'
      * @param {number} [maxOrder] - The maximum HEALPix order of the HiPS, i.e the HEALPix order of the most refined tile images of the HiPS.
-     * @param {ImageHiPSOptions} [options] - Options describing the survey
+     * @param {HiPSOptions} [options] - Options describing the survey
      * @returns {ImageHiPS} A HiPS image object.
      */
     Aladin.createImageSurvey = Aladin.prototype.createImageSurvey;
@@ -1691,7 +1690,7 @@ export let Aladin = (function () {
      * <li>1. An url that refers to a HiPS.</li>
      * <li>Or it can be a "CDS ID" that refers to a HiPS. One can found the list of IDs {@link https://aladin.cds.unistra.fr/hips/list| here}</li>
      * </ul>
-     * @param {ImageHiPSOptions} [options] - Options for rendering the image
+     * @param {HiPSOptions} [options] - Options for rendering the image
      * @param {function} [success] - A success callback
      * @param {function} [error] - A success callback
      * @returns {ImageHiPS} A FITS image object.

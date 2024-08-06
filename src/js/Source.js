@@ -117,6 +117,10 @@ export let Source = (function() {
         }
     }
 
+    Source.prototype.setImage = function(image) {
+        this.image = image;
+    }
+
     /**
      * Simulates a click on the source
      *

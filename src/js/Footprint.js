@@ -54,6 +54,18 @@ export let Footprint= (function() {
         this.overlay = null;
     };
 
+    Footprint.prototype.setSource = function(source) {
+        if (this.source) {
+            this.source.hasFootprint = false;
+        }
+
+        this.source = source;
+
+        if (this.source) {
+            this.source.hasFootprint = true;
+        }
+    }
+
     Footprint.prototype.setCatalog = function(catalog) {
         if (this.source) {
             this.source.setCatalog(catalog);
@@ -170,7 +182,12 @@ export let Footprint= (function() {
     }
 
     Footprint.prototype.draw = function(ctx, view, noStroke) {
-        return this.shapes.some((shape) => {return shape.draw(ctx, view, noStroke)})
+        let hasBeenDrawn = false;
+        for (let shape of this.shapes) {
+            hasBeenDrawn |= shape.draw(ctx, view, noStroke)
+        }
+
+        return hasBeenDrawn;
     };
 
     Footprint.prototype.actionClicked = function() {

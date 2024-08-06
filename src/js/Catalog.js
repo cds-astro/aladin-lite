@@ -576,25 +576,31 @@ export let Catalog = (function () {
         if (this._shapeIsFunction) {
             for (const source of sources) {
                 try {
-                    let shape = this.shape(source);
+                    let shapes = [].concat(this.shape(source));
 
-                    // convert simple shapes to footprints
-                    if (
-                        shape instanceof Circle ||
-                        shape instanceof Polyline ||
-                        shape instanceof Ellipse ||
-                        shape instanceof Vector
-                    ) {
-                        shape = new Footprint(shape, source);
-                    }
+                    if (shapes.length == 1 && (shapes[0] instanceof Image || shapes[0] instanceof HTMLCanvasElement)) {
+                        source.setImage(shapes[0]);
+                    } else {
+                        // convert simple shapes to footprints
+                        /*if (
+                            shape instanceof Circle ||
+                            shape instanceof Polyline ||
+                            shape instanceof Ellipse ||
+                            shape instanceof Vector
+                        ) {*/
+                        shapes = new Footprint(shapes, source);
+                        //}
 
-                    if (shape instanceof Footprint) {
-                        let footprint = shape;
-                        this._shapeIsFootprintFunction = true;
-                        footprint.setCatalog(this);
+                        //if (shape instanceof Footprint) {
+                            //shape.setSource(source);
+                            let footprint = shapes;
+                            this._shapeIsFootprintFunction = true;
 
-                        // store the footprints
-                        footprints.push(footprint);
+                            footprint.setCatalog(this);
+
+                            // store the footprints
+                            footprints.push(footprint);
+                        //}
                     }
                 } catch (e) {
                     // do not create the footprint
@@ -829,6 +835,12 @@ export let Catalog = (function () {
         if (s.x <= width && s.x >= 0 && s.y <= height && s.y >= 0) {
             if (this._shapeIsFunction && !this._shapeIsFootprintFunction) {
                 this.shape(s, ctx, this.view.getViewParams());
+            } else if (s.image) {
+                ctx.drawImage(
+                    s.image,
+                    s.x - s.image.width / 2,
+                    s.y - s.image.height / 2
+                );
             } else if (s.marker && s.useMarkerDefaultIcon) {
                 ctx.drawImage(
                     this.cacheMarkerCanvas,

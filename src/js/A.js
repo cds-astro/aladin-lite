@@ -109,7 +109,7 @@ A.aladin = function (divSelector, options) {
  * @memberof A
  * @param {string} id - Can be either an `url` that refers to a HiPS.
  * Or it can be a "CDS ID" pointing towards a HiPS. One can found the list of IDs {@link https://aladin.cds.unistra.fr/hips/list| here}.
- * @param {ImageHiPSOptions} [options] - Options describing the survey
+ * @param {HiPSOptions} [options] - Options describing the survey
  * @returns {ImageHiPS} - A HiPS image object
  */
 A.imageHiPS = function (id, options) {
@@ -270,6 +270,10 @@ A.polyline = function (raDecArray, options) {
 A.circle = function (ra, dec, radiusDeg, options) {
     return new Circle([ra, dec], radiusDeg, options);
 };
+
+A.footprint = function(shapes) {
+    return new Footprint(shapes)
+}
 
 /**
  * Creates an ellipse shape

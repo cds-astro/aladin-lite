@@ -76,8 +76,6 @@ HiPSProperties.fetchFromUrl = async function(urlOrId) {
         // Relative path test
         try {
             urlOrId = Utils.getAbsoluteURL(urlOrId)
-            console.log(urlOrId)
-
             urlOrId = new URL(urlOrId);
         } catch(e) {
             throw e;

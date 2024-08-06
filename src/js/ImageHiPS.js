@@ -129,7 +129,7 @@ PropertyParser.isPlanetaryBody = function (properties) {
 };
 
 /**
- * @typedef {Object} ImageHiPSOptions
+ * @typedef {Object} HiPSOptions
  *
  * @property {string} [name] - The name of the survey to be displayed in the UI
  * @property {Function} [successCallback] - A callback executed when the HiPS has been loaded
@@ -163,7 +163,7 @@ export let ImageHiPS = (function () {
      *
      * @param {string} id - Mandatory unique identifier for the layer. Can be an arbitrary name
      * @param {string} url - Can be an url to the survey or a "CDS" ID pointing towards a HiPS. One can found the list of IDs {@link https://aladin.cds.unistra.fr/hips/list| here}
-     * @param {ImageHiPSOptions} [options] - The option for the survey
+     * @param {HiPSOptions} [options] - The option for the survey
      *
      * @description Giving a CDS ID will do a query to the MOCServer first to retrieve metadata. Then it will also check for the presence of faster HiPS nodes to choose a faster url to query to tiles from.
      */

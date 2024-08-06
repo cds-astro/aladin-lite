@@ -13,15 +13,25 @@
 A.init.then(() => {
     aladin = A.aladin('#aladin-lite-div', {survey: 'https://alasky.cds.unistra.fr/DSS/DSSColor/', target: 'm1', fov: 5, showContextMenu: true, showSettingsControl:true, samp:true});
 
-    const cat = A.catalogFromVizieR('II/246/out', 'm1', 0.1, {onClick: 'showTable', hoverColor: 'purple', limit: 1000, colnames: ["errMin", "errMaj", "errPA"], shape: (s) => {
-        let a = +s.data['errMaj']/3600;
-        let b = +s.data['errMin']/3600;
+    var customImg = new Image();
+    customImg.onload = function() {
+        const cat = A.catalogFromVizieR('II/246/out', 'm1', 0.1, {onClick: 'showTable', hoverColor: 'purple', limit: 1000, colnames: ["errMin", "errMaj", "errPA"], shape: (s) => {
+            if (+s.data['Jmag'] > 15) {
+                return customImg;
+            } else {
+                let a = +s.data['errMaj']/36;
+                let b = +s.data['errMin']/36;
 
-        let theta = +s.data['errPA'];
+                let theta = +s.data['errPA'];
 
-        return A.ellipse(s.ra, s.dec, a, b, theta);
-    }});
-    aladin.addCatalog(cat);
+                return A.ellipse(s.ra, s.dec, a, b, theta, {fillColor: 'rgba(255, 0, 255, 0.2)'})
+            }
+        }});
+        aladin.addCatalog(cat);
+    };
+    customImg.src = 'https://aladin.u-strasbg.fr/AladinLite/doc/API/examples/img/star.png';
+
+   
 });
 </script>
 </body>

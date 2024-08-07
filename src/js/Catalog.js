@@ -576,23 +576,15 @@ export let Catalog = (function () {
         if (this._shapeIsFunction) {
             for (const source of sources) {
                 try {
-                    let shapes = [].concat(this.shape(source));
+                    let shapes = this.shape(source);
+                    if (shapes) {
+                        shapes = [].concat(shapes);
 
-                    if (shapes.length == 1 && (shapes[0] instanceof Image || shapes[0] instanceof HTMLCanvasElement)) {
-                        source.setImage(shapes[0]);
-                    } else {
-                        // convert simple shapes to footprints
-                        /*if (
-                            shape instanceof Circle ||
-                            shape instanceof Polyline ||
-                            shape instanceof Ellipse ||
-                            shape instanceof Vector
-                        ) {*/
-                        shapes = new Footprint(shapes, source);
-                        //}
+                        if (shapes.length == 1 && (shapes[0] instanceof Image || shapes[0] instanceof HTMLCanvasElement)) {
+                            source.setImage(shapes[0]);
+                        } else {
+                            shapes = new Footprint(shapes, source);
 
-                        //if (shape instanceof Footprint) {
-                            //shape.setSource(source);
                             let footprint = shapes;
                             this._shapeIsFootprintFunction = true;
 
@@ -600,7 +592,7 @@ export let Catalog = (function () {
 
                             // store the footprints
                             footprints.push(footprint);
-                        //}
+                        }
                     }
                 } catch (e) {
                     // do not create the footprint

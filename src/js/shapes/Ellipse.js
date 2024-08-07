@@ -39,11 +39,11 @@ export let Ellipse = (function() {
      * @class
      * @constructs Ellipse
      * @param {number[]} centerRaDec - right-ascension/declination 2-tuple of the ellipse's center in degrees
-     * @param {number} a - half-major axis length in degrees
-     * @param {number} b - half-minor axis length in degrees
+     * @param {number} a - semi-major axis length in degrees
+     * @param {number} b - semi-minor axis length in degrees
      * @param {number} theta - angle of the ellipse in degrees. Origin aligns the ellipsis' major axis with the north pole. Positive angle points towards the east.
-     * @param {ShapeOptions} options - Configuration options for the ellipse
-     * 
+     * @param {ShapeOptions} [options] - Configuration options for the ellipse
+     * @param {boolean} [options.drawAxes] - Whether to show the semi-major and semi-minor axes in dashed
      * @returns {Ellipse} - The ellipse shape object
      */
     let Ellipse = function(centerRaDec, a, b, theta, options) {
@@ -55,6 +55,7 @@ export let Ellipse = (function() {
         this.selectionColor = options["selectionColor"] || '#00ff00';
         this.hoverColor = options["hoverColor"] || undefined;
         this.opacity   = options['opacity']   || 1;
+        this.drawAxes   = options['drawAxes'] || undefined;
 
         // TODO : all graphic overlays should have an id
         this.id = 'ellipse-' + Utils.uuidv4();
@@ -292,7 +293,40 @@ export let Ellipse = (function() {
                 ctx.fillStyle = this.fillColor;
                 ctx.fill();
             }
+
             ctx.stroke();
+
+            if (this.drawAxes === true) {
+                let getVertexOnEllipse = (t) => {
+                    let ax = px_per_deg * this.a * Math.cos(theta);
+                    let ay = px_per_deg * this.a * Math.sin(theta);
+                    let bx = -px_per_deg * this.b * Math.sin(theta);
+                    let by = px_per_deg * this.b * Math.cos(theta);
+
+                    let X = originScreen[0] + ax * Math.cos(t) + bx * Math.sin(t);
+                    let Y = originScreen[1] + ay * Math.cos(t) + by * Math.sin(t);
+
+                    return [X, Y]
+                }
+
+                let [xa, ya] = getVertexOnEllipse(Math.PI * 0.5)
+                let [xb, yb] = getVertexOnEllipse(3 * Math.PI * 0.5)
+                let [xc, yc] = getVertexOnEllipse(Math.PI)
+                let [xd, yd] = getVertexOnEllipse(0)
+                ctx.save();
+
+                ctx.lineWidth = Math.max(this.lineWidth * 0.5, 1.0);
+                ctx.setLineDash([this.lineWidth, this.lineWidth]);
+
+                ctx.moveTo(xa, ya);
+                ctx.lineTo(xb, yb);
+                ctx.moveTo(xc, yc);
+                ctx.lineTo(xd, yd);
+
+                ctx.stroke();
+
+                ctx.restore()
+            }
         }
 
         return true;

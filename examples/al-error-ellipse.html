@@ -17,14 +17,14 @@ A.init.then(() => {
     customImg.onload = function() {
         const cat = A.catalogFromVizieR('II/246/out', 'm1', 0.1, {onClick: 'showTable', hoverColor: 'purple', limit: 1000, colnames: ["errMin", "errMaj", "errPA"], shape: (s) => {
             if (+s.data['Jmag'] > 15) {
-                return customImg;
+                return;
             } else {
                 let a = +s.data['errMaj']/36;
                 let b = +s.data['errMin']/36;
 
                 let theta = +s.data['errPA'];
 
-                return A.ellipse(s.ra, s.dec, a, b, theta, {fillColor: 'rgba(255, 0, 255, 0.2)'})
+                return A.ellipse(s.ra, s.dec, a, b, theta, {fillColor: 'rgba(255, 0, 255, 0.2)', drawAxes: true})
             }
         }});
         aladin.addCatalog(cat);

@@ -181,7 +181,7 @@ HiPSProperties.getFasterMirrorUrl = function (metadata, currUrl) {
 
         urls.push(curUrl)
     }
-
+    console.log(promises)
     return Promise.all(promises)
         .then((responses) => {
             // filter the ones that failed to not choose them

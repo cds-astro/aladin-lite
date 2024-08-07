@@ -82,6 +82,8 @@ impl TileFetcherQueue {
                 num_fetched_tile += 1;
             }
         }
+
+        log!(num_fetched_tile);
     }
 
     pub fn launch_starting_hips_requests(&mut self, hips: &HiPS, downloader: &mut Downloader) {

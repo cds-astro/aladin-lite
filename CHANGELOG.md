@@ -1,10 +1,15 @@
 # Changelogs
 
+## 3.5.0-beta
+
+* [enhancement] add `options.colnames` to A.catalogFromVizieR to tell VizieR we want absolutely want to retrieve specific columns 
+* [feat] provide a new drawAxes option to A.ellipse. This is useful for plotting error ellipsis.
+
 ## 3.4.5-beta
 
 * [feat] add `layerChanged` event when a layer is added or removed
 * [deprecate] of `select` event, use `objectsSelected` event instead
-* [ui] add the ability to switch the tile format to download 
+* [ui] add the ability to switch the tile format to download
 
 ## 3.4.3-beta
 

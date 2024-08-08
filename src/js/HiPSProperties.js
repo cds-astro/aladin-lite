@@ -76,8 +76,6 @@ HiPSProperties.fetchFromUrl = async function(urlOrId) {
         // Relative path test
         try {
             urlOrId = Utils.getAbsoluteURL(urlOrId)
-            console.log(urlOrId)
-
             urlOrId = new URL(urlOrId);
         } catch(e) {
             throw e;
@@ -183,7 +181,7 @@ HiPSProperties.getFasterMirrorUrl = function (metadata, currUrl) {
 
         urls.push(curUrl)
     }
-
+    console.log(promises)
     return Promise.all(promises)
         .then((responses) => {
             // filter the ones that failed to not choose them

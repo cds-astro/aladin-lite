@@ -26,11 +26,11 @@ impl From<TileRequest> for RequestType {
     }
 }
 
-async fn query_html_image(url: &str) -> Result<HtmlImageElement, JsValue> {
+async fn query_html_image(url: &str) -> Result<web_sys::HtmlImageElement, JsValue> {
     let image = web_sys::HtmlImageElement::new().unwrap_abort();
     let image_cloned = image.clone();
 
-    let html_img_elt_promise = js_sys::Promise::new(
+    let promise = js_sys::Promise::new(
         &mut (Box::new(move |resolve, reject| {
             // Ask for CORS permissions
             image_cloned.set_cross_origin(Some(""));
@@ -40,7 +40,7 @@ async fn query_html_image(url: &str) -> Result<HtmlImageElement, JsValue> {
         }) as Box<dyn FnMut(js_sys::Function, js_sys::Function)>),
     );
 
-    let _ = JsFuture::from(html_img_elt_promise).await?;
+    let _ = JsFuture::from(promise).await?;
 
     Ok(image)
 }

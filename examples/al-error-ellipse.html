@@ -1,0 +1,38 @@
+<!doctype html>
+<html>
+<head>
+</head>
+<body>
+
+<div id="aladin-lite-div" style="width: 500px; height: 400px"></div>
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
+
+<script type="module">
+    import A from '../src/js/A.js';
+    var aladin;
+A.init.then(() => {
+    aladin = A.aladin('#aladin-lite-div', {survey: 'https://alasky.cds.unistra.fr/DSS/DSSColor/', target: 'm1', fov: 5, showContextMenu: true, showSettingsControl:true, samp:true});
+
+    var customImg = new Image();
+    customImg.onload = function() {
+        const cat = A.catalogFromVizieR('II/246/out', 'm1', 0.1, {onClick: 'showTable', hoverColor: 'purple', limit: 1000, colnames: ["errMin", "errMaj", "errPA"], shape: (s) => {
+            if (+s.data['Jmag'] > 15) {
+                return;
+            } else {
+                let a = +s.data['errMaj']/36;
+                let b = +s.data['errMin']/36;
+
+                let theta = +s.data['errPA'];
+
+                return A.ellipse(s.ra, s.dec, a, b, theta, {fillColor: 'rgba(255, 0, 255, 0.2)', drawAxes: true})
+            }
+        }});
+        aladin.addCatalog(cat);
+    };
+    customImg.src = 'https://aladin.u-strasbg.fr/AladinLite/doc/API/examples/img/star.png';
+
+   
+});
+</script>
+</body>
+</html>

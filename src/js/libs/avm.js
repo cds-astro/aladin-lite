@@ -193,9 +193,9 @@ export let AVM = (function() {
                     }
                 }
 
-                wcs.CTYPE1 = unwindTag(tags['Spatial.CoordinateFrame']) === 'ICRS' ? 'RA---' : 'GLON-';
+                wcs.CTYPE1 = unwindTag(tags['Spatial.CoordinateFrame']) === 'GAL' ? 'GLON-' : 'RA---';
                 wcs.CTYPE1 += unwindTag(tags['Spatial.CoordsystemProjection']);
-                wcs.CTYPE2 = unwindTag(tags['Spatial.CoordinateFrame']) === 'ICRS' ? 'DEC--' : 'GLAT-';
+                wcs.CTYPE2 = unwindTag(tags['Spatial.CoordinateFrame']) === 'GAL' ? 'GLAT-' : 'DEC--';
                 wcs.CTYPE2 += unwindTag(tags['Spatial.CoordsystemProjection']);
 
                 if (unwindTag(tags['Spatial.Equinox']))

@@ -296,6 +296,33 @@ export let View = (function () {
             self.requestRedraw();
         }, 1000);*/
 
+        console.log("aaaa bbbb")
+        const loadImage = (url) => {
+            return fetch(url);
+        }
+        const f = async (url) => {
+            let result = await loadImage(url)
+                .then((resp) => {
+                    return Promise.resolve(true);
+                }).catch((e) => {
+                    return Promise.resolve(false);
+                });
+
+            console.log("url fetched", url)
+
+            return result;
+        };
+
+        let p = []
+        for (var i = 0; i < 48; i++) {
+            
+            p.push(f("https://alasky.cds.unistra.fr/DSS/DSSColor/Norder1/Dir0/Npix" + i + ".jpg"))
+        };
+
+        let b = Promise.all(p)
+            .then((a) => {
+                console.log("jkjkdsjf", a)
+            })
     };
 
     // different available modes
@@ -2135,6 +2162,10 @@ export let View = (function () {
                         continue;
                     }
 
+                    if (s.hasFootprint === true && s.tooSmallFootprint === false) {
+                        continue;
+                    }
+
                     xRounded = Math.round(s.x);
                     yRounded = Math.round(s.y);
 
@@ -2156,10 +2187,9 @@ export let View = (function () {
         }
 
         let closests = [];
-        const startLw = (footprints && footprints[0] && footprints[0].getLineWidth()) || 1;
-        let endLw = 10;
-        let finish = false;
-        for (var lw = startLw; lw <= endLw; lw++) {
+        const fLineWidth = (footprints && footprints[0] && footprints[0].getLineWidth()) || 1;
+        let lw = fLineWidth + 3;
+        //for (var lw = startLw + 1; lw <= startLw + 3; lw++) {
             footprints.forEach((footprint) => {
                 if (!footprint.source || !footprint.source.tooSmallFootprint) {
                     // Hidden footprints are not considered
@@ -2169,20 +2199,15 @@ export let View = (function () {
                     if (footprint.isShowing && footprint.isInStroke(ctx, this, x * window.devicePixelRatio, y * window.devicePixelRatio)) {
                         closests.push(footprint);
                     }
-                    footprint.setLineWidth(startLw);
+                    footprint.setLineWidth(fLineWidth);
                 }
             })
 
-            if (closests.length > 0 && !finish) {
-                endLw = lw + 3;
-                finish = true;
-            }
-
-            if (finish && lw === endLw) {
+        /*    if (closests.length > 0) {
                 break;
             }
-        }
-       
+        }*/
+
         return closests;
     };
 

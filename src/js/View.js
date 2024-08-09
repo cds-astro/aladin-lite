@@ -639,30 +639,19 @@ export let View = (function () {
             var objs = view.closestObjects(xy.x, xy.y, tolerance);
             // Deselect objects if any
             view.unselectObjects();
+
             if (objs) {
                 var objClickedFunction = view.aladin.callbacksByEventName['objectClicked'];
                 var footprintClickedFunction = view.aladin.callbacksByEventName['footprintClicked'];
 
                 for (let o of objs) {
                     // footprint selection code adapted from Fabrizio Giordano dev. from Serco for ESA/ESDC
-                    if (o.marker) {
-                        // could be factorized in Source.actionClicked
-                        view.aladin.popup.setTitle(o.popupTitle);
-                        view.aladin.popup.setText(o.popupDesc);
-                        view.aladin.popup.setSource(o);
-                        view.aladin.popup.show();
+                    /*
+                    if (view.lastClickedObject) {
+                        view.lastClickedObject.actionOtherObjectClicked
+                        view.lastClickedObject.actionOtherObjectClicked();
                     }
-                    /*else {
-                        if (view.lastClickedObject) {
-                            view.lastClickedObject.actionOtherObjectClicked
-                            view.lastClickedObject.actionOtherObjectClicked();
-                        }
-                    }*/
-
-                    // show measurements
-                    /*if (o.actionClicked) {
-                        o.actionClicked();
-                    }*/
+                    */
 
                     (typeof objClickedFunction === 'function') && objClickedFunction(o, xy);
 
@@ -1524,13 +1513,25 @@ export let View = (function () {
         if (this.selection.length > 0) {
             this.selection.forEach((objListPerCatalog) => {
                 objListPerCatalog.forEach((obj) => {
-                    obj.select()
+                    obj.select();
+
+                    let cat = obj.getCatalog();
+
+                    // trigger the non action clicked if it does not show the table
+                    // table show is handled below 
+                    if (obj.actionClicked) {
+                        if (!cat || !cat.onClick || cat.onClick !== "showTable") {
+                            obj.actionClicked()
+                        }
+                    }
                 })
             });
 
+            // show the objects from catalogs having the onClick = "showTable" field
             let tables = this.selection
                 .filter(objList => {
-                    return objList[0].getCatalog;
+                    let cat = objList[0].getCatalog();
+                    return cat && cat.onClick && cat.onClick == 'showTable';
                 })
                 .map(objList => {
                     // Get the catalog containing that list of objects

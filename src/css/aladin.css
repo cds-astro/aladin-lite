@@ -556,7 +556,7 @@ canvas {
 }
     
 .aladin-popup-container {
-
+    color: black;
 	position: absolute;
     width: 200px;
     display: none;

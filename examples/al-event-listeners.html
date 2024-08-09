@@ -4,23 +4,23 @@
 </head>
 <body>
 
-<script src="https://code.jquery.com/jquery-1.10.1.min.js"></script>
 <div id='infoDiv'>&nbsp; </div>
 <div id="aladin-lite-div" style="width: 500px; height: 400px"></div>
 <script type="module">
     import A from '../src/js/A.js';
     A.init.then(() => {
-        var aladin = A.aladin('#aladin-lite-div', {target: '05 37 58 +08 17 35', fov: 12, backgroundColor: 'rgb(120, 0, 0)'});
+        var aladin = A.aladin('#aladin-lite-div', {showContextMenu: true, target: '05 37 58 +08 17 35', fov: 12, backgroundColor: 'rgb(120, 0, 0)'});
         var cat = A.catalog({sourceSize: 20, onClick: 'showTable'});
         aladin.addCatalog(cat);
         cat.addSources([A.source(83.784490, 9.934156, {name: 'Meissa'}), A.source(88.792939, 7.407064, {name: 'Betelgeuse'}), A.source(81.282764, 6.349703, {name: 'Bellatrix'})]);
         var msg;
-
+        
         // define function triggered when  a source is hovered
         aladin.on('click', function(e) {
             console.log(e)
         });
 
+        let infoDiv = document.querySelector("#infoDiv");
         aladin.on('objectHovered', function(object, xyMouseCoords) {
             if (object) {
                 msg = 'You hovered object ' + object.data.name + ' located at ' + object.ra + ', ' + object.dec + '; mouse coords - x: '
@@ -29,7 +29,7 @@
             else {
                 msg = 'No object hovered';
             }
-            $('#infoDiv').html(msg);
+            infoDiv.innerText = msg;
         });
 
         aladin.on('objectHoveredStop', function(object, xyMouseCoords) {
@@ -37,7 +37,7 @@
                 msg = 'You stopped hove object ' + object.data.name + ' located at ' + object.ra + ', ' + object.dec + '; mouse coords - x: '
                     + xyMouseCoords.x + ', y: ' + xyMouseCoords.y;
             }
-            $('#infoDiv').html(msg);
+            infoDiv.innerText = msg;
         });
 
         // define function triggered when an object is clicked
@@ -53,7 +53,7 @@
                 objClicked.deselect();
                 msg = 'You clicked in void';
             }
-            $('#infoDiv').html(msg);
+            infoDiv.innerText = msg;
         });
 
         aladin.on('resizeChanged', function() {

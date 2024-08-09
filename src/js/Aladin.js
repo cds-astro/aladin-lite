@@ -1485,14 +1485,24 @@ export let Aladin = (function () {
     Aladin.prototype.removeLayers = Aladin.prototype.removeOverlays;
 
     /**
-     * Remove a overlay by its layer name
-     * 
+     * Remove an overlay by its layer name
+     *
      * @memberof Aladin
-     * @param {string} layer 
+     * @param {string} layer
      */
     Aladin.prototype.removeOverlay = function (layer) {
         this.view.removeLayer(layer);
     };
+
+    /**
+     * Remove an overlay by its layer name
+     *
+     * @memberof Aladin
+     * @param {string} layerName The name of the layer to remove
+     */
+    Aladin.prototype.removeLayerByName = function(layerName){
+        this.view.removeLayerByName(layerName);
+    }
 
     /**
      * @deprecated

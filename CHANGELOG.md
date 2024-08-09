@@ -1,5 +1,9 @@
 # Changelogs
 
+## [Unreleased]
+
+* [feat] Add support for name removing in `removeOverlay` method
+
 ## 3.4.5-beta
 
 * [feat] add `layerChanged` event when a layer is added or removed

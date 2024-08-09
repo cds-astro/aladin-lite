@@ -2064,13 +2064,13 @@ export let View = (function () {
         this.requestRedraw();
     };
 
-    View.prototype.removeLayer = function (layer) {
+    View.prototype.removeOverlay = function (layer) {
         let indexToDelete = this.allOverlayLayers.indexOf(layer);
         this.allOverlayLayers.splice(indexToDelete, 1);
 
         if (layer.type == 'catalog' || layer.type == 'progressivecat') {
             indexToDelete = this.catalogs.indexOf(layer);
-            
+
             this.catalogs.splice(indexToDelete, 1);
 
             this.unselectObjects();
@@ -2091,6 +2091,15 @@ export let View = (function () {
 
         this.mustClearCatalog = true;
         this.requestRedraw();
+    };
+
+    View.prototype.removeOverlayByName = function (layerName) {
+        let layer = this.allOverlayLayers.find(l => l.name === layerName);
+        if (!layer) {
+            console.error(`Layer with name "${layerName}" not found.`);
+            return;
+        }
+        this.removeOverlay(layer);
     };
 
     View.prototype.addCatalog = function (catalog) {

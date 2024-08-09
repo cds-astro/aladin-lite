@@ -2093,6 +2093,15 @@ export let View = (function () {
         this.requestRedraw();
     };
 
+    View.prototype.removeLayerByName = function (layerName) {
+        let layer = this.allOverlayLayers.find(l => l.name === layerName);
+        if (!layer) {
+            console.error(`Layer with name "${layerName}" not found.`);
+            return;
+        }
+        this.removeLayer(layer);
+    };
+
     View.prototype.addCatalog = function (catalog) {
         catalog.name = this.makeUniqLayerName(catalog.name);
         this.allOverlayLayers.push(catalog);

@@ -1,5 +1,9 @@
 # Changelogs
 
+## [Unreleased]
+
+* [feat] Add `removeOverlayByName` method to remove an overlay by its name
+
 ## 3.4.5-beta
 
 * [feat] add `layerChanged` event when a layer is added or removed

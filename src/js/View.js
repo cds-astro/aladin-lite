@@ -294,35 +294,7 @@ export let View = (function () {
             }
 
             self.requestRedraw();
-        }, 1000);*/
-
-        console.log("aaaa bbbb")
-        const loadImage = (url) => {
-            return fetch(url);
-        }
-        const f = async (url) => {
-            let result = await loadImage(url)
-                .then((resp) => {
-                    return Promise.resolve(true);
-                }).catch((e) => {
-                    return Promise.resolve(false);
-                });
-
-            console.log("url fetched", url)
-
-            return result;
-        };
-
-        let p = []
-        for (var i = 0; i < 48; i++) {
-            
-            p.push(f("https://alasky.cds.unistra.fr/DSS/DSSColor/Norder1/Dir0/Npix" + i + ".jpg"))
-        };
-
-        let b = Promise.all(p)
-            .then((a) => {
-                console.log("jkjkdsjf", a)
-            })
+        }, 1000);*/ 
     };
 
     // different available modes
@@ -1339,7 +1311,8 @@ export let View = (function () {
         //if (elapsedTime >= View.FPS_INTERVAL) {
             // Get ready for next frame by setting then=now, but also adjust for your
             // specified fpsInterval not being a multiple of RAF's interval (16.7ms)
-
+            //if (this.dt > 10)
+            //    console.log(this.dt)
             // Drawing code
             //try {
             this.moving = this.wasm.update(elapsedTime);

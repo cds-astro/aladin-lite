@@ -5,7 +5,7 @@ use crate::Abort;
 
 use std::collections::VecDeque;
 
-const MAX_NUM_TILE_FETCHING: isize = 8;
+const MAX_NUM_TILE_FETCHING: usize = 8;
 const MAX_QUERY_QUEUE_LENGTH: usize = 100;
 
 pub struct TileFetcherQueue {
@@ -13,6 +13,7 @@ pub struct TileFetcherQueue {
     queries: VecDeque<query::Tile>,
     base_tile_queries: Vec<query::Tile>,
     tiles_fetched_time: Time,
+    num_tiles_fetched: usize,
 }
 
 impl TileFetcherQueue {
@@ -20,10 +21,12 @@ impl TileFetcherQueue {
         let queries = VecDeque::new();
         let base_tile_queries = Vec::new();
         let tiles_fetched_time = Time::now();
+        let mut num_tiles_fetched = 0;
         Self {
             queries,
             base_tile_queries,
             tiles_fetched_time,
+            num_tiles_fetched,
         }
     }
 
@@ -63,6 +66,10 @@ impl TileFetcherQueue {
         }
     }
 
+    pub fn get_num_tile_fetched(&self) -> usize {
+        self.num_tiles_fetched
+    }
+
     fn fetch(&mut self, downloader: &mut Downloader) {
         // Fetch the base tiles with higher priority
         while let Some(query) = self.base_tile_queries.pop() {
@@ -83,7 +90,8 @@ impl TileFetcherQueue {
             }
         }
 
-        log!(num_fetched_tile);
+        self.num_tiles_fetched += num_fetched_tile;
+        //log!(num_fetched_tile);
     }
 
     pub fn launch_starting_hips_requests(&mut self, hips: &HiPS, downloader: &mut Downloader) {

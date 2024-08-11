@@ -1,6 +1,5 @@
 <html>
 	<head>
-		<link rel="stylesheet" type="text/css" href="//aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.css">
 	</head>
 	<body>
 		<h1>Trifid interactive map</h1>
@@ -10,7 +9,6 @@
 
     <!-- our script needs jQuery -->
     <script type="text/javascript" src="https://code.jquery.com/jquery-1.9.1.min.js" charset="utf-8"></script>
-
 	<!-- V2-->
 	<div id="aladin-lite-div-old" style="width:700px;height:400px;"></div>
 
@@ -19,15 +17,18 @@
 	<script type="text/javascript">
     	var aladinold = A.aladin('#aladin-lite-div-old', {survey: "P/allWISE/color", fov:1.5, target: "14 03 12.583 +54 20 55.5"});
 	</script>
+
+    <script type="text/javascript" src="./../dist/aladin.umd.cjs" charset="utf-8"></script>
+
 	
     <!-- Aladin Lite V3 JS code -->
     <!-- Creation of Aladin Lite instance with initial parameters -->
-    <script type="module">
-        import A from '../src/js/A.js';
+    <script type="text/javascript">
+        //import A from '../src/js/A.js';
 
         let aladin;
         A.init.then(() => {
-            aladin = A.aladin('#aladin-lite-div', {survey: "https://alasky.cds.unistra.fr/AllWISE/RGB-W4-W2-W1/", fov:1.5, target: "14 03 12.583 +54 20 55.5"});
+            aladin = A.aladin('#aladin-lite-div', {survey: "https://alasky.cds.unistra.fr/AllWISE/RGB-W4-W2-W1/", fov:1.5, target: "14 03 12.583 +54 20 55.5", });
         });
     </script>
 	</body>

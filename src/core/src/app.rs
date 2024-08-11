@@ -262,8 +262,6 @@ impl App {
         // Move the views of the different active surveys
         self.tile_fetcher.clear();
         // Loop over the surveys
-        let _raytracer = self.layers.get_raytracer();
-
         for survey in self.layers.values_mut_hips() {
             if self.camera.get_texture_depth() == 0
                 && self
@@ -292,9 +290,14 @@ impl App {
                         &mut self.downloader,
                     );
 
-                    if tile_cell.depth() >= min_tile_depth + 3 {
-                        let ancestor_tile_cell = tile_cell.ancestor(3);
-                        ancestors.insert(ancestor_tile_cell);
+                    // check if we are starting aladin lite or not.
+                    // If so we want to retrieve only the tiles in the view and access them
+                    // directly i.e. without blending them with less precised tiles
+                    if self.tile_fetcher.get_num_tile_fetched() > 0 {
+                        if tile_cell.depth() >= min_tile_depth + 3 {
+                            let ancestor_tile_cell = tile_cell.ancestor(3);
+                            ancestors.insert(ancestor_tile_cell);
+                        }
                     }
                     //let ancestor_next_tile_cell = next_tile_cell.ancestor(3);
                     //if !survey.contains_tile(&ancestor_tile_cell) {
@@ -598,117 +601,116 @@ impl App {
             for rsc in rscs_received {
                 match rsc {
                     Resource::Tile(tile) => {
-                        if !_has_camera_zoomed {
-                            if let Some(survey) =
-                                self.layers.get_mut_hips_from_cdid(&tile.get_hips_cdid())
-                            {
-                                let cfg = survey.get_config_mut();
+                        //if !_has_camera_zoomed {
+                        if let Some(survey) =
+                            self.layers.get_mut_hips_from_cdid(&tile.get_hips_cdid())
+                        {
+                            let cfg = survey.get_config_mut();
 
-                                if cfg.get_format() == tile.format {
-                                    let delta_depth = cfg.delta_depth();
-                                    let fov_coverage = self.camera.get_cov(cfg.get_frame());
-                                    let included_or_near_coverage = tile
-                                        .cell()
-                                        .get_texture_cell(delta_depth)
-                                        .get_tile_cells(delta_depth)
-                                        .any(|neighbor_tile_cell| {
-                                            fov_coverage.intersects_cell(&neighbor_tile_cell)
-                                        });
+                            if cfg.get_format() == tile.format {
+                                let delta_depth = cfg.delta_depth();
+                                let fov_coverage = self.camera.get_cov(cfg.get_frame());
+                                let included_or_near_coverage = tile
+                                    .cell()
+                                    .get_texture_cell(delta_depth)
+                                    .get_tile_cells(delta_depth)
+                                    .any(|neighbor_tile_cell| {
+                                        fov_coverage.intersects_cell(&neighbor_tile_cell)
+                                    });
 
-                                    //let is_tile_root = tile.cell().depth() == delta_depth;
-                                    //let _depth = tile.cell().depth();
-                                    // do not perform tex_sub costly GPU calls while the camera is zooming
-                                    if included_or_near_coverage {
-                                        let is_missing = tile.missing();
-                                        /*self.tile_fetcher.notify_tile(
-                                            &tile,
-                                            true,
-                                            false,
-                                            &mut self.downloader,
-                                        );*/
-                                        let Tile {
-                                            cell,
-                                            image,
-                                            time_req,
-                                            ..
-                                        } = tile;
+                                //let is_tile_root = tile.cell().depth() == delta_depth;
+                                //let _depth = tile.cell().depth();
+                                // do not perform tex_sub costly GPU calls while the camera is zooming
+                                if included_or_near_coverage {
+                                    let is_missing = tile.missing();
+                                    /*self.tile_fetcher.notify_tile(
+                                        &tile,
+                                        true,
+                                        false,
+                                        &mut self.downloader,
+                                    );*/
+                                    let Tile {
+                                        cell,
+                                        image,
+                                        time_req,
+                                        ..
+                                    } = tile;
 
-                                        let image = if is_missing {
-                                            // Otherwise we push nothing, it is probably the case where:
-                                            // - an request error occured on a valid tile
-                                            // - the tile is not present, e.g. chandra HiPS have not the 0, 1 and 2 order tiles
-                                            None
-                                        } else {
-                                            Some(image)
-                                        };
-                                        use al_core::image::ImageType;
-                                        use fitsrs::fits::Fits;
-                                        use std::io::Cursor;
-                                        if let Some(image) = image.as_ref() {
-                                            match &*image.lock().unwrap_abort() {
-                                                Some(ImageType::FitsImage {
-                                                    raw_bytes: raw_bytes_buf,
-                                                }) => {
-                                                    // check if the metadata has not been set
-                                                    if !cfg.fits_metadata {
-                                                        let num_bytes =
-                                                            raw_bytes_buf.length() as usize;
-                                                        let mut raw_bytes = vec![0; num_bytes];
-                                                        raw_bytes_buf.copy_to(&mut raw_bytes[..]);
+                                    let image = if is_missing {
+                                        // Otherwise we push nothing, it is probably the case where:
+                                        // - an request error occured on a valid tile
+                                        // - the tile is not present, e.g. chandra HiPS have not the 0, 1 and 2 order tiles
+                                        None
+                                    } else {
+                                        Some(image)
+                                    };
+                                    use al_core::image::ImageType;
+                                    use fitsrs::fits::Fits;
+                                    use std::io::Cursor;
+                                    if let Some(image) = image.as_ref() {
+                                        match &*image.lock().unwrap_abort() {
+                                            Some(ImageType::FitsImage {
+                                                raw_bytes: raw_bytes_buf,
+                                            }) => {
+                                                // check if the metadata has not been set
+                                                if !cfg.fits_metadata {
+                                                    let num_bytes = raw_bytes_buf.length() as usize;
+                                                    let mut raw_bytes = vec![0; num_bytes];
+                                                    raw_bytes_buf.copy_to(&mut raw_bytes[..]);
 
-                                                        let mut bytes_reader =
-                                                            Cursor::new(raw_bytes.as_slice());
-                                                        let Fits { hdu } =
-                                                            Fits::from_reader(&mut bytes_reader)
-                                                                .map_err(|_| {
-                                                                    JsValue::from_str(
-                                                                        "Parsing fits error",
-                                                                    )
-                                                                })?;
+                                                    let mut bytes_reader =
+                                                        Cursor::new(raw_bytes.as_slice());
+                                                    let Fits { hdu } =
+                                                        Fits::from_reader(&mut bytes_reader)
+                                                            .map_err(|_| {
+                                                                JsValue::from_str(
+                                                                    "Parsing fits error",
+                                                                )
+                                                            })?;
 
-                                                        let header = hdu.get_header();
-                                                        let bscale = if let Some(
-                                                            fitsrs::card::Value::Float(bscale),
-                                                        ) = header.get(b"BSCALE  ")
-                                                        {
-                                                            *bscale as f32
-                                                        } else {
-                                                            1.0
-                                                        };
-                                                        let bzero = if let Some(
-                                                            fitsrs::card::Value::Float(bzero),
-                                                        ) = header.get(b"BZERO   ")
-                                                        {
-                                                            *bzero as f32
-                                                        } else {
-                                                            0.0
-                                                        };
-                                                        let blank = if let Some(
-                                                            fitsrs::card::Value::Float(blank),
-                                                        ) = header.get(b"BLANK   ")
-                                                        {
-                                                            *blank as f32
-                                                        } else {
-                                                            std::f32::NAN
-                                                        };
+                                                    let header = hdu.get_header();
+                                                    let bscale = if let Some(
+                                                        fitsrs::card::Value::Float(bscale),
+                                                    ) = header.get(b"BSCALE  ")
+                                                    {
+                                                        *bscale as f32
+                                                    } else {
+                                                        1.0
+                                                    };
+                                                    let bzero = if let Some(
+                                                        fitsrs::card::Value::Float(bzero),
+                                                    ) = header.get(b"BZERO   ")
+                                                    {
+                                                        *bzero as f32
+                                                    } else {
+                                                        0.0
+                                                    };
+                                                    let blank = if let Some(
+                                                        fitsrs::card::Value::Float(blank),
+                                                    ) = header.get(b"BLANK   ")
+                                                    {
+                                                        *blank as f32
+                                                    } else {
+                                                        std::f32::NAN
+                                                    };
 
-                                                        cfg.set_fits_metadata(bscale, bzero, blank);
-                                                    }
+                                                    cfg.set_fits_metadata(bscale, bzero, blank);
                                                 }
-                                                _ => (),
                                             }
+                                            _ => (),
                                         }
-
-                                        survey.add_tile(&cell, image, time_req)?;
-                                        self.request_redraw = true;
-
-                                        self.time_start_blending = Time::now();
                                     }
+
+                                    survey.add_tile(&cell, image, time_req)?;
+                                    self.request_redraw = true;
+
+                                    self.time_start_blending = Time::now();
                                 }
                             }
-                        } else {
-                            self.downloader.delay_rsc(Resource::Tile(tile));
                         }
+                        /*} else {
+                            self.downloader.delay_rsc(Resource::Tile(tile));
+                        }*/
                     }
                     Resource::Allsky(allsky) => {
                         let hips_cdid = allsky.get_hips_cdid();
@@ -783,13 +785,14 @@ impl App {
                 let has_not_moved_recently =
                     (Time::now() - self.camera.get_time_of_last_move()) > DeltaTime(100.0);
 
-                let dt = if has_not_moved_recently {
+                /*let dt = if has_not_moved_recently {
                     None
                 } else {
                     Some(DeltaTime::from_millis(700.0))
-                };
-
-                self.tile_fetcher.notify(&mut self.downloader, dt);
+                };*/
+                if has_not_moved_recently {
+                    self.tile_fetcher.notify(&mut self.downloader, None);
+                }
             }
         }
 
@@ -797,7 +800,7 @@ impl App {
         //self.layers.update(&mut self.camera, &self.projection);
 
         if self.request_for_new_tiles
-            && Time::now() - self.last_time_request_for_new_tiles > DeltaTime::from(200.0)
+        //&& Time::now() - self.last_time_request_for_new_tiles > DeltaTime::from(200.0)
         {
             self.look_for_new_tiles()?;
 

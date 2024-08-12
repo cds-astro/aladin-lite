@@ -1491,13 +1491,13 @@ export let Aladin = (function () {
      * Remove an overlay by its layer name
      *
      * @memberof Aladin
-     * @param {string|Layer} layer - The name of the layer to remove or the layer object itself
+     * @param {string|Overlay} overlay - The name of the overlay to remove or the overlay object itself
      */
-    Aladin.prototype.removeOverlay = function (layer) {
-        if(layer instanceof String)
-            this.view.removeOverlayByName(layer);
+    Aladin.prototype.removeOverlay = function (overlay) {
+        if(overlay instanceof String)
+            this.view.removeOverlayByName(overlay);
         else
-            this.view.removeOverlay(layer);
+            this.view.removeOverlay(overlay);
     };
 
     /**

@@ -2064,39 +2064,39 @@ export let View = (function () {
         this.requestRedraw();
     };
 
-    View.prototype.removeOverlay = function (layer) {
-        let indexToDelete = this.allOverlayLayers.indexOf(layer);
+    View.prototype.removeOverlay = function (overlay) {
+        let indexToDelete = this.allOverlayLayers.indexOf(overlay);
         this.allOverlayLayers.splice(indexToDelete, 1);
 
-        if (layer.type == 'catalog' || layer.type == 'progressivecat') {
-            indexToDelete = this.catalogs.indexOf(layer);
+        if (overlay.type == 'catalog' || overlay.type == 'progressivecat') {
+            indexToDelete = this.catalogs.indexOf(overlay);
 
             this.catalogs.splice(indexToDelete, 1);
 
             this.unselectObjects();
         }
-        else if (layer.type == 'moc') {
-            indexToDelete = this.mocs.indexOf(layer);
+        else if (overlay.type == 'moc') {
+            indexToDelete = this.mocs.indexOf(overlay);
 
             let moc = this.mocs.splice(indexToDelete, 1);
             // remove from aladin lite backend
             moc[0].delete();
         }
-        else if (layer.type == 'overlay') {
-            indexToDelete = this.overlays.indexOf(layer);
+        else if (overlay.type == 'overlay') {
+            indexToDelete = this.overlays.indexOf(overlay);
             this.overlays.splice(indexToDelete, 1);
         }
 
-        ALEvent.GRAPHIC_OVERLAY_LAYER_REMOVED.dispatchedTo(this.aladinDiv, { layer });
+        ALEvent.GRAPHIC_OVERLAY_LAYER_REMOVED.dispatchedTo(this.aladinDiv, { layer: overlay });
 
         this.mustClearCatalog = true;
         this.requestRedraw();
     };
 
-    View.prototype.removeOverlayByName = function (layerName) {
-        let layer = this.allOverlayLayers.find(l => l.name === layerName);
+    View.prototype.removeOverlayByName = function (overlayName) {
+        let layer = this.allOverlayLayers.find(l => l.name === overlayName);
         if (!layer) {
-            console.error(`Layer with name "${layerName}" not found.`);
+            console.error(`Layer with name "${overlayName}" not found.`);
             return;
         }
         this.removeOverlay(layer);

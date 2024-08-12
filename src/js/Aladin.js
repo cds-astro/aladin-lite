@@ -1483,7 +1483,10 @@ export let Aladin = (function () {
      * @memberof Aladin
      */
     Aladin.prototype.removeLayers = Aladin.prototype.removeOverlays;
-
+/**
+* @typedef {MOC|Catalog|ProgressiveCat|GraphicOverlay} Overlay
+* @description Possible overlays
+*/
     /**
      * Remove an overlay by its layer name
      *

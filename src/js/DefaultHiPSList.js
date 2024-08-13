@@ -10,6 +10,7 @@ export let HiPSList = (function () {
             tileSize: 512,
             imgFormat: "jpeg",
             cooFrame: "ICRS",
+            startingUrl: "https://alasky.cds.unistra.fr/DSS/DSSColor/",
         },
         {
             creatorDid: "ivo://CDS/P/2MASS/color",
@@ -145,6 +146,7 @@ export let HiPSList = (function () {
             tileSize: 512,
             imgFormat: "jpeg",
             cooFrame: "equatorial",
+            startingUrl: "https://alasky.cds.unistra.fr/DSS/DSSColor/"
         },
         {
             creatorDid: "ivo://CDS/P/SDSS9/g",

@@ -379,6 +379,62 @@ export let Aladin = (function () {
             }
         }
 
+        let hipsList = [].concat(options.hipsList);
+
+        const fillHiPSCache = () => {
+            for (var survey of hipsList) {
+                let id, url, name;
+                let cachedSurvey = {};
+
+                if (typeof survey === "string") {
+                    try {
+                        url = new URL(survey).href;
+                    } catch (e) {
+                        id = survey;
+                    }
+
+                    name = url || id;
+                } else if (survey instanceof Object) {
+                    if (survey.id) {
+                        id = survey.id;
+                    }
+                    if (survey.url) {
+                        url = survey.url;
+                    }
+
+                    name = survey.name || survey.id || survey.url;
+
+                    cachedSurvey = { ...cachedSurvey, ...survey };
+                } else {
+                    console.warn(
+                        "unable to parse the survey list item: ",
+                        survey
+                    );
+                    continue;
+                }
+
+                if (id) {
+                    cachedSurvey["id"] = id;
+                }
+                if (url) {
+                    cachedSurvey["url"] = url;
+                }
+                if (name) {
+                    cachedSurvey["name"] = name;
+                }
+
+                // at least id or url is defined
+                let key = id || url;
+
+                // Merge what is already in the cache for that HiPS with new properties
+                // coming from the MOCServer
+                let hips = new ImageHiPS(key, cachedSurvey.url, cachedSurvey)
+                self.hipsCache.append(key, hips);
+            }
+        };
+
+        fillHiPSCache();
+
         if (options.survey) {
             if (Array.isArray(options.survey)) {
                 let i = 0;
@@ -418,77 +474,6 @@ export let Aladin = (function () {
 
             this.setBaseImageLayer(url);
         }
-
-        let hipsList = [].concat(options.hipsList);
-
-        const fillHiPSCache = () => {
-            for (var survey of hipsList) {
-                let id, url, name;
-                let cachedSurvey = {};
-
-                if (typeof survey === "string") {
-                    try {
-                        url = new URL(survey).href;
-                    } catch (e) {
-                        id = survey;
-                    }
-
-                    name = url || id;
-                } else if (survey instanceof Object) {
-                    if (survey.id) {
-                        id = survey.id;
-                    }
-                    if (survey.url) {
-                        url = survey.url;
-                    }
-
-                    name = survey.name || survey.id || survey.url;
-
-                    if (id && url) {
-                        console.warn(
-                            'Both "CDS ID" and url are given for ',
-                            survey,
-                            ". ID is chosen."
-                        );
-                        url = null;
-                    }
-
-                    cachedSurvey = { ...cachedSurvey, ...survey };
-                } else {
-                    console.warn(
-                        "unable to parse the survey list item: ",
-                        survey
-                    );
-                    continue;
-                }
-
-                if (id) {
-                    cachedSurvey["id"] = id;
-                }
-                if (url) {
-                    cachedSurvey["url"] = url;
-                }
-                if (name) {
-                    cachedSurvey["name"] = name;
-                }
-
-                // at least id or url is defined
-                let key = id || url;
-
-                // Merge what is already in the cache for that HiPS with new properties
-                // coming from the MOCServer
-
-                /*HiPSCache.append(key, {
-                    ...HiPSCache.get(key),
-                    ...cachedSurvey,
-                });*/
-                let hips = new ImageHiPS(key, cachedSurvey.url, cachedSurvey)
-                self.hipsCache.append(key, hips);
-            }
-        };
-
-       
-        fillHiPSCache();
 
         this.view.showCatalog(options.showCatalog);
 
@@ -1831,7 +1816,6 @@ export let Aladin = (function () {
             const idOrUrl = urlOrHiPSOrFITS;
 
             imageLayer = A.imageHiPS(idOrUrl);
-
             // 2. User gives a non resolved promise
         } else {
             imageLayer = urlOrHiPSOrFITS;
@@ -1844,7 +1828,11 @@ export let Aladin = (function () {
             imageLayer = cachedLayer
         } else {
             this.hipsCache.append(imageLayer.id, imageLayer);
+
         }
+
+        //console.log("cached layer", hipsCache)
+
 
         return this.view.setOverlayImageLayer(imageLayer, layer);
     };

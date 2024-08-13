@@ -178,6 +178,7 @@ export let ImageHiPS = (function () {
         this.cooFrame = options.cooFrame;
         this.tileSize = options.tileSize;
         this.skyFraction = options.skyFraction;
+        this.startingUrl = options.startingUrl;
         this.longitudeReversed =
             options.longitudeReversed === undefined
                 ? false
@@ -205,10 +206,10 @@ export let ImageHiPS = (function () {
         }
         this.view = view;
 
-        let isMOCServerToBeQueried = true;
+        let isIncompleteOptions = true;
         if (this.imgFormat === "fits") {
             // a fits is given
-            isMOCServerToBeQueried = !(
+            isIncompleteOptions = !(
                 this.maxOrder &&
                 this.url &&
                 this.imgFormat &&
@@ -217,7 +218,7 @@ export let ImageHiPS = (function () {
                 this.numBitsPerPixel
             );
         } else {
-            isMOCServerToBeQueried = !(
+            isIncompleteOptions = !(
                 this.maxOrder &&
                 this.url &&
                 this.imgFormat &&
@@ -227,36 +228,11 @@ export let ImageHiPS = (function () {
         }
 
         self.query = (async () => {
-            if (isMOCServerToBeQueried) {
+            if (isIncompleteOptions) {
                 let isCDSId = false;
 
-                let properties = await HiPSProperties.fetchFromUrl(self.url)
-                    /*.catch((e) => {
-                        // try with the proxy
-                        url = Utils.handleCORSNotSameOrigin(url).href;
-
-                        return HiPSProperties.fetchFromUrl(url);
-                    })*/
-                    .catch(async (e) => {
-                        // url not valid so we try with the id
-                        try {
-                            isCDSId = true;
-                            // the url stores a "CDS ID" we take it prioritaly
-                            // if the url is null, take the id, this is for some tests
-                            // to pass because some users might just give null as url param and a "CDS ID" as id param
-                            let id = self.url || self.id;
-                            return await HiPSProperties.fetchFromID(id);
-                        } catch (e) {
-                            throw e;
-                        }
-                    });
-
-                //obsTitle = properties.obs_title;
-                self.creatorDid = properties.creator_did || self.creatorDid;
-                // url
-
-                if (isCDSId) {
-                    self.url = properties.hips_service_url;
+                let fetchBestUrl = (p) => {
+                    self.url = p.hips_service_url;
                     if (!self.url) {
                         throw "no valid service URL for retrieving the tiles";
                     }
@@ -264,7 +240,7 @@ export let ImageHiPS = (function () {
                     self.url = Utils.fixURLForHTTPS(self.url);
 
                     // Request all the properties to see which mirror is the fastest
-                    HiPSProperties.getFasterMirrorUrl(properties, self.url)
+                    HiPSProperties.getFasterMirrorUrl(p, self.url)
                         .then((url) => {
                             if (self.url !== url) {
                                 console.info(
@@ -294,7 +270,37 @@ export let ImageHiPS = (function () {
                             console.error(self);
                             console.error(e);
                         });
-                }
+                };
+
+                let properties = await HiPSProperties.fetchFromUrl(self.url)
+                        /*.catch((e) => {
+                            // special case for glimpse if I remember right
+                            // try with the proxy
+                            url = Utils.handleCORSNotSameOrigin(url).href;
+
+                            return HiPSProperties.fetchFromUrl(url);
+                        })*/
+                        .catch(async (e) => {
+                            // url not valid so we try with the id
+                            try {
+                                isCDSId = true;
+                                // the url stores a "CDS ID" we take it prioritaly
+                                // if the url is null, take the id, this is for some tests
+                                // to pass because some users might just give null as url param and a "CDS ID" as id param
+                                let id = self.url || self.id;
+                                // a starting url stored into the default hips list so that we do not wait
+                                // the query to the mocserver
+                                //console.log("cds id")
+                                return await HiPSProperties.fetchFromID(id)
+                            } catch (e) {
+                                throw e;
+                            }
+                        });
+
+                fetchBestUrl(properties);
+
+                self.creatorDid = properties.creator_did || self.creatorDid;
+                // url
 
                 // Max order
                 self.maxOrder =

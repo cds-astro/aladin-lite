@@ -218,7 +218,7 @@ A.marker = function (ra, dec, options, data) {
  * @param {Array.<number[]>} radecArray - right-ascension/declination 2-tuple array describing the polyline's vertices in degrees
  * @param {ShapeOptions} options - Options for configuring the polygon
  * @throws {string} Throws an error if the number of vertices is less than 3.
- * 
+ *
  * @returns {Polyline}
  */
 A.polygon = function (raDecArray, options) {
@@ -245,7 +245,7 @@ A.polygon = function (raDecArray, options) {
  *
  * @param {Array.<number[]>} radecArray - right-ascension/declination 2-tuple array describing the polyline's vertices in degrees
  * @param {ShapeOptions} options - Options for configuring the polyline.
- * 
+ *
  * @returns {Polyline}
  */
 A.polyline = function (raDecArray, options) {
@@ -303,7 +303,7 @@ A.ellipse = function (ra, dec, radiusRaDeg, radiusDecDeg, rotationDeg, options) 
  * @param {number} ra2 - Right Ascension (RA) coordinate of the center in degrees.
  * @param {number} dec2 - Declination (Dec) coordinate of the center in degrees.
  * @param {ShapeOptions} options - Options for configuring the vector.
- * 
+ *
  * @returns {Vector}
  */
 A.vector = function (ra1, dec1, ra2, dec2, options) {
@@ -370,6 +370,21 @@ A.coo = function (longitude, latitude, prec) {
 };
 
 /**
+ * Creates a new footprint from an array of polygons and optionally a source
+ *
+ * @function
+ * @memberof A
+ * @name footprint
+ *
+ * @param {A.polygon[]} shapes - an array of A.polygon objects
+ * @param {A.source} source - a A.source object
+ * @returns {Footprint} Returns a new Footprint object
+ */
+A.footprint = function(shapes, source) {
+    return new Footprint(shapes, source);
+};
+
+/**
  * Parse shapes from a STC-S string
  *
  * @function
@@ -417,7 +432,7 @@ A.MOCFromURL = function (url, options, successCallback, errorCallback) {
  * @param {function} [successCallback] - Callback function when the MOC loads
  * @param {function} [errorCallback] - Callback function when the MOC fails loading
  * @returns {MOC} Returns a new MOC object
- * 
+ *
  * @example
  * var json = {"3":[517],
  *  "4":[2065,2066,2067,2112,2344,2346,2432],
@@ -639,7 +654,7 @@ A.catalogFromSimbad = function (target, radius, options, successCallback, errorC
             }
         } else {
             var isObjectName = /[a-zA-Z]/.test(target);
-    
+
             // Try to parse as a position
             if (!isObjectName) {
                 coo = new Coo();
@@ -931,7 +946,7 @@ A.button = function(options) {
  *
  * @param {Object} options - Options for configuring the button.
  * @param {Object} [options.header] - The header of the box
- * @param {boolean} [options.header.draggable=false] - Can move the window by dragging its title. 
+ * @param {boolean} [options.header.draggable=false] - Can move the window by dragging its title.
  * @param {string} [options.header.title] - A title name for the window
  * @param {HTMLElement|string|Widget} [options.content] - The content to be added to the button.
  * @param {CSSStyleSheet} [options.cssStyle] - The CSS styles to apply to the button.
@@ -956,7 +971,7 @@ A.box = function(options) {
 
 /**
  * Returns utils object
- * 
+ *
  * This contains utilitary methods such as HEALPix basic or projection methods.
  *
  * @function

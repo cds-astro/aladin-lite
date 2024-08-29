@@ -38,7 +38,45 @@ export default defineConfig({
         glsl({
             compress: true,
         }),
-        cssInjectedByJsPlugin(),
+        // make sure that the CSS is also included in ShadowDOMs. 
+        // Extracted from https://github.com/marco-prontera/vite-plugin-css-injected-by-js/issues/128
+        cssInjectedByJsPlugin({
+            styleId: "aladin-css",
+            injectCodeFunction: async function injectCodeCustomRunTimeFunction(cssCode) {
+                function getAladinDiv(divName: string): Promise<Element | null> {
+                    return new Promise((resolve) => {
+                      if (document.querySelector(divName)) {
+                        return resolve(document.querySelector(divName));
+                      }
+                      const observer = new MutationObserver(() => {
+                        if (document.querySelector(divName)) {
+                          observer.disconnect();
+                          resolve(document.querySelector(divName));
+                        }
+                      });
+          
+                      observer.observe(document.body, {
+                        childList: true,
+                        subtree: true,
+                      });
+                    });
+                  }
+
+
+                try {
+                    if (typeof document != 'undefined') {
+                        let elementStyle = document.createElement('style');
+                        elementStyle.id = "aladin-css";
+                        elementStyle.appendChild(document.createTextNode(cssCode));
+                        document.head.appendChild(elementStyle);
+                        let aladinDiv = await getAladinDiv("aladin-container")
+                        aladinDiv?.shadowRoot?.appendChild(elementStyle);
+                    }
+                } catch (e) {
+                    console.error('vite-plugin-css-injected-by-js', e);
+                }
+            }
+        }),
     ],
     resolve: {
         alias: [

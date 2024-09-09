@@ -133,7 +133,7 @@ HiPSProperties.fetchFromUrl = async function(urlOrId) {
     return result;
 }
 
-HiPSProperties.getFasterMirrorUrl = function (metadata, currUrl) {
+HiPSProperties.getFasterMirrorUrl = function (metadata) {
     const pingHiPSServiceUrl = async (baseUrl) => {
         baseUrl = Utils.fixURLForHTTPS(baseUrl);
 
@@ -161,7 +161,6 @@ HiPSProperties.getFasterMirrorUrl = function (metadata, currUrl) {
         });
         const duration = performance.now() - startRequestTime;//the time needed to do the request
 
-
         return {duration, validRequest, baseUrl};
     };
 
@@ -181,7 +180,11 @@ HiPSProperties.getFasterMirrorUrl = function (metadata, currUrl) {
 
         urls.push(curUrl)
     }
-    console.log(promises)
+
+    if (numHiPSServiceURL === 1) {
+        return Promise.resolve(urls[0]);
+    }
+
     return Promise.all(promises)
         .then((responses) => {
             // filter the ones that failed to not choose them
@@ -198,7 +201,6 @@ HiPSProperties.getFasterMirrorUrl = function (metadata, currUrl) {
                 return r1.duration - r2.duration;
             });
 
-            //console.log(validResponses)
             let newUrlResp;
 
             if (validResponses.length >= 2) {
@@ -215,9 +217,10 @@ HiPSProperties.getFasterMirrorUrl = function (metadata, currUrl) {
                 // no valid response => we return an error
                 return Promise.reject('All mirrors urls have been tested:' + urls)
             }
-
+            /*
             // check if there is a big difference from the current one
             let currUrlResp = validResponses.find((r) => r.baseUrl === currUrl)
+
             // it may happen that the url requested by the user is too slow hence discarded
             // for these cases, we automatically switch to the new fastest url.
             let urlChosen;
@@ -229,9 +232,10 @@ HiPSProperties.getFasterMirrorUrl = function (metadata, currUrl) {
                 urlChosen = newUrlResp.baseUrl;
             }
 
-            //console.log('curr url', currUrlResp, ', new ', newUrlResp)
 
             urlChosen = Utils.fixURLForHTTPS(urlChosen)
+            */
+            let urlChosen = newUrlResp.baseUrl;
             return urlChosen;
         })
 }

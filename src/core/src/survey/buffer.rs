@@ -36,8 +36,8 @@ pub struct TextureCellItem {
 }
 
 impl TextureCellItem {
-    fn is_root(&self, delta_depth: u8) -> bool {
-        self.cell.is_root(delta_depth)
+    fn is_root(&self) -> bool {
+        self.cell.is_root()
     }
 }
 
@@ -318,7 +318,7 @@ impl ImageSurveyTextures {
             // Get the texture cell in which the tile has to be
             let tex_cell = cell.get_texture_cell(dd);
 
-            let tex_cell_is_root = tex_cell.is_root(dd);
+            let tex_cell_is_root = tex_cell.is_root();
             if !tex_cell_is_root && !self.textures.contains_key(&tex_cell) {
                 // The texture is not among the essential ones
                 // (i.e. is not a root texture)
@@ -326,7 +326,7 @@ impl ImageSurveyTextures {
                     // Pop the oldest requested texture
                     let oldest_texture = self.heap.pop().unwrap_abort();
                     // Ensure this is not a base texture
-                    debug_assert!(!oldest_texture.is_root(self.config.delta_depth()));
+                    debug_assert!(!oldest_texture.is_root());
 
                     // Remove it from the textures HashMap
                     let mut texture = self.textures.remove(&oldest_texture.cell).expect(
@@ -448,9 +448,10 @@ impl ImageSurveyTextures {
     // texture ancestor exists and then, it it contains the tile
     pub fn contains_tile(&self, cell: &HEALPixCell) -> bool {
         let dd = self.config.delta_depth();
+
         let texture_cell = cell.get_texture_cell(dd);
 
-        let tex_cell_is_root = texture_cell.is_root(dd);
+        let tex_cell_is_root = texture_cell.is_root();
         if tex_cell_is_root {
             let HEALPixCell(_, idx) = texture_cell;
             self.base_textures[idx as usize].contains(cell)
@@ -471,10 +472,11 @@ impl ImageSurveyTextures {
     pub fn update_priority(&mut self, cell: &HEALPixCell /*, new_fov_cell: bool*/) {
         debug_assert!(self.contains_tile(cell));
 
-        // Get the texture cell in which the tile has to be
         let dd = self.config.delta_depth();
+
+        // Get the texture cell in which the tile has to be
         let texture_cell = cell.get_texture_cell(dd);
-        if texture_cell.is_root(dd) {
+        if texture_cell.is_root() {
             return;
         }
 
@@ -556,7 +558,7 @@ impl ImageSurveyTextures {
 
     /// Accessors
     pub fn get(&self, texture_cell: &HEALPixCell) -> Option<&Texture> {
-        if texture_cell.is_root(self.config().delta_depth()) {
+        if texture_cell.is_root() {
             let HEALPixCell(_, idx) = texture_cell;
             Some(&self.base_textures[*idx as usize])
         } else {
@@ -566,14 +568,13 @@ impl ImageSurveyTextures {
 
     // Get the nearest parent tile found in the CPU buffer
     pub fn get_nearest_parent(&self, cell: &HEALPixCell) -> Option<HEALPixCell> {
-        let dd = self.config.delta_depth();
-        if cell.is_root(dd) {
+        if cell.is_root() {
             // Root cells are in the buffer by definition
             Some(*cell)
         } else {
             let mut parent_cell = cell.parent();
 
-            while !self.contains(&parent_cell) && !parent_cell.is_root(dd) {
+            while !self.contains(&parent_cell) && !parent_cell.is_root() {
                 parent_cell = parent_cell.parent();
             }
 

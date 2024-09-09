@@ -102,15 +102,11 @@ A.aladin = function (divSelector, options) {
 };
 
 /**
- * Creates a HiPS image object
- *
  * @function
  * @name A.imageHiPS
  * @memberof A
- * @param {string} id - Can be either an `url` that refers to a HiPS.
- * Or it can be a "CDS ID" pointing towards a HiPS. One can found the list of IDs {@link https://aladin.cds.unistra.fr/hips/list| here}.
- * @param {HiPSOptions} [options] - Options describing the survey
- * @returns {ImageHiPS} - A HiPS image object
+ * @deprecated
+ * Old method name, use {@link A.HiPS} instead.
  */
 A.imageHiPS = function (id, options) {
     let url = id;
@@ -123,6 +119,19 @@ A.imageHiPS = function (id, options) {
         options
     );
 }
+
+/**
+ * Creates a HiPS image object
+ *
+ * @function
+ * @name A.HiPS
+ * @memberof A
+ * @param {string} id - Can be either an `url` that refers to a HiPS.
+ * Or it can be a "CDS ID" pointing towards a HiPS. One can found the list of IDs {@link https://aladin.cds.unistra.fr/hips/list| here}.
+ * @param {HiPSOptions} [options] - Options describing the survey
+ * @returns {HiPS} - A HiPS image object
+ */
+A.HiPS = A.imageHiPS;
 
 /**
  * Creates a celestial source object with the given coordinates.
@@ -273,7 +282,7 @@ A.circle = function (ra, dec, radiusDeg, options) {
 
 A.footprint = function(shapes) {
     return new Footprint(shapes)
-}
+};
 
 /**
  * Creates an ellipse shape

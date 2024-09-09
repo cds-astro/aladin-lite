@@ -20,7 +20,6 @@
 
     <script type="text/javascript" src="./../dist/aladin.umd.cjs" charset="utf-8"></script>
 
-	
     <!-- Aladin Lite V3 JS code -->
     <!-- Creation of Aladin Lite instance with initial parameters -->
     <script type="text/javascript">
@@ -28,7 +27,7 @@
 
         let aladin;
         A.init.then(() => {
-            aladin = A.aladin('#aladin-lite-div', {survey: "https://alasky.cds.unistra.fr/AllWISE/RGB-W4-W2-W1/", fov:1.5, target: "14 03 12.583 +54 20 55.5", });
+            aladin = A.aladin('#aladin-lite-div', {fov:1.5, target: "14 03 12.583 +54 20 55.5", });
         });
     </script>
 	</body>

@@ -76,6 +76,14 @@ impl Add<DeltaTime> for Time {
     }
 }
 
+impl Sub<DeltaTime> for Time {
+    type Output = Self;
+
+    fn sub(self, duration: DeltaTime) -> Self {
+        Time(self.0 - duration.0)
+    }
+}
+
 impl Mul<f32> for DeltaTime {
     type Output = Self;
 

@@ -61,8 +61,6 @@ where
             };
 
             let _ = wasm_bindgen_futures::future_to_promise(fut);
-
-            log!("launch promises");
         }
 
         Self {

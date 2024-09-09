@@ -1,6 +1,3 @@
-mod graph;
-mod mode;
-
 pub mod hierarchy;
 pub mod renderer;
 pub use renderer::MOCRenderer;

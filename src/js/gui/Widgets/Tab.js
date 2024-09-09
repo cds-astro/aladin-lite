@@ -36,6 +36,7 @@ import { Utils } from "../../Utils";
 import { DOMElement } from "./Widget";
 import { Layout } from "../Layout";
 import { ActionButton } from "./ActionButton";
+import { Footprint } from "../../Footprint";
 /**
  * Class representing a Tabs layout
  * @extends DOMElement
@@ -120,8 +121,15 @@ export class Tabs extends DOMElement {
 
                     return s;
                 };
-
-                let fieldNames = Object.keys(aladin.view.selection[self.tabSelectedIdx][0].data).join(";");
+                let entry = aladin.view.selection[self.tabSelectedIdx][0];
+                let source;
+                if (entry instanceof Footprint) {
+                    source = entry.source
+                } else {
+                    source = entry;
+                }
+                
+                let fieldNames = Object.keys(source.data).join(";");
                 var lineArray = [fieldNames];
 
                 aladin.view.selection[self.tabSelectedIdx].forEach((obj) => {

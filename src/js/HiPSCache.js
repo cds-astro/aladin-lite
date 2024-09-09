@@ -20,7 +20,7 @@
 /******************************************************************************
  * Aladin Lite project
  *
- * File ImageHiPS
+ * File HiPS
  *
  * Authors: Thomas Boch & Matthieu Baumann [CDS]
  *

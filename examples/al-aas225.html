@@ -9,7 +9,7 @@
     let aladin;
     A.init.then(() => {
         aladin = A.aladin('#aladin-lite-div', { fov:0.15, target: 'Arp 240', showReticle: false, fullScreen: true });
-        aladin.setBaseImageLayer(aladin.newImageSurvey('P/SDSS9/g', {colormap: "rainbow", stretch: "Linear"}));
+        aladin.setBaseImageLayer(aladin.newImageSurvey('P/SDSS9/g', {colormap: "eosb", stretch: "linear"}));
 
         var simbad = A.catalog({name: 'Simbad', sourceSize: 16, color: '#4050F0'});
         aladin.addCatalog(simbad);

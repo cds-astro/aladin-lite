@@ -145,7 +145,10 @@ export class DOMElement {
             return;
         }
 
-        const aladinDiv = options && options.aladin && options.aladin.aladinDiv;
+        let aladinDiv = options && options.aladin && options.aladin.aladinDiv;
+        if (!aladinDiv) {
+            aladinDiv = el.closest('.aladin-container');
+        }
         let innerWidth = aladinDiv && aladinDiv.offsetWidth;
         let innerHeight = aladinDiv && aladinDiv.offsetHeight;
 

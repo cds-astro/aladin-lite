@@ -81,7 +81,10 @@ fn is_too_large(cell: &HEALPixCell, camera: &CameraViewPort, projection: &Projec
 
 fn num_subdivision(cell: &HEALPixCell, camera: &CameraViewPort, projection: &ProjectionType) -> u8 {
     let d = cell.depth();
-    let mut num_sub = 0;
+    // Subdivide all cells at least one time.
+    // TODO: use a single subdivision number computed from the current cells inside the view
+    // i.e. subdivide all cells in the view with the cell that has to be the most subdivided
+    let mut num_sub = 1;
     if d < 2 {
         num_sub = 2 - d;
     }
@@ -124,158 +127,6 @@ impl<'a, 'b> TextureToDraw<'a, 'b> {
         }
     }
 }
-/*
-pub trait RecomputeRasterizer {
-    // Returns:
-    // * The UV of the starting tile in the global 4096x4096 texture
-    // * The UV of the ending tile in the global 4096x4096 texture
-    // * the blending factor between the two tiles in the texture
-    fn get_textures_from_survey<'a, 'b>(
-        view: &'b HEALPixCellsInView,
-        // The survey from which we get the textures to plot
-        // Usually it is the most refined survey
-        survey: &'a ImageSurveyTextures,
-    ) -> Vec<TextureToDraw<'a, 'b>>;
-}
-
-pub struct Move;
-pub struct Zoom;
-pub struct UnZoom;
-
-impl RecomputeRasterizer for Move {
-    // Returns:
-    // * The UV of the starting tile in the global 4096x4096 texture
-    // * The UV of the ending tile in the global 4096x4096 texture
-    // * the blending factor between the two tiles in the texture
-    fn get_textures_from_survey<'a, 'b>(
-        view: &'b HEALPixCellsInView,
-        survey: &'a ImageSurveyTextures,
-    ) -> Vec<TextureToDraw<'a, 'b>> {
-        let cells_to_draw = view.get_cells();
-        let mut textures = Vec::with_capacity(view.num_of_cells());
-
-        for cell in cells_to_draw {
-            if survey.contains(cell) {
-                let parent_cell = survey.get_nearest_parent(cell);
-
-                if let Some(ending_cell_in_tex) = survey.get(cell) {
-                    if let Some(starting_cell_in_tex) = survey.get(&parent_cell) {
-                        textures.push(TextureToDraw::new(
-                            starting_cell_in_tex,
-                            ending_cell_in_tex,
-                            cell,
-                        ));
-                    }
-                }
-            } else {
-                let parent_cell = survey.get_nearest_parent(cell);
-                let grand_parent_cell = survey.get_nearest_parent(&parent_cell);
-
-                if let Some(ending_cell_in_tex) = survey.get(&parent_cell) {
-                    if let Some(starting_cell_in_tex) = survey.get(&grand_parent_cell) {
-                        textures.push(TextureToDraw::new(
-                            starting_cell_in_tex,
-                            ending_cell_in_tex,
-                            cell,
-                        ));
-                    }
-                }
-            }
-        }
-
-        textures
-    }
-}
-
-impl RecomputeRasterizer for Zoom {
-    // Returns:
-    // * The UV of the starting tile in the global 4096x4096 texture
-    // * The UV of the ending tile in the global 4096x4096 texture
-    // * the blending factor between the two tiles in the texture
-    fn get_textures_from_survey<'a, 'b>(
-        view: &'b HEALPixCellsInView,
-        survey: &'a ImageSurveyTextures,
-    ) -> Vec<TextureToDraw<'a, 'b>> {
-        let cells_to_draw = view.get_cells();
-        let mut textures = Vec::with_capacity(view.num_of_cells());
-
-        for cell in cells_to_draw {
-            if survey.contains(cell) {
-                let parent_cell = survey.get_nearest_parent(cell);
-
-                if let Some(ending_cell_in_tex) = survey.get(cell) {
-                    if let Some(starting_cell_in_tex) = survey.get(&parent_cell) {
-                        textures.push(TextureToDraw::new(
-                            starting_cell_in_tex,
-                            ending_cell_in_tex,
-                            cell,
-                        ));
-                    }
-                }
-            } else {
-                let parent_cell = survey.get_nearest_parent(cell);
-                let grand_parent_cell = survey.get_nearest_parent(&parent_cell);
-
-                if let Some(ending_cell_in_tex) = survey.get(&parent_cell) {
-                    if let Some(starting_cell_in_tex) = survey.get(&grand_parent_cell) {
-                        textures.push(TextureToDraw::new(
-                            starting_cell_in_tex,
-                            ending_cell_in_tex,
-                            cell,
-                        ));
-                    }
-                }
-            }
-        }
-
-        textures
-    }
-}
-
-impl RecomputeRasterizer for UnZoom {
-    // Returns:
-    // * The UV of the starting tile in the global 4096x4096 texture
-    // * The UV of the ending tile in the global 4096x4096 texture
-    // * the blending factor between the two tiles in the texture
-    fn get_textures_from_survey<'a, 'b>(
-        view: &'b HEALPixCellsInView,
-        survey: &'a ImageSurveyTextures,
-    ) -> Vec<TextureToDraw<'a, 'b>> {
-        let _depth = view.get_depth();
-        let _max_depth = survey.config().get_max_depth();
-
-        // We do not draw the parent cells if the depth has not decreased by at least one
-        let cells_to_draw = view.get_cells();
-
-        let mut textures = Vec::with_capacity(view.num_of_cells());
-
-        for cell in cells_to_draw {
-            if survey.contains(cell) {
-                if let Some(starting_cell_in_tex) = survey.get(cell) {
-                    textures.push(TextureToDraw::new(
-                        starting_cell_in_tex,
-                        starting_cell_in_tex,
-                        cell,
-                    ));
-                }
-            } else {
-                let parent_cell = survey.get_nearest_parent(cell);
-
-                if let Some(ending_cell_in_tex) = survey.get(&parent_cell) {
-                    textures.push(TextureToDraw::new(
-                        ending_cell_in_tex,
-                        ending_cell_in_tex,
-                        cell,
-                    ));
-                }
-            }
-        }
-
-        textures
-    }
-}
-
-*/
 
 pub fn get_raster_shader<'a>(
     cmap: &Colormap,
@@ -675,23 +526,9 @@ impl HiPS {
         self.textures.set_format(&self.gl, ext)
     }
 
-    /*pub fn get_fading_factor(&self) -> f32 {
-        self.textures
-            .start_time
-            .map(|start_time| {
-                let fading = (Time::now().0 - start_time.0) / crate::app::BLENDING_ANIM_DURATION.0;
-                fading.clamp(0.0, 1.0)
-            })
-            .unwrap_or(0.0)
-    }*/
-
     pub fn is_allsky(&self) -> bool {
         self.textures.config().is_allsky
     }
-
-    /*pub fn reset_frame(&mut self) {
-        self.view.reset_frame();
-    }*/
 
     // Position given is in the camera space
     pub fn read_pixel(
@@ -966,24 +803,6 @@ impl HiPS {
         );
     }
 
-    /*pub fn (&mut self, camera: &CameraViewPort, proj: &ProjectionType) {
-        let cfg = self.textures.config();
-        let max_tile_depth = cfg.get_max_tile_depth();
-        //let delta_depth = cfg.delta_depth();
-
-        //let hips_frame = cfg.get_frame();
-        // Compute that depth
-        let camera_tile_depth = camera.get_tile_depth();
-        self.depth_tile = camera_tile_depth.min(max_tile_depth);
-
-        // Set the depth of the HiPS textures
-        /*self.depth = if self.depth_tile > delta_depth {
-            self.depth_tile - delta_depth
-        } else {
-            0
-        };*/
-    }*/
-
     // Return a boolean to signal if the tile is present or not in the survey
     pub fn update_priority_tile(&mut self, cell: &HEALPixCell) -> bool {
         if self.textures.contains_tile(cell) {
@@ -1018,21 +837,6 @@ impl HiPS {
     pub fn get_config_mut(&mut self) -> &mut HiPSConfig {
         self.textures.config_mut()
     }
-
-    /*#[inline]
-    pub fn get_view(&self) -> &HEALPixCellsInView {
-        &self.view
-    }*/
-
-    /*#[inline]
-    pub fn get_min_depth_tile(&self) -> u8 {
-        self.min_depth_tile
-    }*/
-
-    /*#[inline]
-    pub fn is_ready(&self) -> bool {
-        self.textures.is_ready()
-    }*/
 
     #[inline]
     pub fn get_ready_time(&self) -> &Option<Time> {

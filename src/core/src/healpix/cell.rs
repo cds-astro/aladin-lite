@@ -86,7 +86,7 @@ impl HEALPixCell {
     }
 
     #[inline(always)]
-    pub fn is_root(&self, _delta_depth_to_texture: u8) -> bool {
+    pub fn is_root(&self) -> bool {
         self.depth() == 0
     }
 

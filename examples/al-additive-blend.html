@@ -14,11 +14,11 @@ A.init.then(() => {
     hscGreenSurvey.setColormap("green", { stretch: "asinh" });
     hscGreenSurvey.setCuts(-0.2186, 5.30322);
 
-    const HSCRedSurvey = aladin.newImageSurvey('CDS/P/HSC/DR2/deep/r', {imgFormat: 'fits', colormap: "red", minCut: 0.34228, maxCut: 2.75785, additive: true, stretch: "asinh"});
-    const HSCBlueSurvey = aladin.newImageSurvey('CDS/P/HSC/DR2/deep/z', {imgFormat: 'fits', colormap: "blue", minCut: -0.01218, maxCut: 2.27397, additive: true, stretch: "asinh"});
+    const HSCRedSurvey = aladin.newImageSurvey('P/HSC/DR2/deep/r', {imgFormat: 'fits', colormap: "red", minCut: 0.34228, maxCut: 2.75785, additive: true, stretch: "asinh"});
+    const HSCBlueSurvey = aladin.newImageSurvey('P/HSC/DR2/deep/z', {imgFormat: 'fits', colormap: "blue", minCut: -0.01218, maxCut: 2.27397, additive: true, stretch: "asinh"});
 
-    aladin.setOverlayImageLayer('CDS/P/HSC/DR2/deep/r', 'hsc red layer');
-    aladin.setOverlayImageLayer('CDS/P/HSC/DR2/deep/z', 'hsc blue layer');
+    aladin.setOverlayImageLayer('P/HSC/DR2/deep/r', 'hsc red layer');
+    aladin.setOverlayImageLayer('P/HSC/DR2/deep/z', 'hsc blue layer');
 });
 </script>
 </body>

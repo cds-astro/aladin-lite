@@ -370,7 +370,7 @@ impl WebClient {
     /// * If the number of surveys is greater than 4. For the moment, due to the limitations
     ///   of WebGL2 texture units on some architectures, the total number of surveys rendered is
     ///   limited to 4.
-    #[wasm_bindgen(js_name = addImageHiPS)]
+    #[wasm_bindgen(js_name = addHiPS)]
     pub fn add_image_hips(&mut self, hips: JsValue) -> Result<(), JsValue> {
         // Deserialize the survey objects that compose the survey
         let hips = serde_wasm_bindgen::from_value(hips)?;
@@ -404,7 +404,8 @@ impl WebClient {
         let wcs_params: WCSParams = serde_wasm_bindgen::from_value(wcs)?;
         let wcs = WCS::new(&wcs_params).map_err(|e| JsValue::from_str(&format!("{:?}", e)))?;
 
-        self.app.add_image_from_blob_and_wcs(layer, stream, wcs, cfg)
+        self.app
+            .add_image_from_blob_and_wcs(layer, stream, wcs, cfg)
     }
 
     #[wasm_bindgen(js_name = removeLayer)]
@@ -773,16 +774,16 @@ impl WebClient {
     ///
     /// This is useful for beginning inerting.
     #[wasm_bindgen(js_name = releaseLeftButtonMouse)]
-    pub fn release_left_button_mouse(&mut self, sx: f32, sy: f32) -> Result<(), JsValue> {
-        self.app.release_left_button_mouse(sx, sy);
+    pub fn release_left_button_mouse(&mut self) -> Result<(), JsValue> {
+        self.app.release_left_button_mouse();
 
         Ok(())
     }
 
     /// Signal the backend when the left mouse button has been pressed.
     #[wasm_bindgen(js_name = pressLeftMouseButton)]
-    pub fn press_left_button_mouse(&mut self, sx: f32, sy: f32) -> Result<(), JsValue> {
-        self.app.press_left_button_mouse(sx, sy);
+    pub fn press_left_button_mouse(&mut self) -> Result<(), JsValue> {
+        self.app.press_left_button_mouse();
 
         Ok(())
     }

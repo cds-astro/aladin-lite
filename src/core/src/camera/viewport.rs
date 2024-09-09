@@ -85,7 +85,7 @@ use wasm_bindgen::JsCast;
 
 const MAX_DPI_LIMIT: f32 = 3.0;
 use crate::math;
-use crate::time::Time;
+use crate::time::{DeltaTime, Time};
 use crate::Abort;
 use crate::ArcDeg;
 impl CameraViewPort {

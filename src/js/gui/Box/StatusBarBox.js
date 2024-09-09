@@ -34,6 +34,8 @@ import { Utils } from "../../Utils";
 import { Layout } from "../Layout";
 import infoIconUrl from '../../../../assets/icons/info.svg';
 import tooltipIconUrl from '../../../../assets/icons/tooltip.svg';
+import aladinLogoGif from '../../../../assets/aladin-logo.gif';
+
 import { Icon } from "../Widgets/Icon";
 
 export class StatusBarBox extends Box {
@@ -143,7 +145,7 @@ export class StatusBarBox extends Box {
         loading: (() => {
             let icon = new Icon({
                 size: 'medium',
-                url: "https://raw.githubusercontent.com/cds-astro/aladin-lite/master/assets/aladin-logo.gif",
+                url: aladinLogoGif,
                 cssStyle: {
                     cursor: "help",
                 },

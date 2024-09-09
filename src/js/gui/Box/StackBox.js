@@ -528,7 +528,7 @@ export class OverlayStackBox extends Box {
                                 position: self.position,
                             });*/
                             self.aladin.addNewImageLayer(
-                                A.imageHiPS('CDS/P/DSS2/color', {
+                                A.imageHiPS('P/DSS2/color', {
                                     errorCallback: (e) => {
                                         aladin.addStatusBarMessage({
                                             duration: 2000,

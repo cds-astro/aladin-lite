@@ -47,7 +47,7 @@ import { ObsCore } from "./vo/ObsCore.js";
 import { DefaultActionsForContextMenu } from "./DefaultActionsForContextMenu.js";
 import { Layout } from "./gui/Layout.js";
 import { SAMPActionButton } from "./gui/Button/SAMP.js";
-import { ImageHiPS } from "./ImageHiPS.js";
+import { HiPS } from "./HiPS.js";
 import { Image } from "./Image.js";
 
 export let View = (function () {
@@ -490,6 +490,16 @@ export let View = (function () {
         ctx.drawImage(canvas, 0, 0, c.width, c.height);
         ctx.drawImage(this.catalogCanvas, 0, 0, c.width, c.height);
 
+        // draw the reticle if it is on the view
+        let reticle = this.aladin.reticle;
+        if (reticle.isVisible()) {
+            var svgBlob = new Blob([reticle.el.innerHTML], {type: 'image/svg+xml;charset=utf-8'});
+            const reticleImg = await loadImage(URL.createObjectURL(svgBlob));
+
+            const posX = (c.width - reticleImg.width)/2.0;
+            const posY = (c.height - reticleImg.height)/2.0;
+            ctx.drawImage(reticleImg, posX, posY);
+        }
 
         if(withLogo) {
             const logo = await loadImage("data:image/png;base64,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")
@@ -498,7 +508,6 @@ export let View = (function () {
             const offY = c.height - logo.height;
             ctx.drawImage(logo, offX, offY);
         }
-
 
         return c;
     }
@@ -616,14 +625,17 @@ export let View = (function () {
                 var objClickedFunction = view.aladin.callbacksByEventName['objectClicked'];
                 var footprintClickedFunction = view.aladin.callbacksByEventName['footprintClicked'];
 
+                let objsByCats = {};
                 for (let o of objs) {
-                    // footprint selection code adapted from Fabrizio Giordano dev. from Serco for ESA/ESDC
-                    /*
-                    if (view.lastClickedObject) {
-                        view.lastClickedObject.actionOtherObjectClicked
-                        view.lastClickedObject.actionOtherObjectClicked();
+                    // classify the different objects by catalog
+                    let cat = o.getCatalog && o.getCatalog();
+                    if (cat && cat.name) {
+                        if (!objsByCats[cat.name]) {
+                            objsByCats[cat.name] = []
+                        }
+
+                        objsByCats[cat.name].push(o);
                     }
-                    */
 
                     (typeof objClickedFunction === 'function') && objClickedFunction(o, xy);
 
@@ -634,22 +646,14 @@ export let View = (function () {
                     }
                 }
 
-                view.selectObjects([objs]);
+                // rewrite objs
+                objs = Array.from(Object.values(objsByCats));
+                view.selectObjects(objs);
                 view.lastClickedObject = objs;
             } else {
                 // If there is a past clicked object
                 if (view.lastClickedObject) {
-                    //view.aladin.measurementTable.hide();
-                    //view.aladin.sodaForm.hide();
                     view.aladin.popup.hide();
-
-                    // Deselect the last clicked object
-                    /*if (view.lastClickedObject instanceof Ellipse || view.lastClickedObject instanceof Circle || view.lastClickedObject instanceof Polyline) {
-                        view.lastClickedObject.deselect();
-                    } else {
-                        // Case where lastClickedObject is a Source
-                        view.lastClickedObject.actionOtherObjectClicked();
-                    }*/
 
                     // TODO: do we need to keep that triggering ?
                     var objClickedFunction = view.aladin.callbacksByEventName['objectClicked'];
@@ -740,7 +744,7 @@ export let View = (function () {
                 view.setCursor('move');
             }
 
-            view.wasm.pressLeftMouseButton(view.dragCoo.x, view.dragCoo.y);
+            view.wasm.pressLeftMouseButton();
 
             if (view.mode === View.SELECT) {
                 view.selector.dispatch('mousedown', {coo: xymouse})
@@ -899,7 +903,7 @@ export let View = (function () {
             view.refreshProgressiveCats();
 
             //view.requestRedraw();
-            view.wasm.releaseLeftButtonMouse(xymouse.x, xymouse.y);
+            view.wasm.releaseLeftButtonMouse();
 
             if (view.mode === View.SELECT && e.type === "click") {
                 view.selector.dispatch('click', {coo: xymouse})
@@ -1208,37 +1212,20 @@ export let View = (function () {
             if (isTouchPad) {
                 if (!view.throttledTouchPadZoom) {
                     //let radec;
-                    view.throttledTouchPadZoom = Utils.throttle(() => {
+                    view.throttledTouchPadZoom = () => {
                         /*if (!view.zoom.isZooming && !view.wheelTriggered) {
                             // start zooming detected
                             radec = view.aladin.pix2world(view.xy.x, view.xy.y);
                         }*/
         
-                        const factor = 4;
+                        const factor = 2.0;
                         let newFov = view.delta > 0 ? view.fov * factor : view.fov / factor;
 
                         view.zoom.apply({
                             stop: newFov,
-                            duration: 300
+                            duration: 100
                         });
-        
-                        /*if (amount > 0 && radec) {
-                            let sRaDec = view.aladin.getRaDec();
-        
-                            let moveTo = function() {
-                                const t = 1 - (view.x - view.x1) / (view.x2 - view.x1);
-        
-                                let ra = (0.5 + t*0.5) * sRaDec[0] + (0.5 - t*0.5) * radec[0]
-                                let dec = (0.5 + t*0.5) * sRaDec[1] + (0.5 - t*0.5) * radec[1]
-        
-                                view.aladin.gotoRaDec(ra, dec)
-        
-                                if (t >= 1e-2)
-                                    requestAnimFrame(moveTo)
-                            }
-                            //requestAnimFrame(moveTo)
-                        }*/
-                    }, 100);
+                    };
                 }
 
                 view.throttledTouchPadZoom();
@@ -1488,6 +1475,11 @@ export let View = (function () {
                 objListPerCatalog.forEach((obj) => {
                     obj.select();
 
+                    if (!obj.getCatalog) {
+                        return;
+                    }
+                    // For objects belonging a catalog
+
                     let cat = obj.getCatalog();
 
                     // trigger the non action clicked if it does not show the table
@@ -1503,6 +1495,10 @@ export let View = (function () {
             // show the objects from catalogs having the onClick = "showTable" field
             let tables = this.selection
                 .filter(objList => {
+                    if (!objList[0].getCatalog) {
+                        return false;
+                    }
+
                     let cat = objList[0].getCatalog();
                     return cat && cat.onClick && cat.onClick == 'showTable';
                 })
@@ -1712,7 +1708,7 @@ export let View = (function () {
         Promise.allSettled(this.promises)
             .then(() => imageLayerPromise)
             // The promise is resolved and we now have access
-            // to the image layer objet (whether it is an ImageHiPS or an Image)
+            // to the image layer objet (whether it is an HiPS or an Image)
             .then((imageLayer) => {
                 // Add to the backend
                 const promise = imageLayer.add(layer);
@@ -1860,7 +1856,7 @@ export let View = (function () {
     };
 
     View.prototype.contains = function(survey) {
-        if (survey instanceof ImageHiPS || survey instanceof Image) {
+        if (survey instanceof HiPS || survey instanceof Image) {
             if (survey.added === true) {
                 return true;
             }

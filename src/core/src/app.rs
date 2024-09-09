@@ -17,6 +17,8 @@ use crate::{
     tile_fetcher::TileFetcherQueue,
     time::DeltaTime,
 };
+use al_core::log::console_log;
+use std::sync::{Arc, Mutex};
 use wcs::WCS;
 
 use wasm_bindgen::prelude::*;
@@ -53,7 +55,7 @@ pub struct App {
     shaders: ShaderManager,
     pub camera: CameraViewPort,
 
-    downloader: Downloader,
+    downloader: Rc<RefCell<Downloader>>,
     tile_fetcher: TileFetcherQueue,
     layers: Layers,
 
@@ -146,7 +148,7 @@ impl App {
         //gl.enable(WebGl2RenderingContext::CULL_FACE);
 
         // The tile buffer responsible for the tile requests
-        let downloader = Downloader::new();
+        let downloader = Rc::new(RefCell::new(Downloader::new()));
 
         let camera = CameraViewPort::new(&gl, CooSystem::ICRS, &projection);
         let screen_size = &camera.get_screen_size();
@@ -266,6 +268,7 @@ impl App {
             if self.camera.get_texture_depth() == 0
                 && self
                     .downloader
+                    .borrow()
                     .is_queried(&query::Allsky::new(survey.get_config()).id)
             {
                 // do not ask for tiles if we download the allsky
@@ -285,10 +288,12 @@ impl App {
             if let Some(tiles_iter) = survey.look_for_new_tiles(&mut self.camera, &self.projection)
             {
                 for tile_cell in tiles_iter.into_iter() {
-                    self.tile_fetcher.append(
-                        query::Tile::new(&tile_cell, creator_did.clone(), root_url.clone(), format),
-                        &mut self.downloader,
-                    );
+                    self.tile_fetcher.append(query::Tile::new(
+                        &tile_cell,
+                        creator_did.clone(),
+                        root_url.clone(),
+                        format,
+                    ));
 
                     // check if we are starting aladin lite or not.
                     // If so we want to retrieve only the tiles in the view and access them
@@ -314,10 +319,12 @@ impl App {
             // Request for ancestor
             for ancestor in ancestors {
                 if !survey.update_priority_tile(&ancestor) {
-                    self.tile_fetcher.append(
-                        query::Tile::new(&ancestor, creator_did.clone(), root_url.clone(), format),
-                        &mut self.downloader,
-                    );
+                    self.tile_fetcher.append(query::Tile::new(
+                        &ancestor,
+                        creator_did.clone(),
+                        root_url.clone(),
+                        format,
+                    ));
                 }
             }
         }
@@ -489,12 +496,6 @@ impl App {
         self.catalog_loaded
     }
 
-    /*pub(crate) fn is_ready(&self) -> Result<bool, JsValue> {
-        let res = self.layers.is_ready();
-
-        Ok(res)
-    }*/
-
     pub(crate) fn get_moc(&self, cfg: &al_api::moc::MOC) -> Option<&HEALPixCoverage> {
         self.moc.get_hpx_coverage(cfg)
     }
@@ -594,7 +595,7 @@ impl App {
             /*let is_there_new_available_tiles = self
             .downloader
             .get_resolved_tiles(/*&available_tiles, */&mut self.surveys);*/
-            let rscs_received = self.downloader.get_received_resources();
+            let rscs_received = self.downloader.borrow_mut().get_received_resources();
 
             let _num_tile_handled = 0;
             let _tile_copied = false;
@@ -621,7 +622,7 @@ impl App {
                                 //let is_tile_root = tile.cell().depth() == delta_depth;
                                 //let _depth = tile.cell().depth();
                                 // do not perform tex_sub costly GPU calls while the camera is zooming
-                                if included_or_near_coverage {
+                                if tile.cell().is_root() || included_or_near_coverage {
                                     let is_missing = tile.missing();
                                     /*self.tile_fetcher.notify_tile(
                                         &tile,
@@ -721,7 +722,6 @@ impl App {
                                 // The allsky image is missing so we donwload all the tiles contained into
                                 // the 0's cell
                                 let cfg = survey.get_config();
-                                let _delta_depth = cfg.delta_depth();
                                 for texture_cell in crate::healpix::cell::ALLSKY_HPX_CELLS_D0 {
                                     for cell in texture_cell.get_tile_cells(cfg.delta_depth()) {
                                         let query = query::Tile::new(
@@ -730,8 +730,7 @@ impl App {
                                             cfg.get_root_url().to_string(),
                                             cfg.get_format(),
                                         );
-                                        self.tile_fetcher
-                                            .append_base_tile(query, &mut self.downloader);
+                                        self.tile_fetcher.append_base_tile(query);
                                     }
                                 }
                             } else {
@@ -772,27 +771,20 @@ impl App {
                 }
             }
 
-            // We fetch when we does not move
-            /*let has_not_moved_recently =
-                (Time::now() - self.camera.get_time_of_last_move()) > DeltaTime(100.0);
-            if has_not_moved_recently && self.inertia.is_none() {
-                // Triggers the fetching of new queued tiles
-                self.tile_fetcher.notify(&mut self.downloader);
-            }*/
+            // Tiles are fetched if:
+            let fetch_tiles = self.inertia.is_none() &&
+            // * the user is not zooming
+            !self.camera.has_zoomed() &&
+            // * no inertia action is in progress
+            (
+                // * the user is not panning the view
+                !self.dragging ||
+                // * or the user is but did not move for at least 100ms
+                (self.dragging && Time::now() - self.camera.get_time_of_last_move() >= DeltaTime(100.0))
+            );
 
-            // If there is inertia, we do not fetch any new tiles
-            if self.inertia.is_none() {
-                let has_not_moved_recently =
-                    (Time::now() - self.camera.get_time_of_last_move()) > DeltaTime(100.0);
-
-                /*let dt = if has_not_moved_recently {
-                    None
-                } else {
-                    Some(DeltaTime::from_millis(700.0))
-                };*/
-                if has_not_moved_recently {
-                    self.tile_fetcher.notify(&mut self.downloader, None);
-                }
+            if fetch_tiles {
+                self.tile_fetcher.notify(self.downloader.clone(), None);
             }
         }
 
@@ -811,21 +803,6 @@ impl App {
         // - there is at least one tile in its blending phase
         let blending_anim_occuring =
             (Time::now() - self.time_start_blending) < BLENDING_ANIM_DURATION;
-        /*let start_fading = self.layers.values_hips().any(|hips| {
-            if let Some(start_time) = hips.get_ready_time() {
-                Time::now() - *start_time < BLENDING_ANIM_DURATION
-            } else {
-                false
-            }
-        });*/
-
-        // Finally update the camera that reset the flag camera changed
-        //if has_camera_moved {
-        // Catalogues update
-        /*if let Some(view) = self.layers.get_view() {
-            self.manager.update(&self.camera, view);
-        }*/
-        //}
 
         // Check for async retrieval
         if let Ok(img) = self.img_recv.try_recv() {
@@ -1012,7 +989,7 @@ impl App {
             self.layers
                 .add_image_hips(&self.gl, hips_cfg, &mut self.camera, &self.projection)?;
         self.tile_fetcher
-            .launch_starting_hips_requests(hips, &mut self.downloader);
+            .launch_starting_hips_requests(hips, self.downloader.clone());
 
         // Once its added, request the tiles in the view (unless the viewer is at depth 0)
         self.request_for_new_tiles = true;
@@ -1318,7 +1295,7 @@ impl App {
 
             // Relaunch the base tiles for the survey to be ready with the new url
             self.tile_fetcher
-                .launch_starting_hips_requests(hips, &mut self.downloader);
+                .launch_starting_hips_requests(hips, self.downloader.clone());
 
             // Once its added, request the tiles in the view (unless the viewer is at depth 0)
             self.request_for_new_tiles = true;
@@ -1507,7 +1484,7 @@ impl App {
         }
     }
 
-    pub(crate) fn press_left_button_mouse(&mut self, _sx: f32, _sy: f32) {
+    pub(crate) fn press_left_button_mouse(&mut self) {
         self.dist_dragging = 0.0;
         self.time_start_dragging = Time::now();
         self.dragging = true;
@@ -1517,11 +1494,10 @@ impl App {
         self.out_of_fov = false;
     }
 
-    pub(crate) fn release_left_button_mouse(&mut self, sx: f32, sy: f32) {
+    pub(crate) fn release_left_button_mouse(&mut self) {
         self.request_for_new_tiles = true;
 
         self.dragging = false;
-        let _cur_mouse_pos = [sx, sy];
 
         // Check whether the center has moved
         // between the pressing and releasing
@@ -1631,9 +1607,6 @@ impl App {
 
                 self.prev_cam_position = self.camera.get_center().truncate();
                 self.camera.apply_rotation(&(-axis), d, &self.projection);
-
-                /* 2. Or just set the center to the current position */
-                //self.set_center(&cur_pos.lonlat());
 
                 self.request_for_new_tiles = true;
             }

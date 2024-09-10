@@ -12,7 +12,7 @@
     A.init.then(() => {
         aladin = A.aladin('#aladin-lite-div', {fullScreen: true, target: "orion", fov: 10, projection: 'SIN', showContextMenu: true});
 
-        const c1 = A.catalogFromURL('./data/eso.xml', {onClick: 'showTable'});
+        const c1 = A.catalogFromURL('./data/votable/eso.xml', {onClick: 'showTable'});
         aladin.addCatalog(c1);
     });
 </script>

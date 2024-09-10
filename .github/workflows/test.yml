@@ -35,4 +35,4 @@ jobs:
           npm run build
       - name: "Run the rust tests"
         run: |
-          npm run test:rust
+          npm run test:build

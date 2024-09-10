@@ -1,0 +1,44 @@
+hips_initial_fov     = 0.07465
+hips_initial_ra      = 339.00606
+hips_initial_dec     = +33.95971
+creator_did          = ivo://CDS/P/JWST/Stephans-Quintet/MIRI
+client_category      = Image/Infrared/JWST
+hips_overlay         = mean
+hips_hierarchy       = median
+hips_creator         = Boch T. (CDS)
+hips_copyright       = CNRS/Unistra
+obs_title            = Stephans Quintet MIRI
+obs_collection       = JWST
+obs_description      = An enormous mosaic of Stephan's Quintet is the largest image to date from NASA's James Webb Space Telescope, covering about one-fifth of the Moon's diameter. It contains over 150 million pixels and is constructed from almost 1,000 separate image files. The visual grouping of five galaxies was captured by Webb's Mid-Infrared Instrument (MIRI). Hipsilized by CDS.
+obs_ack              = NASA, ESA, CSA, and STScI
+obs_ack_url          = https://www.nasa.gov/webbfirstimages
+prov_progenitor      = https://webbtelescope.org/news/first-images
+#bib_reference       = Bibcode for bibliographic reference
+#bib_reference_url   = URL to bibliographic reference
+obs_copyright        = NASA, ESA, CSA, and STScI
+obs_copyright_url    = https://webbtelescope.org/copyright
+t_min                = 59700
+t_max                = 59761
+obs_regime           = Infrared
+# 5 to 28 microns
+em_min               = 5e-6
+em_max               = 2.8e-5
+hips_builder         = Aladin/HipsGen v11.071
+hips_version         = 1.4
+hips_release_date    = 2022-07-13T13:02Z
+hips_frame           = equatorial
+hips_order           = 7
+hips_order_min       = 0
+hips_tile_width      = 512
+#hips_service_url    = ex: http://yourHipsServer/jwst-stephan-miri.png
+hips_status          = public partial unclonable
+hips_tile_format     = png
+hips_pixel_scale     = 2.795E-5
+s_pixel_scale        = 3.054E-5
+dataproduct_type     = image
+dataproduct_subtype  = color
+moc_sky_fraction     = 1.788E-7
+hipsgen_date         = 2022-07-13T13:02Z
+hipsgen_params       = in=quintet-MIRI/jwst-stephan-miri.png creator_did=CDS/P/JWST/Stephans-Quintet/MIRI
+hipsgen_date_1       = 2024-09-10T15:02Z
+hipsgen_params_1     = in=http://alasky.cds.unistra.fr/JWST/CDS_P_JWST_Stephans-Quintet_MIRI out=./hips/JWST_MIRI region=3/211 order=7 MIRROR

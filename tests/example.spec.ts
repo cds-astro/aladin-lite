@@ -13,16 +13,44 @@ const toMatchOptions = {
     maxDiffPixels: 10
 };
 
-const pageTimeout = 2000;
+const tests = [
+    // Check if ui elements appear correctly when the boolean option are on
+    {
+        name: "ui-options-on",
+        path: "../examples/al-ui-on"
+    },
+    // Check only the image view on a local stored HiPS
+    {
+        name: "local HiPS",
+        path: "../examples/al-ui-off"
+    },
+    // Check display of a FITS image
+    {
+        name: "local FITS image",
+        path: "../examples/al-displayFITS"
+    },
+    // Plot a votable coming from VizieR and display labels on its sources
+    {
+        name: "named labels catalogue",
+        path: "../examples/al-onames-labels"
+    },
+    // Multiple HiPS surveys referenced by an ID string (old v2 way)
+    {
+        name: "multiple HiPS display each referenced by an ID string",
+        path: "../examples/al-cfht"
+    }
+];
 
-test("al-ui-on", async ({ page }) => {
-    await open(page, "al-ui-on");
-    await page.waitForTimeout(pageTimeout);
-    expect(await page.locator('canvas').nth(1).screenshot(screenshotOptions)).toMatchSnapshot(toMatchOptions);
-});
+(async () => {
+    for (let t of tests) {
+        await test(t.name, async ({ page }) => {
+            await open(page, t.path);
+            await page.waitForLoadState("networkidle")
+        
+            expect(await page.locator('canvas').nth(1).screenshot(screenshotOptions))
+                .toMatchSnapshot(toMatchOptions);
+        });
+    } 
+})()
+ 
 
-test("al-ui-off", async ({ page }) => {
-    await open(page, "al-ui-off");
-    await page.waitForTimeout(pageTimeout);
-    expect(await page.locator('canvas').nth(1).screenshot(screenshotOptions)).toMatchSnapshot(toMatchOptions);
-});

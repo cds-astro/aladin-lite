@@ -1,0 +1,51 @@
+hips_doi             = 10.26093/cds/aladin/38gp-n8t
+hips_initial_fov     = 80
+hips_initial_ra      = 291.88185
+hips_initial_dec     = 21.43516
+creator_did          = ivo://CDS/P/PanSTARRS/DR1/color-z-zg-g
+hips_copyright       = CNRS/Unistra
+obs_collection       = PanSTARRS DR1 color (from bands z and g)
+obs_description      = Pan-STARRS is a system for wide-field astronomical imaging developed and operated by the Institute for Astronomy at the University of Hawaii. Pan-STARRS1 (PS1) is the first part of Pan-STARRS to be completed and is the basis for Data Release 1 (DR1).  The PS1 survey used a 1.8 meter telescope and its 1.4 Gigapixel camera to image the sky in five broadband  filters (g, r, i, z, y). The PS1 Science Consortium funded the operation of the Pan-STARRS1 telescope, situated at Haleakala Observatories near the summit of Haleakala in Hawaii, for the purposes of astronomical research. The PS1 consortium is made up of astronomers and engineers from 14 institutions from six countries.\nPan-STARRS1 has carried out a set of distinct synoptic imaging sky surveys including the 3pi Steradian Survey and the Medium Deep Survey in 5 bands (grizy). The mean 5sigma point source limiting sensitivities in the stacked 3pi Steradian Survey in grizy are (23.3, 23.2, 23.1, 22.3, 21.4) respectively. The upper bound on the systematic uncertainty in the photometric calibration across the sky is 7-12 millimag depending on the bandpass. The systematic uncertainty of the astrometric calibration using the Gaia frame comes from a comparison of the results with Gaia: the standard deviation of the mean and median residuals (Delta ra, Delta dec ) are (2.3, 1.7) milliarcsec, and (3.1, 4.8) milliarcsec respectively.
+obs_ack              = Images data retrieved from the Mikulski Archive for Space Telescopes (MAST) at STScI. Thanks to Clara Brasseur for her help.
+prov_progenitor      = MAST/STScI
+bib_reference        = 2016arXiv161205560C
+bib_reference_url    = https://ui.adsabs.harvard.edu/?#abs/2016arXiv161205560C
+obs_copyright        = PS1 Science Consortium
+obs_copyright_url    = http://panstarrs.stsci.edu/
+t_min                = 54999.5103005881
+t_max                = 56896.245445359
+client_category      = Image/Optical/PanSTARRS
+client_application   = AladinLite
+obs_regime           = Optical
+# PanSTARRS filters are described at http://svo2.cab.inta-csic.es/svo/theory/fps/index.php?mode=browse&gname=PAN-STARRS
+em_min               = 3.94340e-7
+em_max               = 9.510e-7
+hips_builder         = Aladin/HipsGen v10.125
+hips_version         = 1.4
+hips_release_date    = 2019-05-20T08:25Z
+hips_frame           = equatorial
+hips_order           = 5
+hips_tile_width      = 512
+hips_status          = public partial unclonable
+hips_tile_format     = jpeg
+dataproduct_type     = image
+moc_sky_fraction     = 3.255E-4
+hips_sampling        = bilinear
+hips_overlay         = mean
+hips_hierarchy       = median
+hips_creator         = Boch T. (CDS)
+obs_title            = PanSTARRS DR1 color (from bands z and g)
+hips_creation_date   = 2017-05-04T13:27Z
+#hips_master_url     = ex: http://yourHipsServer/null
+hips_data_range      = -7.997 15.85
+
+
+
+hips_order_min       = 0
+#hips_service_url    = ex: http://yourHipsServer/PanSTARRS DR1 color-z-zg-g
+hips_pixel_scale     = 5.591E-5
+dataproduct_subtype  = color
+hipsgen_date         = 2019-05-20T08:25Z
+hipsgen_params       = out=/asd-volumes/sc1-asd-volume11/Pan-STARRS/DR1/color-z-zg-g UPDATE
+hipsgen_date_1       = 2024-09-10T15:12Z
+hipsgen_params_1     = in=https://alasky.cds.unistra.fr/Pan-STARRS/DR1/color-z-zg-g/ out=./hips/PanSTARRS_DR1_color-z-zg-g "region=5/3380 3382 3379 3377" order=5 MIRROR

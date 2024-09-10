@@ -4,13 +4,13 @@
 </head>
 <body>
 
-<div id="aladin-lite-div" style="width: 1024px; height: 768px"></div>
+<div id="aladin-lite-div" style="width: 512px; height: 512px"></div>
 
 <script type="module">
   import A from '../src/js/A.js';
   let aladin;
   A.init.then(() => {
-      aladin = A.aladin('#aladin-lite-div', {survey: "data/hips/PanSTARRS_DR1_color-z-zg-g", fov:1.5, target: "NGC 7318B", showSettingsControl: true});
+      aladin = A.aladin('#aladin-lite-div', {survey: "data/hips/PanSTARRS_DR1_color-z-zg-g", fov:2.0, target: "NGC 7318B", showSettingsControl: true});
       aladin.setProjection('AIT');
       let cfht = aladin.createImageSurvey("CFHT", "CFHT MegaCam u+g+r", "./data/hips/CFHT", "equatorial", 10, {imgFormat: 'png'});
       let jwst1 = aladin.createImageSurvey("CDS/P/JWST/Stephans-Quintet/NIRCam+MIRI", "JWST NIRCam+MIRI", "data/hips/JWST_NIRCam_MIRI", null, null, {imgFormat: 'png'});

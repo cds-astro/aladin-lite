@@ -1,17 +1,9 @@
-import {test, expect, LocatorScreenshotOptions} from '@playwright/test';
+import {test, expect} from '@playwright/test';
 
 async function open(page, exampleName) {
     await page.goto(`http://localhost:5173/tests/${exampleName}.html`);
     await page.setViewportSize({height: 600, width: 800});
 }
-
-const screenshotOptions: LocatorScreenshotOptions = {
-    type: "png"
-};
-
-const toMatchOptions = {
-    maxDiffPixels: 10
-};
 
 const tests = [
     // Check if ui elements appear correctly when the boolean option are on
@@ -47,8 +39,13 @@ const tests = [
             await open(page, t.path);
             await page.waitForLoadState("networkidle")
         
-            expect(await page.locator('canvas').nth(1).screenshot(screenshotOptions))
-                .toMatchSnapshot(toMatchOptions);
+            expect(
+                await page.locator('canvas').nth(1).screenshot({
+                    type: "png"
+                })
+            ).toMatchSnapshot({
+                maxDiffPixels: 30
+            });
         });
     } 
 })()

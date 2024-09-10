@@ -30,6 +30,11 @@ const tests = [
     {
         name: "multiple HiPS display each referenced by an ID string",
         path: "../examples/al-cfht"
+    },
+    // GW as moc, test multiple rendering modes: perimeter, filled and hpx cells
+    {
+        name: "GW MOC plot",
+        path: "../examples/al-gw"
     }
 ];
 

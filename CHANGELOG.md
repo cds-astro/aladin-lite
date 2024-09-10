@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 * [feat] Add support for name removing in `removeOverlay` method
+* [test] Add support of playwright. Instructions in the readme for running the test matching snapshots [PR #176]
 
 ## 3.4.5-beta
 

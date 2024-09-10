@@ -3,12 +3,12 @@
 <head>
 </head>
 <body>
-<div id="aladin-lite-div" style="width: 500px; height: 400px"></div>
+<div id="aladin-lite-div" style="width: 512px; height: 512px"></div>
 <script type="module">
     import A from '../src/js/A.js';
     let aladin;
     A.init.then(() => {
-        aladin = A.aladin('#aladin-lite-div', {survey: 'data/hips/CDS_P_DSS2_color', target: 'M1', fov: 0.3});
+        aladin = A.aladin('#aladin-lite-div', {survey: 'data/hips/CDS_P_DSS2_color', target: '05 34 30.89 +22 00 52.9', fov: 0.3});
         var cat = A.catalogFromURL('data/votable/labels.vot', {sourceSize:12, color: '#cc99bb', displayLabel: true, labelColumn: 'main_id', labelColor: '#ae4', labelFont: '9px sans-serif'});
         aladin.addCatalog(cat);
     });

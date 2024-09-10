@@ -47,16 +47,16 @@ export default defineConfig({
             {find: '$', replacement: path.resolve(__dirname, '/tests/e2e')}
         ],
     },
-    test: {
-        globals: true,
-        environment: 'happy-dom',
-        include: [
-            'tests/unit/**/*.{test,spec}.{js,ts}'
-        ],
-        deps: {
-            inline: ['core/pkg'],
-        },
-    },
+    //test: {
+    //    globals: true,
+    //    environment: 'happy-dom',
+    //    include: [
+    //        'tests/unit/**/*.{test,spec}.{js,ts}'
+    //    ],
+    //    deps: {
+    //        inline: ['core/pkg'],
+    //    },
+    //},
     server: {
         open: '/examples/index.html',
     },

@@ -16,7 +16,7 @@ const toMatchOptions = {
 const tests = [
     // Check if ui elements appear correctly when the boolean option are on
     {
-        name: "ui-options-on",
+        name: "UI options on",
         path: "../examples/al-ui-on"
     },
     // Check only the image view on a local stored HiPS

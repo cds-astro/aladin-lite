@@ -3,6 +3,7 @@
 //=================================
 import { Format } from "./coo";
 
+/*
 /**
  * Creates an angle of the Aladin interactive sky atlas.
  * @class

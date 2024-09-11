@@ -129,6 +129,7 @@ impl TileFetcherQueue {
             let min_order = cfg.get_min_depth_texture();
 
             let dl = downloader.clone();
+            #[cfg(target_arch = "wasm32")]
             utils::set_timeout(
                 move || {
                     for tile_cell in crate::healpix::cell::ALLSKY_HPX_CELLS_D0 {

@@ -62,6 +62,15 @@ export let View = (function () {
 
         let self = this;
 
+        // reference to all overlay layers (= catalogs + overlays + mocs)
+        this.allOverlayLayers = []
+        // current catalogs displayed
+        this.catalogs = [];
+        // overlays (footprints for instance)
+        this.overlays = [];
+        // MOCs
+        this.mocs = [];
+
         self.redrawClbk = this.redraw.bind(this);
         // Init the WebGL context
         // At this point, the view has been created so the image canvas too
@@ -202,8 +211,6 @@ export let View = (function () {
         this.imageLayers = new Map();
 
         this.overlayLayers = [];
-        // current catalogs displayed
-        this.catalogs = [];
         // a dedicated catalog for the popup
         var c = document.createElement('canvas');
         c.width = c.height = 24;
@@ -220,17 +227,10 @@ export let View = (function () {
         ctx.stroke();
         this.catalogForPopup = A.catalog({ shape: c, sourceSize: 24 });
         this.catalogForPopup.hide();
-        this.catalogForPopup.setView(this);
+        this.catalogForPopup.view = this;
         this.overlayForPopup = A.graphicOverlay({color: '#ee2345', lineWidth: 3});
         this.overlayForPopup.hide();
-        this.overlayForPopup.setView(this);
-
-        // overlays (footprints for instance)
-        this.overlays = [];
-        // MOCs
-        this.mocs = [];
-        // reference to all overlay layers (= catalogs + overlays + mocs)
-        this.allOverlayLayers = []
+        this.overlayForPopup.view = this;
 
         this.empty = true;
 
@@ -2099,28 +2099,19 @@ export let View = (function () {
         this.removeOverlay(layer);
     };
 
-    View.prototype.addCatalog = function (catalog) {
-        catalog.name = this.makeUniqLayerName(catalog.name);
-        this.allOverlayLayers.push(catalog);
-        this.catalogs.push(catalog);
-        if (catalog.type == 'catalog') {
-            catalog.setView(this);
-        }
-        else if (catalog.type == 'progressivecat') {
-            catalog.init(this);
-        }
-    };
-
-    View.prototype.addOverlay = function (overlay) {
+    View.prototype.add = function(overlay) {
         overlay.name = this.makeUniqLayerName(overlay.name);
-        this.overlays.push(overlay);
-        this.allOverlayLayers.push(overlay);
-        overlay.setView(this);
+
+        let idx = this.allOverlayLayers.length;
+        overlay.setView(this, idx);
     };
 
-    View.prototype.addMOC = function (moc) {
-        moc.name = this.makeUniqLayerName(moc.name);
-        moc.setView(this);
+    View.prototype.addMOC = View.prototype.add;
+    View.prototype.addOverlay = View.prototype.add;
+    View.prototype.addCatalog = View.prototype.add;
+
+    View.prototype.insertOverlay = function(overlay, idx) {
+        this.allOverlayLayers.splice(idx, 0, overlay);
     };
 
     // update objLookup, lookup table

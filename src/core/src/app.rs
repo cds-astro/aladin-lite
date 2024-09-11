@@ -17,8 +17,6 @@ use crate::{
     tile_fetcher::TileFetcherQueue,
     time::DeltaTime,
 };
-use al_core::log::console_log;
-use std::sync::{Arc, Mutex};
 use wcs::WCS;
 
 use wasm_bindgen::prelude::*;

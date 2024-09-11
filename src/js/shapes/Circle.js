@@ -192,10 +192,20 @@ export let Circle = (function() {
     };
 
     // TODO
-    Circle.prototype.draw = function(ctx, view, noStroke) {
+    Circle.prototype.draw = function(ctx, view, noStroke, noSmallCheck) {
         if (! this.isShowing) {
             return false;
         }
+
+        noSmallCheck = noSmallCheck===true || false;
+        if (!noSmallCheck) {
+            const px_per_deg = view.width / view.fov;
+            this.isTooSmall = this.radiusDegrees * 2 * px_per_deg < this.lineWidth;
+            if (this.isTooSmall) {
+                return false;
+            }
+        }
+
         noStroke = noStroke===true || false;
 
         var centerXyview = view.aladin.world2pix(this.centerRaDec[0], this.centerRaDec[1]);

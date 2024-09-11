@@ -209,7 +209,7 @@ export let Footprint= (function() {
         return this.shapes.some((shape) => shape.isInStroke(ctx, view, x, y));
     };
 
-    Footprint.prototype.isTooSmall = function(view) {
+    Footprint.prototype.isTooSmall = function() {
         return this.shapes.every((shape) => shape.isTooSmall);
     };
 

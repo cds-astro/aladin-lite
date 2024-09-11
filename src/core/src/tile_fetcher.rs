@@ -7,14 +7,8 @@ use std::cell::RefCell;
 use std::collections::VecDeque;
 use std::rc::Rc;
 
-use wasm_bindgen::prelude::wasm_bindgen;
-use wasm_bindgen::JsCast;
-
-use crate::utils;
 const MAX_NUM_TILE_FETCHING: usize = 8;
 const MAX_QUERY_QUEUE_LENGTH: usize = 100;
-
-use wasm_bindgen::JsValue;
 
 pub struct TileFetcherQueue {
     // A stack of queries to fetch
@@ -29,7 +23,7 @@ impl TileFetcherQueue {
         let queries = VecDeque::new();
         let base_tile_queries = Vec::new();
         let tiles_fetched_time = Time::now();
-        let mut num_tiles_fetched = 0;
+        let num_tiles_fetched = 0;
         Self {
             queries,
             base_tile_queries,
@@ -123,56 +117,28 @@ impl TileFetcherQueue {
             // Request the allsky
             downloader.borrow_mut().fetch(query::Allsky::new(cfg));
         } else if cfg.get_min_depth_tile() == 0 {
-            let hips_cdid = cfg.get_creator_did().to_string();
-            let hips_url = cfg.get_root_url().to_string();
-            let hips_fmt = cfg.get_format();
-            let min_order = cfg.get_min_depth_texture();
-
-            let dl = downloader.clone();
             #[cfg(target_arch = "wasm32")]
-            utils::set_timeout(
-                move || {
-                    for tile_cell in crate::healpix::cell::ALLSKY_HPX_CELLS_D0 {
-                        dl.borrow_mut().fetch(query::Tile::new(
-                            tile_cell,
-                            hips_cdid.clone(),
-                            hips_url.clone(),
-                            hips_fmt,
-                        ));
-                    }
-                },
-                2_000,
-            );
-        }
-        /*else {
-            for texture_cell in crate::healpix::cell::ALLSKY_HPX_CELLS_D0 {
-                for cell in texture_cell.get_tile_cells(cfg.delta_depth()) {
-                    let hips_url = cfg.get_root_url();
-                    let format = cfg.get_format();
-                    let query = query::Tile::new(&cell, hips_url.to_string(), format);
-                    self.append_base_tile(query, downloader);
-                }
+            {
+                let hips_cdid = cfg.get_creator_did().to_string();
+                let hips_url = cfg.get_root_url().to_string();
+                let hips_fmt = cfg.get_format();
+                let min_order = cfg.get_min_depth_texture();
+
+                let dl = downloader.clone();
+                crate::utils::set_timeout(
+                    move || {
+                        for tile_cell in crate::healpix::cell::ALLSKY_HPX_CELLS_D0 {
+                            dl.borrow_mut().fetch(query::Tile::new(
+                                tile_cell,
+                                hips_cdid.clone(),
+                                hips_url.clone(),
+                                hips_fmt,
+                            ));
+                        }
+                    },
+                    2_000,
+                );
             }
-        }*/
-
-        /*
-        let f = async move {
-            let mut cb = |resolve: js_sys::Function, reject: js_sys::Function| {
-                web_sys::window()
-                    .unwrap()
-                    .set_timeout_with_callback_and_timeout_and_arguments_0(&resolve, 3000);
-            };
-
-            let p = js_sys::Promise::new(&mut cb);
-
-            wasm_bindgen_futures::JsFuture::from(p).await.unwrap();
-
-
-
-            Ok(JsValue::from_bool(true))
-        };
-
-        let _ = wasm_bindgen_futures::future_to_promise(f);
-        */
+        }
     }
 }

@@ -1426,6 +1426,8 @@ export let Aladin = (function () {
 
     Aladin.prototype.addMOC = function (moc) {
         this.view.addMOC(moc);
+
+        // see MOC.setView for sending it to outside the UI
     };
 
     Aladin.prototype.addUI = function (ui) {

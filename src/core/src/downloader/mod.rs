@@ -1,7 +1,6 @@
 pub mod query;
 pub mod request;
 
-
 use std::collections::HashSet;
 
 use query::QueryId;
@@ -98,13 +97,7 @@ impl Downloader {
         self.queried_list.contains(id)
     }
 
-    //pub fn get_cached_resources(&mut self) -> Vec<Resource> {}
-
-    /*pub fn cache_rsc(&mut self, rsc: Resource) {
-        self.cache.insert(rsc.url().clone(), rsc);
-    }*/
-
-    pub fn delay_rsc(&mut self, rsc: Resource) {
+    pub fn _delay_rsc(&mut self, rsc: Resource) {
         self.queried_cached_ids.push(rsc.id().clone());
         self.cache.insert(rsc.id().clone(), rsc);
     }

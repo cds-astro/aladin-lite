@@ -580,14 +580,19 @@ export let Catalog = (function () {
                     if (shapes) {
                         shapes = [].concat(shapes);
 
+                        // 1. return of the shape func is an image
                         if (shapes.length == 1 && (shapes[0] instanceof Image || shapes[0] instanceof HTMLCanvasElement)) {
                             source.setImage(shapes[0]);
+                        // 2. return of the shape is a set of shapes or a footprint
                         } else {
-                            shapes = new Footprint(shapes, source);
+                            let footprint;
+                            if (shapes.length == 1 && shapes[0] instanceof Footprint) {
+                                footprint = shapes[0];
+                            } else {
+                                footprint = new Footprint(shapes, source);
+                            }
 
-                            let footprint = shapes;
                             this._shapeIsFootprintFunction = true;
-
                             footprint.setCatalog(this);
 
                             // store the footprints
@@ -596,6 +601,7 @@ export let Catalog = (function () {
                     }
                 } catch (e) {
                     // do not create the footprint
+                    console.warn("Return of shape function could not be interpreted as a footprint");
                     continue;
                 }
             }
@@ -699,8 +705,12 @@ export let Catalog = (function () {
         }
     };
 
-    Catalog.prototype.setView = function (view) {
+    Catalog.prototype.setView = function (view, idx) {
         this.view = view;
+
+        this.view.catalogs.push(this);
+        this.view.insertOverlay(this, idx);
+
         this.reportChange();
     };
 
@@ -895,8 +905,6 @@ export let Catalog = (function () {
 
             f.draw(ctx, this.view);
             f.source.tooSmallFootprint = f.isTooSmall();
-            // propagate the info that the footprint is too small
-            //f.source.tooSmallFootprint = f.isTooSmall
         }
     };
 

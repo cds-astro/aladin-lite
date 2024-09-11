@@ -40,7 +40,6 @@ import { ProgressiveCat } from "./ProgressiveCat.js";
 import { Source } from "./Source.js";
 import { Coo } from "./libs/astro/coo.js";
 import { URLBuilder } from "./URLBuilder.js";
-import { ColorCfg } from './ColorCfg.js';
 import { Footprint } from './Footprint.js';
 import { Aladin } from "./Aladin.js";
 import { ActionButton } from "./gui/Widgets/ActionButton.js";
@@ -280,10 +279,6 @@ A.circle = function (ra, dec, radiusDeg, options) {
     return new Circle([ra, dec], radiusDeg, options);
 };
 
-A.footprint = function(shapes) {
-    return new Footprint(shapes)
-};
-
 /**
  * Creates an ellipse shape
  *
@@ -389,8 +384,9 @@ A.coo = function (longitude, latitude, prec) {
  * @memberof A
  * @name footprint
  *
- * @param {A.polygon[]} shapes - an array of A.polygon objects
- * @param {A.source} source - a A.source object
+ * @param {Circle[]|Polyline[]|Ellipse[]|Vector[]} shapes - an array of A.polygon objects
+ * @param {Source} [source] - a A.source object associated with the footprint
+ * 
  * @returns {Footprint} Returns a new Footprint object
  */
 A.footprint = function(shapes, source) {

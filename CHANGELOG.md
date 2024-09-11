@@ -4,6 +4,7 @@
 
 * [feat] Add support for name removing in `removeOverlay` method
 * [test] Add support of playwright. Instructions in the readme for running the test matching snapshots [PR #176]
+* [fixed] Order of overlays in the stack now matches the addMOC/addCatalog/addOverlay calls ordering
 
 ## 3.5.0-beta
 

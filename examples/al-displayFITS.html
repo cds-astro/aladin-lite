@@ -11,7 +11,7 @@
     import A from '../src/js/A.js';
     let aladin;
     A.init.then(() => {
-        aladin = A.aladin('#aladin-lite-div', {cooFrame: "icrs", fullScreen: true});
+        aladin = A.aladin('#aladin-lite-div', {cooFrame: "icrs", log: false});
 
         aladin.displayFITS(
             //'https://fits.gsfc.nasa.gov/samples/FOCx38i0101t_c0f.fits', // url of the fits file

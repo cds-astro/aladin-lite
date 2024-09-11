@@ -46,7 +46,8 @@ const tests = [
         
             expect(
                 await page.locator('canvas').nth(1).screenshot({
-                    type: "png"
+                    type: "jpeg",
+                    quality: 70,
                 })
             ).toMatchSnapshot({
                 maxDiffPixels: 30

@@ -5,10 +5,14 @@
 import { AstroMath } from "./astroMath.js";
 
 /**
- * Constructor
- * @param longitude longitude (decimal degrees)
- * @param latitude latitude (decimal degrees)
- * @param prec precision
+ * Represents a Coo with configurable parsing options.
+ *
+ * @class
+ * @constructs Coo
+ * 
+ * @param {number} longitude longitude (decimal degrees)
+ * @param {number} latitude latitude (decimal degrees)
+ * @param {number} prec precision
  * (8: 1/1000th sec, 7: 1/100th sec, 6: 1/10th sec, 5: sec, 4: 1/10th min, 3: min, 2: 1/10th deg, 1: deg
  */
 export let Coo = function(longitude, latitude, prec) {
@@ -52,7 +56,7 @@ Coo.prototype = {
 
   /**
     * Squared distance between 2 points (= 4.sin<sup>2</sup>(r/2))
-    * @param  pos      another position on the sphere
+    * @param {Coo} pos      another position on the sphere
     * @return ||pos-this||<sup>2</sup> = 4.sin<sup>2</sup>(r/2)
    **/
    dist2: function(pos) {
@@ -67,7 +71,7 @@ Coo.prototype = {
 
    /**
     * Distance between 2 points on the sphere.
-    * @param  pos another position on the sphere
+    * @param {Coo} pos another position on the sphere
     * @return distance in degrees in range [0, 180]
    **/
     distance: function(pos) {
@@ -77,10 +81,6 @@ Coo.prototype = {
       return (2. * AstroMath.asind(0.5 * Math.sqrt(this.dist2(pos))));
     },
 
-   /**
-    * Transform the position into another frame.
-    * @param new_frame	The frame of the resulting position.
-   **/
    convertTo: function(new_frame) {
 		// Verify first if frames identical -- then nothing to do !
 		if (this.frame.equals(new_frame)) {
@@ -94,10 +94,6 @@ Coo.prototype = {
 		this.lon = this.lat = 0./0.;	// Actual angles not recomputed
    },
 
-    /**
-     * Rotate a coordinate (apply a rotation to the position).
-     * @param R [3][3] Rotation Matrix
-     */
     rotate: function(R) {
       var X, Y, Z;
 		if (R == Umatrix3) return;
@@ -109,11 +105,6 @@ Coo.prototype = {
 		this.lon = this.lat = 0./0.;
     },
 
-    /**
-     * Rotate a coordinate (apply a rotation to the position) in reverse direction.
-     * The method is the inverse of rotate.
-     * @param R [3][3] Rotation Matrix
-     */
     rotate_1: function(R) {
       var X, Y, Z;
       if (R == Umatrix3) return;
@@ -128,7 +119,7 @@ Coo.prototype = {
 
     /**
      * Test equality of Coo.
-     * @param coo Second coordinate to compare with
+     * @param {Coo} coo Second coordinate to compare with
      * @return  True if the two coordinates are equal
      */
     equals: function(coo) {
@@ -137,7 +128,7 @@ Coo.prototype = {
 
 	/**
 	 * parse a coordinate string. The coordinates can be in decimal or sexagesimal
-	 * @param str string to parse
+	 * @param {string} str string to parse
 	 * @return true if the parsing succeded, false otherwise
 	 */
 	parse: function(str) {
@@ -234,7 +225,7 @@ Coo.prototype = {
 
 	/**
 	 * Format coordinates according to the options
-	 * @param options 'd': decimal, 's': sexagésimal, '/': space separated, '2': return [ra,dec] in an array
+	 * @param {string} options 'd': decimal, 's': sexagésimal, '/': space separated, '2': return [ra,dec] in an array
 	 * @return the formatted coordinates
 	 */
 	format: function(options) {

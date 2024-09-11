@@ -28,7 +28,7 @@ impl<const N: usize> BitVector<N> {
 }
 
 mod tests {
-    
+    use super::BitVector;
 
     #[test]
     fn test_bitvector_basic_op() {

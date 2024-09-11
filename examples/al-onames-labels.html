@@ -8,7 +8,7 @@
     import A from '../src/js/A.js';
     let aladin;
     A.init.then(() => {
-        aladin = A.aladin('#aladin-lite-div', {survey: 'data/hips/CDS_P_DSS2_color', target: '05 34 30.89 +22 00 52.9', fov: 0.3});
+        aladin = A.aladin('#aladin-lite-div', {survey: 'data/hips/CDS_P_DSS2_color', target: '05 34 30.89 +22 00 52.9', fov: 0.3, log: false, showSettingsControl: true});
         var cat = A.catalogFromURL('data/votable/labels.vot', {sourceSize:12, color: '#cc99bb', displayLabel: true, labelColumn: 'main_id', labelColor: '#ae4', labelFont: '9px sans-serif'});
         aladin.addCatalog(cat);
     });

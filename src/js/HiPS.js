@@ -447,9 +447,12 @@ export let HiPS = (function () {
 
                         setTimeout(
                             () => {
+                                if (!self.added)
+                                    return;
+
                                 HiPSProperties.fetchFromID(id)
                                     .then((p) => {
-                                        self.url = self.startUrl;
+                                        //self.url = self.startUrl;
                                         self._fetchFasterUrlFromProperties(p);
                                     })
                             },

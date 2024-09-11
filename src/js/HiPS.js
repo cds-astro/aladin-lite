@@ -428,6 +428,7 @@ export let HiPS = (function () {
         }
 
         self.query = (async () => {
+
             if (isIncompleteOptions) {
                 // ID typed url
                 if (self.startUrl && isID) {

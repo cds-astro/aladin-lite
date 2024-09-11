@@ -152,7 +152,7 @@ export let HiPSList = (function () {
         },
         {
             creatorDid: "ivo://CDS/P/allWISE/color",
-            id: "P/SDSS9/g",
+            id: "P/allWISE/color",
             name: "AllWISE color",
             maxOrder: 8,
             tileSize: 512,

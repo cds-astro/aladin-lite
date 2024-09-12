@@ -6,6 +6,7 @@
 * [test] Add support of playwright. Instructions in the readme for running the test matching snapshots [PR #176]
 * [fixed] Order of overlays in the stack now matches the addMOC/addCatalog/addOverlay calls ordering
 * [doc] Expose the API of Coo class
+* [fix] Insert aladin css inside the aladin lite so that it should be compliant with the use of shadow DOMs [cds-astro/ipyaladin#113], [marimo-team/marimo#2106]
 
 ## 3.5.0-beta
 

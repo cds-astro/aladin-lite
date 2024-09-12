@@ -51,8 +51,7 @@ import { Sesame } from "./Sesame.js";
 import init, * as module from './../core/pkg';
 
 // Import aladin css inside the project
-import './../css/aladin.css';
-
+import aladinCSS from './../css/aladin.css?inline';
 
 ///////////////////////////////
 /////// Aladin Lite API ///////
@@ -97,6 +96,13 @@ A.aladin = function (divSelector, options) {
     } else {
         divElement = divSelector;
     }
+
+    // Associate the CSS inside the div
+    var cssStyleSheet = document.createElement('style')
+    cssStyleSheet.classList.add("aladin-css");
+    cssStyleSheet.innerHTML = aladinCSS;
+    divElement.appendChild(cssStyleSheet)
+
     return new Aladin(divElement, options);
 };
 

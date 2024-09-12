@@ -768,7 +768,7 @@ export class OverlayStackBox extends Box {
         );
         layout = layout.concat(this._createSurveysList());
 
-        return Layout.vertical({ layout, classList: ["content"] });
+        return Layout.vertical({ layout });
     }
 
     _createOverlaysList() {

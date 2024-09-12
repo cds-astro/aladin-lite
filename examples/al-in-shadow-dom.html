@@ -8,14 +8,14 @@
 
 <script type="text/javascript" src="./../dist/aladin.umd.cjs" charset="utf-8"></script>
 <script type="text/javascript">
-const shadowEl = document.querySelector(".shadow-host");
-const shadow = shadowEl.attachShadow({mode: 'open'});
+    const shadowEl = document.querySelector(".shadow-host");
+    const shadow = shadowEl.attachShadow({mode: 'open'});
 
-let aladinLiteEl = document.createElement('div');
-aladinLiteEl.id = "aladin-lite-div"
-aladinLiteEl.style = "width: 768px; height: 512px";
-shadow.appendChild(aladinLiteEl)
-console.log(aladinLiteEl.getRootNode() instanceof ShadowRoot)
+    let aladinLiteEl = document.createElement('div');
+    aladinLiteEl.id = "aladin-lite-div"
+    aladinLiteEl.style = "width: 768px; height: 512px";
+    shadow.appendChild(aladinLiteEl)
+
     A.init.then(() => {
         let aladin = A.aladin(
             aladinLiteEl,
@@ -26,14 +26,7 @@ console.log(aladinLiteEl.getRootNode() instanceof ShadowRoot)
                 target: 'orion', // initial target
             }
         );
-
-        //aladin.removeHiPSFromFavorites('CDS/P/allWISE/color')
     });
 </script>
-<style>
-    .aladin-cat-browser-box {
-        width: 600px;
-    }
-</style>
 </body>
 </html>

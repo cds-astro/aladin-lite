@@ -126,7 +126,7 @@ export let View = (function () {
         this.aladinDiv.ondragover = Utils.dragOverHandler;
 
         this.throttledPositionChanged = Utils.throttle(
-            () => {
+            (dragging) => {
                 var posChangedFn = this.aladin.callbacksByEventName && this.aladin.callbacksByEventName['positionChanged'];
                 if (typeof posChangedFn === 'function') {
                     var pos = this.aladin.pix2world(this.width / 2, this.height / 2, 'icrs');
@@ -135,7 +135,7 @@ export let View = (function () {
                             posChangedFn({
                                 ra: pos[0],
                                 dec: pos[1],
-                                dragging: true
+                                dragging: dragging
                             });
                         } catch(e) {
                             console.error(e)
@@ -841,6 +841,9 @@ export let View = (function () {
 
                 if (wasDragging) {
                     view.realDragging = false;
+
+                    // call the positionChanged once more with a dragging = false
+                    view.throttledPositionChanged(false);
                 }
             } // end of "if (view.dragging) ... "
 
@@ -1009,11 +1012,6 @@ export let View = (function () {
                 view.updateObjectsLookup();
             }
 
-            /*if (!view.dragging || Utils.hasTouchScreen()) {
-                // update location box
-                view.updateLocation({mouseX: xymouse.x, mouseY: xymouse.y});
-            }*/
-
             if (!view.dragging && !view.moving && view.mode === View.PAN) {
                 // call listener of 'mouseMove' event
                 var onMouseMoveFunction = view.aladin.callbacksByEventName['mouseMove'];
@@ -1127,7 +1125,7 @@ export let View = (function () {
                 ALEvent.POSITION_CHANGED.dispatchedTo(view.aladin.aladinDiv, view.viewCenter);
     
                 // Apply position changed callback after the move
-                view.throttledPositionChanged();
+                view.throttledPositionChanged(true);
             }
         }); //// endof mousemove ////
 
@@ -1149,7 +1147,6 @@ export let View = (function () {
                 view.wheelTriggered = false;
                 view.zoom.stopAnimation();
             }, 100);
-
 
             const xymouse = Utils.relMouseCoords(e);
             view.xy = xymouse
@@ -1307,7 +1304,7 @@ export let View = (function () {
             // inertia run throttled position
             if (this.moving && this.aladin.callbacksByEventName && this.aladin.callbacksByEventName['positionChanged'] && this.wasm.isInerting()) {
                 // run the trottled position
-                this.throttledPositionChanged();
+                this.throttledPositionChanged(false);
             }
 
             ////// 2. Draw catalogues////////
@@ -2020,7 +2017,7 @@ export let View = (function () {
         var self = this;
         setTimeout(function () { self.refreshProgressiveCats(); }, 1000);
         // Apply position changed callback after the move
-        self.throttledPositionChanged();
+        self.throttledPositionChanged(false);
 
         // hide the popup if it is open
         this.aladin.hidePopup();

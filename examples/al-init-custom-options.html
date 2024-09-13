@@ -30,6 +30,19 @@
             }
         );
 
+        aladin.on("positionChanged", ({ra, dec, dragging}) => {
+            console.log('position changed dragging: ', dragging)
+        });
+
+        let id;
+        aladin.on("zoomChanged", () => {
+            if (id)
+                clearTimeout(id);
+            id = setTimeout(() => {
+                console.log("wheel stopped, new cone search here")
+            }, 500);
+        })
+
         //aladin.removeHiPSFromFavorites('CDS/P/allWISE/color')
     });
 </script>

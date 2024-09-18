@@ -2060,6 +2060,11 @@ export let View = (function () {
 
     View.prototype.removeOverlay = function (overlay) {
         let indexToDelete = this.allOverlayLayers.indexOf(overlay);
+        if (indexToDelete === -1) {
+            // overlay not found
+            return;
+        }
+
         this.allOverlayLayers.splice(indexToDelete, 1);
 
         if (overlay.type == 'catalog' || overlay.type == 'progressivecat') {
@@ -2088,9 +2093,10 @@ export let View = (function () {
     };
 
     View.prototype.removeOverlayByName = function (overlayName) {
-        let overlay = this.allOverlayLayers.find(l => l.name === overlayName);
+        let overlay = this.allOverlayLayers.find(o => o.name === overlayName);
+        console.log("jkj", overlay)
         if (!overlay) {
-            console.error(`Layer with name "${overlayName}" not found.`);
+            console.error(`Overlay "${overlayName}" not found.`);
             return;
         }
         this.removeOverlay(overlay);

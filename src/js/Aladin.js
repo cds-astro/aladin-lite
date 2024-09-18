@@ -1482,10 +1482,11 @@ export let Aladin = (function () {
      * @param {string|Overlay} overlay - The name of the overlay to remove or the overlay object itself
      */
     Aladin.prototype.removeOverlay = function (overlay) {
-        if(overlay instanceof String)
+        if(typeof overlay === 'string' || overlay instanceof String) {
             this.view.removeOverlayByName(overlay);
-        else
+        } else {
             this.view.removeOverlay(overlay);
+        }
     };
 
     /**

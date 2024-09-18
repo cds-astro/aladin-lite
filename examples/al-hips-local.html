@@ -4,18 +4,14 @@
 </head>
 <body>
 
-<div id="aladin-lite-div" style="width: 1024px; height: 768px"></div>
-<!--<script type="text/javascript" src="./../dist/aladin.umd.cjs" charset="utf-8"></script>-->
+<div id="aladin-lite-div" style="width: 512px; height: 512px"></div>
 
 <script type="module">
     import A from '../src/js/A.js';
 
     let aladin;
     A.init.then(() => {
-        aladin = A.aladin('#aladin-lite-div', {target: "05 40 59.12 -02 27 04.1", fov: 2});
-        
-        let survey = aladin.createImageSurvey('DSS2 local', "local hips", "hips/CDS_P_DSS2_color");
-        aladin.setBaseImageLayer(survey);
+        aladin = A.aladin('#aladin-lite-div', {survey: "data/hips/CDS_P_DSS2_color", target: "05 40 59.12 -02 27 04.1", fov: 2, log: false});
     });
 </script>
 

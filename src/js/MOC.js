@@ -123,7 +123,7 @@ export let MOC = (function() {
         this.errorCallback = errorCallback;
     };
 
-    MOC.prototype.setView = function(view) {
+    MOC.prototype.setView = function(view, idx) {
         let self = this;
 
         this.view = view;
@@ -134,7 +134,7 @@ export let MOC = (function() {
                 if (data instanceof ArrayBuffer) {
                     // from an url
                     const buf = data;
-                    self.view.wasm.addFITSMoc(self.mocParams, new Uint8Array(buf));
+                    self.view.wasm.addFITSMOC(self.mocParams, new Uint8Array(buf));
                 } else if(data.ra && data.dec && data.radius) {
                     // circle
                     const c = data;
@@ -160,7 +160,7 @@ export let MOC = (function() {
 
                 // Add it to the view
                 self.view.mocs.push(self);
-                self.view.allOverlayLayers.push(self);
+                self.view.insertOverlay(self, idx);
 
                 // Tell the MOC has been fully loaded and can be sent as an event
                 ALEvent.GRAPHIC_OVERLAY_LAYER_ADDED.dispatchedTo(self.view.aladinDiv, {layer: self});

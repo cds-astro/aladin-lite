@@ -210,7 +210,6 @@
     background: whitesmoke;
     border-radius: 2px;
     position: absolute;
-    max-width: 15em;
     font-size: inherit;
 
     font-family: monospace;
@@ -226,7 +225,7 @@
     /*overflow-y: auto;*/ 
     overflow-y: none;
     max-height: 500px;
-    max-width: fit-content;
+    /*max-width: fit-content;*/
     height: fit-content;
 }
 
@@ -556,7 +555,7 @@ canvas {
 }
     
 .aladin-popup-container {
-
+    color: black;
 	position: absolute;
     width: 200px;
     display: none;
@@ -1117,27 +1116,22 @@ canvas {
     width: 4.5rem;
 }
 
-/*
-.aladin-input-text.aladin-dark-theme.search.aladin-HiPS-search {
-    width: 100%;
-
-}*/
-
 .aladin-stack-box {
     width: 17rem;
 }
 
 .aladin-HiPS-browser-box .aladin-input-text {
-    width: 300px;
+    width: 100%;
+    min-width: 300px;
     padding: 0.5rem;
 }
 
 .aladin-cat-browser-box .aladin-input-text.search {
-    width: 300px;
+    width: 100%;
+    min-width: 300px;
     padding-top: 0.5rem;
     padding-bottom: 0.5rem;
 }
-
 
 .aladin-location {
     position: absolute;

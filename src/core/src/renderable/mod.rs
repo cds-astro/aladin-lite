@@ -10,6 +10,7 @@ pub mod text;
 pub mod utils;
 
 use crate::renderable::image::Image;
+use crate::tile_fetcher::TileFetcherQueue;
 
 use al_core::image::format::ChannelType;
 
@@ -316,6 +317,7 @@ impl Layers {
         layer: &str,
         camera: &mut CameraViewPort,
         proj: &ProjectionType,
+        tile_fetcher: &mut TileFetcherQueue,
     ) -> Result<usize, JsValue> {
         let err_layer_not_found = JsValue::from_str(&format!(
             "Layer {:?} not found, so cannot be removed.",
@@ -350,6 +352,9 @@ impl Layers {
                 let hips_frame = s.get_config().get_frame();
                 // remove the frame
                 camera.unregister_view_frame(hips_frame, proj);
+
+                // remove the local files access from the tile fetcher
+                tile_fetcher.delete_hips_local_files(s.get_config().get_creator_did());
 
                 Ok(id_layer)
             } else if let Some(_) = self.images.remove(&id) {
@@ -418,6 +423,7 @@ impl Layers {
         hips: HiPSCfg,
         camera: &mut CameraViewPort,
         proj: &ProjectionType,
+        tile_fetcher: &mut TileFetcherQueue,
     ) -> Result<&HiPS, JsValue> {
         let HiPSCfg {
             layer,
@@ -431,7 +437,7 @@ impl Layers {
         let layer_already_found = self.layers.iter().any(|l| l == &layer);
 
         let idx = if layer_already_found {
-            let idx = self.remove_layer(&layer, camera, proj)?;
+            let idx = self.remove_layer(&layer, camera, proj, tile_fetcher)?;
             idx
         } else {
             self.layers.len()
@@ -492,6 +498,7 @@ impl Layers {
         image: ImageLayer,
         camera: &mut CameraViewPort,
         proj: &ProjectionType,
+        tile_fetcher: &mut TileFetcherQueue,
     ) -> Result<&[Image], JsValue> {
         let ImageLayer {
             layer,
@@ -504,7 +511,7 @@ impl Layers {
         let layer_already_found = self.layers.iter().any(|s| s == &layer);
 
         let idx = if layer_already_found {
-            let idx = self.remove_layer(&layer, camera, proj)?;
+            let idx = self.remove_layer(&layer, camera, proj, tile_fetcher)?;
             idx
         } else {
             self.layers.len()

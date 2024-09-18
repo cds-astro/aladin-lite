@@ -1,4 +1,5 @@
 use crate::renderable::ImageLayer;
+use crate::tile_fetcher::HiPSLocalFiles;
 use crate::{
     //async_task::{BuildCatalogIndex, ParseTableTask, TaskExecutor, TaskResult, TaskType},
     camera::CameraViewPort,
@@ -53,7 +54,7 @@ pub struct App {
     shaders: ShaderManager,
     pub camera: CameraViewPort,
 
-    downloader: Downloader,
+    downloader: Rc<RefCell<Downloader>>,
     tile_fetcher: TileFetcherQueue,
     layers: Layers,
 
@@ -90,7 +91,6 @@ pub struct App {
     _fbo_view: FrameBufferObject,
     _fbo_ui: FrameBufferObject,
     //line_renderer: RasterizedLineRenderer,
-
     colormaps: Colormaps,
 
     pub projection: ProjectionType,
@@ -147,7 +147,7 @@ impl App {
         //gl.enable(WebGl2RenderingContext::CULL_FACE);
 
         // The tile buffer responsible for the tile requests
-        let downloader = Downloader::new();
+        let downloader = Rc::new(RefCell::new(Downloader::new()));
 
         let camera = CameraViewPort::new(&gl, CooSystem::ICRS, &projection);
         let screen_size = &camera.get_screen_size();
@@ -263,12 +263,11 @@ impl App {
         // Move the views of the different active surveys
         self.tile_fetcher.clear();
         // Loop over the surveys
-        let _raytracer = self.layers.get_raytracer();
-
         for survey in self.layers.values_mut_hips() {
             if self.camera.get_texture_depth() == 0
                 && self
                     .downloader
+                    .borrow()
                     .is_queried(&query::Allsky::new(survey.get_config()).id)
             {
                 // do not ask for tiles if we download the allsky
@@ -288,34 +287,33 @@ impl App {
             if let Some(tiles_iter) = survey.look_for_new_tiles(&mut self.camera, &self.projection)
             {
                 for tile_cell in tiles_iter.into_iter() {
-                    self.tile_fetcher.append(
-                        query::Tile::new(&tile_cell, creator_did.clone(), root_url.clone(), format),
-                        &mut self.downloader,
-                    );
+                    self.tile_fetcher.append(query::Tile::new(
+                        &tile_cell,
+                        creator_did.clone(),
+                        root_url.clone(),
+                        format,
+                    ));
 
-                    if tile_cell.depth() >= min_tile_depth + 3 {
-                        let ancestor_tile_cell = tile_cell.ancestor(3);
-                        ancestors.insert(ancestor_tile_cell);
+                    // check if we are starting aladin lite or not.
+                    // If so we want to retrieve only the tiles in the view and access them
+                    // directly i.e. without blending them with less precised tiles
+                    if self.tile_fetcher.get_num_tile_fetched() > 0 {
+                        if tile_cell.depth() >= min_tile_depth + 3 {
+                            let ancestor_tile_cell = tile_cell.ancestor(3);
+                            ancestors.insert(ancestor_tile_cell);
+                        }
                     }
-                    //let ancestor_next_tile_cell = next_tile_cell.ancestor(3);
-                    //if !survey.contains_tile(&ancestor_tile_cell) {
-                    //self.tile_fetcher.append(
-                    //    query::Tile::new(&ancestor_tile_cell, hips_url.clone(), format),
-                    //    &mut self.downloader,
-                    //);
-                    //}
-                    //if ancestor_tile_cell != ancestor_next_tile_cell {
-
-                    //}
                 }
             }
             // Request for ancestor
             for ancestor in ancestors {
                 if !survey.update_priority_tile(&ancestor) {
-                    self.tile_fetcher.append(
-                        query::Tile::new(&ancestor, creator_did.clone(), root_url.clone(), format),
-                        &mut self.downloader,
-                    );
+                    self.tile_fetcher.append(query::Tile::new(
+                        &ancestor,
+                        creator_did.clone(),
+                        root_url.clone(),
+                        format,
+                    ));
                 }
             }
         }
@@ -487,12 +485,6 @@ impl App {
         self.catalog_loaded
     }
 
-    /*pub(crate) fn is_ready(&self) -> Result<bool, JsValue> {
-        let res = self.layers.is_ready();
-
-        Ok(res)
-    }*/
-
     pub(crate) fn get_moc(&self, cfg: &al_api::moc::MOC) -> Option<&HEALPixCoverage> {
         self.moc.get_hpx_coverage(cfg)
     }
@@ -592,124 +584,123 @@ impl App {
             /*let is_there_new_available_tiles = self
             .downloader
             .get_resolved_tiles(/*&available_tiles, */&mut self.surveys);*/
-            let rscs_received = self.downloader.get_received_resources();
+            let rscs_received = self.downloader.borrow_mut().get_received_resources();
 
             let _num_tile_handled = 0;
             let _tile_copied = false;
             for rsc in rscs_received {
                 match rsc {
                     Resource::Tile(tile) => {
-                        if !_has_camera_zoomed {
-                            if let Some(survey) =
-                                self.layers.get_mut_hips_from_cdid(&tile.get_hips_cdid())
-                            {
-                                let cfg = survey.get_config_mut();
+                        //if !_has_camera_zoomed {
+                        if let Some(survey) =
+                            self.layers.get_mut_hips_from_cdid(&tile.get_hips_cdid())
+                        {
+                            let cfg = survey.get_config_mut();
 
-                                if cfg.get_format() == tile.format {
-                                    let delta_depth = cfg.delta_depth();
-                                    let fov_coverage = self.camera.get_cov(cfg.get_frame());
-                                    let included_or_near_coverage = tile
-                                        .cell()
-                                        .get_texture_cell(delta_depth)
-                                        .get_tile_cells(delta_depth)
-                                        .any(|neighbor_tile_cell| {
-                                            fov_coverage.intersects_cell(&neighbor_tile_cell)
-                                        });
+                            if cfg.get_format() == tile.format {
+                                let delta_depth = cfg.delta_depth();
+                                let fov_coverage = self.camera.get_cov(cfg.get_frame());
+                                let included_or_near_coverage = tile
+                                    .cell()
+                                    .get_texture_cell(delta_depth)
+                                    .get_tile_cells(delta_depth)
+                                    .any(|neighbor_tile_cell| {
+                                        fov_coverage.intersects_cell(&neighbor_tile_cell)
+                                    });
 
-                                    //let is_tile_root = tile.cell().depth() == delta_depth;
-                                    //let _depth = tile.cell().depth();
-                                    // do not perform tex_sub costly GPU calls while the camera is zooming
-                                    if included_or_near_coverage {
-                                        let is_missing = tile.missing();
-                                        /*self.tile_fetcher.notify_tile(
-                                            &tile,
-                                            true,
-                                            false,
-                                            &mut self.downloader,
-                                        );*/
-                                        let Tile {
-                                            cell,
-                                            image,
-                                            time_req,
-                                            ..
-                                        } = tile;
+                                //let is_tile_root = tile.cell().depth() == delta_depth;
+                                //let _depth = tile.cell().depth();
+                                // do not perform tex_sub costly GPU calls while the camera is zooming
+                                if tile.cell().is_root() || included_or_near_coverage {
+                                    let is_missing = tile.missing();
+                                    /*self.tile_fetcher.notify_tile(
+                                        &tile,
+                                        true,
+                                        false,
+                                        &mut self.downloader,
+                                    );*/
+                                    let Tile {
+                                        cell,
+                                        image,
+                                        time_req,
+                                        ..
+                                    } = tile;
 
-                                        let image = if is_missing {
-                                            // Otherwise we push nothing, it is probably the case where:
-                                            // - an request error occured on a valid tile
-                                            // - the tile is not present, e.g. chandra HiPS have not the 0, 1 and 2 order tiles
-                                            None
-                                        } else {
-                                            Some(image)
-                                        };
-                                        use al_core::image::ImageType;
-                                        use fitsrs::fits::Fits;
-                                        use std::io::Cursor;
-                                        if let Some(image) = image.as_ref() {
-                                            match &*image.lock().unwrap_abort() {
-                                                Some(ImageType::FitsImage {
-                                                    raw_bytes: raw_bytes_buf,
-                                                }) => {
-                                                    // check if the metadata has not been set
-                                                    if !cfg.fits_metadata {
-                                                        let num_bytes =
-                                                            raw_bytes_buf.length() as usize;
-                                                        let mut raw_bytes = vec![0; num_bytes];
-                                                        raw_bytes_buf.copy_to(&mut raw_bytes[..]);
+                                    let image = if is_missing {
+                                        // Otherwise we push nothing, it is probably the case where:
+                                        // - an request error occured on a valid tile
+                                        // - the tile is not present, e.g. chandra HiPS have not the 0, 1 and 2 order tiles
+                                        None
+                                    } else {
+                                        Some(image)
+                                    };
+                                    use al_core::image::ImageType;
+                                    use fitsrs::fits::Fits;
+                                    use std::io::Cursor;
+                                    if let Some(image) = image.as_ref() {
+                                        match &*image.lock().unwrap_abort() {
+                                            Some(ImageType::FitsImage {
+                                                raw_bytes: raw_bytes_buf,
+                                            }) => {
+                                                // check if the metadata has not been set
+                                                if !cfg.fits_metadata {
+                                                    let num_bytes = raw_bytes_buf.length() as usize;
+                                                    let mut raw_bytes = vec![0; num_bytes];
+                                                    raw_bytes_buf.copy_to(&mut raw_bytes[..]);
 
-                                                        let mut bytes_reader =
-                                                            Cursor::new(raw_bytes.as_slice());
-                                                        let Fits { hdu } =
-                                                            Fits::from_reader(&mut bytes_reader)
-                                                                .map_err(|_| {
-                                                                    JsValue::from_str(
-                                                                        "Parsing fits error",
-                                                                    )
-                                                                })?;
+                                                    let mut bytes_reader =
+                                                        Cursor::new(raw_bytes.as_slice());
+                                                    let Fits { hdu } =
+                                                        Fits::from_reader(&mut bytes_reader)
+                                                            .map_err(|_| {
+                                                                JsValue::from_str(
+                                                                    "Parsing fits error",
+                                                                )
+                                                            })?;
 
-                                                        let header = hdu.get_header();
-                                                        let bscale = if let Some(
-                                                            fitsrs::card::Value::Float(bscale),
-                                                        ) = header.get(b"BSCALE  ")
-                                                        {
-                                                            *bscale as f32
-                                                        } else {
-                                                            1.0
-                                                        };
-                                                        let bzero = if let Some(
-                                                            fitsrs::card::Value::Float(bzero),
-                                                        ) = header.get(b"BZERO   ")
-                                                        {
-                                                            *bzero as f32
-                                                        } else {
-                                                            0.0
-                                                        };
-                                                        let blank = if let Some(
-                                                            fitsrs::card::Value::Float(blank),
-                                                        ) = header.get(b"BLANK   ")
-                                                        {
-                                                            *blank as f32
-                                                        } else {
-                                                            std::f32::NAN
-                                                        };
+                                                    let header = hdu.get_header();
+                                                    let bscale = if let Some(
+                                                        fitsrs::card::Value::Float(bscale),
+                                                    ) = header.get(b"BSCALE  ")
+                                                    {
+                                                        *bscale as f32
+                                                    } else {
+                                                        1.0
+                                                    };
+                                                    let bzero = if let Some(
+                                                        fitsrs::card::Value::Float(bzero),
+                                                    ) = header.get(b"BZERO   ")
+                                                    {
+                                                        *bzero as f32
+                                                    } else {
+                                                        0.0
+                                                    };
+                                                    let blank = if let Some(
+                                                        fitsrs::card::Value::Float(blank),
+                                                    ) = header.get(b"BLANK   ")
+                                                    {
+                                                        *blank as f32
+                                                    } else {
+                                                        std::f32::NAN
+                                                    };
 
-                                                        cfg.set_fits_metadata(bscale, bzero, blank);
-                                                    }
+                                                    cfg.set_fits_metadata(bscale, bzero, blank);
                                                 }
-                                                _ => (),
                                             }
+                                            _ => (),
                                         }
-
-                                        survey.add_tile(&cell, image, time_req)?;
-                                        self.request_redraw = true;
-
-                                        self.time_start_blending = Time::now();
                                     }
+
+                                    survey.add_tile(&cell, image, time_req)?;
+                                    self.request_redraw = true;
+
+                                    self.time_start_blending = Time::now();
                                 }
                             }
-                        } else {
-                            self.downloader.delay_rsc(Resource::Tile(tile));
                         }
+                        /*} else {
+                            self.downloader.delay_rsc(Resource::Tile(tile));
+                        }*/
                     }
                     Resource::Allsky(allsky) => {
                         let hips_cdid = allsky.get_hips_cdid();
@@ -720,7 +711,6 @@ impl App {
                                 // The allsky image is missing so we donwload all the tiles contained into
                                 // the 0's cell
                                 let cfg = survey.get_config();
-                                let _delta_depth = cfg.delta_depth();
                                 for texture_cell in crate::healpix::cell::ALLSKY_HPX_CELLS_D0 {
                                     for cell in texture_cell.get_tile_cells(cfg.delta_depth()) {
                                         let query = query::Tile::new(
@@ -729,8 +719,7 @@ impl App {
                                             cfg.get_root_url().to_string(),
                                             cfg.get_format(),
                                         );
-                                        self.tile_fetcher
-                                            .append_base_tile(query, &mut self.downloader);
+                                        self.tile_fetcher.append_base_tile(query);
                                     }
                                 }
                             } else {
@@ -771,26 +760,20 @@ impl App {
                 }
             }
 
-            // We fetch when we does not move
-            /*let has_not_moved_recently =
-                (Time::now() - self.camera.get_time_of_last_move()) > DeltaTime(100.0);
-            if has_not_moved_recently && self.inertia.is_none() {
-                // Triggers the fetching of new queued tiles
-                self.tile_fetcher.notify(&mut self.downloader);
-            }*/
+            // Tiles are fetched if:
+            let fetch_tiles = self.inertia.is_none() &&
+            // * the user is not zooming
+            !self.camera.has_zoomed() &&
+            // * no inertia action is in progress
+            (
+                // * the user is not panning the view
+                !self.dragging ||
+                // * or the user is but did not move for at least 100ms
+                (self.dragging && Time::now() - self.camera.get_time_of_last_move() >= DeltaTime(100.0))
+            );
 
-            // If there is inertia, we do not fetch any new tiles
-            if self.inertia.is_none() {
-                let has_not_moved_recently =
-                    (Time::now() - self.camera.get_time_of_last_move()) > DeltaTime(100.0);
-
-                let dt = if has_not_moved_recently {
-                    None
-                } else {
-                    Some(DeltaTime::from_millis(700.0))
-                };
-
-                self.tile_fetcher.notify(&mut self.downloader, dt);
+            if fetch_tiles {
+                self.tile_fetcher.notify(self.downloader.clone(), None);
             }
         }
 
@@ -798,7 +781,7 @@ impl App {
         //self.layers.update(&mut self.camera, &self.projection);
 
         if self.request_for_new_tiles
-            && Time::now() - self.last_time_request_for_new_tiles > DeltaTime::from(200.0)
+        //&& Time::now() - self.last_time_request_for_new_tiles > DeltaTime::from(200.0)
         {
             self.look_for_new_tiles()?;
 
@@ -809,27 +792,16 @@ impl App {
         // - there is at least one tile in its blending phase
         let blending_anim_occuring =
             (Time::now() - self.time_start_blending) < BLENDING_ANIM_DURATION;
-        /*let start_fading = self.layers.values_hips().any(|hips| {
-            if let Some(start_time) = hips.get_ready_time() {
-                Time::now() - *start_time < BLENDING_ANIM_DURATION
-            } else {
-                false
-            }
-        });*/
-
-        // Finally update the camera that reset the flag camera changed
-        //if has_camera_moved {
-        // Catalogues update
-        /*if let Some(view) = self.layers.get_view() {
-            self.manager.update(&self.camera, view);
-        }*/
-        //}
 
         // Check for async retrieval
         if let Ok(img) = self.img_recv.try_recv() {
             let params = img.get_params();
-            self.layers
-                .add_image(img, &mut self.camera, &self.projection)?;
+            self.layers.add_image(
+                img,
+                &mut self.camera,
+                &self.projection,
+                &mut self.tile_fetcher,
+            )?;
             self.request_redraw = true;
 
             // Send the ack to the js promise so that she finished
@@ -981,8 +953,12 @@ impl App {
     }
 
     pub(crate) fn remove_layer(&mut self, layer: &str) -> Result<(), JsValue> {
-        self.layers
-            .remove_layer(layer, &mut self.camera, &self.projection)?;
+        self.layers.remove_layer(
+            layer,
+            &mut self.camera,
+            &self.projection,
+            &mut self.tile_fetcher,
+        )?;
 
         self.request_redraw = true;
 
@@ -1005,17 +981,31 @@ impl App {
         Ok(())
     }
 
-    pub(crate) fn add_image_hips(&mut self, hips_cfg: HiPSCfg) -> Result<(), JsValue> {
-        let hips =
-            self.layers
-                .add_image_hips(&self.gl, hips_cfg, &mut self.camera, &self.projection)?;
+    pub(crate) fn add_image_hips(
+        &mut self,
+        hips_cfg: HiPSCfg,
+        local_files: Option<HiPSLocalFiles>,
+    ) -> Result<(), JsValue> {
+        let cdid = hips_cfg.properties.get_creator_did().to_string();
+
+        let hips = self.layers.add_image_hips(
+            &self.gl,
+            hips_cfg,
+            &mut self.camera,
+            &self.projection,
+            &mut self.tile_fetcher,
+        )?;
+
+        if let Some(local_files) = local_files {
+            self.tile_fetcher.insert_hips_local_files(cdid, local_files);
+        }
+
         self.tile_fetcher
-            .launch_starting_hips_requests(hips, &mut self.downloader);
+            .launch_starting_hips_requests(hips, self.downloader.clone());
 
         // Once its added, request the tiles in the view (unless the viewer is at depth 0)
         self.request_for_new_tiles = true;
         self.request_redraw = true;
-        //self.grid.update(&self.camera, &self.projection);
 
         Ok(())
     }
@@ -1115,7 +1105,6 @@ impl App {
 
     pub(crate) fn add_image_fits(
         &mut self,
-        id: String,
         stream: web_sys::ReadableStream,
         meta: ImageMetadata,
         layer: String,
@@ -1245,8 +1234,9 @@ impl App {
             } else {
                 let fits = ImageLayer {
                     images,
+                    id: layer.clone(),
+
                     layer,
-                    id,
                     meta,
                 };
 
@@ -1301,6 +1291,7 @@ impl App {
     ) -> Result<(), JsValue> {
         let old_meta = self.layers.get_layer_cfg(&layer)?;
         // Set the new meta
+        // keep the old meta data
         let new_img_fmt = meta.img_format;
         self.layers
             .set_layer_cfg(layer.clone(), meta, &mut self.camera, &self.projection)?;
@@ -1315,7 +1306,7 @@ impl App {
 
             // Relaunch the base tiles for the survey to be ready with the new url
             self.tile_fetcher
-                .launch_starting_hips_requests(hips, &mut self.downloader);
+                .launch_starting_hips_requests(hips, self.downloader.clone());
 
             // Once its added, request the tiles in the view (unless the viewer is at depth 0)
             self.request_for_new_tiles = true;
@@ -1504,7 +1495,7 @@ impl App {
         }
     }
 
-    pub(crate) fn press_left_button_mouse(&mut self, _sx: f32, _sy: f32) {
+    pub(crate) fn press_left_button_mouse(&mut self) {
         self.dist_dragging = 0.0;
         self.time_start_dragging = Time::now();
         self.dragging = true;
@@ -1514,11 +1505,10 @@ impl App {
         self.out_of_fov = false;
     }
 
-    pub(crate) fn release_left_button_mouse(&mut self, sx: f32, sy: f32) {
+    pub(crate) fn release_left_button_mouse(&mut self) {
         self.request_for_new_tiles = true;
 
         self.dragging = false;
-        let _cur_mouse_pos = [sx, sy];
 
         // Check whether the center has moved
         // between the pressing and releasing
@@ -1628,9 +1618,6 @@ impl App {
 
                 self.prev_cam_position = self.camera.get_center().truncate();
                 self.camera.apply_rotation(&(-axis), d, &self.projection);
-
-                /* 2. Or just set the center to the current position */
-                //self.set_center(&cur_pos.lonlat());
 
                 self.request_for_new_tiles = true;
             }

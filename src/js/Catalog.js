@@ -47,7 +47,7 @@ import { Footprint } from "./Footprint.js";
 * @property {string} [name="catalog"] - The name of the catalog.
 * @property {string} [color] - The color associated with the catalog.
 * @property {number} [sourceSize=8] - The size of the sources in the catalog.
-* @property {string|function|Image|HTMLCanvasElement} [shape="square"] - The shape of the sources (can be, "square", "circle", "plus", "cross", "rhomb", "triangle").
+* @property {string|Function|Image|HTMLCanvasElement|HTMLImageElement} [shape="square"] - The shape of the sources (can be, "square", "circle", "plus", "cross", "rhomb", "triangle").
 * @property {number} [limit] - The maximum number of sources to display.
 * @property {string|Function} [onClick] - Whether the source data appears as a table row or a in popup. Can be 'showTable' string, 'showPopup' string or a custom user defined function that handles the click.
 * @property {boolean} [readOnly=false] - Whether the catalog is read-only.
@@ -79,7 +79,9 @@ export let Catalog = (function () {
      *   markerSize: 15,
      *   shape: "circle",
      *   limit: 1000,
-     *   onClick: (source) => { /* handle source click * },
+     *   onClick: (source) => {
+     *      // handle sources
+     *   },
      *   readOnly: true,
      *   raField: "ra",
      *   decField: "dec",
@@ -479,7 +481,17 @@ export let Catalog = (function () {
         );
     };
 
-    // API
+    /**
+     * Set the shape of the sources
+     *
+     * @memberof Catalog
+     *
+     * @param {Object} [options] - shape options
+     * @param {string} [options.color] - the color of the shape
+     * @param {number} [options.sourceSize] - size of the shape
+     * @param {string|Function|HTMLImageCanvas|HTMLImageElement} [options.shape="square"] - the type of the shape. Can be square, rhomb, plus, cross, triangle, circle.
+     * A callback function can also be called that return an HTMLImageElement in function of the source object. A canvas or an image can also be given.
+     */
     Catalog.prototype.updateShape = function (options) {
         options = options || {};
         this.color = options.color || this.color || Color.getNextColor();
@@ -524,7 +536,13 @@ export let Catalog = (function () {
         this.reportChange();
     };
 
-    // API
+    /**
+     * Add sources to the catalog
+     *
+     * @memberof Catalog
+     *
+     * @param {Source[]} sources - An array of sources or only one source to add
+     */
     Catalog.prototype.addSources = function (sources) {
         // make sure we have an array and not an individual source
         sources = [].concat(sources);
@@ -559,45 +577,38 @@ export let Catalog = (function () {
         this.reportChange();
     };
 
-    /*Catalog.prototype.addFootprints = function(footprintsToAdd) {
-        footprintsToAdd = [].concat(footprintsToAdd); // make sure we have an array and not an individual footprints
-    	this.footprints = this.footprints.concat(footprintsToAdd);
-
-        footprintsToAdd.forEach(f => {
-            f.setCatalog(this);
-        })
-
-        this.reportChange();
-    };*/
-
     Catalog.prototype.computeFootprints = function (sources) {
         let footprints = [];
 
         if (this._shapeIsFunction) {
             for (const source of sources) {
                 try {
-                    let shape = this.shape(source);
+                    let shapes = this.shape(source);
+                    if (shapes) {
+                        shapes = [].concat(shapes);
 
-                    // convert simple shapes to footprints
-                    if (
-                        shape instanceof Circle ||
-                        shape instanceof Polyline ||
-                        shape instanceof Ellipse ||
-                        shape instanceof Vector
-                    ) {
-                        shape = new Footprint(shape, source);
-                    }
+                        // 1. return of the shape func is an image
+                        if (shapes.length == 1 && (shapes[0] instanceof Image || shapes[0] instanceof HTMLCanvasElement)) {
+                            source.setImage(shapes[0]);
+                        // 2. return of the shape is a set of shapes or a footprint
+                        } else {
+                            let footprint;
+                            if (shapes.length == 1 && shapes[0] instanceof Footprint) {
+                                footprint = shapes[0];
+                            } else {
+                                footprint = new Footprint(shapes, source);
+                            }
 
-                    if (shape instanceof Footprint) {
-                        let footprint = shape;
-                        this._shapeIsFootprintFunction = true;
-                        footprint.setCatalog(this);
+                            this._shapeIsFootprintFunction = true;
+                            footprint.setCatalog(this);
 
-                        // store the footprints
-                        footprints.push(footprint);
+                            // store the footprints
+                            footprints.push(footprint);
+                        }
                     }
                 } catch (e) {
                     // do not create the footprint
+                    console.warn("Return of shape function could not be interpreted as a footprint");
                     continue;
                 }
             }
@@ -615,12 +626,14 @@ export let Catalog = (function () {
         this.showFieldCallback[field] = callback;
     };
 
-    // API
-    //
-    // create sources from a 2d array and add them to the catalog
-    //
-    // @param columnNames: array with names of the columns
-    // @array: 2D-array, each item being a 1d-array with the same number of items as columnNames
+    /**
+     * Create sources from a 2d array and add them to the catalog
+     *
+     * @memberof Catalog
+     *
+     * @param {String[]} columnNames - array with names of the columns
+     * @param {String[][]|number[][]} array - 2D-array, each item being a 1d-array with the same number of items as columnNames
+     */
     Catalog.prototype.addSourcesAsArray = function (columnNames, array) {
         var fields = [];
         for (var colIdx = 0; colIdx < columnNames.length; colIdx++) {
@@ -662,7 +675,13 @@ export let Catalog = (function () {
         this.addSources(newSources);
     };
 
-    // return the current list of Source objects
+    /**
+     * Get all the sources
+     *
+     * @memberof Catalog
+     *
+     * @returns {Source[]} - an array of all the sources in the catalog object
+     */
     Catalog.prototype.getSources = function () {
         return this.sources;
     };
@@ -671,7 +690,11 @@ export let Catalog = (function () {
         return this.footprints;
     };
 
-    // TODO : fonction générique traversant la liste des sources
+    /**
+     * Select all the source catalog
+     *
+     * @memberof Catalog
+     */
     Catalog.prototype.selectAll = function () {
         if (!this.sources) {
             return;
@@ -682,6 +705,11 @@ export let Catalog = (function () {
         }
     };
 
+    /**
+     * Unselect all the source of the catalog
+     *
+     * @memberof Catalog
+     */
     Catalog.prototype.deselectAll = function () {
         if (!this.sources) {
             return;
@@ -692,7 +720,15 @@ export let Catalog = (function () {
         }
     };
 
-    // return a source by index
+    /**
+     * Get one source by its index in the catalog
+     *
+     * @memberof Catalog
+     * 
+     * @param {number} idx - the index of the source in the catalog sources
+     * 
+     * @returns {Source} - the source at the index
+     */
     Catalog.prototype.getSource = function (idx) {
         if (idx < this.sources.length) {
             return this.sources[idx];
@@ -701,42 +737,95 @@ export let Catalog = (function () {
         }
     };
 
-    Catalog.prototype.setView = function (view) {
+    Catalog.prototype.setView = function (view, idx) {
         this.view = view;
+
+        this.view.catalogs.push(this);
+        this.view.insertOverlay(this, idx);
+
         this.reportChange();
     };
 
+    /**
+     * Set the color of the catalog
+     *
+     * @memberof Catalog
+     * 
+     * @param {String} - the new color
+     */
     Catalog.prototype.setColor = function (color) {
         this.color = color;
         this.updateShape();
     };
 
+     /**
+     * Set the color of selected sources
+     *
+     * @memberof Catalog
+     * 
+     * @param {String} - the new color
+     */
     Catalog.prototype.setSelectionColor = function (color) {
         this.selectionColor = color;
         this.updateShape();
     };
 
+    /**
+     * Set the color of hovered sources
+     *
+     * @memberof Catalog
+     * 
+     * @param {String} - the new color
+     */
     Catalog.prototype.setHoverColor = function (color) {
         this.hoverColor = color;
         this.updateShape();
     };
 
+    /**
+     * Set the size of the catalog sources
+     *
+     * @memberof Catalog
+     * 
+     * @param {number} - the new size
+     */
     Catalog.prototype.setSourceSize = function (sourceSize) {
         // will be discarded in updateShape if the shape is an Image
         this.sourceSize = sourceSize;
         this.updateShape();
     };
 
+    /**
+     * Set the color of the catalog
+     *
+     * @memberof Catalog
+     * 
+     * @param {string|Function|HTMLImageCanvas|HTMLImageElement} [shape="square"] - the type of the shape. Can be square, rhomb, plus, cross, triangle, circle.
+     * A callback function can also be called that return an HTMLImageElement in function of the source object. A canvas or an image can also be given.
+     */
     Catalog.prototype.setShape = function (shape) {
         this.shape = shape;
         this.updateShape();
     };
 
+    /**
+     * Get the size of the catalog sources
+     *
+     * @memberof Catalog
+     * 
+     * @returns {number} - the size of the sources
+     */
     Catalog.prototype.getSourceSize = function () {
         return this.sourceSize;
     };
 
-    // remove a source
+    /**
+     * Remove a specific source from the catalog
+     *
+     * @memberof Catalog
+     * 
+     * @param {Source} - the source to remove
+     */
     Catalog.prototype.remove = function (source) {
         var idx = this.sources.indexOf(source);
         if (idx < 0) {
@@ -754,12 +843,19 @@ export let Catalog = (function () {
         this.reportChange();
     };
 
+    /**
+     * Clear all the sources from the catalog
+     *
+     * @memberof Catalog
+     */
     Catalog.prototype.removeAll = Catalog.prototype.clear = function () {
         // TODO : RAZ de l'index
         this.sources = [];
         this.ra = [];
         this.dec = [];
         this.footprints = [];
+
+        this.reportChange();
     };
 
     Catalog.prototype.draw = function (ctx, width, height) {
@@ -829,6 +925,12 @@ export let Catalog = (function () {
         if (s.x <= width && s.x >= 0 && s.y <= height && s.y >= 0) {
             if (this._shapeIsFunction && !this._shapeIsFootprintFunction) {
                 this.shape(s, ctx, this.view.getViewParams());
+            } else if (s.image) {
+                ctx.drawImage(
+                    s.image,
+                    s.x - s.image.width / 2,
+                    s.y - s.image.height / 2
+                );
             } else if (s.marker && s.useMarkerDefaultIcon) {
                 ctx.drawImage(
                     this.cacheMarkerCanvas,
@@ -891,8 +993,6 @@ export let Catalog = (function () {
 
             f.draw(ctx, this.view);
             f.source.tooSmallFootprint = f.isTooSmall();
-            // propagate the info that the footprint is too small
-            //f.source.tooSmallFootprint = f.isTooSmall
         }
     };
 
@@ -901,6 +1001,11 @@ export let Catalog = (function () {
         this.view && this.view.requestRedraw();
     };
 
+    /**
+     * Show the catalog
+     *
+     * @memberof Catalog
+     */
     Catalog.prototype.show = function () {
         if (this.isShowing) {
             return;
@@ -914,6 +1019,11 @@ export let Catalog = (function () {
         this.reportChange();
     };
 
+    /**
+     * Hide the catalog
+     *
+     * @memberof Catalog
+     */
     Catalog.prototype.hide = function () {
         if (!this.isShowing) {
             return;

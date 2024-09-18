@@ -1,0 +1,1399 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, user-scalable=no">
+
+  <script type="text/javascript">
+const cEl = function(a) {return document.createElement(a)};
+const cTn = function(a) {return document.createTextNode(a)};
+
+// Show more javascript code
+var ShowMore = function () { "use strict"; var e = function (e, t) { var n = e.rows, r = e.children, a = "table" === t ? n : r, i = [].slice.call(a).filter((function (e) { return e.classList.contains("hidden") })).length; return 0 !== i ? " " + i : "" }, t = function (e, t) { return void 0 === t && (t = !1), e.classList[t ? "add" : "remove"]("hidden") }, n = function (e, t) { for (var n in t) e.setAttribute(n, t[n]) }, r = function (e) { return cEl(e) }, a = { newLine: { match: /(\r\n|\n|\r)/gm, replace: "" }, space: { match: /\s\s+/gm, replace: " " }, br: { match: /<br\s*\/?>/gim, replace: "" }, html: { match: /(<((?!b|\/b|!strong|\/strong)[^>]+)>)/gi, replace: "" } }, i = { typeElement: "span", more: !1, less: !1, number: !1, nobutton: !1, after: 0, btnClass: "show-more-btn", btnClassAppend: null }; return function (o, f) { var l = this, s = void 0 === f ? {} : f, c = s.onMoreLess, u = void 0 === c ? function () { } : c, d = s.regex, v = void 0 === d ? {} : d, b = s.config; this.t = function () { var e = l.i, a = e.element, i = e.after, o = e.ellipsis, f = e.nobutton, s = e.limit, c = e.type; n(a, { "aria-expanded": "false" }); var u = s + i, d = !1 === o ? "" : "..."; if ("text" === c) { var v = a.innerHTML.trim(); if (a.textContent.trim().length > u) { var b = v; for (var p in l.o) { var h = l.o[p], m = h.match, x = h.replace; p && m && (b = b.replace(m, x)) } var g = function (e, t) { var n = r("div"); return n.insertAdjacentHTML("afterbegin", e), function e(t, n) { var r = t.firstChild; do { 3 === r.nodeType ? n(r) : 1 === r.nodeType && r.childNodes && r.childNodes[0] && e(r, n) } while (r = r.nextSibling) }(n, (function (e) { if (t > 0) { var n = e.data.length; (t -= n) <= 0 && (e.data = e.substringData(0, e.data.length + t)) } else e.data = "" })), n.innerHTML }(b, s - 1).concat(d); if (a.textContent = "", a.insertAdjacentHTML("beforeend", g), l.l(a, Object.assign({}, l.i, { originalText: v, truncatedText: g })), f) return; l.s(l.i) } } if ("list" === c || "table" === c) { var w = l.u(a, c); if (w.length > u) { for (var O = s; O < w.length; O++)t(w[O], !0); if (f || l.s(l.i), l.l("list" === c ? a : a.nextElementSibling, l.i), f) return } } }, this.l = function (e, t) { return e.addEventListener("click", l.v.bind(l, t)) }, this.p = function (t) { var a = t.element, i = t.number, o = t.less, f = t.more, s = t.type, c = t.btnClass, u = t.btnClassAppend, d = l.h ? o || "" : f || "", v = l.h ? "collapse" : "expand", b = !!l.h, p = r("button"); return p.className = null == u ? c : c + " " + u, n(p, { "aria-expanded": b, "aria-label": v, tabindex: 0 }), p.insertAdjacentHTML("beforeend", i ? d + e(a, s) : d), p }, this.v = function (e, n) { var a = n.target, i = e.element, o = e.type, f = e.limit, s = e.less, c = e.typeElement, u = e.originalText, d = e.truncatedText, v = e.btnClass, b = a.classList.contains(v); if (b) { var p = i.getAttribute("aria-expanded"); if (l.h = "false" === p, "text" === o && b && (i.textContent = "", i.insertAdjacentHTML("beforeend", l.h ? u : d), s)) { var h = r(c); h.classList.add("show-more-wrapper"), h.insertAdjacentElement("beforeend", l.p(e)), i.appendChild(h) } if ("list" === o || "table" === o) for (var m = l.u(i, o), x = 0; x < m.length; x++) { var g = "list" === o ? x >= f && x < m.length - 1 : x >= f; "false" === p ? t(m[x]) : g && t(m[x], !0) } o && l.m(Object.assign({}, e, { target: a })) } }, this.u = function (e, t) { return "list" === t ? [].slice.call(e.children) : e.rows }, this.s = function (e) { var t = e.type, n = e.element, a = e.more, i = e.typeElement; if (a) if ("table" === t) n.insertAdjacentElement("afterend", l.p(e)); else { var o = r(i); o.classList.add("show-more-wrapper"), o.appendChild(l.p(e)), n.appendChild(o) } }, this.m = function (t) { var r = t.element, a = t.type, i = t.less, o = t.more, f = t.number, s = t.target, c = l.h ? i : o, u = l.h ? "expand" : "collapse", d = "table" === a ? a : "the " + a, v = r.lastElementChild; n(r, { "aria-expanded": l.h }), n(s, { "aria-expanded": l.h, "aria-label": u + " " + d }), l.g(u, t), c ? s.innerHTML = f ? c + e(r, a) : c : "table" === a ? s.parentNode.removeChild(s) : "list" === a && v.parentNode.removeChild(v) }; var p = [].slice.call(document.querySelectorAll(o)); this.g = u, this.o = Object.assign({}, a, v), p.map((function (e, t) { var n = JSON.parse(e.getAttribute("data-config")), r = b, a = Object.assign({}, r, n); l.i = Object.assign({ index: t, classArray: e.classList }, i, a, { typeElement: a.element || "span", element: e }), l.t() })) } }();
+
+// SAMP JS
+var samp=function(){var t="samp.webhub.";TYPE_STRING="string",TYPE_LIST="list",TYPE_MAP="map";var e=function(t){if("string"==typeof t)return TYPE_STRING;if(t instanceof Array)return TYPE_LIST;if(t instanceof Object&&null!==t)return TYPE_MAP;throw Error("Not legal SAMP object type: "+t)},n=function(t,e){var n,r,o=t.childNodes,i=[];for(r=0;r<o.length;r++)if(1===(n=o[r]).nodeType){if(e&&n.tagName!==e)throw Error("Child <"+o[r].tagName+"> of <"+t.tagName+"> is not a <"+e+">");i.push(n)}return i},r=function(t,e){var r=n(t,e);if(1===r.length)return r[0];throw Error("No sole child of <"+t.tagName+">")},o=function(t){var e,n,r="";for(e=0;e<t.childNodes.length;e++){if(1===(n=t.childNodes[e]).nodeType)throw Error("Element found in text content");(3===n.nodeType||4===n.nodeType)&&(r+=n.nodeValue)}return r},i={};i.escapeXml=function(t){return t.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")},i.checkParams=function(t,n){for(r=0;r<n.length;r++)if(n[r]!==TYPE_STRING&&n[r]!==TYPE_LIST&&n[r]!==TYPE_MAP)throw Error("Unknown type "+n[r]+" in check list");var r,o=t.length,i=[],a=!0;for(r=0;r<o;r++)i.push(e(t[r]));for(r=0,a=a&&n.length===o;a&&r<o;r++)a=a&&n[r]===i[r];if(!a)throw Error("Param type list mismatch: ["+n+"] != ["+i+"]")},i.valueToXml=function t(n,r){r=r||"";var o,a,s=e(n);if(s===TYPE_STRING)return r+"<value><string>"+i.escapeXml(n)+"</string></value>";if(s===TYPE_LIST){for((a=[]).push(r+"<value>",r+"  <array>",r+"    <data>"),o=0;o<n.length;o++)a.push(t(n[o],r+"      "));return a.push(r+"    </data>",r+"  </array>",r+"</value>"),a.join("\n")}if(s===TYPE_MAP){for(o in(a=[]).push(r+"<value>"),a.push(r+"  <struct>"),n)a.push(r+"    <member>"),a.push(r+"      <name>"+i.escapeXml(o)+"</name>"),a.push(t(n[o],r+"      ")),a.push(r+"    </member>");return a.push(r+"  </struct>"),a.push(r+"</value>"),a.join("\n")}throw Error("bad type")},i.xmlToValue=function t(e,i){var a=n(e);if(0===a.length)return o(e);if(1===a.length){if("string"===(h=(p=a[0]).tagName))return o(p);if("array"===h){var s=n(r(p,"data"),"value"),c=[];for(u=0;u<s.length;u++)c.push(t(s[u],i));return c}if("struct"===h){var u,l,p,h,f,d,m,g=n(p,"member"),v={};for(u=0;u<g.length;u++){for(l=0,f=void 0,d=void 0;l<g[u].childNodes.length;l++)1==(m=g[u].childNodes[l]).nodeType&&("name"===m.tagName?f=o(m):"value"===m.tagName&&(d=t(m,i)));if(void 0!==f&&void 0!==d)v[f]=d;else throw Error("No <name> and/or <value> in <member>?")}return v}else if(i&&("int"===h||"i4"===h))return o(p);else throw Error("Non SAMP-friendly value content: <"+h+">")}throw Error("Bad XML-RPC <value> content - multiple elements")},i.decodeParams=function(t){var e,o=n(t,"param"),a=[];for(e=0;e<o.length;e++)a.push(i.xmlToValue(r(o[e],"value")));return a},i.decodeFault=function(t){var e=i.xmlToValue(r(t,"value"),!0);return new i.Fault(e.faultString,e.faultCode)},i.decodeResponse=function(t){var e=t.documentElement;if("methodResponse"!==e.tagName)throw Error("Response element is not <methodResponse>");var n=r(e);if("fault"===n.tagName)return i.decodeFault(n);if("params"===n.tagName)return i.decodeParams(n)[0];throw Error("Bad XML-RPC response - unknown element <"+n.tagName+">")},i.Fault=function(t,e){this.faultString=t,this.faultCode=e},i.Fault.prototype.toString=function(){return"XML-RPC Fault ("+this.faultCode+"): "+this.faultString};var a=function(t,e){this.methodName=t,this.params=e||[]};a.prototype.toString=function(){var t;return this.methodName+"("+(t=this.params,"undefined"==typeof JSON?"...":JSON.stringify(t))+")"},a.prototype.addParam=function(t){return this.params.push(t),this},a.prototype.addParams=function(t){var e;for(e=0;e<t.length;e++)this.params.push(t[e]);return this},a.prototype.checkParams=function(t){i.checkParams(this.params,t)},a.prototype.toXml=function(){var t=[];t.push("<?xml version='1.0'?>","<methodCall>","  <methodName>"+this.methodName+"</methodName>","  <params>");for(var e=0;e<this.params.length;e++)t.push("    <param>",i.valueToXml(this.params[e],"      "),"    </param>");return t.push("  </params>","</methodCall>"),t.join("\n")};var s=function(t){this.endpoint=t||"http://localhost:21012/"};s.createXHR=function(){var t=function(t){var e,n,r;this.xhr=t,t.onreadystatechange=(e=this,function(){4===t.readyState&&!e.completed&&200==+t.status&&(e.completed=!0,e.responseText=t.responseText,e.responseXML=t.responseXML,e.onload&&e.onload())}),t.onerror=(n=this,function(t){!n.completed&&(n.completed=!0,n.onerror&&(t?t.toString=function(){return"No hub?"}:t="No hub?",n.onerror(t)))}),t.ontimeout=(r=this,function(t){!r.completed&&(r.completed=!0,r.onerror&&r.onerror("timeout"))})};t.prototype.open=function(t,e){this.xhr.open(t,e)},t.prototype.send=function(t){this.xhr.send(t)},t.prototype.abort=function(){this.xhr.abort()},t.prototype.setContentType=function(t){"setRequestHeader"in this.xhr&&this.xhr.setRequestHeader("Content-Type",t)};var e=function(t){var e,n,r;this.xdr=t,t.onload=(e=this,function(){if(e.responseText=t.responseText,"text/xml"===t.contentType||"application/xml"===t.contentType||/\/x-/.test(t.contentType))try{var n=new ActiveXObject("Microsoft.XMLDOM");n.loadXML(t.responseText),e.responseXML=n}catch(r){e.responseXML=r}e.onload&&e.onload()}),t.onerror=(n=this,function(t){n.onerror&&n.onerror(t)}),t.ontimeout=(r=this,function(t){r.onerror&&r.onerror(t)})};if(e.prototype.open=function(t,e){this.xdr.open(t,e)},e.prototype.send=function(t){this.xdr.send(t)},e.prototype.abort=function(){this.xdr.abort()},e.prototype.setContentType=function(t){},"undefined"!=typeof XMLHttpRequest){var n=new XMLHttpRequest;if("withCredentials"in n)return new t(n)}if("undefined"!=typeof XDomainRequest)return new e(new XDomainRequest);if(void 0!==flensed.flXHR)return new t(new flensed.flXHR({instancePooling:!0}));throw Error("no cross-origin mechanism available")},s.prototype.execute=function(t,e,n){!function(r){var o;try{(o=s.createXHR()).open("POST",r.endpoint),o.setContentType("text/xml")}catch(a){throw n(a),a}o.onload=function(){var t,r=o.responseXML;if(r)try{t=i.decodeResponse(r)}catch(a){n&&n(a);return}else{n&&n("no XML response");return}t instanceof i.Fault?n&&n(t):e&&e(t)},o.onerror=function(t){t?t.toString=function(){return"No hub?"}:t="No hub",n&&n(t)},o.send(t.toXml())}(this)};var c=function(t,e){this["samp.mtype"]=t,this["samp.params"]=e},u=function(t){this.regInfo=t,this.privateKey=t["samp.private-key"],this.privateKey,this.xClient=new s};!function(){var e,n={call:[TYPE_STRING,TYPE_STRING,TYPE_MAP],callAll:[TYPE_STRING,TYPE_MAP],callAndWait:[TYPE_STRING,TYPE_MAP,TYPE_STRING],declareMetadata:[TYPE_MAP],declareSubscriptions:[TYPE_MAP],getMetadata:[TYPE_STRING],getRegisteredClients:[],getSubscribedClients:[TYPE_STRING],getSubscriptions:[TYPE_STRING],notify:[TYPE_STRING,TYPE_MAP],notifyAll:[TYPE_MAP],ping:[],reply:[TYPE_STRING,TYPE_MAP]};for(e in n)!function(e,n){u.prototype[e]=function(r,o,s){var c=function(t){return function(){t.close()}}(this);s=s||c,i.checkParams(r,n);var u=new a(t+e);return u.addParam(this.privateKey),u.addParams(r),this.xClient.execute(u,o,s)}}(e,n[e])}(),u.prototype.unregister=function(){if(this.callbackRequest)try{this.callbackRequest.abort()}catch(e){}var n=new a(t+"unregister");n.addParam(this.privateKey);try{this.xClient.execute(n)}catch(r){}delete this.regInfo,delete this.privateKey},u.prototype.close=function(){if(!this.closed){this.closed=!0;try{this.regInfo&&this.unregister()}catch(t){}if(this.onclose){oc=this.onclose,delete this.onclose;try{oc()}catch(e){}}}},u.prototype.setCallable=function(n,r){if(this.callbackRequest)try{this.callbackRequest.abort()}catch(o){}finally{delete this.callbackRequest}if(n||this.regInfo){var i,s=new a(t+"allowReverseCallbacks");s.addParam(this.privateKey),s.addParam(n?"1":"0");var c=(i=this,function(){i.close()});n?function(o){var i,u=function(t){var e=t["samp.methodName"],r=t["samp.params"],o=void 0;"receiveNotification"===e?o=n.receiveNotification:"receiveCall"===e?o=n.receiveCall:"receiveResponse"===e&&(o=n.receiveResponse),o&&o.apply(n,r)},l=function(t){var n;if(e(t)!=TYPE_LIST){p(Error("pullCallbacks result not List"));return}for(n=0;n<t.length;n++)try{u(t[n])}catch(r){}h()},p=function(t){new Date().getTime()-i<1e3?o.close():h()},h=function(){if(o.regInfo){var e=new a(t+"pullCallbacks");e.addParam(o.privateKey),e.addParam("600"),i=new Date().getTime(),o.callbackRequest=o.xClient.execute(e,l,p)}},f=function(){h(),r()};o.xClient.execute(s,f,c)}(this):this.xClient.execute(s,r,c)}},u.prototype.translateUrl=function(t){return(this.regInfo["samp.url-translator"]||"")+t},u.Action=function(t,e,n){this.actName=t,this.actArgs=e,this.resultKey=n};var l=function(t){this.callHandler={},this.replyHandler={}};l.prototype.init=function(t){},l.prototype.receiveNotification=function(t,e){var n=e["samp.mtype"],r=!1;if(n in this.callHandler){try{this.callHandler[n](t,e,!1)}catch(o){}r=!0}return r},l.prototype.receiveCall=function(t,e,n){var r,o,i=n["samp.mtype"],a=!1;if(i in this.callHandler)try{o=this.callHandler[i](t,n,!0)||{},r={"samp.status":"samp.ok","samp.result":o},a=!0}catch(s){r={"samp.status":"samp.error","samp.error":{"samp.errortxt":s.toString()}}}else r={"samp.status":"samp.warning","samp.result":{},"samp.error":{"samp.errortxt":"no action"}};return this.connection.reply([e,r]),a},l.prototype.receiveResponse=function(t,e,n){var r=!1;if(e in this.replyHandler)try{this.replyHandler[e](t,e,n),r=!0}catch(o){}return r},l.prototype.calculateSubscriptions=function(){var t,e={};for(t in this.callHandler)e[t]={};return e};var p=function(){var t=this;this.ids={},this.metas={},this.subs={},this.replyHandler={},this.callHandler={"samp.hub.event.shutdown":function(e,n){t.connection.close()},"samp.hub.disconnect":function(e,n){t.connection.close()},"samp.hub.event.register":function(e,n){var r=n["samp.params"].id;t.ids[r]=!0,t.changed(r,"register",null)},"samp.hub.event.unregister":function(e,n){var r=n["samp.params"].id;delete t.ids[r],delete t.metas[r],delete t.subs[r],t.changed(r,"unregister",null)},"samp.hub.event.metadata":function(e,n){var r=n["samp.params"].id,o=n["samp.params"].metadata;t.metas[r]=o,t.changed(r,"meta",o)},"samp.hub.event.subscriptions":function(e,n){var r=n["samp.params"].id,o=n["samp.params"].subscriptions;t.subs[r]=o,t.changed(r,"subs",o)}}};p.prototype=function(t){function e(){}return e.prototype=t,new e}(l.prototype),p.prototype.changed=function(t,e,n){this.onchange&&this.onchange(t,e,n)},p.prototype.init=function(t){var e=this;this.connection=t;var n=function(n,r,o,i){t[o]([n],function(t){i[n]=t,e.changed(n,r,t)})};t.getRegisteredClients([],function(t){var r,o;for(r=0,e.ids={};r<t.length;r++)o=t[r],e.ids[o]=!0,n(o,"meta","getMetadata",e.metas),n(o,"subs","getSubscriptions",e.subs);e.changed(null,"ids",null)})},p.prototype.getName=function(t){var e=this.metas[t];return e&&e["samp.name"]?e["samp.name"]:"["+t+"]"};var h=function(t,e,n,r){this.name=t,this.meta=e,this.callableClient=n,this.subs=r,this.regTextNodes=[],this.whenRegs=[],this.whenUnregs=[],this.connection=void 0,this.onreg=void 0,this.onunreg=void 0},f=function(t,e){var n,r,o=t.regTextNodes;for(n=0;n<o.length;n++)(r=o[n]).innerHTML="",r.appendChild(document.createTextNode(e))};h.prototype.setConnection=function(t){var e=this;if(this.connection&&(this.connection.close(),this.onunreg))try{this.onunreg()}catch(n){}if(this.connection=t,t&&(t.onclose=function(){if(e.connection=null,e.onunreg)try{e.onunreg()}catch(t){}e.update()},this.meta&&t.declareMetadata([this.meta]),this.callableClient&&(this.callableClient.init&&this.callableClient.init(t),t.setCallable(this.callableClient,function(){t.declareSubscriptions([e.subs])})),this.onreg))try{this.onreg(t)}catch(r){}this.update()},h.prototype.register=function(){var t=this,e=function(e){f(t,"no ("+e.toString()+")")},n=function(e){t.setConnection(e),f(t,e?"Yes":"No")};m(this.name,n,e)},h.prototype.unregister=function(){this.connection&&(this.connection.unregister([]),this.setConnection(null))},h.prototype.createRegButtons=function(){var t=this,e=document.createElement("button");e.setAttribute("type","button"),e.appendChild(document.createTextNode("Register")),e.onclick=function(){t.register()},this.whenUnregs.push(e);var n=document.createElement("button");n.setAttribute("type","button"),n.appendChild(document.createTextNode("Unregister")),n.onclick=function(){t.unregister()},this.whenRegs.push(n);var r=document.createElement("span");this.regTextNodes.push(r);var o=document.createDocumentFragment();o.appendChild(e),o.appendChild(document.createTextNode(" ")),o.appendChild(n);var i=document.createElement("span");return i.innerHTML=" <strong>Registered: </strong>",o.appendChild(i),o.appendChild(r),this.update(),o},h.prototype.update=function(){var t,e=!!this.connection,n=e?this.whenRegs:this.whenUnregs,r=e?this.whenUnregs:this.whenRegs;for(t=0;t<n.length;t++)n[t].removeAttribute("disabled");for(t=0;t<r.length;t++)r[t].setAttribute("disabled","disabled");f(this,"No")},h.prototype.runWithConnection=function(t,e){var n=this,r=function(e){n.setConnection(e),t(e)},o=function(t){n.setConnection(void 0),e(t)},i=function(e){t(n.connection)},a=function(t){m(this.name,r,o)};this.connection?this.connection.getRegisteredClients([],i,a):m(this.name,r,o)},h.prototype.onHubAvailability=function(t,e){return samp.ping(t),setInterval(function(){samp.ping(t)},e)};var d=function(t,e){var n;for(n in t)if(function(t,e){if(t==e||"*"===t)return!0;var r,o=/^(.*)\.\*$/.exec(n);return!!o&&(r=o[1])===e.substring(0,r.length)}(n,e))return!0;return!1},m=function(e,n,r){var o=new s,i=new a(t+"register");i.addParam({"samp.name":e}),i.checkParams([TYPE_MAP]);var c=function(t){var e;try{e=new u(t)}catch(o){r(o);return}n(e)};o.execute(i,c,r)},g=function(e){var n=new s,r=new a(t+"ping"),o=function(t){e(!0)},i=function(t){e(!1)};n.execute(r,o,i)},v={};return v.XmlRpcRequest=a,v.XmlRpcClient=s,v.Message=c,v.TYPE_STRING=TYPE_STRING,v.TYPE_LIST=TYPE_LIST,v.TYPE_MAP=TYPE_MAP,v.register=m,v.ping=g,v.isSubscribed=d,v.Connector=h,v.CallableClient=l,v.ClientTracker=p,v}();
+
+const escapeStr = function(s) {
+    if (!s) {
+        return '';
+    }
+    return s.replace(/(["])/g, "\\$1");
+}
+
+let aladin;
+let moc;
+const buildLandingPage = function(options) {
+
+    // set style
+    const style = cEl('style');
+    style.textContent = `
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+      }
+
+      body {
+        background-color: #232323;
+      }
+
+      html {
+        font-family: sans-serif;
+        line-height: 1.15;
+      }
+
+      [type="checkbox"] {
+        vertical-align: text-bottom;
+      }
+
+      a {
+        text-decoration: none;
+		color: #47a4eb;
+      }
+
+
+      h1 {
+        font-size: 2rem;
+        font-weight: 400;
+        color: #eeeeee;
+        text-align: center;
+      }
+
+      @media screen and (max-width: 700px) {
+        h1 {
+          font-size: 1.3rem;
+        }
+
+
+      #targets-selector {
+            display: none;
+        }
+      }
+
+      h2 {
+        font-size: 1.4rem;
+        overflow-wrap: anywhere;
+        padding-left: 4rem;
+	    padding-right: 1rem;
+        color: #eeeeee;
+        text-align: center;
+      }
+
+      h3 {
+          background-color: #232323;
+          color: #eeeeee;
+          margin: 0;
+          padding: 0.6rem;
+      }
+
+      .dataAccess {
+          background-color: #eee;
+          padding: 1rem;
+      }
+
+      .doiDisplay {
+          background-color: #eee;
+          padding: 1rem;
+      }
+
+      .doiLink {
+          padding-left: 1.5rem;
+          background: url(data:image/svg+xml;charset=UTF-8,%3C%3Fxml%20version%3D%221.0%22%20encoding%3D%22UTF-8%22%20standalone%3D%22no%22%3F%3E%0A%3Csvg%20version%3D%221.1%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%221%201%20128%20128%22%3E%0A%3Ccircle%20style%3D%22fill%3A%23fcb425%22%20cx%3D%2265%22%20cy%3D%2265%22%20r%3D%2264%22%2F%3E%0A%3Cpath%20style%3D%22fill%3A%23231f20%22%20d%3D%22m%2049.819127%2C84.559148%20-11.854304%2C0%200%2C-4.825665%20c%20-1.203594%2C1.510894%20-4.035515%2C3.051053%20-5.264716%2C3.742483%20-2.151101%2C1.203585%20-5.072066%2C1.987225%20-7.812161%2C1.987225%20-4.430246%2C0%20-8.373925%2C-1.399539%20-11.831057%2C-4.446924%20-4.1229464%2C-3.636389%20-6.0602455%2C-9.19576%20-6.0602455%2C-15.188113%200%2C-6.094791%202.1126913%2C-10.960381%206.3380645%2C-14.59676%203.354695%2C-2.893745%207.457089%2C-5.209795%2011.810505%2C-5.209795%202.535231%2C0%205.661807%2C0.227363%207.889738%2C1.302913%201.280414%2C0.614601%203.572628%2C2.060721%204.929872%2C3.469179%20l%200%2C-25.420177%2011.854304%2C0%20z%20m%20-12.1199%2C-18.692584%20c%200%2C-2.253538%20-0.618258%2C-4.951555%20-2.205973%2C-6.513663%20-1.587724%2C-1.587724%20-4.474153%2C-2.996182%20-6.727691%2C-2.996182%20-2.509615%2C0%20-4.834476%2C1.825511%20-6.447807%2C3.720535%20-1.306031%2C1.536501%20-1.959041%2C3.905269%20-1.959041%2C5.877114%200%2C1.971835%200.740815%2C4.165004%202.046836%2C5.701505%201.587714%2C1.895025%203.297985%2C3.193739%205.833216%2C3.193739%202.279145%2C0%204.989965%2C-0.956662%206.552083%2C-2.51877%201.587714%2C-1.562108%202.908377%2C-4.185134%202.908377%2C-6.464278%20z%22%2F%3E%0A%3Cpath%20style%3D%22fill%3A%23fff%22%20d%3D%22m%20105.42764%2C25.617918%20c%20-1.97184%2C0%20-3.64919%2C0.69142%20-5.03204%2C2.074271%20-1.357247%2C1.357245%20-2.035864%2C3.021779%20-2.035864%2C4.993633%200%2C1.971835%200.678617%2C3.649193%202.035864%2C5.032034%201.38285%2C1.382861%203.0602%2C2.074281%205.03204%2C2.074281%201.99744%2C0%203.67479%2C-0.678627%205.03203%2C-2.035861%201.38285%2C-1.382861%202.07428%2C-3.073012%202.07428%2C-5.070454%200%2C-1.971854%20-0.69143%2C-3.636388%20-2.07428%2C-4.993633%20-1.38285%2C-1.382851%20-3.0602%2C-2.074271%20-5.03203%2C-2.074271%20z%20M%2074.219383%2C45.507921%20c%20-7.323992%2C0%20-12.970625%2C2.283009%20-16.939921%2C6.848949%20-3.277876%2C3.782438%20-4.916803%2C8.118252%20-4.916803%2C13.008406%200%2C5.430481%201.626124%2C10.009834%204.878383%2C13.738236%203.943689%2C4.538918%209.475093%2C6.808622%2016.59421%2C6.808622%207.093512%2C0%2012.612122%2C-2.269704%2016.555801%2C-6.808622%203.252259%2C-3.728402%204.878393%2C-8.1993%204.878393%2C-13.413648%200%2C-5.160323%20-1.638938%2C-9.604602%20-4.916803%2C-13.332994%20-4.020509%2C-4.56594%20-9.398263%2C-6.848949%20-16.13326%2C-6.848949%20z%20m%2024.908603%2C1.386686%200%2C37.634676%2012.599304%2C0%200%2C-37.634676%20-12.599304%2C0%20z%20M%2073.835252%2C56.975981%20c%202.304752%2C0%204.263793%2C0.852337%205.877124%2C2.554426%201.638928%2C1.675076%202.458402%2C3.727881%202.458402%2C6.159457%200%2C2.458578%20-0.806671%2C4.538022%20-2.419992%2C6.240111%20-1.613331%2C1.675086%20-3.585175%2C2.514099%20-5.915534%2C2.514099%20-2.612051%2C0%20-4.737546%2C-1.027366%20-6.376474%2C-3.080682%20-1.331637%2C-1.648053%20-1.997451%2C-3.539154%20-1.997451%2C-5.673528%200%2C-2.107362%200.665814%2C-3.985138%201.997451%2C-5.633201%201.638928%2C-2.053316%203.764423%2C-3.080682%206.376474%2C-3.080682%20z%22%2F%3E%0A%3C%2Fsvg%3E) center left no-repeat;
+      }
+
+      .box_h {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .box_v {
+        display: flex;
+        flex-direction: row;
+      }
+
+
+
+      #hamburger {
+        display: none;
+      }
+
+      .menu {
+        width: 10rem;
+        height: 10rem;
+        background-color: #1377d6;
+        border-radius: 100%;
+        transform: translate(-50%, -50%);
+        transition: all .3s;
+      }
+
+
+      label.hamburger {
+        position: absolute;
+        width: 10rem;
+        height: 10rem;
+        border-radius: 100%;
+        transform: translate(-50%, -50%);
+        z-index: 2;
+        cursor: pointer;
+        tap-highlight-color: transparent;
+      }
+
+      label.hamburger:before {
+        content: "";
+        position: absolute;
+        top: 65%;
+        left: 65%;
+        width: 1em;
+        height: 0.15em;
+        background: white;
+        box-shadow: 0 0.25em 0 0 white, 0 0.5em 0 0 white;
+        transform: scale(2);
+      }
+
+
+      .menu-container .links {
+        display: none;
+      }
+
+      .menu-container {
+        width: 100px;
+        height: 100%;
+        overflow: hidden;
+      }
+
+      #hamburger:checked~.box_v .menu-container {
+        background-color: #1377d6;
+        width: 50%;
+        transition: all .3s;
+		overflow: scroll;
+
+      }
+
+      #hamburger:checked~.box_v .menu-container .links {
+        display: block;
+
+        /*   width: 300px;*/
+      }
+
+      #hamburger:checked~.box_v .menu-container .menu {
+        height: 0rem;
+
+      }
+
+
+      .styled-table {
+        border-collapse: collapse;
+        margin: 0 0;
+        font-size: 0.9em;
+        font-family: sans-serif;
+        width: 100%;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+        table-layout: fixed;
+      }
+
+      .styled-table thead tr {
+        background-color: #009879;
+        color: #ffffff;
+        text-align: left;
+      }
+
+      .styled-table th,
+      .styled-table td {
+        padding: 12px 15px;
+        word-wrap: break-word
+      }
+
+      .styled-table tbody tr {
+        border-bottom: 1px solid #dddddd;
+      }
+
+      .styled-table tbody tr:nth-of-type(even) {
+        background-color: #f3f3f3;
+      }
+
+      .styled-table tbody tr:nth-of-type(odd) {
+        background-color: #e3e3e3;
+      }
+
+
+
+      .green-table tbody tr {
+        border-left: 6px solid #009879;
+      }
+
+      .yellow-table tbody tr {
+        border-left: 6px solid #f7e260;
+      }
+
+      .purple-table tbody tr {
+        border-left: 6px solid #98008a;
+      }
+
+      .grey-table tbody tr {
+        border-left: 6px solid #4f4f4f;
+      }
+
+      /* show-more CSS */
+      .show-more-btn {
+        margin: auto;
+        cursor: pointer;
+        color: #0095e5;
+        white-space: nowrap;
+        transition: color 300ms ease-in-out;
+        border: 0;
+        font-size: 0.8em;
+        background: transparent;
+      }
+
+      .show-more-btn:hover {
+        color: red;
+      }
+
+      .hidden {
+        display: none;
+      }
+
+      .send-samp-btn {
+        margin: auto;
+        cursor: pointer;
+        background-color: #1477d6;
+        color: white;
+        white-space: nowrap;
+        padding: 4px;
+        font-size: 1em;
+        border: 0;
+      }
+
+    input[type='radio'].tile-format {
+        accent-color: black;
+        vertical-align: top;
+    }
+
+      .reset-pos-btn {
+        margin: auto;
+        cursor: pointer;
+        background-color: #d183c9;
+        color: white;
+        white-space: nowrap;
+        padding: 4px;
+        font-size: 1em;
+        border: 0;
+      }
+
+      /* show MOC button */
+      .show-moc-btn {
+        margin: auto;
+        cursor: pointer;
+        background-color: #d183c9;
+        color: white;
+        white-space: nowrap;
+        padding: 4px;
+        font-size: 1em;
+      }
+
+      .popup {
+        margin: 40px auto;
+        padding: 20px;
+        background: #fff;
+        border-radius: 5px;
+        width: 60%;
+        position: relative;
+        transition: all 5s ease-in-out;
+      }
+
+      .popup .close {
+        cursor: pointer;
+        position: absolute;
+        top: 15px;
+        right: 20px;
+        transition: all 200ms;
+        font-size: 30px;
+        font-weight: bold;
+        text-decoration: none;
+        color: #222;
+      }
+
+      .popup .content {
+        max-height: 70%;
+        margin-top: 40px;
+        overflow: auto;
+      }
+
+      .popup-overlay {
+        position: absolute;
+        z-index: 444;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: rgba(0, 0, 0, 0.7);
+      }
+
+      .popup-overlay {
+        opacity: 1;
+        pointer-events: all;
+      }
+
+      .popup-overlay:target {
+        opacity: 0;
+        pointer-events: none;
+      }
+      .popup-overlay-hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+        `;
+        document.head.append(style);
+
+        options = options || {};
+        let hipsURL = options.url;
+        if (!hipsURL) {
+            hipsURL = location.href;
+            hipsURL = hipsURL.substring(0, hipsURL.lastIndexOf("/", hipsURL.length));
+        }
+
+        if (hipsURL.startsWith('file://')) {
+           addLocalPopupInfo();
+        }
+
+
+		let alScript = cEl('script');
+		alScript.async = false;
+		alScript.defer = false;
+		alScript.src = 'https://aladin.cds.unistra.fr/AladinLite/api/v3/latest/aladin.js';
+		document.head.appendChild(alScript);
+		alScript.onload = function() {
+		    next(options);
+		}
+
+};
+
+const addLocalPopupInfo = function() {
+    const overlay = cEl('div');
+    //overlay.setAttribute('id', 'popupInfo');
+    overlay.classList.add('popup-overlay');
+    document.body.appendChild(overlay);
+
+    const popup = cEl('div');
+    popup.classList.add('popup');
+    overlay.appendChild(popup);
+
+    const closeBtn = cEl('a');
+    closeBtn.classList.add('close');
+    //closeBtn.setAttribute('href', '#popupIno');
+    closeBtn.textContent = 'x';
+    closeBtn.onclick = function() {
+
+        overlay.classList.add('popup-overlay-hidden');
+    };
+    popup.appendChild(closeBtn);
+
+    const content = cEl('div');
+    content.classList.add('content');
+    content.innerHTML = '<p>You are running Aladin Lite v3 from the local file system. As browsers disallow access to local files, Aladin Lite is not able to display your HiPS in this context.</p>';
+    content.innerHTML += '<p>You have to serve your HiPS directory from an HTTP server, with CORS headers enabled.<br>For testing purposes, the easiest way is to launch <a href="https://www.npmjs.com/package/serve"><b>serve</b></a>, from the HiPS root directory, with the following command line:</p>'; 
+    content.innerHTML += '<h3><pre>npx serve --cors</pre></h3>';
+    content.innerHTML += '<p>and access <a href="http://localhost:3000" target="_blank">http://localhost:3000</a></p>';
+    content.innerHTML += '<br><p>Alternatively, you can visualize it in <a href="http://aladin.cds.unistra.fr/AladinDesktop/" target="_blank">Aladin Desktop</a>.</p>';
+    popup.appendChild(content);
+}
+
+const next = function(options) {
+    options = options || {};
+    let hipsURL = options.url;
+    if (!hipsURL) {
+        hipsURL = location.href;
+        hipsURL = hipsURL.substring(0, hipsURL.lastIndexOf("/", hipsURL.length));
+    }
+
+    let targets = options.targets;
+    const addTargetsKeyboardShortcuts = options.addTargetsKeyboardShortcuts;
+    const aladinParams = options.aladinParams || {};
+    const readyCallback = options.readyCallback || undefined;
+
+	const hamburgerCb = cEl('input');
+    hamburgerCb.setAttribute('type', 'checkbox');
+    hamburgerCb.setAttribute('id', 'hamburger');
+    hamburgerCb.setAttribute('name', 'hamburger');
+    document.body.appendChild(hamburgerCb);
+
+	const hamburgerLabel = cEl('label');
+    hamburgerLabel.classList.add('hamburger');
+    hamburgerLabel.setAttribute('for', 'hamburger');
+    document.body.appendChild(hamburgerLabel);
+
+	// left panel
+	const boxVDiv = cEl('div');
+	boxVDiv.classList.add('box_v');
+	boxVDiv.setAttribute('style', 'width: 100vw; height: 100vh;');
+    document.body.appendChild(boxVDiv);
+
+	const menuContainerDiv = cEl('div');
+	menuContainerDiv.classList.add('menu-container');
+	boxVDiv.appendChild(menuContainerDiv);
+
+	const menuDiv = cEl('div');
+	menuDiv.classList.add('menu');
+	menuContainerDiv.appendChild(menuDiv);
+
+	const propDiv = cEl('div');
+	propDiv.classList.add('links');
+	menuContainerDiv.appendChild(propDiv);
+
+
+	// right panel;
+	const boxHDiv = cEl('div');
+	boxHDiv.classList.add('box_h');
+	boxHDiv.setAttribute('style', 'width: 100vw; height: 100vh;');
+    boxVDiv.appendChild(boxHDiv);
+	
+	const titleDiv = cEl('div');
+	titleDiv.setAttribute('id', 'title');
+	boxHDiv.appendChild(titleDiv);
+    // create AL div
+    const alDiv = cEl('div');
+    alDiv.setAttribute('id', 'aladin-lite-div');
+    alDiv.setAttribute('style', 'width: 99.5%;');
+	boxHDiv.appendChild(alDiv);
+	
+
+
+
+    A.init.then(() => {
+        let params = { showZoomControl: true, realFullscreen: true, showContextMenu: true, showCooGridControl: true, showSimbadPointerControl: true, survey: hipsURL };
+        for (const key in aladinParams) {
+            params[key] = aladinParams[key];
+        }
+        aladin = A.aladin('#aladin-lite-div', params);
+
+        // call ready callback
+        readyCallback && readyCallback();
+
+        fetch(hipsURL + '/properties')
+            .then((response) => response.text())
+            .then((text) => {
+                const properties = parseHiPSProperties(text);
+                const savedProperties = JSON.parse(JSON.stringify(properties));
+
+         
+		 		let initialFov = 0.2;
+				let initialRa  = 0.0;
+				let initialDec = 0.0;
+
+                const urlParams = new URLSearchParams(window.location.search);
+
+
+                if ('hips_initial_fov' in properties) {
+				    initialFov = parseFloat(properties['hips_initial_fov']);
+                }
+                const urlParamFov = urlParams.get('fov');
+                if (urlParamFov) {
+                    try {
+                        let fov = parseFloat(urlParamFov);
+                        if (! isNaN(fov)) {
+                            initialFov = fov;
+                        }
+                    } catch(error) {console.error(error);}
+                }
+				aladin.setFov(initialFov);
+
+                if ('hips_initial_ra' in properties && 'hips_initial_dec' in properties ) {
+				    initialRa  = parseFloat(properties['hips_initial_ra']);
+					initialDec = parseFloat(properties['hips_initial_dec']);
+                }
+                const urlParamRa  = urlParams.get('ra');
+                const urlParamDec = urlParams.get('dec');
+                if (urlParamRa && urlParamDec) {
+                    try {
+                        let ra = parseFloat(urlParamRa);
+                        if (! isNaN(ra)) {
+                            initialRa = ra;
+                        }
+                        let dec = parseFloat(urlParamDec);
+                        if (! isNaN(dec)) {
+                            initialDec = dec;
+                        }
+                    } catch(error) {console.error(error);}
+                }
+				aladin.gotoRaDec(initialRa, initialDec);
+
+                let doi = undefined;
+                if (properties['creator_did'].startsWith('ivo://CDS/') && properties.hasOwnProperty('hips_doi') && window.location.protocol==='https:' && window.location.host==='alasky.cds.unistra.fr') {
+                    doi = properties['hips_doi']
+                    delete properties['hips_doi'];
+                }
+             
+                setTitle(properties);
+                buildInfoTable(properties, hipsURL, doi);
+
+                const hideProperties = (urlParams.get('hideProperties')) !== null;
+                if (window.innerWidth > 650 && !hideProperties) {
+                    document.querySelector('#hamburger').click();
+                }
+
+				let previewURL = hipsURL + '/preview.jpg';
+                let hips2fitsURL = 'https://alasky.cds.unistra.fr/hips-image-services/hips2fits?hips=' + encodeURIComponent(hipsURL) + '&width=256&height=256&fov=' + initialFov + '&projection=SIN&coordsys=icrs&rotation_angle=0.0&ra=' + initialRa + '&dec=' + initialDec + '&format=jpg';
+                fetch(previewURL, {method: 'HEAD'})
+                    .then((response) => {if (!response.ok) previewURL = hips2fitsURL})
+                    .catch(() => previewURL = hips2fitsURL)
+                    .finally(() => buildHeadMetadata(savedProperties, hipsURL, previewURL, doi))
+
+ 
+
+            })
+            .catch((err) => console.log(err));
+        });
+
+		const buildHeadMetadata = function(properties, hipsURL, previewURL, doi) {
+            const hipsHostname = new URL(hipsURL).hostname;
+            if (hipsHostname.indexOf('alasky')==0 && hipsHostname.indexOf('.fr')>0) {
+                let canonicalHiPSURL = 'https://alasky.cds.unistra.fr' + new URL(hipsURL).pathname;
+                if (!canonicalHiPSURL.endsWith('/')) {
+                    canonicalHiPSURL += '/';
+                }
+                addCanonicalMetadata(canonicalHiPSURL);
+
+
+			    buildSchemaMetadata(properties, hipsURL, previewURL, doi);
+
+                addDublinCoreMetadata(properties, doi);
+
+			    buildTwitterMetadata(properties, hipsURL, previewURL);
+			    buildOpenGraphMetadata(properties, hipsURL, previewURL);
+
+            }
+		};
+
+        const addCanonicalMetadata = function(canonicalURL) {
+            const link = cEl('link');
+            link.setAttribute('rel', 'canonical');
+            link.href = canonicalURL;
+
+            document.head.appendChild(link);
+        };
+
+        const addDublinCoreMetadata = function(properties, doi) {
+            const link1 = cEl('link');
+            link1.setAttribute('rel', 'schema.DC');
+            link1.href = 'http://purl.org/dc/elements/1.1/';
+            document.head.appendChild(link1);
+
+            const link2 = cEl('link');
+            link2.setAttribute('rel', 'schema.DCTERMS');
+            link2.href = 'http://purl.org/dc/terms/';
+            document.head.appendChild(link2);
+
+            const dcTitle = cEl('meta');
+            dcTitle.setAttribute('name', 'DC.title');
+            dcTitle.setAttribute('content', properties['obs_title'] + ' HiPS');
+            document.head.appendChild(dcTitle);
+
+            const dcType = cEl('meta');
+            dcType.setAttribute('name', 'DC.type');
+            dcType.setAttribute('content', 'Dataset');
+            document.head.appendChild(dcType);
+
+            const dcCreator = cEl('meta');
+            dcCreator.setAttribute('name', 'DC.creator');
+            dcCreator.setAttribute('content', properties['hips_creator']);
+            document.head.appendChild(dcCreator);
+
+            if (properties.hasOwnProperty('hips_copyright')) {
+                const dcPublisher = cEl('meta');
+                dcPublisher.setAttribute('name', 'DC.publisher');
+                dcPublisher.setAttribute('content', properties['hips_copyright']);
+                document.head.appendChild(dcPublisher);
+            }
+
+            if (properties.hasOwnProperty('prov_progenitor')) {
+                const dcSource = cEl('meta');
+                dcSource.setAttribute('name', 'DC.source');
+                dcSource.setAttribute('content', properties['prov_progenitor']);
+                document.head.appendChild(dcSource);
+            }
+
+            if (doi) {
+                const dcId = cEl('meta');
+                dcId.setAttribute('name', 'DC.identifier');
+                dcId.setAttribute('content', 'https://doi.org/' + doi);
+                document.head.appendChild(dcId);
+            }
+
+        }
+
+		const buildSchemaMetadata = function(properties, hipsURL, previewURL, doi) {
+            const jsonLd = cEl('script');
+            jsonLd.setAttribute('type', 'application/ld+json');
+
+            let description = escapeStr(properties['obs_description']);
+            // description field must be 50 characters length at least
+            if (description.length<50) {
+                if ('prov_progenitor' in properties) {
+                    description += ' - Built from data retrieved at ' + escapeStr(properties['prov_progenitor']);
+                }
+            }
+
+
+            let t = '{\n';
+            t += '"@context": "https://schema.org/",\n';
+            t += '"@type": "Dataset",\n';
+            if (doi) {
+                t += '"@id": "' + 'https://doi.org/' + doi + '",\n';
+            }
+            t += '"name": "' + escapeStr(properties['obs_title']) + ' HiPS (Hierarchical Progressive Survey)",\n';
+            t += '"description": "' + description + '",\n'
+            t += '"url": "' + hipsURL + '/' + '",\n';
+            let citation = undefined;
+            if ('bib_reference_url' in properties) {
+                citation = properties['bib_reference_url'];
+            }
+            else if ('bib_reference' in properties) {
+                citation = properties['bib_reference'];
+            }
+            if (citation) {
+                t += '"citation": "' + escapeStr(citation) +'",\n';
+            }
+            t += '"creator": {\n';
+            t += '"@type": "Organization",\n';
+            t += '"name": "' + escapeStr(properties['hips_copyright']) + '"\n';
+            if (properties['creator_did'].startsWith('ivo://CDS/')) {
+                t += ', "logo": "https://cds.unistra.fr/img/cds.png"\n';
+            }
+            t += '},\n';
+            // license
+            if (properties['creator_did'] && properties['creator_did'].startsWith('ivo://CDS/')) {
+                t += '"license": "https://cds.unistra.fr/aladin-org/licences_aladin.html",\n';
+            }
+
+            // TODO : extract keywords from description
+            let keywords = [properties['obs_title'], "hips", "astronomy", "astrophysics", "aladin", "aladin lite"];
+            t += '"keywords": "' + escapeStr(keywords.join(',')) + '",\n';
+            t += '"thumbnailUrl": "' + previewURL + '",\n';
+            t += '"isAccessibleForFree": "true",\n';
+
+            // dateCreated
+            if ('hips_creation_date' in properties) {
+                t += '"dateCreated": "' + properties['hips_creation_date'] + '",\n';
+            }
+            // dateModified
+            if ('hips_release_date' in properties) {
+                t += '"dateModified": "' + properties['hips_release_date'] + '",\n';
+            }
+
+            // temporalCoverage
+            if ('t_min' in properties && 't_max' in properties) {
+                try {
+                    t += '"temporalCoverage": "' + mjdToISO8601(properties['t_min']) + '/' + mjdToISO8601(properties['t_max']) + '",\n';
+                }
+                catch(e) {
+                    console.error(e);
+                }
+            }
+
+
+            t += '"identifier": "' + properties['creator_did'] + '"\n';
+
+            t += '}';
+            jsonLd.textContent = t;
+
+            document.head.appendChild(jsonLd);
+            
+		};
+
+		const buildTwitterMetadata = function(properties, hipsURL, previewURL) {
+            const m1 = cEl('meta');
+            m1.setAttribute('name', 'twitter:card');
+            m1.setAttribute('content', 'summary');
+            document.head.appendChild(m1);
+
+            const m2 = cEl('meta');
+            m2.setAttribute('name', 'twitter:title');
+            m2.setAttribute('content', properties['obs_title']);
+            document.head.appendChild(m2);
+
+            const m3 = cEl('meta');
+            m3.setAttribute('name', 'twitter:image');
+            m3.setAttribute('content', previewURL);
+            document.head.appendChild(m3);
+		};
+
+		const buildOpenGraphMetadata = function(properties, hipsURL, previewURL) {
+            const m1 = cEl('meta');
+            m1.setAttribute('property', 'og:url');
+            m1.setAttribute('content', hipsURL + '/');
+            document.head.appendChild(m1);
+
+            const m2 = cEl('meta');
+            m2.setAttribute('property', 'og:title');
+            m2.setAttribute('content', properties['obs_title']);
+            document.head.appendChild(m2);
+
+            const m3 = cEl('meta');
+            m3.setAttribute('property', 'og:image');
+            m3.setAttribute('content', previewURL);
+            document.head.appendChild(m3);
+		};
+
+
+        const mjdToISO8601 = function(mjd) {    
+            const millis = (mjd - 40587) * 86400000;
+            const date = new Date(millis);
+            
+            const yyyy = date.getUTCFullYear();
+            const mm   = date.getUTCMonth() + 1; // getUTCMonth returns between 0-11 (!!)
+            const dd   = date.getUTCDate();
+
+            return yyyy + '-' + (mm<10 ? '0' : '') + mm + '-' + (dd<10 ? '0' : '') + dd;
+        };
+
+        const setTitle = function(properties) {
+             // in HEAD
+             const headTitle = cEl('title');
+             headTitle.textContent = properties['obs_title'] + ' HiPS';
+             document.head.appendChild(headTitle);
+
+             if ('obs_description' in properties) {
+                 const metaDesc = cEl('meta');
+                 metaDesc.setAttribute('name', 'description');
+                 metaDesc.setAttribute('content', escapeStr(properties['obs_description']));
+                 document.head.appendChild(metaDesc);
+             }
+
+             // in HTML body
+             const el = document.getElementById('title');
+             const h1 = cEl('h1');
+             h1.appendChild(cTn(properties['obs_title'] + ' '));
+			 const link  = cEl('a');
+             link.appendChild(cTn('HiPS'));
+			 link.setAttribute('title', 'HiPS standard');
+			 link.setAttribute('href', 'https://www.ivoa.net/documents/HiPS/');
+			 link.setAttribute('target', '_blank');
+			 h1.appendChild(link);
+
+             el.appendChild(h1);
+
+             let alDiv = document.getElementById('aladin-lite-div');
+             alDiv.style.setProperty('height', '100%');
+        }
+                                    
+        const parseHiPSProperties = function (propertiesStr) {
+            if (propertiesStr == null) {
+                return null;
+            }
+
+            const propertiesDict = {};
+            // remove CR characters
+            propertiesStr = propertiesStr.replace(/[\r]/g, '');
+            // split on LF
+            const lines = propertiesStr.split('\n');
+            let lastKey;
+            for (let k = 0; k < lines.length; k++) {
+                const l = lines[k].trim();
+                // ignore comments lines
+                if (l.slice(0, 1) === '#') {
+                    continue;
+                }
+                var idx = l.indexOf('=');
+                if (idx < 0) {
+                    if (lastKey) {
+                        propertiesDict[lastKey] += l;
+                    }
+                    continue;
+                }
+                var key = l.slice(0, idx).trim();
+                var value = l.slice(idx + 1).trim();
+
+                propertiesDict[key] = value;
+                lastKey = key;
+            }
+
+            return propertiesDict;
+        };
+
+        const formatKey = function (key) {
+            const mustKeys = ['creator_did', 'obs_title', 'hips_version', 'hips_release_date', 'hips_status', 'hips_frame', 'hips_order', 'hips_tile_format', 'dataproduct_type', 'dataproduct_subtype', 'hips_cube_depth'];
+            const shouldKeys = ['obs_description', 'prov_progenitor', 'obs_regime', 'hips_creation_date', 'hips_cat_nrows', 'hips_initial_ra', 'hips_initial_dec', 'hips_initial_fov', 't_min', 't_max', 'em_min', 'em_max'];
+            const keyDescriptions = {
+                creator_did: 'Unique ID of the HiPS',
+                publisher_id: 'Unique ID of the HiPS publisher',
+                obs_collection: 'Short name of original data set',
+                obs_title: 'Data set title',
+                obs_description: 'Data set description',
+                obs_ack: 'Acknowledgment mention',
+                prov_progenitor: 'Provenance of the original data',
+                bib_reference: 'Bibliographic reference',
+                bib_reference_url: 'URL to bibliographic reference',
+                obs_copyright: 'Copyright mention associated to the original data',
+                obs_copyright_url: 'URL to a copyright mention',
+                hips_copyright: 'Copyright mention associated to the HiPS',
+                obs_regime: 'General wavelength',
+                hips_version: 'HiPS version number',
+                hips_builder: 'Name and version of the tool used for building the HiPS',
+                hips_creator: 'Institute or person who built the HiPS',
+                hips_creation_date: 'HiPS first creation date',
+                hips_release_date: 'Last HiPS update date',
+                hips_frame: 'Coordinate frame reference',
+                hips_order: 'Deepest HiPS order',
+                hips_tile_width: 'Tiles width in pixels ',
+                hips_tile_format: 'List of available tile formats',
+                hips_pixel_cut: 'Suggested pixel display cut range (physical values)',
+                hips_data_range: 'Pixel data range taken into account during the HiPS generation (physical values)',
+                hips_pixel_bitpix: 'FITS tile BITPIX code',
+                data_pixel_bitpix: 'Original data BITPIX code',
+                t_min: 'Start time of the observations',
+                t_max: 'Stop time of the observations',
+                em_min: 'Start in spectral coordinates',
+                em_max: 'Stop in spectral coordinates',
+                moc_sky_fraction: 'Fraction of the sky covers by the MOC associated to the HiPS'
+            };
+
+            const retNode = cEl('span');
+            if (key in keyDescriptions) {
+               retNode.setAttribute('title', keyDescriptions[key]);
+            }
+
+            if (mustKeys.includes(key)) {
+                const strongNode = cEl('strong');
+                strongNode.appendChild(cTn(key));
+
+                retNode.appendChild(strongNode);
+            }
+            else if (shouldKeys.includes(key)) {
+                const italicNode = cEl('em');
+                italicNode.appendChild(cTn(key));
+
+                retNode.appendChild(italicNode);
+            }
+            else {
+                retNode.appendChild(cTn(key));
+            }
+
+
+            return retNode;
+
+        };
+
+        const createShowMOCCb = function() {
+            const labelMocCb = cEl('label');
+            labelMocCb.classList.add('show-moc-btn');
+            labelMocCb.setAttribute('title', 'Display HiPS MOC coverage');
+
+            const mocCb = cEl('input');
+            mocCb.setAttribute('id', 'showMOC');
+            mocCb.setAttribute('type', 'checkbox');
+            labelMocCb.appendChild(mocCb);
+            labelMocCb.appendChild(cTn('Show coverage'));
+
+            mocCb.onchange = function(e) {
+                if (e.currentTarget.checked) {
+                    if (! moc) {
+                        moc = A.MOCFromURL(hipsURL + '/Moc.fits', { color: 'red' });
+                        aladin.addMOC(moc);
+                    }
+
+                    moc.show();
+                }
+                else {
+                    moc.hide();
+                };
+            };
+
+            return labelMocCb;
+        };
+
+        const formatValue = function (value, key) {
+            let returnedNode;
+            const textNode = cTn(value);
+            const spanNode = cEl('span');
+            spanNode.appendChild(textNode);
+            if (key.startsWith('hipsgen_params')) {
+                spanNode.classList.add('hipsgen_params');
+            }
+            else {
+                spanNode.classList.add(key);
+            }
+
+            if (value.startsWith('http')) {
+                const linkNode = cEl('a');
+                linkNode.appendChild(spanNode);
+                linkNode.setAttribute('href', value);
+                linkNode.setAttribute('target', '_blank');
+
+                return linkNode;
+            }
+
+            if (key === 'moc_sky_fraction') {
+                const node = cEl('div');
+                const fourPiSteradiansInDeg2 = 4 * Math.PI * Math.pow(180 / Math.PI, 2);
+                const fraction = parseFloat(value);
+                let area = parseFloat((fraction * 100).toFixed(6)) + '%' + ' ⇒ ' + (fourPiSteradiansInDeg2 * parseFloat(value)).toFixed(2) + ' deg²';
+                node.appendChild(cTn(area));
+                node.appendChild(cEl('br'));
+                node.appendChild(cEl('br'));
+
+                node.appendChild(createShowMOCCb());
+
+                const d = cEl('div');
+
+                return node;
+            }
+
+            if (key === 't_min' || key === 't_max') {
+                spanNode.appendChild(cTn(' (MJD)'));
+                spanNode.appendChild(cEl('br'));
+                italicNode = cEl('em');
+                italicNode.appendChild(cTn(mjdToISO8601(value)));
+                spanNode.appendChild(italicNode);
+
+                return spanNode;
+            }
+
+            if (key === 'em_min' || key === 'em_max') {
+                const valueMeters = value;
+                const italic = cEl('em');
+                if (valueMeters>1) {
+                    const unit = 'm';
+                    italic.appendChild(cTn(' ' + unit));
+                    spanNode.append(italic);
+
+                    return spanNode;
+                }
+
+                const valueMm = value * 1e3;
+                if (valueMm>1) {
+                    const unit = 'mm';
+                    const node = cEl('span');
+                    node.appendChild(cTn(parseFloat(valueMm.toFixed(2))));
+                    italic.appendChild(cTn(' ' + unit));
+                    node.append(italic);
+
+                    return node;
+                }
+
+                const valueUm = value * 1e6;
+                if (valueUm>1) {
+                    const unit = 'μm';
+                    const node = cEl('span');
+                    node.appendChild(cTn(parseFloat(valueUm.toFixed(2))));
+                    italic.appendChild(cTn(' ' + unit));
+                    node.append(italic);
+
+                    return node;
+                }
+
+                const valueNm = value * 1e9;
+                if (valueNm>1) {
+                    const unit = 'nm';
+                    const node = cEl('span');
+                    node.appendChild(cTn(parseFloat(valueNm.toFixed(2))));
+                    italic.appendChild(cTn(' ' + unit));
+                    node.append(italic);
+
+                    return node;
+                }
+            }
+
+            return spanNode;
+
+        };
+
+        const buildInfoTable = function (propDic, hipsURL, doi) {
+            const linkEl = document.querySelector('.links');
+            const creatorDid = propDic['creator_did'];
+            const noPrefixDid = creatorDid.replace('ivo://', '');
+
+            let h2Title = cTn(noPrefixDid);
+
+	        const h2 = cEl('h2');
+	        h2.appendChild(h2Title);
+	        linkEl.appendChild(h2);
+
+            if (doi) {
+                const doiDiv = cEl('div');
+                doiDiv.classList.add('doiDisplay');
+                const doiURL = 'https://doi.org/' + doi;
+	            const aDoi = cEl('a');
+                aDoi.classList.add('doiLink');
+                aDoi.setAttribute('href', doiURL);
+                aDoi.appendChild(cTn(doiURL))
+                doiDiv.appendChild(aDoi);
+                linkEl.appendChild(doiDiv);
+            }
+
+            const dataAccessH3 = cEl('h3');
+            dataAccessH3.appendChild(cTn('Data Access'));
+            linkEl.appendChild(dataAccessH3);
+            const dataAccessDiv = cEl('div');
+            dataAccessDiv.classList.add('dataAccess');
+            // access hips2fits
+            const aHiPS2FITS = cEl('a');
+            aHiPS2FITS.setAttribute('title', 'Create FITS and JPEG/PNG cutouts for ' + propDic['obs_title']);
+            let hips2fitsHref = 'https://alasky.cds.unistra.fr/hips-image-services/hips2fits#hips=' + (noPrefixDid.startsWith('CDS/') ? encodeURIComponent(noPrefixDid) : encodeURIComponent(hipsURL));
+            if ('hips_initial_ra' in propDic && 'hips_initial_dec' in propDic) {
+                hips2fitsHref += '&ra=' + propDic['hips_initial_ra'] + '&dec=' + propDic['hips_initial_dec'];
+            }
+            if ('hips_initial_fov' in propDic) {
+                hips2fitsHref += '&fov=' + propDic['hips_initial_fov'];
+            }
+            aHiPS2FITS.setAttribute('href', hips2fitsHref);
+            aHiPS2FITS.setAttribute('target', '_blank');
+            aHiPS2FITS.appendChild(cTn('HiPS2FITS cutouts'));
+            aHiPS2FITS.onclick = function() {
+                let newHips2fitsHref = 'https://alasky.cds.unistra.fr/hips-image-services/hips2fits#projection=SIN&hips=' + (noPrefixDid.startsWith('CDS/') ? encodeURIComponent(noPrefixDid) : encodeURIComponent(hipsURL));
+                let raDec = aladin.getRaDec();
+                let fov = aladin.getFov()[0];
+                newHips2fitsHref += '&ra=' + raDec[0].toFixed(6);
+                newHips2fitsHref += '&dec=' + raDec[1].toFixed(6);
+                newHips2fitsHref += '&fov=' + fov.toFixed(4);
+                this.setAttribute('href', newHips2fitsHref);
+               
+                return true;
+            };
+            dataAccessDiv.appendChild(aHiPS2FITS);
+
+            dataAccessDiv.appendChild(cEl('br'));
+            dataAccessDiv.appendChild(cEl('br'));
+            
+            // SAMP button to send to Aladin Desktop
+            const sampShareBtn = cEl('button');
+            sampShareBtn.classList.add('send-samp-btn');
+            sampShareBtn.appendChild(cTn('➤ Send to Aladin Desktop'));
+            dataAccessDiv.appendChild(sampShareBtn);
+            var configureSampEnabled = function(isHubRunning) {
+                sampShareBtn.hidden = !isHubRunning;
+            };
+            sampShareBtn.onclick = function () {
+                connector.runWithConnection(function(connection) {
+                    let cmd = 'load ' + hipsURL;
+                    var msg = new samp.Message('script.aladin.send', {'script': cmd});
+                    connection.notifyAll([msg])
+                });
+            };
+
+            // create and setup SAMP connector
+            var connector = new samp.Connector(propDic['obs_title']);
+            connector.onHubAvailability(configureSampEnabled, 2000);
+            onunload = function() {
+                connector.unregister();
+            };
+            linkEl.appendChild(dataAccessDiv);
+
+            const propH3 = cEl('h3');
+            propH3.appendChild(cTn('Properties'));
+	        const propLink = cEl('a');
+	        propLink.setAttribute('target', '_blank');
+	        propLink.setAttribute('href', hipsURL + '/properties');
+	        propLink.setAttribute('title', 'Access HiPS properties file');
+	        propLink.appendChild(cTn(' 🔗'));
+	        propH3.appendChild(propLink);
+            linkEl.appendChild(propH3);
+
+            const yellowKeys = ['creator_did', 'obs_title', 'moc_sky_fraction', 'obs_description', 'obs_collection', 'hips_creator', 'prov_progenitor', 'bib_reference', 'bib_reference_url', 'obs_copyright', 'obs_copyright_url', 'dataproduct_type'];
+            const yellowTable = cEl('table');
+            const yellowTBody = cEl('tbody');
+            yellowTable.appendChild(yellowTBody);
+            yellowTable.classList.add('styled-table', 'yellow-table');
+
+            for (const key of yellowKeys) {
+                if (propDic.hasOwnProperty(key)) {
+                    const tr = cEl('tr');
+                    const td1 = cEl('td');
+                    td1.appendChild(formatKey(key));
+                    tr.appendChild(td1);
+
+                    const td2 = cEl('td');
+                    td2.appendChild(formatValue(propDic[key], key));
+                    tr.appendChild(td2);
+
+                    yellowTBody.append(tr)
+                    delete propDic[key];
+                }
+                else if (key === 'moc_sky_fraction') {
+                    // force creation of show coverage button if moc_sky_fraction missing
+                    const tr = cEl('tr');
+                    const td1 = cEl('td');
+                    td1.appendChild(cTn(''));
+                    tr.appendChild(td1);
+
+                    const td2 = cEl('td');
+                    td2.appendChild(createShowMOCCb());
+                    tr.appendChild(td2);
+
+                    yellowTBody.append(tr)
+                }
+            }
+            linkEl.appendChild(yellowTable);
+
+            const purpleKeys = ['t_min', 't_max', 'em_min', 'em_max', 'obs_regime', 'client_category'];
+            const purpleTable = cEl('table');
+            const purpleTBody = cEl('tbody');
+            purpleTable.appendChild(purpleTBody);
+            purpleTable.classList.add('styled-table', 'purple-table');
+            for (const key of purpleKeys) {
+                if (propDic.hasOwnProperty(key)) {
+                    const tr = cEl('tr');
+                    const td1 = cEl('td');
+                    td1.appendChild(formatKey(key));
+                    tr.appendChild(td1);
+
+                    const td2 = cEl('td');
+                    td2.appendChild(formatValue(propDic[key], key));
+                    tr.appendChild(td2);
+
+                    purpleTBody.append(tr);
+                    delete propDic[key];
+                }
+            }
+            linkEl.appendChild(purpleTable);
+
+            const greenKeys = ['hips_frame', 'hips_tile_format', 'hips_order', 'hips_initial_ra', 'hips_initial_dec', 'hips_initial_fov', 'obs_collection', 'hips_creator'];
+            const initialRa  = propDic['hips_initial_ra'];
+            const initialDec = propDic['hips_initial_dec'];
+            const initialFov = propDic['hips_initial_fov'];
+
+            const greenTable = cEl('table');
+            const greenTBody = cEl('tbody');
+            greenTable.appendChild(greenTBody);
+            greenTable.classList.add('styled-table', 'green-table');
+            for (const key of greenKeys) {
+                if (propDic.hasOwnProperty(key)) {
+                    const tr = cEl('tr');
+                    const td1 = cEl('td');
+                    td1.appendChild(formatKey(key));
+                    tr.appendChild(td1);
+
+                    const td2 = cEl('td');
+                    if (key === 'hips_tile_format') {
+                        let curFormat = aladin.getBaseImageLayer().imgFormat;
+                        const formats = propDic[key].split(' ');
+                        if (! curFormat) {
+                            curFormat = formats[0];
+                        }
+                        for (let k = 0; k<formats.length; k++) {
+                            const radio = cEl('input');
+                            radio.setAttribute('type', 'radio');
+                            radio.setAttribute('value', formats[k]);
+                            radio.setAttribute('name', 'tileFormat');
+                            if (curFormat==formats[k]) {
+                                radio.setAttribute('checked', 'checked');
+                            }
+                            radio.classList.add('tile-format');
+
+                            const label = cEl('label');
+                            label.appendChild(radio);
+                            label.appendChild(cTn(formats[k].toUpperCase()));
+
+                            td2.appendChild(label);
+
+                            radio.onclick = function() {
+                                aladin.getBaseImageLayer().setImageFormat(this.value);
+                            }
+                        }
+                    }
+                    else {
+                        td2.appendChild(formatValue(propDic[key], key));
+                    }
+                    tr.appendChild(td2);
+
+                    greenTBody.append(tr);
+                    delete propDic[key];
+                }
+                if (key==='hips_initial_fov' && initialRa && initialDec && initialFov) {
+                    const tr = cEl('tr');
+                    const td1 = cEl('td');
+                    td1.appendChild(cTn(''));
+                    tr.appendChild(td1);
+
+                    const td2 = cEl('td');
+                    const resetPosBtn = cEl('button');
+                    resetPosBtn.classList.add('reset-pos-btn');
+                    resetPosBtn.appendChild(cTn('↺ Reset position'));
+                    resetPosBtn.onclick = function() {
+                        aladin.gotoRaDec(parseFloat(initialRa), parseFloat(initialDec));
+                        aladin.setFov(parseFloat(initialFov));
+                    };
+                    td2.appendChild(resetPosBtn);
+                    tr.appendChild(td2);
+
+                    greenTBody.append(tr)
+                }
+            }
+            linkEl.appendChild(greenTable);
+
+            // all remaining keys
+            const greyTable = cEl('table');
+            const greyTBody = cEl('tbody');
+            greyTable.appendChild(greyTBody);
+            greyTable.classList.add('styled-table', 'grey-table');
+            for (const [key, value] of Object.entries(propDic)) {
+			    if (key.startsWith('hipsgen_param') || key.startsWith('hipsgen_date')) {
+				    continue;
+				}
+                const tr = cEl('tr');
+                const td1 = cEl('td');
+                td1.appendChild(formatKey(key));
+                tr.appendChild(td1);
+
+                const td2 = cEl('td');
+                td2.appendChild(formatValue(value, key));
+                tr.appendChild(td2);
+
+                greyTBody.append(tr);
+                delete propDic[key];
+            }
+            linkEl.appendChild(greyTable);
+
+
+
+            new ShowMore('.obs_description', {
+                config: {
+                    type: "text",
+                    limit: 300,
+                    more: "→ more",
+                    less: "← less"
+                }
+            });
+            new ShowMore('.obs_ack', {
+                config: {
+                    type: "text",
+                    limit: 250,
+                    more: "→ more",
+                    less: "← less"
+                }
+            });
+           new ShowMore('.hipsgen_params', {
+                config: {
+                    type: "text",
+                    limit: 200,
+                    more: "→ more",
+                    less: "← less"
+                }
+            });
+          
+        };
+
+        if (targets) {
+            const div = cEl('div');
+            div.setAttribute('id', 'targets-selector');
+            div.setAttribute('style', 'background-color: rgba(255, 255, 255, 0.6); z-index: 20; position: absolute; left: 45%;top: 2%;');
+            const alDiv = document.getElementById('aladin-lite-div');
+            alDiv.appendChild(div);
+
+            const spanPrev = cEl('span');
+            spanPrev.setAttribute('id', 'previousField');
+            spanPrev.setAttribute('style', 'cursor: pointer;');
+            spanPrev.appendChild(cTn('←')); 
+            div.appendChild(spanPrev);
+
+            const select = cEl('select');
+            select.style.cssText = 'max-width: 90%;'
+            select.setAttribute('name', 'fields');
+            select.setAttribute('id', 'field-select');
+            div.appendChild(select);
+
+            const spanNext = cEl('span');
+            spanNext.setAttribute('id', 'nextField');
+            spanNext.setAttribute('style', 'cursor: pointer;');
+            spanNext.appendChild(cTn('→')); 
+            div.appendChild(spanNext);
+
+
+            const option = cEl('option');
+            option.appendChild(cTn('-- Choose a target'));
+            select.appendChild(option);
+
+            let plainTargets = [];
+            for (let k=0; k<targets.length; k++) {
+                const curTarget = targets[k];
+                const opt = cEl('option');
+                if (curTarget instanceof Array) {
+                    opt.value = targets[k][0];
+                    opt.innerHTML = targets[k][0];
+                    opt.dataset.ra = targets[k][1];
+                    opt.dataset.dec = targets[k][2];
+
+                }
+                else {
+                    opt.value = targets[k];
+                    opt.innerHTML = targets[k];
+                }
+                plainTargets.push(opt.value);
+                select.appendChild(opt);
+            }
+
+            targets = plainTargets;
+
+            select.addEventListener("change", function() {
+                const option = select.options[this.selectedIndex];
+                if (this.value.length>0) {
+                    if (option && 'ra' in option.dataset && 'dec' in option.dataset) {
+                        aladin.gotoRaDec(option.dataset.ra, option.dataset.dec);
+                    }
+                    else {
+                        aladin.gotoObject(this.value);
+                    }
+                }
+                this.blur();
+            });
+
+            const previousTargetFn = function() {
+                const idxSelected = select.selectedIndex - 1;
+                if (idxSelected>0) {
+                    select.value = targets[idxSelected - 1];
+                    select.dispatchEvent(new Event('change'));
+                }
+            };
+
+            const nextTargetFn = function() {
+                const idxSelected = select.selectedIndex - 1;
+                if (idxSelected<targets.length - 1) {
+                    select.value = targets[idxSelected + 1];
+                    select.dispatchEvent(new Event('change'));
+                }
+            };
+
+            spanPrev.addEventListener('click', previousTargetFn);
+            spanNext.addEventListener('click', nextTargetFn);
+
+            if (addTargetsKeyboardShortcuts) {
+                // 37: left arrow
+                document.addEventListener('keydown', function(event) {
+                    if (event.target.tagName.toUpperCase() != 'BODY') {
+                        return;
+                    }
+                    if (event.keyCode==37) {
+                        previousTargetFn();
+                        event.preventDefault();
+                    }
+                });
+
+                // 39: right arrow
+                document.addEventListener('keydown', function(event) {
+                    if (event.target.tagName.toUpperCase() != 'BODY') {
+                        return;
+                    }
+                    if (event.keyCode==39) {
+                        nextTargetFn();
+                        event.preventDefault();
+                    }
+                });
+            }
+        }
+}
+
+
+  </script>
+
+  <noscript>Please enable Javascript to view this page.</noscript>
+</head>
+
+<body></body>
+
+<script type="text/javascript">
+  buildLandingPage();
+</script>
+
+</html>

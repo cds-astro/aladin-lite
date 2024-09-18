@@ -226,7 +226,7 @@ import { ColorCfg } from "../../ColorCfg.js";
                 type: 'select',
                 name: 'cmap',
                 value: 'native',
-                options: ColorCfg.COLORMAPS,
+                options: aladin.getListOfColormaps(),
                 change: (e, cmapSelector) => {
                     self.options.layer.setColormap(e.target.value)
                 },
@@ -280,23 +280,6 @@ import { ColorCfg } from "../../ColorCfg.js";
         super.update(options)
     }
 
-    _updateCursors() {
-        
-    }
-
-    _show(options) {
-        /*if (this.selector) {
-            this.selector._show();
-        }*/
-
-        super._show(options)
-    }
-
-    _hide() {
-
-        super._hide()
-    }
-
     _addListeners() {
         ALEvent.HIPS_LAYER_CHANGED.listenedBy(this.aladin.aladinDiv, (e) => {
             const hips = e.detail.layer;
@@ -324,6 +307,11 @@ import { ColorCfg } from "../../ColorCfg.js";
                 this.luminositySettingsContent.set('contrast', colorCfg.getContrast());
                 this.luminositySettingsContent.set('saturation', colorCfg.getSaturation());
             }
+        });
+
+        ALEvent.UPDATE_CMAP_LIST.listenedBy(this.aladin.aladinDiv, (e) => {
+            let cmapSelector = this.colorSettingsContent.getInput('cmap');
+            cmapSelector.update({options: this.aladin.getListOfColormaps()})
         });
     }
 }

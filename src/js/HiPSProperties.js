@@ -70,14 +70,14 @@ HiPSProperties.fetchFromID = async function(ID) {
 }
 
 HiPSProperties.fetchFromUrl = async function(urlOrId) {
+    let url;
+
     try {
         urlOrId = new URL(urlOrId);
     } catch (e) {
         // Relative path test
         try {
             urlOrId = Utils.getAbsoluteURL(urlOrId)
-            console.log(urlOrId)
-
             urlOrId = new URL(urlOrId);
         } catch(e) {
             throw e;
@@ -87,7 +87,7 @@ HiPSProperties.fetchFromUrl = async function(urlOrId) {
     // Fetch the properties of the survey
     const HiPSServiceUrl = urlOrId.toString();
     
-    let url = HiPSServiceUrl;
+    url = HiPSServiceUrl;
     // Use the url for retrieving the HiPS properties
     // remove final slash
     if (url.slice(-1) === '/') {
@@ -99,6 +99,7 @@ HiPSProperties.fetchFromUrl = async function(urlOrId) {
     url = Utils.getAbsoluteURL(url);
     // fix for HTTPS support --> will work for all HiPS served by CDS
     url = Utils.fixURLForHTTPS(url)
+
 
     let init = {};
     if (Utils.requestCORSIfNotSameOrigin(url)) {
@@ -123,7 +124,9 @@ HiPSProperties.fetchFromUrl = async function(urlOrId) {
                     if (!metadata.hips_frame || !metadata.hips_order) {
                         reject('Bad properties: do not contain the mandatory frame or order info')
                     } else {
-                        metadata.hips_service_url = HiPSServiceUrl;
+                        if (!("hips_service_url" in metadata)) {
+                            metadata.hips_service_url = HiPSServiceUrl;
+                        }
                         resolve(metadata);
                     }
                 } else {
@@ -135,7 +138,28 @@ HiPSProperties.fetchFromUrl = async function(urlOrId) {
     return result;
 }
 
-HiPSProperties.getFasterMirrorUrl = function (metadata, currUrl) {
+HiPSProperties.fetchFromFile = function(file) {
+    let url = URL.createObjectURL(file);
+    return fetch(url)
+        .then((response) => response.text())
+        .then(
+            (response) => new Promise((resolve, reject) => {
+                // We get the property here
+                let metadata = HiPSDefinition.parseHiPSProperties(response);
+
+                URL.revokeObjectURL(url)
+
+                // 1. Ensure there is exactly one survey matching
+                if (metadata && Object.keys(metadata).length > 0) {
+                    resolve(metadata)
+                } else {
+                    reject('No surveys matching at this url: ' + rootURL);
+                }
+            })
+        );
+}
+
+HiPSProperties.getFasterMirrorUrl = function (metadata) {
     const pingHiPSServiceUrl = async (baseUrl) => {
         baseUrl = Utils.fixURLForHTTPS(baseUrl);
 
@@ -163,7 +187,6 @@ HiPSProperties.getFasterMirrorUrl = function (metadata, currUrl) {
         });
         const duration = performance.now() - startRequestTime;//the time needed to do the request
 
-
         return {duration, validRequest, baseUrl};
     };
 
@@ -184,6 +207,10 @@ HiPSProperties.getFasterMirrorUrl = function (metadata, currUrl) {
         urls.push(curUrl)
     }
 
+    if (numHiPSServiceURL === 1) {
+        return Promise.resolve(urls[0]);
+    }
+
     return Promise.all(promises)
         .then((responses) => {
             // filter the ones that failed to not choose them
@@ -200,7 +227,6 @@ HiPSProperties.getFasterMirrorUrl = function (metadata, currUrl) {
                 return r1.duration - r2.duration;
             });
 
-            //console.log(validResponses)
             let newUrlResp;
 
             if (validResponses.length >= 2) {
@@ -217,9 +243,10 @@ HiPSProperties.getFasterMirrorUrl = function (metadata, currUrl) {
                 // no valid response => we return an error
                 return Promise.reject('All mirrors urls have been tested:' + urls)
             }
-
+            /*
             // check if there is a big difference from the current one
             let currUrlResp = validResponses.find((r) => r.baseUrl === currUrl)
+
             // it may happen that the url requested by the user is too slow hence discarded
             // for these cases, we automatically switch to the new fastest url.
             let urlChosen;
@@ -231,9 +258,10 @@ HiPSProperties.getFasterMirrorUrl = function (metadata, currUrl) {
                 urlChosen = newUrlResp.baseUrl;
             }
 
-            //console.log('curr url', currUrlResp, ', new ', newUrlResp)
 
             urlChosen = Utils.fixURLForHTTPS(urlChosen)
+            */
+            let urlChosen = newUrlResp.baseUrl;
             return urlChosen;
         })
 }

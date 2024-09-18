@@ -5,20 +5,17 @@
 </head>
 <body>
 
-<div id="aladin-lite-div" style="width:440px;height:300px"></div>
+<div id="aladin-lite-div" style="width: 512px; height: 512px"></div>
 
 <script type="module">
     import A from '../src/js/A.js';
     let aladin;
     A.init.then(() => {
-        aladin = A.aladin('#aladin-lite-div', {cooFrame: "icrs", fullScreen: true});
+        aladin = A.aladin('#aladin-lite-div', {cooFrame: "icrs", log: false});
 
         aladin.displayFITS(
             //'https://fits.gsfc.nasa.gov/samples/FOCx38i0101t_c0f.fits', // url of the fits file
-            'images/panstarrs-g-m61.fits',
-            //'data/fits/neowise.fits',
-            //'data/fits/irac.fits',
-            //'data/fits/FOCx38i0101t_c0f.fits',
+            'data/fits/panstarrs-g-m61.fits',
             {
                 name: 'm61',
                 colormap: 'viridis'

@@ -62,16 +62,18 @@ export let Sesame = (function() {
         // ask resolution by Sesame
         else {
             Sesame.resolve(target,
-                   function(data) { // success callback
-                       callback({ra:  data.Target.Resolver.jradeg,
-                                 dec: data.Target.Resolver.jdedeg});
-                   },
+                function(data) { // success callback
+                    callback({
+                        ra:  data.coo.jradeg,
+                        dec: data.coo.jdedeg
+                    });
+                },
 
-                   function(data) { // error callback
-                       if (errorCallback) {
-                           errorCallback();
-                       }
-                   }
+                function(data) { // error callback
+                    if (errorCallback) {
+                        errorCallback(data);
+                    }
+                }
            );
         }
     };

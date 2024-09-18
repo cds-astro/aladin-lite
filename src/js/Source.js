@@ -82,6 +82,7 @@ export let Source = (function() {
             return;
         }
         this.isSelected = true;
+
         if (this.catalog) {
             this.catalog.reportChange();
         }
@@ -117,6 +118,10 @@ export let Source = (function() {
         }
     }
 
+    Source.prototype.setImage = function(image) {
+        this.image = image;
+    }
+
     /**
      * Simulates a click on the source
      *
@@ -124,31 +129,45 @@ export let Source = (function() {
      * @param {Footprint|Source} [obj] - If not given, the source is taken as the object to be selected 
      */
     Source.prototype.actionClicked = function(obj) {
-        if (this.catalog && this.catalog.onClick) {
+        if (this.catalog) {
             var view = this.catalog.view;
 
-            if (this.catalog.onClick == 'showTable') {
-                if (!obj) {
-                    obj = this;
-                }
-                view.selectObjects([[obj]]);
-            }
-            else if (this.catalog.onClick == 'showPopup') {
-                view.aladin.popup.setTitle('<br><br>');
-                var m = '<div class="aladin-marker-measurement">';
-                m += '<table>';
-                for (var key in this.data) {
-                    m += '<tr><td>' + key + '</td><td>' + this.data[key] + '</td></tr>';
-                }
-                m += '</table>';
-                m += '</div>';
-                view.aladin.popup.setText(m);
+            if (this.marker) {
+                view.aladin.popup.setTitle(this.popupTitle);
+                view.aladin.popup.setText(this.popupDesc);
                 view.aladin.popup.setSource(this);
                 view.aladin.popup.show();
+    
+                return;
             }
-            else if (typeof this.catalog.onClick === 'function') {
-                this.catalog.onClick(this);
-                view.lastClickedObject = this;
+
+            if (this.catalog.onClick) {
+                if (this.catalog.onClick == 'showTable') {
+                    if (!obj) {
+                        obj = this;
+                    }
+                    view.selectObjects([[obj]]);
+                }
+                else if (this.catalog.onClick == 'showPopup') {
+                    var title = '<br><br>';
+                    var desc;
+                    desc = '<div class="aladin-marker-measurement">';
+                    desc += '<table>';
+                    for (var key in this.data) {
+                        desc += '<tr><td>' + key + '</td><td>' + this.data[key] + '</td></tr>';
+                    }
+                    desc += '</table>';
+                    desc += '</div>';
+    
+                    view.aladin.popup.setTitle(title);
+                    view.aladin.popup.setText(desc);
+                    view.aladin.popup.setSource(this);
+                    view.aladin.popup.show();
+                }
+                else if (typeof this.catalog.onClick === 'function') {
+                    this.catalog.onClick(this);
+                    view.lastClickedObject = this;
+                }
             }
         }
     };
@@ -162,6 +181,6 @@ export let Source = (function() {
             this.deselect();
         }
     };
-    
+
     return Source;
 })();

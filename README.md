@@ -195,3 +195,15 @@ and run the tests:
 cd src/core
 cargo test --features webgl2
 ```
+
+For running the playwright test locally please first install playwright like so:
+
+```bash
+npx playwright install
+```
+
+After that you will be able to run them. These are generated snapshots that will be compared to ground truth snapshots:
+
+```bash
+npm run test:playwright
+```

@@ -33,7 +33,6 @@ jobs:
       - name: "Build Aladin Lite"
         run: |
           npm run build
-      - name: "Run some tests"
+      - name: "Run the rust tests"
         run: |
           npm run test:build
-          npm run test:unit

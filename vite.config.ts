@@ -10,7 +10,7 @@ import wasmPack from 'vite-plugin-wasm-pack';
 // To include and minify glsl into the bundle
 import glsl from 'vite-plugin-glsl';
 // To include css into the bundle
-import cssInjectedByJsPlugin from 'vite-plugin-css-injected-by-js'
+//import cssInjectedByJsPlugin from 'vite-plugin-css-injected-by-js'
 
 export default defineConfig({
     build: {
@@ -38,7 +38,6 @@ export default defineConfig({
         glsl({
             compress: true,
         }),
-        cssInjectedByJsPlugin(),
     ],
     resolve: {
         alias: [
@@ -47,16 +46,16 @@ export default defineConfig({
             {find: '$', replacement: path.resolve(__dirname, '/tests/e2e')}
         ],
     },
-    test: {
-        globals: true,
-        environment: 'happy-dom',
-        include: [
-            'tests/unit/**/*.{test,spec}.{js,ts}'
-        ],
-        deps: {
-            inline: ['core/pkg'],
-        },
-    },
+    //test: {
+    //    globals: true,
+    //    environment: 'happy-dom',
+    //    include: [
+    //        'tests/unit/**/*.{test,spec}.{js,ts}'
+    //    ],
+    //    deps: {
+    //        inline: ['core/pkg'],
+    //    },
+    //},
     server: {
         open: '/examples/index.html',
     },

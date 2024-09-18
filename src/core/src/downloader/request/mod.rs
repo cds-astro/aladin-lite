@@ -56,9 +56,11 @@ where
                 } else {
                     resolved_cloned.set(ResolvedStatus::Failed);
                 }
+
+                Ok(JsValue::from_bool(true))
             };
 
-            wasm_bindgen_futures::spawn_local(fut);
+            let _ = wasm_bindgen_futures::future_to_promise(fut);
         }
 
         Self {

@@ -73,6 +73,8 @@ features = [
   'PerformanceTiming',
   'Performance',
   'Url',
+  'File',
+  'FileList'
 ]
 
 [profile.dev]

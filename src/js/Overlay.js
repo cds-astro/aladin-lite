@@ -226,8 +226,12 @@ export let GraphicOverlay = (function() {
         }
     };
 
-    GraphicOverlay.prototype.setView = function(view) {
+    GraphicOverlay.prototype.setView = function(view, idx) {
+        console.trace()
         this.view = view;
+
+        this.view.overlays.push(this);
+        this.view.insertOverlay(this, idx);
     };
 
     GraphicOverlay.prototype.removeAll = function() {

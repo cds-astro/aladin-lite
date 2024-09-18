@@ -6,10 +6,9 @@
 <body>
 
 <div id="aladin-lite-div" style="width: 1024px; height: 768px"></div>
-
+<script>var aladin;</script>
 <script type="module">
     import A from '../src/js/A.js';
-    var aladin;
     A.init.then(() => {
         aladin = A.aladin('#aladin-lite-div', {fullScreen: true, cooFrame: "ICRSd", showSimbadPointerControl: true, showShareControl: true, showShareControl: true, survey: 'https://alasky.cds.unistra.fr/DSS/DSSColor/', fov: 180, showContextMenu: true});
         // manage URL parameters
@@ -26,7 +25,12 @@
 
         aladin.setImageLayer(survey2);
 
-        aladin.removeHiPSFromFavorites(survey3);
+        /*setTimeout(() => {
+            aladin.removeHiPSFromFavorites(survey3)
+        }, 10000);*/
+
+
+        aladin.addColormap('mycmap', ["lightblue", "red", "violet", "lightgreen"])
     });
 </script>
 

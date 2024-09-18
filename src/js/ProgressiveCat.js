@@ -216,9 +216,12 @@ export let ProgressiveCat = (function() {
 
     ProgressiveCat.prototype = {
 
-        init: function(view) {
+        setView: function(view, idx) {
             var self = this;
             this.view = view;
+
+            this.view.catalogs.push(this);
+            this.view.insertOverlay(this, idx);
 
             if (this.maxOrder && this.frameStr) {
                 this._loadMetadata();

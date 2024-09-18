@@ -216,7 +216,8 @@ impl Colormaps {
         if let Some(id) = self.get_id(label).map(|id| *id) {
             &self.cmaps[id as usize]
         } else {
-            let id_greys = self.get_id(label).map(|id| *id).unwrap_abort();
+            crate::log::console_warn(&format!("{:?} is not a valid colormap, replaced with 'grayscale'.", label));
+            let id_greys = self.get_id("grayscale").map(|id| *id).unwrap_abort();
             &self.cmaps[id_greys as usize]
         }
     }

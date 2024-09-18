@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+    <head>
+    </head>
+<body>
+
+<div class="shadow-host"></div>
+
+<script type="text/javascript" src="./../dist/aladin.umd.cjs" charset="utf-8"></script>
+<script type="text/javascript">
+    const shadowEl = document.querySelector(".shadow-host");
+    const shadow = shadowEl.attachShadow({mode: 'open'});
+
+    let aladinLiteEl = document.createElement('div');
+    aladinLiteEl.id = "aladin-lite-div"
+    aladinLiteEl.style = "width: 768px; height: 512px";
+    shadow.appendChild(aladinLiteEl)
+
+    A.init.then(() => {
+        let aladin = A.aladin(
+            aladinLiteEl,
+            {
+                survey: 'P/allWISE/color', // set initial image survey
+                projection: 'AIT', // set a projection
+                fov: 1.5, // initial field of view in degrees
+                target: 'orion', // initial target
+            }
+        );
+    });
+</script>
+</body>
+</html>

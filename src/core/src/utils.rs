@@ -95,3 +95,40 @@ pub(super) fn merge_overlapping_intervals(mut intervals: Vec<Range<usize>>) -> V
 
     intervals
 }
+
+/*
+Execute a closure after some delay. This mimics the javascript built-in setTimeout procedure.
+*/
+#[cfg(target_arch = "wasm32")]
+pub(crate) fn set_timeout<F>(f: F, delay: i32)
+where
+    F: 'static + FnOnce() -> (),
+{
+    use std::cell::Cell;
+    use std::rc::Rc;
+    use wasm_bindgen::closure::Closure;
+    use wasm_bindgen::JsCast;
+
+    let timeout_id = Rc::new(Cell::new(0));
+    let t_id = timeout_id.clone();
+    let cb = Closure::once_into_js(move || {
+        f();
+
+        web_sys::window()
+            .unwrap()
+            .clear_timeout_with_handle(t_id.get());
+    });
+
+    let window = web_sys::window().unwrap();
+    timeout_id.set(
+        window
+            .set_timeout_with_callback_and_timeout_and_arguments_0(
+                // Note this method call, which uses `as_ref()` to get a `JsValue`
+                // from our `Closure` which is then converted to a `&Function`
+                // using the `JsCast::unchecked_ref` function.
+                cb.unchecked_ref(),
+                delay,
+            )
+            .unwrap(),
+    );
+}

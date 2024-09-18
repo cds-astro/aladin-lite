@@ -44,6 +44,12 @@
         landingSites.addSources([A.marker(-225.71, 47.64, {popupTitle: 'Viking 2', popupDesc: 'Landing date: September 3, 1976 22:37:50'})]);
         landingSites.addSources([A.marker(175.472636, -14.5684, {popupTitle: 'Spirit', popupDesc: 'Landing date: January 4, 2004, 04:35 UTC '})]);
         landingSites.addSources([A.marker(137.4417, -4.5895, {popupTitle: 'Curiosity', popupDesc: 'Landing date: August 6, 2012, 05:17 UTC '})]) 
+    
+        var cat = A.catalog({name: "Temp", sourceSize: 18, onClick: 'showPopup'});
+        aladin.addCatalog(cat);
+        cat.addSources(A.source(105.69239256, -8.45235969, {a: 1, b: 2, c:3}));
+        cat.addSources(A.source(105.70779763, -8.31350997, {a: 4, b: 5, c:6}));
+        cat.addSources(A.source(105.74242906, -8.34776709, {a: 7, b: 8, c:9}));
     });
 </script>
 </body>

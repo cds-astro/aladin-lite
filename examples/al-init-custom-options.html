@@ -13,10 +13,11 @@
         aladin = A.aladin(
             '#aladin-lite-div',
             {
+                showSimbadPointerControl: true,
                 survey: 'P/allWISE/color', // set initial image survey
                 projection: 'AIT', // set a projection
                 fov: 1.5, // initial field of view in degrees
-                target: 'NGC 2175', // initial target
+                target: 'orion', // initial target
                 cooFrame: 'icrs', // set galactic frame
                 reticleColor: '#ff89ff', // change reticle color
                 reticleSize: 64, // change reticle size
@@ -26,13 +27,24 @@
                 showSettingsControl:true,
                 showCooGrid: true,
                 fullScreen: true,
+                samp: true,
             }
         );
 
-        aladin.removeHiPSFromFavorites('CDS/P/allWISE/color')
+        /*let id;
+        aladin.on("zoomChanged", () => {
+            if (id)
+                clearTimeout(id);
+            id = setTimeout(() => {
+                console.log("wheel stopped, new cone search here")
+            }, 500);
+        })*/
     });
 </script>
 <style>
+    .aladin-cat-browser-box {
+        width: 600px;
+    }
 </style>
 </body>
 </html>

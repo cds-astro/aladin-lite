@@ -26,11 +26,11 @@ impl From<TileRequest> for RequestType {
     }
 }
 
-async fn query_html_image(url: &str) -> Result<HtmlImageElement, JsValue> {
+async fn query_html_image(url: &str) -> Result<web_sys::HtmlImageElement, JsValue> {
     let image = web_sys::HtmlImageElement::new().unwrap_abort();
     let image_cloned = image.clone();
 
-    let html_img_elt_promise = js_sys::Promise::new(
+    let promise = js_sys::Promise::new(
         &mut (Box::new(move |resolve, reject| {
             // Ask for CORS permissions
             image_cloned.set_cross_origin(Some(""));
@@ -40,7 +40,7 @@ async fn query_html_image(url: &str) -> Result<HtmlImageElement, JsValue> {
         }) as Box<dyn FnMut(js_sys::Function, js_sys::Function)>),
     );
 
-    let _ = JsFuture::from(html_img_elt_promise).await?;
+    let _ = JsFuture::from(promise).await?;
 
     Ok(image)
 }
@@ -49,7 +49,7 @@ use al_core::image::html::HTMLImage;
 use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::JsFuture;
-use web_sys::{HtmlImageElement, RequestInit, RequestMode, Response};
+use web_sys::{RequestInit, RequestMode, Response};
 impl From<query::Tile> for TileRequest {
     // Create a tile request associated to a HiPS
     fn from(query: query::Tile) -> Self {
@@ -141,9 +141,9 @@ impl From<query::Tile> for TileRequest {
             | ChannelType::R32I
             | ChannelType::R16I
             | ChannelType::R8UI => Request::new(async move {
-                let mut opts = RequestInit::new();
-                opts.method("GET");
-                opts.mode(RequestMode::Cors);
+                let opts = RequestInit::new();
+                opts.set_method("GET");
+                opts.set_mode(RequestMode::Cors);
 
                 let request =
                     web_sys::Request::new_with_str_and_init(&url_clone, &opts).unwrap_abort();

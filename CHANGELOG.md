@@ -1,10 +1,25 @@
 # Changelogs
 
+## 3.5.1-beta
+
+* [feat] Add support for name removing in `removeOverlay` method
+* [test] Add support of playwright. Instructions in the readme for running the test matching snapshots [PR #176]
+* [fix] Order of overlays in the stack now matches the addMOC/addCatalog/addOverlay calls ordering
+* [doc] Expose the API of Coo class
+* [fix] Insert aladin css inside the aladin lite so that it should be compliant with the use of shadow DOMs [cds-astro/ipyaladin#113], [marimo-team/marimo#2106]
+* [feat] Add possibility of giving a local JS FileList to load a locally-stored HiPS without starting an HTTP server [cds-astro/aladin-lite#103]
+* [fix] removeOverlayByName
+
+## 3.5.0-beta
+
+* [enhancement] add `options.colnames` to A.catalogFromVizieR to tell VizieR we want absolutely want to retrieve specific columns 
+* [feat] provide a new drawAxes option to A.ellipse. This is useful for plotting error ellipsis.
+
 ## 3.4.5-beta
 
 * [feat] add `layerChanged` event when a layer is added or removed
 * [deprecate] of `select` event, use `objectsSelected` event instead
-* [ui] add the ability to switch the tile format to download 
+* [ui] add the ability to switch the tile format to download
 
 ## 3.4.3-beta
 

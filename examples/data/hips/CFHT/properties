@@ -1,0 +1,30 @@
+hips_initial_fov     = 1.17162
+hips_initial_ra      = 339.12169
+hips_initial_dec     = 34.2324
+creator_did          = ivo://CDS/P/CDS_EPO/2022_Duc
+hips_overlay         = mean
+hips_hierarchy       = median
+hips_creator         = Sebastien Derriere, CDS
+obs_title            = CFHT deep view of NGC7331 and Stephans quintet ugr
+obs_description      = CFHT MegaCam ugr color composition enhancing low surface brightness stellar components
+prov_progenitor      = CFHT MegaCam observations
+bib_reference_url    = https://www.nature.com/articles/s41586-022-05206-x
+hips_builder         = Aladin/HipsGen v12.001
+hips_version         = 1.4
+hips_release_date    = 2022-10-19T15:00Z
+hips_frame           = equatorial
+hips_order           = 5
+hips_order_min       = 0
+hips_tile_width      = 512
+hips_status          = public partial unclonable
+hips_tile_format     = png
+hips_pixel_scale     = 1.118E-4
+s_pixel_scale        = 1.558E-4
+dataproduct_type     = image
+hipsgen_date         = 2022-10-18T15:43Z
+hipsgen_params       = in=NGC7331_ugr-max out=NGC7331_ugr-maxHiPS creator_did=ivo://CDS
+hips_creation_date   = 2022-10-18T15:43Z
+dataproduct_subtype  = color
+hipsgen_date_1       = 2024-09-10T15:15Z
+hipsgen_params_1     = in=https://cds.unistra.fr/~derriere/PR_HiPS/2022_Duc/ out=./hips/CFHT "region=5/3380 3382 3379 3377" order=5 MIRROR
+moc_sky_fraction     = 3.425E-5

@@ -25,9 +25,11 @@
  * Authors: Matthieu Baumann [CDS]
  *
  *****************************************************************************/
-import { ALEvent } from "./events/ALEvent.js";
 import { ColorCfg } from "./ColorCfg.js";
 import { Aladin } from "./Aladin.js";
+import { Utils } from "./Utils";
+import { AVM } from "./libs/avm.js";
+import { HiPS } from "./HiPS.js";
 
 /**
  * @typedef {Object} ImageOptions
@@ -48,7 +50,7 @@ import { Aladin } from "./Aladin.js";
  * @property {number} [contrast=0.0] - The contrast value for the color configuration.
  * @property {Object} [wcs] - an object describing the WCS of the image. In case of a fits image
  * this property will be ignored as the WCS taken will be the one present in the fits file.
- * @property {number} [imgFormat='fits'] - The image format of the image to load.
+ * @property {string} [imgFormat] - Optional image format. Giving it will prevent the auto extension determination algorithm to be triggered. Possible values are 'jpeg', 'png' or 'fits'. tiff files are not supported. You can convert your tiff files to jpg ones by using the fantastic image magick suite.
  * 
  * @example
  * 
@@ -56,26 +58,25 @@ import { Aladin } from "./Aladin.js";
  *       "https://nova.astrometry.net/image/25038473?filename=M61.jpg",
  *       {
  *           name: "M61",
- *           imgFormat: 'jpeg',
  *           wcs: {
- *               NAXIS: 0, // Minimal header
- *               CTYPE1: 'RA---TAN', // TAN (gnomic) projection + SIP distortions
- *               CTYPE2: 'DEC--TAN', // TAN (gnomic) projection + SIP distortions
- *               EQUINOX: 2000.0, // Equatorial coordinates definition (yr)
- *               LONPOLE: 180.0, // no comment
- *               LATPOLE: 0.0, // no comment
- *               CRVAL1: 185.445488837, // RA of reference point
- *               CRVAL2: 4.47896032431, // DEC of reference point
- *               CRPIX1: 588.995094299, // X reference pixel
- *               CRPIX2: 308.307905197, // Y reference pixel
- *               CUNIT1: 'deg', // X pixel scale units
- *               CUNIT2: 'deg', // Y pixel scale units
- *               CD1_1: -0.000223666022989, // Transformation matrix
- *               CD1_2: 0.000296578064584, // no comment
- *               CD2_1: -0.000296427555509, // no comment
- *               CD2_2: -0.000223774308964, // no comment
- *               NAXIS1: 1080, // Image width, in pixels.
- *               NAXIS2: 705 // Image height, in pixels.
+                NAXIS: 0, // Minimal header
+                CTYPE1: 'RA---TAN', // TAN (gnomic) projection
+                CTYPE2: 'DEC--TAN', // TAN (gnomic) projection
+                EQUINOX: 2000.0, // Equatorial coordinates definition (yr)
+                LONPOLE: 180.0, // no comment
+                LATPOLE: 0.0, // no comment
+                CRVAL1: 185.445488837, // RA of reference point
+                CRVAL2: 4.47896032431, // DEC of reference point
+                CRPIX1: 588.995094299, // X reference pixel
+                CRPIX2: 308.307905197, // Y reference pixel
+                CUNIT1: 'deg', // X pixel scale units
+                CUNIT2: 'deg', // Y pixel scale units
+                CD1_1: -0.000223666022989, // Transformation matrix
+                CD1_2: -0.000296578064584, // no comment
+                CD2_1: -0.000296427555509, // no comment
+                CD2_2: 0.000223774308964, // no comment
+                NAXIS1: 1080, // Image width, in pixels.
+                NAXIS2: 705 // Image height, in pixels.
  *           },
  *           successCallback: (ra, dec, fov, image) => {
  *               aladin.gotoRaDec(ra, dec);
@@ -96,7 +97,7 @@ export let Image = (function () {
      * @param {ImageOptions} [options] - The option for the survey
      *
      */
-    function Image(url, options) {
+    let Image = function(url, options) {
         // Name of the layer
         this.layer = null;
         this.added = false;
@@ -104,154 +105,135 @@ export let Image = (function () {
         this.url = url;
         this.id = url;
         this.name = (options && options.name) || this.url;
-        this.imgFormat = (options && options.imgFormat) || "fits";
-        this.formats = [this.imgFormat];
+        this.imgFormat = options && options.imgFormat;
+        //this.formats = [this.imgFormat];
         // callbacks
         this.successCallback = options && options.successCallback;
         this.errorCallback = options && options.errorCallback;
-        // initialize the color meta data here
-        // set a asinh stretch by default if there is none
-        /*if (options) {
-            options.stretch = options.stretch || "asinh";
-        }*/
+
+        this.longitudeReversed = false;
 
         this.colorCfg = new ColorCfg(options);
-        this.options = options;
+        this.options = options || {};
 
         let self = this;
 
         this.query = Promise.resolve(self);
     }
 
-    /* Precondition: view is already attached */
-    Image.prototype._saveInCache = function () {
-        let hipsCache = this.view.aladin.hipsCache;
-        if (hipsCache.contains(self.id)) {
-            hipsCache.append(this.id, this);
-        }
-    };
+    Image.prototype = {
+        /* Precondition: view is already attached */
+        _saveInCache: HiPS.prototype._saveInCache,
 
-    Image.prototype.setView = function (view) {
-        this.view = view;
+        // @api
+        getCuts: HiPS.prototype.getCuts,
 
-        this._saveInCache();
-    };
+            // @api
+        setOpacity: HiPS.prototype.setOpacity,
 
-    // @api
-    Image.prototype.setOpacity = function (opacity) {
-        let self = this;
-        this._updateMetadata(() => {
-            self.colorCfg.setOpacity(opacity);
-        });
-    };
 
-    // @api
-    Image.prototype.setBlendingConfig = function (additive = false) {
-        this._updateMetadata(() => {
-            this.colorCfg.setBlendingConfig(additive);
-        });
-    };
+        // @api
+        setOptions: HiPS.prototype.setOptions,
+        // @api
+        setBlendingConfig: HiPS.prototype.setBlendingConfig,
 
-    // @api
-    Image.prototype.setColormap = function (colormap, options) {
-        this._updateMetadata(() => {
-            this.colorCfg.setColormap(colormap, options);
-        });
-    };
+        // @api
+        setColormap: HiPS.prototype.setColormap,
 
-    // @api
-    Image.prototype.setCuts = function (lowCut, highCut) {
-        this._updateMetadata(() => {
-            this.colorCfg.setCuts(lowCut, highCut);
-        });
-    };
+        // @api
+        setCuts: HiPS.prototype.setCuts,
 
-    // @api
-    Image.prototype.setGamma = function (gamma) {
-        this._updateMetadata(() => {
-            this.colorCfg.setGamma(gamma);
-        });
-    };
+        // @api
+        setGamma: HiPS.prototype.setGamma,
 
-    // @api
-    Image.prototype.setSaturation = function (saturation) {
-        this._updateMetadata(() => {
-            this.colorCfg.setSaturation(saturation);
-        });
-    };
+        // @api
+        setSaturation: HiPS.prototype.setSaturation,
 
-    Image.prototype.setBrightness = function (brightness) {
-        this._updateMetadata(() => {
-            this.colorCfg.setBrightness(brightness);
-        });
-    };
+        setBrightness: HiPS.prototype.setBrightness,
 
-    Image.prototype.setContrast = function (contrast) {
-        this._updateMetadata(() => {
-            this.colorCfg.setContrast(contrast);
-        });
-    };
+        setContrast: HiPS.prototype.setContrast,
 
-    // Private method for updating the view with the new meta
-    Image.prototype._updateMetadata = function (callback) {
-        if (callback) {
-            callback();
-        }
+        // @api
+        toggle: HiPS.prototype.toggle,
+        // @oldapi
+        setAlpha: HiPS.prototype.setOpacity,
+    
+        setColorCfg: HiPS.prototype.setColorCfg,
+    
+        // @api
+        getColorCfg: HiPS.prototype.getColorCfg,
+    
+        // @api
+        getOpacity: HiPS.prototype.getOpacity,
+        getAlpha: HiPS.prototype.getOpacity,
+    
+        // @api
+        readPixel: HiPS.prototype.readPixel,
 
-        // Tell the view its meta have changed
-        try {
-            if (this.added) {
-                this.view.wasm.setImageMetadata(this.layer, {
-                    ...this.colorCfg.get(),
-                    longitudeReversed: false,
-                    imgFormat: this.imgFormat,
-                });
-                ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.view.aladinDiv, {
-                    layer: this,
-                });
-            }
+        // Private method for updating the view with the new meta
+        _updateMetadata: HiPS.prototype._updateMetadata,
 
-            // save it in the JS HiPS cache
+        setView: function (view) {
+            this.view = view;
             this._saveInCache();
-        } catch (e) {
-            // Display the error message
-            console.error(e);
-        }
-    };
+        },
 
-    Image.prototype.add = function (layer) {
-        this.layer = layer;
+        _addFITS: function(layer) {
+            let self = this;
 
-        let self = this;
+            return Utils.fetch({
+                url: this.url,
+                dataType: 'readableStream',
+                success: (stream) => {
+                    return self.view.wasm.addImageFITS(
+                        stream,
+                        {
+                            ...self.colorCfg.get(),
+                            longitudeReversed: this.longitudeReversed,
+                            imgFormat: 'fits',
+                        },
+                        layer
+                    )
+                },
+                error: (e) => {
+                    // try as cors 
+                    const url = Aladin.JSONP_PROXY + '?url=' + self.url;
 
-        let promise;
-        if (this.imgFormat === 'fits') {
-            let id = this.url;
-            promise = fetch(this.url)
-                .then((resp) => resp.body)
-                .then((readableStream) => {
-                    return self.view.wasm
-                        .addImageFITS(
-                            id,
-                            readableStream,
-                            {
-                                ...self.colorCfg.get(),
-                                longitudeReversed: false,
-                                imgFormat: self.imgFormat,
-                            },
-                            layer
-                        )
-                })
-        } else if (this.imgFormat === 'jpg' || this.imgFormat === 'jpeg') {
+                    return Utils.fetch({
+                        url: url,
+                        dataType: 'readableStream',
+                        success: (stream) => {
+                            return self.view.wasm.addImageFITS(
+                                stream,
+                                {
+                                    ...self.colorCfg.get(),
+                                    longitudeReversed: this.longitudeReversed,
+                                    imgFormat: 'fits',
+                                },
+                                layer
+                            )
+                        },
+                    });
+                }
+            })
+            .then((imageParams) => {
+                self.imgFormat = 'fits';
+
+                return Promise.resolve(imageParams);
+            })
+        },
+
+        _addJPGOrPNG: function(layer) {
+            let self = this;
             let img = document.createElement('img');
 
-            promise =
-                new Promise((resolve, reject) => {
-                    img.src = this.url;
-                    img.crossOrigin = "Anonymous";
-                    img.onload = () => {
+            return new Promise((resolve, reject) => {
+                img.src = this.url;
+                img.crossOrigin = "Anonymous";
+                img.onload = () => {
+                    const img2Blob = () => {
                         var canvas = document.createElement("canvas");
-        
+
                         canvas.width = img.width;
                         canvas.height = img.height;
                     
@@ -260,144 +242,175 @@ export let Image = (function () {
                         ctx.drawImage(img, 0, 0, img.width, img.height);
         
                         const imageData = ctx.getImageData(0, 0, img.width, img.height);
-
+        
                         const blob = new Blob([imageData.data]);
                         const stream = blob.stream(1024);
-
-                        resolve(stream)
-                    }
         
-                    let proxyUsed = false;
-                    img.onerror = () => {
-                        // use proxy
-                        if (proxyUsed) {
-                            reject('Error parsing img ' + self.url)
-                            return;
-                        }
+                        resolve(stream)
+                    };
 
-                        proxyUsed = true;
-                        img.src = Aladin.JSONP_PROXY + '?url=' + self.url;                   
+                    if (!self.options.wcs) {
+                        /* look for avm tags if no wcs is given */
+                        let avm = new AVM(img);
+
+                        avm.load((obj) => {
+                            // obj contains the following information:
+                            // obj.id (string) = The ID provided for the image
+                            // obj.img (object) = The image object
+                            // obj.xmp (string) = The raw XMP header
+                            // obj.wcsdata (Boolean) = If WCS have been loaded
+                            // obj.tags (object) = An array containing all the loaded tags e.g. obj.tags['Headline']
+                            // obj.wcs (object) = The wcs parsed from the image
+                            if (obj.wcsdata) {
+                                if (img.width !== obj.wcs.NAXIS1) {
+                                    obj.wcs.NAXIS1 = img.width;
+                                }
+
+                                if (img.height !== obj.wcs.NAXIS2) {
+                                    obj.wcs.NAXIS2 = img.height;
+                                }
+
+                                self.options.wcs = obj.wcs;
+
+                                img2Blob()
+                            } else {
+                                // no tags found
+                                reject('No WCS have been found in the image')
+                                return;
+                            }
+                        })
+                    } else {
+                        img2Blob()
                     }
-                })
-                .then((readableStream) => {
-                    let wcs = self.options && self.options.wcs;
-                    wcs.NAXIS1 = wcs.NAXIS1 || img.width;
-                    wcs.NAXIS2 = wcs.NAXIS2 || img.height;
+                }
 
-                    return self.view.wasm
-                        .addImageWithWCS(
-                            readableStream,
-                            wcs,
-                            {
-                                ...self.colorCfg.get(),
-                                longitudeReversed: false,
-                                imgFormat: self.imgFormat,
-                            },
-                            layer
-                        )
-                })
-                .finally(() => {
-                    img.remove();
-                })
-        } else {
-            console.warn(`Image format: ${this.imgFormat} not supported`);
-            promise = Promise.reject();
-        };
+                let proxyUsed = false;
+                img.onerror = (e) => {
+                    // use proxy
+                    if (proxyUsed) {
+                        console.error(e);
 
-        promise = promise.then((imageParams) => {
-            // There is at least one entry in imageParams
-            self.added = true;
-            self.setView(self.view);
+                        reject('Error parsing image located at: ' + self.url)
+                        return;
+                    }
 
-            // Set the automatic computed cuts
-            let [minCut, maxCut] = self.getCuts();
-            minCut = minCut || imageParams.min_cut;
-            maxCut = maxCut || imageParams.max_cut;
-            self.setCuts(
-                minCut,
-                maxCut
-            );
+                    proxyUsed = true;
+                    img.src = Aladin.JSONP_PROXY + '?url=' + self.url;
+                }
+            })
+            .then((readableStream) => {
+                let wcs = self.options && self.options.wcs;
+                wcs.NAXIS1 = wcs.NAXIS1 || img.width;
+                wcs.NAXIS2 = wcs.NAXIS2 || img.height;
 
-            self.ra = imageParams.centered_fov.ra;
-            self.dec = imageParams.centered_fov.dec;
-            self.fov = imageParams.centered_fov.fov;
+                return self.view.wasm
+                    .addImageWithWCS(
+                        readableStream,
+                        wcs,
+                        {
+                            ...self.colorCfg.get(),
+                            longitudeReversed: this.longitudeReversed,
+                            imgFormat: 'jpeg',
+                        },
+                        layer
+                    )
+            })
+            .then((imageParams) => {
+                self.imgFormat = 'jpeg';
+                return Promise.resolve(imageParams);
+            })
+            .finally(() => {
+                img.remove();
+            });
+        },
 
-            // Call the success callback on the first HDU image parsed
-            if (self.successCallback) {
-                self.successCallback(
-                    self.ra,
-                    self.dec,
-                    self.fov,
-                    self
-                );
+        add: function (layer) {
+            this.layer = layer;
+
+            let self = this;
+            let promise;
+
+            if (this.imgFormat === 'fits') {
+                promise = this._addFITS(layer)
+                    .catch(e => {
+                        console.error(`Image located at ${this.url} could not be parsed as fits file. Is the imgFormat specified correct?`)
+                        return Promise.reject(e)
+                    })
+            } else if (this.imgFormat === 'jpeg' || this.imgFormat === 'png') {
+                promise = this._addJPGOrPNG(layer)
+                    .catch(e => {
+                        console.error(`Image located at ${this.url} could not be parsed as a ${this.imgFormat} file. Is the imgFormat specified correct?`);
+                        return Promise.reject(e)
+                    })
+            } else {
+                // imgformat not defined we will try first supposing it is a fits file and then use the jpg heuristic
+                promise = self._addFITS(layer)
+                    .catch(e => {
+                        return self._addJPGOrPNG(layer)
+                            .catch(e => {
+                                console.error(`Image located at ${self.url} could not be parsed as jpg/png/tif image file. Aborting...`)
+                                return Promise.reject(e);
+                            })
+                    })
             }
 
-            return self;
-        })
-        .catch((e) => {
-            // This error result from a promise
-            // If I throw it, it will not be catched because
-            // it is run async
-            self.view.removeImageLayer(layer);
+            promise = promise.then((imageParams) => {
+                self.formats = [self.imgFormat];
 
-            return Promise.reject(e);
-        });
+                // There is at least one entry in imageParams
+                self.added = true;
+                self.setView(self.view);
 
-        return promise;
-    };
+                // Set the automatic computed cuts
+                let [minCut, maxCut] = self.getCuts();
+                minCut = minCut || imageParams.min_cut;
+                maxCut = maxCut || imageParams.max_cut;
+                self.setCuts(
+                    minCut,
+                    maxCut
+                );
 
-    // @api
-    Image.prototype.toggle = function () {
-        if (this.colorCfg.getOpacity() != 0.0) {
-            this.colorCfg.setOpacity(0.0);
-        } else {
-            this.colorCfg.setOpacity(this.prevOpacity);
-        }
-    };
+                self.ra = imageParams.centered_fov.ra;
+                self.dec = imageParams.centered_fov.dec;
+                self.fov = imageParams.centered_fov.fov;
 
-    // FITS images does not mean to be used for storing planetary data
-    Image.prototype.isPlanetaryBody = function () {
-        return false;
-    };
+                // Call the success callback on the first HDU image parsed
+                if (self.successCallback) {
+                    self.successCallback(
+                        self.ra,
+                        self.dec,
+                        self.fov,
+                        self
+                    );
+                }
 
-    // @api
-    Image.prototype.focusOn = function () {
-        // ensure the fits have been parsed
-        if (this.added) {
-            this.view.aladin.gotoRaDec(this.ra, this.dec);
-            this.view.aladin.setFoV(this.fov);
-        }
-    };
+                return self;
+            })
+            .catch((e) => {
+                // This error result from a promise
+                // If I throw it, it will not be catched because
+                // it is run async
+                self.view.removeImageLayer(layer);
 
-    // @oldapi
-    Image.prototype.setAlpha = Image.prototype.setOpacity;
+                return Promise.reject(e);
+            });
 
-    Image.prototype.setColorCfg = function (colorCfg) {
-        this._updateMetadata(() => {
-            this.colorCfg = colorCfg;
-        });
-    };
+            return promise;
+        },
 
-    // @api
-    Image.prototype.getColorCfg = function () {
-        return this.colorCfg;
-    };
+        // FITS images does not mean to be used for storing planetary data
+        isPlanetaryBody: function () {
+            return false;
+        },
 
-    // @api
-    Image.prototype.getCuts = function () {
-        return this.colorCfg.getCuts();
-    };
-
-    // @api
-    Image.prototype.getOpacity = function () {
-        return this.colorCfg.getOpacity();
-    };
-
-    Image.prototype.getAlpha = Image.prototype.getOpacity;
-
-    // @api
-    Image.prototype.readPixel = function (x, y) {
-        return this.view.wasm.readPixel(x, y, this.layer);
+        // @api
+        focusOn: function () {
+            // ensure the fits have been parsed
+            if (this.added) {
+                this.view.aladin.gotoRaDec(this.ra, this.dec);
+                this.view.aladin.setFoV(this.fov);
+            }
+        },
     };
 
     return Image;

@@ -1,0 +1,43 @@
+<!doctype html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, height=device-height, maximum-scale=1.0, initial-scale=1.0, user-scalable=no">
+    </head>
+<body>
+<div id="aladin-lite-div" style="width: 512px; height: 512px"></div>
+
+<script type="module">
+    import A from '../src/js/A.js';
+
+    var aladin;
+    A.init.then(() => {
+        aladin = A.aladin('#aladin-lite-div',
+            {
+                cooFrame: "ICRSd",
+                survey: "data/hips/CDS_P_DSS2_color",
+                target: "05 40 59.12 -02 27 04.1",
+                fov: 2,
+                showSimbadPointerControl: true,
+                showShareControl: true,
+                showContextMenu: true,
+                showCatalog: true,
+                showFov: true,
+                showCooGrid: true,
+                showFrame: true,
+                showCooGridControl: true,
+                showCooLocation: true,
+                showFullscreenControl: true,
+                showLayersControl: true,
+                showProjectionControl: true,
+                showReticle: true,
+                showSettingsControl: true,
+                showStatusBar: true,
+                showZoomControl: true,
+                log: false, // disable the log for the test
+            }
+        );
+    });
+</script>
+
+</body>
+</html>

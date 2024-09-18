@@ -12,9 +12,9 @@
     import A from '../src/js/A.js';
     //let aladin;
     A.init.then(() => {
-        aladin = A.aladin('#aladin-lite-div', {showReticle: true, showSurveyStackControl: true, showOverlayStackControl: false, projection: "TAN", target: '15 16 57.636 -60 55 7.49', showProjectionControl: true, realFullscreen: true, showZoomControl: true, showSimbadPointerControl: true, showShareControl: true, showContextMenu: true, showCooGridControl: true, fullScreen: true, showCooGrid: true, fov: 90});
-                
-        var moc_0_99 = A.MOCFromURL("./data//gw/gw_0.9.fits",{ name: "GW 90%", color: "#ff0000", opacity: 0.0, lineWidth: 10, fill: false, perimeter: true});
+        aladin = A.aladin('#aladin-lite-div', {survey: "data/hips/CDS_P_DSS2_color", showReticle: true, showSurveyStackControl: true, showOverlayStackControl: false, projection: "TAN", target: '15 16 57.636 -60 55 7.49', showProjectionControl: true, realFullscreen: true, showZoomControl: true, showSimbadPointerControl: true, showShareControl: true, showContextMenu: true, showCooGridControl: true, fullScreen: true, showCooGrid: true, fov: 180, log: false});
+
+        var moc_0_99 = A.MOCFromURL("./data/gw/gw_0.9.fits",{ name: "GW 90%", color: "#ff0000", opacity: 0.0, lineWidth: 10, fill: false, perimeter: true});
         var moc_0_95 = A.MOCFromURL("./data/gw/gw_0.6.fits",{ name: "GW 60%", color: "#00ff00", opacity: 0.5, lineWidth: 3, fill: true, perimeter: true});
         var moc_0_5 = A.MOCFromURL("./data/gw/gw_0.3.fits",{ name: "GW 30%", color: "#00ffff", opacity: 0.5, lineWidth: 3, fill: true, perimeter: true});
         var moc_0_2 = A.MOCFromURL("./data/gw/gw_0.1.fits",{ name: "GW 10%", color: "#ff00ff", opacity: 0.5, lineWidth: 3, fill: true, perimeter: true});

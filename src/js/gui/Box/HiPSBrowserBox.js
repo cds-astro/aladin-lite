@@ -51,9 +51,12 @@ export class HiPSBrowserBox extends Box {
         let self;
 
         MocServer.getAllHiPSes().then((HiPSes) => {
+            HiPSBrowserBox.HiPSList = {}
             // Fill the HiPSList from the MOCServer
             HiPSes.forEach((h) => {
-                HiPSBrowserBox.HiPSList[h.obs_title] = h;
+                let name = h.obs_title;
+                name = name.replace(/:|\'/g, '');
+                HiPSBrowserBox.HiPSList[name] = h;
             });
 
             // Initialize the autocompletion without any filtering
@@ -70,7 +73,6 @@ export class HiPSBrowserBox extends Box {
             } catch (e) {
                 // Or he can select a HiPS from the list given
                 const hips = HiPSBrowserBox.HiPSList[value];
-
                 if (hips) {
                     image = hips.ID || hips.hips_service_url;
                 } else {
@@ -304,14 +306,16 @@ export class HiPSBrowserBox extends Box {
 
         for (var key in HiPSBrowserBox.HiPSList) {
             let HiPS = HiPSBrowserBox.HiPSList[key];
-
             // apply filtering
             if (
                 self.filterCallback &&
                 self.filterCallback(HiPS, params)
             ) {
                 // search with the name or id
-                HiPSIDs.push(HiPS.obs_title);
+                let name = HiPS.obs_title;
+                name = name.replace(/:|\'/g, "");
+
+                HiPSIDs.push(name);
             }
         }
 

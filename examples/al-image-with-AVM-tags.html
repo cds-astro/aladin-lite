@@ -1,0 +1,27 @@
+<!doctype html>
+<html>
+<head>
+</head>
+<body>
+    <div id="aladin-lite-div" style="width: 1024px; height: 768px"></div>
+    <script type="module">
+        import A from '../src/js/A.js';
+        A.init.then(() => {
+            let aladin = A.aladin('#aladin-lite-div', {fov: 30, survey: "CDS/P/DSS2/color", target: "280 +0", projection: "AIT", showShareControl:true, showSettingsControl: true, showContextMenu:true});
+            
+            aladin.setOverlayImageLayer(A.image(
+                "https://www.virtualastronomy.org/images/sig05-013.jpg",
+                {
+                    name: "sig05-017",
+                    successCallback: (ra, dec, fov, image) => {
+                        console.log(ra, dec)
+                        aladin.gotoRaDec(ra, dec);
+                        aladin.setFoV(fov * 5)
+                    }
+                },
+            ));
+        });
+
+    </script>
+</body>
+</html>

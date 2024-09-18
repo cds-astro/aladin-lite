@@ -3,7 +3,7 @@ name = "aladin-lite"
 description = "Aladin Lite v3 introduces a new graphical engine written in Rust with the use of WebGL"
 license = "BSD-3-Clause"
 repository = "https://github.com/cds-astro/aladin-lite"
-version = "3.5.0-beta"
+version = "3.5.1-beta"
 authors = [ "baumannmatthieu0@gmail.com", "matthieu.baumann@astro.unistra.fr",]
 edition = "2018"
 
@@ -70,7 +70,7 @@ path = "./al-api"
 
 [dependencies.web-sys]
 version = "*"
-features = [ "console", "CssStyleDeclaration", "Document", "Element", "HtmlCollection", "HtmlElement", "HtmlImageElement", "HtmlCanvasElement", "Blob", "ImageBitmap", "ImageData", "CanvasRenderingContext2d", "WebGlBuffer", "WebGlContextAttributes", "WebGlFramebuffer", "WebGlProgram", "WebGlShader", "WebGlUniformLocation", "WebGlTexture", "WebGlActiveInfo", "Headers", "Window", "Request", "RequestInit", "RequestMode", "Response", "XmlHttpRequest", "XmlHttpRequestResponseType", "PerformanceTiming", "Performance", "Url", "ReadableStream", "File", "FileList"]
+features = [ "console", "CssStyleDeclaration", "Document", "Element", "HtmlCollection", "HtmlElement", "HtmlImageElement", "HtmlCanvasElement", "Blob", "ImageBitmap", "ImageData", "CanvasRenderingContext2d", "WebGlBuffer", "WebGlContextAttributes", "WebGlFramebuffer", "WebGlProgram", "WebGlShader", "WebGlUniformLocation", "WebGlTexture", "WebGlActiveInfo", "Headers", "Window", "Request", "RequestInit", "RequestMode", "Response", "XmlHttpRequest", "XmlHttpRequestResponseType", "PerformanceTiming", "Performance", "Url", "ReadableStream", "File", "FileList",]
 
 [dev-dependencies.image-decoder]
 package = "image"

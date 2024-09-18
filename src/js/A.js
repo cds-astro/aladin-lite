@@ -107,22 +107,17 @@ A.aladin = function (divSelector, options) {
 };
 
 /**
- * @function
- * @name A.imageHiPS
- * @memberof A
- * @deprecated
- * Old method name, use {@link A.HiPS} instead.
- */
-A.imageHiPS = A.HiPS;
-
-/**
  * Creates a HiPS image object
  *
  * @function
  * @name A.HiPS
  * @memberof A
- * @param {string} id - Can be either an `url` that refers to a HiPS.
- * Or it can be a "CDS ID" pointing towards a HiPS. One can found the list of IDs {@link https://aladin.cds.unistra.fr/hips/list| here}.
+ * @param {string|FileList|Object} id - Can be: <br/>
+ * - an http url <br/> 
+ * - a relative path to your HiPS <br/>
+ * - a special ID pointing towards a HiPS. One can found the list of IDs {@link https://aladin.cds.unistra.fr/hips/list| here} <br/>
+ * - a dict storing a local HiPS files. This object contains a tile file: hips[order][ipix] = File and refers to the properties file like so: hips["properties"] = File. <br/>
+ * A javascript FileList pointing to the opened webkit directory is also accepted.
  * @param {HiPSOptions} [options] - Options describing the survey
  * @returns {HiPS} - A HiPS image object
  */
@@ -137,6 +132,15 @@ A.HiPS = function (id, options) {
         options
     );
 }
+
+/**
+ * @function
+ * @name A.imageHiPS
+ * @memberof A
+ * @deprecated
+ * Old method name, use {@link A.HiPS} instead.
+ */
+ A.imageHiPS = A.HiPS;
 
 /**
  * Creates a celestial source object with the given coordinates.
@@ -449,17 +453,19 @@ A.MOCFromURL = function (url, options, successCallback, errorCallback) {
  * @returns {MOC} Returns a new MOC object
  *
  * @example
- * var json = {"3":[517],
- *  "4":[2065,2066,2067,2112,2344,2346,2432],
- *   "5":[8221,8257,8258,8259,8293,8304,8305,8307,8308,8452,8456,9346,9352,9354,9736],
- *   "6":[32861,32862,32863,32881,32882,32883,32892,32893,33025,33026,33027,33157,33168,33169,33171,
+ * var json = {
+ *   "3": [517],
+ *   "4": [2065,2066,2067,2112,2344,2346,2432],
+ *   "5": [8221,8257,8258,8259,8293,8304,8305,8307,8308,8452,8456,9346,9352,9354,9736],
+ *   "6": [32861,32862,32863,32881,32882,32883,32892,32893,33025,33026,33027,33157,33168,33169,33171,
  *   33181,33224,33225,33227,33236,33240,33812,33816,33828,33832,37377,37378,37379,37382,37388,
  *   37390,37412,37414,37420,37422,37562,38928,38930,38936,38948,38952],
- *   "7":[131423,131439,131443,131523,131556,131557,131580,131581,132099,132612,132613,132624,132625,132627,132637,
+ *   "7": [131423,131439,131443,131523,131556,131557,131580,131581,132099,132612,132613,132624,132625,132627,132637,
  *   132680,132681,132683,132709,132720,132721,132904,132905,132948,132952,132964,132968,133008,133009,133012,135252,135256,135268,135316,135320,135332,135336,148143,148152,148154,149507,149520
- *   ,149522,149523,149652,149654,149660,149662,149684,149686,149692,149694,149695,150120,150122,150208,150210,150216,150218,150240,150242,150243,155748,155752,155796,155800,155812,155816]};
+ *   ,149522,149523,149652,149654,149660,149662,149684,149686,149692,149694,149695,150120,150122,150208,150210,150216,150218,150240,150242,150243,155748,155752,155796,155800,155812,155816]
+ * };
  * var moc = A.MOCFromJSON(json, {opacity: 0.25, color: 'magenta', lineWidth: 3});
- *   aladin.addMOC(moc);
+ * aladin.addMOC(moc);
  */
 A.MOCFromJSON = function (jsonMOC, options, successCallback, errorCallback) {
     var moc = new MOC(options);
@@ -986,7 +992,7 @@ A.box = function(options) {
 }
 
 /**
- * Returns utils object
+ * Returns Utils object.
  *
  * This contains utilitary methods such as HEALPix basic or projection methods.
  *

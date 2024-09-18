@@ -11,10 +11,17 @@
 
     A.init.then(() => {
         let vertices = A.Utils.HEALPix.vertices(Math.pow(2, 3), BigInt(276))
-        //let lonlat = A.Utils.HEALPix.pix2ang(8, 0n)
-        //let ipix = A.Utils.HEALPix.ang2pix(8, 0.1, 0.4)
-        //console.log("vertices", vertices, lonlat, ipix)
-        console.log(vertices)
+        let lonlat = A.Utils.HEALPix.pix2ang(8, 0n)
+        let ipix = A.Utils.HEALPix.ang2pix(8, 0.1, 0.4)
+        console.log("vertices", vertices, lonlat, ipix)
+
+        A.Utils.Sesame.resolveAstronomicalName("M101", (o) => {
+                console.log("object found", o)
+            },
+            (err) => {
+                console.error("errr", err)
+            }
+        )
     })
     
 </script>

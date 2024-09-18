@@ -1033,7 +1033,7 @@ impl WebClient {
         Ok(())
     }
 
-    #[wasm_bindgen(js_name = addFITSMoc)]
+    #[wasm_bindgen(js_name = addFITSMOC)]
     pub fn add_fits_moc(&mut self, params: &al_api::moc::MOC, data: &[u8]) -> Result<(), JsValue> {
         //let bytes = js_sys::Uint8Array::new(array_buffer).to_vec();
         let moc = match fits::from_fits_ivoa_custom(Cursor::new(&data[..]), false)

@@ -153,6 +153,12 @@ PropertyParser.isPlanetaryBody = function (properties) {
  * @property {number} [brightness=0.0] - The brightness value for the color configuration.
  * @property {number} [contrast=0.0] - The contrast value for the color configuration.
  */
+
+/**
+ * @typedef {Object} FileList
+ * 
+ * JS {@link https://developer.mozilla.org/fr/docs/Web/API/FileList| FileList} API type
+ */
 export let HiPS = (function () {
     /**
      * The object describing an image survey
@@ -164,8 +170,9 @@ export let HiPS = (function () {
      * @param {string|FileList|Object} location - Can be:
      * - an http url <br/> 
      * - a relative path to your HiPS <br/>
-     * - a special ID pointing towards a HiPS. One can found the list of IDs {@link https://aladin.cds.unistra.fr/hips/list| here}
-     * - a dict storing a local HiPS. This object contains a tile file: hips[order][ipix] = <tile File> and refers to the properties file like so: hips["properties"] = <properties File>. A javascript FileList pointing to the opened webkit directory is also accepted.
+     * - a special ID pointing towards a HiPS. One can found the list of IDs {@link https://aladin.cds.unistra.fr/hips/list| here} <br/>
+     * - a dict storing a local HiPS. This object contains a tile file: hips[order][ipix] = File and refers to the properties file like so: hips["properties"] = File. <br/>
+     * A javascript FileList pointing to the opened webkit directory is also accepted.
      * @param {HiPSOptions} [options] - The option for the survey
      *
      * @description Giving a CDS ID will do a query to the MOCServer first to retrieve metadata. Then it will also check for the presence of faster HiPS nodes to choose a faster url to query to tiles from.

@@ -1462,7 +1462,7 @@ export let Aladin = (function () {
      * @memberof Aladin
      */
     Aladin.prototype.removeOverlays = function () {
-        this.view.removeLayers();
+        this.view.removeOverlays();
     };
 
     /**
@@ -1497,10 +1497,6 @@ export let Aladin = (function () {
     Aladin.prototype.removeLayer = Aladin.prototype.removeOverlay;
 
     /**
-     * @deprecated
-     * Creates and return an image survey (HiPS) object
-     * Please use {@link A.hiPS} instead for creating a new survey image
-     *
      * @memberof Aladin
      * @param {string} id - Mandatory unique identifier for the survey.
      * @param {string} [name] - A convinient name for the survey, optional
@@ -1533,10 +1529,6 @@ export let Aladin = (function () {
     };
 
     /**
-     * @deprecated
-     * Creates and return an image survey (HiPS) object.
-     * Please use {@link A.hiPS} instead for creating a new survey image
-     *
      * @function createImageSurvey
      * @memberof Aladin
      * @static
@@ -1655,7 +1647,6 @@ export let Aladin = (function () {
      * Please use {@link A.hiPS} instead for creating a new survey image
      *
      * @memberof Aladin
-     * @static
      * @param {string} id - Can be:
      * <ul>
      * <li>1. An url that refers to a HiPS.</li>
@@ -1751,10 +1742,28 @@ export let Aladin = (function () {
     };
 
     /**
+     * Remove an image layer/overlay from the instance
+     *
+     * @memberof Aladin
+     * @param {string|Overlay} item - the overlay object or image layer name to remove
+     */
+     Aladin.prototype.remove = function (item) {
+        const layers = this.getStackLayers()
+        let idxToDelete = layers.findIndex(l => l === item);
+        if (idxToDelete >= 0) {
+            this.view.removeImageLayer(item);
+            return;
+        }
+
+        // must be an overlay
+        this.view.removeOverlay(item)
+    };
+
+    /**
      * Remove a specific layer
      *
      * @memberof Aladin
-     * @param {string} layer - The name of the layer to remove
+     * @param {string} layer - The name of the layer to remove or the HiPS/Image object
      */
     Aladin.prototype.removeImageLayer = function (layer) {
         this.view.removeImageLayer(layer);
@@ -1795,7 +1804,7 @@ export let Aladin = (function () {
      * <li>1. An url that refers to a HiPS.</li>
      * <li>2. Or it can be a CDS ID that refers to a HiPS. One can found the list of IDs {@link https://aladin.cds.unistra.fr/hips/list| here}</li>
      * <li>3. A {@link HiPS} HiPS object created from {@link A.HiPS}</li>
-     * <li>4. A {@link Image} FITS/jped/png image</li>
+     * <li>4. A {@link Image} FITS/jpeg/png image</li>
      * </ul>
      * @param {string} [layer="overlay"] - A layer name. By default 'overlay' is chosen and it is destined to be plot
      * on top the 'base' layer. If the layer is already present in the view, it will be replaced by the new HiPS/FITS image given here.

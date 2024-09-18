@@ -1291,33 +1291,25 @@ export let View = (function () {
         const now = performance.now();
         const elapsedTime = now - this.then;
         this.dt = elapsedTime;
-        // If enough time has elapsed, draw the next frame
-        //if (elapsedTime >= View.FPS_INTERVAL) {
-            // Get ready for next frame by setting then=now, but also adjust for your
-            // specified fpsInterval not being a multiple of RAF's interval (16.7ms)
-            //if (this.dt > 10)
-            //    console.log(this.dt)
-            // Drawing code
-            //try {
-            this.moving = this.wasm.update(elapsedTime);
-            
-            // inertia run throttled position
-            if (this.moving && this.aladin.callbacksByEventName && this.aladin.callbacksByEventName['positionChanged'] && this.wasm.isInerting()) {
-                // run the trottled position
-                this.throttledPositionChanged(false);
-            }
 
-            ////// 2. Draw catalogues////////
-            const isViewRendering = this.wasm.isRendering();
-            if (isViewRendering || this.needRedraw) {
-                this.drawAllOverlays();
-            }
-            this.needRedraw = false;
+        this.moving = this.wasm.update(elapsedTime);
+        
+        // inertia run throttled position
+        if (this.moving && this.aladin.callbacksByEventName && this.aladin.callbacksByEventName['positionChanged'] && this.wasm.isInerting()) {
+            // run the trottled position
+            this.throttledPositionChanged(false);
+        }
 
-            this.then = now;
-            //this.then = now % View.FPS_INTERVAL;
-            requestAnimFrame(this.redrawClbk);
-        //}
+        ////// 2. Draw catalogues////////
+        const isViewRendering = this.wasm.isRendering();
+        if (isViewRendering || this.needRedraw) {
+            this.drawAllOverlays();
+        }
+        this.needRedraw = false;
+
+        this.then = now;
+        //this.then = now % View.FPS_INTERVAL;
+        requestAnimFrame(this.redrawClbk);
     };
 
     View.prototype.drawAllOverlays = function () {
@@ -2044,7 +2036,7 @@ export let View = (function () {
         return false;
     };
 
-    View.prototype.removeLayers = function () {
+    View.prototype.removeOverlays = function () {
         this.catalogs = [];
         this.overlays = [];
         this.mocs = [];
@@ -2094,7 +2086,6 @@ export let View = (function () {
 
     View.prototype.removeOverlayByName = function (overlayName) {
         let overlay = this.allOverlayLayers.find(o => o.name === overlayName);
-        console.log("jkj", overlay)
         if (!overlay) {
             console.error(`Overlay "${overlayName}" not found.`);
             return;

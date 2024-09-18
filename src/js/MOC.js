@@ -134,7 +134,7 @@ export let MOC = (function() {
                 if (data instanceof ArrayBuffer) {
                     // from an url
                     const buf = data;
-                    self.view.wasm.addFITSMoc(self.mocParams, new Uint8Array(buf));
+                    self.view.wasm.addFITSMOC(self.mocParams, new Uint8Array(buf));
                 } else if(data.ra && data.dec && data.radius) {
                     // circle
                     const c = data;

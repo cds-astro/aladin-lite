@@ -79,7 +79,9 @@ export let Catalog = (function () {
      *   markerSize: 15,
      *   shape: "circle",
      *   limit: 1000,
-     *   onClick: (source) => { /* handle source click * },
+     *   onClick: (source) => {
+     *      // handle sources
+     *   },
      *   readOnly: true,
      *   raField: "ra",
      *   decField: "dec",
@@ -575,17 +577,6 @@ export let Catalog = (function () {
         this.reportChange();
     };
 
-    /*Catalog.prototype.addFootprints = function(footprintsToAdd) {
-        footprintsToAdd = [].concat(footprintsToAdd); // make sure we have an array and not an individual footprints
-    	this.footprints = this.footprints.concat(footprintsToAdd);
-
-        footprintsToAdd.forEach(f => {
-            f.setCatalog(this);
-        })
-
-        this.reportChange();
-    };*/
-
     Catalog.prototype.computeFootprints = function (sources) {
         let footprints = [];
 
@@ -635,12 +626,14 @@ export let Catalog = (function () {
         this.showFieldCallback[field] = callback;
     };
 
-    // API
-    //
-    // create sources from a 2d array and add them to the catalog
-    //
-    // @param columnNames: array with names of the columns
-    // @array: 2D-array, each item being a 1d-array with the same number of items as columnNames
+    /**
+     * Create sources from a 2d array and add them to the catalog
+     *
+     * @memberof Catalog
+     *
+     * @param {String[]} columnNames - array with names of the columns
+     * @param {String[][]|number[][]} array - 2D-array, each item being a 1d-array with the same number of items as columnNames
+     */
     Catalog.prototype.addSourcesAsArray = function (columnNames, array) {
         var fields = [];
         for (var colIdx = 0; colIdx < columnNames.length; colIdx++) {
@@ -682,7 +675,13 @@ export let Catalog = (function () {
         this.addSources(newSources);
     };
 
-    // return the current list of Source objects
+    /**
+     * Get all the sources
+     *
+     * @memberof Catalog
+     *
+     * @returns {Source[]} - an array of all the sources in the catalog object
+     */
     Catalog.prototype.getSources = function () {
         return this.sources;
     };
@@ -691,7 +690,11 @@ export let Catalog = (function () {
         return this.footprints;
     };
 
-    // TODO : fonction générique traversant la liste des sources
+    /**
+     * Select all the source catalog
+     *
+     * @memberof Catalog
+     */
     Catalog.prototype.selectAll = function () {
         if (!this.sources) {
             return;
@@ -702,6 +705,11 @@ export let Catalog = (function () {
         }
     };
 
+    /**
+     * Unselect all the source of the catalog
+     *
+     * @memberof Catalog
+     */
     Catalog.prototype.deselectAll = function () {
         if (!this.sources) {
             return;
@@ -712,7 +720,15 @@ export let Catalog = (function () {
         }
     };
 
-    // return a source by index
+    /**
+     * Get one source by its index in the catalog
+     *
+     * @memberof Catalog
+     * 
+     * @param {number} idx - the index of the source in the catalog sources
+     * 
+     * @returns {Source} - the source at the index
+     */
     Catalog.prototype.getSource = function (idx) {
         if (idx < this.sources.length) {
             return this.sources[idx];
@@ -730,37 +746,86 @@ export let Catalog = (function () {
         this.reportChange();
     };
 
+    /**
+     * Set the color of the catalog
+     *
+     * @memberof Catalog
+     * 
+     * @param {String} - the new color
+     */
     Catalog.prototype.setColor = function (color) {
         this.color = color;
         this.updateShape();
     };
 
+     /**
+     * Set the color of selected sources
+     *
+     * @memberof Catalog
+     * 
+     * @param {String} - the new color
+     */
     Catalog.prototype.setSelectionColor = function (color) {
         this.selectionColor = color;
         this.updateShape();
     };
 
+    /**
+     * Set the color of hovered sources
+     *
+     * @memberof Catalog
+     * 
+     * @param {String} - the new color
+     */
     Catalog.prototype.setHoverColor = function (color) {
         this.hoverColor = color;
         this.updateShape();
     };
 
+    /**
+     * Set the size of the catalog sources
+     *
+     * @memberof Catalog
+     * 
+     * @param {number} - the new size
+     */
     Catalog.prototype.setSourceSize = function (sourceSize) {
         // will be discarded in updateShape if the shape is an Image
         this.sourceSize = sourceSize;
         this.updateShape();
     };
 
+    /**
+     * Set the color of the catalog
+     *
+     * @memberof Catalog
+     * 
+     * @param {string|Function|HTMLImageCanvas|HTMLImageElement} [shape="square"] - the type of the shape. Can be square, rhomb, plus, cross, triangle, circle.
+     * A callback function can also be called that return an HTMLImageElement in function of the source object. A canvas or an image can also be given.
+     */
     Catalog.prototype.setShape = function (shape) {
         this.shape = shape;
         this.updateShape();
     };
 
+    /**
+     * Get the size of the catalog sources
+     *
+     * @memberof Catalog
+     * 
+     * @returns {number} - the size of the sources
+     */
     Catalog.prototype.getSourceSize = function () {
         return this.sourceSize;
     };
 
-    // remove a source
+    /**
+     * Remove a specific source from the catalog
+     *
+     * @memberof Catalog
+     * 
+     * @param {Source} - the source to remove
+     */
     Catalog.prototype.remove = function (source) {
         var idx = this.sources.indexOf(source);
         if (idx < 0) {
@@ -778,12 +843,19 @@ export let Catalog = (function () {
         this.reportChange();
     };
 
+    /**
+     * Clear all the sources from the catalog
+     *
+     * @memberof Catalog
+     */
     Catalog.prototype.removeAll = Catalog.prototype.clear = function () {
         // TODO : RAZ de l'index
         this.sources = [];
         this.ra = [];
         this.dec = [];
         this.footprints = [];
+
+        this.reportChange();
     };
 
     Catalog.prototype.draw = function (ctx, width, height) {
@@ -929,6 +1001,11 @@ export let Catalog = (function () {
         this.view && this.view.requestRedraw();
     };
 
+    /**
+     * Show the catalog
+     *
+     * @memberof Catalog
+     */
     Catalog.prototype.show = function () {
         if (this.isShowing) {
             return;
@@ -942,6 +1019,11 @@ export let Catalog = (function () {
         this.reportChange();
     };
 
+    /**
+     * Hide the catalog
+     *
+     * @memberof Catalog
+     */
     Catalog.prototype.hide = function () {
         if (!this.isShowing) {
             return;

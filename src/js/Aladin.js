@@ -1471,10 +1471,10 @@ export let Aladin = (function () {
      * @memberof Aladin
      */
     Aladin.prototype.removeLayers = Aladin.prototype.removeOverlays;
-/**
-* @typedef {MOC|Catalog|ProgressiveCat|GraphicOverlay} Overlay
-* @description Possible overlays
-*/
+    /**
+    * @typedef {MOC|Catalog|ProgressiveCat|GraphicOverlay} Overlay
+    * @description Possible overlays
+    */
     /**
      * Remove an overlay by its layer name
      *
@@ -1667,7 +1667,8 @@ export let Aladin = (function () {
      */
     Aladin.prototype.newImageSurvey = function (id, options) {
         // a wrapper on createImageSurvey that aggregates all params in an options object
-        return this.createImageSurvey(id, 
+        return this.createImageSurvey(
+            id, 
             options && options.name,
             id,
             options && options.cooFrame,

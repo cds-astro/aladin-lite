@@ -407,4 +407,36 @@ export class ContextMenu extends DOMElement {
             }
         }
     }
+
+    static webkitDir(itemOptions) {
+        return {
+            ...itemOptions,
+            label: {
+                icon: {
+                    monochrome: true,
+                    tooltip: {content: 'Load a local file from your computer.<br \>Accept ' + itemOptions.accept + ' files'},
+                    url: uploadIconUrl,
+                    cssStyle: {
+                        cursor: 'help',
+                    }
+                },
+                content: itemOptions.label
+            },
+            action(e) {
+                let webkitDirLoader = document.createElement('input');
+                webkitDirLoader.type = 'file';
+                webkitDirLoader.webkitdirectory = true;
+                webkitDirLoader.multiple = true;
+
+                // Case: The user is loading a FITS file
+                webkitDirLoader.addEventListener("change", (e) => {    
+                    if (itemOptions.action) {
+                        itemOptions.action(e.target.files)
+                    }
+                });
+        
+                webkitDirLoader.click();
+            }
+        }
+    }
 }

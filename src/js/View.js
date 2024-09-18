@@ -2088,12 +2088,12 @@ export let View = (function () {
     };
 
     View.prototype.removeOverlayByName = function (overlayName) {
-        let layer = this.allOverlayLayers.find(l => l.name === overlayName);
-        if (!layer) {
+        let overlay = this.allOverlayLayers.find(l => l.name === overlayName);
+        if (!overlay) {
             console.error(`Layer with name "${overlayName}" not found.`);
             return;
         }
-        this.removeOverlay(layer);
+        this.removeOverlay(overlay);
     };
 
     View.prototype.add = function(overlay) {

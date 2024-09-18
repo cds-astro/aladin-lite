@@ -113,17 +113,7 @@ A.aladin = function (divSelector, options) {
  * @deprecated
  * Old method name, use {@link A.HiPS} instead.
  */
-A.imageHiPS = function (id, options) {
-    let url = id;
-    return Aladin.createImageSurvey(
-        id,
-        options && options.name,
-        url,
-        options && options.cooFrame,
-        options && options.maxOrder,
-        options
-    );
-}
+A.imageHiPS = A.HiPS;
 
 /**
  * Creates a HiPS image object
@@ -136,7 +126,17 @@ A.imageHiPS = function (id, options) {
  * @param {HiPSOptions} [options] - Options describing the survey
  * @returns {HiPS} - A HiPS image object
  */
-A.HiPS = A.imageHiPS;
+A.HiPS = function (id, options) {
+    let url = id;
+    return Aladin.createImageSurvey(
+        id,
+        options && options.name,
+        url,
+        options && options.cooFrame,
+        options && options.maxOrder,
+        options
+    );
+}
 
 /**
  * Creates a celestial source object with the given coordinates.
@@ -818,6 +818,7 @@ A.catalogFromSKAORucio = function (target, radiusDegrees, options, successCallba
  *
  * @example
  *      const cat = A.catalogFromVizieR('I/311/hip2', 'M 45', 5, {onClick: 'showTable'});
+ *      const cat2 = A.catalogFromVizieR('I/311/hip2', '12 +9', 5, {onClick: 'showTable'});
  */
 A.catalogFromVizieR = function (vizCatId, target, radius, options, successCallback, errorCallback) {
     options = options || {};

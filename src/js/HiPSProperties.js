@@ -70,6 +70,8 @@ HiPSProperties.fetchFromID = async function(ID) {
 }
 
 HiPSProperties.fetchFromUrl = async function(urlOrId) {
+    let url;
+
     try {
         urlOrId = new URL(urlOrId);
     } catch (e) {
@@ -85,7 +87,7 @@ HiPSProperties.fetchFromUrl = async function(urlOrId) {
     // Fetch the properties of the survey
     const HiPSServiceUrl = urlOrId.toString();
     
-    let url = HiPSServiceUrl;
+    url = HiPSServiceUrl;
     // Use the url for retrieving the HiPS properties
     // remove final slash
     if (url.slice(-1) === '/') {
@@ -97,6 +99,7 @@ HiPSProperties.fetchFromUrl = async function(urlOrId) {
     url = Utils.getAbsoluteURL(url);
     // fix for HTTPS support --> will work for all HiPS served by CDS
     url = Utils.fixURLForHTTPS(url)
+
 
     let init = {};
     if (Utils.requestCORSIfNotSameOrigin(url)) {
@@ -121,7 +124,9 @@ HiPSProperties.fetchFromUrl = async function(urlOrId) {
                     if (!metadata.hips_frame || !metadata.hips_order) {
                         reject('Bad properties: do not contain the mandatory frame or order info')
                     } else {
-                        metadata.hips_service_url = HiPSServiceUrl;
+                        if (!("hips_service_url" in metadata)) {
+                            metadata.hips_service_url = HiPSServiceUrl;
+                        }
                         resolve(metadata);
                     }
                 } else {
@@ -131,6 +136,27 @@ HiPSProperties.fetchFromUrl = async function(urlOrId) {
         )
 
     return result;
+}
+
+HiPSProperties.fetchFromFile = function(file) {
+    let url = URL.createObjectURL(file);
+    return fetch(url)
+        .then((response) => response.text())
+        .then(
+            (response) => new Promise((resolve, reject) => {
+                // We get the property here
+                let metadata = HiPSDefinition.parseHiPSProperties(response);
+
+                URL.revokeObjectURL(url)
+
+                // 1. Ensure there is exactly one survey matching
+                if (metadata && Object.keys(metadata).length > 0) {
+                    resolve(metadata)
+                } else {
+                    reject('No surveys matching at this url: ' + rootURL);
+                }
+            })
+        );
 }
 
 HiPSProperties.getFasterMirrorUrl = function (metadata) {

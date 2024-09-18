@@ -87,6 +87,7 @@ use math::projection::*;
 
 use moclib::moc::RangeMOCIntoIterator;
 //use votable::votable::VOTableWrapper;
+use crate::tile_fetcher::HiPSLocalFiles;
 use wasm_bindgen::prelude::*;
 use web_sys::HtmlElement;
 
@@ -160,11 +161,7 @@ impl WebClient {
     /// * `shaders` - The list of shader objects containing the GLSL code source
     /// * `resources` - Image resource files
     #[wasm_bindgen(constructor)]
-    pub fn new(
-        aladin_div: &HtmlElement,
-        //_shaders: JsValue,
-        resources: JsValue,
-    ) -> Result<WebClient, JsValue> {
+    pub fn new(aladin_div: &HtmlElement, resources: JsValue) -> Result<WebClient, JsValue> {
         #[cfg(feature = "dbg")]
         panic::set_hook(Box::new(console_error_panic_hook::hook));
 
@@ -371,10 +368,14 @@ impl WebClient {
     ///   of WebGL2 texture units on some architectures, the total number of surveys rendered is
     ///   limited to 4.
     #[wasm_bindgen(js_name = addHiPS)]
-    pub fn add_image_hips(&mut self, hips: JsValue) -> Result<(), JsValue> {
+    pub fn add_image_hips(
+        &mut self,
+        hips: JsValue,
+        files: Option<HiPSLocalFiles>,
+    ) -> Result<(), JsValue> {
         // Deserialize the survey objects that compose the survey
         let hips = serde_wasm_bindgen::from_value(hips)?;
-        self.app.add_image_hips(hips)?;
+        self.app.add_image_hips(hips, files)?;
 
         Ok(())
     }

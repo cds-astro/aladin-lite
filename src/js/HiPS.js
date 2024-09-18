@@ -28,7 +28,7 @@
 import { ALEvent } from "./events/ALEvent.js";
 import { ColorCfg } from "./ColorCfg.js";
 import { HiPSProperties } from "./HiPSProperties.js";
-
+import { Aladin } from "./Aladin.js"; 
 let PropertyParser = {};
 // Utilitary functions for parsing the properties and giving default values
 /// Mandatory tileSize property
@@ -161,10 +161,11 @@ export let HiPS = (function () {
      * @constructs HiPS
      *
      * @param {string} id - Mandatory unique identifier for the layer. Can be an arbitrary name
-     * @param {string} location - Can be:
+     * @param {string|FileList|Object} location - Can be:
      * - an http url <br/> 
      * - a relative path to your HiPS <br/>
      * - a special ID pointing towards a HiPS. One can found the list of IDs {@link https://aladin.cds.unistra.fr/hips/list| here}
+     * - a dict storing a local HiPS. This object contains a tile file: hips[order][ipix] = <tile File> and refers to the properties file like so: hips["properties"] = <properties File>. A javascript FileList pointing to the opened webkit directory is also accepted.
      * @param {HiPSOptions} [options] - The option for the survey
      *
      * @description Giving a CDS ID will do a query to the MOCServer first to retrieve metadata. Then it will also check for the presence of faster HiPS nodes to choose a faster url to query to tiles from.
@@ -177,6 +178,30 @@ export let HiPS = (function () {
         this.options = options;
         this.name = (options && options.name) || undefined;
         this.startUrl = options.startUrl;
+
+        if (location instanceof FileList) {
+            let files = {};
+            for (var file of location) {
+                let path = file.webkitRelativePath;
+                if (path.includes("Norder") && path.includes("Npix")) {
+                    const order = +path.substring(path.indexOf("Norder") + 6).split("/")[0];
+                    if (!files[order]) {
+                        files[order] = {}
+                    }
+
+                    const ipix = +path.substring(path.indexOf("Npix") + 4).split(".")[0];
+                    files[order][ipix] = file;
+                }
+
+                if (path.includes("properties")) {
+                    files['properties'] = file;
+                }
+            }
+
+            this.files = files;
+        } else if (location instanceof Object) {
+            this.files = location;
+        }
 
         this.url = location;
         this.maxOrder = options.maxOrder;
@@ -402,11 +427,30 @@ export let HiPS = (function () {
         }
         this.view = view;
 
-        let isIncompleteOptions = true;
-        // This is very dirty but it allows me to differentiate the location from 
-        // whether an ID or a plain url
-        let isID = this.url.includes("P/") || this.url.includes("C/")
+        if (this.files) {
+            // Fetch the properties file
+            self.query = (async () => {
+                // look for the properties file
+                await HiPSProperties.fetchFromFile(self.files["properties"])
+                    .then((p) => {
+                        self._parseProperties(p);
 
+                        self.url = "local";
+
+                        delete self.files["properties"]
+                    })
+
+                return self;
+            })();
+            
+            return;
+        }
+
+        let isIncompleteOptions = true;
+
+        // This is very dirty but it allows me to differentiate the location from whether it is an ID or a plain url
+        let isID = this.url.includes("P/") || this.url.includes("C/")
+        
         if (this.imgFormat === "fits") {
             // a fits is given
             isIncompleteOptions = !(
@@ -428,7 +472,6 @@ export let HiPS = (function () {
         }
 
         self.query = (async () => {
-
             if (isIncompleteOptions) {
                 // ID typed url
                 if (self.startUrl && isID) {
@@ -459,8 +502,6 @@ export let HiPS = (function () {
                             },
                             1000
                         );
-                        
-
                     } catch (e) {
                         throw e;
                     }
@@ -799,7 +840,7 @@ export let HiPS = (function () {
         this.layer = layer;
         let self = this;
 
-        this.view.wasm.addHiPS({
+        const config = {
             layer,
             properties: {
                 creatorDid: self.creatorDid,
@@ -821,8 +862,24 @@ export let HiPS = (function () {
                 ...this.colorCfg.get(),
                 longitudeReversed: this.longitudeReversed,
                 imgFormat: this.imgFormat,
-            },
-        });
+            }
+        };
+
+        let localFiles;
+        if (this.files) {
+            localFiles = new Aladin.wasmLibs.core.HiPSLocalFiles();
+            for (var order in this.files) {
+                for (var ipix in this.files[order]) {
+                    const file = this.files[order][ipix];
+                    localFiles.insert(+order, BigInt(+ipix), file)
+                }
+            }
+        }
+
+        this.view.wasm.addHiPS(
+            config,
+            localFiles
+        );
 
         return Promise.resolve(this)
             .then((hips) => {

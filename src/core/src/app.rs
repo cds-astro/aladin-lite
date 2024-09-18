@@ -1,4 +1,5 @@
 use crate::renderable::ImageLayer;
+use crate::tile_fetcher::HiPSLocalFiles;
 use crate::{
     //async_task::{BuildCatalogIndex, ParseTableTask, TaskExecutor, TaskResult, TaskType},
     camera::CameraViewPort,
@@ -302,16 +303,6 @@ impl App {
                             ancestors.insert(ancestor_tile_cell);
                         }
                     }
-                    //let ancestor_next_tile_cell = next_tile_cell.ancestor(3);
-                    //if !survey.contains_tile(&ancestor_tile_cell) {
-                    //self.tile_fetcher.append(
-                    //    query::Tile::new(&ancestor_tile_cell, hips_url.clone(), format),
-                    //    &mut self.downloader,
-                    //);
-                    //}
-                    //if ancestor_tile_cell != ancestor_next_tile_cell {
-
-                    //}
                 }
             }
             // Request for ancestor
@@ -805,8 +796,12 @@ impl App {
         // Check for async retrieval
         if let Ok(img) = self.img_recv.try_recv() {
             let params = img.get_params();
-            self.layers
-                .add_image(img, &mut self.camera, &self.projection)?;
+            self.layers.add_image(
+                img,
+                &mut self.camera,
+                &self.projection,
+                &mut self.tile_fetcher,
+            )?;
             self.request_redraw = true;
 
             // Send the ack to the js promise so that she finished
@@ -958,8 +953,12 @@ impl App {
     }
 
     pub(crate) fn remove_layer(&mut self, layer: &str) -> Result<(), JsValue> {
-        self.layers
-            .remove_layer(layer, &mut self.camera, &self.projection)?;
+        self.layers.remove_layer(
+            layer,
+            &mut self.camera,
+            &self.projection,
+            &mut self.tile_fetcher,
+        )?;
 
         self.request_redraw = true;
 
@@ -982,17 +981,31 @@ impl App {
         Ok(())
     }
 
-    pub(crate) fn add_image_hips(&mut self, hips_cfg: HiPSCfg) -> Result<(), JsValue> {
-        let hips =
-            self.layers
-                .add_image_hips(&self.gl, hips_cfg, &mut self.camera, &self.projection)?;
+    pub(crate) fn add_image_hips(
+        &mut self,
+        hips_cfg: HiPSCfg,
+        local_files: Option<HiPSLocalFiles>,
+    ) -> Result<(), JsValue> {
+        let cdid = hips_cfg.properties.get_creator_did().to_string();
+
+        let hips = self.layers.add_image_hips(
+            &self.gl,
+            hips_cfg,
+            &mut self.camera,
+            &self.projection,
+            &mut self.tile_fetcher,
+        )?;
+
+        if let Some(local_files) = local_files {
+            self.tile_fetcher.insert_hips_local_files(cdid, local_files);
+        }
+
         self.tile_fetcher
             .launch_starting_hips_requests(hips, self.downloader.clone());
 
         // Once its added, request the tiles in the view (unless the viewer is at depth 0)
         self.request_for_new_tiles = true;
         self.request_redraw = true;
-        //self.grid.update(&self.camera, &self.projection);
 
         Ok(())
     }

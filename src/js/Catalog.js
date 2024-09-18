@@ -47,7 +47,7 @@ import { Footprint } from "./Footprint.js";
 * @property {string} [name="catalog"] - The name of the catalog.
 * @property {string} [color] - The color associated with the catalog.
 * @property {number} [sourceSize=8] - The size of the sources in the catalog.
-* @property {string|function|Image|HTMLCanvasElement} [shape="square"] - The shape of the sources (can be, "square", "circle", "plus", "cross", "rhomb", "triangle").
+* @property {string|Function|Image|HTMLCanvasElement|HTMLImageElement} [shape="square"] - The shape of the sources (can be, "square", "circle", "plus", "cross", "rhomb", "triangle").
 * @property {number} [limit] - The maximum number of sources to display.
 * @property {string|Function} [onClick] - Whether the source data appears as a table row or a in popup. Can be 'showTable' string, 'showPopup' string or a custom user defined function that handles the click.
 * @property {boolean} [readOnly=false] - Whether the catalog is read-only.
@@ -479,7 +479,17 @@ export let Catalog = (function () {
         );
     };
 
-    // API
+    /**
+     * Set the shape of the sources
+     *
+     * @memberof Catalog
+     *
+     * @param {Object} [options] - shape options
+     * @param {string} [options.color] - the color of the shape
+     * @param {number} [options.sourceSize] - size of the shape
+     * @param {string|Function|HTMLImageCanvas|HTMLImageElement} [options.shape="square"] - the type of the shape. Can be square, rhomb, plus, cross, triangle, circle.
+     * A callback function can also be called that return an HTMLImageElement in function of the source object. A canvas or an image can also be given.
+     */
     Catalog.prototype.updateShape = function (options) {
         options = options || {};
         this.color = options.color || this.color || Color.getNextColor();
@@ -524,7 +534,13 @@ export let Catalog = (function () {
         this.reportChange();
     };
 
-    // API
+    /**
+     * Add sources to the catalog
+     *
+     * @memberof Catalog
+     *
+     * @param {Source[]} sources - An array of sources or only one source to add
+     */
     Catalog.prototype.addSources = function (sources) {
         // make sure we have an array and not an individual source
         sources = [].concat(sources);

@@ -27,6 +27,7 @@ impl<const N: usize> BitVector<N> {
     }
 }
 
+#[cfg(test)]
 mod tests {
     use super::BitVector;
 

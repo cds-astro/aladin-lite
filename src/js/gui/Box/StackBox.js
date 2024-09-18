@@ -580,7 +580,8 @@ export class OverlayStackBox extends Box {
                                     // Center the view around the new fits object
                                     self.aladin.gotoRaDec(ra, dec);
                                     self.aladin.setFoV(fov * 1.1);
-                                    //self.aladin.selectLayer(image.layer);
+
+                                    URL.revokeObjectURL(url);
                                 }
                             );
 
@@ -588,6 +589,31 @@ export class OverlayStackBox extends Box {
                                 image,
                                 Utils.uuidv4()
                             );
+                        },
+                    }),
+                    ContextMenu.webkitDir({
+                        label: "Load local HiPS",
+                        action(files) {
+                            let id = files[0].webkitRelativePath.split("/")[0];
+                            let name = id;
+
+                            let hips = self.aladin.createImageSurvey(
+                                id,
+                                name,
+                                files,
+                                null,
+                                null,
+                                {
+                                    errorCallback: (e) => {
+                                        aladin.addStatusBarMessage({
+                                            duration: 2000,
+                                            type: 'info',
+                                            message: 'Could not add the local HiPS',
+                                        })
+                                    }
+                                }
+                            )
+                            self.aladin.addNewImageLayer(hips);
                         },
                     }),
                 ],

@@ -159,6 +159,18 @@ PropertyParser.isPlanetaryBody = function (properties) {
  * 
  * JS {@link https://developer.mozilla.org/fr/docs/Web/API/FileList| FileList} API type
  */
+
+/**
+ * @typedef {Object} HiPSLocalFiles
+ * 
+ * @property {File} properties - The local properties file of the HiPS
+ * 
+ * @description
+ * Tiles are accessed like so: HIPSLocalFiles[norder][ipix] = {@link File};<br/>
+ * The properties file is accessed with: HIPSLocalFiles["properties"]
+ */
+
+ 
 export let HiPS = (function () {
     /**
      * The object describing an image survey
@@ -167,12 +179,14 @@ export let HiPS = (function () {
      * @constructs HiPS
      *
      * @param {string} id - Mandatory unique identifier for the layer. Can be an arbitrary name
-     * @param {string|FileList|Object} location - Can be:
-     * - an http url <br/> 
-     * - a relative path to your HiPS <br/>
-     * - a special ID pointing towards a HiPS. One can found the list of IDs {@link https://aladin.cds.unistra.fr/hips/list| here} <br/>
-     * - a dict storing a local HiPS. This object contains a tile file: hips[order][ipix] = File and refers to the properties file like so: hips["properties"] = File. <br/>
-     * A javascript FileList pointing to the opened webkit directory is also accepted.
+     * @param {string|FileList|HiPSLocalFiles} url - Can be:
+     * <ul>
+     * <li>An http url towards a HiPS.</li>
+     * <li>A relative path to your HiPS</li>
+     * <li>A special ID pointing towards a HiPS. One can found the list of IDs {@link https://aladin.cds.unistra.fr/hips/list| here}</li>
+     * <li>A dict storing a local HiPS files. This object contains a tile file: hips[order][ipix] = File and refers to the properties file like so: hips["properties"] = File. </li>
+     *     A javascript {@link FileList} pointing to the opened webkit directory is also accepted.
+     * </ul>
      * @param {HiPSOptions} [options] - The option for the survey
      *
      * @description Giving a CDS ID will do a query to the MOCServer first to retrieve metadata. Then it will also check for the presence of faster HiPS nodes to choose a faster url to query to tiles from.

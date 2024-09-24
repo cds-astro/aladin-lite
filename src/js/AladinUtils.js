@@ -153,8 +153,8 @@ export let AladinUtils = {
          */
         Sesame: {
             /**
-             * find RA, DEC for any target (object name or position) <br/>
-             * if successful, callback is called with an object {ra: ra-value, dec: dec-value} <br/>
+             * Find RA, DEC for any target (object name or position) <br/>
+             * if successful, callback is called with an object {ra: {@link number}, dec: {@link number}} <br/>
              * if not successful, errorCallback is called
              *
              * @function
@@ -162,8 +162,8 @@ export let AladinUtils = {
              * @name resolveAstronomicalName
              *
              * @param {string} target - object name or position
-             * @param {Function} callback - if successful, callback is called with an object {ra: <ra-value>, dec: <dec-value>}
-             * @param {Function} errorCallback - if not successful, errorCallback is called
+             * @param {Function} callback - if successful, callback is called with an object {ra: {@link number}, dec: {@link number}}
+             * @param {Function} errorCallback - if not successful, errorCallback is called with the error
              */
             resolveAstronomicalName: Sesame.getTargetRADec
         },

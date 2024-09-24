@@ -289,7 +289,7 @@ impl ImageSurveyTextures {
             let mutex_locked = image.lock().unwrap_abort();
             let images = mutex_locked.as_ref().unwrap_abort();
             for (idx, image) in images.iter().enumerate() {
-                self.push(&HEALPixCell(depth_tile, idx as u64), Some(image), time_req)?;
+                self.push(&HEALPixCell(depth_tile, idx as u64), image, time_req)?;
             }
         }
 
@@ -310,7 +310,7 @@ impl ImageSurveyTextures {
     pub fn push<I: Image + std::fmt::Debug>(
         &mut self,
         cell: &HEALPixCell,
-        image: Option<I>,
+        image: I,
         time_request: Time,
     ) -> Result<(), JsValue> {
         if !self.contains_tile(cell) {
@@ -381,7 +381,7 @@ impl ImageSurveyTextures {
                 &mut self.base_textures[idx as usize]
             };
 
-            let missing = image.is_none();
+            //let missing = image.is_none();
             send_to_gpu(
                 cell,
                 texture,
@@ -393,7 +393,7 @@ impl ImageSurveyTextures {
             texture.append(
                 cell, // The tile cell
                 &self.config,
-                missing,
+                //missing,
             );
 
             self.available_tiles_during_frame = true;
@@ -629,7 +629,7 @@ impl ImageSurveyTextures {
 fn send_to_gpu<I: Image>(
     cell: &HEALPixCell,
     texture: &Texture,
-    image: Option<I>,
+    image: I,
     texture_array: &Texture2DArray,
     cfg: &mut HiPSConfig,
 ) -> Result<(), JsValue> {
@@ -663,12 +663,9 @@ fn send_to_gpu<I: Image>(
         idx_slice,
     );
 
-    if let Some(image) = image {
-        image.tex_sub_image_3d(&texture_array, &offset)
-    } else {
-        cfg.get_default_image()
-            .tex_sub_image_3d(&texture_array, &offset)
-    }
+    image.tex_sub_image_3d(&texture_array, &offset)?;
+
+    Ok(())
 }
 
 impl SendUniforms for ImageSurveyTextures {

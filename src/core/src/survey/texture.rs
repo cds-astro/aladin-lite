@@ -31,7 +31,7 @@ pub struct Texture {
     num_tiles_written: usize,
     // Flag telling whether the texture is available
     // for drawing
-    missing: bool,
+    //missing: bool,
 }
 
 use super::config::HiPSConfig;
@@ -44,7 +44,7 @@ impl Texture {
         let full = false;
         let texture_cell = *texture_cell;
         let uniq = texture_cell.uniq();
-        let missing = true;
+        //let missing = true;
         let num_tiles_written = 0;
         Texture {
             texture_cell,
@@ -55,19 +55,19 @@ impl Texture {
             start_time,
             full,
             num_tiles_written,
-            missing,
+            //missing,
         }
     }
 
     // Panic if cell is not contained in the texture
     // Do nothing if the texture is full
     // Return true if the tile is newly added
-    pub fn append(&mut self, cell: &HEALPixCell, cfg: &HiPSConfig, missing: bool) {
+    pub fn append(&mut self, cell: &HEALPixCell, cfg: &HiPSConfig /*, missing: bool */) {
         let texture_cell = cell.get_texture_cell(cfg.delta_depth());
         debug_assert!(texture_cell == self.texture_cell);
         debug_assert!(!self.full);
 
-        self.missing &= missing;
+        //self.missing &= missing;
         //self.start_time = Some(Time::now());
         //self.full = true;
         let num_tiles_per_texture = cfg.num_tiles_per_texture();
@@ -127,9 +127,9 @@ impl Texture {
         self.idx
     }
 
-    pub fn is_missing(&self) -> bool {
+    /*pub fn is_missing(&self) -> bool {
         self.missing
-    }
+    }*/
 
     // Setter
     pub fn replace(&mut self, texture_cell: &HEALPixCell, time_request: Time) {
@@ -143,7 +143,7 @@ impl Texture {
         self.start_time = None;
         self.time_request = time_request;
         self.tiles.clear();
-        self.missing = true;
+        //self.missing = true;
         self.num_tiles_written = 0;
     }
 
@@ -187,9 +187,7 @@ impl<'a> TextureUniforms<'a> {
     }
 }
 
-use al_core::{
-    shader::{SendUniforms, ShaderBound},
-};
+use al_core::shader::{SendUniforms, ShaderBound};
 impl<'a> SendUniforms for TextureUniforms<'a> {
     fn attach_uniforms<'b>(&self, shader: &'b ShaderBound<'b>) -> &'b ShaderBound<'b> {
         shader
@@ -200,7 +198,8 @@ impl<'a> SendUniforms for TextureUniforms<'a> {
             )
             .attach_uniform(
                 &format!("{}{}", self.name, "empty"),
-                &((self.texture.missing as u8) as f32),
+                //&((self.texture.full as u8) as f32),
+                &0.0,
             )
             .attach_uniform(
                 &format!("{}{}", self.name, "start_time"),

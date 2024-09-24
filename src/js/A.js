@@ -112,12 +112,12 @@ A.aladin = function (divSelector, options) {
  * @function
  * @name A.HiPS
  * @memberof A
- * @param {string|FileList|Object} id - Can be: <br/>
- * - an http url <br/> 
- * - a relative path to your HiPS <br/>
- * - a special ID pointing towards a HiPS. One can found the list of IDs {@link https://aladin.cds.unistra.fr/hips/list| here} <br/>
- * - a dict storing a local HiPS files. This object contains a tile file: hips[order][ipix] = File and refers to the properties file like so: hips["properties"] = File. <br/>
- * A javascript FileList pointing to the opened webkit directory is also accepted.
+ * @param {string} id - Can be:
+ * <ul>
+ * <li>An http url towards a HiPS.</li>
+ * <li>A relative path to your HiPS</li>
+ * <li>A special ID pointing towards a HiPS. One can found the list of IDs {@link https://aladin.cds.unistra.fr/hips/list| here}</li>
+ * </ul>
  * @param {HiPSOptions} [options] - Options describing the survey
  * @returns {HiPS} - A HiPS image object
  */

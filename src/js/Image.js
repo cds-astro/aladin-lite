@@ -32,6 +32,36 @@ import { AVM } from "./libs/avm.js";
 import { HiPS } from "./HiPS.js";
 
 /**
+ * @typedef {Object} WCS
+ * 
+ * {@link https://ui.adsabs.harvard.edu/abs/2002A%26A...395.1077C/abstract|FITS (Paper II)}, Calabretta, M. R., and Greisen, E. W., Astronomy & Astrophysics, 395, 1077-1122, 2002
+ * 
+ * @property {number} [NAXIS]
+ * @property {string} CTYPE1 
+ * @property {string} [CTYPE2]
+ * @property {number} [LONPOLE]
+ * @property {number} [LATPOLE]
+ * @property {number} [CRVAL1]
+ * @property {number} [CRVAL2]
+ * @property {number} [CRPIX1]
+ * @property {number} [CRPIX2]
+ * @property {string} [CUNIT1] - e.g. 'deg'
+ * @property {string} [CUNIT2] - e.g. 'deg'
+ * @property {number} [CD1_1]
+ * @property {number} [CD1_2]
+ * @property {number} [CD2_1]
+ * @property {number} [CD2_2]
+ * @property {number} [PC1_1]
+ * @property {number} [PC1_2]
+ * @property {number} [PC2_1]
+ * @property {number} [PC2_2]
+ * @property {number} [CDELT1]
+ * @property {number} [CDELT2]
+ * @property {number} [NAXIS1]
+ * @property {number} [NAXIS2]
+ */
+
+/**
  * @typedef {Object} ImageOptions
  *
  * @property {string} [name] - A human-readable name for the FITS image
@@ -48,7 +78,7 @@ import { HiPS } from "./HiPS.js";
  * @property {number} [saturation=0.0] - The saturation value for the color configuration.
  * @property {number} [brightness=0.0] - The brightness value for the color configuration.
  * @property {number} [contrast=0.0] - The contrast value for the color configuration.
- * @property {Object} [wcs] - an object describing the WCS of the image. In case of a fits image
+ * @property {WCS} [wcs] - an object describing the WCS of the image. In case of a fits image
  * this property will be ignored as the WCS taken will be the one present in the fits file.
  * @property {string} [imgFormat] - Optional image format. Giving it will prevent the auto extension determination algorithm to be triggered. Possible values are 'jpeg', 'png' or 'fits'. tiff files are not supported. You can convert your tiff files to jpg ones by using the fantastic image magick suite.
  * 

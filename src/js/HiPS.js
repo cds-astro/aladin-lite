@@ -159,6 +159,18 @@ PropertyParser.isPlanetaryBody = function (properties) {
  * 
  * JS {@link https://developer.mozilla.org/fr/docs/Web/API/FileList| FileList} API type
  */
+
+/**
+ * @typedef {Object} HiPSLocalFiles
+ * 
+ * @property {File} properties - The local properties file of the HiPS
+ * 
+ * @description
+ * Tiles are accessed like so: HIPSLocalFiles[norder][ipix] = {@link File};<br/>
+ * The properties file is accessed with: HIPSLocalFiles["properties"]
+ */
+
+ 
 export let HiPS = (function () {
     /**
      * The object describing an image survey
@@ -167,12 +179,14 @@ export let HiPS = (function () {
      * @constructs HiPS
      *
      * @param {string} id - Mandatory unique identifier for the layer. Can be an arbitrary name
-     * @param {string|FileList|Object} location - Can be:
-     * - an http url <br/> 
-     * - a relative path to your HiPS <br/>
-     * - a special ID pointing towards a HiPS. One can found the list of IDs {@link https://aladin.cds.unistra.fr/hips/list| here} <br/>
-     * - a dict storing a local HiPS. This object contains a tile file: hips[order][ipix] = File and refers to the properties file like so: hips["properties"] = File. <br/>
-     * A javascript FileList pointing to the opened webkit directory is also accepted.
+     * @param {string|FileList|HiPSLocalFiles} url - Can be:
+     * <ul>
+     * <li>An http url towards a HiPS.</li>
+     * <li>A relative path to your HiPS</li>
+     * <li>A special ID pointing towards a HiPS. One can found the list of IDs {@link https://aladin.cds.unistra.fr/hips/list| here}</li>
+     * <li>A dict storing a local HiPS files. This object contains a tile file: hips[order][ipix] = File and refers to the properties file like so: hips["properties"] = File. </li>
+     *     A javascript {@link FileList} pointing to the opened webkit directory is also accepted.
+     * </ul>
      * @param {HiPSOptions} [options] - The option for the survey
      *
      * @description Giving a CDS ID will do a query to the MOCServer first to retrieve metadata. Then it will also check for the presence of faster HiPS nodes to choose a faster url to query to tiles from.
@@ -187,27 +201,38 @@ export let HiPS = (function () {
         this.startUrl = options.startUrl;
 
         if (location instanceof FileList) {
-            let files = {};
+            let localFiles = {};
             for (var file of location) {
                 let path = file.webkitRelativePath;
                 if (path.includes("Norder") && path.includes("Npix")) {
                     const order = +path.substring(path.indexOf("Norder") + 6).split("/")[0];
-                    if (!files[order]) {
-                        files[order] = {}
+                    if (!localFiles[order]) {
+                        localFiles[order] = {}
                     }
 
-                    const ipix = +path.substring(path.indexOf("Npix") + 4).split(".")[0];
-                    files[order][ipix] = file;
+                    let tile = path.substring(path.indexOf("Npix") + 4).split(".");
+                    const ipix = +tile[0];
+                    const fmt = tile[1];
+
+                    if (!localFiles[order][ipix]) {
+                        localFiles[order][ipix] = {}
+                    }
+
+                    localFiles[order][ipix][fmt] = file;
                 }
 
                 if (path.includes("properties")) {
-                    files['properties'] = file;
+                    localFiles['properties'] = file;
+                }
+
+                if (path.includes("Moc")) {
+                    localFiles['moc'] = file;
                 }
             }
 
-            this.files = files;
+            this.localFiles = localFiles;
         } else if (location instanceof Object) {
-            this.files = location;
+            this.localFiles = location;
         }
 
         this.url = location;
@@ -434,17 +459,17 @@ export let HiPS = (function () {
         }
         this.view = view;
 
-        if (this.files) {
+        if (this.localFiles) {
             // Fetch the properties file
             self.query = (async () => {
                 // look for the properties file
-                await HiPSProperties.fetchFromFile(self.files["properties"])
+                await HiPSProperties.fetchFromFile(self.localFiles["properties"])
                     .then((p) => {
                         self._parseProperties(p);
 
                         self.url = "local";
 
-                        delete self.files["properties"]
+                        delete self.localFiles["properties"]
                     })
 
                 return self;
@@ -873,12 +898,27 @@ export let HiPS = (function () {
         };
 
         let localFiles;
-        if (this.files) {
-            localFiles = new Aladin.wasmLibs.core.HiPSLocalFiles();
-            for (var order in this.files) {
-                for (var ipix in this.files[order]) {
-                    const file = this.files[order][ipix];
-                    localFiles.insert(+order, BigInt(+ipix), file)
+        if (this.localFiles) {
+            localFiles = new Aladin.wasmLibs.core.HiPSLocalFiles(this.localFiles["moc"]);
+
+            let fmt;
+            for (var order in this.localFiles) {
+                if (order === "moc")
+                    continue;
+
+                for (var ipix in this.localFiles[order]) {
+                    for (var f in this.localFiles[order][ipix]) {
+                        if (f === "png") {
+                            fmt = Aladin.wasmLibs.core.ImageExt.Png;
+                        } else if (f === "fits") {
+                            fmt = Aladin.wasmLibs.core.ImageExt.Fits;
+                        } else {
+                            fmt = Aladin.wasmLibs.core.ImageExt.Jpeg;
+                        }
+
+                        const tileFile = this.localFiles[order][+ipix][f];
+                        localFiles.insert(+order, BigInt(+ipix), fmt, tileFile)
+                    }
                 }
             }
         }

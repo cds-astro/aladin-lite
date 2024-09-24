@@ -1500,10 +1500,13 @@ export let Aladin = (function () {
      * @memberof Aladin
      * @param {string} id - Mandatory unique identifier for the survey.
      * @param {string} [name] - A convinient name for the survey, optional
-     * @param {string} url - Can be:
+     * @param {string|FileList|HiPSLocalFiles} url - Can be:
      * <ul>
-     * <li>1. An url that refers to a HiPS.</li>
-     * <li>Or it can be a "CDS ID" that refers to a HiPS. One can found the list of IDs {@link https://aladin.cds.unistra.fr/hips/list| here}</li>
+     * <li>An http url towards a HiPS.</li>
+     * <li>A relative path to your HiPS</li>
+     * <li>A special ID pointing towards a HiPS. One can found the list of IDs {@link https://aladin.cds.unistra.fr/hips/list| here}</li>
+     * <li>A dict storing a local HiPS files. This object contains a tile file: hips[order][ipix] = File and refers to the properties file like so: hips["properties"] = File. </li>
+     *     A javascript {@link FileList} pointing to the opened webkit directory is also accepted.
      * </ul>
      * @param {string} [cooFrame] - Values accepted: 'equatorial', 'icrs', 'icrsd', 'j2000', 'gal', 'galactic'
      * @param {number} [maxOrder] - The maximum HEALPix order of the HiPS, i.e the HEALPix order of the most refined tile images of the HiPS.
@@ -1534,10 +1537,13 @@ export let Aladin = (function () {
      * @static
      * @param {string} id - Mandatory unique identifier for the survey.
      * @param {string} [name] - A convinient name for the survey, optional
-     * @param {string} url - Can be:
+     * @param {string|FileList|HiPSLocalFiles} url - Can be:
      * <ul>
-     * <li>1. An url that refers to a HiPS.</li>
-     * <li>Or it can be a "CDS ID" that refers to a HiPS. One can found the list of IDs {@link https://aladin.cds.unistra.fr/hips/list| here}</li>
+     * <li>An http url towards a HiPS.</li>
+     * <li>A relative path to your HiPS</li>
+     * <li>A special ID pointing towards a HiPS. One can found the list of IDs {@link https://aladin.cds.unistra.fr/hips/list| here}</li>
+     * <li>A dict storing a local HiPS files. This object contains a tile file: hips[order][ipix] = File and refers to the properties file like so: hips["properties"] = File. </li>
+     *     A javascript {@link FileList} pointing to the opened webkit directory is also accepted.
      * </ul>
      * @param {string} [cooFrame] - Values accepted: 'equatorial', 'icrs', 'icrsd', 'j2000', 'gal', 'galactic'
      * @param {number} [maxOrder] - The maximum HEALPix order of the HiPS, i.e the HEALPix order of the most refined tile images of the HiPS.
@@ -1581,7 +1587,7 @@ export let Aladin = (function () {
      * <ul>
      * <li>1. An url that refers to a HiPS</li>
      * <li>2. Or it can be a CDS identifier that refers to a HiPS. One can found the list of IDs {@link https://aladin.cds.unistra.fr/hips/list| here}</li>
-     * <li>3. A {@link HiPS} HiPS object created from {@link A.HiPS}</li>
+     * <li>3. A {@link HiPS} HiPS object</li>
      * <li>4. A {@link Image} Image object</li>
      * </ul>
      */
@@ -1649,8 +1655,9 @@ export let Aladin = (function () {
      * @memberof Aladin
      * @param {string} id - Can be:
      * <ul>
-     * <li>1. An url that refers to a HiPS.</li>
-     * <li>Or it can be a "CDS ID" that refers to a HiPS. One can found the list of IDs {@link https://aladin.cds.unistra.fr/hips/list| here}</li>
+     * <li>An http url towards a HiPS.</li>
+     * <li>A relative path to your HiPS</li>
+     * <li>A special ID pointing towards a HiPS. One can found the list of IDs {@link https://aladin.cds.unistra.fr/hips/list| here}</li>
      * </ul>
      * @param {HiPSOptions} [options] - Options for rendering the image
      * @param {function} [success] - A success callback

@@ -12,7 +12,8 @@
     },
     "docdash": {
         "scripts": [
-            "jsdoc-custom-style.css"
+            "jsdoc-custom-style.css",
+            "jsdoc-make-responsive.js"
         ],
         "sectionOrder": [
             "Namespaces",
@@ -58,7 +59,8 @@
         "default": {
             "staticFiles": {
                 "include": [
-                  "./jsdoc-custom-style.css"
+                  "./jsdoc-custom-style.css",
+                  "./jsdoc-make-responsive.js"
                 ]
             }
         }

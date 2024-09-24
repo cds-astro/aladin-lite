@@ -1,4 +1,4 @@
-# Aladin Lite
+# [Aladin Lite](https://aladin.u-strasbg.fr/AladinLite)
 
 **An astronomical HiPS visualizer in the browser** <img src="aladin-logo.png" alt="Aladin Lite logo" width="220">
 
@@ -32,8 +32,13 @@ Aladin Lite is available [at this link](https://aladin.u-strasbg.fr/AladinLite).
 
 ## Releases
 
-For integrating Aladin Lite into your personal website, please refer to this [release page](https://aladin.cds.unistra.fr/AladinLite/doc/release/).
-Always prefer using the latest version. If you want the new features without minding about the bugs coming with it, then the beta is the good way to go.
+A [release page](https://aladin.cds.unistra.fr/AladinLite/doc/release/) keeps track of all the current and previous builds.
+A ``release`` and ``beta`` versions, regularly updated are available. The ``beta`` version is usually more advanced than the ``release`` one but features more error prone and not production-ready code.
+
+> [!TIP]
+> If you are working on a project that uses Aladin Lite, prefer working with a fixed version. Every build is tagged with a version number and accessible with:
+>
+> ```https://aladin.cds.unistra.fr/AladinLite/api/v3/<version>/aladin.js```
 
 ## Documentation
 
@@ -96,7 +101,7 @@ Aladin Lite can be imported with:
 * [X] AVM tags parsing support
 * [X] Easy sharing of current « view »
 * [ ] All VOTable serializations
-* [ ] FITS tables [TODO]
+* [ ] FITS tables
 * [X] Creating HiPS instance from an URL
 * [X] Local HiPS loading 
 * [X] Multiple mirrors handling for HiPS tile retrival
@@ -119,7 +124,7 @@ There are several ways to contribute to Aladin Lite:
 - **develop new features/provide code fixing bugs**. As open development is a new thing for us, we will in a first time only take into consideration code contribution (_i.e._ Pull Requests) from our close partners.
 In any case, please get in touch before starting a major update or rewrite.
 
-### Building the application steps
+### Building steps
 
 First you need to install the dependencies from the package.json
 Please run:
@@ -145,52 +150,62 @@ Then you can build the project:
 npm run build
 ```
 
-:warning: **If you are experimenting rust error compilations**:
+> [!WARNING]
+> **If you are experimenting Rust compiling issues:**
+> - Make sure you have your **wasm-pack** version updated. To do so:
+> ```sh
+> cargo install wasm-pack --version ~0.12
+> ```
+> - Make sure you are using the rust **nightly** toolchain
+> ```sh
+> rustup default nightly
+> ```
+> - Remove your `src/core/Cargo.lock` file and `src/core/target` directory -- this ensures that you'd escape any bad compilation state:
+> ```sh
+> git clean -di
+> ```
+> -  then recompile with `npm run build`.
 
-- Make sure you have your **wasm-pack** version updated. To do so:
+It will generate the aladin lite compiled code into a `dist/` directory located at the root of the repository. This directory contains two javascript files. `aladin.umd.cjs` follows the UMD module export convention and it is the one you need to use for your project.
 
-```sh
-cargo install wasm-pack --version ~0.12
-```
+### Testing guidelines
 
-- Make sure you are using the rust **nightly** toolchain
-- Remove your `src/core/Cargo.lock` file and `src/core/target` directory -- this ensures that you'd escape any bad compilation state:
+#### Run the examples
 
-```sh
-git clean -di
-```
- 
--  then recompile with `npm run build`.
-
-It will generate the aladin lite compiled code into a `dist/` directory located at the root of the repository. This directory contains two javascript files. `aladin.umd.cjs` follows the UMD module export convention and it is the one you can use for your project.
-
-To run the examples, you can start a localhost server with the following command:
+A bunch of examples are located into the `examples` directory.
+To run them, start a localhost server:
 
 ```sh
 npm run serve
 ```
 
-For just compiling the rust core, from the root location do:
+#### Rust tests
+
+These can be executed separately from the JS part:
+
+* Compile the Rust code:
 
 ```sh
 cd src/core
 cargo check --features webgl2
 ```
 
-and run the tests:
+* Run the tests:
 
 ```sh
-cd src/core
 cargo test --features webgl2
 ```
 
-For running the playwright test locally please first install playwright like so:
+#### Snapshot comparisons
+
+We use [playwright](https://playwright.dev/) for snapshot comparison testing. Only ground truth snapshots have been generated for MacOS/Darwin architecture.
+First install playwright:
 
 ```sh
 npx playwright install
 ```
 
-After that you will be able to run them. These are generated snapshots that will be compared to ground truth snapshots:
+Run the tests, advises are given for opening the UI mode or for generating your own ground truth snapshots.
 
 ```sh
 npm run test:playwright

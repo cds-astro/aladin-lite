@@ -163,7 +163,7 @@ export class Selector {
                     }
 
                     if (o.intersectsBBox(x, y, w, h, view)) {
-                        objList.push(o);
+                        objList.push([o]);
                     }
                 }
             }

@@ -44,11 +44,12 @@
     "test:build": "cd src/core && cargo test --release --features webgl2",
     "test:playwright": "npx playwright test",
     "test:update-snapshots": "npx playwright test --update-snapshots",
-    "doc": "jsdoc -c jsdoc.json src/js src/js/shapes src/js/libs/astro && cp aladin-logo.png docs/",
+    "doc": "jsdoc -c jsdoc.json src/js src/js/shapes src/js/libs/astro && cp aladin-logo.png docs/ && cp jsdoc-custom-style.css docs/",
     "doc:dev": "npm run doc && open docs/index.html"
   },
   "devDependencies": {
     "@playwright/test": "^1.47.0",
+    "docdash": "^2.0.2",
     "jsdoc": "^4.0.2",
     "vite": "^4.3.8",
     "vite-plugin-glsl": "^1.1.2",

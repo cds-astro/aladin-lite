@@ -128,8 +128,8 @@ PropertyParser.isPlanetaryBody = function (properties) {
 };
 
 /**
+ * HiPS options
  * @typedef {Object} HiPSOptions
- *
  * @property {string} [name] - The name of the survey to be displayed in the UI
  * @property {Function} [successCallback] - A callback executed when the HiPS has been loaded
  * @property {Function} [errorCallback] - A callback executed when the HiPS could not be loaded
@@ -155,19 +155,16 @@ PropertyParser.isPlanetaryBody = function (properties) {
  */
 
 /**
- * @typedef {Object} FileList
- * 
  * JS {@link https://developer.mozilla.org/fr/docs/Web/API/FileList| FileList} API type
+ * 
+ * @typedef {Object} FileList
  */
 
 /**
- * @typedef {Object} HiPSLocalFiles
- * 
- * @property {File} properties - The local properties file of the HiPS
- * 
- * @description
  * Tiles are accessed like so: HIPSLocalFiles[norder][ipix] = {@link File};<br/>
  * The properties file is accessed with: HIPSLocalFiles["properties"]
+ * @typedef {Object} HiPSLocalFiles
+ * @property {File} properties - The local properties file of the HiPS
  */
 
  

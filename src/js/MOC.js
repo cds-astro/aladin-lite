@@ -222,8 +222,8 @@ export let MOC = (function() {
      /**
      * Serialize a MOC into different format
      *
-     * @memberof Aladin
-     * @param {string} [format='json'] - The output format. Only json is currently supported but 'fits' could be added.
+     * @memberof MOC
+     * @param {string} [format='json'] - The output format. Only `json` is currently supported but `fits` could be added.
      */
     MOC.prototype.serialize = function(format) {
         if (!this.ready) {

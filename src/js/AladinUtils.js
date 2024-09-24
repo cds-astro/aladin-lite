@@ -182,20 +182,21 @@ export let AladinUtils = {
          * @param {number} ra - Right Ascension (RA) coordinate in degrees.
          * @param {number} dec - Declination (Dec) coordinate in degrees.
          * @param {Aladin} aladin - Aladin Lite object containing the WebAssembly API.
-         * @returns {number[]} xy - A 2 elements array representing the screen coordinates [X, Y] in pixels.
+         * @returns {number[]} A 2 elements array representing the screen coordinates [X, Y] in pixels.
          */
         radecToViewXy: function(ra, dec, aladin) {
             return aladin.world2pix(ra, dec);
         },
 
         /**
+         * Convert a number in degrees into a string<br>
+         * 
         * @function
         * @memberof AladinUtils
         * @name degreesToString
-        * Convert a number in degrees into a string<br>
-        *
+        * 
         * @param numberDegrees number in degrees (integer or decimal)
-        * @return a formattes string
+        * @return the formatted string
         * 
         * @example <caption> Result in degrees </caption>
         * // returns "1°"

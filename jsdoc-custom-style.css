@@ -1,0 +1,8 @@
+nav > h2 {
+    color: blue;
+    font-size: medium;
+}
+
+nav > ul > li > a {
+    font-size: medium;
+}

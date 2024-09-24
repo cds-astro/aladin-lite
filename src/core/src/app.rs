@@ -612,7 +612,7 @@ impl App {
                                 //let _depth = tile.cell().depth();
                                 // do not perform tex_sub costly GPU calls while the camera is zooming
                                 if tile.cell().is_root() || included_or_near_coverage {
-                                    let is_missing = tile.missing();
+                                    //let is_missing = tile.missing();
                                     /*self.tile_fetcher.notify_tile(
                                         &tile,
                                         true,
@@ -626,75 +626,77 @@ impl App {
                                         ..
                                     } = tile;
 
-                                    let image = if is_missing {
+                                    /*let image = if is_missing {
                                         // Otherwise we push nothing, it is probably the case where:
                                         // - an request error occured on a valid tile
                                         // - the tile is not present, e.g. chandra HiPS have not the 0, 1 and 2 order tiles
                                         None
                                     } else {
                                         Some(image)
-                                    };
+                                    };*/
                                     use al_core::image::ImageType;
                                     use fitsrs::fits::Fits;
                                     use std::io::Cursor;
-                                    if let Some(image) = image.as_ref() {
-                                        match &*image.lock().unwrap_abort() {
-                                            Some(ImageType::FitsImage {
-                                                raw_bytes: raw_bytes_buf,
-                                            }) => {
-                                                // check if the metadata has not been set
-                                                if !cfg.fits_metadata {
-                                                    let num_bytes = raw_bytes_buf.length() as usize;
-                                                    let mut raw_bytes = vec![0; num_bytes];
-                                                    raw_bytes_buf.copy_to(&mut raw_bytes[..]);
+                                    //if let Some(image) = image.as_ref() {
+                                    match &*image.lock().unwrap_abort() {
+                                        Some(ImageType::FitsImage {
+                                            raw_bytes: raw_bytes_buf,
+                                        }) => {
+                                            // check if the metadata has not been set
+                                            if !cfg.fits_metadata {
+                                                let num_bytes = raw_bytes_buf.length() as usize;
+                                                let mut raw_bytes = vec![0; num_bytes];
+                                                raw_bytes_buf.copy_to(&mut raw_bytes[..]);
 
-                                                    let mut bytes_reader =
-                                                        Cursor::new(raw_bytes.as_slice());
-                                                    let Fits { hdu } =
-                                                        Fits::from_reader(&mut bytes_reader)
-                                                            .map_err(|_| {
-                                                                JsValue::from_str(
-                                                                    "Parsing fits error",
-                                                                )
-                                                            })?;
+                                                let mut bytes_reader =
+                                                    Cursor::new(raw_bytes.as_slice());
+                                                let Fits { hdu } =
+                                                    Fits::from_reader(&mut bytes_reader).map_err(
+                                                        |_| JsValue::from_str("Parsing fits error"),
+                                                    )?;
 
-                                                    let header = hdu.get_header();
-                                                    let bscale = if let Some(
-                                                        fitsrs::card::Value::Float(bscale),
-                                                    ) = header.get(b"BSCALE  ")
-                                                    {
-                                                        *bscale as f32
-                                                    } else {
-                                                        1.0
-                                                    };
-                                                    let bzero = if let Some(
-                                                        fitsrs::card::Value::Float(bzero),
-                                                    ) = header.get(b"BZERO   ")
-                                                    {
-                                                        *bzero as f32
-                                                    } else {
-                                                        0.0
-                                                    };
-                                                    let blank = if let Some(
-                                                        fitsrs::card::Value::Float(blank),
-                                                    ) = header.get(b"BLANK   ")
-                                                    {
-                                                        *blank as f32
-                                                    } else {
-                                                        std::f32::NAN
-                                                    };
+                                                let header = hdu.get_header();
+                                                let bscale = if let Some(
+                                                    fitsrs::card::Value::Float(bscale),
+                                                ) = header.get(b"BSCALE  ")
+                                                {
+                                                    *bscale as f32
+                                                } else {
+                                                    1.0
+                                                };
+                                                let bzero = if let Some(
+                                                    fitsrs::card::Value::Float(bzero),
+                                                ) = header.get(b"BZERO   ")
+                                                {
+                                                    *bzero as f32
+                                                } else {
+                                                    0.0
+                                                };
+                                                let blank = if let Some(
+                                                    fitsrs::card::Value::Float(blank),
+                                                ) = header.get(b"BLANK   ")
+                                                {
+                                                    *blank as f32
+                                                } else {
+                                                    std::f32::NAN
+                                                };
 
-                                                    cfg.set_fits_metadata(bscale, bzero, blank);
-                                                }
+                                                cfg.set_fits_metadata(bscale, bzero, blank);
                                             }
-                                            _ => (),
                                         }
-                                    }
+                                        _ => (),
+                                    };
+                                    //}
 
-                                    survey.add_tile(&cell, image, time_req)?;
-                                    self.request_redraw = true;
+                                    match &*image.lock().unwrap_abort() {
+                                        Some(img) => {
+                                            survey.add_tile(&cell, img, time_req)?;
+                                            self.request_redraw = true;
 
-                                    self.time_start_blending = Time::now();
+                                            self.time_start_blending = Time::now();
+                                        }
+                                        None => (),
+                                    };
                                 }
                             }
                         }

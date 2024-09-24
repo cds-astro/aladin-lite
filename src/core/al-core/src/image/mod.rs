@@ -232,7 +232,7 @@ where
 use crate::Abort;
 
 use std::sync::{Arc, Mutex};
-impl<I> Image for Arc<Mutex<Option<I>>>
+/*impl<I> Image for Arc<Mutex<Option<I>>>
 where
     I: Image,
 {
@@ -249,7 +249,7 @@ where
 
         Ok(())
     }
-}
+}*/
 
 #[cfg(feature = "webgl2")]
 use crate::image::format::{R16I, R32I, R64F, R8UI};

@@ -201,27 +201,38 @@ export let HiPS = (function () {
         this.startUrl = options.startUrl;
 
         if (location instanceof FileList) {
-            let files = {};
+            let localFiles = {};
             for (var file of location) {
                 let path = file.webkitRelativePath;
                 if (path.includes("Norder") && path.includes("Npix")) {
                     const order = +path.substring(path.indexOf("Norder") + 6).split("/")[0];
-                    if (!files[order]) {
-                        files[order] = {}
+                    if (!localFiles[order]) {
+                        localFiles[order] = {}
                     }
 
-                    const ipix = +path.substring(path.indexOf("Npix") + 4).split(".")[0];
-                    files[order][ipix] = file;
+                    let tile = path.substring(path.indexOf("Npix") + 4).split(".");
+                    const ipix = +tile[0];
+                    const fmt = tile[1];
+
+                    if (!localFiles[order][ipix]) {
+                        localFiles[order][ipix] = {}
+                    }
+
+                    localFiles[order][ipix][fmt] = file;
                 }
 
                 if (path.includes("properties")) {
-                    files['properties'] = file;
+                    localFiles['properties'] = file;
+                }
+
+                if (path.includes("Moc")) {
+                    localFiles['moc'] = file;
                 }
             }
 
-            this.files = files;
+            this.localFiles = localFiles;
         } else if (location instanceof Object) {
-            this.files = location;
+            this.localFiles = location;
         }
 
         this.url = location;
@@ -448,17 +459,17 @@ export let HiPS = (function () {
         }
         this.view = view;
 
-        if (this.files) {
+        if (this.localFiles) {
             // Fetch the properties file
             self.query = (async () => {
                 // look for the properties file
-                await HiPSProperties.fetchFromFile(self.files["properties"])
+                await HiPSProperties.fetchFromFile(self.localFiles["properties"])
                     .then((p) => {
                         self._parseProperties(p);
 
                         self.url = "local";
 
-                        delete self.files["properties"]
+                        delete self.localFiles["properties"]
                     })
 
                 return self;
@@ -887,12 +898,27 @@ export let HiPS = (function () {
         };
 
         let localFiles;
-        if (this.files) {
-            localFiles = new Aladin.wasmLibs.core.HiPSLocalFiles();
-            for (var order in this.files) {
-                for (var ipix in this.files[order]) {
-                    const file = this.files[order][ipix];
-                    localFiles.insert(+order, BigInt(+ipix), file)
+        if (this.localFiles) {
+            localFiles = new Aladin.wasmLibs.core.HiPSLocalFiles(this.localFiles["moc"]);
+
+            let fmt;
+            for (var order in this.localFiles) {
+                if (order === "moc")
+                    continue;
+
+                for (var ipix in this.localFiles[order]) {
+                    for (var f in this.localFiles[order][ipix]) {
+                        if (f === "png") {
+                            fmt = Aladin.wasmLibs.core.ImageExt.Png;
+                        } else if (f === "fits") {
+                            fmt = Aladin.wasmLibs.core.ImageExt.Fits;
+                        } else {
+                            fmt = Aladin.wasmLibs.core.ImageExt.Jpeg;
+                        }
+
+                        const tileFile = this.localFiles[order][+ipix][f];
+                        localFiles.insert(+order, BigInt(+ipix), fmt, tileFile)
+                    }
                 }
             }
         }

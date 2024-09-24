@@ -23,34 +23,64 @@ pub struct TileFetcherQueue {
 #[derive(Debug)]
 #[wasm_bindgen]
 pub struct HiPSLocalFiles {
-    paths: Box<[HashMap<u64, web_sys::File>]>,
+    tiles: Box<[Box<[HashMap<u64, web_sys::File>]>; 4]>,
+    moc: web_sys::File,
 }
 
 use crate::tile_fetcher::query::Tile;
 use crate::HEALPixCell;
+use al_api::hips::ImageExt;
+use al_core::image::format::ImageFormatType;
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::JsValue;
 
 #[wasm_bindgen]
 impl HiPSLocalFiles {
     #[wasm_bindgen(constructor)]
-    pub fn new() -> Self {
-        let paths = vec![HashMap::new(); 30].into_boxed_slice();
+    pub fn new(moc: web_sys::File) -> Self {
+        let tiles_per_fmt = vec![HashMap::new(); 30].into_boxed_slice();
 
-        Self { paths }
+        Self {
+            tiles: Box::new([
+                tiles_per_fmt.clone(),
+                tiles_per_fmt.clone(),
+                tiles_per_fmt.clone(),
+                tiles_per_fmt,
+            ]),
+            moc,
+        }
     }
 
-    pub fn insert(&mut self, depth: u8, ipix: u64, file: web_sys::File) {
-        self.paths[depth as usize].insert(ipix, file);
+    pub fn insert(&mut self, depth: u8, ipix: u64, ext: ImageExt, file: web_sys::File) {
+        let mut tiles_per_fmt = match ext {
+            ImageExt::Fits => &mut self.tiles[0],
+            ImageExt::Jpeg => &mut self.tiles[1],
+            ImageExt::Png => &mut self.tiles[2],
+            ImageExt::Webp => &mut self.tiles[3],
+        };
+
+        tiles_per_fmt[depth as usize].insert(ipix, file);
     }
 
-    fn get(&self, cell: &HEALPixCell) -> Option<&web_sys::File> {
+    fn get_tile(&self, cell: &HEALPixCell, ext: ImageExt) -> Option<&web_sys::File> {
         let d = cell.depth() as usize;
         let i = cell.idx();
 
-        return self.paths[d].get(&i);
+        let tiles_per_fmt = match ext {
+            ImageExt::Fits => &self.tiles[0],
+            ImageExt::Jpeg => &self.tiles[1],
+            ImageExt::Png => &self.tiles[2],
+            ImageExt::Webp => &self.tiles[3],
+        };
+
+        return tiles_per_fmt[d].get(&i);
+    }
+
+    fn get_moc(&self) -> &web_sys::File {
+        &self.moc
     }
 }
+
 use crate::renderable::CreatorDid;
 impl TileFetcherQueue {
     pub fn new() -> Self {
@@ -116,9 +146,11 @@ impl TileFetcherQueue {
     }
 
     fn check_in_file_list(&self, mut query: Tile) -> Result<Tile, JsValue> {
-        if let Some(files) = self.hips_local_files.get(&query.hips_cdid) {
-            if let Some(file) = files.get(&query.cell) {
-                if let Ok(url) = web_sys::Url::create_object_url_with_blob(file.as_ref()) {
+        if let Some(local_hips) = self.hips_local_files.get(&query.hips_cdid) {
+            if let Some(tile) =
+                local_hips.get_tile(&query.cell, query.format.get_ext_file().clone())
+            {
+                if let Ok(url) = web_sys::Url::create_object_url_with_blob(tile.as_ref()) {
                     // rewrite the url
                     query.url = url;
                     Ok(query)
@@ -166,8 +198,21 @@ impl TileFetcherQueue {
         // The allsky is not mandatory present in a HiPS service but it is better to first try to search for it
         //downloader.fetch(query::PixelMetadata::new(cfg));
         // Try to fetch the MOC
+        let hips_cdid = cfg.get_creator_did();
+        let moc_url = if let Some(local_hips) = self.hips_local_files.get(hips_cdid) {
+            if let Ok(url) =
+                web_sys::Url::create_object_url_with_blob(local_hips.get_moc().as_ref())
+            {
+                url
+            } else {
+                format!("{}/Moc.fits", cfg.get_root_url())
+            }
+        } else {
+            format!("{}/Moc.fits", cfg.get_root_url())
+        };
+
         downloader.borrow_mut().fetch(query::Moc::new(
-            format!("{}/Moc.fits", cfg.get_root_url()),
+            moc_url,
             cfg.get_creator_did().to_string(),
             al_api::moc::MOC::default(),
         ));

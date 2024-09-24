@@ -8,7 +8,7 @@
 <script type="module">
     import A from '../src/js/A.js';
     A.init.then(() => {
-        aladin = A.aladin('#aladin-lite-div', {projection: 'MOL', fullScreen: true, fov: 360, survey: ['P/DM/vizMine', 'P/HST/GOODS/color', 'P/MATLAS/g'], target: '0 0', showProjectionControl: true, showSettingsControl: true, showCooGrid: true});
+        aladin = A.aladin('#aladin-lite-div', {projection: 'MOL', fullScreen: true, fov: 360, survey: ['P/DM/vizMine', 'P/HST/GOODS/color', 'P/MATLAS/g'], target: '0 0', showProjectionControl: false, showSettingsControl: false, showLayersControl: false, showCooGrid: false, showFrame: false, showCooLocation: false});
     });
 </script>
 

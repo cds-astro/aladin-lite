@@ -1284,12 +1284,12 @@ export let View = (function () {
     /**
      * redraw the whole view
      */
-    View.prototype.redraw = function () {
+    View.prototype.redraw = function (timestamp) {
         // request another frame
 
         // Elapsed time since last loop
         const now = performance.now();
-        const elapsedTime = now - this.then;
+        const elapsedTime = now - timestamp;
         this.dt = elapsedTime;
 
         this.moving = this.wasm.update(elapsedTime);
@@ -1300,6 +1300,7 @@ export let View = (function () {
             this.throttledPositionChanged(false);
         }
 
+
         ////// 2. Draw catalogues////////
         const isViewRendering = this.wasm.isRendering();
         if (isViewRendering || this.needRedraw) {
@@ -1307,7 +1308,6 @@ export let View = (function () {
         }
         this.needRedraw = false;
 
-        this.then = now;
         //this.then = now % View.FPS_INTERVAL;
         requestAnimFrame(this.redrawClbk);
     };

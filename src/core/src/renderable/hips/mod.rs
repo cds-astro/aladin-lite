@@ -662,7 +662,7 @@ impl HiPS {
                                 ))
                             }
                         } else {
-                            None
+                            unreachable!();
                         }
                     } else {
                         None
@@ -679,8 +679,8 @@ impl HiPS {
                     let uv_1 = TileUVW::new(cell, ending_texture, cfg);
                     let start_time = ending_texture.start_time().as_millis();
 
-                    let miss_0 = (starting_texture.is_missing()) as i32 as f32;
-                    let miss_1 = (ending_texture.is_missing()) as i32 as f32;
+                    let miss_0 = (false) as i32 as f32;
+                    let miss_1 = (false) as i32 as f32;
 
                     let num_subdivision = num_subdivision(cell, camera, projection);
 
@@ -817,7 +817,7 @@ impl HiPS {
     pub fn add_tile<I: Image + Debug>(
         &mut self,
         cell: &HEALPixCell,
-        image: Option<I>,
+        image: I,
         time_request: Time,
     ) -> Result<(), JsValue> {
         self.textures.push(&cell, image, time_request)

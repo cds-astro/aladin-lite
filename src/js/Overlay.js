@@ -38,11 +38,10 @@ import { Color } from './Color';
 * @typedef {Object} GraphicOverlayOptions
 * @description Options for configuring the graphic overlay
 *
-* @property {Object} options - Configuration options for the MOC.
-* @property {string} [options.name="overlay"] - The name of the catalog.
-* @property {string} [options.color] - A string parsed as CSS <color> value. See {@link https://developer.mozilla.org/en-US/docs/Web/CSS/color_value| here}
-* @property {number} [options.lineWidth=3] - The line width in pixels
-* @property {Array.<number>} [options.lineDash=[]] - Dash line option. See the segments property {@link https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/setLineDash#segments| here}
+* @property {string} [name="overlay"] - The name of the catalog.
+* @property {string} [color] - A string parsed as CSS <color> value. See {@link https://developer.mozilla.org/en-US/docs/Web/CSS/color_value| here}
+* @property {number} [lineWidth=3] - The line width in pixels
+* @property {Array.<number>} [lineDash=[]] - Dash line option. See the segments property {@link https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/setLineDash#segments| here}
 */
 
 export let GraphicOverlay = (function() {

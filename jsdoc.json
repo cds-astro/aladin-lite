@@ -11,7 +11,6 @@
         "dictionaries": ["jsdoc","closure"]
     },
     "docdash": {
-        "navLevel": 2,
         "typedefs": true,
         "scripts": [
             "jsdoc-custom-style.css",
@@ -47,7 +46,13 @@
                 "class":"menu-item",
                 "id":"website_link"
             },
-            "Aladin Lite documentation": {
+            "API examples": {
+                "href":"https://aladin.cds.unistra.fr/AladinLite/doc/API/examples",
+                "target":"_blank",
+                "class":"menu-item",
+                "id":"website_link"
+            },
+            "Documentation": {
                 "href":"https://aladin.cds.unistra.fr/AladinLite/doc/",
                 "target":"_blank",
                 "class":"menu-item",
@@ -59,7 +64,7 @@
                 "class":"menu-item",
                 "id":"website_link"
             },
-            "GitHub repo": {
+            "GitHub": {
                 "href":"https://github.com/cds-astro/aladin-lite",
                 "target":"_blank",
                 "class":"menu-item",

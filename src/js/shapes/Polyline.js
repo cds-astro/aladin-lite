@@ -41,14 +41,13 @@ import { ProjectionEnum } from "../ProjectionEnum.js";
 * @typedef {Object} ShapeOptions
 * @description Options for describing a shape
 *
-* @property {Object} options - Configuration options for the shape.
-* @property {string} [options.color] - The color of the shape
-* @property {string} [options.fill=false] - Fill the shape with fillColor
-* @property {string} [options.fillColor] - A filling color for the shape
-* @property {number} [options.lineWidth=3] - The line width in pixels
-* @property {number} [options.opacity=1] - The opacity, between 0 (totally transparent) and 1 (totally opaque)
-* @property {string} [options.selectionColor='#00ff00'] - A selection color
-* @property {string} [options.hoverColor] -  A hovered color
+* @property {string} [color] - The color of the shape
+* @property {string} [fill=false] - Fill the shape with fillColor
+* @property {string} [fillColor] - A filling color for the shape
+* @property {number} [lineWidth=3] - The line width in pixels
+* @property {number} [opacity=1] - The opacity, between 0 (totally transparent) and 1 (totally opaque)
+* @property {string} [selectionColor='#00ff00'] - A selection color
+* @property {string} [hoverColor] -  A hovered color
 */
 
 export let Polyline = (function() {

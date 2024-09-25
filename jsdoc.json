@@ -11,6 +11,8 @@
         "dictionaries": ["jsdoc","closure"]
     },
     "docdash": {
+        "navLevel": 2,
+        "typedefs": true,
         "scripts": [
             "jsdoc-custom-style.css",
             "jsdoc-make-responsive.js"
@@ -22,8 +24,8 @@
             "Externals",
             "Events",
             "Mixins",
-            "Tutorials",
-            "Interfaces"
+            "Interfaces",
+            "Global"
        ],
        "openGraph": {
             "title": "Aladin Lite API documentation",
@@ -39,17 +41,29 @@
         },
        "search": true,
        "menu": {                      
-            "Project Website": {        
+            "Aladin Lite portal": {
+                "href":"https://aladin.cds.unistra.fr/AladinLite",
+                "target":"_blank",
+                "class":"menu-item",
+                "id":"website_link"
+            },
+            "Aladin Lite documentation": {
                 "href":"https://aladin.cds.unistra.fr/AladinLite/doc/",
                 "target":"_blank",
                 "class":"menu-item",
                 "id":"website_link"
             },
-            "Forum": {
-                "href":"https://github.com/cds-astro/aladin-lite/issues",
+            "Releases": {
+                "href":"https://aladin.cds.unistra.fr/AladinLite/doc/release",
                 "target":"_blank",
                 "class":"menu-item",
-                "id":"forum_link"
+                "id":"website_link"
+            },
+            "GitHub repo": {
+                "href":"https://github.com/cds-astro/aladin-lite",
+                "target":"_blank",
+                "class":"menu-item",
+                "id":"website_link"
             }
         }
     },

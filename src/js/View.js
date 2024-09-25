@@ -579,7 +579,7 @@ export let View = (function () {
 
             // deselect all the selected sources with Select panel
             view.unselectObjects();
-            
+
             try {
                 const [lon, lat] = view.aladin.pix2world(xymouse.x, xymouse.y, 'icrs');
                 view.pointTo(lon, lat);
@@ -1473,11 +1473,11 @@ export let View = (function () {
     }
 
     View.prototype.selectObjects = function(selection) {
-        // unselect the previous selection
         if (this.manualSelection) {
             return;
         }
-
+        
+        // unselect the previous selection
         this.unselectObjects();
         
         if (Array.isArray(selection)) {

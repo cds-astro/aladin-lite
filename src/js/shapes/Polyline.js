@@ -469,7 +469,6 @@ export let Polyline = (function() {
         for (let i = 0; i < this.raDecArray.length - 1; i++) {
             let p1 = this.raDecArray[i];
             let p2 = this.raDecArray[i + 1];
-            view.aladin.world2pix
 
             let xy1 = view.aladin.world2pix(p1[0], p1[1]);
             let xy2 = view.aladin.world2pix(p2[0], p2[1]);

@@ -288,8 +288,8 @@ export let Circle = (function() {
     // From StackOverflow: https://stackoverflow.com/questions/401847/circle-rectangle-collision-detection-intersection
     Circle.prototype.intersectsBBox = function(x, y, w, h) {
         const circleDistance = {
-            x: abs(this.center.x - x),
-            y: abs(this.center.y - y)
+            x: Math.abs(this.center.x - x),
+            y: Math.abs(this.center.y - y)
         };
 
         if (circleDistance.x > (w/2 + this.radius)) { return false; }

@@ -488,15 +488,19 @@ export let Catalog = (function () {
      *
      * @param {Object} [options] - shape options
      * @param {string} [options.color] - the color of the shape
+     * @param {string} [options.selectionColor] - the color of the shape when selected
      * @param {number} [options.sourceSize] - size of the shape
      * @param {string|Function|HTMLImageCanvas|HTMLImageElement} [options.shape="square"] - the type of the shape. Can be square, rhomb, plus, cross, triangle, circle.
      * A callback function can also be called that return an HTMLImageElement in function of the source object. A canvas or an image can also be given.
+     * @param {string|Function} [options.onClick] - Whether the source data appears as a table row or a in popup. Can be 'showTable' string, 'showPopup' string or a custom user defined function that handles the click.
      */
     Catalog.prototype.updateShape = function (options) {
         options = options || {};
         this.color = options.color || this.color || Color.getNextColor();
+        this.selectionColor = options.selectionColor || this.selectionColor || Color.getNextColor();
         this.sourceSize = options.sourceSize || this.sourceSize || 6;
         this.shape = options.shape || this.shape || "square";
+        this.onClick = options.onClick || this.onClick;
 
         this._shapeIsFunction = false; // if true, the shape is a function drawing on the canvas
         this._shapeIsFootprintFunction = false;
@@ -796,7 +800,7 @@ export let Catalog = (function () {
     };
 
     /**
-     * Set the color of the catalog
+     * Set the shape of the catalog sources
      *
      * @memberof Catalog
      * 

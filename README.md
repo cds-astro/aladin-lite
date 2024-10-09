@@ -13,6 +13,7 @@ A new [API technical documentation](https://cds-astro.github.io/aladin-lite/) is
 
 [![Run tests](https://github.com/cds-astro/aladin-lite/actions/workflows/test.yml/badge.svg)](https://github.com/cds-astro/aladin-lite/actions/workflows/test.yml)
 [![API Documentation](https://img.shields.io/badge/API-documentation-blue.svg)](https://cds-astro.github.io/aladin-lite)
+[![Releases page](https://img.shields.io/badge/Releases-forge-yellow.svg)](https://aladin.cds.unistra.fr/AladinLite/doc/release/)
 
 Aladin Lite is available [at this link](https://aladin.u-strasbg.fr/AladinLite).
 
@@ -87,6 +88,7 @@ Aladin Lite can be imported with:
 ```html
 <script type="module">
     import A from 'aladin-lite';
+    // your code...
 </script>
 ```
 

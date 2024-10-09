@@ -648,7 +648,7 @@ impl Image {
             return Ok(());
         }
 
-        self.gl.enable(WebGl2RenderingContext::BLEND);
+        //self.gl.enable(WebGl2RenderingContext::BLEND);
 
         let ImageMetadata {
             color,
@@ -726,7 +726,7 @@ impl Image {
 
         //self.gl.enable(WebGl2RenderingContext::CULL_FACE);
 
-        self.gl.disable(WebGl2RenderingContext::BLEND);
+        //self.gl.disable(WebGl2RenderingContext::BLEND);
 
         Ok(())
     }

@@ -10,7 +10,6 @@ pub struct RenderPass {
 use crate::ShaderManager;
 impl RenderPass {
     pub fn new(gl: &WebGlContext) -> Result<RenderPass, JsValue> {
-
         let positions = vec![0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0];
         let indices = vec![0u8, 1, 2, 1, 3, 2];
         let mut vao = VertexArrayObject::new(gl);
@@ -49,14 +48,23 @@ impl RenderPass {
         })
     }
 
-    pub fn draw_on_screen(&self, fbo: &FrameBufferObject, shaders: &mut ShaderManager) -> Result<(), JsValue> {
-        self.gl.enable(WebGl2RenderingContext::BLEND);
-        self.gl.blend_func(
+    pub fn draw_on_screen(
+        &self,
+        fbo: &FrameBufferObject,
+        shaders: &mut ShaderManager,
+    ) -> Result<(), JsValue> {
+        //self.gl.enable(WebGl2RenderingContext::BLEND);
+        /*self.gl.blend_func(
             WebGl2RenderingContext::ONE,
             WebGl2RenderingContext::ONE_MINUS_SRC_ALPHA,
-        ); // premultiplied alpha
+        ); // premultiplied alpha*/
 
-        let shader = crate::shader::get_shader(&self.gl, shaders, "PostVS", "PostFS")?;
+        let shader = crate::shader::get_shader(
+            &self.gl,
+            shaders,
+            "passes_post_vertex_100es.vert",
+            "passes_post_fragment_100es.frag",
+        )?;
 
         shader
             .bind(&self.gl)
@@ -69,7 +77,7 @@ impl RenderPass {
                 0,
             );
 
-        self.gl.disable(WebGl2RenderingContext::BLEND);
+        //self.gl.disable(WebGl2RenderingContext::BLEND);
 
         Ok(())
     }

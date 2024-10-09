@@ -1,10 +1,3 @@
-//const int MAX_NUM_TEX = 3;
-uniform sampler2D tex1;
-uniform sampler2D tex2;
-//uniform sampler2D tex3;
-
-uniform int num_tex;
-
 uniform float scale;
 uniform float offset;
 uniform float blank;
@@ -12,6 +5,8 @@ uniform float blank;
 uniform float min_value;
 uniform float max_value;
 uniform int H;
+
+uniform float reversed;
 
 uniform float size_tile_uv;
 
@@ -23,16 +18,7 @@ uniform int tex_storing_fits;
 #include ./hsv.glsl;
 
 vec4 get_pixels(vec3 uv) {
-    
-    /*if (idx_texture == 0) {
-        return texture(tex1, uv.xy);
-    } else if (idx_texture == 1) {
-        return texture(tex2, uv.xy);
-    } else {
-        return vec4(0.0, 1.0, 0.0, 1.0);
-    }*/
-    int idx_texture = int(uv.z);
-    return mix(texture(tex1, uv.xy), texture(tex2, uv.xy), float(idx_texture));
+    return texture(tex, uv);
 }
 
 vec3 reverse_uv(vec3 uv) {
@@ -40,7 +26,6 @@ vec3 reverse_uv(vec3 uv) {
     return uv;
 }
 
-uniform float reversed;
 
 vec4 get_color_from_texture(vec3 UV) {
     vec4 color = get_pixels(UV);

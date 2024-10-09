@@ -129,51 +129,47 @@ impl Image for Fits<'_> {
         match &self.data {
             Data::U8(data) => {
                 let view = unsafe { R8UI::view(&data) };
-                textures[offset.z as usize]
-                    .bind()
-                    .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_array_buffer_view(
-                        offset.x,
-                        offset.y,
-                        self.size.x,
-                        self.size.y,
-                        Some(view.as_ref()),
-                    );
+                textures.bind().tex_sub_image_3d_with_opt_array_buffer_view(
+                    offset.z,
+                    offset.x,
+                    offset.y,
+                    self.size.x,
+                    self.size.y,
+                    Some(view.as_ref()),
+                );
             }
             Data::I16(data) => {
                 let view = unsafe { R16I::view(&data) };
-                textures[offset.z as usize]
-                    .bind()
-                    .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_array_buffer_view(
-                        offset.x,
-                        offset.y,
-                        self.size.x,
-                        self.size.y,
-                        Some(view.as_ref()),
-                    );
+                textures.bind().tex_sub_image_3d_with_opt_array_buffer_view(
+                    offset.z,
+                    offset.x,
+                    offset.y,
+                    self.size.x,
+                    self.size.y,
+                    Some(view.as_ref()),
+                );
             }
             Data::I32(data) => {
                 let view = unsafe { R32I::view(&data) };
-                textures[offset.z as usize]
-                    .bind()
-                    .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_array_buffer_view(
-                        offset.x,
-                        offset.y,
-                        self.size.x,
-                        self.size.y,
-                        Some(view.as_ref()),
-                    );
+                textures.bind().tex_sub_image_3d_with_opt_array_buffer_view(
+                    offset.z,
+                    offset.x,
+                    offset.y,
+                    self.size.x,
+                    self.size.y,
+                    Some(view.as_ref()),
+                );
             }
             Data::F32(data) => {
                 let view = unsafe { R32F::view(&data) };
-                textures[offset.z as usize]
-                    .bind()
-                    .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_array_buffer_view(
-                        offset.x,
-                        offset.y,
-                        self.size.x,
-                        self.size.y,
-                        Some(view.as_ref()),
-                    );
+                textures.bind().tex_sub_image_3d_with_opt_array_buffer_view(
+                    offset.z,
+                    offset.x,
+                    offset.y,
+                    self.size.x,
+                    self.size.y,
+                    Some(view.as_ref()),
+                );
             }
         }
 

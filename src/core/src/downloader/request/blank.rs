@@ -132,10 +132,12 @@ impl From<query::PixelMetadata> for PixelMetadataRequest {
     }
 }
 
+use std::cell::RefCell;
+use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 #[derive(Debug)]
 pub struct PixelMetadata {
-    pub value: Arc<Mutex<Option<Metadata>>>,
+    pub value: Rc<RefCell<Option<Metadata>>>,
     pub hips_cdid: CreatorDid,
     pub url: String,
 }

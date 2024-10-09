@@ -6,16 +6,12 @@ pub struct Triangulation {
     pub idx: Vec<u16>,
 }
 
-use crate::math::projection::domain::sdf::{
-    ProjDefType,
-    ProjDef,
-    self
-};
+use crate::math::projection::domain::sdf::{self, ProjDef, ProjDefType};
 impl Triangulation {
     pub(super) fn build(proj_def: &ProjDefType) -> Triangulation {
         let (mut vertices, mut idx) = (Vec::new(), Vec::new());
 
-                // get the validity domain
+        // get the validity domain
         let root = Face::new(Vector2::new(-1_f64, -1_f64), Vector2::new(1_f64, 1_f64));
         let children = root.split(2);
 
@@ -110,7 +106,7 @@ impl Face {
                     off_idx,
                     off_idx + 2,
                     off_idx + 3,
-                ]    
+                ]
             }
         };*/
         let idx = [
@@ -183,7 +179,7 @@ fn recursive_triangulation(
     vertices: &mut Vec<Vector2<f64>>,
     idx: &mut Vec<u16>,
     depth: u8,
-    proj_def: &ProjDefType
+    proj_def: &ProjDefType,
 ) {
     //let (farthest_vertex, dir_farthest_vertex) = face.get_farthest_vertex();
 
@@ -210,7 +206,7 @@ fn recursive_triangulation(
                 vertices,
                 idx,
                 depth - 1,
-                proj_def
+                proj_def,
             );
             // top-right
             recursive_triangulation(
@@ -218,7 +214,7 @@ fn recursive_triangulation(
                 vertices,
                 idx,
                 depth - 1,
-                proj_def
+                proj_def,
             );
             // bottom-left
             recursive_triangulation(
@@ -226,7 +222,7 @@ fn recursive_triangulation(
                 vertices,
                 idx,
                 depth - 1,
-                proj_def
+                proj_def,
             );
             // bottom-right
             recursive_triangulation(
@@ -234,7 +230,7 @@ fn recursive_triangulation(
                 vertices,
                 idx,
                 depth - 1,
-                proj_def
+                proj_def,
             );
         }
     } else {
@@ -258,131 +254,163 @@ fn recursive_triangulation(
 
         match (bl_in, br_in, tr_in, tl_in) {
             // 0 VERTEX case
-            (false, false, false, false) => {},
+            (false, false, false, false) => {}
             // 1 VERTEX cases
             // 1 triangle to plot
             // (x bl, br, tr, tl)
             (true, false, false, false) => {
-                let u = sdf::ray_marching(&tl, &D_TO_SOUTH, proj_def).expect("should intersect domain");
-                let v = sdf::ray_marching(&br, &D_TO_WEST, proj_def).expect("should intersect domain");
+                let u =
+                    sdf::ray_marching(&tl, &D_TO_SOUTH, proj_def).expect("should intersect domain");
+                let v =
+                    sdf::ray_marching(&br, &D_TO_WEST, proj_def).expect("should intersect domain");
 
                 face.add_triangle(&[bl, v, u], vertices, idx);
-            },
+            }
             // (bl, x br, tr, tl)
             (false, true, false, false) => {
-                let u = sdf::ray_marching(&bl, &D_TO_EAST, proj_def).expect("should intersect domain");
-                let v = sdf::ray_marching(&tr, &D_TO_SOUTH, proj_def).expect("should intersect domain");
+                let u =
+                    sdf::ray_marching(&bl, &D_TO_EAST, proj_def).expect("should intersect domain");
+                let v =
+                    sdf::ray_marching(&tr, &D_TO_SOUTH, proj_def).expect("should intersect domain");
 
                 face.add_triangle(&[br, v, u], vertices, idx);
-            },
+            }
             // (bl, br, x tr, tl)
             (false, false, true, false) => {
-                let v = sdf::ray_marching(&br, &D_TO_NORTH, proj_def).expect("should intersect domain");
-                let u = sdf::ray_marching(&tl, &D_TO_EAST, proj_def).expect("should intersect domain");
+                let v =
+                    sdf::ray_marching(&br, &D_TO_NORTH, proj_def).expect("should intersect domain");
+                let u =
+                    sdf::ray_marching(&tl, &D_TO_EAST, proj_def).expect("should intersect domain");
 
                 face.add_triangle(&[tr, u, v], vertices, idx);
-            },
+            }
             // (bl, br, tr, x tl)
             (false, false, false, true) => {
-                let u = sdf::ray_marching(&bl, &D_TO_NORTH, proj_def).expect("should intersect domain");
-                let v = sdf::ray_marching(&tr, &D_TO_WEST, proj_def).expect("should intersect domain");
+                let u =
+                    sdf::ray_marching(&bl, &D_TO_NORTH, proj_def).expect("should intersect domain");
+                let v =
+                    sdf::ray_marching(&tr, &D_TO_WEST, proj_def).expect("should intersect domain");
 
                 face.add_triangle(&[tl, u, v], vertices, idx);
-            },
+            }
             // 2 VERTICES cases
             // (bl, x br, tr, x tl)
             (false, true, false, true) => {
-                let u = sdf::ray_marching(&bl, &D_TO_NORTH, proj_def).expect("should intersect domain");
-                let v = sdf::ray_marching(&bl, &D_TO_EAST, proj_def).expect("should intersect domain");
-                let w = sdf::ray_marching(&tr, &D_TO_WEST, proj_def).expect("should intersect domain");
-                let x = sdf::ray_marching(&tr, &D_TO_SOUTH, proj_def).expect("should intersect domain");
+                let u =
+                    sdf::ray_marching(&bl, &D_TO_NORTH, proj_def).expect("should intersect domain");
+                let v =
+                    sdf::ray_marching(&bl, &D_TO_EAST, proj_def).expect("should intersect domain");
+                let w =
+                    sdf::ray_marching(&tr, &D_TO_WEST, proj_def).expect("should intersect domain");
+                let x =
+                    sdf::ray_marching(&tr, &D_TO_SOUTH, proj_def).expect("should intersect domain");
 
                 face.add_triangle(&[u, w, tl], vertices, idx);
                 face.add_triangle(&[u, v, w], vertices, idx);
                 face.add_triangle(&[v, x, w], vertices, idx);
                 face.add_triangle(&[v, br, x], vertices, idx);
-            },
+            }
             // (x bl, br, x tr, tl)
             (true, false, true, false) => {
-                let u = sdf::ray_marching(&tl, &D_TO_SOUTH, proj_def).expect("should intersect domain");
-                let v = sdf::ray_marching(&tl, &D_TO_EAST, proj_def).expect("should intersect domain");
-                let w = sdf::ray_marching(&br, &D_TO_WEST, proj_def).expect("should intersect domain");
-                let x = sdf::ray_marching(&br, &D_TO_NORTH, proj_def).expect("should intersect domain");
+                let u =
+                    sdf::ray_marching(&tl, &D_TO_SOUTH, proj_def).expect("should intersect domain");
+                let v =
+                    sdf::ray_marching(&tl, &D_TO_EAST, proj_def).expect("should intersect domain");
+                let w =
+                    sdf::ray_marching(&br, &D_TO_WEST, proj_def).expect("should intersect domain");
+                let x =
+                    sdf::ray_marching(&br, &D_TO_NORTH, proj_def).expect("should intersect domain");
 
                 face.add_triangle(&[bl, w, u], vertices, idx);
                 face.add_triangle(&[w, x, u], vertices, idx);
                 face.add_triangle(&[x, v, u], vertices, idx);
                 face.add_triangle(&[x, tr, v], vertices, idx);
-            },
+            }
             // (bl, br, x tr, x tl)
             (false, false, true, true) => {
-                let u = sdf::ray_marching(&bl, &D_TO_NORTH, proj_def).expect("should intersect domain");
-                let v = sdf::ray_marching(&br, &D_TO_NORTH, proj_def).expect("should intersect domain");
+                let u =
+                    sdf::ray_marching(&bl, &D_TO_NORTH, proj_def).expect("should intersect domain");
+                let v =
+                    sdf::ray_marching(&br, &D_TO_NORTH, proj_def).expect("should intersect domain");
 
                 face.add_triangle(&[v, tl, u], vertices, idx);
                 face.add_triangle(&[v, tr, tl], vertices, idx);
-            },
+            }
             // (x bl, x br, tr, tl)
             (true, true, false, false) => {
-                let u = sdf::ray_marching(&tl, &D_TO_SOUTH, proj_def).expect("should intersect domain");
-                let v = sdf::ray_marching(&tr, &D_TO_SOUTH, proj_def).expect("should intersect domain");
+                let u =
+                    sdf::ray_marching(&tl, &D_TO_SOUTH, proj_def).expect("should intersect domain");
+                let v =
+                    sdf::ray_marching(&tr, &D_TO_SOUTH, proj_def).expect("should intersect domain");
 
                 face.add_triangle(&[u, bl, v], vertices, idx);
                 face.add_triangle(&[v, bl, br], vertices, idx);
-            },
+            }
             // (x bl, br, tr, x tl)
             (true, false, false, true) => {
-                let u = sdf::ray_marching(&tr, &D_TO_WEST, proj_def).expect("should intersect domain");
-                let v = sdf::ray_marching(&br, &D_TO_WEST, proj_def).expect("should intersect domain");
+                let u =
+                    sdf::ray_marching(&tr, &D_TO_WEST, proj_def).expect("should intersect domain");
+                let v =
+                    sdf::ray_marching(&br, &D_TO_WEST, proj_def).expect("should intersect domain");
 
                 face.add_triangle(&[bl, u, tl], vertices, idx);
                 face.add_triangle(&[u, bl, v], vertices, idx);
-            },
+            }
             // (bl, x br, x tr, tl)
             (false, true, true, false) => {
-                let u = sdf::ray_marching(&tl, &D_TO_EAST, proj_def).expect("should intersect domain");
-                let v = sdf::ray_marching(&bl, &D_TO_EAST, proj_def).expect("should intersect domain");
+                let u =
+                    sdf::ray_marching(&tl, &D_TO_EAST, proj_def).expect("should intersect domain");
+                let v =
+                    sdf::ray_marching(&bl, &D_TO_EAST, proj_def).expect("should intersect domain");
 
                 face.add_triangle(&[br, tr, u], vertices, idx);
                 face.add_triangle(&[br, u, v], vertices, idx);
-            },
+            }
             // 3 VERTICES cases
             // (x bl, x br, x tr, tl)
             (true, true, true, false) => {
-                let u = sdf::ray_marching(&tl, &D_TO_EAST, proj_def).expect("should intersect domain");
-                let v = sdf::ray_marching(&tl, &D_TO_SOUTH, proj_def).expect("should intersect domain");
+                let u =
+                    sdf::ray_marching(&tl, &D_TO_EAST, proj_def).expect("should intersect domain");
+                let v =
+                    sdf::ray_marching(&tl, &D_TO_SOUTH, proj_def).expect("should intersect domain");
 
                 face.add_triangle(&[u, v, bl], vertices, idx);
                 face.add_triangle(&[u, bl, tr], vertices, idx);
                 face.add_triangle(&[tr, bl, br], vertices, idx);
-            },
+            }
             // (bl, x br, x tr, x tl)
             (false, true, true, true) => {
-                let u = sdf::ray_marching(&bl, &D_TO_NORTH, proj_def).expect("should intersect domain");
-                let v = sdf::ray_marching(&bl, &D_TO_EAST, proj_def).expect("should intersect domain");
+                let u =
+                    sdf::ray_marching(&bl, &D_TO_NORTH, proj_def).expect("should intersect domain");
+                let v =
+                    sdf::ray_marching(&bl, &D_TO_EAST, proj_def).expect("should intersect domain");
 
                 face.add_triangle(&[tl, u, tr], vertices, idx);
                 face.add_triangle(&[tr, u, v], vertices, idx);
                 face.add_triangle(&[v, br, tr], vertices, idx);
-            },
+            }
             // (x bl, br, x tr, x tl)
             (true, false, true, true) => {
-                let u = sdf::ray_marching(&br, &D_TO_NORTH, proj_def).expect("should intersect domain");
-                let v = sdf::ray_marching(&br, &D_TO_WEST, proj_def).expect("should intersect domain");
+                let u =
+                    sdf::ray_marching(&br, &D_TO_NORTH, proj_def).expect("should intersect domain");
+                let v =
+                    sdf::ray_marching(&br, &D_TO_WEST, proj_def).expect("should intersect domain");
 
                 face.add_triangle(&[tl, bl, v], vertices, idx);
                 face.add_triangle(&[u, tl, v], vertices, idx);
                 face.add_triangle(&[tr, tl, u], vertices, idx);
-            },
+            }
             // (x bl, x br, tr, x tl)
             (true, true, false, true) => {
-                let u = sdf::ray_marching(&tr, &D_TO_WEST, proj_def).expect("should intersect domain");
-                let v = sdf::ray_marching(&tr, &D_TO_SOUTH, proj_def).expect("should intersect domain");
+                let u =
+                    sdf::ray_marching(&tr, &D_TO_WEST, proj_def).expect("should intersect domain");
+                let v =
+                    sdf::ray_marching(&tr, &D_TO_SOUTH, proj_def).expect("should intersect domain");
 
                 face.add_triangle(&[bl, u, tl], vertices, idx);
                 face.add_triangle(&[bl, v, u], vertices, idx);
                 face.add_triangle(&[bl, br, v], vertices, idx);
-            },
+            }
             // full case must not happen
             _ => unreachable!(),
         }

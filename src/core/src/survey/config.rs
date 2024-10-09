@@ -150,7 +150,6 @@ pub struct HiPSConfig {
     // Max depth of the current HiPS tiles
     max_depth_texture: u8,
     max_depth_tile: u8,
-    num_textures: usize,
 
     pub is_allsky: bool,
 
@@ -180,10 +179,6 @@ use crate::HiPSProperties;
 use al_api::coo_system::CooSystem;
 use wasm_bindgen::JsValue;
 
-const NUM_TEXTURES_BY_SIDE_SLICE: i32 = 8;
-const NUM_TEXTURES_BY_SLICE: i32 = NUM_TEXTURES_BY_SIDE_SLICE * NUM_TEXTURES_BY_SIDE_SLICE;
-const NUM_SLICES: i32 = 1;
-
 impl HiPSConfig {
     /// Define a HiPS configuration
     ///
@@ -196,7 +191,6 @@ impl HiPSConfig {
         let creator_did = properties.get_creator_did().to_string();
         // Define the size of the 2d texture array depending on the
         // characterics of the client
-        let num_textures = (NUM_TEXTURES_BY_SLICE * NUM_SLICES) as usize;
 
         let max_depth_tile = properties.get_max_order();
         let tile_size = properties.get_tile_size();
@@ -295,7 +289,7 @@ impl HiPSConfig {
         let num_tiles_per_texture = num_tile_per_side_texture * num_tile_per_side_texture;
 
         let max_depth_texture = max_depth_tile - delta_depth;
-        let size_tile_uv = 1_f32 / ((8 << delta_depth) as f32);
+        let size_tile_uv = 1_f32 / ((1 << delta_depth) as f32);
 
         let frame = properties.get_frame();
         let sky_fraction = properties.get_sky_fraction().unwrap_or(1.0);
@@ -326,7 +320,6 @@ impl HiPSConfig {
             max_depth_tile,
             min_depth_texture,
             min_depth_tile,
-            num_textures,
 
             is_allsky,
 
@@ -503,26 +496,6 @@ impl HiPSConfig {
     #[inline(always)]
     pub fn get_frame(&self) -> CooSystem {
         self.frame
-    }
-
-    #[inline(always)]
-    pub fn num_textures(&self) -> usize {
-        self.num_textures
-    }
-
-    #[inline(always)]
-    pub fn num_textures_by_side_slice(&self) -> i32 {
-        NUM_TEXTURES_BY_SIDE_SLICE
-    }
-
-    #[inline(always)]
-    pub fn num_textures_by_slice(&self) -> i32 {
-        NUM_TEXTURES_BY_SLICE
-    }
-
-    #[inline(always)]
-    pub fn num_slices(&self) -> i32 {
-        NUM_SLICES
     }
 
     #[inline(always)]

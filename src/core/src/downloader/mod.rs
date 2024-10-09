@@ -11,7 +11,6 @@ pub struct Downloader {
     queried_list: HashSet<QueryId>,
 
     cache: Cache<QueryId, Resource>,
-    queried_cached_ids: Vec<QueryId>,
 }
 
 use crate::fifo_cache::Cache;
@@ -24,12 +23,10 @@ impl Downloader {
         let requests = Vec::with_capacity(32);
         let queried_list = HashSet::with_capacity(64);
         let cache = Cache::new();
-        let queried_cached_ids = Vec::with_capacity(64);
         Self {
             requests,
             queried_list,
             cache,
-            queried_cached_ids,
         }
     }
     // Returns true if the fetch has been done
@@ -84,10 +81,8 @@ impl Downloader {
             self.queried_list.remove(&query_id);
         }
 
-        while let Some(id) = self.queried_cached_ids.pop() {
-            if let Some(rsc) = self.cache.extract(&id) {
-                rscs.push(rsc);
-            }
+        while let Some(r) = self.cache.extract_new() {
+            rscs.push(r);
         }
 
         rscs
@@ -97,8 +92,18 @@ impl Downloader {
         self.queried_list.contains(id)
     }
 
-    pub fn _delay_rsc(&mut self, rsc: Resource) {
-        self.queried_cached_ids.push(rsc.id().clone());
-        self.cache.insert(rsc.id().clone(), rsc);
+    pub fn delay(&mut self, r: Resource) {
+        match r {
+            Resource::Tile(tile) => {
+                let k = format!(
+                    "{:?}{:?}/{:?}",
+                    tile.get_hips_cdid(),
+                    tile.cell.depth(),
+                    tile.cell.idx()
+                );
+                self.cache.insert(k, Resource::Tile(tile));
+            }
+            _ => unimplemented!(),
+        }
     }
 }

@@ -1,5 +1,5 @@
 #version 300 es
-precision highp float;
+precision lowp float;
 precision mediump int;
 
 layout (location = 0) in vec2 pos_clip_space;
@@ -14,7 +14,6 @@ uniform mat4 model;
 
 void main() {
     vec2 uv = pos_clip_space * 0.5 + 0.5;
-    //world_pos = check_inversed_longitude(world_pos);
 
     frag_pos = vec3(model * vec4(pos_world_space, 1.0));
 

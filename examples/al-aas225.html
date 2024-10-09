@@ -16,9 +16,9 @@
         simbad.addSources([A.marker(204.97010833333336, 0.8400166666666667, {popupTitle: 'NGC 5257', popupDesc: '<em>Object type:</em> HII galaxy<br/><em>Morphological type:</em> Sbc<br/><br/>More info <a href="https://simbad.u-strasbg.fr/simbad/sim-id?Ident=NGC+5257">in Simbad</a>'}), A.marker(204.9903125, 0.8309694444444445,  {popupTitle: 'NGC 5258', popupDesc: '<em>Object type:</em>  Galaxy in Pair of Galaxies <br/><em>Morphological type:</em> Sb<br/><br/>More info <a href="https://simbad.u-strasbg.fr/simbad/sim-id?Ident=NGC+5258">in Simbad</a>'})]);
 
         var overlay = A.graphicOverlay({color: '#aa2222', lineWidth: 4});
+        overlay.addFootprints(A.polygon([[204.970214, 0.81206], [204.97110047, 0.80993368], [204.978723, 0.79165], [204.999152, 0.800162], [204.99482125, 0.81055582], [205.002941, 0.813851], [204.99986816, 0.82141125], [205.010312, 0.825578], [205.002112, 0.846123], [204.981546, 0.837916], [204.98157771, 0.83783654], [204.962977, 0.830202], [204.9703941, 0.81213504]]));
 
         aladin.addOverlay(overlay);
-        overlay.addFootprints(A.polygon([[204.970214, 0.81206], [204.97110047, 0.80993368], [204.978723, 0.79165], [204.999152, 0.800162], [204.99482125, 0.81055582], [205.002941, 0.813851], [204.99986816, 0.82141125], [205.010312, 0.825578], [205.002112, 0.846123], [204.981546, 0.837916], [204.98157771, 0.83783654], [204.962977, 0.830202], [204.9703941, 0.81213504]]));
 
         aladin.displayJPG('http://images.ipac.caltech.edu/esahubble/heic0810at/esahubble_heic0810at_1600.jpg');
     });

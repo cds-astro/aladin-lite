@@ -176,13 +176,13 @@ impl PolylineRenderer {
         camera: &CameraViewPort,
         proj: &ProjectionType,
     ) -> Result<(), JsValue> {
-        self.gl.enable(WebGl2RenderingContext::BLEND);
-        self.gl.blend_func_separate(
+        //self.gl.enable(WebGl2RenderingContext::BLEND);
+        /*self.gl.blend_func_separate(
             WebGl2RenderingContext::SRC_ALPHA,
             WebGl2RenderingContext::ONE_MINUS_SRC_ALPHA,
             WebGl2RenderingContext::ONE,
             WebGl2RenderingContext::ONE,
-        );
+        );*/
 
         // draw the instanced lines
         let icrs2view = CooSystem::ICRS.to(camera.get_coo_system());
@@ -203,7 +203,7 @@ impl PolylineRenderer {
                 self.num_instances as i32,
             );
 
-        self.gl.disable(WebGl2RenderingContext::BLEND);
+        //self.gl.disable(WebGl2RenderingContext::BLEND);
 
         Ok(())
     }

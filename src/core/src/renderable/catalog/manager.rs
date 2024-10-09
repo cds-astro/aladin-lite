@@ -258,11 +258,9 @@ impl Manager {
         fbo: Option<&FrameBufferObject>,
         projection: &ProjectionType,
     ) -> Result<(), JsValue> {
-        gl.enable(WebGl2RenderingContext::BLEND);
         for catalog in self.catalogs.values() {
             catalog.draw(gl, shaders, self, camera, colormaps, fbo, projection)?;
         }
-        gl.disable(WebGl2RenderingContext::BLEND);
 
         Ok(())
     }

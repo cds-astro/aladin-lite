@@ -102,9 +102,11 @@ impl From<query::Moc> for MOCRequest {
     }
 }
 
+use std::cell::RefCell;
+use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 pub struct Moc {
-    pub moc: Arc<Mutex<Option<HEALPixCoverage>>>,
+    pub moc: Rc<RefCell<Option<HEALPixCoverage>>>,
     pub params: al_api::moc::MOC,
     pub hips_cdid: Url,
 }

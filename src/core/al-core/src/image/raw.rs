@@ -31,10 +31,14 @@ where
         Self { data, size }
     }
 
-    pub fn from_encoded_raw_bytes(raw_bytes: &[u8], width: i32, height: i32) -> Result<Self, JsValue> {
+    pub fn from_encoded_raw_bytes(
+        raw_bytes: &[u8],
+        width: i32,
+        height: i32,
+    ) -> Result<Self, JsValue> {
         let mut decoded_bytes = match T::decode(raw_bytes).map_err(|e| JsValue::from_str(e))? {
             Bytes::Borrowed(bytes) => bytes.to_vec(),
-            Bytes::Owned(bytes) => bytes
+            Bytes::Owned(bytes) => bytes,
         };
 
         let decoded_pixels = unsafe {
@@ -80,12 +84,7 @@ where
         ImageBuffer::<T>::new(data, width, height)
     }
 
-    pub fn tex_sub(
-        &mut self,
-        src: &Self,
-        s: &ImageBufferView,
-        d: &ImageBufferView,
-    ) {
+    pub fn tex_sub(&mut self, src: &Self, s: &ImageBufferView, d: &ImageBufferView) {
         let mut di = d.x;
         let mut dj = d.y;
 
@@ -153,15 +152,14 @@ where
     ) -> Result<(), JsValue> {
         let js_array =
             <<<I as ImageFormat>::P as Pixel>::Container as ArrayBuffer>::new(&self.data);
-        textures[offset.z as usize]
-            .bind()
-            .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_array_buffer_view(
-                offset.x,
-                offset.y,
-                self.size.x,
-                self.size.y,
-                Some(js_array.as_ref()),
-            );
+        textures.bind().tex_sub_image_3d_with_opt_array_buffer_view(
+            offset.z,
+            offset.x,
+            offset.y,
+            self.width(),
+            self.height(),
+            Some(js_array.as_ref()),
+        );
 
         Ok(())
     }

@@ -83,7 +83,7 @@ use crate::LonLatT;
 use cgmath::{SquareMatrix, Vector4};
 use wasm_bindgen::JsCast;
 
-const MAX_DPI_LIMIT: f32 = 3.0;
+const MAX_DPI_LIMIT: f32 = 2.0;
 use crate::math;
 use crate::time::Time;
 use crate::Abort;

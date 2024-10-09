@@ -76,9 +76,9 @@ pub struct Layers {
 }
 
 const DEFAULT_BACKGROUND_COLOR: ColorRGB = ColorRGB {
-    r: 0.05,
-    g: 0.05,
-    b: 0.05,
+    r: 0.0,
+    g: 0.0,
+    b: 0.0,
 };
 
 fn get_backgroundcolor_shader<'a>(
@@ -260,8 +260,6 @@ impl Layers {
                 );
         }
 
-        // The first layer must be paint independently of its alpha channel
-        self.gl.enable(WebGl2RenderingContext::BLEND);
         // Pre loop over the layers to see if a HiPS is entirely covering those behind
         // so that we do not have to render those
         let mut idx_start_layer = 0;
@@ -300,14 +298,6 @@ impl Layers {
                 }
             }
         }
-
-        self.gl.blend_func_separate(
-            WebGl2RenderingContext::SRC_ALPHA,
-            WebGl2RenderingContext::ONE,
-            WebGl2RenderingContext::ONE,
-            WebGl2RenderingContext::ONE,
-        );
-        self.gl.disable(WebGl2RenderingContext::BLEND);
 
         Ok(())
     }

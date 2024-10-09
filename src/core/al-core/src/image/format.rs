@@ -41,7 +41,7 @@ impl ImageFormat for RGB8U {
     const NUM_CHANNELS: usize = 3;
 
     const FORMAT: u32 = WebGlRenderingCtx::RGB as u32;
-    const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::RGB as i32;
+    const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::RGB8 as i32;
     const TYPE: u32 = WebGlRenderingCtx::UNSIGNED_BYTE;
 
     const CHANNEL_TYPE: ChannelType = ChannelType::RGB8U;
@@ -71,7 +71,7 @@ impl ImageFormat for RGBA8U {
     const NUM_CHANNELS: usize = 4;
 
     const FORMAT: u32 = WebGlRenderingCtx::RGBA as u32;
-    const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::RGBA as i32;
+    const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::RGBA8 as i32;
     const TYPE: u32 = WebGlRenderingCtx::UNSIGNED_BYTE;
 
     const CHANNEL_TYPE: ChannelType = ChannelType::RGBA8U;

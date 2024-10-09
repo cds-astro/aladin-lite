@@ -190,11 +190,11 @@ export let GraphicOverlay = (function() {
 
     // ajout d'un tableau d'overlays (= objets Footprint, Circle ou Polyline)
     GraphicOverlay.prototype.addFootprints = function(overlaysToAdd) {
+        overlaysToAdd = [].concat(overlaysToAdd)
+
     	for (var k=0, len=overlaysToAdd.length; k<len; k++) {
             this.add(overlaysToAdd[k], false);
         }
-
-        //this.view.requestRedraw();
     };
 
     // TODO : item doit pouvoir prendre n'importe quoi en param (footprint, circle, polyline)
@@ -226,7 +226,6 @@ export let GraphicOverlay = (function() {
     };
 
     GraphicOverlay.prototype.setView = function(view, idx) {
-        console.trace()
         this.view = view;
 
         this.view.overlays.push(this);

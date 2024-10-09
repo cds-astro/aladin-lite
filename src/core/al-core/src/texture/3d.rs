@@ -210,30 +210,6 @@ impl Texture3D {
         })
     }
 
-    pub fn create_empty_unsized(
-        gl: &WebGlContext,
-        tex_params: &'static [(u32, u32)],
-    ) -> Result<Texture3D, JsValue> {
-        let texture = gl.create_texture();
-
-        gl.bind_texture(WebGlRenderingCtx::TEXTURE_2D, texture.as_ref());
-
-        for (pname, param) in tex_params.iter() {
-            gl.tex_parameteri(WebGlRenderingCtx::TEXTURE_2D, *pname, *param as i32);
-        }
-
-        let gl = gl.clone();
-
-        let metadata = None;
-        Ok(Texture3D {
-            texture,
-
-            gl,
-
-            metadata,
-        })
-    }
-
     pub fn create_empty_with_format<F: ImageFormat>(
         gl: &WebGlContext,
         width: i32,

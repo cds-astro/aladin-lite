@@ -439,6 +439,8 @@ export let ProgressiveCat = (function() {
         },
 
         drawSources: function(sources, ctx, width, height) {
+            let self = this;
+
             let ra = []
             let dec = [];
 
@@ -448,14 +450,26 @@ export let ProgressiveCat = (function() {
             });
 
             let xy = this.view.wasm.worldToScreenVec(ra, dec);
-            let self = this;
-            sources.forEach(function(s, idx) {
-                if (xy[2*idx] && xy[2*idx + 1]) {
-                    if (!self.filterFn || self.filterFn(s)) {
-                        s.x = xy[2*idx];
-                        s.y = xy[2*idx + 1];
+
+            let drawSource = (s, idx) => {
+                s.x = xy[2 * idx];
+                s.y = xy[2 * idx + 1];
     
-                        self.drawSource(s, ctx, width, height)
+                self.drawSource(s, ctx, width, height);
+            };
+
+            sources.forEach(function(s, idx) {
+                if (xy[2 * idx] && xy[2 * idx + 1]) {
+                    if (self.filterFn) {
+                        if(!self.filterFn(s)) {
+                            s.hide()
+                        } else {
+                            s.show()
+    
+                            drawSource(s, idx)
+                        }
+                    } else {
+                        drawSource(s, idx)
                     }
                 }
             });

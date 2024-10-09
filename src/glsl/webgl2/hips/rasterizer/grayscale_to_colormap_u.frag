@@ -1,15 +1,14 @@
 #version 300 es
-precision highp float;
-precision highp sampler2D;
-precision highp isampler2D;
-precision highp usampler2D;
-precision mediump int;
+precision lowp float;
+precision lowp sampler2DArray;
+precision lowp isampler2DArray;
+precision lowp usampler2DArray;
+
+uniform usampler2DArray tex;
 
 in vec3 frag_uv_start;
 in vec3 frag_uv_end;
 in float frag_blending_factor;
-in float m_start;
-in float m_end;
 
 out vec4 out_frag_color;
 

@@ -39,6 +39,7 @@ impl WebGlContext {
         // preserveDrawingBuffer enabled for exporting the view as a PNG
         let context_options =
             js_sys::JSON::parse("{\"antialias\":false, \"preserveDrawingBuffer\": true}")?;
+        //js_sys::JSON::parse("{\"antialias\":false}")?;
 
         #[cfg(feature = "webgl2")]
         let gl = Rc::new(

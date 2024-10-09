@@ -78,6 +78,21 @@ export class Selector {
         }
     }
 
+    start(mode, callback) {
+        this.setMode(mode);
+        this.dispatch('start', {callback})
+
+        this.view.aladin.addStatusBarMessage({
+            id: 'selector',
+            message: 'You entered the selection mode',
+            type: 'info'
+        })
+    }
+
+    cancel() {
+        this.dispatch('off')
+    }
+
     dispatch(to, params) {
         this.select.dispatch(to, params);
     }

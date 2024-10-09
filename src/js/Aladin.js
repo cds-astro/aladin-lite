@@ -948,7 +948,7 @@ export let Aladin = (function () {
     };
 
     /**
-     * Append a message to the status bar with a specific duration
+     * Append a message to the status bar
      *
      * @memberof Aladin
      * @param {Object} options - The message to display
@@ -968,6 +968,18 @@ export let Aladin = (function () {
     Aladin.prototype.addStatusBarMessage = function (options) {
         if (this.statusBar) {
             this.statusBar.appendMessage(options);
+        }
+    };
+
+/**
+     * Remove a message from the status bar
+     *
+     * @memberof Aladin
+     * @param {string} id - The id of the message to remove
+     */
+    Aladin.prototype.removeStatusBarMessage = function (id) {
+        if (this.statusBar) {
+            this.statusBar.removeMessage(id);
         }
     };
 

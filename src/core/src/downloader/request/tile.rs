@@ -185,9 +185,11 @@ impl From<query::Tile> for TileRequest {
 }
 
 use crate::time::Time;
+use std::cell::RefCell;
+use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 pub struct Tile {
-    pub image: Arc<Mutex<Option<ImageType>>>,
+    pub image: Rc<RefCell<Option<ImageType>>>,
     pub time_req: Time,
     pub cell: HEALPixCell,
     pub format: ImageFormatType,
@@ -199,7 +201,7 @@ use crate::Abort;
 impl Tile {
     #[inline(always)]
     pub fn missing(&self) -> bool {
-        self.image.lock().unwrap_abort().is_none()
+        self.image.borrow().is_none()
     }
 
     #[inline(always)]

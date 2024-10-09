@@ -490,6 +490,7 @@ export let Catalog = (function () {
      * @param {string} [options.color] - the color of the shape
      * @param {string} [options.selectionColor] - the color of the shape when selected
      * @param {number} [options.sourceSize] - size of the shape
+     * @param {string} [options.hoverColor=options.color] - the color to apply to sources in the catalog when they are hovered.
      * @param {string|Function|HTMLImageCanvas|HTMLImageElement} [options.shape="square"] - the type of the shape. Can be square, rhomb, plus, cross, triangle, circle.
      * A callback function can also be called that return an HTMLImageElement in function of the source object. A canvas or an image can also be given.
      * @param {string|Function} [options.onClick] - Whether the source data appears as a table row or a in popup. Can be 'showTable' string, 'showPopup' string or a custom user defined function that handles the click.
@@ -498,6 +499,7 @@ export let Catalog = (function () {
         options = options || {};
         this.color = options.color || this.color || Color.getNextColor();
         this.selectionColor = options.selectionColor || this.selectionColor || Color.getNextColor();
+        this.hoverColor = options.hoverColor || this.color;
         this.sourceSize = options.sourceSize || this.sourceSize || 6;
         this.shape = options.shape || this.shape || "square";
         this.onClick = options.onClick || this.onClick;
@@ -901,15 +903,27 @@ export let Catalog = (function () {
 
         let xy = this.view.wasm.worldToScreenVec(this.ra, this.dec);
 
+        let drawSource = (s, idx) => {
+            s.x = xy[2 * idx];
+            s.y = xy[2 * idx + 1];
+
+            self.drawSource(s, ctx, width, height);
+            inside.push(s);
+        };
+
         let self = this;
         this.sources.forEach(function (s, idx) {
             if (xy[2 * idx] && xy[2 * idx + 1]) {
-                if (!self.filterFn || self.filterFn(s)) {
-                    s.x = xy[2 * idx];
-                    s.y = xy[2 * idx + 1];
+                if (self.filterFn) {
+                    if(!self.filterFn(s)) {
+                        s.hide()
+                    } else {
+                        s.show()
 
-                    self.drawSource(s, ctx, width, height);
-                    inside.push(s);
+                        drawSource(s, idx)
+                    }
+                } else {
+                    drawSource(s, idx)
                 }
             }
         });

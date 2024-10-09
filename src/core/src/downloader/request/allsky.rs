@@ -304,9 +304,11 @@ fn handle_allsky_fits<F: ImageFormat>(
 use al_core::image::format::RGBA8U;
 
 use crate::time::Time;
+use std::cell::RefCell;
+use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 pub struct Allsky {
-    pub image: Arc<Mutex<Option<Vec<ImageType>>>>,
+    pub image: Rc<RefCell<Option<Vec<ImageType>>>>,
     pub time_req: Time,
     pub depth_tile: u8,
 
@@ -318,7 +320,7 @@ use crate::Abort;
 
 impl Allsky {
     pub fn missing(&self) -> bool {
-        self.image.lock().unwrap_abort().is_none()
+        self.image.borrow().is_none()
     }
 
     pub fn get_hips_cdid(&self) -> &CreatorDid {

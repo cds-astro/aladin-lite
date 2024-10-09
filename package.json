@@ -30,8 +30,8 @@
     "HiPS"
   ],
   "scripts": {
-    "wasm": "wasm-pack build ./src/core --target web --release --out-name core -- --features webgl2 -Z build-std=panic_abort,std -Z build-std-features=panic_immediate_abort ",
-    "wasm:dbg": "wasm-pack build --dev ./src/core --target web --out-name core -- --features=webgl2,dbg -Z build-std=panic_abort,std -Z build-std-features=panic_immediate_abort ",
+    "wasm": "wasm-pack build ./src/core --target web --release --out-name core -- --features webgl2",
+    "wasm:dbg": "wasm-pack build --dev ./src/core --target web --out-name core -- --features=webgl2,dbg",
     "predeploy": "npm run build && rm -rf aladin-lite*.tgz && npm pack",
     "deploy": "python3 deploy/deploy.py",
     "build": "npm run wasm && vite build",

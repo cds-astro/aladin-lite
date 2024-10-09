@@ -175,9 +175,9 @@ export let Vector = (function() {
 
         isInStroke: Ellipse.prototype.isInStroke,
 
-        /*Line.prototype.intersectsBBox = function(x, y, w, h) {
+        intersectsBBox: function(x, y, w, h) {
             // todo
-        };*/
+        },
     };
 
     return Vector;

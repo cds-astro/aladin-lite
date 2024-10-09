@@ -1033,7 +1033,7 @@ A.init = (async () => {
         .createElement('canvas')
         .getContext('webgl2');
 
-    await init();
+    await init({});
     // Check for webgl2 support
     if (isWebGL2Supported) {
         Aladin.wasmLibs.core = module;

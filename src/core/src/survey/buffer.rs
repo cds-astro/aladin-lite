@@ -7,6 +7,7 @@ use al_core::image::format::ChannelType;
 use cgmath::Vector3;
 
 use al_api::hips::ImageExt;
+use al_core::webgl_ctx::WebGlRenderingCtx;
 
 use al_core::image::format::ImageFormat;
 #[cfg(feature = "webgl2")]
@@ -14,7 +15,6 @@ use al_core::image::format::{R16I, R32I, R8UI};
 use al_core::image::format::{R32F, R64F, RGB8U, RGBA8U};
 use al_core::image::Image;
 use al_core::shader::{SendUniforms, ShaderBound};
-use al_core::texture::TEX_PARAMS;
 use al_core::Texture2DArray;
 use al_core::WebGlContext;
 
@@ -129,7 +129,7 @@ pub struct ImageSurveyTextures {
     pub config: HiPSConfig,
     heap: HEALPixCellHeap,
 
-    //num_root_textures_available: usize,
+    num_root_textures_available: u8,
     size: usize,
 
     pub textures: HashMap<HEALPixCell, Texture>,
@@ -155,20 +155,43 @@ fn create_texture_array<F: ImageFormat>(
     config: &HiPSConfig,
 ) -> Result<Texture2DArray, JsValue> {
     let texture_size = config.get_texture_size();
-    let num_textures_by_side_slice = config.num_textures_by_side_slice();
-    let num_slices = config.num_slices();
     Texture2DArray::create_empty::<F>(
         gl,
-        texture_size * num_textures_by_side_slice,
-        texture_size * num_textures_by_side_slice,
-        num_slices,
-        TEX_PARAMS,
+        texture_size,
+        texture_size,
+        // 256 is a consensus for targetting the maximum GPU architectures. We create a 128 slices to optimize performance
+        128,
+        &[
+            (
+                WebGlRenderingCtx::TEXTURE_MIN_FILTER,
+                // apply mipmapping
+                WebGlRenderingCtx::NEAREST_MIPMAP_NEAREST,
+            ),
+            (
+                WebGlRenderingCtx::TEXTURE_MAG_FILTER,
+                WebGlRenderingCtx::NEAREST,
+            ),
+            // Prevents s-coordinate wrapping (repeating)
+            (
+                WebGlRenderingCtx::TEXTURE_WRAP_S,
+                WebGlRenderingCtx::CLAMP_TO_EDGE,
+            ),
+            // Prevents t-coordinate wrapping (repeating)
+            (
+                WebGlRenderingCtx::TEXTURE_WRAP_T,
+                WebGlRenderingCtx::CLAMP_TO_EDGE,
+            ),
+            (
+                WebGlRenderingCtx::TEXTURE_WRAP_R,
+                WebGlRenderingCtx::CLAMP_TO_EDGE,
+            ),
+        ],
     )
 }
 
 impl ImageSurveyTextures {
     pub fn new(gl: &WebGlContext, config: HiPSConfig) -> Result<ImageSurveyTextures, JsValue> {
-        let size = config.num_textures() - NUM_HPX_TILES_DEPTH_ZERO;
+        let size = 128 - NUM_HPX_TILES_DEPTH_ZERO;
         // Ensures there is at least space for the 12
         // root textures
         //debug_assert!(size >= NUM_HPX_TILES_DEPTH_ZERO);
@@ -209,7 +232,7 @@ impl ImageSurveyTextures {
         };
         // The root textures have not been loaded
         //let ready = false;
-        //let num_root_textures_available = 0;
+        let num_root_textures_available = 0;
         let available_tiles_during_frame = false;
         let start_time = None;
         //let num_base_textures = 0;
@@ -218,7 +241,7 @@ impl ImageSurveyTextures {
             heap,
 
             size,
-            //num_root_textures_available,
+            num_root_textures_available,
             textures,
             base_textures,
             //num_base_textures,
@@ -270,7 +293,7 @@ impl ImageSurveyTextures {
         self.heap.clear();
         self.textures.clear();
         //self.ready = false;
-        //self.num_root_textures_available = 0;
+        self.num_root_textures_available = 0;
         self.available_tiles_during_frame = false;
         self.start_time = None;
 
@@ -286,7 +309,7 @@ impl ImageSurveyTextures {
         } = allsky;
 
         {
-            let mutex_locked = image.lock().unwrap_abort();
+            let mutex_locked = image.borrow();
             let images = mutex_locked.as_ref().unwrap_abort();
             for (idx, image) in images.iter().enumerate() {
                 self.push(&HEALPixCell(depth_tile, idx as u64), image, time_req)?;
@@ -364,6 +387,13 @@ impl ImageSurveyTextures {
                 self.heap.push(&texture);
 
                 self.textures.insert(tex_cell, texture);
+            }
+
+            if tex_cell_is_root {
+                self.num_root_textures_available += 1;
+                if self.num_root_textures_available == 12 {
+                    self.texture_2d_array.generate_mipmap()
+                }
             }
 
             // At this point, the texture that should contain the tile
@@ -515,36 +545,26 @@ impl ImageSurveyTextures {
 
             // Index of the texture in the total set of textures
             let texture_idx = texture.idx();
-            // Index of the slice of textures
-            let num_textures_by_slice = cfg.num_textures_by_slice();
-            let idx_slice = texture_idx / num_textures_by_slice;
-            // Index of the texture in its slice
-            let idx_in_slice = texture_idx % num_textures_by_slice;
-
-            // Index of the column of the texture in its slice
-            let num_textures_by_side_slice = cfg.num_textures_by_side_slice();
-            let idx_col_in_slice = idx_in_slice / num_textures_by_side_slice;
-            // Index of the row of the texture in its slice
-            let idx_row_in_slice = idx_in_slice % num_textures_by_side_slice;
 
             // The size of the global texture containing the tiles
             let texture_size = cfg.get_texture_size();
 
             // Offset in the slice in pixels
             let mut offset = Vector3::new(
-                (idx_row_in_slice as i32) * texture_size + ((dy * (texture_size as f64)) as i32),
-                (idx_col_in_slice as i32) * texture_size + ((dx * (texture_size as f64)) as i32),
-                idx_slice,
+                (dy * (texture_size as f64)) as i32,
+                (dx * (texture_size as f64)) as i32,
+                texture_idx,
             );
 
             // Offset in the slice in pixels
             if self.config.tex_storing_fits {
-                let mut uvy = offset.y as f32 / 4096.0;
+                let texture_size = self.config.get_texture_size() as f32;
+                let mut uvy = offset.y as f32 / texture_size;
                 uvy = self.config.size_tile_uv
                     + 2.0 * self.config.size_tile_uv * (uvy / self.config.size_tile_uv).floor()
                     - uvy;
 
-                offset.y = (uvy * 4096.0) as i32;
+                offset.y = (uvy * texture_size) as i32;
             }
 
             Ok(offset)
@@ -636,17 +656,7 @@ fn send_to_gpu<I: Image>(
     // Index of the texture in the total set of textures
     let texture_idx = texture.idx();
     // Index of the slice of textures
-    let num_textures_by_slice = cfg.num_textures_by_slice();
-    let idx_slice = texture_idx / num_textures_by_slice;
-    // Index of the texture in its slice
-    let idx_in_slice = texture_idx % num_textures_by_slice;
-
-    // Index of the column of the texture in its slice
-    let num_textures_by_side_slice = cfg.num_textures_by_side_slice();
-    let idx_col_in_slice = idx_in_slice / num_textures_by_side_slice;
-    // Index of the row of the texture in its slice
-    let idx_row_in_slice = idx_in_slice % num_textures_by_side_slice;
-
+    let idx_slice = texture_idx;
     // Row and column indexes of the tile in its texture
     let delta_depth = cfg.delta_depth();
     let (idx_col_in_tex, idx_row_in_tex) = cell.get_offset_in_texture_cell(delta_depth);
@@ -658,8 +668,8 @@ fn send_to_gpu<I: Image>(
 
     // Offset in the slice in pixels
     let offset = Vector3::new(
-        (idx_row_in_slice as i32) * texture_size + (idx_row_in_tex as i32) * tile_size,
-        (idx_col_in_slice as i32) * texture_size + (idx_col_in_tex as i32) * tile_size,
+        (idx_row_in_tex as i32) * tile_size,
+        (idx_col_in_tex as i32) * tile_size,
         idx_slice,
     );
 
@@ -685,17 +695,13 @@ impl SendUniforms for ImageSurveyTextures {
             let texture = self.get(&cell).unwrap();
             let texture_uniforms = TextureUniforms::new(texture, idx as i32);
             shader.attach_uniforms_from(&texture_uniforms);
-            /*else {
-                let texture = &Texture::new(&cell, idx as i32, Time::now());
-                let texture_uniforms = TextureUniforms::new(texture, idx as i32);
-                shader.attach_uniforms_from(&texture_uniforms);
-            }*/
         }
         //}
 
         let shader = shader
             .attach_uniforms_from(&self.config)
-            .attach_uniforms_from(&self.texture_2d_array);
+            .attach_uniform("tex", &self.texture_2d_array)
+            .attach_uniform("num_slices", &(self.texture_2d_array.num_slices as i32));
 
         shader
     }

@@ -114,36 +114,57 @@ export class RectSelect extends FSM {
                     callback(objList);
                 }
             }
-            view.setMode(View.PAN)
-            view.requestRedraw();
+
+            this.dispatch('off');
         };
+
+        let off = () => {
+            view.aladin.showReticle(true)
+            view.setMode(View.PAN)
+            view.setCursor('default');
+
+            // in case of a mouseout we would like to erase the selection draw
+            // in the canvas
+            view.requestRedraw();
+
+            view.aladin.removeStatusBarMessage('selector')
+        }
 
         let mouseout = mouseup;
 
         super({
-            state: 'mouseup',
+            state: 'off',
             transitions: {
+                off: {
+                    start,
+                },
                 start: {
-                    mousedown
+                    mousedown,
+                    mouseup,
+                    mouseout,
+                    off
                 },
                 mousedown: {
-                    mousemove
+                    mousemove,
+                    off
                 },
                 mousemove: {
                     draw,
                     mouseup,
-                    mouseout
+                    mouseout,
+                    off
                 },
                 draw: {
                     mousemove,
                     mouseup,
-                    mouseout
+                    mouseout,
+                    off
                 },
                 mouseout: {
-                    start
+                    off
                 },
                 mouseup: {
-                    start,
+                    off,
                 }
             }
         })

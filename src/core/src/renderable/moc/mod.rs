@@ -553,7 +553,7 @@ impl MOCIntern {
                 let view2world = camera.get_m2w();
                 let icrs2world = view2world * icrs2view;
 
-                self.gl.enable(WebGl2RenderingContext::BLEND);
+                //self.gl.enable(WebGl2RenderingContext::BLEND);
 
                 crate::shader::get_shader(&self.gl, shaders, "moc_base.vert", "moc_base.frag")?
                     .bind(&self.gl)
@@ -569,7 +569,7 @@ impl MOCIntern {
                         0,
                     );
 
-                self.gl.disable(WebGl2RenderingContext::BLEND);
+                //self.gl.disable(WebGl2RenderingContext::BLEND);
             }
         }
         Ok(())

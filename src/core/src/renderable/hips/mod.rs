@@ -228,12 +228,6 @@ pub struct HiPS {
     //#[cfg(feature = "webgl1")]
     // layout (location = 3) in float time_tile_received;
     time_tile_received: Vec<f32>,
-    //#[cfg(feature = "webgl1")]
-    // layout (location = 4) in float m0;
-    m0: Vec<f32>,
-    //#[cfg(feature = "webgl1")]
-    // layout (location = 5) in float m1;
-    m1: Vec<f32>,
 
     idx_vertices: Vec<u16>,
 
@@ -258,8 +252,6 @@ impl HiPS {
         // layout (location = 2) in vec3 uv_start;
         // layout (location = 3) in vec3 uv_end;
         // layout (location = 4) in float time_tile_received;
-        // layout (location = 5) in float m0;
-        // layout (location = 6) in float m1;
         //let vertices = vec![0.0; MAX_NUM_FLOATS_TO_DRAW];
         //let indices = vec![0_u16; MAX_NUM_INDICES_TO_DRAW];
 
@@ -268,8 +260,6 @@ impl HiPS {
         let uv_start = vec![];
         let uv_end = vec![];
         let time_tile_received = vec![];
-        let m0 = vec![];
-        let m1 = vec![];
         let idx_vertices = vec![];
 
         #[cfg(feature = "webgl2")]
@@ -297,18 +287,6 @@ impl HiPS {
                 "time_tile_received",
                 WebGl2RenderingContext::DYNAMIC_DRAW,
                 VecData::<f32>(&time_tile_received),
-            )
-            .add_array_buffer_single(
-                1,
-                "m0",
-                WebGl2RenderingContext::DYNAMIC_DRAW,
-                VecData::<f32>(&m0),
-            )
-            .add_array_buffer_single(
-                1,
-                "m1",
-                WebGl2RenderingContext::DYNAMIC_DRAW,
-                VecData::<f32>(&m1),
             )
             // Set the element buffer
             .add_element_buffer(
@@ -342,18 +320,6 @@ impl HiPS {
                 WebGl2RenderingContext::DYNAMIC_DRAW,
                 VecData::<f32>(&time_tile_received),
             )
-            .add_array_buffer(
-                1,
-                "m0",
-                WebGl2RenderingContext::DYNAMIC_DRAW,
-                VecData::<f32>(&m0),
-            )
-            .add_array_buffer(
-                1,
-                "m1",
-                WebGl2RenderingContext::DYNAMIC_DRAW,
-                VecData::<f32>(&m1),
-            )
             // Set the element buffer
             .add_element_buffer(
                 WebGl2RenderingContext::DYNAMIC_DRAW,
@@ -381,8 +347,6 @@ impl HiPS {
             uv_start,
             uv_end,
             time_tile_received,
-            m0,
-            m1,
 
             idx_vertices,
 
@@ -553,7 +517,8 @@ impl HiPS {
         let slice_idx = pos_tex.z as usize;
         let texture_array = self.textures.get_texture_array();
 
-        let value = texture_array[slice_idx].read_pixel(pos_tex.x, pos_tex.y)?;
+        unimplemented!();
+        /*let value = texture_array[slice_idx].read_pixel(pos_tex.x, pos_tex.y)?;
 
         if cfg.tex_storing_fits {
             let value = value
@@ -565,7 +530,7 @@ impl HiPS {
             Ok(JsValue::from_f64(value * scale + offset))
         } else {
             Ok(value)
-        }
+        }*/
     }
 
     pub fn recompute_vertices(&mut self, camera: &mut CameraViewPort, projection: &ProjectionType) {
@@ -573,8 +538,6 @@ impl HiPS {
         self.uv_start.clear();
         self.uv_end.clear();
         self.time_tile_received.clear();
-        self.m0.clear();
-        self.m1.clear();
         self.idx_vertices.clear();
 
         let cfg = self.textures.config();
@@ -679,9 +642,6 @@ impl HiPS {
                     let uv_1 = TileUVW::new(cell, ending_texture, cfg);
                     let start_time = ending_texture.start_time().as_millis();
 
-                    let miss_0 = (false) as i32 as f32;
-                    let miss_1 = (false) as i32 as f32;
-
                     let num_subdivision = num_subdivision(cell, camera, projection);
 
                     let n_segments_by_side: usize = 1 << (num_subdivision as usize);
@@ -729,8 +689,6 @@ impl HiPS {
 
                         self.uv_start.extend(uv_start);
                         self.uv_end.extend(uv_end);
-                        self.m0.push(miss_0);
-                        self.m1.push(miss_1);
                         self.time_tile_received.push(start_time);
 
                         pos.push([lon as f32, lat as f32]);
@@ -786,16 +744,6 @@ impl HiPS {
             "time_tile_received",
             WebGl2RenderingContext::DYNAMIC_DRAW,
             VecData(&self.time_tile_received),
-        )
-        .update_array(
-            "m0",
-            WebGl2RenderingContext::DYNAMIC_DRAW,
-            VecData(&self.m0),
-        )
-        .update_array(
-            "m1",
-            WebGl2RenderingContext::DYNAMIC_DRAW,
-            VecData(&self.m1),
         )
         .update_element_array(
             WebGl2RenderingContext::DYNAMIC_DRAW,
@@ -861,7 +809,7 @@ impl HiPS {
         let raytracing = camera.is_raytracing(proj);
         let config = self.get_config();
 
-        self.gl.enable(WebGl2RenderingContext::BLEND);
+        //self.gl.enable(WebGl2RenderingContext::BLEND);
 
         let ImageMetadata {
             color,
@@ -935,7 +883,7 @@ impl HiPS {
             Ok(())
         })?;
 
-        self.gl.disable(WebGl2RenderingContext::BLEND);
+        //self.gl.disable(WebGl2RenderingContext::BLEND);
 
         Ok(())
     }

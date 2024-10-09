@@ -17,11 +17,11 @@ where
     }
 }
 
-use cgmath::Vector3;
-use wasm_bindgen::JsValue;
 use crate::image::format::ImageFormat;
 use crate::image::Image;
 use crate::texture::Texture2DArray;
+use cgmath::Vector3;
+use wasm_bindgen::JsValue;
 impl<F> Image for Canvas<F>
 where
     F: ImageFormat,
@@ -33,13 +33,12 @@ where
         // An offset to write the image in the texture array
         offset: &Vector3<i32>,
     ) -> Result<(), JsValue> {
-        textures[offset.z as usize]
-            .bind()
-            .tex_sub_image_2d_with_u32_and_u32_and_html_canvas_element(
-                offset.x,
-                offset.y,
-                &self.canvas,
-            );
+        textures.bind().tex_sub_image_3d_with_html_canvas_element(
+            offset.z,
+            offset.x,
+            offset.y,
+            &self.canvas,
+        );
 
         Ok(())
     }

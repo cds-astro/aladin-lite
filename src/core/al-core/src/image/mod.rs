@@ -229,9 +229,7 @@ where
         Ok(())
     }
 }
-use crate::Abort;
 
-use std::sync::{Arc, Mutex};
 /*impl<I> Image for Arc<Mutex<Option<I>>>
 where
     I: Image,

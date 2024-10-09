@@ -3,7 +3,7 @@ use cgmath::Vector3;
 use crate::camera::CameraViewPort;
 use crate::math::angle::ToAngle;
 use crate::math::projection::ProjectionType;
-use crate::time::Time;
+use crate::time::{DeltaTime, Time};
 
 /// State for inertia
 pub struct Inertia {
@@ -26,7 +26,7 @@ impl Inertia {
         }
     }
 
-    pub fn apply(&mut self, camera: &mut CameraViewPort, proj: &ProjectionType) {
+    pub fn apply(&mut self, camera: &mut CameraViewPort, proj: &ProjectionType, dt: DeltaTime) {
         let t = ((Time::now() - self.time_start).as_millis() / 1000.0) as f64;
         // Undamped angular frequency of the oscillator
         // From wiki: https://en.wikipedia.org/wiki/Harmonic_oscillator
@@ -35,9 +35,11 @@ impl Inertia {
         // where:
         // * k is the stiffness of the ressort
         // * m is its mass
-        let w0 = 5.0;
+        let w0 = 4.0;
         // The angular distance goes from d0 to 0.0
-        self.speed = self.ampl * ((-w0 * t).exp());
+        //self.speed = self.ampl * ((-w0 * t).exp());
+        // The angular distance goes from d0 to 0.0
+        self.speed = self.ampl * (w0 * t + 1.0) * ((-w0 * t).exp());
         /*let alpha = 1_f32 + (0_f32 - 1_f32) * (10_f32 * t + 1_f32) * (-10_f32 * t).exp();
         let alpha = alpha * alpha;
         let fov = start_fov * (1_f32 - alpha) + goal_fov * alpha;*/

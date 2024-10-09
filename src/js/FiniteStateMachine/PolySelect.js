@@ -38,7 +38,7 @@ export class PolySelect extends FSM {
     // constructor
     constructor(options, view) {
         // Off initial state
-        let off = () => {
+        let off = () => {   
             view.aladin.showReticle(true)
             view.setMode(View.PAN)
             view.setCursor('default');
@@ -46,6 +46,8 @@ export class PolySelect extends FSM {
             // in case of a mouseout we would like to erase the selection draw
             // in the canvas
             view.requestRedraw();
+
+            view.aladin.removeStatusBarMessage('selector')
         }
         let btn;
         let mouseout = (params) => {
@@ -143,6 +145,12 @@ export class PolySelect extends FSM {
         }
 
         let finish = () => {
+            if (this.coos.length <= 2) {
+                console.warn("Invalid selection, please draw at least a 3 vertices polygon")
+                this.dispatch("off")
+                return;
+            }
+
             // finish the selection
             let xMin = this.coos[0].x
             let yMin = this.coos[0].y

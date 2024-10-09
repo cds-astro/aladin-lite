@@ -1,9 +1,11 @@
 #version 300 es
-precision highp float;
-precision highp sampler2D;
-precision highp usampler2D;
-precision highp isampler2D;
+precision lowp float;
+precision lowp sampler2DArray;
+precision lowp usampler2DArray;
+precision lowp isampler2DArray;
 precision mediump int;
+
+uniform sampler2DArray tex;
 
 in vec2 out_clip_pos;
 in vec3 frag_pos;
@@ -30,21 +32,13 @@ vec4 get_tile_color(vec3 pos) {
     vec2 uv = vec2(result.dy, result.dx);
     Tile tile = textures_tiles[idx];
 
-    int idx_texture = tile.texture_idx >> 6;
-    int off = tile.texture_idx & 0x3F;
-    float idx_row = float(off >> 3); // in [0; 7]
-    float idx_col = float(off & 0x7); // in [0; 7]
-
-    vec2 offset = (vec2(idx_col, idx_row) + uv)*0.125;
-    vec3 UV = vec3(offset, float(idx_texture));
+    vec2 offset = uv;
+    vec3 UV = vec3(offset, float(tile.texture_idx));
 
     vec4 color = get_color_from_texture(UV);
     color.a *= (1.0 - tile.empty);
     return color;
 }
-
-uniform sampler2D position_tex;
-uniform mat4 model;
 
 void main() {
     // Get the HEALPix cell idx and the uv in the texture

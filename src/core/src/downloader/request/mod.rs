@@ -8,12 +8,12 @@ pub mod tile;
 /* ------------------------------------- */
 
 use crate::time::Time;
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 pub type Url = String;
 pub struct Request<R> {
-    data: Arc<Mutex<Option<R>>>,
+    data: Rc<RefCell<Option<R>>>,
     time_request: Time,
     // Flag telling if the tile has been copied so that
     // the HtmlImageElement can be reused to download another tile
@@ -42,7 +42,7 @@ where
         let resolved = Rc::new(Cell::new(ResolvedStatus::NotResolved));
         let time_request = Time::now();
 
-        let data = Arc::new(Mutex::new(None));
+        let data = Rc::new(RefCell::new(None));
 
         {
             let data_cloned = data.clone();
@@ -51,7 +51,7 @@ where
             let fut = async move {
                 let resp = f.await;
                 if let Ok(resp) = resp {
-                    *(data_cloned.lock().unwrap_abort()) = Some(resp);
+                    data_cloned.replace(Some(resp));
                     resolved_cloned.set(ResolvedStatus::Found);
                 } else {
                     resolved_cloned.set(ResolvedStatus::Failed);
@@ -127,13 +127,14 @@ pub enum Resource {
     Moc(Moc),
 }
 
+/*
 impl Resource {
     pub fn id(&self) -> &String {
         match self {
-            Resource::Tile(tile) => tile.get_hips_cdid(),
+            Resource::Tile(tile) => &format!("{:?}:{:?}", tile.cell.depth(), tile.cell.idx()),
             Resource::Allsky(allsky) => allsky.get_hips_cdid(),
             Resource::PixelMetadata(PixelMetadata { hips_cdid, .. }) => hips_cdid,
             Resource::Moc(moc) => moc.get_hips_cdid(),
         }
     }
-}
+}*/

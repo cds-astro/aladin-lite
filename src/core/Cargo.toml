@@ -22,7 +22,7 @@ url-lite = "0.1.0"
 serde_json = "1.0.104"
 serde-wasm-bindgen = "0.5"
 enum_dispatch = "0.3.8"
-wasm-bindgen = "0.2.79"
+wasm-bindgen = "0.2.92"
 wasm-streams = "0.3.0"
 async-channel = "1.8.0"
 mapproj = "0.3.0"
@@ -55,8 +55,8 @@ branch = "master"
 
 [dependencies.moclib]
 package = "moc"
-git = "https://github.com/bmatthieu3/cds-moc-rust"
-branch = "overlap"
+git = "https://github.com/cds-astro/cds-moc-rust"
+branch = "main"
 
 [dependencies.serde]
 version = "^1.0.183"
@@ -82,7 +82,7 @@ features = [ "jpeg", "png",]
 debug = true
 
 [profile.release]
-opt-level = "z"
+opt-level = 'z'
 debug = false
 debug-assertions = false
 overflow-checks = false

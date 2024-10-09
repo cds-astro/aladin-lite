@@ -9,7 +9,7 @@ js-sys = "0.3.47"
 cgmath = "*"
 serde = { version = "^1.0.59", features = ["derive"] }
 serde-wasm-bindgen = "0.4"
-wasm-bindgen = "0.2.79"
+wasm-bindgen = "0.2.92"
 colorgrad = "0.6.2"
 
 [features]
@@ -74,17 +74,6 @@ lto = false
 panic = 'unwind'
 incremental = true
 codegen-units = 256
-rpath = false
-
-[profile.release]
-opt-level = 'z'
-debug = false
-debug-assertions = false
-overflow-checks = false
-lto = true
-panic = 'unwind'
-incremental = false
-codegen-units = 16
 rpath = false
 
 [package.metadata.wasm-pack.profile.release]

@@ -1668,7 +1668,7 @@ export let View = (function () {
     View.prototype.setOverlayImageLayer = function (imageLayer, layer = "overlay") {
         // set the view to the image layer object
         // do the properties query if needed
-        imageLayer.setView(this);
+        imageLayer._setView(this);
 
         // register its promise
         this.imageLayersBeingQueried.set(layer, imageLayer);
@@ -1729,7 +1729,7 @@ export let View = (function () {
             // to the image layer objet (whether it is an HiPS or an Image)
             .then((imageLayer) => {
                 // Add to the backend
-                const promise = imageLayer.add(layer);
+                const promise = imageLayer._add(layer);
                 ALEvent.FETCH.dispatchedTo(document, {task});
 
                 return promise;

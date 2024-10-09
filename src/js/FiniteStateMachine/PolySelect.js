@@ -147,6 +147,9 @@ export class PolySelect extends FSM {
         let finish = () => {
             if (this.coos.length <= 2) {
                 console.warn("Invalid selection, please draw at least a 3 vertices polygon")
+
+                view.mustClearCatalog = true;
+                view.requestRedraw();
                 this.dispatch("off")
                 return;
             }

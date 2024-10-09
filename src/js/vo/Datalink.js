@@ -167,7 +167,14 @@ export let Datalink = (function() {
                                                                 let updateSlice = () => {
                                                                     let colorCfg = aladinInstance.getOverlayImageLayer(layer).getColorCfg();
                                                                     let hips = aladinInstance.setOverlayImageLayer(cubeOnTheFlyUrl + idxSlice, layer)
-                                                                    hips.setColorCfg(colorCfg)
+                                                                    hips.setOptions({
+                                                                        opacity: colorCfg.opacity,
+                                                                        minCut: colorCfg.minCut,
+                                                                        maxCut: colorCfg.maxCut,
+                                                                        colormap: colorCfg.colormap,
+                                                                        stretch: colorCfg.stretch,
+                                                                        reversed: colorCfg.reversed
+                                                                    })
                                                 
                                                                     slicer.update({
                                                                         value: idxSlice,

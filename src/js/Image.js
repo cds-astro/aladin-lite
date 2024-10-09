@@ -127,7 +127,7 @@ export let Image = (function () {
      * @param {ImageOptions} [options] - The option for the survey
      *
      */
-    let Image = function(url, options) {
+    function Image(url, options) {
         // Name of the layer
         this.layer = null;
         this.added = false;
@@ -149,66 +149,288 @@ export let Image = (function () {
         let self = this;
 
         this.query = Promise.resolve(self);
-    }
+    };
 
-    Image.prototype = {
-        /* Precondition: view is already attached */
-        _saveInCache: HiPS.prototype._saveInCache,
 
+        /**
+         * Returns the low and high cuts under the form of a 2 element array
+         *
+         * @memberof Image
+         * @method
+         *
+         * @returns {number[]} The low and high cut values.
+         */
+        Image.prototype.getCuts = HiPS.prototype.getCuts;
+
+        /**
+         * Sets the opacity factor
+         *
+         * @memberof Image
+         * @method
+         * @param {number} opacity - Opacity of the survey to set. Between 0 and 1
+         */
+        Image.prototype.setOpacity = HiPS.prototype.setOpacity;
+
+       /**
+        * Set color options generic method for changing colormap, opacity, ...
+        *
+        * @memberof Image
+        * @method
+        * @param {Object} options
+        * @param {number} [options.opacity=1.0] - Opacity of the survey or image (value between 0 and 1).
+        * @param {string} [options.colormap="native"] - The colormap configuration for the survey or image.
+        * @param {string} [options.stretch="linear"] - The stretch configuration for the survey or image.
+        * @param {boolean} [options.reversed=false] - If true, the colormap is reversed; otherwise, it is not reversed.
+        * @param {number} [options.minCut] - The minimum cut value for the color configuration. If not given, 0.0 for JPEG/PNG surveys, the value of the property file for FITS surveys
+        * @param {number} [options.maxCut] - The maximum cut value for the color configuration. If not given, 1.0 for JPEG/PNG surveys, the value of the property file for FITS surveys
+        * @param {boolean} [options.additive=false] - If true, additive blending is applied; otherwise, it is not applied.
+        * @param {number} [options.gamma=1.0] - The gamma correction value for the color configuration.
+        * @param {number} [options.saturation=0.0] - The saturation value for the color configuration.
+        * @param {number} [options.brightness=0.0] - The brightness value for the color configuration.
+        * @param {number} [options.contrast=0.0] - The contrast value for the color configuration.
+        */
+        Image.prototype.setOptions = HiPS.prototype.setOptions;
         // @api
-        getCuts: HiPS.prototype.getCuts,
+        Image.prototype.setBlendingConfig = HiPS.prototype.setBlendingConfig;
 
-            // @api
-        setOpacity: HiPS.prototype.setOpacity,
+        /**
+         * Set the colormap of an image
+         *
+         * @memberof Image
+         * @method
+        * @param {string} [colormap="grayscale"] - The colormap label to use. See {@link https://matplotlib.org/stable/users/explain/colors/colormaps.html|here} for more info about colormaps.
+        *      Possible values are:
+        * <br>"blues"
+        * <br>"cividis"
+        * <br>"cubehelix"
+        * <br>"eosb"
+        * <br>"grayscale"
+        * <br>"inferno"
+        * <br>"magma"
+        * <br>"native"
+        * <br>"parula"
+        * <br>"plasma"
+        * <br>"rainbow"
+        * <br>"rdbu"
+        * <br>"rdylbu"
+        * <br>"redtemperature"
+        * <br>"sinebow"
+        * <br>"spectral"
+        * <br>"summer"
+        * <br>"viridis"
+        * <br>"ylgnbu"
+        * <br>"ylorbr"
+        * <br>"red"
+        * <br>"green"
+        * <br>"blue"
+        * @param {Object} [options] - Options for the colormap
+        * @param {string} [options.stretch] - Stretching function of the colormap. Possible values are 'linear', 'asinh', 'log', 'sqrt', 'pow'. If no given, will not change it.
+        * @param {boolean} [options.reversed=false] - Reverse the colormap axis.
+         */
+        Image.prototype.setColormap = HiPS.prototype.setColormap;
 
+        /**
+         * Set the cuts of the image
+         *
+         * @memberof Image
+         * @method
+         * @param {number} minCut - The low cut value.
+         * @param {number} maxCut - The high cut value.
+         */
+        Image.prototype.setCuts = HiPS.prototype.setCuts;
 
-        // @api
-        setOptions: HiPS.prototype.setOptions,
-        // @api
-        setBlendingConfig: HiPS.prototype.setBlendingConfig,
+        /**
+         * Sets the gamma correction factor.
+         *
+         * This method updates the gamma.
+         *
+         * @memberof Image
+         * @method
+         * @param {number} gamma - The saturation value to set for the image. Between 0.1 and 10
+         */
+        Image.prototype.setGamma = HiPS.prototype.setGamma;
 
-        // @api
-        setColormap: HiPS.prototype.setColormap,
+        /**
+         * Sets the saturation.
+         *
+         * This method updates the saturation.
+         *
+         * @memberof Image
+         * @method
+         * @param {number} saturation - The saturation value. Between 0 and 1
+         */
+        Image.prototype.setSaturation = HiPS.prototype.setSaturation;
 
-        // @api
-        setCuts: HiPS.prototype.setCuts,
+        /**
+         * Sets the brightness.
+         *
+         * This method updates the brightness.
+         *
+         * @memberof Image
+         * @method
+         * @param {number} brightness - The brightness value. Between 0 and 1
+         */
+        Image.prototype.setBrightness = HiPS.prototype.setBrightness;
 
-        // @api
-        setGamma: HiPS.prototype.setGamma,
+         /**
+         * Sets the contrast.
+         *
+         * This method updates the contrast and triggers the update of metadata.
+         *
+         * @memberof Image
+         * @method
+         * @param {number} contrast - The contrast value. Between 0 and 1
+         */
+        Image.prototype.setContrast = HiPS.prototype.setContrast;
 
-        // @api
-        setSaturation: HiPS.prototype.setSaturation,
-
-        setBrightness: HiPS.prototype.setBrightness,
-
-        setContrast: HiPS.prototype.setContrast,
-
-        // @api
-        toggle: HiPS.prototype.toggle,
-        // @oldapi
-        setAlpha: HiPS.prototype.setOpacity,
+        /**
+        * Toggle the image turning its opacity to 0 back and forth
+        *
+        * @memberof Image
+        * @method
+        */
+        Image.prototype.toggle = HiPS.prototype.toggle;
+        /**
+         * Old method for setting the opacity use {@link Image#setOpacity} instead
+         * 
+         * @memberof Image
+         * @deprecated
+         */
+        Image.prototype.setAlpha = HiPS.prototype.setOpacity;
     
-        setColorCfg: HiPS.prototype.setColorCfg,
+        Image.prototype.getColorCfg = HiPS.prototype.getColorCfg;
     
-        // @api
-        getColorCfg: HiPS.prototype.getColorCfg,
+        /**
+         * Get the opacity of the image layer
+         * 
+         * @memberof HiPS
+         * 
+         * @returns {number} The opacity of the layer
+        */
+        Image.prototype.getOpacity = HiPS.prototype.getOpacity;
+        /**
+         * Use {@link Image#getOpacity}
+         * 
+         * @memberof Image
+         * @method
+         * @deprecated
+         */
+        Image.prototype.getAlpha = HiPS.prototype.getOpacity;
     
-        // @api
-        getOpacity: HiPS.prototype.getOpacity,
-        getAlpha: HiPS.prototype.getOpacity,
-    
-        // @api
-        readPixel: HiPS.prototype.readPixel,
+        /**
+         * Read a specific screen pixel value
+         * 
+         * @todo This has not yet been implemented
+         * @memberof Image
+         * @method
+         * @param {number} x - x axis in screen pixels to probe
+         * @param {number} y - y axis in screen pixels to probe
+         * @returns {number} the value of that pixel
+         */
+        Image.prototype.readPixel = HiPS.prototype.readPixel;
 
-        // Private method for updating the view with the new meta
-        _updateMetadata: HiPS.prototype._updateMetadata,
-
-        setView: function (view) {
+       
+        /** PRIVATE METHODS **/
+        Image.prototype._setView = function (view) {
             this.view = view;
             this._saveInCache();
-        },
+        };
 
-        _addFITS: function(layer) {
+        // FITS images does not mean to be used for storing planetary data
+        Image.prototype.isPlanetaryBody = function () {
+            return false;
+        };
+
+        // @api
+        Image.prototype.focusOn =  function () {
+            // ensure the fits have been parsed
+            if (this.added) {
+                this.view.aladin.gotoRaDec(this.ra, this.dec);
+                this.view.aladin.setFoV(this.fov);
+            }
+        };
+
+        /* Private method view is already attached */
+        Image.prototype._saveInCache = HiPS.prototype._saveInCache;
+
+        // Private method for updating the view with the new meta
+        Image.prototype._updateMetadata = HiPS.prototype._updateMetadata;
+
+        Image.prototype._add = function (layer) {
+            this.layer = layer;
+
+            let self = this;
+            let promise;
+
+            if (this.imgFormat === 'fits') {
+                promise = this._addFITS(layer)
+                    .catch(e => {
+                        console.error(`Image located at ${this.url} could not be parsed as fits file. Is the imgFormat specified correct?`)
+                        return Promise.reject(e)
+                    })
+            } else if (this.imgFormat === 'jpeg' || this.imgFormat === 'png') {
+                promise = this._addJPGOrPNG(layer)
+                    .catch(e => {
+                        console.error(`Image located at ${this.url} could not be parsed as a ${this.imgFormat} file. Is the imgFormat specified correct?`);
+                        return Promise.reject(e)
+                    })
+            } else {
+                // imgformat not defined we will try first supposing it is a fits file and then use the jpg heuristic
+                promise = self._addFITS(layer)
+                    .catch(e => {
+                        return self._addJPGOrPNG(layer)
+                            .catch(e => {
+                                console.error(`Image located at ${self.url} could not be parsed as jpg/png/tif image file. Aborting...`)
+                                return Promise.reject(e);
+                            })
+                    })
+            }
+
+            promise = promise.then((imageParams) => {
+                self.formats = [self.imgFormat];
+
+                // There is at least one entry in imageParams
+                self.added = true;
+                self._setView(self.view);
+
+                // Set the automatic computed cuts
+                let [minCut, maxCut] = self.getCuts();
+                minCut = minCut || imageParams.min_cut;
+                maxCut = maxCut || imageParams.max_cut;
+                self.setCuts(
+                    minCut,
+                    maxCut
+                );
+
+                self.ra = imageParams.centered_fov.ra;
+                self.dec = imageParams.centered_fov.dec;
+                self.fov = imageParams.centered_fov.fov;
+
+                // Call the success callback on the first HDU image parsed
+                if (self.successCallback) {
+                    self.successCallback(
+                        self.ra,
+                        self.dec,
+                        self.fov,
+                        self
+                    );
+                }
+
+                return self;
+            })
+            .catch((e) => {
+                // This error result from a promise
+                // If I throw it, it will not be catched because
+                // it is run async
+                self.view.removeImageLayer(layer);
+
+                return Promise.reject(e);
+            });
+
+            return promise;
+        };
+
+        Image.prototype._addFITS = function(layer) {
             let self = this;
 
             return Utils.fetch({
@@ -251,9 +473,9 @@ export let Image = (function () {
 
                 return Promise.resolve(imageParams);
             })
-        },
+        };
 
-        _addJPGOrPNG: function(layer) {
+        Image.prototype._addJPGOrPNG = function(layer) {
             let self = this;
             let img = document.createElement('img');
 
@@ -352,96 +574,7 @@ export let Image = (function () {
             .finally(() => {
                 img.remove();
             });
-        },
-
-        add: function (layer) {
-            this.layer = layer;
-
-            let self = this;
-            let promise;
-
-            if (this.imgFormat === 'fits') {
-                promise = this._addFITS(layer)
-                    .catch(e => {
-                        console.error(`Image located at ${this.url} could not be parsed as fits file. Is the imgFormat specified correct?`)
-                        return Promise.reject(e)
-                    })
-            } else if (this.imgFormat === 'jpeg' || this.imgFormat === 'png') {
-                promise = this._addJPGOrPNG(layer)
-                    .catch(e => {
-                        console.error(`Image located at ${this.url} could not be parsed as a ${this.imgFormat} file. Is the imgFormat specified correct?`);
-                        return Promise.reject(e)
-                    })
-            } else {
-                // imgformat not defined we will try first supposing it is a fits file and then use the jpg heuristic
-                promise = self._addFITS(layer)
-                    .catch(e => {
-                        return self._addJPGOrPNG(layer)
-                            .catch(e => {
-                                console.error(`Image located at ${self.url} could not be parsed as jpg/png/tif image file. Aborting...`)
-                                return Promise.reject(e);
-                            })
-                    })
-            }
-
-            promise = promise.then((imageParams) => {
-                self.formats = [self.imgFormat];
-
-                // There is at least one entry in imageParams
-                self.added = true;
-                self.setView(self.view);
-
-                // Set the automatic computed cuts
-                let [minCut, maxCut] = self.getCuts();
-                minCut = minCut || imageParams.min_cut;
-                maxCut = maxCut || imageParams.max_cut;
-                self.setCuts(
-                    minCut,
-                    maxCut
-                );
-
-                self.ra = imageParams.centered_fov.ra;
-                self.dec = imageParams.centered_fov.dec;
-                self.fov = imageParams.centered_fov.fov;
-
-                // Call the success callback on the first HDU image parsed
-                if (self.successCallback) {
-                    self.successCallback(
-                        self.ra,
-                        self.dec,
-                        self.fov,
-                        self
-                    );
-                }
-
-                return self;
-            })
-            .catch((e) => {
-                // This error result from a promise
-                // If I throw it, it will not be catched because
-                // it is run async
-                self.view.removeImageLayer(layer);
-
-                return Promise.reject(e);
-            });
-
-            return promise;
-        },
-
-        // FITS images does not mean to be used for storing planetary data
-        isPlanetaryBody: function () {
-            return false;
-        },
-
-        // @api
-        focusOn: function () {
-            // ensure the fits have been parsed
-            if (this.added) {
-                this.view.aladin.gotoRaDec(this.ra, this.dec);
-                this.view.aladin.setFoV(this.fov);
-            }
-        },
-    };
+        };
 
     return Image;
 })();

@@ -445,7 +445,368 @@ export let HiPS = (function () {
         self._saveInCache();
     }
 
-    HiPS.prototype.setView = function (view) {
+    /**
+     * Checks if the HiPS represents a planetary body.
+     *
+     * This method returns a boolean indicating whether the HiPS corresponds to a planetary body, e.g. the earth or a celestial body.
+     *
+     * @memberof HiPS
+     *
+     * @returns {boolean} Returns true if the HiPS represents a planetary body; otherwise, returns false.
+     */
+    HiPS.prototype.isPlanetaryBody = function () {
+        return this.hipsBody !== undefined;
+    };
+
+    /**
+     * Sets the image format for the HiPS.
+     *
+     * This method updates the image format of the HiPS, performs format validation, and triggers the update of metadata.
+     *
+     * @memberof HiPS
+     *
+     * @param {string} format - The desired image format. Should be one of ["fits", "png", "jpg", "webp"].
+     *
+     * @throws {string} Throws an error if the provided format is not one of the supported formats or if the format is not available for the specific HiPS.
+     */
+    HiPS.prototype.setImageFormat = function (format) {
+        let self = this;
+        self.query.then(() => {
+            let imgFormat = format.toLowerCase();
+
+            if (
+                imgFormat !== "fits" &&
+                imgFormat !== "png" &&
+                imgFormat !== "jpg" &&
+                imgFormat !== "jpeg" &&
+                imgFormat !== "webp"
+            ) {
+                throw 'Formats must lie in ["fits", "png", "jpg", "webp"]';
+            }
+
+            if (imgFormat === "jpg") {
+                imgFormat = "jpeg";
+            }
+
+            // Passed the check, we erase the image format with the new one
+            // We do nothing if the imgFormat is the same
+            if (self.imgFormat === imgFormat) {
+                return;
+            }
+
+            // Check the properties to see if the given format is available among the list
+            // If the properties have not been retrieved yet, it will be tested afterwards
+            const availableFormats = self.formats;
+            // user wants a fits but the metadata tells this format is not available
+            if (
+                imgFormat === "fits" &&
+                availableFormats.indexOf("fits") < 0
+            ) {
+                throw self.id + " does not provide fits tiles";
+            }
+
+            if (
+                imgFormat === "webp" &&
+                availableFormats.indexOf("webp") < 0
+            ) {
+                throw self.id + " does not provide webp tiles";
+            }
+
+            if (
+                imgFormat === "png" &&
+                availableFormats.indexOf("png") < 0
+            ) {
+                throw self.id + " does not provide png tiles";
+            }
+
+            if (
+                imgFormat === "jpeg" &&
+                availableFormats.indexOf("jpeg") < 0
+            ) {
+                throw self.id + " does not provide jpeg tiles";
+            }
+
+            // Switch from png/webp/jpeg to fits
+            if (
+                (self.imgFormat === "png" ||
+                    self.imgFormat === "webp" ||
+                    self.imgFormat === "jpeg") &&
+                imgFormat === "fits"
+            ) {
+                if (Number.isFinite(self.defaultFitsMinCut) && Number.isFinite(self.defaultFitsMaxCut)) {
+                    // reset cuts to those given from the properties
+                    self.setCuts(self.defaultFitsMinCut, self.defaultFitsMaxCut);
+                }
+                // Switch from fits to png/webp/jpeg
+            } else if (self.imgFormat === "fits") {
+                self.setCuts(0.0, 1.0);
+            }
+
+            // Check if it is a fits
+            self.imgFormat = imgFormat;
+
+            self._updateMetadata();
+        });
+    };
+
+    /**
+     * Sets the opacity factor when rendering the HiPS
+     *
+     * @memberof HiPS
+     *
+     * @returns {string[]} Returns the formats accepted for the survey, i.e. the formats of tiles that are availables. Could be PNG, WEBP, JPG and FITS.
+     */
+    HiPS.prototype.getAvailableFormats = function () {
+        return this.formats;
+    };
+
+    /**
+     * Sets the opacity factor when rendering the HiPS
+     *
+     * @memberof HiPS
+     *
+     * @param {number} opacity - Opacity of the survey to set. Between 0 and 1
+     */
+    HiPS.prototype.setOpacity = function (opacity) {
+        this.setOptions({opacity})
+    };
+
+    /**
+     * Sets the blending mode when rendering the HiPS
+     *
+     * @memberof HiPS
+     *
+     * @param {boolean} [additive=false] - When rendering this survey on top of the already rendered ones, the final color of the screen is computed like:
+     * <br />
+     * <br />opacity * this_survey_color + (1 - opacity) * already_rendered_color for the default mode
+     * <br />opacity * this_survey_color + already_rendered_color for the additive mode
+     * <br />
+     * <br />
+     * Additive mode allows you to do linear survey color combination i.e. let's define 3 surveys named s1, s2, s3. Each could be associated to one color channel, i.e. s1 with red, s2 with green and s3 with the blue color channel.
+     * If the additive blending mode is enabled, then the final pixel color of your screen will be: rgb = [s1_opacity * s1_color; s2_opacity * s2_color; s3_opacity * s3_color]
+     */
+    HiPS.prototype.setBlendingConfig = function (additive = false) {
+        this.setOptions({additive});
+    };
+
+    /**
+     * Sets the colormap when rendering the HiPS.
+     *
+     * @memberof HiPS
+     *
+     * @param {string} [colormap="grayscale"] - The colormap label to use. See {@link https://matplotlib.org/stable/users/explain/colors/colormaps.html|here} for more info about colormaps.
+     *      Possible values are:
+     * <br>"blues"
+     * <br>"cividis"
+     * <br>"cubehelix"
+     * <br>"eosb"
+     * <br>"grayscale"
+     * <br>"inferno"
+     * <br>"magma"
+     * <br>"native"
+     * <br>"parula"
+     * <br>"plasma"
+     * <br>"rainbow"
+     * <br>"rdbu"
+     * <br>"rdylbu"
+     * <br>"redtemperature"
+     * <br>"sinebow"
+     * <br>"spectral"
+     * <br>"summer"
+     * <br>"viridis"
+     * <br>"ylgnbu"
+     * <br>"ylorbr"
+     * <br>"red"
+     * <br>"green"
+     * <br>"blue"
+     * @param {Object} [options] - Options for the colormap
+     * @param {string} [options.stretch] - Stretching function of the colormap. Possible values are 'linear', 'asinh', 'log', 'sqrt', 'pow'. If no given, will not change it.
+     * @param {boolean} [options.reversed=false] - Reverse the colormap axis.
+     */
+    HiPS.prototype.setColormap = function (colormap, options) {
+        this.setOptions({colormap, ...options})
+    };
+
+    /**
+     * Sets the gamma correction factor for the HiPS.
+     *
+     * This method updates the gamma of the HiPS.
+     *
+     * @memberof HiPS
+     *
+     * @param {number} minCut - The low cut value to set for the HiPS.
+     * @param {number} maxCut - The high cut value to set for the HiPS.
+     */
+    HiPS.prototype.setCuts = function (minCut, maxCut) {
+        this.setOptions({minCut, maxCut})
+    };
+
+    /**
+     * Returns the low and high cuts under the form of a 2 element array
+     *
+     * @memberof HiPS
+     *
+     * @returns {number[]} The low and high cut values for the HiPS.
+     */
+    HiPS.prototype.getCuts = function () {
+        return this.colorCfg.getCuts();
+    };
+
+    /**
+     * Sets the gamma correction factor for the HiPS.
+     *
+     * This method updates the gamma of the HiPS.
+     *
+     * @memberof HiPS
+     *
+     * @param {number} gamma - The saturation value to set for the HiPS. Between 0.1 and 10
+     */
+    HiPS.prototype.setGamma = function (gamma) {
+        this.setOptions({gamma})
+    };
+
+    /**
+     * Sets the saturation for the HiPS.
+     *
+     * This method updates the saturation of the HiPS.
+     *
+     * @memberof HiPS
+     *
+     * @param {number} saturation - The saturation value to set for the HiPS. Between 0 and 1
+     */
+    HiPS.prototype.setSaturation = function (saturation) {
+        this.setOptions({saturation})
+    };
+
+    /**
+     * Sets the brightness for the HiPS.
+     *
+     * This method updates the brightness of the HiPS.
+     *
+     * @memberof HiPS
+     *
+     * @param {number} brightness - The brightness value to set for the HiPS. Between 0 and 1
+     */
+    HiPS.prototype.setBrightness = function (brightness) {
+        this.setOptions({brightness})
+    };
+
+    /**
+     * Sets the contrast for the HiPS.
+     *
+     * This method updates the contrast of the HiPS and triggers the update of metadata.
+     *
+     * @memberof HiPS
+     *
+     * @param {number} contrast - The contrast value to set for the HiPS. Between 0 and 1
+     */
+    HiPS.prototype.setContrast = function (contrast) {
+        this.setOptions({contrast})
+    };
+
+    // Private method for updating the backend with the new meta
+    HiPS.prototype._updateMetadata = function () {
+        try {
+            if (this.added) {
+                this.view.wasm.setImageMetadata(this.layer, {
+                    ...this.colorCfg.get(),
+                    longitudeReversed: this.longitudeReversed,
+                    imgFormat: this.imgFormat,
+                });
+                // once the meta have been well parsed, we can set the meta
+                ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.view.aladinDiv, {
+                    layer: this,
+                });
+
+                // Save it in the JS HiPS cache
+                this._saveInCache();
+            }
+        } catch (e) {
+            // Display the error message
+            console.error(e);
+        }
+    };
+
+    /**
+     * Set color options generic method for changing colormap, opacity, ... of the HiPS
+    *
+    * @memberof HiPS
+    *  
+    * @param {Object} options
+    * @param {number} [options.opacity=1.0] - Opacity of the survey or image (value between 0 and 1).
+    * @param {string} [options.colormap="native"] - The colormap configuration for the survey or image.
+    * @param {string} [options.stretch="linear"] - The stretch configuration for the survey or image.
+    * @param {boolean} [options.reversed=false] - If true, the colormap is reversed; otherwise, it is not reversed.
+    * @param {number} [options.minCut] - The minimum cut value for the color configuration. If not given, 0.0 for JPEG/PNG surveys, the value of the property file for FITS surveys
+    * @param {number} [options.maxCut] - The maximum cut value for the color configuration. If not given, 1.0 for JPEG/PNG surveys, the value of the property file for FITS surveys
+    * @param {boolean} [options.additive=false] - If true, additive blending is applied; otherwise, it is not applied.
+    * @param {number} [options.gamma=1.0] - The gamma correction value for the color configuration.
+    * @param {number} [options.saturation=0.0] - The saturation value for the color configuration.
+    * @param {number} [options.brightness=0.0] - The brightness value for the color configuration.
+    * @param {number} [options.contrast=0.0] - The contrast value for the color configuration.
+     */
+    HiPS.prototype.setOptions = function(options) {
+        this.colorCfg.setOptions(options);
+        this.options = {...this.options, ...options};
+
+        this._updateMetadata();
+    };
+
+    /**
+     * Toggle the HiPS turning its opacity to 0 back and forth
+    *
+    * @memberof HiPS
+    */
+    HiPS.prototype.toggle = function () {
+        const opacity = this.getOpacity()
+        if (opacity != 0.0) {
+            this.prevOpacity = opacity;
+            this.setOpacity(0.0);
+        } else {
+            this.setOpacity(this.prevOpacity);
+        }
+    };
+
+    /**
+     * Old method for setting the opacity use {@link HiPS#setOpacity} instead
+     * 
+     * @memberof HiPS
+     * @deprecated
+     */
+    HiPS.prototype.setAlpha = HiPS.prototype.setOpacity;
+
+    // @api
+    HiPS.prototype.getColorCfg = function () {
+        return this.colorCfg;
+    };
+    
+    /**
+     * Get the opacity of the HiPS layer
+     * 
+     * @memberof HiPS
+     * 
+     * @returns {number} The opacity of the layer
+     */
+    HiPS.prototype.getOpacity = function () {
+        return this.colorCfg.getOpacity();
+    };
+
+    HiPS.prototype.getAlpha = HiPS.prototype.getOpacity;
+
+    /**
+     * Read a specific screen pixel value
+     * 
+     * @todo This has not yet been implemented
+     * @memberof HiPS
+     * @param {number} x - x axis in screen pixels to probe
+     * @param {number} y - y axis in screen pixels to probe
+     * @returns {number} the value of that pixel
+     */
+    HiPS.prototype.readPixel = function (x, y) {
+        return this.view.wasm.readPixel(x, y, this.layer);
+    };
+
+    HiPS.prototype._setView = function (view) {
         let self = this;
 
         // do not allow to call setView multiple times otherwise
@@ -580,292 +941,7 @@ export let HiPS = (function () {
         }
     };
 
-    /**
-     * Checks if the HiPS represents a planetary body.
-     *
-     * This method returns a boolean indicating whether the HiPS corresponds to a planetary body, e.g. the earth or a celestial body.
-     *
-     * @memberof HiPS
-     *
-     * @returns {boolean} Returns true if the HiPS represents a planetary body; otherwise, returns false.
-     */
-    HiPS.prototype.isPlanetaryBody = function () {
-        return this.hipsBody !== undefined;
-    };
-
-    /**
-     * Sets the image format for the HiPS.
-     *
-     * This method updates the image format of the HiPS, performs format validation, and triggers the update of metadata.
-     *
-     * @memberof HiPS
-     *
-     * @param {string} format - The desired image format. Should be one of ["fits", "png", "jpg", "webp"].
-     *
-     * @throws {string} Throws an error if the provided format is not one of the supported formats or if the format is not available for the specific HiPS.
-     */
-    HiPS.prototype.setImageFormat = function (format) {
-        let self = this;
-        self.query.then(() => {
-            let imgFormat = format.toLowerCase();
-
-            if (
-                imgFormat !== "fits" &&
-                imgFormat !== "png" &&
-                imgFormat !== "jpg" &&
-                imgFormat !== "jpeg" &&
-                imgFormat !== "webp"
-            ) {
-                throw 'Formats must lie in ["fits", "png", "jpg", "webp"]';
-            }
-
-            if (imgFormat === "jpg") {
-                imgFormat = "jpeg";
-            }
-
-            // Passed the check, we erase the image format with the new one
-            // We do nothing if the imgFormat is the same
-            if (self.imgFormat === imgFormat) {
-                return;
-            }
-
-            // Check the properties to see if the given format is available among the list
-            // If the properties have not been retrieved yet, it will be tested afterwards
-            const availableFormats = self.formats;
-            // user wants a fits but the metadata tells this format is not available
-            if (
-                imgFormat === "fits" &&
-                availableFormats.indexOf("fits") < 0
-            ) {
-                throw self.id + " does not provide fits tiles";
-            }
-
-            if (
-                imgFormat === "webp" &&
-                availableFormats.indexOf("webp") < 0
-            ) {
-                throw self.id + " does not provide webp tiles";
-            }
-
-            if (
-                imgFormat === "png" &&
-                availableFormats.indexOf("png") < 0
-            ) {
-                throw self.id + " does not provide png tiles";
-            }
-
-            if (
-                imgFormat === "jpeg" &&
-                availableFormats.indexOf("jpeg") < 0
-            ) {
-                throw self.id + " does not provide jpeg tiles";
-            }
-
-            // Switch from png/webp/jpeg to fits
-            if (
-                (self.imgFormat === "png" ||
-                    self.imgFormat === "webp" ||
-                    self.imgFormat === "jpeg") &&
-                imgFormat === "fits"
-            ) {
-                if (Number.isFinite(self.defaultFitsMinCut) && Number.isFinite(self.defaultFitsMaxCut)) {
-                    // reset cuts to those given from the properties
-                    self.setCuts(self.defaultFitsMinCut, self.defaultFitsMaxCut);
-                }
-                // Switch from fits to png/webp/jpeg
-            } else if (self.imgFormat === "fits") {
-                self.setCuts(0.0, 1.0);
-            }
-
-            // Check if it is a fits
-            self.imgFormat = imgFormat;
-
-            self._updateMetadata();
-        });
-    };
-
-    /**
-     * Sets the opacity factor when rendering the HiPS
-     *
-     * @memberof HiPS
-     *
-     * @returns {string[]} Returns the formats accepted for the survey, i.e. the formats of tiles that are availables. Could be PNG, WEBP, JPG and FITS.
-     */
-    HiPS.prototype.getAvailableFormats = function () {
-        return this.formats;
-    };
-
-    /**
-     * Sets the opacity factor when rendering the HiPS
-     *
-     * @memberof HiPS
-     *
-     * @param {number} opacity - Opacity of the survey to set. Between 0 and 1
-     */
-    HiPS.prototype.setOpacity = function (opacity) {
-        this.setOptions({opacity})
-    };
-
-    /**
-     * Sets the blending mode when rendering the HiPS
-     *
-     * @memberof HiPS
-     *
-     * @param {boolean} [additive=false] -
-     *
-     * @description Two rendering modes are availables i.e. the default one and the additive one.
-     * When rendering this survey on top of the already rendered ones, the final color of the screen is computed like:
-     * <br>
-     * <br>opacity * this_survey_color + (1 - opacity) * already_rendered_color for the default mode
-     * <br>opacity * this_survey_color + already_rendered_color for the additive mode
-     * <br>
-     * <br>
-     * Additive mode allows you to do linear survey color combination i.e. let's define 3 surveys named s1, s2, s3. Each could be associated to one color channel, i.e. s1 with red, s2 with green and s3 with the blue color channel.
-     * If the additive blending mode is enabled, then the final pixel color of your screen will be: rgb = [s1_opacity * s1_color; s2_opacity * s2_color; s3_opacity * s3_color]
-     */
-    HiPS.prototype.setBlendingConfig = function (additive = false) {
-        this.setOptions({additive});
-    };
-
-    /**
-     * Sets the colormap when rendering the HiPS.
-     *
-     * @memberof HiPS
-     *
-     * @param {string} [colormap="grayscale"] - The colormap label to use. See {@link https://matplotlib.org/stable/users/explain/colors/colormaps.html|here} for more info about colormaps.
-     *      Possible values are:
-     * <br>"blues"
-     * <br>"cividis"
-     * <br>"cubehelix"
-     * <br>"eosb"
-     * <br>"grayscale"
-     * <br>"inferno"
-     * <br>"magma"
-     * <br>"native"
-     * <br>"parula"
-     * <br>"plasma"
-     * <br>"rainbow"
-     * <br>"rdbu"
-     * <br>"rdylbu"
-     * <br>"redtemperature"
-     * <br>"sinebow"
-     * <br>"spectral"
-     * <br>"summer"
-     * <br>"viridis"
-     * <br>"ylgnbu"
-     * <br>"ylorbr"
-     * <br>"red"
-     * <br>"green"
-     * <br>"blue"
-     * @param {Object} [options] - Options for the colormap
-     * @param {string} [options.stretch] - Stretching function of the colormap. Possible values are 'linear', 'asinh', 'log', 'sqrt', 'pow'. If no given, will not change it.
-     * @param {boolean} [options.reversed=false] - Reverse the colormap axis.
-     */
-    HiPS.prototype.setColormap = function (colormap, options) {
-        this.setOptions({colormap, ...options})
-    };
-
-    /**
-     * Sets the gamma correction factor for the HiPS.
-     *
-     * This method updates the gamma of the HiPS.
-     *
-     * @memberof HiPS
-     *
-     * @param {number} minCut - The low cut value to set for the HiPS.
-     * @param {number} maxCut - The high cut value to set for the HiPS.
-     */
-    HiPS.prototype.setCuts = function (minCut, maxCut) {
-        this.setOptions({minCut, maxCut})
-    };
-
-    HiPS.prototype.getCuts = function () {
-        return this.colorCfg.getCuts();
-    };
-
-    /**
-     * Sets the gamma correction factor for the HiPS.
-     *
-     * This method updates the gamma of the HiPS.
-     *
-     * @memberof HiPS
-     *
-     * @param {number} gamma - The saturation value to set for the HiPS. Between 0.1 and 10
-     */
-    HiPS.prototype.setGamma = function (gamma) {
-        this.setOptions({gamma})
-    };
-
-    /**
-     * Sets the saturation for the HiPS.
-     *
-     * This method updates the saturation of the HiPS.
-     *
-     * @memberof HiPS
-     *
-     * @param {number} saturation - The saturation value to set for the HiPS. Between 0 and 1
-     */
-    HiPS.prototype.setSaturation = function (saturation) {
-        this.setOptions({saturation})
-    };
-
-    /**
-     * Sets the brightness for the HiPS.
-     *
-     * This method updates the brightness of the HiPS.
-     *
-     * @memberof HiPS
-     *
-     * @param {number} brightness - The brightness value to set for the HiPS. Between 0 and 1
-     */
-    HiPS.prototype.setBrightness = function (brightness) {
-        this.setOptions({brightness})
-    };
-
-    /**
-     * Sets the contrast for the HiPS.
-     *
-     * This method updates the contrast of the HiPS and triggers the update of metadata.
-     *
-     * @memberof HiPS
-     *
-     * @param {number} contrast - The contrast value to set for the HiPS. Between 0 and 1
-     */
-    HiPS.prototype.setContrast = function (contrast) {
-        this.setOptions({contrast})
-    };
-
-    // Private method for updating the backend with the new meta
-    HiPS.prototype._updateMetadata = function () {
-        try {
-            if (this.added) {
-                this.view.wasm.setImageMetadata(this.layer, {
-                    ...this.colorCfg.get(),
-                    longitudeReversed: this.longitudeReversed,
-                    imgFormat: this.imgFormat,
-                });
-                // once the meta have been well parsed, we can set the meta
-                ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.view.aladinDiv, {
-                    layer: this,
-                });
-
-                // Save it in the JS HiPS cache
-                this._saveInCache();
-            }
-        } catch (e) {
-            // Display the error message
-            console.error(e);
-        }
-    };
-
-    HiPS.prototype.setOptions = function(options) {
-        this.colorCfg.setOptions(options);
-        this.options = {...this.options, ...options};
-
-        this._updateMetadata();
-    };
-
-    HiPS.prototype.add = function (layer) {
+    HiPS.prototype._add = function (layer) {
         this.layer = layer;
         let self = this;
 
@@ -933,43 +1009,6 @@ export let HiPS = (function () {
 
                 return hips
             });
-    };
-
-    // @api
-    HiPS.prototype.toggle = function () {
-        const opacity = this.getOpacity()
-        if (opacity != 0.0) {
-            this.prevOpacity = opacity;
-            this.setOpacity(0.0);
-        } else {
-            this.setOpacity(this.prevOpacity);
-        }
-    };
-
-    // @oldapi
-    HiPS.prototype.setAlpha = HiPS.prototype.setOpacity;
-
-    HiPS.prototype.setColorCfg = function (colorCfg) {
-        this.colorCfg = colorCfg;
-
-        this._updateMetadata();
-    };
-
-    // @api
-    HiPS.prototype.getColorCfg = function () {
-        return this.colorCfg;
-    };
-
-    // @api
-    HiPS.prototype.getOpacity = function () {
-        return this.colorCfg.getOpacity();
-    };
-
-    HiPS.prototype.getAlpha = HiPS.prototype.getOpacity;
-
-    // @api
-    HiPS.prototype.readPixel = function (x, y) {
-        return this.view.wasm.readPixel(x, y, this.layer);
     };
 
     HiPS.DEFAULT_SURVEY_ID = "P/DSS2/color";

@@ -362,6 +362,7 @@ export class VOTable {
                     cellSizeInBytes = tabDataSize[dataType];
                 }
                 let value;
+                let prec;
                 switch (dataType) {
                     case 'short': 
                         value = view.getUint16(numBytesRead);
@@ -374,11 +375,17 @@ export class VOTable {
                     break;
                     case 'float': 
                         value = view.getFloat32(numBytesRead);
-                        value = +value.toFixed(fields[fieldIdx].precision); // round (arrondi)
+                        prec = fields[fieldIdx].precision;
+                        if (prec) {
+                            value = +value.toFixed(prec); // round (arrondi)
+                        }
                     break;
                     case 'double': 
                         value = view.getFloat64(numBytesRead);
-                        value = +value.toFixed(fields[fieldIdx].precision); // round (arrondi)
+                        prec = fields[fieldIdx].precision;
+                        if (prec) {
+                            value = +value.toFixed(prec); // round (arrondi)
+                        }
                     break;
                     case 'unsignedByte':
                         value = view.getUint8(numBytesRead);

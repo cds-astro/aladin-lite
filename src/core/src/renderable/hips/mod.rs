@@ -36,7 +36,7 @@ use std::collections::HashSet;
 // Recursively compute the number of subdivision needed for a cell
 // to not be too much skewed
 
-use crate::survey::buffer::ImageSurveyTextures;
+use crate::survey::buffer::HiPS2DBuffer;
 use crate::survey::texture::Texture;
 
 use raytracing::RayTracer;
@@ -210,7 +210,7 @@ pub fn get_raytracer_shader<'a>(
 pub struct HiPS {
     //color: Color,
     // The image survey texture buffer
-    textures: ImageSurveyTextures,
+    textures: HiPS2DBuffer,
 
     // The projected vertices data
     // For WebGL2 wasm, the data are interleaved
@@ -328,7 +328,7 @@ impl HiPS {
             .unbind();
 
         let num_idx = 0;
-        let textures = ImageSurveyTextures::new(gl, config)?;
+        let textures = HiPS2DBuffer::new(gl, config)?;
 
         let gl = gl.clone();
         let footprint_moc = None;
@@ -784,11 +784,6 @@ impl HiPS {
     #[inline]
     pub fn get_config_mut(&mut self) -> &mut HiPSConfig {
         self.textures.config_mut()
-    }
-
-    #[inline]
-    pub fn get_ready_time(&self) -> &Option<Time> {
-        &self.textures.start_time
     }
 
     pub fn draw(

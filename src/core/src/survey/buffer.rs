@@ -10,9 +10,7 @@ use al_api::hips::ImageExt;
 use al_core::webgl_ctx::WebGlRenderingCtx;
 
 use al_core::image::format::ImageFormat;
-#[cfg(feature = "webgl2")]
-use al_core::image::format::{R16I, R32I, R8UI};
-use al_core::image::format::{R32F, R64F, RGB8U, RGBA8U};
+use al_core::image::format::{R16I, R32F, R32I, R64F, R8UI, RGB8U, RGBA8U};
 use al_core::image::Image;
 use al_core::shader::{SendUniforms, ShaderBound};
 use al_core::Texture2DArray;
@@ -124,29 +122,21 @@ impl HEALPixCellHeap {
 }
 
 // Fixed sized binary heap
-pub struct ImageSurveyTextures {
+pub struct HiPS2DBuffer {
     // Some information about the HiPS
-    pub config: HiPSConfig,
+    config: HiPSConfig,
     heap: HEALPixCellHeap,
 
     num_root_textures_available: u8,
     size: usize,
 
-    pub textures: HashMap<HEALPixCell, Texture>,
-    pub base_textures: [Texture; NUM_HPX_TILES_DEPTH_ZERO],
-    //pub cutoff_values_tile: Rc<RefCell<HashMap<HEALPixCell, (f32, f32)>>>,
+    textures: HashMap<HEALPixCell, Texture>,
+    base_textures: [Texture; NUM_HPX_TILES_DEPTH_ZERO],
 
     // Array of 2D textures
-    pub texture_2d_array: Texture2DArray,
-
-    // A boolean ensuring the root textures
-    // have already been loaded
-    //ready: bool,
-    pub start_time: Option<Time>,
+    texture_2d_array: Texture2DArray,
 
     available_tiles_during_frame: bool,
-    //num_base_textures: usize,
-    //exec: Rc<RefCell<TaskExecutor>>,
 }
 
 // Define a set of textures compatible with the HEALPix tile format and size
@@ -189,8 +179,8 @@ fn create_texture_array<F: ImageFormat>(
     )
 }
 
-impl ImageSurveyTextures {
-    pub fn new(gl: &WebGlContext, config: HiPSConfig) -> Result<ImageSurveyTextures, JsValue> {
+impl HiPS2DBuffer {
+    pub fn new(gl: &WebGlContext, config: HiPSConfig) -> Result<HiPS2DBuffer, JsValue> {
         let size = 128 - NUM_HPX_TILES_DEPTH_ZERO;
         // Ensures there is at least space for the 12
         // root textures
@@ -231,12 +221,11 @@ impl ImageSurveyTextures {
             ChannelType::R64F => create_texture_array::<R64F>(gl, &config)?,
         };
         // The root textures have not been loaded
-        //let ready = false;
+
         let num_root_textures_available = 0;
         let available_tiles_during_frame = false;
-        let start_time = None;
-        //let num_base_textures = 0;
-        Ok(ImageSurveyTextures {
+
+        Ok(HiPS2DBuffer {
             config,
             heap,
 
@@ -244,12 +233,8 @@ impl ImageSurveyTextures {
             num_root_textures_available,
             textures,
             base_textures,
-            //num_base_textures,
             texture_2d_array,
             available_tiles_during_frame,
-
-            //ready,
-            start_time,
         })
     }
 
@@ -295,7 +280,6 @@ impl ImageSurveyTextures {
         //self.ready = false;
         self.num_root_textures_available = 0;
         self.available_tiles_during_frame = false;
-        self.start_time = None;
 
         Ok(())
     }
@@ -316,17 +300,8 @@ impl ImageSurveyTextures {
             }
         }
 
-        //self.set_ready();
-
         Ok(())
     }
-
-    /*pub fn set_ready(&mut self) {
-        self.ready = true;
-        // The survey is ready
-        self.start_time = Some(Time::now());
-        self.num_root_textures_available = NUM_HPX_TILES_DEPTH_ZERO;
-    }*/
 
     // This method pushes a new downloaded tile into the buffer
     // It must be ensured that the tile is not already contained into the buffer
@@ -355,29 +330,10 @@ impl ImageSurveyTextures {
                     let mut texture = self.textures.remove(&oldest_texture.cell).expect(
                         "Texture (oldest one) has not been found in the buffer of textures",
                     );
-                    // Clear and assign it to tex_cell
-                    /*let idx = if tex_cell_is_root {
-                        self.num_base_textures += 1;
-                        Some(tex_cell.idx() as i32)
-                    } else {
-                        None
-                    };*/
                     texture.replace(&tex_cell, time_request);
 
                     texture
                 } else {
-                    // The heap buffer is not full, let's create a new
-                    // texture with an unique idx
-                    // The idx is computed based on the current size of the buffer
-
-                    /*let idx = if tex_cell_is_root {
-                        self.num_base_textures += 1;
-                        tex_cell.idx() as usize
-                    } else {
-                        //NUM_HPX_TILES_DEPTH_ZERO + (self.heap.len() - self.num_base_textures)
-                        self.heap.len()
-                    };*/
-                    //let idx = NUM_HPX_TILES_DEPTH_ZERO + (self.heap.len() - self.num_base_textures);
                     let idx = NUM_HPX_TILES_DEPTH_ZERO + self.heap.len();
 
                     Texture::new(&tex_cell, idx as i32, time_request)
@@ -411,7 +367,6 @@ impl ImageSurveyTextures {
                 &mut self.base_textures[idx as usize]
             };
 
-            //let missing = image.is_none();
             send_to_gpu(
                 cell,
                 texture,
@@ -423,25 +378,9 @@ impl ImageSurveyTextures {
             texture.append(
                 cell, // The tile cell
                 &self.config,
-                //missing,
             );
 
             self.available_tiles_during_frame = true;
-            //self.ready = true;
-            /*if self.start_time.is_none() {
-                self.start_time = Some(Time::now());
-            }*/
-
-            /*if tex_cell.is_root(self.config.delta_depth()) && texture.is_available() {
-                self.num_root_textures_available += 1;
-                debug_assert!(self.num_root_textures_available <= NUM_HPX_TILES_DEPTH_ZERO);
-
-                if self.num_root_textures_available == NUM_HPX_TILES_DEPTH_ZERO {
-                    self.ready = true;
-                    // The survey is ready
-                    //self.start_time = Some(Time::now());
-                }
-            }*/
         }
 
         Ok(())
@@ -614,33 +553,6 @@ impl ImageSurveyTextures {
         &mut self.config
     }
 
-    /*pub fn is_ready(&self) -> bool {
-        self.ready
-    }*/
-
-    // Get the textures in the buffer
-    // The resulting array is uniq sorted
-    /*fn get_allsky_textures(&self) -> [Option<&Texture>; NUM_HPX_TILES_DEPTH_ZERO] {
-        //debug_assert!(self.is_ready());
-        /*let mut textures = self.textures.values().collect::<Vec<_>>();
-        textures.sort_unstable();
-        textures*/
-        [
-            self.textures.get(&HEALPixCell(0, 0)),
-            self.textures.get(&HEALPixCell(0, 1)),
-            self.textures.get(&HEALPixCell(0, 2)),
-            self.textures.get(&HEALPixCell(0, 3)),
-            self.textures.get(&HEALPixCell(0, 4)),
-            self.textures.get(&HEALPixCell(0, 5)),
-            self.textures.get(&HEALPixCell(0, 6)),
-            self.textures.get(&HEALPixCell(0, 7)),
-            self.textures.get(&HEALPixCell(0, 8)),
-            self.textures.get(&HEALPixCell(0, 9)),
-            self.textures.get(&HEALPixCell(0, 10)),
-            self.textures.get(&HEALPixCell(0, 11)),
-        ]
-    }*/
-
     pub fn get_texture_array(&self) -> &Texture2DArray {
         &self.texture_2d_array
     }
@@ -678,7 +590,7 @@ fn send_to_gpu<I: Image>(
     Ok(())
 }
 
-impl SendUniforms for ImageSurveyTextures {
+impl SendUniforms for HiPS2DBuffer {
     // Send only the allsky textures
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
         // Send the textures
@@ -707,7 +619,7 @@ impl SendUniforms for ImageSurveyTextures {
     }
 }
 
-impl Drop for ImageSurveyTextures {
+impl Drop for HiPS2DBuffer {
     fn drop(&mut self) {
         // Cleanup the heap
         self.heap.clear();

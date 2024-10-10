@@ -94,6 +94,10 @@ export let MOC = (function() {
     /**
      *  Return a value between 0 and 1 denoting the fraction of the sky
      *  covered by the MOC
+     * 
+     * @memberof MOC
+     * 
+     * @returns {number} The sky fraction covered by the MOC 
      */
     MOC.prototype.skyFraction = function() {
         return this.skyFrac;
@@ -190,6 +194,11 @@ export let MOC = (function() {
         }
     };
 
+    /**
+     * Show the MOC object 
+     *
+     * @memberof MOC
+     */
     MOC.prototype.show = function() {
         if (this.isShowing) {
             return;
@@ -198,6 +207,11 @@ export let MOC = (function() {
         this.reportChange();
     };
 
+    /**
+     * Hide the MOC object 
+     *
+     * @memberof MOC
+     */
     MOC.prototype.hide = function() {
         if (! this.isShowing) {
             return;
@@ -206,9 +220,15 @@ export let MOC = (function() {
         this.reportChange();
     };
 
-    // Tests whether a given (ra, dec) point on the sky is within the current MOC object
-    //
-    // returns true if point is contained, false otherwise
+    /**
+     * Tests whether a given (ra, dec) point on the sky is within the current MOC object
+     *
+     * @memberof MOC
+     * @param {number} ra - Right-Ascension of the location in degrees and ICRS frame
+     * @param {number} dec - Declination of the location in degrees and ICRS frame
+     *
+     * @returns {boolean} True if the point is contained, false otherwise
+     */
     MOC.prototype.contains = function(ra, dec) {
         if (!this.ready) {
             throw this.name + " is not yet ready, either because it has not been downloaded yet or because it has not been added to the aladin instance."

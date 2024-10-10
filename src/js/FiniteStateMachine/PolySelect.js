@@ -22,6 +22,7 @@ import { ActionButton } from "../gui/Widgets/ActionButton";
 import { View } from "../View";
 import finishIconUrl from '../../../assets/icons/finish.svg';
 import { Utils } from "../Utils";
+import { Selector } from "../Selector";
 
 /******************************************************************************
  * Aladin Lite project
@@ -98,7 +99,6 @@ export class PolySelect extends FSM {
                         e.stopPropagation();
                         e.preventDefault()
 
-                        btn.remove();
                         self.dispatch('finish');
                     }
                 });
@@ -120,11 +120,12 @@ export class PolySelect extends FSM {
 
         let draw = () => {
             let ctx = view.catalogCtx;
-
+            
             // draw the selection
             ctx.save();
-            ctx.fillStyle = options.color + '7f';
-            ctx.strokeStyle = options.color;
+            let colorValue = (typeof options.color === 'function') ? options.color() : options.color;
+            ctx.fillStyle = colorValue + '7f';
+            ctx.strokeStyle = colorValue;
             ctx.lineWidth = options.lineWidth;
 
             ctx.beginPath();
@@ -145,6 +146,10 @@ export class PolySelect extends FSM {
         }
 
         let finish = () => {
+            if(btn) {
+                btn.remove();
+            }
+          
             if (this.coos.length <= 2) {
                 console.warn("Invalid selection, please draw at least a 3 vertices polygon")
 
@@ -174,17 +179,32 @@ export class PolySelect extends FSM {
             let s = {
                 vertices: this.coos,
                 label: 'polygon',
+                contains(s) {
+                    let x = s.x;
+                    let y = s.y;
+
+                    let inside = false;
+                    for (let i = 0, j = this.vertices.length - 1; i < this.vertices.length; j = i++) {
+                        let xi = this.vertices[i].x, yi = this.vertices[i].y;
+                        let xj = this.vertices[j].x, yj = this.vertices[j].y;
+            
+                        let intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+                        if (intersect) inside = !inside;
+                    }
+                    return inside;
+                },
                 bbox() {
                     return {x, y, w, h}
                 }
             };
-            (typeof this.callback === 'function') && this.callback(s);
+            (typeof this.callback === 'function') && this.callback(s, Selector.getObjects(s, view));
 
             // execute general callback
             if (view.aladin.callbacksByEventName) {
                 var callback = view.aladin.callbacksByEventName['objectsSelected'] || view.aladin.callbacksByEventName['select'];
                 if (typeof callback === "function") {
-                    console.warn('polygon selection is not fully implemented, PolySelect.contains is needed for finding sources inside a polygon')
+                    let objList = Selector.getObjects(s, view);
+                    callback(objList);
                 }
             }
 
@@ -257,6 +277,7 @@ export class PolySelect extends FSM {
                         //mouseout,
                         mousemove,
                         draw,
+                        finish,
                     },
                     mouseout: {
                         start,

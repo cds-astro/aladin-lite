@@ -978,6 +978,7 @@ canvas {
     font-family: monospace;
     line-height: 1rem;
 
+    z-index: 100;
     
     float: left;
 }

@@ -505,11 +505,9 @@ impl WebClient {
     /// * `fov` - The field of view in degrees
     #[wasm_bindgen(js_name = setFieldOfView)]
     pub fn set_fov(&mut self, fov: f64) -> Result<(), JsValue> {
-        //let fov = fov as f32;
         let fov = ArcDeg(fov).into();
 
         self.app.set_fov(fov);
-        //self.projection.set_fov(&mut self.app, ArcDeg(fov).into());
 
         Ok(())
     }

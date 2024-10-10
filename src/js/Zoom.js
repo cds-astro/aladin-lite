@@ -43,8 +43,7 @@ import { requestAnimFrame } from "./libs/RequestAnimationFrame.js";
             return;
 
         // clamp the zoom to the view params minFov and maxFov and the projection bounds
-        finalZoom = Math.min(finalZoom, this.view.projection.fov);
-
+        //finalZoom = Math.min(finalZoom, this.view.projection.fov);
         // then clamp the fov between minFov and maxFov
         const minFoV = this.view.minFoV;
         const maxFoV = this.view.maxFoV;
@@ -94,31 +93,31 @@ import { requestAnimFrame } from "./libs/RequestAnimationFrame.js";
         let self = this;
         // Recursive function to perform interpolation for each frame
         function interpolateFrame() {
-            //fps = 1000 / self.dt;
-            //totalFrames = interpolationDuration * fps; // Total number of frames
-            self.x = ( performance.now() - self.startTime ) / interpolationDuration;
-            // Calculate step size for each frame
-            //stepSize = (desiredZoom - currentZoom) / totalFrames;
-            interpolatedZoom = Zoom.hermiteCubic.f(self.x, self.x1, self.x2, self.y1, self.y2, self.m1, self.m2);
-            // Clamp the interpolation in case it is < 0 for a time
-            interpolatedZoom = Math.max(0, interpolatedZoom);
-
-            // Apply zoom level to map or perform any necessary rendering
-            self.view.setZoom(interpolatedZoom);
-
-            self.fov = interpolatedZoom;
-    
             // Check if interpolation is complete
             if (self.stop) {
+                console.log("stop")
                 self.isZooming = false;
                 self.stop = false;
-            } else if (self.x >= self.x2 || Math.abs(interpolatedZoom - self.finalZoom) < 1e-4) {
-                self.view.setZoom(self.finalZoom);
-
-                self.isZooming = false;
             } else {
-                // Request the next frame
-                self.requestAnimID = requestAnimFrame(interpolateFrame);
+                self.x = ( performance.now() - self.startTime ) / interpolationDuration;
+                interpolatedZoom = Zoom.hermiteCubic.f(self.x, self.x1, self.x2, self.y1, self.y2, self.m1, self.m2);
+                // Clamp the interpolation in case it is < 0 for a time
+                interpolatedZoom = Math.max(0, interpolatedZoom);
+    
+                // Apply zoom level to map or perform any necessary rendering
+                self.view.setZoom(interpolatedZoom);
+    
+                self.fov = interpolatedZoom;
+
+                if (self.x >= self.x2 || Math.abs(interpolatedZoom - self.finalZoom) < 1e-4) {
+                    console.log("finish")
+                    self.view.setZoom(self.finalZoom);
+
+                    self.isZooming = false;
+                } else {
+                    // Request the next frame
+                    self.requestAnimID = requestAnimFrame(interpolateFrame);
+                }
             }
         }
     

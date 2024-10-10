@@ -71,6 +71,9 @@ export let View = (function () {
         // MOCs
         this.mocs = [];
 
+        this.outsideFov = 0;
+        this.outside = false;
+
         self.redrawClbk = this.redraw.bind(this);
         // Init the WebGL context
         // At this point, the view has been created so the image canvas too
@@ -195,8 +198,7 @@ export let View = (function () {
         this.setProjection(projName)
 
         // Then set the zoom properly once the projection is defined
-        this.wasm.setFieldOfView(initialFov);
-        this.updateZoomState();
+        this.setZoom(initialFov)
 
         // Target position settings
         this.viewCenter = { lon, lat }; // position of center of view
@@ -398,6 +400,7 @@ export let View = (function () {
         this.imageCtx.canvas.style.width = this.width + "px";
         this.imageCtx.canvas.style.height = this.height + "px";
         this.wasm.resize(this.width, this.height);
+        this.setZoom(this.fov)
 
         pixelateCanvasContext(this.imageCtx, this.aladin.options.pixelateCanvas);
 
@@ -1130,22 +1133,14 @@ export let View = (function () {
 
         // disable text selection on IE
         //Utils.on(view.aladinDiv, "selectstart", function () { return false; })
-        var eventCount = 0;
+        /*var eventCount = 0;
         var eventCountStart;
         var isTouchPad;
-        let id;
+        let id;*/
 
         Utils.on(view.catalogCanvas, 'wheel', function (e) {
             e.preventDefault();
             e.stopPropagation();
-
-            view.wheelTriggered = true;
-
-            clearTimeout(id);
-            id = setTimeout(() => {
-                view.wheelTriggered = false;
-                view.zoom.stopAnimation();
-            }, 100);
 
             const xymouse = Utils.relMouseCoords(e);
             view.xy = xymouse
@@ -1178,7 +1173,7 @@ export let View = (function () {
             // First detect the device
             // See https://stackoverflow.com/questions/10744645/detect-touchpad-vs-mouse-in-javascript
             // for detecting the use of a touchpad
-            view.isTouchPadDefined = isTouchPad || typeof isTouchPad !== "undefined";
+            /*view.isTouchPadDefined = isTouchPad || typeof isTouchPad !== "undefined";
             if (!view.isTouchPadDefined) {
                 if (eventCount === 0) {
                     view.delta = 0;
@@ -1195,28 +1190,23 @@ export let View = (function () {
                     }
                     view.isTouchPadDefined = true;
                 }
-            }
+            }*/
 
             // only ensure the touch pad test has been done before zooming
-            if (!view.isTouchPadDefined) {
+            /*if (!view.isTouchPadDefined) {
                 return false;
-            }
+            }*/
 
             // touch pad defined
             view.delta = e.deltaY || e.detail || (-e.wheelDelta);
 
-            if (isTouchPad) {
+            //if (isTouchPad) {
                 if (!view.throttledTouchPadZoom) {
-                    //let radec;
                     view.throttledTouchPadZoom = () => {
-                        /*if (!view.zoom.isZooming && !view.wheelTriggered) {
-                            // start zooming detected
-                            radec = view.aladin.pix2world(view.xy.x, view.xy.y);
-                        }*/
-        
                         const factor = 2.0;
                         let newFov = view.delta > 0 ? view.fov * factor : view.fov / factor;
 
+                        // inside case
                         view.zoom.apply({
                             stop: newFov,
                             duration: 100
@@ -1225,22 +1215,21 @@ export let View = (function () {
                 }
 
                 view.throttledTouchPadZoom();
-            } else {
+            /*} else {
                 if (!view.throttledMouseScrollZoom) {
-                    view.throttledMouseScrollZoom = Utils.throttle(() => {
-                        const factor = 5
+                    view.throttledMouseScrollZoom = () => {
+                        const factor = 2
                         let newFov = view.delta > 0 ? view.fov * factor : view.fov / factor;
                         // standard mouse wheel zooming
-    
                         view.zoom.apply({
                             stop: newFov,
-                            duration: 300
+                            duration: 100
                         });
-                    }, 50);
+                    };
                 }
                 
                 view.throttledMouseScrollZoom()
-            }
+            }*/
 
             return false;
         });
@@ -1588,7 +1577,7 @@ export let View = (function () {
         }
 
         this.wasm.setFieldOfView(fov);
-        this.updateZoomState();
+        this.updateZoomState(fov);
     };
 
     View.prototype.increaseZoom = function () {
@@ -1613,9 +1602,7 @@ export let View = (function () {
         this.gridCfg = {...this.gridCfg, ...options};
         this.wasm.setGridOptions(this.gridCfg);
 
-        if (!this.gridCfg.enabled) {
-            this.mustClearCatalog = true;
-        }
+        this.mustClearCatalog = true;
 
         ALEvent.COO_GRID_UPDATED.dispatchedTo(this.aladinDiv, this.gridCfg);
 
@@ -1626,12 +1613,24 @@ export let View = (function () {
         return this.gridCfg;
     }
 
-    View.prototype.updateZoomState = function () {
+    View.prototype.updateZoomState = function (fov) {
         // Get the new zoom values from the backend
-        let fov = this.wasm.getFieldOfView();
+        const newFov = fov || this.wasm.getFieldOfView()
 
-        // Save it
-        this.fov = fov;
+        // Disable the coo grid labels if we are too unzoomed
+        const maxFovGridLabels = 360;
+        if (this.fov <= maxFovGridLabels && newFov > maxFovGridLabels) {
+            let gridOptions = this.getGridOptions()
+            if (gridOptions) {
+                this.originalShowLabels = gridOptions.showLabels;
+                this.aladin.setCooGrid({showLabels: false});
+            }
+           
+        } else if (this.fov > maxFovGridLabels && newFov <= maxFovGridLabels) {
+            this.aladin.setCooGrid({showLabels:this.originalShowLabels});
+        }
+
+        this.fov = newFov;
         this.computeNorder();
 
         let fovX = this.fov;
@@ -1942,7 +1941,8 @@ export let View = (function () {
         
         // Change the projection here
         this.wasm.setProjection(projName);
-        this.updateZoomState();
+        let newProjFov = Math.min(this.fov, this.projection.fov);
+        this.setZoom(newProjFov)
 
         const projFn = this.aladin.callbacksByEventName['projectionChanged'];
         (typeof projFn === 'function') && projFn(projName);

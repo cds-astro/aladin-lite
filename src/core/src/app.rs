@@ -902,12 +902,12 @@ impl App {
             //let fbo_view = &self.fbo_view;
             //catalogs.draw(&gl, shaders, camera, colormaps, fbo_view)?;
             //catalogs.draw(&gl, shaders, camera, colormaps, None, self.projection)?;
-            gl.blend_func_separate(
+            /*gl.blend_func_separate(
                 WebGl2RenderingContext::SRC_ALPHA,
                 WebGl2RenderingContext::ONE,
                 WebGl2RenderingContext::ONE,
                 WebGl2RenderingContext::ONE,
-            );
+            );*/
             moc.draw(camera, projection, shaders)?;
 
             gl.blend_func_separate(
@@ -1399,7 +1399,7 @@ impl App {
     }
 
     pub(crate) fn set_grid_cfg(&mut self, cfg: GridCfg) -> Result<(), JsValue> {
-        self.grid.set_cfg(cfg, &self.camera, &self.projection)?;
+        self.grid.set_cfg(cfg)?;
         self.request_redraw = true;
 
         Ok(())

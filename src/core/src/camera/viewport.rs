@@ -337,7 +337,7 @@ impl CameraViewPort {
             self.last_user_action
         };
 
-        let _can_unzoom_more = match proj {
+        let can_unzoom_more = match proj {
             ProjectionType::Tan(_)
             | ProjectionType::Mer(_)
             //| ProjectionType::Air(_)
@@ -351,31 +351,44 @@ impl CameraViewPort {
 
         let aperture_start: Angle<f64> = ArcDeg(proj.aperture_start()).into();
 
-        self.aperture = aperture.min(aperture_start);
-        // Compute the new clip zoom factor
-        let a = aperture.abs();
-
-        let v0 = math::lonlat::radec_to_xyzw(-a / 2.0, Angle(0.0));
-        let v1 = math::lonlat::radec_to_xyzw(a / 2.0, Angle(0.0));
-
-        // Vertex in the WCS of the FOV
-        self.clip_zoom_factor = if self.width < self.height {
-            if let (Some(p0), Some(p1)) =
-                (proj.world_to_clip_space(&v0), proj.world_to_clip_space(&v1))
-            {
-                (0.5 * (p1.x - p0.x).abs()).min(1.0)
+        self.clip_zoom_factor = if aperture > aperture_start {
+            //al_core::log(&format!("a: {:?}, as: {:?}", aperture, aperture_start));
+            if can_unzoom_more {
+                aperture.0 / aperture_start.0
             } else {
                 1.0
             }
         } else {
-            if let (Some(p0), Some(p1)) =
-                (proj.world_to_clip_space(&v0), proj.world_to_clip_space(&v1))
-            {
-                (0.5 * (p1.x - p0.x).abs()).min(1.0)
+            // Compute the new clip zoom factor
+            let a = aperture.abs();
+
+            let v0 = math::lonlat::radec_to_xyzw(-a / 2.0, Angle(0.0));
+            let v1 = math::lonlat::radec_to_xyzw(a / 2.0, Angle(0.0));
+
+            // Vertex in the WCS of the FOV
+            if self.width < self.height {
+                if let (Some(p0), Some(p1)) =
+                    (proj.world_to_clip_space(&v0), proj.world_to_clip_space(&v1))
+                {
+                    (0.5 * (p1.x - p0.x).abs()).min(1.0)
+                } else {
+                    1.0
+                }
             } else {
-                1.0
+                if let (Some(p0), Some(p1)) =
+                    (proj.world_to_clip_space(&v0), proj.world_to_clip_space(&v1))
+                {
+                    (0.5 * (p1.x - p0.x).abs()).min(1.0)
+                } else {
+                    1.0
+                }
             }
         };
+
+        self.aperture = aperture.min(aperture_start);
+        //self.aperture = aperture;
+
+        //al_core::log(&format!("zoom factor {:?}", self.clip_zoom_factor));
 
         //console_log(&format!("clip factor {:?}", self.aperture));
 

@@ -71,6 +71,9 @@ export let View = (function () {
         // MOCs
         this.mocs = [];
 
+        this.outsideFov = 0;
+        this.outside = false;
+
         self.redrawClbk = this.redraw.bind(this);
         // Init the WebGL context
         // At this point, the view has been created so the image canvas too
@@ -195,8 +198,7 @@ export let View = (function () {
         this.setProjection(projName)
 
         // Then set the zoom properly once the projection is defined
-        this.wasm.setFieldOfView(initialFov);
-        this.updateZoomState();
+        this.setZoom(initialFov)
 
         // Target position settings
         this.viewCenter = { lon, lat }; // position of center of view
@@ -398,6 +400,7 @@ export let View = (function () {
         this.imageCtx.canvas.style.width = this.width + "px";
         this.imageCtx.canvas.style.height = this.height + "px";
         this.wasm.resize(this.width, this.height);
+        this.setZoom(this.fov)
 
         pixelateCanvasContext(this.imageCtx, this.aladin.options.pixelateCanvas);
 
@@ -1207,7 +1210,6 @@ export let View = (function () {
 
             if (isTouchPad) {
                 if (!view.throttledTouchPadZoom) {
-                    //let radec;
                     view.throttledTouchPadZoom = () => {
                         /*if (!view.zoom.isZooming && !view.wheelTriggered) {
                             // start zooming detected
@@ -1217,7 +1219,9 @@ export let View = (function () {
                         const factor = 2.0;
                         let newFov = view.delta > 0 ? view.fov * factor : view.fov / factor;
 
+                        // inside case
                         view.zoom.apply({
+                            //start: view.zoom.fov, 
                             stop: newFov,
                             duration: 100
                         });
@@ -1233,6 +1237,7 @@ export let View = (function () {
                         // standard mouse wheel zooming
     
                         view.zoom.apply({
+                            //start: view.zoom.fov,
                             stop: newFov,
                             duration: 300
                         });
@@ -1588,7 +1593,7 @@ export let View = (function () {
         }
 
         this.wasm.setFieldOfView(fov);
-        this.updateZoomState();
+        this.updateZoomState(fov);
     };
 
     View.prototype.increaseZoom = function () {
@@ -1613,9 +1618,7 @@ export let View = (function () {
         this.gridCfg = {...this.gridCfg, ...options};
         this.wasm.setGridOptions(this.gridCfg);
 
-        if (!this.gridCfg.enabled) {
-            this.mustClearCatalog = true;
-        }
+        this.mustClearCatalog = true;
 
         ALEvent.COO_GRID_UPDATED.dispatchedTo(this.aladinDiv, this.gridCfg);
 
@@ -1626,12 +1629,24 @@ export let View = (function () {
         return this.gridCfg;
     }
 
-    View.prototype.updateZoomState = function () {
+    View.prototype.updateZoomState = function (fov) {
         // Get the new zoom values from the backend
-        let fov = this.wasm.getFieldOfView();
+        const newFov = fov || this.wasm.getFieldOfView()
 
-        // Save it
-        this.fov = fov;
+        // Disable the coo grid labels if we are too unzoomed
+        const maxFovGridLabels = 360;
+        if (this.fov <= maxFovGridLabels && newFov > maxFovGridLabels) {
+            let gridOptions = this.getGridOptions()
+            if (gridOptions) {
+                this.originalShowLabels = gridOptions.showLabels;
+                this.aladin.setCooGrid({showLabels: false});
+            }
+           
+        } else if (this.fov > maxFovGridLabels && newFov <= maxFovGridLabels) {
+            this.aladin.setCooGrid({showLabels:this.originalShowLabels});
+        }
+
+        this.fov = newFov;
         this.computeNorder();
 
         let fovX = this.fov;
@@ -1942,7 +1957,8 @@ export let View = (function () {
         
         // Change the projection here
         this.wasm.setProjection(projName);
-        this.updateZoomState();
+        let newProjFov = Math.min(this.fov, this.projection.fov);
+        this.setZoom(newProjFov)
 
         const projFn = this.aladin.callbacksByEventName['projectionChanged'];
         (typeof projFn === 'function') && projFn(projName);

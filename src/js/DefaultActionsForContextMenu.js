@@ -229,12 +229,10 @@ export let DefaultActionsForContextMenu = (function () {
             },
             {
                 label: "HiPS2FITS cutout", action(o) {
-                    let hips2fitsUrl = 'https://alasky.cds.unistra.fr/hips-image-services/hips2fits#';
-                    let radec = a.getRaDec();
-                    let fov = Math.max.apply(null, a.getFov());
+                    let hips2fitsUrl = 'https://alasky.cds.unistra.fr/hips-image-services/hips2fits?';
                     let hipsId = a.getBaseImageLayer().id;
-                    let proj = a.getProjectionName();
-                    hips2fitsUrl += 'ra=' + radec[0] + '&dec=' + radec[1] + '&fov=' + fov + '&projection=' + proj + '&hips=' + encodeURIComponent(hipsId);
+                    let wcs = JSON.stringify(a.getViewWCS());
+                    hips2fitsUrl += 'wcs=' + encodeURIComponent(wcs) + '&hips=' + encodeURIComponent(hipsId);
                     window.open(hips2fitsUrl, '_blank');
                 }
             },

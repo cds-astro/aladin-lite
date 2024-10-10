@@ -31,9 +31,9 @@ export let ProjectionEnum = {
    // Zenithal
    TAN: {id: 1, fov: 150, label: "Tangential"},	         /* Gnomonic projection      */
    STG: {id: 2, fov: 240, label: "Stereographic"},	      /* Stereographic projection */
-   SIN: {id: 3, fov: 180, label: "Spheric"},	      /* Orthographic		         */
+   SIN: {id: 3, fov: 1000, label: "Spheric"},	      /* Orthographic		         */
    // TODO: fix why the projection disappears at fov = 360.0
-   ZEA: {id: 4, fov: 359.999, label: "Zenital equal-area"},	/* Equal-area 		         */
+   ZEA: {id: 4, fov: 1000, label: "Zenital equal-area"},	/* Equal-area 		         */
    //FEYE: {id: 5, fov: 190, label: "fish eye"},
    //AIR: {id: 6, fov: 360, label: "airy"},
    //AZP: {fov: 180},
@@ -45,10 +45,10 @@ export let ProjectionEnum = {
    //CEA: {id: 11, fov: 360, label: "cylindrical equal area"},
    //CYP: {id: 12, fov: 360, label: "cylindrical perspective"},
    // Pseudo-cylindrical
-   AIT: {id: 13, fov: 360, label: "Hammer-Aïtoff"},
+   AIT: {id: 13, fov: 1000, label: "Hammer-Aïtoff"},
    //PAR: {id: 14, fov: 360, label: "parabolic"},
    //SFL: {id: 15, fov: 360, label: "sanson-flamsteed"},
-   MOL: {id: 16, fov: 360, label: "Mollweide"},
+   MOL: {id: 16, fov: 1000, label: "Mollweide"},
    // Conic
    //COD: {id: 17, fov: 360, label: "conic equidistant"},
    // Hybrid

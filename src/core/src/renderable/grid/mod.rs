@@ -114,12 +114,7 @@ impl ProjetedGrid {
         Ok(grid)
     }
 
-    pub fn set_cfg(
-        &mut self,
-        new_cfg: GridCfg,
-        _camera: &CameraViewPort,
-        _projection: &ProjectionType,
-    ) -> Result<(), JsValue> {
+    pub fn set_cfg(&mut self, new_cfg: GridCfg) -> Result<(), JsValue> {
         let GridCfg {
             color,
             opacity,
@@ -165,10 +160,6 @@ impl ProjetedGrid {
 
         if let Some(enabled) = enabled {
             self.enabled = enabled;
-
-            /*if !self.enabled {
-                self.text_renderer.clear_text_canvas();
-            }*/
         }
 
         Ok(())

@@ -57,8 +57,9 @@ export class CircleSelect extends FSM {
             let ctx = view.catalogCtx;
 
             // draw the selection
-            ctx.fillStyle = options.color + '7f';
-            ctx.strokeStyle = options.color;
+            let colorValue = (typeof options.color === 'function') ? options.color(this.startCoo, this.coo) : options.color;
+            ctx.fillStyle = colorValue + '7f';
+            ctx.strokeStyle = colorValue;
             ctx.lineWidth = options.lineWidth;
 
             var r2 = (this.coo.x - this.startCoo.x) * (this.coo.x - this.startCoo.x) + (this.coo.y - this.startCoo.y) * (this.coo.y - this.startCoo.y);
@@ -112,7 +113,7 @@ export class CircleSelect extends FSM {
             }
 
             // execute selection callback only
-            (typeof this.callback === 'function') && this.callback(s);
+            (typeof this.callback === 'function') && this.callback(s, Selector.getObjects(s, view));
 
             this.dispatch("off");
         };

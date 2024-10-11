@@ -146,6 +146,11 @@ import { Polyline } from "./shapes/Polyline";
  * @property {boolean} [samp=false] - Whether to enable SAMP (Simple Application Messaging Protocol).
  * @property {boolean} [realFullscreen=false] - Whether to use real fullscreen mode.
  * @property {boolean} [pixelateCanvas=true] - Whether to pixelate the canvas.
+ * @property {boolean} [manualSelection=false] - When set to true, no selection will be performed, only events will be generated.
+ * @property {Object} [selector] - More options for the the selector.
+ * @property {string} [selector.color] - Color of the selector, defaults to the color of the reticle. Can be a hex color or a function returning a hex color.
+ * @property {number} [selector.lineWidth=2] - Width of the selector line.
+ * 
  * @example
  * let aladin = A.aladin({
     target: 'galactic center',
@@ -713,6 +718,7 @@ export let Aladin = (function () {
         samp: false,
         realFullscreen: false,
         pixelateCanvas: true,
+        manualSelection: false
     };
 
     // realFullscreen: AL div expands not only to the size of its parent, but takes the whole available screen estate

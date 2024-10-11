@@ -95,7 +95,6 @@ import { requestAnimFrame } from "./libs/RequestAnimationFrame.js";
         function interpolateFrame() {
             // Check if interpolation is complete
             if (self.stop) {
-                console.log("stop")
                 self.isZooming = false;
                 self.stop = false;
             } else {
@@ -110,7 +109,6 @@ import { requestAnimFrame } from "./libs/RequestAnimationFrame.js";
                 self.fov = interpolatedZoom;
 
                 if (self.x >= self.x2 || Math.abs(interpolatedZoom - self.finalZoom) < 1e-4) {
-                    console.log("finish")
                     self.view.setZoom(self.finalZoom);
 
                     self.isZooming = false;

@@ -1,5 +1,6 @@
 use crate::image::format::ImageFormat;
 use crate::texture::pixel::Pixel;
+use crate::texture::Tex3D;
 #[derive(Debug)]
 #[allow(dead_code)]
 pub struct ImageBuffer<T>
@@ -143,21 +144,22 @@ impl<I> Image for ImageBuffer<I>
 where
     I: ImageFormat,
 {
-    fn tex_sub_image_3d(
+    fn insert_into_3d_texture<T: Tex3D>(
         &self,
         // The texture array
-        textures: &Texture2DArray,
+        textures: &T,
         // An offset to write the image in the texture array
         offset: &Vector3<i32>,
     ) -> Result<(), JsValue> {
         let js_array =
             <<<I as ImageFormat>::P as Pixel>::Container as ArrayBuffer>::new(&self.data);
-        textures.bind().tex_sub_image_3d_with_opt_array_buffer_view(
-            offset.z,
+        textures.tex_sub_image_3d_with_opt_array_buffer_view(
             offset.x,
             offset.y,
+            offset.z,
             self.width(),
             self.height(),
+            1,
             Some(js_array.as_ref()),
         );
 

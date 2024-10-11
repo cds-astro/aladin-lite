@@ -19,23 +19,18 @@ where
         }
     }
 }
-use crate::texture::Texture2DArray;
+use crate::texture::{Tex3D, Texture2DArray};
 use wasm_bindgen::JsValue;
 impl<F> Image for Bitmap<F>
 where
     F: ImageFormat + Clone,
 {
-    fn tex_sub_image_3d(
+    fn insert_into_3d_texture<T: Tex3D>(
         &self,
-        textures: &Texture2DArray,
+        textures: &T,
         offset: &Vector3<i32>,
     ) -> Result<(), JsValue> {
-        textures.bind().tex_sub_image_3d_with_image_bitmap(
-            offset.z,
-            offset.x,
-            offset.y,
-            &self.image,
-        );
+        textures.tex_sub_image_3d_with_image_bitmap(offset.x, offset.y, offset.z, &self.image);
 
         Ok(())
     }

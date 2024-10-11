@@ -585,7 +585,7 @@ fn send_to_gpu<I: Image>(
         idx_slice,
     );
 
-    image.tex_sub_image_3d(&texture_array, &offset)?;
+    image.insert_into_3d_texture(texture_array, &offset)?;
 
     Ok(())
 }

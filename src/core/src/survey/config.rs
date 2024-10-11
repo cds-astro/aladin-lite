@@ -89,8 +89,9 @@ use al_core::{
 };
 use cgmath::Vector3;
 
+/*
 impl Image for EmptyTileImage {
-    fn tex_sub_image_3d(
+    fn insert(
         &self,
         // The texture array
         textures: &Texture2DArray,
@@ -100,6 +101,7 @@ impl Image for EmptyTileImage {
         self.inner.tex_sub_image_3d(textures, offset)
     }
 }
+*/
 
 use al_core::image::format::{ChannelType, ImageFormatType, RGB8U, RGBA8U};
 
@@ -508,10 +510,10 @@ impl HiPSConfig {
         self.format.is_colored()
     }
 
-    #[inline(always)]
+    /*#[inline(always)]
     pub fn get_default_image(&self) -> &EmptyTileImage {
         &self.empty_image
-    }
+    }*/
 }
 
 use al_core::shader::{SendUniforms, ShaderBound};

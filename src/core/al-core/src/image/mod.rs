@@ -184,10 +184,10 @@ use self::html::HTMLImage;
 use super::Texture2DArray;
 use wasm_bindgen::JsValue;
 pub trait Image {
-    fn tex_sub_image_3d(
+    fn insert_into_3d_texture<T: Tex3D>(
         &self,
         // The texture array
-        textures: &Texture2DArray,
+        textures: &T,
         // An offset to write the image in the texture array
         offset: &Vector3<i32>,
     ) -> Result<(), JsValue>;
@@ -197,15 +197,15 @@ impl<'a, I> Image for &'a I
 where
     I: Image,
 {
-    fn tex_sub_image_3d(
+    fn insert_into_3d_texture<T: Tex3D>(
         &self,
         // The texture array
-        textures: &Texture2DArray,
+        textures: &T,
         // An offset to write the image in the texture array
         offset: &Vector3<i32>,
     ) -> Result<(), JsValue> {
         let image = &**self;
-        image.tex_sub_image_3d(textures, offset)?;
+        image.insert_into_3d_texture(textures, offset)?;
 
         Ok(())
     }
@@ -216,15 +216,15 @@ impl<I> Image for Rc<I>
 where
     I: Image,
 {
-    fn tex_sub_image_3d(
+    fn insert_into_3d_texture<T: Tex3D>(
         &self,
         // The texture array
-        textures: &Texture2DArray,
+        textures: &T,
         // An offset to write the image in the texture array
         offset: &Vector3<i32>,
     ) -> Result<(), JsValue> {
         let image = &**self;
-        image.tex_sub_image_3d(textures, offset)?;
+        image.insert_into_3d_texture(textures, offset)?;
 
         Ok(())
     }
@@ -251,7 +251,10 @@ where
 
 #[cfg(feature = "webgl2")]
 use crate::image::format::{R16I, R32I, R64F, R8UI};
-use crate::image::format::{R32F, RGB8U, RGBA8U};
+use crate::{
+    image::format::{R32F, RGB8U, RGBA8U},
+    texture::Tex3D,
+};
 
 use bitmap::Bitmap;
 use fits::Fits;
@@ -288,10 +291,10 @@ pub enum ImageType {
 
 use cgmath::Vector3;
 impl Image for ImageType {
-    fn tex_sub_image_3d(
+    fn insert_into_3d_texture<T: Tex3D>(
         &self,
         // The texture array
-        textures: &Texture2DArray,
+        textures: &T,
         // An offset to write the image in the texture array
         offset: &Vector3<i32>,
     ) -> Result<(), JsValue> {
@@ -305,19 +308,23 @@ impl Image for ImageType {
 
                 let mut bytes_reader = Cursor::new(raw_bytes.as_slice());
                 let fits_img = Fits::from_byte_slice(&mut bytes_reader)?;
-                fits_img.tex_sub_image_3d(textures, offset)?
+                fits_img.insert_into_3d_texture(textures, offset)?
             }
-            ImageType::Canvas { canvas } => canvas.tex_sub_image_3d(textures, offset)?,
-            ImageType::ImageRgba8u { image } => image.tex_sub_image_3d(textures, offset)?,
-            ImageType::ImageRgb8u { image } => image.tex_sub_image_3d(textures, offset)?,
-            ImageType::HTMLImageRgba8u { image } => image.tex_sub_image_3d(textures, offset)?,
-            ImageType::HTMLImageRgb8u { image } => image.tex_sub_image_3d(textures, offset)?,
-            ImageType::RawRgb8u { image } => image.tex_sub_image_3d(textures, offset)?,
-            ImageType::RawRgba8u { image } => image.tex_sub_image_3d(textures, offset)?,
-            ImageType::RawR32f { image } => image.tex_sub_image_3d(textures, offset)?,
-            ImageType::RawR32i { image } => image.tex_sub_image_3d(textures, offset)?,
-            ImageType::RawR16i { image } => image.tex_sub_image_3d(textures, offset)?,
-            ImageType::RawR8ui { image } => image.tex_sub_image_3d(textures, offset)?,
+            ImageType::Canvas { canvas } => canvas.insert_into_3d_texture(textures, offset)?,
+            ImageType::ImageRgba8u { image } => image.insert_into_3d_texture(textures, offset)?,
+            ImageType::ImageRgb8u { image } => image.insert_into_3d_texture(textures, offset)?,
+            ImageType::HTMLImageRgba8u { image } => {
+                image.insert_into_3d_texture(textures, offset)?
+            }
+            ImageType::HTMLImageRgb8u { image } => {
+                image.insert_into_3d_texture(textures, offset)?
+            }
+            ImageType::RawRgb8u { image } => image.insert_into_3d_texture(textures, offset)?,
+            ImageType::RawRgba8u { image } => image.insert_into_3d_texture(textures, offset)?,
+            ImageType::RawR32f { image } => image.insert_into_3d_texture(textures, offset)?,
+            ImageType::RawR32i { image } => image.insert_into_3d_texture(textures, offset)?,
+            ImageType::RawR16i { image } => image.insert_into_3d_texture(textures, offset)?,
+            ImageType::RawR8ui { image } => image.insert_into_3d_texture(textures, offset)?,
         }
 
         Ok(())

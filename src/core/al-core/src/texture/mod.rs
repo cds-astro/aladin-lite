@@ -1,40 +1,21 @@
-pub mod texture_array;
-pub use texture_array::Texture2DArray;
+pub mod array;
+pub use array::Texture2DArray;
 
 pub mod pixel;
 pub use pixel::*;
+
+#[path = "3d.rs"]
+pub mod mod_3d;
+pub use mod_3d::Texture3D;
+
 use web_sys::HtmlCanvasElement;
 use web_sys::WebGlTexture;
 
-use crate::image::format::ChannelType;
 use crate::webgl_ctx::WebGlContext;
 use crate::webgl_ctx::WebGlRenderingCtx;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::HtmlImageElement;
-
-/// Some GPU texture relative:
-// * Usual texture parameters when defining a texture
-pub const TEX_PARAMS: &'static [(u32, u32); 4] = &[
-    (
-        WebGlRenderingCtx::TEXTURE_MIN_FILTER,
-        WebGlRenderingCtx::NEAREST,
-    ),
-    (
-        WebGlRenderingCtx::TEXTURE_MAG_FILTER,
-        WebGlRenderingCtx::NEAREST,
-    ),
-    // Prevents s-coordinate wrapping (repeating)
-    (
-        WebGlRenderingCtx::TEXTURE_WRAP_S,
-        WebGlRenderingCtx::CLAMP_TO_EDGE,
-    ),
-    // Prevents t-coordinate wrapping (repeating)
-    (
-        WebGlRenderingCtx::TEXTURE_WRAP_T,
-        WebGlRenderingCtx::CLAMP_TO_EDGE,
-    ),
-];
 
 pub static mut CUR_IDX_TEX_UNIT: u8 = 0;
 
@@ -134,10 +115,6 @@ impl Texture2D {
 
                 metadata.borrow_mut().width = image.width();
                 metadata.borrow_mut().height = image.height();
-
-                if F::CHANNEL_TYPE == ChannelType::RGBA8U || F::CHANNEL_TYPE == ChannelType::RGB8U {
-                    gl.generate_mipmap(WebGlRenderingCtx::TEXTURE_2D);
-                }
             }) as Box<dyn Fn()>)
         };
 
@@ -221,10 +198,6 @@ impl Texture2D {
         )
         .expect("Texture 2D");
 
-        if F::CHANNEL_TYPE == ChannelType::RGBA8U || F::CHANNEL_TYPE == ChannelType::RGB8U {
-            gl.generate_mipmap(WebGlRenderingCtx::TEXTURE_2D);
-        }
-
         let gl = gl.clone();
         let metadata = Some(Rc::new(RefCell::new(Texture2DMeta {
             width: width as u32,
@@ -290,6 +263,10 @@ impl Texture2D {
             self.texture.as_ref(),
             0,
         );
+    }
+
+    pub fn generate_mipmap(&self) {
+        self.gl.generate_mipmap(WebGlRenderingCtx::TEXTURE_2D);
     }
 
     pub fn get_size(&self) -> (u32, u32) {
@@ -600,5 +577,179 @@ impl<'a> Texture2DBound<'a> {
                 pixels,
             )
             .expect("Sub texture 2d");
+    }
+}
+
+pub trait Tex3D {
+    fn tex_sub_image_3d_with_html_image_element(
+        &self,
+        dx: i32,
+        dy: i32,
+        dz: i32,
+        image: &HtmlImageElement,
+    );
+
+    fn tex_sub_image_3d_with_html_canvas_element(
+        &self,
+        dx: i32,
+        dy: i32,
+        dz: i32,
+        canvas: &HtmlCanvasElement,
+    );
+
+    fn tex_sub_image_3d_with_image_bitmap(
+        &self,
+        dx: i32,
+        dy: i32,
+        dz: i32,
+        image: &web_sys::ImageBitmap,
+    );
+
+    fn tex_sub_image_3d_with_opt_array_buffer_view(
+        &self,
+        dx: i32,
+        dy: i32,
+        dz: i32,
+        w: i32,
+        h: i32,
+        d: i32,
+        view: Option<&js_sys::Object>,
+    );
+
+    fn tex_sub_image_3d_with_opt_u8_array(
+        &self,
+        dx: i32,
+        dy: i32,
+        dz: i32,
+        w: i32,
+        h: i32,
+        d: i32,
+        pixels: Option<&[u8]>,
+    );
+}
+
+impl Tex3D for Texture3D {
+    fn tex_sub_image_3d_with_html_image_element(
+        &self,
+        dx: i32,
+        dy: i32,
+        dz: i32,
+        image: &HtmlImageElement,
+    ) {
+        self.bind()
+            .tex_sub_image_3d_with_html_image_element(dx, dy, dz, image);
+    }
+
+    fn tex_sub_image_3d_with_html_canvas_element(
+        &self,
+        dx: i32,
+        dy: i32,
+        dz: i32,
+        canvas: &HtmlCanvasElement,
+    ) {
+        self.bind()
+            .tex_sub_image_3d_with_html_canvas_element(dx, dy, dz, canvas);
+    }
+
+    fn tex_sub_image_3d_with_image_bitmap(
+        &self,
+        dx: i32,
+        dy: i32,
+        dz: i32,
+        image: &web_sys::ImageBitmap,
+    ) {
+        self.bind()
+            .tex_sub_image_3d_with_image_bitmap(dx, dy, dz, image);
+    }
+
+    fn tex_sub_image_3d_with_opt_array_buffer_view(
+        &self,
+        dx: i32,
+        dy: i32,
+        dz: i32,
+        w: i32,
+        h: i32,
+        d: i32,
+        view: Option<&js_sys::Object>,
+    ) {
+        self.bind()
+            .tex_sub_image_3d_with_opt_array_buffer_view(dx, dy, dz, w, h, d, view);
+    }
+
+    fn tex_sub_image_3d_with_opt_u8_array(
+        &self,
+        dx: i32,
+        dy: i32,
+        dz: i32,
+        w: i32,
+        h: i32,
+        d: i32,
+        pixels: Option<&[u8]>,
+    ) {
+        self.bind()
+            .tex_sub_image_3d_with_opt_u8_array(dx, dy, dz, w, h, d, pixels);
+    }
+}
+
+impl Tex3D for Texture2DArray {
+    fn tex_sub_image_3d_with_html_image_element(
+        &self,
+        dx: i32,
+        dy: i32,
+        dz: i32,
+        image: &HtmlImageElement,
+    ) {
+        self.bind()
+            .tex_sub_image_3d_with_html_image_element(dx, dy, dz, image);
+    }
+
+    fn tex_sub_image_3d_with_html_canvas_element(
+        &self,
+        dx: i32,
+        dy: i32,
+        dz: i32,
+        canvas: &HtmlCanvasElement,
+    ) {
+        self.bind()
+            .tex_sub_image_3d_with_html_canvas_element(dx, dy, dz, canvas);
+    }
+
+    fn tex_sub_image_3d_with_image_bitmap(
+        &self,
+        dx: i32,
+        dy: i32,
+        dz: i32,
+        image: &web_sys::ImageBitmap,
+    ) {
+        self.bind()
+            .tex_sub_image_3d_with_image_bitmap(dx, dy, dz, image);
+    }
+
+    fn tex_sub_image_3d_with_opt_array_buffer_view(
+        &self,
+        dx: i32,
+        dy: i32,
+        dz: i32,
+        w: i32,
+        h: i32,
+        _d: i32,
+        view: Option<&js_sys::Object>,
+    ) {
+        self.bind()
+            .tex_sub_image_3d_with_opt_array_buffer_view(dx, dy, dz, w, h, view);
+    }
+
+    fn tex_sub_image_3d_with_opt_u8_array(
+        &self,
+        dx: i32,
+        dy: i32,
+        dz: i32,
+        w: i32,
+        h: i32,
+        _d: i32,
+        pixels: Option<&[u8]>,
+    ) {
+        self.bind()
+            .tex_sub_image_3d_with_opt_u8_array(dx, dy, dz, w, h, pixels);
     }
 }

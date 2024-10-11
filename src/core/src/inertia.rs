@@ -35,7 +35,7 @@ impl Inertia {
         // where:
         // * k is the stiffness of the ressort
         // * m is its mass
-        let w0 = 4.0;
+        let w0 = 10.0;
         // The angular distance goes from d0 to 0.0
         //self.speed = self.ampl * ((-w0 * t).exp());
         // The angular distance goes from d0 to 0.0

@@ -2,6 +2,7 @@ pub mod cuts;
 pub mod grid;
 pub mod subdivide_texture;
 
+use al_core::webgl_ctx::WebGlRenderingCtx;
 use std::fmt::Debug;
 use std::marker::Unpin;
 use std::vec;
@@ -70,7 +71,6 @@ pub struct Image {
     coo_sys: CooSystem,
 }
 use al_core::pixel::Pixel;
-use al_core::texture::TEX_PARAMS;
 use fitsrs::hdu::header::extension;
 use fitsrs::hdu::AsyncHDU;
 use futures::io::BufReader;
@@ -151,7 +151,26 @@ impl Image {
                     gl,
                     width as i32,
                     height as i32,
-                    TEX_PARAMS,
+                    &[
+                        (
+                            WebGlRenderingCtx::TEXTURE_MIN_FILTER,
+                            WebGlRenderingCtx::NEAREST_MIPMAP_NEAREST,
+                        ),
+                        (
+                            WebGlRenderingCtx::TEXTURE_MAG_FILTER,
+                            WebGlRenderingCtx::NEAREST,
+                        ),
+                        // Prevents s-coordinate wrapping (repeating)
+                        (
+                            WebGlRenderingCtx::TEXTURE_WRAP_S,
+                            WebGlRenderingCtx::CLAMP_TO_EDGE,
+                        ),
+                        // Prevents t-coordinate wrapping (repeating)
+                        (
+                            WebGlRenderingCtx::TEXTURE_WRAP_T,
+                            WebGlRenderingCtx::CLAMP_TO_EDGE,
+                        ),
+                    ],
                     Some(slice),
                 )?;
 
@@ -168,6 +187,10 @@ impl Image {
             )
             .await?
         };
+
+        for tex in &textures {
+            tex.generate_mipmap();
+        }
 
         let start = cuts.start * scale + offset;
         let end = cuts.end * scale + offset;

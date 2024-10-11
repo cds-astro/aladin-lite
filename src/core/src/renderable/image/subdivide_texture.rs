@@ -5,7 +5,7 @@ use futures::AsyncReadExt;
 use super::cuts;
 use al_core::image::format::ImageFormat;
 use al_core::texture::pixel::Pixel;
-use al_core::texture::TEX_PARAMS;
+use al_core::webgl_ctx::WebGlRenderingCtx;
 use al_core::Texture2D;
 use al_core::WebGlContext;
 use std::ops::Range;
@@ -35,12 +35,33 @@ where
     ];
 
     for _ in 0..num_textures {
-        tex_chunks.push(Texture2D::create_empty_with_format::<F>(
+        let tex_chunk = Texture2D::create_empty_with_format::<F>(
             gl,
             max_tex_size as i32,
             max_tex_size as i32,
-            TEX_PARAMS,
-        )?);
+            &[
+                (
+                    WebGlRenderingCtx::TEXTURE_MIN_FILTER,
+                    WebGlRenderingCtx::NEAREST_MIPMAP_NEAREST,
+                ),
+                (
+                    WebGlRenderingCtx::TEXTURE_MAG_FILTER,
+                    WebGlRenderingCtx::NEAREST,
+                ),
+                // Prevents s-coordinate wrapping (repeating)
+                (
+                    WebGlRenderingCtx::TEXTURE_WRAP_S,
+                    WebGlRenderingCtx::CLAMP_TO_EDGE,
+                ),
+                // Prevents t-coordinate wrapping (repeating)
+                (
+                    WebGlRenderingCtx::TEXTURE_WRAP_T,
+                    WebGlRenderingCtx::CLAMP_TO_EDGE,
+                ),
+            ],
+        )?;
+        tex_chunk.generate_mipmap();
+        tex_chunks.push(tex_chunk);
     }
 
     let mut pixels_written = 0;

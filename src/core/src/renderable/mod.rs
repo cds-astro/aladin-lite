@@ -14,7 +14,7 @@ use crate::tile_fetcher::TileFetcherQueue;
 
 use al_core::image::format::ChannelType;
 
-pub use hips::HiPS;
+pub use hips::HiPS2D;
 
 pub use catalog::Manager;
 
@@ -30,10 +30,11 @@ use al_core::VertexArrayObject;
 use al_core::WebGlContext;
 
 use crate::camera::CameraViewPort;
+use crate::renderable::hips::config::HiPSConfig;
 use crate::shader::ShaderId;
+use crate::shader::ShaderManager;
 use crate::Abort;
 use crate::ProjectionType;
-use crate::{shader::ShaderManager, survey::config::HiPSConfig};
 
 // Recursively compute the number of subdivision needed for a cell
 // to not be too much skewed
@@ -56,7 +57,7 @@ pub(crate) type CreatorDid = String;
 type LayerId = String;
 pub struct Layers {
     // Surveys to query
-    surveys: HashMap<CreatorDid, HiPS>,
+    surveys: HashMap<CreatorDid, HiPS2D>,
     images: HashMap<Id, Vec<Image>>, // an url can contain multiple images i.e. a fits file can contain
     // multiple image extensions
     // The meta data associated with a layer
@@ -414,7 +415,7 @@ impl Layers {
         camera: &mut CameraViewPort,
         proj: &ProjectionType,
         tile_fetcher: &mut TileFetcherQueue,
-    ) -> Result<&HiPS, JsValue> {
+    ) -> Result<&HiPS2D, JsValue> {
         let HiPSCfg {
             layer,
             properties,
@@ -468,7 +469,7 @@ impl Layers {
             }*/
             camera.register_view_frame(cfg.get_frame(), proj);
 
-            let hips = HiPS::new(cfg, gl)?;
+            let hips = HiPS2D::new(cfg, gl)?;
             // add the frame to the camera
 
             self.surveys.insert(creator_did.clone(), hips);
@@ -563,7 +564,7 @@ impl Layers {
     ) -> Result<(), JsValue> {
         let layer_ref = layer.as_str();
 
-        if let Some(meta_old) = self.meta.get(layer_ref) {
+        /*if let Some(meta_old) = self.meta.get(layer_ref) {
             if !meta_old.visible() && meta.visible() {
                 if let Some(survey) = self.get_mut_hips_from_layer(layer_ref) {
                     survey.recompute_vertices(camera, projection);
@@ -595,7 +596,7 @@ impl Layers {
                     }
                 }
             }
-        }
+        }*/
 
         // Expect the image survey to be found in the hash map
         self.meta.insert(layer.clone(), meta).ok_or_else(|| {
@@ -607,14 +608,14 @@ impl Layers {
 
     // Accessors
     // HiPSes getters
-    pub fn get_hips_from_layer(&self, layer: &str) -> Option<&HiPS> {
+    pub fn get_hips_from_layer(&self, layer: &str) -> Option<&HiPS2D> {
         self.ids
             .get(layer)
             .map(|cdid| self.surveys.get(cdid))
             .flatten()
     }
 
-    pub fn get_mut_hips_from_layer(&mut self, layer: &str) -> Option<&mut HiPS> {
+    pub fn get_mut_hips_from_layer(&mut self, layer: &str) -> Option<&mut HiPS2D> {
         if let Some(cdid) = self.ids.get_mut(layer) {
             self.surveys.get_mut(cdid)
         } else {
@@ -622,19 +623,19 @@ impl Layers {
         }
     }
 
-    pub fn get_mut_hips_from_cdid(&mut self, cdid: &str) -> Option<&mut HiPS> {
+    pub fn get_mut_hips_from_cdid(&mut self, cdid: &str) -> Option<&mut HiPS2D> {
         self.surveys.get_mut(cdid)
     }
 
-    pub fn get_hips_from_cdid(&mut self, cdid: &str) -> Option<&HiPS> {
+    pub fn get_hips_from_cdid(&mut self, cdid: &str) -> Option<&HiPS2D> {
         self.surveys.get(cdid)
     }
 
-    pub fn values_hips(&self) -> impl Iterator<Item = &HiPS> {
+    pub fn values_hips(&self) -> impl Iterator<Item = &HiPS2D> {
         self.surveys.values()
     }
 
-    pub fn values_mut_hips(&mut self) -> impl Iterator<Item = &mut HiPS> {
+    pub fn values_mut_hips(&mut self) -> impl Iterator<Item = &mut HiPS2D> {
         self.surveys.values_mut()
     }
 

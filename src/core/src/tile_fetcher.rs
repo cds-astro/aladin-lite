@@ -1,5 +1,5 @@
 use crate::downloader::{query, Downloader};
-use crate::renderable::HiPS;
+use crate::renderable::HiPS2D;
 use crate::time::{DeltaTime, Time};
 use crate::Abort;
 
@@ -190,7 +190,7 @@ impl TileFetcherQueue {
 
     pub fn launch_starting_hips_requests(
         &mut self,
-        hips: &HiPS,
+        hips: &HiPS2D,
         downloader: Rc<RefCell<Downloader>>,
     ) {
         let cfg = hips.get_config();
@@ -236,6 +236,7 @@ impl TileFetcherQueue {
                         hips_cdid.clone(),
                         hips_url.clone(),
                         hips_fmt,
+                        None,
                     )) {
                         let dl = downloader.clone();
 

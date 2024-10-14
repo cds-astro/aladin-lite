@@ -47,6 +47,7 @@ pub struct HiPSProperties {
     hips_initial_fov: Option<f64>,
     hips_initial_ra: Option<f64>,
     hips_initial_dec: Option<f64>,
+    hips_cube_depth: Option<u32>,
 
     // Parametrable by the user
     #[allow(unused)]
@@ -76,6 +77,11 @@ impl HiPSProperties {
     #[inline(always)]
     pub fn get_min_order(&self) -> Option<u8> {
         self.min_order
+    }
+
+    #[inline(always)]
+    pub fn get_cube_depth(&self) -> Option<u32> {
+        self.hips_cube_depth
     }
 
     #[inline(always)]

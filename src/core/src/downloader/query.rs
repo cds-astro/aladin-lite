@@ -22,14 +22,16 @@ pub struct Tile {
     pub id: QueryId,
 }
 
+use crate::healpix::cell::HEALPixCell;
+use crate::renderable::hips::config::HiPSConfig;
 use crate::renderable::CreatorDid;
-use crate::{healpix::cell::HEALPixCell, survey::config::HiPSConfig};
 impl Tile {
     pub fn new(
         cell: &HEALPixCell,
         hips_cdid: String,
         hips_url: String,
         format: ImageFormatType,
+        channel: Option<u32>,
     ) -> Self {
         let ext = format.get_ext_file();
 
@@ -37,12 +39,19 @@ impl Tile {
 
         let dir_idx = (idx / 10000) * 10000;
 
-        let url = format!(
-            "{}/Norder{}/Dir{}/Npix{}.{}",
-            hips_url, depth, dir_idx, idx, ext
-        );
+        let mut url = format!("{}/Norder{}/Dir{}/Npix{}", hips_url, depth, dir_idx, idx);
 
-        let id = format!("{}{}{}{}", hips_cdid, depth, idx, ext);
+        // handle cube case
+        if let Some(channel) = channel {
+            url.push_str(&format!("_{:?}", channel));
+        }
+
+        // add the tile format
+        url.push_str(&format!(".{}", ext));
+
+        let channel = channel.unwrap_or(0);
+
+        let id = format!("{}{}{}{}{}", hips_cdid, depth, idx, channel, ext);
 
         Tile {
             hips_cdid,

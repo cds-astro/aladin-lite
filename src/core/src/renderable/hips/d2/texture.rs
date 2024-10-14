@@ -34,7 +34,7 @@ pub struct Texture {
     //missing: bool,
 }
 
-use super::config::HiPSConfig;
+use crate::renderable::hips::config::HiPSConfig;
 
 impl Texture {
     pub fn new(texture_cell: &HEALPixCell, idx: i32, time_request: Time) -> Texture {

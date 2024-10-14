@@ -2,83 +2,7 @@ use al_api::hips::ImageExt;
 
 use al_core::{image::format::ImageFormat, image::raw::ImageBuffer};
 
-#[derive(Debug)]
-pub struct EmptyTileImage {
-    inner: ImageType,
-}
-
 use al_core::{image::ImageType, pixel::Pixel};
-impl EmptyTileImage {
-    fn new(size: i32, channel: ChannelType) -> EmptyTileImage {
-        debug_assert!(math::utils::is_power_of_two(size));
-        let inner = match channel {
-            ChannelType::RGBA8U => {
-                let image = ImageBuffer::<RGBA8U>::allocate(
-                    &<<RGBA8U as ImageFormat>::P as Pixel>::BLACK,
-                    size,
-                    size,
-                );
-                ImageType::RawRgba8u { image }
-            }
-            ChannelType::RGB8U => {
-                let image = ImageBuffer::<RGB8U>::allocate(
-                    &<<RGB8U as ImageFormat>::P as Pixel>::BLACK,
-                    size,
-                    size,
-                );
-                ImageType::RawRgb8u { image }
-            }
-            ChannelType::R32F => {
-                let image = ImageBuffer::<R32F>::allocate(
-                    &<<R32F as ImageFormat>::P as Pixel>::BLACK,
-                    size,
-                    size,
-                );
-                ImageType::RawR32f { image }
-            }
-            ChannelType::R64F => {
-                let image = ImageBuffer::<R32F>::allocate(
-                    &<<R32F as ImageFormat>::P as Pixel>::BLACK,
-                    size,
-                    size,
-                );
-                ImageType::RawR32f { image }
-            }
-            #[cfg(feature = "webgl2")]
-            ChannelType::R8UI => {
-                let image = ImageBuffer::<R8UI>::allocate(
-                    &<<R8UI as ImageFormat>::P as Pixel>::BLACK,
-                    size,
-                    size,
-                );
-                ImageType::RawR8ui { image }
-            }
-            #[cfg(feature = "webgl2")]
-            ChannelType::R16I => {
-                let image = ImageBuffer::<R16I>::allocate(
-                    &<<R16I as ImageFormat>::P as Pixel>::BLACK,
-                    size,
-                    size,
-                );
-                ImageType::RawR16i { image }
-            }
-            #[cfg(feature = "webgl2")]
-            ChannelType::R32I => {
-                let image = ImageBuffer::<R32I>::allocate(
-                    &<<R32I as ImageFormat>::P as Pixel>::BLACK,
-                    size,
-                    size,
-                );
-                ImageType::RawR32i { image }
-            }
-            _ => todo!(),
-        };
-        EmptyTileImage {
-            inner,
-            //pixel_fill,
-        }
-    }
-}
 
 use al_core::{
     image::{
@@ -89,55 +13,12 @@ use al_core::{
 };
 use cgmath::Vector3;
 
-/*
-impl Image for EmptyTileImage {
-    fn insert(
-        &self,
-        // The texture array
-        textures: &Texture2DArray,
-        // An offset to write the image in the texture array
-        offset: &Vector3<i32>,
-    ) -> Result<(), JsValue> {
-        self.inner.tex_sub_image_3d(textures, offset)
-    }
-}
-*/
-
 use al_core::image::format::{ChannelType, ImageFormatType, RGB8U, RGBA8U};
-
-//use super::TileArrayBuffer;
-
-/*use super::{ArrayF32, ArrayF64, ArrayI16, ArrayI32, ArrayU8};
-fn create_black_tile(format: FormatImageType, width: i32, value: f32) -> TileArrayBufferImage {
-    let _num_channels = format.get_num_channels() as i32;
-    match format {
-        FormatImageType::JPG => TileArrayBufferImage::U8(JPG::create_black_tile(width)),
-        FormatImageType::PNG => TileArrayBufferImage::U8(PNG::create_black_tile(width)),
-        FormatImageType::FITS(_fits) => match format.get_type() {
-            WebGl2RenderingContext::FLOAT => {
-                TileArrayBufferImage::F32(FITS::create_black_tile(width, value))
-            }
-            WebGl2RenderingContext::INT => {
-                TileArrayBufferImage::I32(FITS::create_black_tile(width, value as i32))
-            }
-            WebGl2RenderingContext::SHORT => {
-                TileArrayBufferImage::I16(FITS::create_black_tile(width, value as i16))
-            }
-            WebGl2RenderingContext::UNSIGNED_BYTE => {
-                TileArrayBufferImage::U8(FITS::create_black_tile(width, value as u8))
-            }
-            _ => unimplemented!(),
-        },
-        _ => unimplemented!(),
-    }
-}*/
-
 #[derive(Debug)]
 pub struct HiPSConfig {
     pub root_url: String,
     // HiPS image format
     // TODO: Make that independant of the HiPS but of the ImageFormat
-    pub empty_image: EmptyTileImage,
 
     // The size of the texture images
     pub texture_size: i32,
@@ -147,6 +28,9 @@ pub struct HiPSConfig {
     delta_depth: u8,
     min_depth_tile: u8,
     min_depth_texture: u8,
+    // the number of slices for cubes
+    cube_depth: Option<u32>,
+
     // Num tiles per texture
     num_tiles_per_texture: usize,
     // Max depth of the current HiPS tiles
@@ -191,6 +75,7 @@ impl HiPSConfig {
     pub fn new(properties: &HiPSProperties, img_ext: ImageExt) -> Result<HiPSConfig, JsValue> {
         let root_url = properties.get_url();
         let creator_did = properties.get_creator_did().to_string();
+        let cube_depth = properties.get_cube_depth();
         // Define the size of the 2d texture array depending on the
         // characterics of the client
 
@@ -281,8 +166,6 @@ impl HiPSConfig {
             }
         };*/
 
-        let empty_image = EmptyTileImage::new(tile_size, format.get_channel());
-
         let texture_size = std::cmp::min(512, tile_size << max_depth_tile);
         //let texture_size = tile_size;
         let num_tile_per_side_texture = (texture_size / tile_size) as usize;
@@ -308,8 +191,6 @@ impl HiPSConfig {
             creator_did,
             // HiPS name
             root_url: root_url.to_string(),
-            // Tile size & blank tile data
-            empty_image,
             // Texture config
             // The size of the texture images
             texture_size,
@@ -334,13 +215,14 @@ impl HiPSConfig {
             tex_storing_integers,
             tex_storing_unsigned_int,
 
+            // the number of slices in a cube
+            cube_depth,
+
             size_tile_uv,
             frame,
             bitpix,
             format,
             tile_size,
-            //dataproduct_subtype,
-            //colored,
         };
 
         Ok(hips_config)
@@ -414,9 +296,6 @@ impl HiPSConfig {
         }?;
 
         self.format = format;
-
-        // Recompute the empty image
-        self.empty_image = EmptyTileImage::new(self.tile_size, self.format.get_channel());
 
         // Recompute if the survey will be colored or not
         /*self.colored = if self.tex_storing_fits {
@@ -509,11 +388,6 @@ impl HiPSConfig {
     pub fn is_colored(&self) -> bool {
         self.format.is_colored()
     }
-
-    /*#[inline(always)]
-    pub fn get_default_image(&self) -> &EmptyTileImage {
-        &self.empty_image
-    }*/
 }
 
 use al_core::shader::{SendUniforms, ShaderBound};

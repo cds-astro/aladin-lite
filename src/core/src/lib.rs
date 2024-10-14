@@ -106,7 +106,6 @@ mod inertia;
 pub mod math;
 pub mod renderable;
 mod shader;
-mod survey;
 mod tile_fetcher;
 mod time;
 

@@ -21,7 +21,7 @@ struct Tile {
 uniform Tile textures_tiles[12];
 
 #include ../color.glsl;
-#include ../../projection/hpx.glsl;
+#include ../../projection/hpx_proj.glsl;
 
 uniform float opacity;
 

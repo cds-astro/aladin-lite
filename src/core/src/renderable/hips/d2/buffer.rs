@@ -16,13 +16,13 @@ use al_core::shader::{SendUniforms, ShaderBound};
 use al_core::Texture2DArray;
 use al_core::WebGlContext;
 
-use super::config::HiPSConfig;
-use super::texture::Texture;
-use super::texture::TextureUniforms;
+use super::texture::{Texture, TextureUniforms};
+
 use crate::downloader::request::allsky::Allsky;
 use crate::healpix::cell::HEALPixCell;
 use crate::healpix::cell::NUM_HPX_TILES_DEPTH_ZERO;
 use crate::math::lonlat::LonLatT;
+use crate::renderable::hips::config::HiPSConfig;
 use crate::time::Time;
 use crate::Abort;
 use crate::JsValue;
@@ -305,7 +305,7 @@ impl HiPS2DBuffer {
 
     // This method pushes a new downloaded tile into the buffer
     // It must be ensured that the tile is not already contained into the buffer
-    pub fn push<I: Image + std::fmt::Debug>(
+    pub fn push<I: Image>(
         &mut self,
         cell: &HEALPixCell,
         image: I,

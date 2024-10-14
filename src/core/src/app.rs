@@ -259,25 +259,24 @@ impl App {
         self.tile_fetcher.clear();
         // Loop over the surveys
         for survey in self.layers.values_mut_hips() {
+            let cfg = survey.get_config();
+
             if self.camera.get_texture_depth() == 0
                 && self
                     .downloader
                     .borrow()
-                    .is_queried(&query::Allsky::new(survey.get_config()).id)
+                    .is_queried(&query::Allsky::new(cfg).id)
             {
                 // do not ask for tiles if we download the allsky
                 continue;
             }
 
-            let min_tile_depth = survey
-                .get_config()
-                .delta_depth()
-                .max(survey.get_config().get_min_depth_tile());
+            let min_tile_depth = cfg.delta_depth().max(cfg.get_min_depth_tile());
             let mut ancestors = HashSet::new();
 
-            let creator_did = survey.get_config().get_creator_did().to_string();
-            let root_url = survey.get_config().get_root_url().to_string();
-            let format = survey.get_config().get_format();
+            let creator_did = cfg.get_creator_did().to_string();
+            let root_url = cfg.get_root_url().to_string();
+            let format = cfg.get_format();
 
             if let Some(tiles_iter) = survey.look_for_new_tiles(&mut self.camera, &self.projection)
             {
@@ -287,6 +286,7 @@ impl App {
                         creator_did.clone(),
                         root_url.clone(),
                         format,
+                        None,
                     ));
 
                     // check if we are starting aladin lite or not.
@@ -308,6 +308,7 @@ impl App {
                         creator_did.clone(),
                         root_url.clone(),
                         format,
+                        None,
                     ));
                 }
             }
@@ -732,6 +733,7 @@ impl App {
                                         cfg.get_creator_did().to_string(),
                                         cfg.get_root_url().to_string(),
                                         cfg.get_format(),
+                                        None,
                                     );
                                     self.tile_fetcher.append_base_tile(query);
                                 }

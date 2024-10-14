@@ -218,11 +218,6 @@ impl Tile {
     pub fn cell(&self) -> &HEALPixCell {
         &self.cell
     }
-
-    /*#[inline(always)]
-    pub fn query(&self) -> query::Tile {
-        query::Tile::new(&self.cell, self.hips_url.clone(), self.format)
-    }*/
 }
 
 impl<'a> From<&'a TileRequest> for Option<Tile> {

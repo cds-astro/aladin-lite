@@ -12,10 +12,9 @@ impl<T> Deref for UV<T> {
     }
 }
 
-use crate::{
-    healpix::cell::HEALPixCell,
-    survey::{config::HiPSConfig, texture::Texture},
-};
+use super::config::HiPSConfig;
+use super::d2::texture::Texture;
+use crate::healpix::cell::HEALPixCell;
 pub struct TileUVW([Vector3<f32>; 4]);
 impl TileUVW {
     // The texture cell passed must be a child of texture

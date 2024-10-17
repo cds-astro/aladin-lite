@@ -1,11 +1,14 @@
 pub mod buffer;
 pub mod texture;
 
+use crate::renderable::hips::HpxTile;
 use al_api::hips::ImageExt;
 use al_api::hips::ImageMetadata;
 use al_core::colormap::Colormap;
 use al_core::colormap::Colormaps;
 use al_core::image::format::ChannelType;
+
+use crate::downloader::query;
 
 use al_core::image::Image;
 
@@ -26,7 +29,6 @@ use crate::{math::lonlat::LonLatT, utils};
 
 use crate::downloader::request::allsky::Allsky;
 use crate::healpix::{cell::HEALPixCell, coverage::HEALPixCoverage};
-use crate::math::lonlat::LonLat;
 use crate::renderable::utils::index_patch::DefaultPatchIndexIter;
 use crate::time::Time;
 
@@ -37,7 +39,7 @@ use std::collections::HashSet;
 // to not be too much skewed
 
 use buffer::HiPS2DBuffer;
-use texture::Texture;
+use texture::HpxTexture2D;
 
 use super::raytracing::RayTracer;
 use super::uv::{TileCorner, TileUVW};
@@ -47,76 +49,16 @@ use cgmath::Matrix;
 use wasm_bindgen::JsValue;
 use web_sys::WebGl2RenderingContext;
 
-const M: f64 = 280.0 * 280.0;
-const N: f64 = 150.0 * 150.0;
-const RAP: f64 = 0.7;
-
-fn is_too_large(cell: &HEALPixCell, camera: &CameraViewPort, projection: &ProjectionType) -> bool {
-    let vertices = cell
-        .vertices()
-        .iter()
-        .filter_map(|(lon, lat)| {
-            let vertex = crate::math::lonlat::radec_to_xyzw(Angle(*lon), Angle(*lat));
-            projection.icrs_celestial_to_screen_space(&vertex, camera)
-        })
-        .collect::<Vec<_>>();
-
-    if vertices.len() < 4 {
-        false
-    } else {
-        let d1 = dist2(vertices[0].as_ref(), &vertices[2].as_ref());
-        let d2 = dist2(vertices[1].as_ref(), &vertices[3].as_ref());
-        if d1 > M || d2 > M {
-            true
-        } else if d1 < N && d2 < N {
-            false
-        } else {
-            let rap = if d2 > d1 { d1 / d2 } else { d2 / d1 };
-
-            rap < RAP
-        }
-    }
-}
-
-fn num_subdivision(cell: &HEALPixCell, camera: &CameraViewPort, projection: &ProjectionType) -> u8 {
-    let d = cell.depth();
-    // Subdivide all cells at least one time.
-    // TODO: use a single subdivision number computed from the current cells inside the view
-    // i.e. subdivide all cells in the view with the cell that has to be the most subdivided
-    let mut num_sub = 1;
-    if d < 2 {
-        num_sub = 2 - d;
-    }
-
-    // Largest deformation cell among the cells of a specific depth
-    let largest_center_to_vertex_dist =
-        healpix::largest_center_to_vertex_distance(d, 0.0, healpix::TRANSITION_LATITUDE);
-    let smallest_center_to_vertex_dist =
-        healpix::largest_center_to_vertex_distance(d, 0.0, healpix::LAT_OF_SQUARE_CELL);
-
-    let (lon, lat) = cell.center();
-    let center_to_vertex_dist = healpix::largest_center_to_vertex_distance(d, lon, lat);
-
-    let skewed_factor = (center_to_vertex_dist - smallest_center_to_vertex_dist)
-        / (largest_center_to_vertex_dist - smallest_center_to_vertex_dist);
-
-    if skewed_factor > 0.25 || is_too_large(cell, camera, projection) || cell.is_on_pole() {
-        num_sub += 1;
-    }
-
-    num_sub
-}
-
 pub struct TextureToDraw<'a, 'b> {
-    pub starting_texture: &'a Texture,
-    pub ending_texture: &'a Texture,
+    pub starting_texture: &'a HpxTexture2D,
+    pub ending_texture: &'a HpxTexture2D,
     pub cell: &'b HEALPixCell,
 }
 
 impl<'a, 'b> TextureToDraw<'a, 'b> {
     fn new(
-        starting_texture: &'a Texture,
-        ending_texture: &'a Texture,
+        starting_texture: &'a HpxTexture2D,
+        ending_texture: &'a HpxTexture2D,
         cell: &'b HEALPixCell,
     ) -> TextureToDraw<'a, 'b> {
         TextureToDraw {
@@ -209,7 +151,7 @@ pub fn get_raytracer_shader<'a>(
 pub struct HiPS2D {
     //color: Color,
     // The image survey texture buffer
-    textures: HiPS2DBuffer,
+    buffer: HiPS2DBuffer,
 
     // The projected vertices data
     // For WebGL2 wasm, the data are interleaved
@@ -240,6 +182,8 @@ pub struct HiPS2D {
     // A buffer storing the cells in the view
     hpx_cells_in_view: Vec<HEALPixCell>,
 }
+
+use super::HpxTileBuffer;
 
 impl HiPS2D {
     pub fn new(config: HiPSConfig, gl: &WebGlContext) -> Result<Self, JsValue> {
@@ -294,7 +238,7 @@ impl HiPS2D {
             .unbind();
 
         let num_idx = 0;
-        let textures = HiPS2DBuffer::new(gl, config)?;
+        let buffer = HiPS2DBuffer::new(gl, config)?;
 
         let gl = gl.clone();
         let footprint_moc = None;
@@ -302,7 +246,7 @@ impl HiPS2D {
         // request the allsky texture
         Ok(Self {
             // The image survey texture buffer
-            textures,
+            buffer,
             num_idx,
 
             vao,
@@ -382,7 +326,12 @@ impl HiPS2D {
     }
 
     pub fn contains_tile(&self, cell: &HEALPixCell) -> bool {
-        self.textures.contains_tile(cell)
+        self.buffer.contains_tile(cell)
+    }
+
+    pub fn get_tile_query(&self, cell: &HEALPixCell) -> query::Tile {
+        let cfg = self.get_config();
+        query::Tile::new(cell, None, cfg)
     }
 
     pub fn update(&mut self, camera: &mut CameraViewPort, projection: &ProjectionType) {
@@ -393,7 +342,7 @@ impl HiPS2D {
         }
 
         // rasterizer mode
-        let available_tiles = self.textures.reset_available_tiles();
+        let available_tiles = self.buffer.reset_available_tiles();
         let new_cells_in_view = self.retrieve_cells_in_camera(camera);
 
         if new_cells_in_view || available_tiles {
@@ -434,51 +383,21 @@ impl HiPS2D {
         self.footprint_moc.as_ref()
     }
 
-    pub fn set_img_format(&mut self, ext: ImageExt) -> Result<(), JsValue> {
-        self.textures.set_format(&self.gl, ext)
+    pub fn set_image_ext(&mut self, ext: ImageExt) -> Result<(), JsValue> {
+        self.buffer.set_image_ext(&self.gl, ext)
     }
 
     pub fn is_allsky(&self) -> bool {
-        self.textures.config().is_allsky
+        self.buffer.config().is_allsky
     }
 
     // Position given is in the camera space
     pub fn read_pixel(
         &self,
-        pos: &LonLatT<f64>,
+        p: &LonLatT<f64>,
         camera: &CameraViewPort,
     ) -> Result<JsValue, JsValue> {
-        // 1. Convert it to the hips frame system
-        let cfg = self.textures.config();
-        let camera_frame = camera.get_coo_system();
-        let hips_frame = cfg.get_frame();
-
-        let pos = crate::coosys::apply_coo_system(camera_frame, hips_frame, &pos.vector());
-
-        // Get the array of textures from that survey
-        let tile_depth = camera.get_texture_depth().min(cfg.get_max_depth_texture());
-
-        let pos_tex = self
-            .textures
-            .get_pixel_position_in_texture(&pos.lonlat(), tile_depth)?;
-
-        let slice_idx = pos_tex.z as usize;
-        let texture_array = self.textures.get_texture_array();
-
-        unimplemented!();
-        /*let value = texture_array[slice_idx].read_pixel(pos_tex.x, pos_tex.y)?;
-
-        if cfg.tex_storing_fits {
-            let value = value
-                .as_f64()
-                .ok_or_else(|| JsValue::from_str("Error unwraping the pixel read value."))?;
-            let scale = cfg.scale as f64;
-            let offset = cfg.offset as f64;
-
-            Ok(JsValue::from_f64(value * scale + offset))
-        } else {
-            Ok(value)
-        }*/
+        self.buffer.read_pixel(p, camera)
     }
 
     fn recompute_vertices(&mut self, camera: &mut CameraViewPort, projection: &ProjectionType) {
@@ -488,7 +407,7 @@ impl HiPS2D {
         self.time_tile_received.clear();
         self.idx_vertices.clear();
 
-        let cfg = self.textures.config();
+        let cfg = self.buffer.config();
         // Get the coo system transformation matrix
         let channel = cfg.get_format().get_channel();
 
@@ -516,10 +435,10 @@ impl HiPS2D {
             };
 
             if let Some(cell) = cell {
-                let texture_to_draw = if self.textures.contains(cell) {
-                    if let Some(ending_cell_in_tex) = self.textures.get(cell) {
-                        if let Some(parent_cell) = self.textures.get_nearest_parent(cell) {
-                            if let Some(starting_cell_in_tex) = self.textures.get(&parent_cell) {
+                let texture_to_draw = if self.buffer.contains(cell) {
+                    if let Some(ending_cell_in_tex) = self.buffer.get(cell) {
+                        if let Some(parent_cell) = self.buffer.get_nearest_parent(cell) {
+                            if let Some(starting_cell_in_tex) = self.buffer.get(&parent_cell) {
                                 Some(TextureToDraw::new(
                                     starting_cell_in_tex,
                                     ending_cell_in_tex,
@@ -544,13 +463,13 @@ impl HiPS2D {
                         None
                     }
                 } else {
-                    if let Some(parent_cell) = self.textures.get_nearest_parent(cell) {
-                        if let Some(ending_cell_in_tex) = self.textures.get(&parent_cell) {
+                    if let Some(parent_cell) = self.buffer.get_nearest_parent(cell) {
+                        if let Some(ending_cell_in_tex) = self.buffer.get(&parent_cell) {
                             if let Some(grand_parent_cell) =
-                                self.textures.get_nearest_parent(&parent_cell)
+                                self.buffer.get_nearest_parent(&parent_cell)
                             {
                                 if let Some(starting_cell_in_tex) =
-                                    self.textures.get(&grand_parent_cell)
+                                    self.buffer.get(&grand_parent_cell)
                                 {
                                     Some(TextureToDraw::new(
                                         starting_cell_in_tex,
@@ -595,7 +514,8 @@ impl HiPS2D {
 
                     let start_time = ending_texture.start_time().as_millis();
 
-                    let num_subdivision = num_subdivision(cell, camera, projection);
+                    let num_subdivision =
+                        super::subdivide::num_hpxcell_subdivision(cell, camera, projection);
 
                     let n_segments_by_side: usize = 1 << (num_subdivision as usize);
                     let n_segments_by_side_f32 = n_segments_by_side as f32;
@@ -693,9 +613,9 @@ impl HiPS2D {
 
     // Return a boolean to signal if the tile is present or not in the survey
     pub fn update_priority_tile(&mut self, cell: &HEALPixCell) -> bool {
-        if self.textures.contains_tile(cell) {
+        if self.buffer.contains_tile(cell) {
             // The cell is present in the survey, we update its priority
-            self.textures.update_priority(cell);
+            self.buffer.update_priority(cell);
             true
         } else {
             false
@@ -708,22 +628,22 @@ impl HiPS2D {
         image: I,
         time_request: Time,
     ) -> Result<(), JsValue> {
-        self.textures.push(&cell, image, time_request)
+        self.buffer.push(&cell, image, time_request)
     }
 
     pub fn add_allsky(&mut self, allsky: Allsky) -> Result<(), JsValue> {
-        self.textures.push_allsky(allsky)
+        self.buffer.push_allsky(allsky)
     }
 
     /* Accessors */
     #[inline]
     pub fn get_config(&self) -> &HiPSConfig {
-        self.textures.config()
+        self.buffer.config()
     }
 
     #[inline]
     pub fn get_config_mut(&mut self) -> &mut HiPSConfig {
-        self.textures.config_mut()
+        self.buffer.config_mut()
     }
 
     pub fn draw(
@@ -737,7 +657,7 @@ impl HiPS2D {
     ) -> Result<(), JsValue> {
         // Get the coo system transformation matrix
         let selected_frame = camera.get_coo_system();
-        let hips_cfg = self.textures.config();
+        let hips_cfg = self.buffer.config();
         let hips_frame = hips_cfg.get_frame();
         let c = selected_frame.to(hips_frame);
 
@@ -768,7 +688,7 @@ impl HiPS2D {
                 let shader = shader.bind(&self.gl);
                 shader
                     .attach_uniforms_from(camera)
-                    .attach_uniforms_from(&self.textures)
+                    .attach_uniforms_from(&self.buffer)
                     // send the cmap appart from the color config
                     .attach_uniforms_with_params_from(cmap, colormaps)
                     .attach_uniforms_from(color)
@@ -796,7 +716,7 @@ impl HiPS2D {
                 let shader = get_raster_shader(cmap, &self.gl, shaders, &config)?.bind(&self.gl);
 
                 shader
-                    .attach_uniforms_from(&self.textures)
+                    .attach_uniforms_from(&self.buffer)
                     // send the cmap appart from the color config
                     .attach_uniforms_with_params_from(cmap, colormaps)
                     .attach_uniforms_from(color)

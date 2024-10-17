@@ -328,7 +328,7 @@ impl Texture2D {
             // set the viewport as the FBO won't be the same dimension as the screen
             let metadata = self.metadata.as_ref().unwrap_abort().borrow();
             self.gl
-                .viewport(x, y, metadata.width as i32, metadata.height as i32);
+                .viewport(0, 0, metadata.width as i32, metadata.height as i32);
 
             #[cfg(feature = "webgl2")]
             let value = match (metadata.format, metadata.type_) {

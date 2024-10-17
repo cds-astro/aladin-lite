@@ -14,8 +14,6 @@ use crate::tile_fetcher::TileFetcherQueue;
 
 use al_core::image::format::ChannelType;
 
-pub use hips::HiPS2D;
-
 pub use catalog::Manager;
 
 use al_api::color::ColorRGB;
@@ -43,6 +41,9 @@ use hips::raytracing::RayTracer;
 
 use std::collections::HashMap;
 
+use hips::d2::HiPS2D;
+use hips::d3::HiPS3D;
+
 use wasm_bindgen::JsValue;
 use web_sys::WebGl2RenderingContext;
 
@@ -54,10 +55,12 @@ pub trait Renderer {
 pub(crate) type Id = String; // ID of an image, can be an url or a uuidv4
 pub(crate) type CreatorDid = String;
 
+use hips::HiPS;
 type LayerId = String;
 pub struct Layers {
     // Surveys to query
-    surveys: HashMap<CreatorDid, HiPS2D>,
+    hipses: HashMap<CreatorDid, HiPS>,
+
     images: HashMap<Id, Vec<Image>>, // an url can contain multiple images i.e. a fits file can contain
     // multiple image extensions
     // The meta data associated with a layer
@@ -121,7 +124,8 @@ impl ImageLayer {
 
 impl Layers {
     pub fn new(gl: &WebGlContext, projection: &ProjectionType) -> Result<Self, JsValue> {
-        let surveys = HashMap::new();
+        let hipses = HashMap::new();
+
         let images = HashMap::new();
         let meta = HashMap::new();
         let ids = HashMap::new();
@@ -155,7 +159,7 @@ impl Layers {
 
         let background_color = DEFAULT_BACKGROUND_COLOR;
         Ok(Layers {
-            surveys,
+            hipses,
             images,
 
             meta,
@@ -171,19 +175,10 @@ impl Layers {
         })
     }
 
-    pub fn set_survey_url(&mut self, cdid: &CreatorDid, new_url: String) -> Result<(), JsValue> {
-        if let Some(survey) = self.surveys.get_mut(cdid) {
+    pub fn set_hips_url(&mut self, cdid: &CreatorDid, new_url: String) -> Result<(), JsValue> {
+        if let Some(hips) = self.hipses.get_mut(cdid) {
             // update the root_url
-            survey.get_config_mut().set_root_url(new_url.clone());
-
-            //self.surveys.insert(new_url.clone(), survey);
-
-            // update all the layer urls
-            /*for id in self.ids.values_mut() {
-                if *id == past_url {
-                    *id = new_url.clone();
-                }
-            }*/
+            hips.get_config_mut().set_root_url(new_url.clone());
 
             Ok(())
         } else {
@@ -192,8 +187,8 @@ impl Layers {
     }
 
     /*pub fn reset_frame(&mut self) {
-        for survey in self.surveys.values_mut() {
-            survey.reset_frame();
+        for hips in self.hips.values_mut() {
+            hips.reset_frame();
         }
     }*/
 
@@ -221,15 +216,15 @@ impl Layers {
         let raytracer = &self.raytracer;
         let raytracing = camera.is_raytracing(projection);
 
-        // Check whether a survey to plot is allsky
+        // Check whether a hips to plot is allsky
         // if neither are, we draw a font
         // if there are, we do not draw nothing
         let render_background_color = !self.layers.iter().any(|layer| {
             let meta = self.meta.get(layer).unwrap_abort();
             let cdid = self.ids.get(layer).unwrap_abort();
-            if let Some(survey) = self.surveys.get(cdid) {
-                let hips_cfg = survey.get_config();
-                (survey.is_allsky() || hips_cfg.get_format().get_channel() == ChannelType::RGB8U)
+            if let Some(hips) = self.hipses.get(cdid) {
+                let hips_cfg = hips.get_config();
+                (hips.is_allsky() || hips_cfg.get_format().get_channel() == ChannelType::RGB8U)
                     && meta.opacity == 1.0
             } else {
                 // image fits case
@@ -268,13 +263,13 @@ impl Layers {
             let meta = self.meta.get(layer).expect("Meta should be found");
 
             let id = self.ids.get(layer).expect("Url should be found");
-            if let Some(survey) = self.surveys.get_mut(id) {
-                let hips_cfg = survey.get_config();
+            if let Some(hips) = self.hipses.get_mut(id) {
+                let hips_cfg = hips.get_config();
 
-                let fully_covering_survey = (survey.is_allsky()
+                let fully_covering_hips = (hips.is_allsky()
                     || hips_cfg.get_format().get_channel() == ChannelType::RGB8U)
                     && meta.opacity == 1.0;
-                if fully_covering_survey {
+                if fully_covering_hips {
                     idx_start_layer = idx_layer;
                 }
             }
@@ -284,13 +279,19 @@ impl Layers {
         for layer in rendered_layers {
             let draw_opt = self.meta.get(layer).expect("Meta should be found");
             if draw_opt.visible() {
-                // 1. Update the survey if necessary
+                // 1. Update the hips if necessary
                 let id = self.ids.get(layer).expect("Url should be found");
-                if let Some(survey) = self.surveys.get_mut(id) {
-                    survey.update(camera, projection);
-
-                    // 2. Draw it if its opacity is not null
-                    survey.draw(shaders, colormaps, camera, raytracer, draw_opt, projection)?;
+                if let Some(hips) = self.hipses.get_mut(id) {
+                    match hips {
+                        HiPS::D2(hips) => {
+                            hips.update(camera, projection);
+                            // 2. Draw it if its opacity is not null
+                            hips.draw(shaders, colormaps, camera, raytracer, draw_opt, projection)?;
+                        }
+                        HiPS::D3(hips) => {
+                            hips.draw(shaders, colormaps, camera, raytracer, draw_opt, projection)?;
+                        }
+                    }
                 } else if let Some(images) = self.images.get_mut(id) {
                     // 2. Draw it if its opacity is not null
                     for image in images {
@@ -338,14 +339,14 @@ impl Layers {
             Ok(id_layer)
         } else {
             // Resource not needed anymore
-            if let Some(s) = self.surveys.remove(&id) {
+            if let Some(hips) = self.hipses.remove(&id) {
                 // A HiPS has been found and removed
-                let hips_frame = s.get_config().get_frame();
+                let hips_frame = hips.get_config().get_frame();
                 // remove the frame
                 camera.unregister_view_frame(hips_frame, proj);
 
                 // remove the local files access from the tile fetcher
-                tile_fetcher.delete_hips_local_files(s.get_config().get_creator_did());
+                tile_fetcher.delete_hips_local_files(hips.get_config().get_creator_did());
 
                 Ok(id_layer)
             } else if let Some(_) = self.images.remove(&id) {
@@ -353,7 +354,7 @@ impl Layers {
                 Ok(id_layer)
             } else {
                 Err(JsValue::from_str(&format!(
-                    "Url found {:?} is associated to no surveys.",
+                    "Url found {:?} is associated to no 2D HiPSes.",
                     id
                 )))
             }
@@ -408,14 +409,14 @@ impl Layers {
         Ok(())
     }
 
-    pub fn add_image_hips(
+    pub fn add_hips(
         &mut self,
         gl: &WebGlContext,
         hips: HiPSCfg,
         camera: &mut CameraViewPort,
         proj: &ProjectionType,
         tile_fetcher: &mut TileFetcherQueue,
-    ) -> Result<&HiPS2D, JsValue> {
+    ) -> Result<&HiPS, JsValue> {
         let HiPSCfg {
             layer,
             properties,
@@ -444,13 +445,13 @@ impl Layers {
 
         camera.set_longitude_reversed(longitude_reversed, proj);
 
-        // 3. Add the image survey
+        // 3. Add the image hips
         let creator_did = String::from(properties.get_creator_did());
         // The layer does not already exist
         // Let's check if no other hipses points to the
         // same url than `hips`
         let cdid_already_found = self
-            .surveys
+            .hipses
             .keys()
             .any(|hips_cdid| hips_cdid == &creator_did);
 
@@ -469,16 +470,21 @@ impl Layers {
             }*/
             camera.register_view_frame(cfg.get_frame(), proj);
 
-            let hips = HiPS2D::new(cfg, gl)?;
-            // add the frame to the camera
+            let hips = if cfg.get_cube_depth().is_some() {
+                // HiPS cube
+                HiPS::D3(HiPS3D::new(cfg, gl)?)
+            } else {
+                HiPS::D2(HiPS2D::new(cfg, gl)?)
+            };
 
-            self.surveys.insert(creator_did.clone(), hips);
+            // add the frame to the camera
+            self.hipses.insert(creator_did.clone(), hips);
         }
 
         self.ids.insert(layer.clone(), creator_did.clone());
 
         let hips = self
-            .surveys
+            .hipses
             .get(&creator_did)
             .ok_or(JsValue::from_str("HiPS not found"))?;
         Ok(hips)
@@ -559,15 +565,15 @@ impl Layers {
         &mut self,
         layer: String,
         meta: ImageMetadata,
-        camera: &mut CameraViewPort,
+        camera: &CameraViewPort,
         projection: &ProjectionType,
     ) -> Result<(), JsValue> {
         let layer_ref = layer.as_str();
 
         /*if let Some(meta_old) = self.meta.get(layer_ref) {
             if !meta_old.visible() && meta.visible() {
-                if let Some(survey) = self.get_mut_hips_from_layer(layer_ref) {
-                    survey.recompute_vertices(camera, projection);
+                if let Some(hips) = self.get_mut_hips_from_layer(layer_ref) {
+                    hips.recompute_vertices(camera, projection);
                 }
 
                 if let Some(images) = self.get_mut_image_from_layer(layer_ref) {
@@ -587,8 +593,8 @@ impl Layers {
                 for idx in 0..layer_idx {
                     let cur_layer = self.layers[idx].clone();
 
-                    if let Some(survey) = self.get_mut_hips_from_layer(&cur_layer) {
-                        survey.recompute_vertices(camera, projection);
+                    if let Some(hips) = self.get_mut_hips_from_layer(&cur_layer) {
+                        hips.recompute_vertices(camera, projection);
                     } else if let Some(images) = self.get_mut_image_from_layer(&cur_layer) {
                         for image in images {
                             image.recompute_vertices(camera, projection)?;
@@ -598,7 +604,7 @@ impl Layers {
             }
         }*/
 
-        // Expect the image survey to be found in the hash map
+        // Expect the image hips to be found in the hash map
         self.meta.insert(layer.clone(), meta).ok_or_else(|| {
             JsValue::from(js_sys::Error::new(&format!("{:?} layer not found", layer)))
         })?;
@@ -608,35 +614,27 @@ impl Layers {
 
     // Accessors
     // HiPSes getters
-    pub fn get_hips_from_layer(&self, layer: &str) -> Option<&HiPS2D> {
+    pub fn get_hips_from_layer(&self, layer: &str) -> Option<&HiPS> {
         self.ids
             .get(layer)
-            .map(|cdid| self.surveys.get(cdid))
+            .map(|cdid| self.hipses.get(cdid))
             .flatten()
     }
 
-    pub fn get_mut_hips_from_layer(&mut self, layer: &str) -> Option<&mut HiPS2D> {
+    pub fn get_mut_hips_from_layer(&mut self, layer: &str) -> Option<&mut HiPS> {
         if let Some(cdid) = self.ids.get_mut(layer) {
-            self.surveys.get_mut(cdid)
+            self.hipses.get_mut(cdid)
         } else {
             None
         }
     }
 
-    pub fn get_mut_hips_from_cdid(&mut self, cdid: &str) -> Option<&mut HiPS2D> {
-        self.surveys.get_mut(cdid)
+    pub fn get_mut_hips_from_cdid(&mut self, cdid: &str) -> Option<&mut HiPS> {
+        self.hipses.get_mut(cdid)
     }
 
-    pub fn get_hips_from_cdid(&mut self, cdid: &str) -> Option<&HiPS2D> {
-        self.surveys.get(cdid)
-    }
-
-    pub fn values_hips(&self) -> impl Iterator<Item = &HiPS2D> {
-        self.surveys.values()
-    }
-
-    pub fn values_mut_hips(&mut self) -> impl Iterator<Item = &mut HiPS2D> {
-        self.surveys.values_mut()
+    pub fn get_mut_hipses(&mut self) -> impl Iterator<Item = &mut HiPS> {
+        self.hipses.values_mut()
     }
 
     // Fits images getters

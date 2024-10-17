@@ -50,13 +50,11 @@ optional = true
 
 [dependencies.healpix]
 package = "cdshealpix"
-git = "https://github.com/cds-astro/cds-healpix-rust"
-branch = "master"
+version = "0.7.0"
 
 [dependencies.moclib]
 package = "moc"
-git = "https://github.com/cds-astro/cds-moc-rust"
-branch = "main"
+version = "0.17.0"
 
 [dependencies.serde]
 version = "^1.0.183"

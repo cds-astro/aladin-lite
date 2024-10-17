@@ -13,12 +13,13 @@ impl<T> Deref for UV<T> {
 }
 
 use super::config::HiPSConfig;
-use super::d2::texture::Texture;
+use super::d2::texture::HpxTexture2D;
 use crate::healpix::cell::HEALPixCell;
+use crate::renderable::hips::HpxTile;
 pub struct TileUVW([Vector3<f32>; 4]);
 impl TileUVW {
     // The texture cell passed must be a child of texture
-    pub fn new(cell: &HEALPixCell, texture: &Texture, cfg: &HiPSConfig) -> TileUVW {
+    pub fn new(cell: &HEALPixCell, texture: &HpxTexture2D, cfg: &HiPSConfig) -> TileUVW {
         // Index of the texture in the total set of textures
         let texture_idx = texture.idx();
 

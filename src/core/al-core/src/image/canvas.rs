@@ -19,7 +19,7 @@ where
 
 use crate::image::format::ImageFormat;
 use crate::image::Image;
-use crate::texture::{Tex3D, Texture2DArray};
+use crate::texture::Tex3D;
 use cgmath::Vector3;
 use wasm_bindgen::JsValue;
 impl<F> Image for Canvas<F>

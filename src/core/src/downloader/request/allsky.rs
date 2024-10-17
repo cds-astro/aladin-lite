@@ -306,7 +306,6 @@ use al_core::image::format::RGBA8U;
 use crate::time::Time;
 use std::cell::RefCell;
 use std::rc::Rc;
-use std::sync::{Arc, Mutex};
 pub struct Allsky {
     pub image: Rc<RefCell<Option<Vec<ImageType>>>>,
     pub time_req: Time,

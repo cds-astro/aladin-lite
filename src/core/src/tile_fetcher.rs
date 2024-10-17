@@ -1,5 +1,4 @@
 use crate::downloader::{query, Downloader};
-use crate::renderable::HiPS2D;
 use crate::time::{DeltaTime, Time};
 use crate::Abort;
 
@@ -9,6 +8,8 @@ use std::rc::Rc;
 
 const MAX_NUM_TILE_FETCHING: usize = 8;
 const MAX_QUERY_QUEUE_LENGTH: usize = 100;
+
+use crate::renderable::hips::HiPS;
 
 pub struct TileFetcherQueue {
     // A stack of queries to fetch
@@ -30,7 +31,6 @@ pub struct HiPSLocalFiles {
 use crate::tile_fetcher::query::Tile;
 use crate::HEALPixCell;
 use al_api::hips::ImageExt;
-use al_core::image::format::ImageFormatType;
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::JsValue;
 
@@ -52,13 +52,7 @@ impl HiPSLocalFiles {
     }
 
     pub fn insert(&mut self, depth: u8, ipix: u64, ext: ImageExt, file: web_sys::File) {
-        let mut tiles_per_fmt = match ext {
-            ImageExt::Fits => &mut self.tiles[0],
-            ImageExt::Jpeg => &mut self.tiles[1],
-            ImageExt::Png => &mut self.tiles[2],
-            ImageExt::Webp => &mut self.tiles[3],
-        };
-
+        let tiles_per_fmt = &mut self.tiles[ext as usize];
         tiles_per_fmt[depth as usize].insert(ipix, file);
     }
 
@@ -190,7 +184,7 @@ impl TileFetcherQueue {
 
     pub fn launch_starting_hips_requests(
         &mut self,
-        hips: &HiPS2D,
+        hips: &HiPS,
         downloader: Rc<RefCell<Downloader>>,
     ) {
         let cfg = hips.get_config();

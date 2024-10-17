@@ -116,7 +116,6 @@ impl<'a> Fits<'a> {
     }
 }*/
 
-use crate::Texture2DArray;
 use crate::{image::Image, texture::Tex3D};
 impl Image for Fits<'_> {
     fn insert_into_3d_texture<T: Tex3D>(

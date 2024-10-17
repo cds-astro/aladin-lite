@@ -19,7 +19,7 @@ where
         }
     }
 }
-use crate::texture::{Tex3D, Texture2DArray};
+use crate::texture::Tex3D;
 use wasm_bindgen::JsValue;
 impl<F> Image for Bitmap<F>
 where

@@ -2,6 +2,7 @@ use crate::image::format::ImageFormat;
 use web_sys::HtmlCanvasElement;
 use web_sys::WebGlTexture;
 
+use crate::texture::pixel::Pixel;
 use crate::texture::Texture2DMeta;
 use crate::webgl_ctx::WebGlContext;
 use crate::webgl_ctx::WebGlRenderingCtx;
@@ -79,6 +80,89 @@ impl Texture2DArray {
         self.gl
             .active_texture(WebGlRenderingCtx::TEXTURE0 + idx_tex_unit as u32);
         self
+    }
+
+    pub fn read_pixel(&self, x: i32, y: i32, slice_idx: i32) -> Result<JsValue, JsValue> {
+        // Create and bind the framebuffer
+        let reader = self.gl.create_framebuffer();
+        self.gl
+            .bind_framebuffer(WebGlRenderingCtx::FRAMEBUFFER, reader.as_ref());
+
+        // Attach the texture as the first color attachment
+        self.gl.framebuffer_texture_layer(
+            WebGlRenderingCtx::READ_FRAMEBUFFER,
+            WebGlRenderingCtx::COLOR_ATTACHMENT0,
+            self.texture.as_ref(),
+            0,
+            slice_idx,
+        );
+
+        let status = self
+            .gl
+            .check_framebuffer_status(WebGlRenderingCtx::FRAMEBUFFER);
+        if status != WebGlRenderingCtx::FRAMEBUFFER_COMPLETE {
+            // Unbind the framebuffer
+            self.gl
+                .bind_framebuffer(WebGlRenderingCtx::FRAMEBUFFER, None);
+            // Delete the framebuffer
+            self.gl.delete_framebuffer(reader.as_ref());
+
+            Err(JsValue::from_str("incomplete framebuffer"))
+        } else {
+            // set the viewport as the FBO won't be the same dimension as the screen
+            let metadata = self.metadata.as_ref().unwrap_abort().borrow();
+            self.gl
+                .viewport(0, 0, metadata.width as i32, metadata.height as i32);
+
+            #[cfg(feature = "webgl2")]
+            let value = match (metadata.format, metadata.type_) {
+                (WebGlRenderingCtx::RED_INTEGER, WebGlRenderingCtx::UNSIGNED_BYTE) => {
+                    let p = <[u8; 1]>::read_pixel(&self.gl, x, y)?;
+                    Ok(serde_wasm_bindgen::to_value(&p[0])?)
+                }
+                (WebGlRenderingCtx::RED_INTEGER, WebGlRenderingCtx::SHORT) => {
+                    let p = <[i16; 1]>::read_pixel(&self.gl, x, y)?;
+                    Ok(serde_wasm_bindgen::to_value(&p[0])?)
+                }
+                (WebGlRenderingCtx::RED_INTEGER, WebGlRenderingCtx::INT) => {
+                    let p = <[i32; 1]>::read_pixel(&self.gl, x, y)?;
+                    Ok(serde_wasm_bindgen::to_value(&p[0])?)
+                }
+                (WebGlRenderingCtx::RED, WebGlRenderingCtx::FLOAT) => {
+                    let p = <[f32; 1]>::read_pixel(&self.gl, x, y)?;
+                    Ok(serde_wasm_bindgen::to_value(&p[0])?)
+                }
+                (WebGlRenderingCtx::RGB, WebGlRenderingCtx::UNSIGNED_BYTE) => {
+                    let p = <[u8; 3]>::read_pixel(&self.gl, x, y)?;
+                    Ok(serde_wasm_bindgen::to_value(&p)?)
+                }
+                (WebGlRenderingCtx::RGBA, WebGlRenderingCtx::UNSIGNED_BYTE) => {
+                    let p = <[u8; 4]>::read_pixel(&self.gl, x, y)?;
+                    Ok(serde_wasm_bindgen::to_value(&p)?)
+                }
+                _ => Err(JsValue::from_str(
+                    "Pixel retrieval not implemented for that texture format.",
+                )),
+            };
+
+            // Unbind the framebuffer
+            self.gl
+                .bind_framebuffer(WebGlRenderingCtx::FRAMEBUFFER, None);
+            // Delete the framebuffer
+            self.gl.delete_framebuffer(reader.as_ref());
+
+            // set the viewport as the FBO won't be the same dimension as the screen
+            let canvas = self
+                .gl
+                .canvas()
+                .unwrap_abort()
+                .dyn_into::<web_sys::HtmlCanvasElement>()
+                .unwrap_abort();
+            self.gl
+                .viewport(0, 0, canvas.width() as i32, canvas.height() as i32);
+
+            value
+        }
     }
 }
 

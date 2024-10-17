@@ -20,6 +20,7 @@ pub struct Tile {
     // The total url of the query
     pub url: Url,
     pub id: QueryId,
+    pub channel: Option<u32>,
 }
 
 use crate::healpix::cell::HEALPixCell;
@@ -49,9 +50,14 @@ impl Tile {
         // add the tile format
         url.push_str(&format!(".{}", ext));
 
-        let channel = channel.unwrap_or(0);
-
-        let id = format!("{}{}{}{}{}", hips_cdid, depth, idx, channel, ext);
+        let id = format!(
+            "{}{}{}{}{}",
+            hips_cdid,
+            depth,
+            idx,
+            channel.unwrap_or(0),
+            ext
+        );
 
         Tile {
             hips_cdid,
@@ -59,6 +65,7 @@ impl Tile {
             cell: *cell,
             format,
             id,
+            channel,
         }
     }
 }

@@ -10,14 +10,14 @@ use super::{Request, RequestType};
 use crate::downloader::QueryId;
 
 pub struct TileRequest {
+    request: Request<ImageType>,
     pub id: QueryId,
 
     cell: HEALPixCell,
     hips_cdid: CreatorDid,
     url: Url,
     format: ImageFormatType,
-
-    request: Request<ImageType>,
+    channel: Option<u32>,
 }
 
 impl From<TileRequest> for RequestType {
@@ -59,6 +59,7 @@ impl From<query::Tile> for TileRequest {
             url,
             hips_cdid,
             id,
+            channel: slice,
         } = query;
 
         let url_clone = url.clone();
@@ -180,6 +181,7 @@ impl From<query::Tile> for TileRequest {
             hips_cdid,
             url,
             request,
+            channel: slice,
         }
     }
 }
@@ -187,7 +189,6 @@ impl From<query::Tile> for TileRequest {
 use crate::time::Time;
 use std::cell::RefCell;
 use std::rc::Rc;
-use std::sync::{Arc, Mutex};
 pub struct Tile {
     pub image: Rc<RefCell<Option<ImageType>>>,
     pub time_req: Time,

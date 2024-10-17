@@ -20,19 +20,18 @@ pub struct Tile {
     // The total url of the query
     pub url: Url,
     pub id: QueryId,
+    pub channel: Option<u32>,
 }
 
 use crate::healpix::cell::HEALPixCell;
 use crate::renderable::hips::config::HiPSConfig;
 use crate::renderable::CreatorDid;
 impl Tile {
-    pub fn new(
-        cell: &HEALPixCell,
-        hips_cdid: String,
-        hips_url: String,
-        format: ImageFormatType,
-        channel: Option<u32>,
-    ) -> Self {
+    pub fn new(cell: &HEALPixCell, channel: Option<u32>, cfg: &HiPSConfig) -> Self {
+        let hips_cdid = cfg.get_creator_did();
+        let hips_url = cfg.get_root_url();
+        let format = cfg.get_format();
+
         let ext = format.get_ext_file();
 
         let HEALPixCell(depth, idx) = *cell;
@@ -43,22 +42,30 @@ impl Tile {
 
         // handle cube case
         if let Some(channel) = channel {
-            url.push_str(&format!("_{:?}", channel));
+            if channel > 0 {
+                url.push_str(&format!("_{:?}", channel));
+            }
         }
 
         // add the tile format
         url.push_str(&format!(".{}", ext));
 
-        let channel = channel.unwrap_or(0);
-
-        let id = format!("{}{}{}{}{}", hips_cdid, depth, idx, channel, ext);
+        let id = format!(
+            "{}{}{}{}{}",
+            hips_cdid,
+            depth,
+            idx,
+            channel.unwrap_or(0),
+            ext
+        );
 
         Tile {
-            hips_cdid,
+            hips_cdid: hips_cdid.to_string(),
             url,
             cell: *cell,
             format,
             id,
+            channel,
         }
     }
 }
@@ -77,6 +84,7 @@ pub struct Allsky {
     pub format: ImageFormatType,
     pub tile_size: i32,
     pub texture_size: i32,
+    pub channel: Option<u32>,
     // The root url of the HiPS
     pub hips_cdid: CreatorDid,
     // The total url of the query
@@ -85,16 +93,31 @@ pub struct Allsky {
 }
 
 impl Allsky {
-    pub fn new(cfg: &HiPSConfig) -> Self {
+    pub fn new(cfg: &HiPSConfig, channel: Option<u32>) -> Self {
         let hips_cdid = cfg.get_creator_did().to_string();
         let tile_size = cfg.get_tile_size();
         let texture_size = cfg.get_texture_size();
         let format = cfg.get_format();
         let ext = format.get_ext_file();
 
-        let url = format!("{}/Norder3/Allsky.{}", cfg.get_root_url(), ext);
+        let mut url = format!("{}/Norder3/Allsky", cfg.get_root_url());
 
-        let id = format!("{}Allsky{}", cfg.get_creator_did(), ext);
+        // handle cube case
+        if let Some(channel) = channel {
+            if channel > 0 {
+                url.push_str(&format!("_{:?}", channel));
+            }
+        }
+
+        // add the tile format
+        url.push_str(&format!(".{}", ext));
+
+        let id = format!(
+            "{}Allsky{}{}",
+            cfg.get_creator_did(),
+            ext,
+            channel.unwrap_or(0)
+        );
 
         Allsky {
             tile_size,
@@ -103,6 +126,7 @@ impl Allsky {
             url,
             format,
             id,
+            channel,
         }
     }
 }

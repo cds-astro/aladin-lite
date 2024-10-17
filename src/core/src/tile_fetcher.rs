@@ -1,5 +1,4 @@
 use crate::downloader::{query, Downloader};
-use crate::renderable::HiPS2D;
 use crate::time::{DeltaTime, Time};
 use crate::Abort;
 
@@ -9,6 +8,8 @@ use std::rc::Rc;
 
 const MAX_NUM_TILE_FETCHING: usize = 8;
 const MAX_QUERY_QUEUE_LENGTH: usize = 100;
+
+use crate::renderable::hips::HiPS;
 
 pub struct TileFetcherQueue {
     // A stack of queries to fetch
@@ -30,7 +31,6 @@ pub struct HiPSLocalFiles {
 use crate::tile_fetcher::query::Tile;
 use crate::HEALPixCell;
 use al_api::hips::ImageExt;
-use al_core::image::format::ImageFormatType;
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::JsValue;
 
@@ -52,13 +52,7 @@ impl HiPSLocalFiles {
     }
 
     pub fn insert(&mut self, depth: u8, ipix: u64, ext: ImageExt, file: web_sys::File) {
-        let mut tiles_per_fmt = match ext {
-            ImageExt::Fits => &mut self.tiles[0],
-            ImageExt::Jpeg => &mut self.tiles[1],
-            ImageExt::Png => &mut self.tiles[2],
-            ImageExt::Webp => &mut self.tiles[3],
-        };
-
+        let tiles_per_fmt = &mut self.tiles[ext as usize];
         tiles_per_fmt[depth as usize].insert(ipix, file);
     }
 
@@ -190,7 +184,7 @@ impl TileFetcherQueue {
 
     pub fn launch_starting_hips_requests(
         &mut self,
-        hips: &HiPS2D,
+        hips: &HiPS,
         downloader: Rc<RefCell<Downloader>>,
     ) {
         let cfg = hips.get_config();
@@ -221,7 +215,13 @@ impl TileFetcherQueue {
         //Request the allsky for the small tile size or if base tiles are not available
         if tile_size <= 128 || cfg.get_min_depth_tile() > 0 {
             // Request the allsky
-            downloader.borrow_mut().fetch(query::Allsky::new(cfg));
+            downloader.borrow_mut().fetch(query::Allsky::new(
+                cfg,
+                match hips {
+                    HiPS::D2(_) => None,
+                    HiPS::D3(h) => Some(h.get_slice() as u32),
+                },
+            ));
         } else if cfg.get_min_depth_tile() == 0 {
             #[cfg(target_arch = "wasm32")]
             {
@@ -231,13 +231,7 @@ impl TileFetcherQueue {
                 let min_order = cfg.get_min_depth_texture();
 
                 for tile_cell in crate::healpix::cell::ALLSKY_HPX_CELLS_D0 {
-                    if let Ok(query) = self.check_in_file_list(query::Tile::new(
-                        tile_cell,
-                        hips_cdid.clone(),
-                        hips_url.clone(),
-                        hips_fmt,
-                        None,
-                    )) {
+                    if let Ok(query) = self.check_in_file_list(hips.get_tile_query(tile_cell)) {
                         let dl = downloader.clone();
 
                         crate::utils::set_timeout(

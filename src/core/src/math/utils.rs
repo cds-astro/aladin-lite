@@ -73,7 +73,7 @@ impl PrimInt for i32 {
 
 pub fn log_2_unchecked<T>(x: T) -> u32
 where
-    T: Zero + PrimInt + std::cmp::PartialOrd
+    T: Zero + PrimInt + std::cmp::PartialOrd,
 {
     debug_assert!(x > T::zero());
     num_bits::<T>() as u32 - x.leading_zeros() - 1
@@ -105,7 +105,6 @@ pub fn lambert_wm1(x: f32) -> f32 {
             * (1.0 - 1.0 / (1.0 + ((m1 * s_div_2_root) / (1.0 + m2 * s * (m3 * s_root).exp()))))
 }
 
-
 #[inline]
 pub fn ccw_tri<S: BaseFloat>(a: &[S; 2], b: &[S; 2], c: &[S; 2]) -> bool {
     // From: https://math.stackexchange.com/questions/1324179/how-to-tell-if-3-connected-points-are-connected-clockwise-or-counter-clockwise
@@ -113,5 +112,5 @@ pub fn ccw_tri<S: BaseFloat>(a: &[S; 2], b: &[S; 2], c: &[S; 2]) -> bool {
     // | x2, y2, 1 | > 0 => the triangle is given in anticlockwise order
     // | x3, y3, 1 |
 
-    a[0]*b[1] + a[1]*c[0] + b[0]*c[1] - c[0]*b[1] - c[1]*a[0] - b[0]*a[1] >= S::zero()
+    a[0] * b[1] + a[1] * c[0] + b[0] * c[1] - c[0] * b[1] - c[1] * a[0] - b[0] * a[1] >= S::zero()
 }

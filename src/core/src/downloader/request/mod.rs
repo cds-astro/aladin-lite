@@ -10,7 +10,6 @@ pub mod tile;
 use crate::time::Time;
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
-use std::sync::{Arc, Mutex};
 pub type Url = String;
 pub struct Request<R> {
     data: Rc<RefCell<Option<R>>>,
@@ -27,7 +26,6 @@ pub enum ResolvedStatus {
     Failed,
     Found,
 }
-use crate::Abort;
 use std::future::Future;
 use wasm_bindgen::JsValue;
 impl<R> Request<R>

@@ -1,6 +1,7 @@
 use crate::renderable::ImageLayer;
 use crate::tile_fetcher::HiPSLocalFiles;
 
+use crate::renderable::hips::HiPS;
 use crate::{
     //async_task::{BuildCatalogIndex, ParseTableTask, TaskExecutor, TaskResult, TaskType},
     camera::CameraViewPort,
@@ -19,7 +20,6 @@ use crate::{
     tile_fetcher::TileFetcherQueue,
     time::DeltaTime,
 };
-use al_core::log::console_log;
 use wcs::WCS;
 
 use wasm_bindgen::prelude::*;
@@ -28,7 +28,6 @@ use al_core::colormap::{Colormap, Colormaps};
 use al_core::WebGlContext;
 
 use super::coosys;
-use crate::Abort;
 use al_api::{
     coo_system::CooSystem,
     grid::GridCfg,
@@ -140,7 +139,7 @@ impl App {
         //gl.enable(WebGl2RenderingContext::SCISSOR_TEST);
 
         //gl.enable(WebGl2RenderingContext::CULL_FACE);
-        //gl.cull_face(WebGl2RenderingContext::BACK);
+        gl.cull_face(WebGl2RenderingContext::BACK);
         //gl.enable(WebGl2RenderingContext::CULL_FACE);
 
         // The tile buffer responsible for the tile requests
@@ -153,7 +152,7 @@ impl App {
             FrameBufferObject::new(&gl, screen_size.x as usize, screen_size.y as usize)?;
         let _fbo_ui = FrameBufferObject::new(&gl, screen_size.x as usize, screen_size.y as usize)?;
 
-        // The surveys storing the textures of the resolved tiles
+        // The hipss storing the textures of the resolved tiles
         let layers = Layers::new(&gl, &projection)?;
 
         let time_start_blending = Time::now();
@@ -255,21 +254,22 @@ impl App {
     }
 
     fn look_for_new_tiles(&mut self) -> Result<(), JsValue> {
-        // Move the views of the different active surveys
+        // Move the views of the different active hipss
         self.tile_fetcher.clear();
-        // Loop over the surveys
-        for survey in self.layers.values_mut_hips() {
-            let cfg = survey.get_config();
-
-            if self.camera.get_texture_depth() == 0
-                && self
-                    .downloader
-                    .borrow()
-                    .is_queried(&query::Allsky::new(cfg).id)
-            {
-                // do not ask for tiles if we download the allsky
-                continue;
+        // Loop over the hipss
+        for hips in self.layers.get_mut_hipses() {
+            if self.camera.get_texture_depth() == 0 {
+                let allsky_query = match hips {
+                    HiPS::D2(h) => query::Allsky::new(h.get_config(), None),
+                    HiPS::D3(h) => query::Allsky::new(h.get_config(), Some(h.get_slice() as u32)),
+                };
+                if self.downloader.borrow().is_queried(&allsky_query.id) {
+                    // do not ask for tiles if we download the allsky
+                    continue;
+                }
             }
+
+            let cfg = hips.get_config();
 
             let min_tile_depth = cfg.delta_depth().max(cfg.get_min_depth_tile());
             let mut ancestors = HashSet::new();
@@ -278,16 +278,9 @@ impl App {
             let root_url = cfg.get_root_url().to_string();
             let format = cfg.get_format();
 
-            if let Some(tiles_iter) = survey.look_for_new_tiles(&mut self.camera, &self.projection)
-            {
-                for tile_cell in tiles_iter.into_iter() {
-                    self.tile_fetcher.append(query::Tile::new(
-                        &tile_cell,
-                        creator_did.clone(),
-                        root_url.clone(),
-                        format,
-                        None,
-                    ));
+            if let Some(tiles) = hips.look_for_new_tiles(&mut self.camera, &self.projection) {
+                for tile_cell in tiles {
+                    self.tile_fetcher.append(hips.get_tile_query(&tile_cell));
 
                     // check if we are starting aladin lite or not.
                     // If so we want to retrieve only the tiles in the view and access them
@@ -301,15 +294,21 @@ impl App {
                 }
             }
             // Request for ancestor
-            for ancestor in ancestors {
-                if !survey.update_priority_tile(&ancestor) {
-                    self.tile_fetcher.append(query::Tile::new(
-                        &ancestor,
-                        creator_did.clone(),
-                        root_url.clone(),
-                        format,
-                        None,
-                    ));
+            match hips {
+                HiPS::D2(hips) => {
+                    for ancestor in ancestors {
+                        if !hips.update_priority_tile(&ancestor) {
+                            self.tile_fetcher.append(hips.get_tile_query(&ancestor));
+                        }
+                    }
+                }
+                HiPS::D3(hips) => {
+                    let slice = hips.get_slice();
+                    for ancestor in ancestors {
+                        if !hips.contains_tile(&ancestor, slice) {
+                            self.tile_fetcher.append(hips.get_tile_query(&ancestor));
+                        }
+                    }
                 }
             }
         }
@@ -345,7 +344,7 @@ impl App {
                         colormap,
                         &mut self.shaders,
                         &self.camera,
-                        self.surveys.get_view().unwrap_abort(),
+                        self.hipss.get_view().unwrap_abort(),
                     );
                     self.catalog_loaded = true;
                     self.request_redraw = true;
@@ -380,7 +379,7 @@ impl App {
                         colormap,
                         &mut self.shaders,
                         &self.camera,
-                        self.surveys.get_view().unwrap_abort(),
+                        self.hipss.get_view().unwrap_abort(),
                     );
                     self.catalog_loaded = true;
                     self.request_redraw = true;
@@ -395,7 +394,6 @@ impl App {
 use crate::downloader::request::Resource;
 use al_api::cell::HEALPixCellProjeted;
 
-use crate::downloader::request::tile::Tile;
 use crate::healpix::cell::HEALPixCell;
 
 use al_api::color::ColorRGB;
@@ -566,11 +564,11 @@ impl App {
         {
             // Newly available tiles must lead to
             // 1. Surveys must be aware of the new available tiles
-            //self.surveys.set_available_tiles(&available_tiles);
-            // 2. Get the resolved tiles and push them to the image surveys
+            //self.hipss.set_available_tiles(&available_tiles);
+            // 2. Get the resolved tiles and push them to the image hipss
             /*let is_there_new_available_tiles = self
             .downloader
-            .get_resolved_tiles(/*&available_tiles, */&mut self.surveys);*/
+            .get_resolved_tiles(/*&available_tiles, */&mut self.hipss);*/
 
             if self.request_for_new_tiles
             //&& Time::now() - self.last_time_request_for_new_tiles > DeltaTime::from(200.0)
@@ -606,9 +604,8 @@ impl App {
             match rsc {
                 Resource::Tile(tile) => {
                     //if !_has_camera_zoomed {
-                    if let Some(survey) = self.layers.get_mut_hips_from_cdid(&tile.get_hips_cdid())
-                    {
-                        let cfg = survey.get_config_mut();
+                    if let Some(hips) = self.layers.get_mut_hips_from_cdid(&tile.get_hips_cdid()) {
+                        let cfg = hips.get_config_mut();
 
                         if cfg.get_format() == tile.format {
                             let delta_depth = cfg.delta_depth();
@@ -707,7 +704,17 @@ impl App {
 
                                         self.request_redraw = true;
                                         tile_copied = true;
-                                        survey.add_tile(&tile.cell, img, tile.time_req)?;
+                                        match hips {
+                                            HiPS::D2(hips) => {
+                                                hips.add_tile(&tile.cell, img, tile.time_req)?
+                                            }
+                                            HiPS::D3(hips) => hips.add_tile(
+                                                &tile.cell,
+                                                img,
+                                                tile.time_req,
+                                                tile.channel.unwrap() as u16,
+                                            )?,
+                                        }
 
                                         self.time_start_blending = Time::now();
                                     }
@@ -720,28 +727,22 @@ impl App {
                 Resource::Allsky(allsky) => {
                     let hips_cdid = allsky.get_hips_cdid();
 
-                    if let Some(survey) = self.layers.get_mut_hips_from_cdid(hips_cdid) {
+                    if let Some(hips) = self.layers.get_mut_hips_from_cdid(hips_cdid) {
                         let is_missing = allsky.missing();
                         if is_missing {
                             // The allsky image is missing so we donwload all the tiles contained into
                             // the 0's cell
-                            let cfg = survey.get_config();
+                            let cfg = hips.get_config();
                             for texture_cell in crate::healpix::cell::ALLSKY_HPX_CELLS_D0 {
                                 for cell in texture_cell.get_tile_cells(cfg.delta_depth()) {
-                                    let query = query::Tile::new(
-                                        &cell,
-                                        cfg.get_creator_did().to_string(),
-                                        cfg.get_root_url().to_string(),
-                                        cfg.get_format(),
-                                        None,
-                                    );
+                                    let query = hips.get_tile_query(&cell);
                                     self.tile_fetcher.append_base_tile(query);
                                 }
                             }
                         } else {
-                            // tell the survey to not download tiles which order is <= 3 because the allsky
+                            // tell the hips to not download tiles which order is <= 3 because the allsky
                             // give them already
-                            survey.add_allsky(allsky)?;
+                            hips.add_allsky(allsky)?;
                             // Once received ask for redraw
                             self.request_redraw = true;
                         }
@@ -793,8 +794,8 @@ impl App {
 
     pub(crate) fn read_pixel(&self, pos: &Vector2<f64>, layer: &str) -> Result<JsValue, JsValue> {
         if let Some(lonlat) = self.screen_to_world(pos) {
-            if let Some(survey) = self.layers.get_hips_from_layer(layer) {
-                survey.read_pixel(&lonlat, &self.camera)
+            if let Some(hips) = self.layers.get_hips_from_layer(layer) {
+                hips.read_pixel(&lonlat, &self.camera)
             } else if let Some(_image) = self.layers.get_image_from_layer(layer) {
                 Err(JsValue::from_str("TODO: read pixel value"))
             } else {
@@ -960,14 +961,14 @@ impl App {
         Ok(())
     }
 
-    pub(crate) fn add_image_hips(
+    pub(crate) fn add_hips(
         &mut self,
         hips_cfg: HiPSCfg,
         local_files: Option<HiPSLocalFiles>,
     ) -> Result<(), JsValue> {
         let cdid = hips_cfg.properties.get_creator_did().to_string();
 
-        let hips = self.layers.add_image_hips(
+        let hips = self.layers.add_hips(
             &self.gl,
             hips_cfg,
             &mut self.camera,
@@ -1252,18 +1253,25 @@ impl App {
         self.layers.get_layer_cfg(layer)
     }
 
-    pub(crate) fn set_hips_url(&mut self, cdid: &String, new_url: String) -> Result<(), JsValue> {
-        self.layers.set_survey_url(cdid, new_url.clone())?;
+    pub(crate) fn set_hips_slice_number(&mut self, layer: &str, slice: u32) -> Result<(), JsValue> {
+        let hips = self
+            .layers
+            .get_mut_hips_from_layer(&layer)
+            .ok_or_else(|| JsValue::from_str("Layer not found"))?;
 
-        //let hips = self.layers.get_hips_from_url(&new_url).unwrap_abort();
-        // Relaunch the base tiles for the survey to be ready with the new url
-        //self.tile_fetcher
-        //    .launch_starting_hips_requests(hips, &mut self.downloader);
+        self.request_for_new_tiles = true;
 
-        Ok(())
+        match hips {
+            HiPS::D2(_) => Err(JsValue::from_str("layer do not refers to a cube")),
+            HiPS::D3(hips) => {
+                hips.set_slice(slice as u16);
+
+                Ok(())
+            }
+        }
     }
 
-    pub(crate) fn set_image_survey_color_cfg(
+    pub(crate) fn set_image_hips_color_cfg(
         &mut self,
         layer: String,
         meta: ImageMetadata,
@@ -1271,19 +1279,19 @@ impl App {
         let old_meta = self.layers.get_layer_cfg(&layer)?;
         // Set the new meta
         // keep the old meta data
-        let new_img_fmt = meta.img_format;
+        let new_img_ext = meta.img_format;
         self.layers
             .set_layer_cfg(layer.clone(), meta, &mut self.camera, &self.projection)?;
 
-        if old_meta.img_format != new_img_fmt {
+        if old_meta.img_format != new_img_ext {
             // The image format has been changed
             let hips = self
                 .layers
                 .get_mut_hips_from_layer(&layer)
                 .ok_or_else(|| JsValue::from_str("Layer not found"))?;
-            hips.set_img_format(new_img_fmt)?;
+            hips.set_image_ext(new_img_ext)?;
 
-            // Relaunch the base tiles for the survey to be ready with the new url
+            // Relaunch the base tiles for the hips to be ready with the new url
             self.tile_fetcher
                 .launch_starting_hips_requests(hips, self.downloader.clone());
 
@@ -1364,8 +1372,8 @@ impl App {
         self.request_redraw = true;
     }
 
-    pub(crate) fn set_survey_url(&mut self, cdid: &String, new_url: String) -> Result<(), JsValue> {
-        self.layers.set_survey_url(cdid, new_url)
+    pub(crate) fn set_hips_url(&mut self, cdid: &String, new_url: String) -> Result<(), JsValue> {
+        self.layers.set_hips_url(cdid, new_url)
     }
 
     pub(crate) fn set_catalog_opacity(

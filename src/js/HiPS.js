@@ -287,7 +287,9 @@ export let HiPS = (function () {
     HiPS.prototype._parseProperties = function(properties) {
         let self = this;
         self.creatorDid = properties.creator_did || self.creatorDid;
-        // url
+
+        // Cube depth
+        self.cubeDepth = properties && properties.hips_cube_depth && +properties.hips_cube_depth;
 
         // Max order
         self.maxOrder =
@@ -704,6 +706,12 @@ export let HiPS = (function () {
         this.setOptions({contrast})
     };
 
+    HiPS.prototype.setSliceNumber = function(slice) {
+        if (this.added) {
+            this.view.wasm.setSliceNumber(this.layer, slice);
+        }
+    }
+
     // Private method for updating the backend with the new meta
     HiPS.prototype._updateMetadata = function () {
         try {
@@ -960,6 +968,7 @@ export let HiPS = (function () {
                 hipsInitialFov: self.initialFov,
                 hipsInitialRa: self.initialRa,
                 hipsInitialDec: self.initialDec,
+                hipsCubeDepth: self.cubeDepth,
                 isPlanetaryBody: self.isPlanetaryBody(),
                 hipsBody: self.hipsBody,
             },

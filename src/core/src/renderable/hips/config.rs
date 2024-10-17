@@ -1,19 +1,6 @@
 use al_api::hips::ImageExt;
 
-use al_core::{image::format::ImageFormat, image::raw::ImageBuffer};
-
-use al_core::{image::ImageType, pixel::Pixel};
-
-use al_core::{
-    image::{
-        format::{R16I, R32F, R32I, R8UI},
-        Image,
-    },
-    Texture2DArray,
-};
-use cgmath::Vector3;
-
-use al_core::image::format::{ChannelType, ImageFormatType, RGB8U, RGBA8U};
+use al_core::image::format::{ChannelType, ImageFormatType};
 #[derive(Debug)]
 pub struct HiPSConfig {
     pub root_url: String,
@@ -228,7 +215,7 @@ impl HiPSConfig {
         Ok(hips_config)
     }
 
-    pub fn set_image_fmt(&mut self, ext: ImageExt) -> Result<(), JsValue> {
+    pub fn set_image_ext(&mut self, ext: ImageExt) -> Result<(), JsValue> {
         let format = match ext {
             ImageExt::Fits => {
                 // Check the bitpix to determine the internal format of the tiles
@@ -297,17 +284,6 @@ impl HiPSConfig {
 
         self.format = format;
 
-        // Recompute if the survey will be colored or not
-        /*self.colored = if self.tex_storing_fits {
-            false
-        } else {
-            if let Some(subtypes) = &self.dataproduct_subtype {
-                subtypes.iter().any(|subtype| subtype == "color")
-            } else {
-                false
-            }
-        };*/
-
         Ok(())
     }
 
@@ -319,6 +295,10 @@ impl HiPSConfig {
     #[inline(always)]
     pub fn set_root_url(&mut self, root_url: String) {
         self.root_url = root_url;
+    }
+
+    pub fn get_cube_depth(&self) -> Option<u32> {
+        self.cube_depth
     }
 
     #[inline(always)]

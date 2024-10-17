@@ -1,0 +1,52 @@
+<!doctype html>
+<html>
+    <head>
+    </head>
+<body>
+
+
+<div id="aladin-lite-div" style="width: 768px; height: 512px"></div>
+<script>let aladin; let hips;</script>
+<script type="module">
+    import A from '../src/js/A.js';
+    A.init.then(() => {
+        aladin = A.aladin(
+            '#aladin-lite-div',
+            {
+                showSimbadPointerControl: true,
+                projection: 'AIT', // set a projection
+                fov: 360, // initial field of view in degrees
+                target: '169.58868 +45.74914', // initial target
+                cooFrame: 'icrs', // set galactic frame
+                reticleColor: '#ff89ff', // change reticle color
+                reticleSize: 64, // change reticle size
+                showContextMenu: true,
+                showFrame: true,
+                showZoomControl:true,
+                showSettingsControl:true,
+                showCooGrid: true,
+                fullScreen: true,
+                samp: true,
+            }
+        );
+
+        hips = aladin.newImageSurvey("https://alasky.cds.unistra.fr/CALIFA/V500DR2/");
+        aladin.setImageLayer(hips)
+
+        /*let id;
+        aladin.on("zoomChanged", () => {
+            if (id)
+                clearTimeout(id);
+            id = setTimeout(() => {
+                console.log("wheel stopped, new cone search here")
+            }, 500);
+        })*/
+    });
+</script>
+<style>
+    .aladin-cat-browser-box {
+        width: 600px;
+    }
+</style>
+</body>
+</html>

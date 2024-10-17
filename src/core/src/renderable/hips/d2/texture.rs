@@ -2,7 +2,7 @@ use crate::{healpix::cell::HEALPixCell, time::Time};
 
 use std::collections::HashSet;
 
-pub struct Texture {
+pub struct HpxTexture2D {
     texture_cell: HEALPixCell,
     // Precomputed uniq number
     uniq: i32,
@@ -36,17 +36,20 @@ pub struct Texture {
 
 use crate::renderable::hips::config::HiPSConfig;
 
-impl Texture {
-    pub fn new(texture_cell: &HEALPixCell, idx: i32, time_request: Time) -> Texture {
+use crate::renderable::hips::HpxTile;
+
+impl HpxTexture2D {
+    pub fn new(cell: &HEALPixCell, idx: i32, time_request: Time) -> Self {
         let tiles = HashSet::new();
 
         let start_time = None;
         let full = false;
-        let texture_cell = *texture_cell;
+        let texture_cell = *cell;
         let uniq = texture_cell.uniq();
         //let missing = true;
         let num_tiles_written = 0;
-        Texture {
+
+        Self {
             texture_cell,
             uniq,
             time_request,
@@ -55,14 +58,42 @@ impl Texture {
             start_time,
             full,
             num_tiles_written,
-            //missing,
         }
+    }
+
+    pub fn is_full(&self) -> bool {
+        self.full
+    }
+
+    pub fn idx(&self) -> i32 {
+        self.idx
+    }
+
+    // Setter
+    pub fn replace(&mut self, texture_cell: &HEALPixCell, time_request: Time) {
+        // Cancel the tasks copying the tiles contained in the texture
+        // which have not yet been completed.
+        //self.clear_tasks_in_progress(config, exec);
+
+        self.texture_cell = *texture_cell;
+        self.uniq = texture_cell.uniq();
+        self.full = false;
+        self.start_time = None;
+        self.time_request = time_request;
+        self.tiles.clear();
+        //self.missing = true;
+        self.num_tiles_written = 0;
+    }
+
+    // Cell must be contained in the texture
+    pub fn contains_tile(&self, tile_cell: &HEALPixCell) -> bool {
+        self.is_full() || self.tiles.contains(tile_cell)
     }
 
     // Panic if cell is not contained in the texture
     // Do nothing if the texture is full
     // Return true if the tile is newly added
-    pub fn append(&mut self, cell: &HEALPixCell, cfg: &HiPSConfig /*, missing: bool */) {
+    pub fn append(&mut self, cell: &HEALPixCell, cfg: &HiPSConfig) {
         let texture_cell = cell.get_texture_cell(cfg.delta_depth());
         debug_assert!(texture_cell == self.texture_cell);
         debug_assert!(!self.full);
@@ -95,19 +126,12 @@ impl Texture {
             }
         }
     }
+}
 
-    // Cell must be contained in the texture
-    pub fn contains(&self, cell: &HEALPixCell) -> bool {
-        self.is_full() || self.tiles.contains(cell)
-    }
-
-    pub fn is_full(&self) -> bool {
-        self.full
-    }
-
+impl HpxTile for HpxTexture2D {
     // Getter
     // Returns the current time if the texture is not full
-    pub fn start_time(&self) -> Time {
+    fn start_time(&self) -> Time {
         if self.is_full() {
             self.start_time.unwrap_abort()
         } else {
@@ -115,80 +139,49 @@ impl Texture {
         }
     }
 
-    pub fn time_request(&self) -> Time {
+    fn time_request(&self) -> Time {
         self.time_request
     }
 
-    pub fn cell(&self) -> &HEALPixCell {
+    fn cell(&self) -> &HEALPixCell {
         &self.texture_cell
     }
-
-    pub fn idx(&self) -> i32 {
-        self.idx
-    }
-
-    /*pub fn is_missing(&self) -> bool {
-        self.missing
-    }*/
-
-    // Setter
-    pub fn replace(&mut self, texture_cell: &HEALPixCell, time_request: Time) {
-        // Cancel the tasks copying the tiles contained in the texture
-        // which have not yet been completed.
-        //self.clear_tasks_in_progress(config, exec);
-
-        self.texture_cell = *texture_cell;
-        self.uniq = texture_cell.uniq();
-        self.full = false;
-        self.start_time = None;
-        self.time_request = time_request;
-        self.tiles.clear();
-        //self.missing = true;
-        self.num_tiles_written = 0;
-    }
-
-    /*pub fn clear_tasks_in_progress(&self, config: &HiPSConfig, exec: &mut TaskExecutor) {
-        for tile_cell in self.texture_cell.get_tile_cells(config) {
-            let tile = Tile::new(&tile_cell, config);
-            exec.remove(&TaskType::ImageTile2GpuTask(tile));
-        }
-    }*/
 }
 
 use std::cmp::Ordering;
-impl PartialOrd for Texture {
+impl PartialOrd for HpxTexture2D {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         self.uniq.partial_cmp(&other.uniq)
     }
 }
 use crate::Abort;
-impl Ord for Texture {
+impl Ord for HpxTexture2D {
     fn cmp(&self, other: &Self) -> Ordering {
         self.partial_cmp(other).unwrap_abort()
     }
 }
 
-impl PartialEq for Texture {
+impl PartialEq for HpxTexture2D {
     fn eq(&self, other: &Self) -> bool {
         self.uniq == other.uniq
     }
 }
-impl Eq for Texture {}
+impl Eq for HpxTexture2D {}
 
-pub struct TextureUniforms<'a> {
-    texture: &'a Texture,
+pub struct HpxTexture2DUniforms<'a> {
+    texture: &'a HpxTexture2D,
     name: String,
 }
 
-impl<'a> TextureUniforms<'a> {
-    pub fn new(texture: &Texture, idx_texture: i32) -> TextureUniforms {
+impl<'a> HpxTexture2DUniforms<'a> {
+    pub fn new(texture: &'a HpxTexture2D, idx_texture: i32) -> Self {
         let name = format!("textures_tiles[{}].", idx_texture);
-        TextureUniforms { texture, name }
+        HpxTexture2DUniforms { texture, name }
     }
 }
 
 use al_core::shader::{SendUniforms, ShaderBound};
-impl<'a> SendUniforms for TextureUniforms<'a> {
+impl<'a> SendUniforms for HpxTexture2DUniforms<'a> {
     fn attach_uniforms<'b>(&self, shader: &'b ShaderBound<'b>) -> &'b ShaderBound<'b> {
         shader
             .attach_uniform(&format!("{}{}", self.name, "uniq"), &self.texture.uniq)

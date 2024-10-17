@@ -14,6 +14,7 @@ pub struct AllskyRequest {
     pub url: Url,
     pub depth_tile: u8,
     pub id: QueryId,
+    pub channel: Option<u32>,
 
     request: Request<Vec<ImageType>>,
 }
@@ -80,6 +81,7 @@ impl From<query::Allsky> for AllskyRequest {
             hips_cdid,
             texture_size,
             id,
+            channel: slice,
         } = query;
 
         let depth_tile = crate::math::utils::log_2_unchecked(texture_size / tile_size) as u8;
@@ -212,6 +214,7 @@ impl From<query::Allsky> for AllskyRequest {
             depth_tile,
             url,
             request,
+            channel: slice,
         }
     }
 }
@@ -306,7 +309,6 @@ use al_core::image::format::RGBA8U;
 use crate::time::Time;
 use std::cell::RefCell;
 use std::rc::Rc;
-use std::sync::{Arc, Mutex};
 pub struct Allsky {
     pub image: Rc<RefCell<Option<Vec<ImageType>>>>,
     pub time_req: Time,
@@ -314,6 +316,7 @@ pub struct Allsky {
 
     pub hips_cdid: CreatorDid,
     url: Url,
+    pub channel: Option<u32>,
 }
 
 use crate::Abort;
@@ -339,6 +342,7 @@ impl<'a> From<&'a AllskyRequest> for Option<Allsky> {
             hips_cdid,
             depth_tile,
             url,
+            channel,
             ..
         } = request;
         if request.is_resolved() {
@@ -352,6 +356,7 @@ impl<'a> From<&'a AllskyRequest> for Option<Allsky> {
                 hips_cdid: hips_cdid.clone(),
                 url: url.clone(),
                 depth_tile: *depth_tile,
+                channel: *channel,
             })
         } else {
             None

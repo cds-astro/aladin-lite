@@ -320,13 +320,13 @@ impl WebClient {
         Ok(self.app.get_norder())
     }
 
-    /// Set new image surveys
+    /// Set new image hips
     ///
-    /// Send the image surveys to render inside the Aladin Lite view
+    /// Send the image hips to render inside the Aladin Lite view
     ///
     /// # Arguments
     ///
-    /// * `surveys` - A list/array of survey. A survey is a javascript object
+    /// * `hips` - A list/array of hips. A hips is a javascript object
     /// having the specific form. Please check the file in core/src/hips.rs to see
     /// the different semantics accepted.
     ///
@@ -362,19 +362,19 @@ impl WebClient {
     ///
     /// # Panics
     ///
-    /// * If the surveys do not match SimpleHiPS type
-    /// * If the number of surveys is greater than 4. For the moment, due to the limitations
-    ///   of WebGL2 texture units on some architectures, the total number of surveys rendered is
+    /// * If the hips do not match SimpleHiPS type
+    /// * If the number of hips is greater than 4. For the moment, due to the limitations
+    ///   of WebGL2 texture units on some architectures, the total number of hips rendered is
     ///   limited to 4.
     #[wasm_bindgen(js_name = addHiPS)]
-    pub fn add_image_hips(
+    pub fn add_hips(
         &mut self,
         hips: JsValue,
         files: Option<HiPSLocalFiles>,
     ) -> Result<(), JsValue> {
-        // Deserialize the survey objects that compose the survey
+        // Deserialize the hips objects that compose the hips
         let hips = serde_wasm_bindgen::from_value(hips)?;
-        self.app.add_image_hips(hips, files)?;
+        self.app.add_hips(hips, files)?;
 
         Ok(())
     }
@@ -410,7 +410,7 @@ impl WebClient {
 
     #[wasm_bindgen(js_name = removeLayer)]
     pub fn remove_layer(&mut self, layer: String) -> Result<(), JsValue> {
-        // Deserialize the survey objects that compose the survey
+        // Deserialize the hips objects that compose the hips
         self.app.remove_layer(&layer)?;
 
         Ok(())
@@ -418,7 +418,7 @@ impl WebClient {
 
     #[wasm_bindgen(js_name = renameLayer)]
     pub fn rename_layer(&mut self, layer: String, new_layer: String) -> Result<(), JsValue> {
-        // Deserialize the survey objects that compose the survey
+        // Deserialize the hips objects that compose the hips
         self.app.rename_layer(&layer, &new_layer)
     }
 
@@ -428,7 +428,7 @@ impl WebClient {
         first_layer: String,
         second_layer: String,
     ) -> Result<(), JsValue> {
-        // Deserialize the survey objects that compose the survey
+        // Deserialize the hips objects that compose the hips
         self.app.swap_layers(&first_layer, &second_layer)
     }
 
@@ -444,15 +444,15 @@ impl WebClient {
 
     // Set a new color associated with a layer
     #[wasm_bindgen(js_name = setImageMetadata)]
-    pub fn set_survey_color_cfg(&mut self, layer: String, meta: JsValue) -> Result<(), JsValue> {
+    pub fn set_hips_color_cfg(&mut self, layer: String, meta: JsValue) -> Result<(), JsValue> {
         let meta = serde_wasm_bindgen::from_value(meta)?;
 
-        self.app.set_image_survey_color_cfg(layer, meta)
+        self.app.set_image_hips_color_cfg(layer, meta)
     }
 
-    #[wasm_bindgen(js_name = setImageSurveyUrl)]
-    pub fn set_survey_url(&mut self, cdid: String, new_url: String) -> Result<(), JsValue> {
-        self.app.set_survey_url(&cdid, new_url)
+    #[wasm_bindgen(js_name = setSliceNumber)]
+    pub fn set_hips_slice_number(&mut self, layer: String, slice: u32) -> Result<(), JsValue> {
+        self.app.set_hips_slice_number(&layer, slice)
     }
 
     #[wasm_bindgen(js_name = setBackgroundColor)]
@@ -963,7 +963,7 @@ impl WebClient {
     /// Read the pixel value
     ///
     /// The current implementation only returns the pixel value
-    /// of the first survey of the `layer` specified.
+    /// of the first hips of the `layer` specified.
     ///
     /// # Returns
     ///
@@ -975,7 +975,7 @@ impl WebClient {
     ///
     /// * `x` - The x screen coordinate in pixels
     /// * `y` - The y screen coordinate in pixels
-    /// * `base_url` - The base url of the survey identifying it
+    /// * `base_url` - The base url of the hips identifying it
     #[wasm_bindgen(js_name = readPixel)]
     pub fn read_pixel(&self, x: f64, y: f64, layer: String) -> Result<JsValue, JsValue> {
         let pixel = self.app.read_pixel(&Vector2::new(x, y), layer.as_str())?;

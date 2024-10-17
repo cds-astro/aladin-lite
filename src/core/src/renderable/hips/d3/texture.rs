@@ -1,16 +1,16 @@
+use crate::renderable::hips::d2::texture::HpxTexture2D;
 use crate::{healpix::cell::HEALPixCell, time::Time};
 
 use al_core::image::format::{
-    ChannelType, ImageFormatType, R16I, R32F, R32I, R64F, R8UI, RGB32F, RGB8U, RGBA32F, RGBA8U,
+    ChannelType, R16I, R32F, R32I, R64F, R8UI, RGB32F, RGB8U, RGBA32F, RGBA8U,
 };
 use al_core::image::Image;
 use al_core::texture::Texture3D;
 use al_core::webgl_ctx::WebGlRenderingCtx;
 use cgmath::Vector3;
-use std::collections::HashSet;
 use wasm_bindgen::JsValue;
 
-pub struct HEALPixTexturedCube {
+pub struct HpxTexture3D {
     tile_cell: HEALPixCell,
     // Precomputed uniq number
     uniq: i32,
@@ -31,50 +31,205 @@ pub struct HEALPixTexturedCube {
     // We autorize 512 cubic tiles of size 32 each which allows to store max 16384 slices
     textures: Vec<Option<Texture3D>>,
     // A set of already inserted slices. Each cubic tiles can have 32 slices. The occupancy of the
-    // slices inside a cubic tile is done with a u32 mask
-    slices: [u32; 512],
+    // slices inside a cubic tile is done with a u32 mask. Limited to 16384 slices
+    blocks: [u32; 512],
+    // sorted index list of 32-length blocks that are not empty
+    block_indices: Vec<usize>,
 }
 
 use crate::renderable::hips::config::HiPSConfig;
 use crate::WebGlContext;
 
-impl HEALPixTexturedCube {
+use crate::renderable::hips::HpxTile;
+
+impl HpxTexture3D {
     pub fn new(tile_cell: HEALPixCell, time_request: Time) -> Self {
         let start_time = None;
         let uniq = tile_cell.uniq();
         let textures = std::iter::repeat(None).take(512).collect();
-        let slices = [0; 512];
-
+        let blocks = [0; 512];
+        let block_indices = Vec::new();
         Self {
             tile_cell,
             uniq,
             time_request,
             start_time,
             textures,
-            slices,
+            blocks,
+            block_indices,
         }
     }
 
-    // Get the good cubic texture and the slice idx inside it
-    pub fn get_cubic_texture_from_slice(&self, slice: u16) -> (Option<&Texture3D>, u8) {
-        let cube_idx = slice >> 5;
+    pub fn find_nearest_slice(&self, slice: u16) -> Option<u16> {
+        let block_idx = (slice >> 5) as usize;
+
+        match self.block_indices.binary_search(&block_idx) {
+            Ok(_) => {
+                if self.contains_slice(slice) {
+                    Some(slice)
+                } else {
+                    // the slice is not present but we know there is one in the block
+                    let block = self.blocks[block_idx];
+
+                    let slice_idx = (slice & 0x1f) as u32;
+
+                    let m2 = if slice_idx == 31 {
+                        0
+                    } else {
+                        0xffffffff >> (slice_idx + 1)
+                    };
+                    let m1 = (!m2) & !(1 << (31 - slice_idx));
+
+                    al_core::log(&format!("m1 {:#x} m2 {:#x} {:?}", m1, m2, slice_idx));
+
+                    let lb = ((block & m1) >> (32 - slice_idx)) as u32;
+                    let rb = (block & m2) as u32;
+
+                    let lb_trailing_zeros = (lb.trailing_zeros() as u16).min(slice_idx as u16);
+                    let rb_leading_zeros = (rb.leading_zeros() - slice_idx - 1) as u16;
+
+                    let no_more_left_bits = slice_idx - (lb_trailing_zeros as u32) == 0;
+                    let no_more_right_bits = slice_idx + (rb_leading_zeros as u32) == 31;
+
+                    al_core::log(&format!(
+                        "{:?} {:?} slice idx {:?}, {:x?} rb {:?}",
+                        no_more_left_bits,
+                        no_more_right_bits,
+                        slice_idx,
+                        lb,
+                        lb_trailing_zeros as u32
+                    ));
+
+                    match (no_more_left_bits, no_more_right_bits) {
+                        (false, false) => {
+                            if lb_trailing_zeros <= rb_leading_zeros {
+                                Some(slice - lb_trailing_zeros - 1)
+                            } else {
+                                Some(slice + rb_leading_zeros + 1)
+                            }
+                        }
+                        (false, true) => {
+                            if lb_trailing_zeros <= rb_leading_zeros {
+                                Some(slice - lb_trailing_zeros - 1)
+                            } else {
+                                // explore next block
+                                if block_idx == self.blocks.len() - 1 {
+                                    // no after block
+                                    Some(slice - lb_trailing_zeros - 1)
+                                } else {
+                                    // get the next block
+                                    let next_block = self.blocks[block_idx + 1];
+
+                                    let num_bits_to_next_block =
+                                        next_block.leading_zeros() as u16 + rb_leading_zeros;
+
+                                    if num_bits_to_next_block < lb_trailing_zeros {
+                                        Some(slice + num_bits_to_next_block + 1)
+                                    } else {
+                                        Some(slice - lb_trailing_zeros - 1)
+                                    }
+                                }
+                            }
+                        }
+                        (true, false) => {
+                            if rb_leading_zeros <= lb_trailing_zeros {
+                                Some(slice + rb_leading_zeros + 1)
+                            } else {
+                                // explore previous block
+                                if block_idx == 0 {
+                                    // no after block
+                                    Some(slice + rb_leading_zeros + 1)
+                                } else {
+                                    // get the next block
+                                    let prev_block = self.blocks[block_idx - 1];
+
+                                    let num_bits_from_prev_block =
+                                        prev_block.trailing_zeros() as u16 + lb_trailing_zeros;
+                                    if num_bits_from_prev_block < rb_leading_zeros {
+                                        Some(slice - num_bits_from_prev_block - 1)
+                                    } else {
+                                        Some(slice + rb_leading_zeros + 1)
+                                    }
+                                }
+                            }
+                        }
+                        (true, true) => unreachable!(),
+                    }
+                }
+            }
+            Err(i) => {
+                match (self.block_indices.get(i - 1), self.block_indices.get(i)) {
+                    (Some(b_idx_1), Some(b_idx_2)) => {
+                        let b1 = self.blocks[*b_idx_1];
+                        let b2 = self.blocks[*b_idx_2];
+
+                        let b1_tz = b1.trailing_zeros() as usize;
+                        let b2_lz = b2.leading_zeros() as usize;
+
+                        let slice_b1 = ((*b_idx_1 << 5) + 32 - b1_tz - 1) as u16;
+                        let slice_b2 = ((*b_idx_2 << 5) + b2_lz) as u16;
+                        if slice - slice_b1 <= slice_b2 - slice {
+                            // the nearest slice is in b1
+                            Some(slice_b1 as u16)
+                        } else {
+                            // the nearest slice is in b2
+                            Some(slice_b2 as u16)
+                        }
+                    }
+                    (None, Some(b_idx_2)) => {
+                        let b2 = self.blocks[*b_idx_2];
+                        let b2_lz = b2.leading_zeros() as usize;
+
+                        Some(((*b_idx_2 << 5) + b2_lz) as u16)
+                    }
+                    (Some(b_idx_1), None) => {
+                        let b1 = self.blocks[*b_idx_1];
+                        let b1_tz = b1.trailing_zeros() as usize;
+
+                        Some(((*b_idx_1 << 5) + 32 - b1_tz - 1) as u16)
+                    }
+                    (None, None) => None,
+                }
+            }
+        }
+    }
+
+    pub fn get_3d_block_from_slice(&self, slice: u16) -> Option<&Texture3D> {
+        let block_idx = slice >> 5;
+
+        self.textures[block_idx as usize].as_ref()
+    }
+
+    pub fn extract_2d_slice_texture(&self, slice: u16) -> Option<HpxTexture2D> {
+        // Find the good sub cube containing the slice
+        let block_idx = (slice >> 5) as usize;
         let slice_idx = (slice & 0x1f) as u8;
-        (self.textures[cube_idx as usize].as_ref(), slice_idx)
+
+        // check the texture is there
+        if self.blocks[block_idx] & (1 << (31 - slice_idx)) != 0 {
+            Some(HpxTexture2D::new(
+                &self.tile_cell,
+                slice_idx as i32,
+                self.time_request,
+            ))
+        } else {
+            None
+        }
     }
 
     // Panic if cell is not contained in the texture
     // Do nothing if the texture is full
     // Return true if the tile is newly added
-    pub fn append_slice<I: Image>(
+    pub fn append<I: Image>(
         &mut self,
         image: I,
         slice: u16,
         cfg: &HiPSConfig,
         gl: &WebGlContext,
     ) -> Result<(), JsValue> {
-        let cube_idx = (slice >> 5) as usize;
+        let block_idx = (slice >> 5) as usize;
 
-        let texture = if let Some(texture) = self.textures[cube_idx as usize].as_ref() {
+        let texture = if let Some(texture) = self.textures[block_idx as usize].as_ref() {
             texture
         } else {
             let tile_size = cfg.get_tile_size();
@@ -133,16 +288,23 @@ impl HEALPixTexturedCube {
                     Texture3D::create_empty::<R32I>(gl, tile_size, tile_size, 32, params)
                 }
             };
-            self.textures[cube_idx] = Some(texture?);
+            self.textures[block_idx] = Some(texture?);
 
-            self.textures[cube_idx].as_ref().unwrap()
+            self.textures[block_idx].as_ref().unwrap()
         };
 
         let slice_idx = slice & 0x1f;
 
         // if there is already something, do not tex sub
-        if self.slices[cube_idx] & (1 << slice_idx) == 0 {
-            image.insert_into_3d_texture(texture, &Vector3::<i32>::new(0, 0, slice_idx as i32))?
+        if self.blocks[block_idx] & (1 << (31 - slice_idx)) == 0 {
+            image.insert_into_3d_texture(texture, &Vector3::<i32>::new(0, 0, slice_idx as i32))?;
+
+            match self.block_indices.binary_search(&block_idx) {
+                Ok(i) => {} // element already in vector @ `pos`
+                Err(i) => self.block_indices.insert(i, block_idx),
+            }
+
+            self.blocks[block_idx] |= 1 << (31 - slice_idx);
         }
 
         self.start_time = Some(Time::now());
@@ -152,15 +314,17 @@ impl HEALPixTexturedCube {
 
     // Cell must be contained in the texture
     pub fn contains_slice(&self, slice: u16) -> bool {
-        let cube_idx = (slice >> 5) as usize;
-        let slice_idx = slice & 0x1f;
+        let block_idx = (slice >> 5) as usize;
+        let idx_in_block = slice & 0x1f;
 
-        self.slices[cube_idx] & (1 << slice_idx) == 1
+        (self.blocks[block_idx] >> (31 - idx_in_block)) & 0x1 == 1
     }
+}
 
+impl HpxTile for HpxTexture3D {
     // Getter
     // Returns the current time if the texture is not full
-    pub fn start_time(&self) -> Time {
+    fn start_time(&self) -> Time {
         if let Some(t) = self.start_time {
             t
         } else {
@@ -168,54 +332,38 @@ impl HEALPixTexturedCube {
         }
     }
 
-    pub fn time_request(&self) -> Time {
+    fn time_request(&self) -> Time {
         self.time_request
     }
 
-    pub fn cell(&self) -> &HEALPixCell {
+    fn cell(&self) -> &HEALPixCell {
         &self.tile_cell
     }
-
-    // Setter
-    /*pub fn replace(&mut self, texture_cell: &HEALPixCell, time_request: Time) {
-        // Cancel the tasks copying the tiles contained in the texture
-        // which have not yet been completed.
-        //self.clear_tasks_in_progress(config, exec);
-
-        self.texture_cell = *texture_cell;
-        self.uniq = texture_cell.uniq();
-        self.full = false;
-        self.start_time = None;
-        self.time_request = time_request;
-        self.tiles.clear();
-        //self.missing = true;
-        self.num_tiles_written = 0;
-    }*/
 }
 
 use std::cmp::Ordering;
-impl PartialOrd for HEALPixTexturedCube {
+impl PartialOrd for HpxTexture3D {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         self.uniq.partial_cmp(&other.uniq)
     }
 }
 use crate::Abort;
-impl Ord for HEALPixTexturedCube {
+impl Ord for HpxTexture3D {
     fn cmp(&self, other: &Self) -> Ordering {
         self.partial_cmp(other).unwrap_abort()
     }
 }
 
-impl PartialEq for HEALPixTexturedCube {
+impl PartialEq for HpxTexture3D {
     fn eq(&self, other: &Self) -> bool {
         self.uniq == other.uniq
     }
 }
-impl Eq for HEALPixTexturedCube {}
+impl Eq for HpxTexture3D {}
 
 /*
 pub struct TextureUniforms<'a> {
-    texture: &'a HEALPixTexturedCube,
+    texture: &'a HpxTexture3D,
     name: String,
 }
 

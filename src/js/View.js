@@ -1693,7 +1693,7 @@ export let View = (function () {
             this.imageLayers.delete(layerName);
         }
 
-        imageLayer.added = true;
+        //imageLayer.added = true;
 
         this.imageLayers.set(layerName, imageLayer);
 

@@ -21,7 +21,6 @@ import { DOMElement } from "./Widget";
 import { FSM } from "../../FiniteStateMachine";
 import { ActionButton } from "./ActionButton";
 import { ContextMenu } from "./ContextMenu";
-import { Layout } from "../Layout";
 
 /******************************************************************************
  * Aladin Lite project

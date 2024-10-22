@@ -17,6 +17,8 @@
 //    along with Aladin Lite.
 //
 
+import { Utils } from "../../Utils";
+
 /******************************************************************************
  * Aladin Lite project
  *
@@ -43,6 +45,7 @@ export class DOMElement {
 
         this.el = element;
         this.options = options;
+        this.name = options && options.name || Utils.uuidv4()
         this.isHidden = true;
     }
 

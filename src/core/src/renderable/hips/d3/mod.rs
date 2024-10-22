@@ -580,14 +580,14 @@ impl HiPS3D {
         //     * there are new available tiles for the GPU
         let mut off_idx = 0;
 
+        let shader = get_raster_shader(cmap, &self.gl, shaders, &hips_cfg)?.bind(&self.gl);
+
         for (slice_idx, (cell, num_indices)) in self
             .slice_indices
             .iter()
             .zip(self.cells.iter().zip(self.num_indices.iter()))
         {
             blend_cfg.enable(&self.gl, || {
-                let shader = get_raster_shader(cmap, &self.gl, shaders, &hips_cfg)?.bind(&self.gl);
-
                 shader
                     .attach_uniform(
                         "tex",
@@ -597,6 +597,7 @@ impl HiPS3D {
                             .get_3d_block_from_slice(*slice_idx as u16)
                             .unwrap(),
                     )
+                    .attach_uniforms_from(&self.buffer)
                     .attach_uniforms_with_params_from(cmap, colormaps)
                     .attach_uniforms_from(color)
                     .attach_uniforms_from(camera)

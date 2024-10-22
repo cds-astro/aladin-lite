@@ -283,13 +283,104 @@ export class HiPSBrowserBox extends Box {
                 self.searchDropdown.removeClass('aladin-not-valid');
                 self.searchDropdown.addClass('aladin-valid');
 
-
                 self.infoCurrentHiPSBtn.update({
                     disable: false,
                     action(e) {
                         window.open(hips.url);
                     }
                 })
+
+                if (!hips.cubeDepth)
+                    return;
+
+                let numSlices = hips.cubeDepth;
+                let idxSlice = hips.cubeFirstFrame;
+
+                hips.setSliceNumber(idxSlice)
+
+                let toStr = (n, paddingBegin = false) => {
+                    let s = n.toString();
+                    let maxNumDigits = numSlices.toString().length;
+
+                    if (s.length < maxNumDigits) {
+                        let r = '&nbsp;'.repeat(maxNumDigits - s.length)
+                        if (paddingBegin) {
+                            s = r + s 
+                        } else {
+                            s += r
+                        }
+                    }
+
+                    return s;
+                }
+
+                let updateSlice = () => {
+                    slicer.update({
+                        value: idxSlice,
+                        tooltip: {content: (idxSlice + 1) + '/' + numSlices, position: {direction: 'bottom'}},
+                    })
+
+                    hips.setSliceNumber(idxSlice)
+                    cubeDisplayer.update({position: cubeDisplayer.position, content: Layout.horizontal([prevBtn, nextBtn, slicer, toStr(idxSlice + 1, true) + '/' + toStr(numSlices, false)])})
+                };
+                                                
+                let slicer = Input.slider({
+                    label: "Slice",
+                    name: "cube slicer",
+                    ticks: [idxSlice],
+                    tooltip: {content: (idxSlice + 1) + '/' + numSlices, position: {direction: 'bottom'}},
+                    min: 0,
+                    max: numSlices - 1,
+                    value: idxSlice,
+                    actions: {
+                        change: (e) => {
+                            idxSlice = Math.round(e.target.value);
+
+                            updateSlice();
+                        },
+                        input: (e) => {
+                            idxSlice = Math.round(e.target.value);
+
+                            slicer.update({
+                                value: idxSlice,
+                                tooltip: {content: (idxSlice + 1) + '/' + numSlices, position: {direction: 'bottom'}},
+                            })
+                        }
+                    },
+                    cssStyle: {
+                        width: '300px'
+                    }
+                });
+                                                
+                let prevBtn = A.button({
+                    size: 'small',
+                    content: '<',
+                    action(o) {
+                        idxSlice = Math.max(idxSlice - 1, 0);
+                        updateSlice()
+                    }
+                })
+                                                
+                let nextBtn = A.button({
+                    size: 'small',
+                    content: '>',
+                    action(o) {
+                        idxSlice = Math.min(idxSlice + 1, numSlices - 1);
+                        updateSlice()
+                    }
+                })
+
+                let cubeDisplayer = A.box({
+                    close: true,
+                    name: 'player' + hips.name,
+                    header: {
+                        title: 'Player for: ' + hips.name,
+                        draggable: true,
+                    },
+                    content: Layout.horizontal([prevBtn, nextBtn, slicer, toStr(idxSlice + 1, true) + '/' + toStr(numSlices, false)]),
+                    position: {anchor: 'center top'},
+                });
+                self.aladin.addUI(cubeDisplayer)
             },
             errorCallback: (e) => {
                 self.searchDropdown.removeClass('aladin-valid');

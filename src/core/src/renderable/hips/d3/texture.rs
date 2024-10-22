@@ -80,8 +80,6 @@ impl HpxTexture3D {
                     };
                     let m1 = (!m2) & !(1 << (31 - slice_idx));
 
-                    al_core::log(&format!("m1 {:#x} m2 {:#x} {:?}", m1, m2, slice_idx));
-
                     let lb = ((block & m1) >> (32 - slice_idx)) as u32;
                     let rb = (block & m2) as u32;
 
@@ -90,15 +88,6 @@ impl HpxTexture3D {
 
                     let no_more_left_bits = slice_idx - (lb_trailing_zeros as u32) == 0;
                     let no_more_right_bits = slice_idx + (rb_leading_zeros as u32) == 31;
-
-                    al_core::log(&format!(
-                        "{:?} {:?} slice idx {:?}, {:x?} rb {:?}",
-                        no_more_left_bits,
-                        no_more_right_bits,
-                        slice_idx,
-                        lb,
-                        lb_trailing_zeros as u32
-                    ));
 
                     match (no_more_left_bits, no_more_right_bits) {
                         (false, false) => {

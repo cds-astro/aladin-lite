@@ -1442,6 +1442,13 @@ export let Aladin = (function () {
         // see MOC.setView for sending it to outside the UI
     };
 
+    Aladin.prototype.removeUIByName = function(name) {
+        let elt = this.ui.find((elm) => elm.name === name)
+        if (elt) {
+            elt.remove()
+        }
+    };
+
     Aladin.prototype.addUI = function (ui) {
         ui = [].concat(ui);
 

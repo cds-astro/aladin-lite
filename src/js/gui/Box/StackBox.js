@@ -964,6 +964,8 @@ export class OverlayStackBox extends Box {
                 tooltip: { content: "Remove", position: { direction: "top" } },
                 action(e) {
                     self.aladin.removeImageLayer(layer.layer);
+                    // remove HiPS cube player if any 
+                    self.aladin.removeUIByName("player" + layer.name)
                 },
             });
 

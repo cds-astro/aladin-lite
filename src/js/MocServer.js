@@ -47,8 +47,8 @@ export class MocServer {
     static getAllHiPSes() {
         if (!this._allHiPSes) {
             const params = {
-                //expr: "dataproduct_type=image||dataproduct_type=cube",
-                expr: "dataproduct_type=image",
+                expr: "dataproduct_type=image||dataproduct_type=cube",
+                //expr: "dataproduct_type=image",
                 get: "record",
                 fmt: "json",
                 fields: "ID,hips_creator,hips_copyright,hips_order,hips_tile_width,hips_frame,hips_tile_format,obs_title,obs_description,obs_copyright,obs_regime",

@@ -185,36 +185,14 @@ impl HpxTileBuffer for HiPS3DBuffer {
     }
 }
 
-/*
+use al_core::shader::SendUniforms;
+use al_core::shader::ShaderBound;
 impl SendUniforms for HiPS3DBuffer {
     // Send only the allsky textures
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
-        // Send the textures
-        /*let textures = &self.base_textures;
-        for (idx, texture) in textures.iter().enumerate() {
-            let texture_uniforms = TextureUniforms::new(texture, idx as i32);
-            shader.attach_uniforms_from(&texture_uniforms);
-        }*/
-
-        //if self.raytracing {
-        for idx in 0..NUM_HPX_TILES_DEPTH_ZERO {
-            let cell = HEALPixCell(0, idx as u64);
-
-            let texture = self.get(&cell).unwrap();
-            let texture_uniforms = TextureUniforms::new(texture, idx as i32);
-            shader.attach_uniforms_from(&texture_uniforms);
-        }
-        //}
-
-        let shader = shader
-            .attach_uniforms_from(&self.config)
-            .attach_uniform("tex", &self.texture_2d_array)
-            .attach_uniform("num_slices", &(self.texture_2d_array.num_slices as i32));
-
-        shader
+        shader.attach_uniforms_from(&self.config)
     }
 }
-*/
 
 impl Drop for HiPS3DBuffer {
     fn drop(&mut self) {

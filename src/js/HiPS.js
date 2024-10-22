@@ -197,6 +197,8 @@ export let HiPS = (function () {
         this.name = (options && options.name) || undefined;
         this.startUrl = options.startUrl;
 
+        this.slice = 0;
+
         if (location instanceof FileList) {
             let localFiles = {};
             for (var file of location) {
@@ -290,6 +292,7 @@ export let HiPS = (function () {
 
         // Cube depth
         self.cubeDepth = properties && properties.hips_cube_depth && +properties.hips_cube_depth;
+        self.cubeFirstFrame = properties && properties.hips_cube_firstframe && +properties.hips_cube_firstframe;
 
         // Max order
         self.maxOrder =
@@ -707,6 +710,8 @@ export let HiPS = (function () {
     };
 
     HiPS.prototype.setSliceNumber = function(slice) {
+        this.slice = slice;
+
         if (this.added) {
             this.view.wasm.setSliceNumber(this.layer, slice);
         }
@@ -1012,6 +1017,8 @@ export let HiPS = (function () {
 
         return Promise.resolve(this)
             .then((hips) => {
+                this.added = true;
+
                 if (hips.successCallback) {
                     hips.successCallback(hips)
                 }

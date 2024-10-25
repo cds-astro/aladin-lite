@@ -70,7 +70,7 @@ export let Footprint= (function() {
         if (this.source) {
             this.source.setCatalog(catalog);
             
-            for (var s of this.shapes) {
+            /*for (var s of this.shapes) {
                 if (!s.color) {
                     s.setColor(catalog.color);
                 }
@@ -78,7 +78,7 @@ export let Footprint= (function() {
                 // Selection and hover color are catalog options
                 s.setSelectionColor(catalog.selectionColor);
                 s.setHoverColor(catalog.hoverColor);
-            }
+            }*/
         }
     };
 

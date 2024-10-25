@@ -116,9 +116,6 @@ export class HiPSBrowserBox extends Box {
                     searchDropdown.removeClass('aladin-valid')
                     searchDropdown.removeClass('aladin-not-valid')
                 },
-                change(e) {
-                    _parseHiPS(e)
-                },
             },
         });
 
@@ -277,6 +274,7 @@ export class HiPSBrowserBox extends Box {
     }
 
     _addHiPS(id) {
+        console.log("add hips", id)
         let self = this;
         let hips = A.imageHiPS(id, {
             successCallback: (hips) => {

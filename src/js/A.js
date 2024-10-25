@@ -570,39 +570,41 @@ A.catalog = function (options) {
  */
 A.catalogFromURL = function (url, options, successCallback, errorCallback, useProxy) {
     options.url = url;
-    var catalog = A.catalog(options);
+    var c = A.catalog(options);
     const processVOTable = function (table) {
         let {sources, fields} = table;
-        catalog.setFields(fields);
-        catalog.addSources(sources);
+        c.setFields(fields);
+        c.addSources(sources);
 
         const s_regionFieldFound = Array.from(Object.keys(fields)).find((f) => f.toLowerCase() === 's_region');
 
-        if (s_regionFieldFound && typeof catalog.shape !== 'function') {
+        if (s_regionFieldFound && typeof c.shape !== 'function') {
             // set the shape
-            catalog.setShape((s) => {
+            c.setShape((s) => {
                 if (!s.data.s_region)
                     return;
 
                 const shapes = A.footprintsFromSTCS(s.data.s_region, options)
                 let fp = new Footprint(shapes, s);
-                fp.setColor(catalog.color);
+                fp.setColor(c.color);
+                fp.setHoverColor(c.hoverColor);
+                fp.setSelectionColor(c.selectionColor);
 
                 return fp;
             })
         }
 
         if (successCallback) {
-            successCallback(catalog);
+            successCallback(c);
         }
 
         if (sources.length === 0) {
-            console.warn(catalog.name + ' has no sources!')
+            console.warn(c.name + ' has no sources!')
         }
 
         // Even if the votable is not a proper ObsCore one, try to see if specific columns are given
         // e.g. access_format and access_url
-        //ObsCore.handleActions(catalog);
+        //ObsCore.handleActions(c);
     };
 
     if (useProxy !== undefined) {
@@ -610,9 +612,9 @@ A.catalogFromURL = function (url, options, successCallback, errorCallback, usePr
             url,
             processVOTable,
             errorCallback,
-            catalog.maxNbSources,
+            c.maxNbSources,
             useProxy,
-            catalog.raField, catalog.decField
+            c.raField, c.decField
         );
     } else {
         Catalog.parseVOTable(
@@ -623,18 +625,18 @@ A.catalogFromURL = function (url, options, successCallback, errorCallback, usePr
                     url,
                     processVOTable,
                     errorCallback,
-                    catalog.maxNbSources,
+                    c.maxNbSources,
                     true,
-                    catalog.raField, catalog.decField
+                    c.raField, c.decField
                 );
             },
-            catalog.maxNbSources,
+            c.maxNbSources,
             false,
-            catalog.raField, catalog.decField
+            c.raField, c.decField
         );
     }
 
-    return catalog;
+    return c;
 };
 
 /**

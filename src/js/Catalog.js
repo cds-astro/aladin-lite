@@ -116,6 +116,7 @@ export let Catalog = (function () {
         this.filterFn = options.filter || undefined; // TODO: do the same for catalog
         this.selectionColor = options.selectionColor || "#00ff00";
         this.hoverColor = options.hoverColor || this.color;
+
         this.displayLabel = options.displayLabel || false;
         this.labelColor = options.labelColor || this.color;
         this.labelFont = options.labelFont || "10px sans-serif";
@@ -499,7 +500,7 @@ export let Catalog = (function () {
         options = options || {};
         this.color = options.color || this.color || Color.getNextColor();
         this.selectionColor = options.selectionColor || this.selectionColor || Color.getNextColor();
-        this.hoverColor = options.hoverColor || this.color;
+        this.hoverColor = options.hoverColor || this.hoverColor || this.color;
         this.sourceSize = options.sourceSize || this.sourceSize || 6;
         this.shape = options.shape || this.shape || "square";
         this.onClick = options.onClick || this.onClick;

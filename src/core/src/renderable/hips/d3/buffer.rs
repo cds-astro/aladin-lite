@@ -20,7 +20,6 @@ pub struct HiPS3DBuffer {
     textures: HashMap<HEALPixCell, HpxTexture3D>,
 
     config: HiPSConfig,
-    num_root_textures_available: u8,
 
     available_tiles_during_frame: bool,
 
@@ -31,14 +30,12 @@ impl HiPS3DBuffer {
     pub fn new(gl: &WebGlContext, config: HiPSConfig) -> Result<Self, JsValue> {
         let textures = HashMap::new();
 
-        let num_root_textures_available = 0;
         let available_tiles_during_frame = false;
 
         let gl = gl.clone();
         Ok(Self {
             config,
 
-            num_root_textures_available,
             textures,
             available_tiles_during_frame,
             gl,
@@ -135,14 +132,12 @@ impl HpxTileBuffer for HiPS3DBuffer {
     fn new(gl: &WebGlContext, config: HiPSConfig) -> Result<Self, JsValue> {
         let textures = HashMap::new();
 
-        let num_root_textures_available = 0;
         let available_tiles_during_frame = false;
 
         let gl = gl.clone();
         Ok(Self {
             config,
 
-            num_root_textures_available,
             textures,
             available_tiles_during_frame,
             gl,
@@ -158,7 +153,15 @@ impl HpxTileBuffer for HiPS3DBuffer {
     }
 
     fn set_image_ext(&mut self, gl: &WebGlContext, ext: ImageExt) -> Result<(), JsValue> {
-        todo!();
+        self.config.set_image_ext(ext)?;
+
+        let channel = self.config.get_format().get_channel();
+
+        self.textures.clear();
+        //self.ready = false;
+        self.available_tiles_during_frame = true;
+
+        Ok(())
     }
 
     fn read_pixel(&self, pos: &LonLatT<f64>, camera: &CameraViewPort) -> Result<JsValue, JsValue> {

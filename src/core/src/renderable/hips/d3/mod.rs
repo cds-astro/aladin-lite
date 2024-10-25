@@ -580,7 +580,7 @@ impl HiPS3D {
         //     * there are new available tiles for the GPU
         let mut off_idx = 0;
 
-        let shader = get_raster_shader(cmap, &self.gl, shaders, &hips_cfg)?.bind(&self.gl);
+        let shader = get_raster_shader(cmap, &self.gl, shaders, &hips_cfg)?;
 
         for (slice_idx, (cell, num_indices)) in self
             .slice_indices
@@ -588,7 +588,11 @@ impl HiPS3D {
             .zip(self.cells.iter().zip(self.num_indices.iter()))
         {
             blend_cfg.enable(&self.gl, || {
-                shader
+                // Bind the shader at each draw of a cell to not exceed the max number of tex image units bindable
+                // to a shader. It is 32 in my case
+                let shaderbound = shader.bind(&self.gl);
+
+                shaderbound
                     .attach_uniform(
                         "tex",
                         self.buffer

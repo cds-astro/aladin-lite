@@ -147,7 +147,14 @@ impl HpxTexture3D {
                 }
             }
             Err(i) => {
-                match (self.block_indices.get(i - 1), self.block_indices.get(i)) {
+                let prev_block = if i > 0 {
+                    self.block_indices.get(i - 1)
+                } else {
+                    None
+                };
+
+                let cur_block = self.block_indices.get(i);
+                match (prev_block, cur_block) {
                     (Some(b_idx_1), Some(b_idx_2)) => {
                         let b1 = self.blocks[*b_idx_1];
                         let b2 = self.blocks[*b_idx_2];
@@ -184,9 +191,9 @@ impl HpxTexture3D {
     }
 
     pub fn get_3d_block_from_slice(&self, slice: u16) -> Option<&Texture3D> {
-        let block_idx = slice >> 5;
+        let block_idx = (slice >> 5) as usize;
 
-        self.textures[block_idx as usize].as_ref()
+        self.textures[block_idx].as_ref()
     }
 
     pub fn extract_2d_slice_texture(&self, slice: u16) -> Option<HpxTexture2D> {

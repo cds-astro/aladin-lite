@@ -236,6 +236,8 @@ export let Polyline = (function() {
         if (!color || this.hoverColor == color) {
             return;
         }
+
+        console.log(color)
         this.hoverColor = color;
         if (this.overlay) {
             this.overlay.reportChange();

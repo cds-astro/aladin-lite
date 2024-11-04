@@ -63,26 +63,31 @@ export class HiPSBrowserBox extends Box {
             self._filterHiPSList({})
         });
 
+
+
         const _parseHiPS = (e) => {
             const value = e.target.value;
 
-            let image;
+            let image, name;
             // A user can put an url
             try {
                 image = new URL(value).href;
+                name = image;
             } catch (e) {
                 // Or he can select a HiPS from the list given
                 const hips = HiPSBrowserBox.HiPSList[value];
                 if (hips) {
                     image = hips.ID || hips.hips_service_url;
+                    name = hips.obs_title || hips.ID;
                 } else {
                     // Finally if not found, interpret the input text value as the HiPS (e.g. ID)
                     image = value;
+                    name = value;
                 }
             }
 
             if (image) {
-                self._addHiPS(image)
+                self._addHiPS(image, name)
                 self.searchDropdown.update({title: value});
             }
         };
@@ -116,6 +121,11 @@ export class HiPSBrowserBox extends Box {
                     searchDropdown.removeClass('aladin-valid')
                     searchDropdown.removeClass('aladin-not-valid')
                 },
+                change(e) {
+                    e.stopPropagation();
+                    e.preventDefault()
+                    _parseHiPS(e)
+                }
             },
         });
 
@@ -273,10 +283,11 @@ export class HiPSBrowserBox extends Box {
         };
     }
 
-    _addHiPS(id) {
-        console.log("add hips", id)
+    _addHiPS(id, name) {
         let self = this;
+
         let hips = A.imageHiPS(id, {
+            name,
             successCallback: (hips) => {
                 self.searchDropdown.removeClass('aladin-not-valid');
                 self.searchDropdown.addClass('aladin-valid');
@@ -287,6 +298,8 @@ export class HiPSBrowserBox extends Box {
                         window.open(hips.url);
                     }
                 })
+
+                self.aladin.removeUIByName("cube_displayer" + hips.layer)
 
                 if (!hips.cubeDepth)
                     return;
@@ -321,10 +334,10 @@ export class HiPSBrowserBox extends Box {
                     hips.setSliceNumber(idxSlice)
                     cubeDisplayer.update({position: cubeDisplayer.position, content: Layout.horizontal([prevBtn, nextBtn, slicer, toStr(idxSlice + 1, true) + '/' + toStr(numSlices, false)])})
                 };
-                                                
+
                 let slicer = Input.slider({
                     label: "Slice",
-                    name: "cube slicer",
+                    name: "cube_slicer" + hips.layer,
                     ticks: [idxSlice],
                     tooltip: {content: (idxSlice + 1) + '/' + numSlices, position: {direction: 'bottom'}},
                     min: 0,
@@ -370,7 +383,7 @@ export class HiPSBrowserBox extends Box {
 
                 let cubeDisplayer = A.box({
                     close: true,
-                    name: 'player' + hips.name,
+                    name: "cube_displayer" + hips.layer,
                     header: {
                         title: 'Player for: ' + hips.name,
                         draggable: true,
@@ -378,6 +391,7 @@ export class HiPSBrowserBox extends Box {
                     content: Layout.horizontal([prevBtn, nextBtn, slicer, toStr(idxSlice + 1, true) + '/' + toStr(numSlices, false)]),
                     position: {anchor: 'center top'},
                 });
+
                 self.aladin.addUI(cubeDisplayer)
             },
             errorCallback: (e) => {

@@ -326,6 +326,7 @@ impl Layers {
             .ok_or(err_layer_not_found)?;
         self.layers.remove(id_layer);
 
+        al_core::log(&format!("remove layer {:?}", id_layer));
         // Loop over all the meta for its longitude reversed property
         // and set the camera to it if there is at least one
         let longitude_reversed = self.meta.values().any(|meta| meta.longitude_reversed);
@@ -335,9 +336,13 @@ impl Layers {
         // Check if the url is still used
         let id_still_used = self.ids.values().any(|rem_id| rem_id == &id);
         if id_still_used {
+            al_core::log("still used");
+
             // Keep the resource whether it is a HiPS or a FITS
             Ok(id_layer)
         } else {
+            al_core::log("not needed");
+
             // Resource not needed anymore
             if let Some(hips) = self.hipses.remove(&id) {
                 // A HiPS has been found and removed

@@ -74,6 +74,7 @@ export class DOMElement {
             if (target && target.children) {
                 index = Array.prototype.indexOf.call(target.children, el);
             }
+            console.log("remove", el)
             el.remove()
 
             return {target, position: index};

@@ -28,7 +28,6 @@
  *
  *****************************************************************************/
 import { Form } from "../Widgets/Form.js";
-import { ColorCfg } from "../../ColorCfg.js";
  import { Box } from "../Widgets/Box.js";
  import { ALEvent } from "../../events/ALEvent.js";
  import opacityIconUrl from '../../../../assets/icons/opacity.svg';
@@ -165,6 +164,21 @@ import { ColorCfg } from "../../ColorCfg.js";
                         slider.update({value: contrast, tooltip: {content: `${contrast.toFixed(3)}`, position: {direction: 'right'}}})
                     }
                 },
+                {
+                    label: 'gamma:',
+                    tooltip: {content: 'gamma', position: {direction: 'right'}},
+                    name: 'gamma',
+                    type: 'range',
+                    min: 0.1,
+                    max: 10.0,
+                    ticks: [1.0],
+                    value: 1.0,
+                    change: (e, slider) => {
+                        const gamma = +e.target.value
+                        self.options.layer.setGamma(gamma)
+                        slider.update({value: gamma, tooltip: {content: `${gamma.toFixed(3)}`, position: {direction: 'right'}}})
+                    }
+                },
             ]
         });
         let pixelSettingsContent = new Form({
@@ -274,6 +288,7 @@ import { ColorCfg } from "../../ColorCfg.js";
             this.opacitySettingsContent.set('opacity', hips.getOpacity());
             this.luminositySettingsContent.set('brightness', colorCfg.getBrightness());
             this.luminositySettingsContent.set('contrast', colorCfg.getContrast());
+            this.luminositySettingsContent.set('gamma', colorCfg.getGamma());
             this.luminositySettingsContent.set('saturation', colorCfg.getSaturation());
         }
 
@@ -305,6 +320,7 @@ import { ColorCfg } from "../../ColorCfg.js";
                 this.opacitySettingsContent.set('opacity', hips.getOpacity());
                 this.luminositySettingsContent.set('brightness', colorCfg.getBrightness());
                 this.luminositySettingsContent.set('contrast', colorCfg.getContrast());
+                this.luminositySettingsContent.set('gamma', colorCfg.getGamma());
                 this.luminositySettingsContent.set('saturation', colorCfg.getSaturation());
             }
         });

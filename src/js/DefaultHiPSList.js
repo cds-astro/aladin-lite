@@ -153,7 +153,7 @@ export let HiPSList = (function () {
         {
             creatorDid: "ivo://CDS/P/allWISE/color",
             id: "P/allWISE/color",
-            name: "AllWISE color",
+            name: "AllWISE color Red (W4) , Green (W2) , Blue (W1) from raw Atlas Images",
             maxOrder: 8,
             tileSize: 512,
             imgFormat: "jpeg",

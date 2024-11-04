@@ -194,7 +194,7 @@ export let HiPS = (function () {
         this.id = id;
 
         this.options = options;
-        this.name = (options && options.name) || undefined;
+        this.name = (options && options.name) || id;
         this.startUrl = options.startUrl;
 
         this.slice = 0;
@@ -949,8 +949,8 @@ export let HiPS = (function () {
         let self = this;
         let hipsCache = this.view.aladin.hipsCache;
 
-        if (hipsCache.contains(self.id)) {
-            hipsCache.append(self.id, this)
+        if (hipsCache.contains(self.name)) {
+            hipsCache.append(self.name, this.options)
         }
     };
 

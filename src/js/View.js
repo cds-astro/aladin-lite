@@ -1830,6 +1830,7 @@ export let View = (function () {
     View.prototype.removeImageLayer = function (layer) {
         // Get the survey to remove to dissociate it from the view
         let imageLayer = this.imageLayers.get(layer);
+
         if (imageLayer === undefined) {
             // there is nothing to remove
             return;

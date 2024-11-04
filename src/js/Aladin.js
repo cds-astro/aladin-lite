@@ -424,12 +424,11 @@ export let Aladin = (function () {
                 }
 
                 // at least id or url is defined
-                let key = id || url;
+                let key = name || id || url;
 
                 // Merge what is already in the cache for that HiPS with new properties
                 // coming from the MOCServer
-                let hips = new HiPS(key, key, cachedSurvey)
-                self.hipsCache.append(key, hips);
+                self.hipsCache.append(key, cachedSurvey);
             }
         };
         this._setupUI(options);
@@ -1443,9 +1442,11 @@ export let Aladin = (function () {
     };
 
     Aladin.prototype.removeUIByName = function(name) {
-        let elt = this.ui.find((elm) => elm.name === name)
-        if (elt) {
-            elt.remove()
+        let index = this.ui.findIndex((elm) => elm.name === name)
+        if (index >= 0) {
+            this.ui[index].remove();
+
+            this.ui.splice(index, 1);
         }
     };
 
@@ -1540,11 +1541,12 @@ export let Aladin = (function () {
         maxOrder,
         options
     ) {
-        let hips = new HiPS(id, url || id, { name, maxOrder, url, cooFrame, ...options })
+        let hipsOptions = { id, name, maxOrder, url, cooFrame, ...options };
+        let hips = new HiPS(id, url || id, hipsOptions)
 
-        if (this instanceof Aladin && !this.hipsCache.contains(id)) {
+        if (this instanceof Aladin && !this.hipsCache.contains(hips.name)) {
             // Add it to the cache as soon as possible if we have a reference to the aladin object
-            this.hipsCache.append(hips.id, hips)
+            this.hipsCache.append(hips.name, hipsOptions)
         }
 
         return hips;
@@ -1591,11 +1593,14 @@ export let Aladin = (function () {
             console.warn(survey + ' is among the list of HiPS currently in the view.');
         }
 
+        let id;
         if (typeof survey !== "string") {
-            survey = survey.id;
+            id = survey.name
+        } else {
+            id = survey
         }
         
-        this.hipsCache.delete(survey);
+        this.hipsCache.delete(id);
     }
 
     /**
@@ -1847,9 +1852,9 @@ export let Aladin = (function () {
             const idOrUrl = urlOrHiPSOrFITS;
             // many cases here
             // 1/ It has been already added to the cache
-            let cachedLayer = hipsCache.get(idOrUrl)
-            if (cachedLayer) {
-                imageLayer = cachedLayer
+            let cachedOptions = hipsCache.get(idOrUrl)
+            if (cachedOptions) {
+                imageLayer = A.HiPS(idOrUrl, cachedOptions);
             } else {
                 // 2/ Not in the cache, then we create the hips from this url/id and 
                 // go to the case 3
@@ -1860,18 +1865,20 @@ export let Aladin = (function () {
             // 3/ It is an image survey.
             imageLayer = urlOrHiPSOrFITS;
 
-            let cachedLayer = hipsCache.get(imageLayer.id)
-            if (!cachedLayer) {
-                hipsCache.append(imageLayer.id, imageLayer)
+            let cachedLayerOptions = hipsCache.get(imageLayer.name)
+
+            if (!cachedLayerOptions) {
+                hipsCache.append(imageLayer.name, imageLayer.options)
             } else {
                 // first set the options of the cached layer to the one of the user
-                cachedLayer.setOptions(imageLayer.options)
                 // if it is in the cache we get it from the cache
-                imageLayer = cachedLayer
+                imageLayer = A.HiPS(imageLayer.id, cachedLayerOptions)
             }
         }
+        let imageLayerCopied = Object.assign(Object.create(Object.getPrototypeOf(imageLayer)), imageLayer)
+        imageLayerCopied.layer = layer;
 
-        return this.view.setOverlayImageLayer(imageLayer, layer);
+        return this.view.setOverlayImageLayer(imageLayerCopied, layer);
     };
 
     /**

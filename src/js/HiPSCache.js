@@ -36,8 +36,8 @@ export let HiPSCache = (function () {
     /*
     * key can be a CDS ID or an url. TODO could be an options.name too.
     */
-    HiPSCache.prototype.append = function (key, image) {
-        this.cache[key] = image;
+    HiPSCache.prototype.append = function (key, options) {
+        this.cache[key] = options;
 
         ALEvent.HIPS_CACHE_UPDATED.dispatchedTo(document.body);
     };

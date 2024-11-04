@@ -721,11 +721,14 @@ export class OverlayStackBox extends Box {
             self.cachedHiPS = {};
 
             for (var key in hipsCache.cache) {
-                let HiPS = hipsCache.cache[key];
+                let HiPSOptions = hipsCache.cache[key];
 
-                if (HiPS.name) {
-                    self.cachedHiPS[HiPS.name.toString()] = HiPS;
-                }
+                /*if (HiPSOptions.name) {
+                    self.cachedHiPS[HiPSOptions.name.toString()] = HiPSOptions;
+                } else {
+                    self.cachedHiPS[key] = HiPSOptions;
+                }*/
+                self.cachedHiPS[key] = HiPSOptions;
             }
 
             // Update the options of the selector
@@ -739,7 +742,10 @@ export class OverlayStackBox extends Box {
                 let currentHiPS = hips.HiPSSelector.options.value
 
                 let favoritesCopy = [...favorites];
-                if (!(currentHiPS in favoritesCopy)) {
+                
+                // add the current hips to the selector as well, even if it has been manually
+                // removed from the HiPSList
+                if (favoritesCopy.indexOf(currentHiPS) < 0) {
                     favoritesCopy.push(currentHiPS)
                 }
 
@@ -935,25 +941,25 @@ export class OverlayStackBox extends Box {
         hipsOptions.sort()
 
         for (const layer of layers) {
-
             let HiPSSelector = Input.select({
-                value: layer.name,
+                value: layer.name || layer.id,
                 options: hipsOptions,
                 title: layer.name,
                 change: (e) => {
                     let name = e.target.value;
                     // search for the 
-                    let HiPS = self.cachedHiPS[name];
+                    let HiPSOptions = self.cachedHiPS[name];
 
-                    let image;
+                    /*let image;
                     if (HiPS instanceof Image) {
                         image = HiPS;
                     } else {
                         // HiPS
                         image = HiPS.id || HiPS.url || undefined;
-                    }
+                    }*/
+                    let hips = A.HiPS(HiPSOptions.id || HiPSOptions.url, HiPSOptions);
 
-                    self.aladin.setOverlayImageLayer(image, layer.layer);
+                    self.aladin.setOverlayImageLayer(hips, layer.layer);
                 }
             });
 
@@ -963,9 +969,10 @@ export class OverlayStackBox extends Box {
                 disable: layer.layer === "base",
                 tooltip: { content: "Remove", position: { direction: "top" } },
                 action(e) {
+                    console.log(layer)
                     self.aladin.removeImageLayer(layer.layer);
                     // remove HiPS cube player if any 
-                    self.aladin.removeUIByName("player" + layer.name)
+                    self.aladin.removeUIByName("cube_displayer" + layer.layer)
                 },
             });
 
@@ -1000,10 +1007,8 @@ export class OverlayStackBox extends Box {
             });
 
             let settingsBox = new HiPSSettingsBox(self.aladin);
-
             settingsBox.update({ layer });
             settingsBox._hide();
-
 
             let settingsBtn = new TogglerActionButton({
                 icon: { url: settingsIconUrl, monochrome: true },

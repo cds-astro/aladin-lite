@@ -728,7 +728,9 @@ export class OverlayStackBox extends Box {
                 } else {
                     self.cachedHiPS[key] = HiPSOptions;
                 }*/
-                self.cachedHiPS[key] = HiPSOptions;
+
+                let k = HiPSOptions.name || key;
+                self.cachedHiPS[k] = HiPSOptions;
             }
 
             // Update the options of the selector
@@ -742,7 +744,7 @@ export class OverlayStackBox extends Box {
                 let currentHiPS = hips.HiPSSelector.options.value
 
                 let favoritesCopy = [...favorites];
-                
+
                 // add the current hips to the selector as well, even if it has been manually
                 // removed from the HiPSList
                 if (favoritesCopy.indexOf(currentHiPS) < 0) {
@@ -941,25 +943,31 @@ export class OverlayStackBox extends Box {
         hipsOptions.sort()
 
         for (const layer of layers) {
+            let options = Array.from([...hipsOptions])
+            let value = layer.name || layer.id
+
+            if (options.indexOf(value) < 0) {
+                options.push(value)
+            }
+
             let HiPSSelector = Input.select({
-                value: layer.name || layer.id,
-                options: hipsOptions,
+                value,
+                options,
                 title: layer.name,
                 change: (e) => {
                     let name = e.target.value;
-                    // search for the 
-                    let HiPSOptions = self.cachedHiPS[name];
+                    // search for the
+                    let overlayLayer;
+                    if (name in self.cachedHiPS) {
+                        // it is an hips
+                        let HiPSOptions = self.cachedHiPS[name];
 
-                    /*let image;
-                    if (HiPS instanceof Image) {
-                        image = HiPS;
+                        overlayLayer = A.HiPS(HiPSOptions.id || HiPSOptions.url, HiPSOptions);
                     } else {
-                        // HiPS
-                        image = HiPS.id || HiPS.url || undefined;
-                    }*/
-                    let hips = A.HiPS(HiPSOptions.id || HiPSOptions.url, HiPSOptions);
-
-                    self.aladin.setOverlayImageLayer(hips, layer.layer);
+                        overlayLayer = layer
+                    }
+                    
+                    self.aladin.setOverlayImageLayer(overlayLayer, layer.layer);
                 }
             });
 
@@ -969,7 +977,6 @@ export class OverlayStackBox extends Box {
                 disable: layer.layer === "base",
                 tooltip: { content: "Remove", position: { direction: "top" } },
                 action(e) {
-                    console.log(layer)
                     self.aladin.removeImageLayer(layer.layer);
                     // remove HiPS cube player if any 
                     self.aladin.removeUIByName("cube_displayer" + layer.layer)

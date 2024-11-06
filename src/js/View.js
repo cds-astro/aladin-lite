@@ -1728,6 +1728,7 @@ export let View = (function () {
             // to the image layer objet (whether it is an HiPS or an Image)
             .then((imageLayer) => {
                 // Add to the backend
+                imageLayer._setView(this)
                 const promise = imageLayer._add(layer);
                 ALEvent.FETCH.dispatchedTo(document, {task});
 

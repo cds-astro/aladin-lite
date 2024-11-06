@@ -122,11 +122,10 @@ A.aladin = function (divSelector, options) {
  * @returns {HiPS} - A HiPS image object
  */
 A.HiPS = function (id, options) {
-    let url = id;
     return Aladin.createImageSurvey(
         id,
         options && options.name,
-        url,
+        (options && options.url) || id,
         options && options.cooFrame,
         options && options.maxOrder,
         options

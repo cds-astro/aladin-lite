@@ -235,6 +235,7 @@ export let HiPS = (function () {
         }
 
         this.url = location;
+
         this.maxOrder = options.maxOrder;
         this.minOrder = options.minOrder || 0;
         this.cooFrame = options.cooFrame;
@@ -878,6 +879,7 @@ export let HiPS = (function () {
             if (isIncompleteOptions) {
                 // ID typed url
                 if (self.startUrl && isID) {
+
                     // First download the properties from the start url
                     await HiPSProperties.fetchFromUrl(self.startUrl)
                         .then((p) => {
@@ -949,8 +951,8 @@ export let HiPS = (function () {
         let self = this;
         let hipsCache = this.view.aladin.hipsCache;
 
-        if (hipsCache.contains(self.name)) {
-            hipsCache.append(self.name, this.options)
+        if (hipsCache.contains(self.id)) {
+            hipsCache.append(self.id, this.options)
         }
     };
 

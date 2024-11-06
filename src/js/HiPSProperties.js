@@ -109,7 +109,7 @@ HiPSProperties.fetchFromUrl = async function(urlOrId) {
     let result = fetch(url, init)
         .then((response) => {
             if (response.status == 404) {
-                return Promise.reject("Url points to nothing")
+                return Promise.reject("Url points to nothing: " + url)
             } else {
                 return response.text();
             }

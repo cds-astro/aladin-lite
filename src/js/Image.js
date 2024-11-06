@@ -369,6 +369,7 @@ export let Image = (function () {
                         return Promise.reject(e)
                     })
             } else if (this.imgFormat === 'jpeg' || this.imgFormat === 'png') {
+
                 promise = this._addJPGOrPNG(layer)
                     .catch(e => {
                         console.error(`Image located at ${this.url} could not be parsed as a ${this.imgFormat} file. Is the imgFormat specified correct?`);

@@ -1544,9 +1544,9 @@ export let Aladin = (function () {
         let hipsOptions = { id, name, maxOrder, url, cooFrame, ...options };
         let hips = new HiPS(id, url || id, hipsOptions)
 
-        if (this instanceof Aladin && !this.hipsCache.contains(hips.name)) {
+        if (this instanceof Aladin && !this.hipsCache.contains(hips.id)) {
             // Add it to the cache as soon as possible if we have a reference to the aladin object
-            this.hipsCache.append(hips.name, hipsOptions)
+            this.hipsCache.append(hips.id, hipsOptions)
         }
 
         return hips;
@@ -1651,7 +1651,8 @@ export let Aladin = (function () {
         // Do not use proxy with CORS headers until we solve that: https://github.com/MattiasBuelens/wasm-streams/issues/20
         //url = Utils.handleCORSNotSameOrigin(url).href;
 
-        let image = new Image(url, {...options, successCallback, errorCallback});
+        let imageOptions = {...options, successCallback, errorCallback};
+        let image = new Image(url, imageOptions);
 
         return image;
     };
@@ -1865,16 +1866,20 @@ export let Aladin = (function () {
             // 3/ It is an image survey.
             imageLayer = urlOrHiPSOrFITS;
 
-            let cachedLayerOptions = hipsCache.get(imageLayer.name)
 
-            if (!cachedLayerOptions) {
-                hipsCache.append(imageLayer.name, imageLayer.options)
-            } else {
-                // first set the options of the cached layer to the one of the user
-                // if it is in the cache we get it from the cache
-                imageLayer = A.HiPS(imageLayer.id, cachedLayerOptions)
+            if (imageLayer instanceof HiPS) {
+                let cachedLayerOptions = hipsCache.get(imageLayer.id)
+
+                if (!cachedLayerOptions) {
+                    hipsCache.append(imageLayer.id, imageLayer.options)
+                } else {
+                    // first set the options of the cached layer to the one of the user
+                    // if it is in the cache we get it from the cache
+                    imageLayer = A.HiPS(imageLayer.id, cachedLayerOptions)
+                }
             }
         }
+
         let imageLayerCopied = Object.assign(Object.create(Object.getPrototypeOf(imageLayer)), imageLayer)
         imageLayerCopied.layer = layer;
 

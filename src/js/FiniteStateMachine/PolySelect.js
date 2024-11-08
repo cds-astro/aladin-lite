@@ -71,7 +71,6 @@ export class PolySelect extends FSM {
             this.callback = callback;
             // reset the coo
             this.coos = [];
-
         }
 
         let click = (params) => {
@@ -146,6 +145,9 @@ export class PolySelect extends FSM {
         }
 
         let finish = () => {
+            if(btn) {
+                btn.remove();
+            }
 
             if (this.coos.length <= 2) {
                 console.warn("Invalid selection, please draw at least a 3 vertices polygon")
@@ -154,10 +156,6 @@ export class PolySelect extends FSM {
                 view.requestRedraw();
                 this.dispatch("off")
                 return;
-            }
-
-            if(btn) {
-                btn.remove();
             }
 
             // finish the selection

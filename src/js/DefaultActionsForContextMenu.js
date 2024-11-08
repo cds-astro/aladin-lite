@@ -206,6 +206,12 @@ export let DefaultActionsForContextMenu = (function () {
                         action(o) {        
                             a.select('rect', selectObjects)
                         }
+                    },
+                    {
+                        label: 'Polygon',
+                        action(o) {        
+                            a.select('poly', selectObjects)
+                        }
                     }
                 ]
             },

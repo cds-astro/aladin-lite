@@ -223,6 +223,7 @@ export let GraphicOverlay = (function() {
     	for (var k=0, len=overlaysToAdd.length; k<len; k++) {
             this.add(overlaysToAdd[k], false);
         }
+        this.view.requestRedraw();
     };
 
     // TODO : item doit pouvoir prendre n'importe quoi en param (footprint, circle, polyline)

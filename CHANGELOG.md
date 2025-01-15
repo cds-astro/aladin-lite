@@ -1,5 +1,9 @@
 # Changelogs
 
+## unreleased
+
+* [fix] request a redraw after adding an array of footprints [PR #218]
+
 ## 3.5.1-beta
 
 * [feat] Add support for name removing in `removeOverlay` method

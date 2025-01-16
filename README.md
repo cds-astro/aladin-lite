@@ -48,6 +48,8 @@ Editable examples showing the API can also be found [here](https://aladin.cds.un
 
 ## Embed it into your projects
 
+**Terms of use**: you are welcome to integrate Aladin Lite in your web pages and to customize its GUI to your needs, but **please leave the Aladin logo and link intact** at the bottom right of the view.
+
 You can embed Aladin Lite it into your webpages in two ways
 
 ### The vanilla way

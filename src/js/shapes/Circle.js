@@ -222,21 +222,50 @@ export let Circle = (function() {
 
         let hidden = true;
 
-        var ra, dec, vertOnCircle, dx, dy;
-        this.radius = Number.NEGATIVE_INFINITY;
 
         // Project 4 points lying on the circle and take the minimal dist with the center as radius
-        [[-1, 0], [1, 0], [0, -1], [0, 1]].forEach(([cardDirRa, cardDirDec]) => {
-            ra = this.centerRaDec[0] + cardDirRa * this.radiusDegrees;
-            dec = this.centerRaDec[1] + cardDirDec * this.radiusDegrees;
+        const degToRad = Math.PI / 180;
+        const radToDeg = 180 / Math.PI;
+        const sampleCoordinates = [];
+        const radiusRadians = this.radiusDegrees * degToRad;
+        const raCenterRadians = this.centerRaDec[0] * degToRad;
+        const decCenterRadians = this.centerRaDec[1] * degToRad;
+        // compute 4 sample coordinates lying on the circle
+        for (let i = 0; i < 4; i++) {
+            const phi = i * 2 * Math.PI / 4;
 
+            const sampleDec = Math.asin(
+                Math.sin(decCenterRadians) * Math.cos(radiusRadians) +
+                Math.cos(decCenterRadians) * Math.sin(radiusRadians) * Math.cos(phi)
+            );
+
+            const sampleRa = raCenterRadians + Math.atan2(
+                Math.sin(phi) * Math.sin(radiusRadians) * Math.cos(decCenterRadians),
+                Math.cos(radiusRadians) - Math.sin(decCenterRadians) * Math.sin(sampleDec)
+            );
+
+            // Normalize RA to [0, 2π] and convert to degrees
+            const sampleRaDeg = radToDeg * ((sampleRa + 2 * Math.PI) % (2 * Math.PI));
+            const sampleDecDeg = radToDeg * sampleDec;
+
+            sampleCoordinates.push([sampleRaDeg, sampleDecDeg]);
+        }
+
+        let vertOnCircle, dx, dy;
+        this.radius = Number.NEGATIVE_INFINITY;
+        sampleCoordinates.forEach(([ra, dec]) => {
             vertOnCircle = view.aladin.world2pix(ra, dec);
 
             if (vertOnCircle) {
                 dx = vertOnCircle[0] - this.center.x;
                 dy = vertOnCircle[1] - this.center.y;
 
-                this.radius = Math.max(Math.sqrt(dx*dx + dy*dy), this.radius);
+                if (this.radius !== Number.NEGATIVE_INFINITY) {
+                    this.radius = Math.min(Math.sqrt(dx*dx + dy*dy), this.radius);
+                }
+                else {
+                    this.radius = Math.sqrt(dx*dx + dy*dy);
+                }
 
                 hidden = false;
             }
@@ -245,6 +274,7 @@ export let Circle = (function() {
         if (hidden) {
             return false;
         }
+
         // Then we can draw
 
         var baseColor = this.color;

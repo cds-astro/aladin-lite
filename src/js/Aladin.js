@@ -1400,6 +1400,16 @@ export let Aladin = (function () {
         this.view.pointTo(ra, dec);
     };
 
+    /**
+     * Show the HEALPix grid
+     *
+     * @memberof Aladin
+     * @param {boolean} show - True to enable, false to disable
+     *
+     * @example
+     * const aladin = A.aladin('#aladin-lite-div');
+     * aladin.showHealpixGrid(true);
+     */
     Aladin.prototype.showHealpixGrid = function (show) {
         this.view.showHealpixGrid(show);
     };

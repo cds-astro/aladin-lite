@@ -207,7 +207,7 @@ impl HiPS2D {
         #[cfg(feature = "webgl2")]
         vao.bind_for_update()
             .add_array_buffer_single(
-                2,
+                3,
                 "ndc_pos",
                 WebGl2RenderingContext::DYNAMIC_DRAW,
                 VecData::<f32>(&position),
@@ -551,7 +551,9 @@ impl HiPS2D {
                         self.uv_end.extend(uv_end);
                         self.time_tile_received.push(start_time);
 
-                        pos.push([lon as f32, lat as f32]);
+                        let xyz = crate::math::lonlat::radec_to_xyz(Angle(lon), Angle(lat));
+                        pos.push([xyz.x as f32, xyz.y as f32, xyz.z as f32]);
+                        //pos.push([lon as f32, lat as f32]);
                     }
 
                     let patch_indices_iter = DefaultPatchIndexIter::new(

@@ -1,8 +1,8 @@
 #version 300 es
-precision lowp float;
+precision highp float;
 
-//layout (location = 0) in vec3 position;
-layout (location = 0) in vec2 lonlat;
+layout (location = 0) in vec3 xyz;
+//layout (location = 0) in vec2 lonlat;
 layout (location = 1) in vec3 uv_start;
 layout (location = 2) in vec3 uv_end;
 layout (location = 3) in float time_tile_received;
@@ -20,8 +20,8 @@ uniform float current_time;
 #include ../../projection/projection.glsl;
 
 void main() {
-    vec3 p_xyz = lonlat2xyz(lonlat);
-    vec4 p_w = inv_model * vec4(p_xyz, 1.0); 
+    //vec3 xyz = lonlat2xyz(lonlat);
+    vec4 p_w = inv_model * vec4(xyz, 1.0); 
     // 3. Process the projection
     vec2 p_clip = proj(p_w.xyz);
 

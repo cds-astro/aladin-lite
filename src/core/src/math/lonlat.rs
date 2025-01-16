@@ -181,8 +181,8 @@ pub fn xyzw_to_radec<S: BaseFloat>(v: &Vector4<S>) -> (Angle<S>, Angle<S>) {
 
 #[inline]
 pub fn radec_to_xyz<S: BaseFloat>(theta: Angle<S>, delta: Angle<S>) -> Vector3<S> {
-    let (dc, ds) = (delta.cos(), delta.sin());
-    let (tc, ts) = (theta.cos(), theta.sin());
+    let (ds, dc) = delta.0.sin_cos();
+    let (ts, tc) = theta.0.sin_cos();
 
     Vector3::<S>::new(dc * ts, ds, dc * tc)
 }

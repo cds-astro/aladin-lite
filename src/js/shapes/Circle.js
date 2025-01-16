@@ -40,7 +40,7 @@ export let Circle = (function() {
      * @param {number[]} centerRaDec - right-ascension/declination 2-tuple of the circle's center in degrees
      * @param {number} radius - radius in degrees
      * @param {ShapeOptions} options - Configuration options for the circle
-     *
+     * 
      * @returns {Circle} - The circle shape object
      */
     let Circle = function(centerRaDec, radius, options) {
@@ -51,17 +51,16 @@ export let Circle = (function() {
         this.lineWidth = options["lineWidth"] || 2;
         this.selectionColor = options["selectionColor"] || '#00ff00';
         this.hoverColor = options["hoverColor"] || undefined;
-        this.opacity    = options['opacity']   || 1;
 
         // TODO : all graphic overlays should have an id
         this.id = 'circle-' + Utils.uuidv4();
 
         this.setCenter(centerRaDec);
         this.setRadius(radius);
-        this.overlay = null;
+    	this.overlay = null;
 
-        this.isShowing = true;
-        this.isSelected = false;
+    	this.isShowing = true;
+    	this.isSelected = false;
         this.isHovered = false;
         this.frame = options.frame || "icrs";
     };
@@ -224,7 +223,7 @@ export let Circle = (function() {
 
         var ra, dec, vertOnCircle, dx, dy;
         this.radius = Number.NEGATIVE_INFINITY;
-
+        
         // Project 4 points lying on the circle and take the minimal dist with the center as radius
         [[-1, 0], [1, 0], [0, -1], [0, 1]].forEach(([cardDirRa, cardDirDec]) => {
             ra = this.centerRaDec[0] + cardDirRa * this.radiusDegrees;
@@ -239,7 +238,7 @@ export let Circle = (function() {
                 this.radius = Math.max(Math.sqrt(dx*dx + dy*dy), this.radius);
 
                 hidden = false;
-            }
+            }            
         });
 
         if (hidden) {
@@ -268,7 +267,6 @@ export let Circle = (function() {
         }
 
         ctx.lineWidth = this.lineWidth;
-        ctx.globalAlpha = this.opacity;
         ctx.beginPath();
         ctx.arc(this.center.x, this.center.y, this.radius, 0, 2*Math.PI, false);
         if (!noStroke) {
@@ -297,7 +295,7 @@ export let Circle = (function() {
         if (circleDistance.x > (w/2 + this.radius)) { return false; }
         if (circleDistance.y > (h/2 + this.radius)) { return false; }
 
-        if (circleDistance.x <= (w/2)) { return true; }
+        if (circleDistance.x <= (w/2)) { return true; } 
         if (circleDistance.y <= (h/2)) { return true; }
 
         const dx = circleDistance.x - w/2;

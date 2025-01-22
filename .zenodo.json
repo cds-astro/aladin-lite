@@ -1,0 +1,33 @@
+{
+    "license": "GPL-3.0",
+    "access_right": "open",
+    "description": "An astronomical HiPS visualizer in the browser ",
+    "keywords": ["astronomy", "visualizer", "images"],
+    "language": "eng",
+    "title": "Aladin Lite",
+    "grants": [
+        {
+            "id": "824064"
+        }
+    ],
+    "creators": [
+        {
+            "type": "ProjectLeader",
+            "orcid": "0000-0002-7123-773X",
+            "name": "Baumann, Matthieu",
+            "affiliation": "Université de Strasbourg, CNRS, Observatoire astronomique de Strasbourg, UMR 7550, F-67000 Strasbourg, France"
+        },
+        {
+            "type": "ProjectLeader",
+            "orcid": "0000-0001-5818-2781",
+            "name": "Boch, Thomas",
+            "affiliation": "Université de Strasbourg, CNRS, Observatoire astronomique de Strasbourg, UMR 7550, F-67000 Strasbourg, France"
+        },
+        {
+            "type": "ProjectMember",
+            "orcid": "0000-0001-5713-0998",
+            "name": "Marchand, Manon",
+            "affiliation": "Université de Strasbourg, CNRS, Observatoire astronomique de Strasbourg, UMR 7550, F-67000 Strasbourg, France"
+        }
+    ]
+}

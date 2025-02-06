@@ -78,7 +78,7 @@ export let URLBuilder = (function() {
             }
 
             if (posParam) {
-                return 'https://dachs.ivoa.srcdev.skao.int/rucio/rucio/cone/form?__nevow_form__=genForm&hscs_pos=' + posParam + '&hscs_sr=' + encodeURIComponent(radiusDegrees * 60) + '&_FORMAT=VOTable&submit=Go';
+                return 'https://dachs.ivoa.srcnet.skao.int/rucio/rucio/cone/form?__nevow_form__=genForm&hscs_pos=' + posParam + '&hscs_sr=' + encodeURIComponent(radiusDegrees * 60) + '&_FORMAT=VOTable&submit=Go';
             }
         },
 

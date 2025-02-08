@@ -142,12 +142,6 @@ to compile the core project into WebAssembly.
 Follow the steps from the Rust official website [here](https://www.rust-lang.org/learn/get-started)
 You will also need [wasm-pack](https://rustwasm.github.io/wasm-pack/), a tool helping compiling rust into a proper .wasm file.
 
-Once it's installed you will need to switch to the nightly rust version:
-
-```sh
-rustup default nightly
-```
-
 Then you can build the project:
 
 ```sh
@@ -159,10 +153,6 @@ npm run build
 > - Make sure you have your **wasm-pack** version updated. To do so:
 > ```sh
 > cargo install wasm-pack --version ~0.12
-> ```
-> - Make sure you are using the rust **nightly** toolchain
-> ```sh
-> rustup default nightly
 > ```
 > - Remove your `src/core/Cargo.lock` file and `src/core/target` directory -- this ensures that you'd escape any bad compilation state:
 > ```sh

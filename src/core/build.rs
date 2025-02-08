@@ -24,7 +24,8 @@ fn generate_shaders() -> std::result::Result<(), Box<dyn Error>> {
                         //.with_extension("")
                         .to_string_lossy()
                         .to_owned()
-                        .replace("/", "_");
+                        .replace("/", "_")
+                        .replace("\\", "_");
                     //let out_name = format!("{}/{}", OUT_PATH, out_file_name);
 
                     let src = read_shader(path)?;
@@ -86,7 +87,7 @@ pub fn write(path: PathBuf, entries: HashMap<String, String>) -> Result<(), Box<
     for (name, content) in entries {
         writeln!(
             &mut all_the_files,
-            r##"    out.insert("{name}", r#"{content}"#);"##,
+            r##"    out.insert(r"{name}", r#"{content}"#);"##,
         )?;
     }
 

@@ -27,7 +27,7 @@
  *
  *****************************************************************************/
 
-import {JSONP_PROXY} from "@/js/Constants";
+import {JSONP_PROXY} from "./Constants";
 import { ALEvent } from './events/ALEvent';
 
 

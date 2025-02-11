@@ -1876,12 +1876,12 @@ export let Aladin = (function () {
                 // 2/ Not in the cache, then we create the hips from this url/id and 
                 // go to the case 3
                 imageLayer = A.HiPS(idOrUrl);
+
                 return this.setOverlayImageLayer(imageLayer, layer);
             }
         } else {
             // 3/ It is an image survey.
             imageLayer = urlOrHiPSOrFITS;
-
 
             if (imageLayer instanceof HiPS) {
                 let cachedLayerOptions = hipsCache.get(imageLayer.id)
@@ -1889,9 +1889,8 @@ export let Aladin = (function () {
                 if (!cachedLayerOptions) {
                     hipsCache.append(imageLayer.id, imageLayer.options)
                 } else {
-                    // first set the options of the cached layer to the one of the user
-                    // if it is in the cache we get it from the cache
-                    imageLayer = A.HiPS(imageLayer.id, cachedLayerOptions)
+                    // set the options from what is in the cache
+                    imageLayer.setOptions(cachedLayerOptions);
                 }
             }
         }

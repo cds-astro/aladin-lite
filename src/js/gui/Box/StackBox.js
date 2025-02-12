@@ -714,31 +714,20 @@ export class OverlayStackBox extends Box {
         );
 
         updateOverlayList();
-        let hipsCache = this.aladin.hipsCache;
 
         // Add a listener for HiPS list changes
-        ALEvent.HIPS_CACHE_UPDATED.listenedBy(document.body, () => {
+        ALEvent.FAVORITE_HIPS_LIST_UPDATED.listenedBy(document.body, (event) => {
+            let hipsList = event.detail;
             self.cachedHiPS = {};
 
-            for (var key in hipsCache.cache) {
-                let HiPSOptions = hipsCache.cache[key];
-
-                /*if (HiPSOptions.name) {
-                    self.cachedHiPS[HiPSOptions.name.toString()] = HiPSOptions;
-                } else {
-                    self.cachedHiPS[key] = HiPSOptions;
-                }*/
+            for (var key in hipsList) {
+                let HiPSOptions = hipsList[key];
 
                 let k = HiPSOptions.name || key;
                 self.cachedHiPS[k] = HiPSOptions;
             }
-
             // Update the options of the selector
             const favorites = Object.keys(self.cachedHiPS);
-
-            // one must add the current HiPS too!
-            favorites.sort();
-
             for (var key in self.HiPSui) {
                 let hips = self.HiPSui[key];
                 let currentHiPS = hips.HiPSSelector.options.value
@@ -750,6 +739,9 @@ export class OverlayStackBox extends Box {
                 if (favoritesCopy.indexOf(currentHiPS) < 0) {
                     favoritesCopy.push(currentHiPS)
                 }
+
+                // one must add the current HiPS too!
+                favoritesCopy.sort();
 
                 hips.HiPSSelector.update({value: currentHiPS, options: favoritesCopy});
             }

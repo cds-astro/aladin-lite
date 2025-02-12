@@ -57,6 +57,8 @@ export class ALEvent {
 
   static HIPS_CACHE_UPDATED = new ALEvent("AL:HiPSCache.updated");
 
+  static FAVORITE_HIPS_LIST_UPDATED = new ALEvent("AL:HiPSFavorites.updated");
+
   static HIPS_LAYER_CHANGED  = new ALEvent("AL:HiPSLayer.changed");
 
   static GRAPHIC_OVERLAY_LAYER_ADDED  = new ALEvent("AL:GraphicOverlayLayer.added");

@@ -383,62 +383,64 @@ export let Aladin = (function () {
                 this.createCatalogFromVOTable(options.catalogUrls[k]);
             }
         }
-
+        
+        // Keep the default hips list
+        this.hipsList = {};
         let hipsList = [].concat(options.hipsList);
 
-        const fillHiPSCache = () => {
-            for (var survey of hipsList) {
-                let id, url, name;
-                let cachedSurvey = {};
+        for (var hips of hipsList) {
+            let id, url, name;
+            let hipsObj = {};
 
-                if (typeof survey === "string") {
-                    try {
-                        url = new URL(survey).href;
-                    } catch (e) {
-                        id = survey;
-                    }
-
-                    name = url || id;
-                } else if (survey instanceof Object) {
-                    if (survey.id) {
-                        id = survey.id;
-                    }
-                    if (survey.url) {
-                        url = survey.url;
-                    }
-
-                    name = survey.name || survey.id || survey.url;
-
-                    cachedSurvey = { ...cachedSurvey, ...survey };
-                } else {
-                    console.warn(
-                        "unable to parse the survey list item: ",
-                        survey
-                    );
-                    continue;
+            if (typeof hips === "string") {
+                try {
+                    url = new URL(hips).href;
+                } catch (e) {
+                    id = hips;
                 }
 
-                if (id) {
-                    cachedSurvey["id"] = id;
+                name = url || id;
+            } else if (hips instanceof Object) {
+                if (hips.id) {
+                    id = hips.id;
                 }
-                if (url) {
-                    cachedSurvey["url"] = url;
-                }
-                if (name) {
-                    cachedSurvey["name"] = name;
+                if (hips.url) {
+                    url = hips.url;
                 }
 
-                // at least id or url is defined
-                let key = name || id || url;
+                name = hips.name || hips.id || hips.url;
 
-                // Merge what is already in the cache for that HiPS with new properties
-                // coming from the MOCServer
-                self.hipsCache.append(key, cachedSurvey);
+                hipsObj = { ...hipsObj, ...hips };
+            } else {
+                console.warn(
+                    "unable to parse the survey list item: ",
+                    hips
+                );
+                continue;
             }
-        };
+
+            if (id) {
+                hipsObj["id"] = id;
+            }
+            if (url) {
+                hipsObj["url"] = url;
+            }
+            if (name) {
+                hipsObj["name"] = name;
+            }
+
+            // at least id or url is defined
+            let key = name || id || url;
+
+            // Merge what is already in the cache for that HiPS with new properties
+            // coming from the MOCServer
+            this.hipsList[key] = hipsObj;
+        }
+
         this._setupUI(options);
 
-        fillHiPSCache();
+        ALEvent.FAVORITE_HIPS_LIST_UPDATED.dispatchedTo(document.body, this.hipsList);
+
 
         if (options.survey) {
             if (Array.isArray(options.survey)) {
@@ -1560,6 +1562,8 @@ export let Aladin = (function () {
         let hipsOptions = { id, name, maxOrder, url, cooFrame, ...options };
         let hips = new HiPS(id, url || id, hipsOptions)
 
+        // This allows to retrieve the survey's options when it will be
+        // added later to the view.
         if (this instanceof Aladin && !this.hipsCache.contains(hips.id)) {
             // Add it to the cache as soon as possible if we have a reference to the aladin object
             this.hipsCache.append(hips.id, hipsOptions)
@@ -1603,20 +1607,24 @@ export let Aladin = (function () {
      * <li>4. A {@link Image} FITS image object</li>
      * </ul>
      */
-    Aladin.prototype.removeHiPSFromFavorites = function (survey) {
-        if (this.contains(survey)) {
+    Aladin.prototype.removeHiPSFromFavorites = function (hips) {
+        if (this.contains(hips)) {
             // TODO: handle this case
-            console.warn(survey + ' is among the list of HiPS currently in the view.');
+            console.warn(hips + ' is among the list of HiPS currently in the view.');
         }
 
-        let id;
-        if (typeof survey !== "string") {
-            id = survey.name
+        let name;
+        if (typeof hips !== "string") {
+            name = hips.name
         } else {
-            id = survey
+            name = hips
         }
-        
-        this.hipsCache.delete(id);
+
+        if (this.hipsList[name]) {
+            delete this.hipsList[name];
+            // Send a change of favorites for the UI selector to adapt their optional list
+            ALEvent.FAVORITE_HIPS_LIST_UPDATED.dispatchedTo(document.body, this.hipsList);
+        }
     }
 
     /**
@@ -1895,10 +1903,21 @@ export let Aladin = (function () {
             }
         }
 
-        let imageLayerCopied = Object.assign(Object.create(Object.getPrototypeOf(imageLayer)), imageLayer)
-        imageLayerCopied.layer = layer;
+        // Add it to the hipsList if it is not there yet
+        if (!this.hipsList[imageLayer.name]) {
+            this.hipsList[imageLayer.id] = {
+                id: imageLayer.id,
+                url: imageLayer.url,
+                name: imageLayer.name,
+            };
 
-        return this.view.setOverlayImageLayer(imageLayerCopied, layer);
+            ALEvent.FAVORITE_HIPS_LIST_UPDATED.dispatchedTo(document.body, this.hipsList);
+        }
+
+        //let imageLayerCopied = Object.assign(Object.create(Object.getPrototypeOf(imageLayer)), imageLayer)
+        imageLayer.layer = layer;
+
+        return this.view.setOverlayImageLayer(imageLayer, layer);
     };
 
     /**

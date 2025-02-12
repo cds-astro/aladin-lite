@@ -5,7 +5,8 @@
 <body>
     <div id="aladin-lite-div" style="width: 1024px; height: 768px"></div>
 <script type="module">
-    import A from '../src/js/A.js';
+import A from '../src/js/A.js';
+
 A.init.then(() => {
     let aladin = A.aladin('#aladin-lite-div', {projection: "TAN", survey: "P/HSC/DR2/deep/g", target: '02 21 36.529 -05 31 20.16', fov: 0.1});
 
@@ -16,6 +17,7 @@ A.init.then(() => {
 
     const HSCRedSurvey = aladin.newImageSurvey('P/HSC/DR2/deep/r', {imgFormat: 'fits', colormap: "red", minCut: 0.34228, maxCut: 2.75785, additive: true, stretch: "asinh"});
     const HSCBlueSurvey = aladin.newImageSurvey('P/HSC/DR2/deep/z', {imgFormat: 'fits', colormap: "blue", minCut: -0.01218, maxCut: 2.27397, additive: true, stretch: "asinh"});
+    HSCRedSurvey.setColormap('red', {stretch: 'linear'});
 
     aladin.setOverlayImageLayer('P/HSC/DR2/deep/r', 'hsc red layer');
     aladin.setOverlayImageLayer('P/HSC/DR2/deep/z', 'hsc blue layer');

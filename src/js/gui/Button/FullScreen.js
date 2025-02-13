@@ -59,8 +59,6 @@ export class FullScreenActionButton extends ActionButton {
                 aladin.toggleFullscreen(aladin.options.realFullscreen);    
     
                 if (aladin.isInFullscreen) {
-                    // make that div above other aladin lite divs (if there are...)
-                    aladin.aladinDiv.style.zIndex = 1
                     self.update({
                         icon: {
                             size: 'medium',
@@ -75,8 +73,6 @@ export class FullScreenActionButton extends ActionButton {
                         }
                     });
                 } else {
-                    aladin.aladinDiv.style.removeProperty('z-index')
-    
                     self.update({
                         icon: {
                             size: 'medium',

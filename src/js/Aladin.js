@@ -1982,17 +1982,19 @@ export let Aladin = (function () {
         this.view.decreaseZoom(0.01);
     };
 
-     /**
+    /**
      * Set the view center rotation in degrees
      *
      * @memberof Aladin
      * @param {number} rotation - The center rotation in degrees. Positive angles rotates the
      * view in the counter clockwise order (or towards the east)
      */
-    Aladin.prototype.setViewCenter2NorthPoleAngle = function (rotation) {
+    Aladin.prototype.setRotation = function (rotation) {
         this.view.setViewCenter2NorthPoleAngle(rotation);
     };
 
+
+   
      /**
      * Get the view center to north pole angle in degrees. This is equivalent to getting the 3rd Euler angle
      *
@@ -2000,9 +2002,31 @@ export let Aladin = (function () {
      * 
      * @returns {number} - Angle between the position center and the north pole
      */
-    Aladin.prototype.getViewCenter2NorthPoleAngle = function () {
+    Aladin.prototype.getRotation = function () {
         return this.view.wasm.getViewCenter2NorthPoleAngle();
     };
+
+    /**
+     * Set the view center rotation in degrees
+     * 
+     * @deprecated Use Aladin.prototype.setRotation instead
+     *
+     * @memberof Aladin
+     * @param {number} rotation - The center rotation in degrees. Positive angles rotates the
+     * view in the counter clockwise order (or towards the east)
+     */
+    Aladin.prototype.setViewCenter2NorthPoleAngle = Aladin.prototype.setRotation;
+
+    /**
+     * Get the view center to north pole angle in degrees. This is equivalent to getting the 3rd Euler angle
+     *
+     * @memberof Aladin
+     * 
+     * @deprecated
+     * 
+     * @returns {number} - Angle between the position center and the north pole
+     */
+    Aladin.prototype.getViewCenter2NorthPoleAngle = Aladin.prototype.getRotation;
 
     // @api
     // Set the current layer that is targeted

@@ -717,14 +717,12 @@ export class OverlayStackBox extends Box {
 
         // Add a listener for HiPS list changes
         ALEvent.FAVORITE_HIPS_LIST_UPDATED.listenedBy(document.body, (event) => {
-            let hipsList = event.detail;
+            let favoritesHips = event.detail;
             self.cachedHiPS = {};
 
-            for (var key in hipsList) {
-                let HiPSOptions = hipsList[key];
-
-                let k = HiPSOptions.name || key;
-                self.cachedHiPS[k] = HiPSOptions;
+            for (var hips of favoritesHips) {
+                let key = hips.name || hips.id || hips.url;
+                self.cachedHiPS[key] = hips;
             }
             // Update the options of the selector
             const favorites = Object.keys(self.cachedHiPS);

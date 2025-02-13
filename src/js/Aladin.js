@@ -384,8 +384,8 @@ export let Aladin = (function () {
             }
         }
         
-        // Keep the default hips list
-        this.hipsList = {};
+        // Format the hipslist given by the user before storing it in the aladin objec
+        this.hipsFavorites = [];
         let hipsList = [].concat(options.hipsList);
 
         for (var hips of hipsList) {
@@ -430,17 +430,16 @@ export let Aladin = (function () {
             }
 
             // at least id or url is defined
-            let key = name || id || url;
+            //let key = name || id || url;
 
             // Merge what is already in the cache for that HiPS with new properties
             // coming from the MOCServer
-            this.hipsList[key] = hipsObj;
+            this.hipsFavorites.push(hipsObj);
         }
 
         this._setupUI(options);
 
-        ALEvent.FAVORITE_HIPS_LIST_UPDATED.dispatchedTo(document.body, this.hipsList);
-
+        ALEvent.FAVORITE_HIPS_LIST_UPDATED.dispatchedTo(document.body, this.hipsFavorites);
 
         if (options.survey) {
             if (Array.isArray(options.survey)) {
@@ -1594,7 +1593,10 @@ export let Aladin = (function () {
     Aladin.createImageSurvey = Aladin.prototype.createImageSurvey;
 
     /**
-     * Remove a HiPS/FITS image from the list of favorites.
+     * Remove a HiPS from the list of favorites.
+     * 
+     * This send a event of type 
+     * FAVORITE_HIPS_LIST_UPDATED which can be listened to
      * 
      * @throws A warning when the asset is currently present in the view
      *
@@ -1613,18 +1615,65 @@ export let Aladin = (function () {
             console.warn(hips + ' is among the list of HiPS currently in the view.');
         }
 
-        let name;
-        if (typeof hips !== "string") {
-            name = hips.name
-        } else {
-            name = hips
+        // find the index of the hips to remove
+        const idx = this.hipsFavorites.findIndex((hipsObj) => {
+            if (typeof hips !== "string") {
+                return hipsObj.name == hips.name || hipsObj.id == hips.id || hipsObj.url == hips.url;
+            } else {
+                return hipsObj.name == hips || hipsObj.id == hips || hipsObj.url == hips;
+            }
+        })
+
+        // a hips matches 
+        if (idx >= 0) {
+            this.hipsFavorites.splice(idx, 1);
+            // Send a change of favorites for the UI selector to adapt their optional list
+            ALEvent.FAVORITE_HIPS_LIST_UPDATED.dispatchedTo(document.body, this.hipsFavorites);
+        }
+    }
+
+    /**
+     * Add a HiPS to the list of favorites.
+     * 
+     * If already present it will not add it again. This send a event of type 
+     * FAVORITE_HIPS_LIST_UPDATED which can be listened to. Once added, the favorite list
+     * will be sorted by the name of the hips.
+     * 
+     * @memberof Aladin
+     * @param {HiPS} hips - The HiPS to add to the favorites
+     */
+    Aladin.prototype.addHiPSToFavorites = function(hips) {
+        // find the index of the hips to remove
+        const idx = this.hipsFavorites.findIndex((hipsObj) => {
+            if (typeof hips !== "string") {
+                return hipsObj.name == hips.name || hipsObj.id == hips.id || hipsObj.url == hips.url;
+            } else {
+                return hipsObj.name == hips || hipsObj.id == hips || hipsObj.url == hips;
+            }
+        })
+
+        // already present we end it here
+        if (idx >= 0) {
+            return;
         }
 
-        if (this.hipsList[name]) {
-            delete this.hipsList[name];
-            // Send a change of favorites for the UI selector to adapt their optional list
-            ALEvent.FAVORITE_HIPS_LIST_UPDATED.dispatchedTo(document.body, this.hipsList);
-        }
+        // add the new favorite HiPS
+        this.hipsFavorites.push({
+            url: hips.url,
+            id: hips.id,
+            name: hips.name,
+        })
+
+        // and resort the favorites
+        this.hipsFavorites.sort((h1, h2) => {
+            let k1 = h1.name || h1.id || h1.url;
+            let k2 = h2.name || h2.id || h2.url;
+
+            return k1 < k2;
+        })
+
+        // send the final event
+        ALEvent.FAVORITE_HIPS_LIST_UPDATED.dispatchedTo(document.body, this.hipsFavorites);
     }
 
     /**
@@ -1904,17 +1953,8 @@ export let Aladin = (function () {
         }
 
         // Add it to the hipsList if it is not there yet
-        if (!this.hipsList[imageLayer.name]) {
-            this.hipsList[imageLayer.id] = {
-                id: imageLayer.id,
-                url: imageLayer.url,
-                name: imageLayer.name,
-            };
+        this.addHiPSToFavorites(imageLayer)
 
-            ALEvent.FAVORITE_HIPS_LIST_UPDATED.dispatchedTo(document.body, this.hipsList);
-        }
-
-        //let imageLayerCopied = Object.assign(Object.create(Object.getPrototypeOf(imageLayer)), imageLayer)
         imageLayer.layer = layer;
 
         return this.view.setOverlayImageLayer(imageLayer, layer);

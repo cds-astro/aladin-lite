@@ -648,9 +648,11 @@ A.catalogFromURL = function (url, options, successCallback, errorCallback, usePr
  * @param {number} target.ra - Right Ascenscion in degrees of the cone's center
  * @param {number} target.dec - Declination in degrees of the cone's center
  * @param {number} radius - Radius of the cone in degrees
- * @param {Object|CatalogOptions} [options] - Additional configuration options for SIMBAD cone search. See the {@link https://simbad.cds.unistra.fr/cone/help/#/ConeSearch/get_ SIMBAD cone search} parameters.
- * @param {number} [options.limit] - The max number of sources to return
- * @param {string} [options.orderBy='nb_ref'] - Order the result by specific ref number
+ * @param {Object|CatalogOptions} [options] - Additional configuration options for SIMBAD cone search. See this {@link https://simbad.cds.unistra.fr/cone/help/#/ConeSearch/get_ SIMBAD cone search} page for more explanations about the optional parameters you can pass here.
+ * @param {number} [options.limit] - The max number of sources to return. The SIMBAD query will be truncated so that the output does not exceed that number of rows.
+ * @param {string} [options.orderBy='nb_ref'] - Return the sources satisfying a specific order in priority. Default is descending order based on the ref number of the source i.e. sources will be returned from the most cited one at first to the least cited one at last.
+ * Available values are: oid4, oid4ref, main_id, ra, dec, coo, otype, otype_label, pm, radvel, plx, dim, sp_type, morph_type, U, B, V, R, I, J, H, K, G, nb_ref, distance
+ * @param {string} [options.orderDir='DESC'] - Change to 'ASC' for ascending order. By default, sources being the most referred are returned at first (i.e. 'nb_ref' in DESC order dir).
  * @param {number} [options.verbosity=2] - Verbosity, put 3 if you want all the column
  * @param {function} [successCallback] - The callback function to execute on successful catalog creation.
  * @param {function} [errorCallback] - The callback function to execute on error during catalog creation.

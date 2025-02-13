@@ -47,6 +47,9 @@ export let URLBuilder = (function() {
             const orderBy = options && options.orderBy || 'nb_ref';
             url += '&ORDER_BY=' + orderBy;
 
+            const orderDir = options && options.orderDir || 'DESC';
+            url += '&ORDER_DIR=' + orderDir;
+
             return url;
         },
 

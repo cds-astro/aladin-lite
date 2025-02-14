@@ -20,13 +20,14 @@ import { ALEvent } from "./events/ALEvent.js";
 * @description Options for configuring a MOC (Multi-Order-Coverage).
 *
 * @property {string} [name="MOC"] - The name of the catalog.
-* @property {string} [color] - The color of the MOC HEALPix cell edges.
-* @property {string} [fillColor] - A filling color of the MOC HEALPix cells.
-* @property {string} [fill=false] - Fill the MOC with `options.fillColor`
-* @property {string} [edge=true] - Draw the edges of the HEALPix cells with `options.color`.
+* @property {string} [color] - The color of the MOC HEALPix cell edges. Is used only if `perimeter` is true or `edge` is true
+* @property {string} [fillColor] - The filling of the MOC.
+* @property {string} [fill=false] - Draw the filled MOC with `options.fillColor`.
+* @property {Boolean} [perimeter=false] - Draw the perimeter of the MOC only with `options.color`.
+* @property {string} [edge=!fill && !perimeter] - Draw the edges of the HEALPix cells with `options.color`.
+    The HEALPix cell edges compositing the MOC will be drawn if `fill` and `perimeter` are false
 * @property {number} [lineWidth=3] - The line width in pixels 
-* @property {Boolean} [perimeter=false] - A filling color of the MOC HEALPix cells.
-* @property {number} [opacity=1.0] - The opacity of the MOC
+* @property {number} [opacity=1.0] - The opacity of the colors
 */
 
 export let MOC = (function() {
@@ -59,16 +60,16 @@ export let MOC = (function() {
             this.perimeter = false;
         }
 
-        this.opacity = options.opacity || 1;
+        if (options && options.opacity !== undefined) {
+            this.opacity = options.opacity;
+        } else {
+            this.opacity = 1.0;
+        }
         
         if (options && options.fill) {
             this.fill = true;
         } else {
             this.fill = false;
-        }
-
-        if (options && options.opacity) {
-            this.fill = true;
         }
 
         if (options && options.edge) {
@@ -77,7 +78,7 @@ export let MOC = (function() {
             this.edge = false;
         }
 
-        if (!this.fill && !this.perimeter && options && !options.edge) {
+        if (!this.fill && !this.perimeter && !this.edge) {
             this.edge = true;
         }
 

@@ -42,7 +42,7 @@ impl MOC {
             }
         };
 
-        let color = parse_color(hex_color, 1.0);
+        let color = parse_color(hex_color, opacity);
         let fill_color = parse_color(fill_color, opacity);
 
         Self {

@@ -29,6 +29,8 @@
  *****************************************************************************/
 
 import { ActionButton } from "../Widgets/ActionButton.js";
+import { ALEvent } from "../../events/ALEvent";
+
 
 import restoreIcon from './../../../../assets/icons/restore.svg';
 import maximizeIcon from './../../../../assets/icons/maximize.svg';
@@ -57,39 +59,44 @@ export class FullScreenActionButton extends ActionButton {
                 }
     
                 aladin.toggleFullscreen(aladin.options.realFullscreen);    
-    
-                if (aladin.isInFullscreen) {
-                    self.update({
-                        icon: {
-                            size: 'medium',
-                            monochrome: true,
-                            url: restoreIcon
-                        },
-                        tooltip: {
-                            content: 'Restore original size',
-                            position: {
-                                direction: 'left'
-                            }
-                        }
-                    });
-                } else {
-                    self.update({
-                        icon: {
-                            size: 'medium',
-                            monochrome: true,
-                            url: maximizeIcon
-                        },
-                        tooltip: {
-                            content: 'Fullscreen',
-                            position: {
-                                direction: 'left'
-                            }
-                        }
-                    });
-                }
             }
         })
 
         self = this;
+
+        // Listen to the fullscreen toggled event to change the icon of the button
+        ALEvent.FULLSCREEN_TOGGLED.listenedBy(aladin.aladinDiv, (event) => {
+            const isInFullscreen = event.detail.fullscreen;
+
+            if (isInFullscreen) {
+                self.update({
+                    icon: {
+                        size: 'medium',
+                        monochrome: true,
+                        url: restoreIcon
+                    },
+                    tooltip: {
+                        content: 'Restore original size',
+                        position: {
+                            direction: 'left'
+                        }
+                    }
+                });
+            } else {
+                self.update({
+                    icon: {
+                        size: 'medium',
+                        monochrome: true,
+                        url: maximizeIcon
+                    },
+                    tooltip: {
+                        content: 'Fullscreen',
+                        position: {
+                            direction: 'left'
+                        }
+                    }
+                });
+            }
+        });
     }
 }

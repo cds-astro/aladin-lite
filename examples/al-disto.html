@@ -1,0 +1,19 @@
+<!doctype html>
+<html>
+<head>
+</head>
+<body>
+
+<div id="aladin-lite-div" style="width: 1024px; height: 768px"></div>
+
+<script type="module">
+  import A from '../src/js/A.js';
+  var aladin;
+    A.init.then(() => {
+        aladin = A.aladin('#aladin-lite-div', {showContextMenu: true, survey: 'https://alasky.cds.unistra.fr/Pan-STARRS/DR1/color-i-r-g/', fov: 0.00833333333, target: '270.334079 66.730469'});
+        aladin.showHealpixGrid(true)
+    });
+</script>
+
+</body>
+</html>

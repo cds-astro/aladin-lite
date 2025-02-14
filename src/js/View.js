@@ -1258,7 +1258,13 @@ export let View = (function () {
                     break;
                 // escape
                 case 27:
-                    view.selector.cancel()
+                    // if there is a selection occuring
+                    view.selector && view.selector.cancel()
+
+                    if (view.aladin.isInFullscreen) {
+                        view.aladin.toggleFullscreen(view.aladin.options.realFullscreen);
+                    }
+
                     break;
                 default:
                     break;

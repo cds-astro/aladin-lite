@@ -79,6 +79,8 @@ export class ALEvent {
 
   static MODE = new ALEvent("AL:mode")
 
+  static FULLSCREEN_TOGGLED = new ALEvent("AL:fullscreen.toggled")
+
   constructor(name) {
     this.name = name;
   }

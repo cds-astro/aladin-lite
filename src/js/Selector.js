@@ -91,7 +91,7 @@ export class Selector {
     }
 
     cancel() {
-        this.dispatch('off')
+        this.select && this.dispatch('off')
     }
 
     dispatch(to, params) {

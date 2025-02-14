@@ -74,6 +74,7 @@ export class RectSelect extends FSM {
         let mouseup = (params) => {
             var x, y;
             const {coo} = params;
+    
             this.coo = coo;
             // finish the selection
             var w = this.coo.x - this.startCoo.x;
@@ -132,7 +133,11 @@ export class RectSelect extends FSM {
             view.aladin.removeStatusBarMessage('selector')
         }
 
-        let mouseout = mouseup;
+        let mouseout = (params) => {
+            if (this.startCoo) {
+                mouseup(params);
+            }
+        };
 
         super({
             state: 'off',
@@ -163,7 +168,8 @@ export class RectSelect extends FSM {
                     off
                 },
                 mouseout: {
-                    off
+                    off,
+                    mousedown
                 },
                 mouseup: {
                     off,

@@ -737,8 +737,6 @@ export let Aladin = (function () {
             }
         })
 
-        //this.fullScreenBtn.attr('title', isInFullscreen ? 'Restore original size' : 'Full screen');
-
         if (this.aladinDiv.classList.contains("aladin-fullscreen")) {
             this.aladinDiv.classList.remove("aladin-fullscreen");
         } else {
@@ -788,6 +786,8 @@ export let Aladin = (function () {
             self.callbacksByEventName["fullScreenToggled"];
         typeof fullScreenToggledFn === "function" &&
             fullScreenToggledFn(self.isInFullscreen);
+
+        ALEvent.FULLSCREEN_TOGGLED.dispatchedTo(this.aladinDiv, {fullscreen: self.isInFullscreen});
     };
 
     Aladin.prototype.getOptionsFromQueryString = function () {

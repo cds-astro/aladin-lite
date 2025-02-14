@@ -118,7 +118,11 @@ export class CircleSelect extends FSM {
             this.dispatch("off");
         };
 
-        let mouseout = mouseup;
+        let mouseout = (params) => {
+            if (this.startCoo) {
+                mouseup(params);
+            }
+        };
 
         let off = () => {
             view.aladin.showReticle(true)
@@ -153,7 +157,8 @@ export class CircleSelect extends FSM {
                     mouseout
                 },
                 mouseout: {
-                    off
+                    off,
+                    mousedown
                 },
                 mouseup: {
                     off,

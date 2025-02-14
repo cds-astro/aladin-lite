@@ -1,0 +1,43 @@
+# vscode files
+.vscode/
+# for mac os users
+.DS_Store
+
+out/
+# deployment scripts
+deploy/
+# node dependencies
+node_modules/
+
+package-lock.json
+
+# rust tmp files for useful for the compilation phase
+src/core/Cargo.lock
+src/core/target/
+
+# this rust file is generated when compiling the code, so it is not
+# useful to put it on git
+src/core/src/shaders.rs
+
+## python related
+# python environment
+aladin-lite-venv
+# python cached files
+__pycache__/
+
+## API doc related
+# folder containing the generated HTML API documentation files
+docs/
+# style jsdoc files generated with npm run doc
+jsdoc-custom-styledocs
+# responsive jsdoc files generated with npm run doc
+jsdoc-make-responsivedocs
+
+## playwright testing framework related
+test-results/
+playwright-report/
+
+## packaged tar obtained from the cmd: npm run predeploy or npm run deploy
+aladin-lite*.tgz
+# folder where the generated bundle lies 
+dist/

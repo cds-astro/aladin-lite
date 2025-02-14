@@ -1,0 +1,81 @@
+<!doctype html>
+<html>
+    <head>
+        <meta name="viewport" content="width=device-width, height=device-height, maximum-scale=1.0, initial-scale=1.0, user-scalable=no">
+    </head>
+<body>
+
+
+<div id="aladin-lite-div" style="width: 1024px; height: 768px">
+    <div class="box-content" style="width:200px">
+        <div style="display:inline-flex">
+            <label for="cat-color">Color</label>
+            <input type="color" id="cat-color" value="#ff0000">
+        </div>
+       
+    </div>
+</div>
+
+<script type="module">
+    import A from '../src/js/A.js';
+    let aladin;
+    A.init.then(() => {
+        var aladin = A.aladin(
+            '#aladin-lite-div',
+            {
+                fov: 1.5, // initial field of view in degrees
+                target: 'NGC 2175', // initial target
+            }
+        );
+
+        // Add a catalog
+        let cat = A.catalogFromSimbad('NGC 2175', 0.1, {onClick: 'showTable'});
+        aladin.addCatalog(cat);
+
+        // Logic for changing the color of catalog sources
+        let colorPicker = document.querySelector('#cat-color');
+        colorPicker.value = cat.color;
+        colorPicker.addEventListener('input', function (e) {
+            // Change the color of the catalog
+            cat.updateShape({color: this.value});
+        })
+
+        // Define the box
+        let catalogSettingsBox = A.box({
+            header: {
+                title: "Settings",
+            },
+            content: document.querySelectorAll('.box-content')[0],
+        });
+        catalogSettingsBox._hide();
+
+        // Define the button that toggles the box
+        let catalogSettingsBtn = A.button({
+            content: 'Catalog',
+            classList: ['catalogSettingsTogglerBtn'],
+            action(o) {
+                if (catalogSettingsBox.isHidden) {
+                    catalogSettingsBox._show({
+                        position: {
+                            nextTo: catalogSettingsBtn,
+                            direction: 'right',
+                        }
+                    })
+                } else {
+                    catalogSettingsBox._hide()
+                }
+            }
+        });
+
+        aladin.addUI([catalogSettingsBtn, catalogSettingsBox])
+    });
+</script>
+<style>
+    .catalogSettingsTogglerBtn {
+        position: absolute;
+        top: 200px;
+        left: 0;
+    }
+</style>
+</body>
+</html>

@@ -39,6 +39,7 @@ import { ALEvent } from "../events/ALEvent.js";
 import { Layout } from "./Layout.js";
 import { ActionButton } from "./Widgets/ActionButton.js";
 import { Input } from "./Widgets/Input.js";
+import { Utils } from "../Utils.ts";
 
 export class Location extends DOMElement {
     // constructor
@@ -243,7 +244,8 @@ export class Location extends DOMElement {
 
     copyCoordinatesToClipboard() {
         let msg;
-        navigator.clipboard.writeText(this.field.get())
+        const cooText = this.field.get();
+        Utils.copy2Clipboard(cooText)
             .then(() => {
                 msg = 'successful'
                 if (this.aladin.statusBar) {

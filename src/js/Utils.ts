@@ -575,6 +575,38 @@ Utils.download = function(url, name = undefined) {
     a.click()
 }
 
+// Copy some text to the clipboard
+// This provides an alternative when the window context is not secure (e.g. http access)
+// Code copied from: https://stackoverflow.com/questions/51805395/navigator-clipboard-is-undefined
+Utils.copy2Clipboard = async function(textToCopy) {
+    // Navigator clipboard api needs a secure context (https)
+    if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(textToCopy);
+    } else {
+        // Use the 'out of viewport hidden text area' trick
+        const textArea = document.createElement("textarea");
+        textArea.value = textToCopy;
+
+        // Move textarea out of the viewport so it's not visible
+        textArea.style.position = "absolute";
+        textArea.style.opacity = "0";
+
+        document.body.prepend(textArea);
+        textArea.select();
+
+        try {
+            // execCommand is deprecated but there seems to be no other
+            // alternative and is still used by a lot of applications
+            // See: https://stackoverflow.com/questions/60581285/execcommand-is-now-obsolete-whats-the-alternative    
+            document.execCommand('copy');
+        } catch (error) {
+            console.error(error);
+        } finally {
+            textArea.remove();
+        }
+    }
+}
+
 Utils.measureTime = function(msg, method) {
     let startTime = performance.now()
     let output = method()

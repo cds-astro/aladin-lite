@@ -160,7 +160,7 @@ npm run build
 > ```
 > - Then recompile
 > ```sh
-> npm run build`
+> npm run build
 > ```
 
 It will generate the aladin lite compiled code into a `dist/` directory located at the root of the repository. This directory contains two javascript files. `aladin.umd.cjs` follows the UMD module export convention and it is the one you need to use for your project.

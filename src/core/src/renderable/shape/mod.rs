@@ -5,7 +5,7 @@ use serde::Deserialize;
 mod circle;
 mod ellipsis;
 mod image;
-mod polyline;
+//mod polyline;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]

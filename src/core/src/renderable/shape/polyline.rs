@@ -6,7 +6,7 @@ use al_core::WebGlContext;
 
 use al_api::color::ColorRGBA;
 
-pub struct PolylineRenderer {
+struct PolylineRenderer {
     gl: WebGlContext,
     vao: VertexArrayObject,
 
@@ -27,7 +27,7 @@ use super::Catalog;
 
 impl PolylineRenderer {
     /// Init the buffers, VAO and shader
-    pub fn new<'a>(gl: &WebGlContext, catalog: &Catalog) -> Result<Self, JsValue> {
+    fn new<'a>(gl: &WebGlContext, catalog: &Catalog) -> Result<Self, JsValue> {
         let lines = catalog
             .shapes
             .iter()
@@ -170,7 +170,7 @@ impl PolylineRenderer {
         });
     }*/
 
-    pub fn draw(
+    fn draw(
         &mut self,
         shaders: &mut ShaderManager,
         camera: &CameraViewPort,

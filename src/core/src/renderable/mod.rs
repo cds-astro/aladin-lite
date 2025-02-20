@@ -289,7 +289,7 @@ impl Layers {
                             hips.draw(shaders, colormaps, camera, raytracer, draw_opt, projection)?;
                         }
                         HiPS::D3(hips) => {
-                            hips.draw(shaders, colormaps, camera, raytracer, draw_opt, projection)?;
+                            hips.draw(shaders, colormaps, camera, draw_opt, projection)?;
                         }
                     }
                 } else if let Some(images) = self.images.get_mut(id) {
@@ -565,45 +565,7 @@ impl Layers {
         &mut self,
         layer: String,
         meta: ImageMetadata,
-        camera: &CameraViewPort,
-        projection: &ProjectionType,
     ) -> Result<(), JsValue> {
-        let layer_ref = layer.as_str();
-
-        /*if let Some(meta_old) = self.meta.get(layer_ref) {
-            if !meta_old.visible() && meta.visible() {
-                if let Some(hips) = self.get_mut_hips_from_layer(layer_ref) {
-                    hips.recompute_vertices(camera, projection);
-                }
-
-                if let Some(images) = self.get_mut_image_from_layer(layer_ref) {
-                    for image in images {
-                        image.recompute_vertices(camera, projection)?;
-                    }
-                }
-            } else if meta_old.visible() && !meta.visible() {
-                // There is an important point here, if we hide a specific layer
-                // then we must recompute the vertices of the layers underneath
-                let layer_idx = self
-                    .layers
-                    .iter()
-                    .position(|l| l == layer_ref)
-                    .ok_or(JsValue::from_str("Expect the layer to be found!"))?;
-
-                for idx in 0..layer_idx {
-                    let cur_layer = self.layers[idx].clone();
-
-                    if let Some(hips) = self.get_mut_hips_from_layer(&cur_layer) {
-                        hips.recompute_vertices(camera, projection);
-                    } else if let Some(images) = self.get_mut_image_from_layer(&cur_layer) {
-                        for image in images {
-                            image.recompute_vertices(camera, projection)?;
-                        }
-                    }
-                }
-            }
-        }*/
-
         // Expect the image hips to be found in the hash map
         self.meta.insert(layer.clone(), meta).ok_or_else(|| {
             JsValue::from(js_sys::Error::new(&format!("{:?} layer not found", layer)))

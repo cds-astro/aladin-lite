@@ -19,7 +19,7 @@ use al_core::VecData;
 use al_core::VertexArrayObject;
 use al_core::WebGlContext;
 
-use crate::math::{angle::Angle, vector::dist2};
+use crate::math::angle::Angle;
 use crate::ProjectionType;
 
 use crate::camera::CameraViewPort;
@@ -505,8 +505,8 @@ impl HiPS2D {
                     ending_texture,
                 }) = texture_to_draw
                 {
-                    let uv_0 = TileUVW::new(cell, starting_texture, cfg);
-                    let uv_1 = TileUVW::new(cell, ending_texture, cfg);
+                    let uv_0 = TileUVW::new(cell, starting_texture);
+                    let uv_1 = TileUVW::new(cell, ending_texture);
                     let d01s = uv_0[TileCorner::BottomRight].x - uv_0[TileCorner::BottomLeft].x;
                     let d02s = uv_0[TileCorner::TopLeft].y - uv_0[TileCorner::BottomLeft].y;
                     let d01e = uv_1[TileCorner::BottomRight].x - uv_1[TileCorner::BottomLeft].x;

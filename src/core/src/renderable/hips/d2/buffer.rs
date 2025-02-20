@@ -578,8 +578,6 @@ fn send_to_gpu<I: Image>(
     let delta_depth = cfg.delta_depth();
     let (idx_col_in_tex, idx_row_in_tex) = cell.get_offset_in_texture_cell(delta_depth);
 
-    // The size of the global texture containing the tiles
-    let texture_size = cfg.get_texture_size();
     // The size of a tile in its texture
     let tile_size = cfg.get_tile_size();
 

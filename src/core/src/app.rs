@@ -274,10 +274,6 @@ impl App {
             let min_tile_depth = cfg.delta_depth().max(cfg.get_min_depth_tile());
             let mut ancestors = HashSet::new();
 
-            let creator_did = cfg.get_creator_did().to_string();
-            let root_url = cfg.get_root_url().to_string();
-            let format = cfg.get_format();
-
             if let Some(tiles) = hips.look_for_new_tiles(&mut self.camera, &self.projection) {
                 for tile_cell in tiles {
                     self.tile_fetcher.append(hips.get_tile_query(&tile_cell));
@@ -539,7 +535,7 @@ impl App {
             }
         }
 
-        self.draw(false)?;
+        self.draw()?;
 
         // Check for async retrieval
         if let Ok(img) = self.img_recv.try_recv() {
@@ -810,7 +806,7 @@ impl App {
         self.grid.draw_labels()
     }
 
-    pub(crate) fn draw(&mut self, force_render: bool) -> Result<(), JsValue> {
+    pub(crate) fn draw(&mut self) -> Result<(), JsValue> {
         /*let scene_redraw = self.rendering | force_render;
         let mut ui = self.ui.lock();
 
@@ -888,10 +884,10 @@ impl App {
             let projection = &self.projection;
 
             let layers = &mut self.layers;
-            let catalogs = &self.manager;
+            //let catalogs = &self.manager;
             let colormaps = &self.colormaps;
-            let fbo_view = &self._fbo_view;
-            let final_rendering_pass = &self._final_rendering_pass;
+            //let fbo_view = &self._fbo_view;
+            //let final_rendering_pass = &self._final_rendering_pass;
 
             //fbo_view.draw_onto(
             //    move || {
@@ -1281,7 +1277,7 @@ impl App {
         // keep the old meta data
         let new_img_ext = meta.img_format;
         self.layers
-            .set_layer_cfg(layer.clone(), meta, &mut self.camera, &self.projection)?;
+            .set_layer_cfg(layer.clone(), meta)?;
 
         if old_meta.img_format != new_img_ext {
             // The image format has been changed

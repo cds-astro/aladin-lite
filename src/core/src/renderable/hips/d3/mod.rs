@@ -17,7 +17,6 @@ use al_core::VecData;
 use al_core::VertexArrayObject;
 use al_core::WebGlContext;
 
-use crate::math::{angle::Angle, vector::dist2};
 use crate::ProjectionType;
 
 use crate::camera::CameraViewPort;
@@ -25,7 +24,7 @@ use crate::camera::CameraViewPort;
 use crate::downloader::query;
 
 use crate::shader::ShaderManager;
-use crate::{math::lonlat::LonLatT, utils};
+use crate::math::lonlat::LonLatT;
 
 use crate::downloader::request::allsky::Allsky;
 use crate::healpix::{cell::HEALPixCell, coverage::HEALPixCoverage};
@@ -38,10 +37,8 @@ use std::collections::HashSet;
 // Recursively compute the number of subdivision needed for a cell
 // to not be too much skewed
 
-use super::d2::texture::HpxTexture2D;
 use buffer::HiPS3DBuffer;
 
-use super::raytracing::RayTracer;
 use super::uv::{TileCorner, TileUVW};
 
 use cgmath::Matrix;
@@ -314,7 +311,6 @@ impl HiPS3D {
         shaders: &mut ShaderManager,
         colormaps: &Colormaps,
         camera: &mut CameraViewPort,
-        raytracer: &RayTracer,
         cfg: &ImageMetadata,
         proj: &ProjectionType,
     ) -> Result<(), JsValue> {
@@ -332,7 +328,7 @@ impl HiPS3D {
             self.recompute_vertices(camera, proj);
         }
 
-        self.draw_internal(shaders, colormaps, camera, raytracer, cfg, proj)
+        self.draw_internal(shaders, colormaps, camera, cfg, proj)
         //}
     }
 
@@ -396,7 +392,7 @@ impl HiPS3D {
                     // The slice is sure to be contained so we can unwrap
                     let hpx_slice_tex = texture.extract_2d_slice_texture(slice_contained).unwrap();
 
-                    let uv_1 = TileUVW::new(cell, &hpx_slice_tex, self.get_config());
+                    let uv_1 = TileUVW::new(cell, &hpx_slice_tex);
                     let d01e = uv_1[TileCorner::BottomRight].x - uv_1[TileCorner::BottomLeft].x;
                     let d02e = uv_1[TileCorner::TopLeft].y - uv_1[TileCorner::BottomLeft].y;
 
@@ -540,7 +536,6 @@ impl HiPS3D {
         shaders: &mut ShaderManager,
         colormaps: &Colormaps,
         camera: &mut CameraViewPort,
-        raytracer: &RayTracer,
         cfg: &ImageMetadata,
         proj: &ProjectionType,
     ) -> Result<(), JsValue> {

@@ -224,23 +224,16 @@ impl TileFetcherQueue {
             ));
         } else if cfg.get_min_depth_tile() == 0 {
             #[cfg(target_arch = "wasm32")]
-            {
-                let hips_cdid = cfg.get_creator_did().to_string();
-                let hips_url = cfg.get_root_url().to_string();
-                let hips_fmt = cfg.get_format();
-                let min_order = cfg.get_min_depth_texture();
+            for tile_cell in crate::healpix::cell::ALLSKY_HPX_CELLS_D0 {
+                if let Ok(query) = self.check_in_file_list(hips.get_tile_query(tile_cell)) {
+                    let dl = downloader.clone();
 
-                for tile_cell in crate::healpix::cell::ALLSKY_HPX_CELLS_D0 {
-                    if let Ok(query) = self.check_in_file_list(hips.get_tile_query(tile_cell)) {
-                        let dl = downloader.clone();
-
-                        crate::utils::set_timeout(
-                            move || {
-                                dl.borrow_mut().fetch(query);
-                            },
-                            2_000,
-                        );
-                    }
+                    crate::utils::set_timeout(
+                        move || {
+                            dl.borrow_mut().fetch(query);
+                        },
+                        2_000,
+                    );
                 }
             }
         }

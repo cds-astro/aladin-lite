@@ -138,7 +138,6 @@ pub enum ImageBufferType {
 }
 
 use crate::image::{ArrayBuffer, Image};
-use crate::Texture2DArray;
 use cgmath::{Vector2, Vector3};
 impl<I> Image for ImageBuffer<I>
 where

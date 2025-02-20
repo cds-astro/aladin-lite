@@ -296,7 +296,7 @@ impl HpxTexture3D {
             image.insert_into_3d_texture(texture, &Vector3::<i32>::new(0, 0, slice_idx as i32))?;
 
             match self.block_indices.binary_search(&block_idx) {
-                Ok(i) => {} // element already in vector @ `pos`
+                Ok(_) => {} // element already in vector @ `pos`
                 Err(i) => self.block_indices.insert(i, block_idx),
             }
 

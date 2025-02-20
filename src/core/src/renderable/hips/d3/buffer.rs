@@ -152,10 +152,8 @@ impl HpxTileBuffer for HiPS3DBuffer {
         available_tiles_during_frame
     }
 
-    fn set_image_ext(&mut self, gl: &WebGlContext, ext: ImageExt) -> Result<(), JsValue> {
+    fn set_image_ext(&mut self, _gl: &WebGlContext, ext: ImageExt) -> Result<(), JsValue> {
         self.config.set_image_ext(ext)?;
-
-        let channel = self.config.get_format().get_channel();
 
         self.textures.clear();
         //self.ready = false;
@@ -164,7 +162,7 @@ impl HpxTileBuffer for HiPS3DBuffer {
         Ok(())
     }
 
-    fn read_pixel(&self, pos: &LonLatT<f64>, camera: &CameraViewPort) -> Result<JsValue, JsValue> {
+    fn read_pixel(&self, _pos: &LonLatT<f64>, _camera: &CameraViewPort) -> Result<JsValue, JsValue> {
         todo!();
     }
 

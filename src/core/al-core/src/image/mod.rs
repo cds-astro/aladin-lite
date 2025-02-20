@@ -181,7 +181,6 @@ impl ArrayBuffer for ArrayF64 {
 
 use self::canvas::Canvas;
 use self::html::HTMLImage;
-use super::Texture2DArray;
 use wasm_bindgen::JsValue;
 pub trait Image {
     fn insert_into_3d_texture<T: Tex3D>(

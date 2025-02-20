@@ -26,7 +26,7 @@ impl Inertia {
         }
     }
 
-    pub fn apply(&mut self, camera: &mut CameraViewPort, proj: &ProjectionType, dt: DeltaTime) {
+    pub fn apply(&mut self, camera: &mut CameraViewPort, proj: &ProjectionType, _dt: DeltaTime) {
         let t = ((Time::now() - self.time_start).as_millis() / 1000.0) as f64;
         // Undamped angular frequency of the oscillator
         // From wiki: https://en.wikipedia.org/wiki/Harmonic_oscillator

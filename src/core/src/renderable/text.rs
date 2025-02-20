@@ -5,7 +5,7 @@ use web_sys::CanvasRenderingContext2d;
 pub struct TextRenderManager {
     // The text canvas
     ctx: CanvasRenderingContext2d,
-    color: JsValue,
+    color: String,
     font_size: u32,
 }
 
@@ -34,7 +34,7 @@ impl TextRenderManager {
             .dyn_into::<web_sys::CanvasRenderingContext2d>()
             .unwrap_abort();
 
-        let color = JsValue::from_str("#00ff00");
+        let color = String::from("#00ff00");
         let font_size = 15;
         Ok(Self {
             font_size,
@@ -50,7 +50,7 @@ impl TextRenderManager {
             (color.b * 255.0) as u8,
             (color.a * 255.0) as u8,
         );
-        self.color = JsValue::from_str(&hex);
+        self.color = String::from(&hex);
     }
 
     pub fn set_font_size(&mut self, size: u32) {
@@ -95,7 +95,7 @@ impl Renderer for TextRenderManager {
         // reset the font and color
         self.ctx
             .set_font(&format!("{}px verdana, sans-serif", self.font_size));
-        self.ctx.set_fill_style(&self.color);
+        self.ctx.set_fill_style_str(&self.color);
     }
 
     fn end(&mut self) {}

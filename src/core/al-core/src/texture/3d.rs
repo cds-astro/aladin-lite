@@ -19,7 +19,7 @@ pub struct Texture3D {
     texture: Option<WebGlTexture>,
 
     metadata: Option<Rc<RefCell<Texture2DMeta>>>,
-    depth: i32,
+    _depth: i32,
 }
 
 impl Texture3D {
@@ -62,7 +62,7 @@ impl Texture3D {
         Ok(Texture3D {
             texture,
             gl: gl.clone(),
-            depth,
+            _depth: depth,
             metadata,
         })
     }

@@ -17,12 +17,11 @@ use crate::HEALPixCoverage;
 use crate::LonLatT;
 use crate::WebGlContext;
 use al_api::hips::ImageExt;
-use al_core::image::Image;
 use wasm_bindgen::JsValue;
 
 mod subdivide;
 
-trait HpxTile {
+pub(crate) trait HpxTile {
     // Getter
     // Returns the current time if the texture is not full
     fn start_time(&self) -> Time;
@@ -32,7 +31,7 @@ trait HpxTile {
     fn cell(&self) -> &HEALPixCell;
 }
 
-pub trait HpxTileBuffer {
+pub(crate) trait HpxTileBuffer {
     type T: HpxTile;
 
     fn new(gl: &WebGlContext, config: HiPSConfig) -> Result<Self, JsValue>

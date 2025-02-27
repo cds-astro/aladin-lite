@@ -298,31 +298,14 @@ export let Aladin = (function () {
         }
 
         // merge with default options
-        var options = {};
-
-        for (var key in Aladin.DEFAULT_OPTIONS) {
-            if (requestedOptions[key] !== undefined) {
-                options[key] = requestedOptions[key];
-            } else {
-                options[key] = Aladin.DEFAULT_OPTIONS[key];
+        var options = {
+            ...Aladin.DEFAULT_OPTIONS,
+            ...requestedOptions,
+            gridOptions:{
+                ...Aladin.DEFAULT_OPTIONS.gridOptions,
+                ...requestedOptions.gridOptions
             }
-        }
-
-        // 'gridOptions' is an object, so it need it own loop
-        if ("gridOptions" in requestedOptions) {
-            for (var key in Aladin.DEFAULT_OPTIONS.gridOptions) {
-                if (requestedOptions.gridOptions[key] === undefined) {
-                    options.gridOptions[key] =
-                        Aladin.DEFAULT_OPTIONS.gridOptions[key];
-                }
-            }
-        }
-
-        for (var key in requestedOptions) {
-            if (Aladin.DEFAULT_OPTIONS[key] === undefined) {
-                options[key] = requestedOptions[key];
-            }
-        }
+        };
 
         this.options = options;
 

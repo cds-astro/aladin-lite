@@ -38,7 +38,7 @@ webgl2 = [
 ]
 
 [dependencies.web-sys]
-version = "0.3.56"
+version = "0.3.77"
 features = [
   'console',
   'CssStyleDeclaration',

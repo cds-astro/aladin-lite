@@ -296,8 +296,10 @@ export let HiPS = (function () {
         self.cubeFirstFrame = properties && properties.hips_cube_firstframe && +properties.hips_cube_firstframe;
 
         // Max order
-        self.maxOrder =
-            PropertyParser.maxOrder(properties) || self.maxOrder;
+        const maxOrder = PropertyParser.maxOrder(properties)
+        if (maxOrder !== undefined) {
+            self.maxOrder = maxOrder;
+        }
 
         // Tile size
         self.tileSize =
@@ -307,9 +309,11 @@ export let HiPS = (function () {
         self.formats =
             PropertyParser.formats(properties) || self.formats;
 
-        // min order
-        self.minOrder =
-            PropertyParser.minOrder(properties) || self.minOrder;
+        // Min order
+        const minOrder = PropertyParser.minOrder(properties)
+        if (minOrder !== undefined) {
+            self.minOrder = minOrder;
+        }
 
         // Frame
         self.cooFrame =

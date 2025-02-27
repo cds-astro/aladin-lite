@@ -301,10 +301,16 @@ export let Aladin = (function () {
         var options = {
             ...Aladin.DEFAULT_OPTIONS,
             ...requestedOptions,
+            // In javascript, arrays like objects are copied by reference.
+            // To not change the default aladin options afterwards,
+            // we use the spread operator to create a new object for the gridOptions property
             gridOptions:{
                 ...Aladin.DEFAULT_OPTIONS.gridOptions,
                 ...requestedOptions.gridOptions
-            }
+            },
+            // and use the slice method to create a new array for the hipsList property:
+            // https://stackoverflow.com/questions/7486085/copy-array-by-value
+            hipsList: requestedOptions.hipsList || Aladin.DEFAULT_OPTIONS.hipsList.slice()
         };
 
         this.options = options;

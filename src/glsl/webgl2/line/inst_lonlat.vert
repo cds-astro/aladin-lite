@@ -11,7 +11,7 @@ uniform float u_width;
 uniform float u_height;
 uniform float u_thickness;
 
-out float l;
+out vec2 l;
 
 #include ../projection/projection.glsl;
 
@@ -27,7 +27,6 @@ void main() {
     vec2 p_b_clip = proj(p_b_w);
 
     vec2 da = p_a_clip - p_b_clip;
-    l = dot(da, da);
 
     vec2 p_a_ndc = p_a_clip / (ndc_to_clip * czf);
     vec2 p_b_ndc = p_b_clip / (ndc_to_clip * czf);
@@ -37,6 +36,12 @@ void main() {
     vec2 y_b = normalize(vec2(-x_b.y, x_b.x));
 
     float ndc2pix = 2.0 / u_width;
-    vec2 p_ndc = p_a_ndc + x_b * vertex.x + u_thickness * y_b * vertex.y * vec2(1.0, u_width/u_height) * ndc2pix;
+
+    vec2 p_ndc_x = x_b * vertex.x;
+    vec2 p_ndc_y = u_thickness * y_b * vertex.y * vec2(1.0, u_width/u_height) * ndc2pix;
+
+    vec2 p_ndc = p_a_ndc + p_ndc_x + p_ndc_y;
     gl_Position = vec4(p_ndc, 0.f, 1.f);
+
+    l = vec2(dot(da, da), vertex.y);
 }

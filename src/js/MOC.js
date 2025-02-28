@@ -26,7 +26,7 @@ import { ALEvent } from "./events/ALEvent.js";
 * @property {Boolean} [perimeter=false] - Draw the perimeter of the MOC only with `options.color`.
 * @property {string} [edge=!fill && !perimeter] - Draw the edges of the HEALPix cells with `options.color`.
     The HEALPix cell edges compositing the MOC will be drawn if `fill` and `perimeter` are false
-* @property {number} [lineWidth=3] - The line width in pixels 
+* @property {number} [lineWidth=2] - The line width in pixels 
 * @property {number} [opacity=1.0] - The opacity of the colors
 */
 
@@ -93,7 +93,7 @@ export let MOC = (function() {
         }
 
         this.opacity = Math.max(0, Math.min(1, this.opacity)); // 0 <= this.opacity <= 1
-        this.lineWidth = options["lineWidth"] || 3;
+        this.lineWidth = options["lineWidth"] || 2;
 
         //this.proxyCalled = false; // this is a flag to check whether we already tried to load the MOC through the proxy
 

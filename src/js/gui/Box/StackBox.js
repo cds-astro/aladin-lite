@@ -304,7 +304,6 @@ export class OverlayStackBox extends Box {
 
                                     let moc = A.MOCFromURL(url, {
                                         name: file.name,
-                                        lineWidth: 3.0,
                                     });
                                     self.aladin.addMOC(moc);
                                 },
@@ -347,7 +346,6 @@ export class OverlayStackBox extends Box {
                                                             { ra, dec, radius },
                                                             {
                                                                 name: "cone",
-                                                                lineWidth: 3.0,
                                                             }
                                                         );
                                                         self.aladin.addMOC(moc);
@@ -418,7 +416,6 @@ export class OverlayStackBox extends Box {
                                                         },
                                                         {
                                                             name: "rect",
-                                                            lineWidth: 3.0,
                                                         }
                                                     );
                                                     self.aladin.addMOC(moc);
@@ -463,7 +460,6 @@ export class OverlayStackBox extends Box {
                                                         { ra, dec },
                                                         {
                                                             name: "poly",
-                                                            lineWidth: 3.0,
                                                         }
                                                     );
                                                     self.aladin.addMOC(moc);

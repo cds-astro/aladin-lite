@@ -72,7 +72,7 @@ export class SAMPConnector {
             var params = message["samp.params"];
 
             const {url, name} = params;
-            let moc = A.MOCFromURL(url, {name, lineWidth: 3});
+            let moc = A.MOCFromURL(url, {name});
             aladin.addMOC(moc);
         };
 

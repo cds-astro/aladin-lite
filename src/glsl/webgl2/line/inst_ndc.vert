@@ -4,7 +4,7 @@ layout (location = 0) in vec2 p_a;
 layout (location = 1) in vec2 p_b;
 layout (location = 2) in vec2 vertex;
 
-out float l;
+out vec2 l;
 
 uniform float u_width;
 uniform float u_height;
@@ -18,4 +18,5 @@ void main() {
 
     vec2 p = p_a + x_b * vertex.x + u_thickness * y_b * vertex.y * vec2(1.0, u_width/u_height) * ndc2pix;
     gl_Position = vec4(p, 0.f, 1.f);
+    l = vec2(0.0, vertex.y);
 }

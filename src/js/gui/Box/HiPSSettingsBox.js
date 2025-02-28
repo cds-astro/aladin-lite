@@ -49,7 +49,7 @@ import { Form } from "../Widgets/Form.js";
                     monochrome: true,
                     url: luminosityIconUrl
                 },
-                tooltip: {content: 'Luminosity sliders', position: {direction: 'bottom'}},
+                tooltip: {content: 'Contrast', position: {direction: 'bottom'}},
                 action: (e) => {
                     const content = Layout.vertical({
                         layout: [self.selector, self.luminositySettingsContent]
@@ -63,7 +63,7 @@ import { Form } from "../Widgets/Form.js";
                     monochrome: true,
                     url: opacityIconUrl
                 },
-                tooltip: {content: 'Opacity slider', position: {direction: 'bottom'}},
+                tooltip: {content: 'Opacity', position: {direction: 'bottom'}},
                 action: (e) => {
                     const content = Layout.vertical({layout: [self.selector, self.opacitySettingsContent]});
                     self.update({content})
@@ -86,7 +86,7 @@ import { Form } from "../Widgets/Form.js";
                     monochrome: true,
                     url: pixelHistIconUrl
                 },
-                tooltip: {content: 'Pixel cutouts', position: {direction: 'bottom'}},
+                tooltip: {content: 'Cutouts', position: {direction: 'bottom'}},
                 action: (e) => {
                     const content = Layout.vertical({layout: [self.selector, self.pixelSettingsContent]});
                     self.update({content})
@@ -236,15 +236,30 @@ import { Form } from "../Widgets/Form.js";
 
         let colorSettingsContent = new Form({
             subInputs: [{
-                label: 'colormap:',
-                type: 'select',
-                name: 'cmap',
-                value: 'native',
-                options: aladin.getListOfColormaps(),
-                change: (e, cmapSelector) => {
-                    self.options.layer.setColormap(e.target.value)
+                    label: 'colormap:',
+                    type: 'select',
+                    name: 'cmap',
+                    value: 'native',
+                    options: aladin.getListOfColormaps(),
+                    change: (e) => {
+                        self.options.layer.setColormap(e.target.value)
+                    },
                 },
-            }]
+                {
+                    label: 'reverse:',
+                    type: 'checkbox',
+                    name: 'reverse',
+                    cssStyle: {
+                        // so that it takes as much space as it can
+                        flex: "0 0 1",
+                    },
+                    checked: false,
+                    change: (e) => {
+                        let checked = colorSettingsContent.getInput("reverse").checked
+                        self.options.layer.setColormap(null, {reversed: checked})
+                    }
+                },
+            ]
         });
 
         super({
@@ -265,31 +280,37 @@ import { Form } from "../Widgets/Form.js";
         this.luminositySettingsContent = luminositySettingsContent;
     }
 
+    _update(layer) {
+        let colorCfg = layer.getColorCfg();
+        let stretch = colorCfg.stretch;
+        let colormap = colorCfg.getColormap();
+        let reversed = colorCfg.getReversed();
+
+        let [minCut, maxCut] = colorCfg.getCuts();
+        this.pixelSettingsContent.set('mincut', +minCut.toFixed(4))
+        this.pixelSettingsContent.set('maxcut', +maxCut.toFixed(4))
+        this.pixelSettingsContent.set('stretch', stretch)
+        let fmtInput = this.pixelSettingsContent.getInput('fmt')
+            
+        fmtInput.innerHTML = '';
+        for (const option of layer.formats) {
+            fmtInput.innerHTML += "<option>" + option + "</option>";
+        }
+        fmtInput.value = layer.imgFormat;
+            
+        this.colorSettingsContent.set('cmap', colormap);
+        this.colorSettingsContent.set('reverse', reversed);
+
+        this.opacitySettingsContent.set('opacity', layer.getOpacity());
+        this.luminositySettingsContent.set('brightness', colorCfg.getBrightness());
+        this.luminositySettingsContent.set('contrast', colorCfg.getContrast());
+        this.luminositySettingsContent.set('gamma', colorCfg.getGamma());
+        this.luminositySettingsContent.set('saturation', colorCfg.getSaturation());
+    }
+
     update(options) {
         if (options.layer) {
-            let hips = options.layer;
-            let colorCfg = hips.getColorCfg();
-            let stretch = colorCfg.stretch;
-            let colormap = colorCfg.getColormap();
-
-            let [minCut, maxCut] = colorCfg.getCuts();
-            this.pixelSettingsContent.set('mincut', +minCut.toFixed(4))
-            this.pixelSettingsContent.set('maxcut', +maxCut.toFixed(4))
-            this.pixelSettingsContent.set('stretch', stretch)
-            let fmtInput = this.pixelSettingsContent.getInput('fmt')
-
-            fmtInput.innerHTML = '';
-            for (const option of hips.formats) {
-                fmtInput.innerHTML += "<option>" + option + "</option>";
-            }
-            fmtInput.value = hips.imgFormat;
-
-            this.colorSettingsContent.set('cmap', colormap);
-            this.opacitySettingsContent.set('opacity', hips.getOpacity());
-            this.luminositySettingsContent.set('brightness', colorCfg.getBrightness());
-            this.luminositySettingsContent.set('contrast', colorCfg.getContrast());
-            this.luminositySettingsContent.set('gamma', colorCfg.getGamma());
-            this.luminositySettingsContent.set('saturation', colorCfg.getSaturation());
+            this._update(options.layer)
         }
 
         super.update(options)
@@ -300,28 +321,7 @@ import { Form } from "../Widgets/Form.js";
             const hips = e.detail.layer;
             let selectedLayer = this.options.layer;
             if (selectedLayer && hips.layer === selectedLayer.layer) {
-                let colorCfg = hips.getColorCfg();
-                let stretch = colorCfg.stretch;
-                let colormap = colorCfg.getColormap();
-    
-                let [minCut, maxCut] = colorCfg.getCuts();
-                this.pixelSettingsContent.set('mincut', +minCut.toFixed(4))
-                this.pixelSettingsContent.set('maxcut', +maxCut.toFixed(4))
-                this.pixelSettingsContent.set('stretch', stretch)
-                let fmtInput = this.pixelSettingsContent.getInput('fmt')
-    
-                fmtInput.innerHTML = '';
-                for (const option of hips.formats) {
-                    fmtInput.innerHTML += "<option>" + option + "</option>";
-                }
-                fmtInput.value = hips.imgFormat;
-    
-                this.colorSettingsContent.set('cmap', colormap);
-                this.opacitySettingsContent.set('opacity', hips.getOpacity());
-                this.luminositySettingsContent.set('brightness', colorCfg.getBrightness());
-                this.luminositySettingsContent.set('contrast', colorCfg.getContrast());
-                this.luminositySettingsContent.set('gamma', colorCfg.getGamma());
-                this.luminositySettingsContent.set('saturation', colorCfg.getSaturation());
+                this._update(hips)
             }
         });
 

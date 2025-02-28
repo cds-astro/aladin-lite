@@ -36,7 +36,7 @@
 
         // Colormap config options
         this.colormap = (options && options.colormap) || "native";
-        this.colormap = formatColormap(this.colormap);
+        this.colormap = this.colormap.toLowerCase();
 
         this.stretch = (options && options.stretch) || "linear";
         this.stretch = this.stretch.toLowerCase();
@@ -102,8 +102,7 @@
     }
     
     ColorCfg.prototype.setOptions = function(options) {
-        if (options.colormap)
-            this.setColormap(options.colormap, options)
+        this.setColormap(options.colormap, options)
 
         this.setCuts(options.minCut, options.maxCut)
 
@@ -207,43 +206,20 @@
         return this.additiveBlending;
     };
 
-    var formatColormap = function(colormap) {
-        /// colormap
-        // Make it case insensitive
-        colormap = colormap.toLowerCase();
-        /*if (!ColorCfg.COLORMAPS.includes(colormap)) {
-            console.warn("The colormap \'" + colormap + "\' is not supported. You should use one of the following: " + ColorCfg.COLORMAPS + "\n\'grayscale\' has been chosen by default.")
-            // If the user specify a colormap that is not supported,
-            // then set it to grayscale
-            colormap = "grayscale";
-        }*/
-
-        return colormap;
-    }
-
     // @api
     // Optional arguments, 
-    ColorCfg.prototype.setColormap = function(colormap = "native", options) {
-        if (colormap == null || colormap == undefined)
-            return;
-
+    ColorCfg.prototype.setColormap = function(colormap, options) {
         /// colormap
-        // Make it case insensitive
-        let cmap = formatColormap(colormap);
+        this.colormap = (colormap && colormap.toLowerCase()) || this.colormap;
 
         /// stretch
         let stretch = (options && options.stretch) || this.stretch || "linear";
-        stretch = stretch.toLowerCase();
+        this.stretch = stretch.toLowerCase()
 
         /// reversed
-        let reversed = false;
-        if (options && options.reversed === true) {
-            reversed = true;
+        if (options && options.reversed !== undefined) {
+            this.reversed = options.reversed;
         }
-
-        this.colormap = cmap;
-        this.stretch = stretch;
-        this.reversed = reversed;
     }
 
     // @api

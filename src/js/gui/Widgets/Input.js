@@ -73,9 +73,11 @@ export class Input extends DOMElement {
 
             this.el.checked = this.options.checked;
 
-            if (this.options.click) {
+            // for checkbox widgets, we authorize calling the callback name click or change
+            let action = this.options.click || this.options.change;
+            if (action) {
                 this.el.removeEventListener('click', this.action);
-                this.action = this.options.click;
+                this.action = action;
 
                 this.el.addEventListener('click', this.action);
             }    

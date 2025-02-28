@@ -604,7 +604,8 @@ export let HiPS = (function () {
      *
      * @memberof HiPS
      *
-     * @param {string} [colormap="grayscale"] - The colormap label to use. See {@link https://matplotlib.org/stable/users/explain/colors/colormaps.html|here} for more info about colormaps.
+     * @param {string} [colormap] - The colormap label to use. See {@link https://matplotlib.org/stable/users/explain/colors/colormaps.html|here} for more info about colormaps. 
+     * If null or undefined, the colormap type is not changed.
      *      Possible values are:
      * <br>"blues"
      * <br>"cividis"
@@ -765,6 +766,12 @@ export let HiPS = (function () {
      */
     HiPS.prototype.setOptions = function(options) {
         this.colorCfg.setOptions(options);
+
+        // FIXME, change api of setColormap to take an option object having a name field
+        if (options.colormap == null || options.colormap == undefined) {
+            delete options.colormap;
+        }
+
         this.options = {...this.options, ...options};
 
         this._updateMetadata();

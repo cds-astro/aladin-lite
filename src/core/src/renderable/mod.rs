@@ -308,12 +308,6 @@ impl Layers {
             .ok_or(err_layer_not_found)?;
         self.layers.remove(id_layer);
 
-        // Loop over all the meta for its longitude reversed property
-        // and set the camera to it if there is at least one
-        let longitude_reversed = self.meta.values().any(|meta| meta.longitude_reversed);
-
-        camera.set_longitude_reversed(longitude_reversed, proj);
-
         // Check if the url is still used
         let id_still_used = self.ids.values().any(|rem_id| rem_id == &id);
         if id_still_used {
@@ -421,11 +415,6 @@ impl Layers {
 
         // 2. Add the meta information of the layer
         self.meta.insert(layer.clone(), meta);
-        // Loop over all the meta for its longitude reversed property
-        // and set the camera to it if there is at least one
-        let longitude_reversed = self.meta.values().any(|meta| meta.longitude_reversed);
-
-        camera.set_longitude_reversed(longitude_reversed, proj);
 
         // 3. Add the image hips
         let creator_did = String::from(properties.get_creator_did());
@@ -500,11 +489,6 @@ impl Layers {
 
         // 2. Add the meta information of the layer
         self.meta.insert(layer.clone(), meta);
-        // Loop over all the meta for its longitude reversed property
-        // and set the camera to it if there is at least one
-        let longitude_reversed = self.meta.values().any(|meta| meta.longitude_reversed);
-
-        camera.set_longitude_reversed(longitude_reversed, proj);
 
         // 3. Add the fits image
         // The layer does not already exist

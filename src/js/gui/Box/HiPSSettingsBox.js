@@ -310,7 +310,8 @@ import { Form } from "../Widgets/Form.js";
         let fmtInput = this.pixelSettingsContent.getInput('fmt')
 
         fmtInput.innerHTML = '';
-        for (const option of layer.formats) {
+
+        for (const option of layer.getAvailableFormats()) {
             fmtInput.innerHTML += "<option>" + option + "</option>";
         }
         fmtInput.value = layer.imgFormat;

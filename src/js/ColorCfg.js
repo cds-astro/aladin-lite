@@ -41,17 +41,31 @@
         this.stretch = (options && options.stretch) || "linear";
         this.stretch = this.stretch.toLowerCase();
         this.reversed = false;
+        // Keep the image tile format because we want the cuts
+        this.imgFormat = options.imgFormat || 'png';
 
         if (options && options.reversed === true) {
             this.reversed = true;
         }
 
+        this.minCut = {
+            webp: 0.0,
+            jpeg: 0.0,
+            png: 0.0,
+            fits: undefined // wait the default value coming from the properties
+        };
         if (options && Number.isFinite(options.minCut)) {
-            this.minCut = options.minCut;
+            this.minCut[this.imgFormat] = options.minCut;
         }
 
+        this.maxCut = {
+            webp: 1.0,
+            jpeg: 1.0,
+            png: 1.0,
+            fits: undefined // wait the default value coming from the properties
+        };
         if (options && Number.isFinite(options.maxCut)) {
-            this.maxCut = options.maxCut;
+            this.maxCut[this.imgFormat] = options.maxCut;
         }
 
         this.additiveBlending = options && options.additive;
@@ -93,8 +107,8 @@
                 kContrast: this.kContrast,
 
                 stretch: this.stretch,
-                minCut: this.minCut,
-                maxCut: this.maxCut,
+                minCut: this.minCut[this.imgFormat],
+                maxCut: this.maxCut[this.imgFormat],
                 reversed: this.reversed,
                 cmapName: this.colormap,
             }
@@ -102,6 +116,9 @@
     }
     
     ColorCfg.prototype.setOptions = function(options) {
+        // Update the imgFormat 
+        this.imgFormat = options.imgFormat || this.imgFormat;
+
         this.setColormap(options.colormap, options)
 
         this.setCuts(options.minCut, options.maxCut)
@@ -231,18 +248,28 @@
         return this.reversed;
     };
 
-    // @api
+    // Sets the cuts for the current image format
     ColorCfg.prototype.setCuts = function(minCut, maxCut) {
-        if (minCut === null || minCut === undefined || maxCut === null || maxCut === undefined) {
-            return;
+        if (minCut instanceof Object) {
+            // Mincut is given in the form of an javascript object with all the formats
+            this.minCut = minCut
+        } else if (minCut !== null && minCut !== undefined) {
+            this.minCut[this.imgFormat] = minCut;
         }
 
-        this.minCut = minCut;
-        this.maxCut = maxCut;
+        if (maxCut instanceof Object) {
+            this.maxCut = maxCut;
+        } else if (maxCut !== null && maxCut !== undefined) {
+            this.maxCut[this.imgFormat] = maxCut;
+        }
     };
 
+    // Returns the cuts for the current image format
     ColorCfg.prototype.getCuts = function() {
-        return [this.minCut, this.maxCut];
+        return [
+            this.minCut[this.imgFormat],
+            this.maxCut[this.imgFormat]
+        ];
     };
 
     return ColorCfg;

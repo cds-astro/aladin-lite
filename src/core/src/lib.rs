@@ -566,6 +566,12 @@ impl WebClient {
         self.app.get_longitude_reversed()
     }
 
+    /// Set the longitude axis reversed globally
+    #[wasm_bindgen(js_name = setLongitudeReversed)]
+    pub fn set_longitude_reversed(&mut self, longitude_reversed: bool) {
+        self.app.set_longitude_reversed(longitude_reversed);
+    }
+
     /// Get the field of view angle value when the view is zoomed out to its maximum
     ///
     /// This method is dependent of the projection currently set.

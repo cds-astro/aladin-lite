@@ -136,12 +136,11 @@ export let Image = (function () {
         this.id = url;
         this.name = (options && options.name) || this.url;
         this.imgFormat = options && options.imgFormat;
-        //this.formats = [this.imgFormat];
+        this.acceptedFormats = [this.imgFormat];
+
         // callbacks
         this.successCallback = options && options.successCallback;
         this.errorCallback = options && options.errorCallback;
-
-        this.longitudeReversed = false;
 
         this.colorCfg = new ColorCfg(options);
         this.options = options || {};
@@ -329,11 +328,18 @@ export let Image = (function () {
          */
         Image.prototype.readPixel = HiPS.prototype.readPixel;
 
-       
-        /** PRIVATE METHODS **/
+        /**
+         * Get the list of accepted tile format for that HiPS
+         *
+         * @memberof Image
+         *
+         * @returns {string[]} Returns the formats accepted for the survey, i.e. the formats of tiles that are availables. Could be PNG, WEBP, JPG and FITS.
+         */
+        Image.prototype.getAvailableFormats = HiPS.prototype.getAvailableFormats;
+
+
         Image.prototype._setView = function (view) {
             this.view = view;
-            this._saveInCache();
         };
 
         // FITS images does not mean to be used for storing planetary data
@@ -356,7 +362,7 @@ export let Image = (function () {
         // Private method for updating the view with the new meta
         Image.prototype._updateMetadata = HiPS.prototype._updateMetadata;
 
-        Image.prototype._add = function (layer) {
+        Image.prototype._add2View = function (layer) {
             this.layer = layer;
 
             let self = this;
@@ -388,11 +394,10 @@ export let Image = (function () {
             }
 
             promise = promise.then((imageParams) => {
-                self.formats = [self.imgFormat];
+                self.acceptedFormats = [self.imgFormat];
 
                 // There is at least one entry in imageParams
                 self.added = true;
-                self._setView(self.view);
 
                 // Set the automatic computed cuts
                 let [minCut, maxCut] = self.getCuts();
@@ -442,7 +447,6 @@ export let Image = (function () {
                         stream,
                         {
                             ...self.colorCfg.get(),
-                            longitudeReversed: this.longitudeReversed,
                             imgFormat: 'fits',
                         },
                         layer
@@ -460,7 +464,6 @@ export let Image = (function () {
                                 stream,
                                 {
                                     ...self.colorCfg.get(),
-                                    longitudeReversed: this.longitudeReversed,
                                     imgFormat: 'fits',
                                 },
                                 layer
@@ -470,7 +473,8 @@ export let Image = (function () {
                 }
             })
             .then((imageParams) => {
-                self.imgFormat = 'fits';
+                self.imgFormat = 'fits'
+                self.colorCfg.setOptions({imgFormat: 'fits'});
 
                 return Promise.resolve(imageParams);
             })
@@ -562,14 +566,14 @@ export let Image = (function () {
                         wcs,
                         {
                             ...self.colorCfg.get(),
-                            longitudeReversed: this.longitudeReversed,
                             imgFormat: 'jpeg',
                         },
                         layer
                     )
             })
             .then((imageParams) => {
-                self.imgFormat = 'jpeg';
+                self.imgFormat = 'jpeg'
+                self.colorCfg.setOptions({imgFormat: 'jpeg'});
                 return Promise.resolve(imageParams);
             })
             .finally(() => {

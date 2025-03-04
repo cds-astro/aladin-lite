@@ -1,0 +1,23 @@
+<!doctype html>
+<html>
+<head>
+</head>
+<body>
+    <div id="aladin-lite-div" style="width: 1024px; height: 768px"></div>
+<script type="module">
+import A from '../src/js/A.js';
+
+A.init.then(() => {
+    let aladin = A.aladin('#aladin-lite-div', {longitudeReversed: true, showCooGrid: true, cooFrame: 'galactic', target: '0 0', fov: 100});
+    //aladin.reverseLongitude(true)
+
+    setTimeout(
+        () => {
+            aladin.reverseLongitude(false)
+        },
+        5000
+    )
+});
+</script>
+</body>
+</html>

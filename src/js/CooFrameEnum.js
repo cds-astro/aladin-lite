@@ -49,7 +49,7 @@ export let CooFrameEnum = (function() {
             if (str.indexOf('j2000d')==0 || str.indexOf('icrsd')==0) {
                 return CooFrameEnum.ICRSd;
             }
-            else if (str.indexOf('j2000')==0 || str.indexOf('icrs')==0) {
+            else if (str.indexOf('j2000')==0 || str.indexOf('icrs')==0 || str.indexOf('equatorial')==0) {
                 return CooFrameEnum.ICRS;
             }
             else if (str.indexOf('gal')==0) {

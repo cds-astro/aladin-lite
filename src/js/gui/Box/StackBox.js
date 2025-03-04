@@ -85,7 +85,7 @@ export class OverlayStackBox extends Box {
                 hoverColor: 'red',
                 onClick: "showTable",
                 shape: (s) => {
-                    let galaxy = ["Seyfert","Seyfert_1", "Seyfert_2","LSB_G","PartofG","RadioG","Gin","GinPair","HII_G","LensedG","BClG","BlueCompG","EmG","GinCl","GinGroup","StarburstG","LINER","AGN","Galaxy"].some((n) => s.data.main_type.indexOf(n) >= 0);
+                    let galaxy = ["Seyfert","Seyfert_1", "Seyfert_2","LSB_G","PartofG","RadioG","Gin","GinPair","HII_G","LensedG","BClG","BlueCompG","EmG","GinCl","GinGroup","StarburstG","LINER","AGN", "Galaxy", "GtowardsGroup", "GtowardsCl", "BrightestCG"].some((n) => s.data.main_type.indexOf(n) >= 0);
                     if (!galaxy) return;
 
                     let a = +s.data.size_maj;
@@ -710,6 +710,7 @@ export class OverlayStackBox extends Box {
         // Add a listener for HiPS list changes
         ALEvent.FAVORITE_HIPS_LIST_UPDATED.listenedBy(document.body, (event) => {
             let favoritesHips = event.detail;
+
             self.cachedHiPS = {};
 
             for (var hips of favoritesHips) {

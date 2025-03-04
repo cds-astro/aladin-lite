@@ -10,6 +10,8 @@ import A from '../src/js/A.js';
 A.init.then(() => {
     let aladin = A.aladin('#aladin-lite-div', {projection: "TAN", survey: "P/HSC/DR2/deep/g", target: '02 21 36.529 -05 31 20.16', fov: 0.1});
 
+    aladin.reverseLongitude(true)
+
     let hscGreenSurvey = aladin.getBaseImageLayer();
     hscGreenSurvey.setImageFormat("fits");
     hscGreenSurvey.setColormap("green", { stretch: "asinh" });

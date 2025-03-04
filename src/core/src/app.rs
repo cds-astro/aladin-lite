@@ -1323,6 +1323,10 @@ impl App {
         self.camera.get_longitude_reversed()
     }
 
+    pub(crate) fn set_longitude_reversed(&mut self, longitude_reversed: bool) {
+        self.camera.set_longitude_reversed(longitude_reversed, &self.projection);
+    }
+
     pub(crate) fn add_catalog(&mut self, _name: String, table: JsValue, _colormap: String) {
         //let mut exec_ref = self.exec.borrow_mut();
         let _table = table;

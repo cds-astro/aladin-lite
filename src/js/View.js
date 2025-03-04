@@ -717,9 +717,7 @@ export let View = (function () {
                         // Take as start cut values what is inside the properties
                         // If the cuts are not defined in the metadata of the survey
                         // then we take what has been defined by the user
-                        cutMinInit = imageLayer.getColorCfg().minCut || 0.0;
-                        cutMaxInit = imageLayer.getColorCfg().maxCut || 1.0;
-                        
+                        [cutMinInit, cutMaxInit] = imageLayer.getCuts();
                     }
                 }
 
@@ -1188,7 +1186,6 @@ export let View = (function () {
                     view.throttledTouchPadZoom = () => {
                         const factor = Utils.detectTrackPad(e) ? 1.04 : 1.2;
                         const currZoomFactor = view.zoom.isZooming ? view.zoom.finalZoom : view.zoomFactor;
-                        //const currZoomFactor = view.wasm.getZoomFactor();
                         let newZoomFactor = view.delta > 0 ? currZoomFactor * factor : currZoomFactor / factor;
 
                         // inside case
@@ -1393,6 +1390,10 @@ export let View = (function () {
             this.selector.dispatch('draw')
         }
     };
+
+    View.prototype.reverseLongitude = function(longitudeReversed) {
+        this.wasm.setLongitudeReversed(longitudeReversed);
+    }
 
     View.prototype.refreshProgressiveCats = function () {
         if (!this.catalogs) {
@@ -1607,6 +1608,7 @@ export let View = (function () {
     View.prototype.setOverlayImageLayer = function (imageLayer, layer = "overlay") {
         // set the view to the image layer object
         // do the properties query if needed
+        imageLayer.layer = layer;
         imageLayer._setView(this);
 
         // register its promise
@@ -1617,7 +1619,9 @@ export let View = (function () {
         return imageLayer;
     };
 
+    // Insert a layer object (Image/HiPS) at a specific index in the stack
     View.prototype._addLayer = function(imageLayer) {
+        // Keep the JS frontend in-line with the wasm state
         const layerName = imageLayer.layer;
         // Check whether this layer already exist
         const idxOverlayLayer = this.overlayLayers.findIndex(overlayLayer => overlayLayer == layerName);
@@ -1628,23 +1632,22 @@ export let View = (function () {
         } else {
             // it exists
             alreadyPresentImageLayer = this.imageLayers.get(layerName);
-            alreadyPresentImageLayer.added = false;
+            // Notify that this image layer has been replaced by the wasm part
+            if (alreadyPresentImageLayer && alreadyPresentImageLayer.added === true) {
+                ALEvent.HIPS_LAYER_REMOVED.dispatchedTo(this.aladinDiv, { layer: alreadyPresentImageLayer });
+            }
 
+            alreadyPresentImageLayer.added = false;
             this.imageLayers.delete(layerName);
         }
 
-        //imageLayer.added = true;
+        imageLayer.added = true;
 
         this.imageLayers.set(layerName, imageLayer);
 
         // select the layer if he is on top
         if (idxOverlayLayer == -1) {
             this.selectLayer(layerName);
-        }
-        
-        // Notify that this image layer has been replaced by the wasm part
-        if (alreadyPresentImageLayer) {
-            ALEvent.HIPS_LAYER_REMOVED.dispatchedTo(this.aladinDiv, { layer: alreadyPresentImageLayer });
         }
 
         ALEvent.HIPS_LAYER_ADDED.dispatchedTo(this.aladinDiv, { layer: imageLayer });
@@ -1655,6 +1658,7 @@ export let View = (function () {
         // start the query
         const imageLayerPromise = imageLayer.query;
 
+        let idx = this.promises.length;
         this.promises.push(imageLayerPromise);
 
         // All image layer promises must be completed (fullfilled or rejected)
@@ -1662,25 +1666,21 @@ export let View = (function () {
             message: 'Load layer: ' + imageLayer.name,
             id: Utils.uuidv4(),
         }
-        Promise.allSettled(this.promises)
-            .then(() => imageLayerPromise)
-            // The promise is resolved and we now have access
-            // to the image layer objet (whether it is an HiPS or an Image)
+        // Ensure all the properties for HiPSes have been seeked
+        ALEvent.FETCH.dispatchedTo(document, {task});
+        // All the remaining promises must be terminated and the current one must be resolved
+        // so that we can add it to the view (call of _add2View)
+        Promise.all([Promise.allSettled(this.promises), imageLayerPromise])
+            // Then we add the layer to the view
+            .then((_) => imageLayer._add2View(layer))
+            // Then we keep a track of the layer in the JS front
             .then((imageLayer) => {
-                // Add to the backend
-                imageLayer._setView(this)
-                const promise = imageLayer._add(layer);
-                ALEvent.FETCH.dispatchedTo(document, {task});
+                this._addLayer(imageLayer);
 
-                return promise;
-            })
-            .then((imageLayer) => {
                 // If the image layer has successfuly been added
                 this.empty = false;
 
-                this._addLayer(imageLayer);
-
-                // change the view frame in case we have a planetary hips loaded
+                // Change the view frame in case we have a planetary hips loaded
                 if (imageLayer.hipsBody) {
                     if (this.options.showFrame) {
                         this.aladin.setFrame('J2000d');
@@ -1704,7 +1704,6 @@ export let View = (function () {
                 self.imageLayersBeingQueried.delete(layer);
 
                 // Remove the settled promise
-                let idx = this.promises.findIndex(p => p == imageLayerPromise);
                 this.promises.splice(idx, 1);
 
                 const noMoreLayersToWaitFor = this.promises.length === 0;

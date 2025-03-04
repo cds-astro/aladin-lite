@@ -5,16 +5,16 @@
 <body>
     <div>
 <div id="offset" style="display: inline-block; width: 200px; height: 100px"></div>
-<div id="aladin-lite-div" style="display: inline-block; width: 50%"></div>
+<div id="aladin-lite-div" style="width: 500px; height: 500px"></div>
 </div>
 <!--<script type="text/javascript" src="https://aladin.cds.unistra.fr/AladinLite/api/v3/latest/aladin.js" charset="utf-8"></script>-->
 
 
-<script>let aladin, hips</script>
 <script type="module">
     import A from '../src/js/A.js';
+    let aladin;
     A.init.then(() => {
-        aladin = A.aladin('#aladin-lite-div', {projection: 'TAN', cooFrame: 'galactic', showSettingsControl: true, showSimbadPointerControl: true, showContextMenu: true, target: 'galactic center', survey: 'P/Finkbeiner'});
+        aladin = A.aladin('#aladin-lite-div', {projection: 'TAN', cooFrame: 'galactic', showSettingsControl: true, showSimbadPointerControl: true, showContextMenu: true, target: 'galactic center'});
         // possible values are 'blues', 'cividis', 'cubehelix', 'eosb', 'grayscale', 'inferno', 'magma', 'native', 'parula', 'plasma', 'rainbow',
         // 'rdbu', 'rdylbu', 'redtemperature', 'sinebow', 'spectral', 'summer', 'viridis', 'ylgnbu' and 'ylorbr'
 

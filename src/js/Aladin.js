@@ -143,7 +143,8 @@ import { Polyline } from "./shapes/Polyline";
  * @property {number} [gridOptions.labelSize=15] - The font size of the labels.
  * 
  * @property {string} [projection="SIN"] - Projection type. Can be 'SIN' for orthographic, 'MOL' for mollweide, 'AIT' for hammer-aitoff, 'ZEA' for zenital equal-area or 'MER' for mercator
- * @property {boolean} [log=true] - Whether to log events.
+ * @property {boolean} [longitudeReversed=false] - Longitude reverse axis flag. Set to true to reverse the longitude axis. This is especially needed for planetary survey visualization. Default is set to false.
+* @property {boolean} [log=true] - Whether to log events.
  * @property {boolean} [samp=false] - Whether to enable SAMP (Simple Application Messaging Protocol).
  * @property {boolean} [realFullscreen=false] - Whether to use real fullscreen mode.
  * @property {boolean} [pixelateCanvas=true] - Whether to pixelate the canvas.
@@ -518,6 +519,10 @@ export let Aladin = (function () {
         if (options.northPoleOrientation) {
             this.setRotation(options.northPoleOrientation);
         }
+
+        if (options.longitudeReversed !== undefined && options.longitudeReversed !== null) {
+            this.reverseLongitude(options.longitudeReversed)
+        }
     };
 
     Aladin.prototype._setupUI = function (options) {
@@ -700,6 +705,8 @@ export let Aladin = (function () {
         projection: "SIN",
         log: true,
         samp: false,
+        // Longitude reversed flag
+        longitudeReversed: false,
         realFullscreen: false,
         pixelateCanvas: true,
         manualSelection: false
@@ -898,7 +905,7 @@ export let Aladin = (function () {
      * Sets the coordinate frame of the Aladin instance to the specified frame.
      *
      * @memberof Aladin
-     * @param {string} frame - The name of the coordinate frame. Possible values: 'j2000d', 'j2000', 'gal', 'icrs'. The given string is case insensitive.
+     * @param {string} frame - The name of the coordinate frame. Possible values: 'j2000d', 'j2000', 'gal', 'icrs', 'equatorial'. The given string is case insensitive.
      *
      * @example
      * // Set the coordinate frame to 'J2000'
@@ -1786,6 +1793,16 @@ export let Aladin = (function () {
     };
 
     /**
+     * Reverse the longitude axis of the view globally
+     *
+     * @memberof Aladin
+     * @param {Boolean} [longitudeReversed] - Reverse the longitude axis
+     */
+    Aladin.prototype.reverseLongitude = function (longitudeReversed) {
+        this.view.reverseLongitude(longitudeReversed)
+    };
+
+    /**
      * Add a new HiPS layer to the view on top of the others
      *
      * @memberof Aladin
@@ -1959,16 +1976,14 @@ export let Aladin = (function () {
                 if (!cachedLayerOptions) {
                     hipsCache.append(imageLayer.id, imageLayer.options)
                 } else {
-                    // Set the options from what is in the cache
-                    imageLayer.setOptions(cachedLayerOptions);
+                    // Set the image layer object with the options from the cache.
+                    imageLayer.setOptions(cachedLayerOptions)
                 }
             }
         }
 
         // Add it to the hipsList if it is not there yet
         this.addHiPSToFavorites(imageLayer)
-
-        imageLayer.layer = layer;
 
         return this.view.setOverlayImageLayer(imageLayer, layer);
     };
@@ -2186,7 +2201,7 @@ export let Aladin = (function () {
         aladin.on("layerChanged", (layer, layerName, state) => {
             console.log("layerChanged", layer, layerName, state)
         })
-     */
+    */
     Aladin.prototype.on = function (what, myFunction) {
         if (Aladin.AVAILABLE_CALLBACKS.indexOf(what) < 0) {
             return;

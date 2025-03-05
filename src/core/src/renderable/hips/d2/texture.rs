@@ -182,6 +182,7 @@ impl<'a> HpxTexture2DUniforms<'a> {
 
 use al_core::shader::{SendUniforms, ShaderBound};
 impl<'a> SendUniforms for HpxTexture2DUniforms<'a> {
+    // Info: These uniforms are used for raytracing drawing mode only
     fn attach_uniforms<'b>(&self, shader: &'b ShaderBound<'b>) -> &'b ShaderBound<'b> {
         shader
             .attach_uniform(&format!("{}{}", self.name, "uniq"), &self.texture.uniq)
@@ -191,8 +192,12 @@ impl<'a> SendUniforms for HpxTexture2DUniforms<'a> {
             )
             .attach_uniform(
                 &format!("{}{}", self.name, "empty"),
-                //&((self.texture.full as u8) as f32),
-                &0.0,
+                // This is useful for FITS tiles only because:
+                // - for JPEG, missing tiles are inserted in the buffer and black is drawn
+                // - for PNG, tiles are not inserted but default color chosen is fully transparent (might be vec4(0.0, 0.0, 0.0, 0.0))
+                // 
+                // Therefore for FITS files we must indicate GPU which base tiles are missing so that we draw fully transparent pixels
+                &((!self.texture.full as u8) as f32),
             )
             .attach_uniform(
                 &format!("{}{}", self.name, "start_time"),

@@ -219,23 +219,33 @@ impl Layers {
         // Check whether a hips to plot is allsky
         // if neither are, we draw a font
         // if there are, we do not draw nothing
-        let render_background_color = !self.layers.iter().any(|layer| {
+        let mut background_color = None;
+        for layer in self.layers.iter() {
             let meta = self.meta.get(layer).unwrap_abort();
             let cdid = self.ids.get(layer).unwrap_abort();
+
             if let Some(hips) = self.hipses.get(cdid) {
                 let hips_cfg = hips.get_config();
-                (hips.is_allsky() || hips_cfg.get_format().get_channel() == ChannelType::RGB8U)
-                    && meta.opacity == 1.0
+
+                let allsky = hips.is_allsky();
+                let opaque = meta.opacity == 1.0;
+
+                background_color = match (allsky, opaque) {
+                    (true, true) => None,
+                    _ => Some(self.background_color),
+                };
             } else {
-                // image fits case
-                false
+                // image fits case. We render a background
+                background_color = Some(self.background_color);
             }
-        });
+
+            if background_color.is_some() {
+                break;
+            }
+        }
 
         // Need to render transparency font
-        if render_background_color {
-            let background_color = &self.background_color;
-
+        if let Some(background_color) = &background_color {
             let vao = if raytracing {
                 raytracer.get_vao()
             } else {
@@ -275,8 +285,8 @@ impl Layers {
             }
         }
 
-        let rendered_layers = &self.layers[idx_start_layer..];
-        for layer in rendered_layers {
+        let layers_to_render = &self.layers[idx_start_layer..];
+        for layer in layers_to_render {
             let draw_opt = self.meta.get(layer).expect("Meta should be found");
             if draw_opt.visible() {
                 // 1. Update the hips if necessary

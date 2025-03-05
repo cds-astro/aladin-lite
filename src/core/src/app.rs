@@ -20,6 +20,7 @@ use crate::{
     tile_fetcher::TileFetcherQueue,
     time::DeltaTime,
 };
+use al_core::image::format::ChannelType;
 use wcs::WCS;
 
 use wasm_bindgen::prelude::*;
@@ -702,7 +703,7 @@ impl App {
                                         tile_copied = true;
                                         match hips {
                                             HiPS::D2(hips) => {
-                                                hips.add_tile(&tile.cell, img, tile.time_req)?
+                                                hips.add_tile(&tile.cell, Some(img), tile.time_req)?
                                             }
                                             HiPS::D3(hips) => hips.add_tile(
                                                 &tile.cell,
@@ -711,10 +712,19 @@ impl App {
                                                 tile.channel.unwrap() as u16,
                                             )?,
                                         }
-
                                         self.time_start_blending = Time::now();
-                                    }
-                                    None => (),
+                                    },
+                                    // In case of JPEG tile missing, add it to the HiPS because it must be drawn as black
+                                    None if cfg.get_format().get_channel() == ChannelType::RGB8U => {
+                                        self.request_redraw = true;
+                                        match hips {
+                                            HiPS::D2(hips) => {
+                                                hips.add_tile::<ImageType>(&tile.cell, None, tile.time_req)?
+                                            }
+                                            HiPS::D3(_) => (),
+                                        }
+                                    },
+                                    _ => ()
                                 };
                             }
                         }

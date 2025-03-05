@@ -417,18 +417,14 @@ impl HiPS2D {
         for cell in &self.hpx_cells_in_view {
             // filter textures that are not in the moc
             let cell = if let Some(moc) = self.footprint_moc.as_ref() {
-                if moc.intersects_cell(&cell) {
+                if moc.intersects_cell(&cell) || channel == ChannelType::RGB8U {
+                    // Rasterizer does not render tiles that are not in the MOC
+                    // This is not a problem for transparency rendered HiPses (FITS or PNG)
+                    // but JPEG tiles do have black when no pixels data is found
+                    // We therefore must draw in black for the tiles outside the HiPS MOC
                     Some(&cell)
                 } else {
-                    if channel == ChannelType::RGB8U {
-                        // Rasterizer does not render tiles that are not in the MOC
-                        // This is not a problem for transparency rendered HiPses (FITS or PNG)
-                        // but JPEG tiles do have black when no pixels data is found
-                        // We therefore must draw in black for the tiles outside the HiPS MOC
-                        Some(&cell)
-                    } else {
-                        None
-                    }
+                    None
                 }
             } else {
                 Some(&cell)
@@ -627,7 +623,7 @@ impl HiPS2D {
     pub fn add_tile<I: Image>(
         &mut self,
         cell: &HEALPixCell,
-        image: I,
+        image: Option<I>,
         time_request: Time,
     ) -> Result<(), JsValue> {
         self.buffer.push(&cell, image, time_request)

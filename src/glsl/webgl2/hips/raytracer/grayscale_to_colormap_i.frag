@@ -26,7 +26,7 @@ uniform float opacity;
 #include ../../projection/hpx_proj.glsl;
 
 vec4 get_tile_color(vec3 pos) {
-HashDxDy result = hash_with_dxdy(0, pos.zxy);
+    HashDxDy result = hash_with_dxdy(0, pos.zxy);
 
     int idx = result.idx;
     vec2 uv = vec2(result.dy, result.dx);

@@ -49,6 +49,7 @@ import { Layout } from "./gui/Layout.js";
 import { SAMPActionButton } from "./gui/Button/SAMP.js";
 import { HiPS } from "./HiPS.js";
 import { Image } from "./Image.js";
+import { Color } from "./Color.js";
 
 export let View = (function () {
 
@@ -96,6 +97,16 @@ export let View = (function () {
             // 2. Add a more explicite message to the end user
             console.error("Problem initializing Aladin Lite. Please contact the support by contacting Matthieu Baumann (baumannmatthieu0@gmail.com) or Thomas Boch (thomas.boch@astro.unistra.fr). You can also open an issue on the Aladin Lite github repository here: https://github.com/cds-astro/aladin-lite. Message error:" + e)
         }
+
+        this._defineProperties();
+
+        // I realized debouncing a little bit the resize process
+        // prevents the div from flickering in white !
+        // Let's keep that like that (with a very small debounced time of 2ms).
+        this.debounceResize = Utils.debounce(() => {
+            self.wasm.resize(self.width, self.height);
+            self.updateZoomState()
+        }, 2);
 
         // Attach the drag and drop events to the view
         this.aladinDiv.ondrop = (event) => {
@@ -172,12 +183,13 @@ export let View = (function () {
             View.CALLBACKS_THROTTLE_TIME_MS,
         );
 
+        this.debounceProgCatOnZoom = Utils.debounce(() => {
+            self.refreshProgressiveCats();
+            self.drawAllOverlays();
+        }, 300);
+
         this.mustClearCatalog = true;
         this.mode = View.PAN;
-
-        // 0.1 arcsec
-        this.minFoV = 1 / 36000;
-        this.maxFoV = null;
 
         this.healpixGrid = new HealpixGrid();
         this.then = Date.now();
@@ -198,7 +210,7 @@ export let View = (function () {
         this.setProjection(projName)
 
         // Then set the zoom properly once the projection is defined
-        this.setZoom(initialFov)
+        this.fov = initialFov
 
         // Target position settings
         this.viewCenter = { lon, lat }; // position of center of view
@@ -264,11 +276,6 @@ export let View = (function () {
         init(this);
         // listen to window resize and reshape canvases
         this.resizeTimer = null;
-        /*if ('ontouchstart' in window) {
-            Utils.on(document, 'orientationchange', (e) => {
-                self.fixLayoutDimensions();
-            })
-        } else {*/
 
         this.resizeObserver = new ResizeObserver(() => {
             self.fixLayoutDimensions();
@@ -278,24 +285,6 @@ export let View = (function () {
 
         self.fixLayoutDimensions();
         self.redraw()
-
-        // in some contexts (Jupyter notebook for instance), the parent div changes little time after Aladin Lite creation
-        // this results in canvas dimension to be incorrect.
-        // The following line tries to fix this issue
-        /*setTimeout(function () {
-            var computedWidth = $(self.aladinDiv).width();
-            var computedHeight = $(self.aladinDiv).height();
-
-            if (self.width !== computedWidth || self.height === computedHeight) {
-                self.fixLayoutDimensions();
-                // As the WebGL backend has been resized correctly by
-                // the previous call, we can get the zoom factor from it
-
-                self.setZoom(self.fov); // needed to force recomputation of displayed FoV
-            }
-
-            self.requestRedraw();
-        }, 1000);*/ 
     };
 
     // different available modes
@@ -310,6 +299,27 @@ export let View = (function () {
 
     View.CALLBACKS_THROTTLE_TIME_MS = 100; // minimum time between two consecutive callback calls
 
+
+    View.prototype._defineProperties = function() {
+        Object.defineProperties(this, {
+            fov: {
+                get() {
+                    return this.wasm.getFieldOfView();
+                },
+                set(newFov) {
+                    this.setFoV(newFov);
+                }
+            },
+            zoomFactor: {
+                get() {
+                    return this.wasm.getZoomFactor();
+                },
+                set(newZoomFactor) {
+                    this.setZoomFactor(newZoomFactor);
+                }
+            }
+        });
+    }
 
     // (re)create needed canvases
     View.prototype.createCanvases = function () {
@@ -346,17 +356,21 @@ export let View = (function () {
     };
 
     View.prototype.setFoVRange = function(minFoV, maxFoV) {
-        if (minFoV && maxFoV && minFoV > maxFoV) {
-            var tmp = minFoV;
-            minFoV = maxFoV;
-            maxFoV = tmp;
+        this.wasm.setFoVRange(minFoV, maxFoV)
+        this.updateZoomState();
+    }
+
+    View.prototype.getFoVRange = function() {
+        let [minFoV, maxFoV] = this.wasm.getFoVRange();
+        if (minFoV == -1.0) {
+            minFoV = null;
         }
 
-        this.minFoV = minFoV || (1.0 / 36000);
-        this.maxFoV = maxFoV;
+        if (maxFoV == -1.0) {
+            maxFoV = null;
+        }
 
-        // reset the field of view
-        this.setZoom(this.fov);
+        return [minFoV, maxFoV]
     }
 
     // called at startup and when window is resized
@@ -391,15 +405,11 @@ export let View = (function () {
         this.catalogCtx.canvas.style.height = this.height + "px";
         this.catalogCtx.scale(window.devicePixelRatio, window.devicePixelRatio);
 
-        /*this.gridCtx = this.gridCanvas.getContext("2d");
-        this.gridCtx.canvas.width = this.width;
-        this.gridCtx.canvas.height = this.height;
-*/
         this.imageCtx = this.imageCanvas.getContext("webgl2");
         this.imageCtx.canvas.style.width = this.width + "px";
         this.imageCtx.canvas.style.height = this.height + "px";
-        this.wasm.resize(this.width, this.height);
-        this.setZoom(this.fov)
+
+        this.debounceResize();
 
         pixelateCanvasContext(this.imageCtx, this.aladin.options.pixelateCanvas);
 
@@ -426,6 +436,7 @@ export let View = (function () {
         this.aladinDiv.style.removeProperty('line-height');
 
         this.throttledDivResized();
+
     };
 
     var pixelateCanvasContext = function (ctx, pixelateFlag) {
@@ -1005,8 +1016,8 @@ export let View = (function () {
 
                 // zoom
                 const dist = Math.sqrt(Math.pow(e.touches[0].clientX - e.touches[1].clientX, 2) + Math.pow(e.touches[0].clientY - e.touches[1].clientY, 2));
-                const fov = Math.min(Math.max(view.pinchZoomParameters.initialFov * view.pinchZoomParameters.initialDistance / dist, 0.00002777777), view.projection.fov);
-                view.setZoom(fov);
+                const fov = view.pinchZoomParameters.initialFov * view.pinchZoomParameters.initialDistance / dist;
+                view.setFoV(fov);
 
                 return;
             }
@@ -1134,10 +1145,6 @@ export let View = (function () {
 
         // disable text selection on IE
         //Utils.on(view.aladinDiv, "selectstart", function () { return false; })
-        /*var eventCount = 0;
-        var eventCountStart;
-        var isTouchPad;
-        let id;*/
 
         Utils.on(view.catalogCanvas, 'wheel', function (e) {
             e.preventDefault();
@@ -1155,82 +1162,30 @@ export let View = (function () {
                 xy: xymouse,
             });
 
-            if (view.rightClick) {
-                return;
-            }
+            var onWheelTriggeredFunction = view.aladin.callbacksByEventName['wheelTriggered'];
+            if (typeof onWheelTriggeredFunction === 'function') {
+                onWheelTriggeredFunction(e)
+            } else {
+                // Default Aladin Lite zooming
+                view.delta = e.deltaY || e.detail || (-e.wheelDelta);
 
-            if (!view.debounceProgCatOnZoom) {
-                var self = view;
-                view.debounceProgCatOnZoom = Utils.debounce(function () {
-                    self.refreshProgressiveCats();
-                    self.drawAllOverlays();
-                }, 300);
-            }
-
-            view.debounceProgCatOnZoom();
-            //view.throttledZoomChanged();
-
-            // Zoom heuristic
-            // First detect the device
-            // See https://stackoverflow.com/questions/10744645/detect-touchpad-vs-mouse-in-javascript
-            // for detecting the use of a touchpad
-            /*view.isTouchPadDefined = isTouchPad || typeof isTouchPad !== "undefined";
-            if (!view.isTouchPadDefined) {
-                if (eventCount === 0) {
-                    view.delta = 0;
-                    eventCountStart = new Date().getTime();
-                }
-
-                eventCount++;
-
-                if (new Date().getTime() - eventCountStart > 100) {
-                    if (eventCount > 10) {
-                        isTouchPad = true;
-                    } else {
-                        isTouchPad = false;
-                    }
-                    view.isTouchPadDefined = true;
-                }
-            }*/
-
-            // only ensure the touch pad test has been done before zooming
-            /*if (!view.isTouchPadDefined) {
-                return false;
-            }*/
-
-            // touch pad defined
-            view.delta = e.deltaY || e.detail || (-e.wheelDelta);
-
-            //if (isTouchPad) {
                 if (!view.throttledTouchPadZoom) {
                     view.throttledTouchPadZoom = () => {
-                        const factor = 2.0;
-                        let newFov = view.delta > 0 ? view.fov * factor : view.fov / factor;
+                        const factor = Utils.detectTrackPad(e) ? 1.04 : 1.2;
+                        const currZoomFactor = view.zoom.isZooming ? view.zoom.finalZoom : view.wasm.getZoomFactor();
+                        //const currZoomFactor = view.wasm.getZoomFactor();
+                        let newZoomFactor = view.delta > 0 ? currZoomFactor * factor : currZoomFactor / factor;
 
                         // inside case
                         view.zoom.apply({
-                            stop: newFov,
-                            duration: 100
+                            stop: newZoomFactor,
+                            duration: 100,
                         });
                     };
                 }
 
                 view.throttledTouchPadZoom();
-            /*} else {
-                if (!view.throttledMouseScrollZoom) {
-                    view.throttledMouseScrollZoom = () => {
-                        const factor = 2
-                        let newFov = view.delta > 0 ? view.fov * factor : view.fov / factor;
-                        // standard mouse wheel zooming
-                        view.zoom.apply({
-                            stop: newFov,
-                            duration: 100
-                        });
-                    };
-                }
-                
-                view.throttledMouseScrollZoom()
-            }*/
+            }
 
             return false;
         });
@@ -1546,37 +1501,27 @@ export let View = (function () {
     };
 
     // Called for touchmove events
-    View.prototype.setZoom = function (fov) {
-        // limit the fov in function of the projection
-        fov = Math.min(fov, this.projection.fov);
+    View.prototype.setZoomFactor = function(zoomFactor) {
+        this.wasm.setZoomFactor(zoomFactor);
+        this.updateZoomState();
+    }
 
-        // then clamp the fov between minFov and maxFov
-        const minFoV = this.minFoV;
-        const maxFoV = this.maxFoV;
-
-        if (minFoV) {
-            fov = Math.max(fov, minFoV);
-        }
-
-        if (maxFoV) {
-            fov = Math.min(fov, maxFoV);
-        }
-
-        this.wasm.setFieldOfView(fov);
-        this.updateZoomState(fov);
-    };
+    View.prototype.setFoV = function(fov) {
+        this.wasm.setFieldOfView(fov)
+        this.updateZoomState();
+    }
 
     View.prototype.increaseZoom = function () {
         this.zoom.apply({
-            stop: this.fov / 1.8,
-            duration: 100
+            stop: this.zoomFactor / 1.4,
+            duration: 200,
         });
     }
 
     View.prototype.decreaseZoom = function () {
         this.zoom.apply({
-            stop: this.fov * 1.8,
-            duration: 100
+            stop: this.zoomFactor * 1.4,
+            duration: 200,
         });
     }
 
@@ -1585,6 +1530,15 @@ export let View = (function () {
     }
 
     View.prototype.setGridOptions = function (options) {
+        if (options.color) {
+            // 1. the user has maybe given some
+            options.color = new Color(options.color);
+            // 3. convert from 0-255 to 0-1
+            options.color.r /= 255;
+            options.color.g /= 255;
+            options.color.b /= 255;
+        }
+
         this.gridCfg = {...this.gridCfg, ...options};
         this.wasm.setGridOptions(this.gridCfg);
 
@@ -1597,32 +1551,17 @@ export let View = (function () {
 
     View.prototype.getGridOptions = function() {
         return this.gridCfg;
-    }
+    };
 
-    View.prototype.updateZoomState = function (fov) {
-        // Get the new zoom values from the backend
-        const newFov = fov || this.wasm.getFieldOfView()
-
-        // Disable the coo grid labels if we are too unzoomed
-        const maxFovGridLabels = 360;
-        if (this.fov <= maxFovGridLabels && newFov > maxFovGridLabels) {
-            let gridOptions = this.getGridOptions()
-            if (gridOptions) {
-                this.originalShowLabels = gridOptions.showLabels;
-                this.aladin.setCooGrid({showLabels: false});
-            }
-           
-        } else if (this.fov > maxFovGridLabels && newFov <= maxFovGridLabels) {
-            this.aladin.setCooGrid({showLabels:this.originalShowLabels});
-        }
-
-        this.fov = newFov;
+    View.prototype.updateZoomState = function () {
         this.computeNorder();
 
         let fovX = this.fov;
         let fovY = this.height / this.width * fovX;
         fovX = Math.min(fovX, 360);
         fovY = Math.min(fovY, 180);
+
+        this.debounceProgCatOnZoom();
 
         ALEvent.ZOOM_CHANGED.dispatchedTo(this.aladinDiv, { fovX, fovY });
 
@@ -1929,8 +1868,7 @@ export let View = (function () {
         
         // Change the projection here
         this.wasm.setProjection(projName);
-        let newProjFov = Math.min(this.fov, this.projection.fov);
-        this.setZoom(newProjFov)
+        this.updateZoomState()
 
         const projFn = this.aladin.callbacksByEventName['projectionChanged'];
         (typeof projFn === 'function') && projFn(projName);

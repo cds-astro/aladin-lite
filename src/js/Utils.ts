@@ -194,6 +194,22 @@ Utils.throttle = function (fn, threshhold, scope) {
     }
 }
 
+// Way of detecting if the computer has trackpad or a regular mouse wheel thanks to that post:
+// https://stackoverflow.com/questions/10744645/detect-touchpad-vs-mouse-in-javascript
+Utils.detectTrackPad = function (e) {
+    var isTrackpad = false;
+    if (e.wheelDeltaY) {
+        if (e.wheelDeltaY === (e.deltaY * -3)) {
+        isTrackpad = true;
+        }
+    }
+    else if (e.deltaMode === 0) {
+        isTrackpad = true;
+    }
+
+    return isTrackpad
+}
+
 
 /* A LRU cache, inspired by https://gist.github.com/devinus/409353#file-gistfile1-js */
 // TODO : utiliser le LRU cache pour les tuiles images

@@ -63,7 +63,7 @@ fn sub_valid_domain(
     projection: &ProjectionType,
     camera: &CameraViewPort,
 ) -> (XYZModel<f64>, XYZModel<f64>) {
-    let d_alpha = camera.get_aperture().to_radians() * 0.02;
+    let d_alpha = camera.get_aperture() * 0.02;
 
     let mut vv = valid_v;
     let mut vi = invalid_v;

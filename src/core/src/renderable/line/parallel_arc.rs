@@ -60,7 +60,7 @@ pub fn project(lat: f64, mut lon1: f64, lon2: f64, camera: &CameraViewPort, proj
 // * valid_lon and invalid_lon are well defined, i.e. they can be between [-PI; PI] or [0, 2PI] depending
 //   whether they cross or not the zero meridian
 fn sub_valid_domain(lat: f64, valid_lon: f64, invalid_lon: f64, projection: &ProjectionType, camera: &CameraViewPort) -> (f64, f64) {
-    let d_alpha = camera.get_aperture().to_radians() * 0.02;
+    let d_alpha = camera.get_aperture() * 0.02;
 
     let mut l_valid = valid_lon;
     let mut l_invalid = invalid_lon;

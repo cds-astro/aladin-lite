@@ -37,6 +37,13 @@ export let MOC = (function() {
      * @class
      * @constructs MOC
      * @param {MOCOptions} options - Configuration options for the MOC
+     * @property {boolean} perimeter - Show perimeter
+     * @property {boolean} edge - Show the edges of HEALPix cells composing the MOC
+     * @property {boolean} fill - Fill the MOC
+     * @property {number} lineWidth - The width of lines used to draw the MOC
+     * @property {number} opacity - Opacity of the edges, cells, etc... of a MOC
+     * @property {string} color - Color of the edges/perimeter
+     * @property {string} fillColor - Color to fill the MOC with
      */
     let MOC = function(options) {
         //this.order = undefined;

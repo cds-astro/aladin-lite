@@ -223,29 +223,15 @@ import { Polyline } from "./shapes/Polyline";
  */
 
 /**
- * @typedef {string} ListenerCallback
- * String with possible values:
- *      'select' (deprecated, use objectsSelected instead),
- *      'objectsSelected',
-        'objectClicked',
-        'objectHovered',
-        'objectHoveredStop',
-
-        'footprintClicked',
-        'footprintHovered',
-
-        'positionChanged',
-        'zoomChanged',
-
-        'click',
-        'rightClickMove',
-        'mouseMove',
-
-        'fullScreenToggled',
-        'cooFrameChanged',
-        'resizeChanged',
-        'projectionChanged',
-        'layerChanged'
+ * @typedef {('select'|'objectsSelected'|'objectClicked'|'objectHovered'|'objectHoveredStop'|'footprintClicked'|'footprintHovered'|'positionChanged'|'zoomChanged'|'click'|'rightClickMove'|'mouseMove'|'wheelTriggered'|'fullScreenToggled'|'cooFrameChanged'|'resizeChanged'|'projectionChanged'|'layerChanged')} EventListener
+ * 
+ * Some remarks:
+ * <ul>
+ * <li>'select' is <b>deprecated</b>, please use objectsSelected instead.</li>
+ * <li>'mouseMove', 'click', 'wheelTriggered' are low level event listeners allowing the user to redefine basic functions. For example listening for 'wheelTriggered' will disable the default zooming heuristic then letting you to redefine it.</li>
+ * <li>'objectsSelected', 'objectClicked', 'objectHovered', 'objectHoveredStop', 'footprintClicked', 'footprintHovered' are triggered when a catalog source/footprint has been clicked, hovered, ...
+ * <li>Whenever the position (resp the fov) of the view has been changed 'positionChanged' (resp 'zoomChanged') is called</li>
+ * </ul>
  */
 
 export let Aladin = (function () {
@@ -822,7 +808,7 @@ export let Aladin = (function () {
     };
 
     /**
-     * Sets the field of view (FoV) of the Aladin instance to the specified angle in degrees.
+     * Set the field of view (FoV) of the view in degrees.
      *
      * @memberof Aladin
      * @param {number} FoV - The angle of the field of view in degrees.
@@ -832,10 +818,20 @@ export let Aladin = (function () {
      * aladin.setFoV(60);
      */
     Aladin.prototype.setFoV = function (FoV) {
-        this.view.setZoom(FoV);
+        this.view.setFoV(FoV);
     };
 
     Aladin.prototype.setFov = Aladin.prototype.setFoV;
+
+    /**
+     * Set the screen scaling zoom factor of the view.
+     *
+     * @memberof Aladin
+     * @param {number} zoomFactor - Scaling screen factor
+     */
+     Aladin.prototype.setZoomFactor = function (zoomFactor) {
+        this.view.setZoomFactor(zoomFactor);
+    };
 
     // @API
     // (experimental) try to adjust the FoV to the given object name. Does nothing if object is not known from Simbad
@@ -1297,18 +1293,16 @@ export let Aladin = (function () {
     Aladin.prototype.zoomToFoV = function (fov, duration, complete) {
         duration = duration || 5;
 
-        this.zoomAnimationParams = null;
-
-        var zoomAnimationParams = {};
-        zoomAnimationParams["start"] = new Date().getTime();
-        zoomAnimationParams["end"] = new Date().getTime() + 1000 * duration;
         var fovArray = this.getFov();
-        zoomAnimationParams["fovStart"] = Math.max(fovArray[0], fovArray[1]);
-        zoomAnimationParams["fovEnd"] = fov;
-        zoomAnimationParams["complete"] = complete;
-        zoomAnimationParams["running"] = true;
 
-        this.zoomAnimationParams = zoomAnimationParams;
+        this.zoomAnimationParams = {
+            start: new Date().getTime(),
+            end: new Date().getTime() + 1000 * duration,
+            fovStart: Math.max(fovArray[0], fovArray[1]),
+            fovEnd: fov,
+            complete: complete,
+            running: true,
+        };
         doZoomAnimation(this);
     };
 
@@ -2114,6 +2108,7 @@ export let Aladin = (function () {
         "click",
         "rightClickMove",
         "mouseMove",
+        "wheelTriggered",
 
         "fullScreenToggled",
         "cooFrameChanged",
@@ -2126,14 +2121,14 @@ export let Aladin = (function () {
      * Listen aladin for specific events
      *
      * @memberof Aladin
-     * @param {ListenerCallback} what - e.g. objectHovered, select, zoomChanged, positionChanged
+     * @param {EventListener} what - e.g. objectHovered, select, zoomChanged, positionChanged, wheelTriggered
      * @param {function} myFunction - a callback function.
      * Note: <ul>
      * <li>positionChanged and zoomChanged are throttled every 100ms.</li>
      * <li>positionChanged's callback gives an object having ra and dec keywords of the current position in ICRS frame. See the below example.</li>
      * </ul>
      * @example
-        // define function triggered when  a source is hovered
+        // Define a function triggered when a source is hovered
         aladin.on('objectHovered', function(object, xyMouseCoords) {
             if (object) {
                 msg = 'You hovered object ' + object.data.name + ' located at ' + object.ra + ', ' + object.dec + '; mouse coords - x: '
@@ -2309,15 +2304,6 @@ export let Aladin = (function () {
      * aladin.setCooGrid({ enabled: true });
      */
     Aladin.prototype.setCooGrid = function (options) {
-        if (options.color) {
-            // 1. the user has maybe given some
-            options.color = new Color(options.color);
-            // 3. convert from 0-255 to 0-1
-            options.color.r /= 255;
-            options.color.g /= 255;
-            options.color.b /= 255;
-        }
-
         this.view.setGridOptions(options);
     };
 
@@ -2562,14 +2548,15 @@ export let Aladin = (function () {
      * Restrict the FoV range between a min and a max value
      *
      * @memberof Aladin
-     * @param {number} minFoV - in degrees when zoom in at max. If undefined, the zooming in is not limited
-     * @param {number} maxFoV - in degrees when zoom out at max. If undefined, the zooming out is not limited
+     * @param {number} [minFoV=1.0 / 36000.0] - in degrees. By default, the zoom is limited to 0.1 arcsec
+     * @param {number} maxFoV - in degrees. If undefined, zooming out is not limited
      *
      * @example
      * let aladin = A.aladin('#aladin-lite-div');
      * aladin.setFoVRange(30, 60);
      */
     Aladin.prototype.setFoVRange = function (minFoV, maxFoV) {
+        minFoV = minFoV || (1.0 / 36000.0);
         this.view.setFoVRange(minFoV, maxFoV);
     };
 
@@ -2706,16 +2693,11 @@ export let Aladin = (function () {
      *                       and the second element is the FoV height.
      */
     Aladin.prototype.getFov = function () {
-        // can go up to 1000 deg
         var fovX = this.view.fov;
         var s = this.getSize();
 
-        // constrain to the projection definition domain
-        fovX = Math.min(fovX, this.view.projection.fov);
         var fovY = (s[1] / s[0]) * fovX;
-
         fovY = Math.min(fovY, 180);
-        // TODO : take into account AITOFF projection where fov can be larger than 180
 
         return [fovX, fovY];
     };

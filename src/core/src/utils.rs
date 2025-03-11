@@ -56,6 +56,7 @@ pub unsafe fn transmute_vec_to_u8<I>(mut s: Vec<I>) -> Vec<u8> {
     std::mem::transmute(s)
 }
 
+#[allow(dead_code)]
 pub unsafe fn transmute_vec<I, O>(mut s: Vec<I>) -> Result<Vec<O>, &'static str> {
     if std::mem::size_of::<I>() % std::mem::size_of::<O>() > 0 {
         Err("The input type is not a multiple of the output type")
@@ -100,15 +101,13 @@ pub(super) fn merge_overlapping_intervals(mut intervals: Vec<Range<usize>>) -> V
 Execute a closure after some delay. This mimics the javascript built-in setTimeout procedure.
 */
 #[cfg(target_arch = "wasm32")]
-pub(crate) fn set_timeout<F>(f: F, delay: i32)
+use {std::cell::Cell, std::rc::Rc, wasm_bindgen::closure::Closure, wasm_bindgen::JsCast};
+
+#[cfg(target_arch = "wasm32")]
+pub(crate) fn set_timeout<F>(f: F, delay: i32) -> Rc<Cell<i32>>
 where
     F: 'static + FnOnce() -> (),
 {
-    use std::cell::Cell;
-    use std::rc::Rc;
-    use wasm_bindgen::closure::Closure;
-    use wasm_bindgen::JsCast;
-
     let timeout_id = Rc::new(Cell::new(0));
     let t_id = timeout_id.clone();
     let cb = Closure::once_into_js(move || {
@@ -131,4 +130,24 @@ where
             )
             .unwrap(),
     );
+
+    timeout_id
 }
+/*
+#[cfg(target_arch = "wasm32")]
+pub(crate) fn debounce<F1, F2>(f: F1, delay: i32) -> Closure<F2>
+where
+    F1: 'static + FnOnce() -> (),
+    F2: 'static + FnOnce() -> (),
+{
+    let timeout_id = Rc::new(Cell::new(0));
+
+    Closure::once(move || {
+        web_sys::window()
+            .unwrap()
+            .clear_timeout_with_handle(timeout_id.get());
+
+        timeout_id.set(set_timeout(f, delay));
+    })
+}
+*/

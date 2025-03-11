@@ -14,8 +14,6 @@ use crate::tile_fetcher::TileFetcherQueue;
 
 use al_core::image::format::ChannelType;
 
-pub use catalog::Manager;
-
 use al_api::color::ColorRGB;
 use al_api::hips::HiPSCfg;
 use al_api::hips::ImageMetadata;

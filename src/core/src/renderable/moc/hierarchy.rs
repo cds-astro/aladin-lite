@@ -56,7 +56,7 @@ impl MOCHierarchy {
         let mut d = self.full_res_depth as usize;
 
         let hpx_cell_size_rad =
-            (smallest_cell_size_px / w_screen_px) * camera.get_aperture().to_radians();
+            (smallest_cell_size_px / w_screen_px) * camera.get_aperture();
 
         while d > 0 {
             //self.mocs[d].cell_indices_in_view(camera);

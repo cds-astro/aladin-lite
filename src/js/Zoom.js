@@ -36,24 +36,16 @@ import { requestAnimFrame } from "./libs/RequestAnimationFrame.js";
 	};
 
     Zoom.prototype.apply = function(options) {
-        let startZoom = options['start'] || this.view.fov;
+        let startZoom = options['start'] || this.view.zoomFactor;
         let finalZoom = options['stop'] || undefined;
         let interpolationDuration = options['duration'] || 1000; // default to 1seconds
         if (!finalZoom)
             return;
 
-        // clamp the zoom to the view params minFov and maxFov and the projection bounds
-        //finalZoom = Math.min(finalZoom, this.view.projection.fov);
-        // then clamp the fov between minFov and maxFov
-        const minFoV = this.view.minFoV;
-        const maxFoV = this.view.maxFoV;
-
-        if (minFoV) {
-            finalZoom = Math.max(finalZoom, minFoV);
-        }
-
-        if (maxFoV) {
-            finalZoom = Math.min(finalZoom, maxFoV);
+        // Get a relative error for stopping the zooming
+        const relativeErr = Math.abs(finalZoom - startZoom) * 0.01;
+        const zoomFn = (zoom) => {
+            this.view.setZoomFactor(zoom)
         }
 
         this.finalZoom = finalZoom;
@@ -97,6 +89,7 @@ import { requestAnimFrame } from "./libs/RequestAnimationFrame.js";
             if (self.stop) {
                 self.isZooming = false;
                 self.stop = false;
+                self.finalZoom = undefined;
             } else {
                 self.x = ( performance.now() - self.startTime ) / interpolationDuration;
                 interpolatedZoom = Zoom.hermiteCubic.f(self.x, self.x1, self.x2, self.y1, self.y2, self.m1, self.m2);
@@ -104,13 +97,13 @@ import { requestAnimFrame } from "./libs/RequestAnimationFrame.js";
                 interpolatedZoom = Math.max(0, interpolatedZoom);
     
                 // Apply zoom level to map or perform any necessary rendering
-                self.view.setZoom(interpolatedZoom);
-    
-                self.fov = interpolatedZoom;
+                zoomFn(interpolatedZoom);
 
-                if (self.x >= self.x2 || Math.abs(interpolatedZoom - self.finalZoom) < 1e-4) {
-                    self.view.setZoom(self.finalZoom);
+                if (self.x >= self.x2 || Math.abs(interpolatedZoom - self.finalZoom) <= relativeErr) {
+                    zoomFn(self.finalZoom);
 
+                    self.isZooming = false;
+                } else if (self.view.wasm.atZoomBoundaries()) {
                     self.isZooming = false;
                 } else {
                     // Request the next frame

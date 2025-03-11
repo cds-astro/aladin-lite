@@ -21,8 +21,8 @@ pub mod domain;
 
 use crate::math::angle::ToAngle;
 
-use domain::{basic, full::FullScreen};
 use crate::math::angle::Angle;
+use domain::{basic, full::FullScreen};
 /* S <-> NDC space conversion methods */
 pub fn screen_to_ndc_space(
     pos_screen_space: &XYScreen<f64>,
@@ -61,7 +61,7 @@ pub fn ndc_to_screen_space(
 /* NDC <-> CLIP space conversion methods */
 pub fn clip_to_ndc_space(pos_clip_space: &XYClip<f64>, camera: &CameraViewPort) -> XYNDC<f64> {
     let ndc_to_clip = camera.get_ndc_to_clip();
-    let clip_zoom_factor = camera.get_clip_zoom_factor();
+    let clip_zoom_factor = camera.get_zoom_factor();
 
     Vector2::new(
         pos_clip_space.x / (ndc_to_clip.x * clip_zoom_factor),
@@ -74,7 +74,7 @@ pub fn ndc_to_clip_space(
     camera: &CameraViewPort,
 ) -> XYClip<f64> {
     let ndc_to_clip = camera.get_ndc_to_clip();
-    let clip_zoom_factor = camera.get_clip_zoom_factor();
+    let clip_zoom_factor = camera.get_zoom_factor();
 
     Vector2::new(
         pos_normalized_device.x * ndc_to_clip.x * clip_zoom_factor,
@@ -297,25 +297,16 @@ impl ProjectionType {
             .map(|pos_normalized_device| ndc_to_screen_space(&pos_normalized_device, camera))
     }
 
-    /*pub(crate) fn is_allsky(&self) -> bool {
-        match self {
-            ProjectionType::Sin(_) | ProjectionType::Tan(_) => false,
-            //| ProjectionType::Feye(_)
-            //| ProjectionType::Ncp(_) => false,
-            _ => true,
-        }
-    }*/
-
     pub const fn bounds_size_ratio(&self) -> f64 {
         match self {
             // Zenithal projections
             /* TAN,      Gnomonic projection        */
             ProjectionType::Tan(_) => 1.0,
-            /* STG,	     Stereographic projection   */
+            /* STG,         Stereographic projection   */
             ProjectionType::Stg(_) => 1.0,
-            /* SIN,	     Orthographic		        */
+            /* SIN,         Orthographic                       */
             ProjectionType::Sin(_) => 1.0,
-            /* ZEA,	     Equal-area 		        */
+            /* ZEA,         Equal-area                         */
             ProjectionType::Zea(_) => 1.0,
             /* FEYE,     Fish-eyes                  */
             //ProjectionType::Feye(_) => 1.0,
@@ -327,7 +318,6 @@ impl ProjectionType {
             //ProjectionType::Arc(_) => 1.0,
             /* NCP,                                 */
             //ProjectionType::Ncp(_) => 1.0,
-
             // Pseudo-cylindrical projections
             /* AIT,      Aitoff                     */
             ProjectionType::Ait(_) => 2.0,
@@ -337,7 +327,6 @@ impl ProjectionType {
             //ProjectionType::Par(_) => 2.0,
             // SFL,                                 */
             //ProjectionType::Sfl(_) => 2.0,
-
             // Cylindrical projections
             // MER,      Mercator                   */
             ProjectionType::Mer(_) => 1.0,
@@ -347,11 +336,9 @@ impl ProjectionType {
             //ProjectionType::Cea(_) => 1.0,
             // CYP,                                 */
             //ProjectionType::Cyp(_) => 1.0,
-
             // Conic projections
             // COD,                                 */
             //ProjectionType::Cod(_) => 1.0,
-
             // HEALPix hybrid projection
             //ProjectionType::Hpx(_) => 2.0,
         }
@@ -367,7 +354,7 @@ impl ProjectionType {
             /* SIN,	     Orthographic		        */
             ProjectionType::Sin(_) => 180.0_f64.to_radians().to_angle(),
             /* ZEA,	     Equal-area 		        */
-            ProjectionType::Zea(_) => 360.0_f64.to_radians().to_angle(),
+            ProjectionType::Zea(_) => 359.9_f64.to_radians().to_angle(),
             /* FEYE,     Fish-eyes                  */
             //ProjectionType::Feye(_) => 190.0,
             /* AIR,                                 */
@@ -408,7 +395,7 @@ impl ProjectionType {
         }
     }
 
-    pub fn get_area(&self) -> &ProjDefType {
+    pub const fn get_area(&self) -> &ProjDefType {
         match self {
             // Zenithal projections
             /* TAN,      Gnomonic projection        */

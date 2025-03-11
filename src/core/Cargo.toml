@@ -88,4 +88,4 @@ codegen-units = 16
 rpath = false
 
 [package.metadata.wasm-pack.profile.release]
-wasm-opt = true
+wasm-opt = false

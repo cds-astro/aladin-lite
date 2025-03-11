@@ -469,6 +469,12 @@ impl WebClient {
         Ok(fov)
     }
 
+    /// Get the max aperture of a projection (in degrees)
+    #[wasm_bindgen(js_name = atZoomBoundaries)]
+    pub fn get_max_aperture(&self) -> bool {
+        self.app.camera.at_zoom_boundaries(&self.app.projection)
+    }
+
     /// Set the field of view
     ///
     /// # Arguments
@@ -476,18 +482,51 @@ impl WebClient {
     /// * `fov` - The field of view in degrees
     #[wasm_bindgen(js_name = setFieldOfView)]
     pub fn set_fov(&mut self, fov: f64) -> Result<(), JsValue> {
-        let fov = ArcDeg(fov).into();
-
-        self.app.set_fov(fov);
+        self.app.set_fov(fov.to_radians());
 
         Ok(())
     }
 
+    /// Enable/Disable inertia effect after panning and releasing the mouse
     #[wasm_bindgen(js_name = setInertia)]
     pub fn set_inertia(&mut self, inertia: bool) -> Result<(), JsValue> {
         self.app.set_inertia(inertia);
 
         Ok(())
+    }
+
+    /// Set a range of FoVs that contrains the zooming in that range
+    ///
+    /// # Arguments
+    ///
+    /// * `min_fov` - The minimum field of view value in degrees
+    /// * `max_fov` - The maximum field of view value in degrees
+    #[wasm_bindgen(js_name = setFoVRange)]
+    pub fn set_fov_range(
+        &mut self,
+        min_fov: Option<f64>,
+        max_fov: Option<f64>,
+    ) -> Result<(), JsValue> {
+        self.app.set_fov_range(min_fov, max_fov);
+
+        Ok(())
+    }
+
+    /// Get the FoV range in degrees
+    #[wasm_bindgen(js_name = getFoVRange)]
+    pub fn get_fov_range(&self) -> Box<[f64]> {
+        Box::new([
+            self.app
+                .camera
+                .min_fov
+                .map(|v| v.to_degrees())
+                .unwrap_or(-1.0),
+            self.app
+                .camera
+                .max_fov
+                .map(|v| v.to_degrees())
+                .unwrap_or(-1.0),
+        ])
     }
 
     /// Set the absolute orientation of the view
@@ -537,14 +576,20 @@ impl WebClient {
         self.app.get_max_fov().to_degrees()
     }
 
-    /// Get the clip zoom factor of the view
+    /// Get the zoom factor of the view
     ///
     /// This factor is deduced from the field of view angle.
     /// It is a constant which when multiplied to the screen coordinates
     /// gives the coordinates in clipping space.
-    #[wasm_bindgen(js_name = getClipZoomFactor)]
-    pub fn get_clip_zoom_factor(&self) -> Result<f64, JsValue> {
-        Ok(self.app.get_clip_zoom_factor())
+    #[wasm_bindgen(js_name = getZoomFactor)]
+    pub fn get_zoom_factor(&self) -> Result<f64, JsValue> {
+        Ok(self.app.get_zoom_factor())
+    }
+
+    /// Set the zoom factor of the view
+    #[wasm_bindgen(js_name = setZoomFactor)]
+    pub fn set_zoom_factor(&mut self, zoom_factor: f64) -> Result<(), JsValue> {
+        Ok(self.app.set_zoom_factor(zoom_factor))
     }
 
     /// Set the center of the view in ICRS coosys

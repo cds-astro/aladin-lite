@@ -232,7 +232,6 @@ impl Manager {
         // Cells that are of depth > 7 are not handled by the hashmap (limited to depth 7)
         // For these cells, we draw all the sources lying in the ancestor cell of depth 7 containing
         // this cell
-        //if camera.get_aperture() > P::RASTER_THRESHOLD_ANGLE {
         if camera.get_field_of_view().is_allsky() {
             let cells = crate::healpix::cell::ALLSKY_HPX_CELLS_D0;
 
@@ -414,7 +413,7 @@ impl Catalog {
     }
 
     // Cells are of depth <= 7
-    fn update(&mut self, cells: &[HEALPixCell]) {
+    pub fn update(&mut self, cells: &[HEALPixCell]) {
         let num_sources_in_fov = self.get_total_num_sources_in_fov(cells) as f32;
         // reset the sources in the frame
         let mut sources: Vec<_> = vec![];

@@ -1353,11 +1353,12 @@ impl App {
     pub(crate) fn resize(&mut self, width: f32, height: f32) {
         self.camera.set_screen_size(width, height, &self.projection);
         self.camera
-            .set_aperture(self.camera.get_aperture(), &self.projection);
+            .set_zoom_factor(self.camera.get_zoom_factor(), &self.projection);
+
         // resize the view fbo
-        let screen_size = self.camera.get_screen_size();
-        self._fbo_view
-            .resize(screen_size.x as usize, screen_size.y as usize);
+        //let screen_size = self.camera.get_screen_size();
+        //self._fbo_view
+        //    .resize(screen_size.x as usize, screen_size.y as usize);
         // resize the ui fbo
         //self.fbo_ui.resize(w as usize, h as usize);
 
@@ -1561,7 +1562,7 @@ impl App {
         self.camera.get_center_pos_angle()
     }
 
-    pub(crate) fn set_fov(&mut self, fov: Angle<f64>) {
+    pub(crate) fn set_fov(&mut self, fov: f64) {
         // For the moment, no animation is triggered.
         // The fov is directly set
         self.camera.set_aperture(fov, &self.projection);
@@ -1569,16 +1570,19 @@ impl App {
         self.request_redraw = true;
     }
 
+    pub(crate) fn set_fov_range(&mut self, min_fov: Option<f64>, max_fov: Option<f64>) {
+        self.camera.set_fov_range(
+            min_fov.map(|v| v.to_radians()),
+            max_fov.map(|v| v.to_radians()),
+            &self.projection,
+        );
+        self.request_for_new_tiles = true;
+        self.request_redraw = true;
+    }
+
     pub(crate) fn set_inertia(&mut self, inertia: bool) {
         *self.disable_inertia.borrow_mut() = !inertia;
     }
-
-    /*pub(crate) fn project_line(&self, lon1: f64, lat1: f64, lon2: f64, lat2: f64) -> Vec<Vector2<f64>> {
-        let v1: Vector3<f64> = LonLatT::new(ArcDeg(lon1).into(), ArcDeg(lat1).into()).vector();
-        let v2: Vector3<f64> = LonLatT::new(ArcDeg(lon2).into(), ArcDeg(lat2).into()).vector();
-
-        line::project_along_great_circles(&v1, &v2, &self.camera, self.projection)
-    }*/
 
     pub(crate) fn go_from_to(&mut self, s1x: f64, s1y: f64, s2x: f64, s2y: f64) {
         // Select the HiPS layer rendered lastly
@@ -1624,13 +1628,19 @@ impl App {
         self.camera.get_texture_depth() as i32
     }
 
-    pub(crate) fn get_clip_zoom_factor(&self) -> f64 {
-        self.camera.get_clip_zoom_factor()
+    pub(crate) fn get_zoom_factor(&self) -> f64 {
+        self.camera.get_zoom_factor()
+    }
+
+    pub(crate) fn set_zoom_factor(&mut self, zoom_factor: f64) {
+        self.camera.set_zoom_factor(zoom_factor, &self.projection);
+
+        self.request_for_new_tiles = true;
+        self.request_redraw = true;
     }
 
     pub(crate) fn get_fov(&self) -> f64 {
-        let deg: ArcDeg<f64> = self.camera.get_aperture().into();
-        deg.0
+        self.camera.get_aperture().to_degrees()
     }
 
     pub(crate) fn get_colormaps(&self) -> &Colormaps {

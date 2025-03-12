@@ -140,6 +140,8 @@ PropertyParser.isPlanetaryBody = function (properties) {
  * <li>The coordinate frame of the HiPS</li>
  * </ul>
  * 
+ * @deprecated The longitudeReversed property is now deprecated from version 3.6.1. This property will be removed from version 3.7.0 and replaced with a method flipping the longitude axis directly on the {@link Aladin} view object and not at the HiPS level.
+ * 
  * @typedef {Object} HiPSOptions
  * @property {string} [name] - The name of the survey to be displayed in the UI
  * @property {Function} [successCallback] - A callback executed when the HiPS has been loaded
@@ -151,7 +153,7 @@ PropertyParser.isPlanetaryBody = function (properties) {
  * -64: double, -32: float, 8: unsigned byte, 16: short, 32: integer 32 bits, 64: integer 64 bits
  * @property {number} [tileSize] - The width of the HEALPix tile images. Mostly 512 pixels but can be 256, 128, 64, 32
  * @property {number} [minOrder] - If not given, retrieved from the properties of the survey.
- * @property {boolean} [longitudeReversed=false] - Set it to True for planetary survey visualization 
+ * @property {boolean} [longitudeReversed=false] - Deprecated since 3.6.1: Set it to True for planetary survey visualization 
  * @property {number} [opacity=1.0] - Opacity of the survey or image (value between 0 and 1).
  * @property {string} [colormap="native"] - The colormap configuration for the survey or image.
  * @property {string} [stretch="linear"] - The stretch configuration for the survey or image.

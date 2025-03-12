@@ -27,7 +27,7 @@ void main() {
     vec2 p_b_clip = proj(p_b_w.xyz);
 
     vec2 da = p_a_clip - p_b_clip;
-    l = da.x*da.x + da.y*da.y;
+    l = dot(da, da);
 
     vec2 p_a_ndc = p_a_clip / (ndc_to_clip * czf);
     vec2 p_b_ndc = p_b_clip / (ndc_to_clip * czf);

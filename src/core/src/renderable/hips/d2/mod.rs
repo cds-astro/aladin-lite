@@ -671,9 +671,6 @@ impl HiPS2D {
             ..
         } = cfg;
 
-        // Add starting fading
-        //let fading = self.get_fading_factor();
-        //let opacity = opacity * fading;
         // Get the colormap from the color
         let cmap = colormaps.get(color.cmap_name.as_ref());
 

@@ -143,16 +143,12 @@ impl MOCRenderer {
         shaders: &mut ShaderManager,
     ) -> Result<(), JsValue> {
         if !self.is_empty() {
-            self.gl.enable(WebGl2RenderingContext::CULL_FACE);
-
             for (hmoc, cfg) in self.mocs.iter_mut().zip(self.cfgs.iter()) {
                 if cfg.show {
                     let moc = hmoc.select_moc_from_view(camera);
                     moc.draw(camera, proj, shaders)?;
                 }
             }
-
-            self.gl.disable(WebGl2RenderingContext::CULL_FACE);
         }
 
         Ok(())

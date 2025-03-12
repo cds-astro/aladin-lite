@@ -5,6 +5,7 @@ pub enum UserAction {
     Moving = 3,
     Starting = 4,
 }
+use web_sys::WebGl2RenderingContext;
 
 // Longitude reversed identity matrix
 const ID_R: &Matrix4<f64> = &Matrix4::new(
@@ -547,6 +548,13 @@ impl CameraViewPort {
     pub fn set_longitude_reversed(&mut self, reversed_longitude: bool, proj: &ProjectionType) {
         if self.reversed_longitude != reversed_longitude {
             self.reversed_longitude = reversed_longitude;
+
+            // Change the cull face, this fixes the display of MOC hpx cells when longitude is reversed
+            if self.reversed_longitude {
+                self.gl.cull_face(WebGl2RenderingContext::FRONT);
+            } else {
+                self.gl.cull_face(WebGl2RenderingContext::BACK);
+            }
 
             self.update_rot_matrices(proj);
         }

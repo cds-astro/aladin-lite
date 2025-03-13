@@ -225,8 +225,6 @@ impl Layers {
             let cdid = self.ids.get(layer).unwrap_abort();
 
             if let Some(hips) = self.hipses.get(cdid) {
-                let hips_cfg = hips.get_config();
-
                 let allsky = hips.is_allsky();
                 let opaque = meta.opacity == 1.0;
 

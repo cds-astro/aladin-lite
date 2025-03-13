@@ -160,47 +160,42 @@ impl From<query::Allsky> for AllskyRequest {
                     let Fits { hdu } = Fits::from_reader(&mut reader)
                         .map_err(|_| JsValue::from_str("Parsing fits error of allsky"))?;
 
-                    //let width_allsky_px = 27 * std::cmp::min(tile_size, 64) as i32;
-                    //let height_allsky_px = 29 * std::cmp::min(tile_size, 64) as i32;
                     let data = hdu.get_data();
 
                     match data {
                         InMemData::U8(data) => {
                             Ok(handle_allsky_fits(&data, tile_size, texture_size)?
-                                .into_iter()
                                 .map(|image| ImageType::RawR8ui { image })
                                 .collect())
                         }
                         InMemData::I16(data) => {
                             Ok(handle_allsky_fits(&data, tile_size, texture_size)?
-                                .into_iter()
                                 .map(|image| ImageType::RawR16i { image })
                                 .collect())
                         }
                         InMemData::I32(data) => {
                             Ok(handle_allsky_fits(&data, tile_size, texture_size)?
-                                .into_iter()
                                 .map(|image| ImageType::RawR32i { image })
-                                .collect())
-                        }
-                        InMemData::F32(data) => {
-                            Ok(handle_allsky_fits(&data, tile_size, texture_size)?
-                                .into_iter()
-                                .map(|image| ImageType::RawR32f { image })
                                 .collect())
                         }
                         InMemData::I64(data) => {
                             let data = data.iter().map(|v| *v as i32).collect::<Vec<_>>();
                             Ok(handle_allsky_fits(&data, tile_size, texture_size)?
-                                .into_iter()
                                 .map(|image| ImageType::RawR32i { image })
+                                .collect())
+                        }
+                        InMemData::F32(data) => {
+                            let data = unsafe { std::slice::from_raw_parts(data.as_ptr() as *const u8, data.len() * 4) };
+                            Ok(handle_allsky_fits(&data, tile_size, texture_size)?
+                                .map(|image| ImageType::RawRgba8u { image })
                                 .collect())
                         }
                         InMemData::F64(data) => {
                             let data = data.iter().map(|v| *v as f32).collect::<Vec<_>>();
+                            let data = unsafe { std::slice::from_raw_parts(data.as_ptr() as *const u8, data.len() * 4) };
+
                             Ok(handle_allsky_fits(&data, tile_size, texture_size)?
-                                .into_iter()
-                                .map(|image| ImageType::RawR32f { image })
+                                .map(|image| ImageType::RawRgba8u { image })
                                 .collect())
                         }
                     }
@@ -226,44 +221,44 @@ fn handle_allsky_file<F: ImageFormat>(
     allsky_tile_size: i32,
     texture_size: i32,
     tile_size: i32,
-) -> Result<Vec<ImageBuffer<F>>, JsValue> {
+) -> Result<impl Iterator<Item = ImageBuffer<F>>, JsValue> {
     let num_tiles_per_texture = (texture_size / tile_size) * (texture_size / tile_size);
     let num_tiles = num_tiles_per_texture * 12;
-    let mut tiles = Vec::with_capacity(num_tiles as usize);
 
     let num_allsky_tiles_per_tile = (tile_size / allsky_tile_size) * (tile_size / allsky_tile_size);
 
     let mut src_idx = 0;
-    for _ in 0..num_tiles {
-        let mut base_tile =
+    let tiles = (0..num_tiles)
+        .map(move |_| {
+            let mut base_tile =
             ImageBuffer::<F>::allocate(&<F as ImageFormat>::P::BLACK, tile_size, tile_size);
-        for idx_tile in 0..num_allsky_tiles_per_tile {
-            let (x, y) = crate::utils::unmortonize(idx_tile as u64);
-            let dx = x * (allsky_tile_size as u32);
-            let dy = y * (allsky_tile_size as u32);
+            for idx_tile in 0..num_allsky_tiles_per_tile {
+                let (x, y) = crate::utils::unmortonize(idx_tile as u64);
+                let dx = x * (allsky_tile_size as u32);
+                let dy = y * (allsky_tile_size as u32);
 
-            let sx = (src_idx % 27) * allsky_tile_size;
-            let sy = (src_idx / 27) * allsky_tile_size;
-            let s = ImageBufferView {
-                x: sx as i32,
-                y: sy as i32,
-                w: allsky_tile_size as i32,
-                h: allsky_tile_size as i32,
-            };
-            let d = ImageBufferView {
-                x: dx as i32,
-                y: dy as i32,
-                w: allsky_tile_size as i32,
-                h: allsky_tile_size as i32,
-            };
+                let sx = (src_idx % 27) * allsky_tile_size;
+                let sy = (src_idx / 27) * allsky_tile_size;
+                let s = ImageBufferView {
+                    x: sx as i32,
+                    y: sy as i32,
+                    w: allsky_tile_size as i32,
+                    h: allsky_tile_size as i32,
+                };
+                let d = ImageBufferView {
+                    x: dx as i32,
+                    y: dy as i32,
+                    w: allsky_tile_size as i32,
+                    h: allsky_tile_size as i32,
+                };
 
-            base_tile.tex_sub(&allsky, &s, &d);
+                base_tile.tex_sub(&allsky, &s, &d);
 
-            src_idx += 1;
-        }
+                src_idx += 1;
+            }
 
-        tiles.push(base_tile);
-    }
+            base_tile
+        });
 
     Ok(tiles)
 }
@@ -272,7 +267,7 @@ fn handle_allsky_fits<F: ImageFormat>(
     allsky_data: &[<<F as ImageFormat>::P as Pixel>::Item],
     tile_size: i32,
     texture_size: i32,
-) -> Result<Vec<ImageBuffer<F>>, JsValue> {
+) -> Result<impl Iterator<Item=ImageBuffer<F>>, JsValue> {
     let allsky_tile_size = std::cmp::min(tile_size, 64);
     let width_allsky_px = 27 * allsky_tile_size;
     let height_allsky_px = 29 * allsky_tile_size;
@@ -286,9 +281,8 @@ fn handle_allsky_fits<F: ImageFormat>(
 
     let allsky = ImageBuffer::<F>::new(reversed_rows_data, width_allsky_px, height_allsky_px);
 
-    let allsky_tiles = handle_allsky_file::<F>(allsky, allsky_tile_size, texture_size, tile_size)?
-        .into_iter()
-        .map(|image| {
+    let allsky_tiles_iter = handle_allsky_file::<F>(allsky, allsky_tile_size, texture_size, tile_size)?
+        .map(move |image| {
             // The GPU does a specific transformation on the UV
             // for FITS tiles
             // We must revert this to be compatible with this GPU transformation
@@ -298,10 +292,9 @@ fn handle_allsky_fits<F: ImageFormat>(
             }
 
             ImageBuffer::<F>::new(new_image_data, tile_size, tile_size)
-        })
-        .collect();
+        });
 
-    Ok(allsky_tiles)
+    Ok(allsky_tiles_iter)
 }
 
 use al_core::image::format::RGBA8U;

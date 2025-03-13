@@ -11,6 +11,7 @@ pub trait Pixel:
         + Copy
         + std::fmt::Debug
         + cgmath::Zero
+        + cgmath::One
         + std::cmp::PartialEq
         + crate::convert::Cast<f32>;
     type Container: ArrayBuffer<Item = Self::Item>;

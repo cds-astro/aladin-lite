@@ -3,6 +3,7 @@ pub mod grid;
 pub mod subdivide_texture;
 
 use al_core::webgl_ctx::WebGlRenderingCtx;
+use al_core::convert::Cast;
 use std::fmt::Debug;
 use std::marker::Unpin;
 use std::vec;
@@ -35,6 +36,7 @@ use crate::ProjectionType;
 use crate::ShaderManager;
 
 use std::ops::Range;
+type PixelItem<F> = <<F as ImageFormat>::P as Pixel>::Item;
 
 pub struct Image {
     /// A reference to the GL context
@@ -49,7 +51,7 @@ pub struct Image {
 
     /// Parameters extracted from the fits
     wcs: WCS,
-    blank: f32,
+    blank: Option<f32>,
     scale: f32,
     offset: f32,
     cuts: Range<f32>,
@@ -75,6 +77,7 @@ use fitsrs::hdu::header::extension;
 use fitsrs::hdu::AsyncHDU;
 use futures::io::BufReader;
 use futures::AsyncReadExt;
+
 impl Image {
     pub async fn from_reader_and_wcs<R, F>(
         gl: &WebGlContext,
@@ -103,9 +106,8 @@ impl Image {
         // apply bscale to the cuts
         let offset = offset.unwrap_or(0.0);
         let scale = scale.unwrap_or(1.0);
-        let blank = blank.unwrap_or(std::f32::NAN);
 
-        let (textures, mut cuts) = if width <= max_tex_size as u64 && height <= max_tex_size as u64
+        let (textures, cuts) = if width <= max_tex_size as u64 && height <= max_tex_size as u64
         {
             max_tex_size_x = width as usize;
             max_tex_size_y = height as usize;
@@ -113,7 +115,7 @@ impl Image {
 
             let num_pixels_to_read = (width as usize) * (height as usize);
             let num_bytes_to_read =
-                num_pixels_to_read * std::mem::size_of::<<F::P as Pixel>::Item>() * F::NUM_CHANNELS;
+                num_pixels_to_read * std::mem::size_of::<F::P>();
             let mut buf = vec![0; num_bytes_to_read];
 
             let _ = reader
@@ -123,29 +125,10 @@ impl Image {
 
             // bytes aligned
             unsafe {
-                let slice = std::slice::from_raw_parts(
-                    buf[..].as_ptr() as *const <F::P as Pixel>::Item,
+                let data = std::slice::from_raw_parts_mut(
+                    buf[..].as_mut_ptr() as *mut PixelItem<F>,
                     (num_pixels_to_read as usize) * F::NUM_CHANNELS,
                 );
-
-                let cuts = if F::NUM_CHANNELS == 1 {
-                    let mut samples = slice
-                        .iter()
-                        .filter_map(|item| {
-                            let t: f32 =
-                                <<F::P as Pixel>::Item as al_core::convert::Cast<f32>>::cast(*item);
-                            if t.is_nan() || t == blank {
-                                None
-                            } else {
-                                Some(t)
-                            }
-                        })
-                        .collect::<Vec<_>>();
-
-                    cuts::first_and_last_percent(&mut samples, 1, 99)
-                } else {
-                    0.0..1.0
-                };
 
                 let texture = Texture2D::create_from_raw_pixels::<F>(
                     gl,
@@ -171,8 +154,51 @@ impl Image {
                             WebGlRenderingCtx::CLAMP_TO_EDGE,
                         ),
                     ],
-                    Some(slice),
+                    Some(data),
                 )?;
+
+                let cuts = match F::CHANNEL_TYPE {
+                    ChannelType::R32F | ChannelType::R64F => {
+                        let pixels = std::slice::from_raw_parts(data.as_ptr() as *const f32, data.len() / 4);
+
+                        let mut sub_pixels = pixels.iter()
+                            .step_by(100)
+                            .filter(|pixel| (*pixel).is_finite())
+                            .cloned()
+                            .collect::<Vec<_>>();
+
+                        cuts::first_and_last_percent(&mut sub_pixels, 1, 99)
+                    }
+                    ChannelType::R8UI | ChannelType::R16I | ChannelType::R32I => {
+                        // BLANK is only valid for those channels/BITPIX (> 0)
+                        if let Some(blank) = blank {
+                            let mut sub_pixels = data.iter()
+                                .step_by(100)
+                                .filter_map(|pixel| {
+                                    let pixel = <PixelItem::<F> as Cast<f32>>::cast(*pixel);
+
+                                    if pixel != blank {
+                                        Some(pixel)
+                                    } else {
+                                        None
+                                    }
+                                })
+                                .collect::<Vec<_>>();
+
+                            cuts::first_and_last_percent(&mut sub_pixels, 1, 99)
+                        } else {
+                            // No blank value => we consider all the values
+                            let mut sub_pixels = data.iter()
+                                .step_by(100)
+                                .map(|pixel| <PixelItem::<F> as Cast<f32>>::cast(*pixel))
+                                .collect::<Vec<_>>();
+
+                            cuts::first_and_last_percent(&mut sub_pixels, 1, 99)
+                        }
+                    }
+                    // RGB(A) images
+                    _ => 0.0..1.0
+                };
 
                 (vec![texture], cuts)
             }
@@ -195,7 +221,7 @@ impl Image {
         let start = cuts.start * scale + offset;
         let end = cuts.end * scale + offset;
 
-        cuts = start..end;
+        let cuts = start..end;
 
         let num_indices = vec![];
         let indices = vec![];
@@ -319,26 +345,22 @@ impl Image {
         gl: &WebGlContext,
         hdu: &mut AsyncHDU<'a, BufReader<R>, extension::image::Image>,
         coo_sys: CooSystem,
-        //reader: &'a mut BufReader<R>,
     ) -> Result<Self, JsValue>
     where
         R: AsyncRead + Unpin + Debug + 'a,
     {
-        // Load the fits file
+        // Load the FITS file
         let header = hdu.get_header();
 
         let scale = header
             .get_parsed::<f64>(b"BSCALE  ")
-            .unwrap_or(Ok(1.0))
-            .unwrap() as f32;
+            .map(|v| v.unwrap());
         let offset = header
             .get_parsed::<f64>(b"BZERO   ")
-            .unwrap_or(Ok(0.0))
-            .unwrap() as f32;
+            .map(|v| v.unwrap());
         let blank = header
             .get_parsed::<f64>(b"BLANK   ")
-            .unwrap_or(Ok(std::f64::NAN))
-            .unwrap() as f32;
+            .map(|v| v.unwrap());
 
         // Create a WCS from a specific header unit
         let wcs = WCS::from_fits_header(header)
@@ -354,9 +376,9 @@ impl Image {
                     gl,
                     reader,
                     wcs,
-                    Some(scale),
-                    Some(offset),
-                    Some(blank),
+                    scale.map(|v| v as f32),
+                    offset.map(|v| v as f32),
+                    blank.map(|v| v as f32),
                     coo_sys,
                 )
                 .await
@@ -368,9 +390,9 @@ impl Image {
                     gl,
                     reader,
                     wcs,
-                    Some(scale),
-                    Some(offset),
-                    Some(blank),
+                    scale.map(|v| v as f32),
+                    offset.map(|v| v as f32),
+                    blank.map(|v| v as f32),
                     coo_sys,
                 )
                 .await
@@ -382,9 +404,9 @@ impl Image {
                     gl,
                     reader,
                     wcs,
-                    Some(scale),
-                    Some(offset),
-                    Some(blank),
+                    scale.map(|v| v as f32),
+                    offset.map(|v| v as f32),
+                    blank.map(|v| v as f32),
                     coo_sys,
                 )
                 .await
@@ -401,9 +423,9 @@ impl Image {
                     gl,
                     reader,
                     wcs,
-                    Some(scale),
-                    Some(offset),
-                    Some(blank),
+                    scale.map(|v| v as f32),
+                    offset.map(|v| v as f32),
+                    blank.map(|v| v as f32),
                     coo_sys,
                 )
                 .await
@@ -415,9 +437,9 @@ impl Image {
                     gl,
                     reader,
                     wcs,
-                    Some(scale),
-                    Some(offset),
-                    Some(blank),
+                    scale.map(|v| v as f32),
+                    offset.map(|v| v as f32),
+                    blank.map(|v| v as f32),
                     coo_sys,
                 )
                 .await
@@ -434,9 +456,9 @@ impl Image {
                     gl,
                     reader,
                     wcs,
-                    Some(scale),
-                    Some(offset),
-                    Some(blank),
+                    scale.map(|v| v as f32),
+                    offset.map(|v| v as f32),
+                    blank.map(|v| v as f32),
                     coo_sys,
                 )
                 .await
@@ -724,15 +746,22 @@ impl Image {
                 let texture = &self.textures[idx_tex];
                 let num_indices = self.num_indices[idx] as i32;
 
-                shader
-                    .bind(&self.gl)
+                let shader_bound = shader
+                    .bind(&self.gl);
+
+                shader_bound
                     .attach_uniforms_from(colormaps)
                     .attach_uniforms_with_params_from(color, colormaps)
                     .attach_uniform("opacity", opacity)
                     .attach_uniform("tex", texture)
                     .attach_uniform("scale", &self.scale)
-                    .attach_uniform("offset", &self.offset)
-                    .attach_uniform("blank", &self.blank)
+                    .attach_uniform("offset", &self.offset);
+
+                if let Some(blank) = self.blank {
+                    shader_bound.attach_uniform("blank", &blank);
+                }
+
+                shader_bound
                     .bind_vertex_array_object_ref(&self.vao)
                     .draw_elements_with_i32(
                         WebGl2RenderingContext::TRIANGLES,

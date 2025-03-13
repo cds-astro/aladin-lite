@@ -163,7 +163,7 @@ impl Image for Fits<'_> {
                 );
             }
             Data::F32(data) => {
-                let view = unsafe { R32F::view(&data) };
+                let view = unsafe { R8UI::view(&std::slice::from_raw_parts(data.as_ptr() as *const u8, data.len() * 4)) };
                 textures.tex_sub_image_3d_with_opt_array_buffer_view(
                     offset.x,
                     offset.y,

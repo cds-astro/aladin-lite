@@ -1,3 +1,4 @@
+use al_core::image::format::ChannelType;
 use wasm_bindgen::JsValue;
 
 use futures::AsyncReadExt;
@@ -10,13 +11,16 @@ use al_core::Texture2D;
 use al_core::WebGlContext;
 use std::ops::Range;
 
+use al_core::convert::Cast;
+type PixelItem<F> = <<F as ImageFormat>::P as Pixel>::Item;
+
 pub async fn crop_image<'a, F, R>(
     gl: &WebGlContext,
     width: u64,
     height: u64,
     mut reader: R,
     max_tex_size: u64,
-    blank: f32,
+    blank: Option<f32>,
 ) -> Result<(Vec<Texture2D>, Range<f32>), JsValue>
 where
     F: ImageFormat,
@@ -67,10 +71,12 @@ where
     let mut pixels_written = 0;
     let num_pixels = width * height;
 
-    let step_x_cut = (width / 50) as usize;
-    let step_y_cut = (height / 50) as usize;
+    const PIXEL_STEP: u64 = 256;
 
-    let mut samples = vec![];
+    let step_x_cut = (width / PIXEL_STEP) as usize;
+    let step_y_cut = (height / PIXEL_STEP) as usize;
+
+    let mut sub_pixels = vec![];
 
     let step_cut = step_x_cut.max(step_y_cut) + 1;
 
@@ -101,36 +107,60 @@ where
 
             let dy = (pixels_written / width) - off_y_px;
             let view = unsafe {
-                let slice = std::slice::from_raw_parts(
+                let data = std::slice::from_raw_parts(
                     buf[..num_bytes_to_read].as_ptr() as *const <F::P as Pixel>::Item,
                     (num_pixels_to_read as usize) * F::NUM_CHANNELS,
                 );
 
                 // compute the cuts if the pixel is grayscale
-                if F::NUM_CHANNELS == 1 {
-                    // fill the samples buffer
-                    if (pixels_written / width) % (step_cut as u64) == 0 {
-                        // We are in a good line
-                        let xmin = pixels_written % width;
+                if (pixels_written / width) % (step_cut as u64) == 0 {
+                    // We are in a good line
+                    let xmin = pixels_written % width;
 
-                        for i in (0..width).step_by(step_cut) {
-                            if (xmin..(xmin + num_pixels_to_read)).contains(&i) {
-                                let j = (i - xmin) as usize;
+                    match F::CHANNEL_TYPE {
+                        ChannelType::R32F | ChannelType::R64F => {
+                            let pixels = std::slice::from_raw_parts(data.as_ptr() as *const f32, data.len() / 4);
 
-                                let sj: f32 = <<F::P as Pixel>::Item as al_core::convert::Cast<
-                                    f32,
-                                >>::cast(slice[j]);
-                                if !sj.is_nan() {
-                                    if blank != sj {
-                                        samples.push(sj);
+                            for i in (0..width).step_by(step_cut) {
+                                if (xmin..(xmin + num_pixels_to_read)).contains(&i) {
+                                    let j = (i - xmin) as usize;
+
+                                    if pixels[j].is_finite() {
+                                        sub_pixels.push(pixels[j]);
                                     }
                                 }
                             }
-                        }
+                        },
+                        ChannelType::R8UI | ChannelType::R16I | ChannelType::R32I => {
+                            if let Some(blank) = blank {
+                                for i in (0..width).step_by(step_cut) {
+                                    if (xmin..(xmin + num_pixels_to_read)).contains(&i) {
+                                        let j = (i - xmin) as usize;
+    
+                                        let pixel = <PixelItem::<F> as Cast<f32>>::cast(data[j]);
+
+                                        if pixel != blank {
+                                            sub_pixels.push(pixel);
+                                        }
+                                    }
+                                }
+                            } else {
+                                for i in (0..width).step_by(step_cut) {
+                                    if (xmin..(xmin + num_pixels_to_read)).contains(&i) {
+                                        let j = (i - xmin) as usize;
+    
+                                        let pixel = <PixelItem::<F> as Cast<f32>>::cast(data[j]);
+                                        sub_pixels.push(pixel);                                        
+                                    }
+                                }
+                            }
+                        },
+                        // colored pixels 
+                        _ => (),
                     }
                 }
 
-                F::view(slice)
+                F::view(data)
             };
 
             (&mut tex_chunks[id_t as usize])
@@ -151,8 +181,8 @@ where
         }
     }
 
-    let cuts = if F::NUM_CHANNELS == 1 {
-        cuts::first_and_last_percent(&mut samples, 1, 99)
+    let cuts = if F::CHANNEL_TYPE.is_colored() {
+        cuts::first_and_last_percent(&mut sub_pixels, 1, 99)
     } else {
         0.0..1.0
     };

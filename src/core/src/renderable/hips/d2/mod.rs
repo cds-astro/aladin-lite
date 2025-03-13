@@ -75,13 +75,22 @@ pub fn get_raster_shader<'a>(
     shaders: &'a mut ShaderManager,
     config: &HiPSConfig,
 ) -> Result<&'a Shader, JsValue> {
-    if config.get_format().is_colored() && cmap.label() == "native" {
-        crate::shader::get_shader(
-            gl,
-            shaders,
-            "hips_rasterizer_raster.vert",
-            "hips_rasterizer_color.frag",
-        )
+    if config.get_format().is_colored() {
+        if cmap.label() == "native" {
+            crate::shader::get_shader(
+                gl,
+                shaders,
+                "hips_rasterizer_raster.vert",
+                "hips_rasterizer_color.frag",
+            )
+        } else {
+            crate::shader::get_shader(
+                gl,
+                shaders,
+                "hips_rasterizer_raster.vert",
+                "hips_rasterizer_color_to_colormap.frag",
+            )
+        }
     } else {
         if config.tex_storing_unsigned_int {
             crate::shader::get_shader(
@@ -115,13 +124,22 @@ pub fn get_raytracer_shader<'a>(
     config: &HiPSConfig,
 ) -> Result<&'a Shader, JsValue> {
     //let colored_hips = config.is_colored();
-    if config.get_format().is_colored() && cmap.label() == "native" {
-        crate::shader::get_shader(
-            gl,
-            shaders,
-            "hips_raytracer_raytracer.vert",
-            "hips_raytracer_color.frag",
-        )
+    if config.get_format().is_colored() {
+        if cmap.label() == "native" {
+            crate::shader::get_shader(
+                gl,
+                shaders,
+                "hips_raytracer_raytracer.vert",
+                "hips_raytracer_color.frag",
+            )
+        } else {
+            crate::shader::get_shader(
+                gl,
+                shaders,
+                "hips_raytracer_raytracer.vert",
+                "hips_raytracer_color_to_colormap.frag",
+            )
+        }
     } else {
         if config.tex_storing_unsigned_int {
             crate::shader::get_shader(

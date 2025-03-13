@@ -152,21 +152,13 @@ impl ImageFormat for RGB32F {
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub struct R32F;
 impl ImageFormat for R32F {
-    type P = [f32; 1];
+    type P = [u8; 4];
 
-    const NUM_CHANNELS: usize = 1;
+    const NUM_CHANNELS: usize = 4;
 
-    #[cfg(feature = "webgl2")]
-    const FORMAT: u32 = WebGlRenderingCtx::RED as u32;
-    #[cfg(feature = "webgl1")]
-    const FORMAT: u32 = WebGlRenderingCtx::LUMINANCE as u32;
-
-    #[cfg(feature = "webgl2")]
-    const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::R32F as i32;
-    #[cfg(feature = "webgl1")]
-    const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::LUMINANCE as i32;
-
-    const TYPE: u32 = WebGlRenderingCtx::FLOAT;
+    const FORMAT: u32 = WebGlRenderingCtx::RGBA as u32;
+    const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::RGBA8 as i32;
+    const TYPE: u32 = WebGlRenderingCtx::UNSIGNED_BYTE;
 
     const CHANNEL_TYPE: ChannelType = ChannelType::R32F;
 
@@ -174,41 +166,31 @@ impl ImageFormat for R32F {
         Ok(Bytes::Borrowed(raw_bytes))
     }
 
-    type ArrayBufferView = js_sys::Float32Array;
+    type ArrayBufferView = js_sys::Uint8Array;
 
     unsafe fn view(s: &[<Self::P as Pixel>::Item]) -> Self::ArrayBufferView {
         Self::ArrayBufferView::view(s)
     }
 }
 
-#[cfg(feature = "webgl2")]
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub struct R64F;
-#[cfg(feature = "webgl2")]
 impl ImageFormat for R64F {
-    type P = [f32; 1];
+    type P = [u8; 4];
 
-    const NUM_CHANNELS: usize = 1;
+    const NUM_CHANNELS: usize = 4;
 
-    #[cfg(feature = "webgl2")]
-    const FORMAT: u32 = WebGlRenderingCtx::RED as u32;
-    #[cfg(feature = "webgl1")]
-    const FORMAT: u32 = WebGlRenderingCtx::LUMINANCE as u32;
+    const FORMAT: u32 = WebGlRenderingCtx::RGBA as u32;
+    const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::RGBA8 as i32;
+    const TYPE: u32 = WebGlRenderingCtx::UNSIGNED_BYTE;
 
-    #[cfg(feature = "webgl2")]
-    const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::R32F as i32;
-    #[cfg(feature = "webgl1")]
-    const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::LUMINANCE as i32;
-
-    const TYPE: u32 = WebGlRenderingCtx::FLOAT;
-
-    const CHANNEL_TYPE: ChannelType = ChannelType::R64F;
+    const CHANNEL_TYPE: ChannelType = ChannelType::R32F;
 
     fn decode(raw_bytes: &[u8]) -> Result<Bytes<'_>, &'static str> {
         Ok(Bytes::Borrowed(raw_bytes))
     }
 
-    type ArrayBufferView = js_sys::Float32Array;
+    type ArrayBufferView = js_sys::Uint8Array;
 
     unsafe fn view(s: &[<Self::P as Pixel>::Item]) -> Self::ArrayBufferView {
         Self::ArrayBufferView::view(s)
@@ -309,6 +291,18 @@ pub enum ChannelType {
     R32I,
 }
 
+impl ChannelType {
+    pub fn is_colored(&self) -> bool {
+        match self {
+            ChannelType::RGBA32F
+            | ChannelType::RGB32F
+            | ChannelType::RGBA8U
+            | ChannelType::RGB8U => true,
+            _ => false,
+        }
+    }
+}
+
 pub const NUM_CHANNELS: usize = 9;
 
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq)]
@@ -327,12 +321,6 @@ impl ImageFormatType {
     }
 
     pub fn is_colored(&self) -> bool {
-        match self.channel {
-            ChannelType::RGBA32F
-            | ChannelType::RGB32F
-            | ChannelType::RGBA8U
-            | ChannelType::RGB8U => true,
-            _ => false,
-        }
+        self.channel.is_colored()
     }
 }

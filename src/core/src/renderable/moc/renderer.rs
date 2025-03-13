@@ -1,6 +1,4 @@
 use crate::{healpix::coverage::HEALPixCoverage, CameraViewPort, ShaderManager};
-use web_sys::WebGl2RenderingContext;
-
 use al_core::WebGlContext;
 use wasm_bindgen::JsValue;
 

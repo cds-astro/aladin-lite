@@ -48,16 +48,13 @@ import { ALEvent } from "../../events/ALEvent";
         super({
             icon: {
                 monochrome: true,
-                size: 'small',
+                size: 'medium',
                 url: projectionIconUrl,
             },
             classList: ['aladin-projection-control'],
             //content: [options.verbosity === 'full' ? ProjectionEnum[projectionName].label : projectionName],
             content: projectionName,
             tooltip: {content: 'Change the view projection', position: {direction: 'bottom left'}},
-            cssStyle: {
-                cursor: 'pointer',
-            },
             ...options
         }, aladin);
 

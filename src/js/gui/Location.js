@@ -110,10 +110,12 @@ export class Location extends DOMElement {
             value: parseCoo(),
         });
 
+        field.addClass("medium-sized")
+
         let copyBtn = new ActionButton({
             icon: {
                 monochrome: true,
-                size: 'small',
+                size: 'medium',
                 url: copyIconUrl,
             },
             tooltip: {content: 'Copy to clipboard!', position: {direction: 'bottom'}},

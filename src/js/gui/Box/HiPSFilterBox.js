@@ -27,6 +27,10 @@ import { ALEvent } from "../../events/ALEvent.js";
 import { Utils } from "../../Utils.ts";
 import { AladinUtils } from "../../AladinUtils.js";
 import { Input } from "../Widgets/Input.js";
+import freqIconUrl from '../../../../assets/icons/freq.svg';
+import inViewIconUrl from '../../../../assets/icons/inside.svg';
+import targetIconUrl from '../../../../assets/icons/target.svg';
+
 /******************************************************************************
  * Aladin Lite project
  *
@@ -42,8 +46,13 @@ export class HiPSFilterBox extends Box {
         let self;
 
         let regimeBtn = new TogglerActionButton({
-            content: 'Regime',
-            tooltip: {content: 'Observation regime', position: {direction: 'bottom'}},
+            content: 'Freq',
+            icon: {
+                monochrome: true,
+                size: 'medium',
+                url: freqIconUrl,
+            },
+            tooltip: {content: 'Observation bandwidth', position: {direction: 'bottom'}},
             toggled: true,
             actionOn: () => {
                 self._triggerFilteringCallback();
@@ -53,8 +62,13 @@ export class HiPSFilterBox extends Box {
             }
         });
         let spatialBtn = new TogglerActionButton({
-            content: 'Inside view',
-            tooltip: {content: 'Check for HiPS having observation in the view!', position: {direction: 'bottom'}},
+            content: 'In view',
+            icon: {
+                monochrome: true,
+                size: 'medium',
+                url: inViewIconUrl,
+            },
+            tooltip: {content: 'Survey in view only!', position: {direction: 'bottom'}},
             toggled: false,
             actionOn: () => {
                 self._requestMOCServer();
@@ -64,7 +78,12 @@ export class HiPSFilterBox extends Box {
             }
         });
         let resolutionBtn = new TogglerActionButton({
-            content: 'Pixel res',
+            content: 'Resolution',
+            icon: {
+                monochrome: true,
+                size: 'medium',
+                url: targetIconUrl,
+            },
             tooltip: {content: 'Check for HiPS with a specific pixel resolution.', position: {direction: 'bottom'}},
             toggled: false,
             actionOn: () => {
@@ -76,7 +95,7 @@ export class HiPSFilterBox extends Box {
         });
 
         let logSlider = new Input({
-            label: "Max res [°/px]:",
+            label: "Max resolution [°/px]:",
             name: "res",
             value: 0.1,
             type: 'range',
@@ -112,7 +131,7 @@ export class HiPSFilterBox extends Box {
                                 type: "group",
                                 subInputs: [
                                     {
-                                        label: "Regime:",
+                                        label: "Freq:",
                                         name: "regime",
                                         value: "Optical",
                                         type: 'select',

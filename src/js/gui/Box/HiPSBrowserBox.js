@@ -132,10 +132,6 @@ export class HiPSBrowserBox extends Box {
         let filterEnabler = Input.checkbox({
             name: "filter-enabler",
             checked: false,
-            tooltip: {
-                content: "Filter off",
-                position: {direction: 'left'},
-            },
             click(e) {
                 let on = e.target.checked;
                 self.filterBox.enable(on);
@@ -155,12 +151,6 @@ export class HiPSBrowserBox extends Box {
                 });
 
                 filterEnabler.update({
-                    tooltip: {
-                        content: on
-                            ? "Filter on"
-                            : "Filter off",
-                        position: {direction: 'left'},
-                    },
                     checked: on,
                 });
             },

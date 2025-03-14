@@ -58,6 +58,8 @@
             ...options
         })
 
+        this.addClass('medium-sized');
+
         self = this;
 
         this._addEventListeners(aladin);

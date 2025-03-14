@@ -1477,11 +1477,6 @@ export let View = (function () {
             this.selection = null;
         }
 
-        // reattach the default contextmenu
-        if (this.aladin.contextMenu) {
-            this.aladin.contextMenu.attach(DefaultActionsForContextMenu.getDefaultActions(this.aladin));
-        }
-
         this.requestRedraw();
     }
 
@@ -1559,22 +1554,6 @@ export let View = (function () {
                 })
 
             this.aladin.measurementTable.showMeasurement(tables);
-            let a = this.aladin;
-            const sampBtn = SAMPActionButton.sendSources(a);
-
-            if (a.contextMenu) {
-                a.contextMenu.attach([
-                    {
-                        label: Layout.horizontal([sampBtn, a.samp ? 'Send selection to SAMP' : 'SAMP disabled']),
-                    },
-                    {
-                        label: 'Remove selection',
-                        action(o) {
-                            a.view.unselectObjects();
-                        }
-                    }
-                ]);
-            }
         }
     }
 

@@ -779,7 +779,7 @@ export let View = (function () {
 
             if (view.rightClick) {
                 const rightClickDurationMs = Date.now() - view.rightClickTimeStart;
-                if (rightClickDurationMs < 300) {
+                if (rightClickDurationMs < 100) {
                     view.aladin.contextMenu && view.aladin.contextMenu.show({e});
                 }
 
@@ -956,6 +956,11 @@ export let View = (function () {
                     onRightClickMoveFunction(xymouse.x, xymouse.y);
 
                     // do not process further
+                    return;
+                }
+
+                const rightClickDurationMs = Date.now() - view.rightClickTimeStart;
+                if (rightClickDurationMs < 100) {
                     return;
                 }
 

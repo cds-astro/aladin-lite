@@ -63,20 +63,12 @@
 
     max-height: 30vh;
     max-width: 100%;
-    overscroll-behavior-x: none;
-    overflow-y: scroll;
-
-    /* Hide scrollbar for IE, Edge and Firefox */
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+    overflow-x: auto;
+    overflow-y: auto;
+    white-space: nowrap;
 
     border-radius: 3px;
     border-top-left-radius: 0;
-}
-
-/* Hide scrollbar for Chrome, Safari and Opera */
-.aladin-measurement-div::-webkit-scrollbar {
-    display: none;
 }
 
 .aladin-btn.tab {

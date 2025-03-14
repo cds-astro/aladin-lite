@@ -37,6 +37,120 @@ import { DOMElement } from "./Widget";
 import { Layout } from "../Layout";
 import { ActionButton } from "./ActionButton";
 import { Footprint } from "../../Footprint";
+
+function buildTabs(self, options) {
+    let contentTabOptions = [];
+    let tabsLayout = [];
+
+    options.layout.forEach((tab, index) => {
+        // Create the content tab div
+        let contentTabOptionEl = document.createElement("div");
+        contentTabOptionEl.style.display = 'none';
+
+        if (tab.content instanceof DOMElement) {
+            // And add it to the DOM
+            tab.content.attachTo(contentTabOptionEl);
+        } else if (opt.label instanceof Element) {                
+            contentTabOptionEl.insertAdjacentElement('beforeend', tab.content);
+        } else {
+            let wrapEl = document.createElement('div');
+            wrapEl.innerHTML = tab.content;
+            contentTabOptionEl.insertAdjacentElement('beforeend', wrapEl);
+        }
+
+        contentTabOptions.push(contentTabOptionEl);
+
+        // Create the Tab element
+        tab.label.update({
+            action(e) {
+                e.stopPropagation();
+                e.preventDefault();
+                
+                for (let contentTabOptionEl of contentTabOptions) {
+                    contentTabOptionEl.style.display = 'none';
+                }
+
+                contentTabOptionEl.style.display = 'block';
+                for (const t of options.layout) {
+                    t.label.update({toggled: false});
+                }
+
+                tab.label.update({toggled: true})
+                self.tabSelectedIdx = index;
+            },
+        });
+        tab.label.addClass('tab')
+
+        tabsLayout.push(tab.label);
+    })
+
+    if (options.aladin && options.aladin.samp) {
+        tabsLayout.push(SAMPActionButton.sendSources(options.aladin))
+    }
+
+    let aladin = options.aladin;
+    tabsLayout.push(new ActionButton({
+        icon: {
+            url: downloadIconUrl,
+            monochrome: true,
+        },
+        size: "small",
+        tooltip: {
+            content: "Download the selected tab as CSV",
+            position: { direction: "top" },
+        },
+        action(e) {
+            // retrieve the sources of the currently selected tab
+            let getSource = (o) => {
+                let s = o;
+                if (o.source) {
+                    s = o.source
+                }
+
+                return s;
+            };
+            let entry = aladin.view.selection[self.tabSelectedIdx][0];
+            let source;
+            if (entry instanceof Footprint) {
+                source = entry.source
+            } else {
+                source = entry;
+            }
+            
+            let fieldNames = Object.keys(source.data).join(";");
+            var lineArray = [fieldNames];
+
+            aladin.view.selection[self.tabSelectedIdx].forEach((obj) => {
+                let source = getSource(obj)
+
+                let line = Array.from(Object.values(source.data)).join(";");
+                lineArray.push(line);
+            })
+
+            var csvContent = lineArray.join("\n");
+            var blob = new Blob([csvContent]);
+            let cat = aladin.view.selection[self.tabSelectedIdx][0].getCatalog();
+
+            Utils.download(URL.createObjectURL(blob), cat.name + '-selection.csv');
+        },
+    }));
+
+    let contentTabEl = document.createElement("div");
+    contentTabEl.style.maxWidth = '100%';
+
+    contentTabOptions[0].style.display = 'block';
+    tabsLayout[0].update({toggled: true})
+    for(let contentTabOptionEl of contentTabOptions) {
+        // Add it to the view
+        contentTabEl.appendChild(contentTabOptionEl)
+    }
+
+    return {
+        layout: tabsLayout,
+        content: contentTabEl
+    }
+}
+
 /**
  * Class representing a Tabs layout
  * @extends DOMElement
@@ -50,117 +164,13 @@ export class Tabs extends DOMElement {
      *     For the list of possibilities, see https://developer.mozilla.org/en-US/docs/Web/API/Element/insertAdjacentHTML
      */
     constructor(options, target, position = "beforeend") {
-        let contentTabOptions = [];
-        let tabsLayout = [];
-
         let self;
-        options.layout.forEach((tab, index) => {
-            // Create the content tab div
-            let contentTabOptionEl = document.createElement("div");
-            contentTabOptionEl.style.display = 'none';
-
-            if (tab.content instanceof DOMElement) {
-                // And add it to the DOM
-                tab.content.attachTo(contentTabOptionEl);
-            } else if (opt.label instanceof Element) {                
-                contentTabOptionEl.insertAdjacentElement('beforeend', tab.content);
-            } else {
-                let wrapEl = document.createElement('div');
-                wrapEl.innerHTML = tab.content;
-                contentTabOptionEl.insertAdjacentElement('beforeend', wrapEl);
-            }
-
-            contentTabOptions.push(contentTabOptionEl);
-
-            // Create the Tab element
-            tab.label.update({
-                action(e) {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    
-                    for (let contentTabOptionEl of contentTabOptions) {
-                        contentTabOptionEl.style.display = 'none';
-                    }
-
-                    contentTabOptionEl.style.display = 'block';
-                    for (const t of options.layout) {
-                        t.label.update({toggled: false});
-                    }
-
-                    tab.label.update({toggled: true})
-                    self.tabSelectedIdx = index;
-                },
-            });
-            tab.label.addClass('tab')
-
-            tabsLayout.push(tab.label);
-        })
-
-        if (options.aladin && options.aladin.samp) {
-            tabsLayout.push(SAMPActionButton.sendSources(options.aladin))
-        }
-
-        let aladin = options.aladin;
-        tabsLayout.push(new ActionButton({
-            icon: {
-                url: downloadIconUrl,
-                monochrome: true,
-            },
-            size: "small",
-            tooltip: {
-                content: "Download the selected tab as CSV",
-                position: { direction: "top" },
-            },
-            action(e) {
-                // retrieve the sources of the currently selected tab
-                let getSource = (o) => {
-                    let s = o;
-                    if (o.source) {
-                        s = o.source
-                    }
-
-                    return s;
-                };
-                let entry = aladin.view.selection[self.tabSelectedIdx][0];
-                let source;
-                if (entry instanceof Footprint) {
-                    source = entry.source
-                } else {
-                    source = entry;
-                }
-                
-                let fieldNames = Object.keys(source.data).join(";");
-                var lineArray = [fieldNames];
-
-                aladin.view.selection[self.tabSelectedIdx].forEach((obj) => {
-                    let source = getSource(obj)
-
-                    let line = Array.from(Object.values(source.data)).join(";");
-                    lineArray.push(line);
-                })
-
-                var csvContent = lineArray.join("\n");
-                var blob = new Blob([csvContent]);
-                let cat = aladin.view.selection[self.tabSelectedIdx][0].getCatalog();
-
-                Utils.download(URL.createObjectURL(blob), cat.name + '-selection.csv');
-            },
-        }));
-
-        let contentTabEl = document.createElement("div");
-        contentTabEl.style.maxWidth = '100%';
-
-        contentTabOptions[0].style.display = 'block';
-        tabsLayout[0].update({toggled: true})
-        for(let contentTabOptionEl of contentTabOptions) {
-            // Add it to the view
-            contentTabEl.appendChild(contentTabOptionEl)
-        }
+        let tabs = buildTabs(self, options);
 
         let el = new Layout({
             layout: [
-                new Layout({layout: tabsLayout, orientation: 'horizontal'}),
-                contentTabEl
+                new Layout({layout: tabs.layout, orientation: 'horizontal'}),
+                tabs.content
             ],
             classList: "aladin-table"
         });
@@ -170,7 +180,19 @@ export class Tabs extends DOMElement {
         self = this;
         this.tabSelectedIdx = 0;
 
+        this.scrollCallback = (e) => {
+            this.scrollLeftPosition = e.target.scrollLeft
+        };
+
+        this.el.querySelector('.aladin-measurement-div').addEventListener("scroll", this.scrollCallback)
+
         this.attachTo(target, position);
+    }
+
+    setScrollPosition(left) {
+        this.scrollLeftPosition = left
+
+        this.el.querySelector('.aladin-measurement-div').scrollLeft = left;
     }
 
     _show() {
@@ -183,5 +205,11 @@ export class Tabs extends DOMElement {
         }
 
         super._show();
+    }
+
+    remove() {
+        this.el.querySelector('.aladin-measurement-div').removeEventListener("scroll", this.scrollCallback)
+
+        super.remove();
     }
 }

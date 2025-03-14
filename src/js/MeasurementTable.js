@@ -82,10 +82,16 @@ export let MeasurementTable = (function() {
             aladin: this.aladin,
             layout,
         }, this.aladin.aladinDiv);
+
+        if (this.scrollLeft !== undefined && this.scrollLeft !== null) {
+            this.table.setScrollPosition(this.scrollLeft)
+        }
     };
 
     MeasurementTable.prototype.hide = function() {
         if (this.table) {
+            this.scrollLeft = this.table.scrollLeftPosition;
+
             this.table.remove();
         }
     };

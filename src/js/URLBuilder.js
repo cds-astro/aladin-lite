@@ -54,7 +54,8 @@ export let URLBuilder = (function() {
         },
 
         buildNEDPositionCSURL: function(ra, dec, radiusDegrees) {
-            return 'https://ned.ipac.caltech.edu/cgi-bin/nph-objsearch?search_type=Near+Position+Search&of=xml_main&RA=' + ra + '&DEC=' + dec + '&SR=' + radiusDegrees;
+            //OLD return 'https://ned.ipac.caltech.edu/cgi-bin/nph-objsearch?search_type=Near+Position+Search&of=xml_main&RA=' + ra + '&DEC=' + dec + '&SR=' + radiusDegrees;
+            return 'https://ned.ipac.caltech.edu/tap/sync?query=SELECT+*+FROM+objdir+WHERE+CONTAINS(POINT(\'J2000\',ra,dec),CIRCLE(\'J2000\',' + ra + ',' + dec + ',' + radiusDegrees + '))=1&LANG=ADQL&REQUEST=doQuery&FORMAT=votable'
         },
 
         buildNEDObjectCSURL: function(object, radiusDegrees) {

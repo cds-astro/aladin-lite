@@ -235,10 +235,27 @@ export let DefaultActionsForContextMenu = (function () {
             },
             {
                 label: "HiPS2FITS cutout", action(o) {
-                    let hips2fitsUrl = 'https://alasky.cds.unistra.fr/hips-image-services/hips2fits?';
                     let hipsId = a.getBaseImageLayer().id;
                     let wcs = JSON.stringify(a.getViewWCS());
-                    hips2fitsUrl += 'wcs=' + encodeURIComponent(wcs) + '&hips=' + encodeURIComponent(hipsId);
+                    let radec = a.getRaDec();
+                    let fov = Math.max.apply(null, a.getFov());
+
+                    let hips2fitsUrl  = 'https://alasky.cds.unistra.fr/hips-image-services/hips2fits#'
+                    // HiPS identifier
+                    hips2fitsUrl += 'hips=' + encodeURIComponent(hipsId)
+
+                    // Parameter given for full support of the Aladin view position and orientation in the sky
+                    // WCS object
+
+                    hips2fitsUrl += '&wcs=' + encodeURIComponent(wcs)
+                    // Parameters given to fill the more readable user formular in HiPS2FITS interface
+                    // Sky projection center
+                    hips2fitsUrl += '&ra=' + radec[0]
+                    hips2fitsUrl += '&dec=' + radec[1]
+                    // FoV
+                    hips2fitsUrl += '&fov=' + fov
+
+                    // Open HiPS2FITS interface in a new browser tab
                     window.open(hips2fitsUrl, '_blank');
                 }
             },

@@ -246,7 +246,6 @@ export let DefaultActionsForContextMenu = (function () {
 
                     // Parameter given for full support of the Aladin view position and orientation in the sky
                     // WCS object
-
                     hips2fitsUrl += '&wcs=' + encodeURIComponent(wcs)
                     // Parameters given to fill the more readable user formular in HiPS2FITS interface
                     // Sky projection center

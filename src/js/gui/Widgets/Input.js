@@ -60,6 +60,8 @@ export class Input extends DOMElement {
 
         super(el, options);
 
+        this.type = options.type;
+
         this.attachTo(target, position)
         this.target = target;
         this._show()
@@ -68,8 +70,8 @@ export class Input extends DOMElement {
     _show() {
         this.el.innerHTML = '';
 
-        if (this.options.type === "checkbox") {
-            this.el.type = this.options.type;
+        if (this.type === "checkbox") {
+            this.el.type = this.type;
 
             this.el.checked = this.options.checked;
 
@@ -78,10 +80,9 @@ export class Input extends DOMElement {
             if (action) {
                 this.el.removeEventListener('click', this.action);
                 this.action = action;
-
                 this.el.addEventListener('click', this.action);
             }    
-        } else if (this.options.type === "select") {            
+        } else if (this.type === "select") {            
             if (this.options.options) {
                 let innerHTML = "";
 
@@ -105,9 +106,9 @@ export class Input extends DOMElement {
                 this.el.addEventListener('change', this.action);
             }    
         } else {
-            this.el.type = this.options.type;
+            this.el.type = this.type;
 
-            if (this.options.type === "number" || this.options.type === "range") {
+            if (this.type === "number" || this.type === "range") {
                 this.el.step = "any";
             }
 
@@ -164,7 +165,7 @@ export class Input extends DOMElement {
                 return Math.exp(minv + scale*(position-minp));
             }
 
-            if (this.options.type === "range") {
+            if (this.type === "range") {
                 if (this.options.reversed === true) {
                     this.addClass('aladin-reversed');
                 }
@@ -194,7 +195,7 @@ export class Input extends DOMElement {
                 }
             }
 
-            if (this.options.type === "text") {
+            if (this.type === "text") {
                 this.el.enterkeyhint = "send";
             }
 
@@ -211,13 +212,13 @@ export class Input extends DOMElement {
                         datalist.innerHTML = "";
                     } else {
                         // it has not been found, then create it
-                        if (this.options.type === 'range') {
+                        if (this.type === 'range') {
                             datalist = document.createElement('datalist');
                         } else {
                             datalist = document.createElement('datalist');
                         }
                         datalist.id = 'ticks-' + this.options.name;
-                        if (this.options.type === "range")
+                        if (this.type === "range")
                             datalist.classList.add('aladin-input-range-datalist')
 
                         // and insert it into the dom
@@ -229,7 +230,7 @@ export class Input extends DOMElement {
                     autocomplete.options.forEach((o) => {
                         
                         let optionEl;
-                        if (this.options.type === 'range') {
+                        if (this.type === 'range') {
                             optionEl = document.createElement('option');
                             let p = (o - this.options.min) / (this.options.max - this.options.min);
                             optionEl.value = o;
@@ -277,7 +278,7 @@ export class Input extends DOMElement {
             }
 
             if (this.options.change) {
-                if (this.options.type === 'color' || this.options.type === 'range' || this.options.type === "text") {
+                if (this.type === 'color' || this.type === 'range' || this.type === "text") {
                     this.el.removeEventListener('input', this.action);
 
                     this.action = (e) => {
@@ -296,8 +297,8 @@ export class Input extends DOMElement {
         }
 
         // add the personnalized style
-        if (this.options.type)
-            this.addClass("aladin-input-" + this.options.type);
+        if (this.type)
+            this.addClass("aladin-input-" + this.type);
 
         if (this.options.label) {
             this.el.id = this.options.label;
@@ -344,7 +345,7 @@ export class Input extends DOMElement {
     attachTo(target, position = 'beforeend') {
         super.attachTo(target, position);
 
-        if (this.options.type === "range") {
+        if (this.type === "range") {
             // Dirty workaround for plotting the slider ticks
             // The input slider must have a parent so that
             // its datalist can be put into the DOM

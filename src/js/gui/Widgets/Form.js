@@ -119,6 +119,14 @@ export class Form extends DOMElement {
 
             label.for = input.el.id;
 
+            if (input.type === "checkbox") {
+                label.addEventListener("click", (_) => {
+                    let checked = input.get();
+                    input.set(!checked)
+                    input.action()
+                });
+            }
+
             let item = new Layout([label, input]);
             item.addClass("aladin-form-input")
 

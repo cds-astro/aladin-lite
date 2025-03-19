@@ -603,7 +603,7 @@ export let View = (function () {
             if(view.aladin.contextMenu) {
                 e.stopPropagation();
             }
-        }, false);
+        });
 
 
         let cutMinInit = null
@@ -1584,15 +1584,15 @@ export let View = (function () {
 
     View.prototype.increaseZoom = function () {
         this.zoom.apply({
-            stop: this.fov / 3,
-            duration: 300
+            stop: this.fov / 1.4,
+            duration: 100
         });
     }
 
     View.prototype.decreaseZoom = function () {
         this.zoom.apply({
-            stop: this.fov * 3,
-            duration: 300
+            stop: this.fov * 1.4,
+            duration: 100
         });
     }
 

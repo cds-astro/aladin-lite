@@ -1,3 +1,5 @@
+use al_api::angle::Formatter;
+
 use super::label::Label;
 use crate::math::projection::ProjectionType;
 use crate::math::sph_geom::region::Intersection;
@@ -6,15 +8,17 @@ use crate::CameraViewPort;
 use crate::math::lonlat::LonLat;
 use crate::math::{PI, TWICE_PI};
 
-
 use crate::renderable::line;
 
 use core::ops::Range;
+
 
 pub fn get_intersecting_parallel(
     lat: f64,
     camera: &CameraViewPort,
     projection: &ProjectionType,
+    fmt: Formatter,
+    grid_decimal_prec: u8
 ) -> Option<Parallel> {
     let fov = camera.get_field_of_view();
     if fov.get_bounding_box().get_lon_size() > PI {
@@ -28,6 +32,8 @@ pub fn get_intersecting_parallel(
             camera,
             LabelOptions::Centered,
             projection,
+            fmt,
+            grid_decimal_prec
         ))
     } else {
         // Longitude fov < PI
@@ -43,6 +49,8 @@ pub fn get_intersecting_parallel(
                     camera,
                     LabelOptions::Centered,
                     projection,
+                    fmt,
+                    grid_decimal_prec
                 ))
             }
             Intersection::Intersect { vertices } => {
@@ -65,6 +73,8 @@ pub fn get_intersecting_parallel(
                     camera,
                     LabelOptions::OnSide,
                     projection,
+                    fmt,
+                    grid_decimal_prec
                 ))
             }
             Intersection::Empty => None,
@@ -89,8 +99,10 @@ impl Parallel {
         camera: &CameraViewPort,
         label_options: LabelOptions,
         projection: &ProjectionType,
+        fmt: Formatter,
+        grid_decimal_prec: u8
     ) -> Self {
-        let label = Label::from_parallel(lat, lon, label_options, camera, projection);
+        let label = Label::from_parallel(lat, lon, label_options, camera, projection, fmt, grid_decimal_prec);
 
         // Draw the full parallel
         let vertices = if lon.end - lon.start > PI {
@@ -109,24 +121,6 @@ impl Parallel {
             line::parallel_arc::project(lat, lon.start, lon.end, camera, projection)
         };
 
-        /*let mut prev_v = [vertices[0].x as f32, vertices[0].y as f32];
-        let vertices: Vec<_> = std::iter::once(prev_v)
-            .chain(
-                vertices.into_iter().skip(1)
-                    .filter_map(|v| {
-                        let cur_v = [v.x as f32, v.y as f32];
-                        if cur_v == prev_v {
-                            None
-                        } else {
-                            prev_v = cur_v;
-                            Some(cur_v)
-                        }
-                    })
-            )
-            .collect();
-
-        let indices = vec![0..vertices.len()];
-        */
         let mut start_idx = 0;
 
         let mut indices = if vertices.len() >= 3 {

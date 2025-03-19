@@ -1,5 +1,6 @@
 use crate::healpix::cell::HEALPixCell;
-use crate::math::{angle::Angle, lonlat::LonLatT};
+use crate::math::lonlat::LonLatT;
+use crate::math::angle::ToAngle;
 /// A simple wrapper around sore core methods
 /// of cdshealpix
 ///
@@ -17,15 +18,15 @@ pub fn vertices_lonlat<S: BaseFloat>(cell: &HEALPixCell) -> [LonLatT<S>; 4] {
             let lon = S::from(*lon).unwrap_abort();
             let lat = S::from(*lat).unwrap_abort();
 
-            (lon, lat)
+            (lon.to_angle(), lat.to_angle())
         })
         .unzip();
 
     [
-        LonLatT::new(Angle(lon[0]), Angle(lat[0])),
-        LonLatT::new(Angle(lon[1]), Angle(lat[1])),
-        LonLatT::new(Angle(lon[2]), Angle(lat[2])),
-        LonLatT::new(Angle(lon[3]), Angle(lat[3])),
+        LonLatT::new(lon[0], lat[0]),
+        LonLatT::new(lon[1], lat[1]),
+        LonLatT::new(lon[2], lat[2]),
+        LonLatT::new(lon[3], lat[3]),
     ]
 }
 use crate::Abort;
@@ -40,13 +41,13 @@ pub fn grid_lonlat<S: BaseFloat>(cell: &HEALPixCell, n_segments_by_side: u16) ->
             let lon = S::from(*lon).unwrap_abort();
             let lat = S::from(*lat).unwrap_abort();
 
-            LonLatT::new(Angle(lon), Angle(lat))
+            LonLatT::new(lon.to_angle(), lat.to_angle())
         })
         .collect()
 }
 
 pub fn hash_with_dxdy(depth: u8, lonlat: &LonLatT<f64>) -> (u64, f64, f64) {
-    healpix::nested::hash_with_dxdy(depth, lonlat.lon().0, lonlat.lat().0)
+    healpix::nested::hash_with_dxdy(depth, lonlat.lon().to_radians(), lonlat.lat().to_radians())
 }
 
 pub const MEAN_HPX_CELL_RES: &[f64; 30] = &[

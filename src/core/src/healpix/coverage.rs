@@ -27,15 +27,14 @@ impl HEALPixCoverage {
         let lonlat = vertices_iter
             .map(|vertex| {
                 let LonLatT(lon, lat) = vertex.lonlat();
-                //let (lon, lat) = math::lonlat::xyzw_to_radec(&vertex);
-                (lon.0, lat.0)
+                (lon.to_radians(), lat.to_radians())
             })
             .collect::<Vec<_>>();
 
         let LonLatT(in_lon, in_lat) = inside.lonlat();
         let moc = RangeMOC::from_polygon_with_control_point(
             &lonlat[..],
-            (in_lon.0, in_lat.0),
+            (in_lon.to_radians(), in_lat.to_radians()),
             depth,
             CellSelection::All,
         );
@@ -84,11 +83,11 @@ impl HEALPixCoverage {
 
     pub fn contains_coo(&self, coo: &Vector4<f64>) -> bool {
         let (lon, lat) = math::lonlat::xyzw_to_radec(coo);
-        self.0.is_in(lon.0, lat.0)
+        self.0.is_in(lon.to_radians(), lat.to_radians())
     }
 
     pub fn contains_lonlat(&self, lonlat: &LonLatT<f64>) -> bool {
-        self.0.is_in(lonlat.lon().0, lonlat.lat().0)
+        self.0.is_in(lonlat.lon().to_radians(), lonlat.lat().to_radians())
     }
 
     // O(log2(N))

@@ -1966,11 +1966,11 @@ export let View = (function () {
         }
 
         // Set the grid label format
-        if (this.cooFrame.label == "ICRSd") {
-            this.setGridOptions({fmt: "HMS"});
+        if (this.cooFrame.label == "ICRS") {
+            this.setGridOptions({fmt: "sexagesimal"});
         }
         else {
-            this.setGridOptions({fmt: "DMS"});
+            this.setGridOptions({fmt: "decimal"});
         }
 
         // Get the new view center position (given in icrs)

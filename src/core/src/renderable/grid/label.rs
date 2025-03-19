@@ -6,12 +6,13 @@ use crate::ProjectionType;
 use cgmath::InnerSpace;
 use cgmath::Vector3;
 
-use crate::math::angle::SerializeFmt;
 use crate::math::lonlat::LonLat;
 use crate::math::projection::coo_space::XYScreen;
 use crate::math::TWICE_PI;
 
 use crate::math::angle::ToAngle;
+use crate::math::angle::AngleFormatter;
+use al_api::angle::Formatter;
 use cgmath::Vector2;
 use core::ops::Range;
 
@@ -22,7 +23,6 @@ pub enum LabelOptions {
     Centered,
     OnSide,
 }
-
 #[derive(Debug)]
 pub struct Label {
     // The position
@@ -39,7 +39,8 @@ impl Label {
         options: LabelOptions,
         camera: &CameraViewPort,
         projection: &ProjectionType,
-        _fmt: &SerializeFmt,
+        fmt: Formatter,
+        grid_decimal_prec: u8
     ) -> Option<Self> {
         let fov = camera.get_field_of_view();
         let d = if fov.contains_north_pole() {
@@ -76,8 +77,18 @@ impl Label {
             lon += TWICE_PI;
         }
 
-        //let content = fmt.to_string(lon.to_angle());
-        let content = al_api::angle_fmt::Format::toSexagesimal(lon.to_degrees() / 15.0, 8, false);
+        let mut angle = lon.to_angle();
+        let fmt = match fmt {
+            Formatter::Decimal => {
+                AngleFormatter::Decimal { prec: grid_decimal_prec }
+            },
+            Formatter::Sexagesimal => {
+                // Sexagesimal formatting for longitudes is HMS
+                AngleFormatter::Sexagesimal { prec: grid_decimal_prec, plus: false, hours: true }
+            }
+        };
+        angle.set_format(fmt);
+        let content = angle.to_string();
 
         let position = if !fov.is_allsky() {
             d1 + OFF_TANGENT * dt - OFF_BI_TANGENT * db
@@ -101,6 +112,8 @@ impl Label {
         options: LabelOptions,
         camera: &CameraViewPort,
         projection: &ProjectionType,
+        fmt: Formatter,
+        grid_decimal_prec: u8
     ) -> Option<Self> {
         let lonlat = match options {
             LabelOptions::Centered => {
@@ -130,8 +143,18 @@ impl Label {
         let dt = (d2 - d1).normalize();
         let db = Vector2::new(dt.y.abs(), dt.x.abs());
 
-        //let content = SerializeFmt::DMS.to_string(lonlat.lat());
-        let content = al_api::angle_fmt::Format::toSexagesimal(lonlat.lat().to_degrees(), 7, false);
+        let mut angle = lat.to_angle();
+        let fmt = match fmt {
+            Formatter::Decimal => {
+                AngleFormatter::Decimal { prec: grid_decimal_prec }
+            },
+            Formatter::Sexagesimal => {
+                // Sexagesimal formatting for latitudes is DMS with an optional '+' character
+                AngleFormatter::Sexagesimal { prec: grid_decimal_prec, plus: true, hours: false }
+            }
+        };
+        angle.set_format(fmt);
+        let content = angle.to_string();
 
         let fov = camera.get_field_of_view();
         let position = if !fov.is_allsky() && !fov.contains_pole() {

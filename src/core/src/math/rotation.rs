@@ -2,6 +2,7 @@ use crate::math;
 use cgmath::{BaseFloat, InnerSpace};
 use cgmath::{Euler, Quaternion};
 use cgmath::{Vector3, Vector4};
+use crate::math::angle::ToAngle;
 
 #[derive(Clone, Copy, Debug)]
 // Internal structure of a rotation, a quaternion
@@ -159,7 +160,7 @@ where
         let a = m.x.z.atan2(m.z.z);
         let b = (-m.z.y).atan2((S::one() - m.z.y * m.z.y).sqrt());
         let c = m.x.y.atan2(m.y.y);
-        (Angle(a), Angle(b), Angle(c))
+        (a.to_angle(), b.to_angle(), c.to_angle())
     }
 }
 

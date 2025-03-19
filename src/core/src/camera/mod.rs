@@ -41,7 +41,7 @@ pub fn build_fov_coverage(
 
             let hpx_idxs_iter = vertices_iter.map(|v| {
                 let (lon, lat) = crate::math::lonlat::xyzw_to_radec(&v);
-                ::healpix::nested::hash(depth, lon.0, lat.0)
+                ::healpix::nested::hash(depth, lon.to_radians(), lat.to_radians())
             });
 
             HEALPixCoverage::from_fixed_hpx_cells(depth, hpx_idxs_iter, Some(vertices.len()))

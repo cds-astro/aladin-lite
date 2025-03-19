@@ -1,27 +1,11 @@
 use cgmath::BaseFloat;
+use crate::Abort;
 // ArcDeg wrapper structure
 #[derive(Clone, Copy)]
 pub struct ArcDeg<T: BaseFloat>(pub T);
 
 //pub const TWICE_PI: f64 = 6.28318530718;
 pub const PI: f64 = std::f64::consts::PI;
-
-impl<T> ArcDeg<T>
-where
-    T: BaseFloat,
-{
-    fn get_frac_minutes(&self) -> ArcMin<T> {
-        let deg = *self;
-
-        let frac = deg.fract();
-        let minutes_per_degree = T::from(60_f32).unwrap_abort();
-        ArcMin(frac * minutes_per_degree)
-    }
-
-    fn truncate(&mut self) {
-        *self = Self((*self).trunc());
-    }
-}
 
 use cgmath::{Deg, Rad};
 use serde::Deserialize;
@@ -71,18 +55,6 @@ where
 #[derive(Clone, Copy)]
 pub struct ArcHour<T: BaseFloat>(pub T);
 
-impl<T> ArcHour<T>
-where
-    T: BaseFloat,
-{
-    fn get_frac_minutes(&self) -> ArcMin<T> {
-        let hour = *self;
-
-        let frac = hour.fract();
-        let minutes_per_hour = T::from(60_f64).unwrap_abort();
-        ArcMin(minutes_per_hour * frac)
-    }
-}
 
 impl<T> From<Rad<T>> for ArcHour<T>
 where
@@ -121,19 +93,6 @@ where
 // ArcMin wrapper structure
 #[derive(Clone, Copy)]
 pub struct ArcMin<T: BaseFloat>(pub T);
-
-impl<T> ArcMin<T>
-where
-    T: BaseFloat,
-{
-    fn get_frac_seconds(&self) -> ArcSec<T> {
-        let min: ArcMin<T> = *self;
-
-        let frac = min.fract();
-        let seconds_per_min = T::from(60_f64).unwrap_abort();
-        ArcSec(seconds_per_min * frac)
-    }
-}
 
 // Convert a Rad<T> to an ArcMin<T>
 impl<T> From<Rad<T>> for ArcMin<T>
@@ -241,6 +200,8 @@ where
     }
 }
 
+use al_api::angle::Format;
+/*
 pub enum SerializeFmt {
     DMS,
     HMS,
@@ -269,7 +230,7 @@ impl SerializeFmt {
             Self::DD => DD::to_string(angle),
         }
     }
-}
+}*/
 
 /*pub trait SerializeToString {
     fn to_string(&self) -> String;
@@ -284,6 +245,7 @@ where
     }
 }*/
 
+/*
 pub struct DMS;
 pub struct HMS;
 pub struct DMM;
@@ -315,7 +277,7 @@ impl FormatType for DMM {
         result
     }
 }
-use crate::Abort;
+
 impl FormatType for DMS {
     fn to_string<S: BaseFloat + ToString>(angle: Angle<S>) -> String {
         let angle = Rad(angle.0);
@@ -361,94 +323,106 @@ impl FormatType for HMS {
 
         result
     }
-}
+}*/
+
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[repr(C)]
-pub struct Angle<S: BaseFloat>(pub S);
+pub struct Angle<S: BaseFloat> {
+    pub rad: S,
+    fmt: AngleFormatter,
+}
 impl<S> Angle<S>
 where
     S: BaseFloat,
 {
     pub fn new<T: Into<Rad<S>>>(angle: T) -> Angle<S> {
         let radians: Rad<S> = angle.into();
-        Angle(radians.0)
+        Angle { rad: radians.0, fmt: AngleFormatter::default() }
     }
 
     pub fn cos(&self) -> S {
-        self.0.cos()
+        self.rad.cos()
     }
 
     pub fn sin(&self) -> S {
-        self.0.sin()
+        self.rad.sin()
     }
 
     pub fn tan(&self) -> S {
-        self.0.tan()
+        self.rad.tan()
     }
 
     pub fn asin(self) -> S {
-        self.0.asin()
+        self.rad.asin()
     }
 
     pub fn acos(self) -> S {
-        self.0.acos()
+        self.rad.acos()
     }
 
     pub fn atan(self) -> S {
-        self.0.atan()
+        self.rad.atan()
     }
 
     pub fn atan2(self, other: Self) -> S {
-        self.0.atan2(other.0)
+        self.rad.atan2(other.rad)
     }
 
     pub fn floor(self) -> Self {
-        Angle(self.0.floor())
+        self.rad.floor().to_angle()
     }
 
     pub fn ceil(self) -> Self {
-        Angle(self.0.ceil())
+        self.rad.ceil().to_angle()
     }
 
     pub fn round(self) -> Self {
-        Angle(self.0.round())
+        self.rad.round().to_angle()
     }
 
     pub fn trunc(self) -> Self {
-        Angle(self.0.trunc())
+        self.rad.trunc().to_angle()
     }
 
     pub fn fract(self) -> S {
-        self.0.fract()
+        self.rad.fract()
     }
 
     pub fn abs(self) -> Self {
-        Angle(self.0.abs())
+        self.rad.abs().to_angle()
     }
 
     pub fn max(self, other: Self) -> Self {
-        Angle(self.0.max(other.0))
+        self.rad.max(other.rad).to_angle()
     }
 
     pub fn min(self, other: Self) -> Self {
-        Angle(self.0.min(other.0))
+        self.rad.min(other.rad).to_angle()
     }
 
     pub fn min_value() -> Self {
-        Angle(S::min_value())
+        S::min_value().to_angle()
     }
     pub fn max_value() -> Self {
-        Angle(S::max_value())
+        S::max_value().to_angle()
     }
 
     pub fn to_radians(&self) -> S {
-        self.0
+        self.rad
     }
 
     pub fn to_degrees(&self) -> S {
-        self.0.to_degrees()
+        self.rad.to_degrees()
+    }
+
+    pub fn to_hours(&self) -> S {
+        self.to_degrees() / S::from(15.0).unwrap()
+    }
+
+    pub fn set_format(&mut self, fmt: AngleFormatter) {
+        self.fmt = fmt;
     }
 }
 
@@ -464,7 +438,7 @@ where
     S: BaseFloat,
 {
     fn to_angle(self) -> Angle<S> {
-        Angle(self)
+        Angle { rad: self, fmt: Default::default() } 
     }
 }
 
@@ -474,7 +448,7 @@ where
     S: BaseFloat,
 {
     fn from(rad: Rad<S>) -> Self {
-        Angle(rad.0)
+        rad.0.to_angle()
     }
 }
 impl<S> From<Angle<S>> for Rad<S>
@@ -482,7 +456,7 @@ where
     S: BaseFloat,
 {
     fn from(angle: Angle<S>) -> Self {
-        Rad(angle.0)
+        Rad(angle.rad)
     }
 }
 
@@ -501,7 +475,7 @@ where
 {
     fn eq(&self, other: &T) -> bool {
         let angle: Angle<S> = (*other).into();
-        angle.0 == self.0
+        angle.rad == self.rad
     }
 }
 
@@ -513,7 +487,7 @@ where
 {
     fn partial_cmp(&self, other: &T) -> Option<Ordering> {
         let angle: Angle<S> = (*other).into();
-        self.0.partial_cmp(&angle.0)
+        self.rad.partial_cmp(&angle.rad)
     }
 }
 
@@ -524,7 +498,7 @@ where
 {
     fn from(deg: ArcDeg<S>) -> Self {
         let rad: Rad<S> = deg.into();
-        Angle(rad.0)
+        rad.0.to_angle()
     }
 }
 impl<S> From<Angle<S>> for ArcDeg<S>
@@ -545,7 +519,7 @@ where
 {
     fn from(min: ArcMin<S>) -> Self {
         let rad: Rad<S> = min.into();
-        Angle(rad.0)
+        rad.0.to_angle()
     }
 }
 // Convert from ArcSec<S>
@@ -555,28 +529,11 @@ where
 {
     fn from(sec: ArcSec<S>) -> Self {
         let rad: Rad<S> = sec.into();
-        Angle(rad.0)
+        rad.0.to_angle()
     }
 }
-/*
-impl<S> PartialEq<S> for Angle<S>
-where
-    S: BaseFloat + !AngleUnit<S>,
-{
-    fn eq(&self, other: &S) -> bool {
-        self.0 == *other
-    }
-}
-*/
+
 use std::cmp::Ordering;
-/*impl<S> PartialOrd<S> for Angle<S>
-where
-    S: BaseFloat,
-{
-    fn partial_cmp(&self, other: &S) -> Option<Ordering> {
-        self.0.partial_cmp(other)
-    }
-}*/
 
 use std::ops::Div;
 impl<S> Div for Angle<S>
@@ -586,8 +543,8 @@ where
     type Output = Self;
 
     fn div(self, rhs: Self) -> Self::Output {
-        let angle = self.0 / rhs.0;
-        Angle(angle)
+        let rad = self.rad / rhs.rad;
+        rad.to_angle()
     }
 }
 impl<S> Div<S> for Angle<S>
@@ -597,8 +554,8 @@ where
     type Output = Self;
 
     fn div(self, rhs: S) -> Self::Output {
-        let angle = self.0 / rhs;
-        Angle(angle)
+        let rad = self.rad / rhs;
+        rad.to_angle()
     }
 }
 
@@ -610,8 +567,8 @@ where
     type Output = Self;
 
     fn mul(self, rhs: Self) -> Self::Output {
-        let angle = self.0 * rhs.0;
-        Angle(angle)
+        let angle = self.rad * rhs.rad;
+        angle.to_angle()
     }
 }
 impl<S> Mul<S> for Angle<S>
@@ -621,8 +578,8 @@ where
     type Output = Self;
 
     fn mul(self, rhs: S) -> Self::Output {
-        let angle = self.0 * rhs;
-        Angle(angle)
+        let angle = self.rad * rhs;
+        angle.to_angle()
     }
 }
 
@@ -634,8 +591,8 @@ where
     type Output = Self;
 
     fn sub(self, other: Self) -> Self::Output {
-        let angle = self.0 - other.0;
-        Angle(angle)
+        let angle = self.rad - other.rad;
+        angle.to_angle()
     }
 }
 impl<S> Sub<S> for Angle<S>
@@ -645,8 +602,8 @@ where
     type Output = Self;
 
     fn sub(self, other: S) -> Self::Output {
-        let angle = self.0 - other;
-        Angle(angle)
+        let angle = self.rad - other;
+        angle.to_angle()
     }
 }
 
@@ -658,8 +615,8 @@ where
     type Output = Self;
 
     fn add(self, other: Self) -> Self::Output {
-        let angle = self.0 + other.0;
-        Angle(angle)
+        let angle = self.rad + other.rad;
+        angle.to_angle()
     }
 }
 impl<S> Add<S> for Angle<S>
@@ -669,8 +626,8 @@ where
     type Output = Self;
 
     fn add(self, other: S) -> Self::Output {
-        let angle = self.0 + other;
-        Angle(angle)
+        let angle = self.rad + other;
+        angle.to_angle()
     }
 }
 
@@ -718,8 +675,56 @@ where
     type Output = Self;
 
     fn rem(self, other: Self) -> Self::Output {
-        let angle = self.0 % other.0;
-        Angle(angle)
+        let angle = self.rad % other.rad;
+        angle.to_angle()
+    }
+}
+
+#[derive(PartialEq, Eq, Clone, Copy, Debug, Hash, Deserialize)]
+pub enum AngleFormatter {
+    Sexagesimal {
+        /// Number of digit of precision for the unit value
+        /// (interpreted as hours or degrees depending of the hours boolean field)
+        prec: u8,
+        /// Whether a '+' is added
+        plus: bool,
+        /// HMS or DMS
+        hours: bool,
+    },
+    Decimal {
+        /// Number of digit of precision
+        prec: u8,
+    }
+}
+
+impl Default for AngleFormatter {
+    fn default() -> Self {
+        AngleFormatter::Decimal { prec: 8 }
+    }
+}
+
+use std::fmt::Display;
+impl Display for Angle<f64> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.fmt {
+            AngleFormatter::Sexagesimal { prec, plus, hours } => {
+                let unit = if hours {
+                    self.to_hours()
+                } else {
+                    self.to_degrees()
+                };
+                // Round at a specific number of digit of precision
+                let pw = 10.0_f64.powi(prec as i32);
+                let unit = (unit * pw).round() / pw;
+
+                // Format the unit value to sexagesimal.
+                // The precision 8 corresponds to the formatting: deg/hour min sec.ddd
+                write!(f, "{}", Format::toSexagesimal(unit, 8, plus))
+            },
+            AngleFormatter::Decimal { prec } => {
+                write!(f, "{:.1$}°", self.to_degrees(), prec as usize)
+            }
+        }
     }
 }
 
@@ -730,18 +735,18 @@ where
 {
     type Output = Self;
     fn neg(self) -> Self::Output {
-        Angle(-self.0)
+        (-self.rad).to_angle()
     }
 }
 use al_core::{shader::UniformType, WebGlContext};
 use web_sys::WebGlUniformLocation;
 impl UniformType for Angle<f32> {
     fn uniform(gl: &WebGlContext, location: Option<&WebGlUniformLocation>, value: &Self) {
-        gl.uniform1f(location, value.0);
+        gl.uniform1f(location, value.rad);
     }
 }
 impl UniformType for Angle<f64> {
     fn uniform(gl: &WebGlContext, location: Option<&WebGlUniformLocation>, value: &Self) {
-        gl.uniform1f(location, value.0 as f32);
+        gl.uniform1f(location, value.rad as f32);
     }
 }

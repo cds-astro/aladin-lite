@@ -39,8 +39,8 @@ mod tests {
         let gal_lonlat =
             super::apply_coo_system(CooSystem::ICRS, CooSystem::GAL, &lonlat.vector()).lonlat();
 
-        let gal_lon_deg = gal_lonlat.lon().0 * 360.0 / (2.0 * std::f64::consts::PI);
-        let gal_lat_deg = gal_lonlat.lat().0 * 360.0 / (2.0 * std::f64::consts::PI);
+        let gal_lon_deg = gal_lonlat.lon().to_degrees();
+        let gal_lat_deg = gal_lonlat.lat().to_degrees();
 
         assert_delta!(gal_lon_deg, 96.33723581, 1e-3);
         assert_delta!(gal_lat_deg, -60.18845577, 1e-3);
@@ -56,8 +56,8 @@ mod tests {
         let lonlat: LonLatT<f64> = LonLatT::new(ArcDeg(0.0).into(), ArcDeg(0.0).into());
         let j2000_lonlat =
             super::apply_coo_system(CooSystem::GAL, CooSystem::ICRS, &lonlat.vector()).lonlat();
-        let j2000_lon_deg = j2000_lonlat.lon().0 * 360.0 / (2.0 * std::f64::consts::PI);
-        let j2000_lat_deg = j2000_lonlat.lat().0 * 360.0 / (2.0 * std::f64::consts::PI);
+        let j2000_lon_deg = j2000_lonlat.lon().to_degrees();
+        let j2000_lat_deg = j2000_lonlat.lat().to_degrees();
 
         assert_delta!(j2000_lon_deg, 266.40506655, 1e-3);
         assert_delta!(j2000_lat_deg, -28.93616241, 1e-3);
@@ -77,8 +77,8 @@ mod tests {
 
         let gal_lonlat = super::apply_coo_system(CooSystem::ICRS, CooSystem::GAL, &icrs_pos);
 
-        let gal_lon_deg = gal_lonlat.lon().0 * 360.0 / (2.0 * std::f64::consts::PI);
-        let gal_lat_deg = gal_lonlat.lat().0 * 360.0 / (2.0 * std::f64::consts::PI);
+        let gal_lon_deg = gal_lonlat.lon().to_degrees();
+        let gal_lat_deg = gal_lonlat.lat().to_degrees();
 
         assert_delta!(gal_lon_deg, 0.0, 1e-3);
         assert_delta!(gal_lat_deg, 0.0, 1e-3);

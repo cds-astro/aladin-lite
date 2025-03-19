@@ -1,3 +1,5 @@
+use al_api::angle::Formatter;
+
 use super::label::{Label, LabelOptions};
 use crate::math::lonlat::LonLat;
 use crate::math::sph_geom::region::Intersection;
@@ -7,14 +9,14 @@ use core::ops::Range;
 use crate::math::MINUS_HALF_PI;
 use crate::ProjectionType;
 
-use super::angle::SerializeFmt;
 use crate::math::HALF_PI;
 
 pub fn get_intersecting_meridian(
     lon: f64,
     camera: &CameraViewPort,
     projection: &ProjectionType,
-    fmt: &SerializeFmt,
+    fmt: Formatter,
+    grid_decimal_prec: u8
 ) -> Option<Meridian> {
     let fov = camera.get_field_of_view();
     if fov.contains_both_poles() {
@@ -25,6 +27,7 @@ pub fn get_intersecting_meridian(
             camera,
             projection,
             fmt,
+            grid_decimal_prec
         );
         Some(meridian)
     } else {
@@ -39,6 +42,7 @@ pub fn get_intersecting_meridian(
                     camera,
                     projection,
                     fmt,
+                    grid_decimal_prec
                 );
                 Some(meridian)
             }
@@ -56,7 +60,7 @@ pub fn get_intersecting_meridian(
                             lat1..MINUS_HALF_PI
                         };
 
-                        Meridian::new(lon, &lat, LabelOptions::OnSide, camera, projection, fmt)
+                        Meridian::new(lon, &lat, LabelOptions::OnSide, camera, projection, fmt, grid_decimal_prec)
                     }
                     2 => {
                         // full intersection
@@ -73,56 +77,18 @@ pub fn get_intersecting_meridian(
                             camera,
                             projection,
                             fmt,
+                            grid_decimal_prec
                         )
                     }
-                    _ => {
-                        /*let mut vertices = vertices.into_vec();
-                        // One segment over two will be in the field of view
-                        vertices.push(Vector4::new(0.0, 1.0, 0.0, 1.0));
-                        vertices.push(Vector4::new(0.0, -1.0, 0.0, 1.0));
-
-                        vertices.sort_by(|i1, i2| {
-                            i1.y.total_cmp(&i2.y)
-                        });
-
-                        let v1 = &vertices[0];
-                        let v2 = &vertices[1];
-
-                        // meridian are part of great circles so the mean between v1 & v2 also lies on it
-                        let vm = (v1 + v2).truncate().normalize();
-
-                        let vertices = if !fov.contains_south_pole() {
-                            &vertices[1..]
-                        } else {
-                            &vertices
-                        };
-
-                        let line_vertices = vertices.iter().zip(vertices.iter().skip(1))
-                            .step_by(2)
-                            .map(|(i1, i2)| {
-                                line::great_circle_arc::project(
-                                    lon,
-                                    i1.lat().to_radians(),
-                                    lon,
-                                    i2.lat().to_radians(),
-                                    camera,
-                                    projection
-                                )
-                            })
-                            .flatten()
-                            .collect::<Vec<_>>();
-
-                        let label = Label::from_meridian(&v1.lonlat(), camera, projection, fmt);
-                        */
-                        Meridian::new(
-                            lon,
-                            &(-HALF_PI..HALF_PI),
-                            LabelOptions::OnSide,
-                            camera,
-                            projection,
-                            fmt,
-                        )
-                    }
+                    _ => Meridian::new(
+                        lon,
+                        &(-HALF_PI..HALF_PI),
+                        LabelOptions::OnSide,
+                        camera,
+                        projection,
+                        fmt,
+                        grid_decimal_prec
+                    )
                 };
 
                 Some(meridian)
@@ -139,7 +105,6 @@ pub struct Meridian {
     indices: Vec<Range<usize>>,
     label: Option<Label>,
 }
-
 impl Meridian {
     pub fn new(
         lon: f64,
@@ -147,9 +112,10 @@ impl Meridian {
         label_options: LabelOptions,
         camera: &CameraViewPort,
         projection: &ProjectionType,
-        fmt: &SerializeFmt,
+        fmt: Formatter,
+        grid_decimal_prec: u8
     ) -> Self {
-        let label = Label::from_meridian(lon, lat, label_options, camera, projection, fmt);
+        let label = Label::from_meridian(lon, lat, label_options, camera, projection, fmt, grid_decimal_prec);
 
         // Draw the full parallel
         let vertices = crate::renderable::line::great_circle_arc::project(
@@ -184,52 +150,6 @@ impl Meridian {
         };
 
         indices.push(start_idx..vertices.len());
-
-        /*let mut prev_v = [vertices[0].x as f32, vertices[0].y as f32];
-        let vertices: Vec<_> = std::iter::once(prev_v)
-            .chain(
-                vertices.into_iter().skip(1)
-                    .filter_map(|v| {
-                        let cur_v = [v.x as f32, v.y as f32];
-                        if cur_v == prev_v {
-                            None
-                        } else {
-                            prev_v = cur_v;
-                            Some(cur_v)
-                        }
-                    })
-            )
-            .collect();
-
-        // Create subsets of vertices referring to different lines
-        let indices = if vertices.len() >= 3 {
-            let mut indices = vec![];
-
-            let mut v0 = 0;
-            let mut v1 = 1;
-            let mut v2 = 2;
-
-            let mut s = 0;
-
-            let n_segment = vertices.len() - 1;
-
-            for i in 0..n_segment {
-                if Triangle::new(&vertices[v0], &vertices[v1], &vertices[v2]).is_valid(camera) {
-                    indices.push(s..(i+1));
-                    s = i;
-                }
-
-                v0 = v1;
-                v1 = v2;
-                v2 = (v2 + 1) % vertices.len();
-            }
-
-            //indices.push(start_line_i..vertices.len());
-            //vec![0..vertices.len()]
-            vec![0..2]
-        } else {
-            vec![0..vertices.len()]
-        };*/
 
         Self {
             vertices,

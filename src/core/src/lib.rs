@@ -562,7 +562,7 @@ impl WebClient {
     /// the sinus would be 180 degrees.
     #[wasm_bindgen(js_name = getMaxFieldOfView)]
     pub fn get_max_fov(&mut self) -> f64 {
-        self.app.get_max_fov()
+        self.app.get_max_fov().to_degrees()
     }
 
     /// Get the clip zoom factor of the view

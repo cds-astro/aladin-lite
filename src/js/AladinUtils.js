@@ -208,6 +208,7 @@ export let AladinUtils = {
         * // returns "36 arcsec"
         * Numbers.degreesToString(0.01);
         */
+        // FIXME: Same as in the libs/astro/angle.js
         degreesToString: function(numberDegrees) {
             let setPrecision = 3
             let degrees = numberDegrees | 0;

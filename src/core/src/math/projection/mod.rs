@@ -19,8 +19,10 @@ use cgmath::Vector2;
 pub mod coo_space;
 pub mod domain;
 
-use domain::{basic, full::FullScreen};
+use crate::math::angle::ToAngle;
 
+use domain::{basic, full::FullScreen};
+use crate::math::angle::Angle;
 /* S <-> NDC space conversion methods */
 pub fn screen_to_ndc_space(
     pos_screen_space: &XYScreen<f64>,
@@ -304,7 +306,7 @@ impl ProjectionType {
         }
     }*/
 
-    pub fn bounds_size_ratio(&self) -> f64 {
+    pub const fn bounds_size_ratio(&self) -> f64 {
         match self {
             // Zenithal projections
             /* TAN,      Gnomonic projection        */
@@ -355,17 +357,17 @@ impl ProjectionType {
         }
     }
 
-    pub fn aperture_start(&self) -> f64 {
+    pub fn aperture_start(&self) -> Angle<f64> {
         match self {
             // Zenithal projections
             /* TAN,      Gnomonic projection        */
-            ProjectionType::Tan(_) => 150.0,
+            ProjectionType::Tan(_) => 150.0_f64.to_radians().to_angle(),
             /* STG,	     Stereographic projection   */
-            ProjectionType::Stg(_) => 360.0,
+            ProjectionType::Stg(_) => 360.0_f64.to_radians().to_angle(),
             /* SIN,	     Orthographic		        */
-            ProjectionType::Sin(_) => 180.0,
+            ProjectionType::Sin(_) => 180.0_f64.to_radians().to_angle(),
             /* ZEA,	     Equal-area 		        */
-            ProjectionType::Zea(_) => 360.0,
+            ProjectionType::Zea(_) => 360.0_f64.to_radians().to_angle(),
             /* FEYE,     Fish-eyes                  */
             //ProjectionType::Feye(_) => 190.0,
             /* AIR,                                 */
@@ -379,9 +381,9 @@ impl ProjectionType {
 
             // Pseudo-cylindrical projections
             /* AIT,      Aitoff                     */
-            ProjectionType::Ait(_) => 360.0,
+            ProjectionType::Ait(_) => 360.0_f64.to_radians().to_angle(),
             // MOL,      Mollweide                  */
-            ProjectionType::Mol(_) => 360.0,
+            ProjectionType::Mol(_) => 360.0_f64.to_radians().to_angle(),
             // PAR,                                 */
             //ProjectionType::Par(_) => 360.0,
             // SFL,                                 */
@@ -389,7 +391,7 @@ impl ProjectionType {
 
             // Cylindrical projections
             // MER,      Mercator                   */
-            ProjectionType::Mer(_) => 360.0,
+            ProjectionType::Mer(_) => 360.0_f64.to_radians().to_angle(),
             // CAR,                                 */
             //ProjectionType::Car(_) => 360.0,
             // CEA,                                 */

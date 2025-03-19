@@ -88,7 +88,6 @@ const MAX_DPI_LIMIT: f32 = 2.0;
 use crate::math;
 use crate::time::Time;
 use crate::Abort;
-use crate::ArcDeg;
 impl CameraViewPort {
     pub fn new(
         gl: &WebGlContext,
@@ -97,7 +96,7 @@ impl CameraViewPort {
     ) -> CameraViewPort {
         let last_user_action = UserAction::Starting;
 
-        let aperture = Angle(projection.aperture_start());
+        let aperture = projection.aperture_start();
 
         let w2m = Matrix4::identity();
         let m2w = w2m;
@@ -350,12 +349,12 @@ impl CameraViewPort {
             _ => true,
         };
 
-        let aperture_start: Angle<f64> = ArcDeg(proj.aperture_start()).into();
+        let aperture_start = proj.aperture_start();
 
         self.clip_zoom_factor = if aperture > aperture_start {
             //al_core::log(&format!("a: {:?}, as: {:?}", aperture, aperture_start));
             if can_unzoom_more {
-                aperture.0 / aperture_start.0
+                aperture.to_radians() / aperture_start.to_radians()
             } else {
                 1.0
             }
@@ -363,8 +362,8 @@ impl CameraViewPort {
             // Compute the new clip zoom factor
             let a = aperture.abs();
 
-            let v0 = math::lonlat::radec_to_xyzw(-a / 2.0, Angle(0.0));
-            let v1 = math::lonlat::radec_to_xyzw(a / 2.0, Angle(0.0));
+            let v0 = math::lonlat::radec_to_xyzw(-a / 2.0, 0.0.to_angle());
+            let v1 = math::lonlat::radec_to_xyzw(a / 2.0, 0.0.to_angle());
 
             // Vertex in the WCS of the FOV
             if self.width < self.height {

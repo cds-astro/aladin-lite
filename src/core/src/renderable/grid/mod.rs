@@ -8,7 +8,6 @@ use al_core::VecData;
 use parallel::Parallel;
 
 use crate::camera::CameraViewPort;
-use crate::math::angle;
 use crate::math::HALF_PI;
 use crate::ProjectionType;
 use al_api::color::ColorRGBA;
@@ -28,7 +27,7 @@ pub struct ProjetedGrid {
 
     // Render Text Manager
     text_renderer: TextRenderManager,
-    fmt: angle::SerializeFmt,
+    fmt: Formatter,
 
     //line_style: line::Style,
     meridians: Vec<Meridian>,
@@ -41,9 +40,8 @@ use crate::renderable::text::TextRenderManager;
 use crate::renderable::Renderer;
 use wasm_bindgen::JsValue;
 use web_sys::HtmlElement;
-
+use al_api::angle::Formatter;
 use self::meridian::Meridian;
-
 impl ProjetedGrid {
     pub fn new(gl: WebGlContext, aladin_div: &HtmlElement) -> Result<ProjetedGrid, JsValue> {
         let text_renderer = TextRenderManager::new(aladin_div)?;
@@ -58,7 +56,7 @@ impl ProjetedGrid {
         let enabled = false;
         let label_scale = 1.0;
         //let line_style = line::Style::None;
-        let fmt = angle::SerializeFmt::DMS;
+        let fmt = Formatter::Decimal;
         let thickness = 2.0;
         let meridians = Vec::new();
         let parallels = Vec::new();
@@ -150,7 +148,7 @@ impl ProjetedGrid {
         }
 
         if let Some(fmt) = fmt {
-            self.fmt = fmt.into();
+            self.fmt = fmt;
         }
 
         if let Some(label_size) = label_size {
@@ -210,6 +208,8 @@ impl ProjetedGrid {
                     (bbox.get_lon_size() as f64) * step_line_px / (camera.get_width() as f64);
                 let step_lon = select_fixed_step(step_lon_precised);
 
+                let decimal_lon_prec = step_lon.to_degrees().log10().abs().ceil() as u8;
+
                 // Add meridians
                 let start_lon = bbox.lon_min() - (bbox.lon_min() % step_lon);
                 let mut stop_lon = bbox.lon_max();
@@ -221,7 +221,7 @@ impl ProjetedGrid {
                 let mut lon = start_lon;
                 while lon < stop_lon {
                     if let Some(p) =
-                        meridian::get_intersecting_meridian(lon, camera, projection, &self.fmt)
+                        meridian::get_intersecting_meridian(lon, camera, projection, self.fmt, decimal_lon_prec)
                     {
                         meridians.push(p);
                     }
@@ -235,6 +235,8 @@ impl ProjetedGrid {
                     (bbox.get_lat_size() as f64) * step_line_px / (camera.get_height() as f64);
                 let step_lat = select_fixed_step(step_lat_precised);
 
+                let decimal_lat_prec = step_lat.to_degrees().log10().abs().ceil() as u8;
+
                 let mut start_lat = bbox.lat_min() - (bbox.lat_min() % step_lat);
                 if start_lat == -HALF_PI {
                     start_lat += step_lat;
@@ -244,7 +246,7 @@ impl ProjetedGrid {
 
                 let mut parallels = vec![];
                 while lat < stop_lat {
-                    if let Some(p) = parallel::get_intersecting_parallel(lat, camera, projection) {
+                    if let Some(p) = parallel::get_intersecting_parallel(lat, camera, projection, self.fmt, decimal_lat_prec) {
                         parallels.push(p);
                     }
                     lat += step_lat;

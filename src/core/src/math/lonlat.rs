@@ -26,8 +26,8 @@ where
     /// * ``lon`` - Longitude
     /// * ``lat`` - Latitude
     pub fn new(mut lon: Angle<S>, lat: Angle<S>) -> LonLatT<S> {
-        if lon.0 < S::zero() {
-            lon.0 = lon.0 + S::from(TWICE_PI).unwrap_abort();
+        if lon.to_radians() < S::zero() {
+            lon = lon + S::from(TWICE_PI).unwrap_abort();
         }
 
         LonLatT(lon, lat)
@@ -156,33 +156,31 @@ where
 #[inline]
 pub fn ang_between_lonlat<S: BaseFloat>(lonlat1: LonLatT<S>, lonlat2: LonLatT<S>) -> Angle<S> {
     let abs_diff_lon = (lonlat1.lon() - lonlat2.lon()).abs();
-    Angle(
-        (lonlat1.lat().sin() * lonlat2.lat().sin()
-            + lonlat1.lat().cos() * lonlat2.lat().cos() * abs_diff_lon.cos())
-        .acos(),
-    )
+    (lonlat1.lat().sin() * lonlat2.lat().sin()
+        + lonlat1.lat().cos() * lonlat2.lat().cos() * abs_diff_lon.cos())
+    .acos().to_angle()
 }
 
 #[inline]
 pub fn xyz_to_radec<S: BaseFloat>(v: &Vector3<S>) -> (Angle<S>, Angle<S>) {
-    let lon = Angle(v.x.atan2(v.z));
-    let lat = Angle(v.y.atan2((v.x * v.x + v.z * v.z).sqrt()));
+    let lon = (v.x.atan2(v.z)).to_angle();
+    let lat = (v.y.atan2((v.x * v.x + v.z * v.z).sqrt())).to_angle();
 
     (lon, lat)
 }
 
 #[inline]
 pub fn xyzw_to_radec<S: BaseFloat>(v: &Vector4<S>) -> (Angle<S>, Angle<S>) {
-    let lon = Angle(v.x.atan2(v.z));
-    let lat = Angle(v.y.atan2((v.x * v.x + v.z * v.z).sqrt()));
+    let lon = (v.x.atan2(v.z)).to_angle();
+    let lat = (v.y.atan2((v.x * v.x + v.z * v.z).sqrt())).to_angle();
 
     (lon, lat)
 }
 
 #[inline]
 pub fn radec_to_xyz<S: BaseFloat>(theta: Angle<S>, delta: Angle<S>) -> Vector3<S> {
-    let (ds, dc) = delta.0.sin_cos();
-    let (ts, tc) = theta.0.sin_cos();
+    let (ds, dc) = delta.to_radians().sin_cos();
+    let (ts, tc) = theta.to_radians().sin_cos();
 
     Vector3::<S>::new(dc * ts, ds, dc * tc)
 }

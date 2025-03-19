@@ -1,8 +1,6 @@
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
-use std::fmt;
-
 #[wasm_bindgen(raw_module = "../../js/libs/astro/coo.js")]
 extern "C" {
     #[wasm_bindgen(js_name = Format)]
@@ -28,28 +26,11 @@ extern "C" {
     pub fn toDecimal(num: f64, prec: u8) -> String;
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone, Copy, PartialEq)]
+use std::cmp::Eq;
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[serde(rename_all = "camelCase")]
 #[wasm_bindgen]
-pub enum AngleSerializeFmt {
-    DMM,
-    DD,
-    DMS,
-    HMS,
-}
-
-impl fmt::Display for AngleSerializeFmt {
-    // This trait requires `fmt` with this exact signature.
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        // Write strictly the first element into the supplied output
-        // stream: `f`. Returns `fmt::Result` which indicates whether the
-        // operation succeeded or failed. Note that `write!` uses syntax which
-        // is very similar to `println!`.
-        let str = match self {
-            Self::DMM => "DMM",
-            Self::DD => "DD",
-            Self::DMS => "DMS",
-            Self::HMS => "HMS",
-        };
-        write!(f, "{}", str)
-    }
+pub enum Formatter {
+    Sexagesimal,
+    Decimal
 }

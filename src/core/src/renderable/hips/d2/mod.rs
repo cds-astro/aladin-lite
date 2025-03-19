@@ -19,7 +19,6 @@ use al_core::VecData;
 use al_core::VertexArrayObject;
 use al_core::WebGlContext;
 
-use crate::math::angle::Angle;
 use crate::ProjectionType;
 
 use crate::camera::CameraViewPort;
@@ -31,6 +30,8 @@ use crate::downloader::request::allsky::Allsky;
 use crate::healpix::{cell::HEALPixCell, coverage::HEALPixCoverage};
 use crate::renderable::utils::index_patch::DefaultPatchIndexIter;
 use crate::time::Time;
+use crate::math::angle::ToAngle;
+
 
 use super::config::HiPSConfig;
 use std::collections::HashSet;
@@ -565,7 +566,7 @@ impl HiPS2D {
                         self.uv_end.extend(uv_end);
                         self.time_tile_received.push(start_time);
 
-                        let xyz = crate::math::lonlat::radec_to_xyz(Angle(lon), Angle(lat));
+                        let xyz = crate::math::lonlat::radec_to_xyz(lon.to_angle(), lat.to_angle());
                         pos.push([xyz.x as f32, xyz.y as f32, xyz.z as f32]);
                         //pos.push([lon as f32, lat as f32]);
                     }

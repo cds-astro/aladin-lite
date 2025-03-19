@@ -13,7 +13,7 @@ pub mod resources;
 pub mod cell;
 pub mod fov;
 pub mod image;
-pub mod angle_fmt;
+pub mod angle;
 
 pub trait Abort {
     type Item;

@@ -20,6 +20,7 @@ use crate::{
     tile_fetcher::TileFetcherQueue,
     time::DeltaTime,
 };
+use crate::math::angle::ToAngle;
 use al_core::image::format::ChannelType;
 use wcs::WCS;
 
@@ -421,7 +422,7 @@ impl App {
                 let v = cell.vertices();
                 let proj2screen = |(lon, lat): &(f64, f64)| -> Option<[f64; 2]> {
                     // 1. convert to xyzw
-                    let xyzw = crate::math::lonlat::radec_to_xyzw(Angle(*lon), Angle(*lat));
+                    let xyzw = crate::math::lonlat::radec_to_xyzw(lon.to_angle(), lat.to_angle());
                     // 2. get it back to the camera frame system
                     let xyzw = crate::coosys::apply_coo_system(
                         CooSystem::ICRS,
@@ -1325,7 +1326,7 @@ impl App {
         Ok(())
     }
 
-    pub(crate) fn get_max_fov(&self) -> f64 {
+    pub(crate) fn get_max_fov(&self) -> Angle<f64> {
         self.projection.aperture_start()
     }
 

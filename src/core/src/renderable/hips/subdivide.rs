@@ -1,19 +1,17 @@
 use crate::camera::CameraViewPort;
-use crate::math::angle::Angle;
 use crate::math::projection::ProjectionType;
 use crate::math::vector::dist2;
 use crate::HEALPixCell;
-
+use crate::math::angle::ToAngle;
 const M: f64 = 280.0 * 280.0;
 const N: f64 = 150.0 * 150.0;
 const RAP: f64 = 0.7;
-
 fn is_too_large(cell: &HEALPixCell, camera: &CameraViewPort, projection: &ProjectionType) -> bool {
     let vertices = cell
         .vertices()
         .iter()
         .filter_map(|(lon, lat)| {
-            let vertex = crate::math::lonlat::radec_to_xyzw(Angle(*lon), Angle(*lat));
+            let vertex = crate::math::lonlat::radec_to_xyzw(lon.to_angle(), lat.to_angle());
             projection.icrs_celestial_to_screen_space(&vertex, camera)
         })
         .collect::<Vec<_>>();

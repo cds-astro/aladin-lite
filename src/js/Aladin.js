@@ -1416,6 +1416,12 @@ export let Aladin = (function () {
         this.view.showCatalog(show);
     };
 
+    /**
+     * Show/Hide the reticle centered on the view
+     *
+     * @memberof Aladin
+     * @param {boolean} show - True to enable, false to hide
+     */
     Aladin.prototype.showReticle = function (show) {
         this.reticle.update({ show });
     };
@@ -1433,6 +1439,12 @@ export let Aladin = (function () {
         });
     };
 
+     /**
+     * Add a overlay of shapes/footprints to the view
+     *
+     * @memberof Aladin
+     * @param {GraphicOverlay} overlay - The shapes/footprints overlay to add
+     */
     Aladin.prototype.addOverlay = function (overlay) {
         this.view.addOverlay(overlay);
 
@@ -1441,10 +1453,15 @@ export let Aladin = (function () {
         });
     };
 
+
+    /**
+     * Add a Multi-Order Coverage map (MOC) to the view
+     *
+     * @memberof Aladin
+     * @param {MOC} moc - The MOC object to add
+     */
     Aladin.prototype.addMOC = function (moc) {
         this.view.addMOC(moc);
-
-        // see MOC.setView for sending it to outside the UI
     };
 
     Aladin.prototype.removeUIByName = function(name) {
@@ -3077,13 +3094,6 @@ aladin.displayFITS(
             cmaps: this.getListOfColormaps()
         });
     };
-
-    /*
-    Aladin.prototype.setReduceDeformations = function (reduce) {
-        this.reduceDeformations = reduce;
-        this.view.requestRedraw();
-    }
-    */
 
     return Aladin;
 })();

@@ -33,10 +33,6 @@ import { Coo } from "./libs/astro/coo.js";
 import { VOTable } from "./vo/VOTable.js";
 import { ObsCore } from "./vo/ObsCore.js";
 import A from "./A.js";
-import { Polyline } from "./shapes/Polyline.js";
-import { Vector } from "./shapes/Vector.js";
-import { Ellipse } from "./shapes/Ellipse.js";
-import { Circle } from "./shapes/Circle.js";
 import { Footprint } from "./Footprint.js";
 
 /**
@@ -48,6 +44,7 @@ import { Footprint } from "./Footprint.js";
 * @property {string} [color] - The color associated with the catalog.
 * @property {number} [sourceSize=8] - The size of the sources in the catalog.
 * @property {string|Function|Image|HTMLCanvasElement|HTMLImageElement} [shape="square"] - The shape of the sources (can be, "square", "circle", "plus", "cross", "rhomb", "triangle").
+If a function is given, user can return Image, HTMLImageCanvas, HTMLImageElement or a string being in ["square", "circle", "plus", "cross", "rhomb", "triangle"]. This allows to define different shape for a specific catalog source.
 * @property {number} [limit] - The maximum number of sources to display.
 * @property {string|Function} [onClick] - Whether the source data appears as a table row or a in popup. Can be 'showTable' string, 'showPopup' string or a custom user defined function that handles the click.
 * @property {boolean} [readOnly=false] - Whether the catalog is read-only.
@@ -60,7 +57,7 @@ import { Footprint } from "./Footprint.js";
 * @property {string} [labelColumn] - The name of the column to be used for the label.
 * @property {string} [labelColor=color] - The color of the source labels.
 * @property {string} [labelFont="10px sans-serif"] - The font for the source labels.
- */
+*/
 
 export let Catalog = (function () {
     /**
@@ -71,28 +68,21 @@ export let Catalog = (function () {
      * @param {CatalogOptions} options - Configuration options for the catalog.
      *
      * @example
-     * const catalogOptions = {
-     *   url: "https://example.com/catalog",
-     *   name: "My Catalog",
-     *   color: "#ff0000",
-     *   sourceSize: 10,
-     *   markerSize: 15,
-     *   shape: "circle",
+     * aladin.addCatalog(A.catalogFromVizieR("VII/237/pgc", "M31", 3, {
      *   limit: 1000,
-     *   onClick: (source) => {
-     *      // handle sources
-     *   },
-     *   readOnly: true,
-     *   raField: "ra",
-     *   decField: "dec",
-     *   filter: (source) => source.mag < 15,
-     *   selectionColor: "#00ff00",
-     *   hoverColor: "#ff00ff",
-     *   displayLabel: true,
-     *   labelColor: "#00ff00",
-     *   labelFont: "12px Arial"
-     * };
-     * const myCatalog = new Catalog(catalogOptions);
+     *   onClick: 'showTable',
+     *   color: 'yellow',
+     *   hoverColor: 'blue',
+     *   shape: (s) => {
+     *     let coo = A.coo();
+     *     coo.parse(s.data['RAJ2000'] + ' ' + s.data['DEJ2000'])
+     *
+     *     let a = (0.1 * Math.pow(10, +s.data.logD25)) / 60;
+     *     let b = (1.0 / Math.pow(10, +s.data.logR25)) * a
+     *
+     *     return A.ellipse(coo.lon, coo.lat, a, b, +s.data.PA, {lineWidth: 3});
+     *   }
+     * }));
      */
     function Catalog(options) {
         options = options || {};
@@ -157,6 +147,11 @@ export let Catalog = (function () {
 
         this.isShowing = true;
     }
+
+    Catalog.shapes = ['plus', 'cross', 'rhomb', 'triangle', 'circle', 'square'];
+    Catalog.cacheCanvas = {}
+    Catalog.cacheHoverCanvas = {}
+    Catalog.cacheSelectCanvas = {}
 
     Catalog.createShape = function (shapeName, color, sourceSize) {
         if (
@@ -417,8 +412,6 @@ export let Catalog = (function () {
                 }
 
                 let sources = [];
-                //let footprints = [];
-
                 var coo = new Coo();
 
                 rows.every((row) => {
@@ -506,9 +499,10 @@ export let Catalog = (function () {
         this.onClick = options.onClick || this.onClick;
 
         this._shapeIsFunction = false; // if true, the shape is a function drawing on the canvas
-        this._shapeIsFootprintFunction = false;
         if (typeof this.shape === "function") {
             this._shapeIsFunction = true;
+            // A shape function that operates on the canvas gives the ctx and fov params
+            this._shapeOperatesOnCtx = this.shape.length > 1;
             // do not need to compute any canvas
 
             // there is a possibility that the user gives a function returning shape objects such as
@@ -523,25 +517,35 @@ export let Catalog = (function () {
         }
 
         this.selectSize = this.sourceSize + 2;
+        // Create all the variant shaped canvas
+        this.cacheCanvas = {}
+        this.cacheHoverCanvas = {}
+        this.cacheSelectCanvas = {}
 
-        this.cacheCanvas = Catalog.createShape(
-            this.shape,
-            this.color,
-            this.sourceSize
-        );
-        this.cacheSelectCanvas = Catalog.createShape(
-            this.shape,
-            this.selectionColor,
-            this.selectSize
-        );
-        this.cacheHoverCanvas = Catalog.createShape(
-            this.shape,
-            this.hoverColor,
-            this.selectSize
-        );
+        for (var shape of Catalog.shapes) {
+            this.cacheCanvas[shape] = Catalog.createShape(
+                shape,
+                this.color,
+                this.sourceSize
+            )
+
+            this.cacheHoverCanvas[shape] = Catalog.createShape(
+                shape,
+                this.hoverColor,
+                this.selectSize
+            );
+
+            this.cacheSelectCanvas[shape] = Catalog.createShape(
+                shape,
+                this.selectionColor,
+                this.selectSize
+            );
+        }
 
         this.reportChange();
     };
+
+    
 
     /**
      * Add sources to the catalog
@@ -587,18 +591,32 @@ export let Catalog = (function () {
     Catalog.prototype.computeFootprints = function (sources) {
         let footprints = [];
 
-        if (this._shapeIsFunction) {
-            for (const source of sources) {
+        if (this._shapeIsFunction && !this._shapeOperatesOnCtx) {
+            for (let source of sources) {
                 try {
                     let shapes = this.shape(source);
                     if (shapes) {
                         shapes = [].concat(shapes);
 
-                        // 1. return of the shape func is an image
+                        // Result of the func is an image/canvas
                         if (shapes.length == 1 && (shapes[0] instanceof Image || shapes[0] instanceof HTMLCanvasElement)) {
                             source.setImage(shapes[0]);
-                        // 2. return of the shape is a set of shapes or a footprint
+                        // Result of the func is shape label ('cross', 'plus', ...)
+                        } else if (shapes.length == 1 && typeof shapes[0] === "string") {
+                            // If not found, select the square canvas
+                            let shape = shapes[0] || "square";
+                            source.setShape(shape)
+                        // Result of the shape is a set of shapes or a footprint
                         } else {
+                            for (var shape of shapes) {
+                                // Set the same color of the shape than the catalog. 
+                                // FIXME: the color/shape could be a parameter at the source level, allowing the user single catalogs handling different shapes
+                                shape.setColor(this.color)
+
+                                shape.setSelectionColor(this.selectionColor);
+                                shape.setHoverColor(this.hoverColor);
+                            }
+
                             let footprint;
                             if (shapes.length == 1 && shapes[0] instanceof Footprint) {
                                 footprint = shapes[0];
@@ -606,7 +624,6 @@ export let Catalog = (function () {
                                 footprint = new Footprint(shapes, source);
                             }
 
-                            this._shapeIsFootprintFunction = true;
                             footprint.setCatalog(this);
 
                             // store the footprints
@@ -879,6 +896,7 @@ export let Catalog = (function () {
             ctx.save();
         }
 
+
         const drawnSources = this.drawSources(ctx, width, height);
 
         if (this._shapeIsFunction) {
@@ -942,7 +960,7 @@ export let Catalog = (function () {
         }
 
         if (s.x <= width && s.x >= 0 && s.y <= height && s.y >= 0) {
-            if (this._shapeIsFunction && !this._shapeIsFootprintFunction) {
+            if (this._shapeOperatesOnCtx) {
                 this.shape(s, ctx, this.view.getViewParams());
             } else if (s.image) {
                 ctx.drawImage(
@@ -957,22 +975,27 @@ export let Catalog = (function () {
                     s.y - this.sourceSize / 2
                 );
             } else if (s.isSelected) {
+                let cacheSelectCanvas = this.cacheSelectCanvas[s.shape || this.shape] || this.cacheSelectCanvas["square"];
+
                 ctx.drawImage(
-                    this.cacheSelectCanvas,
+                    cacheSelectCanvas,
                     s.x - this.selectSize / 2,
                     s.y - this.selectSize / 2
                 );
             } else if (s.isHovered) {
+                let cacheHoverCanvas = this.cacheHoverCanvas[s.shape || this.shape] || this.cacheHoverCanvas["square"];
+
                 ctx.drawImage(
-                    this.cacheHoverCanvas,
+                    cacheHoverCanvas,
                     s.x - this.selectSize / 2,
                     s.y - this.selectSize / 2
                 );
             } else {
+                let cacheCanvas = this.cacheCanvas[s.shape || this.shape] || this.cacheCanvas["square"];
                 ctx.drawImage(
-                    this.cacheCanvas,
-                    s.x - this.cacheCanvas.width / 2,
-                    s.y - this.cacheCanvas.height / 2
+                    cacheCanvas,
+                    s.x - cacheCanvas.width / 2,
+                    s.y - cacheCanvas.height / 2
                 );
             }
 

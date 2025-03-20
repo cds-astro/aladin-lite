@@ -73,31 +73,6 @@ export let Polyline = (function() {
         }
     }
 
-    /*function _isAcrossCollignonZoneForHpxProjection(line, view) {
-        const [x1, y1] = view.wasm.screenToClip(line.x1, line.y1);
-        const [x2, y2] = view.wasm.screenToClip(line.x2, line.y2);
-
-        // x, y, between -1 and 1
-        let triIdxCollignionZone = function(x, y) {
-            let xZone = Math.floor((x * 0.5 + 0.5) * 4.0);
-            return xZone + 4 * (y > 0.0);
-        };
-
-        let isInCollignionZone = function(x, y) {
-            return Math.abs(y) > 0.5;
-        };
-
-        if (isInCollignionZone(x1, y1) && isInCollignionZone(x2, y2)) {
-            if (triIdxCollignionZone(x1, y1) === triIdxCollignionZone(x2, y2)) {
-                return false;
-            } else {
-                return true;
-            }
-        }
-
-        return false;
-    }*/
-
     /**
      * Represents a polyline shape
      *
@@ -237,7 +212,6 @@ export let Polyline = (function() {
             return;
         }
 
-        console.log(color)
         this.hoverColor = color;
         if (this.overlay) {
             this.overlay.reportChange();

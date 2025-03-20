@@ -1584,14 +1584,14 @@ export let View = (function () {
 
     View.prototype.increaseZoom = function () {
         this.zoom.apply({
-            stop: this.fov / 1.4,
+            stop: this.fov / 1.8,
             duration: 100
         });
     }
 
     View.prototype.decreaseZoom = function () {
         this.zoom.apply({
-            stop: this.fov * 1.4,
+            stop: this.fov * 1.8,
             duration: 100
         });
     }

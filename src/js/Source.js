@@ -122,6 +122,10 @@ export let Source = (function() {
         this.image = image;
     }
 
+    Source.prototype.setShape = function(shape) {
+        this.shape = shape;
+    }
+
     /**
      * Simulates a click on the source
      *

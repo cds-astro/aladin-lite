@@ -514,6 +514,7 @@ export let Catalog = (function () {
             this.shape instanceof HTMLCanvasElement
         ) {
             this.sourceSize = this.shape.width;
+            this._shapeIsImageOrCanvas = true;
         }
 
         this.selectSize = this.sourceSize + 2;
@@ -886,6 +887,7 @@ export let Catalog = (function () {
         if (!this.isShowing) {
             return;
         }
+
         // tracé simple
         ctx.strokeStyle = this.color;
 
@@ -895,7 +897,6 @@ export let Catalog = (function () {
         if (this._shapeIsFunction) {
             ctx.save();
         }
-
 
         const drawnSources = this.drawSources(ctx, width, height);
 
@@ -926,12 +927,13 @@ export let Catalog = (function () {
             s.x = xy[2 * idx];
             s.y = xy[2 * idx + 1];
 
-            self.drawSource(s, ctx, width, height);
-            inside.push(s);
+            return self.drawSource(s, ctx, width, height)
         };
 
         let self = this;
         this.sources.forEach(function (s, idx) {
+            let drawn = false;
+            
             if (xy[2 * idx] && xy[2 * idx + 1]) {
                 if (self.filterFn) {
                     if(!self.filterFn(s)) {
@@ -939,10 +941,29 @@ export let Catalog = (function () {
                     } else {
                         s.show()
 
-                        drawSource(s, idx)
+                        drawn = drawSource(s, idx)
                     }
                 } else {
-                    drawSource(s, idx)
+                    drawn = drawSource(s, idx)
+                }
+            }
+
+            if (drawn) {
+                inside.push(s)
+            }
+
+            if (s.popup) {
+                let popup = s.popup;
+                // Update the position of the popup
+                if (drawn) {
+                    popup.setPosition(s.x, s.y)
+                }
+
+                // Hide/Show the popup if the popup is currently shown
+                if (popup.isShown && drawn) {
+                    popup.domEl.style.display = "block";
+                } else if (popup.isShown && !drawn) {
+                    popup.domEl.style.display = "none";
                 }
             }
         });
@@ -962,7 +983,16 @@ export let Catalog = (function () {
         if (s.x <= width && s.x >= 0 && s.y <= height && s.y >= 0) {
             if (this._shapeOperatesOnCtx) {
                 this.shape(s, ctx, this.view.getViewParams());
+            } else if (this._shapeIsImageOrCanvas) {
+                // Global catalog shape set as an Image, an HTMLCanvasElement or HTMLImageElement
+                let canvas = this.shape;
+                ctx.drawImage(
+                    canvas,
+                    s.x - canvas.width / 2,
+                    s.y - canvas.height / 2
+                );
             } else if (s.image) {
+                // Per source image/canvas
                 ctx.drawImage(
                     s.image,
                     s.x - s.image.width / 2,
@@ -997,11 +1027,6 @@ export let Catalog = (function () {
                     s.x - cacheCanvas.width / 2,
                     s.y - cacheCanvas.height / 2
                 );
-            }
-
-            // has associated popup ?
-            if (s.popup) {
-                s.popup.setPosition(s.x, s.y);
             }
 
             return true;

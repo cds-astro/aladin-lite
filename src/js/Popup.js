@@ -66,7 +66,7 @@ export let Popup = (function() {
 
     Popup.prototype.setText = function(text) {
         this.domEl.querySelector('.aladin-popupText').innerHTML = text || '';
-        if (!this.isShown) {
+        if (this.domEl.style.display !== 'block') {
             // offsetWidth and offsetHeight are gettable
             // only if the dom element is displayed
             // so we display it and hide it just after

@@ -659,8 +659,6 @@ export let View = (function () {
             } else {
                 // If there is a past clicked object
                 if (view.lastClickedObject) {
-                    view.aladin.popup.hide();
-
                     // TODO: do we need to keep that triggering ?
                     var objClickedFunction = view.aladin.callbacksByEventName['objectClicked'];
                     (typeof objClickedFunction === 'function') && objClickedFunction(null, xy);
@@ -2043,9 +2041,6 @@ export let View = (function () {
         setTimeout(function () { self.refreshProgressiveCats(); }, 1000);
         // Apply position changed callback after the move
         self.throttledPositionChanged(false);
-
-        // hide the popup if it is open
-        this.aladin.hidePopup();
     };
 
     View.prototype.makeUniqLayerName = function (name) {

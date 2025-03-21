@@ -218,6 +218,9 @@ import { Polyline } from "./shapes/Polyline";
 /**
  * @typedef {string} CooFrame
  * String with possible values: 'equatorial', 'ICRS', 'ICRSd', 'j2000', 'gal, 'galactic'
+ * Internally, Aladin Lite represents its view in FK5J2000 (ESA method) reference system.
+ * For Aladin Lite visualization purposes, the difference between ICRS and FK5J2000 is not noticeable and therefore, giving ICRS as CooFrame will be interpreted by Aladin Lite the same way as FK5J2000.
+ * Nonetheless, the intern coo system of Aladin Lite is FK5J2000 (from the ESA method).
  */
 
 /**
@@ -1051,8 +1054,8 @@ export let Aladin = (function () {
         if (!isObjectName) {
             var coo = new Coo();
             coo.parse(targetName);
-            // Convert from view coo sys to icrs
-            const [ra, dec] = this.wasm.viewToICRSCooSys(coo.lon, coo.lat);
+            // Convert from view coo sys to J2000
+            const [ra, dec] = this.wasm.viewToFK5J2000CooSys(coo.lon, coo.lat);
 
             this.view.pointTo(ra, dec);
 
@@ -1076,7 +1079,7 @@ export let Aladin = (function () {
                         targetName,
                         function (data) {
                             // success callback
-                            // Location given in icrs at J2000
+                            // Location given in J2000
                             const coo = data.coo;
                             self.view.pointTo(coo.jradeg, coo.jdedeg);
 
@@ -1356,8 +1359,7 @@ export let Aladin = (function () {
     /**
      * Gets the current [Right Ascension, Declination] position of the center of the Aladin view.
      *
-     * This method returns the celestial coordinates of the center of the Aladin view in the International
-     * Celestial Reference System (ICRS) or J2000 equatorial coordinates.
+     * This method returns the celestial coordinates of the center of the Aladin view in the FK5J2000 equatorial coordinates.
      *
      * @memberof Aladin
      * @returns {number[]} - An array representing the [Right Ascension, Declination] coordinates in degrees.
@@ -1365,8 +1367,8 @@ export let Aladin = (function () {
      */
     Aladin.prototype.getRaDec = function () {
         let radec = this.wasm.getCenter(); // This is given in the frame of the view
-        // We must convert it to ICRS
-        const radec_j2000 = this.wasm.viewToICRSCooSys(radec[0], radec[1]);
+        // We must convert it to FK5J2000
+        const radec_j2000 = this.wasm.viewToFK5J2000CooSys(radec[0], radec[1]);
 
         if (radec_j2000[0] < 0) {
             return [radec_j2000[0] + 360.0, radec_j2000[1]];
@@ -1376,7 +1378,8 @@ export let Aladin = (function () {
     };
 
     /**
-     * Moves the Aladin instance to the specified position given in ICRS frame
+     * Moves the Aladin instance to the specified position given in FK5J2000 frame.
+     * Giving ICRS coordinates will not show noticeable difference from FK5J2000.
      *
      * @memberof Aladin
      * @param {number} ra - Right-ascension in degrees
@@ -2128,56 +2131,56 @@ export let Aladin = (function () {
      * @param {function} myFunction - a callback function.
      * Note: <ul>
      * <li>positionChanged and zoomChanged are throttled every 100ms.</li>
-     * <li>positionChanged's callback gives an object having ra and dec keywords of the current position in ICRS frame. See the below example.</li>
+     * <li>positionChanged's callback gives an object having ra and dec keywords of the current position in FK5J2000 frame. See the below example.</li>
      * </ul>
      * @example
-// define function triggered when  a source is hovered
-aladin.on('objectHovered', function(object, xyMouseCoords) {
-    if (object) {
-        msg = 'You hovered object ' + object.data.name + ' located at ' + object.ra + ', ' + object.dec + '; mouse coords - x: '
-            + xyMouseCoords.x + ', y: ' + xyMouseCoords.y;
-    }
-    else {
-        msg = 'No object hovered';
-    }
-    $('#infoDiv').html(msg);
-});
+        // define function triggered when  a source is hovered
+        aladin.on('objectHovered', function(object, xyMouseCoords) {
+            if (object) {
+                msg = 'You hovered object ' + object.data.name + ' located at ' + object.ra + ', ' + object.dec + '; mouse coords - x: '
+                    + xyMouseCoords.x + ', y: ' + xyMouseCoords.y;
+            }
+            else {
+                msg = 'No object hovered';
+            }
+            $('#infoDiv').html(msg);
+        });
 
-aladin.on('objectHoveredStop', function(object, xyMouseCoords) {
-    if (object) {
-        msg = 'You stopped hove object ' + object.data.name + ' located at ' + object.ra + ', ' + object.dec + '; mouse coords - x: '
-            + xyMouseCoords.x + ', y: ' + xyMouseCoords.y;
-    }
-    $('#infoDiv').html(msg);
-});
+        aladin.on('objectHoveredStop', function(object, xyMouseCoords) {
+            if (object) {
+                msg = 'You stopped hove object ' + object.data.name + ' located at ' + object.ra + ', ' + object.dec + '; mouse coords - x: '
+                    + xyMouseCoords.x + ', y: ' + xyMouseCoords.y;
+            }
+            $('#infoDiv').html(msg);
+        });
 
-// define function triggered when an object is clicked
-var objClicked;
-aladin.on('objectClicked', function(object, xyMouseCoords) {
-    if (object) {
-        objClicked = object;
-        object.select();
-        msg = 'You clicked object ' + object.data.name + ' located at ' + object.ra + ', ' + object.dec + '; mouse coords - x: '
-            + xyMouseCoords.x + ', y: ' + xyMouseCoords.y;
-    }
-    else {
-        objClicked.deselect();
-        msg = 'You clicked in void';
-    }
-    $('#infoDiv').html(msg);
-});
+        // define function triggered when an object is clicked
+        var objClicked;
+        aladin.on('objectClicked', function(object, xyMouseCoords) {
+            if (object) {
+                objClicked = object;
+                object.select();
+                msg = 'You clicked object ' + object.data.name + ' located at ' + object.ra + ', ' + object.dec + '; mouse coords - x: '
+                    + xyMouseCoords.x + ', y: ' + xyMouseCoords.y;
+            }
+            else {
+                objClicked.deselect();
+                msg = 'You clicked in void';
+            }
+            $('#infoDiv').html(msg);
+        });
 
-aladin.on("objectsSelected", (objs) => {
-    console.log("objs", objs)
-})
+        aladin.on("objectsSelected", (objs) => {
+            console.log("objs", objs)
+        })
 
-aladin.on("positionChanged", ({ra, dec}) => {
-    console.log("positionChanged", ra, dec)
-})
+        aladin.on("positionChanged", ({ra, dec}) => {
+            console.log("positionChanged", ra, dec)
+        })
 
-aladin.on("layerChanged", (layer, layerName, state) => {
-    console.log("layerChanged", layer, layerName, state)
-})
+        aladin.on("layerChanged", (layer, layerName, state) => {
+            console.log("layerChanged", layer, layerName, state)
+        })
      */
     Aladin.prototype.on = function (what, myFunction) {
         if (Aladin.AVAILABLE_CALLBACKS.indexOf(what) < 0) {
@@ -2185,20 +2188,6 @@ aladin.on("layerChanged", (layer, layerName, state) => {
         }
 
         this.callbacksByEventName[what] = myFunction;
-
-        /*if (what === "positionChanged") {
-            // tell the backend about that callback
-            // because it needs to be called when the inertia is done
-            ALEvent.AL_USE_WASM.dispatchedTo(this.aladinDiv, {
-                callback: (wasm) => {
-                    let myFunctionThrottled = Utils.throttle(
-                        myFunction,
-                        View.CALLBACKS_THROTTLE_TIME_MS
-                    );
-
-                wasm.setCallbackPositionChanged(myFunctionThrottled);
-            }})
-        }*/
     };
 
     Aladin.prototype.addListener = function (alEventName, customFn) {
@@ -2497,8 +2486,9 @@ aladin.on("layerChanged", (layer, layerName, state) => {
             }
         } else {
             switch (this.getFrame()) {
-                case "ICRS":
-                case "ICRSd":
+                // FIXME: change radesys to FK5 and EQUINOX to 2000
+                case "FK5J2000":
+                case "FK5J2000d":
                     cooType1 = "RA---";
                     cooType2 = "DEC--";
                     radesys = "ICRS    ";
@@ -2606,15 +2596,9 @@ aladin.on("layerChanged", (layer, layerName, state) => {
     Aladin.prototype.pix2world = function (x, y, frame) {
         if (frame) {
             frame = CooFrameEnum.fromString(frame, CooFrameEnum.J2000);
-            if (frame.label == CooFrameEnum.SYSTEMS.GAL) {
-                frame = Aladin.wasmLibs.core.CooSystem.GAL;
-            }
-            else {
-                frame = Aladin.wasmLibs.core.CooSystem.ICRS;
-            }
         }
 
-        let lonlat = this.view.wasm.pix2world(x, y, frame);
+        let lonlat = this.view.wasm.pix2world(x, y, frame && frame.system);
 
         let [lon, lat] = lonlat;
 
@@ -2631,7 +2615,7 @@ aladin.on("layerChanged", (layer, layerName, state) => {
      * @memberof Aladin
      * @param {number} lon - Londitude coordinate in degrees.
      * @param {number} lat - Latitude coordinate in degrees.
-     * @param {CooFrame} [frame] - If not specified, the frame used is ICRS
+     * @param {CooFrame} [frame] - If not specified, the frame used is FK5J2000
 
      * @returns {number[]} - An array representing the [x, y] coordinates in pixel coordinates in the view.
      *
@@ -2647,7 +2631,7 @@ aladin.on("layerChanged", (layer, layerName, state) => {
                 frame = Aladin.wasmLibs.core.CooSystem.GAL;
             }
             else {
-                frame = Aladin.wasmLibs.core.CooSystem.ICRS;
+                frame = Aladin.wasmLibs.core.CooSystem.FK5J2000;
             }
         }
 

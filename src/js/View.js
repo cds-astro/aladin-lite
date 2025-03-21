@@ -1956,15 +1956,10 @@ export let View = (function () {
         this.cooFrame = cooFrame;
 
         // Set the new frame to the backend
-        if (this.cooFrame.system == CooFrameEnum.SYSTEMS.GAL) {
-            this.wasm.setCooSystem(Aladin.wasmLibs.core.CooSystem.GAL);
-        }
-        else if (this.cooFrame.system == CooFrameEnum.SYSTEMS.J2000) {
-            this.wasm.setCooSystem(Aladin.wasmLibs.core.CooSystem.ICRS);
-        }
+        this.wasm.setCooSystem(this.cooFrame.system);
 
         // Set the grid label format
-        if (this.cooFrame.label == "ICRS") {
+        if (this.cooFrame.label == "J2000") {
             this.setGridOptions({fmt: "sexagesimal"});
         }
         else {
@@ -2012,10 +2007,10 @@ export let View = (function () {
 
     /**
      *
-     * @API Point to a specific location in ICRS
+     * @API Point to a specific location
      *
-     * @param ra ra expressed in ICRS J2000 frame
-     * @param dec dec expressed in ICRS J2000 frame
+     * @param ra ra expressed in ICRS or FK5J2000 frame
+     * @param dec dec expressed in ICRS or FK5J2000 frame
      * @param options
      *
      */

@@ -9,7 +9,7 @@ export let HiPSList = (function () {
             maxOrder: 9,
             tileSize: 512,
             imgFormat: "jpeg",
-            cooFrame: "ICRS",
+            cooFrame: "equatorial",
             startUrl: "https://alasky.cds.unistra.fr/DSS/DSSColor",
         },
         {
@@ -19,7 +19,7 @@ export let HiPSList = (function () {
             maxOrder: 9,
             tileSize: 512,
             imgFormat: "jpeg",
-            cooFrame: "ICRS",
+            cooFrame: "equatorial",
             startUrl: "https://alaskybis.cds.unistra.fr/2MASS/Color",
         },
         {
@@ -29,7 +29,7 @@ export let HiPSList = (function () {
             maxOrder: 9,
             tileSize: 512,
             imgFormat: "fits",
-            cooFrame: "ICRS",
+            cooFrame: "equatorial",
             numBitsPerPixel: 16,
             // options
             minCut: 1000.0,
@@ -46,7 +46,7 @@ export let HiPSList = (function () {
             maxOrder: 7,
             tileSize: 512,
             numBitsPerPixel: -32,
-            cooFrame: "ICRS",
+            cooFrame: "equatorial",
             minCut: 0,
             maxCut: 12000,
             stretch: "asinh",
@@ -61,7 +61,7 @@ export let HiPSList = (function () {
             maxOrder: 11,
             tileSize: 512,
             imgFormat: "fits",
-            cooFrame: "ICRS",
+            cooFrame: "equatorial",
             numBitsPerPixel: -32,
             // options
             minCut: -34,
@@ -77,7 +77,7 @@ export let HiPSList = (function () {
             maxOrder: 11,
             tileSize: 512,
             imgFormat: "jpeg",
-            cooFrame: "ICRS",
+            cooFrame: "equatorial",
             startUrl: "https://alasky.cds.unistra.fr/Pan-STARRS/DR1/color-z-zg-g",
         },
         {

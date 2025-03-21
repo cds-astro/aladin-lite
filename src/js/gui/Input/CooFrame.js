@@ -50,7 +50,7 @@
             },
             classList: ['aladin-cooFrame'],
             tooltip: {
-                content: "Change the frame",
+                content: cooFrame.explain,
                 position: {
                     direction: 'bottom'
                 }
@@ -71,7 +71,13 @@
             let frame = e.detail.cooFrame;
 
             self.update({
-                value: frame.label
+                value: frame.label,
+                tooltip: {
+                    content: frame.explain,
+                    position: {
+                        direction: 'bottom'
+                    }
+                },
             }, aladin);
         });
     }

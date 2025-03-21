@@ -7,12 +7,12 @@ use crate::math::angle::ToAngle;
 #[derive(Clone, Copy, Debug)]
 // Internal structure of a rotation, a quaternion
 // All operations are done on it
-pub struct Rotation<S: BaseFloat + CooBaseFloat>(pub Quaternion<S>);
+pub struct Rotation<S: BaseFloat>(pub Quaternion<S>);
 
 use cgmath::{Matrix3, Matrix4};
 impl<S> From<&Matrix4<S>> for Rotation<S>
 where
-    S: BaseFloat + CooBaseFloat,
+    S: BaseFloat,
 {
     fn from(m: &Matrix4<S>) -> Self {
         let m: [[S; 4]; 4] = (*m).into();
@@ -26,19 +26,18 @@ where
 }
 impl<S> From<&Rotation<S>> for Matrix4<S>
 where
-    S: BaseFloat + CooBaseFloat,
+    S: BaseFloat,
 {
     fn from(s: &Rotation<S>) -> Self {
         s.0.into()
     }
 }
 use crate::math::angle::Angle;
-use al_api::coo_system::CooBaseFloat;
 use cgmath::Matrix;
 use cgmath::Rad;
 impl<S> Rotation<S>
 where
-    S: BaseFloat + CooBaseFloat,
+    S: BaseFloat,
 {
     pub fn slerp(&self, other: &Rotation<S>, alpha: S) -> Rotation<S> {
         // Check if the dot of the two quaternions is negative
@@ -167,7 +166,7 @@ where
 use std::ops::Mul;
 impl<S> Mul<Rotation<S>> for Rotation<S>
 where
-    S: BaseFloat + CooBaseFloat,
+    S: BaseFloat,
 {
     type Output = Self;
 

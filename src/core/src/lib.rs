@@ -485,7 +485,8 @@ impl WebClient {
     ///
     /// * `coo_system` - The coordinate system
     #[wasm_bindgen(js_name = setCooSystem)]
-    pub fn set_coo_system(&mut self, coo_system: CooSystem) -> Result<(), JsValue> {
+    pub fn set_coo_system(&mut self, coo_system: String) -> Result<(), JsValue> {
+        let coo_system = serde_wasm_bindgen::from_value(coo_system.into())?;
         self.app.set_coo_system(coo_system);
 
         Ok(())
@@ -576,9 +577,9 @@ impl WebClient {
         Ok(self.app.get_clip_zoom_factor())
     }
 
-    /// Set the center of the view in ICRS coosys
+    /// Set the center of the view in FK5J2000 coosys
     ///
-    /// The core works in ICRS system so
+    /// The core works in FK5J2000 system so
     /// the location must be given in this system
     ///
     /// # Arguments
@@ -626,19 +627,19 @@ impl WebClient {
         Ok(())
     }
 
-    /// View frame to ICRS/J2000 coosys conversion
+    /// View frame to FK5J2000 coosys conversion
     ///
-    /// Coordinates must be given in the ICRS coo system
+    /// Coordinates must be given in the FK5J2000 coo system
     ///
     /// # Arguments
     ///
     /// * `lon` - A longitude in degrees
     /// * `lat` - A latitude in degrees
-    #[wasm_bindgen(js_name = viewToICRSCooSys)]
-    pub fn view_to_icrs_coosys(&self, lon: f64, lat: f64) -> Box<[f64]> {
+    #[wasm_bindgen(js_name = viewToFK5J2000CooSys)]
+    pub fn view_to_fk5j2000_coosys(&self, lon: f64, lat: f64) -> Box<[f64]> {
         let lonlat = LonLatT::new(ArcDeg(lon).into(), ArcDeg(lat).into());
 
-        let res = self.app.view_to_icrs_coosys(&lonlat);
+        let res = self.app.view_to_fk5j2000_coosys(&lonlat);
 
         let lon_deg: ArcDeg<f64> = res.lon().into();
         let lat_deg: ArcDeg<f64> = res.lat().into();
@@ -648,7 +649,8 @@ impl WebClient {
 
     /// World to screen projection
     ///
-    /// Coordinates must be given in the ICRS coo system
+    /// Coordinates must be given in the FK5J2000 or ICRS coo system
+    /// ICRS coordinates are lightly different from FK5J2000 but for aladin lite visualization purposes the different is not noticeable.
     ///
     /// # Arguments
     ///
@@ -666,7 +668,7 @@ impl WebClient {
             use crate::math::lonlat::LonLat;
             let xyz =
                 LonLatT::new(lon.to_radians().to_angle(), lat.to_radians().to_angle()).vector();
-            let lonlat = coosys::apply_coo_system(frame, CooSystem::ICRS, &xyz).lonlat();
+            let lonlat = coosys::apply_coo_system(frame, CooSystem::FK5J2000, &xyz).lonlat();
             lon = lonlat.lon().to_degrees();
             lat = lonlat.lat().to_degrees();
         }

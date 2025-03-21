@@ -263,7 +263,7 @@ impl Image {
             .ok_or(JsValue::from_str("(w / 2, h / 2) px cannot be unprojected"))?;
         let center_xyz = center.to_xyz();
         let inside = crate::coosys::apply_coo_system(
-            CooSystem::ICRS,
+            CooSystem::FK5J2000,
             coo_sys,
             &Vector4::new(center_xyz.y(), center_xyz.z(), center_xyz.x(), 1.0),
         );
@@ -283,7 +283,7 @@ impl Image {
             let xyz = lonlat.to_xyz();
 
             crate::coosys::apply_coo_system(
-                CooSystem::ICRS,
+                CooSystem::FK5J2000,
                 coo_sys,
                 &Vector4::new(xyz.y(), xyz.z(), xyz.x(), 1.0),
             )
@@ -292,8 +292,8 @@ impl Image {
 
         let reg = Region::from_vertices(&vertices, &inside);
 
-        // ra and dec must be given in ICRS coo system, which is the case because wcs returns
-        // only icrs coo
+        // ra and dec must be given in FK5J2000 coo system, which is the case because wcs returns
+        // only FK5J2000 coo
         let centered_fov = CenteredFoV {
             ra: center.lon().to_degrees(),
             dec: center.lat().to_degrees(),
@@ -474,100 +474,6 @@ impl Image {
         let (width, height) = self.wcs.img_dimensions();
         let width = width as f64;
         let height = height as f64;
-        /*
-        // Determine the x and y pixels ranges that must be drawn into the screen
-        let (x_mesh_range, y_mesh_range) = if let Some(vertices) = camera.get_vertices() {
-            // The field of view is defined, so we can compute its projection into the wcs
-            let (mut x_fov_proj_range, mut y_fov_proj_range) = (
-                std::f64::INFINITY..std::f64::NEG_INFINITY,
-                std::f64::INFINITY..std::f64::NEG_INFINITY,
-            );
-            use crate::math::lonlat::LonLat;
-            for xyzw in vertices.iter() {
-                /*let xyzw = crate::coosys::apply_coo_system(
-                    camera.get_coo_system(),
-                    CooSystem::ICRS,
-                    vertex,
-                );*/
-
-                let lonlat = xyzw.lonlat();
-
-                let mut lon = lonlat.lon().to_radians();
-                let lat = lonlat.lat().to_radians();
-                use crate::math::angle::PI;
-                if lon > PI {
-                    lon -= TWICE_PI;
-                }
-
-                if let Some(xy) = self.wcs.proj_xyz(&(xyzw.z, xyzw.x, xyzw.y)) {
-                    //dbg!((img_vert.x(), img_vert.y()));
-                    x_fov_proj_range.start = x_fov_proj_range.start.min(xy.x());
-                    x_fov_proj_range.end = x_fov_proj_range.end.max(xy.x());
-
-                    y_fov_proj_range.start = y_fov_proj_range.start.min(xy.y());
-                    y_fov_proj_range.end = y_fov_proj_range.end.max(xy.y());
-                }
-            }
-
-            console_log(&format!(
-                "fov: {:?}",
-                (x_fov_proj_range.clone(), y_fov_proj_range.clone())
-            ));
-
-            let x_fov_proj_range = (0.0..width);
-            let y_fov_proj_range = (0.0..height);
-
-            // Check if the FoV is overlapping the image
-            // If not we can exit this update faster
-            let is_ranges_overlapping = |x: &std::ops::Range<f64>, y: &std::ops::Range<f64>| {
-                x.start <= y.end && y.start <= x.end
-            };
-
-            let fov_image_overlapping = is_ranges_overlapping(&x_fov_proj_range, &(0.0..width))
-                && is_ranges_overlapping(&y_fov_proj_range, &(0.0..height));
-
-            if fov_image_overlapping {
-                if camera.get_field_of_view().contains_pole() {
-                    self.idx_tex = (0..self.textures.len()).collect();
-                    (0.0..width, 0.0..height)
-                } else {
-                    // The fov is overlapping the image, we must render it!
-                    // clamp the texture
-                    let x_mesh_range =
-                        x_fov_proj_range.start.max(0.0)..x_fov_proj_range.end.min(width);
-                    let y_mesh_range =
-                        y_fov_proj_range.start.max(0.0)..y_fov_proj_range.end.min(height);
-
-                    // Select the textures overlapping the fov
-                    let id_min_tx = (x_mesh_range.start as u64) / (self.max_tex_size as u64);
-                    let id_min_ty = (y_mesh_range.start as u64) / (self.max_tex_size as u64);
-
-                    let id_max_tx = (x_mesh_range.end as u64) / (self.max_tex_size as u64);
-                    let id_max_ty = (y_mesh_range.end as u64) / (self.max_tex_size as u64);
-
-                    let num_texture_y = (((height as i32) / (self.max_tex_size as i32)) + 1) as u64;
-
-                    self.idx_tex = (id_min_tx..=id_max_tx)
-                        .flat_map(|id_tx| {
-                            (id_min_ty..=id_max_ty)
-                                .map(move |id_ty| (id_ty + id_tx * num_texture_y) as usize)
-                        })
-                        .collect::<Vec<_>>();
-
-                    (x_mesh_range, y_mesh_range)
-                }
-            } else {
-                // out of field of view
-                self.idx_tex.clear();
-
-                // terminate here
-                return Ok(());
-            }
-        } else {
-            self.idx_tex = (0..self.textures.len()).collect();
-
-            (0.0..width, 0.0..height)
-        };*/
 
         let (x_mesh_range, y_mesh_range) =
             if camera.get_field_of_view().intersects_region(&self.reg) {
@@ -581,11 +487,6 @@ impl Image {
                 // terminate here
                 return Ok(());
             };
-
-        /*console_log(&format!(
-            "{:?}",
-            (x_mesh_range.clone(), y_mesh_range.clone())
-        ));*/
 
         const MAX_NUM_TRI_PER_SIDE_IMAGE: usize = 15;
         let num_vertices =
@@ -653,7 +554,7 @@ impl Image {
                 .ok_or(JsValue::from_str("(w / 2, h / 2) px cannot be unprojected"))?;
             let center_xyz = center.to_xyz();
             let inside = crate::coosys::apply_coo_system(
-                CooSystem::ICRS,
+                CooSystem::FK5J2000,
                 self.coo_sys,
                 &Vector4::new(center_xyz.y(), center_xyz.z(), center_xyz.x(), 1.0),
             );
@@ -677,7 +578,7 @@ impl Image {
                 let xyz = lonlat.to_xyz();
 
                 crate::coosys::apply_coo_system(
-                    CooSystem::ICRS,
+                    CooSystem::FK5J2000,
                     self.coo_sys,
                     &Vector4::new(xyz.y(), xyz.z(), xyz.x(), 1.0),
                 )

@@ -76,7 +76,7 @@ impl MOCRenderer {
             .push(MOCHierarchy::from_full_res_moc(self.gl.clone(), moc, &cfg));
         self.cfgs.push(cfg);
 
-        camera.register_view_frame(CooSystem::ICRS, proj);
+        camera.register_view_frame(CooSystem::FK5J2000, proj);
         //self.layers.push(key);
     }
 
@@ -96,7 +96,7 @@ impl MOCRenderer {
     ) -> Option<MOCOptions> {
         if let Some(idx) = self.cfgs.iter().position(|cfg| cfg.get_uuid() == moc_uuid) {
             self.mocs.remove(idx);
-            camera.unregister_view_frame(CooSystem::ICRS, proj);
+            camera.unregister_view_frame(CooSystem::FK5J2000, proj);
 
             Some(self.cfgs.remove(idx))
         } else {

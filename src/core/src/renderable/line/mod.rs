@@ -399,9 +399,9 @@ impl RasterizedLineRenderer {
                     );
                 }
                 CooSpace::LonLat => {
-                    let icrs2view = CooSystem::ICRS.to(camera.get_coo_system());
+                    let j20002view = CooSystem::FK5J2000.to(camera.get_coo_system());
                     let view2world = camera.get_m2w();
-                    let icrs2world = view2world * icrs2view;
+                    let j20002world = view2world * j20002view;
 
                     crate::shader::get_shader(
                         &self.gl,
@@ -411,7 +411,7 @@ impl RasterizedLineRenderer {
                     )?
                     .bind(&self.gl)
                     .attach_uniforms_from(camera)
-                    .attach_uniform("u_2world", &icrs2world)
+                    .attach_uniform("u_2world", &j20002world)
                     .attach_uniform("u_color", &meta.color)
                     .attach_uniform("u_width", &meta.thickness)
                     .attach_uniform("u_proj", proj)

@@ -194,7 +194,7 @@ impl Manager {
         // Update the number of sources loaded
         //self.num_sources += num_instances_in_catalog as usize;
         self.catalogs.insert(name, catalog);
-        camera.register_view_frame(CooSystem::ICRS, proj);
+        camera.register_view_frame(CooSystem::FK5J2000, proj);
 
         // At this point, all the sources memory will be deallocated here
         // These sources have been copied to the GPU so we do not need them
@@ -213,7 +213,7 @@ impl Manager {
         // Update the number of sources loaded
         //self.num_sources += num_instances_in_catalog as usize;
         self.catalogs.remove(&name);
-        camera.unregister_view_frame(CooSystem::ICRS, proj);
+        camera.unregister_view_frame(CooSystem::FK5J2000, proj);
     }
 
     pub fn set_kernel_size(&mut self, camera: &CameraViewPort) {
@@ -241,7 +241,7 @@ impl Manager {
             }
         } else {
             let depth = camera.get_texture_depth().min(7);
-            let cells = camera.get_hpx_cells(depth, CooSystem::ICRS);
+            let cells = camera.get_hpx_cells(depth, CooSystem::FK5J2000);
 
             for catalog in self.catalogs.values_mut() {
                 catalog.update(&cells);

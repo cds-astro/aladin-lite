@@ -1,20 +1,13 @@
-use cgmath::{BaseFloat, Vector4};
-
-use al_api::coo_system::CooBaseFloat;
+use cgmath::Vector4;
 use al_api::coo_system::CooSystem;
-
 
 /// This is conversion method returning a transformation
 /// matrix when the system requested by the user is not
-/// icrs j2000.
-/// The core projections are always performed in icrs j2000
-/// so one must call these methods to convert them to icrs before.
+/// fk5j2000.
+/// The core projections are always performed in fk5j2000
 #[inline]
-pub fn apply_coo_system<S>(c1: CooSystem, c2: CooSystem, v: &Vector4<S>) -> Vector4<S>
-where
-    S: BaseFloat + CooBaseFloat,
-{
-    let c1_2_c2_mat = c1.to::<S>(c2);
+pub fn apply_coo_system(c1: CooSystem, c2: CooSystem, v: &Vector4<f64>) -> Vector4<f64> {
+    let c1_2_c2_mat = c1.to(c2);
     c1_2_c2_mat * (*v)
 }
 
@@ -37,7 +30,7 @@ mod tests {
 
         let lonlat: LonLatT<f64> = LonLatT::new(ArcDeg(0.0).into(), ArcDeg(0.0).into());
         let gal_lonlat =
-            super::apply_coo_system(CooSystem::ICRS, CooSystem::GAL, &lonlat.vector()).lonlat();
+            super::apply_coo_system(CooSystem::FK5J2000, CooSystem::GAL, &lonlat.vector()).lonlat();
 
         let gal_lon_deg = gal_lonlat.lon().to_degrees();
         let gal_lat_deg = gal_lonlat.lat().to_degrees();
@@ -55,7 +48,7 @@ mod tests {
 
         let lonlat: LonLatT<f64> = LonLatT::new(ArcDeg(0.0).into(), ArcDeg(0.0).into());
         let j2000_lonlat =
-            super::apply_coo_system(CooSystem::GAL, CooSystem::ICRS, &lonlat.vector()).lonlat();
+            super::apply_coo_system(CooSystem::GAL, CooSystem::FK5J2000, &lonlat.vector()).lonlat();
         let j2000_lon_deg = j2000_lonlat.lon().to_degrees();
         let j2000_lat_deg = j2000_lonlat.lat().to_degrees();
 
@@ -72,10 +65,10 @@ mod tests {
 
         let gal_lonlat: LonLatT<f64> = LonLatT::new(ArcDeg(0.0).into(), ArcDeg(0.0).into());
 
-        let icrs_pos =
-            super::apply_coo_system(CooSystem::GAL, CooSystem::ICRS, &gal_lonlat.vector());
+        let j2000_pos =
+            super::apply_coo_system(CooSystem::GAL, CooSystem::FK5J2000, &gal_lonlat.vector());
 
-        let gal_lonlat = super::apply_coo_system(CooSystem::ICRS, CooSystem::GAL, &icrs_pos);
+        let gal_lonlat = super::apply_coo_system(CooSystem::FK5J2000, CooSystem::GAL, &j2000_pos);
 
         let gal_lon_deg = gal_lonlat.lon().to_degrees();
         let gal_lat_deg = gal_lonlat.lat().to_degrees();

@@ -270,8 +270,8 @@ export let MOC = (function() {
      * Tests whether a given (ra, dec) point on the sky is within the current MOC object
      *
      * @memberof MOC
-     * @param {number} ra - Right-Ascension of the location in degrees and ICRS frame
-     * @param {number} dec - Declination of the location in degrees and ICRS frame
+     * @param {number} ra - Right-Ascension of the location in degrees and FK5J2000 frame
+     * @param {number} dec - Declination of the location in degrees and FK5J2000 frame
      *
      * @returns {boolean} True if the point is contained, false otherwise
      */

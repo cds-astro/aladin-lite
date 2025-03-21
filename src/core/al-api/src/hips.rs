@@ -29,6 +29,7 @@ use crate::coo_system::CooSystem;
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
+#[wasm_bindgen]
 pub struct HiPSProperties {
     // Associated with the HiPS
     url: String,

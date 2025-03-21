@@ -120,9 +120,9 @@ export let GraphicOverlay = (function() {
         }
     };
 
-    // return an array of Footprint from a STC-S string
     /**
-     * Parse a STCS string and returns a list of footprints (only circles, polygons and ellipses given in ICRS frame are handled).
+     * Parse a STCS string and returns a list of footprints (only circles, polygons and ellipses given in ICRS/FK5J2000 frame are handled).
+     * For visualization purposes, the difference between FK5J2000 (ESA method) and ICRS system is not noticeable. Therefore one can be interpreted as the other. 
      *
      * @memberof GraphicOverlay
      * 

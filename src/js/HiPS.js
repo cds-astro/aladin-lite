@@ -29,6 +29,7 @@ import { ALEvent } from "./events/ALEvent.js";
 import { ColorCfg } from "./ColorCfg.js";
 import { HiPSProperties } from "./HiPSProperties.js";
 import { Aladin } from "./Aladin.js"; 
+import { CooFrameEnum } from "./CooFrameEnum.js";
 let PropertyParser = {};
 // Utilitary functions for parsing the properties and giving default values
 /// Mandatory tileSize property
@@ -52,7 +53,7 @@ PropertyParser.cooFrame = function (properties) {
     let cooFrame =
         (properties && properties.hips_body && "ICRSd") ||
         (properties && properties.hips_frame) ||
-        "ICRS";
+        "j2000";
     return cooFrame;
 };
 
@@ -251,7 +252,7 @@ export let HiPS = (function () {
 
         this.maxOrder = options.maxOrder;
         this.minOrder = options.minOrder || 0;
-        this.cooFrame = options.cooFrame;
+        this.cooFrame = CooFrameEnum.fromString(options.cooFrame, null);
         this.tileSize = options.tileSize;
         this.skyFraction = options.skyFraction;
         this.longitudeReversed =
@@ -329,8 +330,11 @@ export let HiPS = (function () {
         }
 
         // Frame
-        self.cooFrame =
-            PropertyParser.cooFrame(properties) || self.cooFrame;
+        let cooFrame =
+            PropertyParser.cooFrame(properties);
+        // Parse the cooframe from the properties but if it fails, take the one given by the user
+        // If the user gave nothing, then take J2000 as the default one
+        self.cooFrame = CooFrameEnum.fromString(cooFrame, self.cooFrame || CooFrameEnum.J2000);
 
         // sky fraction
         self.skyFraction = PropertyParser.skyFraction(properties);
@@ -442,26 +446,6 @@ export let HiPS = (function () {
         }
 
         self.setOptions({minCut, maxCut});
-
-        // Coo frame
-        if (
-            self.cooFrame == "ICRS" ||
-            self.cooFrame == "ICRSd" ||
-            self.cooFrame == "equatorial" ||
-            self.cooFrame == "j2000"
-        ) {
-            self.cooFrame = "ICRS";
-        } else if (self.cooFrame == "galactic" || self.cooFrame == "GAL") {
-            self.cooFrame = "GAL";
-        } else {
-            console.warn(
-                "Invalid cooframe given: " +
-                    self.cooFrame +
-                    '. Coordinate systems supported: "ICRS", "ICRSd", "j2000" or "galactic". ICRS is chosen by default'
-            );
-            self.cooFrame = "ICRS";
-
-        }
 
         self.formats = self.formats || [self.imgFormat];
 
@@ -962,7 +946,7 @@ export let HiPS = (function () {
                     hips_order: this.maxOrder,
                     hips_service_url: this.url,
                     hips_tile_width: this.tileSize,
-                    hips_frame: this.cooFrame
+                    hips_frame: this.cooFrame.label
                 })
             }
 
@@ -990,7 +974,7 @@ export let HiPS = (function () {
                 creatorDid: self.creatorDid,
                 url: self.url,
                 maxOrder: self.maxOrder,
-                cooFrame: self.cooFrame,
+                cooFrame: self.cooFrame.system,
                 tileSize: self.tileSize,
                 formats: self.formats,
                 bitpix: self.numBitsPerPixel,

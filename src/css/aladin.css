@@ -1125,7 +1125,7 @@
 .aladin-location {
     position: absolute;
     top: 0.2rem;
-    left: 4.7rem;
+    left: 5.2rem;
     font-family: monospace;
 
     color: white;
@@ -1217,7 +1217,7 @@
 .aladin-projection-control {
     position: absolute;
     top: 0.2rem;
-    right: 3rem;
+    right: 2.6rem;
 }
 
 .aladin-fullscreen {

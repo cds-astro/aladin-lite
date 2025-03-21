@@ -30,13 +30,14 @@
 
 export let CooFrameEnum = (function() {
 
-    var systems = {J2000: 'J2000', GAL: 'GAL'};
+    // Corresponds to the Rust CooSystem enum possibilities.
+    var systems = {J2000: 'FK5J2000', GAL: 'GAL'};
     return {
         SYSTEMS: systems,
 
-        J2000: {label: "ICRS", system: systems.J2000},
-        J2000d: {label: "ICRSd", system: systems.J2000},
-        GAL:  {label: "GAL", system: systems.GAL},
+        J2000: {label: "J2000", system: systems.J2000, explain: "Equatorial (FK5 J2000)"},
+        J2000d: {label: "J2000d", system: systems.J2000, explain: "Equatorial (FK5 J2000) in decimals"},
+        GAL:  {label: "GAL", system: systems.GAL, explain: "Galactical"},
 
         fromString: function(str, defaultValue) {
             if (! str) {

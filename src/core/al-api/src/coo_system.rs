@@ -1,119 +1,66 @@
 use cgmath::Matrix4;
-pub trait CooBaseFloat: Sized + 'static {
-    const GALACTIC_TO_J2000: &'static Matrix4<Self>;
-    const J2000_TO_GALACTIC: &'static Matrix4<Self>;
-    const ID: &'static Matrix4<Self>;
-}
 
-impl CooBaseFloat for f32 {
-    const GALACTIC_TO_J2000: &'static Matrix4<Self> = &Matrix4::new(
-        -0.444_829_64,
-        0.746_982_2,
-        0.494_109_42,
-        0.0,
-        -0.198_076_37,
-        0.455_983_8,
-        -0.867_666_1,
-        0.0,
-        -0.873_437_1,
-        -0.483_835,
-        -0.054_875_56,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        1.0,
-    );
+const GAL2FK5J2000: &'static Matrix4<f64> = &Matrix4::new(
+    -0.44482962996001117814661406161609,
+    0.74698224449721889052738800455594,
+    0.49410942787558367352522237135824,
+    0.0,
+    -0.19807637343120152818048609141212,
+    0.45598377617506692227210047834778,
+    -0.86766614901900470118161653456955,
+    0.0,
+    -0.87343709023488504876038316840868,
+    -0.48383501554871322683177417511638,
+    -0.05487556041621536849239890045391,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+);
 
-    const J2000_TO_GALACTIC: &'static Matrix4<Self> = &Matrix4::new(
-        -0.444_829_64,
-        -0.198_076_37,
-        -0.873_437_1,
-        0.0,
-        0.746_982_2,
-        0.455_983_8,
-        -0.483_835,
-        0.0,
-        0.494_109_42,
-        -0.867_666_1,
-        -0.054_875_56,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        1.0,
-    );
+const FK5J20002GAL: &'static Matrix4<f64> = &Matrix4::new(
+    -0.44482962996001117814661406161609,
+    -0.19807637343120152818048609141212,
+    -0.87343709023488504876038316840868,
+    0.0,
+    0.74698224449721889052738800455594,
+    0.45598377617506692227210047834778,
+    -0.48383501554871322683177417511638,
+    0.0,
+    0.49410942787558367352522237135824,
+    -0.86766614901900470118161653456955,
+    -0.05487556041621536849239890045391,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+);
 
-    const ID: &'static Matrix4<Self> = &Matrix4::new(
-        1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
-    );
-}
-impl CooBaseFloat for f64 {
-    const GALACTIC_TO_J2000: &'static Matrix4<Self> = &Matrix4::new(
-        -0.4448296299195045,
-        0.7469822444763707,
-        0.4941094279435681,
-        0.0,
-        -0.1980763734646737,
-        0.4559837762325372,
-        -0.867_666_148_981_161,
-        0.0,
-        -0.873437090247923,
-        -0.4838350155267381,
-        -0.0548755604024359,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        1.0,
-    );
+const ID: &'static Matrix4<f64> = &Matrix4::new(
+    1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
+);
 
-    const J2000_TO_GALACTIC: &'static Matrix4<Self> = &Matrix4::new(
-        -0.4448296299195045,
-        -0.1980763734646737,
-        -0.873437090247923,
-        0.0,
-        0.7469822444763707,
-        0.4559837762325372,
-        -0.4838350155267381,
-        0.0,
-        0.4941094279435681,
-        -0.867_666_148_981_161,
-        -0.0548755604024359,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        1.0,
-    );
 
-    const ID: &'static Matrix4<Self> = &Matrix4::new(
-        1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
-    );
-}
-
-use cgmath::BaseFloat;
 use serde::Deserialize;
 use wasm_bindgen::prelude::*;
 #[wasm_bindgen]
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Deserialize, Hash)]
 pub enum CooSystem {
-    ICRS = 0,
-    GAL = 1,
+    FK5J2000,
+    GAL,
 }
 
 pub const NUM_COOSYSTEM: usize = 2;
 
 impl CooSystem {
     #[inline]
-    pub fn to<S>(&self, coo_system: Self) -> &Matrix4<S>
-    where
-        S: BaseFloat + CooBaseFloat,
-    {
+    pub fn to(&self, coo_system: Self) -> &Matrix4<f64> {
         match (self, coo_system) {
-            (CooSystem::GAL, CooSystem::ICRS) => S::GALACTIC_TO_J2000,
-            (CooSystem::ICRS, CooSystem::GAL) => S::J2000_TO_GALACTIC,
-            (_, _) => S::ID,
+            (CooSystem::GAL, CooSystem::FK5J2000) => GAL2FK5J2000,
+            (CooSystem::FK5J2000, CooSystem::GAL) => FK5J20002GAL,
+            (_, _) => ID,
         }
     }
 }

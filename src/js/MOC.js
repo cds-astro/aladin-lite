@@ -48,6 +48,9 @@ export let MOC = (function() {
         options = options || {};
         this.name = options.name || "MOC";
 
+        // User can change the opacity, color, lineWidth and fillColor properties
+        this._defineProperties()
+
         this.color = options.color || Color.getNextColor();
         this.color = Color.standardizeColor(this.color);
 
@@ -131,7 +134,7 @@ export let MOC = (function() {
         let self = this;
 
         this.view = view;
-        this.mocParams = new Aladin.wasmLibs.core.MOC(this.uuid, this.opacity, this.lineWidth, this.perimeter, this.fill, this.edge, this.isShowing, this.color, this.fillColor);
+        this.mocParams = new Aladin.wasmLibs.core.MOCOptions(this.uuid, this.opacity, this.lineWidth, this.perimeter, this.fill, this.edge, this.isShowing, this.color, this.fillColor);
 
         this.promiseFetchData
             .then((data) => {
@@ -160,7 +163,7 @@ export let MOC = (function() {
                 }
 
                 // Cache the sky fraction
-                self.skyFrac = self.view.wasm.getMOCSkyFraction(this.mocParams);
+                self.skyFrac = self.view.wasm.getMOCSkyFraction(this.uuid);
 
                 // Add it to the view
                 self.view.mocs.push(self);
@@ -178,11 +181,53 @@ export let MOC = (function() {
             })
     };
 
+    MOC.prototype._defineProperties = function() {
+        Object.defineProperties(this, {
+            opacity: {
+                get() {
+                    return this._opacity;
+                },
+                set(opacity) {
+                    this._opacity = opacity;
+                    this.reportChange();
+                }
+            },
+            color: {
+                get() {
+                    return this._color;
+                },
+                set(color) {
+                    this._color = Color.standardizeColor(color);
+                    this.reportChange();
+                }
+            },
+            fillColor: {
+                get() {
+                    return this._fillColor;
+                },
+                set(fillColor) {
+                    this._fillColor = Color.standardizeColor(fillColor);
+                    this.reportChange();
+                }
+            },
+            lineWidth: {
+                get() {
+                    return this._lineWidth;
+                },
+                set(lineWidth) {
+                    this._lineWidth = lineWidth;
+                    this.reportChange();
+                }
+            },
+        });
+    };
+
     MOC.prototype.reportChange = function() {
         if (this.view) {
             // update the new moc params to the backend
-            this.mocParams = new Aladin.wasmLibs.core.MOC(this.uuid, this.opacity, this.lineWidth, this.perimeter, this.fill, this.edge, this.isShowing, this.color, this.fillColor);
+            this.mocParams = new Aladin.wasmLibs.core.MOCOptions(this.uuid, this.opacity, this.lineWidth, this.perimeter, this.fill, this.edge, this.isShowing, this.color, this.fillColor);
             this.view.wasm.setMocParams(this.mocParams);
+
             this.view.requestRedraw();
         }
     };
@@ -190,7 +235,7 @@ export let MOC = (function() {
     MOC.prototype.delete = function() {
         if (this.view) {
             // update the new moc params to the backend
-            this.view.wasm.removeMoc(this.mocParams);
+            this.view.wasm.removeMoc(this.uuid);
             this.view.requestRedraw();
         }
     };
@@ -236,7 +281,7 @@ export let MOC = (function() {
         }
 
         // update the new moc params to the backend
-        return this.view.wasm.mocContains(this.mocParams, ra, dec);
+        return this.view.wasm.mocContains(this.uuid, ra, dec);
     };
 
      /**
@@ -250,7 +295,7 @@ export let MOC = (function() {
             throw this.name + " is not yet ready, either because it has not been downloaded yet or because it has not been added to the aladin instance."
         }
 
-        return this.view.wasm.mocSerialize(this.mocParams, format);
+        return this.view.wasm.mocSerialize(this.uuid, format);
     }
 
     return MOC;

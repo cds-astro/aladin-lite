@@ -24,8 +24,14 @@
         //var json = {"3":[517],
         //"4":[2065, 2067]};        
         
-        var moc = A.MOCFromJSON(json, {opacity: 0.5, color: 'magenta', lineWidth: 1, adaptativeDisplay: false});
+        var moc = A.MOCFromJSON(json, {opacity: 0.5, color: 'magenta', lineWidth: 1, fill: true});
         aladin.addMOC(moc);
+
+        // Change the moc options after its creation
+        setTimeout(() => {
+            moc.opacity = 0.2
+            moc.fillColor = "orange"
+        }, 3000)
     });
 </script>
 </body>

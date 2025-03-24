@@ -7,7 +7,7 @@ use crate::healpix::coverage::HEALPixCoverage;
 use crate::math::projection::ProjectionType;
 use crate::renderable::WebGl2RenderingContext;
 use crate::shader::ShaderManager;
-use al_api::moc::MOC as Cfg;
+use al_api::moc::MOCOptions;
 
 use wasm_bindgen::JsValue;
 
@@ -36,7 +36,7 @@ pub struct MOC {
 }
 
 impl MOC {
-    pub(super) fn new(gl: WebGlContext, moc: HEALPixCoverage, cfg: &Cfg) -> Self {
+    pub(super) fn new(gl: WebGlContext, moc: HEALPixCoverage, cfg: &MOCOptions) -> Self {
         let sky_fraction = moc.sky_fraction() as f32;
         let max_order = moc.depth_max();
 
@@ -111,6 +111,47 @@ impl MOC {
 
         num_vertices
     }*/
+
+    pub fn set_options(&mut self, cfg: &MOCOptions, gl: WebGlContext) {
+        let inner = [
+            if cfg.perimeter {
+                // draw only perimeter
+                Some(MOCIntern::new(
+                    gl.clone(),
+                    RenderModeType::Perimeter {
+                        thickness: cfg.line_width,
+                        color: cfg.color,
+                    },
+                ))
+            } else {
+                None
+            },
+            if cfg.filled {
+                // change color
+                let fill_color = cfg.fill_color;
+                // draw the edges
+                Some(MOCIntern::new(
+                    gl.clone(),
+                    RenderModeType::Filled { color: fill_color },
+                ))
+            } else {
+                None
+            },
+            if cfg.edges {
+                Some(MOCIntern::new(
+                    gl,
+                    RenderModeType::Edge {
+                        thickness: cfg.line_width,
+                        color: cfg.color,
+                    },
+                ))
+            } else {
+                None
+            },
+        ];
+
+        self.inner = inner;
+    }
 
     pub fn sky_fraction(&self) -> f32 {
         self.sky_fraction

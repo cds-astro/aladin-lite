@@ -6,11 +6,11 @@ use super::hierarchy::MOCHierarchy;
 
 use al_api::coo_system::CooSystem;
 
-use al_api::moc::MOC as Cfg;
+use al_api::moc::MOCOptions;
 
 pub struct MOCRenderer {
     mocs: Vec<MOCHierarchy>,
-    cfgs: Vec<Cfg>,
+    cfgs: Vec<MOCOptions>,
     gl: WebGlContext,
 }
 
@@ -68,7 +68,7 @@ impl MOCRenderer {
     pub fn push_back(
         &mut self,
         moc: HEALPixCoverage,
-        cfg: Cfg,
+        cfg: MOCOptions,
         camera: &mut CameraViewPort,
         proj: &ProjectionType,
     ) {
@@ -80,10 +80,8 @@ impl MOCRenderer {
         //self.layers.push(key);
     }
 
-    pub fn get_hpx_coverage(&self, cfg: &Cfg) -> Option<&HEALPixCoverage> {
-        let name = cfg.get_uuid();
-
-        if let Some(idx) = self.cfgs.iter().position(|cfg| cfg.get_uuid() == name) {
+    pub fn get_hpx_coverage(&self, moc_uuid: &str) -> Option<&HEALPixCoverage> {
+        if let Some(idx) = self.cfgs.iter().position(|cfg| cfg.get_uuid() == moc_uuid) {
             Some(&self.mocs[idx].get_full_moc())
         } else {
             None
@@ -92,13 +90,11 @@ impl MOCRenderer {
 
     pub fn remove(
         &mut self,
-        cfg: &Cfg,
+        moc_uuid: &str,
         camera: &mut CameraViewPort,
         proj: &ProjectionType,
-    ) -> Option<Cfg> {
-        let name = cfg.get_uuid();
-
-        if let Some(idx) = self.cfgs.iter().position(|cfg| cfg.get_uuid() == name) {
+    ) -> Option<MOCOptions> {
+        if let Some(idx) = self.cfgs.iter().position(|cfg| cfg.get_uuid() == moc_uuid) {
             self.mocs.remove(idx);
             camera.unregister_view_frame(CooSystem::ICRS, proj);
 
@@ -108,20 +104,21 @@ impl MOCRenderer {
         }
     }
 
-    pub fn set_cfg(
+    pub fn set_options(
         &mut self,
-        cfg: Cfg,
+        options: MOCOptions,
         camera: &mut CameraViewPort,
         projection: &ProjectionType,
         shaders: &mut ShaderManager,
-    ) -> Option<Cfg> {
-        let name = cfg.get_uuid();
+    ) -> Option<MOCOptions> {
+        let name = options.get_uuid();
 
         if let Some(idx) = self.cfgs.iter().position(|cfg| cfg.get_uuid() == name) {
             let old_cfg = self.cfgs[idx].clone();
-            self.cfgs[idx] = cfg;
+            self.mocs[idx].set_options(&options);
+            self.cfgs[idx] = options;
 
-            let _ = self.draw(camera, projection, shaders);
+            //let _ = self.draw(camera, projection, shaders);
 
             Some(old_cfg)
         } else {
@@ -131,7 +128,7 @@ impl MOCRenderer {
     }
 
     pub fn is_empty(&self) -> bool {
-        self.cfgs.is_empty()
+        self.mocs.is_empty()
     }
 
     pub fn draw(

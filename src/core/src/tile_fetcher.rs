@@ -5,6 +5,7 @@ use crate::Abort;
 use std::cell::RefCell;
 use std::collections::{HashMap, VecDeque};
 use std::rc::Rc;
+use al_api::moc::MOCOptions;
 
 const MAX_NUM_TILE_FETCHING: usize = 8;
 const MAX_QUERY_QUEUE_LENGTH: usize = 100;
@@ -208,7 +209,7 @@ impl TileFetcherQueue {
         downloader.borrow_mut().fetch(query::Moc::new(
             moc_url,
             cfg.get_creator_did().to_string(),
-            al_api::moc::MOC::default(),
+            MOCOptions::default(),
         ));
 
         let tile_size = cfg.get_tile_size();

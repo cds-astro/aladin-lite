@@ -176,16 +176,16 @@ impl Query for PixelMetadata {
         &self.id
     }
 }
-
+use al_api::moc::MOCOptions;
 /* ---------------------------------- */
 pub struct Moc {
     // The total url of the query
     pub url: Url,
-    pub params: al_api::moc::MOC,
+    pub params: MOCOptions,
     pub hips_cdid: CreatorDid,
 }
 impl Moc {
-    pub fn new(url: String, hips_cdid: CreatorDid, params: al_api::moc::MOC) -> Self {
+    pub fn new(url: String, hips_cdid: CreatorDid, params: MOCOptions) -> Self {
         Moc {
             url,
             params,

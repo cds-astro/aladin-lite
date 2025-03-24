@@ -20,6 +20,7 @@ use crate::{
     tile_fetcher::TileFetcherQueue,
     time::DeltaTime,
 };
+use al_api::moc::MOCOptions;
 use crate::math::angle::ToAngle;
 use al_core::image::format::ChannelType;
 use wcs::WCS;
@@ -477,25 +478,25 @@ impl App {
         self.catalog_loaded
     }
 
-    pub(crate) fn get_moc(&self, cfg: &al_api::moc::MOC) -> Option<&HEALPixCoverage> {
-        self.moc.get_hpx_coverage(cfg)
+    pub(crate) fn get_moc(&self, moc_uuid: &str) -> Option<&HEALPixCoverage> {
+        self.moc.get_hpx_coverage(moc_uuid)
     }
 
     pub(crate) fn add_moc(
         &mut self,
-        cfg: al_api::moc::MOC,
         moc: HEALPixCoverage,
+        options: MOCOptions,
     ) -> Result<(), JsValue> {
         self.moc
-            .push_back(moc, cfg, &mut self.camera, &self.projection);
+            .push_back(moc, options, &mut self.camera, &self.projection);
         self.request_redraw = true;
 
         Ok(())
     }
 
-    pub(crate) fn remove_moc(&mut self, cfg: &al_api::moc::MOC) -> Result<(), JsValue> {
+    pub(crate) fn remove_moc(&mut self, moc_uuid: &str) -> Result<(), JsValue> {
         self.moc
-            .remove(cfg, &mut self.camera, &self.projection)
+            .remove(moc_uuid, &mut self.camera, &self.projection)
             .ok_or_else(|| JsValue::from_str("MOC not found"))?;
 
         self.request_redraw = true;
@@ -503,9 +504,9 @@ impl App {
         Ok(())
     }
 
-    pub(crate) fn set_moc_cfg(&mut self, cfg: al_api::moc::MOC) -> Result<(), JsValue> {
+    pub(crate) fn set_moc_options(&mut self, options: MOCOptions) -> Result<(), JsValue> {
         self.moc
-            .set_cfg(cfg, &mut self.camera, &self.projection, &mut self.shaders)
+            .set_options(options, &mut self.camera, &self.projection, &mut self.shaders)
             .ok_or_else(|| JsValue::from_str("MOC not found"))?;
         self.request_redraw = true;
 

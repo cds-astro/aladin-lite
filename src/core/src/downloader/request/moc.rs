@@ -10,7 +10,7 @@ use moclib::qty::Hpx;
 pub struct MOCRequest {
     //pub id: QueryId,
     pub hips_cdid: CreatorDid,
-    pub params: al_api::moc::MOC,
+    pub params: MOCOptions,
     request: Request<HEALPixCoverage>,
 }
 
@@ -41,6 +41,7 @@ pub fn from_fits_hpx<T: Idx>(moc: MocType<T, Hpx<T>, Cursor<&[u8]>>) -> Smoc {
 
 use crate::healpix::coverage::HEALPixCoverage;
 use crate::Abort;
+use al_api::moc::MOCOptions;
 use moclib::deser::fits::MocIdxType;
 use moclib::deser::fits::MocQtyType;
 use moclib::idx::Idx;
@@ -106,7 +107,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 pub struct Moc {
     pub moc: Rc<RefCell<Option<HEALPixCoverage>>>,
-    pub params: al_api::moc::MOC,
+    pub params: MOCOptions,
     pub hips_cdid: Url,
 }
 

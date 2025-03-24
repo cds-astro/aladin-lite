@@ -90,6 +90,7 @@ use moclib::moc::RangeMOCIntoIterator;
 use crate::tile_fetcher::HiPSLocalFiles;
 use wasm_bindgen::prelude::*;
 use web_sys::HtmlElement;
+use al_api::moc::MOCOptions;
 
 use crate::math::angle::ToAngle;
 
@@ -1014,7 +1015,7 @@ impl WebClient {
     #[wasm_bindgen(js_name = addJSONMoc)]
     pub fn add_json_moc(
         &mut self,
-        params: &al_api::moc::MOC,
+        options: MOCOptions,
         data: &JsValue,
     ) -> Result<(), JsValue> {
         let str: String = js_sys::JSON::stringify(data)?.into();
@@ -1025,13 +1026,13 @@ impl WebClient {
             .ranges()
             .into_range_moc();
 
-        self.app.add_moc(params.clone(), HEALPixCoverage(moc))?;
+        self.app.add_moc(HEALPixCoverage(moc), options)?;
 
         Ok(())
     }
 
     #[wasm_bindgen(js_name = addFITSMOC)]
-    pub fn add_fits_moc(&mut self, params: &al_api::moc::MOC, data: &[u8]) -> Result<(), JsValue> {
+    pub fn add_fits_moc(&mut self, options: MOCOptions, data: &[u8]) -> Result<(), JsValue> {
         //let bytes = js_sys::Uint8Array::new(array_buffer).to_vec();
         let moc = match fits::from_fits_ivoa_custom(Cursor::new(&data[..]), false)
             .map_err(|e| JsValue::from_str(&e.to_string()))?
@@ -1044,7 +1045,7 @@ impl WebClient {
             _ => Err(JsValue::from_str("MOC not supported. Must be a HPX MOC")),
         }?;
 
-        self.app.add_moc(params.clone(), HEALPixCoverage(moc))?;
+        self.app.add_moc(HEALPixCoverage(moc), options)?;
 
         Ok(())
     }
@@ -1052,7 +1053,7 @@ impl WebClient {
     #[wasm_bindgen(js_name = addConeMOC)]
     pub fn add_cone_moc(
         &mut self,
-        params: &al_api::moc::MOC,
+        options: MOCOptions,
         ra_deg: f64,
         dec_deg: f64,
         rad_deg: f64,
@@ -1068,7 +1069,7 @@ impl WebClient {
             pixel_d as u8 - 1,
         );
 
-        self.app.add_moc(params.clone(), moc)?;
+        self.app.add_moc(moc, options)?;
 
         Ok(())
     }
@@ -1076,7 +1077,7 @@ impl WebClient {
     #[wasm_bindgen(js_name = addPolyMOC)]
     pub fn add_poly_moc(
         &mut self,
-        params: &al_api::moc::MOC,
+        params: MOCOptions,
         ra_deg: &[f64],
         dec_deg: &[f64],
     ) -> Result<(), JsValue> {
@@ -1098,21 +1099,21 @@ impl WebClient {
             moc = moc.not();
         }
 
-        self.app.add_moc(params.clone(), moc)?;
+        self.app.add_moc(moc, params)?;
 
         Ok(())
     }
 
     #[wasm_bindgen(js_name = removeMoc)]
-    pub fn remove_moc(&mut self, params: &al_api::moc::MOC) -> Result<(), JsValue> {
-        self.app.remove_moc(params)?;
+    pub fn remove_moc(&mut self, moc_uuid: String) -> Result<(), JsValue> {
+        self.app.remove_moc(&moc_uuid)?;
 
         Ok(())
     }
 
     #[wasm_bindgen(js_name = setMocParams)]
-    pub fn set_moc_cfg(&mut self, cfg: &al_api::moc::MOC) -> Result<(), JsValue> {
-        self.app.set_moc_cfg(cfg.clone())?;
+    pub fn set_moc_options(&mut self, options: MOCOptions) -> Result<(), JsValue> {
+        self.app.set_moc_options(options)?;
 
         Ok(())
     }
@@ -1120,13 +1121,13 @@ impl WebClient {
     #[wasm_bindgen(js_name = mocContains)]
     pub fn moc_contains(
         &mut self,
-        params: &al_api::moc::MOC,
+        moc_uuid: String,
         lon: f64,
         lat: f64,
     ) -> Result<bool, JsValue> {
         let moc = self
             .app
-            .get_moc(params)
+            .get_moc(&moc_uuid)
             .ok_or_else(|| JsValue::from(js_sys::Error::new("MOC not found")))?;
         let location = LonLatT::new(ArcDeg(lon).into(), ArcDeg(lat).into());
 
@@ -1136,12 +1137,12 @@ impl WebClient {
     #[wasm_bindgen(js_name = mocSerialize)]
     pub fn moc_serialize(
         &mut self,
-        params: &al_api::moc::MOC,
+        moc_uuid: String,
         _format: String, // todo support the fits/ascii serialization
     ) -> Result<JsValue, JsValue> {
         let moc = self
             .app
-            .get_moc(params)
+            .get_moc(&moc_uuid)
             .ok_or_else(|| JsValue::from(js_sys::Error::new("MOC not found")))?;
 
         let mut buf: Vec<u8> = Default::default();
@@ -1156,8 +1157,8 @@ impl WebClient {
     }
 
     #[wasm_bindgen(js_name = getMOCSkyFraction)]
-    pub fn get_moc_sky_fraction(&mut self, params: &al_api::moc::MOC) -> f32 {
-        if let Some(moc) = self.app.get_moc(params) {
+    pub fn get_moc_sky_fraction(&mut self, moc_uuid: String) -> f32 {
+        if let Some(moc) = self.app.get_moc(&moc_uuid) {
             moc.sky_fraction() as f32
         } else {
             0.0

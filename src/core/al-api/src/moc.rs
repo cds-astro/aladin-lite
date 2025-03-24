@@ -4,7 +4,7 @@ use super::color::{Color, ColorRGBA};
 
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct MOC {
+pub struct MOCOptions {
     uuid: String,
     pub line_width: f32,
     pub perimeter: bool,
@@ -18,7 +18,7 @@ pub struct MOC {
 use crate::{color::ColorRGB, Abort};
 use std::convert::TryInto;
 #[wasm_bindgen]
-impl MOC {
+impl MOCOptions {
     #[wasm_bindgen(constructor)]
     pub fn new(
         uuid: String,
@@ -58,13 +58,13 @@ impl MOC {
     }
 }
 
-impl MOC {
+impl MOCOptions {
     pub fn get_uuid(&self) -> &String {
         &self.uuid
     }
 }
 
-impl Default for MOC {
+impl Default for MOCOptions {
     fn default() -> Self {
         Self {
             uuid: String::from("moc"),

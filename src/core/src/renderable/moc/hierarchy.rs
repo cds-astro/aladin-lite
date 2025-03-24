@@ -1,26 +1,34 @@
 use super::MOC;
 use crate::{camera::CameraViewPort, HEALPixCoverage};
-use al_api::moc::MOC as Cfg;
+use al_api::moc::MOCOptions;
 
 pub struct MOCHierarchy {
     full_res_depth: u8,
     // MOC at different resolution
     mocs: Vec<MOC>,
+    gl: WebGlContext,
 }
 use al_core::WebGlContext;
 impl MOCHierarchy {
-    pub fn from_full_res_moc(gl: WebGlContext, full_res_moc: HEALPixCoverage, cfg: &Cfg) -> Self {
+    pub fn from_full_res_moc(gl: WebGlContext, full_res_moc: HEALPixCoverage, options: &MOCOptions) -> Self {
         let full_res_depth = full_res_moc.depth();
 
         let mut mocs: Vec<_> = (0..full_res_depth)
-            .map(|d| MOC::new(gl.clone(), HEALPixCoverage(full_res_moc.degraded(d)), cfg))
+            .map(|d| MOC::new(gl.clone(), HEALPixCoverage(full_res_moc.degraded(d)), options))
             .collect();
 
-        mocs.push(MOC::new(gl, full_res_moc, cfg));
+        mocs.push(MOC::new(gl.clone(), full_res_moc, options));
 
         Self {
             mocs,
             full_res_depth,
+            gl,
+        }
+    }
+
+    pub fn set_options(&mut self, options: &MOCOptions) {
+        for moc in &mut self.mocs {
+            moc.set_options(&options, self.gl.clone());
         }
     }
 

@@ -219,6 +219,33 @@ export let MOC = (function() {
                     this.reportChange();
                 }
             },
+            perimeter: {
+                get() {
+                    return this._perimeter;
+                },
+                set(perimeter) {
+                    this._perimeter = perimeter;
+                    this.reportChange();
+                }
+            },
+            fill: {
+                get() {
+                    return this._fill;
+                },
+                set(fill) {
+                    this._fill = fill;
+                    this.reportChange();
+                }
+            },
+            edge: {
+                get() {
+                    return this._edge;
+                },
+                set(edge) {
+                    this._edge = edge;
+                    this.reportChange();
+                }
+            },
         });
     };
 

@@ -688,7 +688,7 @@ A.catalogFromSimbad = function (target, radius, options, successCallback, errorC
                 // object name, use sesame
                 Sesame.resolve(target,
                     function (data) { // success callback
-                        // Location given in icrs at J2000
+                        // Location given in icrs at ICRS
                         coo = new Coo(data.coo.jradeg, data.coo.jdedeg);
                         resolve(coo)
                     },

@@ -220,22 +220,22 @@ impl ProjectionType {
         self.world_to_screen_space(&pos_world_space, camera)
     }
 
-    pub fn j2000_celestial_to_screen_space(
+    pub fn icrs_celestial_to_screen_space(
         &self,
         celestial_pos: &XYZWModel<f64>,
         camera: &CameraViewPort,
     ) -> Option<XYScreen<f64>> {
-        self.j2000_celestial_to_normalized_device_space(celestial_pos, camera)
+        self.icrs_celestial_to_normalized_device_space(celestial_pos, camera)
             .map(|ndc_pos| crate::ndc_to_screen_space(&ndc_pos, camera))
     }
 
-    pub fn j2000_celestial_to_normalized_device_space(
+    pub fn icrs_celestial_to_normalized_device_space(
         &self,
         celestial_pos: &XYZWModel<f64>,
         camera: &CameraViewPort,
     ) -> Option<XYNDC<f64>> {
         let view_coosys = camera.get_coo_system();
-        let c = CooSystem::FK5J2000.to(view_coosys);
+        let c = CooSystem::ICRS.to(view_coosys);
 
         let m2w = camera.get_m2w();
         let pos_world_space = m2w * c * celestial_pos;

@@ -31,12 +31,12 @@
 export let CooFrameEnum = (function() {
 
     // Corresponds to the Rust CooSystem enum possibilities.
-    var systems = {J2000: 'FK5J2000', GAL: 'GAL'};
+    var systems = {ICRS: 'ICRS', GAL: 'GAL'};
     return {
         SYSTEMS: systems,
 
-        J2000: {label: "J2000", system: systems.J2000, explain: "Equatorial (FK5 J2000)"},
-        J2000d: {label: "J2000d", system: systems.J2000, explain: "Equatorial (FK5 J2000) in decimals"},
+        ICRS: {label: "ICRS", system: systems.ICRS, explain: "International Celestial Reference System"},
+        ICRSd: {label: "ICRSd", system: systems.ICRS, explain: "International Celestial Reference System in decimals"},
         GAL:  {label: "GAL", system: systems.GAL, explain: "Galactical"},
 
         fromString: function(str, defaultValue) {
@@ -47,10 +47,10 @@ export let CooFrameEnum = (function() {
             str = str.toLowerCase().replace(/^\s+|\s+$/g, ''); // convert to lowercase and trim
             
             if (str.indexOf('j2000d')==0 || str.indexOf('icrsd')==0) {
-                return CooFrameEnum.J2000d;
+                return CooFrameEnum.ICRSd;
             }
             else if (str.indexOf('j2000')==0 || str.indexOf('icrs')==0) {
-                return CooFrameEnum.J2000;
+                return CooFrameEnum.ICRS;
             }
             else if (str.indexOf('gal')==0) {
                 return CooFrameEnum.GAL;

@@ -484,11 +484,11 @@ impl CameraViewPort {
         self.update_rot_matrices(proj);
     }
 
-    /// center lonlat must be given in j2000 frame
+    /// center lonlat must be given in icrs frame
     pub fn set_center(&mut self, lonlat: &LonLatT<f64>, proj: &ProjectionType) {
-        let j2000_pos: Vector4<_> = lonlat.vector();
+        let icrs_pos: Vector4<_> = lonlat.vector();
 
-        let view_pos = CooSystem::FK5J2000.to(self.get_coo_system()) * j2000_pos;
+        let view_pos = CooSystem::ICRS.to(self.get_coo_system()) * icrs_pos;
         let rot_to_center = Rotation::from_sky_position(&view_pos);
 
         let phi = self.get_center_pos_angle();

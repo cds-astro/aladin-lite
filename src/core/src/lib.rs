@@ -331,36 +331,6 @@ impl WebClient {
     /// having the specific form. Please check the file in core/src/hips.rs to see
     /// the different semantics accepted.
     ///
-    /// # Examples
-    ///
-    /// ```javascript
-    /// let al = new Aladin.wasmLibs.core.WebClient(...);
-    /// const panstarrs = {
-    ///     properties: {
-    ///         url: "http://alasky.u-strasbg.fr/Pan-STARRS/DR1/r",
-    ///
-    ///         maxOrder: 11,
-    ///         frame: { label: "J2000", system: "J2000" },
-    ///         tileSize: 512,
-    ///         format: {
-    ///             FITSImage: {
-    ///                 bitpix: 16,
-    ///             }
-    ///         },
-    ///         minCutout: -0.15,
-    ///         maxCutout: 5,
-    ///     },
-    ///     color: {
-    ///         Grayscale2Colormap: {
-    ///             colormap: "RedTemperature",
-    ///             transfer: "asinh",
-    ///             reversed: false,
-    ///         }
-    ///     },
-    /// };
-    /// al.setImageSurveys([panstarrs]);
-    /// ```
-    ///
     /// # Panics
     ///
     /// * If the hips do not match SimpleHiPS type
@@ -577,9 +547,9 @@ impl WebClient {
         Ok(self.app.get_clip_zoom_factor())
     }
 
-    /// Set the center of the view in FK5J2000 coosys
+    /// Set the center of the view in ICRS coosys
     ///
-    /// The core works in FK5J2000 system so
+    /// The core works in ICRS system so
     /// the location must be given in this system
     ///
     /// # Arguments
@@ -627,19 +597,19 @@ impl WebClient {
         Ok(())
     }
 
-    /// View frame to FK5J2000 coosys conversion
+    /// View frame to ICRS coosys conversion
     ///
-    /// Coordinates must be given in the FK5J2000 coo system
+    /// Coordinates must be given in the ICRS coo system
     ///
     /// # Arguments
     ///
     /// * `lon` - A longitude in degrees
     /// * `lat` - A latitude in degrees
-    #[wasm_bindgen(js_name = viewToFK5J2000CooSys)]
-    pub fn view_to_fk5j2000_coosys(&self, lon: f64, lat: f64) -> Box<[f64]> {
+    #[wasm_bindgen(js_name = viewToICRSCooSys)]
+    pub fn view_to_icrs_coosys(&self, lon: f64, lat: f64) -> Box<[f64]> {
         let lonlat = LonLatT::new(ArcDeg(lon).into(), ArcDeg(lat).into());
 
-        let res = self.app.view_to_fk5j2000_coosys(&lonlat);
+        let res = self.app.view_to_icrs_coosys(&lonlat);
 
         let lon_deg: ArcDeg<f64> = res.lon().into();
         let lat_deg: ArcDeg<f64> = res.lat().into();
@@ -649,7 +619,7 @@ impl WebClient {
 
     /// World to screen projection
     ///
-    /// Coordinates must be given in the FK5J2000 or ICRS coo system
+    /// Coordinates must be given in the ICRS or FK5J2000 coo system
     /// ICRS coordinates are lightly different from FK5J2000 but for aladin lite visualization purposes the different is not noticeable.
     ///
     /// # Arguments
@@ -668,7 +638,7 @@ impl WebClient {
             use crate::math::lonlat::LonLat;
             let xyz =
                 LonLatT::new(lon.to_radians().to_angle(), lat.to_radians().to_angle()).vector();
-            let lonlat = coosys::apply_coo_system(frame, CooSystem::FK5J2000, &xyz).lonlat();
+            let lonlat = coosys::apply_coo_system(frame, CooSystem::ICRS, &xyz).lonlat();
             lon = lonlat.lon().to_degrees();
             lat = lonlat.lat().to_degrees();
         }

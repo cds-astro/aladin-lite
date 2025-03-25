@@ -204,7 +204,7 @@ export let View = (function () {
         this.viewCenter = { lon, lat }; // position of center of view
 
         // Coo frame setting
-        const cooFrame = CooFrameEnum.fromString(this.options.cooFrame, CooFrameEnum.J2000);
+        const cooFrame = CooFrameEnum.fromString(this.options.cooFrame, CooFrameEnum.ICRS);
         this.changeFrame(cooFrame);
 
         this.selector = new Selector(this, this.options.selector);
@@ -1959,7 +1959,7 @@ export let View = (function () {
         this.wasm.setCooSystem(this.cooFrame.system);
 
         // Set the grid label format
-        if (this.cooFrame.label == "J2000") {
+        if (this.cooFrame.label == "ICRS") {
             this.setGridOptions({fmt: "sexagesimal"});
         }
         else {
@@ -2009,8 +2009,8 @@ export let View = (function () {
      *
      * @API Point to a specific location
      *
-     * @param ra ra expressed in ICRS or FK5J2000 frame
-     * @param dec dec expressed in ICRS or FK5J2000 frame
+     * @param ra ra expressed in ICRS or ICRS frame
+     * @param dec dec expressed in ICRS or ICRS frame
      * @param options
      *
      */

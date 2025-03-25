@@ -146,7 +146,7 @@ export class Location extends DOMElement {
                 // convert to the view frame
                 let lonlat = radec;
                 if (aladin.getFrame() === "GAL") {
-                    lonlat = CooConversion.J2000ToGalactic(radec)
+                    lonlat = CooConversion.ICRSToGalactic(radec)
                 }
 
                 let [lon, lat] = lonlat;
@@ -212,10 +212,10 @@ export class Location extends DOMElement {
         let self = this;
         const updateFromLonLatFunc = (lon, lat, cooFrame) => {
             var coo = new Coo(lon, lat, Location.prec);
-            if (cooFrame == CooFrameEnum.J2000) {
+            if (cooFrame == CooFrameEnum.ICRS) {
                 self.field.set(coo.format('s/'));
             }
-            else if (cooFrame == CooFrameEnum.J2000d) {
+            else if (cooFrame == CooFrameEnum.ICRSd) {
                 self.field.set(coo.format('d/'))
             }
             else {

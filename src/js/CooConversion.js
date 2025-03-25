@@ -23,15 +23,15 @@ export let CooConversion = (function() {
 
     let CooConversion = {};
     
-    CooConversion.GALACTIC_TO_J2000 = [
-       -0.0548755604024359,  0.4941094279435681, -0.8676661489811610,
-       -0.8734370902479237, -0.4448296299195045, -0.1980763734646737,
-       -0.4838350155267381,  0.7469822444763707,  0.4559837762325372 ];
+    CooConversion.GALACTIC_TO_ICRS = [
+        -0.05487565771261968232908806948676,  0.49410943719710765017955928850141, -0.86766613755716255824577781583414,
+        -0.87343705195577915249273984034980, -0.44482972122205372312012370920248, -0.19807633727507056817237662907031,
+        -0.48383507361641838378786914298189,  0.74698218398450941835110635824212,  0.45598381369115237931077906137440 ];
     
-    CooConversion.J2000_TO_GALACTIC = [
-        -0.0548755604024359, -0.873437090247923, -0.4838350155267381,
-         0.4941094279435681, -0.4448296299195045, 0.7469822444763707,
-        -0.8676661489811610, -0.1980763734646737, 0.4559837762325372 ];
+    CooConversion.ICRS_TO_GALACTIC = [
+        -0.05487565771261968232908806948676, -0.87343705195577915249273984034980, -0.48383507361641838378786914298189,
+         0.49410943719710765017955928850141, -0.44482972122205372312012370920248,  0.74698218398450941835110635824212,
+        -0.86766613755716255824577781583414, -0.19807633727507056817237662907031,  0.45598381369115237931077906137440 ];
     
     // adapted from www.robertmartinayers.org/tools/coordinates.html
     // radec : array of ra, dec in degrees
@@ -65,12 +65,12 @@ export let CooConversion = (function() {
     };
     
     // coo : array of lon, lat in degrees
-    CooConversion.GalacticToJ2000 = function(coo) {
-        return CooConversion.Transform(coo, CooConversion.GALACTIC_TO_J2000);
+    CooConversion.GalacticToICRS = function(coo) {
+        return CooConversion.Transform(coo, CooConversion.GALACTIC_TO_ICRS);
     };
     // coo : array of lon, lat in degrees
-    CooConversion.J2000ToGalactic = function(coo) {
-        return CooConversion.Transform(coo, CooConversion.J2000_TO_GALACTIC);
+    CooConversion.ICRSToGalactic = function(coo) {
+        return CooConversion.Transform(coo, CooConversion.ICRS_TO_GALACTIC);
     };
     return CooConversion;
 })();

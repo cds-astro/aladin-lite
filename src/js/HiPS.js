@@ -53,7 +53,7 @@ PropertyParser.cooFrame = function (properties) {
     let cooFrame =
         (properties && properties.hips_body && "ICRSd") ||
         (properties && properties.hips_frame) ||
-        "j2000";
+        "icrs";
     return cooFrame;
 };
 
@@ -148,7 +148,7 @@ PropertyParser.isPlanetaryBody = function (properties) {
  * @property {Function} [successCallback] - A callback executed when the HiPS has been loaded
  * @property {Function} [errorCallback] - A callback executed when the HiPS could not be loaded
  * @property {string} [imgFormat] - Formats accepted 'webp', 'png', 'jpeg' or 'fits'. Will raise an error if the HiPS does not contain tiles in this format
- * @property {CooFrame} [cooFrame="J2000"] - Coordinate frame of the survey tiles
+ * @property {CooFrame} [cooFrame="ICRS"] - Coordinate frame of the survey tiles
  * @property {number} [maxOrder] - The maximum HEALPix order of the HiPS, i.e the HEALPix order of the most refined tile images of the HiPS.
  * @property {number} [numBitsPerPixel] - Useful if you want to display the FITS tiles of a HiPS. It specifies the number of bits per pixel. Possible values are:
  * -64: double, -32: float, 8: unsigned byte, 16: short, 32: integer 32 bits, 64: integer 64 bits
@@ -333,8 +333,8 @@ export let HiPS = (function () {
         let cooFrame =
             PropertyParser.cooFrame(properties);
         // Parse the cooframe from the properties but if it fails, take the one given by the user
-        // If the user gave nothing, then take J2000 as the default one
-        self.cooFrame = CooFrameEnum.fromString(cooFrame, self.cooFrame || CooFrameEnum.J2000);
+        // If the user gave nothing, then take ICRS as the default one
+        self.cooFrame = CooFrameEnum.fromString(cooFrame, self.cooFrame || CooFrameEnum.ICRS);
 
         // sky fraction
         self.skyFraction = PropertyParser.skyFraction(properties);

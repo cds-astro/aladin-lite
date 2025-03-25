@@ -87,7 +87,7 @@ import { Polyline } from "./shapes/Polyline";
  *   This list can have string item (either a CDS ID or an HiPS url) or an object that describes the HiPS
  *   more exhaustively. See the example below to see the different form that this item can have to describe a HiPS.
  * @property {string} [target="0 +0"] - Target coordinates for the initial view.
- * @property {CooFrame} [cooFrame="J2000"] - Coordinate frame.
+ * @property {CooFrame} [cooFrame="ICRS"] - Coordinate frame.
  * @property {number} [fov=60] - Field of view in degrees.
  * @property {number} [northPoleOrientation=0] - North pole orientation in degrees. By default it is set to 0 deg i.e. the north pole will be found vertically north to the view.
  *  Positive orientation goes towards east i.e. in counter clockwise order as the east lies in the left direction of the view.
@@ -218,9 +218,8 @@ import { Polyline } from "./shapes/Polyline";
 /**
  * @typedef {string} CooFrame
  * String with possible values: 'equatorial', 'ICRS', 'ICRSd', 'j2000', 'gal, 'galactic'
- * Internally, Aladin Lite represents its view in FK5J2000 (ESA method) reference system.
- * For Aladin Lite visualization purposes, the difference between ICRS and FK5J2000 is not noticeable and therefore, giving ICRS as CooFrame will be interpreted by Aladin Lite the same way as FK5J2000.
- * Nonetheless, the intern coo system of Aladin Lite is FK5J2000 (from the ESA method).
+ * Internally, Aladin Lite represents its view in ICRS reference system. <br />
+ * For Aladin Lite visualization purposes, the difference between ICRS and FK5J2000 is not noticeable and therefore, giving `j2000` as CooFrame will be interpreted by Aladin Lite the same way as ICRS.
  */
 
 /**
@@ -664,7 +663,7 @@ export let Aladin = (function () {
         hipsList: HiPSList.DEFAULT,
         //surveyUrl: ["https://alaskybis.unistra.fr/DSS/DSSColor", "https://alasky.unistra.fr/DSS/DSSColor"],
         target: "0 +0",
-        cooFrame: "J2000",
+        cooFrame: "ICRS",
         fov: 60,
         northPoleOrientation: 0,
         inertia: true,
@@ -903,7 +902,7 @@ export let Aladin = (function () {
         if (!frame) {
             return;
         }
-        var newFrame = CooFrameEnum.fromString(frame, CooFrameEnum.J2000);
+        var newFrame = CooFrameEnum.fromString(frame, CooFrameEnum.ICRS);
         if (newFrame == this.view.cooFrame) {
             return;
         }
@@ -997,10 +996,10 @@ export let Aladin = (function () {
     ``;
 
     /**
-     * Returns the current coordinate system: possible values are 'J2000', 'J2000d', and 'Galactic' .
+     * Returns the current coordinate system: possible values are 'ICRS', 'ICRSd', and 'Galactic' .
      *
      * @memberof Aladin
-     * @returns {string} The current coordinate system: possible values are 'J2000', 'J2000d', and 'Galactic' .
+     * @returns {string} The current coordinate system: possible values are 'ICRS', 'ICRSd', and 'Galactic' .
      *
      * @example
      * const aladin = A.aladin('#aladin-lite-div', {cooFrame: 'galactic'});
@@ -1054,8 +1053,8 @@ export let Aladin = (function () {
         if (!isObjectName) {
             var coo = new Coo();
             coo.parse(targetName);
-            // Convert from view coo sys to J2000
-            const [ra, dec] = this.wasm.viewToFK5J2000CooSys(coo.lon, coo.lat);
+            // Convert from view coo sys to ICRS
+            const [ra, dec] = this.wasm.viewToICRSCooSys(coo.lon, coo.lat);
 
             this.view.pointTo(ra, dec);
 
@@ -1079,7 +1078,7 @@ export let Aladin = (function () {
                         targetName,
                         function (data) {
                             // success callback
-                            // Location given in J2000
+                            // Location given in ICRS
                             const coo = data.coo;
                             self.view.pointTo(coo.jradeg, coo.jdedeg);
 
@@ -1150,14 +1149,14 @@ export let Aladin = (function () {
         if (frame) {
             frame = CooFrameEnum.fromString(
                 this.options.cooFrame,
-                CooFrameEnum.J2000
+                CooFrameEnum.ICRS
             );
         }
         // both are CooFrameEnum
         let positionGivenFrame = frame || this.view.cooFrame;
-        // First, convert to J2000 if needed
+        // First, convert to ICRS if needed
         if (positionGivenFrame === CooFrameEnum.GAL) {
-            radec = CooConversion.GalacticToJ2000([lon, lat]);
+            radec = CooConversion.GalacticToICRS([lon, lat]);
         } else {
             radec = [lon, lat];
         }
@@ -1359,7 +1358,7 @@ export let Aladin = (function () {
     /**
      * Gets the current [Right Ascension, Declination] position of the center of the Aladin view.
      *
-     * This method returns the celestial coordinates of the center of the Aladin view in the FK5J2000 equatorial coordinates.
+     * This method returns the celestial coordinates of the center of the Aladin view in the ICRS equatorial coordinates.
      *
      * @memberof Aladin
      * @returns {number[]} - An array representing the [Right Ascension, Declination] coordinates in degrees.
@@ -1367,19 +1366,19 @@ export let Aladin = (function () {
      */
     Aladin.prototype.getRaDec = function () {
         let radec = this.wasm.getCenter(); // This is given in the frame of the view
-        // We must convert it to FK5J2000
-        const radec_j2000 = this.wasm.viewToFK5J2000CooSys(radec[0], radec[1]);
+        // We must convert it to ICRS
+        const radec_icrs = this.wasm.viewToICRSCooSys(radec[0], radec[1]);
 
-        if (radec_j2000[0] < 0) {
-            return [radec_j2000[0] + 360.0, radec_j2000[1]];
+        if (radec_icrs[0] < 0) {
+            return [radec_icrs[0] + 360.0, radec_icrs[1]];
         }
 
-        return radec_j2000;
+        return radec_icrs;
     };
 
     /**
-     * Moves the Aladin instance to the specified position given in FK5J2000 frame.
-     * Giving ICRS coordinates will not show noticeable difference from FK5J2000.
+     * Moves the Aladin instance to the specified position given in ICRS frame.
+     * Giving FK5J2000 coordinates will not show noticeable difference from ICRS.
      *
      * @memberof Aladin
      * @param {number} ra - Right-ascension in degrees
@@ -2131,7 +2130,7 @@ export let Aladin = (function () {
      * @param {function} myFunction - a callback function.
      * Note: <ul>
      * <li>positionChanged and zoomChanged are throttled every 100ms.</li>
-     * <li>positionChanged's callback gives an object having ra and dec keywords of the current position in FK5J2000 frame. See the below example.</li>
+     * <li>positionChanged's callback gives an object having ra and dec keywords of the current position in ICRS frame. See the below example.</li>
      * </ul>
      * @example
         // define function triggered when  a source is hovered
@@ -2486,9 +2485,8 @@ export let Aladin = (function () {
             }
         } else {
             switch (this.getFrame()) {
-                // FIXME: change radesys to FK5 and EQUINOX to 2000
-                case "FK5J2000":
-                case "FK5J2000d":
+                case "ICRS":
+                case "ICRSd":
                     cooType1 = "RA---";
                     cooType2 = "DEC--";
                     radesys = "ICRS    ";
@@ -2595,7 +2593,7 @@ export let Aladin = (function () {
      */
     Aladin.prototype.pix2world = function (x, y, frame) {
         if (frame) {
-            frame = CooFrameEnum.fromString(frame, CooFrameEnum.J2000);
+            frame = CooFrameEnum.fromString(frame, CooFrameEnum.ICRS);
         }
 
         let lonlat = this.view.wasm.pix2world(x, y, frame && frame.system);
@@ -2615,7 +2613,7 @@ export let Aladin = (function () {
      * @memberof Aladin
      * @param {number} lon - Londitude coordinate in degrees.
      * @param {number} lat - Latitude coordinate in degrees.
-     * @param {CooFrame} [frame] - If not specified, the frame used is FK5J2000
+     * @param {CooFrame} [frame] - If not specified, the frame used is ICRS
 
      * @returns {number[]} - An array representing the [x, y] coordinates in pixel coordinates in the view.
      *
@@ -2624,14 +2622,14 @@ export let Aladin = (function () {
     Aladin.prototype.world2pix = function (lon, lat, frame) {
         if (frame) {
             if (frame instanceof string) {
-                frame = CooFrameEnum.fromString(frame, CooFrameEnum.J2000);
+                frame = CooFrameEnum.fromString(frame, CooFrameEnum.ICRS);
             }
     
             if (frame.label == CooFrameEnum.SYSTEMS.GAL) {
                 frame = Aladin.wasmLibs.core.CooSystem.GAL;
             }
             else {
-                frame = Aladin.wasmLibs.core.CooSystem.FK5J2000;
+                frame = Aladin.wasmLibs.core.CooSystem.ICRS;
             }
         }
 

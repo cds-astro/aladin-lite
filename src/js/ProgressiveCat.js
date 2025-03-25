@@ -54,7 +54,7 @@ export let ProgressiveCat = (function() {
         }
 
         this.frameStr = frameStr;
-        this.frame = CooFrameEnum.fromString(frameStr) || CooFrameEnum.J2000;
+        this.frame = CooFrameEnum.fromString(frameStr) || CooFrameEnum.ICRS;
         this.maxOrder = parseInt(maxOrder);
         this.isShowing = true; // TODO : inherit from catalogue
 

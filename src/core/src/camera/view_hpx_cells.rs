@@ -16,7 +16,7 @@ impl ViewHpxCells {
     pub(super) fn new() -> Self {
         let reg_frames = [0; NUM_COOSYSTEM];
         let hpx_cells = [
-            HpxCells::new(CooSystem::FK5J2000),
+            HpxCells::new(CooSystem::ICRS),
             HpxCells::new(CooSystem::GAL),
         ];
 
@@ -116,7 +116,7 @@ pub struct HpxCells {
 
 impl Default for HpxCells {
     fn default() -> Self {
-        Self::new(CooSystem::FK5J2000)
+        Self::new(CooSystem::ICRS)
     }
 }
 

@@ -38,13 +38,13 @@
      // constructor
      constructor(aladin, options) {
          let self;
-         let cooFrame = CooFrameEnum.fromString(aladin.options.cooFrame, CooFrameEnum.J2000);
+         let cooFrame = CooFrameEnum.fromString(aladin.options.cooFrame, CooFrameEnum.ICRS);
 
          super({
             name: 'cooFrame',
             type: 'select',
             value: cooFrame.label,
-            options: [CooFrameEnum.J2000.label, CooFrameEnum.J2000d.label, CooFrameEnum.GAL.label],
+            options: [CooFrameEnum.ICRS.label, CooFrameEnum.ICRSd.label, CooFrameEnum.GAL.label],
             change(e) {
                 aladin.setFrame(e.target.value)
             },

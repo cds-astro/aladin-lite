@@ -147,7 +147,7 @@ impl App {
         // The tile buffer responsible for the tile requests
         let downloader = Rc::new(RefCell::new(Downloader::new()));
 
-        let camera = CameraViewPort::new(&gl, CooSystem::FK5J2000, &projection);
+        let camera = CameraViewPort::new(&gl, CooSystem::ICRS, &projection);
         let screen_size = &camera.get_screen_size();
 
         let _fbo_view =
@@ -403,20 +403,20 @@ impl App {
     }
 
     pub(crate) fn get_visible_cells(&self, depth: u8) -> Box<[HEALPixCellProjeted]> {
-        // Convert the camera frame vertices to j2000 before doing the moc
+        // Convert the camera frame vertices to ICRS before doing the moc
         let coverage = crate::camera::build_fov_coverage(
             depth,
             self.camera.get_field_of_view(),
             self.camera.get_center(),
             self.camera.get_coo_system(),
-            CooSystem::FK5J2000,
+            CooSystem::ICRS,
             &self.projection,
         );
 
         let cells: Vec<_> = coverage
             .flatten_to_fixed_depth_cells()
             .filter_map(|ipix| {
-                // This cell is defined in FK5J2000
+                // This cell is defined in ICRS
                 let cell = HEALPixCell(depth, ipix);
 
                 let v = cell.vertices();
@@ -425,7 +425,7 @@ impl App {
                     let xyzw = crate::math::lonlat::radec_to_xyzw(lon.to_angle(), lat.to_angle());
                     // 2. get it back to the camera frame system
                     let xyzw = crate::coosys::apply_coo_system(
-                        CooSystem::FK5J2000,
+                        CooSystem::ICRS,
                         self.camera.get_coo_system(),
                         &xyzw,
                     );
@@ -1421,10 +1421,10 @@ impl App {
 
     pub(crate) fn world_to_screen(&self, ra: f64, dec: f64) -> Option<Vector2<f64>> {
         let lonlat = LonLatT::new(ArcDeg(ra).into(), ArcDeg(dec).into());
-        let j2000_pos = lonlat.vector();
+        let icrs_pos = lonlat.vector();
 
         self.projection
-            .j2000_celestial_to_screen_space(&j2000_pos, &self.camera)
+            .icrs_celestial_to_screen_space(&icrs_pos, &self.camera)
     }
 
     pub(crate) fn screen_to_world(&self, pos: &Vector2<f64>) -> Option<LonLatT<f64>> {
@@ -1443,19 +1443,19 @@ impl App {
         self.camera.get_coo_system()
     }
 
-    pub(crate) fn view_to_fk5j2000_coosys(&self, lonlat: &LonLatT<f64>) -> LonLatT<f64> {
+    pub(crate) fn view_to_icrs_coosys(&self, lonlat: &LonLatT<f64>) -> LonLatT<f64> {
         let celestial_pos: Vector4<_> = lonlat.vector();
         let view_system = self.camera.get_coo_system();
         let (ra, dec) = math::lonlat::xyzw_to_radec(&coosys::apply_coo_system(
             view_system,
-            CooSystem::FK5J2000,
+            CooSystem::ICRS,
             &celestial_pos,
         ));
 
         LonLatT::new(ra, dec)
     }
 
-    /// lonlat must be given in j2000 frame
+    /// lonlat must be given in icrs frame
     pub(crate) fn set_center(&mut self, lonlat: &LonLatT<f64>) {
         self.prev_cam_position = self.camera.get_center().truncate();
 

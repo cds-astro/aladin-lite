@@ -107,9 +107,9 @@ export class ContextMenu extends DOMElement {
                 const pos = this.aladin.pix2world(xymouse.x, xymouse.y);
                 const coo = new Coo(pos[0], pos[1], 6);
                 let posStr;
-                if (this.aladin.view.cooFrame == CooFrameEnum.J2000) {
+                if (this.aladin.view.cooFrame == CooFrameEnum.ICRS) {
                     posStr = coo.format('s/');
-                } else if (this.aladin.view.cooFrame == CooFrameEnum.J2000d) {
+                } else if (this.aladin.view.cooFrame == CooFrameEnum.ICRSd) {
                     posStr = coo.format('d/');
                 } else {
                     posStr = coo.format('d/');

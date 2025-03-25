@@ -21,7 +21,7 @@ pub fn build_fov_coverage(
 ) -> HEALPixCoverage {
     if let Some(vertices) = fov.get_vertices() {
         // The vertices coming from the camera are in a specific coo sys
-        // but cdshealpix accepts them to be given in FK5J2000 coo sys
+        // but cdshealpix accepts them to be given in ICRS coo sys
         let vertices_iter = vertices
             .iter()
             .map(|v| crate::coosys::apply_coo_system(camera_frame, frame, v));

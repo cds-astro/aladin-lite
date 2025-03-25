@@ -185,14 +185,14 @@ impl PolylineRenderer {
         );*/
 
         // draw the instanced lines
-        let j20002view = CooSystem::FK5J2000.to(camera.get_coo_system());
+        let icrs2view = CooSystem::ICRS.to(camera.get_coo_system());
         let view2world = camera.get_m2w();
-        let j20002world = view2world * j20002view;
+        let icrs2world = view2world * icrs2view;
 
         crate::shader::get_shader(&self.gl, shaders, "line_inst_lonlat.vert", "line_base.frag")?
             .bind(&self.gl)
             .attach_uniforms_from(camera)
-            .attach_uniform("u_2world", &j20002world)
+            .attach_uniform("u_2world", &icrs2world)
             .attach_uniform("u_color", &self.color)
             .attach_uniform("u_width", &self.thickness)
             .attach_uniform("u_proj", proj)

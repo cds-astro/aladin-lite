@@ -263,7 +263,7 @@ impl Image {
             .ok_or(JsValue::from_str("(w / 2, h / 2) px cannot be unprojected"))?;
         let center_xyz = center.to_xyz();
         let inside = crate::coosys::apply_coo_system(
-            CooSystem::FK5J2000,
+            CooSystem::ICRS,
             coo_sys,
             &Vector4::new(center_xyz.y(), center_xyz.z(), center_xyz.x(), 1.0),
         );
@@ -283,7 +283,7 @@ impl Image {
             let xyz = lonlat.to_xyz();
 
             crate::coosys::apply_coo_system(
-                CooSystem::FK5J2000,
+                CooSystem::ICRS,
                 coo_sys,
                 &Vector4::new(xyz.y(), xyz.z(), xyz.x(), 1.0),
             )
@@ -292,8 +292,8 @@ impl Image {
 
         let reg = Region::from_vertices(&vertices, &inside);
 
-        // ra and dec must be given in FK5J2000 coo system, which is the case because wcs returns
-        // only FK5J2000 coo
+        // ra and dec must be given in ICRS coo system, which is the case because wcs returns
+        // only ICRS coo
         let centered_fov = CenteredFoV {
             ra: center.lon().to_degrees(),
             dec: center.lat().to_degrees(),
@@ -554,7 +554,7 @@ impl Image {
                 .ok_or(JsValue::from_str("(w / 2, h / 2) px cannot be unprojected"))?;
             let center_xyz = center.to_xyz();
             let inside = crate::coosys::apply_coo_system(
-                CooSystem::FK5J2000,
+                CooSystem::ICRS,
                 self.coo_sys,
                 &Vector4::new(center_xyz.y(), center_xyz.z(), center_xyz.x(), 1.0),
             );
@@ -578,7 +578,7 @@ impl Image {
                 let xyz = lonlat.to_xyz();
 
                 crate::coosys::apply_coo_system(
-                    CooSystem::FK5J2000,
+                    CooSystem::ICRS,
                     self.coo_sys,
                     &Vector4::new(xyz.y(), xyz.z(), xyz.x(), 1.0),
                 )

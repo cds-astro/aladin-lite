@@ -332,7 +332,7 @@ export class OverlayStackBox extends Box {
                                                             self.aladin.pix2world(
                                                                 c.x,
                                                                 c.y,
-                                                                "j2000"
+                                                                "icrs"
                                                             );
                                                         let radius =
                                                             self.aladin.angularDist(
@@ -380,25 +380,25 @@ export class OverlayStackBox extends Box {
                                                         self.aladin.pix2world(
                                                             r.x,
                                                             r.y,
-                                                            "j2000"
+                                                            "icrs"
                                                         );
                                                     let [ra2, dec2] =
                                                         self.aladin.pix2world(
                                                             r.x + r.w,
                                                             r.y,
-                                                            "j2000"
+                                                            "icrs"
                                                         );
                                                     let [ra3, dec3] =
                                                         self.aladin.pix2world(
                                                             r.x + r.w,
                                                             r.y + r.h,
-                                                            "j2000"
+                                                            "icrs"
                                                         );
                                                     let [ra4, dec4] =
                                                         self.aladin.pix2world(
                                                             r.x,
                                                             r.y + r.h,
-                                                            "j2000"
+                                                            "icrs"
                                                         );
 
                                                     let moc = A.MOCFromPolygon(
@@ -453,7 +453,7 @@ export class OverlayStackBox extends Box {
                                                             self.aladin.pix2world(
                                                                 v.x,
                                                                 v.y,
-                                                                "j2000"
+                                                                "icrs"
                                                             );
                                                         ra.push(lon);
                                                         dec.push(lat);

@@ -235,7 +235,7 @@ impl MOCIntern {
         moc: &'a HEALPixCoverage,
         camera: &'a mut CameraViewPort,
     ) -> impl Iterator<Item = [(f64, f64); 4]> + 'a {
-        let view_moc = camera.get_cov(CooSystem::FK5J2000);
+        let view_moc = camera.get_cov(CooSystem::ICRS);
 
         moc.overlapped_by_iter(view_moc)
             .cells()
@@ -263,7 +263,7 @@ impl MOCIntern {
         match self.mode {
             RenderModeType::Perimeter { thickness, color } => {
                 let moc_in_view = moc
-                    .overlapped_by_iter(&camera.get_cov(CooSystem::FK5J2000))
+                    .overlapped_by_iter(&camera.get_cov(CooSystem::ICRS))
                     .into_range_moc();
                 let perimeter_vertices_iter = moc_in_view
                     .border_elementary_edges()
@@ -326,9 +326,9 @@ impl MOCIntern {
 
                 let num_instances = buf.len() / 4;
 
-                let j20002view = CooSystem::FK5J2000.to(camera.get_coo_system());
+                let icrs2view = CooSystem::ICRS.to(camera.get_coo_system());
                 let view2world = camera.get_m2w();
-                let j20002world = view2world * j20002view;
+                let icrs2world = view2world * icrs2view;
 
                 crate::shader::get_shader(
                     &self.gl,
@@ -338,7 +338,7 @@ impl MOCIntern {
                 )?
                 .bind(&self.gl)
                 .attach_uniforms_from(camera)
-                .attach_uniform("u_2world", &j20002world)
+                .attach_uniform("u_2world", &icrs2world)
                 .attach_uniform("u_color", &color)
                 .attach_uniform("u_width", &(camera.get_width()))
                 .attach_uniform("u_height", &(camera.get_height()))
@@ -364,9 +364,9 @@ impl MOCIntern {
 
                 let num_instances = buf.len() / 4;
 
-                let j20002view = CooSystem::FK5J2000.to(camera.get_coo_system());
+                let icrs2view = CooSystem::ICRS.to(camera.get_coo_system());
                 let view2world = camera.get_m2w();
-                let j20002world = view2world * j20002view;
+                let icrs2world = view2world * icrs2view;
 
                 crate::shader::get_shader(
                     &self.gl,
@@ -376,7 +376,7 @@ impl MOCIntern {
                 )?
                 .bind(&self.gl)
                 .attach_uniforms_from(camera)
-                .attach_uniform("u_2world", &j20002world)
+                .attach_uniform("u_2world", &icrs2world)
                 .attach_uniform("u_color", &color)
                 .attach_uniform("u_width", &(camera.get_width()))
                 .attach_uniform("u_height", &(camera.get_height()))
@@ -433,16 +433,16 @@ impl MOCIntern {
                     )
                     .update_element_array(WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&indices));
 
-                let j20002view = CooSystem::FK5J2000.to(camera.get_coo_system());
+                let icrs2view = CooSystem::ICRS.to(camera.get_coo_system());
                 let view2world = camera.get_m2w();
-                let j20002world = view2world * j20002view;
+                let icrs2world = view2world * icrs2view;
                 
                 self.gl.enable(WebGl2RenderingContext::CULL_FACE);
 
                 crate::shader::get_shader(&self.gl, shaders, "moc_base.vert", "moc_base.frag")?
                     .bind(&self.gl)
                     .attach_uniforms_from(camera)
-                    .attach_uniform("u_2world", &j20002world)
+                    .attach_uniform("u_2world", &icrs2world)
                     .attach_uniform("u_color", &color)
                     .attach_uniform("u_proj", proj)
                     .bind_vertex_array_object_ref(&self.vao)

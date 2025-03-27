@@ -74,6 +74,7 @@ pub struct App {
     // Task executor
     //exec: Rc<RefCell<TaskExecutor>>,
     inertia: Option<Inertia>,
+    north_up: bool,
     disable_inertia: Rc<RefCell<bool>>,
     dist_dragging: f32,
     time_start_dragging: Time,
@@ -243,7 +244,7 @@ impl App {
             catalog_loaded,
 
             tile_fetcher,
-
+            north_up: false,
             colormaps,
             projection,
 
@@ -1520,11 +1521,11 @@ impl App {
             return;
         }
 
+
         let now = Time::now();
         let dragging_duration = (now - self.time_start_dragging).as_secs();
         let dragging_vel = self.dist_dragging / dragging_duration;
 
-        let _dist_dragging = self.dist_dragging;
         // Detect if there has been a recent acceleration
         // It is also possible that the dragging time is too short and if it is the case, trigger the inertia
         let recent_acceleration = (Time::now() - self.time_mouse_high_vel).as_secs() < 0.1
@@ -1545,20 +1546,20 @@ impl App {
         let ampl = delta_angle * (dragging_vel as f64) * 5e-3;
         //let ampl = (dragging_vel * 0.01) as f64;
 
-        self.inertia = Some(Inertia::new(ampl.to_radians(), axis))
+        self.inertia = Some(Inertia::new(ampl.to_radians(), axis, self.north_up))
     }
 
-    pub(crate) fn set_view_center_pos_angle(&mut self, theta: ArcDeg<f64>) {
+    pub(crate) fn set_position_angle(&mut self, theta: ArcDeg<f64>) {
         self.camera
-            .set_center_pos_angle(theta.into(), &self.projection);
+            .set_position_angle(theta.into(), &self.projection);
         // New tiles can be needed and some tiles can be removed
         self.request_for_new_tiles = true;
 
         self.request_redraw = true;
     }
 
-    pub(crate) fn get_north_shift_angle(&self) -> Angle<f64> {
-        self.camera.get_center_pos_angle()
+    pub(crate) fn get_position_angle(&self) -> Angle<f64> {
+        self.camera.get_position_angle()
     }
 
     pub(crate) fn set_fov(&mut self, fov: f64) {
@@ -1592,26 +1593,73 @@ impl App {
                 .screen_to_model_space(&Vector2::new(s2x, s2y), &self.camera),
         ) {
             let prev_pos = w1;
-            //let cur_pos = w1.truncate();
             let cur_pos = w2;
-            //let next_pos = w2.truncate();
             if prev_pos != cur_pos {
-                /* 1. Rotate by computing the angle between the last and current position */
+                let prev_cam_position = self.camera.get_center().clone();
 
-                // Apply the rotation to the camera to
-                // go from the current pos to the next position
-                let axis = prev_pos.cross(cur_pos).normalize();
+                if self.north_up {
+                    let lonlat1 = prev_pos.lonlat();
+                    let lonlat2 = cur_pos.lonlat();
 
-                let d = math::vector::angle3(&prev_pos, &cur_pos);
+                    let dlon = lonlat2.lon() - lonlat1.lon();
+                    let dlat = lonlat2.lat() - lonlat1.lat();
+    
+                    self.camera.apply_lonlat_rotation(dlon, dlat, &self.projection);
 
-                self.prev_cam_position = *self.camera.get_center();
-                self.camera.apply_rotation(&(-axis), d, &self.projection);
+                    // Detect if a pole has been crossed
+                    
+                    let north_pole = Vector3::new(0.0, 1.0, 0.0);
+                    let south_pole = Vector3::new(0.0, -1.0, 0.0);
+                    let cross_north_pole = crate::math::lonlat::is_in(&prev_cam_position, &self.camera.get_center(), &north_pole);
+                    let cross_south_pole = crate::math::lonlat::is_in(&prev_cam_position, &self.camera.get_center(), &south_pole);
 
+                    let cross_pole = cross_north_pole | cross_south_pole;
+
+                    // Detect if a pole has been crossed
+                    let center = if cross_pole {
+                        &prev_cam_position
+                    } else {
+                        self.camera.get_center()
+                    };
+
+                    let fov = self.camera.get_aperture();
+                    
+                    let pole = if center.y >= 0.0 {
+                        north_pole
+                    } else {
+                        south_pole
+                    };
+
+                    let c2p = crate::math::vector::angle3(center, &pole).to_radians();
+                    let near_pole = c2p.abs() < 5e-3 * fov;
+                    if near_pole || cross_pole {
+                        // too near to the pole
+                        let axis = center.cross(pole).normalize();
+                        use crate::math::rotation::Rotation;
+                        let new_center = Rotation::from_axis_angle(&axis, (-5e-3 * fov).to_angle()).rotate(&pole);
+
+                        self.camera.set_center_xyz(&new_center, &self.projection);
+                        self.camera.set_position_angle(0.0.to_angle(), &self.projection);
+                    }
+                } else {
+                    /* 1. Rotate by computing the angle between the last and current position */
+
+                    let d = math::vector::angle3(&prev_pos, &cur_pos);
+                    let axis = prev_pos.cross(cur_pos).normalize();
+
+                    self.camera.apply_axis_rotation(&(-axis), d, &self.projection);
+                }
+
+                self.prev_cam_position = prev_cam_position;
                 self.request_for_new_tiles = true;
             }
         } else {
             self.out_of_fov = true;
         }
+    }
+
+    pub(crate) fn lock_north_up(&mut self) {
+        self.north_up = true;
     }
 
     pub(crate) fn add_cmap(&mut self, label: String, cmap: Colormap) -> Result<(), JsValue> {

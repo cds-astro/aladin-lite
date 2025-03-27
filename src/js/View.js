@@ -592,7 +592,7 @@ export let View = (function () {
                 const [lon, lat] = view.aladin.pix2world(xymouse.x, xymouse.y, 'icrs');
                 view.pointTo(lon, lat);
                 // reset the rotation around center view
-                view.setViewCenter2NorthPoleAngle(0.0);
+                view.setRotation(0.0);
             }
             catch (err) {
                 return;
@@ -751,6 +751,11 @@ export let View = (function () {
             // zoom pinching
             if (e.type === 'touchstart' && e.targetTouches && e.targetTouches.length >= 2) {
                 view.dragging = false;
+
+                // Do not start the pinched rotation if the north up is locked
+                if (view.aladin.lockNorthUp === true) {
+                    return;
+                }
 
                 view.pinchZoomParameters.isPinching = true;
                 view.pinchZoomParameters.initialZoomFactor = view.zoomFactor;
@@ -1026,7 +1031,7 @@ export let View = (function () {
                         // planetary survey case
                         rotation -= fingerAngleDiff;
                     }
-                    view.setViewCenter2NorthPoleAngle(rotation);
+                    view.setRotation(rotation);
                 }
 
                 // zoom
@@ -1540,8 +1545,8 @@ export let View = (function () {
         });
     }
 
-    View.prototype.setViewCenter2NorthPoleAngle = function(rotation) {
-        this.wasm.setViewCenter2NorthPoleAngle(rotation);
+    View.prototype.setRotation = function(rotation) {
+        this.wasm.setRotation(rotation);
     }
 
     View.prototype.setGridOptions = function (options) {

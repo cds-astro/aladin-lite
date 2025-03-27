@@ -123,7 +123,8 @@ import { Polyline } from "./shapes/Polyline";
  * @property {boolean} [showReticle=true] - Whether to show the reticle.
  * @property {boolean} [showCatalog=true] - Whether to show the catalog.
  * @property {boolean} [showCooGrid=true] - Whether the coordinates grid should be shown at startup.
- *
+ * @property {boolean} [inertia=true] - Whether mouse release triggers an inertia effect.
+ * @property {boolean} [lockNorthUp=false] - If true, the north pole will always be up.
  * @property {boolean} [fullScreen=false] - Whether to start in full-screen mode.
  * @property {string} [reticleColor="rgb(178, 50, 178)"] - Color of the reticle in RGB format.
  * @property {number} [reticleSize=22] - Size of the reticle.
@@ -506,12 +507,18 @@ export let Aladin = (function () {
             this.samp = new SAMPConnector(this);
         }
 
+        // lockNorthUp option
+        this.lockNorthUp = options.lockNorthUp || false;
+        if (this.lockNorthUp) {
+            this.wasm.lockNorthUp();
+        }
+
         if (options.inertia !== undefined) {
             this.wasm.setInertia(options.inertia);
         }
 
         if (options.northPoleOrientation) {
-            this.setViewCenter2NorthPoleAngle(options.northPoleOrientation);
+            this.setRotation(options.northPoleOrientation);
         }
     };
 
@@ -1998,7 +2005,7 @@ export let Aladin = (function () {
      * view in the counter clockwise order (or towards the east)
      */
     Aladin.prototype.setRotation = function (rotation) {
-        this.view.setViewCenter2NorthPoleAngle(rotation);
+        this.view.setRotation(rotation);
     };
 
 
@@ -2011,7 +2018,7 @@ export let Aladin = (function () {
      * @returns {number} - Angle between the position center and the north pole
      */
     Aladin.prototype.getRotation = function () {
-        return this.view.wasm.getViewCenter2NorthPoleAngle();
+        return this.view.wasm.getRotation();
     };
 
     /**

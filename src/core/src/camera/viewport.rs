@@ -14,6 +14,7 @@ const ID_R: &Matrix3<f64> = &Matrix3::new(
     0.0, 0.0, 1.0,
 );
 
+use cgmath::{Vector3, InnerSpace};
 use super::{fov::FieldOfView, view_hpx_cells::ViewHpxCells};
 use crate::healpix::cell::HEALPixCell;
 use crate::healpix::coverage::HEALPixCoverage;
@@ -91,7 +92,7 @@ use crate::{
 };
 
 use crate::LonLatT;
-use cgmath::{SquareMatrix, Vector3};
+use cgmath::SquareMatrix;
 use wasm_bindgen::JsCast;
 
 const MAX_DPI_LIMIT: f32 = 2.0;
@@ -621,7 +622,7 @@ impl CameraViewPort {
         self.texture_depth
     }
 
-    pub fn apply_rotation(
+    pub fn apply_axis_rotation(
         &mut self,
         axis: &cgmath::Vector3<f64>,
         angle: Angle<f64>,
@@ -634,14 +635,29 @@ impl CameraViewPort {
         self.update_rot_matrices(proj);
     }
 
+    pub fn apply_lonlat_rotation(
+        &mut self,
+        dlon: Angle<f64>,
+        dlat: Angle<f64>,
+        proj: &ProjectionType
+    ) {
+        let center = self.get_center();
+        let rot = Rotation::from_axis_angle(&Vector3::new(center.z, 0.0, -center.x).normalize(), dlat) * Rotation::from_axis_angle(&Vector3::unit_y(), -dlon) * Rotation::from_sky_position(&center);
+
+        self.set_rotation(&rot, proj);
+    }
+
     /// center lonlat must be given in icrs frame
     pub fn set_center(&mut self, lonlat: &LonLatT<f64>, proj: &ProjectionType) {
-        let icrs_pos: Vector3<_> = lonlat.vector();
+        let icrs_pos = lonlat.vector();
+        self.set_center_xyz(&icrs_pos, proj);
+    }
 
-        let center = CooSystem::ICRS.to(self.get_coo_system()) * icrs_pos;
+    pub fn set_center_xyz(&mut self, xyz: &Vector3<f64>, proj: &ProjectionType) {
+        let center = CooSystem::ICRS.to(self.get_coo_system()) * xyz;
         let rot_to_center = Rotation::from_sky_position(&center);
 
-        let phi = self.get_center_pos_angle();
+        let phi = self.get_position_angle();
         let third_euler_rot = Rotation::from_axis_angle(&center, phi);
 
         let rot = third_euler_rot * rot_to_center;
@@ -651,7 +667,7 @@ impl CameraViewPort {
         self.set_rotation(&rot, proj);
     }
 
-    pub fn set_center_pos_angle(&mut self, phi: Angle<f64>, proj: &ProjectionType) {
+    pub fn set_position_angle(&mut self, phi: Angle<f64>, proj: &ProjectionType) {
         let c = self.center;
         let rot_to_center = Rotation::from_sky_position(&c);
         let third_euler_rot = Rotation::from_axis_angle(&c, phi);
@@ -660,7 +676,7 @@ impl CameraViewPort {
         self.set_rotation(&total_rot, proj);
     }
 
-    fn set_rotation(&mut self, rot: &Rotation<f64>, proj: &ProjectionType) {
+    pub fn set_rotation(&mut self, rot: &Rotation<f64>, proj: &ProjectionType) {
         self.w2m_rot = *rot;
 
         self.update_rot_matrices(proj);
@@ -797,7 +813,7 @@ impl CameraViewPort {
         self.coo_sys
     }
 
-    pub fn get_center_pos_angle(&self) -> Angle<f64> {
+    pub fn get_position_angle(&self) -> Angle<f64> {
         (self.w2m.x.y).atan2(self.w2m.y.y).to_angle()
     }
 }

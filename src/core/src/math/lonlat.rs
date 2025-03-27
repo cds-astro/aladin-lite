@@ -204,3 +204,10 @@ pub fn unproj_from_screen(
         .screen_to_model_space(&xy, camera)
         .map(|model_pos| model_pos.lonlat())
 }
+
+#[inline]
+pub fn is_in(v1: &Vector3<f64>, v2: &Vector3<f64>, v: &Vector3<f64>) -> bool {
+    let theta = crate::math::vector::angle3(&v1, &v2).abs();
+
+    crate::math::vector::angle3(&v1, &v).abs() < theta && crate::math::vector::angle3(&v, &v2).abs() < theta
+}

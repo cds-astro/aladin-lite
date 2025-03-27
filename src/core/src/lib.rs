@@ -534,18 +534,18 @@ impl WebClient {
     /// # Arguments
     ///
     /// * `theta` - The rotation angle in degrees
-    #[wasm_bindgen(js_name = setViewCenter2NorthPoleAngle)]
-    pub fn set_view_center_pos_angle(&mut self, theta: f64) -> Result<(), JsValue> {
+    #[wasm_bindgen(js_name = setRotation)]
+    pub fn set_rotation(&mut self, theta: f64) -> Result<(), JsValue> {
         let theta = ArcDeg(theta);
-        self.app.set_view_center_pos_angle(theta);
+        self.app.set_position_angle(theta);
 
         Ok(())
     }
 
     /// Get the absolute orientation angle of the view
-    #[wasm_bindgen(js_name = getViewCenter2NorthPoleAngle)]
-    pub fn get_north_shift_angle(&mut self) -> Result<f64, JsValue> {
-        let phi = self.app.get_north_shift_angle();
+    #[wasm_bindgen(js_name = getRotation)]
+    pub fn get_rotation(&mut self) -> Result<f64, JsValue> {
+        let phi = self.app.get_position_angle();
         Ok(phi.to_degrees())
     }
 
@@ -608,6 +608,11 @@ impl WebClient {
         self.app.set_center(&location);
 
         Ok(())
+    }
+
+    #[wasm_bindgen(js_name = lockNorthUp)]
+    pub fn lock_north_up(&mut self) {
+        self.app.lock_north_up();
     }
 
     /// Get the center of the view

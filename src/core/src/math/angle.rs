@@ -400,7 +400,7 @@ where
         S::max_value().to_angle()
     }
 
-    pub fn to_radians(&self) -> S {
+    pub const fn to_radians(&self) -> S {
         self.rad
     }
 

@@ -1,38 +1,108 @@
 # Changelogs
 
-## unreleased
+## Unreleased
 
-* [fix] request a redraw after adding an array of footprints [PR #218]
+## Released
 
-## 3.5.1-beta
+### 3.6.3
+
+#### What's Changed
+
+* [maint] remove Shift shorcut for triggering rectangular source selection. Shortcuts will be implemented later. by [@bmatthieu3][bmatthieu3] in <https://github.com/cds-astro/aladin-lite/pull/269>
+* [fix] decide to show the contextual menu only if user has not right click while moving more than 10px. by [@bmatthieu3][bmatthieu3] in <https://github.com/cds-astro/aladin-lite/pull/269>
+* [fix] CSS selector took the whole div in smartphone usage. by [@bmatthieu3][bmatthieu3] in <https://github.com/cds-astro/aladin-lite/pull/269>
+* [fix] smartphone 2 fingers zoom pinching around the 180deg meridian. by [@bmatthieu3][bmatthieu3] in <https://github.com/cds-astro/aladin-lite/pull/269>
+* [fix] use copy2Clipboard utils functions from contextual menu. by [@bmatthieu3][bmatthieu3] in <https://github.com/cds-astro/aladin-lite/pull/269>
+* [fix] improved ID/HiPS url detection (retry if a relative path to a local HiPS is given as it is considered as an ID). by [@bmatthieu3][bmatthieu3] in <https://github.com/cds-astro/aladin-lite/pull/269>
+
+### 3.6.1
+
+#### What's Changed
+* [feat] AVM tags support found in jpeg headers by [@bmatthieu3][bmatthieu3] in <https://github.com/cds-astro/aladin-lite/pull/178>
+* [feat] Merge remove overlay by name to Develop by [@Xen0Xys][Xen0Xys] in <https://github.com/cds-astro/aladin-lite/pull/182>
+* [fix] Restore A.footprint function by [@szpetny][szpetny] in <https://github.com/cds-astro/aladin-lite/pull/183>
+* [testing] Merge playwright tests to Develop by [@Xen0Xys][Xen0Xys] in <https://github.com/cds-astro/aladin-lite/pull/176>
+* [fix] Version 3.5.1 by [@bmatthieu3][bmatthieu3] in <https://github.com/cds-astro/aladin-lite/pull/180>
+* [fix] Also add style sheet in shadow dom context by [@ManonMarchand][ManonMarchand] in <https://github.com/cds-astro/aladin-lite/pull/194>
+* [feat] Add selectionColor, onClick to catalog parameters handled by updateShape by [@simontorres][simontorres] in <https://github.com/cds-astro/aladin-lite/pull/198>
+* [feat] HiPS cube support by [@bmatthieu3][bmatthieu3] in <https://github.com/cds-astro/aladin-lite/pull/204>
+* [feat] PolySelect implementation and miscellaneous selection improvements by [@pmatsson][pmatsson] in <https://github.com/cds-astro/aladin-lite/pull/195>
+* [fix] Request a redraw after adding an array of footprints by [@ManonMarchand][ManonMarchand] in <https://github.com/cds-astro/aladin-lite/pull/218>
+* [fix] Circle opacity not working by [@tboch][tboch] in <https://github.com/cds-astro/aladin-lite/pull/222>
+* [fix] Bug introduced in #218 by [@ManonMarchand][ManonMarchand] in <https://github.com/cds-astro/aladin-lite/pull/223>
+* [fix] CSS style for canvas element is more selective by [@tboch][tboch] in <https://github.com/cds-astro/aladin-lite/pull/224>
+* [maint] Add zenodo.json file by [@ManonMarchand][ManonMarchand] in <https://github.com/cds-astro/aladin-lite/pull/226>
+* [maint] Remove old files using jquery by [@cquiroz][cquiroz] in <https://github.com/cds-astro/aladin-lite/pull/231>
+* [fix] Display of HiPS with maxOrder = 0 by [@bmatthieu3][bmatthieu3] in <https://github.com/cds-astro/aladin-lite/pull/236>
+* [fix] Combine requestedOptions and Aladin.DEFAULT_OPTIONS with spread operator by [@pcuste1][pcuste1] in <https://github.com/cds-astro/aladin-lite/pull/237>
+* [fix] Add back cmap reverse checkbox by [@bmatthieu3][bmatthieu3] in <https://github.com/cds-astro/aladin-lite/pull/238>
+* [fix] JPEG draw black screen when tiles are missing by [@bmatthieu3][bmatthieu3] in <https://github.com/cds-astro/aladin-lite/pull/246>
+* [fix] Filled moc drawing reverse longitude by [@bmatthieu3][bmatthieu3] in <https://github.com/cds-astro/aladin-lite/pull/250>
+* [doc] Deprecate longitudeReversed HiPS options property by [@bmatthieu3][bmatthieu3] in <https://github.com/cds-astro/aladin-lite/pull/251>
+* [fix] Stop contextmenu event propagation only if context menu enabled by [@alexgoff][alexgoff] in <https://github.com/cds-astro/aladin-lite/pull/259>
+* [ui] Minor fixes and enhancements by [@bmatthieu3][bmatthieu3] in <https://github.com/cds-astro/aladin-lite/pull/256>
+* [fix] Handle NaNs by the GPU (fix for windows) by [@bmatthieu3][bmatthieu3] in <https://github.com/cds-astro/aladin-lite/pull/254>
+* [fix] Grid labels formatting by [@bmatthieu3][bmatthieu3] in <https://github.com/cds-astro/aladin-lite/pull/261>
+* [feat] Shape function given to a catalog by [@bmatthieu3][bmatthieu3] in <https://github.com/cds-astro/aladin-lite/pull/262>
+* [fix] Tooltip pos out of fov by [@bmatthieu3][bmatthieu3] in <https://github.com/cds-astro/aladin-lite/pull/263>
+* [fix] MOC settings after its creation by [@bmatthieu3][bmatthieu3] in <https://github.com/cds-astro/aladin-lite/pull/265>
+* [fix] ICRS to FK5J2000 cooframe renaming by [@bmatthieu3][bmatthieu3] in <https://github.com/cds-astro/aladin-lite/pull/264>
+* [fix] Revert #264 by [@bmatthieu3][bmatthieu3] in <https://github.com/cds-astro/aladin-lite/pull/268>
+
+#### New Contributors
+* [@cquiroz][cquiroz] made their first contribution in <https://github.com/cds-astro/aladin-lite/pull/231>
+* [@pcuste1][pcuste1] made their first contribution in <https://github.com/cds-astro/aladin-lite/pull/237>
+* [@alexgoff][alexgoff] made their first contribution in <https://github.com/cds-astro/aladin-lite/pull/259>
+
+**Full Changelog**: <https://github.com/cds-astro/aladin-lite/compare/3.4.5...3.6.1>
+
+### 3.6.1-beta
+
+#### What's Changed
+* [feat] Add selectionColor, onClick to catalog parameters handled by updateShape by [@simontorres][simontorres] in <https://github.com/cds-astro/aladin-lite/pull/198>
+* [feat] HiPS cube support by [@bmatthieu3][bmatthieu3] in <https://github.com/cds-astro/aladin-lite/pull/204>
+* [feat] PolySelect implementation and miscellaneous selection improvements by [@pmatsson][pmatsson] in <https://github.com/cds-astro/aladin-lite/pull/195>
+* [fix] Request a redraw after adding an array of footprints by [@ManonMarchand][ManonMarchand] in <https://github.com/cds-astro/aladin-lite/pull/218>
+* [fix] Circle opacity not working by [@tboch][tboch] in <https://github.com/cds-astro/aladin-lite/pull/222>
+* [fix] Bug introduced in #218 by [@ManonMarchand][ManonMarchand] in <https://github.com/cds-astro/aladin-lite/pull/223>
+* [fix] CSS style for canvas element is more selective by [@tboch][tboch] in <https://github.com/cds-astro/aladin-lite/pull/224>
+* [maint] add zenodo.json file by [@ManonMarchand][ManonMarchand] in <https://github.com/cds-astro/aladin-lite/pull/226>
+* [maint] Remove old files using jquery by [@cquiroz][cquiroz] in <https://github.com/cds-astro/aladin-lite/pull/231>
+
+#### New Contributors
+* [@cquiroz][cquiroz] made their first contribution in <https://github.com/cds-astro/aladin-lite/pull/231>
+
+**Full Changelog**: <https://github.com/cds-astro/aladin-lite/compare/3.5.1-beta...3.6.1-beta>
+
+### 3.5.1-beta
 
 * [feat] Add support for name removing in `removeOverlay` method
 * [test] Add support of playwright. Instructions in the readme for running the test matching snapshots [PR #176]
 * [fix] Order of overlays in the stack now matches the addMOC/addCatalog/addOverlay calls ordering
 * [doc] Expose the API of Coo class
 * [fix] Insert aladin css inside the aladin lite so that it should be compliant with the use of shadow DOMs [cds-astro/ipyaladin#113], [marimo-team/marimo#2106]
-* [feat] Add possibility of giving a local JS FileList to load a locally-stored HiPS without starting an HTTP server [cds-astro/aladin-lite#103]
+* [feat] Add possibility of giving a local JS FileList to load a locally-stored HiPS without starting an HTTP server <https://github.com/cds-astro/aladin-lite/pull/103>
 * [fix] removeOverlayByName
 
-## 3.5.0-beta
+### 3.5.0-beta
 
 * [enhancement] add `options.colnames` to A.catalogFromVizieR to tell VizieR we want absolutely want to retrieve specific columns 
 * [feat] provide a new drawAxes option to A.ellipse. This is useful for plotting error ellipsis.
 
-## 3.4.5-beta
+### 3.4.5-beta
 
 * [feat] add `layerChanged` event when a layer is added or removed
 * [deprecate] of `select` event, use `objectsSelected` event instead
 * [ui] add the ability to switch the tile format to download
 
-## 3.4.3-beta
+### 3.4.3-beta
 
 * [bugfix] zoom control buttons
 * [feat] save a MOC as a JSON file from the UI <https://github.com/cds-astro/aladin-lite/issues/154>
 * [feat] save a source selection from the measurement table as a CSV file
 * [feat] allow to display jpeg/jpg images with a wcs passed as a JS dictionary: <https://github.com/cds-astro/aladin-lite/issues/173>
 
-## 3.4.2-beta
+### 3.4.2-beta
 
 * [impr] Improve smartphone support by setting media queries + a better logic for deploying the contextual menu sub options.
 * [impr] Improve `WCS` view export with 3rd euler rotation encoding: <https://github.com/cds-astro/aladin-lite/issues/170>. Still some cases are to be handled like: crval on the equator or cylindrical with a galactic frame rotation.
@@ -40,21 +110,21 @@
 * [feat] Add new method `Aladin#getViewImageBuffer` to get the current view as a PNG buffer
 * [feat] New line rasterizer using GL instancing. This enhances the rendering speed of MOCs.
 
-## 3.3.3
+### 3.3.3
 
 * [feat] UI: add HiPS basic filter that filters the `hipsList` given
 * [feat] New `hipsList` option parameter when instancing a new Aladin object.
 * [feat] Zoom smoothing using hermite cubic interpolation functions
 * [feat] shape option of Catalog and ProgressiveCat accepts a function returning a Footprint. This allow user to
          associate a footprint to a specific source
-* [feat] Hover color support by @pmatsson and @bmatthieu3 in <https://github.com/cds-astro/aladin-lite/pull/145>
+* [feat] Hover color support by [@pmatsson][pmatsson] and [@bmatthieu3][bmatthieu3] in <https://github.com/cds-astro/aladin-lite/pull/145>
 
-## 3.3.2
+### 3.3.2
 
 * [fixed] do not allow to query the properties several times for an imageHiPS
 * [fixed] Detecting raytracing rendering mode. Adapt the rendering mode in function of the fov value and the projection used. Some projections do have more distortions with wide FoVs so it is better to use the raytracing rendering mode when fov >= smaller FoV threshold.
 
-## 3.3.0
+### 3.3.0
 
 * [fixed] multiple calls to setImageSurvey with the same survey object led to strange behaviour.
 * [perf] Display the first tile received instantly with no blending. Should enhance the slow reported in issue #88.
@@ -75,61 +145,61 @@
 * [fixed] The parameters `gridColor` and `gridOpacity`, `gridOptions.showLabels` now work as expected
 * New documentation API (W.I.P) here: <https://cds-astro.github.io/aladin-lite/>
 * New release page here: <https://aladin.cds.unistra.fr/AladinLite/doc/release/>
-* A major UI update by @bmatthieu3
+* A major UI update by [@bmatthieu3][bmatthieu3]
   1. Some API new classes A.box, A.button
   2. A status bar where the user can enque messages for a specific amount of time (Aladin.addStatusBarMessage)
-* Remove of JQuery and autocompletejs dependencies by @bmatthieu3
-* Fix some performances issues, i.e. a bug when resizing the aladin lite view and which launched several parallel requestAnimationFrame by @bmatthieu3
+* Remove of JQuery and autocompletejs dependencies by [@bmatthieu3][bmatthieu3]
+* Fix some performances issues, i.e. a bug when resizing the aladin lite view and which launched several parallel requestAnimationFrame by [@bmatthieu3][bmatthieu3]
 * Polygon and circular selection (see Aladin class API documentation for how to use it)
-* ObsCore and Datalink votable parsing and interpretation. This work is still in progress and made in the frame of the SKA radio mission by @bmatthieu3 in <https://github.com/cds-astro/aladin-lite/pull/116>
-* SODA service query window formular by @bmatthieu3 in <https://github.com/cds-astro/aladin-lite/pull/116>
-* read only catalog option by @szpetny in <https://github.com/cds-astro/aladin-lite/pull/117>
-* Small changed regarding drawing a footprint by @szpetny in <https://github.com/cds-astro/aladin-lite/pull/118>
-* Object and footprint click/hover events expose mouse coordinates by @szpetny in <https://github.com/cds-astro/aladin-lite/pull/121>
-* A proposal of a new feature - fill the polygon with a color by @szpetny in <https://github.com/cds-astro/aladin-lite/pull/122>
-* update getViewWCS to adapt to projection by @ManonMarchand in <https://github.com/cds-astro/aladin-lite/pull/119>
-* New SAMP support by @bmatthieu3 in <https://github.com/cds-astro/aladin-lite/pull/128>
-* A possibility to create Coo and Footprint objects by @szpetny in <https://github.com/cds-astro/aladin-lite/pull/130>
+* ObsCore and Datalink votable parsing and interpretation. This work is still in progress and made in the frame of the SKA radio mission by [@bmatthieu3][bmatthieu3] in <https://github.com/cds-astro/aladin-lite/pull/116>
+* SODA service query window formular by [@bmatthieu3][bmatthieu3] in <https://github.com/cds-astro/aladin-lite/pull/116>
+* read only catalog option by [@szpetny][szpetny] in <https://github.com/cds-astro/aladin-lite/pull/117>
+* Small changed regarding drawing a footprint by [@szpetny][szpetny] in <https://github.com/cds-astro/aladin-lite/pull/118>
+* Object and footprint click/hover events expose mouse coordinates by [@szpetny][szpetny] in <https://github.com/cds-astro/aladin-lite/pull/121>
+* A proposal of a new feature - fill the polygon with a color by [@szpetny][szpetny] in <https://github.com/cds-astro/aladin-lite/pull/122>
+* update getViewWCS to adapt to projection by [@ManonMarchand][ManonMarchand] in <https://github.com/cds-astro/aladin-lite/pull/119>
+* New SAMP support by [@bmatthieu3][bmatthieu3] in <https://github.com/cds-astro/aladin-lite/pull/128>
+* A possibility to create Coo and Footprint objects by [@szpetny][szpetny] in <https://github.com/cds-astro/aladin-lite/pull/130>
 * new method aladin.getFrame() that returns the name of the current coordinate system
 * `getViewWCS` now adapts to the `cooFrame` and the `projection`
 * `getFov` is no longer capped at 180°
 * bugfix `setProjection` now also updates for 'PAR' and 'SFL' projections
 
-## 3.2.0
+### 3.2.0
 
 * MOC rendering perf enhanced. Possibility to draw only the perimeter of a MOC object (perimeter set to True)
 * Many fixes e.g. footprint rendering for all sky projections
 * A line/shape webgl rasterizer thanks to the use of the `lyon`crate. MOCs and grid lines are rendered that way. Therefore, it is possible to change the grid lines thickness
 * Use of vite for the project management and deployment
 
-## 3.1.0
+### 3.1.0
 
-* Add message for safari users to enable WebGL2 feature and reload the page by @bmatthieu3 in <https://github.com/cds-astro/aladin-lite/pull/54>
-* Starting fits support by @bmatthieu3 in <https://github.com/cds-astro/aladin-lite/pull/70>
-* display fits images with the drag and drop by @bmatthieu3
+* Add message for safari users to enable WebGL2 feature and reload the page by [@bmatthieu3][bmatthieu3] in <https://github.com/cds-astro/aladin-lite/pull/54>
+* Starting fits support by [@bmatthieu3][bmatthieu3] in <https://github.com/cds-astro/aladin-lite/pull/70>
+* display fits images with the drag and drop by [@bmatthieu3][bmatthieu3]
 ![Kapture 2023-03-23 at 14 34 28](https://user-images.githubusercontent.com/2772384/227264124-8e05a3d8-1565-497f-a118-39fab3c6ed83.gif)
-* support `webp` tile format by @bmatthieu3 and @tboch
-* planetary name resolver by @tboch
-* small ui changes and bug fixes by @bmatthieu3
-* add codemeta and its validatior action by @ManonMarchand in <https://github.com/cds-astro/aladin-lite/pull/66>
+* support `webp` tile format by [@bmatthieu3][bmatthieu3] and [@tboch][tboch]
+* planetary name resolver by [@tboch][tboch]
+* small ui changes and bug fixes by [@bmatthieu3][bmatthieu3]
+* add codemeta and its validatior action by [@ManonMarchand][ManonMarchand] in <https://github.com/cds-astro/aladin-lite/pull/66>
 
-## 3.0.0
+### 3.0.0
 
 Official release of Aladin Lite v3, [as announced in CDS news](https://cds.unistra.fr/news.php?fn_mode=fullnews&fn_incl=0&fn_id=958).
 
-* Fix missing tiles issue by @tboch in <https://github.com/cds-astro/aladin-lite/pull/18>
-* Hips catalogue filtering by @tboch in <https://github.com/cds-astro/aladin-lite/pull/28>
-* Make footprint selection easier by @tboch in <https://github.com/cds-astro/aladin-lite/pull/19>
-* Bug fix: enable different colors for multiple polylines in same layer by @tboch in <https://github.com/cds-astro/aladin-lite/pull/30>
-* Method remove to delete individual source from a catalogue layer by @tboch in <https://github.com/cds-astro/aladin-lite/pull/37>
-* Stop animation by @tboch in <https://github.com/cds-astro/aladin-lite/pull/40>
-* Add message for safari users to enable WebGL2 feature and reload the page by @bmatthieu3 in <https://github.com/cds-astro/aladin-lite/pull/54>
+* Fix missing tiles issue by [@tboch][tboch] in <https://github.com/cds-astro/aladin-lite/pull/18>
+* Hips catalogue filtering by [@tboch][tboch] in <https://github.com/cds-astro/aladin-lite/pull/28>
+* Make footprint selection easier by [@tboch][tboch] in <https://github.com/cds-astro/aladin-lite/pull/19>
+* Bug fix: enable different colors for multiple polylines in same layer by [@tboch][tboch] in <https://github.com/cds-astro/aladin-lite/pull/30>
+* Method remove to delete individual source from a catalogue layer by [@tboch][tboch] in <https://github.com/cds-astro/aladin-lite/pull/37>
+* Stop animation by [@tboch][tboch] in <https://github.com/cds-astro/aladin-lite/pull/40>
+* Add message for safari users to enable WebGL2 feature and reload the page by [@bmatthieu3][bmatthieu3] in <https://github.com/cds-astro/aladin-lite/pull/54>
 
-## 2.x.x
+## Version: 2.x.x
 
 ### 2020-08
 
-* polyline improvements (by @imbasimba)
+* polyline improvements (by [@imbasimba][imbasimba])
 
 ### 2020-07
 
@@ -394,3 +464,33 @@ New in the API:
 
 * ajout catalogue progressif
 * ajout on select, objectClicked, objectHovered
+
+
+## Contributors
+
+Aladin Lite is made possible thanks to those people:
+
+* [@alexgoff][alexgoff]
+* [@bmatthieu3][bmatthieu3]
+* [@cquiroz][cquiroz]
+* [@imbasimba][imbasimba]
+* [@ManonMarchand][ManonMarchand]
+* [@pcuste1][pcuste1]
+* [@pmatsson][pmatsson]
+* [@simontorres][simontorres]
+* [@szpetny][szpetny]
+* [@tboch][tboch]
+* [@Xen0Xys][Xen0Xys]
+
+[alexgoff]: https://github.com/alexgoff
+[bmatthieu3]: https://github.com/bmatthieu3
+[cquiroz]: https://github.com/cquiroz
+[imbasimba]: https://github.com/imbasimba
+[ManonMarchand]: https://github.com/ManonMarchand
+[pcuste1]: https://github.com/pcuste1
+[pmatsson]: https://github.com/pmatsson
+[simontorres]: https://github.com/simontorres
+[szpetny]: https://github.com/szpetny
+[tboch]: https://github.com/tboch
+[Xen0Xys]: https://github.com/Xen0Xys
+

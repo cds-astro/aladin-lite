@@ -833,6 +833,15 @@ export let Aladin = (function () {
         this.view.setZoomFactor(zoomFactor);
     };
 
+    /**
+     * Get the screen scaling zoom factor of the view.
+     *
+     * @memberof Aladin
+     */
+    Aladin.prototype.getZoomFactor = function () {
+        return this.view.zoomFactor;
+    };
+
     // @API
     // (experimental) try to adjust the FoV to the given object name. Does nothing if object is not known from Simbad
     Aladin.prototype.adjustFovForObject = function (objectName) {

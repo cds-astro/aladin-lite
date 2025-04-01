@@ -4,7 +4,7 @@
 </head>
 <body>
 
-<div id="aladin-lite-div" style="width: 1024px; height: 256px;"></div>
+<div id="aladin-lite-div" style="width: 1024px; height: 768px;"></div>
 
 <script type="module">
     import A from '../src/js/A.js';
@@ -13,12 +13,14 @@
         var aladin = A.aladin(
             '#aladin-lite-div',
             {
-                survey: 'https://alasky.cds.unistra.fr/Pan-STARRS/DR1/color-z-zg-g/', // set initial image survey
+                survey: 'data/hips/wcs', // set initial image survey
                 projection: 'SIN', // set a projection
-                fov: 114.19, // initial field of view in degrees
-                target: '19 24 51.556 +45 16 44.36', // initial target
-                cooFrame: 'equatorial', // set galactic frame
-                showCooGrid: true, // set the grid
+                fov: 80.0, // initial field of view in degrees
+                target: '96.5279427 -88.0037230', // initial target
+                cooFrame: 'galactic', // set galactic frame
+                showCooGrid: true, // set the grid,
+                fullScreen: true,
+                showSettingsControl: true,
             }
         );
     });

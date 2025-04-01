@@ -76,13 +76,18 @@ impl HEALPixCell {
     }
 
     #[inline(always)]
-    pub fn idx(&self) -> u64 {
+    pub(crate) const fn idx(&self) -> u64 {
         self.1
     }
 
     #[inline(always)]
-    pub fn depth(&self) -> u8 {
+    pub(crate) const fn depth(&self) -> u8 {
         self.0
+    }
+
+    #[inline(always)]
+    pub fn nside(&self) -> u64 {
+        1 << self.depth()
     }
 
     #[inline(always)]
@@ -169,6 +174,19 @@ impl HEALPixCell {
     }
 
     #[inline]
+    pub(crate) const fn subdivide(&self) -> [HEALPixCell; 4] {
+        let children_depth = self.depth() + 1;
+        let children_idx = self.idx() << 2;
+
+        [
+            HEALPixCell(children_depth, children_idx),
+            HEALPixCell(children_depth, children_idx + 1),
+            HEALPixCell(children_depth, children_idx + 2),
+            HEALPixCell(children_depth, children_idx + 3),
+        ]
+    }
+
+    #[inline]
     pub fn allsky(depth: u8) -> impl Iterator<Item = HEALPixCell> {
         let npix = 12 << ((depth as usize) << 1);
         (0_u64..(npix as u64)).map(move |pix| HEALPixCell(depth, pix))
@@ -193,7 +211,7 @@ impl HEALPixCell {
     }
 
     #[inline(always)]
-    pub fn is_on_pole(&self) -> bool {
+    pub(crate) fn is_on_pole(&self) -> bool {
         let HEALPixCell(depth, idx) = *self;
 
         let two_times_depth = 2 * depth;
@@ -205,6 +223,40 @@ impl HEALPixCell {
             8..=11 => (idx_d0 << two_times_depth) == idx,
             _ => unreachable!(),
         }
+    }
+
+    #[inline(always)]
+    pub(crate) fn has_7_neigh(&self) -> bool {
+        let base_cell = self.ancestor(self.depth());
+        let nside_minus_one = (self.nside() - 1) as u32;
+
+        let (x, y) = self.offset_in_parent(&base_cell);
+
+        match base_cell.idx() {
+            0..=3 => (x == 0 && y == nside_minus_one) || (y == 0 && x == nside_minus_one),
+            4..=7 => (x == 0 && y == 0) || (x == nside_minus_one && y == nside_minus_one),
+            8..=11 => (x == 0 && y == nside_minus_one) || (y == 0 && x == nside_minus_one),
+            _ => unreachable!()
+        }
+    }
+
+    #[inline(always)]
+    pub(crate) fn is_on_base_cell_edges(&self) -> bool {
+        let base_cell = self.ancestor(self.depth());
+
+        let nside_minus_one = (self.nside() - 1) as u32;
+
+        let (x, y) = self.offset_in_parent(&base_cell);
+
+        if x == 0 || x == nside_minus_one {
+            return true;
+        }
+
+        if y == 0 || y == nside_minus_one {
+            return true;
+        }
+
+        false
     }
 
     // Given in ICRS

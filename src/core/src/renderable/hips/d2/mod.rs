@@ -10,6 +10,7 @@ use al_core::colormap::Colormaps;
 use al_core::image::format::ChannelType;
 use cgmath::Vector3;
 
+use crate::math::angle::ToAngle;
 use crate::downloader::query;
 
 use al_core::image::Image;
@@ -31,10 +32,7 @@ use crate::{math::lonlat::LonLatT, utils};
 
 use crate::downloader::request::allsky::Allsky;
 use crate::healpix::{cell::HEALPixCell, coverage::HEALPixCoverage};
-use crate::renderable::utils::index_patch::DefaultPatchIndexIter;
 use crate::time::Time;
-use crate::math::angle::ToAngle;
-
 
 use super::config::HiPSConfig;
 use std::collections::HashSet;
@@ -451,7 +449,15 @@ impl HiPS2D {
 
         // Retrieve the model and inverse model matrix
         let mut off_indices = 0;
+        // Define a global level of subdivisions for all the healpix tile cells in the view
+        // This should prevent seeing many holes
+        // We compute it from the first cell in the view but it might be an under/over estimate for the other cells in the view
+        let num_sub = self.hpx_cells_in_view.iter()
+            .map(|cell| super::subdivide::num_hpx_subdivision(cell, camera, projection))
+            .max().unwrap();
 
+        //let num_sub =
+        //    super::subdivide::num_hpx_subdivision(&self.hpx_cells_in_view[0], camera, projection);
         for cell in &self.hpx_cells_in_view {
             // filter textures that are not in the moc
             let cell_in_cov = if let Some(moc) = self.footprint_moc.as_ref() {
@@ -559,63 +565,69 @@ impl HiPS2D {
                 let d01e = uv_1[TileCorner::BottomRight].x - uv_1[TileCorner::BottomLeft].x;
                 let d02e = uv_1[TileCorner::TopLeft].y - uv_1[TileCorner::BottomLeft].y;
 
+                let sub_cells =
+                    super::subdivide::subdivide_hpx_cell(cell, num_sub, camera);
 
-                let num_subdivision =
-                    super::subdivide::num_hpxcell_subdivision(cell, camera, projection);
+                let mut pos = Vec::with_capacity(sub_cells.len() * 4);
 
-                let n_segments_by_side: usize = 1 << (num_subdivision as usize);
-                let n_segments_by_side_f32 = n_segments_by_side as f32;
+                let mut idx = 0;
 
-                let n_vertices_per_segment = n_segments_by_side + 1;
+                for sub_cell in sub_cells {
+                    let (i, j) = sub_cell.offset_in_parent(cell);
+                    let nside = (1 << (sub_cell.depth() - cell.depth())) as f32;
 
-                let mut pos = Vec::with_capacity((n_segments_by_side + 1) * 4);
+                    for ((lon, lat), (di, dj)) in
+                        sub_cell
+                            .vertices()
+                            .iter()
+                            .zip([(0, 0), (1, 0), (1, 1), (0, 1)])
+                    {
+                        let hj0 = ((j + dj) as f32) / nside;
+                        let hi0 = ((i + di) as f32) / nside;
 
-                let grid_lonlat =
-                    healpix::nested::grid(cell.depth(), cell.idx(), n_segments_by_side as u16);
-                let grid_lonlat_iter = grid_lonlat.iter();
+                        let uv_start = [
+                            uv_0[TileCorner::BottomLeft].x + hj0 * d01s,
+                            uv_0[TileCorner::BottomLeft].y + hi0 * d02s,
+                            uv_0[TileCorner::BottomLeft].z,
+                        ];
 
-                for (idx, &(lon, lat)) in grid_lonlat_iter.enumerate() {
-                    let i: usize = idx / n_vertices_per_segment;
-                    let j: usize = idx % n_vertices_per_segment;
+                        let uv_end = [
+                            uv_1[TileCorner::BottomLeft].x + hj0 * d01e,
+                            uv_1[TileCorner::BottomLeft].y + hi0 * d02e,
+                            uv_1[TileCorner::BottomLeft].z,
+                        ];
 
-                    let hj0 = (j as f32) / n_segments_by_side_f32;
-                    let hi0 = (i as f32) / n_segments_by_side_f32;
+                        self.uv_start.extend(uv_start);
+                        self.uv_end.extend(uv_end);
+                        self.time_tile_received.push(start_time);
 
-                    let uv_start = [
-                        uv_0[TileCorner::BottomLeft].x + hj0 * d01s,
-                        uv_0[TileCorner::BottomLeft].y + hi0 * d02s,
-                        uv_0[TileCorner::BottomLeft].z,
-                    ];
+                        let xyz = crate::math::lonlat::radec_to_xyz(lon.to_angle(), lat.to_angle());
+                        pos.push([xyz.x as f32, xyz.y as f32, xyz.z as f32]);
+                    }
 
-                    let uv_end = [
-                        uv_1[TileCorner::BottomLeft].x + hj0 * d01e,
-                        uv_1[TileCorner::BottomLeft].y + hi0 * d02e,
-                        uv_1[TileCorner::BottomLeft].z,
-                    ];
+                    // GL TRIANGLES
+                    self.idx_vertices.extend([
+                        idx + off_indices,
+                        idx + 1 + off_indices,
+                        idx + 2 + off_indices,
+                        idx + off_indices,
+                        idx + 2 + off_indices,
+                        idx + 3 + off_indices,
+                    ]);
+                    // GL LINES
+                    /*self.idx_vertices.extend([
+                        idx + off_indices,
+                        idx + 1 + off_indices,
+                        idx + 1 + off_indices,
+                        idx + 2 + off_indices,
+                        idx + 2 + off_indices,
+                        idx + 3 + off_indices,
+                        idx + 3 + off_indices,
+                        idx + off_indices,
+                    ]);*/
 
-                    self.uv_start.extend(uv_start);
-                    self.uv_end.extend(uv_end);
-                    self.time_tile_received.push(start_time);
-
-                    let xyz = crate::math::lonlat::radec_to_xyz(lon.to_angle(), lat.to_angle());
-                    pos.push([xyz.x as f32, xyz.y as f32, xyz.z as f32]);
+                    idx += 4;
                 }
-
-                let patch_indices_iter = DefaultPatchIndexIter::new(
-                    &(0..=n_segments_by_side),
-                    &(0..=n_segments_by_side),
-                    n_vertices_per_segment,
-                )
-                .flatten()
-                .map(|indices| {
-                    [
-                        indices.0 + off_indices,
-                        indices.1 + off_indices,
-                        indices.2 + off_indices,
-                    ]
-                })
-                .flatten();
-                self.idx_vertices.extend(patch_indices_iter);
 
                 off_indices += pos.len() as u16;
 
@@ -773,6 +785,7 @@ impl HiPS2D {
                     .bind_vertex_array_object_ref(&self.vao)
                     .draw_elements_with_i32(
                         WebGl2RenderingContext::TRIANGLES,
+                        //WebGl2RenderingContext::LINES,
                         Some(self.num_idx as i32),
                         WebGl2RenderingContext::UNSIGNED_SHORT,
                         0,

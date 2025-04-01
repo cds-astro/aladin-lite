@@ -51,7 +51,7 @@ export let Ellipse = (function() {
 
         this.color = options['color'] || undefined;
         this.fillColor = options['fillColor'] || undefined;
-        this.lineWidth = options["lineWidth"] || 2;
+        this.lineWidth = options["lineWidth"] || undefined;
         this.selectionColor = options["selectionColor"] || '#00ff00';
         this.hoverColor = options["hoverColor"] || undefined;
         this.opacity   = options['opacity']   || 1;
@@ -281,6 +281,10 @@ export let Ellipse = (function() {
             ctx.strokeStyle = this.hoverColor || GraphicOverlay.increaseBrightness(baseColor, 25);
         } else {
             ctx.strokeStyle = baseColor;
+        }
+
+        if (!this.lineWidth) {
+            this.lineWidth = (this.overlay && this.overlay.lineWidth) || 2;
         }
 
         ctx.lineWidth = this.lineWidth;

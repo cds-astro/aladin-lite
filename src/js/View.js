@@ -630,6 +630,7 @@ export let View = (function () {
                 var footprintClickedFunction = view.aladin.callbacksByEventName['footprintClicked'];
 
                 let objsByCats = {};
+                let footprints = [];
                 for (let o of objs) {
                     // classify the different objects by catalog
                     let cat = o.getCatalog && o.getCatalog();
@@ -647,12 +648,22 @@ export let View = (function () {
                         if (typeof footprintClickedFunction === 'function') {
                             footprintClickedFunction(o, xy);
                         }
+                        // If this footprint has a catalog then it will be selected from its source
+                        // so we will not add it
+                        if (!cat) {
+                            footprints.push(o);
+                        } 
                     }
                 }
 
-                // rewrite objs
+                // Rewrite objs
                 objs = Array.from(Object.values(objsByCats));
+                // Add the external footprints (i.e. which are not associated with catalog sources e.g. those from GraphicOverlay)
+                if (footprints.length > 0) {
+                    objs.push(footprints)
+                }
                 view.selectObjects(objs);
+
                 view.lastClickedObject = objs;
                 
             } else {
@@ -2160,26 +2171,21 @@ export let View = (function () {
         }
 
         let closests = [];
-        const fLineWidth = (footprints && footprints[0] && footprints[0].getLineWidth()) || 1;
-        let lw = fLineWidth + 3;
-        //for (var lw = startLw + 1; lw <= startLw + 3; lw++) {
-            footprints.forEach((footprint) => {
-                if (!footprint.source || !footprint.source.tooSmallFootprint) {
-                    // Hidden footprints are not considered
-                    //let originLineWidth = footprint.getLineWidth();
-    
-                    footprint.setLineWidth(lw);
-                    if (footprint.isShowing && footprint.isInStroke(ctx, this, x * window.devicePixelRatio, y * window.devicePixelRatio)) {
-                        closests.push(footprint);
-                    }
-                    footprint.setLineWidth(fLineWidth);
-                }
-            })
 
-        /*    if (closests.length > 0) {
-                break;
+        footprints.forEach((footprint) => {
+            if (!footprint.source || !footprint.source.tooSmallFootprint) {
+                const originLineWidth = footprint.getLineWidth();
+                let spreadedLineWidth = (originLineWidth || 1) + 3;
+
+                footprint.setLineWidth(spreadedLineWidth);
+                if (footprint.isShowing && footprint.isInStroke(ctx, this, x * window.devicePixelRatio, y * window.devicePixelRatio)) {
+                    closests.push(footprint);
+                }
+
+                footprint.setLineWidth(originLineWidth);
             }
-        }*/
+        })
+
 
         return closests;
     };
@@ -2191,13 +2197,11 @@ export let View = (function () {
         var canvas = this.catalogCanvas;
         var ctx = canvas.getContext("2d");
         // this makes footprint selection easier as the catch-zone is larger
-        //let pastLineWidth = ctx.lineWidth;
 
         let closests = [];
         if (this.overlays) {
             for (var k = 0; k < this.overlays.length; k++) {
                 overlay = this.overlays[k];
-
                 closests = closests.concat(this.closestFootprints(overlay.overlayItems, ctx, x, y));
             }
         }

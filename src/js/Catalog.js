@@ -613,7 +613,6 @@ export let Catalog = (function () {
                                 // Set the same color of the shape than the catalog. 
                                 // FIXME: the color/shape could be a parameter at the source level, allowing the user single catalogs handling different shapes
                                 shape.setColor(this.color)
-
                                 shape.setSelectionColor(this.selectionColor);
                                 shape.setHoverColor(this.hoverColor);
                             }

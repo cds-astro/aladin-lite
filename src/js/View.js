@@ -648,6 +648,11 @@ export let View = (function () {
                         if (typeof footprintClickedFunction === 'function') {
                             footprintClickedFunction(o, xy);
                         }
+                        // If this footprint has a catalog then it will be selected from its source
+                        // so we will not add it
+                        if (!cat) {
+                            footprints.push(o);
+                        } 
                     }
 
                     // If this shape has a catalog then it will be selected from its source

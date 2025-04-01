@@ -198,10 +198,9 @@ export let View = (function () {
         lon = lat = 0;
 
         // FoV init settings
-        let initialFov = this.options.fov || 180.0;
         this.pinchZoomParameters = {
             isPinching: false, // true if a pinch zoom is ongoing
-            initialFov: undefined,
+            initialZoomFactor: undefined,
             initialDistance: undefined,
         };
 
@@ -210,7 +209,7 @@ export let View = (function () {
         this.setProjection(projName)
 
         // Then set the zoom properly once the projection is defined
-        this.fov = initialFov
+        this.fov = this.options.fov || 180.0
 
         // Target position settings
         this.viewCenter = { lon, lat }; // position of center of view
@@ -754,8 +753,7 @@ export let View = (function () {
                 view.dragging = false;
 
                 view.pinchZoomParameters.isPinching = true;
-                var fov = view.wasm.getFieldOfView();
-                view.pinchZoomParameters.initialFov = fov;
+                view.pinchZoomParameters.initialZoomFactor = view.zoomFactor;
                 view.pinchZoomParameters.initialDistance = Math.sqrt(Math.pow(e.targetTouches[0].clientX - e.targetTouches[1].clientX, 2) + Math.pow(e.targetTouches[0].clientY - e.targetTouches[1].clientY, 2));
 
                 view.fingersRotationParameters.initialViewAngleFromCenter = view.wasm.getViewCenter2NorthPoleAngle();
@@ -842,7 +840,7 @@ export let View = (function () {
 
             if ((e.type === 'touchend' || e.type === 'touchcancel') && view.pinchZoomParameters.isPinching) {
                 view.pinchZoomParameters.isPinching = false;
-                view.pinchZoomParameters.initialFov = view.pinchZoomParameters.initialDistance = undefined;
+                view.pinchZoomParameters.initialZoomFactor = view.pinchZoomParameters.initialDistance = undefined;
 
                 return;
             }
@@ -1033,8 +1031,8 @@ export let View = (function () {
 
                 // zoom
                 const dist = Math.sqrt(Math.pow(e.touches[0].clientX - e.touches[1].clientX, 2) + Math.pow(e.touches[0].clientY - e.touches[1].clientY, 2));
-                const fov = view.pinchZoomParameters.initialFov * view.pinchZoomParameters.initialDistance / dist;
-                view.setFoV(fov);
+                const zoomFactor = view.pinchZoomParameters.initialZoomFactor * view.pinchZoomParameters.initialDistance / dist;
+                view.zoomFactor = zoomFactor;
 
                 return;
             }
@@ -1189,7 +1187,7 @@ export let View = (function () {
                 if (!view.throttledTouchPadZoom) {
                     view.throttledTouchPadZoom = () => {
                         const factor = Utils.detectTrackPad(e) ? 1.04 : 1.2;
-                        const currZoomFactor = view.zoom.isZooming ? view.zoom.finalZoom : view.wasm.getZoomFactor();
+                        const currZoomFactor = view.zoom.isZooming ? view.zoom.finalZoom : view.zoomFactor;
                         //const currZoomFactor = view.wasm.getZoomFactor();
                         let newZoomFactor = view.delta > 0 ? currZoomFactor * factor : currZoomFactor / factor;
 

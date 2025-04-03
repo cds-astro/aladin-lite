@@ -218,19 +218,19 @@ impl UniformType for Matrix2<f32> {
     }
 }
 
-use cgmath::Matrix4;
-impl UniformType for Matrix4<f32> {
+use cgmath::Matrix3;
+impl UniformType for Matrix3<f32> {
     fn uniform(gl: &WebGlContext, location: Option<&WebGlUniformLocation>, value: &Self) {
-        gl.uniform_matrix4fv_with_f32_array(location, false, value.as_ref() as &[f32; 16]);
+        gl.uniform_matrix3fv_with_f32_array(location, false, value.as_ref() as &[f32; 9]);
     }
 }
 use crate::Abort;
 
-impl UniformType for Matrix4<f64> {
+impl UniformType for Matrix3<f64> {
     fn uniform(gl: &WebGlContext, location: Option<&WebGlUniformLocation>, value: &Self) {
         // Cast the matrix
         let mat_f32 = value.cast::<f32>().unwrap_abort();
-        gl.uniform_matrix4fv_with_f32_array(location, false, mat_f32.as_ref() as &[f32; 16]);
+        gl.uniform_matrix3fv_with_f32_array(location, false, mat_f32.as_ref() as &[f32; 9]);
     }
 }
 use super::texture::Texture2D;

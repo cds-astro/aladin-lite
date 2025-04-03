@@ -4,7 +4,7 @@ layout (location = 0) in vec2 p_a_lonlat;
 layout (location = 1) in vec2 p_b_lonlat;
 layout (location = 2) in vec2 vertex;
 
-uniform mat4 u_2world;
+uniform mat3 u_2world;
 uniform vec2 ndc_to_clip;
 uniform float czf;
 uniform float u_width;
@@ -20,11 +20,11 @@ void main() {
     vec3 p_a_xyz = lonlat2xyz(p_a_lonlat);
     vec3 p_b_xyz = lonlat2xyz(p_b_lonlat);
     // 2. Convert to the world coo system
-    vec4 p_a_w = u_2world * vec4(p_a_xyz, 1.0); 
-    vec4 p_b_w = u_2world * vec4(p_b_xyz, 1.0);
+    vec3 p_a_w = u_2world * p_a_xyz; 
+    vec3 p_b_w = u_2world * p_b_xyz;
     // 3. Process the projection
-    vec2 p_a_clip = proj(p_a_w.xyz);
-    vec2 p_b_clip = proj(p_b_w.xyz);
+    vec2 p_a_clip = proj(p_a_w);
+    vec2 p_b_clip = proj(p_b_w);
 
     vec2 da = p_a_clip - p_b_clip;
     l = dot(da, da);

@@ -35,7 +35,6 @@ use al_api::{
     grid::GridCfg,
     hips::{HiPSCfg, ImageMetadata},
 };
-use cgmath::Vector4;
 use fitsrs::{fits::AsyncFits, hdu::extension::AsyncXtensionHDU};
 
 use web_sys::{HtmlElement, WebGl2RenderingContext};
@@ -172,7 +171,7 @@ impl App {
         //let tasks_finished = false;
         let request_redraw = false;
         let rendering = true;
-        let prev_cam_position = camera.get_center().truncate();
+        let prev_cam_position = *camera.get_center();
         //let prev_center = Vector3::new(0.0, 1.0, 0.0);
         let out_of_fov = false;
         let catalog_loaded = false;
@@ -421,17 +420,17 @@ impl App {
 
                 let v = cell.vertices();
                 let proj2screen = |(lon, lat): &(f64, f64)| -> Option<[f64; 2]> {
-                    // 1. convert to xyzw
-                    let xyzw = crate::math::lonlat::radec_to_xyzw(lon.to_angle(), lat.to_angle());
+                    // 1. convert to xyz
+                    let xyz = crate::math::lonlat::radec_to_xyz(lon.to_angle(), lat.to_angle());
                     // 2. get it back to the camera frame system
-                    let xyzw = crate::coosys::apply_coo_system(
+                    let xyz = crate::coosys::apply_coo_system(
                         CooSystem::ICRS,
                         self.camera.get_coo_system(),
-                        &xyzw,
+                        &xyz,
                     );
 
                     // 3. project on screen
-                    if let Some(p) = self.projection.model_to_clip_space(&xyzw, &self.camera) {
+                    if let Some(p) = self.projection.model_to_clip_space(&xyz, &self.camera) {
                         Some([p.x, p.y])
                     } else {
                         None
@@ -1444,9 +1443,9 @@ impl App {
     }
 
     pub(crate) fn view_to_icrs_coosys(&self, lonlat: &LonLatT<f64>) -> LonLatT<f64> {
-        let celestial_pos: Vector4<_> = lonlat.vector();
+        let celestial_pos = lonlat.vector();
         let view_system = self.camera.get_coo_system();
-        let (ra, dec) = math::lonlat::xyzw_to_radec(&coosys::apply_coo_system(
+        let (ra, dec) = math::lonlat::xyz_to_radec(&coosys::apply_coo_system(
             view_system,
             CooSystem::ICRS,
             &celestial_pos,
@@ -1457,7 +1456,7 @@ impl App {
 
     /// lonlat must be given in icrs frame
     pub(crate) fn set_center(&mut self, lonlat: &LonLatT<f64>) {
-        self.prev_cam_position = self.camera.get_center().truncate();
+        self.prev_cam_position = *self.camera.get_center();
 
         self.camera.set_center(lonlat, &self.projection);
         self.request_for_new_tiles = true;
@@ -1538,8 +1537,8 @@ impl App {
         // Start inertia here
         // Angular distance between the previous and current
         // center position
-        let center = self.camera.get_center().truncate();
-        let axis = self.prev_cam_position.cross(center).normalize();
+        let center = self.camera.get_center();
+        let axis = self.prev_cam_position.cross(*center).normalize();
 
         //let delta_time = ((now - time_of_last_move).0 as f64).max(1.0);
         let delta_angle = math::vector::angle3(&self.prev_cam_position, &center).to_radians();
@@ -1592,9 +1591,9 @@ impl App {
             self.projection
                 .screen_to_model_space(&Vector2::new(s2x, s2y), &self.camera),
         ) {
-            let prev_pos = w1.truncate();
+            let prev_pos = w1;
             //let cur_pos = w1.truncate();
-            let cur_pos = w2.truncate();
+            let cur_pos = w2;
             //let next_pos = w2.truncate();
             if prev_pos != cur_pos {
                 /* 1. Rotate by computing the angle between the last and current position */
@@ -1605,7 +1604,7 @@ impl App {
 
                 let d = math::vector::angle3(&prev_pos, &cur_pos);
 
-                self.prev_cam_position = self.camera.get_center().truncate();
+                self.prev_cam_position = *self.camera.get_center();
                 self.camera.apply_rotation(&(-axis), d, &self.projection);
 
                 self.request_for_new_tiles = true;

@@ -7,7 +7,7 @@ layout (location = 1) in vec3 uv;
 out vec3 frag_uv;
 
 // current time in ms
-uniform mat4 inv_model;
+uniform mat3 inv_model;
 uniform vec2 ndc_to_clip;
 uniform float czf;
 
@@ -15,7 +15,7 @@ uniform float czf;
 
 void main() {
     vec3 p_xyz = lonlat2xyz(lonlat);
-    vec4 p_w = inv_model * vec4(p_xyz, 1.0); 
+    vec3 p_w = inv_model * p_xyz; 
     // 3. Process the projection
     vec2 p_clip = proj(p_w.xyz);
 

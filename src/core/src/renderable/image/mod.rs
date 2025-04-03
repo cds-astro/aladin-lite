@@ -9,7 +9,7 @@ use std::marker::Unpin;
 use std::vec;
 
 use al_api::coo_system::CooSystem;
-use cgmath::Vector4;
+use cgmath::Vector3;
 use futures::stream::TryStreamExt;
 use futures::AsyncRead;
 
@@ -265,7 +265,7 @@ impl Image {
         let inside = crate::coosys::apply_coo_system(
             CooSystem::ICRS,
             coo_sys,
-            &Vector4::new(center_xyz.y(), center_xyz.z(), center_xyz.x(), 1.0),
+            &Vector3::new(center_xyz.y(), center_xyz.z(), center_xyz.x()),
         );
 
         let vertices = [
@@ -285,7 +285,7 @@ impl Image {
             crate::coosys::apply_coo_system(
                 CooSystem::ICRS,
                 coo_sys,
-                &Vector4::new(xyz.y(), xyz.z(), xyz.x(), 1.0),
+                &Vector3::new(xyz.y(), xyz.z(), xyz.x()),
             )
         })
         .collect::<Vec<_>>();
@@ -556,7 +556,7 @@ impl Image {
             let inside = crate::coosys::apply_coo_system(
                 CooSystem::ICRS,
                 self.coo_sys,
-                &Vector4::new(center_xyz.y(), center_xyz.z(), center_xyz.x(), 1.0),
+                &Vector3::new(center_xyz.y(), center_xyz.z(), center_xyz.x()),
             );
 
             let vertices = [
@@ -580,7 +580,7 @@ impl Image {
                 crate::coosys::apply_coo_system(
                     CooSystem::ICRS,
                     self.coo_sys,
-                    &Vector4::new(xyz.y(), xyz.z(), xyz.x(), 1.0),
+                    &Vector3::new(xyz.y(), xyz.z(), xyz.x()),
                 )
             })
             .collect::<Vec<_>>();

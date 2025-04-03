@@ -66,8 +66,8 @@ impl Label {
         let m1: Vector3<_> = lonlat.vector();
         let m2 = (m1 + d * 1e-3).normalize();
 
-        let d1 = projection.model_to_screen_space(&m1.extend(1.0), camera)?;
-        let d2 = projection.model_to_screen_space(&m2.extend(1.0), camera)?;
+        let d1 = projection.model_to_screen_space(&m1, camera)?;
+        let d2 = projection.model_to_screen_space(&m2, camera)?;
 
         let dt = (d2 - d1).normalize();
         let db = Vector2::new(dt.y.abs(), dt.x.abs());
@@ -126,7 +126,7 @@ impl Label {
         let m1: Vector3<_> = lonlat.vector();
 
         let mut t = Vector3::new(-m1.z, 0.0, m1.x).normalize();
-        let center = camera.get_center().truncate();
+        let center = camera.get_center();
 
         let dot_t_center = center.dot(t);
         if dot_t_center.abs() < 1e-4 {
@@ -137,8 +137,8 @@ impl Label {
 
         let m2 = (m1 + t * 1e-3).normalize();
 
-        let d1 = projection.model_to_screen_space(&m1.extend(1.0), camera)?;
-        let d2 = projection.model_to_screen_space(&m2.extend(1.0), camera)?;
+        let d1 = projection.model_to_screen_space(&m1, camera)?;
+        let d2 = projection.model_to_screen_space(&m2, camera)?;
 
         let dt = (d2 - d1).normalize();
         let db = Vector2::new(dt.y.abs(), dt.x.abs());

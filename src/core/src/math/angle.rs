@@ -145,15 +145,6 @@ where
 #[derive(Clone, Copy)]
 pub struct ArcSec<T: BaseFloat>(pub T);
 
-impl<T> ArcSec<T>
-where
-    T: BaseFloat,
-{
-    fn _truncate(&mut self) {
-        *self = Self((*self).trunc());
-    }
-}
-
 impl<T> From<Rad<T>> for ArcSec<T>
 where
     T: BaseFloat,

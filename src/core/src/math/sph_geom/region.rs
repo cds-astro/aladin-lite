@@ -1,7 +1,7 @@
 use super::bbox::BoundingBox;
 use crate::math::angle::ToAngle;
 
-use crate::math::{lonlat::LonLatT, projection::coo_space::XYZWModel, MINUS_HALF_PI};
+use crate::math::{lonlat::LonLatT, projection::coo_space::XYZModel, MINUS_HALF_PI};
 use cgmath::Vector3;
 use healpix::sph_geom::coo3d::Vec3;
 use healpix::sph_geom::coo3d::{Coo3D, UnitVect3};
@@ -38,11 +38,11 @@ pub enum Intersection {
     // The segment does not intersect the region
     Empty,
     // The segment does intersect the region
-    Intersect { vertices: Box<[XYZWModel<f64>]> },
+    Intersect { vertices: Box<[XYZModel<f64>]> },
 }
 
 impl Region {
-    pub fn from_vertices(vertices: &[XYZWModel<f64>], control_point: &XYZWModel<f64>) -> Self {
+    pub fn from_vertices(vertices: &[XYZModel<f64>], control_point: &XYZModel<f64>) -> Self {
         let (vertices, (lon, lat)): (Vec<_>, (Vec<_>, Vec<_>)) = vertices
             .iter()
             .map(|v| {
@@ -101,7 +101,7 @@ impl Region {
                     let vertices = polygon
                         .intersect_parallel_all(lat)
                         .iter()
-                        .map(|v| XYZWModel::new(v.y(), v.z(), v.x(), 1.0))
+                        .map(|v| XYZModel::new(v.y(), v.z(), v.x()))
                         .collect::<Vec<_>>();
 
                     if !vertices.is_empty() {
@@ -193,10 +193,10 @@ impl Region {
                 let coo2 =
                     Coo3D::from_sph_coo(lonlat2.lon().to_radians(), lonlat2.lat().to_radians());
 
-                let vertices: Vec<cgmath::Vector4<f64>> = polygon
+                let vertices: Vec<cgmath::Vector3<f64>> = polygon
                     .intersect_great_circle_arc_all(&coo1, &coo2)
                     .iter()
-                    .map(|v| XYZWModel::new(v.y(), v.z(), v.x(), 1.0))
+                    .map(|v| XYZModel::new(v.y(), v.z(), v.x()))
                     .collect::<Vec<_>>();
 
                 if !vertices.is_empty() {
@@ -225,10 +225,10 @@ impl Region {
             // The polygon is included inside the region
             Region::AllSky => Intersection::Included,
             Region::Polygon { polygon, .. } => {
-                let vertices: Vec<cgmath::Vector4<f64>> = polygon
+                let vertices: Vec<cgmath::Vector3<f64>> = polygon
                     .intersect_great_circle_all(&UnitVect3::new_unsafe(n.z, n.x, n.y))
                     .iter()
-                    .map(|v| XYZWModel::new(v.y(), v.z(), v.x(), 1.0))
+                    .map(|v| XYZModel::new(v.y(), v.z(), v.x()))
                     .collect::<Vec<_>>();
 
                 // Test whether a point on the meridian is included

@@ -2,7 +2,7 @@ use crate::math::lonlat::LonLatT;
 use crate::math::PI;
 use crate::math::{self, lonlat::LonLat};
 
-use cgmath::{Vector4};
+use cgmath::Vector3;
 use moclib::{
     moc::range::{CellSelection, RangeMOC},
     qty::Hpx,
@@ -81,8 +81,8 @@ impl HEALPixCoverage {
         HEALPixCoverage(moc)
     }
 
-    pub fn contains_coo(&self, coo: &Vector4<f64>) -> bool {
-        let (lon, lat) = math::lonlat::xyzw_to_radec(coo);
+    pub fn contains_coo(&self, coo: &Vector3<f64>) -> bool {
+        let (lon, lat) = math::lonlat::xyz_to_radec(coo);
         self.0.is_in(lon.to_radians(), lat.to_radians())
     }
 

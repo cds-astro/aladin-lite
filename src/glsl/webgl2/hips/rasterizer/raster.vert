@@ -12,7 +12,7 @@ out vec3 frag_uv_end;
 out float frag_blending_factor;
 
 // current time in ms
-uniform mat4 inv_model;
+uniform mat3 inv_model;
 uniform vec2 ndc_to_clip;
 uniform float czf;
 uniform float current_time;
@@ -21,9 +21,9 @@ uniform float current_time;
 
 void main() {
     //vec3 xyz = lonlat2xyz(lonlat);
-    vec4 p_w = inv_model * vec4(xyz, 1.0); 
+    vec3 p_w = inv_model * xyz; 
     // 3. Process the projection
-    vec2 p_clip = proj(p_w.xyz);
+    vec2 p_clip = proj(p_w);
 
     vec2 p_ndc = p_clip / (ndc_to_clip * czf);
     gl_Position = vec4(p_ndc, 0.0, 1.0);

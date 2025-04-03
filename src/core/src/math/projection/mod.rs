@@ -10,7 +10,7 @@
 use crate::camera::CameraViewPort;
 use crate::domain::sdf::ProjDefType;
 
-use coo_space::XYZWModel;
+use coo_space::XYZModel;
 //use crate::num_traits::FloatConst;
 use crate::math::PI;
 
@@ -101,7 +101,7 @@ pub fn screen_to_clip_space(
 
 use al_api::coo_system::CooSystem;
 
-use crate::coo_space::{XYClip, XYZWWorld};
+use crate::coo_space::{XYClip, XYZWorld};
 
 pub enum ProjectionType {
     // Zenithal projections
@@ -174,7 +174,7 @@ impl ProjectionType {
         &self,
         pos_screen_space: &XYScreen<f64>,
         camera: &CameraViewPort,
-    ) -> Option<XYZWWorld<f64>> {
+    ) -> Option<XYZWorld<f64>> {
         // Change the screen position according to the dpi
         //let dpi = camera.get_dpi();
         let pos_screen_space = *pos_screen_space;
@@ -196,7 +196,7 @@ impl ProjectionType {
         &self,
         pos_screen_space: &XYScreen<f64>,
         camera: &CameraViewPort,
-    ) -> Option<XYZWModel<f64>> {
+    ) -> Option<XYZModel<f64>> {
         self.screen_to_world_space(pos_screen_space, camera)
             .map(|world_pos| camera.get_w2m() * world_pos)
     }
@@ -205,14 +205,14 @@ impl ProjectionType {
         &self,
         ndc_pos: &XYNDC<f64>,
         camera: &CameraViewPort,
-    ) -> Option<XYZWModel<f64>> {
+    ) -> Option<XYZModel<f64>> {
         self.normalized_device_to_world_space(ndc_pos, camera)
             .map(|world_pos| camera.get_w2m() * world_pos)
     }
 
     pub fn model_to_screen_space(
         &self,
-        pos_model_space: &XYZWModel<f64>,
+        pos_model_space: &XYZModel<f64>,
         camera: &CameraViewPort,
     ) -> Option<XYScreen<f64>> {
         let m2w = camera.get_m2w();
@@ -222,7 +222,7 @@ impl ProjectionType {
 
     pub fn icrs_celestial_to_screen_space(
         &self,
-        celestial_pos: &XYZWModel<f64>,
+        celestial_pos: &XYZModel<f64>,
         camera: &CameraViewPort,
     ) -> Option<XYScreen<f64>> {
         self.icrs_celestial_to_normalized_device_space(celestial_pos, camera)
@@ -231,7 +231,7 @@ impl ProjectionType {
 
     pub fn icrs_celestial_to_normalized_device_space(
         &self,
-        celestial_pos: &XYZWModel<f64>,
+        celestial_pos: &XYZModel<f64>,
         camera: &CameraViewPort,
     ) -> Option<XYNDC<f64>> {
         let view_coosys = camera.get_coo_system();
@@ -244,7 +244,7 @@ impl ProjectionType {
 
     pub fn model_to_normalized_device_space(
         &self,
-        pos_model_space: &XYZWModel<f64>,
+        pos_model_space: &XYZModel<f64>,
         camera: &CameraViewPort,
     ) -> Option<XYNDC<f64>> {
         let m2w = camera.get_m2w();
@@ -254,7 +254,7 @@ impl ProjectionType {
 
     pub fn model_to_clip_space(
         &self,
-        pos_model_space: &XYZWModel<f64>,
+        pos_model_space: &XYZModel<f64>,
         camera: &CameraViewPort,
     ) -> Option<XYClip<f64>> {
         let m2w = camera.get_m2w();
@@ -272,7 +272,7 @@ impl ProjectionType {
     /// * `y` - Y mouse position in homogenous screen space (between [-1, 1])
     pub fn world_to_normalized_device_space(
         &self,
-        pos_world_space: &XYZWWorld<f64>,
+        pos_world_space: &XYZWorld<f64>,
         camera: &CameraViewPort,
     ) -> Option<XYNDC<f64>> {
         self.world_to_clip_space(pos_world_space)
@@ -283,14 +283,14 @@ impl ProjectionType {
         &self,
         ndc_pos: &XYNDC<f64>,
         camera: &CameraViewPort,
-    ) -> Option<XYZWWorld<f64>> {
+    ) -> Option<XYZWorld<f64>> {
         let clip_pos = ndc_to_clip_space(ndc_pos, camera);
         self.clip_to_world_space(&clip_pos)
     }
 
     pub fn world_to_screen_space(
         &self,
-        pos_world_space: &XYZWWorld<f64>,
+        pos_world_space: &XYZWorld<f64>,
         camera: &CameraViewPort,
     ) -> Option<XYScreen<f64>> {
         self.world_to_normalized_device_space(pos_world_space, camera)
@@ -501,7 +501,7 @@ impl ProjectionType {
 
 impl Projection for ProjectionType {
     /// Deprojection
-    fn clip_to_world_space(&self, xy: &XYClip<f64>) -> Option<XYZWWorld<f64>> {
+    fn clip_to_world_space(&self, xy: &XYClip<f64>) -> Option<XYZWorld<f64>> {
         match self {
             // Zenithal projections
             /* TAN,      Gnomonic projection        */
@@ -545,11 +545,11 @@ impl Projection for ProjectionType {
 
             // Conic projections
             // COD,                                 */
-            /*ProjectionType::Cod(cod) => cod.clip_to_world_space(xy).map(|xyzw| {
+            /*ProjectionType::Cod(cod) => cod.clip_to_world_space(xy).map(|xyz| {
                 let rot = Rotation::from_sky_position(
                     &LonLatT::new(0.0_f64.to_angle(), (HALF_PI * 0.5).to_angle()).vector(),
                 );
-                rot.inv_rotate(&xyzw)
+                rot.inv_rotate(&xyz)
             }),*/
             // HEALPix hybrid projection
             //ProjectionType::Hpx(hpx) => hpx.clip_to_world_space(xy),
@@ -557,47 +557,47 @@ impl Projection for ProjectionType {
     }
 
     // Projection
-    fn world_to_clip_space(&self, xyzw: &XYZWWorld<f64>) -> Option<XYClip<f64>> {
+    fn world_to_clip_space(&self, xyz: &XYZWorld<f64>) -> Option<XYClip<f64>> {
         match self {
             // Zenithal projections
             /* TAN,      Gnomonic projection        */
-            ProjectionType::Tan(tan) => tan.world_to_clip_space(xyzw),
+            ProjectionType::Tan(tan) => tan.world_to_clip_space(xyz),
             /* STG,	     Stereographic projection   */
-            ProjectionType::Stg(stg) => stg.world_to_clip_space(xyzw),
+            ProjectionType::Stg(stg) => stg.world_to_clip_space(xyz),
             /* SIN,	     Orthographic		        */
-            ProjectionType::Sin(sin) => sin.world_to_clip_space(xyzw),
+            ProjectionType::Sin(sin) => sin.world_to_clip_space(xyz),
             /* ZEA,	     Equal-area 		        */
-            ProjectionType::Zea(zea) => zea.world_to_clip_space(xyzw),
+            ProjectionType::Zea(zea) => zea.world_to_clip_space(xyz),
             /* FEYE,     Fish-eyes                  */
-            //ProjectionType::Feye(feye) => feye.world_to_clip_space(xyzw),
+            //ProjectionType::Feye(feye) => feye.world_to_clip_space(xyz),
             /* AIR,                                 */
-            //ProjectionType::Air(air) => air.world_to_clip_space(xyzw),
+            //ProjectionType::Air(air) => air.world_to_clip_space(xyz),
             //AZP: {fov: 180},
             //Azp(mapproj::zenithal::azp::Azp),
             /* ARC,                                 */
-            //ProjectionType::Arc(arc) => arc.world_to_clip_space(xyzw),
+            //ProjectionType::Arc(arc) => arc.world_to_clip_space(xyz),
             /* NCP,                                 */
-            //ProjectionType::Ncp(ncp) => ncp.world_to_clip_space(xyzw),
+            //ProjectionType::Ncp(ncp) => ncp.world_to_clip_space(xyz),
 
             // Pseudo-cylindrical projections
             /* AIT,      Aitoff                     */
-            ProjectionType::Ait(ait) => ait.world_to_clip_space(xyzw),
+            ProjectionType::Ait(ait) => ait.world_to_clip_space(xyz),
             // MOL,      Mollweide                  */
-            ProjectionType::Mol(mol) => mol.world_to_clip_space(xyzw),
+            ProjectionType::Mol(mol) => mol.world_to_clip_space(xyz),
             // PAR,                                 */
-            //ProjectionType::Par(par) => par.world_to_clip_space(xyzw),
+            //ProjectionType::Par(par) => par.world_to_clip_space(xyz),
             // SFL,                                 */
-            //ProjectionType::Sfl(sfl) => sfl.world_to_clip_space(xyzw),
+            //ProjectionType::Sfl(sfl) => sfl.world_to_clip_space(xyz),
 
             // Cylindrical projections
             // MER,      Mercator                   */
-            ProjectionType::Mer(mer) => mer.world_to_clip_space(xyzw),
+            ProjectionType::Mer(mer) => mer.world_to_clip_space(xyz),
             // CAR,                                 */
-            //ProjectionType::Car(car) => car.world_to_clip_space(xyzw),
+            //ProjectionType::Car(car) => car.world_to_clip_space(xyz),
             // CEA,                                 */
-            //ProjectionType::Cea(cea) => cea.world_to_clip_space(xyzw),
+            //ProjectionType::Cea(cea) => cea.world_to_clip_space(xyz),
             // CYP,                                 */
-            //ProjectionType::Cyp(cyp) => cyp.world_to_clip_space(xyzw),
+            //ProjectionType::Cyp(cyp) => cyp.world_to_clip_space(xyz),
             // Conic projections
             // COD,                                 */
             /*ProjectionType::Cod(cod) => {
@@ -605,10 +605,10 @@ impl Projection for ProjectionType {
                 let rot = Rotation::from_sky_position(
                     &LonLatT::new(0.0_f64.to_angle(), (HALF_PI * 0.5).to_angle()).vector(),
                 );
-                cod.world_to_clip_space(&rot.rotate(&xyzw))
+                cod.world_to_clip_space(&rot.rotate(&xyz))
             }*/
             // HEALPix hybrid projection
-            //ProjectionType::Hpx(hpx) => hpx.world_to_clip_space(xyzw),
+            //ProjectionType::Hpx(hpx) => hpx.world_to_clip_space(xyz),
         }
     }
 }
@@ -642,7 +642,7 @@ impl UniformType for ProjectionType {
     }
 }
 
-use cgmath::Vector4;
+use cgmath::Vector3;
 
 use mapproj::CanonicalProjection;
 pub trait Projection {
@@ -651,24 +651,24 @@ pub trait Projection {
     /// # Arguments
     ///
     /// * ``pos_clip_space`` - The position in the clipping space (orthonorlized space)
-    fn clip_to_world_space(&self, xy_clip: &XYClip<f64>) -> Option<XYZWWorld<f64>>;
+    fn clip_to_world_space(&self, xy_clip: &XYClip<f64>) -> Option<XYZWorld<f64>>;
     /// World to the clipping space deprojection
     ///
     /// # Arguments
     ///
     /// * ``pos_world_space`` - The position in the world space
-    fn world_to_clip_space(&self, pos_world_space: &XYZWWorld<f64>) -> Option<XYClip<f64>>;
+    fn world_to_clip_space(&self, pos_world_space: &XYZWorld<f64>) -> Option<XYClip<f64>>;
 
     /// (`alpha_p`, `delta_p`) in the WCS II paper from Mark Calabretta.
     #[inline]
-    fn north_pole_world_space(&self) -> XYZWWorld<f64> {
+    fn north_pole_world_space(&self) -> XYZWorld<f64> {
         // This is always defined
         self.clip_to_world_space(&XYClip::new(0.0, 1.0 - 1e-5))
             .unwrap()
     }
 
     #[inline]
-    fn south_pole_world_space(&self) -> XYZWWorld<f64> {
+    fn south_pole_world_space(&self) -> XYZWorld<f64> {
         // This is always defined
         self.clip_to_world_space(&XYClip::new(0.0, -1.0 + 1e-5))
             .unwrap()
@@ -691,7 +691,7 @@ where
     /// # Arguments
     ///
     /// * ``pos_clip_space`` - The position in the clipping space (orthonorlized space)
-    fn clip_to_world_space(&self, xy_clip: &XYClip<f64>) -> Option<XYZWWorld<f64>> {
+    fn clip_to_world_space(&self, xy_clip: &XYClip<f64>) -> Option<XYZWorld<f64>> {
         let proj_bounds = self.bounds();
         // Scale the xy_clip space so that it maps the proj definition domain of mapproj
         let xy_mapproj = {
@@ -716,7 +716,7 @@ where
             // Xmpp <-> Zal
             // -Ympp <-> Xal
             // Zmpp <-> Yal
-            Vector4::new(-xyz_mapproj.y(), xyz_mapproj.z(), xyz_mapproj.x(), 1.0)
+            Vector3::new(-xyz_mapproj.y(), xyz_mapproj.z(), xyz_mapproj.x())
         })
     }
     /// World to the clipping space deprojection
@@ -724,7 +724,7 @@ where
     /// # Arguments
     ///
     /// * ``pos_world_space`` - The position in the world space
-    fn world_to_clip_space(&self, pos_world_space: &XYZWWorld<f64>) -> Option<XYClip<f64>> {
+    fn world_to_clip_space(&self, pos_world_space: &XYZWorld<f64>) -> Option<XYClip<f64>> {
         // Xmpp <-> Zal
         // -Ympp <-> Xal
         // Zmpp <-> Yal
@@ -779,7 +779,7 @@ mod tests {
                         2.0 * ((xy.y as f64) / (h as f64)) - 1.0,
                     );
                     let rgb = if let Some(pos) = projection.clip_to_world_space(&clip_xy) {
-                        let pos = pos.truncate().normalize();
+                        let pos = pos.normalize();
                         Rgb([
                             ((pos.x * 0.5 + 0.5) * 256.0) as u8,
                             ((pos.y * 0.5 + 0.5) * 256.0) as u8,

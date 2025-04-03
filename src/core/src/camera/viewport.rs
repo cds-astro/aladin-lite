@@ -8,17 +8,19 @@ pub enum UserAction {
 
 use web_sys::WebGl2RenderingContext;
 // Longitude reversed identity matrix
-const ID_R: &Matrix4<f64> = &Matrix4::new(
-    -1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
+const ID_R: &Matrix3<f64> = &Matrix3::new(
+    -1.0, 0.0, 0.0,
+    0.0, 1.0, 0.0,
+    0.0, 0.0, 1.0,
 );
 
 use super::{fov::FieldOfView, view_hpx_cells::ViewHpxCells};
 use crate::healpix::cell::HEALPixCell;
 use crate::healpix::coverage::HEALPixCoverage;
 use crate::math::angle::ToAngle;
-use crate::math::{projection::coo_space::XYZWModel, projection::domain::sdf::ProjDef};
+use crate::math::{projection::coo_space::XYZModel, projection::domain::sdf::ProjDef};
 
-use cgmath::{Matrix4, Vector2};
+use cgmath::{Matrix3, Vector2};
 const APERTURE_LOWER_LIMIT_RAD: f64 = (1.0_f64 / 36000.0).to_radians();
 const ZOOM_FACTOR_UPPER_LIMIT: f64 = 2.0;
 
@@ -26,11 +28,11 @@ pub struct CameraViewPort {
     // The field of view angle
     aperture: f64,
     // The rotation of the camera
-    center: Vector4<f64>,
+    center: Vector3<f64>,
     w2m_rot: Rotation<f64>,
 
-    w2m: Matrix4<f64>,
-    m2w: Matrix4<f64>,
+    w2m: Matrix3<f64>,
+    m2w: Matrix3<f64>,
     // The width over height ratio
     aspect: f32,
     // The width of the screen in pixels
@@ -89,7 +91,7 @@ use crate::{
 };
 
 use crate::LonLatT;
-use cgmath::{SquareMatrix, Vector4};
+use cgmath::{SquareMatrix, Vector3};
 use wasm_bindgen::JsCast;
 
 const MAX_DPI_LIMIT: f32 = 2.0;
@@ -106,9 +108,9 @@ impl CameraViewPort {
 
         let aperture = projection.aperture_start().to_radians();
 
-        let w2m = Matrix4::identity();
+        let w2m = Matrix3::identity();
         let m2w = w2m;
-        let center = Vector4::new(0.0, 0.0, 0.0, 1.0);
+        let center = Vector3::new(0.0, 0.0, 0.0);
         let moved = false;
         let zoomed = false;
 
@@ -428,8 +430,8 @@ impl CameraViewPort {
             // Compute the new clip zoom factor
             let a = aperture.abs();
 
-            let v0 = math::lonlat::radec_to_xyzw((-a / 2.0).to_angle(), 0.0.to_angle());
-            let v1 = math::lonlat::radec_to_xyzw((a / 2.0).to_angle(), 0.0.to_angle());
+            let v0 = math::lonlat::radec_to_xyz(-a.to_angle() / 2.0, 0.0.to_angle());
+            let v1 = math::lonlat::radec_to_xyz(a.to_angle() / 2.0, 0.0.to_angle());
 
             // Vertex in the WCS of the FOV
             if let (Some(p0), Some(p1)) =
@@ -511,7 +513,7 @@ impl CameraViewPort {
             // zoom_factor < 1.0
             if let Some((lon, _)) = proj
                 .clip_to_world_space(&Vector2::new(self.zoom_factor, 0.0))
-                .map(|xyzw| math::lonlat::xyzw_to_radec(&xyzw))
+                .map(|xyz| math::lonlat::xyz_to_radec(&xyz))
             {
                 lon.to_radians().abs() * 2.0
             } else {
@@ -634,9 +636,9 @@ impl CameraViewPort {
 
     /// center lonlat must be given in icrs frame
     pub fn set_center(&mut self, lonlat: &LonLatT<f64>, proj: &ProjectionType) {
-        let icrs_pos: Vector4<_> = lonlat.vector();
+        let icrs_pos: Vector3<_> = lonlat.vector();
 
-        let center = (CooSystem::ICRS.to(self.get_coo_system()) * icrs_pos).truncate();
+        let center = CooSystem::ICRS.to(self.get_coo_system()) * icrs_pos;
         let rot_to_center = Rotation::from_sky_position(&center);
 
         let phi = self.get_center_pos_angle();
@@ -650,7 +652,7 @@ impl CameraViewPort {
     }
 
     pub fn set_center_pos_angle(&mut self, phi: Angle<f64>, proj: &ProjectionType) {
-        let c = self.center.truncate();
+        let c = self.center;
         let rot_to_center = Rotation::from_sky_position(&c);
         let third_euler_rot = Rotation::from_axis_angle(&c, phi);
 
@@ -672,7 +674,7 @@ impl CameraViewPort {
         // Compute the center position according to the new coordinate frame system
         let new_center = coosys::apply_coo_system(self.coo_sys, new_coo_sys, &self.center);
         // Create a rotation object from that position
-        let new_rotation = Rotation::from_sky_position(&new_center.truncate());
+        let new_rotation = Rotation::from_sky_position(&new_center);
         // Apply it to the center of the view
         self.set_rotation(&new_rotation, proj);
 
@@ -713,11 +715,11 @@ impl CameraViewPort {
     }
 
     // Accessors
-    pub fn get_w2m(&self) -> &cgmath::Matrix4<f64> {
+    pub fn get_w2m(&self) -> &cgmath::Matrix3<f64> {
         &self.w2m
     }
 
-    pub fn get_m2w(&self) -> &cgmath::Matrix4<f64> {
+    pub fn get_m2w(&self) -> &cgmath::Matrix3<f64> {
         &self.m2w
     }
 
@@ -733,7 +735,7 @@ impl CameraViewPort {
         self.zoom_factor
     }
 
-    pub fn get_vertices(&self) -> Option<&Vec<XYZWModel<f64>>> {
+    pub fn get_vertices(&self) -> Option<&Vec<XYZModel<f64>>> {
         self.fov.get_vertices()
     }
 
@@ -778,7 +780,7 @@ impl CameraViewPort {
     }
 
     #[inline]
-    pub fn get_center(&self) -> &Vector4<f64> {
+    pub fn get_center(&self) -> &Vector3<f64> {
         &self.center
     }
 

@@ -1,4 +1,4 @@
-use cgmath::Vector4;
+use cgmath::Vector3;
 use al_api::coo_system::CooSystem;
 
 /// This is conversion method returning a transformation
@@ -6,7 +6,7 @@ use al_api::coo_system::CooSystem;
 /// ICRS.
 /// The core projections are always performed in ICRS
 #[inline]
-pub fn apply_coo_system(c1: CooSystem, c2: CooSystem, v: &Vector4<f64>) -> Vector4<f64> {
+pub fn apply_coo_system(c1: CooSystem, c2: CooSystem, v: &Vector3<f64>) -> Vector3<f64> {
     let c1_2_c2_mat = c1.to(c2);
     c1_2_c2_mat * (*v)
 }

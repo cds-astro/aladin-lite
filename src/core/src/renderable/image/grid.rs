@@ -1,4 +1,4 @@
-use cgmath::Vector4;
+use cgmath::Vector3;
 use std::ops::RangeInclusive;
 use wcs::ImgXY;
 
@@ -195,14 +195,14 @@ pub fn vertices(
         .map(|(y, uvy)| {
             x_it.clone().map(move |(x, uvx)| {
                 let ndc = if let Some(xyz) = wcs.unproj_xyz(&ImgXY::new(x as f64, y as f64)) {
-                    let xyzw = crate::coosys::apply_coo_system(
+                    let xyz = crate::coosys::apply_coo_system(
                         CooSystem::ICRS,
                         camera.get_coo_system(),
-                        &Vector4::new(xyz.y(), xyz.z(), xyz.x(), 1.0),
+                        &Vector3::new(xyz.y(), xyz.z(), xyz.x()),
                     );
 
                     projection
-                        .model_to_normalized_device_space(&xyzw, camera)
+                        .model_to_normalized_device_space(&xyz, camera)
                         .map(|v| [v.x as f32, v.y as f32])
                 } else {
                     None

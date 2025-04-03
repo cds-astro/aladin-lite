@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### What's Changed
+
+* [perf] perform CPU computations with Vec3 and Matrix3 and not 4 dimensions matrices/vectors.
+
 ## Released
 
 ### 3.6.3

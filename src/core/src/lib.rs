@@ -130,7 +130,7 @@ use al_core::Colormap;
 use al_core::WebGlContext;
 
 use app::App;
-use cgmath::{Vector2, Vector4};
+use cgmath::{Vector2, Vector3};
 
 use crate::healpix::cell::HEALPixCell;
 use math::angle::ArcDeg;
@@ -1104,12 +1104,12 @@ impl WebClient {
         let vertex_it = ra_deg
             .iter()
             .zip(dec_deg.iter())
-            .map(|(ra, dec)| -> Vector4<f64> {
+            .map(|(ra, dec)| -> Vector3<f64> {
                 let lonlat = LonLatT(ra.to_radians().to_angle(), dec.to_radians().to_angle());
                 lonlat.vector()
             });
 
-        let v_in = &Vector4::new(1.0, 0.0, 0.0, 1.0);
+        let v_in = &Vector3::new(1.0, 0.0, 0.0);
 
         let mut moc = HEALPixCoverage::from_3d_coos(pixel_d as u8 - 1, vertex_it, &v_in);
         if moc.sky_fraction() > 0.5 {

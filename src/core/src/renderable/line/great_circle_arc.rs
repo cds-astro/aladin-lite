@@ -32,8 +32,8 @@ pub fn project(
     let v1: Vector3<_> = lonlat1.vector();
     let v2: Vector3<_> = lonlat2.vector();
 
-    let p1 = projection.model_to_normalized_device_space(&v1.extend(1.0), camera);
-    let p2 = projection.model_to_normalized_device_space(&v2.extend(1.0), camera);
+    let p1 = projection.model_to_normalized_device_space(&v1, camera);
+    let p2 = projection.model_to_normalized_device_space(&v2, camera);
 
     match (p1, p2) {
         (Some(_), Some(_)) => {
@@ -70,7 +70,7 @@ fn sub_valid_domain(
     while crate::math::vector::angle3(&vv, &vi).to_radians() > d_alpha {
         let vm = (vv + vi).normalize();
         // check whether is it defined or not
-        if let Some(_) = projection.model_to_normalized_device_space(&vm.extend(1.0), camera) {
+        if let Some(_) = projection.model_to_normalized_device_space(&vm, camera) {
             vv = vm;
         } else {
             vi = vm;
@@ -89,13 +89,13 @@ fn project_line(
     projection: &ProjectionType,
     iter: usize,
 ) -> bool {
-    let p1 = projection.model_to_normalized_device_space(&v1.extend(1.0), camera);
-    let p2 = projection.model_to_normalized_device_space(&v2.extend(1.0), camera);
+    let p1 = projection.model_to_normalized_device_space(&v1, camera);
+    let p2 = projection.model_to_normalized_device_space(&v2, camera);
 
     if iter < MAX_ITERATION {
         // Project them. We are always facing the camera
         let vm = (v1 + v2).normalize();
-        let pm = projection.model_to_normalized_device_space(&vm.extend(1.0), camera);
+        let pm = projection.model_to_normalized_device_space(&vm, camera);
 
         match (p1, pm, p2) {
             (Some(p1), Some(pm), Some(p2)) => {

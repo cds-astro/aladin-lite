@@ -1,6 +1,6 @@
 use crate::math::TWICE_PI;
 use crate::Abort;
-use cgmath::{BaseFloat, Matrix3, Rad, Vector3, Vector4};
+use cgmath::{BaseFloat, Matrix3, Rad, Vector3};
 
 pub trait LonLat<S: BaseFloat> {
     fn lon(&self) -> Angle<S>;
@@ -116,43 +116,6 @@ where
     }
 }
 
-impl<S> LonLat<S> for Vector4<S>
-where
-    S: BaseFloat,
-{
-    #[inline]
-    fn lon(&self) -> Angle<S> {
-        let rad = Rad(self.x.atan2(self.z));
-        Angle::new(rad)
-    }
-
-    #[inline]
-    fn lat(&self) -> Angle<S> {
-        let rad = Rad(self.y.atan2((self.x * self.x + self.z * self.z).sqrt()));
-        Angle::new(rad)
-    }
-
-    #[inline]
-    fn lonlat(&self) -> LonLatT<S> {
-        let lon = self.x.atan2(self.z);
-        let lat = self.y.atan2((self.x * self.x + self.z * self.z).sqrt());
-
-        LonLatT::new(lon.to_angle(), lat.to_angle())
-    }
-
-    #[inline]
-    fn from_lonlat(lonlat: &LonLatT<S>) -> Self {
-        let theta = lonlat.lon();
-        let delta = lonlat.lat();
-        Vector4::<S>::new(
-            delta.cos() * theta.sin(),
-            delta.sin(),
-            delta.cos() * theta.cos(),
-            S::one(),
-        )
-    }
-}
-
 #[inline]
 pub fn ang_between_lonlat<S: BaseFloat>(lonlat1: LonLatT<S>, lonlat2: LonLatT<S>) -> Angle<S> {
     let abs_diff_lon = (lonlat1.lon() - lonlat2.lon()).abs();
@@ -170,26 +133,11 @@ pub fn xyz_to_radec<S: BaseFloat>(v: &Vector3<S>) -> (Angle<S>, Angle<S>) {
 }
 
 #[inline]
-pub fn xyzw_to_radec<S: BaseFloat>(v: &Vector4<S>) -> (Angle<S>, Angle<S>) {
-    let lon = (v.x.atan2(v.z)).to_angle();
-    let lat = (v.y.atan2((v.x * v.x + v.z * v.z).sqrt())).to_angle();
-
-    (lon, lat)
-}
-
-#[inline]
 pub fn radec_to_xyz<S: BaseFloat>(theta: Angle<S>, delta: Angle<S>) -> Vector3<S> {
     let (ds, dc) = delta.to_radians().sin_cos();
     let (ts, tc) = theta.to_radians().sin_cos();
 
     Vector3::<S>::new(dc * ts, ds, dc * tc)
-}
-
-#[inline]
-pub fn radec_to_xyzw<S: BaseFloat>(theta: Angle<S>, delta: Angle<S>) -> Vector4<S> {
-    let xyz = radec_to_xyz(theta, delta);
-
-    Vector4::<S>::new(xyz.x, xyz.y, xyz.z, S::one())
 }
 
 #[inline]
@@ -221,8 +169,8 @@ pub fn proj(
     projection: &ProjectionType,
     camera: &CameraViewPort,
 ) -> Option<XYNDC<f64>> {
-    let xyzw = lonlat.vector();
-    projection.model_to_normalized_device_space(&xyzw, camera)
+    let xyz = lonlat.vector();
+    projection.model_to_normalized_device_space(&xyz, camera)
 }
 
 #[inline]
@@ -242,8 +190,8 @@ pub fn proj_to_screen(
     projection: &ProjectionType,
     camera: &CameraViewPort,
 ) -> Option<XYScreen<f64>> {
-    let xyzw = lonlat.vector();
-    projection.model_to_screen_space(&xyzw, camera)
+    let xyz = lonlat.vector();
+    projection.model_to_screen_space(&xyz, camera)
 }
 
 #[inline]

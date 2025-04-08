@@ -528,15 +528,7 @@ export class OverlayStackBox extends Box {
                                 position: self.position,
                             });*/
                             self.aladin.addNewImageLayer(
-                                A.imageHiPS('P/DSS2/color', {
-                                    errorCallback: (e) => {
-                                        aladin.addStatusBarMessage({
-                                            duration: 2000,
-                                            type: 'info',
-                                            message: 'DSS2 colored HiPS could not plot',
-                                        })
-                                    }
-                                })
+                                'P/DSS2/color'
                             );
                         },
                     },
@@ -939,6 +931,7 @@ export class OverlayStackBox extends Box {
             if (options.indexOf(value) < 0) {
                 options.push(value)
             }
+
 
             let HiPSSelector = Input.select({
                 value,

@@ -426,6 +426,8 @@ export let Aladin = (function () {
             // Merge what is already in the cache for that HiPS with new properties
             // coming from the MOCServer
             this.hipsFavorites.push(hipsObj);
+            // Favorites are also directly pushed to the cache
+            this.hipsCache.append(hipsObj.id, hipsObj)
         }
 
         this._setupUI(options);
@@ -445,11 +447,7 @@ export let Aladin = (function () {
                 });
             } else if (options.survey === HiPS.DEFAULT_SURVEY_ID) {
                 // DSS is cached inside HiPS class, no need to provide any further information
-                const survey = this.createImageSurvey(
-                    HiPS.DEFAULT_SURVEY_ID
-                );
-
-                this.setBaseImageLayer(survey);
+                this.setBaseImageLayer(HiPS.DEFAULT_SURVEY_ID);
             } else {
                 this.setBaseImageLayer(options.survey);
             }
@@ -1566,10 +1564,8 @@ export let Aladin = (function () {
         let hipsOptions = { id, name, maxOrder, url, cooFrame, ...options };
         let hips = new HiPS(id, url || id, hipsOptions)
 
-        // This allows to retrieve the survey's options when it will be
-        // added later to the view.
-        if (this instanceof Aladin && !this.hipsCache.contains(hips.id)) {
-            // Add it to the cache as soon as possible if we have a reference to the aladin object
+        // A HiPS can be refered by its unique ID thus we add it to the cache (cf excample/al-cfht.html that refers to HiPS object just by their unique ID)
+        if (this instanceof Aladin) {
             this.hipsCache.append(hips.id, hipsOptions)
         }
 
@@ -1926,12 +1922,14 @@ export let Aladin = (function () {
         let imageLayer;
 
         let hipsCache = this.hipsCache;
+
         // 1. User gives an ID
         if (typeof urlOrHiPSOrFITS === "string") {
             const idOrUrl = urlOrHiPSOrFITS;
             // many cases here
             // 1/ It has been already added to the cache
             let cachedOptions = hipsCache.get(idOrUrl)
+
             if (cachedOptions) {
                 imageLayer = A.HiPS(idOrUrl, cachedOptions);
             } else {
@@ -1951,7 +1949,7 @@ export let Aladin = (function () {
                 if (!cachedLayerOptions) {
                     hipsCache.append(imageLayer.id, imageLayer.options)
                 } else {
-                    // set the options from what is in the cache
+                    // Set the options from what is in the cache
                     imageLayer.setOptions(cachedLayerOptions);
                 }
             }

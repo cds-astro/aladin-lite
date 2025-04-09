@@ -11,6 +11,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use wasm_bindgen::prelude::*;
 use web_sys::HtmlImageElement;
+use crate::texture::ChannelType;
 pub struct Texture2DArray {
     gl: WebGlContext,
 
@@ -54,7 +55,8 @@ impl Texture2DArray {
             height: height as u32,
             internal_format: F::INTERNAL_FORMAT,
             format: F::FORMAT,
-            type_: F::TYPE,
+            ty: F::TYPE,
+            channel_type: F::CHANNEL_TYPE
         })));
 
         Ok(Texture2DArray {
@@ -115,28 +117,30 @@ impl Texture2DArray {
                 .viewport(0, 0, metadata.width as i32, metadata.height as i32);
 
             #[cfg(feature = "webgl2")]
-            let value = match (metadata.format, metadata.type_) {
-                (WebGlRenderingCtx::RED_INTEGER, WebGlRenderingCtx::UNSIGNED_BYTE) => {
+            let value = match metadata.channel_type {
+                ChannelType::R8UI => {
                     let p = <[u8; 1]>::read_pixel(&self.gl, x, y)?;
                     Ok(serde_wasm_bindgen::to_value(&p[0])?)
                 }
-                (WebGlRenderingCtx::RED_INTEGER, WebGlRenderingCtx::SHORT) => {
+                ChannelType::R16I => {
                     let p = <[i16; 1]>::read_pixel(&self.gl, x, y)?;
                     Ok(serde_wasm_bindgen::to_value(&p[0])?)
                 }
-                (WebGlRenderingCtx::RED_INTEGER, WebGlRenderingCtx::INT) => {
+                ChannelType::R32I => {
                     let p = <[i32; 1]>::read_pixel(&self.gl, x, y)?;
                     Ok(serde_wasm_bindgen::to_value(&p[0])?)
                 }
-                (WebGlRenderingCtx::RED, WebGlRenderingCtx::FLOAT) => {
+                ChannelType::R32F => {
                     let p = <[f32; 1]>::read_pixel(&self.gl, x, y)?;
+                    crate::log(&format!("{:?}", p));
+
                     Ok(serde_wasm_bindgen::to_value(&p[0])?)
                 }
-                (WebGlRenderingCtx::RGB, WebGlRenderingCtx::UNSIGNED_BYTE) => {
+                ChannelType::RGB8U => {
                     let p = <[u8; 3]>::read_pixel(&self.gl, x, y)?;
                     Ok(serde_wasm_bindgen::to_value(&p)?)
                 }
-                (WebGlRenderingCtx::RGBA, WebGlRenderingCtx::UNSIGNED_BYTE) => {
+                ChannelType::RGBA8U => {
                     let p = <[u8; 4]>::read_pixel(&self.gl, x, y)?;
                     Ok(serde_wasm_bindgen::to_value(&p)?)
                 }
@@ -216,7 +220,7 @@ impl<'a> Texture2DArrayBound<'a> {
                 image.height() as i32,
                 1,
                 metadata.format,
-                metadata.type_,
+                metadata.ty,
                 image,
             )
             .expect("Sub texture 3d");
@@ -243,7 +247,7 @@ impl<'a> Texture2DArrayBound<'a> {
                 canvas.height() as i32,
                 1,
                 metadata.format,
-                metadata.type_,
+                metadata.ty,
                 canvas,
             )
             .expect("Sub texture 2d");
@@ -270,7 +274,7 @@ impl<'a> Texture2DArrayBound<'a> {
                 image.height() as i32,
                 1,
                 metadata.format,
-                metadata.type_,
+                metadata.ty,
                 image,
             )
             .expect("Sub texture 2d");
@@ -299,7 +303,7 @@ impl<'a> Texture2DArrayBound<'a> {
                 h,
                 1,
                 metadata.format,
-                metadata.type_,
+                metadata.ty,
                 image,
             )
             .expect("Sub texture 2d");
@@ -328,7 +332,7 @@ impl<'a> Texture2DArrayBound<'a> {
                 h,
                 1,
                 metadata.format,
-                metadata.type_,
+                metadata.ty,
                 pixels,
             )
             .expect("Sub texture 2d");

@@ -41,6 +41,20 @@ export class Tooltip extends DOMElement {
         let el = document.createElement('span');
         el.classList.add('aladin-tooltip');
 
+        // Set the anchor to the element on which
+        // the tooltip is set
+        if (!options.position) {
+            options.position = {
+                direction: 'right',
+            }
+        }
+        options.position.anchor = target;
+
+
+        if (!options.delayShowUpTime) {
+            options.delayShowUpTime = 500;
+        }
+
         let targetParent = target.parentNode;
 
         // Insert it into the DOM tree
@@ -58,19 +72,6 @@ export class Tooltip extends DOMElement {
         } else {
             wrapperEl.appendChild(target);
             wrapperEl.appendChild(el);
-        }
-
-        // Set the anchor to the element on which
-        // the tooltip is set
-        if (!options.position) {
-            options.position = {
-                direction: 'right',
-            }
-        }
-        options.position.anchor = target;
-
-        if (!options.delayShowUpTime) {
-            options.delayShowUpTime = 500;
         }
 
         super(wrapperEl, options)
@@ -185,6 +186,8 @@ export class Tooltip extends DOMElement {
                     return;
                 }
 
+                let targetEl = target.element()
+
                 if (options.global) {
                     let statusBar = options.aladin && options.aladin.statusBar;
                     if (!statusBar) {
@@ -192,7 +195,7 @@ export class Tooltip extends DOMElement {
                     }
 
                     // handle global tooltip div display
-                    Utils.on(target.el, 'mouseover', (e) => {
+                    Utils.on(targetEl, 'mouseover', (e) => {
                         statusBar.removeMessage('tooltip')
                         statusBar.appendMessage({
                             id: 'tooltip',
@@ -201,13 +204,14 @@ export class Tooltip extends DOMElement {
                             type: 'tooltip'
                         })
                     });
-                    Utils.on(target.el, 'mouseout', (e) => {
+
+                    Utils.on(targetEl, 'mouseout', (e) => {
                         statusBar.removeMessage('tooltip')
                     });
                     return;
                 }
 
-                target.tooltip = new Tooltip(options, target.element())
+                target.tooltip = new Tooltip(options, targetEl)
             }
         }
     }

@@ -70,8 +70,6 @@ pub(crate) trait HpxTileBuffer {
 
     fn config_mut(&mut self) -> &mut HiPSConfig;
     fn config(&self) -> &HiPSConfig;
-
-    fn read_pixel(&self, pos: &LonLatT<f64>, camera: &CameraViewPort) -> Result<JsValue, JsValue>;
 }
 
 use crate::downloader::query;
@@ -98,12 +96,15 @@ impl HiPS {
     // Position given is in the camera space
     pub fn read_pixel(
         &self,
-        p: &LonLatT<f64>,
+        x: f64,
+        y: f64,
         camera: &CameraViewPort,
+        proj: &ProjectionType
     ) -> Result<JsValue, JsValue> {
         match self {
-            D2(hips) => hips.read_pixel(p, camera),
-            D3(hips) => hips.read_pixel(p, camera),
+            D2(hips) => hips.read_pixel(x, y, camera, proj),
+            // FIXME todo
+            D3(hips) => Ok(JsValue::null()),
         }
     }
 

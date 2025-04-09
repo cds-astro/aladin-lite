@@ -61,8 +61,7 @@ export class SettingsCtxMenu extends ContextMenu {
             name: 'reticleColor',
             change(e) {
                 let hex = e.target.value;
-                let reticle = aladin.getReticle();
-                reticle.update({color: hex})
+                aladin.setDefaultColor(hex)
             }
         });
 

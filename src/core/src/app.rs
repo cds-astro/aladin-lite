@@ -789,18 +789,23 @@ impl App {
         Ok(has_camera_moved)
     }
 
-    pub(crate) fn read_pixel(&self, pos: &Vector2<f64>, layer: &str) -> Result<JsValue, JsValue> {
-        if let Some(lonlat) = self.screen_to_world(pos) {
-            if let Some(hips) = self.layers.get_hips_from_layer(layer) {
-                hips.read_pixel(&lonlat, &self.camera)
-            } else if let Some(_image) = self.layers.get_image_from_layer(layer) {
-                Err(JsValue::from_str("TODO: read pixel value"))
-            } else {
-                Err(JsValue::from_str("Survey not found"))
-            }
+    pub(crate) fn read_pixel(&self, x: f64, y: f64, layer: &str) -> Result<JsValue, JsValue> {
+        if let Some(hips) = self.layers.get_hips_from_layer(layer) {
+            hips.read_pixel(x, y, &self.camera, &self.projection)
+        } else if let Some(_image) = self.layers.get_image_from_layer(layer) {
+            // FIXME handle the case of an image
+            Ok(JsValue::null())
         } else {
-            Err(JsValue::from_str(&"position is out of projection"))
+            Err(JsValue::from_str("Survey not found"))
         }
+    }
+
+    pub(crate) fn read_line_of_pixels(&self, x1: f64, y1: f64, x2: f64, y2: f64, layer: &str) -> Result<Vec<JsValue>, JsValue> {
+        let pixels = crate::math::utils::bresenham(x1, y1, x2, y2)
+            .map(|(x, y)| self.read_pixel(x, y, layer))
+            .collect::<Result<Vec<_>, _>>()?;
+
+        Ok(pixels)
     }
 
     pub(crate) fn draw_grid_labels(&mut self) -> Result<(), JsValue> {

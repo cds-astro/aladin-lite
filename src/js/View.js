@@ -272,6 +272,21 @@ export let View = (function () {
         this.fadingLatestUpdate = null;
         this.dateRequestRedraw = null;
 
+        let colorPickerElement = document.getElementById('aladin-picker-tooltip');
+        if (!colorPickerElement) {
+            colorPickerElement = document.createElement('span');
+            colorPickerElement.classList.add('aladin-color-picker')
+            colorPickerElement.classList.add('aladin-view-label')
+            colorPickerElement.classList.add('aladin-dark-theme')
+
+            this.aladin.aladinDiv.appendChild(colorPickerElement);
+        }
+
+        this.colorPickerTool = {
+            domElement: colorPickerElement,
+            probedValue: null
+        };
+
         init(this);
         // listen to window resize and reshape canvases
         this.resizeTimer = null;
@@ -283,6 +298,7 @@ export let View = (function () {
         self.resizeObserver.observe(this.aladinDiv)
 
         self.fixLayoutDimensions();
+
         self.redraw()
     };
 
@@ -290,7 +306,7 @@ export let View = (function () {
     View.PAN = 0;
     View.SELECT = 1;
     View.TOOL_SIMBAD_POINTER = 2;
-
+    View.TOOL_COLOR_PICKER = 3;
 
     // TODO: should be put as an option at layer level
     View.DRAW_SOURCES_WHILE_DRAGGING = true;
@@ -435,7 +451,6 @@ export let View = (function () {
         this.aladinDiv.style.removeProperty('line-height');
 
         this.throttledDivResized();
-
     };
 
     var pixelateCanvasContext = function (ctx, pixelateFlag) {
@@ -447,11 +462,14 @@ export let View = (function () {
         ctx.oImageSmoothingEnabled = enableSmoothing;
     }
 
-    View.prototype.startSelection = function(mode, callback) {
-        this.selector.start(mode, callback);
-    }
+    View.prototype.setMode = function (mode, params) {
+        // hide the picker tooltip
+        this.colorPickerTool.domElement.style.display = "none";
+        // in case we are in the selection mode
+        this.requestRedraw();
 
-    View.prototype.setMode = function (mode) {
+        this.aladin.removeStatusBarMessage('selector')
+
         this.mode = mode;
 
         if (this.mode == View.TOOL_SIMBAD_POINTER) {
@@ -463,6 +481,13 @@ export let View = (function () {
             this.setCursor('default');
         }
         else if (this.mode == View.SELECT) {
+            this.setCursor('crosshair');
+            this.aladin.showReticle(false)
+
+            const { mode, callback } = params;
+            this.selector.start(mode, callback);
+        } else if (this.mode == View.TOOL_COLOR_PICKER) {
+            this.colorPickerTool.domElement.style.display = "block";
             this.setCursor('crosshair');
             this.aladin.showReticle(false)
         }
@@ -478,18 +503,7 @@ export let View = (function () {
         this.catalogCanvas.style.cursor = cursor;
     };
 
-    View.prototype.getCanvas = async function (imgType, width, height, withLogo=true) {
-        const loadImage = function (url) {
-            return new Promise((resolve, reject) => {
-                const image = document.createElement("img")
-                image.src = url
-                image.onload = () => resolve(image)
-                image.onerror = () => reject(new Error('could not load image'))
-            })
-        }
-
-        imgType = imgType || "image/png";
-
+    View.prototype.getRawPixelsCanvas = function(width, height) {
         const canvas = this.wasm.canvas();
 
         const c = document.createElement('canvas');
@@ -500,6 +514,22 @@ export let View = (function () {
 
         ctx.drawImage(canvas, 0, 0, c.width, c.height);
         ctx.drawImage(this.catalogCanvas, 0, 0, c.width, c.height);
+
+        return c;
+    };
+
+    View.prototype.getCanvas = async function (width, height, withLogo=true) {
+        const loadImage = function (url) {
+            return new Promise((resolve, reject) => {
+                const image = document.createElement("img")
+                image.src = url
+                image.onload = () => resolve(image)
+                image.onerror = () => reject(new Error('could not load image'))
+            })
+        }
+
+        const c = this.getRawPixelsCanvas(width, height)
+        let ctx = c.getContext("2d");
 
         // draw the reticle if it is on the view
         let reticle = this.aladin.reticle;
@@ -521,13 +551,13 @@ export let View = (function () {
         }
 
         return c;
-    }
+    };
 
     /**
      * Return dataURL string corresponding to the current view
      */
     View.prototype.getCanvasDataURL = async function (imgType, width, height, withLogo=true) {
-        const c = await this.getCanvas(imgType, width, height, withLogo);
+        const c = await this.getCanvas(width, height, withLogo);
         return c.toDataURL(imgType);
     };
 
@@ -535,26 +565,20 @@ export let View = (function () {
      * Return ArrayBuffer corresponding to the current view
      */
     View.prototype.getCanvasArrayBuffer = async function (imgType, width, height, withLogo=true) {
-        const c = await this.getCanvas(imgType, width, height, withLogo);
-        return new Promise((resolve, reject) => {
-            c.toBlob(blob => {
-                if (blob) {
-                    const reader = new FileReader();
-                    reader.onloadend = () => resolve(reader.result);
-                    reader.onerror = () => reject(new Error('Error reading blob as ArrayBuffer'));
-                    reader.readAsArrayBuffer(blob);
-                } else {
-                    reject(new Error('Canvas toBlob failed'));
-                }
-            }, imgType);
-        });
+        return this.getCanvasBlob(imgType, width, height, withLogo)
+            .then((blob) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.onerror = () => reject(new Error('Error reading blob as ArrayBuffer'));
+                reader.readAsArrayBuffer(blob);
+            });
     }
 
     /**
      * Return Blob corresponding to the current view
      */
     View.prototype.getCanvasBlob = async function (imgType, width, height, withLogo=true) {
-        const c = await this.getCanvas(imgType, width, height, withLogo);
+        const c = await this.getCanvas(width, height, withLogo);
         return new Promise((resolve, reject) => {
             c.toBlob(blob => {
                 if (blob) {
@@ -562,7 +586,7 @@ export let View = (function () {
                 } else {
                     reject(new Error('Canvas toBlob failed'));
                 }
-            });
+            }, imgType);
         });
     }
 
@@ -825,7 +849,6 @@ export let View = (function () {
                 ev: e,
             });
 
-
             if (e.type === 'touchend' || e.type === 'touchcancel') {
                 if (longTouchTimer) {
                     if (view.aladin.statusBar) {
@@ -895,6 +918,20 @@ export let View = (function () {
                 return; // when in TOOL_SIMBAD_POINTER mode, we do not call the listeners
             }
 
+            if (view.mode == View.TOOL_COLOR_PICKER) {
+                Utils.copy2Clipboard(view.colorPickerTool.probedValue)
+                    .then(() => {
+                        if (view.aladin.statusBar) {
+                            view.aladin.statusBar.appendMessage({
+                                message: `${view.colorPickerTool.probedValue} copied into your clipboard`,
+                                duration: 1500,
+                                type: 'info'
+                            })
+                        }
+                    })
+                return; // listeners are not called
+            }
+
             // popup to show ?
             if (!wasDragging || e.type === "touchend") {
                 if (e.type === "touchend") {
@@ -935,6 +972,44 @@ export let View = (function () {
 
         var lastHoveredObject; // save last object hovered by mouse
         var lastMouseMovePos = null;
+        const pickColor = (xymouse) => {
+            const layers = view.aladin.getStackLayers()
+            let lastImageLayer = view.aladin.getOverlayImageLayer(layers[layers.length - 1])
+            try {
+                let probedValue = lastImageLayer.readPixel(xymouse.x, xymouse.y);
+                view.colorPickerTool.domElement.style.display = "block"
+
+                if (probedValue !== null && probedValue.length === 3) {
+                    // rgb color
+                    const r = probedValue[0];
+                    const g = probedValue[1];
+                    const b = probedValue[2];
+
+                    view.colorPickerTool.probedValue = Color.rgbToHex(r, g, b);
+                    view.colorPickerTool.domElement.innerText = view.colorPickerTool.probedValue
+                } else if (probedValue !== null && probedValue.length === 4) {
+                    // rgba color
+                    const r = probedValue[0];
+                    const g = probedValue[1];
+                    const b = probedValue[2];
+                    const a = probedValue[3];
+
+                    view.colorPickerTool.probedValue = Color.rgbaToHex(r, g, b, a);
+                    view.colorPickerTool.domElement.innerText = view.colorPickerTool.probedValue
+                } else {
+                    // 1-channel color
+                    view.colorPickerTool.probedValue = probedValue;
+                    view.colorPickerTool.domElement.innerText = probedValue
+                }
+            } catch(e) {
+                console.warn("Pixel color reading: " + e)
+                // out of the projection, we probe no pixel
+                view.colorPickerTool.domElement.style.display = "none"
+            }
+
+            view.colorPickerTool.domElement.style.left = `${xymouse.x}px`;
+            view.colorPickerTool.domElement.style.top = `${xymouse.y}px`;
+        }
         Utils.on(view.catalogCanvas, "mousemove touchmove", function (e) {
             e.preventDefault();
 
@@ -1127,6 +1202,10 @@ export let View = (function () {
                 view.selector.dispatch('mousemove', {coo: xymouse})
             }
 
+            if (view.mode === View.TOOL_COLOR_PICKER) {
+                pickColor(xymouse);
+            }
+
             if (!view.dragging) {
                 return;
             }
@@ -1197,6 +1276,10 @@ export let View = (function () {
                 }
 
                 view.throttledTouchPadZoom();
+
+                if (view.mode === View.TOOL_COLOR_PICKER) {
+                    pickColor(xymouse);
+                }
             }
 
             return false;
@@ -1284,7 +1367,6 @@ export let View = (function () {
             // run the trottled position
             this.throttledPositionChanged(false);
         }
-
 
         ////// 2. Draw catalogues////////
         const isViewRendering = this.wasm.isRendering();
@@ -1415,6 +1497,30 @@ export let View = (function () {
         this.wasm.queryDisc(norder, lon, lat, radius).forEach(x => pixList.push(Number(x)));
 
         return pixList;
+    };
+
+    View.prototype.readPixel = function(prober) {
+        // Hide the coo grid
+        this.aladin.hideCooGrid();
+
+        // Ask for the redraw to make the coo grid hiding effective
+        this.redraw()
+
+        let c = this.getRawPixelsCanvas(null, null);
+        let ctx = c.getContext("2d");
+
+        let imageData;
+
+        if (Utils.isNumber(prober.x) && Utils.isNumber(prober.y)) {
+            imageData = ctx.getImageData(prober.x, prober.y, 1, 1);
+        } else if (Utils.isNumber(prober.top) && Utils.isNumber(prober.left) && Utils.isNumber(prober.w) && Utils.isNumber(prober.h)) {
+            imageData = ctx.getImageData(prober.top, prober.left, prober.w, prober.h);
+        }
+
+        // Show the coo grid back again
+        this.aladin.showCooGrid();
+
+        return imageData;
     };
 
     View.prototype.unselectObjects = function() {
@@ -1970,7 +2076,7 @@ export let View = (function () {
 
         ALEvent.POSITION_CHANGED.dispatchedTo(this.aladin.aladinDiv, this.viewCenter);
 
-        this.requestRedraw();
+        this.redraw();
 
         var self = this;
         setTimeout(function () { self.refreshProgressiveCats(); }, 1000);

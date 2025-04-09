@@ -68,6 +68,7 @@ import { ProjectionActionButton } from "./gui/Button/Projection.js";
 // features
 import { SettingsButton } from "./gui/Button/Settings";
 import { SimbadPointer } from "./gui/Button/SimbadPointer";
+import { ColorPicker } from "./gui/Button/ColorPicker";
 import { OverlayStackButton } from "./gui/Button/OverlayStack";
 import { GridEnabler } from "./gui/Button/GridEnabler";
 import { CooFrame } from "./gui/Input/CooFrame";
@@ -94,19 +95,21 @@ import { Polyline } from "./shapes/Polyline";
  * @property {string} [backgroundColor="rgb(60, 60, 60)"] - Background color in RGB format.
  *
  * @property {boolean} [showZoomControl=true] - Whether to show the zoom control toolbar.
- * This element belongs to the FoV UI thus its CSS class is `aladin-fov` 
+ * This element belongs to the FoV UI thus its CSS class is `aladin-fov`
  * @property {boolean} [showLayersControl=true] - Whether to show the layers control toolbar.
- * CSS class for that button is `aladin-stack-control` 
+ * CSS class for that button is `aladin-stack-control`
  * @property {boolean} [expandLayersControl=false] - Whether to show the stack box opened at starting
  * CSS class for the stack box is `aladin-stack-box`
  * @property {boolean} [showFullscreenControl=true] - Whether to show the fullscreen control toolbar.
- * CSS class for that button is `aladin-fullScreen-control` 
+ * CSS class for that button is `aladin-fullScreen-control`
  * @property {boolean} [showSimbadPointerControl=false] - Whether to show the Simbad pointer control toolbar.
- * CSS class for that button is `aladin-simbadPointer-control` 
+ * CSS class for that button is `aladin-simbadPointer-control`
  * @property {boolean} [showCooGridControl=false] - Whether to show the coordinate grid control toolbar.
- * CSS class for that button is `aladin-grid-control` 
+ * CSS class for that button is `aladin-grid-control`
  * @property {boolean} [showSettingsControl=false] - Whether to show the settings control toolbar.
  * CSS class for that button is `aladin-settings-control` 
+ * @property {boolean} [showColorPickerControl=false] - Whether to show the color picker tool.
+ * CSS class for that button is `aladin-colorPicker-control`
  * @property {boolean} [showShareControl=false] - Whether to show the share control toolbar.
  * CSS class for that button is `aladin-share-control` 
  * @property {boolean} [showStatusBar=true] - Whether to show the status bar. Enabled by default.
@@ -187,7 +190,6 @@ import { Polyline } from "./shapes/Polyline";
 
 /**
  * @typedef {Object} CircleSelection
- * @description Options for configuring the Aladin Lite instance.
  *
  * @property {number} x - x coordinate of the center's circle in pixels
  * @property {number} y - y coordinate of the center's circle in pixels
@@ -198,7 +200,6 @@ import { Polyline } from "./shapes/Polyline";
 
 /**
  * @typedef {Object} RectSelection
- * @description Options for configuring the Aladin Lite instance.
  *
  * @property {number} x - top left x coordinate of the rectangle in pixels
  * @property {number} y - top left y coordinate of the rectangle in pixels
@@ -209,8 +210,18 @@ import { Polyline } from "./shapes/Polyline";
  */
 
 /**
+ * @typedef {Object} LineSelection
+ *
+ * @property {Object} a - start point vertex
+ * @property {number} [a.x] - x coo screen in pixels
+ * @property {number} [a.y] - y coo screen in pixels
+ * @property {Object} b - end point vertex
+ * @property {number} [b.x] - x coo screen in pixels
+ * @property {number} [b.y] - y coo screen in pixels
+ */
+
+/**
  * @typedef {Object} PolygonSelection
- * @description Options for configuring the Aladin Lite instance.
  *
  * @property {Object[]} vertices - vertices of the polygon selection in pixels. Each vertex has a x and y key in pixels.
  * @property {function} contains - function taking a {x, y} object telling if the vertex is contained in the selection or not
@@ -418,6 +429,10 @@ export let Aladin = (function () {
             this.hipsCache.append(hipsObj.id, hipsObj)
         }
 
+        if (options.samp) {
+            this.samp = new SAMPConnector(this);
+        }
+
         this._setupUI(options);
 
         ALEvent.FAVORITE_HIPS_LIST_UPDATED.dispatchedTo(document.body, this.hipsFavorites);
@@ -502,10 +517,6 @@ export let Aladin = (function () {
             );
         }
 
-        if (options.samp) {
-            this.samp = new SAMPConnector(this);
-        }
-
         // lockNorthUp option
         this.lockNorthUp = options.lockNorthUp || false;
         if (this.lockNorthUp) {
@@ -552,10 +563,12 @@ export let Aladin = (function () {
         ////////////////////////////////////////////////////
         let stack = new OverlayStackButton(this);
         let simbad = new SimbadPointer(this);
+        let colorPicker = new ColorPicker(this);
         let grid = new GridEnabler(this);
         this.addUI(stack);
         this.addUI(simbad);
         this.addUI(grid);
+        this.addUI(colorPicker)
 
         // Add the layers control
         if (!options.showLayersControl) {
@@ -571,6 +584,12 @@ export let Aladin = (function () {
         // Add the coo grid control
         if (!options.showCooGridControl) {
             grid._hide();
+        }
+
+        // Add the projection control
+        // Add the coo grid control
+        if (!options.showColorPickerControl) {
+            colorPicker._hide();
         }
 
         // Settings control
@@ -675,6 +694,7 @@ export let Aladin = (function () {
         showSimbadPointerControl: false,
         showCooGridControl: false,
         showSettingsControl: false,
+        showColorPickerControl: false,
         // Share toolbar
         showShareControl: false,
 
@@ -712,7 +732,12 @@ export let Aladin = (function () {
         manualSelection: false
     };
 
-    // realFullscreen: AL div expands not only to the size of its parent, but takes the whole available screen estate
+    /**
+     * Toggle the fullscreen of the Aladin Lite view
+     *
+     * @memberof Aladin
+     * @param {boolean} realFullscreen - If true, AL div expands not only to the size of its parent, but takes the whole available screen estate
+     */
     Aladin.prototype.toggleFullscreen = function (realFullscreen) {
         let self = this;
 
@@ -838,7 +863,7 @@ export let Aladin = (function () {
      * @memberof Aladin
      * @param {number} zoomFactor - Scaling screen factor
      */
-     Aladin.prototype.setZoomFactor = function (zoomFactor) {
+    Aladin.prototype.setZoomFactor = function (zoomFactor) {
         this.view.setZoomFactor(zoomFactor);
     };
 
@@ -849,6 +874,35 @@ export let Aladin = (function () {
      */
     Aladin.prototype.getZoomFactor = function () {
         return this.view.zoomFactor;
+    };
+
+    /**
+     * Read pixels inside the Aladin Lite canvas
+     * 
+     * @description
+     * Returns the rgba pixels composing the current view.
+     * Please keep in mind that this method returns the actual colors that you see in the screen, it is not intended to return values coming from the progenitors.
+     * For a knowing exactly the values of a specific HiPS (e.g. the real FITS values from HiPS FITS tiles) please use the method {@link HiPS#readPixel}.
+     * 
+     * @memberof Aladin
+     * @param {PixelProber|RectProber} [prober] - A prob object. Can be unique prober or a list of it. By default, the center of the view is probed, i.e. the pixel under the reticle. 
+     * @returns {ImageData} A {@link https://developer.mozilla.org/fr/docs/Web/API/ImageData| ImageData} JS object coming from the canvas probing. Its `data` field stores the byte pixel array containing a list of 4 bytes RGBA values.
+     */
+     Aladin.prototype.readCanvas = function (prober) {
+        prober = prober || {x: this.view.width / 2, y: this.view.height / 2};
+
+        let probers = [].concat(prober)
+
+        let pixels = []
+        for (var prober of probers) {
+            pixels.push(this.view.readPixel(prober))
+        }
+
+        if (probers.length === 1) {
+            return pixels[0]
+        } else {
+            return pixels;
+        }
     };
 
     // @API
@@ -927,6 +981,23 @@ export let Aladin = (function () {
         if (typeof frameChangedFunction === "function") {
             frameChangedFunction(newFrame.label);
         }
+    };
+
+    /**
+     * Change the default color of Aladin Lite. By default, #b232b2
+     *
+     * @memberof Aladin
+     * @param {string} color - A color given as a string. Hex, `rgb(r, g, b)` or css label colored e.g. `orange` are accepted
+     */
+    Aladin.prototype.setDefaultColor = function(color) {
+        let aladinColor = new Color(color)
+        this.reticle.update({color: aladinColor.toHex()})
+        this.aladinDiv.style.setProperty('--aladin-color', aladinColor.toHex())
+
+        let aladinBorderColor = Color.getLabelColorForBackground(`rgb(${aladinColor.r}, ${aladinColor.g}, ${aladinColor.b})`);
+        this.aladinDiv.style.setProperty('--aladin-color-border', aladinBorderColor)
+
+        console.log(aladinBorderColor)
     };
 
     /**
@@ -2249,12 +2320,13 @@ export let Aladin = (function () {
      * Enters selection mode
      *
      * @memberof Aladin
-     * @param {string} [mode='rect'] - The mode of selection, can be either, 'rect', 'poly', or 'circle'
+     * @param {'circle'|'rect'|'poly'|'line'} [mode='rect'] - The mode of selection, can be either, 'rect', 'poly', or 'circle'
      * @param {function} [callback] - A function called once the selection has been done
      * The callback accepts one parameter depending of the mode used: <br/>
      * - If mode='circle' that parameter is of type {@link CircleSelection} <br/>
      * - If mode='rect' that parameter is of type {@link RectSelection} <br/>
-     * - If mode='poly' that parameter is of type {@link PolygonSelection}
+     * - If mode='poly' that parameter is of type {@link PolygonSelection} <br/>
+     * - If mode='line' the selection resolves into a {@link LineSelection} object
      *
      * @example
      * // Creates and add a MOC from the user polygonal selection
@@ -2286,10 +2358,11 @@ export let Aladin = (function () {
 
     Aladin.prototype.fire = function (what, params) {
         if (what === "selectstart") {
-            const { mode, callback } = params;
-            this.view.startSelection(mode, callback);
+            this.view.setMode(View.SELECT, params)
         } else if (what === "simbad") {
             this.view.setMode(View.TOOL_SIMBAD_POINTER);
+        } else if (what === "colorpicker") {
+            this.view.setMode(View.TOOL_COLOR_PICKER);
         } else if (what === "default") {
             this.view.setMode(View.PAN);
         }
@@ -2359,7 +2432,6 @@ export let Aladin = (function () {
     // TODO : integrate somehow into API ?
     Aladin.prototype.exportAsPNG = function (downloadFile = false) {
         (async () => {
-
             const url = await this.getViewDataURL();
 
             if (downloadFile) {

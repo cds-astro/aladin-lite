@@ -114,3 +114,67 @@ pub fn ccw_tri<S: BaseFloat>(a: &[S; 2], b: &[S; 2], c: &[S; 2]) -> bool {
 
     a[0] * b[1] + a[1] * c[0] + b[0] * c[1] - c[0] * b[1] - c[1] * a[0] - b[0] * a[1] >= S::zero()
 }
+
+
+struct PixelBresenhamIter {
+    x: i32,
+    y: i32,
+    xx: i32,
+    yy: i32,
+    dx: i32,
+    sx: i32,
+    dy: i32,
+    sy: i32,
+    err: i32,
+    end: bool,
+}
+
+impl PixelBresenhamIter {
+    fn new(sx: f64, sy: f64, ex: f64, ey: f64) -> Self {
+        let x = sx.floor() as i32;
+        let y = sy.floor() as i32;
+        
+        let xx = ex.floor() as i32;
+        let yy = ey.floor() as i32;
+        let dx = (xx - x).abs(); 
+        let sx = if x < xx { 1 } else { -1 };
+        let dy = -(yy - y).abs();
+        let sy = if y < yy { 1 } else { -1 };
+        let err = dx + dy;
+        let end = false;
+
+        Self { x, y, xx, yy, dx, sx, dy, sy, err, end }
+    }
+}
+
+impl Iterator for PixelBresenhamIter {
+    type Item = (f64, f64);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.end {
+            None
+        } else {
+            let item = (self.x as f64, self.y as f64);
+
+            if self.x == self.xx && self.y == self.yy {
+                self.end = true;
+            } else {
+                let e2 = 2 * self.err;
+                if e2 >= self.dy {
+                    self.err += self.dy;
+                    self.x += self.sx;
+                }
+                if e2 <= self.dx {
+                    self.err += self.dx;
+                    self.y += self.sy;
+                }
+            }
+
+            Some(item)
+        }
+    }
+}
+
+pub fn bresenham(sx: f64, sy: f64, ex: f64, ey: f64) -> impl Iterator<Item = (f64, f64)> {
+    PixelBresenhamIter::new(sx, sy, ex, ey)
+}

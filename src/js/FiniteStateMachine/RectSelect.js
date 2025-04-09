@@ -38,7 +38,6 @@ export class RectSelect extends FSM {
             const {callback} = params;
 
             this.callback = callback;
-            view.setMode(View.SELECT)
         }
 
         let mousedown = (params) => {

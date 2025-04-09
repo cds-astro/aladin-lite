@@ -162,10 +162,6 @@ impl HpxTileBuffer for HiPS3DBuffer {
         Ok(())
     }
 
-    fn read_pixel(&self, _pos: &LonLatT<f64>, _camera: &CameraViewPort) -> Result<JsValue, JsValue> {
-        todo!();
-    }
-
     // Tell if a texture is available meaning all its sub tiles
     // must have been written for the GPU
     fn contains(&self, cell: &HEALPixCell) -> bool {

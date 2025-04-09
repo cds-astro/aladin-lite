@@ -56,7 +56,8 @@ impl Texture3D {
             height: height as u32,
             internal_format: F::INTERNAL_FORMAT,
             format: F::FORMAT,
-            type_: F::TYPE,
+            ty: F::TYPE,
+            channel_type: F::CHANNEL_TYPE
         })));
 
         Ok(Texture3D {
@@ -135,7 +136,7 @@ impl<'a> Texture3DBound<'a> {
                 image.height() as i32,
                 1,
                 metadata.format,
-                metadata.type_,
+                metadata.ty,
                 image,
             )
             .expect("Sub texture 3d");
@@ -162,7 +163,7 @@ impl<'a> Texture3DBound<'a> {
                 canvas.height() as i32,
                 1,
                 metadata.format,
-                metadata.type_,
+                metadata.ty,
                 canvas,
             )
             .expect("Sub texture 2d");
@@ -189,7 +190,7 @@ impl<'a> Texture3DBound<'a> {
                 image.height() as i32,
                 1,
                 metadata.format,
-                metadata.type_,
+                metadata.ty,
                 image,
             )
             .expect("Sub texture 2d");
@@ -219,7 +220,7 @@ impl<'a> Texture3DBound<'a> {
                 h,
                 d,
                 metadata.format,
-                metadata.type_,
+                metadata.ty,
                 image,
             )
             .expect("Sub texture 2d");
@@ -249,7 +250,7 @@ impl<'a> Texture3DBound<'a> {
                 h,
                 d,
                 metadata.format,
-                metadata.type_,
+                metadata.ty,
                 pixels,
             )
             .expect("Sub texture 2d");

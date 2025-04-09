@@ -20,8 +20,10 @@
 import { Color } from "./Color";
 import { CircleSelect } from "./FiniteStateMachine/CircleSelect";
 import { PolySelect } from "./FiniteStateMachine/PolySelect";
+import { LineSelect } from "./FiniteStateMachine/LineSelect";
 import { RectSelect } from "./FiniteStateMachine/RectSelect";
 import { ALEvent } from "./events/ALEvent";
+import { View } from "./View";
 /******************************************************************************
  * Aladin Lite project
  * 
@@ -63,30 +65,32 @@ export class Selector {
 
     setMode(mode) {
         if (mode) {
-            let options = {
-                color: this.color,
-                lineWidth: this.lineWidth
-            };
-
-            if (mode === 'circle') {
-                this.select = new CircleSelect(options, this.view)
-            } else if (mode === 'rect') {
-                this.select = new RectSelect(options, this.view)
-            } else if (mode === 'poly') {
-                this.select = new PolySelect(options, this.view)
-            }
+            
         }
     }
 
     start(mode, callback) {
-        this.view.aladin.removeStatusBarMessage('selector')
         this.view.aladin.addStatusBarMessage({
             id: 'selector',
             message: 'You entered the selection mode',
             type: 'info'
         })
 
-        this.setMode(mode);
+        let options = {
+            color: this.color,
+            lineWidth: this.lineWidth
+        };
+
+        if (mode === 'circle') {
+            this.select = new CircleSelect(options, this.view)
+        } else if (mode === 'rect') {
+            this.select = new RectSelect(options, this.view)
+        } else if (mode === 'poly') {
+            this.select = new PolySelect(options, this.view)
+        } else if (mode === 'line') {
+            this.select = new LineSelect(options, this.view)
+        }
+
         this.dispatch('start', {callback})
     }
 

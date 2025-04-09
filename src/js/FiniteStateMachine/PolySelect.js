@@ -66,8 +66,6 @@ export class PolySelect extends FSM {
 
         let start = (params) => {
             const {callback} = params;
-            view.setMode(View.SELECT)
-
             this.callback = callback;
             // reset the coo
             this.coos = [];

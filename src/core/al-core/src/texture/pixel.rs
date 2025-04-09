@@ -91,29 +91,23 @@ impl Pixel for [f32; 1] {
     const BLACK: Self = [std::f32::NAN];
 
     fn read_pixel(gl: &WebGlContext, x: i32, y: i32) -> Result<Self, JsValue> {
-        let pixels = js_sys::Float32Array::new_with_length(1);
-        #[cfg(feature = "webgl2")]
+        let p = js_sys::Uint8Array::new_with_length(4);
         gl.read_pixels_with_opt_array_buffer_view(
             x,
             y,
             1,
             1,
-            WebGlRenderingCtx::RED,
-            WebGlRenderingCtx::FLOAT,
-            Some(&pixels),
-        )?;
-        #[cfg(feature = "webgl1")]
-        gl.read_pixels_with_opt_array_buffer_view(
-            x,
-            y,
-            1,
-            1,
-            WebGlRenderingCtx::LUMINANCE_ALPHA,
-            WebGlRenderingCtx::FLOAT,
-            Some(&pixels),
+            WebGlRenderingCtx::RGBA,
+            WebGlRenderingCtx::UNSIGNED_BYTE,
+            Some(&p),
         )?;
 
-        Ok([pixels.to_vec()[0]])
+        Ok([f32::from_le_bytes([
+            p.at(0).unwrap(),
+            p.at(1).unwrap(),
+            p.at(2).unwrap(),
+            p.at(3).unwrap(),
+        ])])
     }
 }
 /*use crate::image::ArrayF64;

@@ -11,6 +11,7 @@ pub use mod_3d::Texture3D;
 use web_sys::HtmlCanvasElement;
 use web_sys::WebGlTexture;
 
+use crate::image::format::ChannelType;
 use crate::webgl_ctx::WebGlContext;
 use crate::webgl_ctx::WebGlRenderingCtx;
 use wasm_bindgen::prelude::*;
@@ -24,7 +25,8 @@ pub static mut CUR_IDX_TEX_UNIT: u8 = 0;
 pub struct Texture2DMeta {
     pub format: u32,
     pub internal_format: i32,
-    pub type_: u32,
+    pub ty: u32,
+    pub channel_type: ChannelType,
 
     pub width: u32,
     pub height: u32,
@@ -76,7 +78,8 @@ impl Texture2D {
             height: height,
             internal_format: F::INTERNAL_FORMAT,
             format: F::FORMAT,
-            type_: F::TYPE,
+            ty: F::TYPE,
+            channel_type: F::CHANNEL_TYPE
         }));
 
         #[cfg(feature = "webgl2")]
@@ -204,7 +207,8 @@ impl Texture2D {
             height: height as u32,
             internal_format: F::INTERNAL_FORMAT,
             format: F::FORMAT,
-            type_: F::TYPE,
+            ty: F::TYPE,
+            channel_type: F::CHANNEL_TYPE
         })));
 
         Ok(Texture2D {
@@ -244,7 +248,8 @@ impl Texture2D {
             height: height as u32,
             internal_format: F::INTERNAL_FORMAT,
             format: F::FORMAT,
-            type_: F::TYPE,
+            ty: F::TYPE,
+            channel_type: F::CHANNEL_TYPE
         })));
         Ok(Texture2D {
             texture,
@@ -331,28 +336,30 @@ impl Texture2D {
                 .viewport(0, 0, metadata.width as i32, metadata.height as i32);
 
             #[cfg(feature = "webgl2")]
-            let value = match (metadata.format, metadata.type_) {
-                (WebGlRenderingCtx::RED_INTEGER, WebGlRenderingCtx::UNSIGNED_BYTE) => {
+            let value = match metadata.channel_type {
+                ChannelType::R8UI => {
                     let p = <[u8; 1]>::read_pixel(&self.gl, x, y)?;
                     Ok(serde_wasm_bindgen::to_value(&p[0])?)
                 }
-                (WebGlRenderingCtx::RED_INTEGER, WebGlRenderingCtx::SHORT) => {
+                ChannelType::R16I => {
                     let p = <[i16; 1]>::read_pixel(&self.gl, x, y)?;
                     Ok(serde_wasm_bindgen::to_value(&p[0])?)
                 }
-                (WebGlRenderingCtx::RED_INTEGER, WebGlRenderingCtx::INT) => {
+                ChannelType::R32I => {
                     let p = <[i32; 1]>::read_pixel(&self.gl, x, y)?;
                     Ok(serde_wasm_bindgen::to_value(&p[0])?)
                 }
-                (WebGlRenderingCtx::RED, WebGlRenderingCtx::FLOAT) => {
+                ChannelType::R32F => {
                     let p = <[f32; 1]>::read_pixel(&self.gl, x, y)?;
+                    crate::log(&format!("{:?}", p));
+
                     Ok(serde_wasm_bindgen::to_value(&p[0])?)
                 }
-                (WebGlRenderingCtx::RGB, WebGlRenderingCtx::UNSIGNED_BYTE) => {
+                ChannelType::RGB8U => {
                     let p = <[u8; 3]>::read_pixel(&self.gl, x, y)?;
                     Ok(serde_wasm_bindgen::to_value(&p)?)
                 }
-                (WebGlRenderingCtx::RGBA, WebGlRenderingCtx::UNSIGNED_BYTE) => {
+                ChannelType::RGBA8U => {
                     let p = <[u8; 4]>::read_pixel(&self.gl, x, y)?;
                     Ok(serde_wasm_bindgen::to_value(&p)?)
                 }
@@ -417,7 +424,7 @@ impl<'a> Texture2DBound<'a> {
                 dx,
                 dy,
                 metadata.format,
-                metadata.type_,
+                metadata.ty,
                 image,
             )
             .expect("Sub texture 2d");
@@ -430,7 +437,7 @@ impl<'a> Texture2DBound<'a> {
                 dx,
                 dy,
                 metadata.format,
-                metadata.type_,
+                metadata.ty,
                 image,
             )
             .expect("Sub texture 2d");
@@ -454,7 +461,7 @@ impl<'a> Texture2DBound<'a> {
                 dx,
                 dy,
                 metadata.format,
-                metadata.type_,
+                metadata.ty,
                 canvas,
             )
             .expect("Sub texture 2d");
@@ -467,7 +474,7 @@ impl<'a> Texture2DBound<'a> {
                 dx,
                 dy,
                 metadata.format,
-                metadata.type_,
+                metadata.ty,
                 canvas,
             )
             .expect("Sub texture 2d");
@@ -491,7 +498,7 @@ impl<'a> Texture2DBound<'a> {
                 dx,
                 dy,
                 metadata.format,
-                metadata.type_,
+                metadata.ty,
                 image,
             )
             .expect("Sub texture 2d");
@@ -504,7 +511,7 @@ impl<'a> Texture2DBound<'a> {
                 dx,
                 dy,
                 metadata.format,
-                metadata.type_,
+                metadata.ty,
                 image,
             )
             .expect("Sub texture 2d");
@@ -530,7 +537,7 @@ impl<'a> Texture2DBound<'a> {
                 width,
                 height,
                 metadata.format,
-                metadata.type_,
+                metadata.ty,
                 image,
             )
             .expect("Sub texture 2d");
@@ -556,7 +563,7 @@ impl<'a> Texture2DBound<'a> {
                 width,
                 height,
                 metadata.format,
-                metadata.type_,
+                metadata.ty,
                 pixels,
             )
             .expect("Sub texture 2d");

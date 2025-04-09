@@ -140,13 +140,10 @@ export class ServiceQueryBox extends Box {
                                 let [ra, dec] = self.aladin.pix2world(c.x, c.y);
                                 let radius = self.aladin.angularDist(c.x, c.y, c.x + c.r, c.y);
                 
-                                //var hlon = this.lon/15.0;
-                                //var strlon = Numbers.toSexagesimal(hlon, this.prec+1, false);
                                 let coo = new Coo(ra, dec, 7);
                                 let [lon, lat] = coo.format('d2');
             
                                 let fov = new Angle(radius, 1).degrees();
-                                //selectorBtn.update({tooltip: {content: 'center: ' + ra.toFixed(2) + ', ' + dec.toFixed(2) + '<br\>radius: ' + radius.toFixed(2), position: {direction: 'left'}}})    
                                 self.form.set('ra', lon)
                                 self.form.set('dec', lat)
                                 self.form.set('rad', fov)

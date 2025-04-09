@@ -150,7 +150,7 @@ export class Location extends DOMElement {
                 }
 
                 let [lon, lat] = lonlat;
-                self.field.el.blur()
+                //self.field.el.blur()
                 self.update({
                     lon, lat,
                     frame: aladin.view.cooFrame,
@@ -224,7 +224,7 @@ export class Location extends DOMElement {
             self.field.removeClass('aladin-not-valid');
             self.field.removeClass('aladin-valid'); 
 
-            self.field.element().style.color = options.isViewCenter ? aladin.getReticle().getColor() : 'white';
+            self.field.element().style.color = options.isViewCenter ? 'var(--aladin-color)' : 'white';
             //self.field.el.blur()
         };
 

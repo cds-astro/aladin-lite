@@ -37,7 +37,6 @@ export class CircleSelect extends FSM {
         let start = (params) => {
             const {callback} = params;
             this.callback = callback;
-            view.setMode(View.SELECT)
         }
 
         let mousedown = (params) => {

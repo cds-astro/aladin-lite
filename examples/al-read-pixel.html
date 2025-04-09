@@ -1,0 +1,123 @@
+<!doctype html>
+<html>
+    <head>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js"></script>
+    </head>
+<body>
+    <div id="aladin-lite-div" style="width: 768px; height: 512px"></div>
+    <canvas id="myChart" style="width:100%;max-width:600px"></canvas>
+
+<script>let aladin;</script>
+<script type="module">
+    function getPixelsOnLine(startX, startY, endX, endY){
+        const pixelCols = [];
+
+        var x = Math.floor(startX);
+        var y = Math.floor(startY);
+        const xx = Math.floor(endX);
+        const yy = Math.floor(endY);
+        const dx = Math.abs(xx - x); 
+        const sx = x < xx ? 1 : -1;
+        const dy = -Math.abs(yy - y);
+        const sy = y < yy ? 1 : -1;
+        var err = dx + dy;
+        var e2;
+        var end = false;
+        while (!end) {
+            pixelCols.push([x,y]);
+            if ((x === xx && y === yy)) {
+                end = true;
+            } else {
+                e2 = 2 * err;
+                if (e2 >= dy) {
+                    err += dy;
+                    x += sx;
+                }
+                if (e2 <= dx) {
+                    err += dx;
+                    y += sy;
+                }
+            }
+        }
+        return pixelCols;
+    }
+
+    import A from '../src/js/A.js';
+    A.init.then(() => {
+        aladin = A.aladin(
+            '#aladin-lite-div',
+            {
+                showSimbadPointerControl: true,
+                survey: 'P/allWISE/color', // set initial image survey
+                projection: 'AIT', // set a projection
+                fov: 360, // initial field of view in degrees
+                target: 'orion', // initial target
+                cooFrame: 'icrs', // set galactic frame
+                reticleColor: '#ff89ff', // change reticle color
+                reticleSize: 64, // change reticle size
+                showContextMenu: true,
+                showShareControl: true,
+                showFrame: true,
+                showZoomControl:true,
+                showSettingsControl:true,
+                showColorPickerControl: true,
+                showCooGrid: true,
+                fullScreen: true,
+                samp: true,
+                realFullscreen: true,
+            }
+        );
+        
+        let base = aladin.getBaseImageLayer();
+
+        aladin.select('line', p => {
+                let xValues = [];
+                let rValues = [];
+                let gValues = [];
+                let bValues = [];
+
+                let i = 0;
+                for(var [r, g, b] of base.probe({type: 'line', x1: p.a.x, y1: p.a.y, x2: p.b.x, y2: p.b.y})) {
+                    xValues.push(i)
+                    rValues.push(r)
+                    gValues.push(g)
+                    bValues.push(b)
+                    i++;
+                }
+
+                new Chart("myChart", {
+                    type: "line",
+                    data: {
+                      labels: xValues,
+                      datasets: [{
+                        fill: false,
+                        lineTension: 0,
+                        backgroundColor: "rgba(255,0,0,1.0)",
+                        data: rValues
+                      },
+                      {
+                        fill: false,
+                        lineTension: 0,
+                        backgroundColor: "rgba(0,255,0,1.0)",
+                        data: gValues
+                      },
+                      {
+                        fill: false,
+                        lineTension: 0,
+                        backgroundColor: "rgba(0,0,255,1.0)",
+                        data: bValues
+                      }]
+                    },
+                    options: {
+                      legend: {display: false},
+                      scales: {
+                        yAxes: [{ticks: {min: 0, max:255}}],
+                      }
+                    }
+                  });
+            
+        })
+    });
+</script>
+</body>
+</html>

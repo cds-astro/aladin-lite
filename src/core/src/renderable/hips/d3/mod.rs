@@ -505,13 +505,13 @@ impl HiPS3D {
     }
 
     // Position given is in the camera space
-    pub fn read_pixel(
+    /*pub fn read_pixel(
         &self,
         p: &LonLatT<f64>,
         camera: &CameraViewPort,
     ) -> Result<JsValue, JsValue> {
         self.buffer.read_pixel(p, camera)
-    }
+    }*/
 
     fn draw_internal(
         &self,

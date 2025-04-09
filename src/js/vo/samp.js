@@ -33,7 +33,6 @@ import { samp } from "../libs/samp";
 import A from "../A";
 
 export class SAMPConnector {
-
     static _createTag = (function() {
         var count = 0;
         return function() {

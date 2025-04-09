@@ -33,14 +33,6 @@ import { ALEvent } from "../../events/ALEvent.js";
 import waveOnIconUrl from '../../../../assets/icons/wave-on.svg';
 import waveOffIconUrl from '../../../../assets/icons/wave-off.svg';
 
-/*
-options = {
-    action: (connector) => {
-
-    }
-    tooltip
-}
-*/
  export class SAMPActionButton extends ActionButton {
      // Constructor
      constructor(options, aladin) {

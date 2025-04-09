@@ -900,7 +900,7 @@ impl WebClient {
         Ok(())
     }
 
-    /// Project a line to the screen
+    /// Project a great circle arc on the screen
     ///
     /// # Returns
     ///
@@ -915,23 +915,31 @@ impl WebClient {
     /// * `lat1` - The latitude in degrees of the starting line point
     /// * `lon2` - The longitude in degrees of the ending line point
     /// * `lat2` - The latitude in degrees of the ending line point
-    /*#[wasm_bindgen(js_name = projectLine)]
-    pub fn project_line(
+    #[wasm_bindgen(js_name = projectGreatCircleArc)]
+    pub fn project_great_circle_arc(
         &self,
         lon1: f64,
         lat1: f64,
         lon2: f64,
         lat2: f64,
     ) -> Result<Box<[f64]>, JsValue> {
-        let vertices = self.app.project_line(lon1, lat1, lon2, lat2);
+        let vertices = crate::renderable::line::great_circle_arc::project(
+            lon1.to_radians(), lat1.to_radians(),
+            lon2.to_radians(), lat2.to_radians(),
+            &self.app.camera,
+            &self.app.projection
+        );
 
         let vertices = vertices
             .into_iter()
-            .flat_map(|v| vec![v.x, v.y])
+            .flat_map(|ndc| {
+                let sxy = crate::math::projection::ndc_to_screen_space(&ndc, &self.app.camera);
+                [sxy.x, sxy.y]
+            })
             .collect::<Vec<_>>();
 
         Ok(vertices.into_boxed_slice())
-    }*/
+    }
 
     /// Get the list of colormap supported
     ///
@@ -1005,10 +1013,14 @@ impl WebClient {
     /// * `x` - The x screen coordinate in pixels
     /// * `y` - The y screen coordinate in pixels
     /// * `base_url` - The base url of the hips identifying it
-    #[wasm_bindgen(js_name = readPixel)]
-    pub fn read_pixel(&self, x: f64, y: f64, layer: String) -> Result<JsValue, JsValue> {
-        let pixel = self.app.read_pixel(&Vector2::new(x, y), layer.as_str())?;
-        Ok(pixel)
+    #[wasm_bindgen(js_name = probePixel)]
+    pub fn probe_pixel(&self, x: f64, y: f64, layer: String) -> Result<JsValue, JsValue> {
+        self.app.read_pixel(x, y, layer.as_str())
+    }
+
+    #[wasm_bindgen(js_name = probeLineOfPixels)]
+    pub fn probe_line_of_pixels(&self, x1: f64, y1: f64, x2: f64, y2: f64, layer: String) -> Result<Vec<JsValue>, JsValue> {
+        self.app.read_line_of_pixels(x1, y1, x2, y2, layer.as_str())
     }
 
     #[wasm_bindgen(js_name = getVisibleCells)]

@@ -12,7 +12,17 @@
     /*container-type: inline-size;*/
 
     font-size: 0.9rem;
+
+    /* Aladin lite default color */
+    --aladin-color: #b232b2;
+    --aladin-color-border: #fff;
 }
+
+.aladin-dark-theme {
+    background-color: black;
+    color: white;
+}
+
 
 .aladin-imageCanvas {
 	position: absolute;
@@ -973,8 +983,6 @@ otherwise it fits its content options. If those are too big the select can go ou
     pointer-events: none;
     cursor: default;
     visibility: hidden;
-    background-color: white;
-    color: black;
 
     width: max-content; 
     
@@ -992,11 +1000,6 @@ otherwise it fits its content options. If those are too big the select can go ou
     /*font-family: Verdana, Geneva, Tahoma, sans-serif;*/
 
     transition-delay: 100ms;
-}
-
-.aladin-tooltip-container .aladin-tooltip.aladin-dark-theme {
-    background-color: #333;
-    color: white;
 }
 
 /* Show the tooltip text when you mouse over the tooltip container */
@@ -1046,6 +1049,24 @@ otherwise it fits its content options. If those are too big the select can go ou
     transform: translateY(-100%);
 }
 
+.aladin-container .aladin-color-picker {
+    transform: translate(10px, 10px);
+    position: fixed;
+
+    pointer-events: none;
+}
+
+.aladin-container .aladin-view-label {
+    font-weight: bold;
+    font-family: monospace;
+    background-color: #00000000;
+    font-size: 1rem;
+    color: var(--aladin-color);
+
+    text-shadow: 1px 0 var(--aladin-color-border), -1px 0 var(--aladin-color-border), 0 1px var(--aladin-color-border), 0 -1px var(--aladin-color-border),
+               1px 1px var(--aladin-color-border), -1px -1px var(--aladin-color-border), 1px -1px var(--aladin-color-border), -1px 1px var(--aladin-color-border);
+}
+
 /* *********************************************** */
 
 /* Cursors */
@@ -1085,6 +1106,13 @@ otherwise it fits its content options. If those are too big the select can go ou
 .aladin-grid-control {
     position: absolute;
     top: 10.2rem;
+    left: 0.2rem;
+}
+
+
+.aladin-colorPicker-control {
+    position: absolute;
+    top: 15rem;
     left: 0.2rem;
 }
 
@@ -1157,8 +1185,6 @@ otherwise it fits its content options. If those are too big the select can go ou
     position: absolute;
     bottom: 0.2rem;
     left: 0.2rem;
-
-    background-color: red;
 
     font-family: monospace;
 

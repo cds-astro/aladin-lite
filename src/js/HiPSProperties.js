@@ -69,7 +69,7 @@ HiPSProperties.fetchFromID = async function(ID) {
     }
 }
 
-HiPSProperties.fetchFromUrl = async function(urlOrId) {
+HiPSProperties.fetchFromUrl = async function(urlOrId, requestMode, requestCredentials) {
     let url;
 
     try {
@@ -102,8 +102,15 @@ HiPSProperties.fetchFromUrl = async function(urlOrId) {
 
 
     let init = {};
-    if (Utils.requestCORSIfNotSameOrigin(url)) {
+
+    if (requestMode) {
+        init = { mode: requestMode };
+    } else if (Utils.requestCORSIfNotSameOrigin(url)) {
         init = { mode: 'cors' };
+    }
+
+    if (requestCredentials) {
+        init.credentials = requestCredentials
     }
 
     let result = fetch(url, init)

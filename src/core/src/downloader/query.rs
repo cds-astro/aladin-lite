@@ -11,7 +11,7 @@ pub type QueryId = String;
 
 use al_core::image::format::ImageFormatType;
 
-#[derive(Eq, Hash, PartialEq, Clone)]
+#[derive(Eq, PartialEq, Clone)]
 pub struct Tile {
     pub cell: HEALPixCell,
     pub format: ImageFormatType,
@@ -19,6 +19,8 @@ pub struct Tile {
     pub hips_cdid: CreatorDid,
     // The total url of the query
     pub url: Url,
+    pub credentials: RequestCredentials,
+    pub mode: RequestMode,
     pub id: QueryId,
     pub channel: Option<u32>,
 }
@@ -26,11 +28,14 @@ pub struct Tile {
 use crate::healpix::cell::HEALPixCell;
 use crate::renderable::hips::config::HiPSConfig;
 use crate::renderable::CreatorDid;
+use web_sys::{RequestCredentials, RequestMode};
 impl Tile {
     pub fn new(cell: &HEALPixCell, channel: Option<u32>, cfg: &HiPSConfig) -> Self {
         let hips_cdid = cfg.get_creator_did();
         let hips_url = cfg.get_root_url();
         let format = cfg.get_format();
+        let credentials = cfg.get_request_credentials();
+        let mode = cfg.get_request_mode();
 
         let ext = format.get_ext_file();
 
@@ -64,6 +69,8 @@ impl Tile {
             url,
             cell: *cell,
             format,
+            credentials,
+            mode,
             id,
             channel,
         }
@@ -89,6 +96,8 @@ pub struct Allsky {
     pub hips_cdid: CreatorDid,
     // The total url of the query
     pub url: Url,
+    pub credentials: RequestCredentials,
+    pub mode: RequestMode,
     pub id: QueryId,
 }
 
@@ -99,6 +108,8 @@ impl Allsky {
         let texture_size = cfg.get_texture_size();
         let format = cfg.get_format();
         let ext = format.get_ext_file();
+        let credentials = cfg.get_request_credentials();
+        let mode = cfg.get_request_mode();
 
         let mut url = format!("{}/Norder3/Allsky", cfg.get_root_url());
 
@@ -126,7 +137,9 @@ impl Allsky {
             url,
             format,
             id,
-            channel,
+            credentials,
+            mode,
+            channel
         }
     }
 }

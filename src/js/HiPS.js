@@ -210,6 +210,8 @@ export let HiPS = (function () {
         this.options = options;
         this.name = (options && options.name) || id;
         this.startUrl = options.startUrl;
+        this.requestMode = options && options.requestMode;
+        this.requestCredentials = options && options.requestCredentials;
 
         this.slice = 0;
 
@@ -314,7 +316,7 @@ export let HiPS = (function () {
                     // ID typed url
                     if (self.startUrl && isID) {
                         // First download the properties from the start url
-                        await HiPSProperties.fetchFromUrl(self.startUrl)
+                        await HiPSProperties.fetchFromUrl(self.startUrl, self.requestMode, self.requestCredentials)
                             .then((p) => {
                                 self._parseProperties(p);
                             })
@@ -363,7 +365,7 @@ export let HiPS = (function () {
                                     .catch((_) => reject("HiPS " + self.id + " error: " + id + " does not refer to a found CDS ID nor a local path pointing towards a HiPS"))
                             })
                     } else {
-                        await HiPSProperties.fetchFromUrl(self.url)
+                        await HiPSProperties.fetchFromUrl(self.url, self.requestMode, self.requestCredentials)
                             .then((p) => {
                                 self._parseProperties(p);
                             })
@@ -902,6 +904,8 @@ export let HiPS = (function () {
                 hipsCubeDepth: self.cubeDepth,
                 isPlanetaryBody: self.isPlanetaryBody(),
                 hipsBody: self.hipsBody,
+                requestCredentials: self.requestCredentials || 'omit',
+                requestMode: self.requestMode || 'cors',
             },
             meta: {
                 ...this.colorCfg.get(),

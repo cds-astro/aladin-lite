@@ -1,6 +1,8 @@
 use al_api::hips::ImageExt;
 
 use al_core::image::format::{ChannelType, ImageFormatType};
+use web_sys::{RequestCredentials, RequestMode};
+
 #[derive(Debug)]
 pub struct HiPSConfig {
     pub root_url: String,
@@ -45,6 +47,9 @@ pub struct HiPSConfig {
     //dataproduct_subtype: Option<Vec<String>>,
     //colored: bool,
     pub creator_did: String,
+
+    pub request_credentials: RequestCredentials,
+    pub request_mode: RequestMode,
 }
 
 use crate::math;
@@ -174,6 +179,22 @@ impl HiPSConfig {
         } else {
             0
         };
+
+        let request_credentials = match properties.get_request_credentials() {
+            "include" => RequestCredentials::Include,
+            "same-origin" => RequestCredentials::SameOrigin,
+            "omit" => RequestCredentials::Omit,
+            _ => RequestCredentials::Omit,
+        };
+
+        let request_mode = match properties.get_request_mode() {
+            "cors" => RequestMode::Cors,
+            "no-cors" => RequestMode::NoCors,
+            "same-origin" => RequestMode::SameOrigin,
+            "navigate" => RequestMode::Navigate,
+            _ => RequestMode::Cors,
+        };
+
         let hips_config = HiPSConfig {
             creator_did,
             // HiPS name
@@ -210,6 +231,8 @@ impl HiPSConfig {
             bitpix,
             format,
             tile_size,
+            request_credentials,
+            request_mode
         };
 
         Ok(hips_config)
@@ -367,6 +390,17 @@ impl HiPSConfig {
     #[inline(always)]
     pub fn is_colored(&self) -> bool {
         self.format.is_colored()
+    }
+
+
+    #[inline(always)]
+    pub fn get_request_credentials(&self) -> RequestCredentials {
+        self.request_credentials
+    }
+
+    #[inline(always)]
+    pub fn get_request_mode(&self) -> RequestMode {
+        self.request_mode
     }
 }
 

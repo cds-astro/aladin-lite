@@ -57,6 +57,9 @@ pub struct HiPSProperties {
     max_cutout: Option<f32>,
 
     creator_did: String,
+
+    request_credentials: String,
+    request_mode: String,
 }
 
 impl HiPSProperties {
@@ -123,6 +126,16 @@ impl HiPSProperties {
     #[inline(always)]
     pub fn get_initial_dec(&self) -> Option<f64> {
         self.hips_initial_dec
+    }
+
+    #[inline(always)]
+    pub fn get_request_credentials(&self) -> &str {
+        &self.request_credentials
+    }
+
+    #[inline(always)]
+    pub fn get_request_mode(&self) -> &str {
+        &self.request_mode
     }
 }
 

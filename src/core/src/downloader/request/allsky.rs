@@ -81,6 +81,8 @@ impl From<query::Allsky> for AllskyRequest {
             hips_cdid,
             texture_size,
             id,
+            credentials,
+            mode,
             channel: slice,
         } = query;
 
@@ -132,7 +134,8 @@ impl From<query::Allsky> for AllskyRequest {
                 _ => {
                     let mut opts = RequestInit::new();
                     opts.method("GET");
-                    opts.mode(RequestMode::Cors);
+                    opts.mode(mode);
+                    opts.credentials(credentials);
                     let window = web_sys::window().unwrap_abort();
 
                     let request = web_sys::Request::new_with_str_and_init(&url_clone, &opts)?;

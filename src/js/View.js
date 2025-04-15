@@ -1543,6 +1543,8 @@ export let View = (function () {
 
     View.prototype.setRotation = function(rotation) {
         this.wasm.setRotation(rotation);
+        var rotationChangedCallback = this.aladin.callbacksByEventName["rotationChanged"];
+        typeof rotationChangedCallback === "function" && rotationChangedCallback(rotation);
     }
 
     View.prototype.setGridOptions = function (options) {

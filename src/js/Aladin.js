@@ -225,14 +225,14 @@ import { Polyline } from "./shapes/Polyline";
  */
 
 /**
- * @typedef {('select'|'objectsSelected'|'objectClicked'|'objectHovered'|'objectHoveredStop'|'footprintClicked'|'footprintHovered'|'positionChanged'|'zoomChanged'|'click'|'rightClickMove'|'mouseMove'|'wheelTriggered'|'fullScreenToggled'|'cooFrameChanged'|'resizeChanged'|'projectionChanged'|'layerChanged')} EventListener
+ * @typedef {('select'|'objectsSelected'|'objectClicked'|'objectHovered'|'objectHoveredStop'|'footprintClicked'|'footprintHovered'|'positionChanged'|'zoomChanged'|'rotationChanged'|'click'|'rightClickMove'|'mouseMove'|'wheelTriggered'|'fullScreenToggled'|'cooFrameChanged'|'resizeChanged'|'projectionChanged'|'layerChanged')} EventListener
  * 
  * Some remarks:
  * <ul>
  * <li>'select' is <b>deprecated</b>, please use objectsSelected instead.</li>
  * <li>'mouseMove', 'click', 'wheelTriggered' are low level event listeners allowing the user to redefine basic functions. For example listening for 'wheelTriggered' will disable the default zooming heuristic then letting you to redefine it.</li>
  * <li>'objectsSelected', 'objectClicked', 'objectHovered', 'objectHoveredStop', 'footprintClicked', 'footprintHovered' are triggered when a catalog source/footprint has been clicked, hovered, ...
- * <li>Whenever the position (resp the fov) of the view has been changed 'positionChanged' (resp 'zoomChanged') is called</li>
+ * <li>Whenever the position (resp the fov/rotation) of the view has been changed 'positionChanged' (resp 'zoomChanged'/'rotationChanged') is called</li>
  * </ul>
  */
 
@@ -2130,6 +2130,7 @@ export let Aladin = (function () {
 
         "positionChanged",
         "zoomChanged",
+        "rotationChanged",
 
         "click",
         "rightClickMove",

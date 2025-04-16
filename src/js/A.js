@@ -142,14 +142,14 @@ A.HiPS = function (id, options) {
  A.imageHiPS = A.HiPS;
 
 /**
- * Creates a celestial source object with the given coordinates.
+ * Creates an image object from an url.
  *
  * @function
  * @name A.image
  * @memberof A
- * @param {string} url - Options describing the fits file. An url is mandatory
- * @param {ImageOptions} [options] - Options describing the fits file. An url is mandatory
- * @returns {Image} - A HiPS image object
+ * @param {string} url - URL to the image file (can be jpeg, png or fits). An url is mandatory
+ * @param {ImageOptions} [options] - Options describing the image file.
+ * @returns {Image} - An image object
  * @example
 *  aladin.setOverlayImageLayer(A.image(
  *       "https://nova.astrometry.net/image/25038473?filename=M61.jpg",

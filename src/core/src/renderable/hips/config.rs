@@ -191,7 +191,6 @@ impl HiPSConfig {
             "cors" => RequestMode::Cors,
             "no-cors" => RequestMode::NoCors,
             "same-origin" => RequestMode::SameOrigin,
-            "navigate" => RequestMode::Navigate,
             _ => RequestMode::Cors,
         };
 

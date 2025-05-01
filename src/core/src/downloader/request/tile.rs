@@ -17,8 +17,6 @@ pub struct TileRequest {
     hips_cdid: CreatorDid,
     url: Url,
     format: ImageFormatType,
-    credentials: RequestCredentials,
-    mode: RequestMode,
     channel: Option<u32>,
 }
 
@@ -35,6 +33,7 @@ async fn query_html_image(url: &str, credentials: RequestCredentials) -> Result<
     // Set the CORS and credentials options for the image
     let cors_value = match credentials {
         RequestCredentials::Include => Some("use-credentials"),
+        RequestCredentials::SameOrigin => Some("anonymous"),
         _ => Some("")
     };
 
@@ -57,7 +56,7 @@ use al_core::image::html::HTMLImage;
 use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::JsFuture;
-use web_sys::{RequestInit, RequestMode, Response, RequestCredentials};
+use web_sys::{RequestInit, Response, RequestCredentials};
 impl From<query::Tile> for TileRequest {
     // Create a tile request associated to a HiPS
     fn from(query: query::Tile) -> Self {
@@ -190,8 +189,6 @@ impl From<query::Tile> for TileRequest {
             format,
             id,
             hips_cdid,
-            credentials,
-            mode,
             url,
             request,
             channel: slice,
@@ -210,8 +207,6 @@ pub struct Tile {
     pub channel: Option<u32>,
     hips_cdid: CreatorDid,
     url: Url,
-    credentials: RequestCredentials,
-    mode: RequestMode,
 }
 
 use crate::Abort;
@@ -245,8 +240,6 @@ impl<'a> From<&'a TileRequest> for Option<Tile> {
             hips_cdid,
             url,
             format,
-            credentials,
-            mode,
             channel,
             ..
         } = request;
@@ -262,8 +255,6 @@ impl<'a> From<&'a TileRequest> for Option<Tile> {
                 hips_cdid: hips_cdid.clone(),
                 url: url.clone(),
                 format: *format,
-                credentials: *credentials,
-                mode: *mode,
                 channel: *channel,
             })
         } else {

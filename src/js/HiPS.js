@@ -166,6 +166,14 @@ PropertyParser.isPlanetaryBody = function (properties) {
  * @property {number} [saturation=0.0] - The saturation value for the color configuration.
  * @property {number} [brightness=0.0] - The brightness value for the color configuration.
  * @property {number} [contrast=0.0] - The contrast value for the color configuration.
+ * @property {string} [requestMode='cors'] - Determines how the request will interact with cross-origin resources.
+    *  - 'cors' - allow cross-origin requests with proper CORS headers.
+    *  - 'no-cors' - send the request without CORS.
+    *  - 'same-origin' - only allow requests to the same origin.
+ * @property {string} [requestCredentials='omit'] - Specifies whether to send cookies and HTTP credentials with the request.
+    *  - 'omit' - never send credentials.
+    *  - 'same-origin' - send only for same-origin requests.
+    *  - 'include' - always send, even for cross-origin requests.
  */
 
 /**
@@ -210,8 +218,8 @@ export let HiPS = (function () {
         this.options = options;
         this.name = (options && options.name) || id;
         this.startUrl = options.startUrl;
-        this.requestMode = options && options.requestMode;
-        this.requestCredentials = options && options.requestCredentials;
+        this.requestMode = options && options.requestMode || 'cors';
+        this.requestCredentials = options && options.requestCredentials || 'omit';
 
         this.slice = 0;
 
@@ -904,8 +912,8 @@ export let HiPS = (function () {
                 hipsCubeDepth: self.cubeDepth,
                 isPlanetaryBody: self.isPlanetaryBody(),
                 hipsBody: self.hipsBody,
-                requestCredentials: self.requestCredentials || 'omit',
-                requestMode: self.requestMode || 'cors',
+                requestCredentials: self.requestCredentials,
+                requestMode: self.requestMode,
             },
             meta: {
                 ...this.colorCfg.get(),

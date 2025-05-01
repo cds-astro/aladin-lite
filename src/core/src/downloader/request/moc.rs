@@ -24,7 +24,7 @@ use super::Url;
 use moclib::deser::fits;
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::JsFuture;
-use web_sys::{RequestInit, RequestMode, Response};
+use web_sys::{RequestInit, Response};
 
 use moclib::moc::range::op::convert::convert_to_u64;
 
@@ -55,6 +55,8 @@ impl From<query::Moc> for MOCRequest {
             url,
             params,
             hips_cdid,
+            credentials,
+            mode
         } = query;
 
         let url_clone = url.clone();
@@ -63,7 +65,8 @@ impl From<query::Moc> for MOCRequest {
         let request = Request::new(async move {
             let mut opts = RequestInit::new();
             opts.method("GET");
-            opts.mode(RequestMode::Cors);
+            opts.mode(mode);
+            opts.credentials(credentials);
 
             let request = web_sys::Request::new_with_str_and_init(&url_clone, &opts).unwrap_abort();
             let resp_value = JsFuture::from(window.fetch_with_request(&request)).await?;

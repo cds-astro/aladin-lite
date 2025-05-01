@@ -194,15 +194,25 @@ use al_api::moc::MOCOptions;
 pub struct Moc {
     // The total url of the query
     pub url: Url,
+    pub mode: RequestMode,
+    pub credentials: RequestCredentials,
     pub params: MOCOptions,
     pub hips_cdid: CreatorDid,
 }
 impl Moc {
-    pub fn new(url: String, hips_cdid: CreatorDid, params: MOCOptions) -> Self {
+    pub fn new(
+        url: String,
+        mode: RequestMode,
+        credentials: RequestCredentials,
+        hips_cdid: CreatorDid,
+        params: MOCOptions,
+    ) -> Self {
         Moc {
             url,
             params,
             hips_cdid,
+            mode,
+            credentials,
         }
     }
 }

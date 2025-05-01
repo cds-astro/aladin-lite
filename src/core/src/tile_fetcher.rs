@@ -208,6 +208,8 @@ impl TileFetcherQueue {
 
         downloader.borrow_mut().fetch(query::Moc::new(
             moc_url,
+            cfg.get_request_mode(),
+            cfg.get_request_credentials(),
             cfg.get_creator_did().to_string(),
             MOCOptions::default(),
         ));

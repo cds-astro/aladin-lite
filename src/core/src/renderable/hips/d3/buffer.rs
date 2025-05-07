@@ -1,7 +1,5 @@
 use std::collections::HashMap;
 
-use crate::CameraViewPort;
-use crate::LonLatT;
 use al_core::image::Image;
 use al_core::WebGlContext;
 

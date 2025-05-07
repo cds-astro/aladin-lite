@@ -24,7 +24,6 @@ use crate::camera::CameraViewPort;
 use crate::downloader::query;
 
 use crate::shader::ShaderManager;
-use crate::math::lonlat::LonLatT;
 
 use crate::downloader::request::allsky::Allsky;
 use crate::healpix::{cell::HEALPixCell, coverage::HEALPixCoverage};

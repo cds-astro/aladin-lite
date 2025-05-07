@@ -226,21 +226,6 @@ impl HEALPixCell {
     }
 
     #[inline(always)]
-    pub(crate) fn has_7_neigh(&self) -> bool {
-        let base_cell = self.ancestor(self.depth());
-        let nside_minus_one = (self.nside() - 1) as u32;
-
-        let (x, y) = self.offset_in_parent(&base_cell);
-
-        match base_cell.idx() {
-            0..=3 => (x == 0 && y == nside_minus_one) || (y == 0 && x == nside_minus_one),
-            4..=7 => (x == 0 && y == 0) || (x == nside_minus_one && y == nside_minus_one),
-            8..=11 => (x == 0 && y == nside_minus_one) || (y == 0 && x == nside_minus_one),
-            _ => unreachable!()
-        }
-    }
-
-    #[inline(always)]
     pub(crate) fn is_on_base_cell_edges(&self) -> bool {
         let base_cell = self.ancestor(self.depth());
 

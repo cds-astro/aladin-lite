@@ -10,9 +10,6 @@ use cgmath::Vector3;
 use al_api::hips::ImageExt;
 use al_core::webgl_ctx::WebGlRenderingCtx;
 
-use crate::math::lonlat::LonLat;
-use crate::CameraViewPort;
-use crate::LonLatT;
 use al_core::image::format::ImageFormat;
 use al_core::image::format::{R16I, R32F, R32I, R64F, R8UI, RGB8U, RGBA8U};
 use al_core::image::Image;

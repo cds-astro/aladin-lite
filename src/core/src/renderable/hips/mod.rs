@@ -14,7 +14,6 @@ use crate::time::Time;
 use crate::CameraViewPort;
 use crate::HEALPixCell;
 use crate::HEALPixCoverage;
-use crate::LonLatT;
 use crate::WebGlContext;
 use al_api::hips::ImageExt;
 use wasm_bindgen::JsValue;
@@ -104,7 +103,7 @@ impl HiPS {
         match self {
             D2(hips) => hips.read_pixel(x, y, camera, proj),
             // FIXME todo
-            D3(hips) => Ok(JsValue::null()),
+            D3(_) => Ok(JsValue::null()),
         }
     }
 

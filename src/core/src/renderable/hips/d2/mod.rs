@@ -2,7 +2,6 @@ pub mod buffer;
 pub mod texture;
 
 use crate::app::BLENDING_ANIM_DURATION;
-use crate::math::projection::coo_space::XYScreen;
 use crate::renderable::hips::HpxTile;
 use al_api::hips::ImageExt;
 use al_api::hips::ImageMetadata;
@@ -29,7 +28,7 @@ use crate::ProjectionType;
 use crate::camera::CameraViewPort;
 
 use crate::shader::ShaderManager;
-use crate::{math::lonlat::LonLatT, utils};
+use crate::utils;
 
 use crate::downloader::request::allsky::Allsky;
 use crate::healpix::{cell::HEALPixCell, coverage::HEALPixCoverage};

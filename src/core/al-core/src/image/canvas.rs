@@ -42,4 +42,8 @@ where
 
         Ok(())
     }
+
+    fn get_size(&self) -> (u32, u32) {
+        (self.canvas.width(), self.canvas.height())
+    }
 }

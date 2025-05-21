@@ -206,23 +206,11 @@ impl HiPS3D {
     ) -> Option<impl Iterator<Item = HEALPixCell> + 'a> {
         // do not add tiles if the view is already at depth 0
         let cfg = self.get_config();
-        let mut depth_tile = (camera.get_texture_depth() + cfg.delta_depth())
+        let mut depth_tile = camera
+            .get_tile_depth()
             .min(cfg.get_max_depth_tile())
             .max(cfg.get_min_depth_tile());
-        let dd = cfg.delta_depth();
 
-        //let min_depth_tile = self.get_min_depth_tile();
-        //let delta_depth = self.get_config().delta_depth();
-
-        //let min_bound_depth = min_depth_tile.max(delta_depth);
-        // do not ask to query tiles that:
-        // * either do not exist because < to min_depth_tile
-        // * either are part of a base tile already handled i.e. tiles < delta_depth
-        //console_log(depth_tile);
-        //console_log(min_bound_depth);
-
-        //if depth_tile >= min_bound_depth {
-        //let depth_tile = depth_tile.max(min_bound_depth);
         let survey_frame = cfg.get_frame();
         let mut already_considered_tiles = HashSet::new();
 
@@ -233,15 +221,7 @@ impl HiPS3D {
 
         let tile_cells_iter = camera
             .get_hpx_cells(depth_tile, survey_frame)
-            //.flat_map(move |cell| {
-            //    let texture_cell = cell.get_texture_cell(delta_depth);
-            //    texture_cell.get_tile_cells(delta_depth)
-            //})
             .into_iter()
-            .flat_map(move |tile_cell| {
-                let tex_cell = tile_cell.get_texture_cell(dd);
-                tex_cell.get_tile_cells(dd)
-            })
             .filter(move |tile_cell| {
                 if already_considered_tiles.contains(tile_cell) {
                     return false;
@@ -317,9 +297,12 @@ impl HiPS3D {
         // We compute it from the first cell in the view but it might be an under/over estimate for the other cells in the view
         //let num_sub = super::subdivide::num_hpx_subdivision(&self.hpx_cells_in_view[0], camera, proj);
 
-        let num_sub = self.hpx_cells_in_view.iter()
+        let num_sub = self
+            .hpx_cells_in_view
+            .iter()
             .map(|cell| super::subdivide::num_hpx_subdivision(cell, camera, proj))
-            .max().unwrap();
+            .max()
+            .unwrap();
 
         for cell in &self.hpx_cells_in_view {
             // filter textures that are not in the moc
@@ -383,7 +366,12 @@ impl HiPS3D {
                         let (i, j) = sub_cell.offset_in_parent(cell);
                         let nside = (1 << (sub_cell.depth() - cell.depth())) as f32;
 
-                        for ((lon, lat), (di, dj)) in sub_cell.vertices().iter().zip([(0, 0), (1, 0), (1, 1), (0, 1)]) {
+                        for ((lon, lat), (di, dj)) in
+                            sub_cell
+                                .vertices()
+                                .iter()
+                                .zip([(0, 0), (1, 0), (1, 1), (0, 1)])
+                        {
                             let hj0 = ((j + dj) as f32) / nside;
                             let hi0 = ((i + di) as f32) / nside;
 
@@ -403,7 +391,6 @@ impl HiPS3D {
                             idx + off_indices,
                             idx + 2 + off_indices,
                             idx + 1 + off_indices,
-
                             idx + off_indices,
                             idx + 3 + off_indices,
                             idx + 2 + off_indices,
@@ -431,9 +418,7 @@ impl HiPS3D {
                     self.num_indices.push(self.idx_vertices.len() - tmp);
 
                     // Replace options with an arbitrary vertex
-                    let position_iter = pos
-                        .into_iter()
-                        .flatten();
+                    let position_iter = pos.into_iter().flatten();
                     self.position.extend(position_iter);
                 }
             }
@@ -467,7 +452,7 @@ impl HiPS3D {
         let cfg = self.get_config();
         // Get the coo system transformation matrix
         let hips_frame = cfg.get_frame();
-        let depth = camera.get_texture_depth().min(cfg.get_max_depth_texture());
+        let depth = camera.get_tile_depth().min(cfg.get_max_depth_tile());
 
         let hpx_cells_in_view = camera.get_hpx_cells(depth, hips_frame);
         let new_cells = if hpx_cells_in_view.len() != self.hpx_cells_in_view.len() {

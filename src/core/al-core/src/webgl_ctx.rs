@@ -55,12 +55,6 @@ impl WebGlContext {
 
         #[cfg(feature = "webgl2")]
         {
-            if let Ok(r) =
-                get_extension::<web_sys::ExtColorBufferFloat>(&gl, "EXT_color_buffer_float")
-            {
-                let _ = r;
-            }
-
             let ctx = WebGlContext { inner: gl };
             Ok(ctx)
         }

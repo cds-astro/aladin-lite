@@ -7,8 +7,8 @@ use al_core::image::ImageType;
 
 use super::Url;
 use super::{Request, RequestType};
+use crate::downloader::request::query_html_image;
 use crate::downloader::QueryId;
-
 pub struct TileRequest {
     request: Request<ImageType>,
     pub id: QueryId,
@@ -26,37 +26,11 @@ impl From<TileRequest> for RequestType {
     }
 }
 
-async fn query_html_image(url: &str, credentials: RequestCredentials) -> Result<web_sys::HtmlImageElement, JsValue> {
-    let image = web_sys::HtmlImageElement::new().unwrap_abort();
-    let image_cloned = image.clone();
-
-    // Set the CORS and credentials options for the image
-    let cors_value = match credentials {
-        RequestCredentials::Include => Some("use-credentials"),
-        RequestCredentials::SameOrigin => Some("anonymous"),
-        _ => Some("")
-    };
-
-    let promise = js_sys::Promise::new(
-        &mut (Box::new(move |resolve, reject| {
-            // Ask for CORS permissions
-            image_cloned.set_cross_origin(cors_value);
-            image_cloned.set_onload(Some(&resolve));
-            image_cloned.set_onerror(Some(&reject));
-            image_cloned.set_src(&url);
-        }) as Box<dyn FnMut(js_sys::Function, js_sys::Function)>),
-    );
-
-    let _ = JsFuture::from(promise).await?;
-
-    Ok(image)
-}
-
 use al_core::image::html::HTMLImage;
 use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::JsFuture;
-use web_sys::{RequestInit, Response, RequestCredentials};
+use web_sys::{RequestCredentials, RequestInit, Response};
 impl From<query::Tile> for TileRequest {
     // Create a tile request associated to a HiPS
     fn from(query: query::Tile) -> Self {
@@ -69,6 +43,7 @@ impl From<query::Tile> for TileRequest {
             mode,
             id,
             channel: slice,
+            size,
         } = query;
 
         let url_clone = url.clone();
@@ -174,7 +149,10 @@ impl From<query::Tile> for TileRequest {
                     let array_buffer = JsFuture::from(resp.array_buffer()?).await?;
                     let raw_bytes = js_sys::Uint8Array::new(&array_buffer);
 
-                    Ok(ImageType::FitsImage { raw_bytes })
+                    Ok(ImageType::FitsImage {
+                        raw_bytes,
+                        size: (size, size),
+                    })
                 } else {
                     Err(JsValue::from_str(
                         "Response status code not between 200-299.",

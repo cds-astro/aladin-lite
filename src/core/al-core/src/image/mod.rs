@@ -5,6 +5,10 @@ pub mod format;
 pub mod html;
 pub mod raw;
 
+use crate::image::bitmap::Bitmap;
+use crate::image::format::RGB8U;
+use crate::image::format::RGBA8U;
+use crate::image::raw::ImageBuffer;
 pub trait ArrayBuffer: AsRef<js_sys::Object> + std::fmt::Debug {
     type Item: std::cmp::PartialOrd + Clone + Copy + std::fmt::Debug + cgmath::Zero;
 
@@ -190,6 +194,8 @@ pub trait Image {
         // An offset to write the image in the texture array
         offset: &Vector3<i32>,
     ) -> Result<(), JsValue>;
+
+    fn get_size(&self) -> (u32, u32);
 }
 
 impl<'a, I> Image for &'a I
@@ -207,6 +213,11 @@ where
         image.insert_into_3d_texture(textures, offset)?;
 
         Ok(())
+    }
+
+    fn get_size(&self) -> (u32, u32) {
+        let image = &**self;
+        image.get_size()
     }
 }
 
@@ -227,65 +238,58 @@ where
 
         Ok(())
     }
-}
 
-/*impl<I> Image for Arc<Mutex<Option<I>>>
-where
-    I: Image,
-{
-    fn tex_sub_image_3d(
-        &self,
-        // The texture array
-        textures: &Texture2DArray,
-        // An offset to write the image in the texture array
-        offset: &Vector3<i32>,
-    ) -> Result<(), JsValue> {
-        if let Some(image) = &*self.lock().unwrap_abort() {
-            image.tex_sub_image_3d(textures, offset)?;
-        }
-
-        Ok(())
+    fn get_size(&self) -> (u32, u32) {
+        let image = &**self;
+        image.get_size()
     }
-}*/
+}
 
 #[cfg(feature = "webgl2")]
 use crate::image::format::{R16I, R32I, R64F, R8UI};
-use crate::{
-    image::format::{R32F, RGB8U, RGBA8U},
-    texture::Tex3D,
-};
+use crate::{image::format::R32F, texture::Tex3D};
 
-use bitmap::Bitmap;
 use fits::Fits;
-use raw::ImageBuffer;
 #[derive(Debug)]
 #[cfg(feature = "webgl2")]
 pub enum ImageType {
-    FitsImage { raw_bytes: js_sys::Uint8Array },
-    Canvas { canvas: Canvas<RGBA8U> },
-    ImageRgba8u { image: Bitmap<RGBA8U> },
-    ImageRgb8u { image: Bitmap<RGB8U> },
-    HTMLImageRgba8u { image: HTMLImage<RGBA8U> },
-    HTMLImageRgb8u { image: HTMLImage<RGB8U> },
-    RawRgb8u { image: ImageBuffer<RGB8U> },
-    RawRgba8u { image: ImageBuffer<RGBA8U> },
-    RawR32f { image: ImageBuffer<R32F> },
-    RawR32i { image: ImageBuffer<R32I> },
-    RawR16i { image: ImageBuffer<R16I> },
-    RawR8ui { image: ImageBuffer<R8UI> },
-}
-
-#[cfg(feature = "webgl1")]
-pub enum ImageType {
-    FitsImage { raw_bytes: js_sys::Uint8Array },
-    Canvas { canvas: Canvas<RGBA8U> },
-    PngHTMLImageRgba8u { image: HTMLImage<RGBA8U> },
-    JpgHTMLImageRgb8u { image: HTMLImage<RGB8U> },
-    PngImageRgba8u { image: Bitmap<RGBA8U> },
-    JpgImageRgb8u { image: Bitmap<RGB8U> },
-    RawRgb8u { image: ImageBuffer<RGB8U> },
-    RawRgba8u { image: ImageBuffer<RGBA8U> },
-    RawR32f { image: ImageBuffer<R32F> },
+    FitsImage {
+        raw_bytes: js_sys::Uint8Array,
+        size: (u32, u32),
+    },
+    Canvas {
+        canvas: Canvas<RGBA8U>,
+    },
+    ImageRgba8u {
+        image: Bitmap<RGBA8U>,
+    },
+    ImageRgb8u {
+        image: Bitmap<RGB8U>,
+    },
+    HTMLImageRgba8u {
+        image: HTMLImage<RGBA8U>,
+    },
+    HTMLImageRgb8u {
+        image: HTMLImage<RGB8U>,
+    },
+    RawRgb8u {
+        image: ImageBuffer<RGB8U>,
+    },
+    RawRgba8u {
+        image: ImageBuffer<RGBA8U>,
+    },
+    RawR32f {
+        image: ImageBuffer<R32F>,
+    },
+    RawR32i {
+        image: ImageBuffer<R32I>,
+    },
+    RawR16i {
+        image: ImageBuffer<R16I>,
+    },
+    RawR8ui {
+        image: ImageBuffer<R8UI>,
+    },
 }
 
 use cgmath::Vector3;
@@ -300,6 +304,7 @@ impl Image for ImageType {
         match self {
             ImageType::FitsImage {
                 raw_bytes: raw_bytes_buf,
+                ..
             } => {
                 let num_bytes = raw_bytes_buf.length() as usize;
                 let mut raw_bytes = vec![0; num_bytes];
@@ -327,5 +332,22 @@ impl Image for ImageType {
         }
 
         Ok(())
+    }
+
+    fn get_size(&self) -> (u32, u32) {
+        match self {
+            ImageType::FitsImage { size, .. } => *size,
+            ImageType::Canvas { canvas } => canvas.get_size(),
+            ImageType::ImageRgba8u { image } => image.get_size(),
+            ImageType::ImageRgb8u { image } => image.get_size(),
+            ImageType::HTMLImageRgba8u { image } => image.get_size(),
+            ImageType::HTMLImageRgb8u { image } => image.get_size(),
+            ImageType::RawRgb8u { image } => image.get_size(),
+            ImageType::RawRgba8u { image } => image.get_size(),
+            ImageType::RawR32f { image } => image.get_size(),
+            ImageType::RawR32i { image } => image.get_size(),
+            ImageType::RawR16i { image } => image.get_size(),
+            ImageType::RawR8ui { image } => image.get_size(),
+        }
     }
 }

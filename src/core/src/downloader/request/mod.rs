@@ -5,7 +5,7 @@ pub mod blank;
 pub mod moc;
 pub mod tile;
 
-/* ------------------------------------- */
+use wasm_bindgen_futures::JsFuture;
 
 use crate::time::Time;
 use std::cell::{Cell, RefCell};
@@ -114,6 +114,7 @@ impl<'a> From<&'a RequestType> for Option<Resource> {
     }
 }
 
+use crate::Abort;
 use allsky::Allsky;
 use blank::PixelMetadata;
 use moc::Moc;
@@ -125,14 +126,32 @@ pub enum Resource {
     Moc(Moc),
 }
 
-/*
-impl Resource {
-    pub fn id(&self) -> &String {
-        match self {
-            Resource::Tile(tile) => &format!("{:?}:{:?}", tile.cell.depth(), tile.cell.idx()),
-            Resource::Allsky(allsky) => allsky.get_hips_cdid(),
-            Resource::PixelMetadata(PixelMetadata { hips_cdid, .. }) => hips_cdid,
-            Resource::Moc(moc) => moc.get_hips_cdid(),
-        }
-    }
-}*/
+use web_sys::RequestCredentials;
+async fn query_html_image(
+    url: &str,
+    credentials: RequestCredentials,
+) -> Result<web_sys::HtmlImageElement, JsValue> {
+    let image = web_sys::HtmlImageElement::new().unwrap_abort();
+    let image_cloned = image.clone();
+
+    // Set the CORS and credentials options for the image
+    let cors_value = match credentials {
+        RequestCredentials::Include => Some("use-credentials"),
+        RequestCredentials::SameOrigin => Some("anonymous"),
+        _ => Some(""),
+    };
+
+    let promise = js_sys::Promise::new(
+        &mut (Box::new(move |resolve, reject| {
+            // Ask for CORS permissions
+            image_cloned.set_cross_origin(cors_value);
+            image_cloned.set_onload(Some(&resolve));
+            image_cloned.set_onerror(Some(&reject));
+            image_cloned.set_src(&url);
+        }) as Box<dyn FnMut(js_sys::Function, js_sys::Function)>),
+    );
+
+    let _ = JsFuture::from(promise).await?;
+
+    Ok(image)
+}

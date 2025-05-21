@@ -44,7 +44,7 @@ impl HiPS3DBuffer {
         let Allsky {
             image,
             time_req,
-            depth_tile,
+            //depth_tile,
             channel,
             ..
         } = allsky;
@@ -54,7 +54,7 @@ impl HiPS3DBuffer {
             let images = mutex_locked.as_ref().unwrap_abort();
             for (idx, image) in images.iter().enumerate() {
                 self.push(
-                    &HEALPixCell(depth_tile, idx as u64),
+                    &HEALPixCell(0, idx as u64),
                     image,
                     time_req,
                     channel.map(|c| c as u16).unwrap_or(0),

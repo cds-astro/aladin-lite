@@ -59,62 +59,7 @@ impl<'a> Fits<'a> {
             data,
         })
     }
-
-    pub fn get_size(&self) -> &Vector2<i32> {
-        &self.size
-    }
 }
-
-/*impl Fits<'static> {
-    pub async fn from_async_reader(reader: IntoAsyncRead<'static>) -> Result<Self, JsValue> {
-        let fitsrs::fits::AsyncFits { hdu: AsyncHDU { data, header } } = fitsrs::fits::AsyncFits::from_reader(futures::io::BufReader::new(reader))
-            .await
-            .map_err(|err| {
-                JsValue::from_str(&format!("Parsing fits error: {}", err))
-            })?;
-
-        let width = header.get_axis_size(1)
-            .ok_or_else(|| JsValue::from_str("NAXIS1 not found in the fits"))?;
-
-        let height = header.get_axis_size(2)
-            .ok_or_else(|| JsValue::from_str("NAXIS2 not found in the fits"))?;
-
-        let data = match data {
-            fitsrs::hdu::data_async::DataOwned::U8(stream) => {
-                let data = stream.collect().await;
-                Data::U8(Cow::Owned(data))
-            },
-            fitsrs::hdu::data_async::DataOwned::I16(stream) => {
-                let data = stream.collect().await;
-                Data::I16(Cow::Owned(data))
-            },
-            fitsrs::hdu::data_async::DataOwned::I32(stream) => {
-                let data = stream.collect().await;
-                Data::I32(Cow::Owned(data))
-            },
-            fitsrs::hdu::data_async::DataOwned::I64(stream) => {
-                let data = stream.map(|v| v as i32).collect().await;
-                Data::I32(Cow::Owned(data))
-            },
-            fitsrs::hdu::data_async::DataOwned::F32(stream) => {
-                let data = stream.collect().await;
-                Data::F32(Cow::Owned(data))
-            },
-            fitsrs::hdu::data_async::DataOwned::F64(stream) => {
-                let data = stream.map(|v| v as f32).collect().await;
-                Data::F32(Cow::Owned(data))
-            }
-        };
-
-        Ok(Self {
-            // Tile size
-            size: Vector2::new(*width as i32, *height as i32),
-
-            // Allocation info of the layout
-            data
-        })
-    }
-}*/
 
 use crate::{image::Image, texture::Tex3D};
 impl Image for Fits<'_> {
@@ -163,7 +108,12 @@ impl Image for Fits<'_> {
                 );
             }
             Data::F32(data) => {
-                let view = unsafe { R8UI::view(&std::slice::from_raw_parts(data.as_ptr() as *const u8, data.len() * 4)) };
+                let view = unsafe {
+                    R8UI::view(&std::slice::from_raw_parts(
+                        data.as_ptr() as *const u8,
+                        data.len() * 4,
+                    ))
+                };
                 textures.tex_sub_image_3d_with_opt_array_buffer_view(
                     offset.x,
                     offset.y,
@@ -177,6 +127,10 @@ impl Image for Fits<'_> {
         }
 
         Ok(())
+    }
+
+    fn get_size(&self) -> (u32, u32) {
+        (self.size.x as u32, self.size.y as u32)
     }
 }
 

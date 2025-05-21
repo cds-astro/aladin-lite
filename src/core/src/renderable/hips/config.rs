@@ -10,20 +10,13 @@ pub struct HiPSConfig {
     // TODO: Make that independant of the HiPS but of the ImageFormat
 
     // The size of the texture images
-    pub texture_size: i32,
     tile_size: i32,
 
-    // Delta depth i.e. log2(texture_size / tile_size)
-    delta_depth: u8,
     min_depth_tile: u8,
-    min_depth_texture: u8,
     // the number of slices for cubes
     cube_depth: Option<u32>,
 
-    // Num tiles per texture
-    num_tiles_per_texture: usize,
     // Max depth of the current HiPS tiles
-    max_depth_texture: u8,
     max_depth_tile: u8,
 
     pub is_allsky: bool,
@@ -40,7 +33,6 @@ pub struct HiPSConfig {
     pub tex_storing_fits: bool,
     pub tex_storing_unsigned_int: bool,
 
-    pub size_tile_uv: f32,
     pub frame: CooSystem,
     pub bitpix: Option<i32>,
     format: ImageFormatType,
@@ -147,38 +139,12 @@ impl HiPSConfig {
             }),
         }?;
 
-        /*let dataproduct_subtype = properties.get_dataproduct_subtype().clone();
-        let colored = if tex_storing_fits {
-            false
-        } else {
-            if let Some(subtypes) = &dataproduct_subtype {
-                subtypes.iter().any(|subtype| subtype == "color")
-            } else {
-                false
-            }
-        };*/
-
-        let texture_size = std::cmp::min(512, tile_size << max_depth_tile);
-        //let texture_size = tile_size;
-        let num_tile_per_side_texture = (texture_size / tile_size) as usize;
-
-        let delta_depth = math::utils::log_2_unchecked(num_tile_per_side_texture) as u8;
-        let num_tiles_per_texture = num_tile_per_side_texture * num_tile_per_side_texture;
-
-        let max_depth_texture = max_depth_tile - delta_depth;
-        let size_tile_uv = 1_f32 / ((1 << delta_depth) as f32);
-
         let frame = properties.get_frame();
         let sky_fraction = properties.get_sky_fraction().unwrap_or(1.0);
 
         let is_allsky = sky_fraction >= 1.0;
 
         let min_depth_tile = properties.get_min_order().unwrap_or(0);
-        let min_depth_texture = if min_depth_tile >= delta_depth {
-            min_depth_tile - delta_depth
-        } else {
-            0
-        };
 
         let request_credentials = match properties.get_request_credentials() {
             "include" => RequestCredentials::Include,
@@ -198,17 +164,7 @@ impl HiPSConfig {
             creator_did,
             // HiPS name
             root_url: root_url.to_string(),
-            // Texture config
-            // The size of the texture images
-            texture_size,
-            // Delta depth i.e. log2(texture_size / tile_size)
-            delta_depth,
-            // Num tiles per texture
-            num_tiles_per_texture,
-            // Max depth of the current HiPS tiles
-            max_depth_texture,
             max_depth_tile,
-            min_depth_texture,
             min_depth_tile,
 
             is_allsky,
@@ -225,13 +181,12 @@ impl HiPSConfig {
             // the number of slices in a cube
             cube_depth,
 
-            size_tile_uv,
             frame,
             bitpix,
             format,
             tile_size,
             request_credentials,
-            request_mode
+            request_mode,
         };
 
         Ok(hips_config)
@@ -332,28 +287,13 @@ impl HiPSConfig {
     }
 
     #[inline(always)]
-    pub fn delta_depth(&self) -> u8 {
-        self.delta_depth
-    }
-
-    #[inline(always)]
-    pub fn num_tiles_per_texture(&self) -> usize {
-        self.num_tiles_per_texture
-    }
-
-    #[inline(always)]
-    pub fn get_texture_size(&self) -> i32 {
-        self.texture_size
+    pub fn allsky_tile_size(&self) -> i32 {
+        (self.get_tile_size() << 3).min(512)
     }
 
     #[inline(always)]
     pub fn get_min_depth_tile(&self) -> u8 {
         self.min_depth_tile
-    }
-
-    #[inline(always)]
-    pub fn get_min_depth_texture(&self) -> u8 {
-        self.min_depth_texture
     }
 
     #[inline(always)]
@@ -364,11 +304,6 @@ impl HiPSConfig {
     #[inline(always)]
     pub fn get_tile_size(&self) -> i32 {
         self.tile_size
-    }
-
-    #[inline(always)]
-    pub fn get_max_depth_texture(&self) -> u8 {
-        self.max_depth_texture
     }
 
     #[inline(always)]
@@ -391,7 +326,6 @@ impl HiPSConfig {
         self.format.is_colored()
     }
 
-
     #[inline(always)]
     pub fn get_request_credentials(&self) -> RequestCredentials {
         self.request_credentials
@@ -409,8 +343,8 @@ impl SendUniforms for HiPSConfig {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
         // Send max depth
         shader
-            .attach_uniform("max_depth", &(self.max_depth_texture as i32))
-            .attach_uniform("size_tile_uv", &self.size_tile_uv)
+            .attach_uniform("max_depth", &(self.max_depth_tile as i32))
+            .attach_uniform("size_tile_uv", &1.0)
             .attach_uniform("tex_storing_fits", &self.tex_storing_fits)
             .attach_uniform("scale", &self.scale)
             .attach_uniform("offset", &self.offset)

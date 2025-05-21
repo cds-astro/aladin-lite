@@ -8,18 +8,14 @@ pub enum UserAction {
 
 use web_sys::WebGl2RenderingContext;
 // Longitude reversed identity matrix
-const ID_R: &Matrix3<f64> = &Matrix3::new(
-    -1.0, 0.0, 0.0,
-    0.0, 1.0, 0.0,
-    0.0, 0.0, 1.0,
-);
+const ID_R: &Matrix3<f64> = &Matrix3::new(-1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0);
 
-use cgmath::{Vector3, InnerSpace};
 use super::{fov::FieldOfView, view_hpx_cells::ViewHpxCells};
 use crate::healpix::cell::HEALPixCell;
 use crate::healpix::coverage::HEALPixCoverage;
 use crate::math::angle::ToAngle;
 use crate::math::{projection::coo_space::XYZModel, projection::domain::sdf::ProjDef};
+use cgmath::{InnerSpace, Vector3};
 
 use cgmath::{Matrix3, Vector2};
 const APERTURE_LOWER_LIMIT_RAD: f64 = (1.0_f64 / 36000.0).to_radians();
@@ -618,7 +614,7 @@ impl CameraViewPort {
         };
     }
 
-    pub fn get_texture_depth(&self) -> u8 {
+    pub fn get_tile_depth(&self) -> u8 {
         self.texture_depth
     }
 
@@ -639,10 +635,13 @@ impl CameraViewPort {
         &mut self,
         dlon: Angle<f64>,
         dlat: Angle<f64>,
-        proj: &ProjectionType
+        proj: &ProjectionType,
     ) {
         let center = self.get_center();
-        let rot = Rotation::from_axis_angle(&Vector3::new(center.z, 0.0, -center.x).normalize(), dlat) * Rotation::from_axis_angle(&Vector3::unit_y(), -dlon) * Rotation::from_sky_position(&center);
+        let rot =
+            Rotation::from_axis_angle(&Vector3::new(center.z, 0.0, -center.x).normalize(), dlat)
+                * Rotation::from_axis_angle(&Vector3::unit_y(), -dlon)
+                * Rotation::from_sky_position(&center);
 
         self.set_rotation(&rot, proj);
     }

@@ -19,6 +19,7 @@ pub struct Tile {
     pub hips_cdid: CreatorDid,
     // The total url of the query
     pub url: Url,
+    pub size: u32, // size of the tile requested
     pub credentials: RequestCredentials,
     pub mode: RequestMode,
     pub id: QueryId,
@@ -64,6 +65,7 @@ impl Tile {
             ext
         );
 
+        let size = cfg.get_tile_size();
         Tile {
             hips_cdid: hips_cdid.to_string(),
             url,
@@ -73,6 +75,7 @@ impl Tile {
             mode,
             id,
             channel,
+            size: size as u32,
         }
     }
 }
@@ -90,7 +93,7 @@ impl Query for Tile {
 pub struct Allsky {
     pub format: ImageFormatType,
     pub tile_size: i32,
-    pub texture_size: i32,
+    pub allsky_tile_size: i32,
     pub channel: Option<u32>,
     // The root url of the HiPS
     pub hips_cdid: CreatorDid,
@@ -104,8 +107,10 @@ pub struct Allsky {
 impl Allsky {
     pub fn new(cfg: &HiPSConfig, channel: Option<u32>) -> Self {
         let hips_cdid = cfg.get_creator_did().to_string();
+        let allsky_tile_size = cfg.allsky_tile_size();
+
         let tile_size = cfg.get_tile_size();
-        let texture_size = cfg.get_texture_size();
+
         let format = cfg.get_format();
         let ext = format.get_ext_file();
         let credentials = cfg.get_request_credentials();
@@ -132,14 +137,14 @@ impl Allsky {
 
         Allsky {
             tile_size,
-            texture_size,
+            allsky_tile_size,
             hips_cdid,
             url,
             format,
             id,
             credentials,
             mode,
-            channel
+            channel,
         }
     }
 }

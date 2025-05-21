@@ -239,7 +239,7 @@ impl Manager {
                 catalog.update(cells);
             }
         } else {
-            let depth = camera.get_texture_depth().min(7);
+            let depth = camera.get_tile_depth().min(7);
             let cells = camera.get_hpx_cells(depth, CooSystem::ICRS);
 
             for catalog in self.catalogs.values_mut() {

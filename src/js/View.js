@@ -1264,7 +1264,7 @@ export let View = (function () {
 
                 if (!view.throttledTouchPadZoom) {
                     view.throttledTouchPadZoom = () => {
-                        const factor = Utils.detectTrackPad(e) ? 1.04 : 1.2;
+                        const factor = Utils.detectTrackPad(e) ? 1.05 : 1.2;
                         const currZoomFactor = view.zoom.isZooming ? view.zoom.finalZoom : view.zoomFactor;
                         let newZoomFactor = view.delta > 0 ? currZoomFactor * factor : currZoomFactor / factor;
 
@@ -2077,7 +2077,7 @@ export let View = (function () {
 
         ALEvent.POSITION_CHANGED.dispatchedTo(this.aladin.aladinDiv, this.viewCenter);
 
-        this.redraw();
+        //this.redraw();
 
         var self = this;
         setTimeout(function () { self.refreshProgressiveCats(); }, 1000);

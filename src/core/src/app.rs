@@ -260,7 +260,7 @@ impl App {
         self.tile_fetcher.clear();
         // Loop over the hipss
         for hips in self.layers.get_mut_hipses() {
-            if self.camera.get_texture_depth() == 0 {
+            if self.camera.get_tile_depth() == 0 {
                 let allsky_query = match hips {
                     HiPS::D2(h) => query::Allsky::new(h.get_config(), None),
                     HiPS::D3(h) => query::Allsky::new(h.get_config(), Some(h.get_slice() as u32)),
@@ -273,7 +273,7 @@ impl App {
 
             let cfg = hips.get_config();
 
-            let min_tile_depth = cfg.delta_depth().max(cfg.get_min_depth_tile());
+            let min_tile_depth = cfg.get_min_depth_tile();
             let mut ancestors = HashSet::new();
 
             if let Some(tiles) = hips.look_for_new_tiles(&mut self.camera, &self.projection) {
@@ -606,20 +606,13 @@ impl App {
                         let cfg = hips.get_config_mut();
 
                         if cfg.get_format() == tile.format {
-                            let delta_depth = cfg.delta_depth();
                             let fov_coverage = self.camera.get_cov(cfg.get_frame());
-                            let included_or_near_coverage = tile
-                                .cell()
-                                .get_texture_cell(delta_depth)
-                                .get_tile_cells(delta_depth)
-                                .any(|neighbor_tile_cell| {
-                                    fov_coverage.intersects_cell(&neighbor_tile_cell)
-                                });
+                            let included_in_coverage = fov_coverage.intersects_cell(&tile.cell());
 
                             //let is_tile_root = tile.cell().depth() == delta_depth;
                             //let _depth = tile.cell().depth();
                             // do not perform tex_sub costly GPU calls while the camera is zooming
-                            if tile.cell().is_root() || included_or_near_coverage {
+                            if tile.cell().is_root() || included_in_coverage {
                                 //let is_missing = tile.missing();
                                 /*self.tile_fetcher.notify_tile(
                                     &tile,
@@ -643,6 +636,7 @@ impl App {
                                 match &*tile.image.borrow() {
                                     Some(ImageType::FitsImage {
                                         raw_bytes: raw_bytes_buf,
+                                        ..
                                     }) => {
                                         // check if the metadata has not been set
                                         if !cfg.fits_metadata {
@@ -701,7 +695,7 @@ impl App {
                                         }
 
                                         self.request_redraw = true;
-                                        tile_copied = true;
+                                        //tile_copied = true;
                                         match hips {
                                             HiPS::D2(hips) => {
                                                 hips.add_tile(&tile.cell, img, tile.time_req)?
@@ -730,11 +724,9 @@ impl App {
                             // The allsky image is missing so we donwload all the tiles contained into
                             // the 0's cell
                             let cfg = hips.get_config();
-                            for texture_cell in crate::healpix::cell::ALLSKY_HPX_CELLS_D0 {
-                                for cell in texture_cell.get_tile_cells(cfg.delta_depth()) {
-                                    let query = hips.get_tile_query(&cell);
-                                    self.tile_fetcher.append_base_tile(query);
-                                }
+                            for base_hpx_cell in crate::healpix::cell::ALLSKY_HPX_CELLS_D0 {
+                                let query = hips.get_tile_query(&base_hpx_cell);
+                                self.tile_fetcher.append_base_tile(query);
                             }
                         } else {
                             // tell the hips to not download tiles which order is <= 3 because the allsky
@@ -800,7 +792,14 @@ impl App {
         }
     }
 
-    pub(crate) fn read_line_of_pixels(&self, x1: f64, y1: f64, x2: f64, y2: f64, layer: &str) -> Result<Vec<JsValue>, JsValue> {
+    pub(crate) fn read_line_of_pixels(
+        &self,
+        x1: f64,
+        y1: f64,
+        x2: f64,
+        y2: f64,
+        layer: &str,
+    ) -> Result<Vec<JsValue>, JsValue> {
         let pixels = crate::math::utils::bresenham(x1, y1, x2, y2)
             .map(|(x, y)| self.read_pixel(x, y, layer))
             .collect::<Result<Vec<_>, _>>()?;
@@ -922,7 +921,6 @@ impl App {
                 WebGl2RenderingContext::ONE,
             );
             grid.draw(camera, projection, shaders)?;
-
             //        Ok(())
             //    },
             //    None,
@@ -1329,7 +1327,8 @@ impl App {
     }
 
     pub(crate) fn set_longitude_reversed(&mut self, longitude_reversed: bool) {
-        self.camera.set_longitude_reversed(longitude_reversed, &self.projection);
+        self.camera
+            .set_longitude_reversed(longitude_reversed, &self.projection);
     }
 
     pub(crate) fn add_catalog(&mut self, _name: String, table: JsValue, _colormap: String) {
@@ -1530,7 +1529,6 @@ impl App {
             return;
         }
 
-
         let now = Time::now();
         let dragging_duration = (now - self.time_start_dragging).as_secs();
         let dragging_vel = self.dist_dragging / dragging_duration;
@@ -1612,15 +1610,24 @@ impl App {
 
                     let dlon = lonlat2.lon() - lonlat1.lon();
                     let dlat = lonlat2.lat() - lonlat1.lat();
-    
-                    self.camera.apply_lonlat_rotation(dlon, dlat, &self.projection);
+
+                    self.camera
+                        .apply_lonlat_rotation(dlon, dlat, &self.projection);
 
                     // Detect if a pole has been crossed
-                    
+
                     let north_pole = Vector3::new(0.0, 1.0, 0.0);
                     let south_pole = Vector3::new(0.0, -1.0, 0.0);
-                    let cross_north_pole = crate::math::lonlat::is_in(&prev_cam_position, &self.camera.get_center(), &north_pole);
-                    let cross_south_pole = crate::math::lonlat::is_in(&prev_cam_position, &self.camera.get_center(), &south_pole);
+                    let cross_north_pole = crate::math::lonlat::is_in(
+                        &prev_cam_position,
+                        &self.camera.get_center(),
+                        &north_pole,
+                    );
+                    let cross_south_pole = crate::math::lonlat::is_in(
+                        &prev_cam_position,
+                        &self.camera.get_center(),
+                        &south_pole,
+                    );
 
                     let cross_pole = cross_north_pole | cross_south_pole;
 
@@ -1632,7 +1639,7 @@ impl App {
                     };
 
                     let fov = self.camera.get_aperture();
-                    
+
                     let pole = if center.y >= 0.0 {
                         north_pole
                     } else {
@@ -1645,10 +1652,12 @@ impl App {
                         // too near to the pole
                         let axis = center.cross(pole).normalize();
                         use crate::math::rotation::Rotation;
-                        let new_center = Rotation::from_axis_angle(&axis, (-5e-3 * fov).to_angle()).rotate(&pole);
+                        let new_center = Rotation::from_axis_angle(&axis, (-5e-3 * fov).to_angle())
+                            .rotate(&pole);
 
                         self.camera.set_center_xyz(&new_center, &self.projection);
-                        self.camera.set_position_angle(0.0.to_angle(), &self.projection);
+                        self.camera
+                            .set_position_angle(0.0.to_angle(), &self.projection);
                     }
                 } else {
                     /* 1. Rotate by computing the angle between the last and current position */
@@ -1656,7 +1665,8 @@ impl App {
                     let d = math::vector::angle3(&prev_pos, &cur_pos);
                     let axis = prev_pos.cross(cur_pos).normalize();
 
-                    self.camera.apply_axis_rotation(&(-axis), d, &self.projection);
+                    self.camera
+                        .apply_axis_rotation(&(-axis), d, &self.projection);
                 }
 
                 self.prev_cam_position = prev_cam_position;
@@ -1681,7 +1691,7 @@ impl App {
     }
 
     pub(crate) fn get_norder(&self) -> i32 {
-        self.camera.get_texture_depth() as i32
+        self.camera.get_tile_depth() as i32
     }
 
     pub(crate) fn get_zoom_factor(&self) -> f64 {

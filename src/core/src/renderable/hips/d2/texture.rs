@@ -3,11 +3,9 @@ use crate::{healpix::cell::HEALPixCell, time::Time};
 use std::collections::HashSet;
 
 pub struct HpxTexture2D {
-    texture_cell: HEALPixCell,
+    tile_cell: HEALPixCell,
     // Precomputed uniq number
     uniq: i32,
-    // The cells located in the Texture
-    tiles: HashSet<HEALPixCell>,
     // Position of the texture in the buffer
     idx: i32,
     // The time the texture has been received
@@ -26,12 +24,6 @@ pub struct HpxTexture2D {
 
     // Full flag telling the texture has been filled
     full: bool,
-
-    // Num tiles written for the gpu
-    num_tiles_written: usize,
-    // Flag telling whether the texture is available
-    // for drawing
-    //missing: bool,
 }
 
 use crate::renderable::hips::config::HiPSConfig;
@@ -40,24 +32,18 @@ use crate::renderable::hips::HpxTile;
 
 impl HpxTexture2D {
     pub fn new(cell: &HEALPixCell, idx: i32, time_request: Time) -> Self {
-        let tiles = HashSet::new();
-
         let start_time = None;
         let full = false;
-        let texture_cell = *cell;
-        let uniq = texture_cell.uniq();
-        //let missing = true;
-        let num_tiles_written = 0;
+        let tile_cell = *cell;
+        let uniq = cell.uniq();
 
         Self {
-            texture_cell,
+            tile_cell,
             uniq,
             time_request,
-            tiles,
             idx,
             start_time,
             full,
-            num_tiles_written,
         }
     }
 
@@ -70,61 +56,27 @@ impl HpxTexture2D {
     }
 
     // Setter
-    pub fn replace(&mut self, texture_cell: &HEALPixCell, time_request: Time) {
+    pub fn replace(&mut self, tile_cell: &HEALPixCell, time_request: Time) {
         // Cancel the tasks copying the tiles contained in the texture
         // which have not yet been completed.
         //self.clear_tasks_in_progress(config, exec);
 
-        self.texture_cell = *texture_cell;
-        self.uniq = texture_cell.uniq();
+        self.tile_cell = *tile_cell;
+        self.uniq = tile_cell.uniq();
         self.full = false;
         self.start_time = None;
         self.time_request = time_request;
-        self.tiles.clear();
-        //self.missing = true;
-        self.num_tiles_written = 0;
-    }
-
-    // Cell must be contained in the texture
-    pub fn contains_tile(&self, tile_cell: &HEALPixCell) -> bool {
-        self.is_full() || self.tiles.contains(tile_cell)
     }
 
     // Panic if cell is not contained in the texture
     // Do nothing if the texture is full
     // Return true if the tile is newly added
     pub fn append(&mut self, cell: &HEALPixCell, cfg: &HiPSConfig) {
-        let texture_cell = cell.get_texture_cell(cfg.delta_depth());
-        debug_assert!(texture_cell == self.texture_cell);
+        debug_assert!(*cell == self.tile_cell);
         debug_assert!(!self.full);
 
-        //self.missing &= missing;
-        //self.start_time = Some(Time::now());
-        //self.full = true;
-        let num_tiles_per_texture = cfg.num_tiles_per_texture();
-        let c = *cell;
-
-        if c == texture_cell {
-            self.num_tiles_written = num_tiles_per_texture;
-            self.full = true;
-
-            self.start_time = Some(Time::now());
-        } else {
-            // Sub-tile appending. This code is called for tile size is < 512
-            // Cell has the good ancestor for this texture
-            let new_tile = self.tiles.insert(c);
-            // Ensures the tile was not already present in the buffer
-            // This is the case because already contained cells do not
-            // lead to new requests
-            debug_assert!(new_tile);
-            self.num_tiles_written += 1;
-
-            if self.num_tiles_written == num_tiles_per_texture {
-                // The texture is full and available
-                self.full = true;
-                self.start_time = Some(Time::now());
-            }
-        }
+        self.full = true;
+        self.start_time = Some(Time::now());
     }
 }
 
@@ -144,7 +96,7 @@ impl HpxTile for HpxTexture2D {
     }
 
     fn cell(&self) -> &HEALPixCell {
-        &self.texture_cell
+        &self.tile_cell
     }
 }
 
@@ -195,7 +147,7 @@ impl<'a> SendUniforms for HpxTexture2DUniforms<'a> {
                 // This is useful for FITS tiles only because:
                 // - for JPEG, missing tiles are inserted in the buffer and black is drawn
                 // - for PNG, tiles are not inserted but default color chosen is fully transparent (might be vec4(0.0, 0.0, 0.0, 0.0))
-                // 
+                //
                 // Therefore for FITS files we must indicate GPU which base tiles are missing so that we draw fully transparent pixels
                 &((!self.texture.full as u8) as f32),
             )

@@ -2,16 +2,16 @@ pub mod buffer;
 pub mod texture;
 
 use crate::app::BLENDING_ANIM_DURATION;
+use crate::downloader::query;
+use crate::math::angle::ToAngle;
 use crate::renderable::hips::HpxTile;
 use al_api::hips::ImageExt;
 use al_api::hips::ImageMetadata;
 use al_core::colormap::Colormap;
 use al_core::colormap::Colormaps;
 use al_core::image::format::ChannelType;
-use cgmath::Vector3;
 use cgmath::Vector2;
-use crate::math::angle::ToAngle;
-use crate::downloader::query;
+use cgmath::Vector3;
 
 use al_core::image::Image;
 
@@ -35,8 +35,8 @@ use crate::healpix::{cell::HEALPixCell, coverage::HEALPixCoverage};
 use crate::time::Time;
 
 use super::config::HiPSConfig;
-use std::collections::HashSet;
 use crate::math::lonlat::LonLat;
+use std::collections::HashSet;
 
 // Recursively compute the number of subdivision needed for a cell
 // to not be too much skewed
@@ -83,7 +83,10 @@ impl<'a> HpxDrawData<'a> {
         let start_time = BLENDING_ANIM_DURATION.as_millis();
 
         Self {
-            cell, uv_0, uv_1, start_time
+            cell,
+            uv_0,
+            uv_1,
+            start_time,
         }
     }
 }
@@ -309,42 +312,22 @@ impl HiPS2D {
     ) -> Option<impl Iterator<Item = HEALPixCell> + 'a> {
         // do not add tiles if the view is already at depth 0
         let cfg = self.get_config();
-        let mut depth_tile = (camera.get_texture_depth() + cfg.delta_depth())
+        let mut depth_tile = camera
+            .get_tile_depth()
             .min(cfg.get_max_depth_tile())
             .max(cfg.get_min_depth_tile());
-        let dd = cfg.delta_depth();
 
-        //let min_depth_tile = self.get_min_depth_tile();
-        //let delta_depth = self.get_config().delta_depth();
-
-        //let min_bound_depth = min_depth_tile.max(delta_depth);
-        // do not ask to query tiles that:
-        // * either do not exist because < to min_depth_tile
-        // * either are part of a base tile already handled i.e. tiles < delta_depth
-        //console_log(depth_tile);
-        //console_log(min_bound_depth);
-
-        //if depth_tile >= min_bound_depth {
-        //let depth_tile = depth_tile.max(min_bound_depth);
         let survey_frame = cfg.get_frame();
         let mut already_considered_tiles = HashSet::new();
 
-        // raytracer is rendering and the shader only renders HPX texture cells of depth 0
-        if camera.is_raytracing(proj) {
+        // Raytracer is rendering and the shader only renders HPX texture cells of depth 0
+        /*if camera.is_raytracing(proj) {
             depth_tile = 0;
-        }
+        }*/
 
         let tile_cells_iter = camera
             .get_hpx_cells(depth_tile, survey_frame)
-            //.flat_map(move |cell| {
-            //    let texture_cell = cell.get_texture_cell(delta_depth);
-            //    texture_cell.get_tile_cells(delta_depth)
-            //})
             .into_iter()
-            .flat_map(move |tile_cell| {
-                let tex_cell = tile_cell.get_texture_cell(dd);
-                tex_cell.get_tile_cells(dd)
-            })
             .filter(move |tile_cell| {
                 if already_considered_tiles.contains(tile_cell) {
                     return false;
@@ -392,7 +375,7 @@ impl HiPS2D {
         let cfg = self.get_config();
         // Get the coo system transformation matrix
         let hips_frame = cfg.get_frame();
-        let depth = camera.get_texture_depth().min(cfg.get_max_depth_texture());
+        let depth = camera.get_tile_depth().min(cfg.get_max_depth_tile());
 
         let hpx_cells_in_view = camera.get_hpx_cells(depth, hips_frame);
         let new_cells = if hpx_cells_in_view.len() != self.hpx_cells_in_view.len() {
@@ -433,7 +416,7 @@ impl HiPS2D {
         x: f64,
         y: f64,
         camera: &CameraViewPort,
-        proj: &ProjectionType
+        proj: &ProjectionType,
     ) -> Result<JsValue, JsValue> {
         if let Some(xyz) = proj.screen_to_model_space(&Vector2::new(x, y), camera) {
             // 1. Convert it to the hips frame system
@@ -441,38 +424,35 @@ impl HiPS2D {
             let camera_frame = camera.get_coo_system();
             let hips_frame = cfg.get_frame();
 
-            let lonlat =
-                crate::coosys::apply_coo_system(camera_frame, hips_frame, &xyz).lonlat();
+            let lonlat = crate::coosys::apply_coo_system(camera_frame, hips_frame, &xyz).lonlat();
 
             // Get the array of textures from that survey
-            let depth = camera.get_texture_depth().min(cfg.get_max_depth_texture());
+            let depth = camera.get_tile_depth().min(cfg.get_max_depth_tile());
 
             // compute the tex
             let (pix, dx, dy) = crate::healpix::utils::hash_with_dxdy(depth, &lonlat);
-            let texture_cell = HEALPixCell(depth, pix);
+            let tile_cell = HEALPixCell(depth, pix);
 
-            let value = if let Some(texture) = self.buffer.get(&texture_cell) {
+            let value = if let Some(tile) = self.buffer.get(&tile_cell) {
                 // Index of the texture in the total set of textures
-                let texture_idx = texture.idx();
+                let tile_idx = tile.idx();
 
                 // The size of the global texture containing the tiles
-                let texture_size = cfg.get_texture_size();
+                let tile_size = cfg.get_tile_size() as f32;
 
                 // Offset in the slice in pixels
                 let mut pos_tex = Vector3::new(
-                    (dy * (texture_size as f64)) as i32,
-                    (dx * (texture_size as f64)) as i32,
-                    texture_idx,
+                    (dy * (tile_size as f64)) as i32,
+                    (dx * (tile_size as f64)) as i32,
+                    tile_idx,
                 );
 
                 // Offset in the slice in pixels
                 if cfg.tex_storing_fits {
-                    let texture_size = cfg.get_texture_size() as f32;
-                    let mut uvy = pos_tex.y as f32 / texture_size;
-                    uvy = cfg.size_tile_uv + 2.0 * cfg.size_tile_uv * (uvy / cfg.size_tile_uv).floor()
-                        - uvy;
+                    let mut uvy = pos_tex.y as f32 / tile_size;
+                    uvy = 1.0 + 2.0 * (uvy / 1.0).floor() - uvy;
 
-                    pos_tex.y = (uvy * texture_size) as i32;
+                    pos_tex.y = (uvy * tile_size) as i32;
                 }
 
                 let mut value = self
@@ -518,9 +498,12 @@ impl HiPS2D {
         // Define a global level of subdivisions for all the healpix tile cells in the view
         // This should prevent seeing many holes
         // We compute it from the first cell in the view but it might be an under/over estimate for the other cells in the view
-        let num_sub = self.hpx_cells_in_view.iter()
+        let num_sub = self
+            .hpx_cells_in_view
+            .iter()
             .map(|cell| super::subdivide::num_hpx_subdivision(cell, camera, projection))
-            .max().unwrap();
+            .max()
+            .unwrap();
 
         //let num_sub =
         //    super::subdivide::num_hpx_subdivision(&self.hpx_cells_in_view[0], camera, projection);
@@ -624,15 +607,15 @@ impl HiPS2D {
                 cell,
                 uv_0,
                 uv_1,
-                start_time
-            }) = hpx_cell {
+                start_time,
+            }) = hpx_cell
+            {
                 let d01s = uv_0[TileCorner::BottomRight].x - uv_0[TileCorner::BottomLeft].x;
                 let d02s = uv_0[TileCorner::TopLeft].y - uv_0[TileCorner::BottomLeft].y;
                 let d01e = uv_1[TileCorner::BottomRight].x - uv_1[TileCorner::BottomLeft].x;
                 let d02e = uv_1[TileCorner::TopLeft].y - uv_1[TileCorner::BottomLeft].y;
 
-                let sub_cells =
-                    super::subdivide::subdivide_hpx_cell(cell, num_sub, camera);
+                let sub_cells = super::subdivide::subdivide_hpx_cell(cell, num_sub, camera);
 
                 let mut pos = Vec::with_capacity(sub_cells.len() * 4);
 
@@ -771,7 +754,7 @@ impl HiPS2D {
     }
 
     pub fn draw(
-        &self,
+        &mut self,
         shaders: &mut ShaderManager,
         colormaps: &Colormaps,
         camera: &CameraViewPort,
@@ -785,7 +768,19 @@ impl HiPS2D {
         let hips_frame = hips_cfg.get_frame();
         let c = selected_frame.to(hips_frame);
 
-        let raytracing = camera.is_raytracing(proj);
+        let mut draw_allsky = camera.is_raytracing(proj);
+        if !draw_allsky {
+            let tile_size = self.get_config().get_tile_size();
+            let pixel_p1 =
+                camera.get_tile_depth() as u32 + crate::math::utils::log_2_unchecked(tile_size);
+
+            let tile_size_order3_in_allsky = tile_size.min(64);
+            let pixel_p2 = 3 + crate::math::utils::log_2_unchecked(tile_size_order3_in_allsky);
+
+            draw_allsky = pixel_p1 <= pixel_p2;
+        }
+
+        self.buffer.render_allsky(draw_allsky);
         let config = self.get_config();
 
         //self.gl.enable(WebGl2RenderingContext::BLEND);
@@ -801,7 +796,7 @@ impl HiPS2D {
         let cmap = colormaps.get(color.cmap_name.as_ref());
 
         blend_cfg.enable(&self.gl, || {
-            if raytracing {
+            if draw_allsky {
                 let w2v = c * (*camera.get_w2m());
 
                 let shader = get_raytracer_shader(cmap, &self.gl, shaders, &config)?;
@@ -815,7 +810,14 @@ impl HiPS2D {
                     .attach_uniforms_from(color)
                     .attach_uniform("model", &w2v)
                     .attach_uniform("current_time", &utils::get_current_time())
-                    .attach_uniform("no_tile_color",  &(if config.get_format().get_channel() == ChannelType::RGB8U { Vector4::new(0.0, 0.0, 0.0, 1.0) } else { Vector4::new(0.0, 0.0, 0.0, 0.0) }))
+                    .attach_uniform(
+                        "no_tile_color",
+                        &(if config.get_format().get_channel() == ChannelType::RGB8U {
+                            Vector4::new(0.0, 0.0, 0.0, 1.0)
+                        } else {
+                            Vector4::new(0.0, 0.0, 0.0, 0.0)
+                        }),
+                    )
                     .attach_uniform("opacity", opacity)
                     .attach_uniforms_from(colormaps);
 

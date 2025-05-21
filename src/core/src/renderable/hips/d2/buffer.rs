@@ -135,65 +135,104 @@ pub struct HiPS2DBuffer {
     base_textures: [HpxTexture2D; NUM_HPX_TILES_DEPTH_ZERO],
 
     // Array of 2D textures
-    texture_2d_array: Texture2DArray,
+    tile_pixels: Texture2DArray,
+    allsky_pixels: Texture2DArray,
 
     available_tiles_during_frame: bool,
+
+    // allsky rendering mode <=> raytracing on the 12 base tiles
+    allsky_rendering: bool,
 }
 
-// Define a set of textures compatible with the HEALPix tile format and size
-fn create_texture_array<F: ImageFormat>(
+fn create_hpx_texture_storage(
     gl: &WebGlContext,
-    config: &HiPSConfig,
+    // The texture image channel definition
+    channel: ChannelType,
+    // 256 is a consensus for targetting the maximum GPU architectures. We create a 128 slices to optimize performance
+    num_tiles: i32,
+    // The size of the tile
+    tile_size: i32,
 ) -> Result<Texture2DArray, JsValue> {
-    let texture_size = config.get_texture_size();
-    Texture2DArray::create_empty::<F>(
-        gl,
-        texture_size,
-        texture_size,
-        // 256 is a consensus for targetting the maximum GPU architectures. We create a 128 slices to optimize performance
-        128,
-        &[
-            (
-                WebGlRenderingCtx::TEXTURE_MIN_FILTER,
-                // apply mipmapping
-                WebGlRenderingCtx::NEAREST_MIPMAP_NEAREST,
-            ),
-            (
-                WebGlRenderingCtx::TEXTURE_MAG_FILTER,
-                WebGlRenderingCtx::NEAREST,
-            ),
-            // Prevents s-coordinate wrapping (repeating)
-            (
-                WebGlRenderingCtx::TEXTURE_WRAP_S,
-                WebGlRenderingCtx::CLAMP_TO_EDGE,
-            ),
-            // Prevents t-coordinate wrapping (repeating)
-            (
-                WebGlRenderingCtx::TEXTURE_WRAP_T,
-                WebGlRenderingCtx::CLAMP_TO_EDGE,
-            ),
-            (
-                WebGlRenderingCtx::TEXTURE_WRAP_R,
-                WebGlRenderingCtx::CLAMP_TO_EDGE,
-            ),
-        ],
-    )
+    let tex_params = &[
+        (
+            WebGlRenderingCtx::TEXTURE_MIN_FILTER,
+            // apply mipmapping
+            WebGlRenderingCtx::NEAREST_MIPMAP_NEAREST,
+        ),
+        (
+            WebGlRenderingCtx::TEXTURE_MAG_FILTER,
+            WebGlRenderingCtx::NEAREST,
+        ),
+        // Prevents s-coordinate wrapping (repeating)
+        (
+            WebGlRenderingCtx::TEXTURE_WRAP_S,
+            WebGlRenderingCtx::CLAMP_TO_EDGE,
+        ),
+        // Prevents t-coordinate wrapping (repeating)
+        (
+            WebGlRenderingCtx::TEXTURE_WRAP_T,
+            WebGlRenderingCtx::CLAMP_TO_EDGE,
+        ),
+        (
+            WebGlRenderingCtx::TEXTURE_WRAP_R,
+            WebGlRenderingCtx::CLAMP_TO_EDGE,
+        ),
+    ];
+    match channel {
+        ChannelType::RGBA8U => Texture2DArray::create_empty::<RGBA8U>(
+            gl, tile_size, tile_size,
+            // 256 is a consensus for targetting the maximum GPU architectures. We create a 128 slices to optimize performance
+            num_tiles, tex_params,
+        ),
+        ChannelType::RGB8U => Texture2DArray::create_empty::<RGB8U>(
+            gl, tile_size, tile_size,
+            // 256 is a consensus for targetting the maximum GPU architectures. We create a 128 slices to optimize performance
+            num_tiles, tex_params,
+        ),
+        ChannelType::R32F => Texture2DArray::create_empty::<R32F>(
+            gl, tile_size, tile_size,
+            // 256 is a consensus for targetting the maximum GPU architectures. We create a 128 slices to optimize performance
+            num_tiles, tex_params,
+        ),
+        #[cfg(feature = "webgl2")]
+        ChannelType::R8UI => Texture2DArray::create_empty::<R8UI>(
+            gl, tile_size, tile_size,
+            // 256 is a consensus for targetting the maximum GPU architectures. We create a 128 slices to optimize performance
+            num_tiles, tex_params,
+        ),
+        #[cfg(feature = "webgl2")]
+        ChannelType::R16I => Texture2DArray::create_empty::<R16I>(
+            gl, tile_size, tile_size,
+            // 256 is a consensus for targetting the maximum GPU architectures. We create a 128 slices to optimize performance
+            num_tiles, tex_params,
+        ),
+        #[cfg(feature = "webgl2")]
+        ChannelType::R32I => Texture2DArray::create_empty::<R32I>(
+            gl, tile_size, tile_size,
+            // 256 is a consensus for targetting the maximum GPU architectures. We create a 128 slices to optimize performance
+            num_tiles, tex_params,
+        ),
+        #[cfg(feature = "webgl2")]
+        ChannelType::R64F => Texture2DArray::create_empty::<R64F>(
+            gl, tile_size, tile_size,
+            // 256 is a consensus for targetting the maximum GPU architectures. We create a 128 slices to optimize performance
+            num_tiles, tex_params,
+        ),
+        _ => unimplemented!(),
+    }
 }
 
 impl HiPS2DBuffer {
     pub fn push_allsky(&mut self, allsky: Allsky) -> Result<(), JsValue> {
         let Allsky {
-            image,
-            time_req,
-            depth_tile,
-            ..
+            image, time_req, ..
         } = allsky;
 
         {
             let mutex_locked = image.borrow();
             let images = mutex_locked.as_ref().unwrap_abort();
             for (idx, image) in images.iter().enumerate() {
-                self.push(&HEALPixCell(depth_tile, idx as u64), image, time_req)?;
+                self.push(&HEALPixCell(0, idx as u64), image, time_req)?;
             }
         }
 
@@ -204,21 +243,15 @@ impl HiPS2DBuffer {
     // For that purpose, we first need to verify that its
     // texture ancestor exists and then, it it contains the tile
     pub fn contains_tile(&self, cell: &HEALPixCell) -> bool {
-        let dd = self.config.delta_depth();
-
-        let texture_cell = cell.get_texture_cell(dd);
-
-        let tex_cell_is_root = texture_cell.is_root();
-        if tex_cell_is_root {
-            let HEALPixCell(_, idx) = texture_cell;
-            self.base_textures[idx as usize].contains_tile(cell)
+        let cell_is_root = cell.is_root();
+        if cell_is_root {
+            self.base_textures[cell.idx() as usize].is_full()
         } else {
-            if let Some(texture) = self.get(&texture_cell) {
+            if let Some(texture) = self.get(cell) {
                 // The texture is present in the buffer
                 // We must check whether it contains the tile
-                texture.contains_tile(cell)
+                texture.is_full()
             } else {
-                // The texture in which cell should be is not present
                 false
             }
         }
@@ -237,17 +270,14 @@ impl HiPS2DBuffer {
     pub fn update_priority(&mut self, cell: &HEALPixCell /*, new_fov_cell: bool*/) {
         debug_assert!(self.contains_tile(cell));
 
-        let dd = self.config.delta_depth();
-
         // Get the texture cell in which the tile has to be
-        let texture_cell = cell.get_texture_cell(dd);
-        if texture_cell.is_root() {
+        if cell.is_root() {
             return;
         }
 
         let texture = self
             .textures
-            .get_mut(&texture_cell)
+            .get_mut(cell)
             .expect("Texture cell has not been found while the buffer contains one of its tile!");
         // Reset the time the tile has been received if it is a new cell present in the fov
         //if new_fov_cell {
@@ -272,16 +302,45 @@ impl HiPS2DBuffer {
         image: I,
         time_request: Time,
     ) -> Result<(), JsValue> {
-        if !self.contains_tile(cell) {
-            let dd = self.config.delta_depth();
-            // Get the texture cell in which the tile has to be
-            let tex_cell = cell.get_texture_cell(dd);
+        let cell_is_root = cell.is_root();
 
-            let tex_cell_is_root = tex_cell.is_root();
-            if !tex_cell_is_root && !self.textures.contains_key(&tex_cell) {
+        if cell_is_root {
+            let tile_size = image.get_size().0;
+            let is_tile = tile_size == self.config.get_tile_size() as u32;
+            if is_tile {
+                image.insert_into_3d_texture(
+                    &self.tile_pixels,
+                    &Vector3::new(0, 0, cell.idx() as i32),
+                )?;
+            }
+
+            let is_allsky_tile = tile_size == self.config.allsky_tile_size() as u32;
+            if is_allsky_tile {
+                image.insert_into_3d_texture(
+                    &self.allsky_pixels,
+                    &Vector3::new(0, 0, cell.idx() as i32),
+                )?;
+
+                self.num_root_textures_available += 1;
+                if self.num_root_textures_available == 12 {
+                    self.allsky_pixels.generate_mipmap()
+                }
+            }
+
+            let texture = &mut self.base_textures[cell.idx() as usize];
+
+            texture.append(
+                cell, // The tile cell
+                &self.config,
+            );
+
+            self.available_tiles_during_frame = true;
+        } else {
+            // Not root cells
+            if !self.contains_tile(cell) {
                 // The texture is not among the essential ones
                 // (i.e. is not a root texture)
-                let texture = if self.is_heap_full() {
+                let mut texture = if self.is_heap_full() {
                     // Pop the oldest requested texture
                     let oldest_texture = self.heap.pop().unwrap_abort();
                     // Ensure this is not a base texture
@@ -291,64 +350,51 @@ impl HiPS2DBuffer {
                     let mut texture = self.textures.remove(&oldest_texture.cell).expect(
                         "Texture (oldest one) has not been found in the buffer of textures",
                     );
-                    texture.replace(&tex_cell, time_request);
+                    texture.replace(cell, time_request);
 
                     texture
                 } else {
                     let idx = NUM_HPX_TILES_DEPTH_ZERO + self.heap.len();
 
-                    HpxTexture2D::new(&tex_cell, idx as i32, time_request)
+                    HpxTexture2D::new(cell, idx as i32, time_request)
                 };
+
+                image.insert_into_3d_texture(
+                    &self.tile_pixels,
+                    &Vector3::new(0, 0, texture.idx() as i32),
+                )?;
+
+                texture.append(
+                    cell, // The tile cell
+                    &self.config,
+                );
 
                 // Push it to the buffer
                 self.heap.push(&texture);
+                self.textures.insert(*cell, texture);
 
-                self.textures.insert(tex_cell, texture);
+                self.available_tiles_during_frame = true;
             }
-
-            if tex_cell_is_root {
-                self.num_root_textures_available += 1;
-                if self.num_root_textures_available == 12 {
-                    self.texture_2d_array.generate_mipmap()
-                }
-            }
-
-            // At this point, the texture that should contain the tile
-            // is in the buffer
-            // and the tile is not already in any textures of the buffer
-            // We can safely push it
-            // First get the texture
-
-            let texture = if !tex_cell_is_root {
-                self.textures
-                    .get_mut(&tex_cell)
-                    .expect("the cell has to be in the tile buffer")
-            } else {
-                let HEALPixCell(_, idx) = tex_cell;
-                &mut self.base_textures[idx as usize]
-            };
-
-            send_to_gpu(
-                cell,
-                texture,
-                image,
-                &self.texture_2d_array,
-                &mut self.config,
-            )?;
-
-            texture.append(
-                cell, // The tile cell
-                &self.config,
-            );
-
-            self.available_tiles_during_frame = true;
         }
 
         Ok(())
     }
 
     pub fn get_texture(&self) -> &Texture2DArray {
-        &self.texture_2d_array
+        &self.tile_pixels
+    }
+
+    pub fn send_to_gpu<I: Image>(
+        &self,
+        cell: &HEALPixCell,
+        texture: &HpxTexture2D,
+        image: I,
+    ) -> Result<(), JsValue> {
+        Ok(())
+    }
+
+    pub fn render_allsky(&mut self, flag: bool) {
+        self.allsky_rendering = flag;
     }
 }
 
@@ -357,6 +403,7 @@ impl HpxTileBuffer for HiPS2DBuffer {
 
     fn new(gl: &WebGlContext, config: HiPSConfig) -> Result<Self, JsValue> {
         let size = 128 - NUM_HPX_TILES_DEPTH_ZERO;
+        //let size = 128;
         // Ensures there is at least space for the 12
         // root textures
         //debug_assert!(size >= NUM_HPX_TILES_DEPTH_ZERO);
@@ -379,26 +426,17 @@ impl HpxTileBuffer for HiPS2DBuffer {
             HpxTexture2D::new(&HEALPixCell(0, 11), 11, now),
         ];
         let channel = config.get_format().get_channel();
+        let tile_size = config.get_tile_size();
+        let tile_pixels = create_hpx_texture_storage(gl, channel, 128, tile_size)?;
 
-        let texture_2d_array = match channel {
-            ChannelType::RGBA32F => unimplemented!(),
-            ChannelType::RGB32F => unimplemented!(),
-            ChannelType::RGBA8U => create_texture_array::<RGBA8U>(gl, &config)?,
-            ChannelType::RGB8U => create_texture_array::<RGB8U>(gl, &config)?,
-            ChannelType::R32F => create_texture_array::<R32F>(gl, &config)?,
-            #[cfg(feature = "webgl2")]
-            ChannelType::R8UI => create_texture_array::<R8UI>(gl, &config)?,
-            #[cfg(feature = "webgl2")]
-            ChannelType::R16I => create_texture_array::<R16I>(gl, &config)?,
-            #[cfg(feature = "webgl2")]
-            ChannelType::R32I => create_texture_array::<R32I>(gl, &config)?,
-            #[cfg(feature = "webgl2")]
-            ChannelType::R64F => create_texture_array::<R64F>(gl, &config)?,
-        };
+        let allsky_tile_size = config.allsky_tile_size();
+        let allsky_pixels = create_hpx_texture_storage(gl, channel, 12, allsky_tile_size)?;
         // The root textures have not been loaded
 
         let num_root_textures_available = 0;
         let available_tiles_during_frame = false;
+
+        let allsky_rendering = false;
 
         Ok(HiPS2DBuffer {
             config,
@@ -408,8 +446,12 @@ impl HpxTileBuffer for HiPS2DBuffer {
             num_root_textures_available,
             textures,
             base_textures,
-            texture_2d_array,
+
+            tile_pixels,
+            allsky_pixels,
+
             available_tiles_during_frame,
+            allsky_rendering,
         })
     }
 
@@ -417,22 +459,11 @@ impl HpxTileBuffer for HiPS2DBuffer {
         self.config.set_image_ext(ext)?;
 
         let channel = self.config.get_format().get_channel();
+        let tile_size = self.config.get_tile_size();
+        self.tile_pixels = create_hpx_texture_storage(gl, channel, 128, tile_size)?;
 
-        self.texture_2d_array = match channel {
-            ChannelType::RGBA32F => unimplemented!(),
-            ChannelType::RGB32F => unimplemented!(),
-            ChannelType::RGBA8U => create_texture_array::<RGBA8U>(gl, &self.config)?,
-            ChannelType::RGB8U => create_texture_array::<RGB8U>(gl, &self.config)?,
-            ChannelType::R32F => create_texture_array::<R32F>(gl, &self.config)?,
-            #[cfg(feature = "webgl2")]
-            ChannelType::R8UI => create_texture_array::<R8UI>(gl, &self.config)?,
-            #[cfg(feature = "webgl2")]
-            ChannelType::R16I => create_texture_array::<R16I>(gl, &self.config)?,
-            #[cfg(feature = "webgl2")]
-            ChannelType::R32I => create_texture_array::<R32I>(gl, &self.config)?,
-            #[cfg(feature = "webgl2")]
-            ChannelType::R64F => create_texture_array::<R64F>(gl, &self.config)?,
-        };
+        let allsky_tile_size = self.config.allsky_tile_size();
+        self.allsky_pixels = create_hpx_texture_storage(gl, channel, 12, allsky_tile_size)?;
 
         let now = Time::now();
         self.base_textures = [
@@ -498,36 +529,6 @@ impl HpxTileBuffer for HiPS2DBuffer {
     }
 }
 
-fn send_to_gpu<I: Image>(
-    cell: &HEALPixCell,
-    texture: &HpxTexture2D,
-    image: I,
-    texture_array: &Texture2DArray,
-    cfg: &mut HiPSConfig,
-) -> Result<(), JsValue> {
-    // Index of the texture in the total set of textures
-    let texture_idx = texture.idx();
-    // Index of the slice of textures
-    let idx_slice = texture_idx;
-    // Row and column indexes of the tile in its texture
-    let delta_depth = cfg.delta_depth();
-    let (idx_col_in_tex, idx_row_in_tex) = cell.get_offset_in_texture_cell(delta_depth);
-
-    // The size of a tile in its texture
-    let tile_size = cfg.get_tile_size();
-
-    // Offset in the slice in pixels
-    let offset = Vector3::new(
-        (idx_row_in_tex as i32) * tile_size,
-        (idx_col_in_tex as i32) * tile_size,
-        idx_slice,
-    );
-
-    image.insert_into_3d_texture(texture_array, &offset)?;
-
-    Ok(())
-}
-
 impl SendUniforms for HiPS2DBuffer {
     // Send only the allsky textures
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
@@ -537,21 +538,25 @@ impl SendUniforms for HiPS2DBuffer {
             let texture_uniforms = TextureUniforms::new(texture, idx as i32);
             shader.attach_uniforms_from(&texture_uniforms);
         }*/
+        let shader = shader.attach_uniforms_from(&self.config);
 
-        //if self.raytracing {
-        for idx in 0..NUM_HPX_TILES_DEPTH_ZERO {
-            let cell = HEALPixCell(0, idx as u64);
+        if self.allsky_rendering {
+            for idx in 0..NUM_HPX_TILES_DEPTH_ZERO {
+                let cell = HEALPixCell(0, idx as u64);
 
-            let texture = self.get(&cell).unwrap();
-            let texture_uniforms = HpxTexture2DUniforms::new(texture, idx as i32);
-            shader.attach_uniforms_from(&texture_uniforms);
+                let texture = self.get(&cell).unwrap();
+                let texture_uniforms = HpxTexture2DUniforms::new(texture, idx as i32);
+                shader.attach_uniforms_from(&texture_uniforms);
+            }
+
+            shader
+                .attach_uniform("tex", &self.allsky_pixels)
+                .attach_uniform("num_slices", &12);
+        } else {
+            shader
+                .attach_uniform("tex", &self.tile_pixels)
+                .attach_uniform("num_slices", &(self.tile_pixels.num_slices as i32));
         }
-        //}
-
-        let shader = shader
-            .attach_uniforms_from(&self.config)
-            .attach_uniform("tex", &self.texture_2d_array)
-            .attach_uniform("num_slices", &(self.texture_2d_array.num_slices as i32));
 
         shader
     }

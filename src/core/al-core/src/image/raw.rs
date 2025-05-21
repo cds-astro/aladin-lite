@@ -166,7 +166,7 @@ where
     }
 
     // The size of the image
-    /*fn get_size(&self) -> &Vector2<i32> {
-        &self.size
-    }*/
+    fn get_size(&self) -> (u32, u32) {
+        (self.size.x as u32, self.size.y as u32)
+    }
 }

@@ -82,7 +82,7 @@ impl MOCRenderer {
 
     pub fn get_hpx_coverage(&self, moc_uuid: &str) -> Option<&HEALPixCoverage> {
         if let Some(idx) = self.cfgs.iter().position(|cfg| cfg.get_uuid() == moc_uuid) {
-            Some(&self.mocs[idx].get_full_moc())
+            Some(self.mocs[idx].get_full_moc())
         } else {
             None
         }
@@ -104,10 +104,7 @@ impl MOCRenderer {
         }
     }
 
-    pub fn set_options(
-        &mut self,
-        options: MOCOptions,
-    ) -> Option<MOCOptions> {
+    pub fn set_options(&mut self, options: MOCOptions) -> Option<MOCOptions> {
         let name = options.get_uuid();
 
         if let Some(idx) = self.cfgs.iter().position(|cfg| cfg.get_uuid() == name) {

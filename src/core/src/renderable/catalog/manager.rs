@@ -189,7 +189,7 @@ impl Manager {
     ) {
         // Create the HashMap storing the source indices with respect to the
         // HEALPix cell at depth 7 in which they are contained
-        let catalog = Catalog::new::<P>(&self.gl, colormap, sources);
+        let catalog = Catalog::new(&self.gl, colormap, sources);
 
         // Update the number of sources loaded
         //self.num_sources += num_instances_in_catalog as usize;
@@ -286,11 +286,7 @@ const MAX_SOURCES_PER_CATALOG: f32 = 50000.0;
 
 use crate::Abort;
 impl Catalog {
-    fn new<P: Projection>(
-        gl: &WebGlContext,
-        colormap: Colormap,
-        mut lonlat: Box<[LonLatT<f32>]>,
-    ) -> Catalog {
+    fn new(gl: &WebGlContext, colormap: Colormap, mut lonlat: Box<[LonLatT<f32>]>) -> Catalog {
         let alpha = 1_f32;
         let strength = 1_f32;
         let index_vec = IdxVec::from_coo(&mut lonlat);
@@ -406,7 +402,7 @@ impl Catalog {
 
         for cell in cells {
             let sources_idx = self.index_vec.get_item_indices_inside_hpx_cell(cell);
-            total_sources += (sources_idx.end - sources_idx.start) as usize;
+            total_sources += sources_idx.end - sources_idx.start;
         }
 
         total_sources
@@ -424,8 +420,7 @@ impl Catalog {
             for c in cell.get_children_cells(delta_depth as u8) {
                 // Define the total number of sources being in this kernel depth tile
                 let sources_in_cell = self.index_vec.get_item_indices_inside_hpx_cell(&c);
-                let num_sources_in_kernel_cell =
-                    (sources_in_cell.end - sources_in_cell.start) as usize;
+                let num_sources_in_kernel_cell = sources_in_cell.end - sources_in_cell.start;
                 if num_sources_in_kernel_cell > 0 {
                     let num_sources = (((num_sources_in_kernel_cell as f32) / num_sources_in_fov)
                         * MAX_SOURCES_PER_CATALOG) as usize;
@@ -459,6 +454,7 @@ impl Catalog {
             );
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn draw(
         &self,
         gl: &WebGlContext,
@@ -515,7 +511,7 @@ impl Catalog {
                         .draw_elements_instanced_with_i32(
                             WebGl2RenderingContext::TRIANGLES,
                             0,
-                            self.num_instances as i32,
+                            self.num_instances,
                         );
                     Ok(())
                 },

@@ -409,9 +409,9 @@ impl ArrayBuffer {
         }
     }
 
-    pub fn set_vertex_attrib_pointer_by_name<'a, T: VertexAttribPointerType>(
+    pub fn set_vertex_attrib_pointer_by_name<T: VertexAttribPointerType>(
         &self,
-        shader: &ShaderBound<'a>,
+        shader: &ShaderBound<'_>,
         location: &str,
     ) {
         let loc = shader.get_attrib_location(&self.gl, location);
@@ -434,11 +434,7 @@ impl ArrayBuffer {
             .vertex_attrib_divisor_angle(loc as u32, 0);
     }
 
-    pub fn disable_vertex_attrib_pointer_by_name<'a>(
-        &self,
-        shader: &ShaderBound<'a>,
-        location: &str,
-    ) {
+    pub fn disable_vertex_attrib_pointer_by_name(&self, shader: &ShaderBound<'_>, location: &str) {
         let loc = shader.get_attrib_location(&self.gl, location);
         self.gl.disable_vertex_attrib_array(loc as u32);
     }

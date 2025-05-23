@@ -19,8 +19,8 @@ fn is_too_large(cell: &HEALPixCell, camera: &CameraViewPort, projection: &Projec
     if vertices.len() < 4 {
         false
     } else {
-        let d1 = dist2(vertices[0].as_ref(), &vertices[2].as_ref());
-        let d2 = dist2(vertices[1].as_ref(), &vertices[3].as_ref());
+        let d1 = dist2(vertices[0].as_ref(), vertices[2].as_ref());
+        let d2 = dist2(vertices[1].as_ref(), vertices[3].as_ref());
 
         d1 > M || d2 > M
     }
@@ -80,7 +80,7 @@ pub(crate) fn subdivide_hpx_cell(
     camera: &CameraViewPort,
 ) -> Box<[HEALPixCell]> {
     cell.get_children_cells(num_subdivisions)
-        .map(|child_cell| {
+        .flat_map(|child_cell| {
             /*let cell_depth = child_cell.depth();
 
             // Largest deformation cell among the cells of a specific depth
@@ -142,7 +142,6 @@ pub(crate) fn subdivide_hpx_cell(
             // Subdivide one more time if the HEALPix cell is distorted
             child_cell.get_children_cells(hpx_num_sub)
         })
-        .flatten()
         .collect::<Vec<_>>()
         .into_boxed_slice()
 }

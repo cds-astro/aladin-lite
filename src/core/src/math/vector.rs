@@ -1,6 +1,6 @@
 use crate::math::angle::Angle;
-use cgmath::{BaseFloat, InnerSpace, Vector2, Vector3};
 use crate::math::angle::ToAngle;
+use cgmath::{BaseFloat, InnerSpace, Vector2, Vector3};
 
 #[inline]
 pub fn angle2<S: BaseFloat>(ab: &Vector2<S>, bc: &Vector2<S>) -> Angle<S> {
@@ -60,12 +60,11 @@ impl NormedVector2 {
         Self(normed_v)
     }
 
-    pub const unsafe fn new_unsafe(x: f64, y: f64) -> Self {
+    pub const fn new_unsafe(x: f64, y: f64) -> Self {
         let v = Vector2::new(x, y);
         Self(v)
     }
 }
-
 
 use std::ops::Deref;
 impl Deref for NormedVector2 {
@@ -77,7 +76,7 @@ impl Deref for NormedVector2 {
 }
 
 use std::ops::Mul;
-impl<'a> Mul<f64> for &'a NormedVector2 {
+impl Mul<f64> for &NormedVector2 {
     // The multiplication of rational numbers is a closed operation.
     type Output = Vector2<f64>;
 

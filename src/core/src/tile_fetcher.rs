@@ -12,6 +12,7 @@ const MAX_QUERY_QUEUE_LENGTH: usize = 100;
 
 use crate::renderable::hips::HiPS;
 
+#[derive(Default)]
 pub struct TileFetcherQueue {
     // A stack of queries to fetch
     queries: VecDeque<query::Tile>,
@@ -25,6 +26,7 @@ pub struct TileFetcherQueue {
 #[derive(Debug)]
 #[wasm_bindgen]
 pub struct HiPSLocalFiles {
+    #[allow(clippy::type_complexity)]
     tiles: Box<[Box<[HashMap<u64, web_sys::File>]>; 4]>,
     moc: web_sys::File,
 }
@@ -68,7 +70,7 @@ impl HiPSLocalFiles {
             ImageExt::Webp => &self.tiles[3],
         };
 
-        return tiles_per_fmt[d].get(&i);
+        tiles_per_fmt[d].get(&i)
     }
 
     fn get_moc(&self) -> &web_sys::File {
@@ -142,9 +144,7 @@ impl TileFetcherQueue {
 
     fn check_in_file_list(&self, mut query: Tile) -> Result<Tile, JsValue> {
         if let Some(local_hips) = self.hips_local_files.get(&query.hips_cdid) {
-            if let Some(tile) =
-                local_hips.get_tile(&query.cell, query.format.get_ext_file().clone())
-            {
+            if let Some(tile) = local_hips.get_tile(&query.cell, *query.format.get_ext_file()) {
                 if let Ok(url) = web_sys::Url::create_object_url_with_blob(tile.as_ref()) {
                     // rewrite the url
                     query.url = url;

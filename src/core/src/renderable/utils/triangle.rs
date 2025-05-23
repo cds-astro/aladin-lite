@@ -26,6 +26,6 @@ where
     }
 
     pub fn is_ccw(&self) -> bool {
-        crate::math::utils::ccw_tri(&self.v1, &self.v2, &self.v3)
+        crate::math::utils::ccw_tri(self.v1, self.v2, self.v3)
     }
 }

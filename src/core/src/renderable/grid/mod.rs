@@ -36,12 +36,12 @@ pub struct ProjetedGrid {
     vao: VertexArrayObject,
     gl: WebGlContext,
 }
+use self::meridian::Meridian;
 use crate::renderable::text::TextRenderManager;
 use crate::renderable::Renderer;
+use al_api::angle::Formatter;
 use wasm_bindgen::JsValue;
 use web_sys::HtmlElement;
-use al_api::angle::Formatter;
-use self::meridian::Meridian;
 impl ProjetedGrid {
     pub fn new(gl: WebGlContext, aladin_div: &HtmlElement) -> Result<ProjetedGrid, JsValue> {
         let text_renderer = TextRenderManager::new(aladin_div)?;
@@ -181,7 +181,7 @@ impl ProjetedGrid {
             {
                 let position = position.cast::<f32>().unwrap_abort();
                 self.text_renderer
-                    .add_label(&content, &position, cgmath::Rad(*rot as f32))?;
+                    .add_label(content, &position, cgmath::Rad(*rot as f32))?;
             }
             self.text_renderer.end();
         }
@@ -205,7 +205,7 @@ impl ProjetedGrid {
             self.meridians = {
                 // Select the good step with a binary search
                 let step_lon_precised =
-                    (bbox.get_lon_size() as f64) * step_line_px / (camera.get_width() as f64);
+                    bbox.get_lon_size() * step_line_px / (camera.get_width() as f64);
                 let step_lon = select_fixed_step(step_lon_precised);
 
                 let decimal_lon_prec = step_lon.to_degrees().log10().abs().ceil() as u8;
@@ -220,9 +220,13 @@ impl ProjetedGrid {
                 let mut meridians = vec![];
                 let mut lon = start_lon;
                 while lon < stop_lon {
-                    if let Some(p) =
-                        meridian::get_intersecting_meridian(lon, camera, projection, self.fmt, decimal_lon_prec)
-                    {
+                    if let Some(p) = meridian::get_intersecting_meridian(
+                        lon,
+                        camera,
+                        projection,
+                        self.fmt,
+                        decimal_lon_prec,
+                    ) {
                         meridians.push(p);
                     }
                     lon += step_lon;
@@ -232,7 +236,7 @@ impl ProjetedGrid {
 
             self.parallels = {
                 let step_lat_precised =
-                    (bbox.get_lat_size() as f64) * step_line_px / (camera.get_height() as f64);
+                    bbox.get_lat_size() * step_line_px / (camera.get_height() as f64);
                 let step_lat = select_fixed_step(step_lat_precised);
 
                 let decimal_lat_prec = step_lat.to_degrees().log10().abs().ceil() as u8;
@@ -246,7 +250,13 @@ impl ProjetedGrid {
 
                 let mut parallels = vec![];
                 while lat < stop_lat {
-                    if let Some(p) = parallel::get_intersecting_parallel(lat, camera, projection, self.fmt, decimal_lat_prec) {
+                    if let Some(p) = parallel::get_intersecting_parallel(
+                        lat,
+                        camera,
+                        projection,
+                        self.fmt,
+                        decimal_lat_prec,
+                    ) {
                         parallels.push(p);
                     }
                     lat += step_lat;
@@ -269,12 +279,10 @@ impl ProjetedGrid {
             let mut buf: Vec<f32> = vec![];
 
             for vertices in paths {
-                let vertices = vertices.as_ref();
                 let path_vertices_buf_iter = vertices
                     .iter()
                     .zip(vertices.iter().skip(1))
-                    .map(|(a, b)| [a[0], a[1], b[0], b[1]])
-                    .flatten();
+                    .flat_map(|(a, b)| [a[0], a[1], b[0], b[1]]);
 
                 buf.extend(path_vertices_buf_iter);
             }

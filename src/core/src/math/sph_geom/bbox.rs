@@ -38,22 +38,18 @@ impl BoundingBox {
             PoleContained::None => {
                 // The polygon does not contain any pole
                 // Meridian 0deg is not crossing the polygon
-                let (min_lat, max_lat) = lat
-                    .iter()
-                    .fold((std::f64::MAX, std::f64::MIN), |(min, max), &b| {
-                        (min.min(b), max.max(b))
-                    });
+                let (min_lat, max_lat) = lat.iter().fold((f64::MAX, f64::MIN), |(min, max), &b| {
+                    (min.min(b), max.max(b))
+                });
 
-                let (min_lon, max_lon) = lon
-                    .iter()
-                    .fold((std::f64::MAX, std::f64::MIN), |(min, max), &b| {
-                        (min.min(b), max.max(b))
-                    });
+                let (min_lon, max_lon) = lon.iter().fold((f64::MAX, f64::MIN), |(min, max), &b| {
+                    (min.min(b), max.max(b))
+                });
 
                 (min_lon..max_lon, min_lat..max_lat)
             }
             PoleContained::South => {
-                let max_lat = lat.iter().fold(std::f64::MIN, |a, b| a.max(*b));
+                let max_lat = lat.iter().fold(f64::MIN, |a, b| a.max(*b));
                 (
                     if intersect_zero_meridian {
                         -PI..PI
@@ -64,7 +60,7 @@ impl BoundingBox {
                 )
             }
             PoleContained::North => {
-                let min_lat = lat.iter().fold(std::f64::MAX, |a, b| a.min(*b));
+                let min_lat = lat.iter().fold(f64::MAX, |a, b| a.min(*b));
                 (
                     if intersect_zero_meridian {
                         -PI..PI

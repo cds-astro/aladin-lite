@@ -23,7 +23,7 @@ fn generate_shaders() -> std::result::Result<(), Box<dyn Error>> {
                         .unwrap()
                         //.with_extension("")
                         .to_string_lossy()
-                        .to_owned()
+                        .into_owned()
                         .replace("/", "_")
                         .replace("\\", "_");
                     //let out_name = format!("{}/{}", OUT_PATH, out_file_name);
@@ -49,7 +49,7 @@ fn read_shader<P: AsRef<std::path::Path>>(path: P) -> std::io::Result<String> {
 
     let shader_src = std::io::BufReader::new(file)
         .lines()
-        .flatten()
+        .map_while(Result::ok)
         .map(|l| {
             if l.starts_with("#include") {
                 let incl_file_names: Vec<_> = l.split_terminator(&[';', ' '][..]).collect();
@@ -76,7 +76,6 @@ pub fn write(path: PathBuf, entries: HashMap<String, String>) -> Result<(), Box<
     let mut all_the_files = File::create(&path)?;
 
     writeln!(&mut all_the_files, r#"use std::collections::HashMap;"#,)?;
-    writeln!(&mut all_the_files, r#""#,)?;
     writeln!(&mut all_the_files, r#"#[allow(dead_code)]"#,)?;
     writeln!(
         &mut all_the_files,

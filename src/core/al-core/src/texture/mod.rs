@@ -74,12 +74,12 @@ impl Texture2D {
         let height = image.height();
 
         let metadata = Rc::new(RefCell::new(Texture2DMeta {
-            width: width,
-            height: height,
+            width,
+            height,
             internal_format: F::INTERNAL_FORMAT,
             format: F::FORMAT,
             ty: F::TYPE,
-            channel_type: F::CHANNEL_TYPE
+            channel_type: F::CHANNEL_TYPE,
         }));
 
         #[cfg(feature = "webgl2")]
@@ -208,7 +208,7 @@ impl Texture2D {
             internal_format: F::INTERNAL_FORMAT,
             format: F::FORMAT,
             ty: F::TYPE,
-            channel_type: F::CHANNEL_TYPE
+            channel_type: F::CHANNEL_TYPE,
         })));
 
         Ok(Texture2D {
@@ -249,7 +249,7 @@ impl Texture2D {
             internal_format: F::INTERNAL_FORMAT,
             format: F::FORMAT,
             ty: F::TYPE,
-            channel_type: F::CHANNEL_TYPE
+            channel_type: F::CHANNEL_TYPE,
         })));
         Ok(Texture2D {
             texture,
@@ -406,7 +406,7 @@ pub struct Texture2DBound<'a> {
     texture_2d: &'a Texture2D,
 }
 
-impl<'a> Texture2DBound<'a> {
+impl Texture2DBound<'_> {
     pub fn tex_sub_image_2d_with_u32_and_u32_and_html_image_element(
         &self,
         dx: i32,
@@ -428,20 +428,6 @@ impl<'a> Texture2DBound<'a> {
                 image,
             )
             .expect("Sub texture 2d");
-        #[cfg(feature = "webgl1")]
-        self.texture_2d
-            .gl
-            .tex_sub_image_2d_with_u32_and_u32_and_image(
-                WebGlRenderingCtx::TEXTURE_2D,
-                0,
-                dx,
-                dy,
-                metadata.format,
-                metadata.ty,
-                image,
-            )
-            .expect("Sub texture 2d");
-        //self.texture_2d.gl.flush();
     }
 
     pub fn tex_sub_image_2d_with_u32_and_u32_and_html_canvas_element(
@@ -465,20 +451,6 @@ impl<'a> Texture2DBound<'a> {
                 canvas,
             )
             .expect("Sub texture 2d");
-        #[cfg(feature = "webgl1")]
-        self.texture_2d
-            .gl
-            .tex_sub_image_2d_with_u32_and_u32_and_canvas(
-                WebGlRenderingCtx::TEXTURE_2D,
-                0,
-                dx,
-                dy,
-                metadata.format,
-                metadata.ty,
-                canvas,
-            )
-            .expect("Sub texture 2d");
-        //self.texture_2d.gl.flush();
     }
 
     pub fn tex_sub_image_2d_with_u32_and_u32_and_image_bitmap(
@@ -595,6 +567,7 @@ pub trait Tex3D {
         image: &web_sys::ImageBitmap,
     );
 
+    #[allow(clippy::too_many_arguments)]
     fn tex_sub_image_3d_with_opt_array_buffer_view(
         &self,
         dx: i32,
@@ -606,6 +579,7 @@ pub trait Tex3D {
         view: Option<&js_sys::Object>,
     );
 
+    #[allow(clippy::too_many_arguments)]
     fn tex_sub_image_3d_with_opt_u8_array(
         &self,
         dx: i32,

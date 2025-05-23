@@ -24,7 +24,7 @@ pub trait Pixel:
 impl Pixel for [f32; 4] {
     type Item = f32;
     type Container = ArrayF32;
-    const BLACK: Self = [std::f32::NAN; 4];
+    const BLACK: Self = [f32::NAN; 4];
 
     fn read_pixel(gl: &WebGlContext, x: i32, y: i32) -> Result<Self, JsValue> {
         let pixels = js_sys::Float32Array::new_with_length(4);
@@ -56,7 +56,7 @@ impl Pixel for [f32; 4] {
 impl Pixel for [f32; 3] {
     type Item = f32;
     type Container = ArrayF32;
-    const BLACK: Self = [std::f32::NAN; 3];
+    const BLACK: Self = [f32::NAN; 3];
 
     fn read_pixel(gl: &WebGlContext, x: i32, y: i32) -> Result<Self, JsValue> {
         let pixels = js_sys::Float32Array::new_with_length(3);
@@ -88,7 +88,7 @@ impl Pixel for [f32; 3] {
 impl Pixel for [f32; 1] {
     type Item = f32;
     type Container = ArrayF32;
-    const BLACK: Self = [std::f32::NAN];
+    const BLACK: Self = [f32::NAN];
 
     fn read_pixel(gl: &WebGlContext, x: i32, y: i32) -> Result<Self, JsValue> {
         let p = js_sys::Uint8Array::new_with_length(4);
@@ -208,7 +208,7 @@ impl Pixel for [u8; 1] {
 impl Pixel for [i16; 1] {
     type Item = i16;
     type Container = ArrayI16;
-    const BLACK: Self = [std::i16::MIN];
+    const BLACK: Self = [i16::MIN];
 
     fn read_pixel(gl: &WebGlContext, x: i32, y: i32) -> Result<Self, JsValue> {
         let pixels = js_sys::Int16Array::new_with_length(1);
@@ -229,7 +229,7 @@ impl Pixel for [i16; 1] {
 impl Pixel for [i32; 1] {
     type Item = i32;
     type Container = ArrayI32;
-    const BLACK: Self = [std::i32::MIN];
+    const BLACK: Self = [i32::MIN];
 
     fn read_pixel(gl: &WebGlContext, x: i32, y: i32) -> Result<Self, JsValue> {
         let pixels = js_sys::Int32Array::new_with_length(1);

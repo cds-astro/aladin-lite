@@ -66,29 +66,27 @@ pub fn get_raster_shader<'a>(
                 "hips3d_rasterizer_color_to_colormap.frag",
             )
         }
+    } else if config.tex_storing_unsigned_int {
+        crate::shader::get_shader(
+            gl,
+            shaders,
+            "hips3d_rasterizer_raster.vert",
+            "hips3d_rasterizer_grayscale_to_colormap_u.frag",
+        )
+    } else if config.tex_storing_integers {
+        crate::shader::get_shader(
+            gl,
+            shaders,
+            "hips3d_rasterizer_raster.vert",
+            "hips3d_rasterizer_grayscale_to_colormap_i.frag",
+        )
     } else {
-        if config.tex_storing_unsigned_int {
-            crate::shader::get_shader(
-                gl,
-                shaders,
-                "hips3d_rasterizer_raster.vert",
-                "hips3d_rasterizer_grayscale_to_colormap_u.frag",
-            )
-        } else if config.tex_storing_integers {
-            crate::shader::get_shader(
-                gl,
-                shaders,
-                "hips3d_rasterizer_raster.vert",
-                "hips3d_rasterizer_grayscale_to_colormap_i.frag",
-            )
-        } else {
-            crate::shader::get_shader(
-                gl,
-                shaders,
-                "hips3d_rasterizer_raster.vert",
-                "hips3d_rasterizer_grayscale_to_colormap.frag",
-            )
-        }
+        crate::shader::get_shader(
+            gl,
+            shaders,
+            "hips3d_rasterizer_raster.vert",
+            "hips3d_rasterizer_grayscale_to_colormap.frag",
+        )
     }
 }
 
@@ -307,18 +305,16 @@ impl HiPS3D {
         for cell in &self.hpx_cells_in_view {
             // filter textures that are not in the moc
             let cell = if let Some(moc) = self.footprint_moc.as_ref() {
-                if moc.intersects_cell(&cell) {
+                if moc.intersects_cell(cell) {
+                    Some(&cell)
+                } else if channel == ChannelType::RGB8U {
+                    // Rasterizer does not render tiles that are not in the MOC
+                    // This is not a problem for transparency rendered HiPses (FITS or PNG)
+                    // but JPEG tiles do have black when no pixels data is found
+                    // We therefore must draw in black for the tiles outside the HiPS MOC
                     Some(&cell)
                 } else {
-                    if channel == ChannelType::RGB8U {
-                        // Rasterizer does not render tiles that are not in the MOC
-                        // This is not a problem for transparency rendered HiPses (FITS or PNG)
-                        // but JPEG tiles do have black when no pixels data is found
-                        // We therefore must draw in black for the tiles outside the HiPS MOC
-                        Some(&cell)
-                    } else {
-                        None
-                    }
+                    None
                 }
             } else {
                 Some(&cell)
@@ -330,7 +326,7 @@ impl HiPS3D {
                 let hpx_cell_texture = if self.buffer.contains_tile(cell, self.slice) {
                     slice_contained = self.slice;
                     self.buffer.get(cell)
-                } else if let Some(next_slice) = self.buffer.find_nearest_slice(&cell, self.slice) {
+                } else if let Some(next_slice) = self.buffer.find_nearest_slice(cell, self.slice) {
                     slice_contained = next_slice;
                     self.buffer.get(cell)
                 } else if let Some(parent_cell) = self.buffer.get_nearest_parent(cell) {
@@ -346,7 +342,7 @@ impl HiPS3D {
 
                 if let Some(texture) = hpx_cell_texture {
                     self.slice_indices.push(slice_contained as usize);
-                    self.cells.push(texture.cell().clone());
+                    self.cells.push(*texture.cell());
                     // The slice is sure to be contained so we can unwrap
                     let hpx_slice_tex = texture.extract_2d_slice_texture(slice_contained).unwrap();
 
@@ -541,7 +537,7 @@ impl HiPS3D {
         //     * there are new available tiles for the GPU
         let mut off_idx = 0;
 
-        let shader = get_raster_shader(cmap, &self.gl, shaders, &hips_cfg)?;
+        let shader = get_raster_shader(cmap, &self.gl, shaders, hips_cfg)?;
 
         for (slice_idx, (cell, num_indices)) in self
             .slice_indices
@@ -578,7 +574,7 @@ impl HiPS3D {
                         (off_idx * std::mem::size_of::<u16>()) as i32,
                     );
 
-                off_idx += (*num_indices) as usize;
+                off_idx += *num_indices;
 
                 Ok(())
             })?;
@@ -598,7 +594,7 @@ impl HiPS3D {
         time_request: Time,
         slice_idx: u16,
     ) -> Result<(), JsValue> {
-        self.buffer.push(&cell, image, time_request, slice_idx)
+        self.buffer.push(cell, image, time_request, slice_idx)
     }
 
     pub fn add_allsky(&mut self, allsky: Allsky) -> Result<(), JsValue> {

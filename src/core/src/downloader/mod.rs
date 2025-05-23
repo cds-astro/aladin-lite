@@ -18,6 +18,12 @@ use crate::fifo_cache::Cache;
 use query::Query;
 use request::{RequestType, Resource};
 
+impl Default for Downloader {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Downloader {
     pub fn new() -> Downloader {
         let requests = Vec::with_capacity(32);

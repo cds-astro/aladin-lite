@@ -62,7 +62,7 @@ pub unsafe fn transmute_vec<I, O>(mut s: Vec<I>) -> Result<Vec<O>, &'static str>
         Err("The input type is not a multiple of the output type")
     } else {
         s.set_len(s.len() * (std::mem::size_of::<I>() / std::mem::size_of::<O>()));
-        Ok(std::mem::transmute(s))
+        Ok(std::mem::transmute::<Vec<I>, Vec<O>>(s))
     }
 }
 
@@ -139,7 +139,7 @@ where
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) fn set_timeout<F>(_f: F, _delay: i32) -> i32
 where
-    F: 'static + FnOnce() -> (),
+    F: 'static + FnOnce(),
 {
     unimplemented!()
 }

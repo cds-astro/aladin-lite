@@ -113,29 +113,27 @@ pub fn get_raster_shader<'a>(
                 "hips_rasterizer_color_to_colormap.frag",
             )
         }
+    } else if config.tex_storing_unsigned_int {
+        crate::shader::get_shader(
+            gl,
+            shaders,
+            "hips_rasterizer_raster.vert",
+            "hips_rasterizer_grayscale_to_colormap_u.frag",
+        )
+    } else if config.tex_storing_integers {
+        crate::shader::get_shader(
+            gl,
+            shaders,
+            "hips_rasterizer_raster.vert",
+            "hips_rasterizer_grayscale_to_colormap_i.frag",
+        )
     } else {
-        if config.tex_storing_unsigned_int {
-            crate::shader::get_shader(
-                gl,
-                shaders,
-                "hips_rasterizer_raster.vert",
-                "hips_rasterizer_grayscale_to_colormap_u.frag",
-            )
-        } else if config.tex_storing_integers {
-            crate::shader::get_shader(
-                gl,
-                shaders,
-                "hips_rasterizer_raster.vert",
-                "hips_rasterizer_grayscale_to_colormap_i.frag",
-            )
-        } else {
-            crate::shader::get_shader(
-                gl,
-                shaders,
-                "hips_rasterizer_raster.vert",
-                "hips_rasterizer_grayscale_to_colormap.frag",
-            )
-        }
+        crate::shader::get_shader(
+            gl,
+            shaders,
+            "hips_rasterizer_raster.vert",
+            "hips_rasterizer_grayscale_to_colormap.frag",
+        )
     }
 }
 
@@ -162,29 +160,27 @@ pub fn get_raytracer_shader<'a>(
                 "hips_raytracer_color_to_colormap.frag",
             )
         }
+    } else if config.tex_storing_unsigned_int {
+        crate::shader::get_shader(
+            gl,
+            shaders,
+            "hips_raytracer_raytracer.vert",
+            "hips_raytracer_grayscale_to_colormap_u.frag",
+        )
+    } else if config.tex_storing_integers {
+        crate::shader::get_shader(
+            gl,
+            shaders,
+            "hips_raytracer_raytracer.vert",
+            "hips_raytracer_grayscale_to_colormap_i.frag",
+        )
     } else {
-        if config.tex_storing_unsigned_int {
-            crate::shader::get_shader(
-                gl,
-                shaders,
-                "hips_raytracer_raytracer.vert",
-                "hips_raytracer_grayscale_to_colormap_u.frag",
-            )
-        } else if config.tex_storing_integers {
-            crate::shader::get_shader(
-                gl,
-                shaders,
-                "hips_raytracer_raytracer.vert",
-                "hips_raytracer_grayscale_to_colormap_i.frag",
-            )
-        } else {
-            crate::shader::get_shader(
-                gl,
-                shaders,
-                "hips_raytracer_raytracer.vert",
-                "hips_raytracer_grayscale_to_colormap.frag",
-            )
-        }
+        crate::shader::get_shader(
+            gl,
+            shaders,
+            "hips_raytracer_raytracer.vert",
+            "hips_raytracer_grayscale_to_colormap.frag",
+        )
     }
 }
 
@@ -461,7 +457,7 @@ impl HiPS2D {
         for cell in &self.hpx_cells_in_view {
             // filter textures that are not in the moc
             let cell_in_cov = if let Some(moc) = self.footprint_moc.as_ref() {
-                if moc.intersects_cell(&cell) {
+                if moc.intersects_cell(cell) {
                     // Rasterizer does not render tiles that are not in the MOC
                     // This is not a problem for transparency rendered HiPses (FITS or PNG)
                     // but JPEG tiles do have black when no pixels data is found
@@ -502,29 +498,20 @@ impl HiPS2D {
                     } else {
                         unreachable!()
                     }
-                } else {
-                    if let Some(parent_cell) = self.buffer.get_nearest_parent(cell) {
-                        if let Some(ending_cell_in_tex) = self.buffer.get(&parent_cell) {
-                            if let Some(grand_parent_cell) =
-                                self.buffer.get_nearest_parent(&parent_cell)
+                } else if let Some(parent_cell) = self.buffer.get_nearest_parent(cell) {
+                    if let Some(ending_cell_in_tex) = self.buffer.get(&parent_cell) {
+                        if let Some(grand_parent_cell) =
+                            self.buffer.get_nearest_parent(&parent_cell)
+                        {
+                            if let Some(starting_cell_in_tex) = self.buffer.get(&grand_parent_cell)
                             {
-                                if let Some(starting_cell_in_tex) =
-                                    self.buffer.get(&grand_parent_cell)
-                                {
-                                    Some(HpxDrawData::from_texture(
-                                        starting_cell_in_tex,
-                                        ending_cell_in_tex,
-                                        cell,
-                                    ))
-                                } else {
-                                    // no blending
-                                    Some(HpxDrawData::from_texture(
-                                        ending_cell_in_tex,
-                                        ending_cell_in_tex,
-                                        cell,
-                                    ))
-                                }
+                                Some(HpxDrawData::from_texture(
+                                    starting_cell_in_tex,
+                                    ending_cell_in_tex,
+                                    cell,
+                                ))
                             } else {
+                                // no blending
                                 Some(HpxDrawData::from_texture(
                                     ending_cell_in_tex,
                                     ending_cell_in_tex,
@@ -532,16 +519,22 @@ impl HiPS2D {
                                 ))
                             }
                         } else {
-                            unreachable!()
+                            Some(HpxDrawData::from_texture(
+                                ending_cell_in_tex,
+                                ending_cell_in_tex,
+                                cell,
+                            ))
                         }
                     } else {
-                        // No ancestor has been found in the buffer to draw.
-                        // We might want to check if the HiPS channel is JPEG to mock a cell that will be drawn in black
-                        if channel == ChannelType::RGB8U {
-                            Some(HpxDrawData::new(cell))
-                        } else {
-                            None
-                        }
+                        unreachable!()
+                    }
+                } else {
+                    // No ancestor has been found in the buffer to draw.
+                    // We might want to check if the HiPS channel is JPEG to mock a cell that will be drawn in black
+                    if channel == ChannelType::RGB8U {
+                        Some(HpxDrawData::new(cell))
+                    } else {
+                        None
                     }
                 }
             } else {
@@ -686,7 +679,7 @@ impl HiPS2D {
         image: I,
         time_request: Time,
     ) -> Result<(), JsValue> {
-        self.buffer.push(&cell, image, time_request)
+        self.buffer.push(cell, image, time_request)
     }
 
     pub fn add_allsky(&mut self, allsky: Allsky) -> Result<(), JsValue> {
@@ -748,7 +741,7 @@ impl HiPS2D {
             if draw_allsky {
                 let w2v = c * (*camera.get_w2m());
 
-                let shader = get_raytracer_shader(cmap, &self.gl, shaders, &config)?;
+                let shader = get_raytracer_shader(cmap, &self.gl, shaders, config)?;
 
                 let shader = shader.bind(&self.gl);
                 shader
@@ -786,7 +779,7 @@ impl HiPS2D {
                 // - The UVs are changed if:
                 //     * new cells are added/removed (because new cells are added)
                 //     * there are new available tiles for the GPU
-                let shader = get_raster_shader(cmap, &self.gl, shaders, &config)?.bind(&self.gl);
+                let shader = get_raster_shader(cmap, &self.gl, shaders, config)?.bind(&self.gl);
 
                 shader
                     .attach_uniforms_from(&self.buffer)

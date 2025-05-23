@@ -70,7 +70,10 @@ fn sub_valid_domain(
     while crate::math::vector::angle3(&vv, &vi).to_radians() > d_alpha {
         let vm = (vv + vi).normalize();
         // check whether is it defined or not
-        if let Some(_) = projection.model_to_normalized_device_space(&vm, camera) {
+        if projection
+            .model_to_normalized_device_space(&vm, camera)
+            .is_some()
+        {
             vv = vm;
         } else {
             vi = vm;
@@ -89,8 +92,8 @@ fn project_line(
     projection: &ProjectionType,
     iter: usize,
 ) -> bool {
-    let p1 = projection.model_to_normalized_device_space(&v1, camera);
-    let p2 = projection.model_to_normalized_device_space(&v2, camera);
+    let p1 = projection.model_to_normalized_device_space(v1, camera);
+    let p2 = projection.model_to_normalized_device_space(v2, camera);
 
     if iter < MAX_ITERATION {
         // Project them. We are always facing the camera
@@ -159,6 +162,7 @@ fn project_line(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn subdivide(
     vertices: &mut Vec<XYNDC<f64>>,
     v1: &XYZModel<f64>,

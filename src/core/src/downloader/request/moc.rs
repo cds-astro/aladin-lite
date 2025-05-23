@@ -56,7 +56,7 @@ impl From<query::Moc> for MOCRequest {
             params,
             hips_cdid,
             credentials,
-            mode
+            mode,
         } = query;
 
         let url_clone = url.clone();
@@ -77,10 +77,7 @@ impl From<query::Moc> for MOCRequest {
 
             let bytes_buf = js_sys::Uint8Array::new(&array_buffer);
             let num_bytes = bytes_buf.length() as usize;
-            let mut bytes = Vec::with_capacity(num_bytes);
-            unsafe {
-                bytes.set_len(num_bytes);
-            }
+            let mut bytes = vec![0; num_bytes];
             bytes_buf.copy_to(&mut bytes[..]);
 
             // Coosys is permissive because we load a moc

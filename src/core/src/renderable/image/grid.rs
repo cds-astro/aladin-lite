@@ -96,8 +96,7 @@ fn get_coord_uv_it(
             tex_patch_x
                 .clone()
                 .skip(1)
-                .map(|x1| vec![(x1, 1.0), (x1, 0.0)])
-                .flatten(),
+                .flat_map(|x1| vec![(x1, 1.0), (x1, 0.0)]),
         )
         .chain(std::iter::once((
             xmax,
@@ -108,12 +107,12 @@ fn get_coord_uv_it(
             },
         )));
 
-    let mut step_x = (xmin..xmax).step_by(step as usize);
+    let mut step_x = (xmin..xmax).step_by(step);
     let mut cur_step = step_x.next().unwrap();
 
     x_it.clone()
         .zip(x_it.clone().skip(1))
-        .map(move |(x1, x2)| {
+        .flat_map(move |(x1, x2)| {
             let mut xk = vec![x1];
 
             while cur_step < x2.0 {
@@ -130,7 +129,6 @@ fn get_coord_uv_it(
 
             xk
         })
-        .flatten()
         .chain(std::iter::once((
             xmax,
             if xmax % max_tex_size == 0 {
@@ -166,7 +164,7 @@ fn build_range_indices(it: impl Iterator<Item = (u64, f32)> + Clone) -> Vec<Rang
     idx_ranges
 }
 
-#[allow(dead_code)]
+#[allow(clippy::too_many_arguments)]
 pub fn vertices(
     xy_min: &(f64, f64),
     xy_max: &(f64, f64),
@@ -192,7 +190,7 @@ pub fn vertices(
 
     let mut uv = vec![];
     let pos = y_it
-        .map(|(y, uvy)| {
+        .flat_map(|(y, uvy)| {
             x_it.clone().map(move |(x, uvx)| {
                 let ndc = if let Some(xyz) = wcs.unproj_xyz(&ImgXY::new(x as f64, y as f64)) {
                     let xyz = crate::coosys::apply_coo_system(
@@ -211,7 +209,6 @@ pub fn vertices(
                 (ndc, [uvx, uvy])
             })
         })
-        .flatten()
         .map(|(p, uu)| {
             uv.extend_from_slice(&uu);
             p
@@ -227,8 +224,7 @@ pub fn vertices(
 
             let patch_indices = build_indices_iter
                 .flatten()
-                .map(|indices| [indices.0, indices.1, indices.2])
-                .flatten()
+                .flat_map(|indices| [indices.0, indices.1, indices.2])
                 .collect::<Vec<_>>();
 
             num_indices.push(patch_indices.len() as u32);

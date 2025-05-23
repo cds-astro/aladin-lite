@@ -27,7 +27,7 @@ where
     /// * ``lat`` - Latitude
     pub fn new(mut lon: Angle<S>, lat: Angle<S>) -> LonLatT<S> {
         if lon.to_radians() < S::zero() {
-            lon = lon + S::from(TWICE_PI).unwrap_abort();
+            lon += S::from(TWICE_PI).unwrap_abort();
         }
 
         LonLatT(lon, lat)
@@ -180,7 +180,7 @@ pub fn unproj(
     camera: &CameraViewPort,
 ) -> Option<LonLatT<f64>> {
     projection
-        .normalized_device_to_model_space(&ndc_xy, camera)
+        .normalized_device_to_model_space(ndc_xy, camera)
         .map(|model_pos| model_pos.lonlat())
 }
 
@@ -201,13 +201,13 @@ pub fn unproj_from_screen(
     camera: &CameraViewPort,
 ) -> Option<LonLatT<f64>> {
     projection
-        .screen_to_model_space(&xy, camera)
+        .screen_to_model_space(xy, camera)
         .map(|model_pos| model_pos.lonlat())
 }
 
 #[inline]
 pub fn is_in(v1: &Vector3<f64>, v2: &Vector3<f64>, v: &Vector3<f64>) -> bool {
-    let theta = crate::math::vector::angle3(&v1, &v2).abs();
+    let theta = crate::math::vector::angle3(v1, v2).abs();
 
-    crate::math::vector::angle3(&v1, &v).abs() < theta && crate::math::vector::angle3(&v, &v2).abs() < theta
+    crate::math::vector::angle3(v1, v).abs() < theta && crate::math::vector::angle3(v, v2).abs() < theta
 }

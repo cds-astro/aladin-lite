@@ -16,7 +16,7 @@ use healpix::compass_point::Ordinal;
 use healpix::compass_point::OrdinalMap;
 
 use crate::utils;
-use crate::Abort;
+
 impl HEALPixCell {
     // Build the parent cell
     #[inline(always)]
@@ -141,7 +141,7 @@ impl HEALPixCell {
                 let mut smallest_ancestor = c1.smallest_common_ancestor(c2);
 
                 while let (Some(ancestor), Some(cell)) = (smallest_ancestor, cells.next()) {
-                    smallest_ancestor = ancestor.smallest_common_ancestor(&cell);
+                    smallest_ancestor = ancestor.smallest_common_ancestor(cell);
                 }
 
                 smallest_ancestor
@@ -474,12 +474,12 @@ impl Iterator for HEALPixTilesIter {
 // Follow the z-order curve
 impl PartialOrd for HEALPixCell {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.z_29().partial_cmp(&other.z_29())
+        Some(self.cmp(other))
     }
 }
 impl Ord for HEALPixCell {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.partial_cmp(other).unwrap_abort()
+        self.z_29().cmp(&other.z_29())
     }
 }
 

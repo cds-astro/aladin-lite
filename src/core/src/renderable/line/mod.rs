@@ -63,7 +63,7 @@ impl RasterizedLineRenderer {
         let vertices = vec![];
         let indices = vec![];
         // Create the VAO for the screen
-        let mut vao = VertexArrayObject::new(&gl);
+        let mut vao = VertexArrayObject::new(gl);
 
         vao.bind_for_update()
             .add_array_buffer(
@@ -322,8 +322,7 @@ impl RasterizedLineRenderer {
             let path_vertices_buf_iter = vertices
                 .iter()
                 .zip(vertices.iter().skip(1))
-                .map(|(a, b)| [a[0], a[1], b[0], b[1]])
-                .flatten();
+                .flat_map(|(a, b)| [a[0], a[1], b[0], b[1]]);
 
             buf.extend(path_vertices_buf_iter);
         }
@@ -340,7 +339,7 @@ impl RasterizedLineRenderer {
             off_indices: 0,
             thickness,
             num_indices: num_instances,
-            color: color.clone(),
+            color: *color,
             coo_space,
         });
     }
@@ -372,7 +371,7 @@ impl RasterizedLineRenderer {
                         WebGl2RenderingContext::TRIANGLES,
                         Some(meta.num_indices as i32),
                         WebGl2RenderingContext::UNSIGNED_INT,
-                        ((meta.off_indices as usize) * std::mem::size_of::<u32>()) as i32,
+                        (meta.off_indices * std::mem::size_of::<u32>()) as i32,
                     );
             }
         }

@@ -14,7 +14,7 @@ use std::ops::Range;
 use al_core::convert::Cast;
 type PixelItem<F> = <<F as ImageFormat>::P as Pixel>::Item;
 
-pub async fn crop_image<'a, F, R>(
+pub async fn crop_image<F, R>(
     gl: &WebGlContext,
     width: u64,
     height: u64,
@@ -119,7 +119,10 @@ where
 
                     match F::CHANNEL_TYPE {
                         ChannelType::R32F | ChannelType::R64F => {
-                            let pixels = std::slice::from_raw_parts(data.as_ptr() as *const f32, data.len() / 4);
+                            let pixels = std::slice::from_raw_parts(
+                                data.as_ptr() as *const f32,
+                                data.len() / 4,
+                            );
 
                             for i in (0..width).step_by(step_cut) {
                                 if (xmin..(xmin + num_pixels_to_read)).contains(&i) {
@@ -130,14 +133,14 @@ where
                                     }
                                 }
                             }
-                        },
+                        }
                         ChannelType::R8UI | ChannelType::R16I | ChannelType::R32I => {
                             if let Some(blank) = blank {
                                 for i in (0..width).step_by(step_cut) {
                                     if (xmin..(xmin + num_pixels_to_read)).contains(&i) {
                                         let j = (i - xmin) as usize;
-    
-                                        let pixel = <PixelItem::<F> as Cast<f32>>::cast(data[j]);
+
+                                        let pixel = <PixelItem<F> as Cast<f32>>::cast(data[j]);
 
                                         if pixel != blank {
                                             sub_pixels.push(pixel);
@@ -148,14 +151,14 @@ where
                                 for i in (0..width).step_by(step_cut) {
                                     if (xmin..(xmin + num_pixels_to_read)).contains(&i) {
                                         let j = (i - xmin) as usize;
-    
-                                        let pixel = <PixelItem::<F> as Cast<f32>>::cast(data[j]);
-                                        sub_pixels.push(pixel);                                        
+
+                                        let pixel = <PixelItem<F> as Cast<f32>>::cast(data[j]);
+                                        sub_pixels.push(pixel);
                                     }
                                 }
                             }
-                        },
-                        // colored pixels 
+                        }
+                        // colored pixels
                         _ => (),
                     }
                 }
@@ -163,7 +166,7 @@ where
                 F::view(data)
             };
 
-            (&mut tex_chunks[id_t as usize])
+            tex_chunks[id_t as usize]
                 .bind()
                 .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_array_buffer_view(
                     0,

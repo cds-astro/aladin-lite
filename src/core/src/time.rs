@@ -1,4 +1,4 @@
-#[derive(PartialEq, PartialOrd, Clone, Copy, Debug)]
+#[derive(PartialEq, PartialOrd, Clone, Copy, Default, Debug)]
 pub struct Time(pub f32);
 
 use crate::utils;

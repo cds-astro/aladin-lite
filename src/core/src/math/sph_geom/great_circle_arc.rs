@@ -13,18 +13,18 @@ pub enum HEALPixBBox {
 
 impl PartialOrd for HEALPixBBox {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        match (self, other) {
-            (HEALPixBBox::AllSky, HEALPixBBox::AllSky) => Some(Ordering::Equal),
-            (HEALPixBBox::AllSky, HEALPixBBox::Cell(_)) => Some(Ordering::Greater),
-            (HEALPixBBox::Cell(_), HEALPixBBox::AllSky) => Some(Ordering::Less),
-            (HEALPixBBox::Cell(c1), HEALPixBBox::Cell(c2)) => c1.partial_cmp(c2),
-        }
+        Some(self.cmp(other))
     }
 }
 
 impl Ord for HEALPixBBox {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.partial_cmp(other).unwrap_abort()
+        match (self, other) {
+            (HEALPixBBox::AllSky, HEALPixBBox::AllSky) => Ordering::Equal,
+            (HEALPixBBox::AllSky, HEALPixBBox::Cell(_)) => Ordering::Greater,
+            (HEALPixBBox::Cell(_), HEALPixBBox::AllSky) => Ordering::Less,
+            (HEALPixBBox::Cell(c1), HEALPixBBox::Cell(c2)) => c1.cmp(c2),
+        }
     }
 }
 

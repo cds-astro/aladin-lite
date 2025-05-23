@@ -2,8 +2,8 @@ pub mod cuts;
 pub mod grid;
 pub mod subdivide_texture;
 
-use al_core::webgl_ctx::WebGlRenderingCtx;
 use al_core::convert::Cast;
+use al_core::webgl_ctx::WebGlRenderingCtx;
 use std::fmt::Debug;
 use std::marker::Unpin;
 use std::vec;
@@ -107,18 +107,16 @@ impl Image {
         let offset = offset.unwrap_or(0.0);
         let scale = scale.unwrap_or(1.0);
 
-        let (textures, cuts) = if width <= max_tex_size as u64 && height <= max_tex_size as u64
-        {
+        let (textures, cuts) = if width <= max_tex_size as u64 && height <= max_tex_size as u64 {
             max_tex_size_x = width as usize;
             max_tex_size_y = height as usize;
             // can fit in one texture
 
             let num_pixels_to_read = (width as usize) * (height as usize);
-            let num_bytes_to_read =
-                num_pixels_to_read * std::mem::size_of::<F::P>();
+            let num_bytes_to_read = num_pixels_to_read * std::mem::size_of::<F::P>();
             let mut buf = vec![0; num_bytes_to_read];
 
-            let _ = reader
+            reader
                 .read_exact(&mut buf[..num_bytes_to_read])
                 .await
                 .map_err(|e| JsValue::from_str(&format!("{:?}", e)))?;
@@ -127,7 +125,7 @@ impl Image {
             unsafe {
                 let data = std::slice::from_raw_parts_mut(
                     buf[..].as_mut_ptr() as *mut PixelItem<F>,
-                    (num_pixels_to_read as usize) * F::NUM_CHANNELS,
+                    num_pixels_to_read * F::NUM_CHANNELS,
                 );
 
                 let texture = Texture2D::create_from_raw_pixels::<F>(
@@ -159,9 +157,11 @@ impl Image {
 
                 let cuts = match F::CHANNEL_TYPE {
                     ChannelType::R32F | ChannelType::R64F => {
-                        let pixels = std::slice::from_raw_parts(data.as_ptr() as *const f32, data.len() / 4);
+                        let pixels =
+                            std::slice::from_raw_parts(data.as_ptr() as *const f32, data.len() / 4);
 
-                        let mut sub_pixels = pixels.iter()
+                        let mut sub_pixels = pixels
+                            .iter()
                             .step_by(100)
                             .filter(|pixel| (*pixel).is_finite())
                             .cloned()
@@ -172,10 +172,11 @@ impl Image {
                     ChannelType::R8UI | ChannelType::R16I | ChannelType::R32I => {
                         // BLANK is only valid for those channels/BITPIX (> 0)
                         if let Some(blank) = blank {
-                            let mut sub_pixels = data.iter()
+                            let mut sub_pixels = data
+                                .iter()
                                 .step_by(100)
                                 .filter_map(|pixel| {
-                                    let pixel = <PixelItem::<F> as Cast<f32>>::cast(*pixel);
+                                    let pixel = <PixelItem<F> as Cast<f32>>::cast(*pixel);
 
                                     if pixel != blank {
                                         Some(pixel)
@@ -188,16 +189,17 @@ impl Image {
                             cuts::first_and_last_percent(&mut sub_pixels, 1, 99)
                         } else {
                             // No blank value => we consider all the values
-                            let mut sub_pixels = data.iter()
+                            let mut sub_pixels = data
+                                .iter()
                                 .step_by(100)
-                                .map(|pixel| <PixelItem::<F> as Cast<f32>>::cast(*pixel))
+                                .map(|pixel| <PixelItem<F> as Cast<f32>>::cast(*pixel))
                                 .collect::<Vec<_>>();
 
                             cuts::first_and_last_percent(&mut sub_pixels, 1, 99)
                         }
                     }
                     // RGB(A) images
-                    _ => 0.0..1.0
+                    _ => 0.0..1.0,
                 };
 
                 (vec![texture], cuts)
@@ -352,15 +354,9 @@ impl Image {
         // Load the FITS file
         let header = hdu.get_header();
 
-        let scale = header
-            .get_parsed::<f64>(b"BSCALE  ")
-            .map(|v| v.unwrap());
-        let offset = header
-            .get_parsed::<f64>(b"BZERO   ")
-            .map(|v| v.unwrap());
-        let blank = header
-            .get_parsed::<f64>(b"BLANK   ")
-            .map(|v| v.unwrap());
+        let scale = header.get_parsed::<f64>(b"BSCALE  ").map(|v| v.unwrap());
+        let offset = header.get_parsed::<f64>(b"BZERO   ").map(|v| v.unwrap());
+        let blank = header.get_parsed::<f64>(b"BLANK   ").map(|v| v.unwrap());
 
         // Create a WCS from a specific header unit
         let wcs = WCS::from_fits_header(header)
@@ -647,8 +643,7 @@ impl Image {
                 let texture = &self.textures[idx_tex];
                 let num_indices = self.num_indices[idx] as i32;
 
-                let shader_bound = shader
-                    .bind(&self.gl);
+                let shader_bound = shader.bind(&self.gl);
 
                 shader_bound
                     .attach_uniforms_from(colormaps)

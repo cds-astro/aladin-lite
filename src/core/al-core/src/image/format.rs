@@ -40,7 +40,7 @@ impl ImageFormat for RGB8U {
 
     const NUM_CHANNELS: usize = 3;
 
-    const FORMAT: u32 = WebGlRenderingCtx::RGB as u32;
+    const FORMAT: u32 = WebGlRenderingCtx::RGB;
     const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::RGB8 as i32;
     const TYPE: u32 = WebGlRenderingCtx::UNSIGNED_BYTE;
 
@@ -70,7 +70,7 @@ impl ImageFormat for RGBA8U {
 
     const NUM_CHANNELS: usize = 4;
 
-    const FORMAT: u32 = WebGlRenderingCtx::RGBA as u32;
+    const FORMAT: u32 = WebGlRenderingCtx::RGBA;
     const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::RGBA8 as i32;
     const TYPE: u32 = WebGlRenderingCtx::UNSIGNED_BYTE;
 
@@ -99,7 +99,7 @@ impl ImageFormat for RGBA32F {
 
     const NUM_CHANNELS: usize = 4;
 
-    const FORMAT: u32 = WebGlRenderingCtx::RGBA as u32;
+    const FORMAT: u32 = WebGlRenderingCtx::RGBA;
 
     #[cfg(feature = "webgl2")]
     const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::RGBA32F as i32;
@@ -128,7 +128,7 @@ impl ImageFormat for RGB32F {
 
     const NUM_CHANNELS: usize = 3;
 
-    const FORMAT: u32 = WebGlRenderingCtx::RGB as u32;
+    const FORMAT: u32 = WebGlRenderingCtx::RGB;
     #[cfg(feature = "webgl2")]
     const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::RGB32F as i32;
     #[cfg(feature = "webgl1")]
@@ -156,7 +156,7 @@ impl ImageFormat for R32F {
 
     const NUM_CHANNELS: usize = 4;
 
-    const FORMAT: u32 = WebGlRenderingCtx::RGBA as u32;
+    const FORMAT: u32 = WebGlRenderingCtx::RGBA;
     const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::RGBA8 as i32;
     const TYPE: u32 = WebGlRenderingCtx::UNSIGNED_BYTE;
 
@@ -180,7 +180,7 @@ impl ImageFormat for R64F {
 
     const NUM_CHANNELS: usize = 4;
 
-    const FORMAT: u32 = WebGlRenderingCtx::RGBA as u32;
+    const FORMAT: u32 = WebGlRenderingCtx::RGBA;
     const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::RGBA8 as i32;
     const TYPE: u32 = WebGlRenderingCtx::UNSIGNED_BYTE;
 
@@ -206,7 +206,7 @@ impl ImageFormat for R8UI {
 
     const NUM_CHANNELS: usize = 1;
 
-    const FORMAT: u32 = WebGlRenderingCtx::RED_INTEGER as u32;
+    const FORMAT: u32 = WebGlRenderingCtx::RED_INTEGER;
     const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::R8UI as i32;
     const TYPE: u32 = WebGlRenderingCtx::UNSIGNED_BYTE;
 
@@ -232,7 +232,7 @@ impl ImageFormat for R16I {
 
     const NUM_CHANNELS: usize = 1;
 
-    const FORMAT: u32 = WebGlRenderingCtx::RED_INTEGER as u32;
+    const FORMAT: u32 = WebGlRenderingCtx::RED_INTEGER;
     const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::R16I as i32;
     const TYPE: u32 = WebGlRenderingCtx::SHORT;
     const CHANNEL_TYPE: ChannelType = ChannelType::R16I;
@@ -257,7 +257,7 @@ impl ImageFormat for R32I {
 
     const NUM_CHANNELS: usize = 1;
 
-    const FORMAT: u32 = WebGlRenderingCtx::RED_INTEGER as u32;
+    const FORMAT: u32 = WebGlRenderingCtx::RED_INTEGER;
     const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::R32I as i32;
     const TYPE: u32 = WebGlRenderingCtx::INT;
 
@@ -293,13 +293,10 @@ pub enum ChannelType {
 
 impl ChannelType {
     pub fn is_colored(&self) -> bool {
-        match self {
-            ChannelType::RGBA32F
-            | ChannelType::RGB32F
-            | ChannelType::RGBA8U
-            | ChannelType::RGB8U => true,
-            _ => false,
-        }
+        matches!(
+            self,
+            ChannelType::RGBA32F | ChannelType::RGB32F | ChannelType::RGBA8U | ChannelType::RGB8U
+        )
     }
 }
 

@@ -28,7 +28,7 @@ jobs:
       - name: "Run cargo clippy"
         run: cd src/core && cargo clippy --all-targets --features=webgl2 -- -D warnings
       - name: Format check
-        run: cargo fmt --all -- --check
+        run: cd src/core && cargo fmt --all -- --check
       - name: "Install dependencies"
         run: |
           npm install

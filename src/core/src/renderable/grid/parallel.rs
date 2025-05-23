@@ -12,13 +12,12 @@ use crate::renderable::line;
 
 use core::ops::Range;
 
-
 pub fn get_intersecting_parallel(
     lat: f64,
     camera: &CameraViewPort,
     projection: &ProjectionType,
     fmt: Formatter,
-    grid_decimal_prec: u8
+    grid_decimal_prec: u8,
 ) -> Option<Parallel> {
     let fov = camera.get_field_of_view();
     if fov.get_bounding_box().get_lon_size() > PI {
@@ -33,7 +32,7 @@ pub fn get_intersecting_parallel(
             LabelOptions::Centered,
             projection,
             fmt,
-            grid_decimal_prec
+            grid_decimal_prec,
         ))
     } else {
         // Longitude fov < PI
@@ -50,7 +49,7 @@ pub fn get_intersecting_parallel(
                     LabelOptions::Centered,
                     projection,
                     fmt,
-                    grid_decimal_prec
+                    grid_decimal_prec,
                 ))
             }
             Intersection::Intersect { vertices } => {
@@ -74,7 +73,7 @@ pub fn get_intersecting_parallel(
                     LabelOptions::OnSide,
                     projection,
                     fmt,
-                    grid_decimal_prec
+                    grid_decimal_prec,
                 ))
             }
             Intersection::Empty => None,
@@ -100,9 +99,17 @@ impl Parallel {
         label_options: LabelOptions,
         projection: &ProjectionType,
         fmt: Formatter,
-        grid_decimal_prec: u8
+        grid_decimal_prec: u8,
     ) -> Self {
-        let label = Label::from_parallel(lat, lon, label_options, camera, projection, fmt, grid_decimal_prec);
+        let label = Label::from_parallel(
+            lat,
+            lon,
+            label_options,
+            camera,
+            projection,
+            fmt,
+            grid_decimal_prec,
+        );
 
         // Draw the full parallel
         let vertices = if lon.end - lon.start > PI {

@@ -1,5 +1,5 @@
-use cgmath::Vector3;
 use al_api::coo_system::CooSystem;
+use cgmath::Vector3;
 
 /// This is conversion method returning a transformation
 /// matrix when the system requested by the user is not

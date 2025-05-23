@@ -25,13 +25,13 @@ jobs:
       - name: "Install wasm-pack"
         run: |
           curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh -s -- -y
-      - name: "Install dependencies"
-        run: |
-          npm install
       - name: "Run cargo clippy"
         run: cd src/core && cargo clippy --all-targets --features=webgl2 -- -D warnings
       - name: Format check
         run: cargo fmt --all -- --check
+      - name: "Install dependencies"
+        run: |
+          npm install
       - name: "Build Aladin Lite"
         run: |
           npm run build:dbg

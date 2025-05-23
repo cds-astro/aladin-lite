@@ -2,27 +2,29 @@
    It is used by al-ui and any javascript application calling
    the WASM core of aladin lite v3
 */
+pub mod angle;
 pub mod blend;
+pub mod cell;
 pub mod color;
 pub mod colormap;
 pub mod coo_system;
+pub mod fov;
 pub mod grid;
 pub mod hips;
+pub mod image;
 pub mod moc;
 pub mod resources;
-pub mod cell;
-pub mod fov;
-pub mod image;
-pub mod angle;
 
 pub trait Abort {
     type Item;
-    fn unwrap_abort(self) -> Self::Item where Self: Sized;
+    fn unwrap_abort(self) -> Self::Item
+    where
+        Self: Sized;
 }
 
 impl<T> Abort for Option<T> {
     type Item = T;
-    
+
     #[inline]
     fn unwrap_abort(self) -> Self::Item {
         use std::process;

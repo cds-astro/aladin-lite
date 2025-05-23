@@ -115,7 +115,6 @@ pub fn ccw_tri<S: BaseFloat>(a: &[S; 2], b: &[S; 2], c: &[S; 2]) -> bool {
     a[0] * b[1] + a[1] * c[0] + b[0] * c[1] - c[0] * b[1] - c[1] * a[0] - b[0] * a[1] >= S::zero()
 }
 
-
 struct PixelBresenhamIter {
     x: i32,
     y: i32,
@@ -133,17 +132,28 @@ impl PixelBresenhamIter {
     fn new(sx: f64, sy: f64, ex: f64, ey: f64) -> Self {
         let x = sx.floor() as i32;
         let y = sy.floor() as i32;
-        
+
         let xx = ex.floor() as i32;
         let yy = ey.floor() as i32;
-        let dx = (xx - x).abs(); 
+        let dx = (xx - x).abs();
         let sx = if x < xx { 1 } else { -1 };
         let dy = -(yy - y).abs();
         let sy = if y < yy { 1 } else { -1 };
         let err = dx + dy;
         let end = false;
 
-        Self { x, y, xx, yy, dx, sx, dy, sy, err, end }
+        Self {
+            x,
+            y,
+            xx,
+            yy,
+            dx,
+            sx,
+            dy,
+            sy,
+            err,
+            end,
+        }
     }
 }
 

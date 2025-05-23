@@ -87,7 +87,8 @@ impl HEALPixCoverage {
     }
 
     pub fn contains_lonlat(&self, lonlat: &LonLatT<f64>) -> bool {
-        self.0.is_in(lonlat.lon().to_radians(), lonlat.lat().to_radians())
+        self.0
+            .is_in(lonlat.lon().to_radians(), lonlat.lat().to_radians())
     }
 
     // O(log2(N))

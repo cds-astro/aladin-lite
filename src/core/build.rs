@@ -86,7 +86,10 @@ pub fn write(path: PathBuf, entries: HashMap<String, String>) -> Result<(), Box<
     for (name, content) in entries {
         writeln!(
             &mut all_the_files,
-            r##"    out.insert(r"{name}", r#"{content}"#);"##,
+            r##"    out.insert(
+        r"{name}",
+        r#"{content}"#,
+    );"##,
         )?;
     }
 

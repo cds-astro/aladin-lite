@@ -1,15 +1,15 @@
 use crate::math;
 use crate::math::angle::ToAngle;
+use cgmath::Vector3;
 use cgmath::{BaseFloat, InnerSpace};
 use cgmath::{Euler, Quaternion};
-use cgmath::Vector3;
 
 #[derive(Clone, Copy, Debug)]
 // Internal structure of a rotation, a quaternion
 // All operations are done on it
 pub struct Rotation<S: BaseFloat>(pub Quaternion<S>);
 
-use cgmath::{Matrix3};
+use cgmath::Matrix3;
 impl<S> From<&Matrix3<S>> for Rotation<S>
 where
     S: BaseFloat,

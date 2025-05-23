@@ -230,16 +230,16 @@ fn handle_allsky_file<F: ImageFormat>(
             let sx = (src_idx % 27) * d3_tile_allsky_size;
             let sy = (src_idx / 27) * d3_tile_allsky_size;
             let s = ImageBufferView {
-                x: sx as i32,
-                y: sy as i32,
-                w: d3_tile_allsky_size as i32,
-                h: d3_tile_allsky_size as i32,
+                x: sx,
+                y: sy,
+                w: d3_tile_allsky_size,
+                h: d3_tile_allsky_size,
             };
             let d = ImageBufferView {
                 x: dx as i32,
                 y: dy as i32,
-                w: d3_tile_allsky_size as i32,
-                h: d3_tile_allsky_size as i32,
+                w: d3_tile_allsky_size,
+                h: d3_tile_allsky_size,
             };
 
             base_tile.tex_sub(&image, &s, &d);

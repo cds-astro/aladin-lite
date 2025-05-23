@@ -243,7 +243,7 @@ impl TileFetcherQueue {
                         move || {
                             dl.borrow_mut().fetch(query);
                         },
-                        2_000,
+                        100,
                     );
                 }
             }

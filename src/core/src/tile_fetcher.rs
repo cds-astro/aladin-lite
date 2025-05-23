@@ -214,11 +214,11 @@ impl TileFetcherQueue {
             MOCOptions::default(),
         ));
 
-        let tile_size = cfg.get_tile_size();
-        //Request the allsky for the small tile size or if base tiles are not available
+        // Request the allsky for the small tile size or if base tiles are not available
 
         // Request the allsky
         let dl = downloader.clone();
+
         let allsky_query = query::Allsky::new(
             cfg,
             match hips {
@@ -227,8 +227,6 @@ impl TileFetcherQueue {
             },
         );
 
-        //dl.borrow_mut().fetch(allsky_query);
-        #[cfg(target_arch = "wasm32")]
         crate::utils::set_timeout(
             move || {
                 dl.borrow_mut().fetch(allsky_query);
@@ -237,7 +235,6 @@ impl TileFetcherQueue {
         );
 
         if cfg.get_min_depth_tile() == 0 {
-            #[cfg(target_arch = "wasm32")]
             for tile_cell in crate::healpix::cell::ALLSKY_HPX_CELLS_D0 {
                 if let Ok(query) = self.check_in_file_list(hips.get_tile_query(tile_cell)) {
                     let dl = downloader.clone();

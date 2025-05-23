@@ -276,7 +276,7 @@ impl App {
             let min_tile_depth = cfg.get_min_depth_tile();
             let mut ancestors = HashSet::new();
 
-            if let Some(tiles) = hips.look_for_new_tiles(&mut self.camera, &self.projection) {
+            if let Some(tiles) = hips.look_for_new_tiles(&mut self.camera) {
                 for tile_cell in tiles {
                     self.tile_fetcher.append(hips.get_tile_query(&tile_cell));
 
@@ -596,7 +596,7 @@ impl App {
 
         let rscs_received = self.downloader.borrow_mut().get_received_resources();
 
-        let mut tile_copied = false;
+        //let mut tile_copied = false;
 
         for rsc in rscs_received {
             match rsc {
@@ -687,12 +687,12 @@ impl App {
                                 let image = tile.image.clone();
                                 match &*image.borrow() {
                                     Some(img) => {
-                                        if tile_copied {
+                                        /*if tile_copied {
                                             self.downloader
                                                 .borrow_mut()
                                                 .delay(Resource::Tile(tile));
                                             continue;
-                                        }
+                                        }*/
 
                                         self.request_redraw = true;
                                         //tile_copied = true;
@@ -723,7 +723,6 @@ impl App {
                         if is_missing {
                             // The allsky image is missing so we donwload all the tiles contained into
                             // the 0's cell
-                            let cfg = hips.get_config();
                             for base_hpx_cell in crate::healpix::cell::ALLSKY_HPX_CELLS_D0 {
                                 let query = hips.get_tile_query(&base_hpx_cell);
                                 self.tile_fetcher.append_base_tile(query);

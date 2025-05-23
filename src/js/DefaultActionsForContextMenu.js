@@ -45,6 +45,7 @@ export let DefaultActionsForContextMenu = (function () {
         const a = aladinInstance;
 
         const selectObjects = (selection) => {
+            console.log(selection)
             a.view.selectObjects(selection);
         };
         return [

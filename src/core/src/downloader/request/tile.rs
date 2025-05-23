@@ -30,7 +30,7 @@ use al_core::image::html::HTMLImage;
 use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::JsFuture;
-use web_sys::{RequestCredentials, RequestInit, Response};
+use web_sys::{RequestInit, Response};
 impl From<query::Tile> for TileRequest {
     // Create a tile request associated to a HiPS
     fn from(query: query::Tile) -> Self {

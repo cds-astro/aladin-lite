@@ -134,7 +134,7 @@ impl Layers {
         //   the HEALPix cell in which it is located.
         //   We get the texture from this cell and draw the pixel
         //   This mode of rendering is used for big FoVs
-        let raytracer = RayTracer::new(gl, &projection)?;
+        let raytracer = RayTracer::new(gl, projection)?;
         let gl = gl.clone();
 
         let mut screen_vao = VertexArrayObject::new(&gl);
@@ -192,7 +192,7 @@ impl Layers {
 
     pub fn set_projection(&mut self, projection: &ProjectionType) -> Result<(), JsValue> {
         // Recompute the raytracer
-        self.raytracer = RayTracer::new(&self.gl, &projection)?;
+        self.raytracer = RayTracer::new(&self.gl, projection)?;
         Ok(())
     }
 
@@ -226,7 +226,10 @@ impl Layers {
             if let Some(hips) = self.hipses.get(cdid) {
                 // Check if a HiPS is fully opaque so that we cannot see the background
                 // In that case, no need to draw a background because a HiPS will fully cover it
-                let full_covering_hips = (hips.get_config().get_format().get_channel() == ChannelType::RGB8U || hips.is_allsky()) && meta.opacity == 1.0;
+                let full_covering_hips = (hips.get_config().get_format().get_channel()
+                    == ChannelType::RGB8U
+                    || hips.is_allsky())
+                    && meta.opacity == 1.0;
                 if full_covering_hips {
                     idx_start_layer = idx as i32;
                 }
@@ -325,7 +328,7 @@ impl Layers {
                 tile_fetcher.delete_hips_local_files(hips.get_config().get_creator_did());
 
                 Ok(id_layer)
-            } else if let Some(_) = self.images.remove(&id) {
+            } else if self.images.remove(&id).is_some() {
                 // A FITS image has been found and removed
                 Ok(id_layer)
             } else {
@@ -405,8 +408,7 @@ impl Layers {
         let layer_already_found = self.layers.iter().any(|l| l == &layer);
 
         let idx = if layer_already_found {
-            let idx = self.remove_layer(&layer, camera, proj, tile_fetcher)?;
-            idx
+            self.remove_layer(&layer, camera, proj, tile_fetcher)?
         } else {
             self.layers.len()
         };
@@ -479,8 +481,7 @@ impl Layers {
         let layer_already_found = self.layers.iter().any(|s| s == &layer);
 
         let idx = if layer_already_found {
-            let idx = self.remove_layer(&layer, camera, proj, tile_fetcher)?;
-            idx
+            self.remove_layer(&layer, camera, proj, tile_fetcher)?
         } else {
             self.layers.len()
         };
@@ -527,11 +528,7 @@ impl Layers {
             .ok_or_else(|| JsValue::from(js_sys::Error::new("Survey not found")))
     }
 
-    pub fn set_layer_cfg(
-        &mut self,
-        layer: String,
-        meta: ImageMetadata,
-    ) -> Result<(), JsValue> {
+    pub fn set_layer_cfg(&mut self, layer: String, meta: ImageMetadata) -> Result<(), JsValue> {
         // Expect the image hips to be found in the hash map
         self.meta.insert(layer.clone(), meta).ok_or_else(|| {
             JsValue::from(js_sys::Error::new(&format!("{:?} layer not found", layer)))
@@ -543,10 +540,7 @@ impl Layers {
     // Accessors
     // HiPSes getters
     pub fn get_hips_from_layer(&self, layer: &str) -> Option<&HiPS> {
-        self.ids
-            .get(layer)
-            .map(|cdid| self.hipses.get(cdid))
-            .flatten()
+        self.ids.get(layer).and_then(|cdid| self.hipses.get(cdid))
     }
 
     pub fn get_mut_hips_from_layer(&mut self, layer: &str) -> Option<&mut HiPS> {
@@ -575,11 +569,7 @@ impl Layers {
     }
 
     pub fn get_image_from_layer(&self, layer: &str) -> Option<&[Image]> {
-        let images = self
-            .ids
-            .get(layer)
-            .map(|url| self.images.get(url))
-            .flatten();
+        let images = self.ids.get(layer).and_then(|url| self.images.get(url));
 
         images.map(|images| images.as_slice())
     }

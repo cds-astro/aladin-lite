@@ -48,12 +48,16 @@ impl Eq for TextureCellItem {}
 // Ordering based on the time the tile has been requested
 impl PartialOrd for TextureCellItem {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        other.time_request.partial_cmp(&self.time_request)
+        Some(self.cmp(other))
     }
 }
+
 impl Ord for TextureCellItem {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.partial_cmp(other).unwrap_abort()
+        other
+            .time_request
+            .partial_cmp(&self.time_request)
+            .unwrap_abort()
     }
 }
 
@@ -245,14 +249,12 @@ impl HiPS2DBuffer {
         let cell_is_root = cell.is_root();
         if cell_is_root {
             self.base_textures[cell.idx() as usize].is_on_gpu()
+        } else if let Some(texture) = self.get(cell) {
+            // The texture is present in the buffer
+            // We must check whether it contains the tile
+            texture.is_on_gpu()
         } else {
-            if let Some(texture) = self.get(cell) {
-                // The texture is present in the buffer
-                // We must check whether it contains the tile
-                texture.is_on_gpu()
-            } else {
-                false
-            }
+            false
         }
     }
 
@@ -379,7 +381,7 @@ impl HiPS2DBuffer {
         dx: f64,
         dy: f64,
     ) -> Result<JsValue, JsValue> {
-        let value = if let Some(tile) = self.get(&cell) {
+        let value = if let Some(tile) = self.get(cell) {
             // Index of the texture in the total set of textures
             let tile_idx = tile.idx();
 
@@ -408,7 +410,7 @@ impl HiPS2DBuffer {
                 // scale the value
                 let f64_v = value
                     .as_f64()
-                    .ok_or_else(|| "Error unwraping the pixel read value.")?;
+                    .ok_or("Error unwraping the pixel read value.")?;
                 let scale = self.config.scale as f64;
                 let offset = self.config.offset as f64;
 
@@ -585,7 +587,7 @@ impl SendUniforms for HiPS2DBuffer {
         } else {
             shader
                 .attach_uniform("tex", &self.tile_pixels)
-                .attach_uniform("num_slices", &(self.tile_pixels.num_slices as i32));
+                .attach_uniform("num_slices", &self.tile_pixels.num_slices);
         }
 
         shader

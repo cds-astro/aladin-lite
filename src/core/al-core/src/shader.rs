@@ -112,7 +112,7 @@ impl Shader {
 pub trait UniformType {
     fn uniform(gl: &WebGlContext, location: Option<&WebGlUniformLocation>, value: &Self);
 
-    fn attach_uniform<'a>(name: &str, value: &Self, shader: &ShaderBound<'a>) {
+    fn attach_uniform(name: &str, value: &Self, shader: &ShaderBound<'_>) {
         let location = shader.get_uniform_location(name);
         Self::uniform(&shader.gl, location, value);
     }
@@ -256,7 +256,7 @@ impl UniformType for ColorRGB {
         gl.uniform3f(location, value.r, value.g, value.b);
     }
 }
-impl<'a> UniformType for &'a ColorRGB {
+impl UniformType for &ColorRGB {
     fn uniform(gl: &WebGlContext, location: Option<&WebGlUniformLocation>, value: &Self) {
         gl.uniform3f(location, value.r, value.g, value.b);
     }
@@ -268,7 +268,7 @@ impl UniformType for ColorRGBA {
         gl.uniform4f(location, value.r, value.g, value.b, value.a);
     }
 }
-impl<'a> UniformType for &'a ColorRGBA {
+impl UniformType for &ColorRGBA {
     fn uniform(gl: &WebGlContext, location: Option<&WebGlUniformLocation>, value: &Self) {
         gl.uniform4f(location, value.r, value.g, value.b, value.a);
     }
@@ -328,7 +328,7 @@ impl SendUniformsWithParams<Colormaps> for HiPSColor {
     ) -> &'a ShaderBound<'a> {
         let reversed = self.reversed as u8 as f32;
 
-        let cmap = cmaps.get(&self.cmap_name.as_ref());
+        let cmap = cmaps.get(self.cmap_name.as_ref());
         shader
             .attach_uniforms_with_params_from(cmap, cmaps)
             .attach_uniform("H", &self.stretch)
@@ -407,7 +407,7 @@ impl<'a> ShaderBound<'a> {
     }
 }
 
-impl<'a> Drop for ShaderBound<'a> {
+impl Drop for ShaderBound<'_> {
     fn drop(&mut self) {
         self.unbind(&self.gl);
     }

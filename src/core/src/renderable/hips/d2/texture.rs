@@ -83,7 +83,7 @@ impl HpxTexture2D {
         self.copied_to_gpu = true;
         self.start_time = Some(Time::now());
 
-        image.insert_into_3d_texture(gpu_texture, &Vector3::new(0, 0, self.idx() as i32))
+        image.insert_into_3d_texture(gpu_texture, &Vector3::new(0, 0, self.idx()))
     }
 }
 
@@ -110,13 +110,13 @@ impl HpxTile for HpxTexture2D {
 use std::cmp::Ordering;
 impl PartialOrd for HpxTexture2D {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.uniq.partial_cmp(&other.uniq)
+        Some(self.cmp(other))
     }
 }
 use crate::Abort;
 impl Ord for HpxTexture2D {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.partial_cmp(other).unwrap_abort()
+        self.uniq.cmp(&other.uniq)
     }
 }
 
@@ -140,7 +140,7 @@ impl<'a> HpxTexture2DUniforms<'a> {
 }
 
 use al_core::shader::{SendUniforms, ShaderBound};
-impl<'a> SendUniforms for HpxTexture2DUniforms<'a> {
+impl SendUniforms for HpxTexture2DUniforms<'_> {
     // Info: These uniforms are used for raytracing drawing mode only
     fn attach_uniforms<'b>(&self, shader: &'b ShaderBound<'b>) -> &'b ShaderBound<'b> {
         shader

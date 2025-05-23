@@ -281,8 +281,8 @@ impl CameraViewPort {
     }
 
     pub fn set_screen_size(&mut self, width: f32, height: f32, projection: &ProjectionType) {
-        self.width = (width as f32) * self.dpi;
-        self.height = (height as f32) * self.dpi;
+        self.width = width * self.dpi;
+        self.height = height * self.dpi;
 
         self.aspect = width / height;
         // Compute the new clip zoom factor
@@ -374,10 +374,10 @@ impl CameraViewPort {
             }
         }
 
-        let can_unzoom_more = match proj {
-            ProjectionType::Tan(_) | ProjectionType::Mer(_) | ProjectionType::Stg(_) => false,
-            _ => true,
-        };
+        let can_unzoom_more = !matches!(
+            proj,
+            ProjectionType::Tan(_) | ProjectionType::Mer(_) | ProjectionType::Stg(_)
+        );
 
         if !can_unzoom_more && self.zoom_factor >= 1.0 {
             return true;
@@ -410,10 +410,10 @@ impl CameraViewPort {
             self.last_user_action
         };
 
-        let can_unzoom_more = match proj {
-            ProjectionType::Tan(_) | ProjectionType::Mer(_) | ProjectionType::Stg(_) => false,
-            _ => true,
-        };
+        let can_unzoom_more = !matches!(
+            proj,
+            ProjectionType::Tan(_) | ProjectionType::Mer(_) | ProjectionType::Stg(_)
+        );
 
         let aperture_start: f64 = proj.aperture_start().to_radians();
 
@@ -487,10 +487,10 @@ impl CameraViewPort {
             self.last_user_action
         };
 
-        let can_unzoom_more = match proj {
-            ProjectionType::Tan(_) | ProjectionType::Mer(_) | ProjectionType::Stg(_) => false,
-            _ => true,
-        };
+        let can_unzoom_more = !matches!(
+            proj,
+            ProjectionType::Tan(_) | ProjectionType::Mer(_) | ProjectionType::Stg(_)
+        );
 
         // Set the zoom factor
         self.zoom_factor = zoom_factor;
@@ -594,7 +594,7 @@ impl CameraViewPort {
 
         let w_screen_px = self.width as f64;
         let smallest_cell_size_px = self.dpi as f64;
-        let mut depth_pixel = 29 as usize;
+        let mut depth_pixel = 29_usize;
 
         let hpx_cell_size_rad = (smallest_cell_size_px / w_screen_px) * self.get_aperture();
 
@@ -603,7 +603,7 @@ impl CameraViewPort {
                 break;
             }
 
-            depth_pixel = depth_pixel - 1;
+            depth_pixel -= 1;
         }
         depth_pixel += 1;
         const DEPTH_OFFSET_TEXTURE: usize = 9;
@@ -641,7 +641,7 @@ impl CameraViewPort {
         let rot =
             Rotation::from_axis_angle(&Vector3::new(center.z, 0.0, -center.x).normalize(), dlat)
                 * Rotation::from_axis_angle(&Vector3::unit_y(), -dlon)
-                * Rotation::from_sky_position(&center);
+                * Rotation::from_sky_position(center);
 
         self.set_rotation(&rot, proj);
     }

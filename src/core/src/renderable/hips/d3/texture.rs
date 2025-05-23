@@ -80,8 +80,8 @@ impl HpxTexture3D {
                     };
                     let m1 = (!m2) & !(1 << (31 - slice_idx));
 
-                    let lb = ((block & m1) >> (32 - slice_idx)) as u32;
-                    let rb = (block & m2) as u32;
+                    let lb = (block & m1) >> (32 - slice_idx);
+                    let rb = block & m2;
 
                     let lb_trailing_zeros = (lb.trailing_zeros() as u16).min(slice_idx as u16);
                     let rb_leading_zeros = (rb.leading_zeros() - slice_idx - 1) as u16;
@@ -166,10 +166,10 @@ impl HpxTexture3D {
                         let slice_b2 = ((*b_idx_2 << 5) + b2_lz) as u16;
                         if slice - slice_b1 <= slice_b2 - slice {
                             // the nearest slice is in b1
-                            Some(slice_b1 as u16)
+                            Some(slice_b1)
                         } else {
                             // the nearest slice is in b2
-                            Some(slice_b2 as u16)
+                            Some(slice_b2)
                         }
                     }
                     (None, Some(b_idx_2)) => {
@@ -225,7 +225,7 @@ impl HpxTexture3D {
     ) -> Result<(), JsValue> {
         let block_idx = (slice >> 5) as usize;
 
-        let texture = if let Some(texture) = self.textures[block_idx as usize].as_ref() {
+        let texture = if let Some(texture) = self.textures[block_idx].as_ref() {
             texture
         } else {
             let tile_size = cfg.get_tile_size();
@@ -340,7 +340,7 @@ impl HpxTile for HpxTexture3D {
 use std::cmp::Ordering;
 impl PartialOrd for HpxTexture3D {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.uniq.partial_cmp(&other.uniq)
+        Some(self.cmp(other))
     }
 }
 use crate::Abort;

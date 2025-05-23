@@ -3,6 +3,7 @@ use web_sys::HtmlCanvasElement;
 use web_sys::WebGlTexture;
 
 use crate::texture::pixel::Pixel;
+use crate::texture::ChannelType;
 use crate::texture::Texture2DMeta;
 use crate::webgl_ctx::WebGlContext;
 use crate::webgl_ctx::WebGlRenderingCtx;
@@ -11,7 +12,6 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use wasm_bindgen::prelude::*;
 use web_sys::HtmlImageElement;
-use crate::texture::ChannelType;
 pub struct Texture2DArray {
     gl: WebGlContext,
 
@@ -56,7 +56,7 @@ impl Texture2DArray {
             internal_format: F::INTERNAL_FORMAT,
             format: F::FORMAT,
             ty: F::TYPE,
-            channel_type: F::CHANNEL_TYPE
+            channel_type: F::CHANNEL_TYPE,
         })));
 
         Ok(Texture2DArray {
@@ -198,7 +198,7 @@ pub struct Texture2DArrayBound<'a> {
     tex: &'a Texture2DArray,
 }
 
-impl<'a> Texture2DArrayBound<'a> {
+impl Texture2DArrayBound<'_> {
     pub fn tex_sub_image_3d_with_html_image_element(
         &self,
         dx: i32,

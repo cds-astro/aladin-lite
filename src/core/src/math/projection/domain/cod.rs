@@ -22,6 +22,12 @@ pub struct Cod {
     pub x_max: f64,
 }
 
+impl Default for Cod {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Cod {
     pub const fn new() -> Self {
         Self {
@@ -57,7 +63,7 @@ impl ProjDef for Cod {
         let e = b / a;
         let ext_ellipse = Translate {
             off: center_ellipse,
-            def: Ellipse { a: a, b: b },
+            def: Ellipse { a, b },
         };
 
         // Small ellipse where projection is not defined

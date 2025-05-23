@@ -88,7 +88,6 @@ impl From<query::Allsky> for AllskyRequest {
 
                     let allsky_tiles =
                         handle_allsky_file::<RGBA8U>(allsky, allsky_tile_size, tile_size)?
-                            .into_iter()
                             .map(|image| {
                                 let ImageBuffer { data, size } = image;
                                 let data = data
@@ -109,7 +108,6 @@ impl From<query::Allsky> for AllskyRequest {
                     let allsky = query_allsky(&url_clone, credentials).await?;
 
                     let allsky_tiles = handle_allsky_file(allsky, allsky_tile_size, tile_size)?
-                        .into_iter()
                         .map(|image| ImageType::RawRgba8u { image })
                         .collect();
 
@@ -138,10 +136,7 @@ impl From<query::Allsky> for AllskyRequest {
                     let bytes_buffer = js_sys::Uint8Array::new(&array_buffer);
 
                     let num_bytes = bytes_buffer.length() as usize;
-                    let mut raw_bytes = Vec::with_capacity(num_bytes);
-                    unsafe {
-                        raw_bytes.set_len(num_bytes);
-                    }
+                    let mut raw_bytes = vec![0; num_bytes];
                     bytes_buffer.copy_to(&mut raw_bytes[..]);
                     let mut reader = Cursor::new(&raw_bytes[..]);
                     let Fits { hdu } = Fits::from_reader(&mut reader)
@@ -151,17 +146,17 @@ impl From<query::Allsky> for AllskyRequest {
 
                     match data {
                         InMemData::U8(data) => {
-                            Ok(handle_allsky_fits(&data, tile_size, allsky_tile_size)?
+                            Ok(handle_allsky_fits(data, tile_size, allsky_tile_size)?
                                 .map(|image| ImageType::RawR8ui { image })
                                 .collect())
                         }
                         InMemData::I16(data) => {
-                            Ok(handle_allsky_fits(&data, tile_size, allsky_tile_size)?
+                            Ok(handle_allsky_fits(data, tile_size, allsky_tile_size)?
                                 .map(|image| ImageType::RawR16i { image })
                                 .collect())
                         }
                         InMemData::I32(data) => {
-                            Ok(handle_allsky_fits(&data, tile_size, allsky_tile_size)?
+                            Ok(handle_allsky_fits(data, tile_size, allsky_tile_size)?
                                 .map(|image| ImageType::RawR32i { image })
                                 .collect())
                         }
@@ -178,7 +173,7 @@ impl From<query::Allsky> for AllskyRequest {
                                     data.len() * 4,
                                 )
                             };
-                            Ok(handle_allsky_fits(&data, tile_size, allsky_tile_size)?
+                            Ok(handle_allsky_fits(data, tile_size, allsky_tile_size)?
                                 .map(|image| ImageType::RawRgba8u { image })
                                 .collect())
                         }
@@ -191,7 +186,7 @@ impl From<query::Allsky> for AllskyRequest {
                                 )
                             };
 
-                            Ok(handle_allsky_fits(&data, tile_size, allsky_tile_size)?
+                            Ok(handle_allsky_fits(data, tile_size, allsky_tile_size)?
                                 .map(|image| ImageType::RawRgba8u { image })
                                 .collect())
                         }

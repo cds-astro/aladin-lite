@@ -34,7 +34,7 @@ pub struct ColorRGBA {
 }
 
 use std::ops::Mul;
-impl<'a> Mul<f32> for &'a ColorRGB {
+impl Mul<f32> for &ColorRGB {
     // The multiplication of rational numbers is a closed operation.
     type Output = ColorRGB;
 

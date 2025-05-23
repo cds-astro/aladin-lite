@@ -247,10 +247,10 @@ fn recursive_triangulation(
             return;
         }
 
-        const D_TO_EAST: NormedVector2 = unsafe { NormedVector2::new_unsafe(1.0, 0.0) };
-        const D_TO_WEST: NormedVector2 = unsafe { NormedVector2::new_unsafe(-1.0, 0.0) };
-        const D_TO_NORTH: NormedVector2 = unsafe { NormedVector2::new_unsafe(0.0, 1.0) };
-        const D_TO_SOUTH: NormedVector2 = unsafe { NormedVector2::new_unsafe(0.0, -1.0) };
+        const D_TO_EAST: NormedVector2 = NormedVector2::new_unsafe(1.0, 0.0);
+        const D_TO_WEST: NormedVector2 = NormedVector2::new_unsafe(-1.0, 0.0);
+        const D_TO_NORTH: NormedVector2 = NormedVector2::new_unsafe(0.0, 1.0);
+        const D_TO_SOUTH: NormedVector2 = NormedVector2::new_unsafe(0.0, -1.0);
 
         match (bl_in, br_in, tr_in, tl_in) {
             // 0 VERTEX case

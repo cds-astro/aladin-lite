@@ -1,12 +1,11 @@
-use crate::healpix::cell::HEALPixCell;
-use crate::math::lonlat::LonLatT;
-use crate::math::angle::ToAngle;
 /// A simple wrapper around sore core methods
 /// of cdshealpix
 ///
 /// cdshealpix is developped by F-X. Pineau.
 /// Please check its github repo: https://github.com/cds-astro/cds-healpix-rust
-
+use crate::healpix::cell::HEALPixCell;
+use crate::math::angle::ToAngle;
+use crate::math::lonlat::LonLatT;
 /// Get the vertices of an HEALPix cell
 use cgmath::BaseFloat;
 #[allow(dead_code)]

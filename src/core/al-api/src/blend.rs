@@ -4,8 +4,6 @@ use wasm_bindgen::prelude::wasm_bindgen;
 
 #[cfg(feature = "webgl2")]
 pub type WebGlRenderingCtx = web_sys::WebGl2RenderingContext;
-#[cfg(feature = "webgl1")]
-pub type WebGlRenderingCtx = web_sys::WebGlRenderingContext;
 
 #[derive(Deserialize, Debug, Clone, Copy)]
 #[serde(rename_all = "camelCase")]

@@ -117,7 +117,7 @@ where
 
     // Define a rotation from a normalized vector
     pub fn from_sky_position(pos: &Vector3<S>) -> Rotation<S> {
-        let (lon, lat) = math::lonlat::xyz_to_radec(&pos);
+        let (lon, lat) = math::lonlat::xyz_to_radec(pos);
 
         let rot_y = Matrix3::from_angle_y(lon);
         let rot_x = Matrix3::from_angle_x(-lat);

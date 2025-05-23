@@ -23,7 +23,7 @@ use std::io::Cursor;
 impl<'a> Fits<'a> {
     pub fn from_byte_slice(bytes_reader: &'a mut Cursor<&[u8]>) -> Result<Self, JsValue> {
         let FitsData { hdu } = FitsData::from_reader(bytes_reader)
-            .map_err(|_| JsValue::from_str(&"Parsing fits error"))?;
+            .map_err(|_| JsValue::from_str("Parsing fits error"))?;
 
         let header = hdu.get_header();
         let xtension = header.get_xtension();
@@ -72,7 +72,7 @@ impl Image for Fits<'_> {
     ) -> Result<(), JsValue> {
         match &self.data {
             Data::U8(data) => {
-                let view = unsafe { R8UI::view(&data) };
+                let view = unsafe { R8UI::view(data) };
                 textures.tex_sub_image_3d_with_opt_array_buffer_view(
                     offset.x,
                     offset.y,
@@ -84,7 +84,7 @@ impl Image for Fits<'_> {
                 );
             }
             Data::I16(data) => {
-                let view = unsafe { R16I::view(&data) };
+                let view = unsafe { R16I::view(data) };
                 textures.tex_sub_image_3d_with_opt_array_buffer_view(
                     offset.x,
                     offset.y,
@@ -96,7 +96,7 @@ impl Image for Fits<'_> {
                 );
             }
             Data::I32(data) => {
-                let view = unsafe { R32I::view(&data) };
+                let view = unsafe { R32I::view(data) };
                 textures.tex_sub_image_3d_with_opt_array_buffer_view(
                     offset.x,
                     offset.y,
@@ -109,7 +109,7 @@ impl Image for Fits<'_> {
             }
             Data::F32(data) => {
                 let view = unsafe {
-                    R8UI::view(&std::slice::from_raw_parts(
+                    R8UI::view(std::slice::from_raw_parts(
                         data.as_ptr() as *const u8,
                         data.len() * 4,
                     ))

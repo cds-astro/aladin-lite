@@ -2,13 +2,13 @@ use std::collections::HashMap;
 
 use colorgrad::Color;
 
-use crate::Texture2D;
-use crate::WebGlContext;
 use crate::image::format;
 use crate::shader::SendUniformsWithParams;
+use crate::Texture2D;
+use crate::WebGlContext;
 
-use wasm_bindgen::JsValue;
 use crate::webgl_ctx::WebGlRenderingCtx;
+use wasm_bindgen::JsValue;
 
 const WIDTH_CMAP_TEX: usize = 256;
 
@@ -20,7 +20,10 @@ pub struct Colormap {
 }
 impl Colormap {
     pub fn new(label: &str, grad: colorgrad::Gradient) -> Self {
-        Self { label: label.to_string(), grad }
+        Self {
+            label: label.to_string(),
+            grad,
+        }
     }
 
     pub fn label(&self) -> &Label {
@@ -29,18 +32,20 @@ impl Colormap {
 }
 
 fn build_cmaps_texture(gl: &WebGlContext, cmaps: &[Colormap]) -> Result<Texture2D, JsValue> {
-    let tex_bytes: Vec<u8> = cmaps.iter()
-        .map(|cmap| {
+    let tex_bytes: Vec<u8> = cmaps
+        .iter()
+        .flat_map(|cmap| {
             let mut values = [0_u8; 1024];
             for ix in 0..WIDTH_CMAP_TEX {
                 let rgba = cmap.grad.at(ix as f64 / WIDTH_CMAP_TEX as f64).to_rgba8();
-                let ptr = values[4*ix..].as_mut_ptr() as *mut [u8; 4];
-                unsafe { *ptr = rgba; }
+                let ptr = values[4 * ix..].as_mut_ptr() as *mut [u8; 4];
+                unsafe {
+                    *ptr = rgba;
+                }
             }
 
             values
         })
-        .flatten()
         .collect();
     let tex_params = &[
         (
@@ -68,7 +73,7 @@ fn build_cmaps_texture(gl: &WebGlContext, cmaps: &[Colormap]) -> Result<Texture2
         WIDTH_CMAP_TEX as i32,
         cmaps.len() as i32,
         tex_params,
-        Some(&tex_bytes[..])
+        Some(&tex_bytes[..]),
     )
 }
 
@@ -87,20 +92,38 @@ use crate::Abort;
 impl Colormaps {
     pub fn new(gl: &WebGlContext) -> Result<Self, JsValue> {
         let labels: Vec<_> = [
-            "blues", "cividis", "cubehelix", "eosb",
-            "grayscale", "inferno", "magma", "native",
-            "parula", "plasma", "rainbow", "rdbu",
-            "rdylbu", "redtemperature", "sinebow", "spectral", "summer",
-            "viridis", "ylgnbu", "ylorbr", "red", "green", "blue"
+            "blues",
+            "cividis",
+            "cubehelix",
+            "eosb",
+            "grayscale",
+            "inferno",
+            "magma",
+            "native",
+            "parula",
+            "plasma",
+            "rainbow",
+            "rdbu",
+            "rdylbu",
+            "redtemperature",
+            "sinebow",
+            "spectral",
+            "summer",
+            "viridis",
+            "ylgnbu",
+            "ylorbr",
+            "red",
+            "green",
+            "blue",
         ]
         .iter()
         .map(|cmap_name| cmap_name.to_string())
         .collect();
 
-        let indices = labels.iter().enumerate()
-            .map(|(id, label)| {
-                (label.clone(), id as i32)
-            })
+        let indices = labels
+            .iter()
+            .enumerate()
+            .map(|(id, label)| (label.clone(), id as i32))
             .collect();
 
         let cmaps = vec![
@@ -203,7 +226,13 @@ impl Colormaps {
         let cmaps_tex = build_cmaps_texture(gl, &cmaps[..])?;
 
         let gl = gl.clone();
-        Ok(Self { cmaps, cmaps_tex, labels, indices, gl })
+        Ok(Self {
+            cmaps,
+            cmaps_tex,
+            labels,
+            indices,
+            gl,
+        })
     }
 
     #[inline]
@@ -213,12 +242,15 @@ impl Colormaps {
 
     #[inline]
     pub fn get(&self, label: &str) -> &Colormap {
-        if let Some(id) = self.get_id(label).map(|id| *id) {
+        if let Some(&id) = self.get_id(label) {
             &self.cmaps[id as usize]
         } else {
-            crate::log::console_warn(&format!("{:?} is not a valid colormap, replaced with 'grayscale'.", label));
-            let id_greys = self.get_id("grayscale").map(|id| *id).unwrap_abort();
-            &self.cmaps[id_greys as usize]
+            crate::log::console_warn(format!(
+                "{:?} is not a valid colormap, replaced with 'grayscale'.",
+                label
+            ));
+            let id_greys = self.get_id("grayscale").unwrap_abort();
+            &self.cmaps[*id_greys as usize]
         }
     }
 
@@ -228,13 +260,13 @@ impl Colormaps {
     }
 
     pub fn add_cmap(&mut self, label: Label, cmap: Colormap) -> Result<(), JsValue> {
-        if let Some(id) = self.get_id(&label).map(|id| *id) {
+        if let Some(&id) = self.get_id(&label) {
             let colormap = &mut self.cmaps[id as usize];
             *colormap = cmap;
         } else {
             let num_cmaps = self.labels.len();
             self.labels.push(label.clone());
-    
+
             self.indices.insert(label, num_cmaps as i32);
             self.cmaps.push(cmap);
         }
@@ -246,7 +278,7 @@ impl Colormaps {
     }
 }
 
-use crate::shader::{ShaderBound, SendUniforms};
+use crate::shader::{SendUniforms, ShaderBound};
 impl SendUniforms for Colormaps {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
         shader
@@ -258,7 +290,11 @@ impl SendUniforms for Colormaps {
 }
 
 impl SendUniformsWithParams<Colormaps> for Colormap {
-    fn attach_uniforms_with_params<'a>(&self, shader: &'a ShaderBound<'a>, cmaps: &Colormaps) -> &'a ShaderBound<'a> {
+    fn attach_uniforms_with_params<'a>(
+        &self,
+        shader: &'a ShaderBound<'a>,
+        cmaps: &Colormaps,
+    ) -> &'a ShaderBound<'a> {
         let cmap_id = cmaps.get_id(&self.label).unwrap_abort();
         shader.attach_uniform("colormap_id", &(*cmap_id as f32));
         shader

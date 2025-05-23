@@ -37,7 +37,7 @@ where
         width: i32,
         height: i32,
     ) -> Result<Self, JsValue> {
-        let mut decoded_bytes = match T::decode(raw_bytes).map_err(|e| JsValue::from_str(e))? {
+        let mut decoded_bytes = match T::decode(raw_bytes).map_err(JsValue::from_str)? {
             Bytes::Borrowed(bytes) => bytes.to_vec(),
             Bytes::Owned(bytes) => bytes,
         };
@@ -46,7 +46,9 @@ where
             decoded_bytes.set_len(
                 decoded_bytes.len() / std::mem::size_of::<<<T as ImageFormat>::P as Pixel>::Item>(),
             );
-            std::mem::transmute(decoded_bytes)
+            std::mem::transmute::<Vec<u8>, Vec<<<T as ImageFormat>::P as Pixel>::Item>>(
+                decoded_bytes,
+            )
         };
 
         Ok(Self::new(decoded_pixels, width, height))
@@ -60,7 +62,7 @@ where
             raw_bytes.set_len(
                 raw_bytes.len() / std::mem::size_of::<<<T as ImageFormat>::P as Pixel>::Item>(),
             );
-            std::mem::transmute(raw_bytes)
+            std::mem::transmute::<Vec<u8>, Vec<<<T as ImageFormat>::P as Pixel>::Item>>(raw_bytes)
         };
 
         Self::new(decoded_pixels, width, height)

@@ -248,7 +248,7 @@ impl Region {
             Region::AllSky => true,
             Region::Polygon { polygon, bbox, .. } => {
                 // Fast checking with the bbox
-                if !bbox.contains_lonlat(&lonlat) {
+                if !bbox.contains_lonlat(lonlat) {
                     return false;
                 }
 

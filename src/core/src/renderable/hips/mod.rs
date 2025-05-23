@@ -75,6 +75,8 @@ use crate::downloader::query;
 use crate::renderable::hips::HiPS::{D2, D3};
 use crate::renderable::HiPS3D;
 use crate::ProjectionType;
+
+#[allow(clippy::large_enum_variant)]
 pub enum HiPS {
     D2(HiPS2D),
     D3(HiPS3D),

@@ -57,7 +57,7 @@ impl Texture3D {
             internal_format: F::INTERNAL_FORMAT,
             format: F::FORMAT,
             ty: F::TYPE,
-            channel_type: F::CHANNEL_TYPE
+            channel_type: F::CHANNEL_TYPE,
         })));
 
         Ok(Texture3D {
@@ -114,7 +114,7 @@ pub struct Texture3DBound<'a> {
     tex: &'a Texture3D,
 }
 
-impl<'a> Texture3DBound<'a> {
+impl Texture3DBound<'_> {
     pub fn tex_sub_image_3d_with_html_image_element(
         &self,
         dx: i32,
@@ -196,6 +196,7 @@ impl<'a> Texture3DBound<'a> {
             .expect("Sub texture 2d");
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn tex_sub_image_3d_with_opt_array_buffer_view(
         &self,
         dx: i32,
@@ -227,6 +228,7 @@ impl<'a> Texture3DBound<'a> {
     }
 
     #[allow(dead_code)]
+    #[allow(clippy::too_many_arguments)]
     pub fn tex_sub_image_3d_with_opt_u8_array(
         &self,
         idx: i32,

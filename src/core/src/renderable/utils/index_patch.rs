@@ -32,7 +32,7 @@ impl<'a> CCWCheckPatchIndexIter<'a> {
     }
 }
 
-impl<'a> Iterator for CCWCheckPatchIndexIter<'a> {
+impl Iterator for CCWCheckPatchIndexIter<'_> {
     type Item = [(u16, u16, u16); 2];
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -51,11 +51,11 @@ impl<'a> Iterator for CCWCheckPatchIndexIter<'a> {
                 (Some(ndc_tl), Some(ndc_tr), Some(ndc_bl), Some(ndc_br)) => {
                     let tlc = crate::math::projection::ndc_to_clip_space(
                         &Vector2::new(ndc_tl[0] as f64, ndc_tl[1] as f64),
-                        &self.camera,
+                        self.camera,
                     );
                     let brc = crate::math::projection::ndc_to_clip_space(
                         &Vector2::new(ndc_br[0] as f64, ndc_br[1] as f64),
-                        &self.camera,
+                        self.camera,
                     );
 
                     let d1 = crate::math::vector::dist2::<f64>(tlc.as_ref(), brc.as_ref());
@@ -64,11 +64,11 @@ impl<'a> Iterator for CCWCheckPatchIndexIter<'a> {
                     } else {
                         let trc = crate::math::projection::ndc_to_clip_space(
                             &Vector2::new(ndc_tr[0] as f64, ndc_tr[1] as f64),
-                            &self.camera,
+                            self.camera,
                         );
                         let blc = crate::math::projection::ndc_to_clip_space(
                             &Vector2::new(ndc_bl[0] as f64, ndc_bl[1] as f64),
-                            &self.camera,
+                            self.camera,
                         );
 
                         let d2 = crate::math::vector::dist2::<f64>(trc.as_ref(), blc.as_ref());

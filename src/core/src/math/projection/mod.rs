@@ -163,7 +163,7 @@ impl ProjectionType {
     }
 
     /// Screen to model space deprojection
-
+    ///
     /// Perform a screen to the world space deprojection
     ///
     /// # Arguments
@@ -183,8 +183,6 @@ impl ProjectionType {
         let pos_clip_space = ndc_to_clip_space(&pos_normalized_device, camera);
         self.clip_to_world_space(&pos_clip_space)
     }
-
-    /// Screen to model space deprojection
 
     /// Perform a screen to the world space deprojection
     ///
@@ -261,8 +259,6 @@ impl ProjectionType {
         let pos_world_space = m2w * pos_model_space;
         self.world_to_clip_space(&pos_world_space)
     }
-
-    /// World to screen space projection
 
     /// World to screen space transformation
     ///
@@ -682,7 +678,7 @@ use self::coo_space::XYNDC;
 
 use super::lonlat::LonLatT;
 
-impl<'a, P> Projection for &'a P
+impl<P> Projection for &P
 where
     P: CanonicalProjection,
 {
@@ -775,8 +771,8 @@ mod tests {
                 for y in 0..(h as u32) {
                     let xy = Vector2::new(x, y);
                     let clip_xy = Vector2::new(
-                        2.0 * ((xy.x as f64) / (w as f64)) - 1.0,
-                        2.0 * ((xy.y as f64) / (h as f64)) - 1.0,
+                        2.0 * ((xy.x as f64) / w) - 1.0,
+                        2.0 * ((xy.y as f64) / h) - 1.0,
                     );
                     let rgb = if let Some(pos) = projection.clip_to_world_space(&clip_xy) {
                         let pos = pos.normalize();
@@ -789,7 +785,7 @@ mod tests {
                         Rgb([255, 255, 255])
                     };
 
-                    img.put_pixel(x as u32, y as u32, rgb);
+                    img.put_pixel(x, y, rgb);
                 }
             }
             img.save(filename).unwrap_abort();

@@ -70,7 +70,7 @@ impl IdxVec {
             let bbox1 = a1.get_containing_hpx_cell();
             let bbox2 = a2.get_containing_hpx_cell();
 
-            bbox1.cmp(&bbox2)
+            bbox1.cmp(bbox2)
         });
 
         // At this point the arcs are sorted by the z-order curve of their

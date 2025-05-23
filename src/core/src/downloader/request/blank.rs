@@ -83,10 +83,7 @@ impl From<query::PixelMetadata> for PixelMetadataRequest {
                     let bytes_buffer = js_sys::Uint8Array::new(&array_buffer);
 
                     let num_bytes = bytes_buffer.length() as usize;
-                    let mut raw_bytes = Vec::with_capacity(num_bytes);
-                    unsafe {
-                        raw_bytes.set_len(num_bytes);
-                    }
+                    let mut raw_bytes = vec![0; num_bytes];
                     bytes_buffer.copy_to(&mut raw_bytes[..]);
 
                     let mut reader = Cursor::new(&raw_bytes[..]);
@@ -110,7 +107,7 @@ impl From<query::PixelMetadata> for PixelMetadataRequest {
                         if let Some(fitsrs::card::Value::Float(blank)) = header.get(b"BLANK   ") {
                             *blank as f32
                         } else {
-                            std::f32::NAN
+                            f32::NAN
                         };
 
                     Ok(Metadata {

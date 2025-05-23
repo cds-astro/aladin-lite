@@ -162,7 +162,7 @@ impl RayTracer {
         &self.vao
     }
 
-    pub fn draw<'a>(&self, shader: &ShaderBound<'a>) {
+    pub fn draw(&self, shader: &ShaderBound<'_>) {
         #[cfg(feature = "webgl2")]
         shader
             .bind_vertex_array_object_ref(&self.vao)

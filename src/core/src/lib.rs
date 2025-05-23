@@ -88,9 +88,9 @@ use math::projection::*;
 use moclib::moc::RangeMOCIntoIterator;
 //use votable::votable::VOTableWrapper;
 use crate::tile_fetcher::HiPSLocalFiles;
+use al_api::moc::MOCOptions;
 use wasm_bindgen::prelude::*;
 use web_sys::HtmlElement;
-use al_api::moc::MOCOptions;
 
 use crate::math::angle::ToAngle;
 
@@ -187,7 +187,7 @@ impl WebClient {
 
     #[wasm_bindgen(js_name = isInerting)]
     pub fn is_inerting(&self) -> bool {
-        return self.app.is_inerting();
+        self.app.is_inerting()
     }
 
     /// Update the view
@@ -595,7 +595,8 @@ impl WebClient {
     /// Set the zoom factor of the view
     #[wasm_bindgen(js_name = setZoomFactor)]
     pub fn set_zoom_factor(&mut self, zoom_factor: f64) -> Result<(), JsValue> {
-        Ok(self.app.set_zoom_factor(zoom_factor))
+        self.app.set_zoom_factor(zoom_factor);
+        Ok(())
     }
 
     /// Set the center of the view in ICRS coosys
@@ -725,16 +726,12 @@ impl WebClient {
         let vertices = lon
             .iter()
             .zip(lat.iter())
-            .map(|(&lon, &lat)| {
-                let xy = self
-                    .app
+            .flat_map(|(&lon, &lat)| {
+                self.app
                     .world_to_screen(lon, lat)
                     .map(|v| [v.x, v.y])
-                    .unwrap_or([0.0, 0.0]);
-
-                xy
+                    .unwrap_or([0.0, 0.0])
             })
-            .flatten()
             .collect::<Vec<_>>();
 
         vertices.into_boxed_slice()
@@ -924,10 +921,12 @@ impl WebClient {
         lat2: f64,
     ) -> Result<Box<[f64]>, JsValue> {
         let vertices = crate::renderable::line::great_circle_arc::project(
-            lon1.to_radians(), lat1.to_radians(),
-            lon2.to_radians(), lat2.to_radians(),
+            lon1.to_radians(),
+            lat1.to_radians(),
+            lon2.to_radians(),
+            lat2.to_radians(),
             &self.app.camera,
-            &self.app.projection
+            &self.app.projection,
         );
 
         let vertices = vertices
@@ -1019,7 +1018,14 @@ impl WebClient {
     }
 
     #[wasm_bindgen(js_name = probeLineOfPixels)]
-    pub fn probe_line_of_pixels(&self, x1: f64, y1: f64, x2: f64, y2: f64, layer: String) -> Result<Vec<JsValue>, JsValue> {
+    pub fn probe_line_of_pixels(
+        &self,
+        x1: f64,
+        y1: f64,
+        x2: f64,
+        y2: f64,
+        layer: String,
+    ) -> Result<Vec<JsValue>, JsValue> {
         self.app.read_line_of_pixels(x1, y1, x2, y2, layer.as_str())
     }
 
@@ -1053,11 +1059,7 @@ impl WebClient {
     }
 
     #[wasm_bindgen(js_name = addJSONMoc)]
-    pub fn add_json_moc(
-        &mut self,
-        options: MOCOptions,
-        data: &JsValue,
-    ) -> Result<(), JsValue> {
+    pub fn add_json_moc(&mut self, options: MOCOptions, data: &JsValue) -> Result<(), JsValue> {
         let str: String = js_sys::JSON::stringify(data)?.into();
 
         let moc = moclib::deser::json::from_json_aladin::<u64, Hpx<u64>>(&str)
@@ -1074,7 +1076,7 @@ impl WebClient {
     #[wasm_bindgen(js_name = addFITSMOC)]
     pub fn add_fits_moc(&mut self, options: MOCOptions, data: &[u8]) -> Result<(), JsValue> {
         //let bytes = js_sys::Uint8Array::new(array_buffer).to_vec();
-        let moc = match fits::from_fits_ivoa_custom(Cursor::new(&data[..]), false)
+        let moc = match fits::from_fits_ivoa_custom(Cursor::new(data), false)
             .map_err(|e| JsValue::from_str(&e.to_string()))?
         {
             MocIdxType::U16(MocQtyType::<u16, _>::Hpx(moc)) => {
@@ -1134,7 +1136,7 @@ impl WebClient {
 
         let v_in = &Vector3::new(1.0, 0.0, 0.0);
 
-        let mut moc = HEALPixCoverage::from_3d_coos(pixel_d as u8 - 1, vertex_it, &v_in);
+        let mut moc = HEALPixCoverage::from_3d_coos(pixel_d as u8 - 1, vertex_it, v_in);
         if moc.sky_fraction() > 0.5 {
             moc = moc.not();
         }
@@ -1159,12 +1161,7 @@ impl WebClient {
     }
 
     #[wasm_bindgen(js_name = mocContains)]
-    pub fn moc_contains(
-        &mut self,
-        moc_uuid: String,
-        lon: f64,
-        lat: f64,
-    ) -> Result<bool, JsValue> {
+    pub fn moc_contains(&mut self, moc_uuid: String, lon: f64, lat: f64) -> Result<bool, JsValue> {
         let moc = self
             .app
             .get_moc(&moc_uuid)

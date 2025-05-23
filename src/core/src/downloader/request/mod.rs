@@ -147,7 +147,7 @@ async fn query_html_image(
             image_cloned.set_cross_origin(cors_value);
             image_cloned.set_onload(Some(&resolve));
             image_cloned.set_onerror(Some(&reject));
-            image_cloned.set_src(&url);
+            image_cloned.set_src(url);
         }) as Box<dyn FnMut(js_sys::Function, js_sys::Function)>),
     );
 

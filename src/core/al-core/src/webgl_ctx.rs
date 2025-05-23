@@ -12,9 +12,6 @@ pub type WebGlRenderingCtx = web_sys::WebGlRenderingContext;
 #[derive(Clone)]
 pub struct WebGlContext {
     inner: Rc<WebGlRenderingCtx>,
-
-    #[cfg(feature = "webgl1")]
-    pub ext: WebGlExt,
 }
 
 #[derive(Clone)]

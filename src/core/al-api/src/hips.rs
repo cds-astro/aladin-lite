@@ -163,9 +163,10 @@ impl std::fmt::Display for ImageExt {
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
 #[wasm_bindgen]
-#[derive(Clone, Copy, PartialEq, Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, PartialEq, Debug, Deserialize, Serialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub enum TransferFunction {
+    #[default]
     Linear,
     Sqrt,
     Log,
@@ -186,12 +187,6 @@ impl TransferFunction {
         } else {
             TransferFunction::Asinh
         }
-    }
-}
-
-impl Default for TransferFunction {
-    fn default() -> Self {
-        TransferFunction::Linear
     }
 }
 

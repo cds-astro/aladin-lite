@@ -2077,8 +2077,6 @@ export let View = (function () {
 
         ALEvent.POSITION_CHANGED.dispatchedTo(this.aladin.aladinDiv, this.viewCenter);
 
-        //this.redraw();
-
         var self = this;
         setTimeout(function () { self.refreshProgressiveCats(); }, 1000);
         // Apply position changed callback after the move

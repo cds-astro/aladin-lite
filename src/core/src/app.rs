@@ -4,7 +4,6 @@ use crate::tile_fetcher::HiPSLocalFiles;
 use crate::math::angle::ToAngle;
 use crate::renderable::hips::HiPS;
 use crate::{
-    //async_task::{BuildCatalogIndex, ParseTableTask, TaskExecutor, TaskResult, TaskType},
     camera::CameraViewPort,
     downloader::Downloader,
     healpix::coverage::HEALPixCoverage,
@@ -576,10 +575,10 @@ impl App {
             }
 
             // Tiles are fetched if:
-            let fetch_tiles = 
+            let fetch_tiles =
                 // * the user is not panning the view
                 // * or the user is but did not move for at least 100ms
-                (Time::now() - self.camera.get_time_of_last_move() >= DeltaTime(100.0) || !self.dragging) && 
+                (Time::now() - self.camera.get_time_of_last_move() >= DeltaTime(100.0) || !self.dragging) &&
                 // * no inertia action is in progress
                 self.inertia.is_none() &&
                 // * the user is not zooming
@@ -1011,9 +1010,7 @@ impl App {
                         .map_ok(|js_value| {
                             js_value.dyn_into::<Uint8Array>().unwrap_throw().to_vec()
                         })
-                        .map_err(|_js_error| {
-                            std::io::Error::new(std::io::ErrorKind::Other, "failed to read")
-                        })
+                        .map_err(|_js_error| std::io::Error::other("failed to read"))
                         .into_async_read(),
                 ),
             };
@@ -1104,9 +1101,7 @@ impl App {
                         .map_ok(|js_value| {
                             js_value.dyn_into::<Uint8Array>().unwrap_throw().to_vec()
                         })
-                        .map_err(|_js_error| {
-                            std::io::Error::new(std::io::ErrorKind::Other, "failed to read")
-                        })
+                        .map_err(|_js_error| std::io::Error::other("failed to read"))
                         .into_async_read(),
                 ),
             };

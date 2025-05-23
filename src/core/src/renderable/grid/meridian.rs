@@ -16,7 +16,7 @@ pub fn get_intersecting_meridian(
     camera: &CameraViewPort,
     projection: &ProjectionType,
     fmt: Formatter,
-    grid_decimal_prec: u8
+    grid_decimal_prec: u8,
 ) -> Option<Meridian> {
     let fov = camera.get_field_of_view();
     if fov.contains_both_poles() {
@@ -27,7 +27,7 @@ pub fn get_intersecting_meridian(
             camera,
             projection,
             fmt,
-            grid_decimal_prec
+            grid_decimal_prec,
         );
         Some(meridian)
     } else {
@@ -42,7 +42,7 @@ pub fn get_intersecting_meridian(
                     camera,
                     projection,
                     fmt,
-                    grid_decimal_prec
+                    grid_decimal_prec,
                 );
                 Some(meridian)
             }
@@ -60,7 +60,15 @@ pub fn get_intersecting_meridian(
                             lat1..MINUS_HALF_PI
                         };
 
-                        Meridian::new(lon, &lat, LabelOptions::OnSide, camera, projection, fmt, grid_decimal_prec)
+                        Meridian::new(
+                            lon,
+                            &lat,
+                            LabelOptions::OnSide,
+                            camera,
+                            projection,
+                            fmt,
+                            grid_decimal_prec,
+                        )
                     }
                     2 => {
                         // full intersection
@@ -77,7 +85,7 @@ pub fn get_intersecting_meridian(
                             camera,
                             projection,
                             fmt,
-                            grid_decimal_prec
+                            grid_decimal_prec,
                         )
                     }
                     _ => Meridian::new(
@@ -87,8 +95,8 @@ pub fn get_intersecting_meridian(
                         camera,
                         projection,
                         fmt,
-                        grid_decimal_prec
-                    )
+                        grid_decimal_prec,
+                    ),
                 };
 
                 Some(meridian)
@@ -113,9 +121,17 @@ impl Meridian {
         camera: &CameraViewPort,
         projection: &ProjectionType,
         fmt: Formatter,
-        grid_decimal_prec: u8
+        grid_decimal_prec: u8,
     ) -> Self {
-        let label = Label::from_meridian(lon, lat, label_options, camera, projection, fmt, grid_decimal_prec);
+        let label = Label::from_meridian(
+            lon,
+            lat,
+            label_options,
+            camera,
+            projection,
+            fmt,
+            grid_decimal_prec,
+        );
 
         // Draw the full parallel
         let vertices = crate::renderable::line::great_circle_arc::project(

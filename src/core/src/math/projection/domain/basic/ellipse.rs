@@ -16,8 +16,6 @@ impl ProjDef for Ellipse {
         let mut p = Vector2::new(xy.x.abs(), xy.y.abs());
         let mut ab = Vector2::new(self.a, self.b);
 
-        
-
         if p.x == 0.0 {
             -(self.b - p.y)
         } else if p.y == 0.0 {

@@ -106,7 +106,8 @@ impl HiPS3DBuffer {
     // Tell if a texture is available meaning all its sub tiles
     // must have been written for the GPU
     pub fn contains_tile(&self, texture_cell: &HEALPixCell, slice: u16) -> bool {
-        self.get(texture_cell).is_some_and(|t| t.contains_slice(slice))
+        self.get(texture_cell)
+            .is_some_and(|t| t.contains_slice(slice))
     }
 
     /// Accessors

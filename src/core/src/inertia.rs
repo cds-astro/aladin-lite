@@ -23,7 +23,7 @@ impl Inertia {
             ampl,
             speed: ampl,
             axis,
-            north_up
+            north_up,
         }
     }
 

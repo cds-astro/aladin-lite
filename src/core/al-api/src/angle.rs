@@ -32,5 +32,5 @@ use std::cmp::Eq;
 #[wasm_bindgen]
 pub enum Formatter {
     Sexagesimal,
-    Decimal
+    Decimal,
 }

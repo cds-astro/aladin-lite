@@ -46,7 +46,7 @@ impl HpxTexture3D {
     pub fn new(tile_cell: HEALPixCell, time_request: Time) -> Self {
         let start_time = None;
         let uniq = tile_cell.uniq();
-        let textures = std::iter::repeat(None).take(512).collect();
+        let textures = std::iter::repeat_n(None, 512).collect();
         let blocks = [0; 512];
         let block_indices = Vec::new();
         Self {

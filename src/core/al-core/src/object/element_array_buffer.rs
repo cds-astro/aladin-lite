@@ -37,7 +37,10 @@ impl ElementArrayBuffer {
         usage: u32,
         data: B,
     ) -> ElementArrayBuffer {
-        let buffer = gl.create_buffer().ok_or("failed to create buffer").unwrap_abort();
+        let buffer = gl
+            .create_buffer()
+            .ok_or("failed to create buffer")
+            .unwrap_abort();
         // Bind the buffer
         gl.bind_buffer(
             WebGlRenderingCtx::ELEMENT_ARRAY_BUFFER,

@@ -121,7 +121,8 @@ pub fn ang_between_lonlat<S: BaseFloat>(lonlat1: LonLatT<S>, lonlat2: LonLatT<S>
     let abs_diff_lon = (lonlat1.lon() - lonlat2.lon()).abs();
     (lonlat1.lat().sin() * lonlat2.lat().sin()
         + lonlat1.lat().cos() * lonlat2.lat().cos() * abs_diff_lon.cos())
-    .acos().to_angle()
+    .acos()
+    .to_angle()
 }
 
 #[inline]
@@ -209,5 +210,6 @@ pub fn unproj_from_screen(
 pub fn is_in(v1: &Vector3<f64>, v2: &Vector3<f64>, v: &Vector3<f64>) -> bool {
     let theta = crate::math::vector::angle3(v1, v2).abs();
 
-    crate::math::vector::angle3(v1, v).abs() < theta && crate::math::vector::angle3(v, v2).abs() < theta
+    crate::math::vector::angle3(v1, v).abs() < theta
+        && crate::math::vector::angle3(v, v2).abs() < theta
 }

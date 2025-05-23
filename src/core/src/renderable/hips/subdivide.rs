@@ -1,8 +1,8 @@
 use crate::camera::CameraViewPort;
+use crate::math::angle::ToAngle;
 use crate::math::projection::ProjectionType;
 use crate::math::vector::dist2;
 use crate::HEALPixCell;
-use crate::math::angle::ToAngle;
 
 const M: f64 = 220.0 * 220.0;
 
@@ -104,7 +104,6 @@ pub(crate) fn subdivide_hpx_cell(
 
             let lat = child_cell.center().1;
 
-
             let c0 = child_cell.ancestor(child_cell.depth()).idx();
 
             let c3 = child_cell.ancestor(child_cell.depth() - 3);
@@ -115,7 +114,8 @@ pub(crate) fn subdivide_hpx_cell(
             let (x, y) = child_cell.get_offset_in_texture_cell(child_cell.depth());
             let nside = child_cell.nside() as u32;
 
-            let collignon_equatorial_frontier = ((0..=3).contains(&c0) || (8..=11).contains(&c0)) && ((x + y) as i32 - (nside as i32) + 1).abs() <= 1;
+            let collignon_equatorial_frontier = ((0..=3).contains(&c0) || (8..=11).contains(&c0))
+                && ((x + y) as i32 - (nside as i32) + 1).abs() <= 1;
 
             // A HEALPix cell would be distorted if
             let hpx_num_sub = if camera.get_aperture() >= 15.0_f64.to_radians() &&
@@ -123,21 +123,23 @@ pub(crate) fn subdivide_hpx_cell(
                     ((0..=3).contains(&c0) || (8..=11).contains(&c0)) &&
                     // neighbors of cells having only 7 neighbors (the most distorted ones)
                     c3_s
-                {
-                    // more specific cells needing a subdivision
-                    2
-                } else if collignon_equatorial_frontier && c3_s {
-                    // on the collignon/equatorial fence and part of a 3 order cell having only 7 neighbors
-                    1
-                } else if child_cell.is_on_pole() {
-                    // it lies on a pole
-                    1
-                } else if child_cell.is_on_base_cell_edges() && lat.abs() >= healpix::TRANSITION_LATITUDE {
-                    // it lies on a frontier between base cells and at a high absolute latitude
-                    1
-                } else {
-                    0
-                };
+            {
+                // more specific cells needing a subdivision
+                2
+            } else if collignon_equatorial_frontier && c3_s {
+                // on the collignon/equatorial fence and part of a 3 order cell having only 7 neighbors
+                1
+            } else if child_cell.is_on_pole() {
+                // it lies on a pole
+                1
+            } else if child_cell.is_on_base_cell_edges()
+                && lat.abs() >= healpix::TRANSITION_LATITUDE
+            {
+                // it lies on a frontier between base cells and at a high absolute latitude
+                1
+            } else {
+                0
+            };
 
             // Subdivide one more time if the HEALPix cell is distorted
             child_cell.get_children_cells(hpx_num_sub)

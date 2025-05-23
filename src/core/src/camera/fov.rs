@@ -79,16 +79,14 @@ impl FieldOfView {
     ) -> Self {
         let mut x_ndc = linspace(-1., 1., NUM_VERTICES_WIDTH + 2);
 
-        x_ndc.extend(iter::repeat(1.0).take(NUM_VERTICES_HEIGHT));
+        x_ndc.extend(iter::repeat_n(1.0, NUM_VERTICES_HEIGHT));
         x_ndc.extend(linspace(1., -1., NUM_VERTICES_WIDTH + 2));
-        x_ndc.extend(iter::repeat(-1.0).take(NUM_VERTICES_HEIGHT));
+        x_ndc.extend(iter::repeat_n(-1.0, NUM_VERTICES_HEIGHT));
 
-        let mut y_ndc = iter::repeat(-1.0)
-            .take(NUM_VERTICES_WIDTH + 1)
-            .collect::<Vec<_>>();
+        let mut y_ndc = iter::repeat_n(-1.0, NUM_VERTICES_WIDTH + 1).collect::<Vec<_>>();
 
         y_ndc.extend(linspace(-1., 1., NUM_VERTICES_HEIGHT + 2));
-        y_ndc.extend(iter::repeat(1.0).take(NUM_VERTICES_WIDTH));
+        y_ndc.extend(iter::repeat_n(1.0, NUM_VERTICES_WIDTH));
         y_ndc.extend(linspace(1., -1., NUM_VERTICES_HEIGHT + 2));
         y_ndc.pop();
 

@@ -50,7 +50,6 @@ pub fn build_fov_coverage(
             let inside_vertex = crate::coosys::apply_coo_system(camera_frame, frame, camera_center);
 
             // Prefer to query from_polygon with depth >= 2
-            
 
             HEALPixCoverage::from_3d_coos(depth, vertices_iter, &inside_vertex)
         }

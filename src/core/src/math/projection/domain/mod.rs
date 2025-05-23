@@ -5,5 +5,5 @@ pub mod par;
 
 pub mod basic;
 
-pub mod sdf;
 pub mod op;
+pub mod sdf;

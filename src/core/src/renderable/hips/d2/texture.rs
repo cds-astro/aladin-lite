@@ -1,6 +1,8 @@
+use crate::Vector3;
 use crate::{healpix::cell::HEALPixCell, time::Time};
-
-use std::collections::HashSet;
+use al_core::image::Image;
+use al_core::Texture2DArray;
+use wasm_bindgen::JsValue;
 
 pub struct HpxTexture2D {
     tile_cell: HEALPixCell,
@@ -23,17 +25,15 @@ pub struct HpxTexture2D {
     time_request: Time,
 
     // Full flag telling the texture has been filled
-    full: bool,
+    copied_to_gpu: bool,
 }
-
-use crate::renderable::hips::config::HiPSConfig;
 
 use crate::renderable::hips::HpxTile;
 
 impl HpxTexture2D {
     pub fn new(cell: &HEALPixCell, idx: i32, time_request: Time) -> Self {
         let start_time = None;
-        let full = false;
+        let copied_to_gpu = false;
         let tile_cell = *cell;
         let uniq = cell.uniq();
 
@@ -43,12 +43,12 @@ impl HpxTexture2D {
             time_request,
             idx,
             start_time,
-            full,
+            copied_to_gpu,
         }
     }
 
-    pub fn is_full(&self) -> bool {
-        self.full
+    pub fn is_on_gpu(&self) -> bool {
+        self.copied_to_gpu
     }
 
     pub fn idx(&self) -> i32 {
@@ -63,7 +63,7 @@ impl HpxTexture2D {
 
         self.tile_cell = *tile_cell;
         self.uniq = tile_cell.uniq();
-        self.full = false;
+        self.copied_to_gpu = false;
         self.start_time = None;
         self.time_request = time_request;
     }
@@ -71,12 +71,19 @@ impl HpxTexture2D {
     // Panic if cell is not contained in the texture
     // Do nothing if the texture is full
     // Return true if the tile is newly added
-    pub fn append(&mut self, cell: &HEALPixCell, cfg: &HiPSConfig) {
+    pub fn copy_to_gpu<I: Image>(
+        &mut self,
+        cell: &HEALPixCell,
+        image: &I,
+        gpu_texture: &Texture2DArray,
+    ) -> Result<(), JsValue> {
         debug_assert!(*cell == self.tile_cell);
-        debug_assert!(!self.full);
+        debug_assert!(!self.copied_to_gpu);
 
-        self.full = true;
+        self.copied_to_gpu = true;
         self.start_time = Some(Time::now());
+
+        image.insert_into_3d_texture(gpu_texture, &Vector3::new(0, 0, self.idx() as i32))
     }
 }
 
@@ -84,7 +91,7 @@ impl HpxTile for HpxTexture2D {
     // Getter
     // Returns the current time if the texture is not full
     fn start_time(&self) -> Time {
-        if self.is_full() {
+        if self.is_on_gpu() {
             self.start_time.unwrap_abort()
         } else {
             Time::now()
@@ -149,7 +156,7 @@ impl<'a> SendUniforms for HpxTexture2DUniforms<'a> {
                 // - for PNG, tiles are not inserted but default color chosen is fully transparent (might be vec4(0.0, 0.0, 0.0, 0.0))
                 //
                 // Therefore for FITS files we must indicate GPU which base tiles are missing so that we draw fully transparent pixels
-                &((!self.texture.full as u8) as f32),
+                &((!self.texture.copied_to_gpu as u8) as f32),
             )
             .attach_uniform(
                 &format!("{}{}", self.name, "start_time"),

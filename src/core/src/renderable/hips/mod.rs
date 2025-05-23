@@ -81,14 +81,10 @@ pub enum HiPS {
 }
 
 impl HiPS {
-    pub fn look_for_new_tiles(
-        &mut self,
-        camera: &CameraViewPort,
-        proj: &ProjectionType,
-    ) -> Option<Vec<HEALPixCell>> {
+    pub fn look_for_new_tiles(&mut self, camera: &CameraViewPort) -> Option<Vec<HEALPixCell>> {
         match self {
-            D2(hips) => hips.look_for_new_tiles(camera, proj).map(|it| it.collect()),
-            D3(hips) => hips.look_for_new_tiles(camera, proj).map(|it| it.collect()),
+            D2(hips) => hips.look_for_new_tiles(camera).map(|it| it.collect()),
+            D3(hips) => hips.look_for_new_tiles(camera).map(|it| it.collect()),
         }
     }
 
@@ -98,7 +94,7 @@ impl HiPS {
         x: f64,
         y: f64,
         camera: &CameraViewPort,
-        proj: &ProjectionType
+        proj: &ProjectionType,
     ) -> Result<JsValue, JsValue> {
         match self {
             D2(hips) => hips.read_pixel(x, y, camera, proj),

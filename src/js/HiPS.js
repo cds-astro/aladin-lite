@@ -934,7 +934,7 @@ export let HiPS = (function () {
      * @param {PixelProber|LineProber|GreatCircleArcProber} prober - A prob object. Only, `pixel`, `line` or `arc` are accepted.
      * @returns {number[]} The pixel value(s) probed.
      */
-    HiPS.prototype.probe = function (prober) {
+    HiPS.prototype.probePixels = function (prober) {
         if (Utils.isNumber(prober.x) && Utils.isNumber(prober.y)) {
             // pixel probing
             return this.readPixel(prober.x, prober.y);

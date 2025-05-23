@@ -202,11 +202,11 @@ impl HiPS3D {
     pub fn look_for_new_tiles<'a>(
         &'a mut self,
         camera: &'a CameraViewPort,
-        proj: &ProjectionType,
+        //proj: &ProjectionType,
     ) -> Option<impl Iterator<Item = HEALPixCell> + 'a> {
         // do not add tiles if the view is already at depth 0
         let cfg = self.get_config();
-        let mut depth_tile = camera
+        let depth_tile = camera
             .get_tile_depth()
             .min(cfg.get_max_depth_tile())
             .max(cfg.get_min_depth_tile());
@@ -215,9 +215,9 @@ impl HiPS3D {
         let mut already_considered_tiles = HashSet::new();
 
         // raytracer is rendering and the shader only renders HPX texture cells of depth 0
-        if camera.is_raytracing(proj) {
+        /*if camera.is_raytracing(proj) {
             depth_tile = 0;
-        }
+        }*/
 
         let tile_cells_iter = camera
             .get_hpx_cells(depth_tile, survey_frame)

@@ -5,7 +5,6 @@ uniform float min_value;
 uniform float max_value;
 uniform int H;
 uniform float reversed;
-uniform float size_tile_uv;
 uniform int tex_storing_fits;
 
 #include ../colormaps/colormap.glsl;
@@ -18,7 +17,7 @@ vec4 get_pixels(vec3 uv) {
 }
 
 vec3 reverse_uv(vec3 uv) {
-    uv.y = size_tile_uv + 2.0*size_tile_uv*floor(uv.y / size_tile_uv) - uv.y;
+    uv.y = 1.0 - uv.y;
     return uv;
 }
 

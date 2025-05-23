@@ -44,7 +44,6 @@ pub struct HiPSConfig {
     pub request_mode: RequestMode,
 }
 
-use crate::math;
 use crate::HiPSProperties;
 use al_api::coo_system::CooSystem;
 use wasm_bindgen::JsValue;
@@ -344,7 +343,6 @@ impl SendUniforms for HiPSConfig {
         // Send max depth
         shader
             .attach_uniform("max_depth", &(self.max_depth_tile as i32))
-            .attach_uniform("size_tile_uv", &1.0)
             .attach_uniform("tex_storing_fits", &self.tex_storing_fits)
             .attach_uniform("scale", &self.scale)
             .attach_uniform("offset", &self.offset)

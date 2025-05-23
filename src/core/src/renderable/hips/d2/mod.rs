@@ -308,22 +308,16 @@ impl HiPS2D {
     pub fn look_for_new_tiles<'a>(
         &'a mut self,
         camera: &'a CameraViewPort,
-        proj: &ProjectionType,
     ) -> Option<impl Iterator<Item = HEALPixCell> + 'a> {
         // do not add tiles if the view is already at depth 0
         let cfg = self.get_config();
-        let mut depth_tile = camera
+        let depth_tile = camera
             .get_tile_depth()
             .min(cfg.get_max_depth_tile())
             .max(cfg.get_min_depth_tile());
 
         let survey_frame = cfg.get_frame();
         let mut already_considered_tiles = HashSet::new();
-
-        // Raytracer is rendering and the shader only renders HPX texture cells of depth 0
-        /*if camera.is_raytracing(proj) {
-            depth_tile = 0;
-        }*/
 
         let tile_cells_iter = camera
             .get_hpx_cells(depth_tile, survey_frame)
@@ -433,50 +427,7 @@ impl HiPS2D {
             let (pix, dx, dy) = crate::healpix::utils::hash_with_dxdy(depth, &lonlat);
             let tile_cell = HEALPixCell(depth, pix);
 
-            let value = if let Some(tile) = self.buffer.get(&tile_cell) {
-                // Index of the texture in the total set of textures
-                let tile_idx = tile.idx();
-
-                // The size of the global texture containing the tiles
-                let tile_size = cfg.get_tile_size() as f32;
-
-                // Offset in the slice in pixels
-                let mut pos_tex = Vector3::new(
-                    (dy * (tile_size as f64)) as i32,
-                    (dx * (tile_size as f64)) as i32,
-                    tile_idx,
-                );
-
-                // Offset in the slice in pixels
-                if cfg.tex_storing_fits {
-                    let mut uvy = pos_tex.y as f32 / tile_size;
-                    uvy = 1.0 + 2.0 * (uvy / 1.0).floor() - uvy;
-
-                    pos_tex.y = (uvy * tile_size) as i32;
-                }
-
-                let mut value = self
-                    .buffer
-                    .get_texture()
-                    .read_pixel(pos_tex.x, pos_tex.y, pos_tex.z)?;
-
-                if cfg.tex_storing_fits {
-                    // scale the value
-                    let f64_v = value
-                        .as_f64()
-                        .ok_or_else(|| "Error unwraping the pixel read value.")?;
-                    let scale = cfg.scale as f64;
-                    let offset = cfg.offset as f64;
-
-                    value = JsValue::from_f64(f64_v * scale + offset);
-                }
-
-                value
-            } else {
-                JsValue::null()
-            };
-
-            Ok(value)
+            self.buffer.read_pixel(&tile_cell, dx, dy)
         } else {
             Err(JsValue::from_str("Out of projection"))
         }
@@ -782,8 +733,6 @@ impl HiPS2D {
 
         self.buffer.render_allsky(draw_allsky);
         let config = self.get_config();
-
-        //self.gl.enable(WebGl2RenderingContext::BLEND);
 
         let ImageMetadata {
             color,

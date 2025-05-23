@@ -10,7 +10,6 @@ use cgmath::Vector3;
 use al_api::hips::ImageExt;
 use al_core::webgl_ctx::WebGlRenderingCtx;
 
-use al_core::image::format::ImageFormat;
 use al_core::image::format::{R16I, R32F, R32I, R64F, R8UI, RGB8U, RGBA8U};
 use al_core::image::Image;
 use al_core::shader::{SendUniforms, ShaderBound};
@@ -245,12 +244,12 @@ impl HiPS2DBuffer {
     pub fn contains_tile(&self, cell: &HEALPixCell) -> bool {
         let cell_is_root = cell.is_root();
         if cell_is_root {
-            self.base_textures[cell.idx() as usize].is_full()
+            self.base_textures[cell.idx() as usize].is_on_gpu()
         } else {
             if let Some(texture) = self.get(cell) {
                 // The texture is present in the buffer
                 // We must check whether it contains the tile
-                texture.is_full()
+                texture.is_on_gpu()
             } else {
                 false
             }
@@ -307,18 +306,23 @@ impl HiPS2DBuffer {
         if cell_is_root {
             let tile_size = image.get_size().0;
             let is_tile = tile_size == self.config.get_tile_size() as u32;
+
+            let texture = &mut self.base_textures[cell.idx() as usize];
+
             if is_tile {
-                image.insert_into_3d_texture(
+                texture.copy_to_gpu(
+                    cell, // The tile cell
+                    &image,
                     &self.tile_pixels,
-                    &Vector3::new(0, 0, cell.idx() as i32),
                 )?;
             }
 
             let is_allsky_tile = tile_size == self.config.allsky_tile_size() as u32;
             if is_allsky_tile {
-                image.insert_into_3d_texture(
+                texture.copy_to_gpu(
+                    cell, // The tile cell
+                    &image,
                     &self.allsky_pixels,
-                    &Vector3::new(0, 0, cell.idx() as i32),
                 )?;
 
                 self.num_root_textures_available += 1;
@@ -326,13 +330,6 @@ impl HiPS2DBuffer {
                     self.allsky_pixels.generate_mipmap()
                 }
             }
-
-            let texture = &mut self.base_textures[cell.idx() as usize];
-
-            texture.append(
-                cell, // The tile cell
-                &self.config,
-            );
 
             self.available_tiles_during_frame = true;
         } else {
@@ -359,15 +356,11 @@ impl HiPS2DBuffer {
                     HpxTexture2D::new(cell, idx as i32, time_request)
                 };
 
-                image.insert_into_3d_texture(
-                    &self.tile_pixels,
-                    &Vector3::new(0, 0, texture.idx() as i32),
-                )?;
-
-                texture.append(
+                texture.copy_to_gpu(
                     cell, // The tile cell
-                    &self.config,
-                );
+                    &image,
+                    &self.tile_pixels,
+                )?;
 
                 // Push it to the buffer
                 self.heap.push(&texture);
@@ -380,17 +373,54 @@ impl HiPS2DBuffer {
         Ok(())
     }
 
-    pub fn get_texture(&self) -> &Texture2DArray {
-        &self.tile_pixels
-    }
-
-    pub fn send_to_gpu<I: Image>(
+    pub(crate) fn read_pixel(
         &self,
         cell: &HEALPixCell,
-        texture: &HpxTexture2D,
-        image: I,
-    ) -> Result<(), JsValue> {
-        Ok(())
+        dx: f64,
+        dy: f64,
+    ) -> Result<JsValue, JsValue> {
+        let value = if let Some(tile) = self.get(&cell) {
+            // Index of the texture in the total set of textures
+            let tile_idx = tile.idx();
+
+            // The size of the global texture containing the tiles
+            let tile_size = self.config.get_tile_size() as f32;
+
+            // Offset in the slice in pixels
+            let mut pos_tex = Vector3::new(
+                (dy * (tile_size as f64)) as i32,
+                (dx * (tile_size as f64)) as i32,
+                tile_idx,
+            );
+
+            // Offset in the slice in pixels
+            if self.config.tex_storing_fits {
+                let uvy = 1.0 - (pos_tex.y as f32 / tile_size);
+
+                pos_tex.y = (uvy * tile_size) as i32;
+            }
+
+            let value = self
+                .tile_pixels
+                .read_pixel(pos_tex.x, pos_tex.y, pos_tex.z)?;
+
+            if self.config.tex_storing_fits {
+                // scale the value
+                let f64_v = value
+                    .as_f64()
+                    .ok_or_else(|| "Error unwraping the pixel read value.")?;
+                let scale = self.config.scale as f64;
+                let offset = self.config.offset as f64;
+
+                JsValue::from_f64(f64_v * scale + offset)
+            } else {
+                value
+            }
+        } else {
+            JsValue::null()
+        };
+
+        Ok(value)
     }
 
     pub fn render_allsky(&mut self, flag: bool) {
@@ -504,7 +534,7 @@ impl HpxTileBuffer for HiPS2DBuffer {
     // must have been written for the GPU
     fn contains(&self, cell: &HEALPixCell) -> bool {
         if let Some(t) = self.get(cell) {
-            t.is_full()
+            t.is_on_gpu()
         } else {
             false
         }

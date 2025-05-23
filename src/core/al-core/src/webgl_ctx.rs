@@ -58,34 +58,7 @@ impl WebGlContext {
             let ctx = WebGlContext { inner: gl };
             Ok(ctx)
         }
-
-        #[cfg(feature = "webgl1")]
-        {
-            let angles_ext =
-                get_extension::<web_sys::AngleInstancedArrays>(&gl, "ANGLE_instanced_arrays")?;
-            let _ = get_extension::<web_sys::OesTextureFloat>(&gl, "OES_texture_float")?;
-            let _ = get_extension::<web_sys::ExtSRgb>(&gl, "EXT_sRGB")?;
-
-            Ok(WebGlContext {
-                inner: gl,
-                ext: WebGlExt { angles: angles_ext },
-            })
-        }
     }
-}
-
-fn get_extension<T>(context: &WebGlRenderingCtx, name: &str) -> Result<T, JsValue>
-where
-    T: wasm_bindgen::JsCast,
-{
-    // `unchecked_into` is used here because WebGL extensions aren't actually JS classes
-    // these objects are duck-type representations of the actual Rust classes
-    // https://github.com/rustwasm/wasm-bindgen/pull/1449
-    context
-        .get_extension(name)
-        .ok()
-        .and_then(|maybe_ext| maybe_ext.map(|ext| ext.unchecked_into::<T>()))
-        .ok_or_else(|| JsValue::from_str("Failed to load ext"))
 }
 
 use std::ops::Deref;

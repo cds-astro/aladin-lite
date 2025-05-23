@@ -902,7 +902,7 @@ export let Aladin = (function () {
      * For a knowing exactly the values of a specific HiPS (e.g. the real FITS values from HiPS FITS tiles) please use the method {@link HiPS#readPixel}.
      * 
      * @memberof Aladin
-     * @param {PixelProber|RectProber} [prober] - A prob object. Can be unique prober or a list of it. By default, the center of the view is probed, i.e. the pixel under the reticle. 
+     * @param {PixelProber[]|RectProber[]} [prober] - A prob object. Can be unique prober or a list of it. By default, the center of the view is probed, i.e. the pixel under the reticle. 
      * @returns {ImageData} A {@link https://developer.mozilla.org/fr/docs/Web/API/ImageData| ImageData} JS object coming from the canvas probing. Its `data` field stores the byte pixel array containing a list of 4 bytes RGBA values.
      */
      Aladin.prototype.readCanvas = function (prober) {

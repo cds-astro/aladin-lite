@@ -13,6 +13,16 @@ export let HiPSList = (function () {
             startUrl: "https://alasky.cds.unistra.fr/DSS/DSSColor",
         },
         {
+            creatorDid: "ivo://erosita/dr1/rate/rgb",
+            id: "erosita/dr1/rate/rgb",
+            name: "eROSITA-DE DR1 RGB (0.2-0.5, 0.5-1.0, 1.0-2.0 keV) Rate Image",
+            maxOrder: 6,
+            tileSize: 512,
+            imgFormat: "png",
+            cooFrame: "equatorial",
+            startUrl: "https://erosita.mpe.mpg.de/dr1/erodat/static/hips/eRASS1_RGB_Rate_c010/"
+        },
+        {
             creatorDid: "ivo://CDS/P/2MASS/color",
             name: "2MASS colored",
             id: "P/2MASS/color",
@@ -202,7 +212,7 @@ export let HiPSList = (function () {
             imgFormat: "jpeg",
             minOrder: 3,
             startUrl: "https://alasky.cds.unistra.fr/IPAC/IPAC_P_GLIMPSE360",
-        }
+        },
     ];
 
     return HiPSList;

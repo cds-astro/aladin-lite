@@ -1063,9 +1063,20 @@ export let Catalog = (function () {
         var f;
         for (let k = 0; k < this.footprints.length; k++) {
             f = this.footprints[k];
+            
+            if (this.filterFn && f.source) {
+                if(!this.filterFn(f.source)) {
+                    f.hide()
+                } else {
+                    f.show()
 
-            f.draw(ctx, this.view);
-            f.source.tooSmallFootprint = f.isTooSmall();
+                    f.draw(ctx, this.view);
+                    f.source.tooSmallFootprint = f.isTooSmall();
+                }
+            } else {
+                f.draw(ctx, this.view);
+                f.source.tooSmallFootprint = f.isTooSmall();
+            }
         }
     };
 

@@ -33,10 +33,16 @@ var myFilterFunction = function(source) {
     return color>colorThreshold;
 }
 
-aladin = A.aladin('#aladin-lite-div', {target: 'M 81', fov: 0.5, survey: 'CDS/P/SDSS9/color'});
-var cat = A.catalogFromSimbad('M 81', 0.25, {onClick: 'showTable', verbosity: 3, filter: myFilterFunction});
-aladin.addCatalog(cat);
+    aladin = A.aladin('#aladin-lite-div', {target: 'M 81', fov: 0.5, survey: 'CDS/P/SDSS9/color'});
+    var cat = A.catalogFromSimbad('M 81', 0.25, {
+        shape: (s) => {
+            return A.circle(s.ra, s.dec, 0.003, {lineWidth: 3});
+        },
+        onClick: 'showTable', verbosity: 3, filter: myFilterFunction
     });
+
+    aladin.addCatalog(cat);
+});
 </script>
 
 </body>

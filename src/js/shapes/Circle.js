@@ -324,10 +324,15 @@ export let Circle = (function() {
     };
 
     // From StackOverflow: https://stackoverflow.com/questions/401847/circle-rectangle-collision-detection-intersection
-    Circle.prototype.intersectsBBox = function(x, y, w, h) {
+    Circle.prototype.intersectsBBox = function(x, y, w, h, view) {
+        var centerXyview = view.aladin.world2pix(this.centerRaDec[0], this.centerRaDec[1]);
+        if (!centerXyview) {
+            return false;
+        }
+
         const circleDistance = {
-            x: Math.abs(this.center.x - x),
-            y: Math.abs(this.center.y - y)
+            x: Math.abs(centerXyview[0] - x),
+            y: Math.abs(centerXyview[1] - y)
         };
 
         if (circleDistance.x > (w/2 + this.radius)) { return false; }

@@ -1,4 +1,4 @@
-use crate::image::format::ImageFormat;
+use crate::texture::format::TextureFormat;
 use web_sys::HtmlCanvasElement;
 use web_sys::WebGlTexture;
 
@@ -23,7 +23,7 @@ pub struct Texture3D {
 }
 
 impl Texture3D {
-    pub fn create_empty<F: ImageFormat>(
+    pub fn create_empty<F: TextureFormat>(
         gl: &WebGlContext,
         // The weight of the individual textures
         width: i32,
@@ -54,10 +54,9 @@ impl Texture3D {
         let metadata = Some(Rc::new(RefCell::new(Texture2DMeta {
             width: width as u32,
             height: height as u32,
-            internal_format: F::INTERNAL_FORMAT,
             format: F::FORMAT,
             ty: F::TYPE,
-            channel_type: F::CHANNEL_TYPE,
+            pixel_type: F::PIXEL_TYPE,
         })));
 
         Ok(Texture3D {

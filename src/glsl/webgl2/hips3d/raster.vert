@@ -11,7 +11,7 @@ uniform mat3 inv_model;
 uniform vec2 ndc_to_clip;
 uniform float czf;
 
-#include ../../projection/projection.glsl;
+#include ../projection/projection.glsl;
 
 void main() {
     vec3 p_xyz = lonlat2xyz(lonlat);

@@ -12,8 +12,6 @@ pub mod utils;
 use crate::renderable::image::Image;
 use crate::tile_fetcher::TileFetcherQueue;
 
-use al_core::image::format::ChannelType;
-
 use al_api::color::ColorRGB;
 use al_api::hips::HiPSCfg;
 use al_api::hips::ImageMetadata;
@@ -22,6 +20,8 @@ use al_api::image::ImageParams;
 use al_core::colormap::Colormaps;
 
 use al_core::shader::Shader;
+use al_core::texture::format::PixelType;
+use al_core::texture::format::TextureFormat;
 use al_core::VertexArrayObject;
 use al_core::WebGlContext;
 
@@ -226,8 +226,8 @@ impl Layers {
             if let Some(hips) = self.hipses.get(cdid) {
                 // Check if a HiPS is fully opaque so that we cannot see the background
                 // In that case, no need to draw a background because a HiPS will fully cover it
-                let full_covering_hips = (hips.get_config().get_format().get_channel()
-                    == ChannelType::RGB8U
+                let full_covering_hips = (hips.get_config().get_format().get_pixel_format()
+                    == PixelType::RGB8U
                     || hips.is_allsky())
                     && meta.opacity == 1.0;
                 if full_covering_hips {
@@ -498,17 +498,6 @@ impl Layers {
         let fits_already_found = self.images.keys().any(|image_id| image_id == &id);
 
         if !fits_already_found {
-            // The fits has not been loaded yet
-            /*if let Some(initial_ra) = properties.get_initial_ra() {
-                if let Some(initial_dec) = properties.get_initial_dec() {
-                    camera.set_center::<P>(&LonLatT::new(Angle((initial_ra).to_radians()), Angle((initial_dec).to_radians())), &properties.get_frame());
-                }
-            }
-
-            if let Some(initial_fov) = properties.get_initial_fov() {
-                camera.set_aperture::<P>(Angle((initial_fov).to_radians()));
-            }*/
-
             self.images.insert(id.clone(), images);
         }
 

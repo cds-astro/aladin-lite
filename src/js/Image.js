@@ -371,14 +371,14 @@ export let Image = (function () {
             if (this.imgFormat === 'fits') {
                 promise = this._addFITS(layer)
                     .catch(e => {
-                        console.error(`Image located at ${this.url} could not be parsed as fits file. Is the imgFormat specified correct?`)
+                        console.error(`Image located at ${this.url} could not be parsed as fits file. Is the imgFormat specified correct? Reason: `, e)
                         return Promise.reject(e)
                     })
             } else if (this.imgFormat === 'jpeg' || this.imgFormat === 'png') {
 
                 promise = this._addJPGOrPNG(layer)
                     .catch(e => {
-                        console.error(`Image located at ${this.url} could not be parsed as a ${this.imgFormat} file. Is the imgFormat specified correct?`);
+                        console.error(`Image located at ${this.url} could not be parsed as a ${this.imgFormat} file. Is the imgFormat specified correct? Reason: `, e);
                         return Promise.reject(e)
                     })
             } else {
@@ -386,8 +386,8 @@ export let Image = (function () {
                 promise = self._addFITS(layer)
                     .catch(e => {
                         return self._addJPGOrPNG(layer)
-                            .catch(e => {
-                                console.error(`Image located at ${self.url} could not be parsed as jpg/png/tif image file. Aborting...`)
+                            .catch(e2 => {
+                                console.error(`Image located at ${self.url} could not be parsed as jpg/png/tif image file. Reason: `, e2)
                                 return Promise.reject(e);
                             })
                     })
@@ -441,10 +441,10 @@ export let Image = (function () {
 
             return Utils.fetch({
                 url: this.url,
-                dataType: 'readableStream',
-                success: (stream) => {
-                    return self.view.wasm.addImageFITS(
-                        stream,
+                dataType: 'arrayBuffer',
+                success: (buf) => {
+                    return self.view.wasm.addFITSImage(
+                        new Uint8Array(buf),
                         {
                             ...self.colorCfg.get(),
                             imgFormat: 'fits',
@@ -458,10 +458,10 @@ export let Image = (function () {
 
                     return Utils.fetch({
                         url: url,
-                        dataType: 'readableStream',
-                        success: (stream) => {
-                            return self.view.wasm.addImageFITS(
-                                stream,
+                        dataType: 'arrayBuffer',
+                        success: (buf) => {
+                            return self.view.wasm.addFITSImage(
+                                new Uint8Array(buf),
                                 {
                                     ...self.colorCfg.get(),
                                     imgFormat: 'fits',
@@ -498,12 +498,8 @@ export let Image = (function () {
                         var ctx = canvas.getContext("2d");
                         ctx.drawImage(img, 0, 0, img.width, img.height);
         
-                        const imageData = ctx.getImageData(0, 0, img.width, img.height);
-        
-                        const blob = new Blob([imageData.data]);
-                        const stream = blob.stream(1024);
-        
-                        resolve(stream)
+                        const imageData = ctx.getImageData(0, 0, img.width, img.height);      
+                        resolve(imageData.data)
                     };
 
                     if (!self.options.wcs) {
@@ -555,14 +551,14 @@ export let Image = (function () {
                     img.src = Aladin.JSONP_PROXY + '?url=' + self.url;
                 }
             })
-            .then((readableStream) => {
+            .then((bytes) => {
                 let wcs = self.options && self.options.wcs;
                 wcs.NAXIS1 = wcs.NAXIS1 || img.width;
                 wcs.NAXIS2 = wcs.NAXIS2 || img.height;
 
                 return self.view.wasm
-                    .addImageWithWCS(
-                        readableStream,
+                    .addRGBAImage(
+                        bytes,
                         wcs,
                         {
                             ...self.colorCfg.get(),

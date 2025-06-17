@@ -1,8 +1,6 @@
 #version 300 es
 precision lowp float;
 precision lowp sampler2DArray;
-precision lowp usampler2DArray;
-precision lowp isampler2DArray;
 precision mediump int;
 
 uniform sampler2DArray tex;
@@ -22,26 +20,16 @@ uniform Tile textures_tiles[12];
 
 #include ../color.glsl;
 #include ../../projection/hpx_proj.glsl;
+#include ./utils.glsl;
 
 uniform float opacity;
 uniform vec4 no_tile_color;
 
-vec4 get_tile_color(vec3 pos) {
-    HashDxDy result = hash_with_dxdy(0, pos.zxy);
-
-    int idx = result.idx;
-    vec2 uv = vec2(result.dy, result.dx);
-    Tile tile = textures_tiles[idx];
-
-    vec2 offset = uv;
-    vec3 UV = vec3(offset, float(tile.texture_idx));
-
-    vec4 color = mix(get_pixels(UV), no_tile_color, tile.empty);
-    return apply_color_settings(color);
-}
-
 void main() {
-    // Get the HEALPix cell idx and the uv in the texture
-    vec4 c = get_tile_color(normalize(frag_pos));
+    vec3 uv = xyz2uv(normalize(frag_pos));
+    vec4 c = uvw2c_rgba(uv);
+
+    //c = mix(c, no_tile_color, tile.empty);
+    out_frag_color = c;
     out_frag_color = vec4(c.rgb, opacity * c.a);
 }

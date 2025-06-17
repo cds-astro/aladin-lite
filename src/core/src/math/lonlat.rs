@@ -49,8 +49,8 @@ where
 }
 
 use crate::math::angle::ToAngle;
-impl From<wcs::LonLat> for LonLatT<f64> {
-    fn from(lonlat: wcs::LonLat) -> Self {
+impl From<fitsrs::wcs::LonLat> for LonLatT<f64> {
+    fn from(lonlat: fitsrs::wcs::LonLat) -> Self {
         Self(lonlat.lon().to_angle(), lonlat.lat().to_angle())
     }
 }

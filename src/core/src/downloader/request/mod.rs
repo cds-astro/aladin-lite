@@ -1,7 +1,6 @@
 // A request image should not be used outside this module
 // but contained inside a more specific type of query (e.g. for a tile or allsky)
 pub mod allsky;
-pub mod blank;
 pub mod moc;
 pub mod tile;
 
@@ -79,13 +78,11 @@ where
 }
 
 use allsky::AllskyRequest;
-use blank::PixelMetadataRequest;
 use moc::MOCRequest;
 use tile::TileRequest;
 pub enum RequestType {
     Tile(TileRequest),
     Allsky(AllskyRequest),
-    PixelMetadata(PixelMetadataRequest),
     Moc(MOCRequest), //..
 }
 
@@ -95,7 +92,6 @@ impl RequestType {
         match self {
             RequestType::Tile(request) => &request.id,
             RequestType::Allsky(request) => &request.id,
-            RequestType::PixelMetadata(request) => &request.id,
             RequestType::Moc(request) => &request.hips_cdid,
         }
     }
@@ -106,9 +102,6 @@ impl<'a> From<&'a RequestType> for Option<Resource> {
         match request {
             RequestType::Tile(request) => Option::<Tile>::from(request).map(Resource::Tile),
             RequestType::Allsky(request) => Option::<Allsky>::from(request).map(Resource::Allsky),
-            RequestType::PixelMetadata(request) => {
-                Option::<PixelMetadata>::from(request).map(Resource::PixelMetadata)
-            }
             RequestType::Moc(request) => Option::<Moc>::from(request).map(Resource::Moc),
         }
     }
@@ -116,13 +109,11 @@ impl<'a> From<&'a RequestType> for Option<Resource> {
 
 use crate::Abort;
 use allsky::Allsky;
-use blank::PixelMetadata;
 use moc::Moc;
 use tile::Tile;
 pub enum Resource {
     Tile(Tile),
     Allsky(Allsky),
-    PixelMetadata(PixelMetadata),
     Moc(Moc),
 }
 

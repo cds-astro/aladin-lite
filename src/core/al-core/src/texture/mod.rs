@@ -1,6 +1,7 @@
 pub mod array;
 pub use array::Texture2DArray;
 
+pub mod format;
 pub mod pixel;
 pub use pixel::*;
 
@@ -11,7 +12,7 @@ pub use mod_3d::Texture3D;
 use web_sys::HtmlCanvasElement;
 use web_sys::WebGlTexture;
 
-use crate::image::format::ChannelType;
+use crate::texture::format::PixelType;
 use crate::webgl_ctx::WebGlContext;
 use crate::webgl_ctx::WebGlRenderingCtx;
 use wasm_bindgen::prelude::*;
@@ -24,9 +25,8 @@ pub static mut CUR_IDX_TEX_UNIT: u8 = 0;
 #[allow(dead_code)]
 pub struct Texture2DMeta {
     pub format: u32,
-    pub internal_format: i32,
     pub ty: u32,
-    pub channel_type: ChannelType,
+    pub pixel_type: PixelType,
 
     pub width: u32,
     pub height: u32,
@@ -47,13 +47,13 @@ pub enum SamplerType {
     Unsigned,
 }
 
-use crate::image::format::ImageFormat;
-//use super::pixel::PixelType;
+use crate::texture::format::TextureFormat;
+
 use std::cell::RefCell;
 use std::path::Path;
 use std::rc::Rc;
 impl Texture2D {
-    pub fn create_from_path<P: AsRef<Path>, F: ImageFormat>(
+    pub fn create_from_path<P: AsRef<Path>, F: TextureFormat>(
         gl: &WebGlContext,
         name: &'static str,
         src: &P,
@@ -61,7 +61,6 @@ impl Texture2D {
     ) -> Result<Texture2D, JsValue> {
         let image = HtmlImageElement::new().unwrap_abort();
 
-        #[cfg(feature = "webgl2")]
         let texture = gl.create_texture();
 
         let onerror = {
@@ -76,13 +75,11 @@ impl Texture2D {
         let metadata = Rc::new(RefCell::new(Texture2DMeta {
             width,
             height,
-            internal_format: F::INTERNAL_FORMAT,
             format: F::FORMAT,
             ty: F::TYPE,
-            channel_type: F::CHANNEL_TYPE,
+            pixel_type: F::PIXEL_TYPE,
         }));
 
-        #[cfg(feature = "webgl2")]
         let onload = {
             let image = image.clone();
             let gl = gl.clone();
@@ -132,7 +129,6 @@ impl Texture2D {
 
         let gl = gl.clone();
         Ok(Texture2D {
-            #[cfg(feature = "webgl2")]
             texture,
 
             gl,
@@ -141,7 +137,7 @@ impl Texture2D {
         })
     }
 
-    pub fn create_from_raw_pixels<F: ImageFormat>(
+    pub fn create_from_raw_pixels<F: TextureFormat>(
         gl: &WebGlContext,
         width: i32,
         height: i32,
@@ -166,12 +162,12 @@ impl Texture2D {
         Ok(texture)
     }
 
-    pub fn create_from_raw_bytes<F: ImageFormat>(
+    pub fn create_from_raw_bytes<F: TextureFormat>(
         gl: &WebGlContext,
         width: i32,
         height: i32,
         tex_params: &'static [(u32, u32)],
-        bytes: Option<&[u8]>,
+        bytes: &[u8],
     ) -> Result<Texture2D, JsValue> {
         let texture = gl.create_texture();
 
@@ -188,7 +184,14 @@ impl Texture2D {
             width,
             height,
         );
-        gl.tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_u8_array(
+        let view = unsafe {
+            let len = bytes.len() / (std::mem::size_of::<<F::P as Pixel>::Item>());
+            let pixels =
+                std::slice::from_raw_parts(bytes.as_ptr() as *const <F::P as Pixel>::Item, len);
+            F::view(pixels)
+        };
+
+        gl.tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_array_buffer_view(
             WebGlRenderingCtx::TEXTURE_2D,
             0,
             0,
@@ -197,7 +200,7 @@ impl Texture2D {
             height,
             F::FORMAT,
             F::TYPE,
-            bytes,
+            Some(view.as_ref()),
         )
         .expect("Texture 2D");
 
@@ -205,10 +208,9 @@ impl Texture2D {
         let metadata = Some(Rc::new(RefCell::new(Texture2DMeta {
             width: width as u32,
             height: height as u32,
-            internal_format: F::INTERNAL_FORMAT,
             format: F::FORMAT,
             ty: F::TYPE,
-            channel_type: F::CHANNEL_TYPE,
+            pixel_type: F::PIXEL_TYPE,
         })));
 
         Ok(Texture2D {
@@ -220,7 +222,7 @@ impl Texture2D {
         })
     }
 
-    pub fn create_empty_with_format<F: ImageFormat>(
+    pub fn create_empty_with_format<F: TextureFormat>(
         gl: &WebGlContext,
         width: i32,
         height: i32,
@@ -246,16 +248,14 @@ impl Texture2D {
         let metadata = Some(Rc::new(RefCell::new(Texture2DMeta {
             width: width as u32,
             height: height as u32,
-            internal_format: F::INTERNAL_FORMAT,
             format: F::FORMAT,
             ty: F::TYPE,
-            channel_type: F::CHANNEL_TYPE,
+            pixel_type: F::PIXEL_TYPE,
         })));
+
         Ok(Texture2D {
             texture,
-
             gl,
-
             metadata,
         })
     }
@@ -335,31 +335,28 @@ impl Texture2D {
             self.gl
                 .viewport(0, 0, metadata.width as i32, metadata.height as i32);
 
-            #[cfg(feature = "webgl2")]
-            let value = match metadata.channel_type {
-                ChannelType::R8UI => {
+            let value = match metadata.pixel_type {
+                PixelType::R8U => {
                     let p = <[u8; 1]>::read_pixel(&self.gl, x, y)?;
                     Ok(serde_wasm_bindgen::to_value(&p[0])?)
                 }
-                ChannelType::R16I => {
+                PixelType::R16I => {
                     let p = <[i16; 1]>::read_pixel(&self.gl, x, y)?;
                     Ok(serde_wasm_bindgen::to_value(&p[0])?)
                 }
-                ChannelType::R32I => {
+                PixelType::R32I => {
                     let p = <[i32; 1]>::read_pixel(&self.gl, x, y)?;
                     Ok(serde_wasm_bindgen::to_value(&p[0])?)
                 }
-                ChannelType::R32F => {
+                PixelType::R32F => {
                     let p = <[f32; 1]>::read_pixel(&self.gl, x, y)?;
-                    crate::log(&format!("{:?}", p));
-
                     Ok(serde_wasm_bindgen::to_value(&p[0])?)
                 }
-                ChannelType::RGB8U => {
+                PixelType::RGB8U => {
                     let p = <[u8; 3]>::read_pixel(&self.gl, x, y)?;
                     Ok(serde_wasm_bindgen::to_value(&p)?)
                 }
-                ChannelType::RGBA8U => {
+                PixelType::RGBA8U => {
                     let p = <[u8; 4]>::read_pixel(&self.gl, x, y)?;
                     Ok(serde_wasm_bindgen::to_value(&p)?)
                 }

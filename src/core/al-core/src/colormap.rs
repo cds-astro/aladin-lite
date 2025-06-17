@@ -2,11 +2,11 @@ use std::collections::HashMap;
 
 use colorgrad::Color;
 
-use crate::image::format;
 use crate::shader::SendUniformsWithParams;
 use crate::Texture2D;
 use crate::WebGlContext;
 
+use crate::texture::format::RGBA8U;
 use crate::webgl_ctx::WebGlRenderingCtx;
 use wasm_bindgen::JsValue;
 
@@ -68,7 +68,7 @@ fn build_cmaps_texture(gl: &WebGlContext, cmaps: &[Colormap]) -> Result<Texture2
         ),
     ];
 
-    Texture2D::create_from_raw_pixels::<format::RGBA8U>(
+    Texture2D::create_from_raw_pixels::<RGBA8U>(
         gl,
         WIDTH_CMAP_TEX as i32,
         cmaps.len() as i32,

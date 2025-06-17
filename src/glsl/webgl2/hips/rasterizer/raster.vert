@@ -2,7 +2,6 @@
 precision highp float;
 
 layout (location = 0) in vec3 xyz;
-//layout (location = 0) in vec2 lonlat;
 layout (location = 1) in vec3 uv_start;
 layout (location = 2) in vec3 uv_end;
 layout (location = 3) in float time_tile_received;

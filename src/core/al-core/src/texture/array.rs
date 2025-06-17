@@ -1,9 +1,9 @@
-use crate::image::format::ImageFormat;
+use crate::texture::format::PixelType;
+use crate::texture::format::TextureFormat;
 use web_sys::HtmlCanvasElement;
 use web_sys::WebGlTexture;
 
 use crate::texture::pixel::Pixel;
-use crate::texture::ChannelType;
 use crate::texture::Texture2DMeta;
 use crate::webgl_ctx::WebGlContext;
 use crate::webgl_ctx::WebGlRenderingCtx;
@@ -22,7 +22,7 @@ pub struct Texture2DArray {
 }
 
 impl Texture2DArray {
-    pub fn create_empty<F: ImageFormat>(
+    pub fn create_empty<F: TextureFormat>(
         gl: &WebGlContext,
         // The weight of the individual textures
         width: i32,
@@ -53,10 +53,9 @@ impl Texture2DArray {
         let metadata = Some(Rc::new(RefCell::new(Texture2DMeta {
             width: width as u32,
             height: height as u32,
-            internal_format: F::INTERNAL_FORMAT,
-            format: F::FORMAT,
+            pixel_type: F::PIXEL_TYPE,
             ty: F::TYPE,
-            channel_type: F::CHANNEL_TYPE,
+            format: F::FORMAT,
         })));
 
         Ok(Texture2DArray {
@@ -116,37 +115,31 @@ impl Texture2DArray {
             self.gl
                 .viewport(0, 0, metadata.width as i32, metadata.height as i32);
 
-            #[cfg(feature = "webgl2")]
-            let value = match metadata.channel_type {
-                ChannelType::R8UI => {
+            let value = match metadata.pixel_type {
+                PixelType::R8U => {
                     let p = <[u8; 1]>::read_pixel(&self.gl, x, y)?;
                     Ok(serde_wasm_bindgen::to_value(&p[0])?)
                 }
-                ChannelType::R16I => {
+                PixelType::R16I => {
                     let p = <[i16; 1]>::read_pixel(&self.gl, x, y)?;
                     Ok(serde_wasm_bindgen::to_value(&p[0])?)
                 }
-                ChannelType::R32I => {
+                PixelType::R32I => {
                     let p = <[i32; 1]>::read_pixel(&self.gl, x, y)?;
                     Ok(serde_wasm_bindgen::to_value(&p[0])?)
                 }
-                ChannelType::R32F => {
+                PixelType::R32F => {
                     let p = <[f32; 1]>::read_pixel(&self.gl, x, y)?;
-                    crate::log(&format!("{:?}", p));
-
                     Ok(serde_wasm_bindgen::to_value(&p[0])?)
                 }
-                ChannelType::RGB8U => {
+                PixelType::RGB8U => {
                     let p = <[u8; 3]>::read_pixel(&self.gl, x, y)?;
                     Ok(serde_wasm_bindgen::to_value(&p)?)
                 }
-                ChannelType::RGBA8U => {
+                PixelType::RGBA8U => {
                     let p = <[u8; 4]>::read_pixel(&self.gl, x, y)?;
                     Ok(serde_wasm_bindgen::to_value(&p)?)
                 }
-                _ => Err(JsValue::from_str(
-                    "Pixel retrieval not implemented for that texture format.",
-                )),
             };
 
             // Unbind the framebuffer

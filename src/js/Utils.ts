@@ -397,6 +397,8 @@ Utils.fetch = function(params) {
                 return resp.json();
             } else if (params.dataType && params.dataType.includes('blob')) {
                 return resp.blob();
+            } else if (params.dataType && params.dataType.includes('arrayBuffer')) {
+                return resp.arrayBuffer();
             } else if (params.dataType && params.dataType.includes('readableStream')) {
                 return Promise.resolve(resp.body);
             } else {

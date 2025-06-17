@@ -1,8 +1,6 @@
 #version 300 es
 precision lowp float;
 precision lowp sampler2DArray;
-precision lowp sampler2DArray;
-precision lowp isampler2DArray;
 precision mediump int;
 
 in vec3 frag_pos;
@@ -29,24 +27,16 @@ struct TileColor {
 
 #include ../color.glsl;
 #include ../../projection/hpx_proj.glsl;
-
-vec4 get_tile_color(vec3 pos) {
-    HashDxDy result = hash_with_dxdy(0, pos.zxy);
-
-    int idx = result.idx;
-    vec2 uv = vec2(result.dy, result.dx);
-    Tile tile = textures_tiles[idx];
-
-    vec2 offset = uv;
-    vec3 UV = vec3(offset, float(tile.texture_idx));
-
-    vec4 color = get_colormap_from_grayscale_texture(UV);
-    color.a *= (1.0 - tile.empty);
-    return color;
-}
+#include ./utils.glsl;
 
 void main() {
-    vec4 c = get_tile_color(normalize(frag_pos));
+    vec3 uv = xyz2uv(normalize(frag_pos));
+
+    uv.y = 1.0 - uv.y;
+    vec4 c = uvw2c_f32(uv);
+
+    //c.a *= (1.0 - tile.empty);
+
     out_frag_color = c;
     out_frag_color.a = out_frag_color.a * opacity;
 }

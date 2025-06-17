@@ -1,10 +1,10 @@
-use al_core::image::format::ChannelType;
+use al_core::texture::format::PixelType;
 use wasm_bindgen::JsValue;
 
 use futures::AsyncReadExt;
 
 use super::cuts;
-use al_core::image::format::ImageFormat;
+use al_core::texture::format::TextureFormat;
 use al_core::texture::pixel::Pixel;
 use al_core::webgl_ctx::WebGlRenderingCtx;
 use al_core::Texture2D;
@@ -12,7 +12,7 @@ use al_core::WebGlContext;
 use std::ops::Range;
 
 use al_core::convert::Cast;
-type PixelItem<F> = <<F as ImageFormat>::P as Pixel>::Item;
+type PixelItem<F> = <<F as TextureFormat>::P as Pixel>::Item;
 
 pub async fn crop_image<F, R>(
     gl: &WebGlContext,
@@ -23,7 +23,7 @@ pub async fn crop_image<F, R>(
     blank: Option<f32>,
 ) -> Result<(Vec<Texture2D>, Range<f32>), JsValue>
 where
-    F: ImageFormat,
+    F: TextureFormat,
     R: AsyncReadExt + Unpin,
 {
     let mut tex_chunks = vec![];
@@ -117,8 +117,8 @@ where
                     // We are in a good line
                     let xmin = pixels_written % width;
 
-                    match F::CHANNEL_TYPE {
-                        ChannelType::R32F | ChannelType::R64F => {
+                    match F::PIXEL_TYPE {
+                        PixelType::R32F => {
                             let pixels = std::slice::from_raw_parts(
                                 data.as_ptr() as *const f32,
                                 data.len() / 4,
@@ -134,7 +134,7 @@ where
                                 }
                             }
                         }
-                        ChannelType::R8UI | ChannelType::R16I | ChannelType::R32I => {
+                        PixelType::R8U | PixelType::R16I | PixelType::R32I => {
                             if let Some(blank) = blank {
                                 for i in (0..width).step_by(step_cut) {
                                     if (xmin..(xmin + num_pixels_to_read)).contains(&i) {
@@ -184,7 +184,7 @@ where
         }
     }
 
-    let cuts = if F::CHANNEL_TYPE.is_colored() {
+    let cuts = if F::PIXEL_TYPE.num_channels() == 1 {
         cuts::first_and_last_percent(&mut sub_pixels, 1, 99)
     } else {
         0.0..1.0

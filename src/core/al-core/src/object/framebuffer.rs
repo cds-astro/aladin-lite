@@ -2,7 +2,7 @@ use {wasm_bindgen::prelude::*, web_sys::WebGlFramebuffer};
 
 use crate::webgl_ctx::WebGlRenderingCtx;
 // Internal format used for the framebuffer final texture
-use crate::image::format::RGBA8U;
+use crate::texture::format::RGBA8U;
 
 pub struct FrameBufferObject {
     gl: WebGlContext,

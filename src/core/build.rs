@@ -56,6 +56,8 @@ fn read_shader<P: AsRef<std::path::Path>>(path: P) -> std::io::Result<String> {
                 let incl_file_name_rel = incl_file_names[1];
                 let incl_file_name = path.parent().unwrap().join(incl_file_name_rel);
 
+                println!("{}", incl_file_name.to_string_lossy());
+
                 read_shader(incl_file_name.to_str().unwrap()).unwrap()
             } else {
                 l

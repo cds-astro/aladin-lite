@@ -159,43 +159,8 @@ impl Query for Allsky {
 }
 
 /* ---------------------------------- */
-pub struct PixelMetadata {
-    pub format: ImageFormatType,
-    // The root url of the HiPS
-    pub hips_cdid: CreatorDid,
-    // The total url of the query
-    pub url: Url,
-    pub id: QueryId,
-}
-
-impl PixelMetadata {
-    pub fn new(cfg: &HiPSConfig) -> Self {
-        let hips_cdid = cfg.get_creator_did().to_string();
-        let format = cfg.get_format();
-        let ext = format.get_ext_file();
-
-        let url = format!("{}/Norder3/Allsky.{}", cfg.get_root_url(), ext);
-
-        let id = format!("{}Allsky{}", hips_cdid, ext);
-        PixelMetadata {
-            hips_cdid,
-            url,
-            format,
-            id,
-        }
-    }
-}
-
-use super::request::blank::PixelMetadataRequest;
-impl Query for PixelMetadata {
-    type Request = PixelMetadataRequest;
-
-    fn id(&self) -> &QueryId {
-        &self.id
-    }
-}
 use al_api::moc::MOCOptions;
-/* ---------------------------------- */
+
 pub struct Moc {
     // The total url of the query
     pub url: Url,

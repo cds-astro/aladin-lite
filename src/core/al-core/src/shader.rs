@@ -330,6 +330,7 @@ impl SendUniformsWithParams<Colormaps> for HiPSColor {
 
         let cmap = cmaps.get(self.cmap_name.as_ref());
         shader
+            .attach_uniforms_from(cmaps)
             .attach_uniforms_with_params_from(cmap, cmaps)
             .attach_uniform("H", &self.stretch)
             .attach_uniform("min_value", &self.min_cut.unwrap_or(0.0))

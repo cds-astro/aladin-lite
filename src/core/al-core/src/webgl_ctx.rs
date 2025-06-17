@@ -4,10 +4,7 @@ use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;
 use web_sys::HtmlElement;
 
-#[cfg(feature = "webgl2")]
 pub type WebGlRenderingCtx = web_sys::WebGl2RenderingContext;
-#[cfg(feature = "webgl1")]
-pub type WebGlRenderingCtx = web_sys::WebGlRenderingContext;
 
 #[derive(Clone)]
 pub struct WebGlContext {

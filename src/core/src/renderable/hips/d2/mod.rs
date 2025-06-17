@@ -9,9 +9,11 @@ use al_api::hips::ImageExt;
 use al_api::hips::ImageMetadata;
 use al_core::colormap::Colormap;
 use al_core::colormap::Colormaps;
-use al_core::image::format::ChannelType;
+use al_core::texture::format::PixelType;
 use cgmath::Vector2;
 use cgmath::Vector3;
+
+use crate::renderable::hips::FitsParams;
 
 use al_core::image::Image;
 
@@ -97,43 +99,49 @@ pub fn get_raster_shader<'a>(
     shaders: &'a mut ShaderManager,
     config: &HiPSConfig,
 ) -> Result<&'a Shader, JsValue> {
-    if config.get_format().is_colored() {
-        if cmap.label() == "native" {
-            crate::shader::get_shader(
-                gl,
-                shaders,
-                "hips_rasterizer_raster.vert",
-                "hips_rasterizer_color.frag",
-            )
-        } else {
-            crate::shader::get_shader(
-                gl,
-                shaders,
-                "hips_rasterizer_raster.vert",
-                "hips_rasterizer_color_to_colormap.frag",
-            )
+    match config.get_format().get_pixel_format() {
+        PixelType::R8U => crate::shader::get_shader(
+            gl,
+            shaders,
+            "hips_rasterizer_raster.vert",
+            "hips_rasterizer_u8.frag",
+        ),
+        PixelType::R16I => crate::shader::get_shader(
+            gl,
+            shaders,
+            "hips_rasterizer_raster.vert",
+            "hips_rasterizer_i16.frag",
+        ),
+        PixelType::R32I => crate::shader::get_shader(
+            gl,
+            shaders,
+            "hips_rasterizer_raster.vert",
+            "hips_rasterizer_i32.frag",
+        ),
+        PixelType::R32F => crate::shader::get_shader(
+            gl,
+            shaders,
+            "hips_rasterizer_raster.vert",
+            "hips_rasterizer_f32.frag",
+        ),
+        // color case
+        _ => {
+            if cmap.label() == "native" {
+                crate::shader::get_shader(
+                    gl,
+                    shaders,
+                    "hips_rasterizer_raster.vert",
+                    "hips_rasterizer_rgba.frag",
+                )
+            } else {
+                crate::shader::get_shader(
+                    gl,
+                    shaders,
+                    "hips_rasterizer_raster.vert",
+                    "hips_rasterizer_rgba2cmap.frag",
+                )
+            }
         }
-    } else if config.tex_storing_unsigned_int {
-        crate::shader::get_shader(
-            gl,
-            shaders,
-            "hips_rasterizer_raster.vert",
-            "hips_rasterizer_grayscale_to_colormap_u.frag",
-        )
-    } else if config.tex_storing_integers {
-        crate::shader::get_shader(
-            gl,
-            shaders,
-            "hips_rasterizer_raster.vert",
-            "hips_rasterizer_grayscale_to_colormap_i.frag",
-        )
-    } else {
-        crate::shader::get_shader(
-            gl,
-            shaders,
-            "hips_rasterizer_raster.vert",
-            "hips_rasterizer_grayscale_to_colormap.frag",
-        )
     }
 }
 
@@ -143,44 +151,49 @@ pub fn get_raytracer_shader<'a>(
     shaders: &'a mut ShaderManager,
     config: &HiPSConfig,
 ) -> Result<&'a Shader, JsValue> {
-    //let colored_hips = config.is_colored();
-    if config.get_format().is_colored() {
-        if cmap.label() == "native" {
-            crate::shader::get_shader(
-                gl,
-                shaders,
-                "hips_raytracer_raytracer.vert",
-                "hips_raytracer_color.frag",
-            )
-        } else {
-            crate::shader::get_shader(
-                gl,
-                shaders,
-                "hips_raytracer_raytracer.vert",
-                "hips_raytracer_color_to_colormap.frag",
-            )
+    match config.get_format().get_pixel_format() {
+        PixelType::R8U => crate::shader::get_shader(
+            gl,
+            shaders,
+            "hips_raytracer_raytracer.vert",
+            "hips_raytracer_u8.frag",
+        ),
+        PixelType::R16I => crate::shader::get_shader(
+            gl,
+            shaders,
+            "hips_raytracer_raytracer.vert",
+            "hips_raytracer_i16.frag",
+        ),
+        PixelType::R32I => crate::shader::get_shader(
+            gl,
+            shaders,
+            "hips_raytracer_raytracer.vert",
+            "hips_raytracer_i32.frag",
+        ),
+        PixelType::R32F => crate::shader::get_shader(
+            gl,
+            shaders,
+            "hips_raytracer_raytracer.vert",
+            "hips_raytracer_f32.frag",
+        ),
+        // color case
+        _ => {
+            if cmap.label() == "native" {
+                crate::shader::get_shader(
+                    gl,
+                    shaders,
+                    "hips_raytracer_raytracer.vert",
+                    "hips_raytracer_rgba.frag",
+                )
+            } else {
+                crate::shader::get_shader(
+                    gl,
+                    shaders,
+                    "hips_raytracer_raytracer.vert",
+                    "hips_raytracer_rgba2cmap.frag",
+                )
+            }
         }
-    } else if config.tex_storing_unsigned_int {
-        crate::shader::get_shader(
-            gl,
-            shaders,
-            "hips_raytracer_raytracer.vert",
-            "hips_raytracer_grayscale_to_colormap_u.frag",
-        )
-    } else if config.tex_storing_integers {
-        crate::shader::get_shader(
-            gl,
-            shaders,
-            "hips_raytracer_raytracer.vert",
-            "hips_raytracer_grayscale_to_colormap_i.frag",
-        )
-    } else {
-        crate::shader::get_shader(
-            gl,
-            shaders,
-            "hips_raytracer_raytracer.vert",
-            "hips_raytracer_grayscale_to_colormap.frag",
-        )
     }
 }
 
@@ -217,6 +230,8 @@ pub struct HiPS2D {
 
     // A buffer storing the cells in the view
     hpx_cells_in_view: Vec<HEALPixCell>,
+
+    pub fits_params: Option<FitsParams>,
 }
 
 use super::HpxTileBuffer;
@@ -288,6 +303,8 @@ impl HiPS2D {
             vao,
 
             gl,
+
+            fits_params: None,
 
             position,
             uv_start,
@@ -423,7 +440,13 @@ impl HiPS2D {
             let (pix, dx, dy) = crate::healpix::utils::hash_with_dxdy(depth, &lonlat);
             let tile_cell = HEALPixCell(depth, pix);
 
-            self.buffer.read_pixel(&tile_cell, dx, dy)
+            let (bscale, bzero) = if let Some(FitsParams { bscale, bzero, .. }) = self.fits_params {
+                (bscale, bzero)
+            } else {
+                (1.0, 0.0)
+            };
+
+            self.buffer.read_pixel(&tile_cell, dx, dy, bscale, bzero)
         } else {
             Err(JsValue::from_str("Out of projection"))
         }
@@ -438,7 +461,7 @@ impl HiPS2D {
 
         let cfg = self.buffer.config();
         // Get the coo system transformation matrix
-        let channel = cfg.get_format().get_channel();
+        let channel = cfg.get_format().get_pixel_format();
 
         // Retrieve the model and inverse model matrix
         let mut off_indices = 0;
@@ -531,7 +554,7 @@ impl HiPS2D {
                 } else {
                     // No ancestor has been found in the buffer to draw.
                     // We might want to check if the HiPS channel is JPEG to mock a cell that will be drawn in black
-                    if channel == ChannelType::RGB8U {
+                    if channel == PixelType::RGB8U {
                         Some(HpxDrawData::new(cell))
                     } else {
                         None
@@ -540,7 +563,7 @@ impl HiPS2D {
             } else {
                 // No ancestor has been found in the buffer to draw.
                 // We might want to check if the HiPS channel is JPEG to mock a cell that will be drawn in black
-                if channel == ChannelType::RGB8U {
+                if channel == PixelType::RGB8U {
                     Some(HpxDrawData::new(cell))
                 } else {
                     None
@@ -754,7 +777,7 @@ impl HiPS2D {
                     .attach_uniform("current_time", &utils::get_current_time())
                     .attach_uniform(
                         "no_tile_color",
-                        &(if config.get_format().get_channel() == ChannelType::RGB8U {
+                        &(if config.get_format().get_pixel_format() == PixelType::RGB8U {
                             Vector4::new(0.0, 0.0, 0.0, 1.0)
                         } else {
                             Vector4::new(0.0, 0.0, 0.0, 0.0)
@@ -762,6 +785,10 @@ impl HiPS2D {
                     )
                     .attach_uniform("opacity", opacity)
                     .attach_uniforms_from(colormaps);
+
+                if let Some(fits_params) = self.fits_params.as_ref() {
+                    shader.attach_uniforms_from(fits_params);
+                }
 
                 raytracer.draw(&shader);
             } else {
@@ -791,7 +818,13 @@ impl HiPS2D {
                     .attach_uniform("current_time", &utils::get_current_time())
                     .attach_uniform("opacity", opacity)
                     .attach_uniform("u_proj", proj)
-                    .attach_uniforms_from(colormaps)
+                    .attach_uniforms_from(colormaps);
+
+                if let Some(fits_params) = self.fits_params.as_ref() {
+                    shader.attach_uniforms_from(fits_params);
+                }
+
+                shader
                     .bind_vertex_array_object_ref(&self.vao)
                     .draw_elements_with_i32(
                         WebGl2RenderingContext::TRIANGLES,
@@ -806,7 +839,14 @@ impl HiPS2D {
         })?;
 
         //self.gl.disable(WebGl2RenderingContext::BLEND);
-
         Ok(())
+    }
+
+    pub fn set_fits_params(&mut self, bscale: f32, bzero: f32, blank: Option<f32>) {
+        self.fits_params = Some(FitsParams {
+            bscale,
+            bzero,
+            blank,
+        });
     }
 }

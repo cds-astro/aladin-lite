@@ -1,6 +1,7 @@
 use al_api::hips::ImageExt;
 
-use al_core::image::format::{ChannelType, ImageFormatType};
+use al_core::image::format::ImageFormatType;
+use al_core::texture::format::PixelType;
 use web_sys::{RequestCredentials, RequestMode};
 
 #[derive(Debug)]
@@ -20,18 +21,6 @@ pub struct HiPSConfig {
     max_depth_tile: u8,
 
     pub is_allsky: bool,
-
-    // TODO: store this values in the ImageSurvey
-    // These are proper to the survey (FITS one) and not
-    // to a specific survey color
-    pub fits_metadata: bool,
-    pub scale: f32,
-    pub offset: f32,
-    pub blank: f32,
-
-    pub tex_storing_integers: bool,
-    pub tex_storing_fits: bool,
-    pub tex_storing_unsigned_int: bool,
 
     pub frame: CooSystem,
     pub bitpix: Option<i32>,
@@ -68,12 +57,7 @@ impl HiPSConfig {
         // Determine the size of the texture to copy
         // it cannot be > to 512x512px
 
-        let _fmt = properties.get_formats();
         let bitpix = properties.get_bitpix();
-        let mut tex_storing_unsigned_int = false;
-        let mut tex_storing_integers = false;
-
-        let mut tex_storing_fits = false;
 
         if !properties.get_formats().contains(&img_ext) {
             return Err(js_sys::Error::new("HiPS format not available").into());
@@ -83,45 +67,18 @@ impl HiPSConfig {
             ImageExt::Fits => {
                 // Check the bitpix to determine the internal format of the tiles
                 if let Some(bitpix) = bitpix {
-                    let channel = (match bitpix {
-                        #[cfg(feature = "webgl2")]
-                        8 => {
-                            tex_storing_fits = true;
-                            tex_storing_unsigned_int = true;
-                            Ok(ChannelType::R8UI)
-                        }
-                        #[cfg(feature = "webgl2")]
-                        16 => {
-                            tex_storing_fits = true;
-                            tex_storing_integers = true;
-                            Ok(ChannelType::R16I)
-                        }
-                        #[cfg(feature = "webgl2")]
-                        32 => {
-                            tex_storing_fits = true;
-                            tex_storing_integers = true;
-                            Ok(ChannelType::R32I)
-                        }
-                        -32 => {
-                            tex_storing_fits = true;
-                            tex_storing_integers = false;
-                            Ok(ChannelType::R32F)
-                        }
-                        -64 => {
-                            tex_storing_fits = true;
-                            tex_storing_integers = false;
-                            //Err(JsValue::from_str("f64 FITS files not supported"))
-                            Ok(ChannelType::R64F)
-                        }
+                    let fmt = (match bitpix {
+                        8 => Ok(PixelType::R8U),
+                        16 => Ok(PixelType::R16I),
+                        32 => Ok(PixelType::R32I),
+                        -32 => Ok(PixelType::R32F),
+                        -64 => Ok(PixelType::R32F),
                         _ => Err(JsValue::from_str(
                             "Fits tiles exists but the BITPIX is not correct in the property file",
                         )),
                     })?;
 
-                    Ok(ImageFormatType {
-                        ext: img_ext,
-                        channel,
-                    })
+                    Ok(ImageFormatType { ext: img_ext, fmt })
                 } else {
                     Err(JsValue::from_str(
                         "Fits tiles exists but the BITPIX is not found",
@@ -130,11 +87,11 @@ impl HiPSConfig {
             }
             ImageExt::Png | ImageExt::Webp => Ok(ImageFormatType {
                 ext: img_ext,
-                channel: ChannelType::RGBA8U,
+                fmt: PixelType::RGBA8U,
             }),
             ImageExt::Jpeg => Ok(ImageFormatType {
                 ext: img_ext,
-                channel: ChannelType::RGB8U,
+                fmt: PixelType::RGB8U,
             }),
         }?;
 
@@ -168,15 +125,6 @@ impl HiPSConfig {
 
             is_allsky,
 
-            fits_metadata: false,
-            scale: 1.0,
-            offset: 0.0,
-            blank: -1.0, // by default, set it to -1
-
-            tex_storing_fits,
-            tex_storing_integers,
-            tex_storing_unsigned_int,
-
             // the number of slices in a cube
             cube_depth,
 
@@ -196,66 +144,32 @@ impl HiPSConfig {
             ImageExt::Fits => {
                 // Check the bitpix to determine the internal format of the tiles
                 if let Some(bitpix) = self.bitpix {
-                    let channel = (match bitpix {
-                        #[cfg(feature = "webgl2")]
-                        8 => {
-                            self.tex_storing_fits = true;
-                            self.tex_storing_unsigned_int = true;
-                            Ok(ChannelType::R8UI)
-                        }
-                        #[cfg(feature = "webgl2")]
-                        16 => {
-                            self.tex_storing_fits = true;
-                            self.tex_storing_integers = true;
-                            Ok(ChannelType::R16I)
-                        }
-                        #[cfg(feature = "webgl2")]
-                        32 => {
-                            self.tex_storing_fits = true;
-                            self.tex_storing_integers = true;
-                            Ok(ChannelType::R32I)
-                        }
-                        -32 => {
-                            self.tex_storing_fits = true;
-                            self.tex_storing_integers = false;
-                            Ok(ChannelType::R32F)
-                        }
-                        -64 => {
-                            self.tex_storing_fits = true;
-                            self.tex_storing_integers = false;
-                            //Err(JsValue::from_str("f64 FITS files not supported"))
-                            Ok(ChannelType::R64F)
-                        }
+                    let fmt = (match bitpix {
+                        8 => Ok(PixelType::R8U),
+                        16 => Ok(PixelType::R16I),
+                        32 => Ok(PixelType::R32I),
+                        -32 => Ok(PixelType::R32F),
+                        -64 => Ok(PixelType::R32F),
                         _ => Err(JsValue::from_str(
                             "Fits tiles exists but the BITPIX is not correct in the property file",
                         )),
                     })?;
 
-                    Ok(ImageFormatType { ext, channel })
+                    Ok(ImageFormatType { ext, fmt })
                 } else {
                     Err(JsValue::from_str(
                         "Fits tiles exists but the BITPIX is not found",
                     ))
                 }
             }
-            ImageExt::Png | ImageExt::Webp => {
-                self.tex_storing_fits = false;
-                self.tex_storing_unsigned_int = false;
-                self.tex_storing_integers = false;
-                Ok(ImageFormatType {
-                    ext,
-                    channel: ChannelType::RGBA8U,
-                })
-            }
-            ImageExt::Jpeg => {
-                self.tex_storing_fits = false;
-                self.tex_storing_unsigned_int = false;
-                self.tex_storing_integers = false;
-                Ok(ImageFormatType {
-                    ext,
-                    channel: ChannelType::RGB8U,
-                })
-            }
+            ImageExt::Png | ImageExt::Webp => Ok(ImageFormatType {
+                ext,
+                fmt: PixelType::RGBA8U,
+            }),
+            ImageExt::Jpeg => Ok(ImageFormatType {
+                ext,
+                fmt: PixelType::RGB8U,
+            }),
         }?;
 
         self.format = format;
@@ -275,14 +189,6 @@ impl HiPSConfig {
 
     pub fn get_cube_depth(&self) -> Option<u32> {
         self.cube_depth
-    }
-
-    #[inline(always)]
-    pub fn set_fits_metadata(&mut self, bscale: f32, bzero: f32, blank: f32) {
-        self.scale = bscale;
-        self.offset = bzero;
-        self.blank = blank;
-        self.fits_metadata = true;
     }
 
     #[inline(always)]
@@ -341,12 +247,7 @@ use al_core::shader::{SendUniforms, ShaderBound};
 impl SendUniforms for HiPSConfig {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
         // Send max depth
-        shader
-            .attach_uniform("max_depth", &(self.max_depth_tile as i32))
-            .attach_uniform("tex_storing_fits", &self.tex_storing_fits)
-            .attach_uniform("scale", &self.scale)
-            .attach_uniform("offset", &self.offset)
-            .attach_uniform("blank", &self.blank);
+        shader.attach_uniform("max_depth", &(self.max_depth_tile as i32));
 
         shader
     }

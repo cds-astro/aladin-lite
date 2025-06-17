@@ -1,5 +1,11 @@
+use crate::renderable::image::Image;
 use crate::renderable::ImageLayer;
 use crate::tile_fetcher::HiPSLocalFiles;
+use al_core::image::fits::FitsImage;
+use al_core::image::ImageType;
+use al_core::texture::format::{R16I, R32F, R32I, R8U, RGBA8U};
+use fitsrs::WCS;
+use std::io::Cursor;
 
 use crate::math::angle::ToAngle;
 use crate::renderable::hips::HiPS;
@@ -21,7 +27,6 @@ use crate::{
     time::DeltaTime,
 };
 use al_api::moc::MOCOptions;
-use wcs::WCS;
 
 use wasm_bindgen::prelude::*;
 
@@ -34,7 +39,6 @@ use al_api::{
     grid::GridCfg,
     hips::{HiPSCfg, ImageMetadata},
 };
-use fitsrs::{fits::AsyncFits, hdu::extension::AsyncXtensionHDU};
 
 use web_sys::{HtmlElement, WebGl2RenderingContext};
 
@@ -608,69 +612,25 @@ impl App {
                             //let _depth = tile.cell().depth();
                             // do not perform tex_sub costly GPU calls while the camera is zooming
                             if tile.cell().is_root() || included_in_coverage {
-                                //let is_missing = tile.missing();
-                                /*self.tile_fetcher.notify_tile(
-                                    &tile,
-                                    true,
-                                    false,
-                                    &mut self.downloader,
-                                );*/
-
-                                /*let image = if is_missing {
-                                    // Otherwise we push nothing, it is probably the case where:
-                                    // - an request error occured on a valid tile
-                                    // - the tile is not present, e.g. chandra HiPS have not the 0, 1 and 2 order tiles
-                                    None
-                                } else {
-                                    Some(image)
-                                };*/
-                                use al_core::image::ImageType;
-                                use fitsrs::fits::Fits;
-                                use std::io::Cursor;
                                 //if let Some(image) = image.as_ref() {
-                                if let Some(ImageType::FitsImage {
+                                if let Some(ImageType::FitsRawBytes {
                                     raw_bytes: raw_bytes_buf,
                                     ..
                                 }) = &*tile.image.borrow()
                                 {
                                     // check if the metadata has not been set
-                                    if !cfg.fits_metadata {
-                                        let num_bytes = raw_bytes_buf.length() as usize;
-                                        let mut raw_bytes = vec![0; num_bytes];
-                                        raw_bytes_buf.copy_to(&mut raw_bytes[..]);
+                                    if hips.get_fits_params().is_none() {
+                                        let raw_bytes = raw_bytes_buf.to_vec();
 
-                                        let mut bytes_reader = Cursor::new(raw_bytes.as_slice());
-                                        let Fits { hdu } = Fits::from_reader(&mut bytes_reader)
-                                            .map_err(|_| JsValue::from_str("Parsing fits error"))?;
-
-                                        let header = hdu.get_header();
-                                        let bscale =
-                                            if let Some(fitsrs::card::Value::Float(bscale)) =
-                                                header.get(b"BSCALE  ")
-                                            {
-                                                *bscale as f32
-                                            } else {
-                                                1.0
-                                            };
-                                        let bzero = if let Some(fitsrs::card::Value::Float(bzero)) =
-                                            header.get(b"BZERO   ")
-                                        {
-                                            *bzero as f32
-                                        } else {
-                                            0.0
-                                        };
-                                        let blank = if let Some(fitsrs::card::Value::Float(blank)) =
-                                            header.get(b"BLANK   ")
-                                        {
-                                            *blank as f32
-                                        } else {
-                                            f32::NAN
-                                        };
-
-                                        cfg.set_fits_metadata(bscale, bzero, blank);
+                                        let FitsImage {
+                                            bscale,
+                                            bzero,
+                                            blank,
+                                            ..
+                                        } = FitsImage::from_raw_bytes(raw_bytes.as_slice())?[0];
+                                        hips.set_fits_params(bscale, bzero, blank);
                                     }
                                 };
-                                //}
 
                                 let image = tile.image.clone();
                                 if let Some(img) = &*image.borrow() {
@@ -718,17 +678,6 @@ impl App {
                             hips.add_allsky(allsky)?;
                             // Once received ask for redraw
                             self.request_redraw = true;
-                        }
-                    }
-                }
-                Resource::PixelMetadata(metadata) => {
-                    if let Some(hips) = self.layers.get_mut_hips_from_cdid(&metadata.hips_cdid) {
-                        let cfg = hips.get_config_mut();
-
-                        if let Some(metadata) = &*metadata.value.borrow() {
-                            cfg.blank = metadata.blank;
-                            cfg.offset = metadata.offset;
-                            cfg.scale = metadata.scale;
                         }
                     }
                 }
@@ -974,255 +923,123 @@ impl App {
         Ok(())
     }
 
-    pub(crate) fn add_image_from_blob_and_wcs(
+    pub(crate) fn add_rgba_image(
         &mut self,
         layer: String,
-        stream: web_sys::ReadableStream,
+        bytes: &[u8],
         wcs: WCS,
         cfg: ImageMetadata,
     ) -> Result<js_sys::Promise, JsValue> {
         let gl = self.gl.clone();
 
-        let img_sender = self.img_send.clone();
-        let ack_img_recv = self.ack_img_recv.clone();
-        // Stop the current inertia
-        self.inertia = None;
-        // And disable it while the fits has not been loaded
-        let disable_inertia = self.disable_inertia.clone();
-        *(disable_inertia.borrow_mut()) = true;
-
         let camera_coo_sys = self.camera.get_coo_system();
 
-        let fut = async move {
-            use crate::renderable::image::Image;
-            use futures::future::Either;
-            use futures::TryStreamExt;
-            use js_sys::Uint8Array;
-            use wasm_streams::ReadableStream;
+        match Image::from_rgba_bytes(&gl, bytes, wcs, camera_coo_sys) {
+            Ok(image) => {
+                let layer = ImageLayer {
+                    images: vec![image],
+                    id: layer.clone(),
+                    layer,
+                    meta: cfg,
+                };
 
-            let body = ReadableStream::from_raw(stream.dyn_into()?);
+                let params = layer.get_params();
 
-            // Convert the JS ReadableStream to a Rust stream
-            let bytes_reader = match body.try_into_async_read() {
-                Ok(async_read) => Either::Left(async_read),
-                Err((_err, body)) => Either::Right(
-                    body.into_stream()
-                        .map_ok(|js_value| {
-                            js_value.dyn_into::<Uint8Array>().unwrap_throw().to_vec()
-                        })
-                        .map_err(|_js_error| std::io::Error::other("failed to read"))
-                        .into_async_read(),
-                ),
-            };
-            use al_core::image::format::RGBA8U;
-            match Image::from_reader_and_wcs::<_, RGBA8U>(
-                &gl,
-                bytes_reader,
-                wcs,
-                None,
-                None,
-                None,
-                camera_coo_sys,
-            )
-            .await
-            {
-                Ok(image) => {
-                    let img = ImageLayer {
-                        images: vec![image],
-                        id: layer.clone(),
-                        layer,
-                        meta: cfg,
-                    };
+                self.layers.add_image(
+                    layer,
+                    &mut self.camera,
+                    &self.projection,
+                    &mut self.tile_fetcher,
+                )?;
 
-                    img_sender.send(img).await.unwrap();
+                self.request_redraw = true;
 
-                    // Wait for the ack here
-                    let image_params = ack_img_recv
-                        .recv()
-                        .await
-                        .map_err(|_| JsValue::from_str("Problem receiving fits"))?;
-
-                    serde_wasm_bindgen::to_value(&image_params).map_err(|e| e.into())
-                }
-                Err(error) => Err(error),
+                let promise = js_sys::Promise::resolve(&serde_wasm_bindgen::to_value(&params)?);
+                Ok(promise)
             }
-        };
-
-        let reenable_inertia = Closure::new(move || {
-            // renable inertia again
-            *(disable_inertia.borrow_mut()) = false;
-        });
-
-        let promise = wasm_bindgen_futures::future_to_promise(fut)
-            // Reenable inertia independantly from whether the
-            // fits has been correctly parsed or not
-            .finally(&reenable_inertia);
-
-        // forget the closure, it is not very proper to do this as
-        // it won't be deallocated
-        reenable_inertia.forget();
-
-        Ok(promise)
+            Err(error) => Err(error),
+        }
     }
 
-    pub(crate) fn add_image_fits(
+    pub(crate) fn add_fits_image(
         &mut self,
-        stream: web_sys::ReadableStream,
+        mut bytes: &[u8],
         meta: ImageMetadata,
         layer: String,
     ) -> Result<js_sys::Promise, JsValue> {
         let gl = self.gl.clone();
-
-        let fits_sender = self.img_send.clone();
-        let ack_fits_recv = self.ack_img_recv.clone();
         // Stop the current inertia
-        self.inertia = None;
         // And disable it while the fits has not been loaded
-        let disable_inertia = self.disable_inertia.clone();
-        *(disable_inertia.borrow_mut()) = true;
-
         let camera_coo_sys = self.camera.get_coo_system();
 
-        let fut = async move {
-            use crate::renderable::image::Image;
-            use futures::future::Either;
-            use futures::TryStreamExt;
-            use js_sys::Uint8Array;
-            use wasm_streams::ReadableStream;
+        // FIXME: this is done to prevent the view inerting after being unblocked
+        self.set_inertia(false);
 
-            // Get the response's body as a JS ReadableStream
-            let body = ReadableStream::from_raw(stream.dyn_into()?);
+        let gz = fitsrs::gz::GzReader::new(Cursor::new(bytes))
+            .map_err(|_| JsValue::from_str("Error creating gz wrapper"))?;
 
-            // Convert the JS ReadableStream to a Rust stream
-            let bytes_reader = match body.try_into_async_read() {
-                Ok(async_read) => Either::Left(async_read),
-                Err((_err, body)) => Either::Right(
-                    body.into_stream()
-                        .map_ok(|js_value| {
-                            js_value.dyn_into::<Uint8Array>().unwrap_throw().to_vec()
-                        })
-                        .map_err(|_js_error| std::io::Error::other("failed to read"))
-                        .into_async_read(),
-                ),
-            };
-
-            let mut reader = BufReader::new(bytes_reader);
-
-            let AsyncFits { mut hdu } = AsyncFits::from_reader(&mut reader)
-                .await
-                .map_err(|e| JsValue::from_str(&format!("Fits file parsing: reason: {}", e)))?;
-
-            let mut hdu_ext_idx = 0;
-            let mut images = vec![];
-
-            match Image::from_fits_hdu_async(&gl, &mut hdu.0, camera_coo_sys).await {
-                Ok(image) => {
-                    images.push(image);
-
-                    let mut hdu_ext = hdu.next().await;
-
-                    // Continue parsing the file extensions here
-                    while let Ok(Some(mut xhdu)) = hdu_ext {
-                        match &mut xhdu {
-                            AsyncXtensionHDU::Image(xhdu_img) => {
-                                match Image::from_fits_hdu_async(&gl, xhdu_img, camera_coo_sys)
-                                    .await
-                                {
-                                    Ok(image) => {
-                                        images.push(image);
-                                    }
-                                    Err(error) => {
-                                        al_core::log::console_warn(format!("The extension {hdu_ext_idx} has not been parsed, reason:")
-                                        );
-
-                                        al_core::log::console_warn(error);
-                                    }
-                                }
-                            }
-                            _ => {
-                                al_core::log::console_warn(format!("The extension {hdu_ext_idx} is a BinTable/AsciiTable and is thus discarded")
-                                );
-                            }
+        let parse_fits_images_from_bytes = |raw_bytes: &[u8]| -> Result<Vec<Image>, JsValue> {
+            Ok(FitsImage::from_raw_bytes(raw_bytes)?
+                .into_iter()
+                .filter_map(
+                    |FitsImage {
+                         bitpix,
+                         bscale,
+                         bzero,
+                         blank,
+                         wcs,
+                         raw_bytes,
+                         ..
+                     }| {
+                        if let Some(wcs) = wcs {
+                            let image = Image::from_fits_hdu(
+                                &gl,
+                                wcs,
+                                bitpix,
+                                raw_bytes,
+                                bscale,
+                                bzero,
+                                blank,
+                                camera_coo_sys,
+                            )
+                            .ok()?;
+                            Some(image)
+                        } else {
+                            None
                         }
-
-                        hdu_ext_idx += 1;
-
-                        hdu_ext = xhdu.next().await;
-                    }
-                }
-                Err(error) => {
-                    al_core::log::console_warn(error);
-
-                    let mut hdu_ext = hdu.next().await;
-
-                    while let Ok(Some(mut xhdu)) = hdu_ext {
-                        match &mut xhdu {
-                            AsyncXtensionHDU::Image(xhdu_img) => {
-                                match Image::from_fits_hdu_async(&gl, xhdu_img, camera_coo_sys)
-                                    .await
-                                {
-                                    Ok(image) => {
-                                        images.push(image);
-                                    }
-                                    Err(error) => {
-                                        al_core::log::console_warn(format!("The extension {hdu_ext_idx} has not been parsed, reason:")
-                                        );
-
-                                        al_core::log::console_warn(error);
-                                    }
-                                }
-                            }
-                            _ => {
-                                al_core::log::console_warn(format!("The extension {hdu_ext_idx} is a BinTable/AsciiTable and is thus discarded")
-                                );
-                            }
-                        }
-
-                        hdu_ext_idx += 1;
-
-                        hdu_ext = xhdu.next().await;
-                    }
-                }
-            }
-
-            if images.is_empty() {
-                Err(JsValue::from_str("no images have been parsed"))
-            } else {
-                let fits = ImageLayer {
-                    images,
-                    id: layer.clone(),
-
-                    layer,
-                    meta,
-                };
-
-                fits_sender.send(fits).await.unwrap();
-
-                // Wait for the ack here
-                let image_params = ack_fits_recv
-                    .recv()
-                    .await
-                    .map_err(|_| JsValue::from_str("Problem receiving fits"))?;
-
-                serde_wasm_bindgen::to_value(&image_params).map_err(|e| e.into())
-            }
+                    },
+                )
+                .collect::<Vec<_>>())
         };
 
-        let reenable_inertia = Closure::new(move || {
-            // renable inertia again
-            *(disable_inertia.borrow_mut()) = false;
-        });
+        let images = match gz {
+            fitsrs::gz::GzReader::GzReader(bytes) => parse_fits_images_from_bytes(bytes.get_ref())?,
+            fitsrs::gz::GzReader::Reader(bytes) => parse_fits_images_from_bytes(bytes.get_ref())?,
+        };
 
-        let promise = wasm_bindgen_futures::future_to_promise(fut)
-            // Reenable inertia independantly from whether the
-            // fits has been correctly parsed or not
-            .finally(&reenable_inertia);
+        if images.is_empty() {
+            Err(JsValue::from_str("no images have been parsed"))
+        } else {
+            let layer = ImageLayer {
+                images,
+                id: layer.clone(),
 
-        // forget the closure, it is not very proper to do this as
-        // it won't be deallocated
-        reenable_inertia.forget();
+                layer,
+                meta,
+            };
 
-        Ok(promise)
+            let params = layer.get_params();
+            self.layers.add_image(
+                layer,
+                &mut self.camera,
+                &self.projection,
+                &mut self.tile_fetcher,
+            )?;
+            self.request_redraw = true;
+
+            let promise = js_sys::Promise::resolve(&serde_wasm_bindgen::to_value(&params)?);
+            Ok(promise)
+        }
     }
 
     pub(crate) fn get_layer_cfg(&self, layer: &str) -> Result<ImageMetadata, JsValue> {

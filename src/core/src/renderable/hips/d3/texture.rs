@@ -1,10 +1,8 @@
 use crate::renderable::hips::d2::texture::HpxTexture2D;
 use crate::{healpix::cell::HEALPixCell, time::Time};
 
-use al_core::image::format::{
-    ChannelType, R16I, R32F, R32I, R64F, R8UI, RGB32F, RGB8U, RGBA32F, RGBA8U,
-};
 use al_core::image::Image;
+use al_core::texture::format::{PixelType, R16I, R32F, R32I, R8U, RGB8U, RGBA8U};
 use al_core::texture::Texture3D;
 use al_core::webgl_ctx::WebGlRenderingCtx;
 use cgmath::Vector3;
@@ -255,32 +253,23 @@ impl HpxTexture3D {
                 ),
             ];
 
-            let texture = match cfg.get_format().get_channel() {
-                ChannelType::RGBA32F => {
-                    Texture3D::create_empty::<RGBA32F>(gl, tile_size, tile_size, 32, params)
-                }
-                ChannelType::RGB32F => {
-                    Texture3D::create_empty::<RGB32F>(gl, tile_size, tile_size, 32, params)
-                }
-                ChannelType::RGBA8U => {
+            let texture = match cfg.get_format().get_pixel_format() {
+                PixelType::RGBA8U => {
                     Texture3D::create_empty::<RGBA8U>(gl, tile_size, tile_size, 32, params)
                 }
-                ChannelType::RGB8U => {
+                PixelType::RGB8U => {
                     Texture3D::create_empty::<RGB8U>(gl, tile_size, tile_size, 32, params)
                 }
-                ChannelType::R32F => {
+                PixelType::R32F => {
                     Texture3D::create_empty::<R32F>(gl, tile_size, tile_size, 32, params)
                 }
-                ChannelType::R64F => {
-                    Texture3D::create_empty::<R64F>(gl, tile_size, tile_size, 32, params)
+                PixelType::R8U => {
+                    Texture3D::create_empty::<R8U>(gl, tile_size, tile_size, 32, params)
                 }
-                ChannelType::R8UI => {
-                    Texture3D::create_empty::<R8UI>(gl, tile_size, tile_size, 32, params)
-                }
-                ChannelType::R16I => {
+                PixelType::R16I => {
                     Texture3D::create_empty::<R16I>(gl, tile_size, tile_size, 32, params)
                 }
-                ChannelType::R32I => {
+                PixelType::R32I => {
                     Texture3D::create_empty::<R32I>(gl, tile_size, tile_size, 32, params)
                 }
             };

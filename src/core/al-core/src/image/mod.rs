@@ -6,9 +6,9 @@ pub mod html;
 pub mod raw;
 
 use crate::image::bitmap::Bitmap;
-use crate::image::format::RGB8U;
-use crate::image::format::RGBA8U;
 use crate::image::raw::ImageBuffer;
+use crate::texture::format::RGB8U;
+use crate::texture::format::RGBA8U;
 pub trait ArrayBuffer: AsRef<js_sys::Object> + std::fmt::Debug {
     type Item: std::cmp::PartialOrd + Clone + Copy + std::fmt::Debug + cgmath::Zero;
 
@@ -179,6 +179,7 @@ impl ArrayBuffer for ArrayF64 {
 }
 
 use self::canvas::Canvas;
+use self::fits::FitsImage;
 use self::html::HTMLImage;
 use wasm_bindgen::JsValue;
 pub trait Image {
@@ -210,13 +211,14 @@ where
         Ok(())
     }
 
+    #[inline]
     fn get_size(&self) -> (u32, u32) {
         let image = &**self;
         image.get_size()
     }
 }
 
-use std::{io::Cursor, rc::Rc};
+use std::rc::Rc;
 impl<I> Image for Rc<I>
 where
     I: Image,
@@ -234,21 +236,19 @@ where
         Ok(())
     }
 
+    #[inline]
     fn get_size(&self) -> (u32, u32) {
         let image = &**self;
         image.get_size()
     }
 }
 
-#[cfg(feature = "webgl2")]
-use crate::image::format::{R16I, R32I, R64F, R8UI};
-use crate::{image::format::R32F, texture::Tex3D};
+use crate::texture::format::{R16I, R32F, R32I, R8U};
+use crate::texture::Tex3D;
 
-use fits::Fits;
 #[derive(Debug)]
-#[cfg(feature = "webgl2")]
 pub enum ImageType {
-    FitsImage {
+    FitsRawBytes {
         raw_bytes: js_sys::Uint8Array,
         size: (u32, u32),
     },
@@ -283,7 +283,7 @@ pub enum ImageType {
         image: ImageBuffer<R16I>,
     },
     RawR8ui {
-        image: ImageBuffer<R8UI>,
+        image: ImageBuffer<R8U>,
     },
 }
 
@@ -297,17 +297,16 @@ impl Image for ImageType {
         offset: &Vector3<i32>,
     ) -> Result<(), JsValue> {
         match self {
-            ImageType::FitsImage {
+            ImageType::FitsRawBytes {
                 raw_bytes: raw_bytes_buf,
                 ..
             } => {
-                let num_bytes = raw_bytes_buf.length() as usize;
-                let mut raw_bytes = vec![0; num_bytes];
-                raw_bytes_buf.copy_to(&mut raw_bytes[..]);
+                let raw_bytes = raw_bytes_buf.to_vec();
 
-                let mut bytes_reader = Cursor::new(raw_bytes.as_slice());
-                let fits_img = Fits::from_byte_slice(&mut bytes_reader)?;
-                fits_img.insert_into_3d_texture(textures, offset)?
+                let images = FitsImage::from_raw_bytes(&raw_bytes)?;
+                for image in images {
+                    image.insert_into_3d_texture(textures, offset)?
+                }
             }
             ImageType::Canvas { canvas } => canvas.insert_into_3d_texture(textures, offset)?,
             ImageType::ImageRgba8u { image } => image.insert_into_3d_texture(textures, offset)?,
@@ -331,7 +330,7 @@ impl Image for ImageType {
 
     fn get_size(&self) -> (u32, u32) {
         match self {
-            ImageType::FitsImage { size, .. } => *size,
+            ImageType::FitsRawBytes { size, .. } => *size,
             ImageType::Canvas { canvas } => canvas.get_size(),
             ImageType::ImageRgba8u { image } => image.get_size(),
             ImageType::ImageRgb8u { image } => image.get_size(),

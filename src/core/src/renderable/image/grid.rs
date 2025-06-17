@@ -1,12 +1,11 @@
 use cgmath::Vector3;
 use std::ops::RangeInclusive;
-use wcs::ImgXY;
 
 use crate::camera::CameraViewPort;
 use crate::math::projection::ProjectionType;
 use crate::renderable::utils::index_patch::CCWCheckPatchIndexIter;
 use al_api::coo_system::CooSystem;
-use wcs::WCS;
+use fitsrs::wcs::{ImgXY, WCS};
 
 pub fn get_grid_params(
     xy_min: &(f64, f64),
@@ -166,6 +165,82 @@ fn build_range_indices(it: impl Iterator<Item = (u64, f32)> + Clone) -> Vec<Rang
 
 #[allow(clippy::too_many_arguments)]
 pub fn vertices(
+    xy_min: &(f64, f64),
+    xy_max: &(f64, f64),
+    max_tex_size_x: u64,
+    max_tex_size_y: u64,
+    num_tri_per_tex_patch: u64,
+    camera: &CameraViewPort,
+    wcs: &WCS,
+    projection: &ProjectionType,
+) -> (Vec<f32>, Vec<f32>, Vec<u16>, Vec<u32>) {
+    let (x_it, y_it) = get_grid_params(
+        xy_min,
+        xy_max,
+        max_tex_size_x,
+        max_tex_size_y,
+        num_tri_per_tex_patch,
+    );
+
+    let idx_x_ranges = build_range_indices(x_it.clone());
+    let idx_y_ranges = build_range_indices(y_it.clone());
+
+    let num_x_vertices = idx_x_ranges.last().unwrap().end() + 1;
+
+    let mut uv = vec![];
+    let pos = y_it
+        .flat_map(|(y, uvy)| {
+            x_it.clone().map(move |(x, uvx)| {
+                let ndc = if let Some(xyz) = wcs.unproj_xyz(&ImgXY::new(x as f64, y as f64)) {
+                    let xyz = crate::coosys::apply_coo_system(
+                        CooSystem::ICRS,
+                        camera.get_coo_system(),
+                        &Vector3::new(xyz.y(), xyz.z(), xyz.x()),
+                    );
+
+                    projection
+                        .model_to_normalized_device_space(&xyz, camera)
+                        .map(|v| [v.x as f32, v.y as f32])
+                } else {
+                    None
+                };
+
+                (ndc, [uvx, uvy])
+            })
+        })
+        .map(|(p, uu)| {
+            uv.extend_from_slice(&uu);
+            p
+        })
+        .collect::<Vec<_>>();
+
+    let mut indices = vec![];
+    let mut num_indices = vec![];
+    for idx_x_range in &idx_x_ranges {
+        for idx_y_range in &idx_y_ranges {
+            let build_indices_iter =
+                CCWCheckPatchIndexIter::new(idx_x_range, idx_y_range, num_x_vertices, &pos, camera);
+
+            let patch_indices = build_indices_iter
+                .flatten()
+                .flat_map(|indices| [indices.0, indices.1, indices.2])
+                .collect::<Vec<_>>();
+
+            num_indices.push(patch_indices.len() as u32);
+            indices.extend(patch_indices);
+        }
+    }
+
+    let pos = pos
+        .into_iter()
+        .flat_map(|ndc| ndc.unwrap_or([0.0, 0.0]))
+        .collect();
+
+    (pos, uv, indices, num_indices)
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn vertices2(
     xy_min: &(f64, f64),
     xy_max: &(f64, f64),
     max_tex_size_x: u64,

@@ -6,7 +6,7 @@ use al_api::hips::ImageExt;
 use al_api::hips::ImageMetadata;
 use al_core::colormap::Colormap;
 use al_core::colormap::Colormaps;
-use al_core::image::format::ChannelType;
+use al_core::texture::format::PixelType;
 
 use al_core::image::Image;
 
@@ -30,6 +30,7 @@ use crate::healpix::{cell::HEALPixCell, coverage::HEALPixCoverage};
 use crate::time::Time;
 
 use super::config::HiPSConfig;
+use super::FitsParams;
 use std::collections::HashSet;
 
 // Recursively compute the number of subdivision needed for a cell
@@ -50,43 +51,32 @@ pub fn get_raster_shader<'a>(
     shaders: &'a mut ShaderManager,
     config: &HiPSConfig,
 ) -> Result<&'a Shader, JsValue> {
-    if config.get_format().is_colored() {
-        if cmap.label() == "native" {
-            crate::shader::get_shader(
-                gl,
-                shaders,
-                "hips3d_rasterizer_raster.vert",
-                "hips3d_rasterizer_color.frag",
-            )
-        } else {
-            crate::shader::get_shader(
-                gl,
-                shaders,
-                "hips3d_rasterizer_raster.vert",
-                "hips3d_rasterizer_color_to_colormap.frag",
-            )
+    match config.get_format().get_pixel_format() {
+        PixelType::R8U => {
+            crate::shader::get_shader(gl, shaders, "hips3d_raster.vert", "hips3d_u8.frag")
         }
-    } else if config.tex_storing_unsigned_int {
-        crate::shader::get_shader(
-            gl,
-            shaders,
-            "hips3d_rasterizer_raster.vert",
-            "hips3d_rasterizer_grayscale_to_colormap_u.frag",
-        )
-    } else if config.tex_storing_integers {
-        crate::shader::get_shader(
-            gl,
-            shaders,
-            "hips3d_rasterizer_raster.vert",
-            "hips3d_rasterizer_grayscale_to_colormap_i.frag",
-        )
-    } else {
-        crate::shader::get_shader(
-            gl,
-            shaders,
-            "hips3d_rasterizer_raster.vert",
-            "hips3d_rasterizer_grayscale_to_colormap.frag",
-        )
+        PixelType::R16I => {
+            crate::shader::get_shader(gl, shaders, "hips3d_raster.vert", "hips3d_i16.frag")
+        }
+        PixelType::R32I => {
+            crate::shader::get_shader(gl, shaders, "hips3d_raster.vert", "hips3d_i32.frag")
+        }
+        PixelType::R32F => {
+            crate::shader::get_shader(gl, shaders, "hips3d_raster.vert", "hips3d_f32.frag")
+        }
+        // color case
+        _ => {
+            if cmap.label() == "native" {
+                crate::shader::get_shader(gl, shaders, "hips3d_raster.vert", "hips3d_rgba.frag")
+            } else {
+                crate::shader::get_shader(
+                    gl,
+                    shaders,
+                    "hips3d_raster.vert",
+                    "hips3d_rgba2cmap.frag",
+                )
+            }
+        }
     }
 }
 
@@ -114,6 +104,8 @@ pub struct HiPS3D {
 
     // A buffer storing the cells in the view
     hpx_cells_in_view: Vec<HEALPixCell>,
+
+    pub fits_params: Option<FitsParams>,
 
     // The current slice index
     slice: u16,
@@ -186,6 +178,8 @@ impl HiPS3D {
             position,
             uv,
             idx_vertices,
+
+            fits_params: None,
 
             footprint_moc,
             hpx_cells_in_view,
@@ -288,7 +282,7 @@ impl HiPS3D {
 
         let mut off_indices = 0;
 
-        let channel = self.get_config().get_format().get_channel();
+        let channel = self.get_config().get_format().get_pixel_format();
 
         // Define a global level of subdivisions for all the healpix tile cells in the view
         // This should prevent seeing many holes
@@ -307,7 +301,7 @@ impl HiPS3D {
             let cell = if let Some(moc) = self.footprint_moc.as_ref() {
                 if moc.intersects_cell(cell) {
                     Some(&cell)
-                } else if channel == ChannelType::RGB8U {
+                } else if channel == PixelType::RGB8U {
                     // Rasterizer does not render tiles that are not in the MOC
                     // This is not a problem for transparency rendered HiPses (FITS or PNG)
                     // but JPEG tiles do have black when no pixels data is found
@@ -471,6 +465,14 @@ impl HiPS3D {
         self.footprint_moc = Some(moc);
     }
 
+    pub fn set_fits_params(&mut self, bscale: f32, bzero: f32, blank: Option<f32>) {
+        self.fits_params = Some(FitsParams {
+            bscale,
+            bzero,
+            blank,
+        });
+    }
+
     #[inline]
     pub fn get_moc(&self) -> Option<&HEALPixCoverage> {
         self.footprint_moc.as_ref()
@@ -565,7 +567,13 @@ impl HiPS3D {
                     .attach_uniform("inv_model", &v2w)
                     .attach_uniform("opacity", opacity)
                     .attach_uniform("u_proj", proj)
-                    .attach_uniforms_from(colormaps)
+                    .attach_uniforms_from(colormaps);
+
+                if let Some(fits_params) = self.fits_params.as_ref() {
+                    shaderbound.attach_uniforms_from(fits_params);
+                }
+
+                shaderbound
                     .bind_vertex_array_object_ref(&self.vao)
                     .draw_elements_with_i32(
                         WebGl2RenderingContext::TRIANGLES,

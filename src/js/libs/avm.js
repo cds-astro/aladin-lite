@@ -201,6 +201,7 @@ export let AVM = (function() {
                 if (unwindTag(tags['Spatial.Equinox']))
                     wcs.EQUINOX = +unwindTag(tags['Spatial.Equinox']);
 
+                wcs.NAXIS = tags['Spatial.ReferenceDimension'] && +tags['Spatial.ReferenceDimension'].length;
                 wcs.NAXIS1 = tags['Spatial.ReferenceDimension'] && +tags['Spatial.ReferenceDimension'][0];
                 wcs.NAXIS2 = tags['Spatial.ReferenceDimension'] && +tags['Spatial.ReferenceDimension'][1];
 

@@ -1,17 +1,18 @@
-use crate::image::format::ImageFormat;
+use crate::texture::format::TextureFormat;
+
 use crate::texture::pixel::Pixel;
 use crate::texture::Tex3D;
 #[derive(Debug)]
 #[allow(dead_code)]
 pub struct ImageBuffer<T>
 where
-    T: ImageFormat,
+    T: TextureFormat,
 {
-    pub data: Vec<<<T as ImageFormat>::P as Pixel>::Item>,
+    pub data: Vec<<<T as TextureFormat>::P as Pixel>::Item>,
     pub size: Vector2<i32>,
 }
 
-use crate::image::format::Bytes;
+use crate::texture::format::Bytes;
 
 pub struct ImageBufferView {
     pub x: i32,
@@ -22,9 +23,13 @@ pub struct ImageBufferView {
 use wasm_bindgen::JsValue;
 impl<T> ImageBuffer<T>
 where
-    T: ImageFormat,
+    T: TextureFormat,
 {
-    pub fn new(data: Vec<<<T as ImageFormat>::P as Pixel>::Item>, width: i32, height: i32) -> Self {
+    pub fn new(
+        data: Vec<<<T as TextureFormat>::P as Pixel>::Item>,
+        width: i32,
+        height: i32,
+    ) -> Self {
         let size_buf = width * height * (T::NUM_CHANNELS as i32);
         debug_assert!(size_buf == data.len() as i32);
         //let buf = <<T as ImageFormat>::P as Pixel>::Container::new(buf);
@@ -44,9 +49,10 @@ where
 
         let decoded_pixels = unsafe {
             decoded_bytes.set_len(
-                decoded_bytes.len() / std::mem::size_of::<<<T as ImageFormat>::P as Pixel>::Item>(),
+                decoded_bytes.len()
+                    / std::mem::size_of::<<<T as TextureFormat>::P as Pixel>::Item>(),
             );
-            std::mem::transmute::<Vec<u8>, Vec<<<T as ImageFormat>::P as Pixel>::Item>>(
+            std::mem::transmute::<Vec<u8>, Vec<<<T as TextureFormat>::P as Pixel>::Item>>(
                 decoded_bytes,
             )
         };
@@ -59,10 +65,8 @@ where
         debug_assert!(size_buf == raw_bytes.len() as i32);
 
         let decoded_pixels = unsafe {
-            raw_bytes.set_len(
-                raw_bytes.len() / std::mem::size_of::<<<T as ImageFormat>::P as Pixel>::Item>(),
-            );
-            std::mem::transmute::<Vec<u8>, Vec<<<T as ImageFormat>::P as Pixel>::Item>>(raw_bytes)
+            raw_bytes.set_len(raw_bytes.len() / std::mem::size_of::<<T::P as Pixel>::Item>());
+            std::mem::transmute::<Vec<u8>, Vec<<T::P as Pixel>::Item>>(raw_bytes)
         };
 
         Self::new(decoded_pixels, width, height)
@@ -73,7 +77,7 @@ where
         Self { data: vec![], size }
     }
 
-    pub fn allocate(pixel_fill: &<T as ImageFormat>::P, width: i32, height: i32) -> ImageBuffer<T> {
+    pub fn allocate(pixel_fill: &T::P, width: i32, height: i32) -> ImageBuffer<T> {
         let size_buf = ((width * height) as usize) * (T::NUM_CHANNELS);
 
         let data = pixel_fill
@@ -112,11 +116,11 @@ where
         }
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = &<<T as ImageFormat>::P as Pixel>::Item> {
+    pub fn iter(&self) -> impl Iterator<Item = &<T::P as Pixel>::Item> {
         self.data.iter()
     }
 
-    pub fn get_data(&self) -> &[<<T as ImageFormat>::P as Pixel>::Item] {
+    pub fn get_data(&self) -> &[<T::P as Pixel>::Item] {
         &self.data
     }
 
@@ -129,12 +133,12 @@ where
     }
 }
 
-use crate::image::format::{R16I, R32F, R32I, R8UI, RGB8U, RGBA8U};
+use crate::texture::format::{R16I, R32F, R32I, R8U, RGB8U, RGBA8U};
 pub enum ImageBufferType {
     JPG(ImageBuffer<RGB8U>),
     PNG(ImageBuffer<RGBA8U>),
     R32F(ImageBuffer<R32F>),
-    R8UI(ImageBuffer<R8UI>),
+    R8UI(ImageBuffer<R8U>),
     R16I(ImageBuffer<R16I>),
     R32I(ImageBuffer<R32I>),
 }
@@ -143,7 +147,7 @@ use crate::image::{ArrayBuffer, Image};
 use cgmath::{Vector2, Vector3};
 impl<I> Image for ImageBuffer<I>
 where
-    I: ImageFormat,
+    I: TextureFormat,
 {
     fn insert_into_3d_texture<T: Tex3D>(
         &self,
@@ -152,8 +156,7 @@ where
         // An offset to write the image in the texture array
         offset: &Vector3<i32>,
     ) -> Result<(), JsValue> {
-        let js_array =
-            <<<I as ImageFormat>::P as Pixel>::Container as ArrayBuffer>::new(&self.data);
+        let js_array = <<I::P as Pixel>::Container as ArrayBuffer>::new(&self.data);
         textures.tex_sub_image_3d_with_opt_array_buffer_view(
             offset.x,
             offset.y,

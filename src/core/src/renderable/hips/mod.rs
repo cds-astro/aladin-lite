@@ -155,4 +155,40 @@ impl HiPS {
     pub fn is_allsky(&self) -> bool {
         self.get_config().is_allsky
     }
+
+    pub fn set_fits_params(&mut self, bscale: f32, bzero: f32, blank: Option<f32>) {
+        match self {
+            HiPS::D2(hips) => hips.set_fits_params(bscale, bzero, blank),
+            HiPS::D3(hips) => hips.set_fits_params(bscale, bzero, blank),
+        }
+    }
+
+    pub fn get_fits_params(&self) -> &Option<FitsParams> {
+        match self {
+            HiPS::D2(hips) => &hips.fits_params,
+            HiPS::D3(hips) => &hips.fits_params,
+        }
+    }
+}
+
+pub(crate) struct FitsParams {
+    pub bscale: f32,
+    pub bzero: f32,
+    pub blank: Option<f32>,
+}
+
+use al_core::shader::{SendUniforms, ShaderBound};
+impl SendUniforms for FitsParams {
+    // Send only the allsky textures
+    fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
+        shader
+            .attach_uniform("scale", &self.bscale)
+            .attach_uniform("offset", &self.bzero);
+
+        if let Some(blank) = &self.blank {
+            shader.attach_uniform("blank", blank);
+        }
+
+        shader
+    }
 }

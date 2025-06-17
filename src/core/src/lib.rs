@@ -92,6 +92,8 @@ use al_api::moc::MOCOptions;
 use wasm_bindgen::prelude::*;
 use web_sys::HtmlElement;
 
+use fitsrs::{WCSParams, WCS};
+
 use crate::math::angle::ToAngle;
 
 mod app;
@@ -350,33 +352,31 @@ impl WebClient {
         Ok(())
     }
 
-    #[wasm_bindgen(js_name = addImageFITS)]
-    pub fn add_image_fits(
+    #[wasm_bindgen(js_name = addFITSImage)]
+    pub fn add_fits_image(
         &mut self,
-        stream: web_sys::ReadableStream,
+        bytes: &[u8],
         cfg: JsValue,
         layer: String,
     ) -> Result<js_sys::Promise, JsValue> {
         let cfg: ImageMetadata = serde_wasm_bindgen::from_value(cfg)?;
-
-        self.app.add_image_fits(stream, cfg, layer)
+        self.app.add_fits_image(bytes, cfg, layer)
     }
 
-    #[wasm_bindgen(js_name = addImageWithWCS)]
-    pub fn add_image_with_wcs(
+    #[wasm_bindgen(js_name = addRGBAImage)]
+    pub fn add_rgba_image(
         &mut self,
-        stream: web_sys::ReadableStream,
+        bytes: &[u8],
         wcs: JsValue,
         cfg: JsValue,
         layer: String,
     ) -> Result<js_sys::Promise, JsValue> {
-        use wcs::{WCSParams, WCS};
         let cfg: ImageMetadata = serde_wasm_bindgen::from_value(cfg)?;
         let wcs_params: WCSParams = serde_wasm_bindgen::from_value(wcs)?;
+
         let wcs = WCS::new(&wcs_params).map_err(|e| JsValue::from_str(&format!("{:?}", e)))?;
 
-        self.app
-            .add_image_from_blob_and_wcs(layer, stream, wcs, cfg)
+        self.app.add_rgba_image(layer, bytes, wcs, cfg)
     }
 
     #[wasm_bindgen(js_name = removeLayer)]

@@ -9,36 +9,7 @@ uniform float reversed;
 #include ../colormaps/colormap.glsl;
 #include ../transfer_funcs.glsl;
 #include ../tonal_corrections.glsl;
-#include ../hsv.glsl;
 #include ../decode.glsl;
-
-/////////////////////////////////////////////
-/// RGBA sampler
-
-vec4 uvw2c_rgba(vec3 uv) {    
-    vec4 c = texture(tex, uv).rgba;
-
-    c.r = transfer_func(H, c.r, min_value, max_value);
-    c.g = transfer_func(H, c.g, min_value, max_value);
-    c.b = transfer_func(H, c.b, min_value, max_value);
-
-    // apply reversed
-    c.rgb = mix(c.rgb, 1.0 - c.rgb, reversed);
-
-    return apply_tonal(c);
-}
-
-vec4 uvw2cmap_rgba(vec3 uv) {    
-    float v = texture(tex, uv).r;
-    // apply transfer f
-    v = transfer_func(H, v, min_value, max_value);
-    // apply cmap
-    vec4 c = colormap_f(v);
-    // apply reversed
-    c.rgb = mix(c.rgb, 1.0 - c.rgb, reversed);
-
-    return apply_tonal(c);
-}
 
 /////////////////////////////////////////////
 /// FITS sampler
@@ -65,22 +36,22 @@ vec4 val2c(float x) {
     return apply_tonal(new_color);
 }
 
-vec4 uvw2c_f32(vec3 uv) {
+vec4 uv2c_f32(vec2 uv) {
     float val = decode_f32(texture(tex, uv).rgba*255.0);
     return val2c_f32(val);
 }
 
-vec4 uvw2c_i32(vec3 uv) {
+vec4 uv2c_i32(vec2 uv) {
     float val = float(decode_i32(texture(tex, uv).rgba));
     return val2c(val);
 }
 
-vec4 uvw2c_i16(vec3 uv) {
+vec4 uv2c_i16(vec2 uv) {
     float val = float(decode_i16(texture(tex, uv).rg));
     return val2c(val);
 }
 
-vec4 uvw2c_u8(vec3 uv) {
+vec4 uv2c_u8(vec2 uv) {
     float val = float(decode_u8(texture(tex, uv).r));
     return val2c(val);
 }

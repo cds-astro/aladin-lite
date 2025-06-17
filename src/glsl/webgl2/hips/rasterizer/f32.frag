@@ -1,10 +1,8 @@
 #version 300 es
 precision lowp float;
 precision lowp sampler2DArray;
-precision lowp isampler2DArray;
-precision lowp usampler2DArray;
 
-uniform usampler2DArray tex;
+uniform sampler2DArray tex;
 
 in vec3 frag_uv_start;
 in vec3 frag_uv_end;
@@ -12,13 +10,19 @@ in float frag_blending_factor;
 
 out vec4 out_frag_color;
 
-#include ../color_u.glsl;
+#include ../color.glsl;
 
 uniform float opacity;
 
 void main() {
-    vec4 color_start = get_colormap_from_grayscale_texture(frag_uv_start);
-    vec4 color_end = get_colormap_from_grayscale_texture(frag_uv_end);
+    // FITS data pixels are reversed along the y axis
+    vec3 uv0 = frag_uv_start;
+    vec3 uv1 = frag_uv_end;
+    uv0.y = 1.0 - uv0.y;
+    uv1.y = 1.0 - uv1.y;
+
+    vec4 color_start = uvw2c_f32(uv0);
+    vec4 color_end = uvw2c_f32(uv1);
 
     out_frag_color = mix(color_start, color_end, frag_blending_factor);
     out_frag_color.a = out_frag_color.a * opacity;

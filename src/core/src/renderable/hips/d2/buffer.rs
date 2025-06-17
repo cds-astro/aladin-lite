@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 use std::collections::BinaryHeap;
 use std::collections::HashMap;
 
-use al_core::image::format::ChannelType;
+use al_core::texture::format::PixelType;
 
 use crate::renderable::hips::HpxTile;
 use cgmath::Vector3;
@@ -10,9 +10,9 @@ use cgmath::Vector3;
 use al_api::hips::ImageExt;
 use al_core::webgl_ctx::WebGlRenderingCtx;
 
-use al_core::image::format::{R16I, R32F, R32I, R64F, R8UI, RGB8U, RGBA8U};
 use al_core::image::Image;
 use al_core::shader::{SendUniforms, ShaderBound};
+use al_core::texture::format::{R16I, R32F, R32I, R8U, RGB8U, RGBA8U};
 use al_core::Texture2DArray;
 use al_core::WebGlContext;
 
@@ -150,7 +150,7 @@ pub struct HiPS2DBuffer {
 fn create_hpx_texture_storage(
     gl: &WebGlContext,
     // The texture image channel definition
-    channel: ChannelType,
+    channel: PixelType,
     // 256 is a consensus for targetting the maximum GPU architectures. We create a 128 slices to optimize performance
     num_tiles: i32,
     // The size of the tile
@@ -182,41 +182,34 @@ fn create_hpx_texture_storage(
         ),
     ];
     match channel {
-        ChannelType::RGBA8U => Texture2DArray::create_empty::<RGBA8U>(
+        PixelType::RGBA8U => Texture2DArray::create_empty::<RGBA8U>(
             gl, tile_size, tile_size,
             // 256 is a consensus for targetting the maximum GPU architectures. We create a 128 slices to optimize performance
             num_tiles, tex_params,
         ),
-        ChannelType::RGB8U => Texture2DArray::create_empty::<RGB8U>(
+        PixelType::RGB8U => Texture2DArray::create_empty::<RGB8U>(
             gl, tile_size, tile_size,
             // 256 is a consensus for targetting the maximum GPU architectures. We create a 128 slices to optimize performance
             num_tiles, tex_params,
         ),
-        ChannelType::R32F => Texture2DArray::create_empty::<R32F>(
+        PixelType::R32F => Texture2DArray::create_empty::<R32F>(
             gl, tile_size, tile_size,
             // 256 is a consensus for targetting the maximum GPU architectures. We create a 128 slices to optimize performance
             num_tiles, tex_params,
         ),
-        #[cfg(feature = "webgl2")]
-        ChannelType::R8UI => Texture2DArray::create_empty::<R8UI>(
+
+        PixelType::R8U => Texture2DArray::create_empty::<R8U>(
             gl, tile_size, tile_size,
             // 256 is a consensus for targetting the maximum GPU architectures. We create a 128 slices to optimize performance
             num_tiles, tex_params,
         ),
-        #[cfg(feature = "webgl2")]
-        ChannelType::R16I => Texture2DArray::create_empty::<R16I>(
+
+        PixelType::R16I => Texture2DArray::create_empty::<R16I>(
             gl, tile_size, tile_size,
             // 256 is a consensus for targetting the maximum GPU architectures. We create a 128 slices to optimize performance
             num_tiles, tex_params,
         ),
-        #[cfg(feature = "webgl2")]
-        ChannelType::R32I => Texture2DArray::create_empty::<R32I>(
-            gl, tile_size, tile_size,
-            // 256 is a consensus for targetting the maximum GPU architectures. We create a 128 slices to optimize performance
-            num_tiles, tex_params,
-        ),
-        #[cfg(feature = "webgl2")]
-        ChannelType::R64F => Texture2DArray::create_empty::<R64F>(
+        PixelType::R32I => Texture2DArray::create_empty::<R32I>(
             gl, tile_size, tile_size,
             // 256 is a consensus for targetting the maximum GPU architectures. We create a 128 slices to optimize performance
             num_tiles, tex_params,
@@ -380,6 +373,8 @@ impl HiPS2DBuffer {
         cell: &HEALPixCell,
         dx: f64,
         dy: f64,
+        scale: f32,
+        offset: f32,
     ) -> Result<JsValue, JsValue> {
         let value = if let Some(tile) = self.get(cell) {
             // Index of the texture in the total set of textures
@@ -395,28 +390,27 @@ impl HiPS2DBuffer {
                 tile_idx,
             );
 
-            // Offset in the slice in pixels
-            if self.config.tex_storing_fits {
-                let uvy = 1.0 - (pos_tex.y as f32 / tile_size);
+            match self.config.get_format().get_pixel_format() {
+                PixelType::RGB8U | PixelType::RGBA8U => self
+                    .tile_pixels
+                    .read_pixel(pos_tex.x, pos_tex.y, pos_tex.z)?,
+                _ => {
+                    let uvy = 1.0 - (pos_tex.y as f32 / tile_size);
+                    pos_tex.y = (uvy * tile_size) as i32;
 
-                pos_tex.y = (uvy * tile_size) as i32;
-            }
+                    let f64_v = self
+                        .tile_pixels
+                        .read_pixel(pos_tex.x, pos_tex.y, pos_tex.z)?
+                        .as_f64()
+                        .ok_or("Error unwraping the pixel read value.")?;
 
-            let value = self
-                .tile_pixels
-                .read_pixel(pos_tex.x, pos_tex.y, pos_tex.z)?;
+                    // 1 channel
+                    // scale the value
+                    let scale = scale as f64;
+                    let offset = offset as f64;
 
-            if self.config.tex_storing_fits {
-                // scale the value
-                let f64_v = value
-                    .as_f64()
-                    .ok_or("Error unwraping the pixel read value.")?;
-                let scale = self.config.scale as f64;
-                let offset = self.config.offset as f64;
-
-                JsValue::from_f64(f64_v * scale + offset)
-            } else {
-                value
+                    JsValue::from_f64(f64_v * scale + offset)
+                }
             }
         } else {
             JsValue::null()
@@ -457,7 +451,7 @@ impl HpxTileBuffer for HiPS2DBuffer {
             HpxTexture2D::new(&HEALPixCell(0, 10), 10, now),
             HpxTexture2D::new(&HEALPixCell(0, 11), 11, now),
         ];
-        let channel = config.get_format().get_channel();
+        let channel = config.get_format().get_pixel_format();
         let tile_size = config.get_tile_size();
         let tile_pixels = create_hpx_texture_storage(gl, channel, 128, tile_size)?;
 
@@ -490,7 +484,7 @@ impl HpxTileBuffer for HiPS2DBuffer {
     fn set_image_ext(&mut self, gl: &WebGlContext, ext: ImageExt) -> Result<(), JsValue> {
         self.config.set_image_ext(ext)?;
 
-        let channel = self.config.get_format().get_channel();
+        let channel = self.config.get_format().get_pixel_format();
         let tile_size = self.config.get_tile_size();
         self.tile_pixels = create_hpx_texture_storage(gl, channel, 128, tile_size)?;
 

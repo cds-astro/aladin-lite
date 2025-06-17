@@ -9,13 +9,15 @@ uniform sampler3D tex;
 in vec3 frag_uv;
 
 out vec4 out_frag_color;
+
+#include ../hips/color.glsl;
+
 uniform float opacity;
 
-#include ../../hips/color.glsl;
-
 void main() {
-    vec4 color = get_color_from_texture(vec3(frag_uv.xy, mod(frag_uv.z, 32.0) / 32.0));
+    vec3 uv = vec3(frag_uv.xy, mod(frag_uv.z, 32.0) / 32.0);
+    vec4 color = uvw2c_i16(uv);
 
     out_frag_color = color;
-    out_frag_color.a = opacity * out_frag_color.a;
+    out_frag_color.a = out_frag_color.a * opacity;
 }

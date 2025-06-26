@@ -375,16 +375,17 @@ export let Image = (function () {
                         return Promise.reject(e)
                     })
             } else if (this.imgFormat === 'jpeg' || this.imgFormat === 'png') {
-
                 promise = this._addJPGOrPNG(layer)
                     .catch(e => {
                         console.error(`Image located at ${this.url} could not be parsed as a ${this.imgFormat} file. Is the imgFormat specified correct? Reason: `, e);
                         return Promise.reject(e)
                     })
             } else {
+                console.info("Image format not specified, trying parsing a FITS image:")
                 // imgformat not defined we will try first supposing it is a fits file and then use the jpg heuristic
                 promise = self._addFITS(layer)
                     .catch(e => {
+                        console.info("FITS failing, trying parsing a JPG/PNG image:")
                         return self._addJPGOrPNG(layer)
                             .catch(e2 => {
                                 console.error(`Image located at ${self.url} could not be parsed as jpg/png/tif image file. Reason: `, e2)
@@ -453,6 +454,8 @@ export let Image = (function () {
                     )
                 },
                 error: (e) => {
+                    console.error(e)
+                    console.info("Trying querying the FITS through proxy:" + Aladin.JSONP_PROXY)
                     // try as cors 
                     const url = Aladin.JSONP_PROXY + '?url=' + self.url;
 
@@ -484,6 +487,7 @@ export let Image = (function () {
             let self = this;
             let img = document.createElement('img');
 
+            console.log("jjjj")
             return new Promise((resolve, reject) => {
                 img.src = this.url;
                 img.crossOrigin = "Anonymous";
@@ -547,6 +551,8 @@ export let Image = (function () {
                         return;
                     }
 
+                    console.error(e);
+                    console.info("Using proxy", Aladin.JSONP_PROXY)
                     proxyUsed = true;
                     img.src = Aladin.JSONP_PROXY + '?url=' + self.url;
                 }
@@ -572,6 +578,9 @@ export let Image = (function () {
                 self.colorCfg.setOptions({imgFormat: 'jpeg'});
                 return Promise.resolve(imageParams);
             })
+            /*.catch((e) => {
+                console.error(e)
+            })*/
             .finally(() => {
                 img.remove();
             });

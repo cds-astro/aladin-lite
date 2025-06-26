@@ -973,7 +973,6 @@ impl App {
         let camera_coo_sys = self.camera.get_coo_system();
 
         // FIXME: this is done to prevent the view inerting after being unblocked
-        self.set_inertia(false);
 
         let gz = fitsrs::gz::GzReader::new(Cursor::new(bytes))
             .map_err(|_| JsValue::from_str("Error creating gz wrapper"))?;

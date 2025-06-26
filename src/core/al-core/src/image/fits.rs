@@ -41,57 +41,54 @@ impl<'a> FitsImage<'a> {
                 HDU::XImage(hdu) | HDU::Primary(hdu) => {
                     // Prefer getting the dimension directly from NAXIS1/NAXIS2 instead of from the WCS
                     // because it may not exist in all HDU images
-                    let width = *hdu
-                        .get_header()
-                        .get_xtension()
-                        .get_naxisn(1)
-                        .ok_or(JsValue::from_str("NAXIS1 not found"))?
-                        as u32;
-                    let height = *hdu
-                        .get_header()
-                        .get_xtension()
-                        .get_naxisn(2)
-                        .ok_or(JsValue::from_str("NAXIS2 not found"))?
-                        as u32;
-                    let depth = *hdu.get_header().get_xtension().get_naxisn(3).unwrap_or(&1) as u32;
+                    let width = hdu.get_header().get_xtension().get_naxisn(1);
+                    let height = hdu.get_header().get_xtension().get_naxisn(2);
 
-                    let header = hdu.get_header();
+                    if let (Some(&width), Some(&height)) = (width, height) {
+                        let depth =
+                            *hdu.get_header().get_xtension().get_naxisn(3).unwrap_or(&1) as u32;
 
-                    let bscale = match header.get("BSCALE") {
-                        Some(Value::Integer { value, .. }) => *value as f32,
-                        Some(Value::Float { value, .. }) => *value as f32,
-                        _ => 1.0,
-                    };
-                    let bzero = match header.get("BZERO") {
-                        Some(Value::Integer { value, .. }) => *value as f32,
-                        Some(Value::Float { value, .. }) => *value as f32,
-                        _ => 0.0,
-                    };
-                    let blank = match header.get("BLANK") {
-                        Some(Value::Integer { value, .. }) => Some(*value as f32),
-                        Some(Value::Float { value, .. }) => Some(*value as f32),
-                        _ => None,
-                    };
+                        let header = hdu.get_header();
 
-                    let off = hdu.get_data_unit_byte_offset() as usize;
-                    let len = hdu.get_data_unit_byte_size() as usize;
+                        let bscale = match header.get("BSCALE") {
+                            Some(Value::Integer { value, .. }) => *value as f32,
+                            Some(Value::Float { value, .. }) => *value as f32,
+                            _ => 1.0,
+                        };
 
-                    let raw_bytes = &bytes[off..(off + len)];
+                        let bzero = match header.get("BZERO") {
+                            Some(Value::Integer { value, .. }) => *value as f32,
+                            Some(Value::Float { value, .. }) => *value as f32,
+                            _ => 0.0,
+                        };
 
-                    let bitpix = hdu.get_header().get_xtension().get_bitpix();
-                    let wcs = hdu.wcs().ok();
+                        let blank = match header.get("BLANK") {
+                            Some(Value::Integer { value, .. }) => Some(*value as f32),
+                            Some(Value::Float { value, .. }) => Some(*value as f32),
+                            _ => None,
+                        };
 
-                    images.push(Self {
-                        width,
-                        height,
-                        depth,
-                        bitpix,
-                        bscale,
-                        wcs,
-                        bzero,
-                        blank,
-                        raw_bytes,
-                    });
+                        let off = hdu.get_data_unit_byte_offset() as usize;
+                        let len = hdu.get_data_unit_byte_size() as usize;
+
+                        let raw_bytes = &bytes[off..(off + len)];
+
+                        let bitpix = hdu.get_header().get_xtension().get_bitpix();
+
+                        let wcs = hdu.wcs().ok();
+
+                        images.push(Self {
+                            width: width as u32,
+                            height: height as u32,
+                            depth,
+                            bitpix,
+                            bscale,
+                            wcs,
+                            bzero,
+                            blank,
+                            raw_bytes,
+                        });
+                    }
                 }
                 _ => (),
             }

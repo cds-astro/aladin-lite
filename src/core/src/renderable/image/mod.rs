@@ -45,6 +45,9 @@ use al_core::pixel::Pixel;
 use futures::io::BufReader;
 use futures::AsyncReadExt;
 
+use self::subdivide_texture::crop_image;
+use self::subdivide_texture::ImagePatches;
+
 pub struct Image {
     /// A reference to the GL context
     gl: WebGlContext,
@@ -69,7 +72,7 @@ pub struct Image {
     centered_fov: CenteredFoV,
 
     //+ Texture format
-    channel: PixelType,
+    pixel_type: PixelType,
     /// Texture chunks objects
     textures: Vec<Texture2D>,
     /// Texture indices that must be drawn
@@ -108,6 +111,148 @@ impl Image {
         &self.cuts
     }
 
+    fn init_buffers(
+        gl: WebGlContext,
+        patches: ImagePatches,
+        wcs: WCS,
+        bscale: f32,
+        bzero: f32,
+        blank: Option<f32>,
+        coo_sys: CooSystem,
+        max_tex_size_x: usize,
+        max_tex_size_y: usize,
+    ) -> Result<Self, JsValue> {
+        let dim = wcs.img_dimensions();
+        let (width, height) = (dim[0] as u64, dim[1] as u64);
+
+        let ImagePatches {
+            pixel_type,
+            texture_patches: textures,
+            initial_cuts: cuts,
+        } = patches;
+
+        for tex in &textures {
+            tex.generate_mipmap();
+        }
+
+        let start = cuts.start * bscale + bzero;
+        let end = cuts.end * bscale + bzero;
+
+        let cuts = start..end;
+
+        let num_indices = vec![];
+        let indices = vec![];
+        let pos = vec![];
+        let uv = vec![];
+        // Define the buffers
+        let vao = {
+            let mut vao = VertexArrayObject::new(&gl);
+
+            #[cfg(feature = "webgl2")]
+            vao.bind_for_update()
+                // layout (location = 0) in vec2 ndc_pos;
+                .add_array_buffer_single(
+                    2,
+                    "ndc_pos",
+                    WebGl2RenderingContext::DYNAMIC_DRAW,
+                    VecData::<f32>(&pos),
+                )
+                .add_array_buffer_single(
+                    2,
+                    "uv",
+                    WebGl2RenderingContext::DYNAMIC_DRAW,
+                    VecData::<f32>(&uv),
+                )
+                // Set the element buffer
+                .add_element_buffer(
+                    WebGl2RenderingContext::DYNAMIC_DRAW,
+                    VecData::<u16>(&indices),
+                )
+                .unbind();
+
+            vao
+        };
+
+        // Compute the fov
+        let center = wcs
+            .unproj_lonlat(&ImgXY::new(width as f64 / 2.0, height as f64 / 2.0))
+            .ok_or(JsValue::from_str("(w / 2, h / 2) px cannot be unprojected"))?;
+        let center_xyz = center.to_xyz();
+        let inside = crate::coosys::apply_coo_system(
+            CooSystem::ICRS,
+            coo_sys,
+            &Vector3::new(center_xyz.y(), center_xyz.z(), center_xyz.x()),
+        );
+
+        let vertices = [
+            wcs.unproj_lonlat(&ImgXY::new(0.0, 0.0))
+                .ok_or(JsValue::from_str("(0, 0) does not lie in the sky"))?,
+            wcs.unproj_lonlat(&ImgXY::new(width as f64 - 1.0, 0.0))
+                .ok_or(JsValue::from_str("(w - 1, 0) does not lie in the sky"))?,
+            wcs.unproj_lonlat(&ImgXY::new(width as f64 - 1.0, height as f64 - 1.0))
+                .ok_or(JsValue::from_str("(w - 1, h - 1) does not lie in the sky"))?,
+            wcs.unproj_lonlat(&ImgXY::new(0.0, height as f64 - 1.0))
+                .ok_or(JsValue::from_str("(0, h - 1) does not lie in the sky"))?,
+        ]
+        .iter()
+        .map(|lonlat| {
+            let xyz = lonlat.to_xyz();
+
+            crate::coosys::apply_coo_system(
+                CooSystem::ICRS,
+                coo_sys,
+                &Vector3::new(xyz.y(), xyz.z(), xyz.x()),
+            )
+        })
+        .collect::<Vec<_>>();
+
+        let reg = Region::from_vertices(&vertices, &inside);
+
+        // ra and dec must be given in ICRS coo system, which is the case because wcs returns
+        // only ICRS coo
+        let centered_fov = CenteredFoV {
+            ra: center.lon().to_degrees(),
+            dec: center.lat().to_degrees(),
+            fov: wcs.field_of_view().0,
+        };
+
+        let idx_tex = (0..textures.len()).collect();
+
+        Ok(Self {
+            gl,
+
+            // The positions
+            vao,
+            num_indices,
+            pos,
+            uv,
+            indices,
+
+            // Metadata extracted from the fits
+            wcs,
+            // CooSystem of the wcs, this should belong to the WCS
+            bscale,
+            bzero,
+            blank,
+
+            // Centered field of view allowing to locate the fits
+            centered_fov,
+
+            // Texture parameters
+            pixel_type,
+            textures,
+            cuts,
+            max_tex_size_x,
+            max_tex_size_y,
+            // Indices of textures that must be drawn
+            idx_tex,
+            // The polygonal region in the sky
+            reg,
+            // The coo system in which the polygonal region has been defined
+            coo_sys,
+        })
+    }
+
     pub fn from_fits_hdu(
         gl: &WebGlContext,
         // wcs extracted from the image HDU
@@ -126,7 +271,7 @@ impl Image {
         let dim = wcs.img_dimensions();
         let (width, height) = (dim[0] as u64, dim[1] as u64);
 
-        let max_tex_size =
+        let mut max_tex_size =
             WebGl2RenderingContext::get_parameter(gl, WebGl2RenderingContext::MAX_TEXTURE_SIZE)?
                 .as_f64()
                 .unwrap_or(4096.0) as usize;
@@ -134,349 +279,257 @@ impl Image {
         let mut max_tex_size_x = max_tex_size;
         let mut max_tex_size_y = max_tex_size;
 
-        let (channel, textures, cuts) =
-            if width <= max_tex_size as u64 && height <= max_tex_size as u64 {
-                // small image case, can fit into a webgl texture
+        let patches = if width <= max_tex_size as u64 && height <= max_tex_size as u64 {
+            // small image case, can fit into a webgl texture
 
-                max_tex_size_x = width as usize;
-                max_tex_size_y = height as usize;
-                // can fit in one texture
+            max_tex_size_x = width as usize;
+            max_tex_size_y = height as usize;
+            // can fit in one texture
 
-                // bytes aligned
-                match bitpix {
-                    Bitpix::I64 => {
-                        // one must convert the data to i32
-                        let bytes_from_i32 = bytes
-                            .chunks(8)
-                            .flat_map(|bytes| {
-                                let l = i64::from_be_bytes([
-                                    bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5],
-                                    bytes[6], bytes[7],
-                                ]);
-                                let i = l as i32;
+            // bytes aligned
+            match bitpix {
+                Bitpix::I64 => {
+                    // one must convert the data to i32
+                    let bytes_from_i32 = bytes
+                        .chunks(8)
+                        .flat_map(|bytes| {
+                            let l = i64::from_be_bytes([
+                                bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5],
+                                bytes[6], bytes[7],
+                            ]);
+                            let i = l as i32;
 
-                                i32::to_be_bytes(i)
-                            })
-                            .collect::<Vec<_>>();
+                            i32::to_be_bytes(i)
+                        })
+                        .collect::<Vec<_>>();
 
-                        let texture = Texture2D::create_from_raw_bytes::<R32I>(
-                            gl,
-                            width as i32,
-                            height as i32,
-                            TEX_PARAMS,
-                            bytes_from_i32.as_slice(),
-                        )?;
+                    let texture = Texture2D::create_from_raw_bytes::<R32I>(
+                        gl,
+                        width as i32,
+                        height as i32,
+                        TEX_PARAMS,
+                        bytes_from_i32.as_slice(),
+                    )?;
 
-                        let mut sub_pixels = bytes_from_i32
-                            .chunks(std::mem::size_of::<i32>())
-                            .step_by(100)
-                            .filter_map(|p| {
-                                let p = i32::from_be_bytes([p[0], p[1], p[2], p[3]]);
-                                if let Some(blank) = blank {
-                                    if p as f32 != blank {
-                                        Some(p)
-                                    } else {
-                                        None
-                                    }
-                                } else {
-                                    Some(p)
-                                }
-                            })
-                            .collect::<Vec<_>>();
-
-                        let cuts = cuts::first_and_last_percent(&mut sub_pixels, 1, 99);
-                        (
-                            PixelType::R32I,
-                            vec![texture],
-                            (cuts.start as f32)..(cuts.end as f32),
-                        )
-                    }
-                    Bitpix::F64 => {
-                        // one must convert the data to f32
-                        let bytes_from_f32 = bytes
-                            .chunks(8)
-                            .flat_map(|bytes| {
-                                let d = f64::from_be_bytes([
-                                    bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5],
-                                    bytes[6], bytes[7],
-                                ]);
-                                let f = d as f32;
-
-                                f32::to_be_bytes(f)
-                            })
-                            .collect::<Vec<_>>();
-
-                        let texture = Texture2D::create_from_raw_bytes::<R32F>(
-                            gl,
-                            width as i32,
-                            height as i32,
-                            TEX_PARAMS,
-                            bytes_from_f32.as_slice(),
-                        )?;
-
-                        let mut sub_pixels = bytes_from_f32
-                            .chunks(std::mem::size_of::<f32>())
-                            .step_by(100)
-                            .filter_map(|p| {
-                                let p = f32::from_be_bytes([p[0], p[1], p[2], p[3]]);
-                                if p.is_finite() {
+                    let mut sub_pixels = bytes_from_i32
+                        .chunks(std::mem::size_of::<i32>())
+                        .step_by(100)
+                        .filter_map(|p| {
+                            let p = i32::from_be_bytes([p[0], p[1], p[2], p[3]]) as f32;
+                            if let Some(blank) = blank {
+                                if p != blank {
                                     Some(p)
                                 } else {
                                     None
                                 }
-                            })
-                            .collect::<Vec<_>>();
+                            } else {
+                                Some(p)
+                            }
+                        })
+                        .collect::<Vec<_>>();
 
-                        let cuts = cuts::first_and_last_percent(&mut sub_pixels, 1, 99);
-                        (PixelType::R32F, vec![texture], cuts)
-                    }
-                    Bitpix::U8 => {
-                        let texture = Texture2D::create_from_raw_bytes::<R8U>(
-                            gl,
-                            width as i32,
-                            height as i32,
-                            TEX_PARAMS,
-                            bytes,
-                        )?;
-
-                        let mut sub_pixels = bytes
-                            .iter()
-                            .step_by(100)
-                            .filter_map(|p| {
-                                if let Some(blank) = blank {
-                                    if *p as f32 != blank {
-                                        Some(*p)
-                                    } else {
-                                        None
-                                    }
-                                } else {
-                                    Some(*p)
-                                }
-                            })
-                            .collect::<Vec<_>>();
-
-                        let cuts = cuts::first_and_last_percent(&mut sub_pixels, 1, 99);
-                        (
-                            PixelType::R8U,
-                            vec![texture],
-                            (cuts.start as f32)..(cuts.end as f32),
-                        )
-                    }
-                    Bitpix::I16 => {
-                        let texture = Texture2D::create_from_raw_bytes::<R16I>(
-                            gl,
-                            width as i32,
-                            height as i32,
-                            TEX_PARAMS,
-                            bytes,
-                        )?;
-
-                        let mut sub_pixels = bytes
-                            .chunks(2)
-                            .step_by(100)
-                            .filter_map(|p| {
-                                let p = i16::from_be_bytes([p[0], p[1]]);
-
-                                if let Some(blank) = blank {
-                                    if p as f32 != blank {
-                                        Some(p)
-                                    } else {
-                                        None
-                                    }
-                                } else {
-                                    Some(p)
-                                }
-                            })
-                            .collect::<Vec<_>>();
-
-                        let cuts = cuts::first_and_last_percent(&mut sub_pixels, 1, 99);
-                        (
-                            PixelType::R16I,
-                            vec![texture],
-                            (cuts.start as f32)..(cuts.end as f32),
-                        )
-                    }
-                    Bitpix::I32 => {
-                        let texture = Texture2D::create_from_raw_bytes::<R32I>(
-                            gl,
-                            width as i32,
-                            height as i32,
-                            TEX_PARAMS,
-                            bytes,
-                        )?;
-
-                        let mut sub_pixels = bytes
-                            .chunks(4)
-                            .step_by(100)
-                            .filter_map(|p| {
-                                let p = i32::from_be_bytes([p[0], p[1], p[2], p[3]]);
-
-                                if let Some(blank) = blank {
-                                    if p as f32 != blank {
-                                        Some(p)
-                                    } else {
-                                        None
-                                    }
-                                } else {
-                                    Some(p)
-                                }
-                            })
-                            .collect::<Vec<_>>();
-
-                        let cuts = cuts::first_and_last_percent(&mut sub_pixels, 1, 99);
-                        (
-                            PixelType::R32I,
-                            vec![texture],
-                            (cuts.start as f32)..(cuts.end as f32),
-                        )
-                    }
-                    Bitpix::F32 => {
-                        let texture = Texture2D::create_from_raw_bytes::<R32F>(
-                            gl,
-                            width as i32,
-                            height as i32,
-                            TEX_PARAMS,
-                            bytes,
-                        )?;
-
-                        let mut sub_pixels = bytes
-                            .chunks(std::mem::size_of::<f32>())
-                            .step_by(100)
-                            .filter_map(|p| {
-                                let p = f32::from_be_bytes([p[0], p[1], p[2], p[3]]);
-                                if p.is_finite() {
-                                    Some(p)
-                                } else {
-                                    None
-                                }
-                            })
-                            .collect::<Vec<_>>();
-
-                        let cuts = cuts::first_and_last_percent(&mut sub_pixels, 1, 99);
-                        (PixelType::R32F, vec![texture], cuts)
-                    }
+                    let cuts = cuts::first_and_last_percent(&mut sub_pixels, 1, 99);
+                    ImagePatches::new(PixelType::R32I, vec![texture], cuts)
                 }
-            } else {
-                return Err(JsValue::from_str("too big image"));
-            };
+                Bitpix::F64 => {
+                    // one must convert the data to f32
+                    let bytes_from_f32 = bytes
+                        .chunks(8)
+                        .flat_map(|bytes| {
+                            let d = f64::from_be_bytes([
+                                bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5],
+                                bytes[6], bytes[7],
+                            ]);
+                            let f = d as f32;
 
-        let start = cuts.start * bscale + bzero;
-        let end = cuts.end * bscale + bzero;
+                            f32::to_be_bytes(f)
+                        })
+                        .collect::<Vec<_>>();
 
-        let cuts = start..end;
+                    let texture = Texture2D::create_from_raw_bytes::<R32F>(
+                        gl,
+                        width as i32,
+                        height as i32,
+                        TEX_PARAMS,
+                        bytes_from_f32.as_slice(),
+                    )?;
 
-        let num_indices = vec![];
-        let indices = vec![];
-        let pos = vec![];
-        let uv = vec![];
-        // Define the buffers
-        let vao = {
-            let mut vao = VertexArrayObject::new(gl);
+                    let mut sub_pixels = bytes_from_f32
+                        .chunks(std::mem::size_of::<f32>())
+                        .step_by(100)
+                        .filter_map(|p| {
+                            let p = f32::from_be_bytes([p[0], p[1], p[2], p[3]]);
+                            if p.is_finite() {
+                                Some(p)
+                            } else {
+                                None
+                            }
+                        })
+                        .collect::<Vec<_>>();
 
-            #[cfg(feature = "webgl2")]
-            vao.bind_for_update()
-                // layout (location = 0) in vec2 ndc_pos;
-                .add_array_buffer_single(
-                    2,
-                    "ndc_pos",
-                    WebGl2RenderingContext::DYNAMIC_DRAW,
-                    VecData::<f32>(&pos),
-                )
-                .add_array_buffer_single(
-                    2,
-                    "uv",
-                    WebGl2RenderingContext::DYNAMIC_DRAW,
-                    VecData::<f32>(&uv),
-                )
-                // Set the element buffer
-                .add_element_buffer(
-                    WebGl2RenderingContext::DYNAMIC_DRAW,
-                    VecData::<u16>(&indices),
-                )
-                .unbind();
+                    let cuts = cuts::first_and_last_percent(&mut sub_pixels, 1, 99);
+                    ImagePatches::new(PixelType::R32F, vec![texture], cuts)
+                }
+                Bitpix::U8 => {
+                    let texture = Texture2D::create_from_raw_bytes::<R8U>(
+                        gl,
+                        width as i32,
+                        height as i32,
+                        TEX_PARAMS,
+                        bytes,
+                    )?;
 
-            vao
+                    let mut sub_pixels = bytes
+                        .iter()
+                        .step_by(100)
+                        .filter_map(|p| {
+                            let p = *p as f32;
+                            if let Some(blank) = blank {
+                                if p != blank {
+                                    Some(p)
+                                } else {
+                                    None
+                                }
+                            } else {
+                                Some(p)
+                            }
+                        })
+                        .collect::<Vec<_>>();
+
+                    let cuts = cuts::first_and_last_percent(&mut sub_pixels, 1, 99);
+                    ImagePatches::new(PixelType::R8U, vec![texture], cuts)
+                }
+                Bitpix::I16 => {
+                    let texture = Texture2D::create_from_raw_bytes::<R16I>(
+                        gl,
+                        width as i32,
+                        height as i32,
+                        TEX_PARAMS,
+                        bytes,
+                    )?;
+
+                    let mut sub_pixels = bytes
+                        .chunks(2)
+                        .step_by(100)
+                        .filter_map(|p| {
+                            let p = i16::from_be_bytes([p[0], p[1]]) as f32;
+
+                            if let Some(blank) = blank {
+                                if p != blank {
+                                    Some(p)
+                                } else {
+                                    None
+                                }
+                            } else {
+                                Some(p)
+                            }
+                        })
+                        .collect::<Vec<_>>();
+
+                    let cuts = cuts::first_and_last_percent(&mut sub_pixels, 1, 99);
+                    ImagePatches::new(PixelType::R16I, vec![texture], cuts)
+                }
+                Bitpix::I32 => {
+                    let texture = Texture2D::create_from_raw_bytes::<R32I>(
+                        gl,
+                        width as i32,
+                        height as i32,
+                        TEX_PARAMS,
+                        bytes,
+                    )?;
+
+                    let mut sub_pixels = bytes
+                        .chunks(4)
+                        .step_by(100)
+                        .filter_map(|p| {
+                            let p = i32::from_be_bytes([p[0], p[1], p[2], p[3]]) as f32;
+
+                            if let Some(blank) = blank {
+                                if p != blank {
+                                    Some(p)
+                                } else {
+                                    None
+                                }
+                            } else {
+                                Some(p)
+                            }
+                        })
+                        .collect::<Vec<_>>();
+
+                    let cuts = cuts::first_and_last_percent(&mut sub_pixels, 1, 99);
+                    ImagePatches::new(PixelType::R32I, vec![texture], cuts)
+                }
+                Bitpix::F32 => {
+                    let texture = Texture2D::create_from_raw_bytes::<R32F>(
+                        gl,
+                        width as i32,
+                        height as i32,
+                        TEX_PARAMS,
+                        bytes,
+                    )?;
+
+                    let mut sub_pixels = bytes
+                        .chunks(std::mem::size_of::<f32>())
+                        .step_by(100)
+                        .filter_map(|p| {
+                            let p = f32::from_be_bytes([p[0], p[1], p[2], p[3]]);
+                            if p.is_finite() {
+                                Some(p)
+                            } else {
+                                None
+                            }
+                        })
+                        .collect::<Vec<_>>();
+
+                    let cuts = cuts::first_and_last_percent(&mut sub_pixels, 1, 99);
+                    ImagePatches::new(PixelType::R32F, vec![texture], cuts)
+                }
+            }
+        } else {
+            // We cut the image in 4096x4096 patches. It is already 64MB to allocate for a f32 image of this dimensions.
+            max_tex_size_x = 4096;
+            max_tex_size_y = 4096;
+
+            match bitpix {
+                Bitpix::U8 => crop_image::<R8U>(gl, width, height, bytes, 4096, blank)?,
+                Bitpix::I16 => crop_image::<R16I>(gl, width, height, bytes, 4096, blank)?,
+                Bitpix::I32 => crop_image::<R32I>(gl, width, height, bytes, 4096, blank)?,
+                Bitpix::F32 => crop_image::<R32F>(gl, width, height, bytes, 4096, blank)?,
+                Bitpix::F64 => {
+                    let bytes_from_f32 = bytes
+                        .chunks(8)
+                        .flat_map(|bytes| {
+                            let d = f64::from_be_bytes([
+                                bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5],
+                                bytes[6], bytes[7],
+                            ]);
+                            let f = d as f32;
+
+                            f32::to_be_bytes(f)
+                        })
+                        .collect::<Vec<_>>();
+
+                    crop_image::<R32F>(gl, width, height, &bytes_from_f32, 4096, blank)?
+                }
+                _ => {
+                    return Err(JsValue::from_str(
+                        "I64/F64 for big fits images not supported.",
+                    ))
+                }
+            }
         };
-        let gl = gl.clone();
 
-        // Compute the fov
-        let center = wcs
-            .unproj_lonlat(&ImgXY::new(width as f64 / 2.0, height as f64 / 2.0))
-            .ok_or(JsValue::from_str("(w / 2, h / 2) px cannot be unprojected"))?;
-        let center_xyz = center.to_xyz();
-        let inside = crate::coosys::apply_coo_system(
-            CooSystem::ICRS,
-            coo_sys,
-            &Vector3::new(center_xyz.y(), center_xyz.z(), center_xyz.x()),
-        );
-
-        let vertices = [
-            wcs.unproj_lonlat(&ImgXY::new(0.0, 0.0))
-                .ok_or(JsValue::from_str("(0, 0) does not lie in the sky"))?,
-            wcs.unproj_lonlat(&ImgXY::new(width as f64 - 1.0, 0.0))
-                .ok_or(JsValue::from_str("(w - 1, 0) does not lie in the sky"))?,
-            wcs.unproj_lonlat(&ImgXY::new(width as f64 - 1.0, height as f64 - 1.0))
-                .ok_or(JsValue::from_str("(w - 1, h - 1) does not lie in the sky"))?,
-            wcs.unproj_lonlat(&ImgXY::new(0.0, height as f64 - 1.0))
-                .ok_or(JsValue::from_str("(0, h - 1) does not lie in the sky"))?,
-        ]
-        .iter()
-        .map(|lonlat| {
-            let xyz = lonlat.to_xyz();
-
-            crate::coosys::apply_coo_system(
-                CooSystem::ICRS,
-                coo_sys,
-                &Vector3::new(xyz.y(), xyz.z(), xyz.x()),
-            )
-        })
-        .collect::<Vec<_>>();
-
-        let reg = Region::from_vertices(&vertices, &inside);
-
-        // ra and dec must be given in ICRS coo system, which is the case because wcs returns
-        // only ICRS coo
-        let centered_fov = CenteredFoV {
-            ra: center.lon().to_degrees(),
-            dec: center.lat().to_degrees(),
-            fov: wcs.field_of_view().0,
-        };
-
-        let idx_tex = (0..textures.len()).collect();
-
-        Ok(Self {
-            gl,
-
-            // The positions
-            vao,
-            num_indices,
-            pos,
-            uv,
-            indices,
-
-            // Metadata extracted from the fits
+        Self::init_buffers(
+            gl.clone(),
+            patches,
             wcs,
-            // CooSystem of the wcs, this should belong to the WCS
             bscale,
             bzero,
             blank,
-
-            // Centered field of view allowing to locate the fits
-            centered_fov,
-
-            // Texture parameters
-            channel,
-            textures,
-            cuts,
+            coo_sys,
             max_tex_size_x,
             max_tex_size_y,
-            // Indices of textures that must be drawn
-            idx_tex,
-            // The polygonal region in the sky
-            reg,
-            // The coo system in which the polygonal region has been defined
-            coo_sys,
-        })
+        )
     }
 
     pub fn from_rgba_bytes(
@@ -491,7 +544,7 @@ impl Image {
         let dim = wcs.img_dimensions();
         let (width, height) = (dim[0] as u64, dim[1] as u64);
 
-        let max_tex_size =
+        let mut max_tex_size =
             WebGl2RenderingContext::get_parameter(gl, WebGl2RenderingContext::MAX_TEXTURE_SIZE)?
                 .as_f64()
                 .unwrap_or(4096.0) as usize;
@@ -503,149 +556,41 @@ impl Image {
         let mut max_tex_size_x = max_tex_size;
         let mut max_tex_size_y = max_tex_size;
 
-        let (channel, textures, cuts) =
-            if width <= max_tex_size as u64 && height <= max_tex_size as u64 {
-                // small image case, can fit into a webgl texture
-                max_tex_size_x = width as usize;
-                max_tex_size_y = height as usize;
-                // can fit in one texture
+        let image_patches = if width <= max_tex_size as u64 && height <= max_tex_size as u64 {
+            // small image case, can fit into a webgl texture
+            max_tex_size_x = width as usize;
+            max_tex_size_y = height as usize;
+            // can fit in one texture
 
-                let textures = vec![Texture2D::create_from_raw_bytes::<RGBA8U>(
-                    gl,
-                    width as i32,
-                    height as i32,
-                    TEX_PARAMS,
-                    bytes,
-                )?];
-                let pixel_ty = PixelType::RGBA8U;
-                let cuts = 0.0..1.0;
+            let textures = vec![Texture2D::create_from_raw_bytes::<RGBA8U>(
+                gl,
+                width as i32,
+                height as i32,
+                TEX_PARAMS,
+                bytes,
+            )?];
+            let pixel_ty = PixelType::RGBA8U;
+            let cuts = 0.0..1.0;
 
-                (pixel_ty, textures, cuts)
-            } else {
-                return Err(JsValue::from_str("too big image"));
-            };
+            ImagePatches::new(pixel_ty, textures, cuts)
+        } else {
+            max_tex_size_x = 4096;
+            max_tex_size_y = 4096;
 
-        for tex in &textures {
-            tex.generate_mipmap();
-        }
-
-        let start = cuts.start * bscale + bzero;
-        let end = cuts.end * bscale + bzero;
-
-        let cuts = start..end;
-
-        let num_indices = vec![];
-        let indices = vec![];
-        let pos = vec![];
-        let uv = vec![];
-        // Define the buffers
-        let vao = {
-            let mut vao = VertexArrayObject::new(gl);
-
-            #[cfg(feature = "webgl2")]
-            vao.bind_for_update()
-                // layout (location = 0) in vec2 ndc_pos;
-                .add_array_buffer_single(
-                    2,
-                    "ndc_pos",
-                    WebGl2RenderingContext::DYNAMIC_DRAW,
-                    VecData::<f32>(&pos),
-                )
-                .add_array_buffer_single(
-                    2,
-                    "uv",
-                    WebGl2RenderingContext::DYNAMIC_DRAW,
-                    VecData::<f32>(&uv),
-                )
-                // Set the element buffer
-                .add_element_buffer(
-                    WebGl2RenderingContext::DYNAMIC_DRAW,
-                    VecData::<u16>(&indices),
-                )
-                .unbind();
-
-            vao
-        };
-        let gl = gl.clone();
-
-        // Compute the fov
-        let center = wcs
-            .unproj_lonlat(&ImgXY::new(width as f64 / 2.0, height as f64 / 2.0))
-            .ok_or(JsValue::from_str("(w / 2, h / 2) px cannot be unprojected"))?;
-        let center_xyz = center.to_xyz();
-        let inside = crate::coosys::apply_coo_system(
-            CooSystem::ICRS,
-            coo_sys,
-            &Vector3::new(center_xyz.y(), center_xyz.z(), center_xyz.x()),
-        );
-
-        let vertices = [
-            wcs.unproj_lonlat(&ImgXY::new(0.0, 0.0))
-                .ok_or(JsValue::from_str("(0, 0) does not lie in the sky"))?,
-            wcs.unproj_lonlat(&ImgXY::new(width as f64 - 1.0, 0.0))
-                .ok_or(JsValue::from_str("(w - 1, 0) does not lie in the sky"))?,
-            wcs.unproj_lonlat(&ImgXY::new(width as f64 - 1.0, height as f64 - 1.0))
-                .ok_or(JsValue::from_str("(w - 1, h - 1) does not lie in the sky"))?,
-            wcs.unproj_lonlat(&ImgXY::new(0.0, height as f64 - 1.0))
-                .ok_or(JsValue::from_str("(0, h - 1) does not lie in the sky"))?,
-        ]
-        .iter()
-        .map(|lonlat| {
-            let xyz = lonlat.to_xyz();
-
-            crate::coosys::apply_coo_system(
-                CooSystem::ICRS,
-                coo_sys,
-                &Vector3::new(xyz.y(), xyz.z(), xyz.x()),
-            )
-        })
-        .collect::<Vec<_>>();
-
-        let reg = Region::from_vertices(&vertices, &inside);
-
-        // ra and dec must be given in ICRS coo system, which is the case because wcs returns
-        // only ICRS coo
-        let centered_fov = CenteredFoV {
-            ra: center.lon().to_degrees(),
-            dec: center.lat().to_degrees(),
-            fov: wcs.field_of_view().0,
+            crop_image::<RGBA8U>(gl, width, height, bytes, 4096, None)?
         };
 
-        let idx_tex = (0..textures.len()).collect();
-
-        Ok(Self {
-            gl,
-
-            // The positions
-            vao,
-            num_indices,
-            pos,
-            uv,
-            indices,
-
-            // Metadata extracted from the fits
+        Self::init_buffers(
+            gl.clone(),
+            image_patches,
             wcs,
-            // CooSystem of the wcs, this should belong to the WCS
             bscale,
             bzero,
             blank,
-
-            // Centered field of view allowing to locate the fits
-            centered_fov,
-
-            // Texture parameters
-            channel,
-            textures,
-            cuts,
+            coo_sys,
             max_tex_size_x,
             max_tex_size_y,
-            // Indices of textures that must be drawn
-            idx_tex,
-            // The polygonal region in the sky
-            reg,
-            // The coo system in which the polygonal region has been defined
-            coo_sys,
-        })
+        )
     }
 
     pub fn recompute_vertices(
@@ -673,7 +618,7 @@ impl Image {
         let num_vertices =
             ((self.centered_fov.fov / 180.0) * (MAX_NUM_TRI_PER_SIDE_IMAGE as f64)).ceil() as u64;
 
-        let (pos, uv, indices, num_indices) = grid::vertices2(
+        let (pos, uv, indices, num_indices) = grid::vertices(
             &(x_mesh_range.start, y_mesh_range.start),
             &(x_mesh_range.end.ceil(), y_mesh_range.end.ceil()),
             self.max_tex_size_x as u64,
@@ -682,6 +627,7 @@ impl Image {
             camera,
             &self.wcs,
             projection,
+            self.pixel_type == PixelType::RGB8U || self.pixel_type == PixelType::RGBA8U,
         );
 
         self.pos = pos;
@@ -785,7 +731,7 @@ impl Image {
             ..
         } = cfg;
 
-        let shader = match self.channel {
+        let shader = match self.pixel_type {
             PixelType::RGBA8U => crate::shader::get_shader(
                 &self.gl,
                 shaders,
@@ -817,9 +763,9 @@ impl Image {
         // 2. Draw it if its opacity is not null
         blend_cfg.enable(&self.gl, || {
             let mut off_indices = 0;
-            for (idx, &idx_tex) in self.idx_tex.iter().enumerate() {
+            for &idx_tex in self.idx_tex.iter() {
                 let texture = &self.textures[idx_tex];
-                let num_indices = self.num_indices[idx] as i32;
+                let num_indices = self.num_indices[idx_tex] as i32;
 
                 let shader_bound = shader.bind(&self.gl);
 

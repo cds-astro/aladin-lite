@@ -26,7 +26,7 @@ wasm-bindgen = "=0.2.92"
 wasm-streams = "0.3.0"
 async-channel = "1.8.0"
 mapproj = "0.3.0"
-fitsrs = { git = "https://github.com/cds-astro/fitsrs", branch = "master" }
+fitsrs = "0.3.4"
 colorgrad = "0.6.2"
 
 [features]

@@ -163,7 +163,7 @@ impl HiPS {
         }
     }
 
-    pub fn get_fits_params(&self) -> &Option<FitsParams> {
+    pub(crate) fn get_fits_params(&self) -> &Option<FitsParams> {
         match self {
             HiPS::D2(hips) => &hips.fits_params,
             HiPS::D3(hips) => &hips.fits_params,

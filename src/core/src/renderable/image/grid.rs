@@ -1,4 +1,3 @@
-use al_core::al_print;
 use cgmath::Vector3;
 use std::ops::RangeInclusive;
 
@@ -199,7 +198,7 @@ pub fn vertices(
                 y
             };
 
-            x_it.clone().into_iter().map(move |(x, uvx)| {
+            x_it.clone().map(move |(x, uvx)| {
                 let ndc = if let Some(xyz) = wcs.unproj_xyz(&ImgXY::new(x as f64, y as f64)) {
                     let xyz = crate::coosys::apply_coo_system(
                         CooSystem::ICRS,

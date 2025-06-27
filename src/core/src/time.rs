@@ -12,7 +12,7 @@ impl Time {
         let r = f()?;
         let duration = Time::now() - start_time;
         // print the duration in the console
-        al_core::log(&format!("{:?} time: {:?}", label, duration));
+        al_core::log(&format!("{label:?} time: {duration:?}"));
 
         Ok(r)
     }

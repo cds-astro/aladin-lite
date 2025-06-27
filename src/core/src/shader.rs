@@ -26,13 +26,13 @@ impl From<Error> for JsValue {
     fn from(e: Error) -> Self {
         match e {
             Error::ShaderAlreadyInserted { message } => {
-                JsValue::from_str(&format!("Shader already inserted: {:?}", message))
+                JsValue::from_str(&format!("Shader already inserted: {message:?}"))
             }
             Error::ShaderNotFound { message } => {
-                JsValue::from_str(&format!("Shader not found: {:?}", message))
+                JsValue::from_str(&format!("Shader not found: {message:?}"))
             }
             Error::FileNotFound { message } => {
-                JsValue::from_str(&format!("Shader not found: {:?}", message))
+                JsValue::from_str(&format!("Shader not found: {message:?}"))
             }
             Error::ShaderCompilingLinking { message } => message,
             Error::Io { message } => message.into(),

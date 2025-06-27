@@ -2,8 +2,9 @@ use crate::texture::format::TextureFormat;
 use crate::texture::format::R8U;
 use cgmath::Vector3;
 use fitsrs::card::Value;
-use fitsrs::gz::GzReader;
+use fitsrs::hdu::header::extension::image::Image as XImage;
 use fitsrs::hdu::header::Bitpix;
+use fitsrs::hdu::header::Header;
 use fitsrs::WCS;
 use fitsrs::{Fits, HDU};
 use std::fmt::Debug;
@@ -12,6 +13,8 @@ use wasm_bindgen::JsValue;
 
 #[derive(Debug)]
 pub struct FitsImage<'a> {
+    // get a reference to the header
+    pub header: Header<XImage>,
     // image size
     pub width: u32,
     pub height: u32,
@@ -78,6 +81,7 @@ impl<'a> FitsImage<'a> {
                         let wcs = hdu.wcs().ok();
 
                         images.push(Self {
+                            header: hdu.get_header().clone(),
                             width: width as u32,
                             height: height as u32,
                             depth,

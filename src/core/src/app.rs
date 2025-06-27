@@ -3,7 +3,6 @@ use crate::renderable::ImageLayer;
 use crate::tile_fetcher::HiPSLocalFiles;
 use al_core::image::fits::FitsImage;
 use al_core::image::ImageType;
-use al_core::texture::format::{R16I, R32F, R32I, R8U, RGBA8U};
 use fitsrs::WCS;
 use std::io::Cursor;
 
@@ -101,17 +100,15 @@ pub struct App {
     pub projection: ProjectionType,
 
     // Async data receivers
-    img_send: async_channel::Sender<ImageLayer>,
+    //img_send: async_channel::Sender<ImageLayer>,
     img_recv: async_channel::Receiver<ImageLayer>,
-
     ack_img_send: async_channel::Sender<ImageParams>,
-    ack_img_recv: async_channel::Receiver<ImageParams>,
+    //ack_img_recv: async_channel::Receiver<ImageParams>,
     // callbacks
     //callback_position_changed: js_sys::Function,
 }
 
 use cgmath::{Vector2, Vector3};
-use futures::io::BufReader; // for `next`
 
 use crate::math::projection::*;
 pub const BLENDING_ANIM_DURATION: DeltaTime = DeltaTime::from_millis(200.0); // in ms
@@ -193,8 +190,8 @@ impl App {
         let moc = MOCRenderer::new(&gl)?;
         gl.clear_color(0.1, 0.1, 0.1, 1.0);
 
-        let (img_send, img_recv) = async_channel::unbounded::<ImageLayer>();
-        let (ack_img_send, ack_img_recv) = async_channel::unbounded::<ImageParams>();
+        let (_, img_recv) = async_channel::unbounded::<ImageLayer>();
+        let (ack_img_send, _) = async_channel::unbounded::<ImageParams>();
 
         //let line_renderer = RasterizedLineRenderer::new(&gl)?;
 
@@ -251,10 +248,10 @@ impl App {
             colormaps,
             projection,
 
-            img_send,
+            //img_send,
             img_recv,
             ack_img_send,
-            ack_img_recv,
+            //ack_img_recv,
         })
     }
 
@@ -963,7 +960,7 @@ impl App {
 
     pub(crate) fn add_fits_image(
         &mut self,
-        mut bytes: &[u8],
+        bytes: &[u8],
         meta: ImageMetadata,
         layer: String,
     ) -> Result<js_sys::Promise, JsValue> {

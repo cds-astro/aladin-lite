@@ -487,7 +487,6 @@ export let Image = (function () {
             let self = this;
             let img = document.createElement('img');
 
-            console.log("jjjj")
             return new Promise((resolve, reject) => {
                 img.src = this.url;
                 img.crossOrigin = "Anonymous";

@@ -31,8 +31,7 @@ fn generate_shaders() -> std::result::Result<(), Box<dyn Error>> {
                     let src = read_shader(path)?;
                     shaders.insert(out_file_name, src);
 
-                    //fs::write(&out_name, result)?;
-                    println!("cargo:rerun-if-changed=src/shaders/{}", file_name);
+                    println!("cargo:rerun-if-changed=src/shaders/{file_name}");
                 }
             }
         }

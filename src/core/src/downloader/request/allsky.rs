@@ -1,5 +1,3 @@
-use std::io::Cursor;
-
 use crate::downloader::query;
 use crate::renderable::CreatorDid;
 use al_core::image::fits::FitsImage;

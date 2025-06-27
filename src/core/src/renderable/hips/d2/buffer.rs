@@ -214,7 +214,6 @@ fn create_hpx_texture_storage(
             // 256 is a consensus for targetting the maximum GPU architectures. We create a 128 slices to optimize performance
             num_tiles, tex_params,
         ),
-        _ => unimplemented!(),
     }
 }
 

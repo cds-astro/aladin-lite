@@ -92,7 +92,7 @@ impl fmt::Display for BlendFactor {
             BlendFactor::OneMinusSrcAlpha => "OneMinusSrcAlpha",
             BlendFactor::OneMinusConstantColor => "OneMinusConstantColor",
         };
-        write!(f, "{}", str)
+        write!(f, "{str}")
     }
 }
 impl fmt::Display for BlendFunc {
@@ -111,6 +111,6 @@ impl fmt::Display for BlendFunc {
             #[cfg(feature = "webgl2")]
             BlendFunc::Max => "Max",*/
         };
-        write!(f, "{}", str)
+        write!(f, "{str}")
     }
 }

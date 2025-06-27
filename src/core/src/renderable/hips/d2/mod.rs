@@ -231,7 +231,7 @@ pub struct HiPS2D {
     // A buffer storing the cells in the view
     hpx_cells_in_view: Vec<HEALPixCell>,
 
-    pub fits_params: Option<FitsParams>,
+    pub(crate) fits_params: Option<FitsParams>,
 }
 
 use super::HpxTileBuffer;

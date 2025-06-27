@@ -134,14 +134,14 @@ impl Colormaps {
             Colormap::new("grayscale", {
                 colorgrad::CustomGradient::new()
                     .build()
-                    .map_err(|err| JsValue::from_str(&format!("{:?}", err)))?
+                    .map_err(|err| JsValue::from_str(&format!("{err:?}")))?
             }),
             Colormap::new("inferno", colorgrad::inferno()),
             Colormap::new("magma", colorgrad::magma()),
             Colormap::new("native", {
                 colorgrad::CustomGradient::new()
                     .build()
-                    .map_err(|err| JsValue::from_str(&format!("{:?}", err)))?
+                    .map_err(|err| JsValue::from_str(&format!("{err:?}")))?
             }),
             Colormap::new("parula", {
                 colorgrad::CustomGradient::new()
@@ -155,7 +155,7 @@ impl Colormaps {
                         Color::from_rgba8(249, 250, 20, 255),
                     ])
                     .build()
-                    .map_err(|err| JsValue::from_str(&format!("{:?}", err)))?
+                    .map_err(|err| JsValue::from_str(&format!("{err:?}")))?
             }),
             Colormap::new("plasma", colorgrad::plasma()),
             Colormap::new("rainbow", {
@@ -173,7 +173,7 @@ impl Colormaps {
                         Color::from_rgba8(255, 0, 0, 255),
                     ])
                     .build()
-                    .map_err(|err| JsValue::from_str(&format!("{:?}", err)))?
+                    .map_err(|err| JsValue::from_str(&format!("{err:?}")))?
             }),
             Colormap::new("rdbu", colorgrad::rd_bu()),
             Colormap::new("rdylbu", colorgrad::rd_yl_bu()),
@@ -186,7 +186,7 @@ impl Colormaps {
                         Color::new(1.0, 1.0, 1.0, 1.0),
                     ])
                     .build()
-                    .map_err(|err| JsValue::from_str(&format!("{:?}", err)))?
+                    .map_err(|err| JsValue::from_str(&format!("{err:?}")))?
             }),
             Colormap::new("sinebow", colorgrad::sinebow()),
             Colormap::new("spectral", colorgrad::spectral()),
@@ -201,7 +201,7 @@ impl Colormaps {
                         Color::new(1.0, 0.0, 0.0, 1.0),
                     ])
                     .build()
-                    .map_err(|err| JsValue::from_str(&format!("{:?}", err)))?
+                    .map_err(|err| JsValue::from_str(&format!("{err:?}")))?
             }),
             Colormap::new("green", {
                 colorgrad::CustomGradient::new()
@@ -210,7 +210,7 @@ impl Colormaps {
                         Color::new(0.0, 1.0, 0.0, 1.0),
                     ])
                     .build()
-                    .map_err(|err| JsValue::from_str(&format!("{:?}", err)))?
+                    .map_err(|err| JsValue::from_str(&format!("{err:?}")))?
             }),
             Colormap::new("blue", {
                 colorgrad::CustomGradient::new()
@@ -219,7 +219,7 @@ impl Colormaps {
                         Color::new(0.0, 0.0, 1.0, 1.0),
                     ])
                     .build()
-                    .map_err(|err| JsValue::from_str(&format!("{:?}", err)))?
+                    .map_err(|err| JsValue::from_str(&format!("{err:?}")))?
             }),
         ];
 
@@ -246,8 +246,7 @@ impl Colormaps {
             &self.cmaps[id as usize]
         } else {
             crate::log::console_warn(format!(
-                "{:?} is not a valid colormap, replaced with 'grayscale'.",
-                label
+                "{label:?} is not a valid colormap, replaced with 'grayscale'.",
             ));
             let id_greys = self.get_id("grayscale").unwrap_abort();
             &self.cmaps[*id_greys as usize]

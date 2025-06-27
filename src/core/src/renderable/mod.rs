@@ -21,7 +21,6 @@ use al_core::colormap::Colormaps;
 
 use al_core::shader::Shader;
 use al_core::texture::format::PixelType;
-use al_core::texture::format::TextureFormat;
 use al_core::VertexArrayObject;
 use al_core::WebGlContext;
 
@@ -296,10 +295,8 @@ impl Layers {
         proj: &ProjectionType,
         tile_fetcher: &mut TileFetcherQueue,
     ) -> Result<usize, JsValue> {
-        let err_layer_not_found = JsValue::from_str(&format!(
-            "Layer {:?} not found, so cannot be removed.",
-            layer
-        ));
+        let err_layer_not_found =
+            JsValue::from_str(&format!("Layer {layer:?} not found, so cannot be removed."));
         // Color configs, and urls are indexed by layer
         self.meta.remove(layer).ok_or(err_layer_not_found.clone())?;
         let id = self.ids.remove(layer).ok_or(err_layer_not_found.clone())?;
@@ -333,18 +330,15 @@ impl Layers {
                 Ok(id_layer)
             } else {
                 Err(JsValue::from_str(&format!(
-                    "Url found {:?} is associated to no 2D HiPSes.",
-                    id
+                    "Url found {id:?} is associated to no 2D HiPSes."
                 )))
             }
         }
     }
 
     pub fn rename_layer(&mut self, layer: &str, new_layer: &str) -> Result<(), JsValue> {
-        let err_layer_not_found = JsValue::from_str(&format!(
-            "Layer {:?} not found, so cannot be removed.",
-            layer
-        ));
+        let err_layer_not_found =
+            JsValue::from_str(&format!("Layer {layer:?} not found, so cannot be removed."));
 
         // layer from layers does also need to be removed
         let id_layer = self
@@ -371,16 +365,14 @@ impl Layers {
                 .iter()
                 .position(|l| l == first_layer)
                 .ok_or(JsValue::from_str(&format!(
-                    "Layer {:?} not found, so cannot be removed.",
-                    first_layer
+                    "Layer {first_layer:?} not found, so cannot be removed."
                 )))?;
         let id_second_layer =
             self.layers
                 .iter()
                 .position(|l| l == second_layer)
                 .ok_or(JsValue::from_str(&format!(
-                    "Layer {:?} not found, so cannot be removed.",
-                    second_layer
+                    "Layer {second_layer:?} not found, so cannot be removed.",
                 )))?;
 
         self.layers.swap(id_first_layer, id_second_layer);
@@ -520,7 +512,7 @@ impl Layers {
     pub fn set_layer_cfg(&mut self, layer: String, meta: ImageMetadata) -> Result<(), JsValue> {
         // Expect the image hips to be found in the hash map
         self.meta.insert(layer.clone(), meta).ok_or_else(|| {
-            JsValue::from(js_sys::Error::new(&format!("{:?} layer not found", layer)))
+            JsValue::from(js_sys::Error::new(&format!("{layer:?} layer not found")))
         })?;
 
         Ok(())

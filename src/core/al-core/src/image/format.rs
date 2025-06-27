@@ -16,9 +16,6 @@ impl ImageFormatType {
     }
 
     pub fn is_colored(&self) -> bool {
-        match self.ext {
-            ImageExt::Fits => false,
-            _ => true,
-        }
+        !matches!(self.ext, ImageExt::Fits)
     }
 }

@@ -105,7 +105,7 @@ pub struct HiPS3D {
     // A buffer storing the cells in the view
     hpx_cells_in_view: Vec<HEALPixCell>,
 
-    pub fits_params: Option<FitsParams>,
+    pub(crate) fits_params: Option<FitsParams>,
 
     // The current slice index
     slice: u16,

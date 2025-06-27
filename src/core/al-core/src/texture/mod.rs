@@ -65,7 +65,7 @@ impl Texture2D {
 
         let onerror = {
             Closure::wrap(Box::new(move || {
-                println!("Cannot load texture located at: {:?}", name);
+                println!("Cannot load texture located at: {name:?}");
             }) as Box<dyn Fn()>)
         };
 
@@ -360,9 +360,6 @@ impl Texture2D {
                     let p = <[u8; 4]>::read_pixel(&self.gl, x, y)?;
                     Ok(serde_wasm_bindgen::to_value(&p)?)
                 }
-                _ => Err(JsValue::from_str(
-                    "Pixel retrieval not implemented for that texture format.",
-                )),
             };
 
             // Unbind the framebuffer

@@ -44,17 +44,17 @@ impl Tile {
 
         let dir_idx = (idx / 10000) * 10000;
 
-        let mut url = format!("{}/Norder{}/Dir{}/Npix{}", hips_url, depth, dir_idx, idx);
+        let mut url = format!("{hips_url}/Norder{depth}/Dir{dir_idx}/Npix{idx}");
 
         // handle cube case
         if let Some(channel) = channel {
             if channel > 0 {
-                url.push_str(&format!("_{:?}", channel));
+                url.push_str(&format!("_{channel:?}"));
             }
         }
 
         // add the tile format
-        url.push_str(&format!(".{}", ext));
+        url.push_str(&format!(".{ext}"));
 
         let id = format!(
             "{}{}{}{}{}",
@@ -121,12 +121,12 @@ impl Allsky {
         // handle cube case
         if let Some(channel) = channel {
             if channel > 0 {
-                url.push_str(&format!("_{:?}", channel));
+                url.push_str(&format!("_{channel:?}"));
             }
         }
 
         // add the tile format
-        url.push_str(&format!(".{}", ext));
+        url.push_str(&format!(".{ext}"));
 
         let id = format!(
             "{}Allsky{}{}",

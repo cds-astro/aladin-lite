@@ -374,7 +374,7 @@ impl WebClient {
         let cfg: ImageMetadata = serde_wasm_bindgen::from_value(cfg)?;
         let wcs_params: WCSParams = serde_wasm_bindgen::from_value(wcs)?;
 
-        let wcs = WCS::new(&wcs_params).map_err(|e| JsValue::from_str(&format!("{:?}", e)))?;
+        let wcs = WCS::new(&wcs_params).map_err(|e| JsValue::from_str(&format!("{e:?}")))?;
 
         self.app.add_rgba_image(layer, bytes, wcs, cfg)
     }
@@ -982,7 +982,7 @@ impl WebClient {
         let grad = colorgrad::CustomGradient::new()
             .colors(&rgba_colors?)
             .build()
-            .map_err(|err| JsValue::from_str(&format!("{:?}", err)))?;
+            .map_err(|err| JsValue::from_str(&format!("{err:?}")))?;
 
         let cmap = Colormap::new(&label, grad);
         self.app.add_cmap(label, cmap)?;
@@ -1188,9 +1188,9 @@ impl WebClient {
             .cells()
             .to_json_aladin(None, &mut buf)
             .map(|()| unsafe { String::from_utf8_unchecked(buf) })
-            .map_err(|err| JsValue::from_str(&format!("{:?}", err)))?;
+            .map_err(|err| JsValue::from_str(&format!("{err:?}")))?;
 
-        serde_wasm_bindgen::to_value(&json).map_err(|err| JsValue::from_str(&format!("{:?}", err)))
+        serde_wasm_bindgen::to_value(&json).map_err(|err| JsValue::from_str(&format!("{err:?}")))
     }
 
     #[wasm_bindgen(js_name = getMOCSkyFraction)]

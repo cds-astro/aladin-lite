@@ -134,7 +134,7 @@ pub struct HpxTexture2DUniforms<'a> {
 
 impl<'a> HpxTexture2DUniforms<'a> {
     pub fn new(texture: &'a HpxTexture2D, idx_texture: i32) -> Self {
-        let name = format!("textures_tiles[{}].", idx_texture);
+        let name = format!("textures_tiles[{idx_texture}].");
         HpxTexture2DUniforms { texture, name }
     }
 }

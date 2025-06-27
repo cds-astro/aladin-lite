@@ -2,21 +2,15 @@ pub mod cuts;
 pub mod grid;
 pub mod subdivide_texture;
 
-use al_core::convert::Cast;
 use al_core::texture::format::PixelType;
-use al_core::texture::format::TextureFormat;
 use al_core::texture::format::RGBA8U;
 use al_core::texture::format::{R16I, R32F, R32I, R8U};
 use al_core::webgl_ctx::WebGlRenderingCtx;
 use fitsrs::hdu::header::Bitpix;
-use std::fmt::Debug;
-use std::marker::Unpin;
 use std::vec;
 
 use al_api::coo_system::CooSystem;
 use cgmath::Vector3;
-use futures::stream::TryStreamExt;
-use futures::AsyncRead;
 
 use wasm_bindgen::JsValue;
 
@@ -27,7 +21,6 @@ use fitsrs::wcs::{ImgXY, WCS};
 use al_api::fov::CenteredFoV;
 use al_api::hips::ImageMetadata;
 
-use al_core::image::format::*;
 use al_core::webgl_ctx::GlWrapper;
 use al_core::VecData;
 use al_core::WebGlContext;
@@ -40,10 +33,6 @@ use crate::ProjectionType;
 use crate::ShaderManager;
 
 use std::ops::Range;
-type PixelItem<F> = <<F as TextureFormat>::P as Pixel>::Item;
-use al_core::pixel::Pixel;
-use futures::io::BufReader;
-use futures::AsyncReadExt;
 
 use self::subdivide_texture::crop_image;
 use self::subdivide_texture::ImagePatches;
@@ -77,16 +66,17 @@ pub struct Image {
     textures: Vec<Texture2D>,
     /// Texture indices that must be drawn
     idx_tex: Vec<usize>,
-    /// The maximum webgl supported texture size
-    max_tex_size_x: usize,
-    max_tex_size_y: usize,
+    /// The size of a textured image patch
+    /// that can be uploaded to the GPU
+    w_patch: usize,
+    h_patch: usize,
 
     reg: Region,
     // The coo system in which the polygonal region has been defined
     coo_sys: CooSystem,
 }
 
-const TEX_PARAMS: &'static [(u32, u32)] = &[
+const TEX_PARAMS: &[(u32, u32)] = &[
     (
         WebGlRenderingCtx::TEXTURE_MIN_FILTER,
         WebGlRenderingCtx::NEAREST_MIPMAP_NEAREST,
@@ -107,10 +97,7 @@ const TEX_PARAMS: &'static [(u32, u32)] = &[
     ),
 ];
 impl Image {
-    pub fn get_cuts(&self) -> &Range<f32> {
-        &self.cuts
-    }
-
+    #[allow(clippy::too_many_arguments)]
     fn init_buffers(
         gl: WebGlContext,
         patches: ImagePatches,
@@ -119,8 +106,6 @@ impl Image {
         bzero: f32,
         blank: Option<f32>,
         coo_sys: CooSystem,
-        max_tex_size_x: usize,
-        max_tex_size_y: usize,
     ) -> Result<Self, JsValue> {
         let dim = wcs.img_dimensions();
         let (width, height) = (dim[0] as u64, dim[1] as u64);
@@ -129,6 +114,8 @@ impl Image {
             pixel_type,
             texture_patches: textures,
             initial_cuts: cuts,
+            w_patch,
+            h_patch,
         } = patches;
 
         for tex in &textures {
@@ -242,8 +229,8 @@ impl Image {
             pixel_type,
             textures,
             cuts,
-            max_tex_size_x,
-            max_tex_size_y,
+            w_patch,
+            h_patch,
             // Indices of textures that must be drawn
             idx_tex,
             // The polygonal region in the sky
@@ -253,6 +240,7 @@ impl Image {
         })
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn from_fits_hdu(
         gl: &WebGlContext,
         // wcs extracted from the image HDU
@@ -271,21 +259,13 @@ impl Image {
         let dim = wcs.img_dimensions();
         let (width, height) = (dim[0] as u64, dim[1] as u64);
 
-        let mut max_tex_size =
+        let max_tex_size =
             WebGl2RenderingContext::get_parameter(gl, WebGl2RenderingContext::MAX_TEXTURE_SIZE)?
                 .as_f64()
                 .unwrap_or(4096.0) as usize;
 
-        let mut max_tex_size_x = max_tex_size;
-        let mut max_tex_size_y = max_tex_size;
-
         let patches = if width <= max_tex_size as u64 && height <= max_tex_size as u64 {
-            // small image case, can fit into a webgl texture
-
-            max_tex_size_x = width as usize;
-            max_tex_size_y = height as usize;
             // can fit in one texture
-
             // bytes aligned
             match bitpix {
                 Bitpix::I64 => {
@@ -329,7 +309,13 @@ impl Image {
                         .collect::<Vec<_>>();
 
                     let cuts = cuts::first_and_last_percent(&mut sub_pixels, 1, 99);
-                    ImagePatches::new(PixelType::R32I, vec![texture], cuts)
+                    ImagePatches::new(
+                        PixelType::R32I,
+                        vec![texture],
+                        cuts,
+                        width as usize,
+                        height as usize,
+                    )
                 }
                 Bitpix::F64 => {
                     // one must convert the data to f32
@@ -368,7 +354,13 @@ impl Image {
                         .collect::<Vec<_>>();
 
                     let cuts = cuts::first_and_last_percent(&mut sub_pixels, 1, 99);
-                    ImagePatches::new(PixelType::R32F, vec![texture], cuts)
+                    ImagePatches::new(
+                        PixelType::R32F,
+                        vec![texture],
+                        cuts,
+                        width as usize,
+                        height as usize,
+                    )
                 }
                 Bitpix::U8 => {
                     let texture = Texture2D::create_from_raw_bytes::<R8U>(
@@ -397,7 +389,13 @@ impl Image {
                         .collect::<Vec<_>>();
 
                     let cuts = cuts::first_and_last_percent(&mut sub_pixels, 1, 99);
-                    ImagePatches::new(PixelType::R8U, vec![texture], cuts)
+                    ImagePatches::new(
+                        PixelType::R8U,
+                        vec![texture],
+                        cuts,
+                        width as usize,
+                        height as usize,
+                    )
                 }
                 Bitpix::I16 => {
                     let texture = Texture2D::create_from_raw_bytes::<R16I>(
@@ -427,7 +425,13 @@ impl Image {
                         .collect::<Vec<_>>();
 
                     let cuts = cuts::first_and_last_percent(&mut sub_pixels, 1, 99);
-                    ImagePatches::new(PixelType::R16I, vec![texture], cuts)
+                    ImagePatches::new(
+                        PixelType::R16I,
+                        vec![texture],
+                        cuts,
+                        width as usize,
+                        height as usize,
+                    )
                 }
                 Bitpix::I32 => {
                     let texture = Texture2D::create_from_raw_bytes::<R32I>(
@@ -457,7 +461,13 @@ impl Image {
                         .collect::<Vec<_>>();
 
                     let cuts = cuts::first_and_last_percent(&mut sub_pixels, 1, 99);
-                    ImagePatches::new(PixelType::R32I, vec![texture], cuts)
+                    ImagePatches::new(
+                        PixelType::R32I,
+                        vec![texture],
+                        cuts,
+                        width as usize,
+                        height as usize,
+                    )
                 }
                 Bitpix::F32 => {
                     let texture = Texture2D::create_from_raw_bytes::<R32F>(
@@ -482,14 +492,17 @@ impl Image {
                         .collect::<Vec<_>>();
 
                     let cuts = cuts::first_and_last_percent(&mut sub_pixels, 1, 99);
-                    ImagePatches::new(PixelType::R32F, vec![texture], cuts)
+                    ImagePatches::new(
+                        PixelType::R32F,
+                        vec![texture],
+                        cuts,
+                        width as usize,
+                        height as usize,
+                    )
                 }
             }
         } else {
             // We cut the image in 4096x4096 patches. It is already 64MB to allocate for a f32 image of this dimensions.
-            max_tex_size_x = 4096;
-            max_tex_size_y = 4096;
-
             match bitpix {
                 Bitpix::U8 => crop_image::<R8U>(gl, width, height, bytes, 4096, blank)?,
                 Bitpix::I16 => crop_image::<R16I>(gl, width, height, bytes, 4096, blank)?,
@@ -519,17 +532,7 @@ impl Image {
             }
         };
 
-        Self::init_buffers(
-            gl.clone(),
-            patches,
-            wcs,
-            bscale,
-            bzero,
-            blank,
-            coo_sys,
-            max_tex_size_x,
-            max_tex_size_y,
-        )
+        Self::init_buffers(gl.clone(), patches, wcs, bscale, bzero, blank, coo_sys)
     }
 
     pub fn from_rgba_bytes(
@@ -544,7 +547,7 @@ impl Image {
         let dim = wcs.img_dimensions();
         let (width, height) = (dim[0] as u64, dim[1] as u64);
 
-        let mut max_tex_size =
+        let max_tex_size =
             WebGl2RenderingContext::get_parameter(gl, WebGl2RenderingContext::MAX_TEXTURE_SIZE)?
                 .as_f64()
                 .unwrap_or(4096.0) as usize;
@@ -553,15 +556,8 @@ impl Image {
         let bzero = 0.0;
         let blank = None;
 
-        let mut max_tex_size_x = max_tex_size;
-        let mut max_tex_size_y = max_tex_size;
-
         let image_patches = if width <= max_tex_size as u64 && height <= max_tex_size as u64 {
             // small image case, can fit into a webgl texture
-            max_tex_size_x = width as usize;
-            max_tex_size_y = height as usize;
-            // can fit in one texture
-
             let textures = vec![Texture2D::create_from_raw_bytes::<RGBA8U>(
                 gl,
                 width as i32,
@@ -572,11 +568,8 @@ impl Image {
             let pixel_ty = PixelType::RGBA8U;
             let cuts = 0.0..1.0;
 
-            ImagePatches::new(pixel_ty, textures, cuts)
+            ImagePatches::new(pixel_ty, textures, cuts, width as usize, height as usize)
         } else {
-            max_tex_size_x = 4096;
-            max_tex_size_y = 4096;
-
             crop_image::<RGBA8U>(gl, width, height, bytes, 4096, None)?
         };
 
@@ -588,8 +581,6 @@ impl Image {
             bzero,
             blank,
             coo_sys,
-            max_tex_size_x,
-            max_tex_size_y,
         )
     }
 
@@ -621,8 +612,8 @@ impl Image {
         let (pos, uv, indices, num_indices) = grid::vertices(
             &(x_mesh_range.start, y_mesh_range.start),
             &(x_mesh_range.end.ceil(), y_mesh_range.end.ceil()),
-            self.max_tex_size_x as u64,
-            self.max_tex_size_y as u64,
+            self.w_patch as u64,
+            self.h_patch as u64,
             num_vertices,
             camera,
             &self.wcs,
@@ -805,5 +796,10 @@ impl Image {
     #[inline]
     pub fn get_centered_fov(&self) -> &CenteredFoV {
         &self.centered_fov
+    }
+
+    #[inline]
+    pub fn get_cuts(&self) -> &Range<f32> {
+        &self.cuts
     }
 }

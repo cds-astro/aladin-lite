@@ -223,7 +223,7 @@ impl Manager {
 
     pub fn get_mut_catalog(&mut self, name: &str) -> Result<&mut Catalog, Error> {
         self.catalogs.get_mut(name).ok_or(Error::CatalogNotPresent {
-            message: format!("{} catalog is not present!", name),
+            message: format!("{name} catalog is not present!"),
         })
     }
 

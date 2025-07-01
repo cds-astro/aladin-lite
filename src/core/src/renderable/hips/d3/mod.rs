@@ -1,7 +1,10 @@
-pub mod buffer;
+pub mod cube;
 pub mod texture;
 
+use crate::healpix::moc::FreqSpaceMoc;
+use crate::math::spectra::SpectralUnit;
 use crate::renderable::hips::HpxTile;
+use al_api::hips::DataproductType;
 use al_api::hips::ImageExt;
 use al_api::hips::ImageMetadata;
 use al_core::colormap::Colormap;
@@ -26,7 +29,7 @@ use crate::downloader::query;
 use crate::shader::ShaderManager;
 
 use crate::downloader::request::allsky::Allsky;
-use crate::healpix::{cell::HEALPixCell, coverage::HEALPixCoverage};
+use crate::healpix::cell::HEALPixCell;
 use crate::time::Time;
 
 use super::config::HiPSConfig;
@@ -36,7 +39,7 @@ use std::collections::HashSet;
 // Recursively compute the number of subdivision needed for a cell
 // to not be too much skewed
 
-use buffer::HiPS3DBuffer;
+use cube::HiPSCubeBuffer;
 
 use super::uv::{TileCorner, TileUVW};
 
@@ -83,7 +86,7 @@ pub fn get_raster_shader<'a>(
 pub struct HiPS3D {
     //color: Color,
     // The image survey texture buffer
-    buffer: HiPS3DBuffer,
+    buffer: HiPSCubeBuffer,
 
     // The projected vertices data
     // For WebGL2 wasm, the data are interleaved
@@ -100,7 +103,7 @@ pub struct HiPS3D {
     vao: VertexArrayObject,
     gl: WebGlContext,
 
-    footprint_moc: Option<HEALPixCoverage>,
+    moc: Option<FreqSpaceMoc>,
 
     // A buffer storing the cells in the view
     hpx_cells_in_view: Vec<HEALPixCell>,
@@ -108,23 +111,22 @@ pub struct HiPS3D {
     pub(crate) fits_params: Option<FitsParams>,
 
     // The current slice index
-    slice: u16,
+    freq: Freq,
 
     num_indices: Vec<usize>,
-    slice_indices: Vec<usize>,
     cells: Vec<HEALPixCell>,
 }
 
 use super::HpxTileBuffer;
+use crate::math::spectra::Freq;
 
 impl HiPS3D {
     pub fn new(config: HiPSConfig, gl: &WebGlContext) -> Result<Self, JsValue> {
         let mut vao = VertexArrayObject::new(gl);
 
-        let slice = 0;
+        let freq = Freq(0.0);
 
         let num_indices = vec![];
-        let slice_indices = vec![];
         // layout (location = 0) in vec2 lonlat;
         // layout (location = 1) in vec3 position;
         // layout (location = 2) in vec3 uv_start;
@@ -159,12 +161,12 @@ impl HiPS3D {
             )
             .unbind();
 
-        let buffer = HiPS3DBuffer::new(gl, config)?;
+        let buffer = HiPSCubeBuffer::new(gl, config)?;
 
         let cells = vec![];
 
         let gl = gl.clone();
-        let footprint_moc = None;
+        let moc = None;
         let hpx_cells_in_view = vec![];
         // request the allsky texture
         Ok(Self {
@@ -181,13 +183,12 @@ impl HiPS3D {
 
             fits_params: None,
 
-            footprint_moc,
+            moc,
             hpx_cells_in_view,
 
-            slice,
+            freq,
             cells,
             num_indices,
-            slice_indices,
         })
     }
 
@@ -204,8 +205,6 @@ impl HiPS3D {
             .max(cfg.get_min_depth_tile());
 
         let survey_frame = cfg.get_frame();
-        let mut already_considered_tiles = HashSet::new();
-
         // raytracer is rendering and the shader only renders HPX texture cells of depth 0
         /*if camera.is_raytracing(proj) {
             depth_tile = 0;
@@ -215,14 +214,8 @@ impl HiPS3D {
             .get_hpx_cells(depth_tile, survey_frame)
             .into_iter()
             .filter(move |tile_cell| {
-                if already_considered_tiles.contains(tile_cell) {
-                    return false;
-                }
-
-                already_considered_tiles.insert(*tile_cell);
-
-                if let Some(moc) = self.footprint_moc.as_ref() {
-                    moc.intersects_cell(tile_cell)
+                if let Some(moc) = self.moc.as_ref() {
+                    moc.intersects_cell(tile_cell, self.freq)
                 } else {
                     true
                 }
@@ -231,17 +224,21 @@ impl HiPS3D {
         Some(tile_cells_iter)
     }
 
-    pub fn set_slice(&mut self, slice: u16) {
-        self.slice = slice;
+    pub fn set_freq(&mut self, f: Freq) {
+        self.freq = f;
     }
 
     pub fn get_tile_query(&self, cell: &HEALPixCell) -> query::Tile {
         let cfg = self.get_config();
-        query::Tile::new(cell, Some(self.get_slice() as u32), cfg)
+        match cfg.dataproduct_type {
+            DataproductType::Cube => query::Tile::new(cell, Some(self.freq.0 as u32), cfg),
+            DataproductType::SpectralCube => todo!(),
+            _ => unreachable!(),
+        }
     }
 
-    pub fn contains_tile(&self, cell: &HEALPixCell, slice: u16) -> bool {
-        self.buffer.contains_tile(cell, slice)
+    pub fn contains_tile(&self, cell: &HEALPixCell, freq: Freq) -> bool {
+        self.buffer.contains_tile(cell, freq.0 as u16)
     }
 
     pub fn draw(
@@ -270,9 +267,12 @@ impl HiPS3D {
         //}
     }
 
+    pub fn get_freq(&self) -> Freq {
+        self.freq
+    }
+
     fn recompute_vertices(&mut self, camera: &CameraViewPort, proj: &ProjectionType) {
         self.cells.clear();
-        self.slice_indices.clear();
 
         self.position.clear();
         self.uv.clear();
@@ -298,8 +298,8 @@ impl HiPS3D {
 
         for cell in &self.hpx_cells_in_view {
             // filter textures that are not in the moc
-            let cell = if let Some(moc) = self.footprint_moc.as_ref() {
-                if moc.intersects_cell(cell) {
+            let cell = if let Some(moc) = self.moc.as_ref() {
+                if moc.intersects_cell(cell, self.freq) {
                     Some(&cell)
                 } else if channel == PixelType::RGB8U {
                     // Rasterizer does not render tiles that are not in the MOC
@@ -314,13 +314,11 @@ impl HiPS3D {
                 Some(&cell)
             };
 
-            let mut slice_contained = 0;
-
             if let Some(cell) = cell {
-                let hpx_cell_texture = if self.buffer.contains_tile(cell, self.slice) {
-                    slice_contained = self.slice;
+                let hpx_cell_texture = if self.contains_tile(cell, self.freq) {
                     self.buffer.get(cell)
-                } else if let Some(next_slice) = self.buffer.find_nearest_slice(cell, self.slice) {
+                // if the freq is not found we just draw nothing
+                /*} else if let Some(next_slice) = self.buffer.find_nearest_slice(cell, self.slice) {
                     slice_contained = next_slice;
                     self.buffer.get(cell)
                 } else if let Some(parent_cell) = self.buffer.get_nearest_parent(cell) {
@@ -330,15 +328,17 @@ impl HiPS3D {
                         .find_nearest_slice(&parent_cell, self.slice)
                         .unwrap();
                     self.buffer.get(&parent_cell)
+                */
                 } else {
                     None
                 };
 
                 if let Some(texture) = hpx_cell_texture {
-                    self.slice_indices.push(slice_contained as usize);
                     self.cells.push(*texture.cell());
                     // The slice is sure to be contained so we can unwrap
-                    let hpx_slice_tex = texture.extract_2d_slice_texture(slice_contained).unwrap();
+                    let hpx_slice_tex = texture
+                        .extract_2d_slice_texture(self.freq.0 as u16)
+                        .unwrap();
 
                     let uv_1 = TileUVW::new(cell, &hpx_slice_tex);
                     let d01e = uv_1[TileCorner::BottomRight].x - uv_1[TileCorner::BottomLeft].x;
@@ -461,8 +461,8 @@ impl HiPS3D {
     }
 
     #[inline]
-    pub fn set_moc(&mut self, moc: HEALPixCoverage) {
-        self.footprint_moc = Some(moc);
+    pub fn set_moc(&mut self, moc: FreqSpaceMoc) {
+        self.moc = Some(moc);
     }
 
     pub fn set_fits_params(&mut self, bscale: f32, bzero: f32, blank: Option<f32>) {
@@ -474,8 +474,8 @@ impl HiPS3D {
     }
 
     #[inline]
-    pub fn get_moc(&self) -> Option<&HEALPixCoverage> {
-        self.footprint_moc.as_ref()
+    pub fn get_moc(&self) -> Option<&FreqSpaceMoc> {
+        self.moc.as_ref()
     }
 
     pub fn set_image_ext(&mut self, ext: ImageExt) -> Result<(), JsValue> {
@@ -541,11 +541,7 @@ impl HiPS3D {
 
         let shader = get_raster_shader(cmap, &self.gl, shaders, hips_cfg)?;
 
-        for (slice_idx, (cell, num_indices)) in self
-            .slice_indices
-            .iter()
-            .zip(self.cells.iter().zip(self.num_indices.iter()))
-        {
+        for (cell, num_indices) in self.cells.iter().zip(self.num_indices.iter()) {
             blend_cfg.enable(&self.gl, || {
                 // Bind the shader at each draw of a cell to not exceed the max number of tex image units bindable
                 // to a shader. It is 32 in my case
@@ -557,7 +553,7 @@ impl HiPS3D {
                         self.buffer
                             .get(cell)
                             .unwrap()
-                            .get_3d_block_from_slice(*slice_idx as u16)
+                            .get_3d_block_from_slice(self.freq.0 as u16)
                             .unwrap(),
                     )
                     .attach_uniforms_from(&self.buffer)
@@ -607,11 +603,6 @@ impl HiPS3D {
 
     pub fn add_allsky(&mut self, allsky: Allsky) -> Result<(), JsValue> {
         self.buffer.push_allsky(allsky)
-    }
-
-    #[inline]
-    pub fn get_slice(&self) -> u16 {
-        self.slice
     }
 
     /* Accessors */

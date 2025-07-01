@@ -43,15 +43,15 @@ impl From<query::Tile> for TileRequest {
             credentials,
             mode,
             id,
-            channel: slice,
+            channel,
             size,
         } = query;
 
         let url_clone = url.clone();
-        let channel = format.get_pixel_format();
+        let pixel_format = format.get_pixel_format();
 
         let window = web_sys::window().unwrap_abort();
-        let request = match channel {
+        let request = match pixel_format {
             PixelType::RGB8U => Request::new(async move {
                 // HTMLImageElement
                 let image = query_html_image(&url_clone, credentials).await?;
@@ -113,7 +113,7 @@ impl From<query::Tile> for TileRequest {
             hips_cdid,
             url,
             request,
-            channel: slice,
+            channel,
         }
     }
 }

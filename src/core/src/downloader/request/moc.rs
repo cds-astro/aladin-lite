@@ -3,7 +3,9 @@ use crate::renderable::CreatorDid;
 
 use super::{Request, RequestType};
 
-use crate::healpix::coverage::Smoc;
+use crate::healpix::moc::Moc;
+use crate::healpix::moc::{FreqSpaceMoc, SpaceMoc};
+use al_api::hips::DataproductType;
 use moclib::deser::fits::MocType;
 use moclib::qty::Hpx;
 
@@ -11,7 +13,7 @@ pub struct MOCRequest {
     //pub id: QueryId,
     pub hips_cdid: CreatorDid,
     pub params: MOCOptions,
-    request: Request<HEALPixCoverage>,
+    request: Request<Moc>,
 }
 
 impl From<MOCRequest> for RequestType {
@@ -21,31 +23,13 @@ impl From<MOCRequest> for RequestType {
 }
 use super::Url;
 
-use moclib::deser::fits;
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::JsFuture;
 use web_sys::{RequestInit, Response};
 
-use moclib::moc::range::op::convert::convert_to_u64;
-
-/// Convenient type for Space-MOCs
-pub fn from_fits_hpx<T: Idx>(moc: MocType<T, Hpx<T>, Cursor<&[u8]>>) -> Smoc {
-    match moc {
-        MocType::Ranges(moc) => convert_to_u64::<T, Hpx<T>, _, Hpx<u64>>(moc).into_range_moc(),
-        MocType::Cells(moc) => {
-            convert_to_u64::<T, Hpx<T>, _, Hpx<u64>>(moc.into_cell_moc_iter().ranges())
-                .into_range_moc()
-        }
-    }
-}
-
-use crate::healpix::coverage::HEALPixCoverage;
 use crate::Abort;
 use al_api::moc::MOCOptions;
-use moclib::deser::fits::MocIdxType;
-use moclib::deser::fits::MocQtyType;
-use moclib::idx::Idx;
-use moclib::moc::{CellMOCIntoIterator, CellMOCIterator, RangeMOCIterator};
+
 use std::io::Cursor;
 use wasm_bindgen::JsValue;
 impl From<query::Moc> for MOCRequest {
@@ -57,6 +41,7 @@ impl From<query::Moc> for MOCRequest {
             hips_cdid,
             credentials,
             mode,
+            dataproduct_type,
         } = query;
 
         let url_clone = url.clone();
@@ -75,22 +60,16 @@ impl From<query::Moc> for MOCRequest {
             let resp: Response = resp_value.dyn_into()?;
             let array_buffer = JsFuture::from(resp.array_buffer()?).await?;
 
-            let bytes_buf = js_sys::Uint8Array::new(&array_buffer);
-            let num_bytes = bytes_buf.length() as usize;
-            let mut bytes = vec![0; num_bytes];
-            bytes_buf.copy_to(&mut bytes[..]);
+            let buf = js_sys::Uint8Array::new(&array_buffer);
+            let bytes = buf.to_vec();
 
             // Coosys is permissive because we load a moc
-            let smoc = match fits::from_fits_ivoa_custom(Cursor::new(&bytes[..]), true)
-                .map_err(|e| JsValue::from_str(&e.to_string()))?
-            {
-                MocIdxType::U16(MocQtyType::<u16, _>::Hpx(moc)) => Ok(from_fits_hpx(moc)),
-                MocIdxType::U32(MocQtyType::<u32, _>::Hpx(moc)) => Ok(from_fits_hpx(moc)),
-                MocIdxType::U64(MocQtyType::<u64, _>::Hpx(moc)) => Ok(from_fits_hpx(moc)),
-                _ => Err(JsValue::from_str("MOC not supported. Must be a HPX MOC")),
-            }?;
-
-            Ok(HEALPixCoverage(smoc))
+            Ok(match dataproduct_type {
+                DataproductType::SpectralCube => {
+                    Moc::FreqSpace(FreqSpaceMoc::from_fits_raw_bytes(&bytes)?)
+                }
+                _ => Moc::Space(SpaceMoc::from_fits_raw_bytes(&bytes)?),
+            })
         });
 
         Self {
@@ -105,19 +84,19 @@ impl From<query::Moc> for MOCRequest {
 
 use std::cell::RefCell;
 use std::rc::Rc;
-pub struct Moc {
-    pub moc: Rc<RefCell<Option<HEALPixCoverage>>>,
+pub struct FetchedMoc {
+    pub moc: Rc<RefCell<Option<Moc>>>,
     pub params: MOCOptions,
     pub hips_cdid: Url,
 }
 
-impl Moc {
+impl FetchedMoc {
     pub fn get_hips_cdid(&self) -> &Url {
         &self.hips_cdid
     }
 }
 
-impl<'a> From<&'a MOCRequest> for Option<Moc> {
+impl<'a> From<&'a MOCRequest> for Option<FetchedMoc> {
     fn from(request: &'a MOCRequest) -> Self {
         let MOCRequest {
             request,
@@ -126,8 +105,8 @@ impl<'a> From<&'a MOCRequest> for Option<Moc> {
             ..
         } = request;
         if request.is_resolved() {
-            let Request::<HEALPixCoverage> { data, .. } = request;
-            Some(Moc {
+            let Request::<Moc> { data, .. } = request;
+            Some(FetchedMoc {
                 // This is a clone on a Arc, it is supposed to be fast
                 moc: data.clone(),
                 hips_cdid: hips_cdid.clone(),

@@ -112,14 +112,10 @@ mod shader;
 mod tile_fetcher;
 mod time;
 
-use crate::downloader::request::moc::from_fits_hpx;
 use crate::{
-    camera::CameraViewPort, healpix::coverage::HEALPixCoverage, math::lonlat::LonLatT,
-    shader::ShaderManager, time::DeltaTime,
+    camera::CameraViewPort, healpix::moc::SpaceMoc, math::lonlat::LonLatT, shader::ShaderManager,
+    time::DeltaTime,
 };
-use moclib::deser::fits;
-use moclib::deser::fits::MocIdxType;
-use moclib::deser::fits::MocQtyType;
 
 use std::io::Cursor;
 
@@ -136,10 +132,6 @@ use cgmath::{Vector2, Vector3};
 
 use crate::healpix::cell::HEALPixCell;
 use math::angle::ArcDeg;
-use moclib::{
-    moc::{CellMOCIntoIterator, CellMOCIterator, RangeMOCIterator},
-    qty::Hpx,
-};
 
 #[wasm_bindgen]
 pub struct WebClient {
@@ -1062,13 +1054,8 @@ impl WebClient {
     pub fn add_json_moc(&mut self, options: MOCOptions, data: &JsValue) -> Result<(), JsValue> {
         let str: String = js_sys::JSON::stringify(data)?.into();
 
-        let moc = moclib::deser::json::from_json_aladin::<u64, Hpx<u64>>(&str)
-            .map_err(|e| JsValue::from(js_sys::Error::new(&e.to_string())))?
-            .into_cell_moc_iter()
-            .ranges()
-            .into_range_moc();
-
-        self.app.add_moc(HEALPixCoverage(moc), options)?;
+        let smoc = SpaceMoc::from_json(&str)?;
+        self.app.add_moc(smoc, options)?;
 
         Ok(())
     }
@@ -1076,18 +1063,8 @@ impl WebClient {
     #[wasm_bindgen(js_name = addFITSMOC)]
     pub fn add_fits_moc(&mut self, options: MOCOptions, data: &[u8]) -> Result<(), JsValue> {
         //let bytes = js_sys::Uint8Array::new(array_buffer).to_vec();
-        let moc = match fits::from_fits_ivoa_custom(Cursor::new(data), false)
-            .map_err(|e| JsValue::from_str(&e.to_string()))?
-        {
-            MocIdxType::U16(MocQtyType::<u16, _>::Hpx(moc)) => {
-                Ok(crate::downloader::request::moc::from_fits_hpx(moc))
-            }
-            MocIdxType::U32(MocQtyType::<u32, _>::Hpx(moc)) => Ok(from_fits_hpx(moc)),
-            MocIdxType::U64(MocQtyType::<u64, _>::Hpx(moc)) => Ok(from_fits_hpx(moc)),
-            _ => Err(JsValue::from_str("MOC not supported. Must be a HPX MOC")),
-        }?;
-
-        self.app.add_moc(HEALPixCoverage(moc), options)?;
+        let smoc = SpaceMoc::from_fits_raw_bytes(data)?;
+        self.app.add_moc(smoc, options)?;
 
         Ok(())
     }
@@ -1102,7 +1079,7 @@ impl WebClient {
     ) -> Result<(), JsValue> {
         let tile_d = self.app.get_norder();
         let pixel_d = tile_d + 9;
-        let moc = HEALPixCoverage::from_cone(
+        let moc = SpaceMoc::from_cone(
             &LonLatT::new(
                 ra_deg.to_radians().to_angle(),
                 dec_deg.to_radians().to_angle(),
@@ -1136,7 +1113,7 @@ impl WebClient {
 
         let v_in = &Vector3::new(1.0, 0.0, 0.0);
 
-        let mut moc = HEALPixCoverage::from_3d_coos(pixel_d as u8 - 1, vertex_it, v_in);
+        let mut moc = SpaceMoc::from_3d_coos(pixel_d as u8 - 1, vertex_it, v_in);
         if moc.sky_fraction() > 0.5 {
             moc = moc.not();
         }
@@ -1182,13 +1159,7 @@ impl WebClient {
             .get_moc(&moc_uuid)
             .ok_or_else(|| JsValue::from(js_sys::Error::new("MOC not found")))?;
 
-        let mut buf: Vec<u8> = Default::default();
-        let json = (&moc.0)
-            .into_range_moc_iter()
-            .cells()
-            .to_json_aladin(None, &mut buf)
-            .map(|()| unsafe { String::from_utf8_unchecked(buf) })
-            .map_err(|err| JsValue::from_str(&format!("{err:?}")))?;
+        let json = moc.serialize_to_json()?;
 
         serde_wasm_bindgen::to_value(&json).map_err(|err| JsValue::from_str(&format!("{err:?}")))
     }

@@ -1,17 +1,13 @@
+use crate::math::angle::ToAngle;
+use crate::math::spectra::Freq;
+use crate::renderable::hips::HiPS;
 use crate::renderable::image::Image;
 use crate::renderable::ImageLayer;
 use crate::tile_fetcher::HiPSLocalFiles;
-use al_core::image::fits::FitsImage;
-use al_core::image::ImageType;
-use fitsrs::WCS;
-use std::io::Cursor;
-
-use crate::math::angle::ToAngle;
-use crate::renderable::hips::HiPS;
 use crate::{
     camera::CameraViewPort,
     downloader::Downloader,
-    healpix::coverage::HEALPixCoverage,
+    healpix::moc::SpaceMoc,
     inertia::Inertia,
     math::{
         self,
@@ -26,6 +22,10 @@ use crate::{
     time::DeltaTime,
 };
 use al_api::moc::MOCOptions;
+use al_core::image::fits::FitsImage;
+use al_core::image::ImageType;
+use fitsrs::WCS;
+use std::io::Cursor;
 
 use wasm_bindgen::prelude::*;
 
@@ -38,6 +38,8 @@ use al_api::{
     grid::GridCfg,
     hips::{HiPSCfg, ImageMetadata},
 };
+
+use crate::healpix::moc::Moc;
 
 use web_sys::{HtmlElement, WebGl2RenderingContext};
 
@@ -260,13 +262,16 @@ impl App {
         // Loop over the hipss
         for hips in self.layers.get_mut_hipses() {
             if self.camera.get_tile_depth() == 0 {
-                let allsky_query = match hips {
-                    HiPS::D2(h) => query::Allsky::new(h.get_config(), None),
-                    HiPS::D3(h) => query::Allsky::new(h.get_config(), Some(h.get_slice() as u32)),
-                };
-                if self.downloader.borrow().is_queried(&allsky_query.id) {
-                    // do not ask for tiles if we download the allsky
-                    continue;
+                match hips {
+                    HiPS::D2(h) => {
+                        let query = query::Allsky::new(h.get_config(), None);
+                        if self.downloader.borrow().is_queried(&query.id) {
+                            // do not ask for tiles if we download the allsky
+                            continue;
+                        }
+                    }
+                    // no Allsky generated for HiPS3D
+                    HiPS::D3(h) => (),
                 }
             }
 
@@ -300,9 +305,9 @@ impl App {
                     }
                 }
                 HiPS::D3(hips) => {
-                    let slice = hips.get_slice();
+                    let freq = hips.get_freq();
                     for ancestor in ancestors {
-                        if !hips.contains_tile(&ancestor, slice) {
+                        if !hips.contains_tile(&ancestor, freq) {
                             self.tile_fetcher.append(hips.get_tile_query(&ancestor));
                         }
                     }
@@ -474,15 +479,11 @@ impl App {
         self.catalog_loaded
     }
 
-    pub(crate) fn get_moc(&self, moc_uuid: &str) -> Option<&HEALPixCoverage> {
+    pub(crate) fn get_moc(&self, moc_uuid: &str) -> Option<&SpaceMoc> {
         self.moc.get_hpx_coverage(moc_uuid)
     }
 
-    pub(crate) fn add_moc(
-        &mut self,
-        moc: HEALPixCoverage,
-        options: MOCOptions,
-    ) -> Result<(), JsValue> {
+    pub(crate) fn add_moc(&mut self, moc: SpaceMoc, options: MOCOptions) -> Result<(), JsValue> {
         self.moc
             .push_back(moc, options, &mut self.camera, &self.projection);
         self.request_redraw = true;
@@ -677,14 +678,21 @@ impl App {
                         }
                     }
                 }
-                Resource::Moc(moc) => {
-                    let moc_hips_cdid = moc.get_hips_cdid();
+                Resource::Moc(fetched_moc) => {
+                    let moc_hips_cdid = fetched_moc.get_hips_cdid();
                     //let url = &moc_url[..moc_url.find("/Moc.fits").unwrap_abort()];
                     if let Some(hips) = self.layers.get_mut_hips_from_cdid(moc_hips_cdid) {
-                        let request::moc::Moc { moc, .. } = moc;
-
+                        let request::moc::FetchedMoc { moc, .. } = fetched_moc;
                         if let Some(moc) = &*moc.borrow() {
-                            hips.set_moc(moc.clone());
+                            match (hips, moc) {
+                                (HiPS::D2(hips), Moc::Space(moc)) => {
+                                    hips.set_moc(moc.clone());
+                                }
+                                (HiPS::D3(hips), Moc::FreqSpace(moc)) => {
+                                    hips.set_moc(moc.clone());
+                                }
+                                _ => (),
+                            }
 
                             self.request_for_new_tiles = true;
                             self.request_redraw = true;
@@ -1053,7 +1061,7 @@ impl App {
         match hips {
             HiPS::D2(_) => Err(JsValue::from_str("layer do not refers to a cube")),
             HiPS::D3(hips) => {
-                hips.set_slice(slice as u16);
+                hips.set_freq(Freq(slice as f64));
 
                 Ok(())
             }

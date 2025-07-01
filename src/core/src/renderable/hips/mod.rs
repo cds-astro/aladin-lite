@@ -13,7 +13,7 @@ use crate::renderable::HiPSConfig;
 use crate::time::Time;
 use crate::CameraViewPort;
 use crate::HEALPixCell;
-use crate::HEALPixCoverage;
+use crate::SpaceMoc;
 use crate::WebGlContext;
 use al_api::hips::ImageExt;
 use wasm_bindgen::JsValue;
@@ -128,13 +128,13 @@ impl HiPS {
         }
     }
 
-    #[inline]
-    pub fn set_moc(&mut self, moc: HEALPixCoverage) {
+    /*#[inline]
+    pub fn set_moc(&mut self, moc: SpaceMoc) {
         match self {
             D2(hips) => hips.set_moc(moc),
             D3(hips) => hips.set_moc(moc),
         }
-    }
+    }*/
 
     #[inline]
     pub fn get_tile_query(&self, cell: &HEALPixCell) -> query::Tile {

@@ -12,7 +12,7 @@ const ID_R: &Matrix3<f64> = &Matrix3::new(-1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.
 
 use super::{fov::FieldOfView, view_hpx_cells::ViewHpxCells};
 use crate::healpix::cell::HEALPixCell;
-use crate::healpix::coverage::HEALPixCoverage;
+use crate::healpix::moc::SpaceMoc;
 use crate::math::angle::ToAngle;
 use crate::math::{projection::coo_space::XYZModel, projection::domain::sdf::ProjDef};
 use cgmath::{InnerSpace, Vector3};
@@ -216,7 +216,7 @@ impl CameraViewPort {
         self.view_hpx_cells.has_changed()
     }*/
 
-    pub fn get_cov(&self, frame: CooSystem) -> &HEALPixCoverage {
+    pub fn get_cov(&self, frame: CooSystem) -> &SpaceMoc {
         self.view_hpx_cells.get_cov(frame)
     }
 

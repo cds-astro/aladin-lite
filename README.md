@@ -15,7 +15,13 @@ A new [API technical documentation](https://cds-astro.github.io/aladin-lite/) is
 [![API Documentation](https://img.shields.io/badge/API-documentation-blue.svg)](https://cds-astro.github.io/aladin-lite)
 [![Release page](https://img.shields.io/badge/Release-download-yellow.svg)](https://aladin.cds.unistra.fr/AladinLite/doc/release/)
 
-Aladin Lite is available [at this link](https://aladin.u-strasbg.fr/AladinLite).
+Try Aladin Lite [here](https://aladin.u-strasbg.fr/AladinLite).
+
+Aladin Lite is made possible thanks to pure Rust core libraries:
+* [cdshealpix](https://github.com/cds-astro/cds-healpix-rust) - for HEALPix projection and unprojection to/from sky coordinates 
+* [mapproj](https://github.com/cds-astro/cds-mapproj-rust) - for computing (un)projections described by a WCS
+* [fitsrs](https://github.com/cds-astro/fitsrs) - for reading and parsing FITS images
+* [moc](https://github.com/cds-astro/cds-moc-rust) - for parsing, manipulating, and serializing multi-order HEALPix coverage maps
 
 ## Running & editable JS examples
 
@@ -102,14 +108,15 @@ Aladin Lite can be imported with:
 * [X] FITS images support
 * [X] WCS parsing, displaying an (JPEG/PNG) image in aladin lite view
 * [X] Display customized shapes (e.g. proper motions) from astronomical catalog data
-* [X] AVM tags parsing support
+* [X] AVM tags parsing support inside JPEG
 * [X] Easy sharing of current « view »
 * [ ] All VOTable serializations
 * [ ] FITS tables
 * [X] Creating HiPS instance from an URL
 * [X] Local HiPS loading 
 * [X] Multiple mirrors handling for HiPS tile retrival
-* [ ] HiPS cube
+* [X] HiPS cube
+* [ ] HiPS3D
 
 ## Licence
 

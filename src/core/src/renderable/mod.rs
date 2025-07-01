@@ -13,6 +13,7 @@ use crate::renderable::image::Image;
 use crate::tile_fetcher::TileFetcherQueue;
 
 use al_api::color::ColorRGB;
+use al_api::hips::DataproductType;
 use al_api::hips::HiPSCfg;
 use al_api::hips::ImageMetadata;
 use al_api::image::ImageParams;
@@ -449,11 +450,13 @@ impl Layers {
             }*/
             camera.register_view_frame(cfg.get_frame(), proj);
 
-            let hips = if cfg.get_cube_depth().is_some() {
+            let hips = match &cfg.dataproduct_type {
                 // HiPS cube
-                HiPS::D3(HiPS3D::new(cfg, gl)?)
-            } else {
-                HiPS::D2(HiPS2D::new(cfg, gl)?)
+                DataproductType::Cube => HiPS::D3(HiPS3D::new(cfg, gl)?),
+                // HiPS 3D
+                DataproductType::SpectralCube => HiPS::D3(HiPS3D::new(cfg, gl)?),
+                // Typical HiPS image
+                _ => HiPS::D2(HiPS2D::new(cfg, gl)?),
             };
 
             // add the frame to the camera

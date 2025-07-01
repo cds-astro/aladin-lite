@@ -1,4 +1,4 @@
-use al_api::hips::ImageExt;
+use al_api::hips::{DataproductType, ImageExt};
 
 use al_core::image::format::ImageFormatType;
 use al_core::texture::format::PixelType;
@@ -10,23 +10,31 @@ pub struct HiPSConfig {
     // HiPS image format
     // TODO: Make that independant of the HiPS but of the ImageFormat
 
-    // The size of the texture images
-    tile_size: i32,
+    // Size of the tiles
+    pub tile_size: i32,
 
-    min_depth_tile: u8,
-    // the number of slices for cubes
+    // Number of slices for HiPS cubes
     cube_depth: Option<u32>,
 
     // Max depth of the current HiPS tiles
     max_depth_tile: u8,
+    // Min depth of the current HiPS tiles
+    min_depth_tile: u8,
+    // For HiPS3D
+    max_depth_freq: Option<u8>,
+
+    // For HiPS3D
+    pub tile_depth: Option<u8>,
 
     pub is_allsky: bool,
 
     pub frame: CooSystem,
+    // For FITS HiPSes
     pub bitpix: Option<i32>,
     format: ImageFormatType,
-    //dataproduct_subtype: Option<Vec<String>>,
-    //colored: bool,
+
+    pub dataproduct_type: DataproductType,
+
     pub creator_did: String,
 
     pub request_credentials: RequestCredentials,
@@ -116,6 +124,12 @@ impl HiPSConfig {
             _ => RequestMode::Cors,
         };
 
+        let dataproduct_type = properties.get_dataproduct_type().ok_or(JsValue::from_str(
+            "dataproduct_type keyword is required in the HiPS properties file",
+        ))?;
+        let max_depth_freq = properties.get_hips_order_freq();
+        let tile_depth = properties.get_hips_tile_depth();
+
         let hips_config = HiPSConfig {
             creator_did,
             // HiPS name
@@ -125,8 +139,12 @@ impl HiPSConfig {
 
             is_allsky,
 
-            // the number of slices in a cube
+            // HiPSCube
             cube_depth,
+
+            // HiPS3D
+            tile_depth,
+            max_depth_freq,
 
             frame,
             bitpix,
@@ -134,6 +152,7 @@ impl HiPSConfig {
             tile_size,
             request_credentials,
             request_mode,
+            dataproduct_type,
         };
 
         Ok(hips_config)

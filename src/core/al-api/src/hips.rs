@@ -48,13 +48,20 @@ pub struct HiPSProperties {
     hips_initial_fov: Option<f64>,
     hips_initial_ra: Option<f64>,
     hips_initial_dec: Option<f64>,
+    // HiPS cube
     hips_cube_depth: Option<u32>,
+
+    // HiPS 3D keywords
+    hips_order_freq: Option<u8>,
+    hips_tile_depth: Option<u8>,
 
     // Parametrable by the user
     #[allow(unused)]
     min_cutout: Option<f32>,
     #[allow(unused)]
     max_cutout: Option<f32>,
+
+    dataproduct_type: Option<DataproductType>,
 
     creator_did: String,
 
@@ -63,6 +70,20 @@ pub struct HiPSProperties {
 }
 
 impl HiPSProperties {
+    #[inline(always)]
+    pub fn get_hips_order_freq(&self) -> Option<u8> {
+        self.hips_order_freq
+    }
+    #[inline(always)]
+    pub fn get_hips_tile_depth(&self) -> Option<u8> {
+        self.hips_tile_depth
+    }
+
+    #[inline(always)]
+    pub fn get_dataproduct_type(&self) -> Option<DataproductType> {
+        self.dataproduct_type
+    }
+
     #[inline(always)]
     pub fn get_url(&self) -> &str {
         &self.url
@@ -147,6 +168,15 @@ pub enum ImageExt {
     Jpeg,
     Png,
     Webp,
+}
+
+#[derive(Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[wasm_bindgen]
+#[serde(rename_all = "camelCase")]
+pub enum DataproductType {
+    SpectralCube,
+    Image,
+    Cube,
 }
 
 impl std::fmt::Display for ImageExt {

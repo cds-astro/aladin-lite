@@ -8,8 +8,8 @@ pub use fov::FieldOfView;
 pub mod view_hpx_cells;
 
 use crate::CooSystem;
-use crate::HEALPixCoverage;
 use crate::ProjectionType;
+use crate::SpaceMoc;
 
 pub fn build_fov_coverage(
     depth: u8,
@@ -18,7 +18,7 @@ pub fn build_fov_coverage(
     camera_frame: CooSystem,
     frame: CooSystem,
     proj: &ProjectionType,
-) -> HEALPixCoverage {
+) -> SpaceMoc {
     if let Some(vertices) = fov.get_vertices() {
         // The vertices coming from the camera are in a specific coo sys
         // but cdshealpix accepts them to be given in ICRS coo sys
@@ -44,20 +44,20 @@ pub fn build_fov_coverage(
                 ::healpix::nested::hash(depth, lon.to_radians(), lat.to_radians())
             });
 
-            HEALPixCoverage::from_fixed_hpx_cells(depth, hpx_idxs_iter, Some(vertices.len()))
+            SpaceMoc::from_fixed_hpx_cells(depth, hpx_idxs_iter, Some(vertices.len()))
         } else {
             // The polygon is not too small for the depth asked
             let inside_vertex = crate::coosys::apply_coo_system(camera_frame, frame, camera_center);
 
             // Prefer to query from_polygon with depth >= 2
 
-            HEALPixCoverage::from_3d_coos(depth, vertices_iter, &inside_vertex)
+            SpaceMoc::from_3d_coos(depth, vertices_iter, &inside_vertex)
         }
     } else {
         let center_xyz = crate::coosys::apply_coo_system(camera_frame, frame, camera_center);
 
         let biggest_fov_rad = proj.aperture_start().to_radians();
         let lonlat = center_xyz.lonlat();
-        HEALPixCoverage::from_cone(&lonlat, biggest_fov_rad * 0.5, depth)
+        SpaceMoc::from_cone(&lonlat, biggest_fov_rad * 0.5, depth)
     }
 }

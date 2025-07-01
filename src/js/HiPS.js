@@ -469,15 +469,23 @@ export let HiPS = (function () {
         let self = this;
         self.creatorDid = properties.creator_did || self.creatorDid;
 
-        // Cube depth
+        // HiPS Cube special keywords
         self.cubeDepth = properties && properties.hips_cube_depth && +properties.hips_cube_depth;
         self.cubeFirstFrame = properties && properties.hips_cube_firstframe && +properties.hips_cube_firstframe;
+
+        // HiPS3D special keywords
+        self.hipsOrderFreq = properties && properties.hips_order_freq && +properties.hips_order_freq;
+        self.hipsTileDepth = properties && properties.hips_tile_depth && +properties.hips_tile_depth;
+
 
         // Max order
         const maxOrder = PropertyParser.maxOrder(properties)
         if (maxOrder !== undefined) {
             self.maxOrder = maxOrder;
         }
+
+        // dataproduct type
+        self.dataproductType = properties && properties.dataproduct_type;
 
         // Tile size
         self.tileSize =
@@ -997,7 +1005,13 @@ export let HiPS = (function () {
                 hipsInitialFov: self.initialFov,
                 hipsInitialRa: self.initialRa,
                 hipsInitialDec: self.initialDec,
+                // HiPS Cube
                 hipsCubeDepth: self.cubeDepth,
+                // HiPS3D
+                hipsTileDepth: self.hipsTileDepth,
+                hipsOrderFreq: self.hipsOrderFreq,
+                // Dataproduct type
+                dataproductType: self.dataproductType, 
                 isPlanetaryBody: self.isPlanetaryBody(),
                 hipsBody: self.hipsBody,
                 requestCredentials: self.requestCredentials,

@@ -33,7 +33,7 @@ use crate::shader::ShaderManager;
 use crate::utils;
 
 use crate::downloader::request::allsky::Allsky;
-use crate::healpix::{cell::HEALPixCell, coverage::HEALPixCoverage};
+use crate::healpix::{cell::HEALPixCell, moc::SpaceMoc};
 use crate::time::Time;
 
 use super::config::HiPSConfig;
@@ -226,7 +226,7 @@ pub struct HiPS2D {
     vao: VertexArrayObject,
     gl: WebGlContext,
 
-    footprint_moc: Option<HEALPixCoverage>,
+    moc: Option<SpaceMoc>,
 
     // A buffer storing the cells in the view
     hpx_cells_in_view: Vec<HEALPixCell>,
@@ -292,7 +292,7 @@ impl HiPS2D {
         let buffer = HiPS2DBuffer::new(gl, config)?;
 
         let gl = gl.clone();
-        let footprint_moc = None;
+        let moc = None;
         let hpx_cells_in_view = vec![];
         // request the allsky texture
         Ok(Self {
@@ -313,7 +313,7 @@ impl HiPS2D {
 
             idx_vertices,
 
-            footprint_moc,
+            moc,
             hpx_cells_in_view,
         })
     }
@@ -330,19 +330,12 @@ impl HiPS2D {
             .max(cfg.get_min_depth_tile());
 
         let survey_frame = cfg.get_frame();
-        let mut already_considered_tiles = HashSet::new();
 
         let tile_cells_iter = camera
             .get_hpx_cells(depth_tile, survey_frame)
             .into_iter()
             .filter(move |tile_cell| {
-                if already_considered_tiles.contains(tile_cell) {
-                    return false;
-                }
-
-                already_considered_tiles.insert(*tile_cell);
-
-                if let Some(moc) = self.footprint_moc.as_ref() {
+                if let Some(moc) = self.moc.as_ref() {
                     moc.intersects_cell(tile_cell) && !self.update_priority_tile(tile_cell)
                 } else {
                     !self.update_priority_tile(tile_cell)
@@ -401,13 +394,13 @@ impl HiPS2D {
     }
 
     #[inline]
-    pub fn set_moc(&mut self, moc: HEALPixCoverage) {
-        self.footprint_moc = Some(moc);
+    pub fn set_moc(&mut self, moc: SpaceMoc) {
+        self.moc = Some(moc);
     }
 
     #[inline]
-    pub fn get_moc(&self) -> Option<&HEALPixCoverage> {
-        self.footprint_moc.as_ref()
+    pub fn get_moc(&self) -> Option<&SpaceMoc> {
+        self.moc.as_ref()
     }
 
     pub fn set_image_ext(&mut self, ext: ImageExt) -> Result<(), JsValue> {
@@ -479,7 +472,7 @@ impl HiPS2D {
         //    super::subdivide::num_hpx_subdivision(&self.hpx_cells_in_view[0], camera, projection);
         for cell in &self.hpx_cells_in_view {
             // filter textures that are not in the moc
-            let cell_in_cov = if let Some(moc) = self.footprint_moc.as_ref() {
+            let cell_in_cov = if let Some(moc) = self.moc.as_ref() {
                 if moc.intersects_cell(cell) {
                     // Rasterizer does not render tiles that are not in the MOC
                     // This is not a problem for transparency rendered HiPses (FITS or PNG)

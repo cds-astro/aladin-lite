@@ -3,7 +3,7 @@ pub mod renderer;
 pub use renderer::MOCRenderer;
 
 use crate::camera::CameraViewPort;
-use crate::healpix::coverage::HEALPixCoverage;
+use crate::healpix::moc::SpaceMoc;
 use crate::math::projection::ProjectionType;
 use crate::renderable::WebGl2RenderingContext;
 use crate::shader::ShaderManager;
@@ -32,11 +32,11 @@ pub struct MOC {
 
     inner: [Option<MOCIntern>; 3],
 
-    pub moc: HEALPixCoverage,
+    pub moc: SpaceMoc,
 }
 
 impl MOC {
-    pub(super) fn new(gl: WebGlContext, moc: HEALPixCoverage, cfg: &MOCOptions) -> Self {
+    pub(super) fn new(gl: WebGlContext, moc: SpaceMoc, cfg: &MOCOptions) -> Self {
         let sky_fraction = moc.sky_fraction() as f32;
         let max_order = moc.depth_max();
 
@@ -228,7 +228,7 @@ impl MOCIntern {
 
     fn vertices_in_view<'a>(
         &self,
-        moc: &'a HEALPixCoverage,
+        moc: &'a SpaceMoc,
         camera: &'a mut CameraViewPort,
     ) -> impl Iterator<Item = [(f64, f64); 4]> + 'a {
         let view_moc = camera.get_cov(CooSystem::ICRS);
@@ -250,7 +250,7 @@ impl MOCIntern {
 
     fn draw(
         &mut self,
-        moc: &HEALPixCoverage,
+        moc: &SpaceMoc,
         camera: &mut CameraViewPort,
         proj: &ProjectionType,
         shaders: &mut ShaderManager,
@@ -457,7 +457,7 @@ impl MOCIntern {
 
     fn compute_edge_paths_iter<'a>(
         &self,
-        moc: &'a HEALPixCoverage,
+        moc: &'a SpaceMoc,
         camera: &'a mut CameraViewPort,
     ) -> impl Iterator<Item = f32> + 'a {
         self.vertices_in_view(moc, camera).flat_map(|v| {

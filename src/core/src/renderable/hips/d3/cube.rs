@@ -13,7 +13,7 @@ use crate::Abort;
 use crate::JsValue;
 use al_api::hips::ImageExt;
 // Fixed sized binary heap
-pub struct HiPS3DBuffer {
+pub struct HiPSCubeBuffer {
     // Some information about the HiPS
     textures: HashMap<HEALPixCell, HpxTexture3D>,
 
@@ -24,7 +24,7 @@ pub struct HiPS3DBuffer {
     gl: WebGlContext,
 }
 
-impl HiPS3DBuffer {
+impl HiPSCubeBuffer {
     pub fn new(gl: &WebGlContext, config: HiPSConfig) -> Result<Self, JsValue> {
         let textures = HashMap::new();
 
@@ -124,7 +124,7 @@ impl HiPS3DBuffer {
     }
 }
 
-impl HpxTileBuffer for HiPS3DBuffer {
+impl HpxTileBuffer for HiPSCubeBuffer {
     type T = HpxTexture3D;
 
     fn new(gl: &WebGlContext, config: HiPSConfig) -> Result<Self, JsValue> {
@@ -182,14 +182,14 @@ impl HpxTileBuffer for HiPS3DBuffer {
 
 use al_core::shader::SendUniforms;
 use al_core::shader::ShaderBound;
-impl SendUniforms for HiPS3DBuffer {
+impl SendUniforms for HiPSCubeBuffer {
     // Send only the allsky textures
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
         shader.attach_uniforms_from(&self.config)
     }
 }
 
-impl Drop for HiPS3DBuffer {
+impl Drop for HiPSCubeBuffer {
     fn drop(&mut self) {
         // drop all the 3D block textures
         self.textures.clear();

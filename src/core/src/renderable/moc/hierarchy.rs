@@ -1,5 +1,5 @@
 use super::MOC;
-use crate::{camera::CameraViewPort, HEALPixCoverage};
+use crate::{camera::CameraViewPort, SpaceMoc};
 use al_api::moc::MOCOptions;
 
 pub struct MOCHierarchy {
@@ -12,19 +12,13 @@ use al_core::WebGlContext;
 impl MOCHierarchy {
     pub fn from_full_res_moc(
         gl: WebGlContext,
-        full_res_moc: HEALPixCoverage,
+        full_res_moc: SpaceMoc,
         options: &MOCOptions,
     ) -> Self {
         let full_res_depth = full_res_moc.depth();
 
         let mut mocs: Vec<_> = (0..full_res_depth)
-            .map(|d| {
-                MOC::new(
-                    gl.clone(),
-                    HEALPixCoverage(full_res_moc.degraded(d)),
-                    options,
-                )
-            })
+            .map(|d| MOC::new(gl.clone(), SpaceMoc(full_res_moc.degraded(d)), options))
             .collect();
 
         mocs.push(MOC::new(gl.clone(), full_res_moc, options));
@@ -80,7 +74,7 @@ impl MOCHierarchy {
         &mut self.mocs[d]
     }
 
-    pub fn get_full_moc(&self) -> &HEALPixCoverage {
+    pub fn get_full_moc(&self) -> &SpaceMoc {
         &self.mocs.last().unwrap().moc
     }
 

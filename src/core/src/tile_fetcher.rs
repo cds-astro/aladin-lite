@@ -72,8 +72,10 @@ impl HiPSLocalFiles {
 
         tiles_per_fmt[d].get(&i)
     }
+}
 
-    fn get_moc(&self) -> &web_sys::File {
+impl HiPSLocalFiles {
+    pub fn get_moc(&self) -> &web_sys::File {
         &self.moc
     }
 }
@@ -189,28 +191,10 @@ impl TileFetcherQueue {
         downloader: Rc<RefCell<Downloader>>,
     ) {
         let cfg = hips.get_config();
-        // Request for the allsky first
-        // The allsky is not mandatory present in a HiPS service but it is better to first try to search for it
-        //downloader.fetch(query::PixelMetadata::new(cfg));
-        // Try to fetch the MOC
-        let hips_cdid = cfg.get_creator_did();
-        let moc_url = if let Some(local_hips) = self.hips_local_files.get(hips_cdid) {
-            if let Ok(url) =
-                web_sys::Url::create_object_url_with_blob(local_hips.get_moc().as_ref())
-            {
-                url
-            } else {
-                format!("{}/Moc.fits", cfg.get_root_url())
-            }
-        } else {
-            format!("{}/Moc.fits", cfg.get_root_url())
-        };
 
         downloader.borrow_mut().fetch(query::Moc::new(
-            moc_url,
-            cfg.get_request_mode(),
-            cfg.get_request_credentials(),
-            cfg.get_creator_did().to_string(),
+            cfg,
+            &self.hips_local_files,
             MOCOptions::default(),
         ));
 
@@ -219,20 +203,21 @@ impl TileFetcherQueue {
         // Request the allsky
         let dl = downloader.clone();
 
-        let allsky_query = query::Allsky::new(
-            cfg,
-            match hips {
-                HiPS::D2(_) => None,
-                HiPS::D3(h) => Some(h.get_slice() as u32),
-            },
-        );
+        // Allsky query
+        match hips {
+            HiPS::D2(_) => {
+                let allsky_query = query::Allsky::new(cfg, None);
 
-        crate::utils::set_timeout(
-            move || {
-                dl.borrow_mut().fetch(allsky_query);
-            },
-            100,
-        );
+                crate::utils::set_timeout(
+                    move || {
+                        dl.borrow_mut().fetch(allsky_query);
+                    },
+                    100,
+                );
+            }
+            // Do not ask for allsky for HiPS3D
+            HiPS::D3(_) => (),
+        }
 
         if cfg.get_min_depth_tile() == 0 {
             for tile_cell in crate::healpix::cell::ALLSKY_HPX_CELLS_D0 {

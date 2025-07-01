@@ -9,6 +9,8 @@ pub const SQRT_TWO: f64 = std::f64::consts::SQRT_2;
 
 pub const ZERO: f64 = 0.0;
 
+pub mod spectra;
+
 pub mod angle;
 pub mod lonlat;
 pub mod projection;

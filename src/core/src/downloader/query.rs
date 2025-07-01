@@ -9,6 +9,7 @@ pub trait Query: Sized {
 
 pub type QueryId = String;
 
+use al_api::hips::DataproductType;
 use al_core::image::format::ImageFormatType;
 
 #[derive(Eq, PartialEq, Clone)]
@@ -26,9 +27,14 @@ pub struct Tile {
     pub channel: Option<u32>,
 }
 
+/*pub enum  {
+
+}*/
+
 use crate::healpix::cell::HEALPixCell;
 use crate::renderable::hips::config::HiPSConfig;
 use crate::renderable::CreatorDid;
+use crate::tile_fetcher::HiPSLocalFiles;
 use web_sys::{RequestCredentials, RequestMode};
 impl Tile {
     pub fn new(cell: &HEALPixCell, channel: Option<u32>, cfg: &HiPSConfig) -> Self {
@@ -65,7 +71,7 @@ impl Tile {
             ext
         );
 
-        let size = cfg.get_tile_size();
+        let size = cfg.get_tile_size() as u32;
         Tile {
             hips_cdid: hips_cdid.to_string(),
             url,
@@ -75,7 +81,7 @@ impl Tile {
             mode,
             id,
             channel,
-            size: size as u32,
+            size,
         }
     }
 }
@@ -168,21 +174,41 @@ pub struct Moc {
     pub credentials: RequestCredentials,
     pub params: MOCOptions,
     pub hips_cdid: CreatorDid,
+    pub dataproduct_type: DataproductType,
 }
+use std::collections::HashMap;
 impl Moc {
     pub fn new(
-        url: String,
-        mode: RequestMode,
-        credentials: RequestCredentials,
-        hips_cdid: CreatorDid,
+        cfg: &HiPSConfig,
+        hips_local_files: &HashMap<String, HiPSLocalFiles>,
         params: MOCOptions,
     ) -> Self {
+        // Try to fetch the MOC
+        let hips_cdid = cfg.get_creator_did();
+        let url = if let Some(local_hips) = hips_local_files.get(hips_cdid) {
+            if let Ok(url) =
+                web_sys::Url::create_object_url_with_blob(local_hips.get_moc().as_ref())
+            {
+                url
+            } else {
+                format!("{}/Moc.fits", cfg.get_root_url())
+            }
+        } else {
+            format!("{}/Moc.fits", cfg.get_root_url())
+        };
+
+        let mode = cfg.get_request_mode();
+        let credentials = cfg.get_request_credentials();
+        let hips_cdid = cfg.get_creator_did().to_string();
+        let dataproduct_type = cfg.dataproduct_type;
+
         Moc {
             url,
             params,
             hips_cdid,
             mode,
             credentials,
+            dataproduct_type,
         }
     }
 }

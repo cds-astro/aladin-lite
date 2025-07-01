@@ -102,22 +102,23 @@ impl<'a> From<&'a RequestType> for Option<Resource> {
         match request {
             RequestType::Tile(request) => Option::<Tile>::from(request).map(Resource::Tile),
             RequestType::Allsky(request) => Option::<Allsky>::from(request).map(Resource::Allsky),
-            RequestType::Moc(request) => Option::<Moc>::from(request).map(Resource::Moc),
+            RequestType::Moc(request) => Option::<FetchedMoc>::from(request).map(Resource::Moc),
         }
     }
 }
 
 use crate::Abort;
 use allsky::Allsky;
-use moc::Moc;
 use tile::Tile;
 pub enum Resource {
     Tile(Tile),
     Allsky(Allsky),
-    Moc(Moc),
+    Moc(FetchedMoc),
 }
 
 use web_sys::RequestCredentials;
+
+use self::moc::FetchedMoc;
 async fn query_html_image(
     url: &str,
     credentials: RequestCredentials,

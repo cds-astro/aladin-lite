@@ -3,6 +3,7 @@ use crate::math::PI;
 use crate::math::{self, lonlat::LonLat};
 
 use cgmath::Vector3;
+use moclib::moc::RangeMOCIntoIterator;
 use moclib::{
     moc::range::{CellSelection, RangeMOC},
     qty::Hpx,
@@ -12,9 +13,65 @@ pub type Smoc = RangeMOC<u64, Hpx<u64>>;
 
 use crate::healpix::cell::HEALPixCell;
 #[derive(Clone, Debug)]
-pub struct HEALPixCoverage(pub Smoc);
+pub struct SpaceMoc(pub Smoc);
 
-impl HEALPixCoverage {
+use wasm_bindgen::JsValue;
+
+use moclib::deser::fits;
+use moclib::deser::fits::MocIdxType;
+use moclib::deser::fits::MocQtyType;
+use moclib::idx::Idx;
+use moclib::moc::range::op::convert::convert_to_u64;
+use moclib::moc::{CellMOCIntoIterator, CellMOCIterator, RangeMOCIterator};
+/// Convenient type for Space-MOCs
+pub fn from_fits_hpx<T: Idx>(moc: MocType<T, Hpx<T>, Cursor<&[u8]>>) -> Smoc {
+    match moc {
+        MocType::Ranges(moc) => convert_to_u64::<T, Hpx<T>, _, Hpx<u64>>(moc).into_range_moc(),
+        MocType::Cells(moc) => {
+            convert_to_u64::<T, Hpx<T>, _, Hpx<u64>>(moc.into_cell_moc_iter().ranges())
+                .into_range_moc()
+        }
+    }
+}
+
+use moclib::deser::fits::MocType;
+use std::io::Cursor;
+impl SpaceMoc {
+    pub fn from_fits_raw_bytes(bytes: &[u8]) -> Result<Self, JsValue> {
+        let smoc = match fits::from_fits_ivoa_custom(Cursor::new(bytes), true)
+            .map_err(|e| JsValue::from_str(&e.to_string()))?
+        {
+            MocIdxType::U16(MocQtyType::<u16, _>::Hpx(moc)) => Ok(from_fits_hpx(moc)),
+            MocIdxType::U32(MocQtyType::<u32, _>::Hpx(moc)) => Ok(from_fits_hpx(moc)),
+            MocIdxType::U64(MocQtyType::<u64, _>::Hpx(moc)) => Ok(from_fits_hpx(moc)),
+            _ => Err(JsValue::from_str("MOC not supported. Must be a HPX MOC")),
+        }?;
+
+        Ok(Self(smoc))
+    }
+
+    pub fn from_json(s: &str) -> Result<Self, JsValue> {
+        let moc = moclib::deser::json::from_json_aladin::<u64, Hpx<u64>>(s)
+            .map_err(|e| JsValue::from(js_sys::Error::new(&e.to_string())))?
+            .into_cell_moc_iter()
+            .ranges()
+            .into_range_moc();
+
+        Ok(Self(moc))
+    }
+
+    pub fn serialize_to_json(&self) -> Result<String, JsValue> {
+        let mut buf: Vec<u8> = Default::default();
+        let json = (&self.0)
+            .into_range_moc_iter()
+            .cells()
+            .to_json_aladin(None, &mut buf)
+            .map(|()| unsafe { String::from_utf8_unchecked(buf) })
+            .map_err(|err| JsValue::from_str(&format!("{err:?}")));
+
+        json
+    }
+
     pub fn from_3d_coos<T: LonLat<f64>>(
         // The depth of the smallest HEALPix cells contained in it
         depth: u8,
@@ -38,7 +95,7 @@ impl HEALPixCoverage {
             depth,
             CellSelection::All,
         );
-        HEALPixCoverage(moc)
+        SpaceMoc(moc)
     }
 
     pub fn from_fixed_hpx_cells(
@@ -47,7 +104,7 @@ impl HEALPixCoverage {
         cap: Option<usize>,
     ) -> Self {
         let moc = RangeMOC::from_fixed_depth_cells(depth, hpx_idx, cap);
-        HEALPixCoverage(moc)
+        SpaceMoc(moc)
     }
 
     pub fn from_hpx_cells<'a>(
@@ -58,14 +115,14 @@ impl HEALPixCoverage {
         let cells_it = hpx_cell_it.map(|HEALPixCell(depth, idx)| (*depth, *idx));
 
         let moc = RangeMOC::from_cells(depth, cells_it, cap);
-        HEALPixCoverage(moc)
+        SpaceMoc(moc)
     }
 
     pub fn from_cone(lonlat: &LonLatT<f64>, rad: f64, depth: u8) -> Self {
         if rad >= PI {
             Self::allsky(depth)
         } else {
-            HEALPixCoverage(RangeMOC::from_cone(
+            SpaceMoc(RangeMOC::from_cone(
                 lonlat.lon().to_radians(),
                 lonlat.lat().to_radians(),
                 rad,
@@ -78,12 +135,7 @@ impl HEALPixCoverage {
 
     pub fn allsky(depth_max: u8) -> Self {
         let moc = RangeMOC::new_full_domain(depth_max);
-        HEALPixCoverage(moc)
-    }
-
-    pub fn contains_coo(&self, coo: &Vector3<f64>) -> bool {
-        let (lon, lat) = math::lonlat::xyz_to_radec(coo);
-        self.0.is_in(lon.to_radians(), lat.to_radians())
+        SpaceMoc(moc)
     }
 
     pub fn contains_lonlat(&self, lonlat: &LonLatT<f64>) -> bool {
@@ -98,9 +150,9 @@ impl HEALPixCoverage {
         self.0.moc_ranges().intersects_range(&z29_rng)
     }
 
-    pub fn is_intersecting(&self, other: &Self) -> bool {
+    /*pub fn is_intersecting(&self, other: &Self) -> bool {
         !self.0.intersection(&other.0).is_empty()
-    }
+    }*/
 
     pub fn depth(&self) -> u8 {
         self.0.depth_max()
@@ -111,16 +163,16 @@ impl HEALPixCoverage {
     }
 
     pub fn not(&self) -> Self {
-        HEALPixCoverage(self.0.not())
+        SpaceMoc(self.0.not())
     }
 
     pub fn empty(depth: u8) -> Self {
-        HEALPixCoverage(RangeMOC::new_empty(depth))
+        SpaceMoc(RangeMOC::new_empty(depth))
     }
 }
 
 use core::ops::Deref;
-impl Deref for HEALPixCoverage {
+impl Deref for SpaceMoc {
     type Target = Smoc;
 
     fn deref(&'_ self) -> &'_ Self::Target {

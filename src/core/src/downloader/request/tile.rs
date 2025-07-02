@@ -11,14 +11,14 @@ use super::{Request, RequestType};
 use crate::downloader::request::query_html_image;
 use crate::downloader::QueryId;
 pub struct TileRequest {
-    request: Request<ImageType>,
+    pub request: Request<ImageType>,
     pub id: QueryId,
 
-    cell: HEALPixCell,
-    hips_cdid: CreatorDid,
-    url: Url,
-    format: ImageFormatType,
-    channel: Option<u32>,
+    pub cell: HEALPixCell,
+    pub hips_cdid: CreatorDid,
+    pub url: Url,
+    pub format: ImageFormatType,
+    pub channel: Option<u32>,
 }
 
 impl From<TileRequest> for RequestType {
@@ -121,66 +121,5 @@ impl From<query::Tile> for TileRequest {
 use crate::time::Time;
 use std::cell::RefCell;
 use std::rc::Rc;
-pub struct Tile {
-    pub image: Rc<RefCell<Option<ImageType>>>,
-    pub time_req: Time,
-    pub cell: HEALPixCell,
-    pub format: ImageFormatType,
-    pub channel: Option<u32>,
-    hips_cdid: CreatorDid,
-    url: Url,
-}
 
 use crate::Abort;
-impl Tile {
-    #[inline(always)]
-    pub fn missing(&self) -> bool {
-        self.image.borrow().is_none()
-    }
-
-    #[inline(always)]
-    pub fn get_hips_cdid(&self) -> &CreatorDid {
-        &self.hips_cdid
-    }
-
-    #[inline(always)]
-    pub fn get_url(&self) -> &Url {
-        &self.url
-    }
-
-    #[inline(always)]
-    pub fn cell(&self) -> &HEALPixCell {
-        &self.cell
-    }
-}
-
-impl<'a> From<&'a TileRequest> for Option<Tile> {
-    fn from(request: &'a TileRequest) -> Self {
-        let TileRequest {
-            cell,
-            request,
-            hips_cdid,
-            url,
-            format,
-            channel,
-            ..
-        } = request;
-        if request.is_resolved() {
-            let Request::<ImageType> {
-                time_request, data, ..
-            } = request;
-            Some(Tile {
-                cell: *cell,
-                time_req: *time_request,
-                // This is a clone on a Arc, it is supposed to be fast
-                image: data.clone(),
-                hips_cdid: hips_cdid.clone(),
-                url: url.clone(),
-                format: *format,
-                channel: *channel,
-            })
-        } else {
-            None
-        }
-    }
-}

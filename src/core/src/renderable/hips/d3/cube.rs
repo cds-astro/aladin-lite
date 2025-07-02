@@ -4,7 +4,7 @@ use al_core::image::Image;
 use al_core::WebGlContext;
 
 use super::texture::HpxTexture3D;
-use crate::downloader::request::allsky::Allsky;
+use crate::downloader::request::allsky::AllskyRequest;
 use crate::healpix::cell::HEALPixCell;
 use crate::renderable::hips::config::HiPSConfig;
 use crate::renderable::hips::HpxTileBuffer;
@@ -40,23 +40,22 @@ impl HiPSCubeBuffer {
         })
     }
 
-    pub fn push_allsky(&mut self, allsky: Allsky) -> Result<(), JsValue> {
-        let Allsky {
-            image,
-            time_req,
+    pub fn push_allsky(&mut self, allsky: AllskyRequest) -> Result<(), JsValue> {
+        let AllskyRequest {
+            request,
             //depth_tile,
             channel,
             ..
         } = allsky;
 
         {
-            let mutex_locked = image.borrow();
+            let mutex_locked = request.data.borrow();
             let images = mutex_locked.as_ref().unwrap_abort();
             for (idx, image) in images.iter().enumerate() {
                 self.push(
                     &HEALPixCell(0, idx as u64),
                     image,
-                    time_req,
+                    request.time_request,
                     channel.map(|c| c as u16).unwrap_or(0),
                 )?;
             }

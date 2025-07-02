@@ -1,6 +1,7 @@
 pub mod cube;
 pub mod texture;
 
+use crate::downloader::request::allsky::AllskyRequest;
 use crate::healpix::moc::FreqSpaceMoc;
 use crate::math::spectra::SpectralUnit;
 use crate::renderable::hips::HpxTile;
@@ -28,7 +29,6 @@ use crate::downloader::query;
 
 use crate::shader::ShaderManager;
 
-use crate::downloader::request::allsky::Allsky;
 use crate::healpix::cell::HEALPixCell;
 use crate::time::Time;
 
@@ -214,11 +214,12 @@ impl HiPS3D {
             .get_hpx_cells(depth_tile, survey_frame)
             .into_iter()
             .filter(move |tile_cell| {
-                if let Some(moc) = self.moc.as_ref() {
-                    moc.intersects_cell(tile_cell, self.freq)
+                /*if let Some(moc) = self.moc.as_ref() {
+                    moc.intersects_cell(tile_cell, self.freq.0 as u64)
                 } else {
                     true
-                }
+                }*/
+                true
             });
 
         Some(tile_cells_iter)
@@ -299,7 +300,7 @@ impl HiPS3D {
         for cell in &self.hpx_cells_in_view {
             // filter textures that are not in the moc
             let cell = if let Some(moc) = self.moc.as_ref() {
-                if moc.intersects_cell(cell, self.freq) {
+                if moc.intersects_cell(cell, self.freq.0 as u64) {
                     Some(&cell)
                 } else if channel == PixelType::RGB8U {
                     // Rasterizer does not render tiles that are not in the MOC
@@ -601,7 +602,7 @@ impl HiPS3D {
         self.buffer.push(cell, image, time_request, slice_idx)
     }
 
-    pub fn add_allsky(&mut self, allsky: Allsky) -> Result<(), JsValue> {
+    pub fn add_allsky(&mut self, allsky: AllskyRequest) -> Result<(), JsValue> {
         self.buffer.push_allsky(allsky)
     }
 

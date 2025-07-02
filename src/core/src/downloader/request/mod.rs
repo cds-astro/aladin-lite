@@ -11,8 +11,8 @@ use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 pub type Url = String;
 pub struct Request<R> {
-    data: Rc<RefCell<Option<R>>>,
-    time_request: Time,
+    pub data: Rc<RefCell<Option<R>>>,
+    pub time_request: Time,
     // Flag telling if the tile has been copied so that
     // the HtmlImageElement can be reused to download another tile
     //ready: bool,
@@ -75,6 +75,10 @@ where
     pub fn resolve_status(&self) -> ResolvedStatus {
         self.resolved.get()
     }
+
+    pub fn get_data(&self) -> Rc<RefCell<Option<R>>> {
+        self.data.clone()
+    }
 }
 
 use allsky::AllskyRequest;
@@ -83,7 +87,7 @@ use tile::TileRequest;
 pub enum RequestType {
     Tile(TileRequest),
     Allsky(AllskyRequest),
-    Moc(MOCRequest), //..
+    Moc(MOCRequest),
 }
 
 use crate::downloader::QueryId;
@@ -95,30 +99,30 @@ impl RequestType {
             RequestType::Moc(request) => &request.hips_cdid,
         }
     }
+
+    pub fn is_resolved(&self) -> bool {
+        match self {
+            RequestType::Tile(request) => request.request.is_resolved(),
+            RequestType::Allsky(request) => request.request.is_resolved(),
+            RequestType::Moc(request) => request.request.is_resolved(),
+        }
+    }
 }
 
-impl<'a> From<&'a RequestType> for Option<Resource> {
-    fn from(request: &'a RequestType) -> Self {
+/*
+impl From<RequestType> for Option<Resource> {
+    fn from(request: RequestType) -> Self {
         match request {
             RequestType::Tile(request) => Option::<Tile>::from(request).map(Resource::Tile),
             RequestType::Allsky(request) => Option::<Allsky>::from(request).map(Resource::Allsky),
             RequestType::Moc(request) => Option::<FetchedMoc>::from(request).map(Resource::Moc),
         }
     }
-}
+}*/
 
 use crate::Abort;
-use allsky::Allsky;
-use tile::Tile;
-pub enum Resource {
-    Tile(Tile),
-    Allsky(Allsky),
-    Moc(FetchedMoc),
-}
-
 use web_sys::RequestCredentials;
 
-use self::moc::FetchedMoc;
 async fn query_html_image(
     url: &str,
     credentials: RequestCredentials,

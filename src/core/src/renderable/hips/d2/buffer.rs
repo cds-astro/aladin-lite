@@ -4,6 +4,7 @@ use std::collections::HashMap;
 
 use al_core::texture::format::PixelType;
 
+use crate::downloader::request::allsky::AllskyRequest;
 use crate::renderable::hips::HpxTile;
 use cgmath::Vector3;
 
@@ -18,7 +19,6 @@ use al_core::WebGlContext;
 
 use super::texture::{HpxTexture2D, HpxTexture2DUniforms};
 
-use crate::downloader::request::allsky::Allsky;
 use crate::healpix::cell::HEALPixCell;
 use crate::healpix::cell::NUM_HPX_TILES_DEPTH_ZERO;
 use crate::renderable::hips::config::HiPSConfig;
@@ -218,16 +218,14 @@ fn create_hpx_texture_storage(
 }
 
 impl HiPS2DBuffer {
-    pub fn push_allsky(&mut self, allsky: Allsky) -> Result<(), JsValue> {
-        let Allsky {
-            image, time_req, ..
-        } = allsky;
+    pub fn push_allsky(&mut self, allsky: AllskyRequest) -> Result<(), JsValue> {
+        let AllskyRequest { request, .. } = allsky;
 
         {
-            let mutex_locked = image.borrow();
+            let mutex_locked = request.data.borrow();
             let images = mutex_locked.as_ref().unwrap_abort();
             for (idx, image) in images.iter().enumerate() {
-                self.push(&HEALPixCell(0, idx as u64), image, time_req)?;
+                self.push(&HEALPixCell(0, idx as u64), image, request.time_request)?;
             }
         }
 

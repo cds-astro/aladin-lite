@@ -13,7 +13,7 @@ pub struct MOCRequest {
     //pub id: QueryId,
     pub hips_cdid: CreatorDid,
     pub params: MOCOptions,
-    request: Request<Moc>,
+    pub request: Request<Moc>,
 }
 
 impl From<MOCRequest> for RequestType {
@@ -68,6 +68,10 @@ impl From<query::Moc> for MOCRequest {
                 DataproductType::SpectralCube => {
                     Moc::FreqSpace(FreqSpaceMoc::from_fits_raw_bytes(&bytes)?)
                 }
+                DataproductType::Cube => {
+                    let moc = SpaceMoc::from_fits_raw_bytes(&bytes)?;
+                    Moc::FreqSpace(FreqSpaceMoc::from_space_moc(moc))
+                }
                 _ => Moc::Space(SpaceMoc::from_fits_raw_bytes(&bytes)?),
             })
         });
@@ -84,36 +88,3 @@ impl From<query::Moc> for MOCRequest {
 
 use std::cell::RefCell;
 use std::rc::Rc;
-pub struct FetchedMoc {
-    pub moc: Rc<RefCell<Option<Moc>>>,
-    pub params: MOCOptions,
-    pub hips_cdid: Url,
-}
-
-impl FetchedMoc {
-    pub fn get_hips_cdid(&self) -> &Url {
-        &self.hips_cdid
-    }
-}
-
-impl<'a> From<&'a MOCRequest> for Option<FetchedMoc> {
-    fn from(request: &'a MOCRequest) -> Self {
-        let MOCRequest {
-            request,
-            hips_cdid,
-            params,
-            ..
-        } = request;
-        if request.is_resolved() {
-            let Request::<Moc> { data, .. } = request;
-            Some(FetchedMoc {
-                // This is a clone on a Arc, it is supposed to be fast
-                moc: data.clone(),
-                hips_cdid: hips_cdid.clone(),
-                params: params.clone(),
-            })
-        } else {
-            None
-        }
-    }
-}

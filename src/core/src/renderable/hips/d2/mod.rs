@@ -3,6 +3,7 @@ pub mod texture;
 
 use crate::app::BLENDING_ANIM_DURATION;
 use crate::downloader::query;
+use crate::downloader::request::allsky::AllskyRequest;
 use crate::math::angle::ToAngle;
 use crate::renderable::hips::HpxTile;
 use al_api::hips::ImageExt;
@@ -32,7 +33,6 @@ use crate::camera::CameraViewPort;
 use crate::shader::ShaderManager;
 use crate::utils;
 
-use crate::downloader::request::allsky::Allsky;
 use crate::healpix::{cell::HEALPixCell, moc::SpaceMoc};
 use crate::time::Time;
 
@@ -698,7 +698,7 @@ impl HiPS2D {
         self.buffer.push(cell, image, time_request)
     }
 
-    pub fn add_allsky(&mut self, allsky: Allsky) -> Result<(), JsValue> {
+    pub fn add_allsky(&mut self, allsky: AllskyRequest) -> Result<(), JsValue> {
         self.buffer.push_allsky(allsky)
     }
 

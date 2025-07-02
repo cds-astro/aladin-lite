@@ -49,6 +49,12 @@ use std::io::Cursor;
 use crate::math::spectra::Freq;
 use crate::math::spectra::SpectralUnit;
 impl FreqSpaceMoc {
+    /// Create a FreqSpaceMoc from a
+    pub fn from_space_moc(moc: SpaceMoc) -> Self {
+        let moc_2d = Moc2DRanges::new(vec![0..u64::MAX], vec![moc.0.into_moc_ranges().0]);
+        FreqSpaceMoc(HpxRanges2D(moc_2d))
+    }
+
     pub fn from_fits_raw_bytes(bytes: &[u8]) -> Result<Self, JsValue> {
         let sfmoc = match fits::from_fits_ivoa_custom(Cursor::new(bytes), true)
             .map_err(|e| JsValue::from_str(&e.to_string()))?
@@ -138,9 +144,8 @@ impl FreqSpaceMoc {
         todo!()
     }
 
-    pub fn intersects_cell(&self, hpx_cell: &HEALPixCell, f: Freq) -> bool {
+    pub fn intersects_cell(&self, hpx_cell: &HEALPixCell, f_hash: u64) -> bool {
         let z29_rng = hpx_cell.z_29_rng();
-        let f_hash = f.hash();
 
         self.0.contains(f_hash, &z29_rng)
     }
@@ -152,6 +157,8 @@ impl FreqSpaceMoc {
 }
 
 use core::ops::Deref;
+
+use super::SpaceMoc;
 impl Deref for FreqSpaceMoc {
     type Target = moclib::hpxranges2d::FreqSpaceMoc<u64, u64>;
 

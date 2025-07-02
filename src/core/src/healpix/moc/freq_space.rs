@@ -15,7 +15,7 @@ use moclib::{
     ranges::SNORanges,
 };
 
-use moclib::qty::Frequency;
+use moclib::qty::{Frequency, MocQty};
 
 use crate::healpix::cell::HEALPixCell;
 #[derive(Debug)]
@@ -145,9 +145,14 @@ impl FreqSpaceMoc {
     }
 
     pub fn intersects_cell(&self, hpx_cell: &HEALPixCell, f_hash: u64) -> bool {
-        let z29_rng = hpx_cell.z_29_rng();
+        let hpx_ranges_2d = HpxRanges2D::create_from_freq_positions(
+            vec![f_hash],
+            vec![hpx_cell.idx()],
+            moclib::qty::Frequency::<u64>::MAX_DEPTH,
+            hpx_cell.depth(),
+        );
 
-        self.0.contains(f_hash, &z29_rng)
+        !self.0.intersection(&hpx_ranges_2d).is_empty()
     }
 
     /*/// provide the list of (hash hpx, hash freq) of the cells contained in the sfmoc

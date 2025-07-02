@@ -1,11 +1,13 @@
 pub trait SpectralUnit: Into<Freq> + Clone + Copy {
-    fn hash(&self) -> u64 {
+    fn hash(&self, depth: u8) -> u64 {
         let f: Freq = (*self).into();
-        Frequency::freq2hash(f.0)
+        let f_hash_max_order = Frequency::<u64>::freq2hash(f.0);
+
+        f_hash_max_order >> (Frequency::<u64>::MAX_DEPTH - depth)
     }
 }
 
-use moclib::qty::Frequency;
+use moclib::qty::{Frequency, MocQty};
 
 /// Frequency in Hz unit
 #[derive(Clone, Copy, Debug)]

@@ -144,12 +144,17 @@ impl FreqSpaceMoc {
         todo!()
     }
 
-    pub fn intersects_cell(&self, hpx_cell: &HEALPixCell, f_hash: u64) -> bool {
+    pub fn intersects_cell(&self, cell: &HEALPixFreqCell) -> bool {
+        let HEALPixFreqCell {
+            hpx,
+            f_hash,
+            f_depth,
+        } = cell;
         let hpx_ranges_2d = HpxRanges2D::create_from_freq_positions(
-            vec![f_hash],
-            vec![hpx_cell.idx()],
-            moclib::qty::Frequency::<u64>::MAX_DEPTH,
-            hpx_cell.depth(),
+            vec![*f_hash],
+            vec![hpx.idx()],
+            *f_depth,
+            hpx.depth(),
         );
 
         !self.0.intersection(&hpx_ranges_2d).is_empty()
@@ -169,5 +174,32 @@ impl Deref for FreqSpaceMoc {
 
     fn deref(&'_ self) -> &'_ Self::Target {
         &self.0
+    }
+}
+
+/// A simple object describing a cubic tile of a HiPS3D
+pub struct HEALPixFreqCell {
+    pub hpx: HEALPixCell,
+    pub f_hash: u64,
+    pub f_depth: u8,
+}
+
+impl HEALPixFreqCell {
+    pub fn new(hpx: HEALPixCell, f: Freq, f_depth: u8) -> Self {
+        let f_hash = f.hash(f_depth);
+
+        Self {
+            hpx,
+            f_hash,
+            f_depth,
+        }
+    }
+
+    pub fn from_f_hash(hpx: HEALPixCell, f_hash: u64) -> Self {
+        Self {
+            hpx,
+            f_hash,
+            f_depth: 16,
+        }
     }
 }

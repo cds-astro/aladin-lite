@@ -6,11 +6,13 @@ pub trait Query: Sized {
 
     fn id(&self) -> &QueryId;
 }
-
+use crate::math::spectra::{Freq, SpectralUnit};
 pub type QueryId = String;
 
+use crate::healpix::moc::HEALPixFreqCell;
 use al_api::hips::DataproductType;
 use al_core::image::format::ImageFormatType;
+use moclib::qty::{Frequency, MocQty};
 
 #[derive(Eq, PartialEq, Clone)]
 pub struct Tile {
@@ -20,16 +22,13 @@ pub struct Tile {
     pub hips_cdid: CreatorDid,
     // The total url of the query
     pub url: Url,
-    pub size: u32, // size of the tile requested
+    pub size: u32,  // size of the tile requested
+    pub depth: u32, // HiPS3D cubic tiles
     pub credentials: RequestCredentials,
     pub mode: RequestMode,
     pub id: QueryId,
     pub channel: Option<u32>,
 }
-
-/*pub enum  {
-
-}*/
 
 use crate::healpix::cell::HEALPixCell;
 use crate::renderable::hips::config::HiPSConfig;
@@ -63,7 +62,7 @@ impl Tile {
         url.push_str(&format!(".{ext}"));
 
         let id = format!(
-            "{}{}{}{}{}",
+            "{}_{}_{}_{}_{}",
             hips_cdid,
             depth,
             idx,
@@ -72,6 +71,7 @@ impl Tile {
         );
 
         let size = cfg.get_tile_size() as u32;
+        let depth = 1;
         Tile {
             hips_cdid: hips_cdid.to_string(),
             url,
@@ -82,6 +82,47 @@ impl Tile {
             id,
             channel,
             size,
+            depth,
+        }
+    }
+
+    pub fn new_cubic(hpx_f_cell: &HEALPixFreqCell, cfg: &HiPSConfig) -> Self {
+        let hips_cdid = cfg.get_creator_did();
+        let hips_url = cfg.get_root_url();
+        let format = cfg.get_format();
+        let credentials = cfg.get_request_credentials();
+        let mode = cfg.get_request_mode();
+
+        let ext = format.get_ext_file();
+
+        // f hash at order_f
+
+        let HEALPixFreqCell {
+            hpx: HEALPixCell(K, N),
+            f_hash: M,
+            f_depth: L,
+        } = *hpx_f_cell;
+
+        let D = (N / 10000) * 10000;
+        let E = (M / 10) * 10;
+
+        let url = format!("{hips_url}/Norder{K}_{L}/Dir{D}_{E}/Npix{N}_{M}.{ext}");
+
+        let id = format!("{hips_cdid}_{K}_{L}_{N}_{M}_{ext}");
+
+        let size = cfg.get_tile_size() as u32;
+        let depth = cfg.tile_depth.unwrap_or(1) as u32;
+        Tile {
+            hips_cdid: hips_cdid.to_string(),
+            url,
+            cell: HEALPixCell(K, N),
+            format,
+            credentials,
+            mode,
+            id,
+            channel: None,
+            size,
+            depth,
         }
     }
 }

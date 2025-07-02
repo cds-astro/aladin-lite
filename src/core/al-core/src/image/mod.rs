@@ -191,7 +191,7 @@ pub trait Image {
         offset: &Vector3<i32>,
     ) -> Result<(), JsValue>;
 
-    fn get_size(&self) -> (u32, u32);
+    fn get_size(&self) -> (u32, u32, u32);
 }
 
 impl<I> Image for &I
@@ -212,7 +212,7 @@ where
     }
 
     #[inline]
-    fn get_size(&self) -> (u32, u32) {
+    fn get_size(&self) -> (u32, u32, u32) {
         let image = &**self;
         image.get_size()
     }
@@ -237,7 +237,7 @@ where
     }
 
     #[inline]
-    fn get_size(&self) -> (u32, u32) {
+    fn get_size(&self) -> (u32, u32, u32) {
         let image = &**self;
         image.get_size()
     }
@@ -250,7 +250,7 @@ use crate::texture::Tex3D;
 pub enum ImageType {
     FitsRawBytes {
         raw_bytes: js_sys::Uint8Array,
-        size: (u32, u32),
+        size: (u32, u32, u32),
     },
     Canvas {
         canvas: Canvas<RGBA8U>,
@@ -328,7 +328,7 @@ impl Image for ImageType {
         Ok(())
     }
 
-    fn get_size(&self) -> (u32, u32) {
+    fn get_size(&self) -> (u32, u32, u32) {
         match self {
             ImageType::FitsRawBytes { size, .. } => *size,
             ImageType::Canvas { canvas } => canvas.get_size(),

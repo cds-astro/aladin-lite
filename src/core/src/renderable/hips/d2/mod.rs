@@ -6,6 +6,8 @@ use crate::downloader::query;
 use crate::downloader::request::allsky::AllskyRequest;
 use crate::math::angle::ToAngle;
 use crate::renderable::hips::HpxTile;
+use crate::tile_fetcher;
+use crate::tile_fetcher::TileFetcherQueue;
 use al_api::hips::ImageExt;
 use al_api::hips::ImageMetadata;
 use al_core::colormap::Colormap;
@@ -318,10 +320,11 @@ impl HiPS2D {
         })
     }
 
-    pub fn look_for_new_tiles<'a>(
-        &'a mut self,
-        camera: &'a CameraViewPort,
-    ) -> Option<impl Iterator<Item = HEALPixCell> + 'a> {
+    pub fn look_for_new_tiles(
+        &mut self,
+        tile_fetcher: &mut TileFetcherQueue,
+        camera: &CameraViewPort,
+    ) {
         // do not add tiles if the view is already at depth 0
         let cfg = self.get_config();
         let depth_tile = camera
@@ -330,26 +333,52 @@ impl HiPS2D {
             .max(cfg.get_min_depth_tile());
 
         let survey_frame = cfg.get_frame();
+        let min_tile_depth = cfg.get_min_depth_tile();
 
-        let tile_cells_iter = camera
+        let tile_queries_iter = camera
             .get_hpx_cells(depth_tile, survey_frame)
             .into_iter()
-            .filter(move |tile_cell| {
-                if let Some(moc) = self.moc.as_ref() {
-                    moc.intersects_cell(tile_cell) && !self.update_priority_tile(tile_cell)
+            .filter_map(|tile_cell| {
+                let make_query = if let Some(moc) = self.moc.as_ref() {
+                    moc.intersects_cell(&tile_cell) && !self.update_priority_tile(&tile_cell)
                 } else {
-                    !self.update_priority_tile(tile_cell)
+                    !self.update_priority_tile(&tile_cell)
+                };
+
+                if make_query {
+                    Some(query::Tile::new(&tile_cell, None, self.get_config()))
+                } else {
+                    None
                 }
             });
 
-        Some(tile_cells_iter)
+        let mut ancestors = HashSet::new();
+
+        for tile_query in tile_queries_iter {
+            let tile_cell = tile_query.cell;
+            tile_fetcher.append(tile_query);
+
+            // check if we are starting aladin lite or not.
+            // If so we want to retrieve only the tiles in the view and access them
+            // directly i.e. without blending them with less precised tiles
+            if tile_fetcher.get_num_tile_fetched() > 0 && tile_cell.depth() >= min_tile_depth + 3 {
+                let ancestor_tile_cell = tile_cell.ancestor(3);
+                ancestors.insert(ancestor_tile_cell);
+            }
+        }
+
+        for ancestor in ancestors {
+            if !self.update_priority_tile(&ancestor) {
+                tile_fetcher.append(query::Tile::new(&ancestor, None, self.get_config()));
+            }
+        }
     }
 
     pub fn contains_tile(&self, cell: &HEALPixCell) -> bool {
         self.buffer.contains_tile(cell)
     }
 
-    pub fn get_tile_query(&self, cell: &HEALPixCell) -> query::Tile {
+    pub fn build_tile_query(&self, cell: &HEALPixCell) -> query::Tile {
         let cfg = self.get_config();
         query::Tile::new(cell, None, cfg)
     }

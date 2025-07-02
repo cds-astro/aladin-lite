@@ -43,7 +43,7 @@ where
         Ok(())
     }
 
-    fn get_size(&self) -> (u32, u32) {
-        (self.image.width(), self.image.height())
+    fn get_size(&self) -> (u32, u32, u32) {
+        (self.image.width(), self.image.height(), 1)
     }
 }

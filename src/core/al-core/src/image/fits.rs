@@ -5,6 +5,7 @@ use fitsrs::card::Value;
 use fitsrs::hdu::header::extension::image::Image as XImage;
 use fitsrs::hdu::header::Bitpix;
 use fitsrs::hdu::header::Header;
+use fitsrs::hdu::header::Xtension;
 use fitsrs::WCS;
 use fitsrs::{Fits, HDU};
 use std::fmt::Debug;
@@ -13,13 +14,15 @@ use wasm_bindgen::JsValue;
 
 #[derive(Debug)]
 pub struct FitsImage<'a> {
-    // get a reference to the header
-    pub header: Header<XImage>,
-    // image size
+    // Margin values for HiPS3D cubic tiles
+    pub trim1: u32,
+    pub trim2: u32,
+    pub trim3: u32,
+    // Image/cube size
     pub width: u32,
     pub height: u32,
     pub depth: u32,
-    // bitpix
+    // Bitpix
     pub bitpix: Bitpix,
     // 1.0 by default
     pub bscale: f32,
@@ -31,6 +34,14 @@ pub struct FitsImage<'a> {
     pub wcs: Option<WCS>,
     // raw bytes of the data image (in Big-Endian)
     pub raw_bytes: &'a [u8],
+}
+
+fn parse_keyword_as_number<X: Xtension + Debug>(header: &Header<X>, keyword: &str) -> Option<f32> {
+    match header.get(keyword) {
+        Some(Value::Integer { value, .. }) => Some(*value as f32),
+        Some(Value::Float { value, .. }) => Some(*value as f32),
+        _ => None,
+    }
 }
 
 impl<'a> FitsImage<'a> {
@@ -53,23 +64,13 @@ impl<'a> FitsImage<'a> {
 
                         let header = hdu.get_header();
 
-                        let bscale = match header.get("BSCALE") {
-                            Some(Value::Integer { value, .. }) => *value as f32,
-                            Some(Value::Float { value, .. }) => *value as f32,
-                            _ => 1.0,
-                        };
+                        let bscale = parse_keyword_as_number(header, "BSCALE").unwrap_or(1.0);
+                        let bzero = parse_keyword_as_number(header, "BZERO").unwrap_or(0.0);
+                        let blank = parse_keyword_as_number(header, "BLANK");
 
-                        let bzero = match header.get("BZERO") {
-                            Some(Value::Integer { value, .. }) => *value as f32,
-                            Some(Value::Float { value, .. }) => *value as f32,
-                            _ => 0.0,
-                        };
-
-                        let blank = match header.get("BLANK") {
-                            Some(Value::Integer { value, .. }) => Some(*value as f32),
-                            Some(Value::Float { value, .. }) => Some(*value as f32),
-                            _ => None,
-                        };
+                        let trim1 = parse_keyword_as_number(header, "TRIM1").unwrap_or(0.0) as u32;
+                        let trim2 = parse_keyword_as_number(header, "TRIM2").unwrap_or(0.0) as u32;
+                        let trim3 = parse_keyword_as_number(header, "TRIM3").unwrap_or(0.0) as u32;
 
                         let off = hdu.get_data_unit_byte_offset() as usize;
                         let len = hdu.get_data_unit_byte_size() as usize;
@@ -81,7 +82,9 @@ impl<'a> FitsImage<'a> {
                         let wcs = hdu.wcs().ok();
 
                         images.push(Self {
-                            header: hdu.get_header().clone(),
+                            trim1,
+                            trim2,
+                            trim3,
                             width: width as u32,
                             height: height as u32,
                             depth,
@@ -117,9 +120,9 @@ impl Image for FitsImage<'_> {
     ) -> Result<(), JsValue> {
         let view = unsafe { R8U::view(self.raw_bytes) };
         textures.tex_sub_image_3d_with_opt_array_buffer_view(
-            offset.x,
-            offset.y,
-            offset.z,
+            offset.x + self.trim1 as i32,
+            offset.y + self.trim2 as i32,
+            offset.z + self.trim3 as i32,
             self.width as i32,
             self.height as i32,
             self.depth as i32,
@@ -129,7 +132,7 @@ impl Image for FitsImage<'_> {
         Ok(())
     }
 
-    fn get_size(&self) -> (u32, u32) {
-        (self.width, self.height)
+    fn get_size(&self) -> (u32, u32, u32) {
+        (self.width, self.height, self.depth)
     }
 }

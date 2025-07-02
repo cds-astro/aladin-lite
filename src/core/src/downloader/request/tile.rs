@@ -45,6 +45,7 @@ impl From<query::Tile> for TileRequest {
             id,
             channel,
             size,
+            depth,
         } = query;
 
         let url_clone = url.clone();
@@ -95,7 +96,7 @@ impl From<query::Tile> for TileRequest {
 
                         Ok(ImageType::FitsRawBytes {
                             raw_bytes,
-                            size: (size, size),
+                            size: (size, size, depth),
                         })
                     } else {
                         Err(JsValue::from_str(

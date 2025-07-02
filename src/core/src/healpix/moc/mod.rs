@@ -1,7 +1,7 @@
 mod freq_space;
 mod space;
 
-pub use freq_space::FreqSpaceMoc;
+pub use freq_space::{FreqSpaceMoc, HEALPixFreqCell};
 pub use space::SpaceMoc;
 
 pub enum Moc {

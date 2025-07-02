@@ -277,44 +277,7 @@ impl App {
                 }
             }
 
-            let cfg = hips.get_config();
-
-            let min_tile_depth = cfg.get_min_depth_tile();
-            let mut ancestors = HashSet::new();
-
-            if let Some(tiles) = hips.look_for_new_tiles(&self.camera) {
-                for tile_cell in tiles {
-                    self.tile_fetcher.append(hips.get_tile_query(&tile_cell));
-
-                    // check if we are starting aladin lite or not.
-                    // If so we want to retrieve only the tiles in the view and access them
-                    // directly i.e. without blending them with less precised tiles
-                    if self.tile_fetcher.get_num_tile_fetched() > 0
-                        && tile_cell.depth() >= min_tile_depth + 3
-                    {
-                        let ancestor_tile_cell = tile_cell.ancestor(3);
-                        ancestors.insert(ancestor_tile_cell);
-                    }
-                }
-            }
-            // Request for ancestor
-            match hips {
-                HiPS::D2(hips) => {
-                    for ancestor in ancestors {
-                        if !hips.update_priority_tile(&ancestor) {
-                            self.tile_fetcher.append(hips.get_tile_query(&ancestor));
-                        }
-                    }
-                }
-                HiPS::D3(hips) => {
-                    let freq = hips.get_freq();
-                    for ancestor in ancestors {
-                        if !hips.contains_tile(&ancestor, freq) {
-                            self.tile_fetcher.append(hips.get_tile_query(&ancestor));
-                        }
-                    }
-                }
-            }
+            hips.look_for_new_tiles(&mut self.tile_fetcher, &self.camera);
         }
 
         Ok(())
@@ -662,13 +625,15 @@ impl App {
                     }
                 }
                 RequestType::Allsky(allsky) => {
-                    if let Some(hips) = self.layers.get_mut_hips_from_cdid(&allsky.hips_cdid) {
+                    if let Some(HiPS::D2(hips)) =
+                        self.layers.get_mut_hips_from_cdid(&allsky.hips_cdid)
+                    {
                         let is_missing = allsky.missing();
                         if is_missing {
                             // The allsky image is missing so we donwload all the tiles contained into
                             // the 0's cell
                             for base_hpx_cell in crate::healpix::cell::ALLSKY_HPX_CELLS_D0 {
-                                let query = hips.get_tile_query(base_hpx_cell);
+                                let query = hips.build_tile_query(base_hpx_cell);
                                 self.tile_fetcher.append_base_tile(query);
                             }
                         } else {

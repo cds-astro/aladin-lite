@@ -78,7 +78,6 @@ impl HpxTexture2D {
         gpu_texture: &Texture2DArray,
     ) -> Result<(), JsValue> {
         debug_assert!(*cell == self.tile_cell);
-        debug_assert!(!self.copied_to_gpu);
 
         self.copied_to_gpu = true;
         self.start_time = Some(Time::now());

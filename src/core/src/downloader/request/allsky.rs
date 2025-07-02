@@ -14,7 +14,13 @@ pub struct AllskyRequest {
     pub id: QueryId,
     pub channel: Option<u32>,
 
-    request: Request<Vec<ImageType>>,
+    pub request: Request<Vec<ImageType>>,
+}
+
+impl AllskyRequest {
+    pub fn missing(&self) -> bool {
+        self.request.data.borrow().is_none()
+    }
 }
 
 impl From<AllskyRequest> for RequestType {
@@ -297,56 +303,5 @@ use al_core::texture::format::RGBA8U;
 use crate::time::Time;
 use std::cell::RefCell;
 use std::rc::Rc;
-pub struct Allsky {
-    pub image: Rc<RefCell<Option<Vec<ImageType>>>>,
-    pub time_req: Time,
-    //pub depth_tile: u8,
-    pub hips_cdid: CreatorDid,
-    url: Url,
-    pub channel: Option<u32>,
-}
 
 use crate::Abort;
-
-impl Allsky {
-    pub fn missing(&self) -> bool {
-        self.image.borrow().is_none()
-    }
-
-    pub fn get_hips_cdid(&self) -> &CreatorDid {
-        &self.hips_cdid
-    }
-
-    pub fn get_url(&self) -> &Url {
-        &self.url
-    }
-}
-
-impl<'a> From<&'a AllskyRequest> for Option<Allsky> {
-    fn from(request: &'a AllskyRequest) -> Self {
-        let AllskyRequest {
-            request,
-            hips_cdid,
-            //depth_tile,
-            url,
-            channel,
-            ..
-        } = request;
-        if request.is_resolved() {
-            let Request::<Vec<ImageType>> {
-                time_request, data, ..
-            } = request;
-            Some(Allsky {
-                time_req: *time_request,
-                // This is a clone on a Arc, it is supposed to be fast
-                image: data.clone(),
-                hips_cdid: hips_cdid.clone(),
-                url: url.clone(),
-                //depth_tile: *depth_tile,
-                channel: *channel,
-            })
-        } else {
-            None
-        }
-    }
-}

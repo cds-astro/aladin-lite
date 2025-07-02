@@ -8,7 +8,7 @@ pub mod uv;
 
 pub use d2::HiPS2D;
 
-use crate::downloader::request::allsky::Allsky;
+use crate::downloader::request::allsky::AllskyRequest;
 use crate::renderable::HiPSConfig;
 use crate::time::Time;
 use crate::CameraViewPort;
@@ -145,7 +145,7 @@ impl HiPS {
     }
 
     #[inline]
-    pub fn add_allsky(&mut self, allsky: Allsky) -> Result<(), JsValue> {
+    pub fn add_allsky(&mut self, allsky: AllskyRequest) -> Result<(), JsValue> {
         match self {
             HiPS::D2(hips) => hips.add_allsky(allsky),
             HiPS::D3(hips) => hips.add_allsky(allsky),

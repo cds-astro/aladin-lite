@@ -1,3 +1,5 @@
+use crate::downloader::request::moc::MOCRequest;
+use crate::downloader::request::tile::TileRequest;
 use crate::math::angle::ToAngle;
 use crate::math::spectra::Freq;
 use crate::renderable::hips::HiPS;
@@ -119,7 +121,7 @@ use crate::time::Time;
 use cgmath::InnerSpace;
 
 use crate::downloader::query;
-use crate::downloader::request;
+use crate::downloader::request::{self, RequestType};
 use al_api::resources::Resources;
 
 impl App {
@@ -393,7 +395,6 @@ impl App {
     }*/
 }
 
-use crate::downloader::request::Resource;
 use al_api::cell::HEALPixCellProjeted;
 
 use crate::healpix::cell::HEALPixCell;
@@ -596,24 +597,26 @@ impl App {
 
         for rsc in rscs_received {
             match rsc {
-                Resource::Tile(tile) => {
+                RequestType::Tile(tile) => {
                     //if !_has_camera_zoomed {
-                    if let Some(hips) = self.layers.get_mut_hips_from_cdid(tile.get_hips_cdid()) {
+                    if let Some(hips) = self.layers.get_mut_hips_from_cdid(&tile.hips_cdid) {
                         let cfg = hips.get_config_mut();
 
                         if cfg.get_format() == tile.format {
                             let fov_coverage = self.camera.get_cov(cfg.get_frame());
-                            let included_in_coverage = fov_coverage.intersects_cell(tile.cell());
+                            let included_in_coverage = fov_coverage.intersects_cell(&tile.cell);
 
                             //let is_tile_root = tile.cell().depth() == delta_depth;
                             //let _depth = tile.cell().depth();
                             // do not perform tex_sub costly GPU calls while the camera is zooming
-                            if tile.cell().is_root() || included_in_coverage {
+                            if tile.cell.is_root() || included_in_coverage {
+                                let image = tile.request.get_data().clone();
+
                                 //if let Some(image) = image.as_ref() {
                                 if let Some(ImageType::FitsRawBytes {
                                     raw_bytes: raw_bytes_buf,
                                     ..
-                                }) = &*tile.image.borrow()
+                                }) = &*image.clone().borrow()
                                 {
                                     // check if the metadata has not been set
                                     if hips.get_fits_params().is_none() {
@@ -629,7 +632,6 @@ impl App {
                                     }
                                 };
 
-                                let image = tile.image.clone();
                                 if let Some(img) = &*image.borrow() {
                                     /*if tile_copied {
                                         self.downloader
@@ -641,13 +643,15 @@ impl App {
                                     self.request_redraw = true;
                                     //tile_copied = true;
                                     match hips {
-                                        HiPS::D2(hips) => {
-                                            hips.add_tile(&tile.cell, img, tile.time_req)?
-                                        }
+                                        HiPS::D2(hips) => hips.add_tile(
+                                            &tile.cell,
+                                            img,
+                                            tile.request.time_request,
+                                        )?,
                                         HiPS::D3(hips) => hips.add_tile(
                                             &tile.cell,
                                             img,
-                                            tile.time_req,
+                                            tile.request.time_request,
                                             tile.channel.unwrap() as u16,
                                         )?,
                                     }
@@ -657,10 +661,8 @@ impl App {
                         }
                     }
                 }
-                Resource::Allsky(allsky) => {
-                    let hips_cdid = allsky.get_hips_cdid();
-
-                    if let Some(hips) = self.layers.get_mut_hips_from_cdid(hips_cdid) {
+                RequestType::Allsky(allsky) => {
+                    if let Some(hips) = self.layers.get_mut_hips_from_cdid(&allsky.hips_cdid) {
                         let is_missing = allsky.missing();
                         if is_missing {
                             // The allsky image is missing so we donwload all the tiles contained into
@@ -678,12 +680,12 @@ impl App {
                         }
                     }
                 }
-                Resource::Moc(fetched_moc) => {
-                    let moc_hips_cdid = fetched_moc.get_hips_cdid();
+                RequestType::Moc(moc) => {
+                    let moc_hips_cdid = moc.hips_cdid;
                     //let url = &moc_url[..moc_url.find("/Moc.fits").unwrap_abort()];
-                    if let Some(hips) = self.layers.get_mut_hips_from_cdid(moc_hips_cdid) {
-                        let request::moc::FetchedMoc { moc, .. } = fetched_moc;
-                        if let Some(moc) = &*moc.borrow() {
+                    if let Some(hips) = self.layers.get_mut_hips_from_cdid(&moc_hips_cdid) {
+                        let MOCRequest { request, .. } = moc;
+                        if let Some(moc) = &*request.get_data().borrow() {
                             match (hips, moc) {
                                 (HiPS::D2(hips), Moc::Space(moc)) => {
                                     hips.set_moc(moc.clone());

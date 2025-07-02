@@ -84,18 +84,13 @@ pub fn get_raster_shader<'a>(
 }
 
 pub struct HiPS3D {
-    //color: Color,
     // The image survey texture buffer
     buffer: HiPSCubeBuffer,
 
     // The projected vertices data
     // For WebGL2 wasm, the data are interleaved
-    //#[cfg(feature = "webgl2")]
-    //vertices: Vec<f32>,
-    //#[cfg(feature = "webgl1")]
     // layout (location = 0) in vec3 position;
     position: Vec<f32>,
-    //#[cfg(feature = "webgl1")]
     // layout (location = 1) in vec3 uv_start;
     uv: Vec<f32>,
     idx_vertices: Vec<u16>,
@@ -115,6 +110,8 @@ pub struct HiPS3D {
 
     num_indices: Vec<usize>,
     cells: Vec<HEALPixCell>,
+    // flag to forcing the mesh to be rebuilt
+    move_freq: bool,
 }
 
 use super::HpxTileBuffer;
@@ -168,6 +165,7 @@ impl HiPS3D {
         let gl = gl.clone();
         let moc = None;
         let hpx_cells_in_view = vec![];
+        let move_freq = false;
         // request the allsky texture
         Ok(Self {
             // The image survey texture buffer
@@ -189,6 +187,7 @@ impl HiPS3D {
             freq,
             cells,
             num_indices,
+            move_freq,
         })
     }
 
@@ -214,12 +213,11 @@ impl HiPS3D {
             .get_hpx_cells(depth_tile, survey_frame)
             .into_iter()
             .filter(move |tile_cell| {
-                /*if let Some(moc) = self.moc.as_ref() {
+                if let Some(moc) = self.moc.as_ref() {
                     moc.intersects_cell(tile_cell, self.freq.0 as u64)
                 } else {
                     true
-                }*/
-                true
+                }
             });
 
         Some(tile_cells_iter)
@@ -227,6 +225,8 @@ impl HiPS3D {
 
     pub fn set_freq(&mut self, f: Freq) {
         self.freq = f;
+
+        self.move_freq = true;
     }
 
     pub fn get_tile_query(&self, cell: &HEALPixCell) -> query::Tile {
@@ -250,22 +250,17 @@ impl HiPS3D {
         cfg: &ImageMetadata,
         proj: &ProjectionType,
     ) -> Result<(), JsValue> {
-        //let raytracing = camera.is_raytracing(proj);
-
-        //if raytracing {
-        //    self.draw_internal(shaders, colormaps, camera, raytracer, cfg, proj)
-        //} else {
-        // rasterizer mode
         let available_tiles = self.reset_available_tiles();
         let new_cells_in_view = self.retrieve_cells_in_camera(camera);
 
-        if new_cells_in_view || available_tiles {
+        if new_cells_in_view | available_tiles | self.move_freq {
             // TODO: append the vertices independently to the draw method
             self.recompute_vertices(camera, proj);
+
+            self.move_freq = false;
         }
 
         self.draw_internal(shaders, colormaps, camera, cfg, proj)
-        //}
     }
 
     pub fn get_freq(&self) -> Freq {
@@ -318,8 +313,15 @@ impl HiPS3D {
             if let Some(cell) = cell {
                 let hpx_cell_texture = if self.contains_tile(cell, self.freq) {
                     self.buffer.get(cell)
-                // if the freq is not found we just draw nothing
-                /*} else if let Some(next_slice) = self.buffer.find_nearest_slice(cell, self.slice) {
+                } else if let Some(parent_cell) = self.buffer.get_nearest_parent(cell) {
+                    // Check in the spatial parent if the freq data is present
+                    if self.contains_tile(&parent_cell, self.freq) {
+                        self.buffer.get(&parent_cell)
+                    } else {
+                        None
+                    }
+                /*
+                } else if let Some(next_slice) = self.buffer.find_nearest_slice(cell, self.slice) {
                     slice_contained = next_slice;
                     self.buffer.get(cell)
                 } else if let Some(parent_cell) = self.buffer.get_nearest_parent(cell) {
@@ -541,7 +543,6 @@ impl HiPS3D {
         let mut off_idx = 0;
 
         let shader = get_raster_shader(cmap, &self.gl, shaders, hips_cfg)?;
-
         for (cell, num_indices) in self.cells.iter().zip(self.num_indices.iter()) {
             blend_cfg.enable(&self.gl, || {
                 // Bind the shader at each draw of a cell to not exceed the max number of tex image units bindable

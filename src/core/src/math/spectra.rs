@@ -8,7 +8,7 @@ pub trait SpectralUnit: Into<Freq> + Clone + Copy {
 use moclib::qty::Frequency;
 
 /// Frequency in Hz unit
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Freq(pub f64);
 
 impl Freq {

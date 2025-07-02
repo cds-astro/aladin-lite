@@ -171,7 +171,7 @@ where
     }
 
     // The size of the image
-    fn get_size(&self) -> (u32, u32) {
-        (self.size.x as u32, self.size.y as u32)
+    fn get_size(&self) -> (u32, u32, u32) {
+        (self.size.x as u32, self.size.y as u32, 1)
     }
 }

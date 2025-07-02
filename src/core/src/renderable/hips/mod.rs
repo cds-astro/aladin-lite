@@ -10,6 +10,7 @@ pub use d2::HiPS2D;
 
 use crate::downloader::request::allsky::AllskyRequest;
 use crate::renderable::HiPSConfig;
+use crate::tile_fetcher::TileFetcherQueue;
 use crate::time::Time;
 use crate::CameraViewPort;
 use crate::HEALPixCell;
@@ -83,10 +84,14 @@ pub enum HiPS {
 }
 
 impl HiPS {
-    pub fn look_for_new_tiles(&mut self, camera: &CameraViewPort) -> Option<Vec<HEALPixCell>> {
+    pub fn look_for_new_tiles(
+        &mut self,
+        tile_fetcher: &mut TileFetcherQueue,
+        camera: &CameraViewPort,
+    ) {
         match self {
-            D2(hips) => hips.look_for_new_tiles(camera).map(|it| it.collect()),
-            D3(hips) => hips.look_for_new_tiles(camera).map(|it| it.collect()),
+            D2(hips) => hips.look_for_new_tiles(tile_fetcher, camera),
+            D3(hips) => hips.look_for_new_tiles(tile_fetcher, camera),
         }
     }
 
@@ -137,10 +142,10 @@ impl HiPS {
     }*/
 
     #[inline]
-    pub fn get_tile_query(&self, cell: &HEALPixCell) -> query::Tile {
+    pub fn build_tile_query(&self, cell: &HEALPixCell) -> query::Tile {
         match self {
-            HiPS::D2(hips) => hips.get_tile_query(cell),
-            HiPS::D3(hips) => hips.get_tile_query(cell),
+            HiPS::D2(hips) => hips.build_tile_query(cell),
+            HiPS::D3(hips) => hips.build_tile_query(cell),
         }
     }
 

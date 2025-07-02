@@ -5,12 +5,17 @@ use crate::downloader::request::allsky::AllskyRequest;
 use crate::healpix::moc::FreqSpaceMoc;
 use crate::math::spectra::SpectralUnit;
 use crate::renderable::hips::HpxTile;
+use crate::tile_fetcher::TileFetcherQueue;
 use al_api::hips::DataproductType;
 use al_api::hips::ImageExt;
 use al_api::hips::ImageMetadata;
 use al_core::colormap::Colormap;
 use al_core::colormap::Colormaps;
 use al_core::texture::format::PixelType;
+
+use crate::healpix::moc::HEALPixFreqCell;
+
+use crate::Abort;
 
 use al_core::image::Image;
 
@@ -191,11 +196,31 @@ impl HiPS3D {
         })
     }
 
-    pub fn look_for_new_tiles<'a>(
-        &'a mut self,
-        camera: &'a CameraViewPort,
-        //proj: &ProjectionType,
-    ) -> Option<impl Iterator<Item = HEALPixCell> + 'a> {
+    pub fn build_tile_query(&self, cell: &HEALPixCell) -> query::Tile {
+        let cfg = self.get_config();
+        match cfg.dataproduct_type {
+            DataproductType::SpectralCube => {
+                // Determination of the f_order from the s_order
+                // From https://aladin.cds.unistra.fr/java/DocTechHiPS3D.pdf page 3
+                let f_max_order = cfg.max_depth_freq.unwrap_abort();
+                let s_max_order = cfg.max_depth_tile;
+                let s_order = cell.depth();
+
+                let f_order = f_max_order - (s_max_order - s_order);
+                let cell = HEALPixFreqCell::new(*cell, self.freq, f_order);
+
+                query::Tile::new_cubic(&cell, cfg)
+            }
+            DataproductType::Cube => query::Tile::new(&cell, Some(self.freq.0 as u32), cfg),
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn look_for_new_tiles(
+        &mut self,
+        tile_fetcher: &mut TileFetcherQueue,
+        camera: &CameraViewPort,
+    ) {
         // do not add tiles if the view is already at depth 0
         let cfg = self.get_config();
         let depth_tile = camera
@@ -204,38 +229,88 @@ impl HiPS3D {
             .max(cfg.get_min_depth_tile());
 
         let survey_frame = cfg.get_frame();
-        // raytracer is rendering and the shader only renders HPX texture cells of depth 0
-        /*if camera.is_raytracing(proj) {
-            depth_tile = 0;
-        }*/
 
-        let tile_cells_iter = camera
-            .get_hpx_cells(depth_tile, survey_frame)
-            .into_iter()
-            .filter(move |tile_cell| {
-                if let Some(moc) = self.moc.as_ref() {
-                    moc.intersects_cell(tile_cell, self.freq.0 as u64)
-                } else {
-                    true
+        match cfg.dataproduct_type {
+            DataproductType::Cube => {
+                // Usual tile fetching heuristic similar to HiPS2D but with a channel
+                let tiles_iter = camera
+                    .get_hpx_cells(depth_tile, survey_frame)
+                    .into_iter()
+                    .filter(|tile_cell| {
+                        if let Some(moc) = self.moc.as_ref() {
+                            let cell = HEALPixFreqCell::from_f_hash(*tile_cell, self.freq.0 as u64);
+                            moc.intersects_cell(&cell)
+                        } else {
+                            true
+                        }
+                    });
+
+                let min_tile_depth = cfg.get_min_depth_tile();
+                let mut ancestors = HashSet::new();
+
+                for tile_cell in tiles_iter {
+                    tile_fetcher.append(query::Tile::new(
+                        &tile_cell,
+                        Some(self.freq.0 as u32),
+                        cfg,
+                    ));
+
+                    // check if we are starting aladin lite or not.
+                    // If so we want to retrieve only the tiles in the view and access them
+                    // directly i.e. without blending them with less precised tiles
+                    if tile_fetcher.get_num_tile_fetched() > 0
+                        && tile_cell.depth() >= min_tile_depth + 3
+                    {
+                        let ancestor_tile_cell = tile_cell.ancestor(3);
+                        ancestors.insert(ancestor_tile_cell);
+                    }
                 }
-            });
 
-        Some(tile_cells_iter)
+                for ancestor in ancestors {
+                    tile_fetcher.append(query::Tile::new(&ancestor, Some(self.freq.0 as u32), cfg));
+                }
+            }
+            DataproductType::SpectralCube => {
+                // Determination of the f_order from the s_order
+                // From https://aladin.cds.unistra.fr/java/DocTechHiPS3D.pdf page 3
+                let f_max_order = cfg.max_depth_freq.unwrap_abort();
+                let s_max_order = cfg.max_depth_tile;
+                let s_order = depth_tile;
+
+                let f_order = f_max_order - (s_max_order - s_order);
+
+                let cubic_tiles_iter = camera
+                    .get_hpx_cells(depth_tile, survey_frame)
+                    .into_iter()
+                    .filter_map(|tile_cell| {
+                        let cell = HEALPixFreqCell::new(tile_cell, self.freq, f_order);
+
+                        if let Some(moc) = self.moc.as_ref() {
+                            if moc.intersects_cell(&cell) {
+                                Some(cell)
+                            } else {
+                                None
+                            }
+                        } else {
+                            Some(cell)
+                        }
+                    });
+
+                // TODO: construct the cubic tile queries along the lonlat(position) to get the spectra
+                // We take +/- 4 cells around the freq
+
+                for cubic_tile in cubic_tiles_iter {
+                    tile_fetcher.append(query::Tile::new_cubic(&cubic_tile, cfg));
+                }
+            }
+            _ => unreachable!(),
+        }
     }
 
     pub fn set_freq(&mut self, f: Freq) {
         self.freq = f;
 
         self.move_freq = true;
-    }
-
-    pub fn get_tile_query(&self, cell: &HEALPixCell) -> query::Tile {
-        let cfg = self.get_config();
-        match cfg.dataproduct_type {
-            DataproductType::Cube => query::Tile::new(cell, Some(self.freq.0 as u32), cfg),
-            DataproductType::SpectralCube => todo!(),
-            _ => unreachable!(),
-        }
     }
 
     pub fn contains_tile(&self, cell: &HEALPixCell, freq: Freq) -> bool {
@@ -295,7 +370,25 @@ impl HiPS3D {
         for cell in &self.hpx_cells_in_view {
             // filter textures that are not in the moc
             let cell = if let Some(moc) = self.moc.as_ref() {
-                if moc.intersects_cell(cell, self.freq.0 as u64) {
+                let hpx_f_cell = match self.get_config().dataproduct_type {
+                    DataproductType::SpectralCube => {
+                        // Determination of the f_order from the s_order
+                        // From https://aladin.cds.unistra.fr/java/DocTechHiPS3D.pdf page 3
+                        let f_max_order = self.get_config().max_depth_freq.unwrap_abort();
+                        let s_max_order = self.get_config().max_depth_tile;
+                        let s_order = cell.depth();
+
+                        let f_order = f_max_order - (s_max_order - s_order);
+
+                        HEALPixFreqCell::new(*cell, self.freq, f_order)
+                    }
+                    DataproductType::Cube => {
+                        HEALPixFreqCell::from_f_hash(*cell, self.freq.0 as u64)
+                    }
+                    _ => unreachable!(),
+                };
+
+                if moc.intersects_cell(&hpx_f_cell) {
                     Some(&cell)
                 } else if channel == PixelType::RGB8U {
                     // Rasterizer does not render tiles that are not in the MOC

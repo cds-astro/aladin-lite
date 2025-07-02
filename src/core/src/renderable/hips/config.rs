@@ -17,11 +17,11 @@ pub struct HiPSConfig {
     cube_depth: Option<u32>,
 
     // Max depth of the current HiPS tiles
-    max_depth_tile: u8,
+    pub max_depth_tile: u8,
     // Min depth of the current HiPS tiles
     min_depth_tile: u8,
     // For HiPS3D
-    max_depth_freq: Option<u8>,
+    pub max_depth_freq: Option<u8>,
 
     // For HiPS3D
     pub tile_depth: Option<u8>,

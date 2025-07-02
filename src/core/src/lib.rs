@@ -39,7 +39,7 @@ pub trait Abort {
 impl<T> Abort for Option<T> {
     type Item = T;
 
-    #[inline]
+    #[inline(always)]
     fn unwrap_abort(self) -> Self::Item {
         use std::process;
         match self {
@@ -51,7 +51,7 @@ impl<T> Abort for Option<T> {
 impl<T, E> Abort for Result<T, E> {
     type Item = T;
 
-    #[inline]
+    #[inline(always)]
     fn unwrap_abort(self) -> Self::Item {
         use std::process;
         match self {
@@ -65,7 +65,7 @@ extern crate serde_json;
 #[macro_use]
 extern crate enum_dispatch;
 
-#[inline]
+#[inline(always)]
 pub fn unwrap_abort<T>(o: Option<T>) -> T {
     use std::process;
     match o {

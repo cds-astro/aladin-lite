@@ -14,6 +14,7 @@ uniform float opacity;
 
 void main() {
     vec3 uv = vec3(frag_uv.xy, mod(frag_uv.z, 32.0) / 32.0);
+    uv.y = 1.0 - uv.y;
     vec4 color = uvw2c_f32(uv);
 
     out_frag_color = color;

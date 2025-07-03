@@ -5,7 +5,6 @@ use crate::app::BLENDING_ANIM_DURATION;
 use crate::downloader::query;
 use crate::downloader::request::allsky::AllskyRequest;
 use crate::math::angle::ToAngle;
-use crate::renderable::hips::HpxTile;
 use crate::tile_fetcher;
 use crate::tile_fetcher::TileFetcherQueue;
 use al_api::hips::ImageExt;
@@ -46,7 +45,7 @@ use std::collections::HashSet;
 // to not be too much skewed
 
 use buffer::HiPS2DBuffer;
-use texture::HpxTexture2D;
+use texture::HpxTex;
 
 use super::raytracing::RayTracer;
 use super::uv::{TileCorner, TileUVW};
@@ -65,13 +64,13 @@ pub struct HpxDrawData<'a> {
 
 impl<'a> HpxDrawData<'a> {
     fn from_texture(
-        starting_texture: &HpxTexture2D,
-        ending_texture: &HpxTexture2D,
+        starting_texture: &HpxTex,
+        ending_texture: &HpxTex,
         cell: &'a HEALPixCell,
     ) -> Self {
         let uv_0 = TileUVW::new(cell, starting_texture);
         let uv_1 = TileUVW::new(cell, ending_texture);
-        let start_time = ending_texture.start_time().as_millis();
+        let start_time = ending_texture.start_time.unwrap_or(Time::now()).as_millis();
 
         Self {
             uv_0,

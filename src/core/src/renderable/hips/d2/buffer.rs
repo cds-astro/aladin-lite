@@ -1,3 +1,4 @@
+use crate::renderable::hips::d2::texture::HpxTex;
 use std::cmp::Ordering;
 use std::collections::BinaryHeap;
 use std::collections::HashMap;
@@ -5,7 +6,6 @@ use std::collections::HashMap;
 use al_core::texture::format::PixelType;
 
 use crate::downloader::request::allsky::AllskyRequest;
-use crate::renderable::hips::HpxTile;
 use cgmath::Vector3;
 
 use al_api::hips::ImageExt;
@@ -17,7 +17,7 @@ use al_core::texture::format::{R16I, R32F, R32I, R8U, RGB8U, RGBA8U};
 use al_core::Texture2DArray;
 use al_core::WebGlContext;
 
-use super::texture::{HpxTexture2D, HpxTexture2DUniforms};
+use super::texture::HpxTexUniforms;
 
 use crate::healpix::cell::HEALPixCell;
 use crate::healpix::cell::NUM_HPX_TILES_DEPTH_ZERO;
@@ -26,116 +26,20 @@ use crate::time::Time;
 use crate::Abort;
 use crate::JsValue;
 
-#[derive(Clone, Debug)]
-pub struct TextureCellItem {
-    cell: HEALPixCell,
-    time_request: Time,
-}
-
-impl TextureCellItem {
-    fn is_root(&self) -> bool {
-        self.cell.is_root()
-    }
-}
-
-impl PartialEq for TextureCellItem {
-    fn eq(&self, other: &Self) -> bool {
-        self.cell == other.cell
-    }
-}
-impl Eq for TextureCellItem {}
-
-// Ordering based on the time the tile has been requested
-impl PartialOrd for TextureCellItem {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Ord for TextureCellItem {
-    fn cmp(&self, other: &Self) -> Ordering {
-        other
-            .time_request
-            .partial_cmp(&self.time_request)
-            .unwrap_abort()
-    }
-}
-
-impl From<HpxTexture2D> for TextureCellItem {
-    fn from(texture: HpxTexture2D) -> Self {
-        let time_request = texture.time_request();
-        let cell = *texture.cell();
-
-        Self { cell, time_request }
-    }
-}
-impl From<&HpxTexture2D> for TextureCellItem {
-    fn from(texture: &HpxTexture2D) -> Self {
-        let time_request = texture.time_request();
-        let cell = *texture.cell();
-
-        Self { cell, time_request }
-    }
-}
-impl From<&mut HpxTexture2D> for TextureCellItem {
-    fn from(texture: &mut HpxTexture2D) -> Self {
-        let time_request = texture.time_request();
-        let cell = *texture.cell();
-
-        Self { cell, time_request }
-    }
-}
-
-struct HEALPixCellHeap(BinaryHeap<TextureCellItem>);
-
-impl HEALPixCellHeap {
-    fn with_capacity(cap: usize) -> Self {
-        Self(BinaryHeap::with_capacity(cap))
-    }
-
-    fn push<E: Into<TextureCellItem>>(&mut self, item: E) {
-        let item = item.into();
-        self.0.push(item);
-    }
-
-    fn update_entry<E: Into<TextureCellItem>>(&mut self, item: E) {
-        let item = item.into();
-        self.0 = self
-            .0
-            .drain()
-            // Remove the cell
-            .filter(|texture_node| texture_node.cell != item.cell)
-            // Collect to a new binary heap that does not have cell anymore
-            .collect::<BinaryHeap<_>>();
-
-        self.push(item);
-    }
-
-    fn clear(&mut self) {
-        self.0.clear();
-    }
-
-    fn pop(&mut self) -> Option<TextureCellItem> {
-        self.0.pop()
-    }
-
-    fn len(&self) -> usize {
-        self.0.len()
-    }
-}
-
+use super::super::binary_heap::{Tile, TileHeap};
 use crate::renderable::hips::HpxTileBuffer;
 // Fixed sized binary heap
 pub struct HiPS2DBuffer {
     // Some information about the HiPS
     config: HiPSConfig,
-    heap: HEALPixCellHeap,
+
+    heap: TileHeap<HEALPixCell>,
+    textures: HashMap<HEALPixCell, HpxTex>,
 
     num_root_textures_available: u8,
     size: usize,
 
-    textures: HashMap<HEALPixCell, HpxTexture2D>,
-    base_textures: [HpxTexture2D; NUM_HPX_TILES_DEPTH_ZERO],
+    base_textures: [HpxTex; NUM_HPX_TILES_DEPTH_ZERO],
 
     // Array of 2D textures
     tile_pixels: Texture2DArray,
@@ -268,7 +172,7 @@ impl HiPS2DBuffer {
 
         let texture = self
             .textures
-            .get_mut(cell)
+            .get(cell)
             .expect("Texture cell has not been found while the buffer contains one of its tile!");
         // Reset the time the tile has been received if it is a new cell present in the fov
         //if new_fov_cell {
@@ -281,8 +185,8 @@ impl HiPS2DBuffer {
         // But other textures can be removed thanks to the heap
         // data-structure. We have to update the time_request of the texture
         // and push it again in the heap to update its position.
-        let mut tex_cell_item: TextureCellItem = texture.into();
-        tex_cell_item.time_request = Time::now();
+        let mut tex_cell_item: Tile<HEALPixCell> = texture.into();
+        tex_cell_item.reset_time();
 
         self.heap.update_entry(tex_cell_item);
     }
@@ -336,7 +240,7 @@ impl HiPS2DBuffer {
                     debug_assert!(!oldest_texture.is_root());
 
                     // Remove it from the textures HashMap
-                    let mut texture = self.textures.remove(&oldest_texture.cell).expect(
+                    let mut texture = self.textures.remove(&oldest_texture.cell()).expect(
                         "Texture (oldest one) has not been found in the buffer of textures",
                     );
                     texture.replace(cell, time_request);
@@ -345,7 +249,7 @@ impl HiPS2DBuffer {
                 } else {
                     let idx = NUM_HPX_TILES_DEPTH_ZERO + self.heap.len();
 
-                    HpxTexture2D::new(cell, idx as i32, time_request)
+                    HpxTex::new(cell, idx as i32, time_request)
                 };
 
                 texture.copy_to_gpu(
@@ -422,7 +326,7 @@ impl HiPS2DBuffer {
 }
 
 impl HpxTileBuffer for HiPS2DBuffer {
-    type T = HpxTexture2D;
+    type T = HpxTex;
 
     fn new(gl: &WebGlContext, config: HiPSConfig) -> Result<Self, JsValue> {
         let size = 128 - NUM_HPX_TILES_DEPTH_ZERO;
@@ -430,23 +334,23 @@ impl HpxTileBuffer for HiPS2DBuffer {
         // Ensures there is at least space for the 12
         // root textures
         //debug_assert!(size >= NUM_HPX_TILES_DEPTH_ZERO);
-        let heap = HEALPixCellHeap::with_capacity(size);
+        let heap = TileHeap::with_capacity(size);
         let textures = HashMap::with_capacity(size);
 
         let now = Time::now();
         let base_textures = [
-            HpxTexture2D::new(&HEALPixCell(0, 0), 0, now),
-            HpxTexture2D::new(&HEALPixCell(0, 1), 1, now),
-            HpxTexture2D::new(&HEALPixCell(0, 2), 2, now),
-            HpxTexture2D::new(&HEALPixCell(0, 3), 3, now),
-            HpxTexture2D::new(&HEALPixCell(0, 4), 4, now),
-            HpxTexture2D::new(&HEALPixCell(0, 5), 5, now),
-            HpxTexture2D::new(&HEALPixCell(0, 6), 6, now),
-            HpxTexture2D::new(&HEALPixCell(0, 7), 7, now),
-            HpxTexture2D::new(&HEALPixCell(0, 8), 8, now),
-            HpxTexture2D::new(&HEALPixCell(0, 9), 9, now),
-            HpxTexture2D::new(&HEALPixCell(0, 10), 10, now),
-            HpxTexture2D::new(&HEALPixCell(0, 11), 11, now),
+            HpxTex::new(&HEALPixCell(0, 0), 0, now),
+            HpxTex::new(&HEALPixCell(0, 1), 1, now),
+            HpxTex::new(&HEALPixCell(0, 2), 2, now),
+            HpxTex::new(&HEALPixCell(0, 3), 3, now),
+            HpxTex::new(&HEALPixCell(0, 4), 4, now),
+            HpxTex::new(&HEALPixCell(0, 5), 5, now),
+            HpxTex::new(&HEALPixCell(0, 6), 6, now),
+            HpxTex::new(&HEALPixCell(0, 7), 7, now),
+            HpxTex::new(&HEALPixCell(0, 8), 8, now),
+            HpxTex::new(&HEALPixCell(0, 9), 9, now),
+            HpxTex::new(&HEALPixCell(0, 10), 10, now),
+            HpxTex::new(&HEALPixCell(0, 11), 11, now),
         ];
         let channel = config.get_format().get_pixel_format();
         let tile_size = config.get_tile_size();
@@ -490,18 +394,18 @@ impl HpxTileBuffer for HiPS2DBuffer {
 
         let now = Time::now();
         self.base_textures = [
-            HpxTexture2D::new(&HEALPixCell(0, 0), 0, now),
-            HpxTexture2D::new(&HEALPixCell(0, 1), 1, now),
-            HpxTexture2D::new(&HEALPixCell(0, 2), 2, now),
-            HpxTexture2D::new(&HEALPixCell(0, 3), 3, now),
-            HpxTexture2D::new(&HEALPixCell(0, 4), 4, now),
-            HpxTexture2D::new(&HEALPixCell(0, 5), 5, now),
-            HpxTexture2D::new(&HEALPixCell(0, 6), 6, now),
-            HpxTexture2D::new(&HEALPixCell(0, 7), 7, now),
-            HpxTexture2D::new(&HEALPixCell(0, 8), 8, now),
-            HpxTexture2D::new(&HEALPixCell(0, 9), 9, now),
-            HpxTexture2D::new(&HEALPixCell(0, 10), 10, now),
-            HpxTexture2D::new(&HEALPixCell(0, 11), 11, now),
+            HpxTex::new(&HEALPixCell(0, 0), 0, now),
+            HpxTex::new(&HEALPixCell(0, 1), 1, now),
+            HpxTex::new(&HEALPixCell(0, 2), 2, now),
+            HpxTex::new(&HEALPixCell(0, 3), 3, now),
+            HpxTex::new(&HEALPixCell(0, 4), 4, now),
+            HpxTex::new(&HEALPixCell(0, 5), 5, now),
+            HpxTex::new(&HEALPixCell(0, 6), 6, now),
+            HpxTex::new(&HEALPixCell(0, 7), 7, now),
+            HpxTex::new(&HEALPixCell(0, 8), 8, now),
+            HpxTex::new(&HEALPixCell(0, 9), 9, now),
+            HpxTex::new(&HEALPixCell(0, 10), 10, now),
+            HpxTex::new(&HEALPixCell(0, 11), 11, now),
         ];
 
         self.heap.clear();
@@ -568,7 +472,7 @@ impl SendUniforms for HiPS2DBuffer {
                 let cell = HEALPixCell(0, idx as u64);
 
                 let texture = self.get(&cell).unwrap();
-                let texture_uniforms = HpxTexture2DUniforms::new(texture, idx as i32);
+                let texture_uniforms = HpxTexUniforms::new(texture, idx as i32);
                 shader.attach_uniforms_from(&texture_uniforms);
             }
 

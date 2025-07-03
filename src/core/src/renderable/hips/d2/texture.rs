@@ -4,8 +4,8 @@ use al_core::image::Image;
 use al_core::Texture2DArray;
 use wasm_bindgen::JsValue;
 
-pub struct HpxTexture2D {
-    tile_cell: HEALPixCell,
+pub struct HpxTex {
+    pub cell: HEALPixCell,
     // Precomputed uniq number
     uniq: i32,
     // Position of the texture in the buffer
@@ -13,7 +13,7 @@ pub struct HpxTexture2D {
     // The time the texture has been received
     // If the texture contains multiple tiles, then the receiving time
     // is set when all the tiles have been copied to the buffer
-    start_time: Option<Time>,
+    pub start_time: Option<Time>,
     // The time request of the texture is the time request
     // of the first tile being inserted in it
     // It is then only given in the constructor of Texture
@@ -22,23 +22,21 @@ pub struct HpxTexture2D {
     // texture. But this is too expensive because at each tile inserted
     // in the buffer, one should reevalute the priority of the texture
     // in the buffer's binary heap.
-    time_request: Time,
+    pub time_request: Time,
 
     // Full flag telling the texture has been filled
     copied_to_gpu: bool,
 }
 
-use crate::renderable::hips::HpxTile;
-
-impl HpxTexture2D {
+impl HpxTex {
     pub fn new(cell: &HEALPixCell, idx: i32, time_request: Time) -> Self {
         let start_time = None;
         let copied_to_gpu = false;
-        let tile_cell = *cell;
+        let cell = *cell;
         let uniq = cell.uniq();
 
         Self {
-            tile_cell,
+            cell,
             uniq,
             time_request,
             idx,
@@ -56,13 +54,13 @@ impl HpxTexture2D {
     }
 
     // Setter
-    pub fn replace(&mut self, tile_cell: &HEALPixCell, time_request: Time) {
+    pub fn replace(&mut self, cell: &HEALPixCell, time_request: Time) {
         // Cancel the tasks copying the tiles contained in the texture
         // which have not yet been completed.
         //self.clear_tasks_in_progress(config, exec);
 
-        self.tile_cell = *tile_cell;
-        self.uniq = tile_cell.uniq();
+        self.cell = *cell;
+        self.uniq = cell.uniq();
         self.copied_to_gpu = false;
         self.start_time = None;
         self.time_request = time_request;
@@ -77,7 +75,7 @@ impl HpxTexture2D {
         image: &I,
         gpu_texture: &Texture2DArray,
     ) -> Result<(), JsValue> {
-        debug_assert!(*cell == self.tile_cell);
+        debug_assert!(*cell == self.cell);
 
         self.copied_to_gpu = true;
         self.start_time = Some(Time::now());
@@ -86,7 +84,8 @@ impl HpxTexture2D {
     }
 }
 
-impl HpxTile for HpxTexture2D {
+/*
+impl HpxTile for HpxTex {
     // Getter
     // Returns the current time if the texture is not full
     fn start_time(&self) -> Time {
@@ -102,44 +101,44 @@ impl HpxTile for HpxTexture2D {
     }
 
     fn cell(&self) -> &HEALPixCell {
-        &self.tile_cell
+        &self.cell
     }
-}
+}*/
 
 use std::cmp::Ordering;
-impl PartialOrd for HpxTexture2D {
+impl PartialOrd for HpxTex {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 use crate::Abort;
-impl Ord for HpxTexture2D {
+impl Ord for HpxTex {
     fn cmp(&self, other: &Self) -> Ordering {
         self.uniq.cmp(&other.uniq)
     }
 }
 
-impl PartialEq for HpxTexture2D {
+impl PartialEq for HpxTex {
     fn eq(&self, other: &Self) -> bool {
         self.uniq == other.uniq
     }
 }
-impl Eq for HpxTexture2D {}
+impl Eq for HpxTex {}
 
-pub struct HpxTexture2DUniforms<'a> {
-    texture: &'a HpxTexture2D,
+pub struct HpxTexUniforms<'a> {
+    texture: &'a HpxTex,
     name: String,
 }
 
-impl<'a> HpxTexture2DUniforms<'a> {
-    pub fn new(texture: &'a HpxTexture2D, idx_texture: i32) -> Self {
+impl<'a> HpxTexUniforms<'a> {
+    pub fn new(texture: &'a HpxTex, idx_texture: i32) -> Self {
         let name = format!("textures_tiles[{idx_texture}].");
-        HpxTexture2DUniforms { texture, name }
+        HpxTexUniforms { texture, name }
     }
 }
 
 use al_core::shader::{SendUniforms, ShaderBound};
-impl SendUniforms for HpxTexture2DUniforms<'_> {
+impl SendUniforms for HpxTexUniforms<'_> {
     // Info: These uniforms are used for raytracing drawing mode only
     fn attach_uniforms<'b>(&self, shader: &'b ShaderBound<'b>) -> &'b ShaderBound<'b> {
         shader
@@ -159,7 +158,7 @@ impl SendUniforms for HpxTexture2DUniforms<'_> {
             )
             .attach_uniform(
                 &format!("{}{}", self.name, "start_time"),
-                &self.texture.start_time(),
+                &self.texture.start_time.unwrap_or(Time::now()),
             );
 
         shader

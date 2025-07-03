@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use al_core::image::Image;
 use al_core::WebGlContext;
 
-use super::texture::HpxTexture3D;
+use super::texture::HpxFreqTex;
 use crate::downloader::request::allsky::AllskyRequest;
 use crate::healpix::cell::HEALPixCell;
 use crate::renderable::hips::config::HiPSConfig;
@@ -15,7 +15,7 @@ use al_api::hips::ImageExt;
 // Fixed sized binary heap
 pub struct HiPSCubeBuffer {
     // Some information about the HiPS
-    textures: HashMap<HEALPixCell, HpxTexture3D>,
+    textures: HashMap<HEALPixCell, HpxFreqTex>,
 
     config: HiPSConfig,
 
@@ -81,7 +81,7 @@ impl HiPSCubeBuffer {
             tex
         } else {
             self.textures
-                .insert(*cell, HpxTexture3D::new(*cell, time_request));
+                .insert(*cell, HpxFreqTex::new(*cell, time_request));
 
             self.textures.get_mut(cell).unwrap()
         };
@@ -110,7 +110,7 @@ impl HiPSCubeBuffer {
     }
 
     /// Accessors
-    pub fn get(&self, cell: &HEALPixCell) -> Option<&HpxTexture3D> {
+    pub fn get(&self, cell: &HEALPixCell) -> Option<&HpxFreqTex> {
         self.textures.get(cell)
     }
 
@@ -124,7 +124,7 @@ impl HiPSCubeBuffer {
 }
 
 impl HpxTileBuffer for HiPSCubeBuffer {
-    type T = HpxTexture3D;
+    type T = HpxFreqTex;
 
     fn new(gl: &WebGlContext, config: HiPSConfig) -> Result<Self, JsValue> {
         let textures = HashMap::new();
@@ -166,7 +166,7 @@ impl HpxTileBuffer for HiPSCubeBuffer {
     }
 
     /// Accessors
-    fn get(&self, cell: &HEALPixCell) -> Option<&HpxTexture3D> {
+    fn get(&self, cell: &HEALPixCell) -> Option<&HpxFreqTex> {
         self.textures.get(cell)
     }
 

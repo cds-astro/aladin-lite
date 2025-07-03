@@ -1,21 +1,25 @@
-use crate::renderable::hips::d2::texture::HpxTexture2D;
+use crate::renderable::hips::d2::texture::HpxTex;
 use crate::{healpix::cell::HEALPixCell, time::Time};
 
+use crate::renderable::hips::config::HiPSConfig;
+use crate::Abort;
+use crate::WebGlContext;
 use al_core::image::Image;
 use al_core::texture::format::{PixelType, R16I, R32F, R32I, R8U, RGB8U, RGBA8U};
 use al_core::texture::Texture3D;
 use al_core::webgl_ctx::WebGlRenderingCtx;
 use cgmath::Vector3;
+use std::cmp::Ordering;
 use wasm_bindgen::JsValue;
 
-pub struct HpxTexture3D {
-    tile_cell: HEALPixCell,
+pub struct HpxFreqTex {
+    pub cell: HEALPixCell,
     // Precomputed uniq number
     uniq: i32,
     // The time the texture has been received
     // If the texture contains multiple tiles, then the receiving time
     // is set when all the tiles have been copied to the buffer
-    start_time: Option<Time>,
+    pub start_time: Option<Time>,
     // The time request of the texture is the time request
     // of the first tile being inserted in it
     // It is then only given in the constructor of Texture
@@ -24,7 +28,7 @@ pub struct HpxTexture3D {
     // texture. But this is too expensive because at each tile inserted
     // in the buffer, one should reevalute the priority of the texture
     // in the buffer's binary heap.
-    time_request: Time,
+    pub time_request: Time,
 
     // We autorize 512 cubic tiles of size 32 each which allows to store max 16384 slices
     textures: Vec<Option<Texture3D>>,
@@ -35,20 +39,15 @@ pub struct HpxTexture3D {
     block_indices: Vec<usize>,
 }
 
-use crate::renderable::hips::config::HiPSConfig;
-use crate::WebGlContext;
-
-use crate::renderable::hips::HpxTile;
-
-impl HpxTexture3D {
-    pub fn new(tile_cell: HEALPixCell, time_request: Time) -> Self {
+impl HpxFreqTex {
+    pub fn new(cell: HEALPixCell, time_request: Time) -> Self {
         let start_time = None;
-        let uniq = tile_cell.uniq();
+        let uniq = cell.uniq();
         let textures = std::iter::repeat_n(None, 512).collect();
         let blocks = [0; 512];
         let block_indices = Vec::new();
         Self {
-            tile_cell,
+            cell,
             uniq,
             time_request,
             start_time,
@@ -194,18 +193,14 @@ impl HpxTexture3D {
         self.textures[block_idx].as_ref()
     }
 
-    pub fn extract_2d_slice_texture(&self, slice: u16) -> Option<HpxTexture2D> {
+    pub fn extract_2d_slice_texture(&self, slice: u16) -> Option<HpxTex> {
         // Find the good sub cube containing the slice
         let block_idx = (slice >> 5) as usize;
         let slice_idx = (slice & 0x1f) as u8;
 
         // check the texture is there
         if self.blocks[block_idx] & (1 << (31 - slice_idx)) != 0 {
-            Some(HpxTexture2D::new(
-                &self.tile_cell,
-                slice_idx as i32,
-                self.time_request,
-            ))
+            Some(HpxTex::new(&self.cell, slice_idx as i32, self.time_request))
         } else {
             None
         }
@@ -306,7 +301,8 @@ impl HpxTexture3D {
     }
 }
 
-impl HpxTile for HpxTexture3D {
+/*
+impl HpxTile for HpxFreqTex {
     // Getter
     // Returns the current time if the texture is not full
     fn start_time(&self) -> Time {
@@ -322,26 +318,25 @@ impl HpxTile for HpxTexture3D {
     }
 
     fn cell(&self) -> &HEALPixCell {
-        &self.tile_cell
+        &self.cell
     }
-}
+}*/
 
-use std::cmp::Ordering;
-impl PartialOrd for HpxTexture3D {
+impl PartialOrd for HpxFreqTex {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
-use crate::Abort;
-impl Ord for HpxTexture3D {
+
+impl Ord for HpxFreqTex {
     fn cmp(&self, other: &Self) -> Ordering {
         self.partial_cmp(other).unwrap_abort()
     }
 }
 
-impl PartialEq for HpxTexture3D {
+impl PartialEq for HpxFreqTex {
     fn eq(&self, other: &Self) -> bool {
         self.uniq == other.uniq
     }
 }
-impl Eq for HpxTexture3D {}
+impl Eq for HpxFreqTex {}

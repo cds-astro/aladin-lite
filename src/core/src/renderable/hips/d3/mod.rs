@@ -4,7 +4,7 @@ pub mod texture;
 use crate::downloader::request::allsky::AllskyRequest;
 use crate::healpix::moc::FreqSpaceMoc;
 use crate::math::spectra::SpectralUnit;
-use crate::renderable::hips::HpxTile;
+
 use crate::tile_fetcher::TileFetcherQueue;
 use al_api::hips::DataproductType;
 use al_api::hips::ImageExt;
@@ -430,7 +430,7 @@ impl HiPS3D {
                 };
 
                 if let Some(texture) = hpx_cell_texture {
-                    self.cells.push(*texture.cell());
+                    self.cells.push(texture.cell);
                     // The slice is sure to be contained so we can unwrap
                     let hpx_slice_tex = texture
                         .extract_2d_slice_texture(self.freq.0 as u16)

@@ -1,5 +1,6 @@
 pub mod config;
 
+pub mod binary_heap;
 pub mod d2;
 pub mod d3;
 pub mod raytracing;
@@ -21,6 +22,7 @@ use wasm_bindgen::JsValue;
 
 mod subdivide;
 
+/*
 pub(crate) trait HpxTile {
     // Getter
     // Returns the current time if the texture is not full
@@ -29,10 +31,10 @@ pub(crate) trait HpxTile {
     fn time_request(&self) -> Time;
 
     fn cell(&self) -> &HEALPixCell;
-}
+}*/
 
 pub(crate) trait HpxTileBuffer {
-    type T: HpxTile;
+    type T;
 
     fn new(gl: &WebGlContext, config: HiPSConfig) -> Result<Self, JsValue>
     where

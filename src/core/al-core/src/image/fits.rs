@@ -2,7 +2,6 @@ use crate::texture::format::TextureFormat;
 use crate::texture::format::R8U;
 use cgmath::Vector3;
 use fitsrs::card::Value;
-use fitsrs::hdu::header::extension::image::Image as XImage;
 use fitsrs::hdu::header::Bitpix;
 use fitsrs::hdu::header::Header;
 use fitsrs::hdu::header::Xtension;

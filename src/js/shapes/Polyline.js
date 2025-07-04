@@ -232,6 +232,7 @@ export let Polyline = (function() {
             return false;
         }
 
+
         noSmallCheck = noSmallCheck===true || false;
         noStroke = noStroke===true || false;
 
@@ -269,19 +270,28 @@ export let Polyline = (function() {
         let ymin = Number.POSITIVE_INFINITY
         let ymax = Number.NEGATIVE_INFINITY;
 
+
+
+        let behind = true;
         for (var k=0; k<len; k++) {
             var xyview = view.aladin.world2pix(this.raDecArray[k][0], this.raDecArray[k][1]);
+
             if (!xyview) {
-                return false;
+                xyView.push(undefined);
+            } else {
+                behind = false;
+                let [x, y] =  xyview
+                xyView.push({x, y});
+
+                xmin = Math.min(xmin, x);
+                ymin = Math.min(ymin, y);
+                xmax = Math.max(xmax, x);
+                ymax = Math.max(ymax, y);
             }
-
-            xyView.push({x: xyview[0], y: xyview[1]});
-
-            xmin = Math.min(xmin, xyview[0]);
-            ymin = Math.min(ymin, xyview[1]);
-            xmax = Math.max(xmax, xyview[0]);
-            ymax = Math.max(ymax, xyview[1]);
         }
+
+        if (behind)
+            return false;
 
         // 2. do not draw the polygon if it lies outside the view
         if (xmax < 0 || xmin > view.width || ymax < 0 || ymin > view.height) {
@@ -290,7 +300,7 @@ export let Polyline = (function() {
 
         // do not draw neither if the polygone does not lie inside lineWidth
         if (!noSmallCheck) {
-            this.isTooSmall = (xmax - xmin) < this.lineWidth || (ymax - ymin) < this.lineWidth;
+            this.isTooSmall = (xmax - xmin) < this.lineWidth && (ymax - ymin) < this.lineWidth;
 
             if (this.isTooSmall) {
                 return false;
@@ -302,6 +312,10 @@ export let Polyline = (function() {
 
         if (view.projection === ProjectionEnum.SIN) {
             drawLine = (v0, v1) => {
+                if (v0 === undefined || v1 === undefined) {
+                    return false;
+                }
+
                 const l = {x1: v0.x, y1: v0.y, x2: v1.x, y2: v1.y};
 
                 if (Polyline.isInsideView(l.x1, l.y1, l.x2, l.y2, view.width, view.height)) {
@@ -311,6 +325,9 @@ export let Polyline = (function() {
 
             if (this.closed && this.fill) {
                 fillPoly = (v0, v1, index) => {
+                    if (v0 === undefined || v1 === undefined)
+                        return false;
+
                     const l = {x1: v0.x, y1: v0.y, x2: v1.x, y2: v1.y};
 
                     if (index === 0) {
@@ -391,7 +408,6 @@ export let Polyline = (function() {
                 v1 = v1 + 1;
             }
 
-            //ctx.globalAlpha = 1;
             ctx.save();
             ctx.fillStyle = this.fillColor;
             ctx.globalAlpha = this.opacity;
@@ -409,30 +425,41 @@ export let Polyline = (function() {
         for (var j = 0; j < this.raDecArray.length; j++) {
             var xy = view.aladin.world2pix(this.raDecArray[j][0], this.raDecArray[j][1]);
             if (!xy) {
-                return false;
+                pointXY.push(undefined)
+            } else {
+                pointXY.push({
+                    x: xy[0],
+                    y: xy[1]
+                });
             }
-            pointXY.push({
-                x: xy[0],
-                y: xy[1]
-            });
         }
 
         const lastPointIdx = pointXY.length - 1;
         for (var l = 0; l < lastPointIdx; l++) {
-            const line = {x1: pointXY[l].x, y1: pointXY[l].y, x2: pointXY[l + 1].x, y2: pointXY[l + 1].y};                                   // new segment
-            _drawLine(line, ctx, true);
+            let v1 = pointXY[l];
+            let v2 = pointXY[l + 1];
 
-            if (ctx.isPointInStroke(x, y)) {                    // x,y is on line?
-                return true;
+            if (v1 && v2) {
+                const line = {x1: v1.x, y1: v1.y, x2: v2.x, y2: v2.y};                                   // new segment
+                _drawLine(line, ctx, true);
+    
+                if (ctx.isPointInStroke(x, y)) {                    // x, y is on line?
+                    return true;
+                }
             }
         }
 
         if(this.closed) {
-            const line = {x1: pointXY[lastPointIdx].x, y1: pointXY[lastPointIdx].y, x2: pointXY[0].x, y2: pointXY[0].y};                                   // new segment
-            _drawLine(line, ctx, true);
+            let v1 = pointXY[lastPointIdx];
+            let v2 = pointXY[0];
 
-            if (ctx.isPointInStroke(x, y)) {                    // x,y is on line?
-                return true;
+            if (v1 && v2) {
+                const line = {x1: v1.x, y1: v1.y, x2: v2.x, y2: v2.y};                                   // new segment
+                _drawLine(line, ctx, true);
+    
+                if (ctx.isPointInStroke(x, y)) {                    // x,y is on line?
+                    return true;
+                }
             }
         }
 

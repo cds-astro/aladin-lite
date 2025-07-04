@@ -2224,12 +2224,11 @@ export let View = (function () {
             if (!footprint.source || !footprint.source.tooSmallFootprint) {
                 const originLineWidth = footprint.getLineWidth();
                 let spreadedLineWidth = (originLineWidth || 1) + 3;
-
+                
                 footprint.setLineWidth(spreadedLineWidth);
                 if (footprint.isShowing && footprint.isInStroke(ctx, this, x * window.devicePixelRatio, y * window.devicePixelRatio)) {
                     closests.push(footprint);
                 }
-
                 footprint.setLineWidth(originLineWidth);
             }
         })

@@ -317,7 +317,9 @@ export let Circle = (function() {
     };
 
     Circle.prototype.isInStroke = function(ctx, view, x, y) {
-        this.draw(ctx, view, true);
+        if (!this.draw(ctx, view, true)) {
+            return false;
+        }
         return ctx.isPointInStroke(x, y);
     };
 

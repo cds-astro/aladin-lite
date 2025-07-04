@@ -337,7 +337,7 @@ export let Ellipse = (function() {
     };
 
     Ellipse.prototype.isInStroke = function(ctx, view, x, y) {
-        if (!this.draw(ctx, view, true, true)) {
+        if (!this.draw(ctx, view, true)) {
             return false;
         }
 

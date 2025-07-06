@@ -176,7 +176,7 @@ impl Layers {
     pub fn set_hips_url(&mut self, cdid: &CreatorDid, new_url: String) -> Result<(), JsValue> {
         if let Some(hips) = self.hipses.get_mut(cdid) {
             // update the root_url
-            hips.get_config_mut().set_root_url(new_url.clone());
+            hips.set_root_url(new_url);
 
             Ok(())
         } else {

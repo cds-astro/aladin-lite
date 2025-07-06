@@ -1,3 +1,4 @@
+use crate::downloader::query::CellDesc;
 use crate::downloader::{query, Downloader};
 use crate::time::{DeltaTime, Time};
 use crate::Abort;
@@ -146,16 +147,23 @@ impl TileFetcherQueue {
 
     fn check_in_file_list(&self, mut query: Tile) -> Result<Tile, JsValue> {
         if let Some(local_hips) = self.hips_local_files.get(&query.hips_cdid) {
-            if let Some(tile) = local_hips.get_tile(&query.cell, *query.format.get_ext_file()) {
-                if let Ok(url) = web_sys::Url::create_object_url_with_blob(tile.as_ref()) {
-                    // rewrite the url
-                    query.url = url;
-                    Ok(query)
-                } else {
-                    Err(JsValue::from_str("could not create an url from the tile"))
+            // TODO modify local hips file structure to support freq indices as well
+            match query.cell {
+                CellDesc::HiPS2D { cell, .. } => {
+                    if let Some(tile) = local_hips.get_tile(&cell, *query.format.get_ext_file()) {
+                        if let Ok(url) = web_sys::Url::create_object_url_with_blob(tile.as_ref()) {
+                            // rewrite the url
+                            query.url = url;
+                            Ok(query)
+                        } else {
+                            Err(JsValue::from_str("could not create an url from the tile"))
+                        }
+                    } else {
+                        Ok(query)
+                    }
                 }
-            } else {
-                Ok(query)
+                // TODO Support for HiPS3D/Cube
+                _ => Ok(query),
             }
         } else {
             Ok(query)

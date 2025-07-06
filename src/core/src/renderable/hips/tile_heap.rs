@@ -70,24 +70,28 @@ impl From<&HpxTex> for Tile<HEALPixCell> {
         Self { cell, time_request }
     }
 }
-impl From<&HpxFreqTex> for Tile<HEALPixCell> {
+use crate::healpix::cell::HEALPixFreqCell;
+impl From<&HpxFreqTex> for Tile<HEALPixFreqCell> {
     fn from(tex: &HpxFreqTex) -> Self {
         let time_request = tex.time_request;
-        let cell = tex.cell;
+        let cell = tex.cell.clone();
 
         Self { cell, time_request }
     }
 }
 
-pub struct TileHeap<C>(BinaryHeap<Tile<C>>);
+pub struct TileHeap<C> {
+    heap: BinaryHeap<Tile<C>>,
+    size: usize,
+}
 
 impl<C> TileHeap<C> {
     pub fn clear(&mut self) {
-        self.0.clear();
+        self.heap.clear();
     }
 
     pub fn len(&self) -> usize {
-        self.0.len()
+        self.heap.len()
     }
 }
 
@@ -96,13 +100,21 @@ where
     C: PartialEq,
 {
     pub fn with_capacity(cap: usize) -> Self {
-        Self(BinaryHeap::with_capacity(cap))
+        Self {
+            heap: BinaryHeap::with_capacity(cap),
+            size: cap,
+        }
+    }
+
+    // Check if the heap is full
+    pub fn is_full(&self) -> bool {
+        self.heap.len() >= self.size
     }
 
     pub fn update_entry<T: Into<Tile<C>>>(&mut self, item: T) {
         let item = item.into();
-        self.0 = self
-            .0
+        self.heap = self
+            .heap
             .drain()
             // Remove the cell
             .filter(|texture_node| texture_node.cell != item.cell)
@@ -114,10 +126,10 @@ where
 
     pub fn push<T: Into<Tile<C>>>(&mut self, item: T) {
         let item = item.into();
-        self.0.push(item);
+        self.heap.push(item);
     }
 
     pub fn pop(&mut self) -> Option<Tile<C>> {
-        self.0.pop()
+        self.heap.pop()
     }
 }

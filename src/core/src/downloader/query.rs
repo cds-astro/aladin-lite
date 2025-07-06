@@ -9,25 +9,63 @@ pub trait Query: Sized {
 use crate::math::spectra::{Freq, SpectralUnit};
 pub type QueryId = String;
 
-use crate::healpix::moc::HEALPixFreqCell;
+use crate::healpix::cell::HEALPixFreqCell;
 use al_api::hips::DataproductType;
 use al_core::image::format::ImageFormatType;
 use moclib::qty::{Frequency, MocQty};
 
+/// Description of a cell to query
+#[derive(Clone, PartialEq, Eq)]
+pub enum CellDesc {
+    HiPS2D {
+        // A description of the tile in space
+        cell: HEALPixCell,
+        // Size of the tile requested
+        tile_size: u32,
+    },
+    HiPS3D {
+        // A description of the tile in space and frequency
+        cell: HEALPixFreqCell,
+        // Size of the tile requested
+        tile_size: u32,
+        // Depth of the cubic tile
+        tile_depth: u32,
+    },
+    HiPSCube {
+        // A description of the tile in space
+        cell: HEALPixCell,
+        // size of the tile requested
+        tile_size: u32,
+        // The channel number to query
+        channel: u32,
+    },
+}
+
+impl CellDesc {
+    fn get_size(&self) -> (u32, u32, u32) {
+        match self {
+            Self::HiPS2D { tile_size, .. } => (*tile_size, *tile_size, 1),
+            Self::HiPSCube { tile_size, .. } => (*tile_size, *tile_size, 1),
+            Self::HiPS3D {
+                tile_size,
+                tile_depth,
+                ..
+            } => (*tile_size, *tile_size, *tile_depth),
+        }
+    }
+}
+
 #[derive(Eq, PartialEq, Clone)]
 pub struct Tile {
-    pub cell: HEALPixCell,
+    pub cell: CellDesc,
     pub format: ImageFormatType,
     // The root url of the HiPS
     pub hips_cdid: CreatorDid,
     // The total url of the query
     pub url: Url,
-    pub size: u32,  // size of the tile requested
-    pub depth: u32, // HiPS3D cubic tiles
     pub credentials: RequestCredentials,
     pub mode: RequestMode,
     pub id: QueryId,
-    pub channel: Option<u32>,
 }
 
 use crate::healpix::cell::HEALPixCell;
@@ -36,7 +74,7 @@ use crate::renderable::CreatorDid;
 use crate::tile_fetcher::HiPSLocalFiles;
 use web_sys::{RequestCredentials, RequestMode};
 impl Tile {
-    pub fn new(cell: &HEALPixCell, channel: Option<u32>, cfg: &HiPSConfig) -> Self {
+    pub fn new(cell: &HEALPixCell, cfg: &HiPSConfig) -> Self {
         let hips_cdid = cfg.get_creator_did();
         let hips_url = cfg.get_root_url();
         let format = cfg.get_format();
@@ -49,40 +87,55 @@ impl Tile {
 
         let dir_idx = (idx / 10000) * 10000;
 
-        let mut url = format!("{hips_url}/Norder{depth}/Dir{dir_idx}/Npix{idx}");
+        let url = format!("{hips_url}/Norder{depth}/Dir{dir_idx}/Npix{idx}.{ext}");
 
-        // handle cube case
-        if let Some(channel) = channel {
-            if channel > 0 {
-                url.push_str(&format!("_{channel:?}"));
-            }
-        }
+        let id = format!("{}_{}_{}_{}", hips_cdid, depth, idx, ext);
 
-        // add the tile format
-        url.push_str(&format!(".{ext}"));
-
-        let id = format!(
-            "{}_{}_{}_{}_{}",
-            hips_cdid,
-            depth,
-            idx,
-            channel.unwrap_or(0),
-            ext
-        );
-
-        let size = cfg.get_tile_size() as u32;
-        let depth = 1;
+        let tile_size = cfg.get_tile_size() as u32;
         Tile {
             hips_cdid: hips_cdid.to_string(),
             url,
-            cell: *cell,
+            cell: CellDesc::HiPS2D {
+                cell: *cell,
+                tile_size,
+            },
             format,
             credentials,
             mode,
             id,
-            channel,
-            size,
-            depth,
+        }
+    }
+
+    pub fn new_with_channel(cell: &HEALPixCell, channel: u32, cfg: &HiPSConfig) -> Self {
+        let hips_cdid = cfg.get_creator_did();
+        let hips_url = cfg.get_root_url();
+        let format = cfg.get_format();
+        let credentials = cfg.get_request_credentials();
+        let mode = cfg.get_request_mode();
+
+        let ext = format.get_ext_file();
+
+        let HEALPixCell(depth, idx) = *cell;
+
+        let dir_idx = (idx / 10000) * 10000;
+
+        let url = format!("{hips_url}/Norder{depth}/Dir{dir_idx}/Npix{idx}_{channel:?}.{ext}");
+
+        let id = format!("{}_{}_{}_{}_{}", hips_cdid, depth, idx, channel, ext);
+
+        let tile_size = cfg.get_tile_size() as u32;
+        Tile {
+            hips_cdid: hips_cdid.to_string(),
+            url,
+            cell: CellDesc::HiPSCube {
+                cell: *cell,
+                tile_size,
+                channel,
+            },
+            format,
+            credentials,
+            mode,
+            id,
         }
     }
 
@@ -110,19 +163,20 @@ impl Tile {
 
         let id = format!("{hips_cdid}_{K}_{L}_{N}_{M}_{ext}");
 
-        let size = cfg.get_tile_size() as u32;
-        let depth = cfg.tile_depth.unwrap_or(1) as u32;
+        let tile_size = cfg.get_tile_size() as u32;
+        let tile_depth = cfg.tile_depth.unwrap_or(1) as u32;
         Tile {
             hips_cdid: hips_cdid.to_string(),
             url,
-            cell: HEALPixCell(K, N),
+            cell: CellDesc::HiPS3D {
+                cell: hpx_f_cell.clone(),
+                tile_size,
+                tile_depth,
+            },
             format,
             credentials,
             mode,
             id,
-            channel: None,
-            size,
-            depth,
         }
     }
 }

@@ -6,6 +6,7 @@ use crate::renderable::hips::HiPS;
 use crate::renderable::image::Image;
 use crate::renderable::ImageLayer;
 use crate::tile_fetcher::HiPSLocalFiles;
+use crate::Abort;
 use crate::{
     camera::CameraViewPort,
     downloader::Downloader,
@@ -24,9 +25,13 @@ use crate::{
     time::DeltaTime,
 };
 use al_api::moc::MOCOptions;
+use al_core::image::canvas::Canvas;
 use al_core::image::fits::FitsImage;
 use al_core::image::ImageType;
+use al_core::texture::format::PixelType;
+use al_core::texture::format::RGBA8U;
 use fitsrs::WCS;
+use std::hint::unreachable_unchecked;
 use std::io::Cursor;
 
 use wasm_bindgen::prelude::*;
@@ -120,7 +125,7 @@ pub const BLENDING_ANIM_DURATION: DeltaTime = DeltaTime::from_millis(200.0); // 
 use crate::time::Time;
 use cgmath::InnerSpace;
 
-use crate::downloader::query;
+use crate::downloader::query::{self, CellDesc};
 use crate::downloader::request::{self, RequestType};
 use al_api::resources::Resources;
 
@@ -360,7 +365,7 @@ impl App {
 
 use al_api::cell::HEALPixCellProjeted;
 
-use crate::healpix::cell::HEALPixCell;
+use crate::healpix::cell::{HEALPixCell, HEALPixFreqCell};
 
 use al_api::color::ColorRGB;
 
@@ -563,7 +568,7 @@ impl App {
                 RequestType::Tile(tile) => {
                     //if !_has_camera_zoomed {
                     if let Some(hips) = self.layers.get_mut_hips_from_cdid(&tile.hips_cdid) {
-                        let cfg = hips.get_config_mut();
+                        let cfg = hips.get_config();
 
                         if cfg.get_format() == tile.format {
                             let fov_coverage = self.camera.get_cov(cfg.get_frame());
@@ -575,7 +580,9 @@ impl App {
                             if tile.cell.is_root() || included_in_coverage {
                                 let image = tile.request.get_data().clone();
 
-                                //if let Some(image) = image.as_ref() {
+                                // 1. For FITS tiles, parse the bscale/bzero and optional blank
+                                // FIXME. We should consider these constants as per tiles and not for
+                                // whole HiPS they belong to.
                                 if let Some(ImageType::FitsRawBytes {
                                     raw_bytes: raw_bytes_buf,
                                     ..
@@ -595,29 +602,115 @@ impl App {
                                     }
                                 };
 
+                                // 2. Add the tile to its HiPS
                                 if let Some(img) = &*image.borrow() {
                                     /*if tile_copied {
                                         self.downloader
                                             .borrow_mut()
                                             .delay(Resource::Tile(tile));
                                         continue;
-                                    }*/
-
-                                    self.request_redraw = true;
-                                    //tile_copied = true;
-                                    match hips {
-                                        HiPS::D2(hips) => hips.add_tile(
-                                            &tile.cell,
-                                            img,
-                                            tile.request.time_request,
-                                        )?,
-                                        HiPS::D3(hips) => hips.add_tile(
-                                            &tile.cell,
-                                            img,
-                                            tile.request.time_request,
-                                            tile.channel.unwrap() as u16,
-                                        )?,
                                     }
+                                    tile_copied = true;
+                                    */
+
+                                    // For PNG/JPEG cubic tiles, all the slices are in the lonely image
+                                    match (&tile.cell, hips) {
+                                        (CellDesc::HiPS2D { cell, tile_size }, HiPS::D2(hips)) => {
+                                            hips.push_tile(cell, img, tile.request.time_request)?
+                                        }
+                                        (
+                                            CellDesc::HiPSCube {
+                                                cell,
+                                                tile_size,
+                                                channel,
+                                            },
+                                            HiPS::D3(hips),
+                                        ) => {
+                                            // We build an artificial cube
+                                            let f_hash = (*channel / 32) as u64;
+                                            let slice_idx = (*channel % 32) as u16;
+
+                                            let cell = HEALPixFreqCell::from_f_hash(*cell, f_hash);
+                                            hips.push_tile_slice(
+                                                &cell,
+                                                img,
+                                                tile.request.time_request,
+                                                slice_idx,
+                                            )?
+                                        }
+                                        (
+                                            CellDesc::HiPS3D {
+                                                cell,
+                                                tile_size,
+                                                tile_depth,
+                                            },
+                                            HiPS::D3(hips),
+                                        ) => {
+                                            // TODO PNG/JPG case to handle here
+                                            match img {
+                                                ImageType::HTMLImageRgba8u { image } => {
+                                                    // Cut the png in several tile images. See page 3 of
+                                                    // https://aladin.cds.unistra.fr/java/DocTechHiPS3D.pdf
+                                                    let num_cols =
+                                                        (*tile_depth as f32).sqrt().floor() as u32;
+                                                    let num_rows = ((*tile_depth as f32)
+                                                        / (num_cols as f32))
+                                                        .ceil()
+                                                        as u32;
+
+                                                    for x in 0..num_rows {
+                                                        for y in 0..num_cols {
+                                                            let document = web_sys::window()
+                                                                .unwrap_abort()
+                                                                .document()
+                                                                .unwrap_abort();
+                                                            let canvas = document
+                                                                .create_element("canvas")?
+                                                                .dyn_into::<web_sys::HtmlCanvasElement>()?;
+                                                            canvas.set_width(*tile_size);
+                                                            canvas.set_height(*tile_size);
+                                                            let context = canvas
+                                                                    .get_context("2d")?
+                                                                    .unwrap_abort()
+                                                                    .dyn_into::<web_sys::CanvasRenderingContext2d>()?;
+
+                                                            let sx = (y * *tile_size) as f64;
+                                                            let sy = (x * *tile_size) as f64;
+                                                            let sw = *tile_size as f64;
+                                                            let sh = *tile_size as f64;
+                                                            let dx = 0.0;
+                                                            let dy = 0.0;
+                                                            let dw = *tile_size as f64;
+                                                            let dh = *tile_size as f64;
+
+                                                            context.draw_image_with_html_image_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(image.element(), sx, sy, sw, sh, dx, dy, dw, dh)?;
+
+                                                            let slice_img = ImageType::Canvas {
+                                                                canvas: Canvas::<RGBA8U>::new(
+                                                                    canvas,
+                                                                ),
+                                                            };
+                                                            let slice_idx = y + x * num_cols;
+
+                                                            hips.push_tile_slice(
+                                                                cell,
+                                                                slice_img,
+                                                                tile.request.time_request,
+                                                                slice_idx as u16,
+                                                            )?
+                                                        }
+                                                    }
+                                                }
+                                                _ => hips.push_tile(
+                                                    cell,
+                                                    img,
+                                                    tile.request.time_request,
+                                                )?,
+                                            }
+                                        }
+                                        _ => unreachable!(),
+                                    }
+                                    self.request_redraw = true;
                                     self.time_start_blending = Time::now();
                                 };
                             }

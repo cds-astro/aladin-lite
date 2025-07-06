@@ -2,6 +2,7 @@ use crate::math::lonlat::LonLatT;
 use crate::math::PI;
 use crate::math::{self, lonlat::LonLat};
 
+use crate::healpix::cell::HEALPixFreqCell;
 use cgmath::Vector3;
 use moclib::elemset::range::uniq::HpxUniqRanges;
 use moclib::hpxranges2d::HpxRanges2D;
@@ -174,32 +175,5 @@ impl Deref for FreqSpaceMoc {
 
     fn deref(&'_ self) -> &'_ Self::Target {
         &self.0
-    }
-}
-
-/// A simple object describing a cubic tile of a HiPS3D
-pub struct HEALPixFreqCell {
-    pub hpx: HEALPixCell,
-    pub f_hash: u64,
-    pub f_depth: u8,
-}
-
-impl HEALPixFreqCell {
-    pub fn new(hpx: HEALPixCell, f: Freq, f_depth: u8) -> Self {
-        let f_hash = f.hash(f_depth);
-
-        Self {
-            hpx,
-            f_hash,
-            f_depth,
-        }
-    }
-
-    pub fn from_f_hash(hpx: HEALPixCell, f_hash: u64) -> Self {
-        Self {
-            hpx,
-            f_hash,
-            f_depth: 16,
-        }
     }
 }

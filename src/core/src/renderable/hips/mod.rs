@@ -1,9 +1,9 @@
 pub mod config;
 
-pub mod binary_heap;
 pub mod d2;
 pub mod d3;
 pub mod raytracing;
+pub mod tile_heap;
 mod triangulation;
 pub mod uv;
 
@@ -35,6 +35,7 @@ pub(crate) trait HpxTile {
 
 pub(crate) trait HpxTileBuffer {
     type T;
+    type C;
 
     fn new(gl: &WebGlContext, config: HiPSConfig) -> Result<Self, JsValue>
     where
@@ -46,29 +47,9 @@ pub(crate) trait HpxTileBuffer {
     fn reset_available_tiles(&mut self) -> bool;
 
     /// Accessors
-    fn get(&self, cell: &HEALPixCell) -> Option<&Self::T>;
+    fn get(&self, cell: &Self::C) -> Option<&Self::T>;
 
-    fn contains(&self, cell: &HEALPixCell) -> bool;
-
-    // Get the nearest parent tile found in the CPU buffer
-    fn get_nearest_parent(&self, cell: &HEALPixCell) -> Option<HEALPixCell> {
-        /*if cell.is_root() {
-            // Root cells are in the buffer by definition
-            Some(*cell)
-        } else {*/
-        let mut parent_cell = cell.parent();
-
-        while !self.contains(&parent_cell) && !parent_cell.is_root() {
-            parent_cell = parent_cell.parent();
-        }
-
-        if self.contains(&parent_cell) {
-            Some(parent_cell)
-        } else {
-            None
-        }
-        //}
-    }
+    fn contains(&self, cell: &Self::C) -> bool;
 
     fn config_mut(&mut self) -> &mut HiPSConfig;
     fn config(&self) -> &HiPSConfig;
@@ -121,10 +102,10 @@ impl HiPS {
     }
 
     #[inline]
-    pub fn get_config_mut(&mut self) -> &mut HiPSConfig {
+    pub fn set_root_url(&mut self, root_url: String) {
         match self {
-            D2(hips) => hips.get_config_mut(),
-            D3(hips) => hips.get_config_mut(),
+            D2(hips) => hips.get_config_mut().set_root_url(root_url),
+            D3(hips) => hips.get_config_mut().set_root_url(root_url),
         }
     }
 
@@ -148,14 +129,6 @@ impl HiPS {
         match self {
             HiPS::D2(hips) => hips.build_tile_query(cell),
             HiPS::D3(hips) => hips.build_tile_query(cell),
-        }
-    }
-
-    #[inline]
-    pub fn add_allsky(&mut self, allsky: AllskyRequest) -> Result<(), JsValue> {
-        match self {
-            HiPS::D2(hips) => hips.add_allsky(allsky),
-            HiPS::D3(hips) => hips.add_allsky(allsky),
         }
     }
 

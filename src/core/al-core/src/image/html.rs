@@ -15,6 +15,10 @@ where
             format: std::marker::PhantomData,
         }
     }
+
+    pub fn element(&self) -> &web_sys::HtmlImageElement {
+        &self.image
+    }
 }
 
 use crate::image::Image;

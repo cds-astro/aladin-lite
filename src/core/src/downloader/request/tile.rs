@@ -1,4 +1,4 @@
-use crate::healpix::cell::HEALPixCell;
+use crate::healpix::cell::{HEALPixCell, HEALPixFreqCell};
 use crate::renderable::CreatorDid;
 use al_core::image::format::ImageFormatType;
 use al_core::texture::format::{PixelType, RGB8U, RGBA8U};
@@ -6,19 +6,20 @@ use al_core::texture::format::{PixelType, RGB8U, RGBA8U};
 use crate::downloader::query;
 use al_core::image::ImageType;
 
+use super::super::query::CellDesc;
 use super::Url;
 use super::{Request, RequestType};
 use crate::downloader::request::query_html_image;
 use crate::downloader::QueryId;
+
 pub struct TileRequest {
     pub request: Request<ImageType>,
     pub id: QueryId,
 
-    pub cell: HEALPixCell,
+    pub cell: CellDesc,
     pub hips_cdid: CreatorDid,
     pub url: Url,
     pub format: ImageFormatType,
-    pub channel: Option<u32>,
 }
 
 impl From<TileRequest> for RequestType {
@@ -43,13 +44,21 @@ impl From<query::Tile> for TileRequest {
             credentials,
             mode,
             id,
-            channel,
-            size,
-            depth,
         } = query;
 
         let url_clone = url.clone();
         let pixel_format = format.get_pixel_format();
+
+        let size = match cell {
+            CellDesc::HiPS2D { tile_size, .. } | CellDesc::HiPSCube { tile_size, .. } => {
+                (tile_size, tile_size, 1)
+            }
+            CellDesc::HiPS3D {
+                tile_size,
+                tile_depth,
+                ..
+            } => (tile_size, tile_size, tile_depth),
+        };
 
         let window = web_sys::window().unwrap_abort();
         let request = match pixel_format {
@@ -94,10 +103,7 @@ impl From<query::Tile> for TileRequest {
                         let array_buffer = JsFuture::from(resp.array_buffer()?).await?;
                         let raw_bytes = js_sys::Uint8Array::new(&array_buffer);
 
-                        Ok(ImageType::FitsRawBytes {
-                            raw_bytes,
-                            size: (size, size, depth),
-                        })
+                        Ok(ImageType::FitsRawBytes { raw_bytes, size })
                     } else {
                         Err(JsValue::from_str(
                             "Response status code not between 200-299.",
@@ -114,7 +120,6 @@ impl From<query::Tile> for TileRequest {
             hips_cdid,
             url,
             request,
-            channel,
         }
     }
 }

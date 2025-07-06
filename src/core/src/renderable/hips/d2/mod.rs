@@ -3,6 +3,7 @@ pub mod texture;
 
 use crate::app::BLENDING_ANIM_DURATION;
 use crate::downloader::query;
+use crate::downloader::query::CellDesc;
 use crate::downloader::request::allsky::AllskyRequest;
 use crate::math::angle::ToAngle;
 use crate::tile_fetcher;
@@ -345,7 +346,7 @@ impl HiPS2D {
                 };
 
                 if make_query {
-                    Some(query::Tile::new(&tile_cell, None, self.get_config()))
+                    Some(query::Tile::new(&tile_cell, self.get_config()))
                 } else {
                     None
                 }
@@ -354,21 +355,28 @@ impl HiPS2D {
         let mut ancestors = HashSet::new();
 
         for tile_query in tile_queries_iter {
-            let tile_cell = tile_query.cell;
-            tile_fetcher.append(tile_query);
+            match tile_query.cell {
+                CellDesc::HiPS2D { cell, .. } => {
+                    let tile_cell = cell;
+                    tile_fetcher.append(tile_query);
 
-            // check if we are starting aladin lite or not.
-            // If so we want to retrieve only the tiles in the view and access them
-            // directly i.e. without blending them with less precised tiles
-            if tile_fetcher.get_num_tile_fetched() > 0 && tile_cell.depth() >= min_tile_depth + 3 {
-                let ancestor_tile_cell = tile_cell.ancestor(3);
-                ancestors.insert(ancestor_tile_cell);
+                    // check if we are starting aladin lite or not.
+                    // If so we want to retrieve only the tiles in the view and access them
+                    // directly i.e. without blending them with less precised tiles
+                    if tile_fetcher.get_num_tile_fetched() > 0
+                        && tile_cell.depth() >= min_tile_depth + 3
+                    {
+                        let ancestor_tile_cell = tile_cell.ancestor(3);
+                        ancestors.insert(ancestor_tile_cell);
+                    }
+                }
+                _ => unreachable!(),
             }
         }
 
         for ancestor in ancestors {
             if !self.update_priority_tile(&ancestor) {
-                tile_fetcher.append(query::Tile::new(&ancestor, None, self.get_config()));
+                tile_fetcher.append(query::Tile::new(&ancestor, self.get_config()));
             }
         }
     }
@@ -379,7 +387,7 @@ impl HiPS2D {
 
     pub fn build_tile_query(&self, cell: &HEALPixCell) -> query::Tile {
         let cfg = self.get_config();
-        query::Tile::new(cell, None, cfg)
+        query::Tile::new(cell, cfg)
     }
 
     pub fn update(&mut self, camera: &mut CameraViewPort, projection: &ProjectionType) {
@@ -717,7 +725,7 @@ impl HiPS2D {
         }
     }
 
-    pub fn add_tile<I: Image>(
+    pub fn push_tile<I: Image>(
         &mut self,
         cell: &HEALPixCell,
         image: I,

@@ -3,9 +3,11 @@ use std::collections::HashMap;
 use al_core::image::Image;
 use al_core::WebGlContext;
 
+use super::super::tile_heap::TileHeap;
 use super::texture::HpxFreqTex;
 use crate::downloader::request::allsky::AllskyRequest;
 use crate::healpix::cell::HEALPixCell;
+use crate::healpix::cell::HEALPixFreqCell;
 use crate::renderable::hips::config::HiPSConfig;
 use crate::renderable::hips::HpxTileBuffer;
 use crate::time::Time;
@@ -13,9 +15,10 @@ use crate::Abort;
 use crate::JsValue;
 use al_api::hips::ImageExt;
 // Fixed sized binary heap
-pub struct HiPSCubeBuffer {
+pub struct HiPS3DBuffer {
     // Some information about the HiPS
-    textures: HashMap<HEALPixCell, HpxFreqTex>,
+    textures: HashMap<HEALPixFreqCell, HpxFreqTex>,
+    heap: TileHeap<HEALPixFreqCell>,
 
     config: HiPSConfig,
 
@@ -24,23 +27,8 @@ pub struct HiPSCubeBuffer {
     gl: WebGlContext,
 }
 
-impl HiPSCubeBuffer {
-    pub fn new(gl: &WebGlContext, config: HiPSConfig) -> Result<Self, JsValue> {
-        let textures = HashMap::new();
-
-        let available_tiles_during_frame = false;
-
-        let gl = gl.clone();
-        Ok(Self {
-            config,
-
-            textures,
-            available_tiles_during_frame,
-            gl,
-        })
-    }
-
-    pub fn push_allsky(&mut self, allsky: AllskyRequest) -> Result<(), JsValue> {
+impl HiPS3DBuffer {
+    /*pub fn push_allsky(&mut self, allsky: AllskyRequest) -> Result<(), JsValue> {
         let AllskyRequest {
             request,
             //depth_tile,
@@ -62,72 +50,101 @@ impl HiPSCubeBuffer {
         }
 
         Ok(())
-    }
+    }*/
 
-    pub fn find_nearest_slice(&self, cell: &HEALPixCell, slice: u16) -> Option<u16> {
+    /*pub fn find_nearest_slice(&self, cell: &HEALPixCell, slice: u16) -> Option<u16> {
         self.get(cell).and_then(|t| t.find_nearest_slice(slice))
-    }
+    }*/
 
-    // This method pushes a new downloaded tile into the buffer
-    // It must be ensured that the tile is not already contained into the buffer
-    pub fn push<I: Image>(
-        &mut self,
-        cell: &HEALPixCell,
-        image: I,
-        time_request: Time,
-        slice_idx: u16,
-    ) -> Result<(), JsValue> {
-        let tex = if let Some(tex) = self.textures.get_mut(cell) {
-            tex
-        } else {
-            self.textures
-                .insert(*cell, HpxFreqTex::new(*cell, time_request));
+    fn push_cell(&mut self, cell: &HEALPixFreqCell, time_request: Time) -> Result<(), JsValue> {
+        // Check if the cell is not yet contain in the buffer
+        if !self.contains(cell) {
+            // If not, add create it and add it to the buffer
+            if self.heap.is_full() {
+                // Pop the oldest requested texture
+                let oldest_texture = self.heap.pop().unwrap_abort();
 
-            self.textures.get_mut(cell).unwrap()
+                // Remove it from the textures HashMap
+                self.textures
+                    .remove(&oldest_texture.cell())
+                    .expect("Texture (oldest one) has not been found in the buffer of textures");
+            }
+
+            let texture = HpxFreqTex::new(
+                cell.clone(),
+                time_request,
+                self.config.tile_size as u16,
+                self.config.tile_depth.unwrap_abort() as u16,
+                self.config.get_format().get_pixel_format(),
+                &self.gl,
+            )?;
+
+            // Push it to the buffer
+            self.heap.push(&texture);
+            self.textures.insert(cell.clone(), texture);
         };
 
-        // copy to the 3D textured block
-        tex.append(image, slice_idx, &self.config, &self.gl)?;
+        Ok(())
+    }
 
+    // Push a image slice into the buffer
+    pub fn push_tile_slice<I: Image>(
+        &mut self,
+        cell: &HEALPixFreqCell,
+        image: I,
+        time_request: Time,
+        // this slice index inside the cubic cell
+        slice_idx: u16,
+    ) -> Result<(), JsValue> {
+        self.push_cell(cell, time_request)?;
+
+        let texture = self.textures.get_mut(cell).unwrap_abort();
+
+        // And copy the image in that cubic tile
+        texture.append_tile_slice(image, slice_idx, &self.config, &self.gl)?;
         self.available_tiles_during_frame = true;
 
         Ok(())
     }
 
-    // Return if tiles did become available
-    pub fn reset_available_tiles(&mut self) -> bool {
-        let available_tiles_during_frame = self.available_tiles_during_frame;
-        self.available_tiles_during_frame = false;
+    pub fn push_tile<I: Image>(
+        &mut self,
+        cell: &HEALPixFreqCell,
+        image: I,
+        time_request: Time,
+    ) -> Result<(), JsValue> {
+        self.push_cell(cell, time_request)?;
 
-        available_tiles_during_frame
+        let texture = self.textures.get_mut(cell).unwrap_abort();
+
+        // And copy the image in that cubic tile
+        texture.append_tile(image, &self.config, &self.gl)?;
+        self.available_tiles_during_frame = true;
+
+        Ok(())
     }
 
     // Tell if a texture is available meaning all its sub tiles
     // must have been written for the GPU
-    pub fn contains_tile(&self, texture_cell: &HEALPixCell, slice: u16) -> bool {
-        self.get(texture_cell)
-            .is_some_and(|t| t.contains_slice(slice))
-    }
-
-    /// Accessors
-    pub fn get(&self, cell: &HEALPixCell) -> Option<&HpxFreqTex> {
-        self.textures.get(cell)
-    }
-
-    pub fn config(&self) -> &HiPSConfig {
-        &self.config
-    }
-
-    pub fn config_mut(&mut self) -> &mut HiPSConfig {
-        &mut self.config
+    pub fn contains_slice(
+        &self,
+        // the cell to check
+        cell: &HEALPixFreqCell,
+        // the idx of one slice inside the cube, has to be in [0; 2^(f_order) - 1]
+        idx_slice: u16,
+    ) -> bool {
+        self.get(cell).is_some_and(|t| t.contains_slice(idx_slice))
     }
 }
 
-impl HpxTileBuffer for HiPSCubeBuffer {
+impl HpxTileBuffer for HiPS3DBuffer {
     type T = HpxFreqTex;
+    type C = HEALPixFreqCell;
 
     fn new(gl: &WebGlContext, config: HiPSConfig) -> Result<Self, JsValue> {
         let textures = HashMap::new();
+        // Limit the number of cached cubes to 256 so approx 256 MB
+        let heap = TileHeap::with_capacity(256);
 
         let available_tiles_during_frame = false;
 
@@ -136,6 +153,7 @@ impl HpxTileBuffer for HiPSCubeBuffer {
             config,
 
             textures,
+            heap,
             available_tiles_during_frame,
             gl,
         })
@@ -153,21 +171,24 @@ impl HpxTileBuffer for HiPSCubeBuffer {
         self.config.set_image_ext(ext)?;
 
         self.textures.clear();
-        //self.ready = false;
+        self.heap.clear();
+
         self.available_tiles_during_frame = true;
 
         Ok(())
     }
 
-    // Tell if a texture is available meaning all its sub tiles
-    // must have been written for the GPU
-    fn contains(&self, cell: &HEALPixCell) -> bool {
-        self.get(cell).is_some()
+    /// Accessors
+    fn get(&self, cell: &Self::C) -> Option<&HpxFreqTex> {
+        self.textures.get(cell)
     }
 
-    /// Accessors
-    fn get(&self, cell: &HEALPixCell) -> Option<&HpxFreqTex> {
-        self.textures.get(cell)
+    fn contains(&self, cell: &Self::C) -> bool {
+        if let Some(t) = self.get(cell) {
+            t.is_copied_to_gpu
+        } else {
+            false
+        }
     }
 
     fn config(&self) -> &HiPSConfig {
@@ -181,16 +202,17 @@ impl HpxTileBuffer for HiPSCubeBuffer {
 
 use al_core::shader::SendUniforms;
 use al_core::shader::ShaderBound;
-impl SendUniforms for HiPSCubeBuffer {
+impl SendUniforms for HiPS3DBuffer {
     // Send only the allsky textures
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
         shader.attach_uniforms_from(&self.config)
     }
 }
 
-impl Drop for HiPSCubeBuffer {
+impl Drop for HiPS3DBuffer {
     fn drop(&mut self) {
         // drop all the 3D block textures
         self.textures.clear();
+        self.heap.clear();
     }
 }

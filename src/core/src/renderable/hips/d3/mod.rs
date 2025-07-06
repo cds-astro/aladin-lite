@@ -13,7 +13,7 @@ use al_core::colormap::Colormap;
 use al_core::colormap::Colormaps;
 use al_core::texture::format::PixelType;
 
-use crate::healpix::moc::HEALPixFreqCell;
+use crate::healpix::cell::HEALPixFreqCell;
 
 use crate::Abort;
 
@@ -37,14 +37,14 @@ use crate::shader::ShaderManager;
 use crate::healpix::cell::HEALPixCell;
 use crate::time::Time;
 
+use self::cube::HiPS3DBuffer;
+
 use super::config::HiPSConfig;
 use super::FitsParams;
 use std::collections::HashSet;
 
 // Recursively compute the number of subdivision needed for a cell
 // to not be too much skewed
-
-use cube::HiPSCubeBuffer;
 
 use super::uv::{TileCorner, TileUVW};
 
@@ -90,7 +90,7 @@ pub fn get_raster_shader<'a>(
 
 pub struct HiPS3D {
     // The image survey texture buffer
-    buffer: HiPSCubeBuffer,
+    buffer: HiPS3DBuffer,
 
     // The projected vertices data
     // For WebGL2 wasm, the data are interleaved
@@ -114,7 +114,7 @@ pub struct HiPS3D {
     freq: Freq,
 
     num_indices: Vec<usize>,
-    cells: Vec<HEALPixCell>,
+    cells: Vec<HEALPixFreqCell>,
     // flag to forcing the mesh to be rebuilt
     move_freq: bool,
 }
@@ -163,7 +163,7 @@ impl HiPS3D {
             )
             .unbind();
 
-        let buffer = HiPSCubeBuffer::new(gl, config)?;
+        let buffer = HiPS3DBuffer::new(gl, config)?;
 
         let cells = vec![];
 
@@ -211,7 +211,7 @@ impl HiPS3D {
 
                 query::Tile::new_cubic(&cell, cfg)
             }
-            DataproductType::Cube => query::Tile::new(&cell, Some(self.freq.0 as u32), cfg),
+            DataproductType::Cube => query::Tile::new_with_channel(&cell, self.freq.0 as u32, cfg),
             _ => unreachable!(),
         }
     }
@@ -238,6 +238,7 @@ impl HiPS3D {
                     .into_iter()
                     .filter(|tile_cell| {
                         if let Some(moc) = self.moc.as_ref() {
+                            // TODO: Check this part of code, the moc is only spatial so it should intersect whatever f hash you give
                             let cell = HEALPixFreqCell::from_f_hash(*tile_cell, self.freq.0 as u64);
                             moc.intersects_cell(&cell)
                         } else {
@@ -249,9 +250,9 @@ impl HiPS3D {
                 let mut ancestors = HashSet::new();
 
                 for tile_cell in tiles_iter {
-                    tile_fetcher.append(query::Tile::new(
+                    tile_fetcher.append(query::Tile::new_with_channel(
                         &tile_cell,
-                        Some(self.freq.0 as u32),
+                        self.freq.0 as u32,
                         cfg,
                     ));
 
@@ -267,7 +268,11 @@ impl HiPS3D {
                 }
 
                 for ancestor in ancestors {
-                    tile_fetcher.append(query::Tile::new(&ancestor, Some(self.freq.0 as u32), cfg));
+                    tile_fetcher.append(query::Tile::new_with_channel(
+                        &ancestor,
+                        self.freq.0 as u32,
+                        cfg,
+                    ));
                 }
             }
             DataproductType::SpectralCube => {
@@ -313,8 +318,8 @@ impl HiPS3D {
         self.move_freq = true;
     }
 
-    pub fn contains_tile(&self, cell: &HEALPixCell, freq: Freq) -> bool {
-        self.buffer.contains_tile(cell, freq.0 as u16)
+    pub fn contains_tile(&self, cell: &HEALPixFreqCell) -> bool {
+        self.buffer.contains(cell)
     }
 
     pub fn draw(
@@ -369,46 +374,61 @@ impl HiPS3D {
 
         for cell in &self.hpx_cells_in_view {
             // filter textures that are not in the moc
-            let cell = if let Some(moc) = self.moc.as_ref() {
-                let hpx_f_cell = match self.get_config().dataproduct_type {
-                    DataproductType::SpectralCube => {
-                        // Determination of the f_order from the s_order
-                        // From https://aladin.cds.unistra.fr/java/DocTechHiPS3D.pdf page 3
-                        let f_max_order = self.get_config().max_depth_freq.unwrap_abort();
-                        let s_max_order = self.get_config().max_depth_tile;
-                        let s_order = cell.depth();
+            let cell = match self.get_config().dataproduct_type {
+                DataproductType::SpectralCube => {
+                    // Determination of the f_order from the s_order
+                    // From https://aladin.cds.unistra.fr/java/DocTechHiPS3D.pdf page 3
+                    let f_max_order = self.get_config().max_depth_freq.unwrap_abort();
+                    let s_max_order = self.get_config().max_depth_tile;
+                    let s_order = cell.depth();
 
-                        let f_order = f_max_order - (s_max_order - s_order);
+                    let f_order = f_max_order - (s_max_order - s_order);
 
-                        HEALPixFreqCell::new(*cell, self.freq, f_order)
+                    let hpx_f_cell = HEALPixFreqCell::new(*cell, self.freq, f_order);
+
+                    if let Some(moc) = self.moc.as_ref() {
+                        if moc.intersects_cell(&hpx_f_cell) {
+                            Some(hpx_f_cell)
+                        } else if channel == PixelType::RGB8U {
+                            // Rasterizer does not render tiles that are not in the MOC
+                            // This is not a problem for transparency rendered HiPses (FITS or PNG)
+                            // but JPEG tiles do have black when no pixels data is found
+                            // We therefore must draw in black for the tiles outside the HiPS MOC
+                            Some(hpx_f_cell)
+                        } else {
+                            None
+                        }
+                    } else {
+                        Some(hpx_f_cell)
                     }
-                    DataproductType::Cube => {
-                        HEALPixFreqCell::from_f_hash(*cell, self.freq.0 as u64)
-                    }
-                    _ => unreachable!(),
-                };
-
-                if moc.intersects_cell(&hpx_f_cell) {
-                    Some(&cell)
-                } else if channel == PixelType::RGB8U {
-                    // Rasterizer does not render tiles that are not in the MOC
-                    // This is not a problem for transparency rendered HiPses (FITS or PNG)
-                    // but JPEG tiles do have black when no pixels data is found
-                    // We therefore must draw in black for the tiles outside the HiPS MOC
-                    Some(&cell)
-                } else {
-                    None
                 }
-            } else {
-                Some(&cell)
+                DataproductType::Cube => {
+                    let hpx_f_cell = HEALPixFreqCell::from_f_hash(*cell, self.freq.0 as u64);
+                    if let Some(moc) = self.moc.as_ref() {
+                        if moc.intersects_cell(&hpx_f_cell) {
+                            Some(hpx_f_cell)
+                        } else if channel == PixelType::RGB8U {
+                            // Rasterizer does not render tiles that are not in the MOC
+                            // This is not a problem for transparency rendered HiPses (FITS or PNG)
+                            // but JPEG tiles do have black when no pixels data is found
+                            // We therefore must draw in black for the tiles outside the HiPS MOC
+                            Some(hpx_f_cell)
+                        } else {
+                            None
+                        }
+                    } else {
+                        Some(hpx_f_cell)
+                    }
+                }
+                _ => unreachable!(),
             };
 
             if let Some(cell) = cell {
-                let hpx_cell_texture = if self.contains_tile(cell, self.freq) {
-                    self.buffer.get(cell)
+                let hpx_cell_texture = if self.contains_tile(&cell) {
+                    self.buffer.get(&cell)
                 } else if let Some(parent_cell) = self.buffer.get_nearest_parent(cell) {
                     // Check in the spatial parent if the freq data is present
-                    if self.contains_tile(&parent_cell, self.freq) {
+                    if self.contains_tile(&parent_cell) {
                         self.buffer.get(&parent_cell)
                     } else {
                         None
@@ -436,11 +456,12 @@ impl HiPS3D {
                         .extract_2d_slice_texture(self.freq.0 as u16)
                         .unwrap();
 
-                    let uv_1 = TileUVW::new(cell, &hpx_slice_tex);
+                    let uv_1 = TileUVW::new(&cell.hpx, &hpx_slice_tex);
                     let d01e = uv_1[TileCorner::BottomRight].x - uv_1[TileCorner::BottomLeft].x;
                     let d02e = uv_1[TileCorner::TopLeft].y - uv_1[TileCorner::BottomLeft].y;
 
-                    let sub_cells = super::subdivide::subdivide_hpx_cell(cell, num_sub, camera);
+                    let sub_cells =
+                        super::subdivide::subdivide_hpx_cell(&cell.hpx, num_sub, camera);
 
                     let mut pos = Vec::with_capacity(sub_cells.len() * 4);
 
@@ -449,8 +470,8 @@ impl HiPS3D {
                     let tmp = self.idx_vertices.len();
 
                     for sub_cell in sub_cells {
-                        let (i, j) = sub_cell.offset_in_parent(cell);
-                        let nside = (1 << (sub_cell.depth() - cell.depth())) as f32;
+                        let (i, j) = sub_cell.offset_in_parent(&cell.hpx);
+                        let nside = (1 << (sub_cell.depth() - cell.hpx.depth())) as f32;
 
                         for ((lon, lat), (di, dj)) in
                             sub_cell
@@ -643,14 +664,7 @@ impl HiPS3D {
                 let shaderbound = shader.bind(&self.gl);
 
                 shaderbound
-                    .attach_uniform(
-                        "tex",
-                        self.buffer
-                            .get(cell)
-                            .unwrap()
-                            .get_3d_block_from_slice(self.freq.0 as u16)
-                            .unwrap(),
-                    )
+                    .attach_uniform("tex", &self.buffer.get(cell).unwrap().texture)
                     .attach_uniforms_from(&self.buffer)
                     .attach_uniforms_with_params_from(cmap, colormaps)
                     .attach_uniforms_from(color)
@@ -686,19 +700,32 @@ impl HiPS3D {
         Ok(())
     }
 
-    pub fn add_tile<I: Image>(
+    pub fn push_tile_slice<I: Image>(
         &mut self,
-        cell: &HEALPixCell,
+        cell: &HEALPixFreqCell,
+        // the image slice
         image: I,
         time_request: Time,
+        // this slice index inside the cubic cell
         slice_idx: u16,
     ) -> Result<(), JsValue> {
-        self.buffer.push(cell, image, time_request, slice_idx)
+        self.buffer
+            .push_tile_slice(cell, image, time_request, slice_idx)
     }
 
-    pub fn add_allsky(&mut self, allsky: AllskyRequest) -> Result<(), JsValue> {
-        self.buffer.push_allsky(allsky)
+    pub fn push_tile<I: Image>(
+        &mut self,
+        cell: &HEALPixFreqCell,
+        // the image slice
+        cube: I,
+        time_request: Time,
+    ) -> Result<(), JsValue> {
+        self.buffer.push_tile(cell, cube, time_request)
     }
+
+    /*pub fn add_allsky(&mut self, allsky: AllskyRequest) -> Result<(), JsValue> {
+        self.buffer.push_allsky(allsky)
+    }*/
 
     /* Accessors */
     #[inline]

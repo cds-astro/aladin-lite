@@ -26,7 +26,7 @@ use crate::time::Time;
 use crate::Abort;
 use crate::JsValue;
 
-use super::super::binary_heap::{Tile, TileHeap};
+use super::super::tile_heap::{Tile, TileHeap};
 use crate::renderable::hips::HpxTileBuffer;
 // Fixed sized binary heap
 pub struct HiPS2DBuffer {
@@ -152,14 +152,6 @@ impl HiPS2DBuffer {
         }
     }
 
-    fn is_heap_full(&self) -> bool {
-        // Check that there are no more than num_textures
-        // textures in the buffer
-        let num_textures_heap = self.heap.len();
-
-        num_textures_heap == self.size
-    }
-
     // Update the priority of the texture containing the tile
     // It must be ensured that the tile is already contained in the buffer
     pub fn update_priority(&mut self, cell: &HEALPixCell /*, new_fov_cell: bool*/) {
@@ -233,7 +225,7 @@ impl HiPS2DBuffer {
             if !self.contains_tile(cell) {
                 // The texture is not among the essential ones
                 // (i.e. is not a root texture)
-                let mut texture = if self.is_heap_full() {
+                let mut texture = if self.heap.is_full() {
                     // Pop the oldest requested texture
                     let oldest_texture = self.heap.pop().unwrap_abort();
                     // Ensure this is not a base texture
@@ -323,10 +315,26 @@ impl HiPS2DBuffer {
     pub fn render_allsky(&mut self, flag: bool) {
         self.allsky_rendering = flag;
     }
+
+    // Get the nearest parent tile found in the CPU buffer
+    pub fn get_nearest_parent(&self, cell: &HEALPixCell) -> Option<HEALPixCell> {
+        let mut parent_cell = cell.parent();
+
+        while !self.contains(&parent_cell) && !parent_cell.is_root() {
+            parent_cell = parent_cell.parent();
+        }
+
+        if self.contains(&parent_cell) {
+            Some(parent_cell)
+        } else {
+            None
+        }
+    }
 }
 
 impl HpxTileBuffer for HiPS2DBuffer {
     type T = HpxTex;
+    type C = HEALPixCell;
 
     fn new(gl: &WebGlContext, config: HiPSConfig) -> Result<Self, JsValue> {
         let size = 128 - NUM_HPX_TILES_DEPTH_ZERO;
@@ -429,7 +437,7 @@ impl HpxTileBuffer for HiPS2DBuffer {
 
     // Tell if a texture is available meaning all its sub tiles
     // must have been written for the GPU
-    fn contains(&self, cell: &HEALPixCell) -> bool {
+    fn contains(&self, cell: &Self::C) -> bool {
         if let Some(t) = self.get(cell) {
             t.is_on_gpu()
         } else {
@@ -438,7 +446,7 @@ impl HpxTileBuffer for HiPS2DBuffer {
     }
 
     /// Accessors
-    fn get(&self, cell: &HEALPixCell) -> Option<&Self::T> {
+    fn get(&self, cell: &Self::C) -> Option<&Self::T> {
         if cell.is_root() {
             let HEALPixCell(_, idx) = cell;
             Some(&self.base_textures[*idx as usize])

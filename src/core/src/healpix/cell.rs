@@ -483,6 +483,37 @@ impl Ord for HEALPixCell {
     }
 }
 
+/// A simple object describing a cubic tile of a HiPS3D
+#[derive(Eq, Hash, PartialEq, Clone)]
+pub struct HEALPixFreqCell {
+    pub hpx: HEALPixCell,
+    pub f_hash: u64,
+    pub f_depth: u8,
+}
+
+use crate::math::spectra::Freq;
+use crate::math::spectra::SpectralUnit;
+
+impl HEALPixFreqCell {
+    pub fn new(hpx: HEALPixCell, f: Freq, f_depth: u8) -> Self {
+        let f_hash = f.hash(f_depth);
+
+        Self {
+            hpx,
+            f_hash,
+            f_depth,
+        }
+    }
+
+    pub fn from_f_hash(hpx: HEALPixCell, f_hash: u64) -> Self {
+        Self {
+            hpx,
+            f_hash,
+            f_depth: 16,
+        }
+    }
+}
+
 // Utils
 #[inline(always)]
 pub fn nside2depth(nside: u32) -> u8 {

@@ -472,6 +472,8 @@ export let HiPS = (function () {
         // HiPS Cube special keywords
         self.cubeDepth = properties && properties.hips_cube_depth && +properties.hips_cube_depth;
         self.cubeFirstFrame = properties && properties.hips_cube_firstframe && +properties.hips_cube_firstframe;
+        self.emMin = properties && properties.em_min && +properties.em_min;
+        self.emMax = properties && properties.em_max && +properties.em_max;
 
         // HiPS3D special keywords
         self.hipsOrderFreq = properties && properties.hips_order_freq && +properties.hips_order_freq;
@@ -772,7 +774,11 @@ export let HiPS = (function () {
         this.slice = slice;
 
         if (this.added) {
-            this.view.wasm.setSliceNumber(this.layer, slice);
+            console.log("cubedepth", this.cubeDepth, slice, (slice / this.cubeDepth))
+            let meters = this.emMin + ((slice / this.cubeDepth) * (this.emMax - this.emMin));
+            let freq = 299792458.0 / meters;
+            console.log("freq: ", freq)
+            this.view.wasm.setFreq(this.layer, freq);
         }
     }
 
@@ -1005,6 +1011,8 @@ export let HiPS = (function () {
                 hipsInitialFov: self.initialFov,
                 hipsInitialRa: self.initialRa,
                 hipsInitialDec: self.initialDec,
+                emMin: self.emMin,
+                emMax: self.emMax,
                 // HiPS Cube
                 hipsCubeDepth: self.cubeDepth,
                 // HiPS3D

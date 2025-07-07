@@ -74,7 +74,7 @@ impl HiPS3DBuffer {
                 cell.clone(),
                 time_request,
                 self.config.tile_size as u16,
-                self.config.tile_depth.unwrap_abort() as u16,
+                self.config.tile_depth.unwrap_or(32) as u16,
                 self.config.get_format().get_pixel_format(),
                 &self.gl,
             )?;
@@ -135,6 +135,21 @@ impl HiPS3DBuffer {
     ) -> bool {
         self.get(cell).is_some_and(|t| t.contains_slice(idx_slice))
     }
+
+    // Get the nearest spatial parent found in the buffer
+    pub fn get_nearest_parent(&self, cell: &HEALPixFreqCell) -> Option<HEALPixFreqCell> {
+        let mut parent_cell = cell.hpx_parent();
+
+        while !self.contains(&parent_cell) && !parent_cell.is_hpx_root() {
+            parent_cell = parent_cell.hpx_parent();
+        }
+
+        if self.contains(&parent_cell) {
+            Some(parent_cell)
+        } else {
+            None
+        }
+    }
 }
 
 impl HpxTileBuffer for HiPS3DBuffer {
@@ -184,11 +199,7 @@ impl HpxTileBuffer for HiPS3DBuffer {
     }
 
     fn contains(&self, cell: &Self::C) -> bool {
-        if let Some(t) = self.get(cell) {
-            t.is_copied_to_gpu
-        } else {
-            false
-        }
+        self.get(cell).is_some()
     }
 
     fn config(&self) -> &HiPSConfig {

@@ -413,9 +413,9 @@ impl WebClient {
         self.app.set_image_hips_color_cfg(layer, meta)
     }
 
-    #[wasm_bindgen(js_name = setSliceNumber)]
-    pub fn set_hips_slice_number(&mut self, layer: String, slice: u32) -> Result<(), JsValue> {
-        self.app.set_hips_slice_number(&layer, slice)
+    #[wasm_bindgen(js_name = setFreq)]
+    pub fn set_hips_frequency(&mut self, layer: String, frequency: f32) -> Result<(), JsValue> {
+        self.app.set_hips_frequency(&layer, frequency)
     }
 
     #[wasm_bindgen(js_name = setBackgroundColor)]

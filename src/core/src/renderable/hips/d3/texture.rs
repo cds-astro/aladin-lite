@@ -545,23 +545,6 @@ impl HpxFreqTex {
         }
     }*/
 
-    pub fn extract_2d_slice_texture(&self, slice: u16) -> Option<HpxTex> {
-        // Find the good sub cube containing the slice
-        let block_idx = (slice >> 5) as usize;
-        let slice_idx = (slice & 0x1f) as u8;
-
-        // check the texture is there
-        if self.slice_idx[block_idx] & (1 << (31 - slice_idx)) != 0 {
-            Some(HpxTex::new(
-                &self.cell.hpx,
-                slice_idx as i32,
-                self.time_request,
-            ))
-        } else {
-            None
-        }
-    }
-
     pub fn append_tile<I: Image>(
         &mut self,
         // the tile image

@@ -9,9 +9,14 @@ use crate::tile_fetcher::TileFetcherQueue;
 use al_api::hips::DataproductType;
 use al_api::hips::ImageExt;
 use al_api::hips::ImageMetadata;
+use al_core::al_print;
 use al_core::colormap::Colormap;
 use al_core::colormap::Colormaps;
+
 use al_core::texture::format::PixelType;
+
+use moclib::qty::Frequency;
+use moclib::qty::MocQty;
 
 use crate::healpix::cell::HEALPixFreqCell;
 
@@ -207,11 +212,19 @@ impl HiPS3D {
                 let s_order = cell.depth();
 
                 let f_order = f_max_order - (s_max_order - s_order);
-                let cell = HEALPixFreqCell::new(*cell, self.freq, f_order);
+                let f_hash = self.freq.hash(f_order);
+                let cell = HEALPixFreqCell::new(*cell, f_hash, f_order);
 
                 query::Tile::new_cubic(&cell, cfg)
             }
-            DataproductType::Cube => query::Tile::new_with_channel(&cell, self.freq.0 as u32, cfg),
+            DataproductType::Cube => {
+                let channel_idx = (((self.freq.0 - cfg.em_min.unwrap_abort().0)
+                    / (cfg.em_max.unwrap_abort().0 - cfg.em_min.unwrap_abort().0))
+                    * (cfg.get_cube_depth().unwrap_abort() as f64))
+                    as u32;
+
+                query::Tile::new_with_channel(&cell, channel_idx, cfg)
+            }
             _ => unreachable!(),
         }
     }
@@ -233,13 +246,24 @@ impl HiPS3D {
         match cfg.dataproduct_type {
             DataproductType::Cube => {
                 // Usual tile fetching heuristic similar to HiPS2D but with a channel
+                let channel_idx = (((self.freq.0 - cfg.em_min.unwrap_abort().0)
+                    / (cfg.em_max.unwrap_abort().0 - cfg.em_min.unwrap_abort().0))
+                    * (cfg.get_cube_depth().unwrap_abort() as f64))
+                    as u64;
+                let tile_depth = 32;
+
                 let tiles_iter = camera
                     .get_hpx_cells(depth_tile, survey_frame)
                     .into_iter()
                     .filter(|tile_cell| {
                         if let Some(moc) = self.moc.as_ref() {
                             // TODO: Check this part of code, the moc is only spatial so it should intersect whatever f hash you give
-                            let cell = HEALPixFreqCell::from_f_hash(*tile_cell, self.freq.0 as u64);
+                            let f_hash = channel_idx / tile_depth;
+                            let cell = HEALPixFreqCell::new(
+                                *tile_cell,
+                                f_hash,
+                                Frequency::<u64>::MAX_DEPTH,
+                            );
                             moc.intersects_cell(&cell)
                         } else {
                             true
@@ -252,7 +276,7 @@ impl HiPS3D {
                 for tile_cell in tiles_iter {
                     tile_fetcher.append(query::Tile::new_with_channel(
                         &tile_cell,
-                        self.freq.0 as u32,
+                        channel_idx as u32,
                         cfg,
                     ));
 
@@ -270,7 +294,7 @@ impl HiPS3D {
                 for ancestor in ancestors {
                     tile_fetcher.append(query::Tile::new_with_channel(
                         &ancestor,
-                        self.freq.0 as u32,
+                        channel_idx as u32,
                         cfg,
                     ));
                 }
@@ -288,7 +312,8 @@ impl HiPS3D {
                     .get_hpx_cells(depth_tile, survey_frame)
                     .into_iter()
                     .filter_map(|tile_cell| {
-                        let cell = HEALPixFreqCell::new(tile_cell, self.freq, f_order);
+                        let f_hash = self.freq.hash(f_order);
+                        let cell = HEALPixFreqCell::new(tile_cell, f_hash, f_order);
 
                         if let Some(moc) = self.moc.as_ref() {
                             if moc.intersects_cell(&cell) {
@@ -383,8 +408,9 @@ impl HiPS3D {
                     let s_order = cell.depth();
 
                     let f_order = f_max_order - (s_max_order - s_order);
+                    let f_hash = self.freq.hash(f_order);
 
-                    let hpx_f_cell = HEALPixFreqCell::new(*cell, self.freq, f_order);
+                    let hpx_f_cell = HEALPixFreqCell::new(*cell, f_hash, f_order);
 
                     if let Some(moc) = self.moc.as_ref() {
                         if moc.intersects_cell(&hpx_f_cell) {
@@ -403,7 +429,26 @@ impl HiPS3D {
                     }
                 }
                 DataproductType::Cube => {
-                    let hpx_f_cell = HEALPixFreqCell::from_f_hash(*cell, self.freq.0 as u64);
+                    /*al_core::log(&format!(
+                        "{:?}, {:?} {:?} {:?}",
+                        self.freq.0,
+                        self.get_config().em_min,
+                        self.get_config().em_max,
+                        self.get_config().get_cube_depth(),
+                    ));*/
+
+                    let channel_idx = (((self.freq.0 - self.get_config().em_min.unwrap_abort().0)
+                        / (self.get_config().em_max.unwrap_abort().0
+                            - self.get_config().em_min.unwrap_abort().0))
+                        * (self.get_config().get_cube_depth().unwrap_abort() as f64))
+                        as u64;
+
+                    let tile_depth = 32;
+
+                    let f_hash = channel_idx / tile_depth;
+
+                    let hpx_f_cell =
+                        HEALPixFreqCell::new(*cell, f_hash, Frequency::<u64>::MAX_DEPTH);
                     if let Some(moc) = self.moc.as_ref() {
                         if moc.intersects_cell(&hpx_f_cell) {
                             Some(hpx_f_cell)
@@ -426,7 +471,7 @@ impl HiPS3D {
             if let Some(cell) = cell {
                 let hpx_cell_texture = if self.contains_tile(&cell) {
                     self.buffer.get(&cell)
-                } else if let Some(parent_cell) = self.buffer.get_nearest_parent(cell) {
+                } else if let Some(parent_cell) = self.buffer.get_nearest_parent(&cell) {
                     // Check in the spatial parent if the freq data is present
                     if self.contains_tile(&parent_cell) {
                         self.buffer.get(&parent_cell)
@@ -450,13 +495,36 @@ impl HiPS3D {
                 };
 
                 if let Some(texture) = hpx_cell_texture {
-                    self.cells.push(texture.cell);
+                    self.cells.push(texture.cell.clone());
                     // The slice is sure to be contained so we can unwrap
-                    let hpx_slice_tex = texture
-                        .extract_2d_slice_texture(self.freq.0 as u16)
-                        .unwrap();
+                    let slice_position = match self.get_config().dataproduct_type {
+                        DataproductType::SpectralCube => {
+                            let f_hash_0 = texture.cell.f_hash
+                                << (Frequency::<u64>::MAX_DEPTH - texture.cell.f_depth);
+                            let f_hash_1 = (texture.cell.f_hash + 1)
+                                << (Frequency::<u64>::MAX_DEPTH - texture.cell.f_depth);
 
-                    let uv_1 = TileUVW::new(&cell.hpx, &hpx_slice_tex);
+                            let f_hash = Frequency::<u64>::freq2hash(self.freq.0);
+
+                            (f_hash - f_hash_0) as f32 / (f_hash_1 - f_hash_0) as f32
+                        }
+                        DataproductType::Cube => {
+                            let channel_idx = (((self.freq.0
+                                - self.get_config().em_min.unwrap_abort().0)
+                                / (self.get_config().em_max.unwrap_abort().0
+                                    - self.get_config().em_min.unwrap_abort().0))
+                                * (self.get_config().get_cube_depth().unwrap_abort() as f64))
+                                as u64;
+                            let tile_depth = 32;
+
+                            ((channel_idx % tile_depth) as f32) / (tile_depth as f32 - 1.0)
+                        }
+                        _ => unreachable!(),
+                    };
+
+                    al_core::log(&format!("{:?}, {:?}", slice_position, texture.cell));
+
+                    let uv_1 = TileUVW::new(&cell.hpx, &Some(texture.cell.hpx), slice_position);
                     let d01e = uv_1[TileCorner::BottomRight].x - uv_1[TileCorner::BottomLeft].x;
                     let d02e = uv_1[TileCorner::TopLeft].y - uv_1[TileCorner::BottomLeft].y;
 
@@ -664,7 +732,7 @@ impl HiPS3D {
                 let shaderbound = shader.bind(&self.gl);
 
                 shaderbound
-                    .attach_uniform("tex", &self.buffer.get(cell).unwrap().texture)
+                    .attach_uniform("tex", &self.buffer.get(cell).unwrap_abort().texture)
                     .attach_uniforms_from(&self.buffer)
                     .attach_uniforms_with_params_from(cmap, colormaps)
                     .attach_uniforms_from(color)

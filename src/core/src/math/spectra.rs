@@ -23,7 +23,7 @@ impl Freq {
 
 /// Wavelength in meter unit
 #[derive(Clone, Copy)]
-pub struct Wavelength(f64);
+pub struct Wavelength(pub f64);
 
 /// Velocity in meter/sec unit
 #[derive(Clone, Copy)]

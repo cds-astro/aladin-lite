@@ -1,9 +1,9 @@
 use al_api::hips::{DataproductType, ImageExt};
 
+use crate::math::spectra::Freq;
 use al_core::image::format::ImageFormatType;
 use al_core::texture::format::PixelType;
 use web_sys::{RequestCredentials, RequestMode};
-
 #[derive(Debug)]
 pub struct HiPSConfig {
     pub root_url: String,
@@ -14,14 +14,19 @@ pub struct HiPSConfig {
     pub tile_size: i32,
 
     // Number of slices for HiPS cubes
-    cube_depth: Option<u32>,
+    pub cube_depth: Option<u32>,
 
-    // Max depth of the current HiPS tiles
+    /// Max depth of the current HiPS tiles
     pub max_depth_tile: u8,
-    // Min depth of the current HiPS tiles
+    /// Min depth of the current HiPS tiles
     min_depth_tile: u8,
-    // For HiPS3D
+    /// Max depth in the frequency axis (HiPS3D only)
     pub max_depth_freq: Option<u8>,
+
+    /// Start of spectral coordinates (in meters)
+    pub em_min: Option<Freq>,
+    /// End of spectral coordinates (in meters)
+    pub em_max: Option<Freq>,
 
     // For HiPS3D
     pub tile_depth: Option<u8>,
@@ -41,7 +46,7 @@ pub struct HiPSConfig {
     pub request_mode: RequestMode,
 }
 
-use crate::HiPSProperties;
+use crate::{math::spectra::Wavelength, HiPSProperties};
 use al_api::coo_system::CooSystem;
 use wasm_bindgen::JsValue;
 
@@ -130,6 +135,13 @@ impl HiPSConfig {
         let max_depth_freq = properties.get_hips_order_freq();
         let tile_depth = properties.get_hips_tile_depth();
 
+        let em_min: Option<Freq> = properties
+            .get_em_max()
+            .map(|lambda| Wavelength(lambda as f64).into());
+        let em_max: Option<Freq> = properties
+            .get_em_min()
+            .map(|lambda| Wavelength(lambda as f64).into());
+
         let hips_config = HiPSConfig {
             creator_did,
             // HiPS name
@@ -141,6 +153,9 @@ impl HiPSConfig {
 
             // HiPSCube
             cube_depth,
+
+            em_min,
+            em_max,
 
             // HiPS3D
             tile_depth,
@@ -206,6 +221,7 @@ impl HiPSConfig {
         self.root_url = root_url;
     }
 
+    #[inline(always)]
     pub fn get_cube_depth(&self) -> Option<u32> {
         self.cube_depth
     }

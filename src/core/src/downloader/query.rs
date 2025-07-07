@@ -53,6 +53,14 @@ impl CellDesc {
             } => (*tile_size, *tile_size, *tile_depth),
         }
     }
+
+    pub fn get_hpx(&self) -> &HEALPixCell {
+        match self {
+            Self::HiPS2D { cell, .. } => cell,
+            Self::HiPS3D { cell, .. } => &cell.hpx,
+            Self::HiPSCube { cell, .. } => cell,
+        }
+    }
 }
 
 #[derive(Eq, PartialEq, Clone)]

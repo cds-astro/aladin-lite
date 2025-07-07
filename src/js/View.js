@@ -1376,8 +1376,6 @@ export let View = (function () {
             this.drawAllOverlays();
         }
         this.needRedraw = false;
-
-        //this.then = now % View.FPS_INTERVAL;
     };
 
     View.prototype.drawAllOverlays = function () {

@@ -55,6 +55,11 @@ pub struct HiPSProperties {
     hips_order_freq: Option<u8>,
     hips_tile_depth: Option<u8>,
 
+    /// Start of spectral coordinates (in meters)
+    em_min: Option<f32>,
+    /// End of spectral coordinates (in meters)
+    em_max: Option<f32>,
+
     // Parametrable by the user
     #[allow(unused)]
     min_cutout: Option<f32>,
@@ -157,6 +162,16 @@ impl HiPSProperties {
     #[inline(always)]
     pub fn get_request_mode(&self) -> &str {
         &self.request_mode
+    }
+
+    #[inline(always)]
+    pub fn get_em_min(&self) -> Option<f32> {
+        self.em_min
+    }
+
+    #[inline(always)]
+    pub fn get_em_max(&self) -> Option<f32> {
+        self.em_max
     }
 }
 

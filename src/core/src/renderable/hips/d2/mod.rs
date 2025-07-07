@@ -69,8 +69,16 @@ impl<'a> HpxDrawData<'a> {
         ending_texture: &HpxTex,
         cell: &'a HEALPixCell,
     ) -> Self {
-        let uv_0 = TileUVW::new(cell, starting_texture);
-        let uv_1 = TileUVW::new(cell, ending_texture);
+        let uv_0 = TileUVW::new(
+            cell,
+            &Some(starting_texture.cell),
+            starting_texture.idx() as f32,
+        );
+        let uv_1 = TileUVW::new(
+            cell,
+            &Some(ending_texture.cell),
+            ending_texture.idx() as f32,
+        );
         let start_time = ending_texture.start_time.unwrap_or(Time::now()).as_millis();
 
         Self {

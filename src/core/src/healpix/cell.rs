@@ -484,7 +484,7 @@ impl Ord for HEALPixCell {
 }
 
 /// A simple object describing a cubic tile of a HiPS3D
-#[derive(Eq, Hash, PartialEq, Clone)]
+#[derive(Eq, Hash, PartialEq, Clone, Debug)]
 pub struct HEALPixFreqCell {
     pub hpx: HEALPixCell,
     pub f_hash: u64,
@@ -495,9 +495,7 @@ use crate::math::spectra::Freq;
 use crate::math::spectra::SpectralUnit;
 
 impl HEALPixFreqCell {
-    pub fn new(hpx: HEALPixCell, f: Freq, f_depth: u8) -> Self {
-        let f_hash = f.hash(f_depth);
-
+    pub fn new(hpx: HEALPixCell, f_hash: u64, f_depth: u8) -> Self {
         Self {
             hpx,
             f_hash,
@@ -505,12 +503,16 @@ impl HEALPixFreqCell {
         }
     }
 
-    pub fn from_f_hash(hpx: HEALPixCell, f_hash: u64) -> Self {
+    pub fn hpx_parent(&self) -> Self {
         Self {
-            hpx,
-            f_hash,
-            f_depth: 16,
+            hpx: self.hpx.parent(),
+            f_hash: self.f_hash,
+            f_depth: self.f_depth,
         }
+    }
+
+    pub fn is_hpx_root(&self) -> bool {
+        self.hpx.is_root()
     }
 }
 

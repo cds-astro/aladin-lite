@@ -12,7 +12,7 @@ uniform float opacity;
 #include ../hips/color.glsl;
 
 void main() {
-    vec3 uv = vec3(frag_uv.xy, mod(frag_uv.z, 32.0) / 32.0);
+    vec3 uv = vec3(frag_uv.xyz);
     vec4 color = uvw2cmap_rgba(uv);
 
     out_frag_color = color;

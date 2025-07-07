@@ -31,6 +31,7 @@ use al_core::image::ImageType;
 use al_core::texture::format::PixelType;
 use al_core::texture::format::RGBA8U;
 use fitsrs::WCS;
+use moclib::qty::{Frequency, MocQty};
 use std::hint::unreachable_unchecked;
 use std::io::Cursor;
 
@@ -572,12 +573,14 @@ impl App {
 
                         if cfg.get_format() == tile.format {
                             let fov_coverage = self.camera.get_cov(cfg.get_frame());
-                            let included_in_coverage = fov_coverage.intersects_cell(&tile.cell);
+                            let hpx_cell = tile.cell.get_hpx();
+
+                            let included_in_coverage = fov_coverage.intersects_cell(&hpx_cell);
 
                             //let is_tile_root = tile.cell().depth() == delta_depth;
                             //let _depth = tile.cell().depth();
                             // do not perform tex_sub costly GPU calls while the camera is zooming
-                            if tile.cell.is_root() || included_in_coverage {
+                            if hpx_cell.is_root() || included_in_coverage {
                                 let image = tile.request.get_data().clone();
 
                                 // 1. For FITS tiles, parse the bscale/bzero and optional blank
@@ -586,7 +589,7 @@ impl App {
                                 if let Some(ImageType::FitsRawBytes {
                                     raw_bytes: raw_bytes_buf,
                                     ..
-                                }) = &*image.clone().borrow()
+                                }) = &*image.borrow()
                                 {
                                     // check if the metadata has not been set
                                     if hips.get_fits_params().is_none() {
@@ -630,7 +633,11 @@ impl App {
                                             let f_hash = (*channel / 32) as u64;
                                             let slice_idx = (*channel % 32) as u16;
 
-                                            let cell = HEALPixFreqCell::from_f_hash(*cell, f_hash);
+                                            let cell = HEALPixFreqCell::new(
+                                                *cell,
+                                                f_hash,
+                                                Frequency::<u64>::MAX_DEPTH,
+                                            );
                                             hips.push_tile_slice(
                                                 &cell,
                                                 img,
@@ -1110,7 +1117,11 @@ impl App {
         self.layers.get_layer_cfg(layer)
     }
 
-    pub(crate) fn set_hips_slice_number(&mut self, layer: &str, slice: u32) -> Result<(), JsValue> {
+    pub(crate) fn set_hips_frequency(
+        &mut self,
+        layer: &str,
+        frequency: f32,
+    ) -> Result<(), JsValue> {
         let hips = self
             .layers
             .get_mut_hips_from_layer(layer)
@@ -1121,7 +1132,7 @@ impl App {
         match hips {
             HiPS::D2(_) => Err(JsValue::from_str("layer do not refers to a cube")),
             HiPS::D3(hips) => {
-                hips.set_freq(Freq(slice as f64));
+                hips.set_freq(Freq(frequency as f64));
 
                 Ok(())
             }

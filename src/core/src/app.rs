@@ -27,6 +27,7 @@ use crate::{
 use al_api::moc::MOCOptions;
 use al_core::image::canvas::Canvas;
 use al_core::image::fits::FitsImage;
+use al_core::image::html::HTMLImage;
 use al_core::image::ImageType;
 use al_core::texture::format::PixelType;
 use al_core::texture::format::RGBA8U;
@@ -38,7 +39,7 @@ use std::io::Cursor;
 use wasm_bindgen::prelude::*;
 
 use al_core::colormap::{Colormap, Colormaps};
-use al_core::WebGlContext;
+use al_core::{al_print, WebGlContext};
 
 use super::coosys;
 use al_api::{
@@ -655,7 +656,12 @@ impl App {
                                         ) => {
                                             // TODO PNG/JPG case to handle here
                                             match img {
-                                                ImageType::HTMLImageRgba8u { image } => {
+                                                ImageType::HTMLImageRgba8u {
+                                                    image: HTMLImage { image, .. },
+                                                }
+                                                | ImageType::HTMLImageRgb8u {
+                                                    image: HTMLImage { image, .. },
+                                                } => {
                                                     // Cut the png in several tile images. See page 3 of
                                                     // https://aladin.cds.unistra.fr/java/DocTechHiPS3D.pdf
                                                     let num_cols =
@@ -690,7 +696,7 @@ impl App {
                                                             let dw = *tile_size as f64;
                                                             let dh = *tile_size as f64;
 
-                                                            context.draw_image_with_html_image_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(image.element(), sx, sy, sw, sh, dx, dy, dw, dh)?;
+                                                            context.draw_image_with_html_image_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(image, sx, sy, sw, sh, dx, dy, dw, dh)?;
 
                                                             let slice_img = ImageType::Canvas {
                                                                 canvas: Canvas::<RGBA8U>::new(

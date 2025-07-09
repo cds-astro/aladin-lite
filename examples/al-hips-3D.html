@@ -30,13 +30,20 @@
             }
         );
 
-        hips = aladin.newImageSurvey("https://alasky.cds.unistra.fr/GALFAHI/GALFAHI-Narrow-DR2");
+        hips = aladin.newImageSurvey("https://alasky.cds.unistra.fr/GALFAHI/GALFAHI-Narrow-DR2-3D");
         aladin.setImageLayer(hips)
 
-        setTimeout(() => {
-            hips.setSliceNumber(100)
+        let i = 0;
+        setInterval(() => {
+            let emMin = hips.emMin
+            let emMax = hips.emMax
+            let delta = (emMax - emMin) / 100;
 
-        }, 1000)
+            //hips.setFrequency({value: emMin + delta * i, unit: "m"})
+            hips.setFrequency({value: 0.21107012, unit: "m"})
+
+            i = (i + 1) % 100;
+        }, 200)
 
         /*let id;
         aladin.on("zoomChanged", () => {

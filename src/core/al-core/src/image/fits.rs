@@ -71,12 +71,12 @@ impl<'a> FitsImage<'a> {
                         let trim2 = parse_keyword_as_number(header, "TRIM2").unwrap_or(0.0) as u32;
                         let trim3 = parse_keyword_as_number(header, "TRIM3").unwrap_or(0.0) as u32;
 
+                        let bitpix = hdu.get_header().get_xtension().get_bitpix();
+
                         let off = hdu.get_data_unit_byte_offset() as usize;
                         let len = hdu.get_data_unit_byte_size() as usize;
 
                         let raw_bytes = &bytes[off..(off + len)];
-
-                        let bitpix = hdu.get_header().get_xtension().get_bitpix();
 
                         let wcs = hdu.wcs().ok();
 
@@ -117,6 +117,10 @@ impl Image for FitsImage<'_> {
         // An offset to write the image in the texture array
         offset: &Vector3<i32>,
     ) -> Result<(), JsValue> {
+        crate::log(&format!(
+            "{0}, {1}, {2}",
+            self.width, self.height, self.depth
+        ));
         let view = unsafe { R8U::view(self.raw_bytes) };
         textures.tex_sub_image_3d_with_opt_array_buffer_view(
             offset.x + self.trim1 as i32,

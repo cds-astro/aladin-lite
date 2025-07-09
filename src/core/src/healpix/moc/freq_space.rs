@@ -63,6 +63,10 @@ impl FreqSpaceMoc {
             //MocIdxType::U16(MocQtyType::<u16, _>::FreqHpx(moc)) => Ok(from_fits_hpx(moc)),
             //MocIdxType::U32(MocQtyType::<u32, _>::FreqHpx(moc)) => Ok(from_fits_hpx(moc)),
             MocIdxType::U64(MocQtyType::<u64, _>::FreqHpx(ranges_iter)) => {
+                /*al_core::log(&format!(
+                    "ranges moc 2D iter from fits {:?}",
+
+                ));*/
                 let moc_2d_ranges = Moc2DRanges::from_ranges_it(ranges_iter);
                 let inner = moclib::hpxranges2d::HpxRanges2D(moc_2d_ranges);
                 Ok(inner)
@@ -150,13 +154,25 @@ impl FreqSpaceMoc {
             hpx,
             f_hash,
             f_depth,
-        } = cell;
-        let hpx_ranges_2d = HpxRanges2D::create_from_freq_positions(
-            vec![*f_hash],
+        } = *cell;
+
+        let f_hash_0 = f_hash << (Frequency::<u64>::MAX_DEPTH - f_depth);
+        let f_hash_1 = (f_hash + 1) << (Frequency::<u64>::MAX_DEPTH - f_depth);
+
+        //let f0 = Frequency::<u64>::hash2freq(5171582628058365952);
+        //let f1 = Frequency::<u64>::hash2freq(5171590187200806912);
+        //al_core::log(&format!("F1: {f0}"));
+
+        let hpx_ranges_2d = HpxRanges2D::create_from_freq_ranges_positions(
+            vec![f_hash_0..f_hash_1],
             vec![hpx.idx()],
-            *f_depth,
+            Frequency::<u64>::MAX_DEPTH,
             hpx.depth(),
         );
+
+        //al_core::log(&format!("my moc: {:?}", self.0));
+
+        //al_core::log(&format!("cell moc: {:?}", hpx_ranges_2d));
 
         !self.0.intersection(&hpx_ranges_2d).is_empty()
     }

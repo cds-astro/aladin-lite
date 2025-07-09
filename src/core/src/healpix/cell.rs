@@ -511,6 +511,14 @@ impl HEALPixFreqCell {
         }
     }
 
+    pub fn parent(&self) -> Self {
+        Self {
+            hpx: self.hpx.parent(),
+            f_hash: self.f_hash >> 1,
+            f_depth: self.f_depth - 1,
+        }
+    }
+
     pub fn is_hpx_root(&self) -> bool {
         self.hpx.is_root()
     }

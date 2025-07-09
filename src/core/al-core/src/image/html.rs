@@ -1,7 +1,7 @@
 /* ------------------------------------------------------ */
 #[derive(Debug)]
 pub struct HTMLImage<F> {
-    image: web_sys::HtmlImageElement,
+    pub image: web_sys::HtmlImageElement,
     format: std::marker::PhantomData<F>,
 }
 

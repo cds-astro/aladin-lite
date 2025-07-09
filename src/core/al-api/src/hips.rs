@@ -189,6 +189,7 @@ pub enum ImageExt {
 #[wasm_bindgen]
 #[serde(rename_all = "camelCase")]
 pub enum DataproductType {
+    #[serde(rename = "spectral-cube")]
     SpectralCube,
     Image,
     Cube,

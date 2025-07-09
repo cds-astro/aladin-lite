@@ -131,7 +131,7 @@ impl HiPS3D {
     pub fn new(config: HiPSConfig, gl: &WebGlContext) -> Result<Self, JsValue> {
         let mut vao = VertexArrayObject::new(gl);
 
-        let freq = Freq(0.0);
+        let freq = config.em_min.unwrap_abort();
 
         let num_indices = vec![];
         // layout (location = 0) in vec2 lonlat;
@@ -313,13 +313,20 @@ impl HiPS3D {
                     .into_iter()
                     .filter_map(|tile_cell| {
                         let f_hash = self.freq.hash(f_order);
+                        //al_core::log(&format!("{:?}", (tile_cell, f_hash, f_order, self.freq)));
                         let cell = HEALPixFreqCell::new(tile_cell, f_hash, f_order);
 
-                        if let Some(moc) = self.moc.as_ref() {
+                        if self.contains_tile(&cell) {
+                            None
+                        } else if let Some(moc) = self.moc.as_ref() {
                             if moc.intersects_cell(&cell) {
+                                //al_core::log("not included in the moc");
+
                                 Some(cell)
                             } else {
-                                None
+                                //None
+                                // FIXME ME READ THE MOC
+                                Some(cell)
                             }
                         } else {
                             Some(cell)
@@ -422,7 +429,9 @@ impl HiPS3D {
                             // We therefore must draw in black for the tiles outside the HiPS MOC
                             Some(hpx_f_cell)
                         } else {
-                            None
+                            //None
+                            // FIXME SFMOC parsing
+                            Some(hpx_f_cell)
                         }
                     } else {
                         Some(hpx_f_cell)
@@ -521,8 +530,6 @@ impl HiPS3D {
                         }
                         _ => unreachable!(),
                     };
-
-                    al_core::log(&format!("{:?}, {:?}", slice_position, texture.cell));
 
                     let uv_1 = TileUVW::new(&cell.hpx, &Some(texture.cell.hpx), slice_position);
                     let d01e = uv_1[TileCorner::BottomRight].x - uv_1[TileCorner::BottomLeft].x;

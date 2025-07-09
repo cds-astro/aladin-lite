@@ -138,10 +138,10 @@ impl HiPS3DBuffer {
 
     // Get the nearest spatial parent found in the buffer
     pub fn get_nearest_parent(&self, cell: &HEALPixFreqCell) -> Option<HEALPixFreqCell> {
-        let mut parent_cell = cell.hpx_parent();
+        let mut parent_cell = cell.parent();
 
         while !self.contains(&parent_cell) && !parent_cell.is_hpx_root() {
-            parent_cell = parent_cell.hpx_parent();
+            parent_cell = parent_cell.parent();
         }
 
         if self.contains(&parent_cell) {

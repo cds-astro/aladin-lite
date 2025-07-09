@@ -475,6 +475,12 @@ export let HiPS = (function () {
         self.emMin = properties && properties.em_min && +properties.em_min;
         self.emMax = properties && properties.em_max && +properties.em_max;
 
+        if (self.emMax < self.emMin) {
+            let tmp = self.emMin;
+            self.emMin = self.emMax;
+            self.emMax = tmp;
+        }
+
         // HiPS3D special keywords
         self.hipsOrderFreq = properties && properties.hips_order_freq && +properties.hips_order_freq;
         self.hipsTileDepth = properties && properties.hips_tile_depth && +properties.hips_tile_depth;
@@ -776,7 +782,46 @@ export let HiPS = (function () {
         if (this.added) {
             console.log("cubedepth", this.cubeDepth, slice, (slice / this.cubeDepth))
             let meters = this.emMin + ((slice / this.cubeDepth) * (this.emMax - this.emMin));
+
             let freq = 299792458.0 / meters;
+            console.log("freq: ", freq)
+            this.view.wasm.setFreq(this.layer, freq);
+        }
+    }
+
+    /**
+     * Set the frequency to look at (for HiPS3D object only).
+     *
+     * @memberof HiPS
+     *
+     * @param {Object} [options] - frequency object
+     * @param {number} [options.value] = The frequency value expressed in `options.unit`
+     * @param {"Hz"|"m"|"m/s"} [options.unit="Hz"] - The unit of the frequency passed
+     * @param {number} [options.restFreq] - "The rest frequency (in Hz) to use for computing the velocity in m.s-1"
+     */
+    HiPS.prototype.setFrequency = function(options) {
+        if (this.added) {
+            const SPEED_OF_LIGHT = 299792458.0;
+
+            const value = options && options.value;
+            const unit = options && options.unit;
+
+            let freq;
+            if (unit === "m") {
+                freq = SPEED_OF_LIGHT / value;
+            } else if (unit === "m/s") {
+                // A velocity is given in "m/s"
+                const restFreq = options && options.restFreq;
+                if (!restFreq) {
+                    throw 'When giving a velocity, a rest frequency must be given as well for computing the frequency to query the HiPS'
+                }
+
+                freq = restFreq * (1.0 - value / SPEED_OF_LIGHT)
+            } else {
+                // unit is "Hz"
+                freq = value;
+            }
+
             console.log("freq: ", freq)
             this.view.wasm.setFreq(this.layer, freq);
         }

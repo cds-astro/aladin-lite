@@ -178,7 +178,7 @@ impl HpxTileBuffer for HiPS3DBuffer {
     fn new(gl: &WebGlContext, config: HiPSConfig) -> Result<Self, JsValue> {
         let textures = HashMap::new();
         // Limit the number of cached cubes to 256 so approx 256 MB
-        let heap = TileHeap::with_capacity(256);
+        let heap = TileHeap::with_capacity(1024);
 
         let available_tiles_during_frame = false;
 

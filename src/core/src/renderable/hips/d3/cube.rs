@@ -101,16 +101,17 @@ impl HiPS3DBuffer {
         let texture = self.textures.get_mut(cell).unwrap_abort();
 
         // And copy the image in that cubic tile
-        texture.append_tile_slice(image, slice_idx, &self.config, &self.gl)?;
+        texture.append_tile_slice(image, slice_idx)?;
         self.available_tiles_during_frame = true;
 
         Ok(())
     }
 
-    pub fn push_tile<I: Image>(
+    pub fn push_tile_from_fits(
         &mut self,
         cell: &HEALPixFreqCell,
-        image: I,
+        raw_bytes: js_sys::Uint8Array,
+        size: (u32, u32, u32),
         time_request: Time,
     ) -> Result<(), JsValue> {
         self.push_cell(cell, time_request)?;
@@ -118,7 +119,25 @@ impl HiPS3DBuffer {
         let texture = self.textures.get_mut(cell).unwrap_abort();
 
         // And copy the image in that cubic tile
-        texture.append_tile(image, &self.config, &self.gl)?;
+        texture.set_data_from_fits(raw_bytes, size)?;
+        self.available_tiles_during_frame = true;
+
+        Ok(())
+    }
+
+    pub fn push_tile_from_jpeg(
+        &mut self,
+        cell: &HEALPixFreqCell,
+        decoded_bytes: Box<[u8]>,
+        size: (u32, u32, u32),
+        time_request: Time,
+    ) -> Result<(), JsValue> {
+        self.push_cell(cell, time_request)?;
+
+        let texture = self.textures.get_mut(cell).unwrap_abort();
+
+        // And copy the image in that cubic tile
+        texture.set_data_from_jpeg(decoded_bytes, size)?;
         self.available_tiles_during_frame = true;
 
         Ok(())

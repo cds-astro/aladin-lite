@@ -311,10 +311,10 @@ impl Image for ImageType {
             ImageType::Canvas { canvas } => canvas.insert_into_3d_texture(textures, offset)?,
             ImageType::ImageRgba8u { image } => image.insert_into_3d_texture(textures, offset)?,
             ImageType::ImageRgb8u { image } => image.insert_into_3d_texture(textures, offset)?,
-            ImageType::HTMLImageRgba8u { image } => {
+            ImageType::HTMLImageRgba8u { image, .. } => {
                 image.insert_into_3d_texture(textures, offset)?
             }
-            ImageType::HTMLImageRgb8u { image } => {
+            ImageType::HTMLImageRgb8u { image, .. } => {
                 image.insert_into_3d_texture(textures, offset)?
             }
             ImageType::RawRgb8u { image } => image.insert_into_3d_texture(textures, offset)?,

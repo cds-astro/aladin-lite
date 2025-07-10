@@ -10,11 +10,13 @@ pub struct CellVertices {
 
 const BIT_MASK_ALL_ONE_EXCEPT_FIRST: u32 = !0x1;
 
+use cgmath::BaseFloat;
 use healpix::compass_point::Cardinal;
 use healpix::compass_point::MainWind;
 use healpix::compass_point::Ordinal;
 use healpix::compass_point::OrdinalMap;
 
+use crate::math::lonlat::LonLatT;
 use crate::utils;
 
 impl HEALPixCell {
@@ -495,6 +497,22 @@ use crate::math::spectra::Freq;
 use crate::math::spectra::SpectralUnit;
 
 impl HEALPixFreqCell {
+    pub fn from_lonlat(lonlat: LonLatT<f64>, freq: Freq, s_depth: u8, f_depth: u8) -> Self {
+        let hpx = HEALPixCell::new(
+            s_depth,
+            lonlat.lon().to_radians(),
+            lonlat.lat().to_radians(),
+        );
+
+        let f_hash = freq.hash(f_depth);
+
+        Self {
+            hpx,
+            f_hash,
+            f_depth,
+        }
+    }
+
     pub fn new(hpx: HEALPixCell, f_hash: u64, f_depth: u8) -> Self {
         Self {
             hpx,

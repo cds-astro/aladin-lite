@@ -9,6 +9,7 @@ use fitsrs::WCS;
 use fitsrs::{Fits, HDU};
 use std::fmt::Debug;
 use std::io::Cursor;
+use std::ops::Range;
 use wasm_bindgen::JsValue;
 
 #[derive(Debug)]
@@ -31,6 +32,8 @@ pub struct FitsImage<'a> {
     pub blank: Option<f32>,
     // optional wcs
     pub wcs: Option<WCS>,
+    // bytes offset where the data bytes are located inside the fits
+    pub data_byte_offset: Range<usize>,
     // raw bytes of the data image (in Big-Endian)
     pub raw_bytes: &'a [u8],
 }
@@ -76,7 +79,8 @@ impl<'a> FitsImage<'a> {
                         let off = hdu.get_data_unit_byte_offset() as usize;
                         let len = hdu.get_data_unit_byte_size() as usize;
 
-                        let raw_bytes = &bytes[off..(off + len)];
+                        let data_byte_offset = off..(off + len);
+                        let raw_bytes = &bytes[data_byte_offset.clone()];
 
                         let wcs = hdu.wcs().ok();
 
@@ -92,6 +96,7 @@ impl<'a> FitsImage<'a> {
                             wcs,
                             bzero,
                             blank,
+                            data_byte_offset,
                             raw_bytes,
                         });
                     }
@@ -117,10 +122,6 @@ impl Image for FitsImage<'_> {
         // An offset to write the image in the texture array
         offset: &Vector3<i32>,
     ) -> Result<(), JsValue> {
-        crate::log(&format!(
-            "{0}, {1}, {2}",
-            self.width, self.height, self.depth
-        ));
         let view = unsafe { R8U::view(self.raw_bytes) };
         textures.tex_sub_image_3d_with_opt_array_buffer_view(
             offset.x + self.trim1 as i32,
@@ -136,6 +137,7 @@ impl Image for FitsImage<'_> {
     }
 
     fn get_size(&self) -> (u32, u32, u32) {
+        // The true image size is given by ONAXISi keywords
         (self.width, self.height, self.depth)
     }
 }

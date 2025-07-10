@@ -563,7 +563,7 @@ impl App {
 
         let rscs_received = self.downloader.borrow_mut().get_received_resources();
 
-        //let mut tile_copied = false;
+        let mut tile_copied = false;
 
         for rsc in rscs_received {
             match rsc {
@@ -608,15 +608,6 @@ impl App {
 
                                 // 2. Add the tile to its HiPS
                                 if let Some(img) = &*image.borrow() {
-                                    /*if tile_copied {
-                                        self.downloader
-                                            .borrow_mut()
-                                            .delay(Resource::Tile(tile));
-                                        continue;
-                                    }
-                                    tile_copied = true;
-                                    */
-
                                     // For PNG/JPEG cubic tiles, all the slices are in the lonely image
                                     match (&tile.cell, hips) {
                                         (CellDesc::HiPS2D { cell, tile_size }, HiPS::D2(hips)) => {
@@ -654,6 +645,17 @@ impl App {
                                             },
                                             HiPS::D3(hips),
                                         ) => {
+                                            // As the decoding and copying to the GPU of cubic tile is more costly
+                                            // (not that much but there is more because they are smaller)
+                                            // then we delay their treatment through the frames
+                                            if tile_copied {
+                                                self.downloader
+                                                    .borrow_mut()
+                                                    .delay(RequestType::Tile(tile));
+                                                continue;
+                                            }
+                                            tile_copied = true;
+
                                             // TODO PNG/JPG case to handle here
                                             match img {
                                                 ImageType::HTMLImageRgba8u {
@@ -671,6 +673,11 @@ impl App {
                                                         .ceil()
                                                         as u32;
 
+                                                    let tile_size = *tile_size;
+                                                    let mut decoded_bytes = Vec::with_capacity(
+                                                        (tile_size * tile_size * *tile_depth)
+                                                            as usize,
+                                                    );
                                                     for x in 0..num_rows {
                                                         for y in 0..num_cols {
                                                             let document = web_sys::window()
@@ -680,45 +687,52 @@ impl App {
                                                             let canvas = document
                                                                 .create_element("canvas")?
                                                                 .dyn_into::<web_sys::HtmlCanvasElement>()?;
-                                                            canvas.set_width(*tile_size);
-                                                            canvas.set_height(*tile_size);
+                                                            canvas.set_width(tile_size);
+                                                            canvas.set_height(tile_size);
                                                             let context = canvas
                                                                     .get_context("2d")?
                                                                     .unwrap_abort()
                                                                     .dyn_into::<web_sys::CanvasRenderingContext2d>()?;
 
-                                                            let sx = (y * *tile_size) as f64;
-                                                            let sy = (x * *tile_size) as f64;
-                                                            let sw = *tile_size as f64;
-                                                            let sh = *tile_size as f64;
+                                                            let sx = (y * tile_size) as f64;
+                                                            let sy = (x * tile_size) as f64;
+                                                            let sw = tile_size as f64;
+                                                            let sh = tile_size as f64;
                                                             let dx = 0.0;
                                                             let dy = 0.0;
-                                                            let dw = *tile_size as f64;
-                                                            let dh = *tile_size as f64;
+                                                            let dw = tile_size as f64;
+                                                            let dh = tile_size as f64;
 
                                                             context.draw_image_with_html_image_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(image, sx, sy, sw, sh, dx, dy, dw, dh)?;
 
-                                                            let slice_img = ImageType::Canvas {
-                                                                canvas: Canvas::<RGBA8U>::new(
-                                                                    canvas,
-                                                                ),
-                                                            };
-                                                            let slice_idx = y + x * num_cols;
+                                                            let slice_bytes = context
+                                                                .get_image_data(dx, dy, dw, dh)?
+                                                                .data();
 
-                                                            hips.push_tile_slice(
-                                                                cell,
-                                                                slice_img,
-                                                                tile.request.time_request,
-                                                                slice_idx as u16,
-                                                            )?
+                                                            decoded_bytes.extend(
+                                                                slice_bytes
+                                                                    .0
+                                                                    .chunks(4)
+                                                                    .map(|p| p[0]),
+                                                            );
                                                         }
                                                     }
+
+                                                    hips.push_tile_from_jpeg(
+                                                        cell,
+                                                        decoded_bytes.into_boxed_slice(),
+                                                        (tile_size, tile_size, *tile_depth),
+                                                        tile.request.time_request,
+                                                    )?;
                                                 }
-                                                _ => hips.push_tile(
-                                                    cell,
-                                                    img,
-                                                    tile.request.time_request,
-                                                )?,
+                                                ImageType::FitsRawBytes { raw_bytes, size } => hips
+                                                    .push_tile_from_fits(
+                                                        cell,
+                                                        raw_bytes.clone(),
+                                                        *size,
+                                                        tile.request.time_request,
+                                                    )?,
+                                                _ => unreachable!(),
                                             }
                                         }
                                         _ => unreachable!(),

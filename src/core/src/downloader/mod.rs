@@ -95,18 +95,12 @@ impl Downloader {
         self.queried_list.contains(id)
     }
 
-    /*pub fn delay(&mut self, r: RequestType) {
+    pub fn delay(&mut self, r: RequestType) {
         match r {
-            Resource::Tile(tile) => {
-                let k = format!(
-                    "{:?}{:?}/{:?}",
-                    tile.get_hips_cdid(),
-                    tile.cell.depth(),
-                    tile.cell.idx()
-                );
-                self.cache.insert(k, Resource::Tile(tile));
+            RequestType::Tile(tile) => {
+                self.cache.insert(tile.id.clone(), RequestType::Tile(tile));
             }
             _ => unimplemented!(),
         }
-    }*/
+    }
 }

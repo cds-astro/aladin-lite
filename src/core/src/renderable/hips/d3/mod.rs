@@ -3,7 +3,10 @@ pub mod texture;
 
 use crate::downloader::request::allsky::AllskyRequest;
 use crate::healpix::moc::FreqSpaceMoc;
+use crate::math::angle::ToAngle;
+use crate::math::lonlat::LonLatT;
 use crate::math::spectra::SpectralUnit;
+use crate::LonLat;
 
 use crate::tile_fetcher::TileFetcherQueue;
 use al_api::hips::DataproductType;
@@ -78,18 +81,7 @@ pub fn get_raster_shader<'a>(
             crate::shader::get_shader(gl, shaders, "hips3d_raster.vert", "hips3d_f32.frag")
         }
         // color case
-        _ => {
-            if cmap.label() == "native" {
-                crate::shader::get_shader(gl, shaders, "hips3d_raster.vert", "hips3d_rgba.frag")
-            } else {
-                crate::shader::get_shader(
-                    gl,
-                    shaders,
-                    "hips3d_raster.vert",
-                    "hips3d_rgba2cmap.frag",
-                )
-            }
-        }
+        _ => crate::shader::get_shader(gl, shaders, "hips3d_raster.vert", "hips3d_red.frag"),
     }
 }
 
@@ -122,6 +114,8 @@ pub struct HiPS3D {
     cells: Vec<HEALPixFreqCell>,
     // flag to forcing the mesh to be rebuilt
     move_freq: bool,
+    // The location of the cursor to extract the spectra
+    cursor_location: LonLatT<f64>,
 }
 
 use super::HpxTileBuffer;
@@ -176,6 +170,7 @@ impl HiPS3D {
         let moc = None;
         let hpx_cells_in_view = vec![];
         let move_freq = false;
+        let cursor_location = LonLatT::new(0.0.to_angle(), 0.0.to_angle());
         // request the allsky texture
         Ok(Self {
             // The image survey texture buffer
@@ -198,6 +193,7 @@ impl HiPS3D {
             cells,
             num_indices,
             move_freq,
+            cursor_location,
         })
     }
 
@@ -342,6 +338,29 @@ impl HiPS3D {
             }
             _ => unreachable!(),
         }
+    }
+
+    /// Read the spectra under the cursor location
+    pub fn read_spectra(&self, camera: &CameraViewPort) {
+        // 1. Get the HEALPixFreq cell containing the cursor location
+        let s_order = camera.get_tile_depth();
+        let f_max_order = self.get_config().max_depth_freq.unwrap_abort();
+        let s_max_order = self.get_config().max_depth_tile;
+
+        let f_order = f_max_order - (s_max_order - s_order);
+
+        let cell = HEALPixFreqCell::from_lonlat(self.cursor_location, self.freq, s_order, f_order);
+
+        // 2. Iterate through the cells on the frequency axis at that spatial location to construct the spectra around the (cursor, freq) point
+        let f_hash_min = (cell.f_hash as i64 - 4).max(0) as u64;
+        let f_hash_max = (cell.f_hash + 4)
+            .max(Frequency::<u64>::n_cells_max() >> (Frequency::<u64>::MAX_DEPTH - f_order));
+
+        //(f_hash_min..f_hash_max).map(|f_hash| {})
+    }
+
+    pub fn set_cursor_location(&mut self, lonlat: LonLatT<f64>) {
+        self.cursor_location = lonlat;
     }
 
     pub fn set_freq(&mut self, f: Freq) {
@@ -788,19 +807,29 @@ impl HiPS3D {
             .push_tile_slice(cell, image, time_request, slice_idx)
     }
 
-    pub fn push_tile<I: Image>(
+    pub fn push_tile_from_fits(
         &mut self,
         cell: &HEALPixFreqCell,
         // the image slice
-        cube: I,
+        data: js_sys::Uint8Array,
+        size: (u32, u32, u32),
         time_request: Time,
     ) -> Result<(), JsValue> {
-        self.buffer.push_tile(cell, cube, time_request)
+        self.buffer
+            .push_tile_from_fits(cell, data, size, time_request)
     }
 
-    /*pub fn add_allsky(&mut self, allsky: AllskyRequest) -> Result<(), JsValue> {
-        self.buffer.push_allsky(allsky)
-    }*/
+    pub fn push_tile_from_jpeg(
+        &mut self,
+        cell: &HEALPixFreqCell,
+        // the image slice
+        data: Box<[u8]>,
+        size: (u32, u32, u32),
+        time_request: Time,
+    ) -> Result<(), JsValue> {
+        self.buffer
+            .push_tile_from_jpeg(cell, data, size, time_request)
+    }
 
     /* Accessors */
     #[inline]

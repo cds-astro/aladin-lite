@@ -13,8 +13,19 @@ uniform float reversed;
 #include ../decode.glsl;
 
 /////////////////////////////////////////////
-/// RGBA sampler
+/// RED sampler
+vec4 uvw2c_r(vec3 uv) {    
+    float v = texture(tex, uv).r;
 
+    v = transfer_func(H, v, min_value, max_value);
+
+    // apply reversed
+    v = mix(v, 1.0 - v, reversed);
+
+    return apply_tonal(colormap_f(v));
+}
+
+/// RGBA sampler
 vec4 uvw2c_rgba(vec3 uv) {    
     vec4 c = texture(tex, uv).rgba;
 

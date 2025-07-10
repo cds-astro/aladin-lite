@@ -63,7 +63,7 @@ async fn query_allsky(
 
     let raw_bytes = image_data.data();
 
-    Ok(ImageBuffer::from_raw_bytes(raw_bytes.0, w as i32, h as i32))
+    Ok(ImageBuffer::from_raw_bytes(raw_bytes.0, w, h))
 }
 
 impl From<query::Allsky> for AllskyRequest {
@@ -95,12 +95,18 @@ impl From<query::Allsky> for AllskyRequest {
                             .map(|image| {
                                 let ImageBuffer { data, size } = image;
                                 let data = data
-                                    .into_iter()
+                                    .iter()
                                     .enumerate()
                                     .filter(|&(i, _)| i % 4 != 3)
-                                    .map(|(_, v)| v)
-                                    .collect();
-                                let image = ImageBuffer::new(data, size.x, size.y);
+                                    .map(|(_, v)| *v)
+                                    .collect::<Vec<_>>();
+
+                                let image = ImageBuffer::new(
+                                    data.into_boxed_slice(),
+                                    size.0,
+                                    size.1,
+                                    size.2,
+                                );
 
                                 ImageType::RawRgb8u { image }
                             })
@@ -226,8 +232,11 @@ fn handle_allsky_file<F: TextureFormat>(
 
     let mut src_idx = 0;
     let tiles = (0..12).map(move |_| {
-        let mut base_tile =
-            ImageBuffer::<F>::allocate(&F::P::BLACK, allsky_tile_size, allsky_tile_size);
+        let mut base_tile = ImageBuffer::<F>::allocate(
+            &F::P::BLACK,
+            allsky_tile_size as u32,
+            allsky_tile_size as u32,
+        );
         for idx_tile in 0..64 {
             let (x, y) = crate::utils::unmortonize(idx_tile as u64);
             let dx = x * (d3_tile_allsky_size as u32);
@@ -274,8 +283,14 @@ fn handle_allsky_fits<F: TextureFormat>(
         .rev()
         .flatten()
         .copied()
-        .collect::<Vec<_>>();
-    let image = ImageBuffer::<F>::new(reversed_rows_data, width_allsky_px, height_allsky_px);
+        .collect::<Vec<_>>()
+        .into_boxed_slice();
+    let image = ImageBuffer::<F>::new(
+        reversed_rows_data,
+        width_allsky_px as u32,
+        height_allsky_px as u32,
+        1,
+    );
 
     let allsky_tiles_iter =
         handle_allsky_file::<F>(image, allsky_tile_size, tile_size)?.map(move |image| {
@@ -292,7 +307,12 @@ fn handle_allsky_fits<F: TextureFormat>(
                 .cloned()
                 .collect();
 
-            ImageBuffer::<F>::new(new_image_data, allsky_tile_size, allsky_tile_size)
+            ImageBuffer::<F>::new(
+                new_image_data,
+                allsky_tile_size as u32,
+                allsky_tile_size as u32,
+                1,
+            )
         });
 
     Ok(allsky_tiles_iter)

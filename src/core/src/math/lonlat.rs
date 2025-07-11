@@ -55,6 +55,15 @@ impl From<fitsrs::wcs::LonLat> for LonLatT<f64> {
     }
 }
 
+impl<S: BaseFloat> From<&'_ Vector3<S>> for LonLatT<S> {
+    fn from(v: &'_ Vector3<S>) -> Self {
+        let lon = Rad(v.x.atan2(v.z));
+        let lat = Rad(v.y.atan2((v.x * v.x + v.z * v.z).sqrt()));
+
+        LonLatT::new(Angle::new(lon), Angle::new(lat))
+    }
+}
+
 impl<S> LonLat<S> for LonLatT<S>
 where
     S: BaseFloat,
@@ -98,10 +107,7 @@ where
 
     #[inline]
     fn lonlat(&self) -> LonLatT<S> {
-        let lon = Rad(self.x.atan2(self.z));
-        let lat = Rad(self.y.atan2((self.x * self.x + self.z * self.z).sqrt()));
-
-        LonLatT::new(Angle::new(lon), Angle::new(lat))
+        self.into()
     }
 
     #[inline]

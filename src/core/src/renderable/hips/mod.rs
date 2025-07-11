@@ -124,13 +124,13 @@ impl HiPS {
         }
     }*/
 
-    #[inline]
+    /*#[inline]
     pub fn build_tile_query(&self, cell: &HEALPixCell) -> query::Tile {
         match self {
             HiPS::D2(hips) => hips.build_tile_query(cell),
             HiPS::D3(hips) => hips.build_tile_query(cell),
         }
-    }
+    }*/
 
     pub fn is_allsky(&self) -> bool {
         self.get_config().is_allsky

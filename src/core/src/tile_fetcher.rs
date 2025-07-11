@@ -227,7 +227,7 @@ impl TileFetcherQueue {
             HiPS::D3(_) => (),
         }
 
-        if cfg.get_min_depth_tile() == 0 {
+        /*if cfg.get_min_depth_tile() == 0 {
             for tile_cell in crate::healpix::cell::ALLSKY_HPX_CELLS_D0 {
                 if let Ok(query) = self.check_in_file_list(hips.build_tile_query(tile_cell)) {
                     let dl = downloader.clone();
@@ -240,6 +240,6 @@ impl TileFetcherQueue {
                     );
                 }
             }
-        }
+        }*/
     }
 }

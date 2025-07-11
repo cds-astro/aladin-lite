@@ -107,15 +107,114 @@ pub struct HiPS3D {
 
     pub(crate) fits_params: Option<FitsParams>,
 
-    // The current slice index
-    freq: Freq,
-
     num_indices: Vec<usize>,
     cells: Vec<HEALPixFreqCell>,
     // flag to forcing the mesh to be rebuilt
     move_freq: bool,
     // The location of the cursor to extract the spectra
-    cursor_location: LonLatT<f64>,
+    cursor: Cursor,
+}
+
+struct Cursor {
+    location: LonLatT<f64>,
+    freq: Freq,
+
+    cell: HEALPixFreqCell,
+    s_max_order: u8,
+    f_max_order: u8,
+}
+
+use std::ops::Range;
+impl Cursor {
+    fn new(cfg: &HiPSConfig) -> Self {
+        let freq = cfg.em_min.unwrap_abort();
+        let location = LonLatT::new(0.0.to_angle(), 0.0.to_angle());
+
+        let f_max_order = cfg.max_depth_freq.unwrap_abort();
+        let s_max_order = cfg.max_depth_tile;
+
+        let cell = HEALPixFreqCell::from_lonlat(location, freq, 0, 0);
+
+        Cursor {
+            freq,
+            location,
+            cell,
+            f_max_order,
+            s_max_order,
+        }
+    }
+
+    fn get_dxdy_inside_cell(&self) -> (f64, f64) {
+        let s_depth = self.cell.hpx.depth();
+        let (lon, lat) = (
+            self.location.lon().to_radians(),
+            self.location.lat().to_radians(),
+        );
+        let (cell, dx, dy) = HEALPixCell::hash_with_dxdy(s_depth, lon, lat);
+
+        debug_assert_eq!(cell, self.cell.hpx);
+
+        (dx, dy)
+    }
+
+    fn get_surrounding_f_hashes_along_spectra_axis(&self, tile_depth: u8) -> Range<u64> {
+        const NUM_VALUES: usize = 100;
+
+        let delta_depth = tile_depth.trailing_zeros();
+        let depth_val = self.cell.f_depth + delta_depth as u8;
+        let f_hash_val = self.freq.hash(depth_val);
+
+        let f_hash_val_0 = (f_hash_val as i64 - NUM_VALUES as i64).max(0) as u64;
+        let f_hash_val_1 = (f_hash_val + NUM_VALUES as u64)
+            .min(Frequency::<u64>::n_cells_max() >> (Frequency::<u64>::MAX_DEPTH - depth_val));
+
+        let f_hash_0 = f_hash_val_0 >> delta_depth;
+        let f_hash_1 = f_hash_val_1 >> delta_depth;
+
+        f_hash_0..(f_hash_1 + 1)
+    }
+
+    fn is_contained_in_spectral_view(&self, cell: &HEALPixFreqCell, tile_depth: u8) -> bool {
+        self.get_surrounding_f_hashes_along_spectra_axis(tile_depth)
+            .contains(&cell.f_hash)
+    }
+
+    fn set_location(&mut self, location: LonLatT<f64>, s_order: u8) {
+        self.location = location;
+
+        let f_order = self.f_max_order - (self.s_max_order - s_order);
+
+        self.cell = HEALPixFreqCell::from_lonlat(self.location, self.freq, s_order, f_order);
+    }
+
+    fn set_freq(&mut self, freq: Freq) {
+        self.freq = freq;
+
+        let s_order = self.cell.hpx.depth();
+        let f_order = self.f_max_order - (self.s_max_order - s_order);
+
+        self.cell = HEALPixFreqCell::from_lonlat(self.location, self.freq, s_order, f_order);
+    }
+
+    fn get_surrounding_cells_along_spectra_axis(
+        &self,
+        tile_depth: u8,
+    ) -> impl Iterator<Item = HEALPixFreqCell> + '_ {
+        self.get_surrounding_f_hashes_along_spectra_axis(tile_depth)
+            .map(move |f_hash| {
+                // Do not include the cell containing the location AND containing the frequency because
+                // it will be included when looking for new tiles in the view
+                HEALPixFreqCell {
+                    hpx: self.cell.hpx,
+                    f_hash,
+                    f_depth: self.cell.f_depth,
+                }
+            })
+    }
+
+    fn get_freq(&self) -> Freq {
+        self.freq
+    }
 }
 
 use super::HpxTileBuffer;
@@ -162,6 +261,7 @@ impl HiPS3D {
             )
             .unbind();
 
+        let cursor = Cursor::new(&config);
         let buffer = HiPS3DBuffer::new(gl, config)?;
 
         let cells = vec![];
@@ -170,7 +270,6 @@ impl HiPS3D {
         let moc = None;
         let hpx_cells_in_view = vec![];
         let move_freq = false;
-        let cursor_location = LonLatT::new(0.0.to_angle(), 0.0.to_angle());
         // request the allsky texture
         Ok(Self {
             // The image survey texture buffer
@@ -189,15 +288,14 @@ impl HiPS3D {
             moc,
             hpx_cells_in_view,
 
-            freq,
             cells,
             num_indices,
             move_freq,
-            cursor_location,
+            cursor,
         })
     }
 
-    pub fn build_tile_query(&self, cell: &HEALPixCell) -> query::Tile {
+    /*pub fn build_tile_query(&self, cell: &HEALPixCell) -> query::Tile {
         let cfg = self.get_config();
         match cfg.dataproduct_type {
             DataproductType::SpectralCube => {
@@ -223,13 +321,16 @@ impl HiPS3D {
             }
             _ => unreachable!(),
         }
-    }
+    }*/
 
     pub fn look_for_new_tiles(
         &mut self,
         tile_fetcher: &mut TileFetcherQueue,
         camera: &CameraViewPort,
     ) {
+        // update the cursor center before downloading new tiles
+        self.set_cursor_location(camera.get_center().into(), camera);
+
         // do not add tiles if the view is already at depth 0
         let cfg = self.get_config();
         let depth_tile = camera
@@ -242,7 +343,7 @@ impl HiPS3D {
         match cfg.dataproduct_type {
             DataproductType::Cube => {
                 // Usual tile fetching heuristic similar to HiPS2D but with a channel
-                let channel_idx = (((self.freq.0 - cfg.em_min.unwrap_abort().0)
+                let channel_idx = (((self.cursor.get_freq().0 - cfg.em_min.unwrap_abort().0)
                     / (cfg.em_max.unwrap_abort().0 - cfg.em_min.unwrap_abort().0))
                     * (cfg.get_cube_depth().unwrap_abort() as f64))
                     as u64;
@@ -304,14 +405,30 @@ impl HiPS3D {
 
                 let f_order = f_max_order - (s_max_order - s_order);
 
+                let tile_depth = cfg.tile_depth.unwrap_abort();
+
                 let cubic_tiles_iter = camera
                     .get_hpx_cells(depth_tile, survey_frame)
                     .into_iter()
+                    // query the tiles in the camera view
                     .filter_map(|tile_cell| {
-                        let f_hash = self.freq.hash(f_order);
-                        //al_core::log(&format!("{:?}", (tile_cell, f_hash, f_order, self.freq)));
+                        let f_hash = self.cursor.get_freq().hash(f_order);
+
                         let cell = HEALPixFreqCell::new(tile_cell, f_hash, f_order);
 
+                        if self.cursor.cell == cell {
+                            None
+                        } else {
+                            Some(cell)
+                        }
+                    })
+                    // query the tiles under the cursor as well
+                    .chain(
+                        self.cursor
+                            .get_surrounding_cells_along_spectra_axis(tile_depth),
+                    )
+                    // filter the cubic tiles by the sfmoc
+                    .filter_map(|cell| {
                         if self.contains_tile(&cell) {
                             None
                         } else if let Some(moc) = self.moc.as_ref() {
@@ -329,9 +446,6 @@ impl HiPS3D {
                         }
                     });
 
-                // TODO: construct the cubic tile queries along the lonlat(position) to get the spectra
-                // We take +/- 4 cells around the freq
-
                 for cubic_tile in cubic_tiles_iter {
                     tile_fetcher.append(query::Tile::new_cubic(&cubic_tile, cfg));
                 }
@@ -341,31 +455,59 @@ impl HiPS3D {
     }
 
     /// Read the spectra under the cursor location
-    pub fn read_spectra(&self, camera: &CameraViewPort) {
-        // 1. Get the HEALPixFreq cell containing the cursor location
-        let s_order = camera.get_tile_depth();
-        let f_max_order = self.get_config().max_depth_freq.unwrap_abort();
-        let s_max_order = self.get_config().max_depth_tile;
+    fn compute_spectra_on_cursor(&self) {
+        let (dx, dy) = self.cursor.get_dxdy_inside_cell();
 
-        let f_order = f_max_order - (s_max_order - s_order);
+        let x = (dx * (self.get_config().tile_size as f64)) as u32;
+        let y = (dy * (self.get_config().tile_size as f64)) as u32;
 
-        let cell = HEALPixFreqCell::from_lonlat(self.cursor_location, self.freq, s_order, f_order);
+        let num_f_values_per_cubic_tile = self.get_config().tile_depth.unwrap_abort();
 
-        // 2. Iterate through the cells on the frequency axis at that spatial location to construct the spectra around the (cursor, freq) point
-        let f_hash_min = (cell.f_hash as i64 - 4).max(0) as u64;
-        let f_hash_max = (cell.f_hash + 4)
-            .max(Frequency::<u64>::n_cells_max() >> (Frequency::<u64>::MAX_DEPTH - f_order));
+        let tile_depth = self.get_config().tile_depth.unwrap_abort();
 
-        //(f_hash_min..f_hash_max).map(|f_hash| {})
+        let spectra = self
+            .cursor
+            .get_surrounding_cells_along_spectra_axis(tile_depth)
+            .map(|c| {
+                if let Some(cubic_tex) = self.buffer.get(&c) {
+                    (0..(num_f_values_per_cubic_tile as u32))
+                        .map(|z| {
+                            let v_f32: f32 = cubic_tex.read_pixel(x, y, z).unwrap_or(0.0);
+
+                            v_f32
+                        })
+                        .collect::<Vec<_>>()
+                } else {
+                    vec![0.0; num_f_values_per_cubic_tile as usize]
+                }
+            })
+            .flatten()
+            .collect::<Vec<_>>()
+            .into_boxed_slice();
+
+        al_core::log(&format!("{:?}", spectra));
     }
 
-    pub fn set_cursor_location(&mut self, lonlat: LonLatT<f64>) {
-        self.cursor_location = lonlat;
+    pub fn set_cursor_location(&mut self, lonlat: LonLatT<f64>, camera: &CameraViewPort) {
+        let cfg = self.get_config();
+        let s_order = camera
+            .get_tile_depth()
+            .min(cfg.get_max_depth_tile())
+            .max(cfg.get_min_depth_tile());
+
+        self.cursor.set_location(lonlat, s_order);
+
+        // update the spectra
+        self.compute_spectra_on_cursor();
     }
 
     pub fn set_freq(&mut self, f: Freq) {
-        self.freq = f;
+        self.cursor.set_freq(f);
 
+        // update the spectra
+        self.compute_spectra_on_cursor();
+
+        // Flag telling to recompute the mesh afterwards
         self.move_freq = true;
     }
 
@@ -395,7 +537,7 @@ impl HiPS3D {
     }
 
     pub fn get_freq(&self) -> Freq {
-        self.freq
+        self.cursor.get_freq()
     }
 
     fn recompute_vertices(&mut self, camera: &CameraViewPort, proj: &ProjectionType) {
@@ -434,7 +576,7 @@ impl HiPS3D {
                     let s_order = cell.depth();
 
                     let f_order = f_max_order - (s_max_order - s_order);
-                    let f_hash = self.freq.hash(f_order);
+                    let f_hash = self.get_freq().hash(f_order);
 
                     let hpx_f_cell = HEALPixFreqCell::new(*cell, f_hash, f_order);
 
@@ -465,7 +607,8 @@ impl HiPS3D {
                         self.get_config().get_cube_depth(),
                     ));*/
 
-                    let channel_idx = (((self.freq.0 - self.get_config().em_min.unwrap_abort().0)
+                    let channel_idx = (((self.get_freq().0
+                        - self.get_config().em_min.unwrap_abort().0)
                         / (self.get_config().em_max.unwrap_abort().0
                             - self.get_config().em_min.unwrap_abort().0))
                         * (self.get_config().get_cube_depth().unwrap_abort() as f64))
@@ -532,12 +675,12 @@ impl HiPS3D {
                             let f_hash_1 = (texture.cell.f_hash + 1)
                                 << (Frequency::<u64>::MAX_DEPTH - texture.cell.f_depth);
 
-                            let f_hash = Frequency::<u64>::freq2hash(self.freq.0);
+                            let f_hash = Frequency::<u64>::freq2hash(self.get_freq().0);
 
                             (f_hash - f_hash_0) as f32 / (f_hash_1 - f_hash_0) as f32
                         }
                         DataproductType::Cube => {
-                            let channel_idx = (((self.freq.0
+                            let channel_idx = (((self.get_freq().0
                                 - self.get_config().em_min.unwrap_abort().0)
                                 / (self.get_config().em_max.unwrap_abort().0
                                     - self.get_config().em_min.unwrap_abort().0))
@@ -697,15 +840,6 @@ impl HiPS3D {
         self.buffer.config().is_allsky
     }
 
-    // Position given is in the camera space
-    /*pub fn read_pixel(
-        &self,
-        p: &LonLatT<f64>,
-        camera: &CameraViewPort,
-    ) -> Result<JsValue, JsValue> {
-        self.buffer.read_pixel(p, camera)
-    }*/
-
     fn draw_internal(
         &self,
         shaders: &mut ShaderManager,
@@ -817,6 +951,15 @@ impl HiPS3D {
     ) -> Result<(), JsValue> {
         self.buffer
             .push_tile_from_fits(cell, data, size, time_request)
+            .and_then(|()| {
+                let tile_depth = self.get_config().tile_depth.unwrap_abort();
+                if self.cursor.is_contained_in_spectral_view(cell, tile_depth) {
+                    // compute the spectra in case the cell is contained into the current spectral view
+                    self.compute_spectra_on_cursor();
+                }
+
+                Ok(())
+            })
     }
 
     pub fn push_tile_from_jpeg(
@@ -829,6 +972,15 @@ impl HiPS3D {
     ) -> Result<(), JsValue> {
         self.buffer
             .push_tile_from_jpeg(cell, data, size, time_request)
+            .and_then(|()| {
+                let tile_depth = self.get_config().tile_depth.unwrap_abort();
+                if self.cursor.is_contained_in_spectral_view(cell, tile_depth) {
+                    // compute the spectra in case the cell is contained into the current spectral view
+                    self.compute_spectra_on_cursor();
+                }
+
+                Ok(())
+            })
     }
 
     /* Accessors */

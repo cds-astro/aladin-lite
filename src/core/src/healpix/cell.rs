@@ -97,6 +97,13 @@ impl HEALPixCell {
         self.depth() == 0
     }
 
+    #[inline(always)]
+    pub fn hash_with_dxdy(depth: u8, lon: f64, lat: f64) -> (Self, f64, f64) {
+        let (hash, dx, dy) = healpix::nested::hash_with_dxdy(depth, lon, lat);
+
+        (HEALPixCell(depth, hash), dx, dy)
+    }
+
     // Find the smallest HEALPix cell containing self and another cells
     // Returns None if the 2 HEALPix cell are not located in the same base HEALPix cell
     #[inline]

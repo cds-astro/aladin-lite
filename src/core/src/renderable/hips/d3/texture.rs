@@ -29,6 +29,10 @@ pub enum HpxFreqData {
         trim: (u32, u32, u32),
         // Naxis
         naxis: (u32, u32, u32),
+        // Scaling value
+        bscale: f32,
+        // Offset value
+        bzero: f32,
     },
     Jpeg {
         data: Box<[u8]>,
@@ -36,15 +40,26 @@ pub enum HpxFreqData {
     },
 }
 
-enum Pixel {
+pub enum Pixel {
     F32(f32),
     I32(i32),
     I16(i16),
     U8(u8),
 }
 
+impl Pixel {
+    pub fn to_f32(&self) -> f32 {
+        match *self {
+            Pixel::F32(v) => v,
+            Pixel::I16(v) => v as f32,
+            Pixel::I32(v) => v as f32,
+            Pixel::U8(v) => v as f32,
+        }
+    }
+}
+
 impl HpxFreqData {
-    pub fn read_pixel(&self, x: u32, y: u32, z: u32) -> Pixel {
+    pub fn read_pixel(&self, x: u32, y: u32, z: u32) -> Option<f32> {
         match self {
             HpxFreqData::Fits {
                 raw_bytes,
@@ -52,31 +67,39 @@ impl HpxFreqData {
                 bitpix,
                 trim,
                 naxis,
+                bscale,
+                bzero,
             } => {
-                let x = x - trim.0;
-                let y = y - trim.1;
-                let z = z - trim.2;
+                if x < trim.0 || y < trim.1 || z < trim.2 {
+                    None
+                } else {
+                    let x = x - trim.0;
+                    let y = y - trim.1;
+                    let z = z - trim.2;
 
-                let data_raw_bytes = &raw_bytes[data_byte_offset.clone()];
+                    let data_raw_bytes = &raw_bytes[data_byte_offset.clone()];
 
-                let pixel_bytes_off = (x + y * naxis.0 + z * (naxis.0 * naxis.1)) as usize;
+                    let pixel_bytes_off = (x + y * naxis.0 + z * (naxis.0 * naxis.1)) as usize;
 
-                let bytes_per_pixel = bitpix.byte_size();
-                let p = &data_raw_bytes[pixel_bytes_off..(pixel_bytes_off + bytes_per_pixel)];
-                match bitpix {
-                    Bitpix::U8 => Pixel::U8(p[0]),
-                    Bitpix::I16 => Pixel::I16(i16::from_be_bytes([p[0], p[1]])),
-                    Bitpix::I32 => Pixel::I32(i32::from_be_bytes([p[0], p[1], p[2], p[3]])),
-                    Bitpix::F32 => Pixel::F32(f32::from_be_bytes([p[0], p[1], p[2], p[3]])),
-                    // Texture are converted to
-                    _ => unreachable!(),
+                    let bytes_per_pixel = bitpix.byte_size();
+                    let p = &data_raw_bytes[pixel_bytes_off..(pixel_bytes_off + bytes_per_pixel)];
+                    let pixel = match bitpix {
+                        Bitpix::U8 => Pixel::U8(p[0]),
+                        Bitpix::I16 => Pixel::I16(i16::from_be_bytes([p[0], p[1]])),
+                        Bitpix::I32 => Pixel::I32(i32::from_be_bytes([p[0], p[1], p[2], p[3]])),
+                        Bitpix::F32 => Pixel::F32(f32::from_be_bytes([p[0], p[1], p[2], p[3]])),
+                        // Texture are converted to
+                        _ => unreachable!(),
+                    };
+
+                    Some(pixel.to_f32() * *bscale + *bzero)
                 }
             }
             HpxFreqData::Jpeg { data, size } => {
                 let pixel_bytes_off = (x + y * size.0 + z * (size.0 * size.1)) as usize;
 
                 let p = data[pixel_bytes_off];
-                Pixel::U8(p)
+                Some(p as f32)
             }
         }
     }
@@ -238,7 +261,7 @@ impl HpxFreqTex {
     ) -> Result<(), JsValue> {
         let raw_bytes = raw_bytes.to_vec().into_boxed_slice();
 
-        let (trim1, trim2, trim3, width, height, depth, bitpix, data_byte_offset) = {
+        let (trim1, trim2, trim3, width, height, depth, bitpix, data_byte_offset, bscale, bzero) = {
             let fits = FitsImage::from_raw_bytes(&raw_bytes[..])?;
             fits[0].insert_into_3d_texture(&self.texture, &Vector3::<i32>::new(0, 0, 0))?;
 
@@ -251,6 +274,8 @@ impl HpxFreqTex {
                 fits[0].depth,
                 fits[0].bitpix,
                 fits[0].data_byte_offset.clone(),
+                fits[0].bscale,
+                fits[0].bzero,
             )
         };
 
@@ -263,11 +288,21 @@ impl HpxFreqTex {
             bitpix,
             trim,
             naxis,
+            bscale,
+            bzero,
         });
         self.num_stored_slices = self.num_slices;
         self.start_time = Some(Time::now());
 
         Ok(())
+    }
+
+    pub fn read_pixel(&self, x: u32, y: u32, z: u32) -> Option<f32> {
+        if let Some(data) = &self.data {
+            data.read_pixel(x, y, z)
+        } else {
+            None
+        }
     }
 
     pub fn set_data_from_jpeg(

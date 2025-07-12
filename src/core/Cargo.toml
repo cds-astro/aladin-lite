@@ -18,12 +18,12 @@ futures = "0.3.12"
 js-sys = "0.3.47"
 wasm-bindgen-futures = "0.4.20"
 cgmath = "*"
-url-lite = "0.1.0"
+# url-lite = "0.1.0"
 serde_json = "1.0.104"
 serde-wasm-bindgen = "0.5"
 enum_dispatch = "0.3.8"
 wasm-bindgen = "=0.2.92"
-wasm-streams = "0.3.0"
+#wasm-streams = "0.3.0"
 async-channel = "1.8.0"
 mapproj = "0.3.0"
 fitsrs = "0.3.4"
@@ -64,7 +64,7 @@ path = "./al-api"
 
 [dependencies.web-sys]
 version = "0.3.56"
-features = [ "console", "CssStyleDeclaration", "Document", "Element", "HtmlCollection", "HtmlElement", "HtmlImageElement", "HtmlCanvasElement", "Blob", "ImageBitmap", "ImageData", "CanvasRenderingContext2d", "WebGlBuffer", "WebGlContextAttributes", "WebGlFramebuffer", "WebGlProgram", "WebGlShader", "WebGlUniformLocation", "WebGlTexture", "WebGlActiveInfo", "Headers", "Window", "Request", "RequestInit", "RequestMode", "RequestCredentials", "Response", "XmlHttpRequest", "XmlHttpRequestResponseType", "PerformanceTiming", "Performance", "Url", "ReadableStream", "File", "FileList",]
+features = [ "console", "CssStyleDeclaration", "Document", "Element", "HtmlCollection", "CustomEvent", "CustomEventInit", "HtmlElement", "HtmlImageElement", "HtmlCanvasElement", "Blob", "ImageBitmap", "ImageData", "CanvasRenderingContext2d", "WebGlBuffer", "WebGlContextAttributes", "WebGlFramebuffer", "WebGlProgram", "WebGlShader", "WebGlUniformLocation", "WebGlTexture", "WebGlActiveInfo", "Headers", "Window", "Request", "RequestInit", "RequestMode", "RequestCredentials", "Response", "XmlHttpRequest", "XmlHttpRequestResponseType", "PerformanceTiming", "Performance", "Url", "ReadableStream", "File", "FileList",]
 
 [dev-dependencies.image-decoder]
 package = "image"

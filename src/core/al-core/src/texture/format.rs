@@ -44,12 +44,13 @@ impl TextureFormat for RGB8U {
     const PIXEL_TYPE: PixelType = PixelType::RGB8U;
 
     fn decode(raw_bytes: &[u8]) -> Result<Bytes<'_>, &'static str> {
-        let mut decoder = jpeg::Decoder::new(raw_bytes);
+        todo!()
+        /*let mut decoder = jpeg::Decoder::new(raw_bytes);
         let bytes = decoder
             .decode()
             .map_err(|_| "Cannot decoder jpeg. This image may not be compressed.")?;
 
-        Ok(Bytes::Owned(bytes))
+        Ok(Bytes::Owned(bytes))*/
     }
 
     type ArrayBufferView = js_sys::Uint8Array;
@@ -73,12 +74,14 @@ impl TextureFormat for RGBA8U {
     const PIXEL_TYPE: PixelType = PixelType::RGBA8U;
 
     fn decode(raw_bytes: &[u8]) -> Result<Bytes<'_>, &'static str> {
-        let mut decoder = jpeg::Decoder::new(raw_bytes);
+        /*let mut decoder = jpeg::Decoder::new(raw_bytes);
         let bytes = decoder
             .decode()
             .map_err(|_| "Cannot decoder png. This image may not be compressed.")?;
 
         Ok(Bytes::Owned(bytes))
+        */
+        todo!()
     }
 
     type ArrayBufferView = js_sys::Uint8Array;

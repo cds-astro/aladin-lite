@@ -26,27 +26,27 @@ uniform int u_proj;
 
 vec2 proj(vec3 p) {
     if (u_proj == 0) {
-        /* TAN,      Gnomonic projection        */
+        // TAN,      Gnomonic projection
         return w2c_tan(p);
     } else if (u_proj == 1) {
-        /* STG,	     Stereographic projection   */
+        // STG,	     Stereographic projection
         return w2c_stg(p);
     } else if (u_proj == 2) {
-        /* SIN,	     Orthographic		        */
+        // SIN,	     Orthographic
         return w2c_sin(p);
     } else if (u_proj == 3) {
-        /* ZEA,	     Equal-area 		        */
+        // ZEA,	     Equal-area
         return w2c_zea(p);
     } else if (u_proj == 4) {
         // Pseudo-cylindrical projections
-        /* AIT,      Aitoff                     */
+        // AIT,      Aitoff
         return w2c_ait(p);
     } else if (u_proj == 5) {
-        // MOL,      Mollweide                  */
+        // MOL,      Mollweide
         return w2c_mol(p);
     } else {
         // Cylindrical projections
-        // MER,      Mercator                   */
+        // MER,      Mercator
         return w2c_mer(p);
     }
 }

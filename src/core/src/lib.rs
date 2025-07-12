@@ -103,6 +103,7 @@ mod shaders;
 
 mod coosys;
 mod downloader;
+mod event;
 mod fifo_cache;
 mod healpix;
 mod inertia;

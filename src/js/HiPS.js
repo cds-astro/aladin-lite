@@ -494,6 +494,63 @@ export let HiPS = (function () {
 
         // dataproduct type
         self.dataproductType = properties && properties.dataproduct_type;
+        if (self.dataproductType === "spectral-cube") {
+            if (!self.spectraUpdatedCallback) {
+                let createPlotCanvas = (id = "plot", width = 600, height = 300) => {
+                    const canvas = document.createElement("canvas");
+                    canvas.id = id;
+                    canvas.width = width;
+                    canvas.height = height;
+                    canvas.style.pointerEvents = "none";
+                    canvas.style.position = "absolute";
+
+                    self.view.aladinDiv.appendChild(canvas); // or insert it into a specific container
+                    return canvas;
+                };
+
+                const canvas = createPlotCanvas();
+                const ctx = canvas.getContext("2d");
+
+                function drawPlot(ctx, data) {
+                    const width = ctx.canvas.width;
+                    const height = ctx.canvas.height;
+                    const len = data.length;
+            
+                    // Clear previous drawing
+                    ctx.clearRect(0, 0, width, height);
+            
+                    // Find min and max for scaling
+                    const minY = Math.min(...data);
+                    const maxY = Math.max(...data);
+            
+                    const scaleX = width / (len - 1);
+                    const scaleY = (maxY - minY === 0) ? 1 : height / (maxY - minY);
+            
+                    ctx.beginPath();
+                    for (let i = 0; i < len; i++) {
+                        const x = i * scaleX;
+                        const y = height - (data[i] - minY) * scaleY;
+                        if (i === 0) {
+                            ctx.moveTo(x, y);
+                        } else {
+                            ctx.lineTo(x, y);
+                        }
+                    }
+                    ctx.strokeStyle = "blue";
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }
+
+                self.spectraUpdatedCallback = (event) => {
+                    const data = event.detail;
+                    drawPlot(ctx, data);
+                };
+            } else {
+                window.removeEventListener("spectra", self.spectraUpdatedCallback);
+            }
+
+            window.addEventListener("spectra", self.spectraUpdatedCallback);            
+        }
 
         // Tile size
         self.tileSize =

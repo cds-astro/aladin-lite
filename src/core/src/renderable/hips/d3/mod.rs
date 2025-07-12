@@ -130,7 +130,7 @@ impl Cursor {
         let freq = cfg.em_min.unwrap_abort();
         let location = LonLatT::new(0.0.to_angle(), 0.0.to_angle());
 
-        let f_max_order = cfg.max_depth_freq.unwrap_abort();
+        let f_max_order = cfg.max_depth_freq.unwrap_or(Frequency::<u64>::MAX_DEPTH);
         let s_max_order = cfg.max_depth_tile;
 
         let cell = HEALPixFreqCell::from_lonlat(location, freq, 0, 0);
@@ -485,7 +485,10 @@ impl HiPS3D {
             .collect::<Vec<_>>()
             .into_boxed_slice();
 
-        al_core::log(&format!("{:?}", spectra));
+        //al_core::log(&format!("{:?}", spectra));
+        let array = js_sys::Float32Array::from(&spectra[..]);
+
+        crate::event::send_custom_event("spectra", JsValue::from(array))
     }
 
     pub fn set_cursor_location(&mut self, lonlat: LonLatT<f64>, camera: &CameraViewPort) {
@@ -494,18 +497,23 @@ impl HiPS3D {
             .get_tile_depth()
             .min(cfg.get_max_depth_tile())
             .max(cfg.get_min_depth_tile());
+        let dataproduct_type = cfg.dataproduct_type;
 
         self.cursor.set_location(lonlat, s_order);
 
         // update the spectra
-        self.compute_spectra_on_cursor();
+        if dataproduct_type == DataproductType::SpectralCube {
+            self.compute_spectra_on_cursor();
+        }
     }
 
     pub fn set_freq(&mut self, f: Freq) {
         self.cursor.set_freq(f);
 
         // update the spectra
-        self.compute_spectra_on_cursor();
+        if self.get_config().dataproduct_type == DataproductType::SpectralCube {
+            self.compute_spectra_on_cursor();
+        }
 
         // Flag telling to recompute the mesh afterwards
         self.move_freq = true;
@@ -565,14 +573,24 @@ impl HiPS3D {
             .max()
             .unwrap();
 
+        let cfg = self.get_config();
+        let dataproduct_type = cfg.dataproduct_type;
+        let max_depth_tile = cfg.max_depth_tile;
+        let min_depth_tile = cfg.get_min_depth_tile();
+
+        let em_min = cfg.em_min;
+        let em_max = cfg.em_max;
+        let cube_depth = cfg.get_cube_depth();
+        let max_depth_freq = cfg.max_depth_freq;
+
         for cell in &self.hpx_cells_in_view {
             // filter textures that are not in the moc
-            let cell = match self.get_config().dataproduct_type {
+            let cell = match dataproduct_type {
                 DataproductType::SpectralCube => {
                     // Determination of the f_order from the s_order
                     // From https://aladin.cds.unistra.fr/java/DocTechHiPS3D.pdf page 3
-                    let f_max_order = self.get_config().max_depth_freq.unwrap_abort();
-                    let s_max_order = self.get_config().max_depth_tile;
+                    let f_max_order = max_depth_freq.unwrap_abort();
+                    let s_max_order = max_depth_tile;
                     let s_order = cell.depth();
 
                     let f_order = f_max_order - (s_max_order - s_order);
@@ -599,19 +617,11 @@ impl HiPS3D {
                     }
                 }
                 DataproductType::Cube => {
-                    /*al_core::log(&format!(
-                        "{:?}, {:?} {:?} {:?}",
-                        self.freq.0,
-                        self.get_config().em_min,
-                        self.get_config().em_max,
-                        self.get_config().get_cube_depth(),
-                    ));*/
-
                     let channel_idx = (((self.get_freq().0
-                        - self.get_config().em_min.unwrap_abort().0)
-                        / (self.get_config().em_max.unwrap_abort().0
-                            - self.get_config().em_min.unwrap_abort().0))
-                        * (self.get_config().get_cube_depth().unwrap_abort() as f64))
+                        - em_min.unwrap_abort().0)
+                        / (em_max.unwrap_abort().0
+                            - em_min.unwrap_abort().0))
+                        * (cube_depth.unwrap_abort() as f64))
                         as u64;
 
                     let tile_depth = 32;
@@ -666,25 +676,29 @@ impl HiPS3D {
                 };
 
                 if let Some(texture) = hpx_cell_texture {
-                    self.cells.push(texture.cell.clone());
+                    let texture_cell = texture.cell.clone();
                     // The slice is sure to be contained so we can unwrap
-                    let slice_position = match self.get_config().dataproduct_type {
+                    let slice_position = match dataproduct_type {
                         DataproductType::SpectralCube => {
-                            let f_hash_0 = texture.cell.f_hash
-                                << (Frequency::<u64>::MAX_DEPTH - texture.cell.f_depth);
-                            let f_hash_1 = (texture.cell.f_hash + 1)
-                                << (Frequency::<u64>::MAX_DEPTH - texture.cell.f_depth);
-
+                            // 1. hash of the frequency at max order
                             let f_hash = Frequency::<u64>::freq2hash(self.get_freq().0);
+                            // b. compute the hash range
+                            let delta_f_order = Frequency::<u64>::MAX_DEPTH - texture_cell.f_depth;
+                            let f_order_hash_0 = texture_cell.f_hash;
+                            let f_order_hash_1 = f_order_hash_0 + 1;
+
+                            // 3. hash range at max order
+                            let f_hash_0 = f_order_hash_0 << delta_f_order;
+                            let f_hash_1 = f_order_hash_1 << delta_f_order;
 
                             (f_hash - f_hash_0) as f32 / (f_hash_1 - f_hash_0) as f32
                         }
                         DataproductType::Cube => {
                             let channel_idx = (((self.get_freq().0
-                                - self.get_config().em_min.unwrap_abort().0)
-                                / (self.get_config().em_max.unwrap_abort().0
-                                    - self.get_config().em_min.unwrap_abort().0))
-                                * (self.get_config().get_cube_depth().unwrap_abort() as f64))
+                                - em_min.unwrap_abort().0)
+                                / (em_max.unwrap_abort().0
+                                    - em_min.unwrap_abort().0))
+                                * (cube_depth.unwrap_abort() as f64))
                                 as u64;
                             let tile_depth = 32;
 
@@ -693,7 +707,7 @@ impl HiPS3D {
                         _ => unreachable!(),
                     };
 
-                    let uv_1 = TileUVW::new(&cell.hpx, &Some(texture.cell.hpx), slice_position);
+                    let uv_1 = TileUVW::new(&cell.hpx, &Some(texture_cell.hpx), slice_position);
                     let d01e = uv_1[TileCorner::BottomRight].x - uv_1[TileCorner::BottomLeft].x;
                     let d02e = uv_1[TileCorner::TopLeft].y - uv_1[TileCorner::BottomLeft].y;
 
@@ -732,12 +746,12 @@ impl HiPS3D {
 
                         // GL TRIANGLES
                         self.idx_vertices.extend([
-                            idx + off_indices,
+                            idx + 1 + off_indices,
+                            idx + 3 + off_indices,
                             idx + 2 + off_indices,
                             idx + 1 + off_indices,
                             idx + off_indices,
                             idx + 3 + off_indices,
-                            idx + 2 + off_indices,
                         ]);
                         // GL LINES
                         /*self.idx_vertices.extend([
@@ -764,6 +778,9 @@ impl HiPS3D {
                     // Replace options with an arbitrary vertex
                     let position_iter = pos.into_iter().flatten();
                     self.position.extend(position_iter);
+
+                    self.cells.push(texture_cell);
+
                 }
             }
         }

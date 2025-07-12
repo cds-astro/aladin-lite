@@ -35,6 +35,7 @@ use fitsrs::WCS;
 use moclib::qty::{Frequency, MocQty};
 use std::hint::unreachable_unchecked;
 use std::io::Cursor;
+use std::time::Duration;
 
 use wasm_bindgen::prelude::*;
 
@@ -490,6 +491,10 @@ impl App {
     }
 
     pub(crate) fn update(&mut self, dt: DeltaTime) -> Result<bool, JsValue> {
+        // a timer stopping the frame if it takes too long
+        // useful for garanting a framerate
+        let rendering_timer = Time::now();
+
         if let Some(inertia) = self.inertia.as_mut() {
             inertia.apply(&mut self.camera, &self.projection, dt);
             // Always request for new tiles while moving
@@ -565,10 +570,25 @@ impl App {
 
         let mut tile_copied = false;
 
+        const MAX_FRAME_TIME: DeltaTime = DeltaTime::from_millis(1000.0/25.0);
+
         for rsc in rscs_received {
+            if Time::now() - rendering_timer >= MAX_FRAME_TIME {
+                self.downloader
+                    .borrow_mut()
+                    .delay(rsc);
+                continue;
+            }
+
             match rsc {
                 RequestType::Tile(tile) => {
-                    //if !_has_camera_zoomed {
+                    if self.camera.has_moved() {
+                        self.downloader
+                        .borrow_mut()
+                        .delay(RequestType::Tile(tile));
+                        continue;
+                    }
+
                     if let Some(hips) = self.layers.get_mut_hips_from_cdid(&tile.hips_cdid) {
                         let cfg = hips.get_config();
 

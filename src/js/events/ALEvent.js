@@ -71,7 +71,7 @@ export class ALEvent {
   static SAMP_CONNECTED  = new ALEvent("AL:samp.connected");
   static SAMP_DISCONNECTED  = new ALEvent("AL:samp.disconnected");
 
-  static CANVAS_EVENT  = new ALEvent("AL:Event");
+  static CANVAS_EVENT = new ALEvent("AL:Event");
 
   static RETICLE_CHANGED = new ALEvent("AL:Reticle.changed")
 

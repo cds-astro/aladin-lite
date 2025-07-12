@@ -78,10 +78,11 @@ impl HpxFreqData {
                     let z = z - trim.2;
 
                     let data_raw_bytes = &raw_bytes[data_byte_offset.clone()];
-
-                    let pixel_bytes_off = (x + y * naxis.0 + z * (naxis.0 * naxis.1)) as usize;
-
                     let bytes_per_pixel = bitpix.byte_size();
+
+                    let pixel_bytes_off =
+                        bytes_per_pixel * (x + y * naxis.0 + z * (naxis.0 * naxis.1)) as usize;
+
                     let p = &data_raw_bytes[pixel_bytes_off..(pixel_bytes_off + bytes_per_pixel)];
                     let pixel = match bitpix {
                         Bitpix::U8 => Pixel::U8(p[0]),
@@ -92,7 +93,7 @@ impl HpxFreqData {
                         _ => unreachable!(),
                     };
 
-                    Some(pixel.to_f32() * *bscale + *bzero)
+                    Some(pixel.to_f32() * (*bscale) + (*bzero))
                 }
             }
             HpxFreqData::Jpeg { data, size } => {
@@ -191,14 +192,7 @@ impl HpxFreqTex {
         let start_time = None;
 
         let texture = match pixel_format {
-            PixelType::RGBA8U => Texture3D::create_empty::<R8U>(
-                gl,
-                tile_size as i32,
-                tile_size as i32,
-                num_slices as i32,
-                TEX_PARAMS,
-            ),
-            PixelType::RGB8U => Texture3D::create_empty::<R8U>(
+            PixelType::RGBA8U | PixelType::RGB8U | PixelType::R8U => Texture3D::create_empty::<R8U>(
                 gl,
                 tile_size as i32,
                 tile_size as i32,
@@ -206,13 +200,6 @@ impl HpxFreqTex {
                 TEX_PARAMS,
             ),
             PixelType::R32F => Texture3D::create_empty::<R32F>(
-                gl,
-                tile_size as i32,
-                tile_size as i32,
-                num_slices as i32,
-                TEX_PARAMS,
-            ),
-            PixelType::R8U => Texture3D::create_empty::<R8U>(
                 gl,
                 tile_size as i32,
                 tile_size as i32,
@@ -233,8 +220,6 @@ impl HpxFreqTex {
                 num_slices as i32,
                 TEX_PARAMS,
             ),
-            // No color cubes
-            _ => unreachable!(),
         }?;
 
         let data = None;

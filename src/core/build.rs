@@ -49,7 +49,7 @@ fn read_shader<P: AsRef<std::path::Path>>(path: P) -> std::io::Result<String> {
     let shader_src = std::io::BufReader::new(file)
         .lines()
         .map_while(Result::ok)
-        .map(|l| {
+        .filter_map(|l| {
             if l.starts_with("#include") {
                 let incl_file_names: Vec<_> = l.split_terminator(&[';', ' '][..]).collect();
                 let incl_file_name_rel = incl_file_names[1];
@@ -57,9 +57,12 @@ fn read_shader<P: AsRef<std::path::Path>>(path: P) -> std::io::Result<String> {
 
                 println!("{}", incl_file_name.to_string_lossy());
 
-                read_shader(incl_file_name.to_str().unwrap()).unwrap()
+                Some(read_shader(incl_file_name.to_str().unwrap()).unwrap())
+            } else if l.trim_start().starts_with("//") {
+                // comment
+                None
             } else {
-                l
+                Some(l)
             }
         })
         .collect::<Vec<_>>()

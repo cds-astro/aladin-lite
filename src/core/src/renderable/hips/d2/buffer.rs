@@ -1,6 +1,4 @@
 use crate::renderable::hips::d2::texture::HpxTex;
-use std::cmp::Ordering;
-use std::collections::BinaryHeap;
 use std::collections::HashMap;
 
 use al_core::texture::format::PixelType;
@@ -37,7 +35,6 @@ pub struct HiPS2DBuffer {
     textures: HashMap<HEALPixCell, HpxTex>,
 
     num_root_textures_available: u8,
-    size: usize,
 
     base_textures: [HpxTex; NUM_HPX_TILES_DEPTH_ZERO],
 
@@ -377,7 +374,6 @@ impl HpxTileBuffer for HiPS2DBuffer {
             config,
             heap,
 
-            size,
             num_root_textures_available,
             textures,
             base_textures,

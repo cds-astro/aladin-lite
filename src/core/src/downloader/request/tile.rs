@@ -1,4 +1,3 @@
-use crate::healpix::cell::{HEALPixCell, HEALPixFreqCell};
 use crate::renderable::CreatorDid;
 use al_core::image::format::ImageFormatType;
 use al_core::texture::format::{PixelType, RGB8U, RGBA8U};
@@ -124,8 +123,5 @@ impl From<query::Tile> for TileRequest {
     }
 }
 
-use crate::time::Time;
-use std::cell::RefCell;
-use std::rc::Rc;
 
 use crate::Abort;

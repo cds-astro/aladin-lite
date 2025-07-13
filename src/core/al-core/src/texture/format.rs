@@ -43,7 +43,7 @@ impl TextureFormat for RGB8U {
 
     const PIXEL_TYPE: PixelType = PixelType::RGB8U;
 
-    fn decode(raw_bytes: &[u8]) -> Result<Bytes<'_>, &'static str> {
+    fn decode(_raw_bytes: &[u8]) -> Result<Bytes<'_>, &'static str> {
         todo!()
         /*let mut decoder = jpeg::Decoder::new(raw_bytes);
         let bytes = decoder
@@ -73,7 +73,7 @@ impl TextureFormat for RGBA8U {
 
     const PIXEL_TYPE: PixelType = PixelType::RGBA8U;
 
-    fn decode(raw_bytes: &[u8]) -> Result<Bytes<'_>, &'static str> {
+    fn decode(_raw_bytes: &[u8]) -> Result<Bytes<'_>, &'static str> {
         /*let mut decoder = jpeg::Decoder::new(raw_bytes);
         let bytes = decoder
             .decode()

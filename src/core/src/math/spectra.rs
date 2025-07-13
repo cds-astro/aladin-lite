@@ -14,7 +14,7 @@ use moclib::qty::{Frequency, MocQty};
 pub struct Freq(pub f64);
 
 impl Freq {
-    fn from_hash(hash: u64) -> Self {
+    pub fn from_hash(hash: u64) -> Self {
         let f = Frequency::hash2freq(hash);
 
         Freq(f)

@@ -85,7 +85,6 @@ mod utils;
 
 use math::projection::*;
 
-use moclib::moc::RangeMOCIntoIterator;
 //use votable::votable::VOTableWrapper;
 use crate::tile_fetcher::HiPSLocalFiles;
 use al_api::moc::MOCOptions;
@@ -118,7 +117,6 @@ use crate::{
     time::DeltaTime,
 };
 
-use std::io::Cursor;
 
 use al_api::color::{Color, ColorRGBA};
 use al_api::coo_system::CooSystem;

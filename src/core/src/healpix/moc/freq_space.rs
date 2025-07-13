@@ -1,24 +1,9 @@
-use crate::math::lonlat::LonLatT;
-use crate::math::PI;
-use crate::math::{self, lonlat::LonLat};
-
 use crate::healpix::cell::HEALPixFreqCell;
-use cgmath::Vector3;
-use moclib::elemset::range::uniq::HpxUniqRanges;
 use moclib::hpxranges2d::HpxRanges2D;
-use moclib::moc::RangeMOCIntoIterator;
-use moclib::moc2d::{HasTwoMaxDepth, RangeMOC2Iterator};
 use moclib::ranges::ranges2d::Ranges2D;
-use moclib::{
-    moc::range::{CellSelection, RangeMOC},
-    moc2d::range::RangeMOC2,
-    qty::Hpx,
-    ranges::SNORanges,
-};
 
 use moclib::qty::{Frequency, MocQty};
 
-use crate::healpix::cell::HEALPixCell;
 #[derive(Debug)]
 pub struct FreqSpaceMoc(pub moclib::hpxranges2d::FreqSpaceMoc<u64, u64>);
 
@@ -38,17 +23,10 @@ use wasm_bindgen::JsValue;
 use moclib::deser::fits;
 use moclib::deser::fits::MocIdxType;
 use moclib::deser::fits::MocQtyType;
-use moclib::deser::fits::RangeMoc2DIterFromFits;
-use moclib::idx::Idx;
-use moclib::moc::range::op::convert::convert_to_u64;
-use moclib::moc::{CellMOCIntoIterator, CellMOCIterator, RangeMOCIterator};
 use moclib::mocranges2d::Moc2DRanges;
 
-use moclib::deser::fits::MocType;
 use std::io::Cursor;
 
-use crate::math::spectra::Freq;
-use crate::math::spectra::SpectralUnit;
 impl FreqSpaceMoc {
     /// Create a FreqSpaceMoc from a
     pub fn from_space_moc(moc: SpaceMoc) -> Self {
@@ -77,44 +55,6 @@ impl FreqSpaceMoc {
         }?;
 
         Ok(Self(sfmoc))
-    }
-
-    /// This methods builds a SFMOC made of:
-    /// * the cells in the spatial viewport at a specific frequency f
-    /// * the +/- f_window cells containing inside lonlat on the frequency axis
-    /// This is the method to use when looking for new cube HiPS3D tiles
-    pub fn from_coos_freq<L: LonLat<f64>, F: SpectralUnit>(
-        // The depth of the smallest HEALPix cells contained in it
-        depth: u8,
-        // The vertices of the polygon delimiting the coverage
-        vertices_iter: impl Iterator<Item = L>,
-        // A vertex being inside the coverage,
-        // typically the center of projection
-        inside: &L,
-        // The freq at which we want to compute the sfmoc
-        f: F,
-        // Frequency window i.e. the number of cells around f to query
-        f_window: u8,
-    ) -> Self {
-        let freq: Freq = f.into();
-
-        todo!();
-
-        /*let lonlat = vertices_iter
-            .map(|vertex| {
-                let LonLatT(lon, lat) = vertex.lonlat();
-                (lon.to_radians(), lat.to_radians())
-            })
-            .collect::<Vec<_>>();
-
-        let LonLatT(in_lon, in_lat) = inside.lonlat();
-        let moc = RangeMOC2::from_freqranges_in_hz_and_coos(
-            &lonlat[..],
-            (in_lon.to_radians(), in_lat.to_radians()),
-            depth,
-            CellSelection::All,
-        );
-        SpaceFreqMoc(moc)*/
     }
 
     /*pub fn from_fixed_hpx_cells(

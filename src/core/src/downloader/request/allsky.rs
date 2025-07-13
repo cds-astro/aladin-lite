@@ -320,8 +320,5 @@ fn handle_allsky_fits<F: TextureFormat>(
 
 use al_core::texture::format::RGBA8U;
 
-use crate::time::Time;
-use std::cell::RefCell;
-use std::rc::Rc;
 
 use crate::Abort;

@@ -6,8 +6,6 @@ use super::{Request, RequestType};
 use crate::healpix::moc::Moc;
 use crate::healpix::moc::{FreqSpaceMoc, SpaceMoc};
 use al_api::hips::DataproductType;
-use moclib::deser::fits::MocType;
-use moclib::qty::Hpx;
 
 pub struct MOCRequest {
     //pub id: QueryId,
@@ -21,7 +19,6 @@ impl From<MOCRequest> for RequestType {
         RequestType::Moc(request)
     }
 }
-use super::Url;
 
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::JsFuture;
@@ -30,8 +27,6 @@ use web_sys::{RequestInit, Response};
 use crate::Abort;
 use al_api::moc::MOCOptions;
 
-use std::io::Cursor;
-use wasm_bindgen::JsValue;
 impl From<query::Moc> for MOCRequest {
     // Create a tile request associated to a HiPS
     fn from(query: query::Moc) -> Self {
@@ -86,5 +81,3 @@ impl From<query::Moc> for MOCRequest {
     }
 }
 
-use std::cell::RefCell;
-use std::rc::Rc;

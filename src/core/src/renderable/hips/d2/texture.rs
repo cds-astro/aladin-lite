@@ -111,7 +111,6 @@ impl PartialOrd for HpxTex {
         Some(self.cmp(other))
     }
 }
-use crate::Abort;
 impl Ord for HpxTex {
     fn cmp(&self, other: &Self) -> Ordering {
         self.uniq.cmp(&other.uniq)

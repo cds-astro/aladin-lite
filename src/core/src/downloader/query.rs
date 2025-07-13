@@ -6,13 +6,11 @@ pub trait Query: Sized {
 
     fn id(&self) -> &QueryId;
 }
-use crate::math::spectra::{Freq, SpectralUnit};
 pub type QueryId = String;
 
 use crate::healpix::cell::HEALPixFreqCell;
 use al_api::hips::DataproductType;
 use al_core::image::format::ImageFormatType;
-use moclib::qty::{Frequency, MocQty};
 
 /// Description of a cell to query
 #[derive(Clone, PartialEq, Eq)]
@@ -42,7 +40,7 @@ pub enum CellDesc {
 }
 
 impl CellDesc {
-    fn get_size(&self) -> (u32, u32, u32) {
+    /*fn get_size(&self) -> (u32, u32, u32) {
         match self {
             Self::HiPS2D { tile_size, .. } => (*tile_size, *tile_size, 1),
             Self::HiPSCube { tile_size, .. } => (*tile_size, *tile_size, 1),
@@ -52,7 +50,7 @@ impl CellDesc {
                 ..
             } => (*tile_size, *tile_size, *tile_depth),
         }
-    }
+    }*/
 
     pub fn get_hpx(&self) -> &HEALPixCell {
         match self {
@@ -159,17 +157,17 @@ impl Tile {
         // f hash at order_f
 
         let HEALPixFreqCell {
-            hpx: HEALPixCell(K, N),
-            f_hash: M,
-            f_depth: L,
+            hpx: HEALPixCell(k, n),
+            f_hash: m,
+            f_depth: l,
         } = *hpx_f_cell;
 
-        let D = (N / 10000) * 10000;
-        let E = (M / 10) * 10;
+        let d = (n / 10000) * 10000;
+        let e = (m / 10) * 10;
 
-        let url = format!("{hips_url}/Norder{K}_{L}/Dir{D}_{E}/Npix{N}_{M}.{ext}");
+        let url = format!("{hips_url}/Norder{k}_{l}/Dir{d}_{e}/Npix{n}_{m}.{ext}");
 
-        let id = format!("{hips_cdid}_{K}_{L}_{N}_{M}_{ext}");
+        let id = format!("{hips_cdid}_{k}_{l}_{n}_{m}_{ext}");
 
         let tile_size = cfg.get_tile_size() as u32;
         let tile_depth = cfg.tile_depth.unwrap_or(1) as u32;

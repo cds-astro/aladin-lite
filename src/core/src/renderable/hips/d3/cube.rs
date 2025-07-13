@@ -5,8 +5,6 @@ use al_core::WebGlContext;
 
 use super::super::tile_heap::TileHeap;
 use super::texture::HpxFreqTex;
-use crate::downloader::request::allsky::AllskyRequest;
-use crate::healpix::cell::HEALPixCell;
 use crate::healpix::cell::HEALPixFreqCell;
 use crate::renderable::hips::config::HiPSConfig;
 use crate::renderable::hips::HpxTileBuffer;

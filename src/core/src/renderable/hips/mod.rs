@@ -9,13 +9,9 @@ pub mod uv;
 
 pub use d2::HiPS2D;
 
-use crate::downloader::request::allsky::AllskyRequest;
 use crate::renderable::HiPSConfig;
 use crate::tile_fetcher::TileFetcherQueue;
-use crate::time::Time;
 use crate::CameraViewPort;
-use crate::HEALPixCell;
-use crate::SpaceMoc;
 use crate::WebGlContext;
 use al_api::hips::ImageExt;
 use wasm_bindgen::JsValue;
@@ -55,7 +51,6 @@ pub(crate) trait HpxTileBuffer {
     fn config(&self) -> &HiPSConfig;
 }
 
-use crate::downloader::query;
 use crate::renderable::hips::HiPS::{D2, D3};
 use crate::renderable::HiPS3D;
 use crate::ProjectionType;

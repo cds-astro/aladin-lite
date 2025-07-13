@@ -1,8 +1,7 @@
 use crate::math::lonlat::LonLatT;
 use crate::math::PI;
-use crate::math::{self, lonlat::LonLat};
+use crate::math::{lonlat::LonLat};
 
-use cgmath::Vector3;
 use moclib::moc::RangeMOCIntoIterator;
 use moclib::{
     moc::range::{CellSelection, RangeMOC},

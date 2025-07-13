@@ -1,21 +1,18 @@
-use crate::renderable::hips::d2::texture::HpxTex;
-use crate::{healpix::cell::HEALPixCell, time::Time};
+use crate::time::Time;
 
-use crate::renderable::hips::config::HiPSConfig;
 use crate::Abort;
 use crate::WebGlContext;
 use al_core::image::fits::FitsImage;
 use al_core::image::raw::ImageBuffer;
-use al_core::image::{Image, ImageType};
-use al_core::texture::format::{PixelType, R16I, R32F, R32I, R8U, RGB8U, RGBA8U};
+use al_core::image::Image;
+use al_core::texture::format::{PixelType, R16I, R32F, R32I, R8U};
 use al_core::texture::Texture3D;
 use al_core::webgl_ctx::WebGlRenderingCtx;
 use cgmath::Vector3;
-use fitsrs::hdu::header::extension::bintable::L;
 use fitsrs::hdu::header::Bitpix;
 use std::cmp::Ordering;
 use std::ops::Range;
-use wasm_bindgen::{Clamped, JsValue};
+use wasm_bindgen::JsValue;
 
 pub enum HpxFreqData {
     Fits {
@@ -342,7 +339,7 @@ impl HpxFreqTex {
                 &Vector3::<i32>::new(0, 0, slice_idx as i32),
             )?;
 
-            self.slice_idx[block_idx] |= (1 << (31 - slice_idx));
+            self.slice_idx[block_idx] |= 1 << (31 - slice_idx);
             self.num_stored_slices += 1;
         }
 

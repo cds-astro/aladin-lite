@@ -10,7 +10,6 @@ pub struct CellVertices {
 
 const BIT_MASK_ALL_ONE_EXCEPT_FIRST: u32 = !0x1;
 
-use cgmath::BaseFloat;
 use healpix::compass_point::Cardinal;
 use healpix::compass_point::MainWind;
 use healpix::compass_point::Ordinal;

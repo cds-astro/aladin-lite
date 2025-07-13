@@ -1,5 +1,4 @@
 use crate::downloader::request::moc::MOCRequest;
-use crate::downloader::request::tile::TileRequest;
 use crate::math::angle::ToAngle;
 use crate::math::spectra::Freq;
 use crate::renderable::hips::HiPS;
@@ -25,22 +24,17 @@ use crate::{
     time::DeltaTime,
 };
 use al_api::moc::MOCOptions;
-use al_core::image::canvas::Canvas;
 use al_core::image::fits::FitsImage;
 use al_core::image::html::HTMLImage;
 use al_core::image::ImageType;
-use al_core::texture::format::PixelType;
-use al_core::texture::format::RGBA8U;
 use fitsrs::WCS;
 use moclib::qty::{Frequency, MocQty};
-use std::hint::unreachable_unchecked;
 use std::io::Cursor;
-use std::time::Duration;
 
 use wasm_bindgen::prelude::*;
 
 use al_core::colormap::{Colormap, Colormaps};
-use al_core::{al_print, WebGlContext};
+use al_core::WebGlContext;
 
 use super::coosys;
 use al_api::{
@@ -56,7 +50,6 @@ use web_sys::{HtmlElement, WebGl2RenderingContext};
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use std::collections::HashSet;
 
 use crate::renderable::final_pass::RenderPass;
 use al_core::FrameBufferObject;
@@ -129,7 +122,7 @@ use crate::time::Time;
 use cgmath::InnerSpace;
 
 use crate::downloader::query::{self, CellDesc};
-use crate::downloader::request::{self, RequestType};
+use crate::downloader::request::{RequestType};
 use al_api::resources::Resources;
 
 impl App {
@@ -281,7 +274,7 @@ impl App {
                         }
                     }
                     // no Allsky generated for HiPS3D
-                    HiPS::D3(h) => (),
+                    HiPS::D3(_) => (),
                 }
             }
 
@@ -630,14 +623,14 @@ impl App {
                                 if let Some(img) = &*image.borrow() {
                                     // For PNG/JPEG cubic tiles, all the slices are in the lonely image
                                     match (&tile.cell, hips) {
-                                        (CellDesc::HiPS2D { cell, tile_size }, HiPS::D2(hips)) => {
+                                        (CellDesc::HiPS2D { cell, .. }, HiPS::D2(hips)) => {
                                             hips.push_tile(cell, img, tile.request.time_request)?
                                         }
                                         (
                                             CellDesc::HiPSCube {
                                                 cell,
-                                                tile_size,
                                                 channel,
+                                                ..
                                             },
                                             HiPS::D3(hips),
                                         ) => {

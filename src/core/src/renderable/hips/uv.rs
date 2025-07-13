@@ -12,7 +12,6 @@ impl<T> Deref for UV<T> {
     }
 }
 
-use super::d2::texture::HpxTex;
 use crate::healpix::cell::HEALPixCell;
 
 pub struct TileUVW(pub [Vector3<f32>; 4]);

@@ -1,19 +1,15 @@
 pub mod cube;
 pub mod texture;
 
-use crate::downloader::request::allsky::AllskyRequest;
 use crate::healpix::moc::FreqSpaceMoc;
 use crate::math::angle::ToAngle;
 use crate::math::lonlat::LonLatT;
 use crate::math::spectra::SpectralUnit;
-use crate::LonLat;
 
 use crate::tile_fetcher::TileFetcherQueue;
 use al_api::hips::DataproductType;
 use al_api::hips::ImageExt;
 use al_api::hips::ImageMetadata;
-use al_core::al_print;
-use al_core::colormap::Colormap;
 use al_core::colormap::Colormaps;
 
 use al_core::texture::format::PixelType;
@@ -62,7 +58,6 @@ use wasm_bindgen::JsValue;
 use web_sys::WebGl2RenderingContext;
 
 pub fn get_raster_shader<'a>(
-    cmap: &Colormap,
     gl: &WebGlContext,
     shaders: &'a mut ShaderManager,
     config: &HiPSConfig,
@@ -223,8 +218,6 @@ use crate::math::spectra::Freq;
 impl HiPS3D {
     pub fn new(config: HiPSConfig, gl: &WebGlContext) -> Result<Self, JsValue> {
         let mut vao = VertexArrayObject::new(gl);
-
-        let freq = config.em_min.unwrap_abort();
 
         let num_indices = vec![];
         // layout (location = 0) in vec2 lonlat;
@@ -576,7 +569,6 @@ impl HiPS3D {
         let cfg = self.get_config();
         let dataproduct_type = cfg.dataproduct_type;
         let max_depth_tile = cfg.max_depth_tile;
-        let min_depth_tile = cfg.get_min_depth_tile();
 
         let em_min = cfg.em_min;
         let em_max = cfg.em_max;
@@ -901,7 +893,7 @@ impl HiPS3D {
         //     * there are new available tiles for the GPU
         let mut off_idx = 0;
 
-        let shader = get_raster_shader(cmap, &self.gl, shaders, hips_cfg)?;
+        let shader = get_raster_shader(&self.gl, shaders, hips_cfg)?;
         for (cell, num_indices) in self.cells.iter().zip(self.num_indices.iter()) {
             blend_cfg.enable(&self.gl, || {
                 // Bind the shader at each draw of a cell to not exceed the max number of tex image units bindable

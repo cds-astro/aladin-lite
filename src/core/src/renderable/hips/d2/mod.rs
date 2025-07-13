@@ -6,7 +6,6 @@ use crate::downloader::query;
 use crate::downloader::query::CellDesc;
 use crate::downloader::request::allsky::AllskyRequest;
 use crate::math::angle::ToAngle;
-use crate::tile_fetcher;
 use crate::tile_fetcher::TileFetcherQueue;
 use al_api::hips::ImageExt;
 use al_api::hips::ImageMetadata;

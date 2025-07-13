@@ -461,7 +461,7 @@ impl HiPS3D {
         let spectra = self
             .cursor
             .get_surrounding_cells_along_spectra_axis(tile_depth)
-            .map(|c| {
+            .flat_map(|c| {
                 if let Some(cubic_tex) = self.buffer.get(&c) {
                     (0..(num_f_values_per_cubic_tile as u32))
                         .map(|z| {
@@ -474,7 +474,6 @@ impl HiPS3D {
                     vec![0.0; num_f_values_per_cubic_tile as usize]
                 }
             })
-            .flatten()
             .collect::<Vec<_>>()
             .into_boxed_slice();
 
@@ -960,14 +959,12 @@ impl HiPS3D {
     ) -> Result<(), JsValue> {
         self.buffer
             .push_tile_from_fits(cell, data, size, time_request)
-            .and_then(|()| {
+            .map(|()| {
                 let tile_depth = self.get_config().tile_depth.unwrap_abort();
                 if self.cursor.is_contained_in_spectral_view(cell, tile_depth) {
                     // compute the spectra in case the cell is contained into the current spectral view
                     self.compute_spectra_on_cursor();
                 }
-
-                Ok(())
             })
     }
 
@@ -981,14 +978,12 @@ impl HiPS3D {
     ) -> Result<(), JsValue> {
         self.buffer
             .push_tile_from_jpeg(cell, data, size, time_request)
-            .and_then(|()| {
+            .map(|()| {
                 let tile_depth = self.get_config().tile_depth.unwrap_abort();
                 if self.cursor.is_contained_in_spectral_view(cell, tile_depth) {
                     // compute the spectra in case the cell is contained into the current spectral view
                     self.compute_spectra_on_cursor();
                 }
-
-                Ok(())
             })
     }
 

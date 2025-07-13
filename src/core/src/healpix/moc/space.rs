@@ -61,14 +61,12 @@ impl SpaceMoc {
 
     pub fn serialize_to_json(&self) -> Result<String, JsValue> {
         let mut buf: Vec<u8> = Default::default();
-        let json = (&self.0)
+        (&self.0)
             .into_range_moc_iter()
             .cells()
             .to_json_aladin(None, &mut buf)
             .map(|()| unsafe { String::from_utf8_unchecked(buf) })
-            .map_err(|err| JsValue::from_str(&format!("{err:?}")));
-
-        json
+            .map_err(|err| JsValue::from_str(&format!("{err:?}")))
     }
 
     pub fn from_3d_coos<T: LonLat<f64>>(

@@ -64,7 +64,7 @@ impl HiPS3DBuffer {
 
                 // Remove it from the textures HashMap
                 self.textures
-                    .remove(&oldest_texture.cell())
+                    .remove(oldest_texture.cell())
                     .expect("Texture (oldest one) has not been found in the buffer of textures");
             }
 

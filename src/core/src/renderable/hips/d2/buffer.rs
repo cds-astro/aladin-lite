@@ -229,7 +229,7 @@ impl HiPS2DBuffer {
                     debug_assert!(!oldest_texture.is_root());
 
                     // Remove it from the textures HashMap
-                    let mut texture = self.textures.remove(&oldest_texture.cell()).expect(
+                    let mut texture = self.textures.remove(oldest_texture.cell()).expect(
                         "Texture (oldest one) has not been found in the buffer of textures",
                     );
                     texture.replace(cell, time_request);

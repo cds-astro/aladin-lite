@@ -23,7 +23,7 @@ impl TileUVW {
 
         // Row and column indexes of the tile in its texture
         let (u, v, ds) = if let Some(parent) = parent_cell {
-            let (idx_col_in_tex, idx_row_in_tex) = cell.offset_in_parent(&parent);
+            let (idx_col_in_tex, idx_row_in_tex) = cell.offset_in_parent(parent);
 
             let nside = (1 << (cell.depth() - parent.depth())) as f32;
             let ds = 1_f32 / nside;

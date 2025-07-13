@@ -30,7 +30,7 @@ use std::io::Cursor;
 impl FreqSpaceMoc {
     /// Create a FreqSpaceMoc from a
     pub fn from_space_moc(moc: SpaceMoc) -> Self {
-        let moc_2d = Moc2DRanges::new(vec![0..u64::MAX], vec![moc.0.into_moc_ranges().0]);
+        let moc_2d = Moc2DRanges::new(vec![0..u64::MAX; 1], vec![moc.0.into_moc_ranges().0]);
         FreqSpaceMoc(HpxRanges2D(moc_2d))
     }
 
@@ -104,15 +104,11 @@ impl FreqSpaceMoc {
         //al_core::log(&format!("F1: {f0}"));
 
         let hpx_ranges_2d = HpxRanges2D::create_from_freq_ranges_positions(
-            vec![f_hash_0..f_hash_1],
+            vec![f_hash_0..f_hash_1; 1],
             vec![hpx.idx()],
             Frequency::<u64>::MAX_DEPTH,
             hpx.depth(),
         );
-
-        //al_core::log(&format!("my moc: {:?}", self.0));
-
-        //al_core::log(&format!("cell moc: {:?}", hpx_ranges_2d));
 
         !self.0.intersection(&hpx_ranges_2d).is_empty()
     }

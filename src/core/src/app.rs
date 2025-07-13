@@ -589,7 +589,7 @@ impl App {
                             let fov_coverage = self.camera.get_cov(cfg.get_frame());
                             let hpx_cell = tile.cell.get_hpx();
 
-                            let included_in_coverage = fov_coverage.intersects_cell(&hpx_cell);
+                            let included_in_coverage = fov_coverage.intersects_cell(hpx_cell);
 
                             //let is_tile_root = tile.cell().depth() == delta_depth;
                             //let _depth = tile.cell().depth();

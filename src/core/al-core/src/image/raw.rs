@@ -178,6 +178,6 @@ where
 
     // The size of the image
     fn get_size(&self) -> (u32, u32, u32) {
-        self.size.clone()
+        self.size
     }
 }

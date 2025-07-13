@@ -536,7 +536,7 @@ export let HiPS = (function () {
                             ctx.lineTo(x, y);
                         }
                     }
-                    ctx.strokeStyle = "blue";
+                    ctx.strokeStyle = "lightgreen";
                     ctx.lineWidth = 2;
                     ctx.stroke();
                 }

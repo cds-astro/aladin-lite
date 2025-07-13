@@ -456,7 +456,7 @@ impl HiPS3D {
 
     /// Read the spectra under the cursor location
     fn compute_spectra_on_cursor(&self) {
-        let (dx, dy) = self.cursor.get_dxdy_inside_cell();
+        let (dy, dx) = self.cursor.get_dxdy_inside_cell();
 
         let x = (dx * (self.get_config().tile_size as f64)) as u32;
         let y = (dy * (self.get_config().tile_size as f64)) as u32;

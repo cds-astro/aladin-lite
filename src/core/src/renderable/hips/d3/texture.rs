@@ -33,6 +33,8 @@ pub enum HpxFreqData {
         bscale: f32,
         // Offset value
         bzero: f32,
+        // The real size of the cube
+        size: (u32, u32, u32),
     },
     Jpeg {
         data: Box<[u8]>,
@@ -69,8 +71,16 @@ impl HpxFreqData {
                 naxis,
                 bscale,
                 bzero,
+                size
             } => {
-                if x < trim.0 || y < trim.1 || z < trim.2 {
+                // Do not remember the origin in fits image data is left-down corner
+                let y = size.1 - y;
+
+                let x_in_data = (trim.0..(trim.0 + naxis.0)).contains(&x);
+                let y_in_data = (trim.1..(trim.1 + naxis.1)).contains(&y);
+                let z_in_data = (trim.2..(trim.2 + naxis.2)).contains(&z);
+
+                if !x_in_data || !y_in_data || !z_in_data {
                     None
                 } else {
                     let x = x - trim.0;
@@ -79,11 +89,11 @@ impl HpxFreqData {
 
                     let data_raw_bytes = &raw_bytes[data_byte_offset.clone()];
                     let bytes_per_pixel = bitpix.byte_size();
-
                     let pixel_bytes_off =
                         bytes_per_pixel * (x + y * naxis.0 + z * (naxis.0 * naxis.1)) as usize;
 
                     let p = &data_raw_bytes[pixel_bytes_off..(pixel_bytes_off + bytes_per_pixel)];
+
                     let pixel = match bitpix {
                         Bitpix::U8 => Pixel::U8(p[0]),
                         Bitpix::I16 => Pixel::I16(i16::from_be_bytes([p[0], p[1]])),
@@ -275,6 +285,7 @@ impl HpxFreqTex {
             naxis,
             bscale,
             bzero,
+            size,
         });
         self.num_stored_slices = self.num_slices;
         self.start_time = Some(Time::now());

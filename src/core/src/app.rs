@@ -684,64 +684,68 @@ impl App {
                                                 | ImageType::HTMLImageRgb8u {
                                                     image: HTMLImage { image, .. },
                                                 } => {
+                                                    let document = web_sys::window()
+                                                        .unwrap_abort()
+                                                        .document()
+                                                        .unwrap_abort();
+                                                    let canvas = document
+                                                        .create_element("canvas")?
+                                                        .dyn_into::<web_sys::HtmlCanvasElement>()?;
+                                                    canvas.set_width(image.width());
+                                                    canvas.set_height(image.height());
+                                                    let context = canvas
+                                                        .get_context("2d")?
+                                                        .unwrap_abort()
+                                                        .dyn_into::<web_sys::CanvasRenderingContext2d>()?;
+                                                    // Get the data once for all for the whole image
+                                                    // This takes time so better do it once and not repeatly
+                                                    context.draw_image_with_html_image_element(image, 0.0, 0.0)?;
+
                                                     // Cut the png in several tile images. See page 3 of
                                                     // https://aladin.cds.unistra.fr/java/DocTechHiPS3D.pdf
+                                                    let tile_depth = *tile_depth;
                                                     let num_cols =
-                                                        (*tile_depth as f32).sqrt().floor() as u32;
-                                                    let num_rows = ((*tile_depth as f32)
+                                                        (tile_depth as f32).sqrt().floor() as u32;
+                                                    let num_rows = ((tile_depth as f32)
                                                         / (num_cols as f32))
                                                         .ceil()
                                                         as u32;
 
+                                                    debug_assert_eq!(num_rows * num_cols, tile_depth);
+
                                                     let tile_size = *tile_size;
-                                                    let mut decoded_bytes = Vec::with_capacity(
-                                                        (tile_size * tile_size * *tile_depth)
-                                                            as usize,
-                                                    );
-                                                    for x in 0..num_rows {
-                                                        for y in 0..num_cols {
-                                                            let document = web_sys::window()
-                                                                .unwrap_abort()
-                                                                .document()
-                                                                .unwrap_abort();
-                                                            let canvas = document
-                                                                .create_element("canvas")?
-                                                                .dyn_into::<web_sys::HtmlCanvasElement>()?;
-                                                            canvas.set_width(tile_size);
-                                                            canvas.set_height(tile_size);
-                                                            let context = canvas
-                                                                    .get_context("2d")?
-                                                                    .unwrap_abort()
-                                                                    .dyn_into::<web_sys::CanvasRenderingContext2d>()?;
 
-                                                            let sx = (y * tile_size) as f64;
-                                                            let sy = (x * tile_size) as f64;
-                                                            let sw = tile_size as f64;
-                                                            let sh = tile_size as f64;
-                                                            let dx = 0.0;
-                                                            let dy = 0.0;
-                                                            let dw = tile_size as f64;
-                                                            let dh = tile_size as f64;
+                                                    let bytes = context
+                                                        .get_image_data(0_f64, 0_f64, (num_cols * tile_size) as f64, (num_rows * tile_size) as f64)?
+                                                        .data().0;
 
-                                                            context.draw_image_with_html_image_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(image, sx, sy, sw, sh, dx, dy, dw, dh)?;
+                                                    let mut decoded_bytes = vec![0_u8;
+                                                        (tile_size * tile_size * tile_depth)
+                                                            as usize
+                                                    ];
 
-                                                            let slice_bytes = context
-                                                                .get_image_data(dx, dy, dw, dh)?
-                                                                .data();
+                                                    let mut k = 0;
+                                                    for y in 0..num_rows {
+                                                        let sy = y * tile_size;
 
-                                                            decoded_bytes.extend(
-                                                                slice_bytes
-                                                                    .0
-                                                                    .chunks(4)
-                                                                    .map(|p| p[0]),
-                                                            );
+                                                        for x in 0..num_cols {
+                                                            let sx = x * tile_size;
+
+                                                            for i in sy..(sy + tile_size) {
+                                                                for j in sx..(sx + tile_size) {
+                                                                    let id_byte = (j + i * num_cols * tile_size) * 4;
+
+                                                                    decoded_bytes[k] = bytes[id_byte as usize];
+                                                                    k += 1;
+                                                                }
+                                                            }
                                                         }
                                                     }
 
                                                     hips.push_tile_from_jpeg(
                                                         cell,
                                                         decoded_bytes.into_boxed_slice(),
-                                                        (tile_size, tile_size, *tile_depth),
+                                                        (tile_size, tile_size, tile_depth),
                                                         tile.request.time_request,
                                                     )?;
                                                 }

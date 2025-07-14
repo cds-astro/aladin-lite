@@ -9,6 +9,7 @@ pub mod uv;
 
 pub use d2::HiPS2D;
 
+use crate::browser_support::BrowserFeaturesSupport;
 use crate::renderable::HiPSConfig;
 use crate::tile_fetcher::TileFetcherQueue;
 use crate::CameraViewPort;
@@ -66,10 +67,11 @@ impl HiPS {
         &mut self,
         tile_fetcher: &mut TileFetcherQueue,
         camera: &CameraViewPort,
+        browser_features_support: &BrowserFeaturesSupport
     ) {
         match self {
-            D2(hips) => hips.look_for_new_tiles(tile_fetcher, camera),
-            D3(hips) => hips.look_for_new_tiles(tile_fetcher, camera),
+            D2(hips) => hips.look_for_new_tiles(tile_fetcher, camera, browser_features_support),
+            D3(hips) => hips.look_for_new_tiles(tile_fetcher, camera, browser_features_support),
         }
     }
 
@@ -110,22 +112,6 @@ impl HiPS {
             D3(hips) => hips.set_image_ext(ext),
         }
     }
-
-    /*#[inline]
-    pub fn set_moc(&mut self, moc: SpaceMoc) {
-        match self {
-            D2(hips) => hips.set_moc(moc),
-            D3(hips) => hips.set_moc(moc),
-        }
-    }*/
-
-    /*#[inline]
-    pub fn build_tile_query(&self, cell: &HEALPixCell) -> query::Tile {
-        match self {
-            HiPS::D2(hips) => hips.build_tile_query(cell),
-            HiPS::D3(hips) => hips.build_tile_query(cell),
-        }
-    }*/
 
     pub fn is_allsky(&self) -> bool {
         self.get_config().is_allsky

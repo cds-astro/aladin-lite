@@ -8,6 +8,7 @@ pub trait Query: Sized {
 }
 pub type QueryId = String;
 
+use crate::browser_support::BrowserFeaturesSupport;
 use crate::healpix::cell::HEALPixFreqCell;
 use al_api::hips::DataproductType;
 use al_core::image::format::ImageFormatType;
@@ -72,6 +73,7 @@ pub struct Tile {
     pub credentials: RequestCredentials,
     pub mode: RequestMode,
     pub id: QueryId,
+    pub create_bitmap_support: bool,
 }
 
 use crate::healpix::cell::HEALPixCell;
@@ -80,7 +82,7 @@ use crate::renderable::CreatorDid;
 use crate::tile_fetcher::HiPSLocalFiles;
 use web_sys::{RequestCredentials, RequestMode};
 impl Tile {
-    pub fn new(cell: &HEALPixCell, cfg: &HiPSConfig) -> Self {
+    pub fn new(cell: &HEALPixCell, cfg: &HiPSConfig, browser_support: &BrowserFeaturesSupport) -> Self {
         let hips_cdid = cfg.get_creator_did();
         let hips_url = cfg.get_root_url();
         let format = cfg.get_format();
@@ -109,10 +111,11 @@ impl Tile {
             credentials,
             mode,
             id,
+            create_bitmap_support: browser_support.create_image_bitmap,
         }
     }
 
-    pub fn new_with_channel(cell: &HEALPixCell, channel: u32, cfg: &HiPSConfig) -> Self {
+    pub fn new_with_channel(cell: &HEALPixCell, channel: u32, cfg: &HiPSConfig, browser_support: &BrowserFeaturesSupport) -> Self {
         let hips_cdid = cfg.get_creator_did();
         let hips_url = cfg.get_root_url();
         let format = cfg.get_format();
@@ -142,10 +145,11 @@ impl Tile {
             credentials,
             mode,
             id,
+            create_bitmap_support: browser_support.create_image_bitmap,
         }
     }
 
-    pub fn new_cubic(hpx_f_cell: &HEALPixFreqCell, cfg: &HiPSConfig) -> Self {
+    pub fn new_cubic(hpx_f_cell: &HEALPixFreqCell, cfg: &HiPSConfig, browser_support: &BrowserFeaturesSupport) -> Self {
         let hips_cdid = cfg.get_creator_did();
         let hips_url = cfg.get_root_url();
         let format = cfg.get_format();
@@ -183,6 +187,7 @@ impl Tile {
             credentials,
             mode,
             id,
+            create_bitmap_support: browser_support.create_image_bitmap,
         }
     }
 }

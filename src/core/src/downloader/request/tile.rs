@@ -32,6 +32,9 @@ use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::JsFuture;
 use web_sys::{RequestInit, Response};
+use al_core::image::bitmap::Bitmap;
+use crate::downloader::request::query_bitmap_from_blob;
+
 impl From<query::Tile> for TileRequest {
     // Create a tile request associated to a HiPS
     fn from(query: query::Tile) -> Self {
@@ -43,6 +46,7 @@ impl From<query::Tile> for TileRequest {
             credentials,
             mode,
             id,
+            create_bitmap_support,
         } = query;
 
         let url_clone = url.clone();
@@ -59,26 +63,43 @@ impl From<query::Tile> for TileRequest {
             } => (tile_size, tile_size, tile_depth),
         };
 
-        let window = web_sys::window().unwrap_abort();
         let request = match pixel_format {
             PixelType::RGB8U => Request::new(async move {
-                // HTMLImageElement
-                let image = query_html_image(&url_clone, credentials).await?;
-                // The image has been resolved
-                Ok(ImageType::HTMLImageRgb8u {
-                    image: HTMLImage::<RGB8U>::new(image),
-                })
+                if create_bitmap_support {
+                    // optimized download of tile for GPU (using Blob + Bitmap) without creating any DOM structure
+                    let image_bitmap = query_bitmap_from_blob(&url_clone, mode, credentials).await?;
+                    Ok(ImageType::ImageRgb8u {
+                        image: Bitmap::new(image_bitmap),
+                    })
+                } else {
+                    // HTMLImageElement
+                    let image = query_html_image(&url_clone, credentials).await?;
+                    // The image has been resolved
+                    Ok(ImageType::HTMLImageRgb8u {
+                        image: HTMLImage::new(image),
+                    })
+                }
             }),
             PixelType::RGBA8U => Request::new(async move {
-                // HTMLImageElement
-                let image = query_html_image(&url_clone, credentials).await?;
-                // The image has been resolved
-                Ok(ImageType::HTMLImageRgba8u {
-                    image: HTMLImage::<RGBA8U>::new(image),
-                })
+                if create_bitmap_support {
+                    // optimized download of tile for GPU (using Blob + Bitmap) without creating any DOM structure
+                    let image_bitmap = query_bitmap_from_blob(&url_clone, mode, credentials).await?;
+                    Ok(ImageType::ImageRgba8u {
+                        image: Bitmap::new(image_bitmap),
+                    })
+                } else {
+                    // HTMLImageElement
+                    let image = query_html_image(&url_clone, credentials).await?;
+                    // The image has been resolved
+                    Ok(ImageType::HTMLImageRgba8u {
+                        image: HTMLImage::new(image),
+                    })
+                }
             }),
             PixelType::R32F | PixelType::R32I | PixelType::R16I | PixelType::R8U => {
                 Request::new(async move {
+                    let window = web_sys::window().unwrap_abort();
+
                     let mut opts = RequestInit::new();
                     opts.method("GET");
                     opts.mode(mode);

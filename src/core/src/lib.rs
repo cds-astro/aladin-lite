@@ -111,6 +111,7 @@ pub mod renderable;
 mod shader;
 mod tile_fetcher;
 mod time;
+mod browser_support;
 
 use crate::{
     camera::CameraViewPort, healpix::moc::SpaceMoc, math::lonlat::LonLatT, shader::ShaderManager,

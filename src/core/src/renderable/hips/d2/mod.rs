@@ -2,6 +2,7 @@ pub mod buffer;
 pub mod texture;
 
 use crate::app::BLENDING_ANIM_DURATION;
+use crate::browser_support::BrowserFeaturesSupport;
 use crate::downloader::query;
 use crate::downloader::query::CellDesc;
 use crate::downloader::request::allsky::AllskyRequest;
@@ -331,6 +332,7 @@ impl HiPS2D {
         &mut self,
         tile_fetcher: &mut TileFetcherQueue,
         camera: &CameraViewPort,
+        browser_features_support: &BrowserFeaturesSupport
     ) {
         // do not add tiles if the view is already at depth 0
         let cfg = self.get_config();
@@ -353,7 +355,7 @@ impl HiPS2D {
                 };
 
                 if make_query {
-                    Some(query::Tile::new(&tile_cell, self.get_config()))
+                    Some(query::Tile::new(&tile_cell, self.get_config(), browser_features_support))
                 } else {
                     None
                 }
@@ -383,18 +385,13 @@ impl HiPS2D {
 
         for ancestor in ancestors {
             if !self.update_priority_tile(&ancestor) {
-                tile_fetcher.append(query::Tile::new(&ancestor, self.get_config()));
+                tile_fetcher.append(query::Tile::new(&ancestor, self.get_config(), browser_features_support));
             }
         }
     }
 
     pub fn contains_tile(&self, cell: &HEALPixCell) -> bool {
         self.buffer.contains_tile(cell)
-    }
-
-    pub fn build_tile_query(&self, cell: &HEALPixCell) -> query::Tile {
-        let cfg = self.get_config();
-        query::Tile::new(cell, cfg)
     }
 
     pub fn update(&mut self, camera: &mut CameraViewPort, projection: &ProjectionType) {

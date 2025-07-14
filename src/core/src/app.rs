@@ -1,3 +1,4 @@
+use crate::browser_support::BrowserFeaturesSupport;
 use crate::downloader::request::moc::MOCRequest;
 use crate::math::angle::ToAngle;
 use crate::math::spectra::Freq;
@@ -6,6 +7,7 @@ use crate::renderable::image::Image;
 use crate::renderable::ImageLayer;
 use crate::tile_fetcher::HiPSLocalFiles;
 use crate::Abort;
+use al_core::image::bitmap::Bitmap;
 use crate::{
     camera::CameraViewPort,
     downloader::Downloader,
@@ -108,6 +110,8 @@ pub struct App {
     //img_send: async_channel::Sender<ImageLayer>,
     img_recv: async_channel::Receiver<ImageLayer>,
     ack_img_send: async_channel::Sender<ImageParams>,
+
+    browser_features_support: BrowserFeaturesSupport,
     //ack_img_recv: async_channel::Receiver<ImageParams>,
     // callbacks
     //callback_position_changed: js_sys::Function,
@@ -204,6 +208,8 @@ impl App {
         let dragging = false;
         let time_mouse_high_vel = Time::now();
 
+        let browser_features_support = BrowserFeaturesSupport::new();
+
         Ok(App {
             gl,
             //ui,
@@ -255,6 +261,8 @@ impl App {
             //img_send,
             img_recv,
             ack_img_send,
+
+            browser_features_support
             //ack_img_recv,
         })
     }
@@ -278,7 +286,7 @@ impl App {
                 }
             }
 
-            hips.look_for_new_tiles(&mut self.tile_fetcher, &self.camera);
+            hips.look_for_new_tiles(&mut self.tile_fetcher, &self.camera, &self.browser_features_support);
         }
 
         Ok(())
@@ -575,12 +583,12 @@ impl App {
 
             match rsc {
                 RequestType::Tile(tile) => {
-                    if self.camera.has_moved() {
+                    /*if self.camera.has_moved() {
                         self.downloader
                         .borrow_mut()
                         .delay(RequestType::Tile(tile));
                         continue;
-                    }
+                    }*/
 
                     if let Some(hips) = self.layers.get_mut_hips_from_cdid(&tile.hips_cdid) {
                         let cfg = hips.get_config();
@@ -742,6 +750,77 @@ impl App {
                                                         tile.request.time_request,
                                                     )?;
                                                 }
+                                                ImageType::ImageRgba8u {
+                                                    image: Bitmap { image, .. },
+                                                }
+                                                | ImageType::ImageRgb8u {
+                                                    image: Bitmap { image, .. },
+                                                } => {
+                                                    let document = web_sys::window()
+                                                        .unwrap_abort()
+                                                        .document()
+                                                        .unwrap_abort();
+                                                    let canvas = document
+                                                        .create_element("canvas")?
+                                                        .dyn_into::<web_sys::HtmlCanvasElement>()?;
+                                                    canvas.set_width(image.width());
+                                                    canvas.set_height(image.height());
+                                                    let context = canvas
+                                                        .get_context("2d")?
+                                                        .unwrap_abort()
+                                                        .dyn_into::<web_sys::CanvasRenderingContext2d>()?;
+                                                    // Get the data once for all for the whole image
+                                                    // This takes time so better do it once and not repeatly
+                                                    context.draw_image_with_image_bitmap(image, 0.0, 0.0)?;
+
+                                                    // Cut the png in several tile images. See page 3 of
+                                                    // https://aladin.cds.unistra.fr/java/DocTechHiPS3D.pdf
+                                                    let tile_depth = *tile_depth;
+                                                    let num_cols =
+                                                        (tile_depth as f32).sqrt().floor() as u32;
+                                                    let num_rows = ((tile_depth as f32)
+                                                        / (num_cols as f32))
+                                                        .ceil()
+                                                        as u32;
+
+                                                    debug_assert_eq!(num_rows * num_cols, tile_depth);
+
+                                                    let tile_size = *tile_size;
+
+                                                    let bytes = context
+                                                        .get_image_data(0_f64, 0_f64, (num_cols * tile_size) as f64, (num_rows * tile_size) as f64)?
+                                                        .data().0;
+
+                                                    let mut decoded_bytes = vec![0_u8;
+                                                        (tile_size * tile_size * tile_depth)
+                                                            as usize
+                                                    ];
+
+                                                    let mut k = 0;
+                                                    for y in 0..num_rows {
+                                                        let sy = y * tile_size;
+
+                                                        for x in 0..num_cols {
+                                                            let sx = x * tile_size;
+
+                                                            for i in sy..(sy + tile_size) {
+                                                                for j in sx..(sx + tile_size) {
+                                                                    let id_byte = (j + i * num_cols * tile_size) * 4;
+
+                                                                    decoded_bytes[k] = bytes[id_byte as usize];
+                                                                    k += 1;
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+
+                                                    hips.push_tile_from_jpeg(
+                                                        cell,
+                                                        decoded_bytes.into_boxed_slice(),
+                                                        (tile_size, tile_size, tile_depth),
+                                                        tile.request.time_request,
+                                                    )?;
+                                                }
                                                 ImageType::FitsRawBytes { raw_bytes, size } => hips
                                                     .push_tile_from_fits(
                                                         cell,
@@ -770,7 +849,7 @@ impl App {
                             // The allsky image is missing so we donwload all the tiles contained into
                             // the 0's cell
                             for base_hpx_cell in crate::healpix::cell::ALLSKY_HPX_CELLS_D0 {
-                                let query = hips.build_tile_query(base_hpx_cell);
+                                let query = query::Tile::new(base_hpx_cell, hips.get_config(), &self.browser_features_support);
                                 self.tile_fetcher.append_base_tile(query);
                             }
                         } else {

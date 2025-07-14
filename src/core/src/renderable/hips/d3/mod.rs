@@ -1,6 +1,7 @@
 pub mod cube;
 pub mod texture;
 
+use crate::browser_support::BrowserFeaturesSupport;
 use crate::healpix::moc::FreqSpaceMoc;
 use crate::math::angle::ToAngle;
 use crate::math::lonlat::LonLatT;
@@ -288,38 +289,11 @@ impl HiPS3D {
         })
     }
 
-    /*pub fn build_tile_query(&self, cell: &HEALPixCell) -> query::Tile {
-        let cfg = self.get_config();
-        match cfg.dataproduct_type {
-            DataproductType::SpectralCube => {
-                // Determination of the f_order from the s_order
-                // From https://aladin.cds.unistra.fr/java/DocTechHiPS3D.pdf page 3
-                let f_max_order = cfg.max_depth_freq.unwrap_abort();
-                let s_max_order = cfg.max_depth_tile;
-                let s_order = cell.depth();
-
-                let f_order = f_max_order - (s_max_order - s_order);
-                let f_hash = self.freq.hash(f_order);
-                let cell = HEALPixFreqCell::new(*cell, f_hash, f_order);
-
-                query::Tile::new_cubic(&cell, cfg)
-            }
-            DataproductType::Cube => {
-                let channel_idx = (((self.freq.0 - cfg.em_min.unwrap_abort().0)
-                    / (cfg.em_max.unwrap_abort().0 - cfg.em_min.unwrap_abort().0))
-                    * (cfg.get_cube_depth().unwrap_abort() as f64))
-                    as u32;
-
-                query::Tile::new_with_channel(&cell, channel_idx, cfg)
-            }
-            _ => unreachable!(),
-        }
-    }*/
-
     pub fn look_for_new_tiles(
         &mut self,
         tile_fetcher: &mut TileFetcherQueue,
         camera: &CameraViewPort,
+        browser_features_support: &BrowserFeaturesSupport
     ) {
         // update the cursor center before downloading new tiles
         self.set_cursor_location(camera.get_center().into(), camera);
@@ -368,6 +342,7 @@ impl HiPS3D {
                         &tile_cell,
                         channel_idx as u32,
                         cfg,
+                        browser_features_support
                     ));
 
                     // check if we are starting aladin lite or not.
@@ -386,6 +361,7 @@ impl HiPS3D {
                         &ancestor,
                         channel_idx as u32,
                         cfg,
+                        browser_features_support
                     ));
                 }
             }
@@ -440,7 +416,7 @@ impl HiPS3D {
                     });
 
                 for cubic_tile in cubic_tiles_iter {
-                    tile_fetcher.append(query::Tile::new_cubic(&cubic_tile, cfg));
+                    tile_fetcher.append(query::Tile::new_cubic(&cubic_tile, cfg, browser_features_support));
                 }
             }
             _ => unreachable!(),

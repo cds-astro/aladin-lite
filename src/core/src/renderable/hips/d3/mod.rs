@@ -55,6 +55,7 @@ use super::uv::{TileCorner, TileUVW};
 
 use cgmath::Matrix;
 
+use js_sys::Object;
 use wasm_bindgen::JsValue;
 use web_sys::WebGl2RenderingContext;
 
@@ -118,7 +119,10 @@ struct Cursor {
     cell: HEALPixFreqCell,
     s_max_order: u8,
     f_max_order: u8,
+    tile_depth: u8,
 }
+
+struct Window {}
 
 use std::ops::Range;
 impl Cursor {
@@ -129,6 +133,8 @@ impl Cursor {
         let f_max_order = cfg.max_depth_freq.unwrap_or(Frequency::<u64>::MAX_DEPTH);
         let s_max_order = cfg.max_depth_tile;
 
+        let tile_depth = cfg.tile_depth.unwrap_or(1);
+
         let cell = HEALPixFreqCell::from_lonlat(location, freq, 0, 0);
 
         Cursor {
@@ -137,6 +143,7 @@ impl Cursor {
             cell,
             f_max_order,
             s_max_order,
+            tile_depth,
         }
     }
 
@@ -153,25 +160,71 @@ impl Cursor {
         (dx, dy)
     }
 
-    fn get_surrounding_f_hashes_along_spectra_axis(&self, tile_depth: u8) -> Range<u64> {
+    /// Get the window starting and ending hashed at the pixel order
+    fn get_window_frequency_range(&self) -> (Range<u64>, u8) {
         const NUM_VALUES: usize = 100;
 
-        let delta_depth = tile_depth.trailing_zeros();
-        let depth_val = self.cell.f_depth + delta_depth as u8;
-        let f_hash_val = self.freq.hash(depth_val);
+        let delta_depth = self.tile_depth.trailing_zeros();
+        let pixel_depth = self.cell.f_depth + delta_depth as u8;
+        let f_hash_val = self.freq.hash(pixel_depth);
 
         let f_hash_val_0 = (f_hash_val as i64 - NUM_VALUES as i64).max(0) as u64;
         let f_hash_val_1 = (f_hash_val + NUM_VALUES as u64)
-            .min(Frequency::<u64>::n_cells_max() >> (Frequency::<u64>::MAX_DEPTH - depth_val));
+            .min(Frequency::<u64>::n_cells_max() >> (Frequency::<u64>::MAX_DEPTH - pixel_depth));
 
-        let f_hash_0 = f_hash_val_0 >> delta_depth;
-        let f_hash_1 = f_hash_val_1 >> delta_depth;
+        (f_hash_val_0..f_hash_val_1, pixel_depth)
+    }
+
+    /// Get hash at the pixel level
+    fn get_freq_hash(&self, freq: Freq) -> u64 {
+        let delta_depth = self.tile_depth.trailing_zeros();
+        let pixel_depth = self.cell.f_depth + delta_depth as u8;
+
+        freq.hash(pixel_depth)
+    }
+
+    /// Get freq from hash given at the pixel level
+    fn get_freq_from_hash(&self, hash: u64) -> Freq {
+        let delta_depth = self.tile_depth.trailing_zeros();
+        let pixel_depth = self.cell.f_depth + delta_depth as u8;
+
+        Freq::from_hash_with_order(hash, pixel_depth)
+    }
+
+    /// Get the frequency step at the cursor i.e. the jump in frequency
+    /// between the cursor slice and the dx-th one
+    fn get_frequency_step(&self, dx: i64) -> Freq {
+        let delta_depth = self.tile_depth.trailing_zeros();
+        let pixel_depth = self.cell.f_depth + delta_depth as u8;
+        let f_hash_val = self.freq.hash(pixel_depth);
+
+        //let f_hash_val_0 = (f_hash_val as i64 - NUM_VALUES as i64).max(0) as u64;
+        let f_hash_val_1 = (f_hash_val as i64 + dx)
+            .min(
+                (Frequency::<u64>::n_cells_max() >> (Frequency::<u64>::MAX_DEPTH - pixel_depth))
+                    as i64,
+            )
+            .max(0) as u64;
+
+        let f_dx_th_slice = Freq::from_hash_with_order(f_hash_val_1, pixel_depth);
+
+        f_dx_th_slice - self.freq
+    }
+
+    fn get_surrounding_cell_hashes_along_spectra_axis(&self) -> Range<u64> {
+        let (f_hash_val, pixel_depth) = self.get_window_frequency_range();
+
+        let delta_depth = pixel_depth - self.cell.f_depth;
+
+        // Get the tile hashes from the pixel hashes to load
+        let f_hash_0 = f_hash_val.start >> delta_depth;
+        let f_hash_1 = f_hash_val.end >> delta_depth;
 
         f_hash_0..(f_hash_1 + 1)
     }
 
-    fn is_contained_in_spectral_view(&self, cell: &HEALPixFreqCell, tile_depth: u8) -> bool {
-        self.get_surrounding_f_hashes_along_spectra_axis(tile_depth)
+    fn is_contained_in_spectral_view(&self, cell: &HEALPixFreqCell) -> bool {
+        self.get_surrounding_cell_hashes_along_spectra_axis()
             .contains(&cell.f_hash)
     }
 
@@ -194,9 +247,8 @@ impl Cursor {
 
     fn get_surrounding_cells_along_spectra_axis(
         &self,
-        tile_depth: u8,
     ) -> impl Iterator<Item = HEALPixFreqCell> + '_ {
-        self.get_surrounding_f_hashes_along_spectra_axis(tile_depth)
+        self.get_surrounding_cell_hashes_along_spectra_axis()
             .map(move |f_hash| {
                 // Do not include the cell containing the location AND containing the frequency because
                 // it will be included when looking for new tiles in the view
@@ -215,6 +267,7 @@ impl Cursor {
 
 use super::HpxTileBuffer;
 use crate::math::spectra::Freq;
+use js_sys::Reflect;
 
 impl HiPS3D {
     pub fn new(config: HiPSConfig, gl: &WebGlContext) -> Result<Self, JsValue> {
@@ -289,11 +342,21 @@ impl HiPS3D {
         })
     }
 
+    /// Get hash at the pixel level
+    pub fn get_freq_hash(&self, freq: Freq) -> u64 {
+        self.cursor.get_freq_hash(freq)
+    }
+
+    /// Get freq from hash given at the pixel level
+    pub fn get_freq_from_hash(&self, hash: u64) -> Freq {
+        self.cursor.get_freq_from_hash(hash)
+    }
+
     pub fn look_for_new_tiles(
         &mut self,
         tile_fetcher: &mut TileFetcherQueue,
         camera: &CameraViewPort,
-        browser_features_support: &BrowserFeaturesSupport
+        browser_features_support: &BrowserFeaturesSupport,
     ) {
         // update the cursor center before downloading new tiles
         self.set_cursor_location(camera.get_center().into(), camera);
@@ -342,7 +405,7 @@ impl HiPS3D {
                         &tile_cell,
                         channel_idx as u32,
                         cfg,
-                        browser_features_support
+                        browser_features_support,
                     ));
 
                     // check if we are starting aladin lite or not.
@@ -361,7 +424,7 @@ impl HiPS3D {
                         &ancestor,
                         channel_idx as u32,
                         cfg,
-                        browser_features_support
+                        browser_features_support,
                     ));
                 }
             }
@@ -373,8 +436,6 @@ impl HiPS3D {
                 let s_order = depth_tile;
 
                 let f_order = f_max_order - (s_max_order - s_order);
-
-                let tile_depth = cfg.tile_depth.unwrap_abort();
 
                 let cubic_tiles_iter = camera
                     .get_hpx_cells(depth_tile, survey_frame)
@@ -392,10 +453,7 @@ impl HiPS3D {
                         }
                     })
                     // query the tiles under the cursor as well
-                    .chain(
-                        self.cursor
-                            .get_surrounding_cells_along_spectra_axis(tile_depth),
-                    )
+                    .chain(self.cursor.get_surrounding_cells_along_spectra_axis())
                     // filter the cubic tiles by the sfmoc
                     .filter_map(|cell| {
                         if self.contains_tile(&cell) {
@@ -416,7 +474,11 @@ impl HiPS3D {
                     });
 
                 for cubic_tile in cubic_tiles_iter {
-                    tile_fetcher.append(query::Tile::new_cubic(&cubic_tile, cfg, browser_features_support));
+                    tile_fetcher.append(query::Tile::new_cubic(
+                        &cubic_tile,
+                        cfg,
+                        browser_features_support,
+                    ));
                 }
             }
             _ => unreachable!(),
@@ -425,38 +487,91 @@ impl HiPS3D {
 
     /// Read the spectra under the cursor location
     fn compute_spectra_on_cursor(&self) {
+        // Determine the slices window
+        let tile_depth = self.get_config().tile_depth.unwrap_abort();
+        let cell_hash_f = self.cursor.get_surrounding_cell_hashes_along_spectra_axis();
+        let delta_depth = tile_depth.trailing_zeros();
+        let pixel_hash_0 = cell_hash_f.start << delta_depth;
+        let (window_pixel_hash, pixel_depth) = self.cursor.get_window_frequency_range();
+
+        // Determine the frequencies the borders of the window
+        let mut f0 = Freq::from_hash_with_order(window_pixel_hash.start, pixel_depth);
+        if let Some(em_min) = self.get_config().em_min {
+            f0 = f0.max(em_min);
+        }
+        let mut f1 = Freq::from_hash_with_order(window_pixel_hash.end, pixel_depth);
+        if let Some(em_max) = self.get_config().em_max {
+            f1 = f1.min(em_max);
+        }
+
+        // Determine the spectral step at the cursor position
+        let f_step = self.cursor.get_frequency_step(1);
+
+        // Determine the spectral values in the window
         let (dy, dx) = self.cursor.get_dxdy_inside_cell();
 
-        let x = (dx * (self.get_config().tile_size as f64)) as u32;
-        let y = (dy * (self.get_config().tile_size as f64)) as u32;
+        let tile_size = self.get_config().tile_size as f64;
+        let x = (dx * tile_size) as u32;
+        let y = (dy * tile_size) as u32;
 
-        let num_f_values_per_cubic_tile = self.get_config().tile_depth.unwrap_abort();
-
-        let tile_depth = self.get_config().tile_depth.unwrap_abort();
+        let indices =
+            (window_pixel_hash.start - pixel_hash_0)..(window_pixel_hash.end - pixel_hash_0);
 
         let spectra = self
             .cursor
-            .get_surrounding_cells_along_spectra_axis(tile_depth)
+            .get_surrounding_cells_along_spectra_axis()
             .flat_map(|c| {
                 if let Some(cubic_tex) = self.buffer.get(&c) {
-                    (0..(num_f_values_per_cubic_tile as u32))
-                        .map(|z| {
-                            let v_f32: f32 = cubic_tex.read_pixel(x, y, z).unwrap_or(0.0);
-
-                            v_f32
-                        })
+                    (0..(tile_depth as u32))
+                        .map(|z| cubic_tex.read_pixel(x, y, z).unwrap_or(0.0))
                         .collect::<Vec<_>>()
                 } else {
-                    vec![0.0; num_f_values_per_cubic_tile as usize]
+                    vec![0.0; tile_depth as usize]
+                }
+            })
+            .enumerate()
+            .filter_map(|(i, value)| {
+                if indices.contains(&(i as u64)) {
+                    Some(value)
+                } else {
+                    None
                 }
             })
             .collect::<Vec<_>>()
             .into_boxed_slice();
 
-        //al_core::log(&format!("{:?}", spectra));
-        let array = js_sys::Float32Array::from(&spectra[..]);
+        // create the js object containing:
+        // * spectra values
+        // * min and max frequency values
+        let spectra_js_obj = Object::new();
 
-        crate::event::send_custom_event("spectra", JsValue::from(array))
+        // Set properties using Reflect::set
+        Reflect::set(
+            &spectra_js_obj,
+            &JsValue::from_str("values"),
+            &js_sys::Float32Array::from(&spectra[..]),
+        )
+        .unwrap_abort();
+        Reflect::set(
+            &spectra_js_obj,
+            &JsValue::from_str("min"),
+            &JsValue::from_f64(f0.0),
+        )
+        .unwrap_abort();
+        Reflect::set(
+            &spectra_js_obj,
+            &JsValue::from_str("max"),
+            &JsValue::from_f64(f1.0),
+        )
+        .unwrap_abort();
+        Reflect::set(
+            &spectra_js_obj,
+            &JsValue::from_str("f_step"),
+            &JsValue::from_f64(f_step.0),
+        )
+        .unwrap_abort();
+
+        crate::event::send_custom_event("spectra", JsValue::from(spectra_js_obj));
     }
 
     pub fn set_cursor_location(&mut self, lonlat: LonLatT<f64>, camera: &CameraViewPort) {
@@ -584,10 +699,8 @@ impl HiPS3D {
                     }
                 }
                 DataproductType::Cube => {
-                    let channel_idx = (((self.get_freq().0
-                        - em_min.unwrap_abort().0)
-                        / (em_max.unwrap_abort().0
-                            - em_min.unwrap_abort().0))
+                    let channel_idx = (((self.get_freq().0 - em_min.unwrap_abort().0)
+                        / (em_max.unwrap_abort().0 - em_min.unwrap_abort().0))
                         * (cube_depth.unwrap_abort() as f64))
                         as u64;
 
@@ -661,10 +774,8 @@ impl HiPS3D {
                             (f_hash - f_hash_0) as f32 / (f_hash_1 - f_hash_0) as f32
                         }
                         DataproductType::Cube => {
-                            let channel_idx = (((self.get_freq().0
-                                - em_min.unwrap_abort().0)
-                                / (em_max.unwrap_abort().0
-                                    - em_min.unwrap_abort().0))
+                            let channel_idx = (((self.get_freq().0 - em_min.unwrap_abort().0)
+                                / (em_max.unwrap_abort().0 - em_min.unwrap_abort().0))
                                 * (cube_depth.unwrap_abort() as f64))
                                 as u64;
                             let tile_depth = 32;
@@ -747,7 +858,6 @@ impl HiPS3D {
                     self.position.extend(position_iter);
 
                     self.cells.push(texture_cell);
-
                 }
             }
         }
@@ -936,8 +1046,7 @@ impl HiPS3D {
         self.buffer
             .push_tile_from_fits(cell, data, size, time_request)
             .map(|()| {
-                let tile_depth = self.get_config().tile_depth.unwrap_abort();
-                if self.cursor.is_contained_in_spectral_view(cell, tile_depth) {
+                if self.cursor.is_contained_in_spectral_view(cell) {
                     // compute the spectra in case the cell is contained into the current spectral view
                     self.compute_spectra_on_cursor();
                 }
@@ -955,8 +1064,7 @@ impl HiPS3D {
         self.buffer
             .push_tile_from_jpeg(cell, data, size, time_request)
             .map(|()| {
-                let tile_depth = self.get_config().tile_depth.unwrap_abort();
-                if self.cursor.is_contained_in_spectral_view(cell, tile_depth) {
+                if self.cursor.is_contained_in_spectral_view(cell) {
                     // compute the spectra in case the cell is contained into the current spectral view
                     self.compute_spectra_on_cursor();
                 }

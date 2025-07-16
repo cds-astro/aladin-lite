@@ -16,7 +16,7 @@
                 showSimbadPointerControl: true,
                 projection: 'AIT', // set a projection
                 fov: 360, // initial field of view in degrees
-                target: '169.58868 +45.74914', // initial target
+                target: '325.59233 -44.3258', // initial target
                 cooFrame: 'icrs', // set galactic frame
                 reticleColor: '#ff89ff', // change reticle color
                 reticleSize: 64, // change reticle size
@@ -30,6 +30,8 @@
         );
 
         hips = aladin.newImageSurvey("https://alasky.cds.unistra.fr/GALFAHI/GALFAHI-Narrow-DR2-3D");
+        //hips = aladin.newImageSurvey("http://alasky.cds.unistra.fr/DHIGLS");
+        //hips = aladin.newImageSurvey("https://alasky.cds.unistra.fr/MUSE3D");
         aladin.setImageLayer(hips)
 
         let i = 0;
@@ -39,7 +41,8 @@
             let delta = (emMax - emMin) / 100;
 
             //hips.setFrequency({value: emMin + delta * i, unit: "m"})
-            hips.setFrequency({value: 0.21107012, unit: "m"})
+            hips.setFrequency({value: 0.21107012, unit: "m"}) // GALFA
+            //hips.setFrequency({value: 0.21101690259115785, unit: "m"}) // DGHILG
 
             i = (i + 1) % 100;
         }, 200)

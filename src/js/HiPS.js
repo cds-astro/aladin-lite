@@ -106,6 +106,18 @@ PropertyParser.skyFraction = function (properties) {
     return skyFraction;
 };
 
+PropertyParser.hipsDataMinmax = function (properties) {
+    let data_minmax =
+        properties &&
+        properties.hips_data_minmax &&
+        properties.hips_data_minmax.split(" ");
+
+    const minData = data_minmax && parseFloat(data_minmax[0]);
+    const maxData = data_minmax && parseFloat(data_minmax[1]);
+
+    return [minData, maxData];
+};
+
 PropertyParser.cutouts = function (properties) {
     let cuts =
         properties &&
@@ -481,6 +493,8 @@ export let HiPS = (function () {
             self.emMax = tmp;
         }
 
+        self.hipsDataMinMax = PropertyParser.hipsDataMinmax(properties);
+
         // HiPS3D special keywords
         self.hipsOrderFreq = properties && properties.hips_order_freq && +properties.hips_order_freq;
         self.hipsTileDepth = properties && properties.hips_tile_depth && +properties.hips_tile_depth;
@@ -501,8 +515,9 @@ export let HiPS = (function () {
                     canvas.id = id;
                     canvas.width = width;
                     canvas.height = height;
-                    canvas.style.pointerEvents = "none";
+                    //canvas.style.pointerEvents = "none";
                     canvas.style.position = "absolute";
+                    canvas.style.bottom = "0";
 
                     self.view.aladinDiv.appendChild(canvas); // or insert it into a specific container
                     return canvas;
@@ -511,25 +526,82 @@ export let HiPS = (function () {
                 const canvas = createPlotCanvas();
                 const ctx = canvas.getContext("2d");
 
-                function drawPlot(ctx, data) {
+                let delta_f = 0;
+                let scaleX, scaleY;
+                let minY, maxY;
+
+                function handleEvent() {
+                    let lastMouse = { x: 0, y: 0 };
+                    let isDragging = false;
+
+                    canvas.addEventListener('mousedown', (e) => {
+                        const rect = canvas.getBoundingClientRect();
+                        const mx = e.clientX - rect.left;
+                        const my = e.clientY - rect.top;
+                      
+                        if (mx < rect.width && my < rect.height) {
+                          isDragging = true;
+                          lastMouse = { x: mx, y: my };
+                        }
+                    });
+                      
+                    self.view.aladinDiv.addEventListener('mousemove', (e) => {
+                        if (!isDragging) return;
+                      
+                        const rect = canvas.getBoundingClientRect();
+                        const mx = e.clientX - rect.left;
+                        const my = e.clientY - rect.top;
+                      
+                        const dx = Math.round((mx - lastMouse.x) / scaleX);
+                        if (dx != 0) {
+                            lastMouse = { x: mx, y: my };
+                      
+                            // set the frequency
+                            let curFreq = hips.getFrequency();
+
+                            let curHash = Number(self.view.wasm.freq2hash(self.layer, curFreq));
+                            let nextHash = curHash - dx
+
+                            let nextFreq = self.view.wasm.hash2freq(self.layer, BigInt(nextHash));
+                            hips.setFrequency({
+                                value: nextFreq,
+                                unit: 'Hz'
+                            })
+                        }
+                    });
+                      
+                    self.view.aladinDiv.addEventListener('mouseup', () => {
+                        isDragging = false;
+                    });
+                      
+                    canvas.addEventListener('mouseout', () => {
+                        isDragging = false;
+                    });
+                }
+
+                handleEvent();
+
+                function drawPlot(ctx, values) {
                     const width = ctx.canvas.width;
                     const height = ctx.canvas.height;
-                    const len = data.length;
+                    const len = values.length;
             
                     // Clear previous drawing
                     ctx.clearRect(0, 0, width, height);
             
                     // Find min and max for scaling
-                    const minY = Math.min(...data);
-                    const maxY = Math.max(...data);
-            
-                    const scaleX = width / (len - 1);
-                    const scaleY = (maxY - minY === 0) ? 1 : height / (maxY - minY);
+
+                    //const minY = self.hipsDataMinMax && self.hipsDataMinMax[0] || Math.min(...values);
+                    //const maxY = self.hipsDataMinMax && self.hipsDataMinMax[1] || Math.max(...values);
+                    minY = minY && Math.min(...values, minY) || Math.min(...values);
+                    maxY = maxY && Math.max(...values, maxY) || Math.max(...values);
+                    scaleX = width / (len - 1);
+                    scaleY = (maxY - minY === 0) ? 1 : height / (maxY - minY);
             
                     ctx.beginPath();
                     for (let i = 0; i < len; i++) {
                         const x = i * scaleX;
-                        const y = height - (data[i] - minY) * scaleY;
+                        const y = height - (values[i] - minY) * scaleY;
                         if (i === 0) {
                             ctx.moveTo(x, y);
                         } else {
@@ -539,11 +611,22 @@ export let HiPS = (function () {
                     ctx.strokeStyle = "lightgreen";
                     ctx.lineWidth = 2;
                     ctx.stroke();
+
+                    // Draw the vertical line that can be grabed to move the slice
+                    ctx.beginPath();
+                    ctx.moveTo(scaleX * len / 2, height);
+                    ctx.lineTo(scaleX * len / 2, height - (maxY - minY) * scaleY);
+                    ctx.strokeStyle = "red";
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
                 }
 
                 self.spectraUpdatedCallback = (event) => {
                     const data = event.detail;
-                    drawPlot(ctx, data);
+                    let values = data.values;
+                    delta_f = data.f_step;
+                    console.log(data)
+                    drawPlot(ctx, values);
                 };
             } else {
                 window.removeEventListener("spectra", self.spectraUpdatedCallback);
@@ -837,11 +920,9 @@ export let HiPS = (function () {
         this.slice = slice;
 
         if (this.added) {
-            console.log("cubedepth", this.cubeDepth, slice, (slice / this.cubeDepth))
             let meters = this.emMin + ((slice / this.cubeDepth) * (this.emMax - this.emMin));
 
             let freq = 299792458.0 / meters;
-            console.log("freq: ", freq)
             this.view.wasm.setFreq(this.layer, freq);
         }
     }
@@ -879,8 +960,13 @@ export let HiPS = (function () {
                 freq = value;
             }
 
-            console.log("freq: ", freq)
             this.view.wasm.setFreq(this.layer, freq);
+        }
+    }
+
+    HiPS.prototype.getFrequency = function() {
+        if (this.added) {
+            return this.view.wasm.getFreq(this.layer);
         }
     }
 

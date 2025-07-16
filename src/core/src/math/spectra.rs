@@ -19,6 +19,39 @@ impl Freq {
 
         Freq(f)
     }
+
+    pub fn from_hash_with_order(hash: u64, order: u8) -> Self {
+        let hash_max_order = hash << (Frequency::<u64>::MAX_DEPTH - order);
+        let f = Frequency::hash2freq(hash_max_order);
+
+        Freq(f)
+    }
+
+    pub fn max(&self, other: Self) -> Self {
+        Freq(self.0.max(other.0))
+    }
+
+    pub fn min(&self, other: Self) -> Self {
+        Freq(self.0.min(other.0))
+    }
+}
+
+use std::ops::Sub;
+impl Sub for Freq {
+    type Output = Self;
+
+    fn sub(self, other: Self) -> Self::Output {
+        Self(self.0 - other.0)
+    }
+}
+
+use std::ops::Add;
+impl Add for Freq {
+    type Output = Self;
+
+    fn add(self, other: Self) -> Self::Output {
+        Self(self.0 + other.0)
+    }
 }
 
 /// Wavelength in meter unit

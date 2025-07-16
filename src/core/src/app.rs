@@ -7,7 +7,6 @@ use crate::renderable::image::Image;
 use crate::renderable::ImageLayer;
 use crate::tile_fetcher::HiPSLocalFiles;
 use crate::Abort;
-use al_core::image::bitmap::Bitmap;
 use crate::{
     camera::CameraViewPort,
     downloader::Downloader,
@@ -26,6 +25,7 @@ use crate::{
     time::DeltaTime,
 };
 use al_api::moc::MOCOptions;
+use al_core::image::bitmap::Bitmap;
 use al_core::image::fits::FitsImage;
 use al_core::image::html::HTMLImage;
 use al_core::image::ImageType;
@@ -51,7 +51,6 @@ use web_sys::{HtmlElement, WebGl2RenderingContext};
 
 use std::cell::RefCell;
 use std::rc::Rc;
-
 
 use crate::renderable::final_pass::RenderPass;
 use al_core::FrameBufferObject;
@@ -126,7 +125,7 @@ use crate::time::Time;
 use cgmath::InnerSpace;
 
 use crate::downloader::query::{self, CellDesc};
-use crate::downloader::request::{RequestType};
+use crate::downloader::request::RequestType;
 use al_api::resources::Resources;
 
 impl App {
@@ -262,8 +261,7 @@ impl App {
             img_recv,
             ack_img_send,
 
-            browser_features_support
-            //ack_img_recv,
+            browser_features_support, //ack_img_recv,
         })
     }
 
@@ -286,7 +284,11 @@ impl App {
                 }
             }
 
-            hips.look_for_new_tiles(&mut self.tile_fetcher, &self.camera, &self.browser_features_support);
+            hips.look_for_new_tiles(
+                &mut self.tile_fetcher,
+                &self.camera,
+                &self.browser_features_support,
+            );
         }
 
         Ok(())
@@ -571,13 +573,11 @@ impl App {
 
         let mut tile_copied = false;
 
-        const MAX_FRAME_TIME: DeltaTime = DeltaTime::from_millis(1000.0/25.0);
+        const MAX_FRAME_TIME: DeltaTime = DeltaTime::from_millis(1000.0 / 25.0);
 
         for rsc in rscs_received {
             if Time::now() - rendering_timer >= MAX_FRAME_TIME {
-                self.downloader
-                    .borrow_mut()
-                    .delay(rsc);
+                self.downloader.borrow_mut().delay(rsc);
                 continue;
             }
 
@@ -635,11 +635,7 @@ impl App {
                                             hips.push_tile(cell, img, tile.request.time_request)?
                                         }
                                         (
-                                            CellDesc::HiPSCube {
-                                                cell,
-                                                channel,
-                                                ..
-                                            },
+                                            CellDesc::HiPSCube { cell, channel, .. },
                                             HiPS::D3(hips),
                                         ) => {
                                             // We build an artificial cube
@@ -700,7 +696,9 @@ impl App {
                                                         .dyn_into::<web_sys::CanvasRenderingContext2d>()?;
                                                     // Get the data once for all for the whole image
                                                     // This takes time so better do it once and not repeatly
-                                                    context.draw_image_with_html_image_element(image, 0.0, 0.0)?;
+                                                    context.draw_image_with_html_image_element(
+                                                        image, 0.0, 0.0,
+                                                    )?;
 
                                                     // Cut the png in several tile images. See page 3 of
                                                     // https://aladin.cds.unistra.fr/java/DocTechHiPS3D.pdf
@@ -712,15 +710,25 @@ impl App {
                                                         .ceil()
                                                         as u32;
 
-                                                    debug_assert_eq!(num_rows * num_cols, tile_depth);
+                                                    debug_assert_eq!(
+                                                        num_rows * num_cols,
+                                                        tile_depth
+                                                    );
 
                                                     let tile_size = *tile_size;
 
                                                     let bytes = context
-                                                        .get_image_data(0_f64, 0_f64, (num_cols * tile_size) as f64, (num_rows * tile_size) as f64)?
-                                                        .data().0;
+                                                        .get_image_data(
+                                                            0_f64,
+                                                            0_f64,
+                                                            (num_cols * tile_size) as f64,
+                                                            (num_rows * tile_size) as f64,
+                                                        )?
+                                                        .data()
+                                                        .0;
 
-                                                    let mut decoded_bytes = vec![0_u8;
+                                                    let mut decoded_bytes = vec![
+                                                        0_u8;
                                                         (tile_size * tile_size * tile_depth)
                                                             as usize
                                                     ];
@@ -734,9 +742,13 @@ impl App {
 
                                                             for i in sy..(sy + tile_size) {
                                                                 for j in sx..(sx + tile_size) {
-                                                                    let id_byte = (j + i * num_cols * tile_size) * 4;
+                                                                    let id_byte = (j + i
+                                                                        * num_cols
+                                                                        * tile_size)
+                                                                        * 4;
 
-                                                                    decoded_bytes[k] = bytes[id_byte as usize];
+                                                                    decoded_bytes[k] =
+                                                                        bytes[id_byte as usize];
                                                                     k += 1;
                                                                 }
                                                             }
@@ -771,7 +783,9 @@ impl App {
                                                         .dyn_into::<web_sys::CanvasRenderingContext2d>()?;
                                                     // Get the data once for all for the whole image
                                                     // This takes time so better do it once and not repeatly
-                                                    context.draw_image_with_image_bitmap(image, 0.0, 0.0)?;
+                                                    context.draw_image_with_image_bitmap(
+                                                        image, 0.0, 0.0,
+                                                    )?;
 
                                                     // Cut the png in several tile images. See page 3 of
                                                     // https://aladin.cds.unistra.fr/java/DocTechHiPS3D.pdf
@@ -783,20 +797,26 @@ impl App {
                                                         .ceil()
                                                         as u32;
 
-                                                    debug_assert_eq!(num_rows * num_cols, tile_depth);
-
                                                     let tile_size = *tile_size;
 
                                                     let bytes = context
-                                                        .get_image_data(0_f64, 0_f64, (num_cols * tile_size) as f64, (num_rows * tile_size) as f64)?
-                                                        .data().0;
+                                                        .get_image_data(
+                                                            0_f64,
+                                                            0_f64,
+                                                            (num_cols * tile_size) as f64,
+                                                            (num_rows * tile_size) as f64,
+                                                        )?
+                                                        .data()
+                                                        .0;
 
-                                                    let mut decoded_bytes = vec![0_u8;
+                                                    let mut decoded_bytes = vec![
+                                                        0_u8;
                                                         (tile_size * tile_size * tile_depth)
                                                             as usize
                                                     ];
 
                                                     let mut k = 0;
+                                                    let mut num_tiles_cropped = 0;
                                                     for y in 0..num_rows {
                                                         let sy = y * tile_size;
 
@@ -805,12 +825,25 @@ impl App {
 
                                                             for i in sy..(sy + tile_size) {
                                                                 for j in sx..(sx + tile_size) {
-                                                                    let id_byte = (j + i * num_cols * tile_size) * 4;
+                                                                    let id_byte = (j + i
+                                                                        * num_cols
+                                                                        * tile_size)
+                                                                        * 4;
 
-                                                                    decoded_bytes[k] = bytes[id_byte as usize];
+                                                                    decoded_bytes[k] =
+                                                                        bytes[id_byte as usize];
                                                                     k += 1;
                                                                 }
                                                             }
+
+                                                            num_tiles_cropped += 1;
+
+                                                            if num_tiles_cropped == tile_depth {
+                                                                break;
+                                                            }
+                                                        }
+                                                        if num_tiles_cropped == tile_depth {
+                                                            break;
                                                         }
                                                     }
 
@@ -849,7 +882,11 @@ impl App {
                             // The allsky image is missing so we donwload all the tiles contained into
                             // the 0's cell
                             for base_hpx_cell in crate::healpix::cell::ALLSKY_HPX_CELLS_D0 {
-                                let query = query::Tile::new(base_hpx_cell, hips.get_config(), &self.browser_features_support);
+                                let query = query::Tile::new(
+                                    base_hpx_cell,
+                                    hips.get_config(),
+                                    &self.browser_features_support,
+                                );
                                 self.tile_fetcher.append_base_tile(query);
                             }
                         } else {
@@ -1252,6 +1289,48 @@ impl App {
 
                 Ok(())
             }
+        }
+    }
+
+    pub(crate) fn get_hips_frequency(&mut self, layer: &str) -> Result<f32, JsValue> {
+        let hips = self
+            .layers
+            .get_mut_hips_from_layer(layer)
+            .ok_or_else(|| JsValue::from_str("Layer not found"))?;
+
+        self.request_for_new_tiles = true;
+
+        match hips {
+            HiPS::D2(_) => Err(JsValue::from_str("layer do not refers to a cube")),
+            HiPS::D3(hips) => Ok(hips.get_freq().0 as f32),
+        }
+    }
+
+    pub(crate) fn get_freq_from_hash(&mut self, layer: &str, hash: u64) -> Result<f64, JsValue> {
+        let hips = self
+            .layers
+            .get_mut_hips_from_layer(layer)
+            .ok_or_else(|| JsValue::from_str("Layer not found"))?;
+
+        self.request_for_new_tiles = true;
+
+        match hips {
+            HiPS::D2(_) => Err(JsValue::from_str("layer do not refers to a cube")),
+            HiPS::D3(hips) => Ok(hips.get_freq_from_hash(hash).0 as f64),
+        }
+    }
+
+    pub(crate) fn get_freq_hash(&mut self, layer: &str, freq: f64) -> Result<u64, JsValue> {
+        let hips = self
+            .layers
+            .get_mut_hips_from_layer(layer)
+            .ok_or_else(|| JsValue::from_str("Layer not found"))?;
+
+        self.request_for_new_tiles = true;
+
+        match hips {
+            HiPS::D2(_) => Err(JsValue::from_str("layer do not refers to a cube")),
+            HiPS::D3(hips) => Ok(hips.get_freq_hash(Freq(freq))),
         }
     }
 

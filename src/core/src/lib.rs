@@ -100,6 +100,7 @@ pub mod async_task;
 mod camera;
 mod shaders;
 
+mod browser_support;
 mod coosys;
 mod downloader;
 mod event;
@@ -111,13 +112,11 @@ pub mod renderable;
 mod shader;
 mod tile_fetcher;
 mod time;
-mod browser_support;
 
 use crate::{
     camera::CameraViewPort, healpix::moc::SpaceMoc, math::lonlat::LonLatT, shader::ShaderManager,
     time::DeltaTime,
 };
-
 
 use al_api::color::{Color, ColorRGBA};
 use al_api::coo_system::CooSystem;
@@ -416,6 +415,21 @@ impl WebClient {
     #[wasm_bindgen(js_name = setFreq)]
     pub fn set_hips_frequency(&mut self, layer: String, frequency: f32) -> Result<(), JsValue> {
         self.app.set_hips_frequency(&layer, frequency)
+    }
+
+    #[wasm_bindgen(js_name = getFreq)]
+    pub fn get_hips_frequency(&mut self, layer: String) -> Result<f32, JsValue> {
+        self.app.get_hips_frequency(&layer)
+    }
+
+    #[wasm_bindgen(js_name = freq2hash)]
+    pub fn get_freq_hash(&mut self, layer: String, freq: f64) -> Result<u64, JsValue> {
+        self.app.get_freq_hash(&layer, freq)
+    }
+
+    #[wasm_bindgen(js_name = hash2freq)]
+    pub fn get_freq_from_hash(&mut self, layer: String, hash: u64) -> Result<f64, JsValue> {
+        self.app.get_freq_from_hash(&layer, hash)
     }
 
     #[wasm_bindgen(js_name = setBackgroundColor)]

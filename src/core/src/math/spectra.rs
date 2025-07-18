@@ -34,6 +34,10 @@ impl Freq {
     pub fn min(&self, other: Self) -> Self {
         Freq(self.0.min(other.0))
     }
+
+    pub fn num_max_cells(order: u8) -> usize {
+        (Frequency::<u64>::n_cells_max() >> (Frequency::<u64>::MAX_DEPTH - order)) as usize
+    }
 }
 
 use std::ops::Sub;

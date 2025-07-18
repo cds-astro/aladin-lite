@@ -19,7 +19,6 @@
                 target: '325.59233 -44.3258', // initial target
                 cooFrame: 'icrs', // set galactic frame
                 reticleColor: '#ff89ff', // change reticle color
-                reticleSize: 64, // change reticle size
                 showContextMenu: true,
                 showFrame: true,
                 showZoomControl:true,
@@ -29,23 +28,18 @@
             }
         );
 
-        hips = aladin.newImageSurvey("https://alasky.cds.unistra.fr/GALFAHI/GALFAHI-Narrow-DR2-3D");
+        hips = aladin.newImageSurvey("https://alasky.cds.unistra.fr/GALFAHI/GALFAHI-Narrow-DR2-3D", {
+            successCallback: (hips) => {
+                hips.setFrequency({value: 0.21101690259115785, unit: "m"}) // GALFA
+            }
+        });
         //hips = aladin.newImageSurvey("http://alasky.cds.unistra.fr/DHIGLS");
         //hips = aladin.newImageSurvey("https://alasky.cds.unistra.fr/MUSE3D");
         aladin.setImageLayer(hips)
 
-        let i = 0;
-        setTimeout(() => {
-            let emMin = hips.emMin
-            let emMax = hips.emMax
-            let delta = (emMax - emMin) / 100;
-
-            //hips.setFrequency({value: emMin + delta * i, unit: "m"})
-            hips.setFrequency({value: 0.21107012, unit: "m"}) // GALFA
-            //hips.setFrequency({value: 0.21101690259115785, unit: "m"}) // DGHILG
-
-            i = (i + 1) % 100;
-        }, 200)
+        //hips.setFrequency({value: emMin + delta * i, unit: "m"})
+        //hips.setFrequency({value: 0.21059156059066345, unit: "m"}) // MUSE
+        //hips.setFrequency({value: 0.21101690259115785, unit: "m"}) // DGHILG
 
         /*let id;
         aladin.on("zoomChanged", () => {

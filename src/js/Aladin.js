@@ -1013,8 +1013,6 @@ export let Aladin = (function () {
 
         let aladinBorderColor = Color.getLabelColorForBackground(`rgb(${aladinColor.r}, ${aladinColor.g}, ${aladinColor.b})`);
         this.aladinDiv.style.setProperty('--aladin-color-border', aladinBorderColor)
-
-        console.log(aladinBorderColor)
     };
 
     /**

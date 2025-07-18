@@ -120,6 +120,18 @@ struct Cursor {
     s_max_order: u8,
     f_max_order: u8,
     tile_depth: u8,
+
+    em_min: Freq,
+    em_max: Freq,
+}
+
+struct FrequencyWindow {
+    /// hash range at pixel order
+    window_pixel_hash: Range<u64>,
+    /// The pixel order
+    pixel_depth: u8,
+    /// em_min/em_max hash
+    domain_pixel_hash: Range<u64>,
 }
 
 struct Window {}
@@ -127,7 +139,10 @@ struct Window {}
 use std::ops::Range;
 impl Cursor {
     fn new(cfg: &HiPSConfig) -> Self {
-        let freq = cfg.em_min.unwrap_abort();
+        let em_min = cfg.em_min.unwrap_abort();
+        let em_max = cfg.em_max.unwrap_abort();
+
+        let freq = em_min;
         let location = LonLatT::new(0.0.to_angle(), 0.0.to_angle());
 
         let f_max_order = cfg.max_depth_freq.unwrap_or(Frequency::<u64>::MAX_DEPTH);
@@ -144,6 +159,8 @@ impl Cursor {
             f_max_order,
             s_max_order,
             tile_depth,
+            em_min,
+            em_max,
         }
     }
 
@@ -161,7 +178,7 @@ impl Cursor {
     }
 
     /// Get the window starting and ending hashed at the pixel order
-    fn get_window_frequency_range(&self) -> (Range<u64>, u8) {
+    fn get_window_frequency_range(&self) -> FrequencyWindow {
         const NUM_VALUES: usize = 100;
 
         let delta_depth = self.tile_depth.trailing_zeros();
@@ -169,10 +186,17 @@ impl Cursor {
         let f_hash_val = self.freq.hash(pixel_depth);
 
         let f_hash_val_0 = (f_hash_val as i64 - NUM_VALUES as i64).max(0) as u64;
-        let f_hash_val_1 = (f_hash_val + NUM_VALUES as u64)
-            .min(Frequency::<u64>::n_cells_max() >> (Frequency::<u64>::MAX_DEPTH - pixel_depth));
+        let f_hash_val_1 =
+            (f_hash_val + NUM_VALUES as u64).min(Freq::num_max_cells(pixel_depth) as u64);
 
-        (f_hash_val_0..f_hash_val_1, pixel_depth)
+        let min_hash = self.em_min.hash(pixel_depth);
+        let max_hash = self.em_max.hash(pixel_depth);
+
+        FrequencyWindow {
+            window_pixel_hash: f_hash_val_0..f_hash_val_1,
+            pixel_depth,
+            domain_pixel_hash: min_hash..max_hash,
+        }
     }
 
     /// Get hash at the pixel level
@@ -212,7 +236,11 @@ impl Cursor {
     }
 
     fn get_surrounding_cell_hashes_along_spectra_axis(&self) -> Range<u64> {
-        let (f_hash_val, pixel_depth) = self.get_window_frequency_range();
+        let FrequencyWindow {
+            window_pixel_hash: f_hash_val,
+            pixel_depth,
+            ..
+        } = self.get_window_frequency_range();
 
         let delta_depth = pixel_depth - self.cell.f_depth;
 
@@ -492,17 +520,15 @@ impl HiPS3D {
         let cell_hash_f = self.cursor.get_surrounding_cell_hashes_along_spectra_axis();
         let delta_depth = tile_depth.trailing_zeros();
         let pixel_hash_0 = cell_hash_f.start << delta_depth;
-        let (window_pixel_hash, pixel_depth) = self.cursor.get_window_frequency_range();
+        let FrequencyWindow {
+            window_pixel_hash,
+            domain_pixel_hash,
+            pixel_depth,
+        } = self.cursor.get_window_frequency_range();
 
         // Determine the frequencies the borders of the window
-        let mut f0 = Freq::from_hash_with_order(window_pixel_hash.start, pixel_depth);
-        if let Some(em_min) = self.get_config().em_min {
-            f0 = f0.max(em_min);
-        }
-        let mut f1 = Freq::from_hash_with_order(window_pixel_hash.end, pixel_depth);
-        if let Some(em_max) = self.get_config().em_max {
-            f1 = f1.min(em_max);
-        }
+        let f0 = Freq::from_hash_with_order(window_pixel_hash.start, pixel_depth);
+        let f1 = Freq::from_hash_with_order(window_pixel_hash.end, pixel_depth);
 
         // Determine the spectral step at the cursor position
         let f_step = self.cursor.get_frequency_step(1);
@@ -517,16 +543,69 @@ impl HiPS3D {
         let indices =
             (window_pixel_hash.start - pixel_hash_0)..(window_pixel_hash.end - pixel_hash_0);
 
+        // create the js object containing:
+        // * spectra values
+        // * min and max frequency values
+        let spectra_js_obj = Object::new();
+
+        // Set properties using Reflect::set
+        Reflect::set(
+            &spectra_js_obj,
+            &JsValue::from_str("freqMin"),
+            &JsValue::from_f64(f0.0),
+        )
+        .unwrap_abort();
+        Reflect::set(
+            &spectra_js_obj,
+            &JsValue::from_str("freqMax"),
+            &JsValue::from_f64(f1.0),
+        )
+        .unwrap_abort();
+        Reflect::set(
+            &spectra_js_obj,
+            &JsValue::from_str("freq"),
+            &JsValue::from_f64(self.cursor.freq.0),
+        )
+        .unwrap_abort();
+        Reflect::set(
+            &spectra_js_obj,
+            &JsValue::from_str("freqStep"),
+            &JsValue::from_f64(f_step.0),
+        )
+        .unwrap_abort();
+
+        let mut start = window_pixel_hash.start.max(domain_pixel_hash.start);
+        let mut end = window_pixel_hash.end.min(domain_pixel_hash.end);
+
+        if start < end {
+            start = start - pixel_hash_0 - indices.start;
+            end = end - pixel_hash_0 - indices.start;
+
+            Reflect::set(
+                &spectra_js_obj,
+                &JsValue::from_str("freqIdxStart"),
+                &JsValue::from_f64(start as f64),
+            )
+            .unwrap_abort();
+
+            Reflect::set(
+                &spectra_js_obj,
+                &JsValue::from_str("freqIdxEnd"),
+                &JsValue::from_f64(end as f64),
+            )
+            .unwrap_abort();
+        }
+
         let spectra = self
             .cursor
             .get_surrounding_cells_along_spectra_axis()
             .flat_map(|c| {
                 if let Some(cubic_tex) = self.buffer.get(&c) {
                     (0..(tile_depth as u32))
-                        .map(|z| cubic_tex.read_pixel(x, y, z).unwrap_or(0.0))
+                        .map(|z| cubic_tex.read_pixel(x, y, z).unwrap_or(f32::NAN))
                         .collect::<Vec<_>>()
                 } else {
-                    vec![0.0; tile_depth as usize]
+                    vec![f32::NAN; tile_depth as usize]
                 }
             })
             .enumerate()
@@ -540,34 +619,10 @@ impl HiPS3D {
             .collect::<Vec<_>>()
             .into_boxed_slice();
 
-        // create the js object containing:
-        // * spectra values
-        // * min and max frequency values
-        let spectra_js_obj = Object::new();
-
-        // Set properties using Reflect::set
         Reflect::set(
             &spectra_js_obj,
             &JsValue::from_str("values"),
             &js_sys::Float32Array::from(&spectra[..]),
-        )
-        .unwrap_abort();
-        Reflect::set(
-            &spectra_js_obj,
-            &JsValue::from_str("min"),
-            &JsValue::from_f64(f0.0),
-        )
-        .unwrap_abort();
-        Reflect::set(
-            &spectra_js_obj,
-            &JsValue::from_str("max"),
-            &JsValue::from_f64(f1.0),
-        )
-        .unwrap_abort();
-        Reflect::set(
-            &spectra_js_obj,
-            &JsValue::from_str("f_step"),
-            &JsValue::from_f64(f_step.0),
         )
         .unwrap_abort();
 

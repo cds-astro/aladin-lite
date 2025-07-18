@@ -510,24 +510,27 @@ export let HiPS = (function () {
         self.dataproductType = properties && properties.dataproduct_type;
         if (self.dataproductType === "spectral-cube") {
             if (!self.spectraUpdatedCallback) {
-                let createPlotCanvas = (id = "plot", width = 600, height = 300) => {
+                let createPlotCanvas = (id = "spectra", width = 600, height = 300) => {
                     const canvas = document.createElement("canvas");
                     canvas.id = id;
                     canvas.width = width;
                     canvas.height = height;
                     //canvas.style.pointerEvents = "none";
                     canvas.style.position = "absolute";
-                    canvas.style.bottom = "0";
+                    canvas.style.left = "50%";
+                    canvas.style.transform = "translateX(-50%)";
+                    canvas.style.bottom = "2px";
 
-                    self.view.aladinDiv.appendChild(canvas); // or insert it into a specific container
+                    self.view.aladinDiv.appendChild(canvas); 
                     return canvas;
                 };
+
+                let data;
 
                 const canvas = createPlotCanvas();
                 const ctx = canvas.getContext("2d");
 
-                let delta_f = 0;
-                let scaleX, scaleY;
+                let scaleX, scaleY, height;
                 let minY, maxY;
 
                 function handleEvent() {
@@ -539,51 +542,104 @@ export let HiPS = (function () {
                         const mx = e.clientX - rect.left;
                         const my = e.clientY - rect.top;
                       
-                        if (mx < rect.width && my < rect.height) {
+                        let v = data.values[Math.round(mx / scaleX)]
+
+                        v = height - (v - minY) * scaleY
+                        if (my >= v) {
                           isDragging = true;
                           lastMouse = { x: mx, y: my };
+                        } else {
+                            // propagate event to its sibling
+                            let paramsEvent = {
+                                bubbles: e.bubbles,
+                                cancelable: e.cancelable,
+                                clientX: e.clientX,
+                                clientY: e.clientY,
+                                screenX: e.screenX,
+                                screenY: e.screenY,
+                                ctrlKey: e.ctrlKey,
+                                shiftKey: e.shiftKey,
+                                altKey: e.altKey,
+                                metaKey: e.metaKey,
+                                button: e.button,
+                                relatedTarget: e.relatedTarget,
+                            };
+                            const event = new MouseEvent('mousedown', paramsEvent);
+                            self.view.catalogCanvas.dispatchEvent(event);
                         }
                     });
                       
-                    self.view.aladinDiv.addEventListener('mousemove', (e) => {
-                        if (!isDragging) return;
-                      
+                    canvas.addEventListener('mousemove', (e) => {
+                        if (!isDragging) {
+                            const event = new MouseEvent('mousemove', {...e});
+                            self.view.catalogCanvas.dispatchEvent(event);
+
+                            return;
+                        }
                         const rect = canvas.getBoundingClientRect();
                         const mx = e.clientX - rect.left;
                         const my = e.clientY - rect.top;
                       
-                        const dx = Math.round((mx - lastMouse.x) / scaleX);
+                        const dx = (mx - lastMouse.x) / scaleX;
                         if (dx != 0) {
-                            lastMouse = { x: mx, y: my };
-                      
                             // set the frequency
                             let curFreq = hips.getFrequency();
 
                             let curHash = Number(self.view.wasm.freq2hash(self.layer, curFreq));
-                            let nextHash = curHash - dx
+                            let nextHash = curHash - Math.round(dx)
 
                             let nextFreq = self.view.wasm.hash2freq(self.layer, BigInt(nextHash));
                             hips.setFrequency({
                                 value: nextFreq,
                                 unit: 'Hz'
                             })
+
+                            const correctedMx = Math.round(dx) * scaleX + lastMouse.x;
+                            lastMouse = { x: correctedMx, y: my };
                         }
                     });
                       
-                    self.view.aladinDiv.addEventListener('mouseup', () => {
+                    canvas.addEventListener('mouseup', (e) => {
+                        isDragging = false;
+
+                        const clickEvent = new MouseEvent('click', {
+                            bubbles: true,
+                            cancelable: true,
+                            clientX: e.clientX,
+                            clientY: e.clientY
+                        });
+                        self.view.catalogCanvas.dispatchEvent(clickEvent);
+                    });
+
+                    canvas.addEventListener('mouseout', (e) => {
                         isDragging = false;
                     });
-                      
-                    canvas.addEventListener('mouseout', () => {
-                        isDragging = false;
+
+                    canvas.addEventListener('wheel', (e) => {
+                        const wheelEvent = new WheelEvent('wheel', {
+                            bubbles: true,
+                            cancelable: true,
+                            deltaX: e.deltaX,
+                            deltaY: e.deltaY,
+                            deltaMode: e.deltaMode,
+                            clientX: e.clientX,
+                            clientY: e.clientY,
+                            ctrlKey: e.ctrlKey,
+                            shiftKey: e.shiftKey,
+                            altKey: e.altKey,
+                            metaKey: e.metaKey
+                        });
+
+                        self.view.catalogCanvas.dispatchEvent(wheelEvent);
                     });
                 }
 
                 handleEvent();
 
-                function drawPlot(ctx, values) {
+                function drawPlot(ctx) {
+                    const values = data.values;
                     const width = ctx.canvas.width;
-                    const height = ctx.canvas.height;
+                    height = ctx.canvas.height;
                     const len = values.length;
             
                     // Clear previous drawing
@@ -593,40 +649,153 @@ export let HiPS = (function () {
 
                     //const minY = self.hipsDataMinMax && self.hipsDataMinMax[0] || Math.min(...values);
                     //const maxY = self.hipsDataMinMax && self.hipsDataMinMax[1] || Math.max(...values);
-                    minY = minY && Math.min(...values, minY) || Math.min(...values);
-                    maxY = maxY && Math.max(...values, maxY) || Math.max(...values);
+                    let valuesWithNoNans = values.filter(v=>Number.isFinite(v));
+                    if (Number.isFinite(minY)) {
+                        minY = Math.min(...valuesWithNoNans, minY)
+                    } else {
+                        minY = Math.min(...valuesWithNoNans)
+                    }
+                    if (Number.isFinite(maxY)) {
+                        maxY = Math.max(...valuesWithNoNans, maxY)
+                    } else {
+                        maxY = Math.max(...valuesWithNoNans)
+                    }
+
                     scaleX = width / (len - 1);
                     scaleY = (maxY - minY === 0) ? 1 : height / (maxY - minY);
-            
-                    ctx.beginPath();
-                    for (let i = 0; i < len; i++) {
-                        const x = i * scaleX;
-                        const y = height - (values[i] - minY) * scaleY;
-                        if (i === 0) {
-                            ctx.moveTo(x, y);
-                        } else {
-                            ctx.lineTo(x, y);
+
+                    function drawSpectra(ctx, array, i0, i1) {
+                        ctx.beginPath();
+                        ctx.lineWidth = 4;
+                        let strokeStyle = "red";
+                        ctx.strokeStyle = strokeStyle
+
+                        let prevY;
+                        let i = i0;
+                        while (i <= i1) {
+                            let y;
+                            const x = i * scaleX;
+
+                            const inValidDomain = data.freqIdxStart !== undefined && data.freqIdxEnd !== undefined && i > data.freqIdxStart && i < data.freqIdxEnd;
+
+                            if (inValidDomain) {
+                                const tileNotReceived = !Number.isFinite(array[i]);
+                                if (tileNotReceived) {
+                                    // color orange
+                                    if (strokeStyle !== "orange") {
+                                        ctx.lineTo(x, height)
+                                        strokeStyle = "orange"
+                                        ctx.stroke()
+
+                                        ctx.beginPath();
+                                        ctx.strokeStyle = strokeStyle
+                                        ctx.lineWidth = 4
+                                    }
+
+                                    y = height;
+                                    if (i === i0) {
+                                        ctx.moveTo(x, y);
+                                    } else {
+                                        ctx.lineTo(x, y);
+                                    }
+                                } else {
+                                    // valid frequency, color green
+                                    if (strokeStyle !== "lightgreen") {
+                                        strokeStyle = "lightgreen"
+                                        ctx.stroke()
+
+                                        ctx.beginPath();
+                                        ctx.strokeStyle = strokeStyle
+                                        ctx.lineWidth = 2
+                                        ctx.moveTo(x - scaleX, prevY)
+                                    }
+
+                                    y = height - (array[i] - minY) * scaleY;
+                                    if (i === i0) {
+                                        ctx.moveTo(x, y);
+                                    } else {
+                                        ctx.lineTo(x, y);
+                                    }
+                                }
+                            } else {
+                                // frequency out of the survey coverage => color red
+                                if (strokeStyle !== "red") {
+                                    ctx.lineTo(x, height)
+                                    ctx.stroke()
+
+                                    ctx.beginPath();
+                                    strokeStyle = "red"
+                                    ctx.strokeStyle = strokeStyle
+                                    ctx.lineWidth = 4
+                                }
+
+                                y = height;
+                                if (i === i0) {
+                                    ctx.moveTo(x, y);
+                                } else {
+                                    ctx.lineTo(x, y);
+                                }
+                            }
+
+                            i++;
+                            prevY = y;
                         }
+                        // final stroke
+                        ctx.stroke();
                     }
-                    ctx.strokeStyle = "lightgreen";
-                    ctx.lineWidth = 2;
-                    ctx.stroke();
+
+                    drawSpectra(ctx, values, 0, len)
 
                     // Draw the vertical line that can be grabed to move the slice
                     ctx.beginPath();
                     ctx.moveTo(scaleX * len / 2, height);
                     ctx.lineTo(scaleX * len / 2, height - (maxY - minY) * scaleY);
                     ctx.strokeStyle = "red";
-                    ctx.lineWidth = 3;
+                    ctx.lineWidth = 2;
                     ctx.stroke();
+
+                    function freq2String(frequencyHz, precisionHz) {
+                        const units = [
+                            { unit: "GHz", factor: 1e9 },
+                            { unit: "MHz", factor: 1e6 },
+                            { unit: "kHz", factor: 1e3 },
+                            { unit: "Hz",  factor: 1 }
+                        ];
+                        
+                        for (const { unit, factor } of units) {
+                            const value = frequencyHz / factor;
+                            const precisionInUnit = precisionHz / factor;
+                        
+                            if (value >= 1 || unit === "Hz") {
+                                // Calculate number of decimal places needed to show the given precision
+                                const decimals = Math.max(0, Math.ceil(-Math.log10(precisionInUnit)));
+                                return value.toFixed(decimals) + " " + unit;
+                            }
+                        }
+                    }
+                      
+
+                    // Draw the min and max frequencies
+                    ctx.font = "20px monospace"; // You can also use "Courier New", "Consolas", etc.
+                    ctx.fillStyle = "lightgreen";
+                    ctx.textBaseline = "middle"; // Vertically centered
+
+                    // min window freq
+                    ctx.textAlign = "left"; // Horizontally centered
+                    ctx.fillText(freq2String(data.freqMin, data.freqStep), 0, height - 20);
+
+                    // max window freq
+                    ctx.textAlign = "right"; // Horizontally centered
+                    ctx.fillText(freq2String(data.freqMax, data.freqStep), width, height - 20);
+
+                    // current window freq
+                    ctx.textAlign = "center"; // Horizontally centered
+                    ctx.fillText(freq2String(data.freq, data.freqStep), width / 2, height - 20);
                 }
 
                 self.spectraUpdatedCallback = (event) => {
-                    const data = event.detail;
-                    let values = data.values;
-                    delta_f = data.f_step;
-                    console.log(data)
-                    drawPlot(ctx, values);
+                    data = event.detail;
+                    drawPlot(ctx);
                 };
             } else {
                 window.removeEventListener("spectra", self.spectraUpdatedCallback);

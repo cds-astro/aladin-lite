@@ -546,6 +546,16 @@ impl HEALPixFreqCell {
     pub fn is_hpx_root(&self) -> bool {
         self.hpx.is_root()
     }
+
+    pub fn freq_range(&self) -> Range<Freq> {
+        let f0 = Freq::from_hash_with_order(self.f_hash, self.f_depth);
+        let f1 = Freq::from_hash_with_order(
+            (self.f_hash + 1).min(Freq::num_max_cells(self.f_depth) as u64),
+            self.f_depth,
+        );
+
+        f0..f1
+    }
 }
 
 // Utils

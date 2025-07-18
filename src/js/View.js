@@ -44,9 +44,6 @@ import { Zoom } from './Zoom.js'
 import { Footprint } from "./Footprint.js";
 import { Selector } from "./Selector.js";
 import { ObsCore } from "./vo/ObsCore.js";
-import { DefaultActionsForContextMenu } from "./DefaultActionsForContextMenu.js";
-import { Layout } from "./gui/Layout.js";
-import { SAMPActionButton } from "./gui/Button/SAMP.js";
 import { HiPS } from "./HiPS.js";
 import { Image } from "./Image.js";
 import { Color } from "./Color.js";
@@ -720,6 +717,11 @@ export let View = (function () {
 
             const xymouse = Utils.relMouseCoords(e);
 
+            let spectraDisplayer = view.aladinDiv.querySelector("#spectra");
+            if (spectraDisplayer) {
+                spectraDisplayer.style.pointerEvents = "none";
+            }
+
             ALEvent.CANVAS_EVENT.dispatchedTo(view.aladinDiv, {
                 state: {
                     mode: view.mode,
@@ -788,6 +790,7 @@ export let View = (function () {
             view.dragCoo = xymouse;
 
             view.dragging = true;
+
             view.aladin.contextMenu && view.aladin.contextMenu._hide()
 
             if (view.mode === View.PAN) {
@@ -805,6 +808,7 @@ export let View = (function () {
             return true;
         });
 
+        /*
         Utils.on(view.catalogCanvas, "mouseup", function (e) {
             e.preventDefault();
             e.stopPropagation();
@@ -835,9 +839,36 @@ export let View = (function () {
                 view.selector.dispatch('mouseup', {coo: xymouse})
             }
         });
+        */
+
+        Utils.on(view.catalogCanvas, "click", function (e) {
+            // call listener of 'click' event
+            
+            if (view.mode == View.TOOL_SIMBAD_POINTER) {
+                // call Simbad pointer or Planetary features
+                GenericPointer(view, e);
+
+                return; // when in TOOL_SIMBAD_POINTER mode, we do not call the listeners
+            }
+
+            if (view.mode == View.TOOL_COLOR_PICKER) {
+                Utils.copy2Clipboard(view.colorPickerTool.probedValue)
+                    .then(() => {
+                        if (view.aladin.statusBar) {
+                            view.aladin.statusBar.appendMessage({
+                                message: `${view.colorPickerTool.probedValue} copied into your clipboard`,
+                                duration: 1500,
+                                type: 'info'
+                            })
+                        }
+                    })
+                return; // listeners are not called
+            }
+
+        });
 
         // reacting on 'click' rather on 'mouseup' is more reliable when panning the view
-        Utils.on(view.catalogCanvas, "click mouseout touchend touchcancel", function (e) {
+        Utils.on(view.catalogCanvas, "mouseup mouseout touchend touchcancel", function (e) {
             const xymouse = Utils.relMouseCoords(e);
 
             ALEvent.CANVAS_EVENT.dispatchedTo(view.aladinDiv, {
@@ -882,6 +913,10 @@ export let View = (function () {
                 }
 
                 view.dragging = false;
+                let spectraDisplayer = view.aladinDiv.querySelector("#spectra");
+                if (spectraDisplayer) {
+                    spectraDisplayer.style.pointerEvents = "auto";
+                }
 
                 if (wasDragging) {
                     view.realDragging = false;
@@ -893,6 +928,12 @@ export let View = (function () {
 
             view.mustClearCatalog = true;
             view.dragCoo = null;
+
+            if (e.type === "mouseup") {
+                if (view.mode === View.SELECT) {
+                    view.selector.dispatch('mouseup', {coo: xymouse})
+                }
+            }
 
             if (e.type === "mouseout" || e.type === "touchend" || e.type === "touchcancel") {
                 if (e.type === "mouseout" || e.type === "touchcancel") {
@@ -912,25 +953,14 @@ export let View = (function () {
                 } 
             }
 
-            if (view.mode == View.TOOL_SIMBAD_POINTER) {
-                // call Simbad pointer or Planetary features
-                GenericPointer(view, e);
+            if (view.rightClick) {
+                if (showContextMenu) {
+                    view.aladin.contextMenu && view.aladin.contextMenu.show({e});
+                }
 
-                return; // when in TOOL_SIMBAD_POINTER mode, we do not call the listeners
-            }
+                view.rightClick = false;
 
-            if (view.mode == View.TOOL_COLOR_PICKER) {
-                Utils.copy2Clipboard(view.colorPickerTool.probedValue)
-                    .then(() => {
-                        if (view.aladin.statusBar) {
-                            view.aladin.statusBar.appendMessage({
-                                message: `${view.colorPickerTool.probedValue} copied into your clipboard`,
-                                duration: 1500,
-                                type: 'info'
-                            })
-                        }
-                    })
-                return; // listeners are not called
+                return;
             }
 
             // popup to show ?
@@ -950,7 +980,6 @@ export let View = (function () {
                 }
             }
 
-            // call listener of 'click' event
             var onClickFunction = view.aladin.callbacksByEventName['click'];
             if (typeof onClickFunction === 'function') {
                 var pos = view.aladin.pix2world(xymouse.x, xymouse.y, "icrs");
@@ -959,16 +988,14 @@ export let View = (function () {
                 }
             }
 
-            // TODO : remplacer par mecanisme de listeners
-            // on avertit les catalogues progressifs
-            view.refreshProgressiveCats();
-
-            //view.requestRedraw();
-            view.wasm.releaseLeftButtonMouse();
-
             if (view.mode === View.SELECT && e.type === "click") {
                 view.selector.dispatch('click', {coo: xymouse})
             }
+
+            // TODO : remplacer par mecanisme de listeners
+            // on avertit les catalogues progressifs
+            view.refreshProgressiveCats();
+            view.wasm.releaseLeftButtonMouse();
         });
 
         var lastHoveredObject; // save last object hovered by mouse
@@ -1011,6 +1038,7 @@ export let View = (function () {
             view.colorPickerTool.domElement.style.left = `${xymouse.x}px`;
             view.colorPickerTool.domElement.style.top = `${xymouse.y}px`;
         }
+
         Utils.on(view.catalogCanvas, "mousemove touchmove", function (e) {
             e.preventDefault();
 
@@ -1265,7 +1293,7 @@ export let View = (function () {
 
                 if (!view.throttledTouchPadZoom) {
                     view.throttledTouchPadZoom = () => {
-                        const factor = Utils.detectTrackPad(e) ? 1.05 : 1.2;
+                        const factor = Utils.detectTrackPad(e) ? 1.07 : 1.2;
                         const currZoomFactor = view.zoom.isZooming ? view.zoom.finalZoom : view.zoomFactor;
                         let newZoomFactor = view.delta > 0 ? currZoomFactor * factor : currZoomFactor / factor;
 

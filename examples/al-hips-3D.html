@@ -28,13 +28,14 @@
             }
         );
 
-        hips = aladin.newImageSurvey("http://alasky.cds.unistra.fr/LGLBSHI", {
+        hips = aladin.newImageSurvey("https://alasky.cds.unistra.fr/MUSE3D", {
             successCallback: (hips) => {
-                hips.setFrequency({value: 0.2111163872600328, unit: "m"}) // GALFA
+                hips.setFrequency({value: 8.402056971809762e-7, unit: "m"}) // GALFA
             }
         });
         //hips = aladin.newImageSurvey("http://alasky.cds.unistra.fr/DHIGLS");
         //hips = aladin.newImageSurvey("https://alasky.cds.unistra.fr/MUSE3D");
+        // http://alasky.cds.unistra.fr/LGLBSHI
         aladin.setImageLayer(hips)
 
         //hips.setFrequency({value: emMin + delta * i, unit: "m"})

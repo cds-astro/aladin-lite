@@ -527,11 +527,22 @@ export let HiPS = (function () {
 
                 let data;
 
+                // One canvas for the spectra
                 const canvas = createPlotCanvas();
                 const ctx = canvas.getContext("2d");
+                // One canvas for the mouse hover spectral line
+                const canvasCursor = createPlotCanvas('spectra-cursor')
+                canvasCursor.style.pointerEvents = "none"
+                const ctxCursor = canvasCursor.getContext("2d");
+                // One canvas for text
+                const canvasLabels = createPlotCanvas('spectra-labels')
+                canvasLabels.style.pointerEvents = "none"
+                const ctxLabels = canvasLabels.getContext("2d");
 
-                let scaleX, scaleY, height;
+                let scaleX, scaleY, height, width;
                 let minY, maxY;
+                let mouseFreq;
+                let len;
 
                 function handleEvent() {
                     let lastMouse = { x: 0, y: 0 };
@@ -548,38 +559,100 @@ export let HiPS = (function () {
                         if (my >= v) {
                           isDragging = true;
                           lastMouse = { x: mx, y: my };
+                          canvas.style.cursor = 'grabbing';
                         } else {
-                            // propagate event to its sibling
-                            let paramsEvent = {
-                                bubbles: e.bubbles,
-                                cancelable: e.cancelable,
-                                clientX: e.clientX,
-                                clientY: e.clientY,
-                                screenX: e.screenX,
-                                screenY: e.screenY,
-                                ctrlKey: e.ctrlKey,
-                                shiftKey: e.shiftKey,
-                                altKey: e.altKey,
-                                metaKey: e.metaKey,
-                                button: e.button,
-                                relatedTarget: e.relatedTarget,
-                            };
-                            const event = new MouseEvent('mousedown', paramsEvent);
-                            self.view.catalogCanvas.dispatchEvent(event);
+                            // check if the click is next to the center bar
+                            // Draw the vertical line that can be grabed to move the slice
+                            ctx.beginPath();
+                            ctx.moveTo(scaleX * len / 2, height);
+                            ctx.lineTo(scaleX * len / 2, height - (maxY - minY) * scaleY);
+                            ctx.strokeStyle = "red";
+                            ctx.lineWidth = 10;
+
+                            if (ctx.isPointInStroke(mx, my)) {
+                                isDragging = true;
+                                lastMouse = { x: mx, y: my };
+                                canvas.style.cursor = 'grabbing';
+                            } else {
+                                // propagate event to its sibling
+                                let paramsEvent = {
+                                    bubbles: e.bubbles,
+                                    cancelable: e.cancelable,
+                                    clientX: e.clientX,
+                                    clientY: e.clientY,
+                                    screenX: e.screenX,
+                                    screenY: e.screenY,
+                                    ctrlKey: e.ctrlKey,
+                                    shiftKey: e.shiftKey,
+                                    altKey: e.altKey,
+                                    metaKey: e.metaKey,
+                                    button: e.button,
+                                    relatedTarget: e.relatedTarget,
+                                };
+                                const event = new MouseEvent('mousedown', paramsEvent);
+                                self.view.catalogCanvas.dispatchEvent(event);
+                            }
                         }
                     });
                       
                     canvas.addEventListener('mousemove', (e) => {
-                        if (!isDragging) {
-                            const event = new MouseEvent('mousemove', {...e});
-                            self.view.catalogCanvas.dispatchEvent(event);
-
-                            return;
-                        }
                         const rect = canvas.getBoundingClientRect();
                         const mx = e.clientX - rect.left;
                         const my = e.clientY - rect.top;
-                      
+
+                        // can be in the spectral area
+                        let v = data.values[Math.round(mx / scaleX)]
+
+                        v = height - (v - minY) * scaleY
+                        canvas.style.cursor = 'default';
+
+                        ctxCursor.clearRect(0, 0, width, height);
+                        mouseFreq = null;
+
+                        if (my >= v) {
+                            canvas.style.cursor = 'grab';
+
+                            ctxCursor.beginPath();
+                            ctxCursor.moveTo(mx, height);
+                            ctxCursor.lineTo(mx, v);
+                            ctxCursor.strokeStyle = "yellow";
+                            ctxCursor.lineWidth = 2;
+                            ctxCursor.stroke()
+
+                            // compute the frequency at that position
+                            let curFreq = hips.getFrequency();
+                            let curHash = Number(self.view.wasm.freq2hash(self.layer, curFreq));
+
+                            let mouseHash = curHash + Math.round((mx - (width / 2)) / scaleX)
+                            mouseFreq = self.view.wasm.hash2freq(self.layer, BigInt(mouseHash));
+                        }
+
+                        drawLabels()
+
+
+                        if (!isDragging) {
+                            // Draw the vertical line that can be grabed to move the slice
+                            ctx.beginPath();
+                            ctx.moveTo(scaleX * len / 2, height);
+                            ctx.lineTo(scaleX * len / 2, height - (maxY - minY) * scaleY);
+                            ctx.strokeStyle = "red";
+                            ctx.lineWidth = 10;
+
+                            if (ctx.isPointInStroke(mx, my)) {
+                                console.log('Mouse is on stroke!');
+                                canvas.style.cursor = 'grab';
+                            }
+
+                            //const event = new MouseEvent('mousemove', {...e});
+                            //self.view.catalogCanvas.dispatchEvent(event);
+
+                            return;
+                        }
+
+                        mouseFreq = null;
+                        canvas.style.cursor = 'grabbing';
+
+                        // is dragged
                         const dx = (mx - lastMouse.x) / scaleX;
                         if (dx != 0) {
                             // set the frequency
@@ -601,6 +674,7 @@ export let HiPS = (function () {
                       
                     canvas.addEventListener('mouseup', (e) => {
                         isDragging = false;
+                        canvas.style.cursor = 'default';
 
                         const clickEvent = new MouseEvent('click', {
                             bubbles: true,
@@ -616,6 +690,8 @@ export let HiPS = (function () {
                     });
 
                     canvas.addEventListener('wheel', (e) => {
+                        ctxCursor.clearRect(0, 0, width, height);
+
                         const wheelEvent = new WheelEvent('wheel', {
                             bubbles: true,
                             cancelable: true,
@@ -638,9 +714,9 @@ export let HiPS = (function () {
 
                 function drawPlot(ctx) {
                     const values = data.values;
-                    const width = ctx.canvas.width;
+                    width = ctx.canvas.width;
                     height = ctx.canvas.height;
-                    const len = values.length;
+                    len = values.length;
             
                     // Clear previous drawing
                     ctx.clearRect(0, 0, width, height);
@@ -754,6 +830,10 @@ export let HiPS = (function () {
                     ctx.lineWidth = 2;
                     ctx.stroke();
 
+                    drawLabels()
+                }
+
+                function drawLabels() {
                     function freq2String(frequencyHz, precisionHz) {
                         const units = [
                             { unit: "GHz", factor: 1e9 },
@@ -773,24 +853,33 @@ export let HiPS = (function () {
                             }
                         }
                     }
-                      
+
+                    // Clear previous drawing
+                    ctxLabels.clearRect(0, 0, width, height);
 
                     // Draw the min and max frequencies
-                    ctx.font = "20px monospace"; // You can also use "Courier New", "Consolas", etc.
-                    ctx.fillStyle = "lightgreen";
-                    ctx.textBaseline = "middle"; // Vertically centered
+                    ctxLabels.font = "20px monospace"; // You can also use "Courier New", "Consolas", etc.
+                    ctxLabels.fillStyle = "lightgreen";
+                    ctxLabels.textBaseline = "middle"; // Vertically centered
 
                     // min window freq
-                    ctx.textAlign = "left"; // Horizontally centered
-                    ctx.fillText(freq2String(data.freqMin, data.freqStep), 0, height - 20);
+                    ctxLabels.textAlign = "left"; // Horizontally centered
+                    ctxLabels.fillText(freq2String(data.freqMin, data.freqStep), 0, height - 20);
 
                     // max window freq
-                    ctx.textAlign = "right"; // Horizontally centered
-                    ctx.fillText(freq2String(data.freqMax, data.freqStep), width, height - 20);
+                    ctxLabels.textAlign = "right"; // Horizontally centered
+                    ctxLabels.fillText(freq2String(data.freqMax, data.freqStep), width, height - 20);
 
                     // current window freq
-                    ctx.textAlign = "center"; // Horizontally centered
-                    ctx.fillText(freq2String(data.freq, data.freqStep), width / 2, height - 20);
+                    ctxLabels.textAlign = "center"; // Horizontally centered
+                    let fStr; 
+                    if (mouseFreq) {
+                        ctxLabels.fillStyle = "yellow";
+                        fStr = freq2String(mouseFreq, data.freqStep);
+                    } else {
+                        fStr = freq2String(data.freq, data.freqStep);
+                    }
+                    ctxLabels.fillText(fStr, width / 2, height - 20);
                 }
 
                 self.spectraUpdatedCallback = (event) => {

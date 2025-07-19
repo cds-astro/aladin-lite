@@ -1298,8 +1298,6 @@ impl App {
             .get_mut_hips_from_layer(layer)
             .ok_or_else(|| JsValue::from_str("Layer not found"))?;
 
-        self.request_for_new_tiles = true;
-
         match hips {
             HiPS::D2(_) => Err(JsValue::from_str("layer do not refers to a cube")),
             HiPS::D3(hips) => Ok(hips.get_freq().0 as f32),
@@ -1312,8 +1310,6 @@ impl App {
             .get_mut_hips_from_layer(layer)
             .ok_or_else(|| JsValue::from_str("Layer not found"))?;
 
-        self.request_for_new_tiles = true;
-
         match hips {
             HiPS::D2(_) => Err(JsValue::from_str("layer do not refers to a cube")),
             HiPS::D3(hips) => Ok(hips.get_freq_from_hash(hash).0 as f64),
@@ -1325,8 +1321,6 @@ impl App {
             .layers
             .get_mut_hips_from_layer(layer)
             .ok_or_else(|| JsValue::from_str("Layer not found"))?;
-
-        self.request_for_new_tiles = true;
 
         match hips {
             HiPS::D2(_) => Err(JsValue::from_str("layer do not refers to a cube")),

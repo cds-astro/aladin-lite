@@ -68,7 +68,7 @@ impl HpxFreqData {
                 naxis,
                 bscale,
                 bzero,
-                size
+                size,
             } => {
                 // Do not remember the origin in fits image data is left-down corner
                 let y = size.1 - y;
@@ -96,8 +96,12 @@ impl HpxFreqData {
                         Bitpix::I16 => Pixel::I16(i16::from_be_bytes([p[0], p[1]])),
                         Bitpix::I32 => Pixel::I32(i32::from_be_bytes([p[0], p[1], p[2], p[3]])),
                         Bitpix::F32 => Pixel::F32(f32::from_be_bytes([p[0], p[1], p[2], p[3]])),
-                        // Texture are converted to
-                        _ => unreachable!(),
+                        Bitpix::F64 => Pixel::F32(f64::from_be_bytes([
+                            p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7],
+                        ]) as f32),
+                        Bitpix::I64 => Pixel::I32(i64::from_be_bytes([
+                            p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7],
+                        ]) as i32),
                     };
 
                     Some(pixel.to_f32() * (*bscale) + (*bzero))
@@ -199,13 +203,15 @@ impl HpxFreqTex {
         let start_time = None;
 
         let texture = match pixel_format {
-            PixelType::RGBA8U | PixelType::RGB8U | PixelType::R8U => Texture3D::create_empty::<R8U>(
-                gl,
-                tile_size as i32,
-                tile_size as i32,
-                num_slices as i32,
-                TEX_PARAMS,
-            ),
+            PixelType::RGBA8U | PixelType::RGB8U | PixelType::R8U => {
+                Texture3D::create_empty::<R8U>(
+                    gl,
+                    tile_size as i32,
+                    tile_size as i32,
+                    num_slices as i32,
+                    TEX_PARAMS,
+                )
+            }
             PixelType::R32F => Texture3D::create_empty::<R32F>(
                 gl,
                 tile_size as i32,

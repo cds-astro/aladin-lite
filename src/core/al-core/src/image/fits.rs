@@ -114,6 +114,7 @@ impl<'a> FitsImage<'a> {
 }
 
 use crate::{image::Image, texture::Tex3D};
+use std::convert::TryInto;
 impl Image for FitsImage<'_> {
     fn insert_into_3d_texture<T: Tex3D>(
         &self,
@@ -122,7 +123,41 @@ impl Image for FitsImage<'_> {
         // An offset to write the image in the texture array
         offset: &Vector3<i32>,
     ) -> Result<(), JsValue> {
-        let view = unsafe { R8U::view(self.raw_bytes) };
+        let view = unsafe {
+            match self.bitpix {
+                Bitpix::I64 => {
+                    // convert to i64 first
+                    let new_bytes: Vec<_> = self
+                        .raw_bytes
+                        .chunks_exact(8)
+                        .flat_map(|chunk| {
+                            let bytes: [u8; 8] = chunk.try_into().unwrap();
+                            let value = i64::from_be_bytes(bytes);
+
+                            (value as i32).to_be_bytes()
+                        })
+                        .collect();
+
+                    R8U::view(&new_bytes)
+                }
+                Bitpix::F64 => {
+                    let new_bytes: Vec<_> = self
+                        .raw_bytes
+                        .chunks_exact(8)
+                        .flat_map(|chunk| {
+                            let bytes: [u8; 8] = chunk.try_into().unwrap();
+                            let value = f64::from_be_bytes(bytes);
+
+                            (value as f32).to_be_bytes()
+                        })
+                        .collect();
+
+                    R8U::view(&new_bytes)
+                }
+                _ => R8U::view(self.raw_bytes),
+            }
+        };
+
         textures.tex_sub_image_3d_with_opt_array_buffer_view(
             offset.x + self.trim1 as i32,
             offset.y + self.trim2 as i32,

@@ -836,6 +836,7 @@ export let HiPS = (function () {
                 function drawLabels() {
                     function freq2String(frequencyHz, precisionHz) {
                         const units = [
+                            { unit: "THz", factor: 1e12 },
                             { unit: "GHz", factor: 1e9 },
                             { unit: "MHz", factor: 1e6 },
                             { unit: "kHz", factor: 1e3 },

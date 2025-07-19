@@ -86,6 +86,7 @@ impl HiPSConfig {
                         32 => Ok(PixelType::R32I),
                         -32 => Ok(PixelType::R32F),
                         -64 => Ok(PixelType::R32F),
+                        64 => Ok(PixelType::R32I),
                         _ => Err(JsValue::from_str(
                             "Fits tiles exists but the BITPIX is not correct in the property file",
                         )),
@@ -182,6 +183,7 @@ impl HiPSConfig {
                         8 => Ok(PixelType::R8U),
                         16 => Ok(PixelType::R16I),
                         32 => Ok(PixelType::R32I),
+                        64 => Ok(PixelType::R32I),
                         -32 => Ok(PixelType::R32F),
                         -64 => Ok(PixelType::R32F),
                         _ => Err(JsValue::from_str(

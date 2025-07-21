@@ -1376,8 +1376,6 @@ export let View = (function () {
         };
     };
 
-    View.FPS_INTERVAL = 1000 / 140;
-
     /**
      * redraw the whole view
      */

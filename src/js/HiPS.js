@@ -31,6 +31,7 @@ import { HiPSProperties } from "./HiPSProperties.js";
 import { Aladin } from "./Aladin.js"; 
 import { CooFrameEnum } from "./CooFrameEnum.js";
 import { Utils } from "./Utils"
+import { SpectraDisplayer } from "./SpectraDisplayer.js";
 
 let PropertyParser = {};
 // Utilitary functions for parsing the properties and giving default values
@@ -340,7 +341,7 @@ export let HiPS = (function () {
 
                         delete self.localFiles["properties"]
                     })
-                    .catch((_) => reject("HiPS " + self.id + " error: " + self.localFiles["properties"] + " does not point towards a local HiPS."))
+                    .catch((e) => reject("HiPS " + self.id + " error: " + self.localFiles["properties"] + " does not point towards a local HiPS.\nReason: " + e.stack))
 
                 resolve(self);
             });
@@ -378,7 +379,7 @@ export let HiPS = (function () {
                             .then((p) => {
                                 self._parseProperties(p);
                             })
-                            .catch((_) => reject("HiPS " + self.id + " error: starting url " + self.startUrl + " given does not points to a HiPS location"))
+                            .catch((e) => reject("HiPS " + self.id + " error: starting url " + self.startUrl + " given does not points to a HiPS location.\nReason: " + e.stack))
     
                         // the url stores a "CDS ID" we take it prioritaly
                         // if the url is null, take the id, this is for some tests
@@ -396,7 +397,7 @@ export let HiPS = (function () {
                                     .then((p) => {
                                         self._fetchFasterUrlFromProperties(p);
                                     })
-                                    .catch((_) => reject("HiPS " + self.id + " error: CDS ID " + id + " is not found"));
+                                    .catch((e) => reject("HiPS " + self.id + " error: CDS ID " + id + " is not found.\nReason: " + e.stack));
                             },
                             1000
                         );
@@ -413,21 +414,21 @@ export let HiPS = (function () {
                                 self._parseProperties(p);
                                 self._fetchFasterUrlFromProperties(p);
                             })
-                            .catch(() => {
+                            .catch((_) => {
                                 // If no ID has been found then it may actually be a path
                                 // url pointing to a local HiPS
                                 return HiPSProperties.fetchFromUrl(id)
                                     .then((p) => {
                                         self._parseProperties(p);
                                     })
-                                    .catch((_) => reject("HiPS " + self.id + " error: " + id + " does not refer to a found CDS ID nor a local path pointing towards a HiPS"))
+                                    .catch((e) => reject("HiPS " + self.id + " error: " + id + " does not refer to a found CDS ID nor a local path pointing towards a HiPS.\nReason: " + e.stack))
                             })
                     } else {
                         await HiPSProperties.fetchFromUrl(self.url, self.requestMode, self.requestCredentials)
                             .then((p) => {
                                 self._parseProperties(p);
                             })
-                            .catch((_) => reject("HiPS " + self.id + " error: HiPS not found at url " + self.url))
+                            .catch((e) => reject("HiPS " + self.id + " error: HiPS not found at url " + self.url + "\nReason: " + e.stack))
                     }
                 } else {
                     self._parseProperties({
@@ -509,389 +510,11 @@ export let HiPS = (function () {
         // dataproduct type
         self.dataproductType = properties && properties.dataproduct_type;
         if (self.dataproductType === "spectral-cube") {
-            if (!self.spectraUpdatedCallback) {
-                let createPlotCanvas = (id = "spectra", width = 600, height = 300) => {
-                    const canvas = document.createElement("canvas");
-                    canvas.id = id;
-                    canvas.width = width;
-                    canvas.height = height;
-                    //canvas.style.pointerEvents = "none";
-                    canvas.style.position = "absolute";
-                    canvas.style.left = "50%";
-                    canvas.style.transform = "translateX(-50%)";
-                    canvas.style.bottom = "2px";
-
-                    self.view.aladinDiv.appendChild(canvas); 
-                    return canvas;
-                };
-
-                let data;
-
-                // One canvas for the spectra
-                const canvas = createPlotCanvas();
-                const ctx = canvas.getContext("2d");
-                // One canvas for the mouse hover spectral line
-                const canvasCursor = createPlotCanvas('spectra-cursor')
-                canvasCursor.style.pointerEvents = "none"
-                const ctxCursor = canvasCursor.getContext("2d");
-                // One canvas for text
-                const canvasLabels = createPlotCanvas('spectra-labels')
-                canvasLabels.style.pointerEvents = "none"
-                const ctxLabels = canvasLabels.getContext("2d");
-
-                let scaleX, scaleY, height, width;
-                let minY, maxY;
-                let mouseFreq;
-                let len;
-
-                function handleEvent() {
-                    let lastMouse = { x: 0, y: 0 };
-                    let isDragging = false;
-
-                    canvas.addEventListener('mousedown', (e) => {
-                        const rect = canvas.getBoundingClientRect();
-                        const mx = e.clientX - rect.left;
-                        const my = e.clientY - rect.top;
-                      
-                        let v = data.values[Math.round(mx / scaleX)]
-
-                        v = height - (v - minY) * scaleY
-                        if (my >= v) {
-                          isDragging = true;
-                          lastMouse = { x: mx, y: my };
-                          canvas.style.cursor = 'grabbing';
-                        } else {
-                            // check if the click is next to the center bar
-                            // Draw the vertical line that can be grabed to move the slice
-                            ctx.beginPath();
-                            ctx.moveTo(scaleX * len / 2, height);
-                            ctx.lineTo(scaleX * len / 2, height - (maxY - minY) * scaleY);
-                            ctx.strokeStyle = "red";
-                            ctx.lineWidth = 10;
-
-                            if (ctx.isPointInStroke(mx, my)) {
-                                isDragging = true;
-                                lastMouse = { x: mx, y: my };
-                                canvas.style.cursor = 'grabbing';
-                            } else {
-                                // propagate event to its sibling
-                                let paramsEvent = {
-                                    bubbles: e.bubbles,
-                                    cancelable: e.cancelable,
-                                    clientX: e.clientX,
-                                    clientY: e.clientY,
-                                    screenX: e.screenX,
-                                    screenY: e.screenY,
-                                    ctrlKey: e.ctrlKey,
-                                    shiftKey: e.shiftKey,
-                                    altKey: e.altKey,
-                                    metaKey: e.metaKey,
-                                    button: e.button,
-                                    relatedTarget: e.relatedTarget,
-                                };
-                                const event = new MouseEvent('mousedown', paramsEvent);
-                                self.view.catalogCanvas.dispatchEvent(event);
-                            }
-                        }
-                    });
-                      
-                    canvas.addEventListener('mousemove', (e) => {
-                        const rect = canvas.getBoundingClientRect();
-                        const mx = e.clientX - rect.left;
-                        const my = e.clientY - rect.top;
-
-                        // can be in the spectral area
-                        let v = data.values[Math.round(mx / scaleX)]
-
-                        v = height - (v - minY) * scaleY
-                        canvas.style.cursor = 'default';
-
-                        ctxCursor.clearRect(0, 0, width, height);
-                        mouseFreq = null;
-
-                        if (my >= v) {
-                            canvas.style.cursor = 'grab';
-
-                            ctxCursor.beginPath();
-                            ctxCursor.moveTo(mx, height);
-                            ctxCursor.lineTo(mx, v);
-                            ctxCursor.strokeStyle = "yellow";
-                            ctxCursor.lineWidth = 2;
-                            ctxCursor.stroke()
-
-                            // compute the frequency at that position
-                            let curFreq = hips.getFrequency();
-                            let curHash = Number(self.view.wasm.freq2hash(self.layer, curFreq));
-
-                            let mouseHash = curHash + Math.round((mx - (width / 2)) / scaleX)
-                            mouseFreq = self.view.wasm.hash2freq(self.layer, BigInt(mouseHash));
-                        }
-
-                        drawLabels()
-
-
-                        if (!isDragging) {
-                            // Draw the vertical line that can be grabed to move the slice
-                            ctx.beginPath();
-                            ctx.moveTo(scaleX * len / 2, height);
-                            ctx.lineTo(scaleX * len / 2, height - (maxY - minY) * scaleY);
-                            ctx.strokeStyle = "red";
-                            ctx.lineWidth = 10;
-
-                            if (ctx.isPointInStroke(mx, my)) {
-                                console.log('Mouse is on stroke!');
-                                canvas.style.cursor = 'grab';
-                            }
-
-                            //const event = new MouseEvent('mousemove', {...e});
-                            //self.view.catalogCanvas.dispatchEvent(event);
-
-                            return;
-                        }
-
-                        mouseFreq = null;
-                        canvas.style.cursor = 'grabbing';
-
-                        // is dragged
-                        const dx = (mx - lastMouse.x) / scaleX;
-                        if (dx != 0) {
-                            // set the frequency
-                            let curFreq = hips.getFrequency();
-
-                            let curHash = Number(self.view.wasm.freq2hash(self.layer, curFreq));
-                            let nextHash = curHash - Math.round(dx)
-
-                            let nextFreq = self.view.wasm.hash2freq(self.layer, BigInt(nextHash));
-                            hips.setFrequency({
-                                value: nextFreq,
-                                unit: 'Hz'
-                            })
-
-                            const correctedMx = Math.round(dx) * scaleX + lastMouse.x;
-                            lastMouse = { x: correctedMx, y: my };
-                        }
-                    });
-                      
-                    canvas.addEventListener('mouseup', (e) => {
-                        isDragging = false;
-                        canvas.style.cursor = 'default';
-
-                        const clickEvent = new MouseEvent('click', {
-                            bubbles: true,
-                            cancelable: true,
-                            clientX: e.clientX,
-                            clientY: e.clientY
-                        });
-                        self.view.catalogCanvas.dispatchEvent(clickEvent);
-                    });
-
-                    canvas.addEventListener('mouseout', (e) => {
-                        isDragging = false;
-                    });
-
-                    canvas.addEventListener('wheel', (e) => {
-                        ctxCursor.clearRect(0, 0, width, height);
-
-                        const wheelEvent = new WheelEvent('wheel', {
-                            bubbles: true,
-                            cancelable: true,
-                            deltaX: e.deltaX,
-                            deltaY: e.deltaY,
-                            deltaMode: e.deltaMode,
-                            clientX: e.clientX,
-                            clientY: e.clientY,
-                            ctrlKey: e.ctrlKey,
-                            shiftKey: e.shiftKey,
-                            altKey: e.altKey,
-                            metaKey: e.metaKey
-                        });
-
-                        self.view.catalogCanvas.dispatchEvent(wheelEvent);
-                    });
-                }
-
-                handleEvent();
-
-                function drawPlot(ctx) {
-                    const values = data.values;
-                    width = ctx.canvas.width;
-                    height = ctx.canvas.height;
-                    len = values.length;
-            
-                    // Clear previous drawing
-                    ctx.clearRect(0, 0, width, height);
-            
-                    // Find min and max for scaling
-
-                    //const minY = self.hipsDataMinMax && self.hipsDataMinMax[0] || Math.min(...values);
-                    //const maxY = self.hipsDataMinMax && self.hipsDataMinMax[1] || Math.max(...values);
-                    let valuesWithNoNans = values.filter(v=>Number.isFinite(v));
-                    if (Number.isFinite(minY)) {
-                        minY = Math.min(...valuesWithNoNans, minY)
-                    } else {
-                        minY = Math.min(...valuesWithNoNans)
-                    }
-                    if (Number.isFinite(maxY)) {
-                        maxY = Math.max(...valuesWithNoNans, maxY)
-                    } else {
-                        maxY = Math.max(...valuesWithNoNans)
-                    }
-
-                    scaleX = width / (len - 1);
-                    scaleY = (maxY - minY === 0) ? 1 : height / (maxY - minY);
-
-                    function drawSpectra(ctx, array, i0, i1) {
-                        ctx.beginPath();
-                        ctx.lineWidth = 4;
-                        let strokeStyle = "red";
-                        ctx.strokeStyle = strokeStyle
-
-                        let prevY;
-                        let i = i0;
-                        while (i <= i1) {
-                            let y;
-                            const x = i * scaleX;
-
-                            const inValidDomain = data.freqIdxStart !== undefined && data.freqIdxEnd !== undefined && i > data.freqIdxStart && i < data.freqIdxEnd;
-
-                            if (inValidDomain) {
-                                const tileNotReceived = !Number.isFinite(array[i]);
-                                if (tileNotReceived) {
-                                    // color orange
-                                    if (strokeStyle !== "orange") {
-                                        ctx.lineTo(x, height)
-                                        strokeStyle = "orange"
-                                        ctx.stroke()
-
-                                        ctx.beginPath();
-                                        ctx.strokeStyle = strokeStyle
-                                        ctx.lineWidth = 4
-                                    }
-
-                                    y = height;
-                                    if (i === i0) {
-                                        ctx.moveTo(x, y);
-                                    } else {
-                                        ctx.lineTo(x, y);
-                                    }
-                                } else {
-                                    // valid frequency, color green
-                                    if (strokeStyle !== "lightgreen") {
-                                        strokeStyle = "lightgreen"
-                                        ctx.stroke()
-
-                                        ctx.beginPath();
-                                        ctx.strokeStyle = strokeStyle
-                                        ctx.lineWidth = 2
-                                        ctx.moveTo(x - scaleX, prevY)
-                                    }
-
-                                    y = height - (array[i] - minY) * scaleY;
-                                    if (i === i0) {
-                                        ctx.moveTo(x, y);
-                                    } else {
-                                        ctx.lineTo(x, y);
-                                    }
-                                }
-                            } else {
-                                // frequency out of the survey coverage => color red
-                                if (strokeStyle !== "red") {
-                                    ctx.lineTo(x, height)
-                                    ctx.stroke()
-
-                                    ctx.beginPath();
-                                    strokeStyle = "red"
-                                    ctx.strokeStyle = strokeStyle
-                                    ctx.lineWidth = 4
-                                }
-
-                                y = height;
-                                if (i === i0) {
-                                    ctx.moveTo(x, y);
-                                } else {
-                                    ctx.lineTo(x, y);
-                                }
-                            }
-
-                            i++;
-                            prevY = y;
-                        }
-                        // final stroke
-                        ctx.stroke();
-                    }
-
-                    drawSpectra(ctx, values, 0, len)
-
-                    // Draw the vertical line that can be grabed to move the slice
-                    ctx.beginPath();
-                    ctx.moveTo(scaleX * len / 2, height);
-                    ctx.lineTo(scaleX * len / 2, height - (maxY - minY) * scaleY);
-                    ctx.strokeStyle = "red";
-                    ctx.lineWidth = 2;
-                    ctx.stroke();
-
-                    drawLabels()
-                }
-
-                function drawLabels() {
-                    function freq2String(frequencyHz, precisionHz) {
-                        const units = [
-                            { unit: "THz", factor: 1e12 },
-                            { unit: "GHz", factor: 1e9 },
-                            { unit: "MHz", factor: 1e6 },
-                            { unit: "kHz", factor: 1e3 },
-                            { unit: "Hz",  factor: 1 }
-                        ];
-                        
-                        for (const { unit, factor } of units) {
-                            const value = frequencyHz / factor;
-                            const precisionInUnit = precisionHz / factor;
-                        
-                            if (value >= 1 || unit === "Hz") {
-                                // Calculate number of decimal places needed to show the given precision
-                                const decimals = Math.max(0, Math.ceil(-Math.log10(precisionInUnit)));
-                                return value.toFixed(decimals) + " " + unit;
-                            }
-                        }
-                    }
-
-                    // Clear previous drawing
-                    ctxLabels.clearRect(0, 0, width, height);
-
-                    // Draw the min and max frequencies
-                    ctxLabels.font = "20px monospace"; // You can also use "Courier New", "Consolas", etc.
-                    ctxLabels.fillStyle = "lightgreen";
-                    ctxLabels.textBaseline = "middle"; // Vertically centered
-
-                    // min window freq
-                    ctxLabels.textAlign = "left"; // Horizontally centered
-                    ctxLabels.fillText(freq2String(data.freqMin, data.freqStep), 0, height - 20);
-
-                    // max window freq
-                    ctxLabels.textAlign = "right"; // Horizontally centered
-                    ctxLabels.fillText(freq2String(data.freqMax, data.freqStep), width, height - 20);
-
-                    // current window freq
-                    ctxLabels.textAlign = "center"; // Horizontally centered
-                    let fStr; 
-                    if (mouseFreq) {
-                        ctxLabels.fillStyle = "yellow";
-                        fStr = freq2String(mouseFreq, data.freqStep);
-                    } else {
-                        fStr = freq2String(data.freq, data.freqStep);
-                    }
-                    ctxLabels.fillText(fStr, width / 2, height - 20);
-                }
-
-                self.spectraUpdatedCallback = (event) => {
-                    data = event.detail;
-                    drawPlot(ctx);
-                };
-            } else {
-                window.removeEventListener("spectra", self.spectraUpdatedCallback);
+            if (!self.view.spectraDisplayer) {
+                self.view.spectraDisplayer = new SpectraDisplayer(self, {width: 600, height: 300});
             }
 
-            window.addEventListener("spectra", self.spectraUpdatedCallback);            
+            self.view.spectraDisplayer.attachHiPS3D(self)
         }
 
         // Tile size

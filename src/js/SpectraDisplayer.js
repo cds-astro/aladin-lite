@@ -52,8 +52,8 @@ export class SpectraDisplayer {
         this.scaleY = undefined;
         this.height = options && options.height || 300;
         this.width = options && options.width || 600;
-        this.minY = undefined;
-        this.maxY = undefined;
+        this.minY = {};
+        this.maxY = {};
         this.mouseFreq = undefined;
 
         // One canvas for the spectra
@@ -73,6 +73,8 @@ export class SpectraDisplayer {
         divNode.appendChild(this.canvas)
         divNode.appendChild(canvasCursor)
         divNode.appendChild(canvasLabels)
+
+        this.divNode = divNode;
 
         this.view.aladin.aladinDiv.appendChild(divNode);
 
@@ -95,8 +97,9 @@ export class SpectraDisplayer {
             let v = this.data.values[Math.round(mx / this.scaleX)]
 
             let len = this.data.values.length;
+            let fOrder = this.data.fOrder;
 
-            v = this.height - (v - this.minY) * this.scaleY
+            v = this.height - (v - this.minY[fOrder]) * this.scaleY
             if (my >= v) {
                 isDragging = true;
                 lastMouse = { x: mx, y: my };
@@ -106,7 +109,7 @@ export class SpectraDisplayer {
                 // Draw the vertical line that can be grabed to move the slice
                 this.ctx.beginPath();
                 this.ctx.moveTo(this.scaleX * len / 2, this.height);
-                this.ctx.lineTo(this.scaleX * len / 2, this.height - (this.maxY - this.minY) * this.scaleY);
+                this.ctx.lineTo(this.scaleX * len / 2, this.height - (this.maxY[fOrder] - this.minY[fOrder]) * this.scaleY);
                 this.ctx.strokeStyle = "red";
                 this.ctx.lineWidth = 10;
 
@@ -145,7 +148,9 @@ export class SpectraDisplayer {
             let v = this.data.values[Math.round(mx / this.scaleX)]
             let len = this.data.values.length;
 
-            v = this.height - (v - this.minY) * this.scaleY
+            let fOrder = this.data.fOrder;
+
+            v = this.height - (v - this.minY[fOrder]) * this.scaleY
             canvas.style.cursor = 'default';
 
             this.ctxCursor.clearRect(0, 0, this.width, this.height);
@@ -175,7 +180,7 @@ export class SpectraDisplayer {
                 // Draw the vertical line that can be grabed to move the slice
                 this.ctx.beginPath();
                 this.ctx.moveTo(this.scaleX * len / 2, this.height);
-                this.ctx.lineTo(this.scaleX * len / 2, this.height - (this.maxY - this.minY) * this.scaleY);
+                this.ctx.lineTo(this.scaleX * len / 2, this.height - (this.maxY[fOrder] - this.minY[fOrder]) * this.scaleY);
                 this.ctx.strokeStyle = "red";
                 this.ctx.lineWidth = 10;
 
@@ -220,7 +225,7 @@ export class SpectraDisplayer {
                 clientX: e.clientX,
                 clientY: e.clientY
             });
-            self.view.catalogCanvas.dispatchEvent(clickEvent);
+            this.view.catalogCanvas.dispatchEvent(clickEvent);
         });
 
         canvas.addEventListener('mouseout', (e) => {
@@ -244,7 +249,7 @@ export class SpectraDisplayer {
                 metaKey: e.metaKey
             });
 
-            self.view.catalogCanvas.dispatchEvent(wheelEvent);
+            this.view.catalogCanvas.dispatchEvent(wheelEvent);
         });
     }
 
@@ -259,13 +264,21 @@ export class SpectraDisplayer {
 
         this.spectraUpdateCallback = (event) => {
             this.data = event.detail;
-            this.redraw(this.ctx);
+            this._redraw(this.ctx);
         };
 
         window.addEventListener("spectra", this.spectraUpdateCallback);
     }
 
-    redraw() {
+    enableInteraction() {
+        this.divNode.style.pointerEvents = "auto"
+    }
+
+    disableInteraction() {
+        this.divNode.style.pointerEvents = "none"
+    }
+
+    _redraw() {
         const values = this.data.values;
         let len = values.length;
 
@@ -273,30 +286,30 @@ export class SpectraDisplayer {
         this.ctx.clearRect(0, 0, this.width, this.height);
 
         // Find min and max for scaling
-
-        //const minY = self.hipsDataMinMax && self.hipsDataMinMax[0] || Math.min(...values);
-        //const maxY = self.hipsDataMinMax && self.hipsDataMinMax[1] || Math.max(...values);
         let valuesWithNoNans = values.filter(v=>Number.isFinite(v));
-        if (Number.isFinite(this.minY)) {
-            this.minY = Math.min(...valuesWithNoNans, this.minY)
+
+        const fOrder = this.data.fOrder;
+
+        if (Number.isFinite(this.minY[fOrder])) {
+            this.minY[fOrder] = Math.min(...valuesWithNoNans, this.minY[fOrder])
         } else {
-            this.minY = Math.min(...valuesWithNoNans)
+            this.minY[fOrder] = Math.min(...valuesWithNoNans)
         }
-        if (Number.isFinite(this.maxY)) {
-            this.maxY = Math.max(...valuesWithNoNans, this.maxY)
+        if (Number.isFinite(this.maxY[fOrder])) {
+            this.maxY[fOrder] = Math.max(...valuesWithNoNans, this.maxY[fOrder])
         } else {
-            this.maxY = Math.max(...valuesWithNoNans)
+            this.maxY[fOrder] = Math.max(...valuesWithNoNans)
         }
 
         this.scaleX = this.width / (len - 1);
-        this.scaleY = (this.maxY - this.minY === 0) ? 1 : this.height / (this.maxY - this.minY);
+        this.scaleY = (this.maxY[fOrder] - this.minY[fOrder] === 0) ? 1 : this.height / (this.maxY[fOrder] - this.minY[fOrder]);
 
         this._redrawSpectra(values)
 
         // Draw the vertical line that can be grabed to move the slice
         this.ctx.beginPath();
         this.ctx.moveTo(this.scaleX * len / 2, this.height);
-        this.ctx.lineTo(this.scaleX * len / 2, this.height - (this.maxY - this.minY) * this.scaleY);
+        this.ctx.lineTo(this.scaleX * len / 2, this.height - (this.maxY[fOrder] - this.minY[fOrder]) * this.scaleY);
         this.ctx.strokeStyle = "red";
         this.ctx.lineWidth = 2;
         this.ctx.stroke();
@@ -361,6 +374,8 @@ export class SpectraDisplayer {
         let strokeStyle = "red";
         this.ctx.strokeStyle = strokeStyle
 
+        let fOrder = this.data.fOrder;
+
         let prevY;
         let i = 0;
         let i1 = array.length;
@@ -402,7 +417,7 @@ export class SpectraDisplayer {
                         this.ctx.moveTo(x - this.scaleX, prevY)
                     }
 
-                    y = this.height - (array[i] - this.minY) * this.scaleY;
+                    y = this.height - (array[i] - this.minY[fOrder]) * this.scaleY;
                     if (i === 0) {
                         this.ctx.moveTo(x, y);
                     } else {

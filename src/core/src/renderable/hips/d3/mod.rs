@@ -574,6 +574,13 @@ impl HiPS3D {
         )
         .unwrap_abort();
 
+        Reflect::set(
+            &spectra_js_obj,
+            &JsValue::from_str("fOrder"),
+            &JsValue::from_f64(pixel_depth as f64),
+        )
+        .unwrap_abort();
+
         let mut start = window_pixel_hash.start.max(domain_pixel_hash.start);
         let mut end = window_pixel_hash.end.min(domain_pixel_hash.end);
 

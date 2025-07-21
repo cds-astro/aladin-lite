@@ -717,9 +717,8 @@ export let View = (function () {
 
             const xymouse = Utils.relMouseCoords(e);
 
-            let spectraDisplayer = view.aladinDiv.querySelector("#spectra");
-            if (spectraDisplayer) {
-                spectraDisplayer.style.pointerEvents = "none";
+            if (view.spectraDisplayer) {
+                view.spectraDisplayer.disableInteraction();
             }
 
             ALEvent.CANVAS_EVENT.dispatchedTo(view.aladinDiv, {
@@ -913,9 +912,8 @@ export let View = (function () {
                 }
 
                 view.dragging = false;
-                let spectraDisplayer = view.aladinDiv.querySelector("#spectra");
-                if (spectraDisplayer) {
-                    spectraDisplayer.style.pointerEvents = "auto";
+                if (view.spectraDisplayer) {
+                    view.spectraDisplayer.enableInteraction();
                 }
 
                 if (wasDragging) {

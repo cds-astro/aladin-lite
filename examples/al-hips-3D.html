@@ -28,11 +28,12 @@
             }
         );
 
-        hips = aladin.newImageSurvey("http://alasky.cds.unistra.fr/LGLBSHI", {
+        hips = aladin.newImageSurvey("https://alasky.cds.unistra.fr/test-compression-cubes/DHIGLS/", {
             successCallback: (hips) => {
                 hips.setFrequency({value: 0.21101690259115785, unit: "m"}) // GALFA
             }
         });
+        // compressed https://alasky.cds.unistra.fr/test-compression-cubes/DHIGLS/
         //hips = aladin.newImageSurvey("http://alasky.cds.unistra.fr/DHIGLS");
         //hips = aladin.newImageSurvey("https://alasky.cds.unistra.fr/MUSE3D");
         // http://alasky.cds.unistra.fr/LGLBSHI

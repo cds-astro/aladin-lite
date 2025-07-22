@@ -23,6 +23,11 @@
     color: white;
 }
 
+.aladin-lite-spectra-displayer .aladin-spectra-unit-selector {
+    position: absolute;
+    bottom: 3rem;
+    right: 0;
+}
 
 .aladin-imageCanvas {
 	position: absolute;

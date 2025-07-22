@@ -499,7 +499,7 @@ export let HiPS = (function () {
         // HiPS3D special keywords
         self.hipsOrderFreq = properties && properties.hips_order_freq && +properties.hips_order_freq;
         self.hipsTileDepth = properties && properties.hips_tile_depth && +properties.hips_tile_depth;
-
+        self.obsRestFreq = properties && properties.obs_restfreq && +properties.obs_restfreq;
 
         // Max order
         const maxOrder = PropertyParser.maxOrder(properties)

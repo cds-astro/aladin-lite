@@ -17,6 +17,8 @@
 //    along with Aladin Lite.
 //
 
+import { Input } from "./gui/Widgets/Input";
+
 
 /******************************************************************************
  * Aladin Lite project
@@ -29,17 +31,97 @@
  *****************************************************************************/
 
 export class SpectraDisplayer {
+    static UNIT = {
+        FREQUENCY: {
+            label: "f",
+            units: [
+                { unit: "THz", factor: 1e12 },
+                { unit: "GHz", factor: 1e9 },
+                { unit: "MHz", factor: 1e6 },
+                { unit: "kHz", factor: 1e3 },
+                { unit: "Hz",  factor: 1 }
+            ]
+        },
+        WAVELENGTH: {
+            label: "λ",
+            units: [
+                { unit: "km", factor: 1e3 },
+                { unit: "m", factor: 1 },
+                { unit: "mm", factor: 1e-3 },
+                { unit: "μm", factor: 1e-6 },
+                { unit: "nm", factor: 1e-9 },
+                { unit: "Å", factor: 1e-10 },
+                { unit: "pm", factor: 1e-12 },
+            ]
+        },
+        VELOCITY: {
+            label: "v",
+            units: [
+                { unit: "km/s", factor: 1e3 },
+                { unit: "m/s", factor: 1 },
+                { unit: "mm/s", factor: 1e-3 },
+                { unit: "μm/s", factor: 1e-6 },
+                { unit: "nm/s", factor: 1e-9 },
+                { unit: "pm/s", factor: 1e-12 },
+            ]
+        },
+        convertFrequency: function(freq, options) {
+            const SPEED_OF_LIGHT = 299792458.0;
+
+            let unit = options && options.unit;
+
+            let value;
+            if (unit === SpectraDisplayer.UNIT.WAVELENGTH) {
+                value = SPEED_OF_LIGHT / freq;
+            } else if (unit === SpectraDisplayer.UNIT.VELOCITY) {
+                // A velocity is given in "m/s"
+                const restFreq = options && options.restFreq;
+                if (!restFreq) {
+                    throw 'When giving a velocity, a rest frequency must be given as well for computing the frequency to query the HiPS'
+                }
+
+                value = SPEED_OF_LIGHT * (1.0 - freq / restFreq)
+            } else {
+                // unit is "Hz"
+                value = freq;
+            }
+
+            return value;
+        },
+        convertPrecisionFrequency: function(prec, freq, options) {
+            const SPEED_OF_LIGHT = 299792458.0;
+
+            let unit = options && options.unit;
+
+            let value;
+            if (unit === SpectraDisplayer.UNIT.WAVELENGTH) {
+                value = SPEED_OF_LIGHT * prec / (freq * freq);
+            } else if (unit === SpectraDisplayer.UNIT.VELOCITY) {
+                // A velocity is given in "m/s"
+                const restFreq = options && options.restFreq;
+                if (!restFreq) {
+                    throw 'When giving a velocity, a rest frequency must be given as well for computing the frequency to query the HiPS'
+                }
+
+                value = prec * SPEED_OF_LIGHT / restFreq
+            } else {
+                // unit is "Hz"
+                value = prec;
+            }
+
+            return value;
+        }
+    };
+
     constructor(hips, options) {
         let createPlotCanvas = (name) => {
             const canvas = document.createElement("canvas");
             canvas.classList.add(name);
             canvas.width = this.width;
             canvas.height = this.height;
-            //canvas.style.pointerEvents = "none";
-            canvas.style.position = "absolute";
-            canvas.style.left = "50%";
-            canvas.style.transform = "translateX(-50%)";
-            canvas.style.bottom = "2px";
+            canvas.style.position = "absolute"
+            canvas.style.top = 0;
+            canvas.style.left = 0;
 
             this.view.aladinDiv.appendChild(canvas); 
             return canvas;
@@ -52,8 +134,8 @@ export class SpectraDisplayer {
         this.scaleY = undefined;
         this.height = options && options.height || 300;
         this.width = options && options.width || 600;
-        this.minY = {};
-        this.maxY = {};
+        this.minY = undefined;
+        this.maxY = undefined;
         this.mouseFreq = undefined;
 
         // One canvas for the spectra
@@ -68,11 +150,49 @@ export class SpectraDisplayer {
         canvasLabels.style.pointerEvents = "none"
         this.ctxLabels = canvasLabels.getContext("2d");
 
+        let self = this;
+        // a selector for choosing the unit
+        let unitSelector = new Input({
+            label: "Unit:",
+            name: "unit selector",
+            value: "f",
+            type: 'select',
+            classList: ['aladin-spectra-unit-selector'],
+            options: [
+                SpectraDisplayer.UNIT.FREQUENCY.label,
+                SpectraDisplayer.UNIT.WAVELENGTH.label,
+                SpectraDisplayer.UNIT.VELOCITY.label,
+            ],
+            change: (e) => {
+                let label = e.target.value;
+
+                if (label === SpectraDisplayer.UNIT.FREQUENCY.label) {
+                    self.unit = SpectraDisplayer.UNIT.FREQUENCY
+                } else if (label === SpectraDisplayer.UNIT.WAVELENGTH.label) {
+                    self.unit = SpectraDisplayer.UNIT.WAVELENGTH
+                } else {
+                    self.unit = SpectraDisplayer.UNIT.VELOCITY
+                }
+
+                self._redrawLabels();
+            },
+        })
+
+        this.unit = SpectraDisplayer.UNIT.FREQUENCY;
+
         let divNode = document.createElement("div");
+        divNode.style.position = "absolute";
+        divNode.style.left = "50%";
+        divNode.style.transform = "translateX(-50%)";
+        divNode.style.bottom = "2px";
+        divNode.style.width = this.width + "px";
+        divNode.style.height = this.height + "px";
         divNode.classList.add("aladin-lite-spectra-displayer")
+
         divNode.appendChild(this.canvas)
         divNode.appendChild(canvasCursor)
         divNode.appendChild(canvasLabels)
+        divNode.appendChild(unitSelector.element())
 
         this.divNode = divNode;
 
@@ -97,9 +217,8 @@ export class SpectraDisplayer {
             let v = this.data.values[Math.round(mx / this.scaleX)]
 
             let len = this.data.values.length;
-            let fOrder = this.data.fOrder;
 
-            v = this.height - (v - this.minY[fOrder]) * this.scaleY
+            v = this.height - (v - this.minY) * this.scaleY
             if (my >= v) {
                 isDragging = true;
                 lastMouse = { x: mx, y: my };
@@ -109,7 +228,7 @@ export class SpectraDisplayer {
                 // Draw the vertical line that can be grabed to move the slice
                 this.ctx.beginPath();
                 this.ctx.moveTo(this.scaleX * len / 2, this.height);
-                this.ctx.lineTo(this.scaleX * len / 2, this.height - (this.maxY[fOrder] - this.minY[fOrder]) * this.scaleY);
+                this.ctx.lineTo(this.scaleX * len / 2, this.height - (this.maxY - this.minY) * this.scaleY);
                 this.ctx.strokeStyle = "red";
                 this.ctx.lineWidth = 10;
 
@@ -150,7 +269,7 @@ export class SpectraDisplayer {
 
             let fOrder = this.data.fOrder;
 
-            v = this.height - (v - this.minY[fOrder]) * this.scaleY
+            v = this.height - (v - this.minY) * this.scaleY
             canvas.style.cursor = 'default';
 
             this.ctxCursor.clearRect(0, 0, this.width, this.height);
@@ -180,7 +299,7 @@ export class SpectraDisplayer {
                 // Draw the vertical line that can be grabed to move the slice
                 this.ctx.beginPath();
                 this.ctx.moveTo(this.scaleX * len / 2, this.height);
-                this.ctx.lineTo(this.scaleX * len / 2, this.height - (this.maxY[fOrder] - this.minY[fOrder]) * this.scaleY);
+                this.ctx.lineTo(this.scaleX * len / 2, this.height - (this.maxY - this.minY) * this.scaleY);
                 this.ctx.strokeStyle = "red";
                 this.ctx.lineWidth = 10;
 
@@ -290,26 +409,26 @@ export class SpectraDisplayer {
 
         const fOrder = this.data.fOrder;
 
-        if (Number.isFinite(this.minY[fOrder])) {
-            this.minY[fOrder] = Math.min(...valuesWithNoNans, this.minY[fOrder])
+        if (Number.isFinite(this.minY)) {
+            this.minY = Math.min(...valuesWithNoNans, this.minY)
         } else {
-            this.minY[fOrder] = Math.min(...valuesWithNoNans)
+            this.minY = Math.min(...valuesWithNoNans)
         }
-        if (Number.isFinite(this.maxY[fOrder])) {
-            this.maxY[fOrder] = Math.max(...valuesWithNoNans, this.maxY[fOrder])
+        if (Number.isFinite(this.maxY)) {
+            this.maxY = Math.max(...valuesWithNoNans, this.maxY)
         } else {
-            this.maxY[fOrder] = Math.max(...valuesWithNoNans)
+            this.maxY = Math.max(...valuesWithNoNans)
         }
 
         this.scaleX = this.width / (len - 1);
-        this.scaleY = (this.maxY[fOrder] - this.minY[fOrder] === 0) ? 1 : this.height / (this.maxY[fOrder] - this.minY[fOrder]);
+        this.scaleY = (this.maxY - this.minY === 0) ? 1 : this.height / (this.maxY - this.minY);
 
         this._redrawSpectra(values)
 
         // Draw the vertical line that can be grabed to move the slice
         this.ctx.beginPath();
         this.ctx.moveTo(this.scaleX * len / 2, this.height);
-        this.ctx.lineTo(this.scaleX * len / 2, this.height - (this.maxY[fOrder] - this.minY[fOrder]) * this.scaleY);
+        this.ctx.lineTo(this.scaleX * len / 2, this.height - (this.maxY - this.minY) * this.scaleY);
         this.ctx.strokeStyle = "red";
         this.ctx.lineWidth = 2;
         this.ctx.stroke();
@@ -318,20 +437,32 @@ export class SpectraDisplayer {
     }
 
     _redrawLabels() {
-        function freq2String(frequencyHz, precisionHz) {
-            const units = [
-                { unit: "THz", factor: 1e12 },
-                { unit: "GHz", factor: 1e9 },
-                { unit: "MHz", factor: 1e6 },
-                { unit: "kHz", factor: 1e3 },
-                { unit: "Hz",  factor: 1 }
-            ];
-            
+        let self = this;
+        function spectraValue2String(freq, precision) {
+            let units = self.unit.units;
+
+            let x = SpectraDisplayer.UNIT.convertFrequency(
+                freq,
+                {
+                    unit: self.unit,
+                    restFreq: self.hips.obsRestFreq
+                }
+            )
+
+            let dx = SpectraDisplayer.UNIT.convertPrecisionFrequency(
+                precision,
+                freq,
+                {
+                    unit: self.unit,
+                    restFreq: self.hips.obsRestFreq
+                }
+            )
+
             for (const { unit, factor } of units) {
-                const value = frequencyHz / factor;
-                const precisionInUnit = precisionHz / factor;
+                const value = x / factor;
+                const precisionInUnit = dx / factor;
             
-                if (value >= 1 || unit === "Hz") {
+                if (Math.abs(value) >= 1 || unit === units[units.length - 1].unit) {
                     // Calculate number of decimal places needed to show the given precision
                     const decimals = Math.max(0, Math.ceil(-Math.log10(precisionInUnit)));
                     return value.toFixed(decimals) + " " + unit;
@@ -349,20 +480,20 @@ export class SpectraDisplayer {
 
         // min window freq
         this.ctxLabels.textAlign = "left"; // Horizontally centered
-        this.ctxLabels.fillText(freq2String(this.data.freqMin, this.data.freqStep), 0, this.height - 20);
+        this.ctxLabels.fillText(spectraValue2String(this.data.freqMin, this.data.freqStep), 0, this.height - 20);
 
         // max window freq
         this.ctxLabels.textAlign = "right"; // Horizontally centered
-        this.ctxLabels.fillText(freq2String(this.data.freqMax, this.data.freqStep), this.width, this.height - 20);
+        this.ctxLabels.fillText(spectraValue2String(this.data.freqMax, this.data.freqStep), this.width, this.height - 20);
 
         // current window freq
         this.ctxLabels.textAlign = "center"; // Horizontally centered
         let fStr; 
         if (this.mouseFreq) {
             this.ctxLabels.fillStyle = "yellow";
-            fStr = freq2String(this.mouseFreq, this.data.freqStep);
+            fStr = spectraValue2String(this.mouseFreq, this.data.freqStep);
         } else {
-            fStr = freq2String(this.data.freq, this.data.freqStep);
+            fStr = spectraValue2String(this.data.freq, this.data.freqStep);
         }
         this.ctxLabels.fillText(fStr, this.width / 2, this.height - 20);
     }
@@ -417,7 +548,7 @@ export class SpectraDisplayer {
                         this.ctx.moveTo(x - this.scaleX, prevY)
                     }
 
-                    y = this.height - (array[i] - this.minY[fOrder]) * this.scaleY;
+                    y = this.height - (array[i] - this.minY) * this.scaleY;
                     if (i === 0) {
                         this.ctx.moveTo(x, y);
                     } else {

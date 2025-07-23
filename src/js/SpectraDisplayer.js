@@ -17,7 +17,10 @@
 //    along with Aladin Lite.
 //
 
+import { ActionButton } from "./gui/Widgets/ActionButton";
 import { Input } from "./gui/Widgets/Input";
+import HomeIconUrl from '../../assets/icons/maximize.svg';
+import SpectraIconUrl from '../../assets/icons/freq.svg';
 
 
 /******************************************************************************
@@ -163,6 +166,10 @@ export class SpectraDisplayer {
                 SpectraDisplayer.UNIT.WAVELENGTH.label,
                 SpectraDisplayer.UNIT.VELOCITY.label,
             ],
+            tooltip: {
+                content: "Unit between frequency, wavelength and velocity",
+                position: {direction: "right"}
+            },
             change: (e) => {
                 let label = e.target.value;
 
@@ -176,6 +183,41 @@ export class SpectraDisplayer {
 
                 self._redrawLabels();
             },
+        })
+
+        let autoCenterBtn = new ActionButton({
+            size: 'small',
+            icon: {
+                monochrome: true,
+                url: HomeIconUrl
+            },
+            tooltip: {
+                content: "Scale for data",
+                position: {direction: "right"}
+            },
+            classList: ['aladin-spectra-home'],
+            action(e) {
+                let midFreq = (self.hips.emMin + self.hips.emMax)*0.5;
+                self.hips.setFrequency({
+                    value: midFreq,
+                    unit: "m"
+                })
+            }
+        })
+        let extractionBtn = new ActionButton({
+            size: 'small',
+            icon: {
+                monochrome: true,
+                url: SpectraIconUrl
+            },
+            tooltip: {
+                content: "Extract the spectra under the cursor",
+                position: {direction: "right"}
+            },
+            classList: ['aladin-spectra-extraction'],
+            action(e) {
+
+            }
         })
 
         this.unit = SpectraDisplayer.UNIT.FREQUENCY;
@@ -193,6 +235,8 @@ export class SpectraDisplayer {
         divNode.appendChild(canvasCursor)
         divNode.appendChild(canvasLabels)
         divNode.appendChild(unitSelector.element())
+        divNode.appendChild(autoCenterBtn.element())
+        divNode.appendChild(extractionBtn.element())
 
         this.divNode = divNode;
 
@@ -266,8 +310,6 @@ export class SpectraDisplayer {
             // can be in the spectral area
             let v = this.data.values[Math.round(mx / this.scaleX)]
             let len = this.data.values.length;
-
-            let fOrder = this.data.fOrder;
 
             v = this.height - (v - this.minY) * this.scaleY
             canvas.style.cursor = 'default';

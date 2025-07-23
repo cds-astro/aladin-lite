@@ -15,8 +15,8 @@
             {
                 showSimbadPointerControl: true,
                 projection: 'AIT', // set a projection
-                fov: 2.9 / 60, // initial field of view in degrees
-                target: '21 42 21.79 -44 19 29.5', // initial target
+                fov: 8.0, // initial field of view in degrees
+                target: '00 42 21.37 +41 07 29.8', // initial target
                 cooFrame: 'icrs', // set galactic frame
                 reticleColor: '#ff89ff', // change reticle color
                 showContextMenu: true,
@@ -28,9 +28,9 @@
             }
         );
 
-        hips = aladin.newImageSurvey("https://alasky.cds.unistra.fr/test-compression-cubes/DHIGLS/", {
+        hips = aladin.newImageSurvey("https://alasky.cds.unistra.fr/GALFAHI/GALFAHI-Narrow-DR2-3D", {
             successCallback: (hips) => {
-                hips.setFrequency({value: 0.21101690259115785, unit: "m"}) // GALFA
+                hips.setFrequency({value: 7.402056971809762E-7, unit: "m"}) // GALFA
             }
         });
         // compressed https://alasky.cds.unistra.fr/test-compression-cubes/DHIGLS/

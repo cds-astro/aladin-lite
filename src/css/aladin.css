@@ -28,6 +28,16 @@
     bottom: 3rem;
     right: 0;
 }
+.aladin-lite-spectra-displayer .aladin-spectra-home {
+    position: absolute;
+    bottom: 5rem;
+    right: 0;
+}
+.aladin-lite-spectra-displayer .aladin-spectra-extraction {
+    position: absolute;
+    bottom: 7rem;
+    right: 0;
+}
 
 .aladin-imageCanvas {
 	position: absolute;

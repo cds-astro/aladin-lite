@@ -213,9 +213,13 @@ impl Layers {
         let raytracer = &self.raytracer;
         let raytracing = camera.is_raytracing(projection);
 
+        // The first layer or the background must be plot with no blending
+        self.gl.disable(WebGl2RenderingContext::BLEND);
+
         // Check whether a hips to plot is allsky
         // if neither are, we draw a font
         // if there are, we do not draw nothing
+
         let mut idx_start_layer = -1;
 
         for (idx, layer) in self.layers.iter().enumerate() {
@@ -234,6 +238,8 @@ impl Layers {
                 }
             }
         }
+
+        let mut blending_enabled = false;
 
         // Need to render transparency font
         if idx_start_layer == -1 {
@@ -258,6 +264,9 @@ impl Layers {
 
             // The background (index -1) has been drawn, we can draw the first HiPS
             idx_start_layer = 0;
+
+            self.gl.enable(WebGl2RenderingContext::BLEND);
+            blending_enabled = true;
         }
 
         let layers_to_render = &self.layers[(idx_start_layer as usize)..];
@@ -282,6 +291,11 @@ impl Layers {
                         image.draw(shaders, colormaps, draw_opt, camera, projection)?;
                     }
                 }
+            }
+
+            if !blending_enabled {
+                self.gl.enable(WebGl2RenderingContext::BLEND);
+                blending_enabled = true;
             }
         }
 

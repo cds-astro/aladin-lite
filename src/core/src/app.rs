@@ -133,7 +133,6 @@ impl App {
         //let exec = Rc::new(RefCell::new(TaskExecutor::new()));
 
         let projection = ProjectionType::Sin(mapproj::zenithal::sin::Sin);
-        gl.enable(WebGl2RenderingContext::BLEND);
 
         // TODO: https://caniuse.com/?search=scissor is not supported for safari <= 14.1
         // When it will be supported nearly everywhere, we will need to uncomment this line to
@@ -829,6 +828,7 @@ impl App {
             // Render the scene
             // Clear all the screen first (only the region set by the scissor)
             gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
+
             // set the blending options
             layers.draw(camera, shaders, colormaps, projection)?;
 

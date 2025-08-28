@@ -47,6 +47,7 @@ export class ALEvent {
 
   static UPDATE_CMAP_LIST  = new ALEvent("AL:cmap.updated");
 
+  // Gives the center position in ICRS
   static POSITION_CHANGED  = new ALEvent("AL:position.changed");
   static ZOOM_CHANGED  = new ALEvent("AL:zoom.changed");
 

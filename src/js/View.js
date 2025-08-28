@@ -213,7 +213,7 @@ export let View = (function () {
         this.fov = this.options.fov || 180.0
 
         // Target position settings
-        this.viewCenter = { lon, lat }; // position of center of view
+        this.viewCenter = { ra: lon, dec: lat }; // position of center of view always in ICRS
 
         // Coo frame setting
         const cooFrame = CooFrameEnum.fromString(this.options.cooFrame, CooFrameEnum.ICRS);
@@ -2022,9 +2022,17 @@ export let View = (function () {
     };
 
     View.prototype.updateCenter = function() {
-        const [ra, dec] = this.wasm.getCenter();
-        this.viewCenter.lon = ra;
-        this.viewCenter.lat = dec;
+        // Center position in the frame of the view
+        const [lon, lat] = this.wasm.getCenter();
+
+        // ICRS conversion
+        let [ra, dec] = this.wasm.viewToICRSCooSys(lon, lat);
+
+        if (ra < 0) {
+            ra = ra + 360.0
+        }
+
+        this.viewCenter = {ra, dec};
     }
 
     View.prototype.showHealpixGrid = function (show) {
@@ -2069,11 +2077,10 @@ export let View = (function () {
             return;
         }
 
-        this.viewCenter.lon = ra;
-        this.viewCenter.lat = dec;  
+        this.viewCenter = {ra, dec};
 
         // Put a javascript code here to do some animation
-        this.wasm.setCenter(this.viewCenter.lon, this.viewCenter.lat);
+        this.wasm.setCenter(this.viewCenter.ra, this.viewCenter.dec);
 
         ALEvent.POSITION_CHANGED.dispatchedTo(this.aladin.aladinDiv, this.viewCenter);
 

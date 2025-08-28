@@ -71,7 +71,7 @@ impl Texture3D {
         self.gl.generate_mipmap(WebGlRenderingCtx::TEXTURE_3D);
     }
 
-    pub fn bind(&self) -> Texture3DBound {
+    pub fn bind(&self) -> Texture3DBound<'_> {
         self.gl
             .bind_texture(WebGlRenderingCtx::TEXTURE_3D, self.texture.as_ref());
 

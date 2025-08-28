@@ -295,7 +295,7 @@ impl Texture2D {
         self
     }
 
-    pub fn bind(&self) -> Texture2DBound {
+    pub fn bind(&self) -> Texture2DBound<'_> {
         self.gl
             .bind_texture(WebGlRenderingCtx::TEXTURE_2D, self.texture.as_ref());
 

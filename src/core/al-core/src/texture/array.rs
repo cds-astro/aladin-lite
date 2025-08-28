@@ -70,7 +70,7 @@ impl Texture2DArray {
         self.gl.generate_mipmap(WebGlRenderingCtx::TEXTURE_2D_ARRAY);
     }
 
-    pub fn bind(&self) -> Texture2DArrayBound {
+    pub fn bind(&self) -> Texture2DArrayBound<'_> {
         self.gl
             .bind_texture(WebGlRenderingCtx::TEXTURE_2D_ARRAY, self.texture.as_ref());
 

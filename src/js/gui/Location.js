@@ -41,6 +41,16 @@ import { ActionButton } from "./Widgets/ActionButton.js";
 import { Input } from "./Widgets/Input.js";
 import { Utils } from "../Utils.ts";
 
+function radec2Lonlat(radec, frame) {
+    // convert to the view frame
+    let lonlat = radec;
+    if (frame === "GAL") {
+        lonlat = CooConversion.ICRSToGalactic(radec)
+    }
+
+    return lonlat
+}
+
 export class Location extends DOMElement {
     // constructor
     constructor(aladin) {
@@ -141,20 +151,15 @@ export class Location extends DOMElement {
         ALEvent.CANVAS_EVENT.listenedBy(aladin.aladinDiv, function (e) {
             let param = e.detail;
 
-            if (param.type === 'mouseout') {
-                let radec = aladin.getRaDec();
-                // convert to the view frame
-                let lonlat = radec;
-                if (aladin.getFrame() === "GAL") {
-                    lonlat = CooConversion.ICRSToGalactic(radec)
-                }
+            let frame = aladin.getFrame();
 
-                let [lon, lat] = lonlat;
-                //self.field.el.blur()
+            if (param.type === 'mouseout') {
+                let [ra, dec] = aladin.getRaDec();
+
                 self.update({
-                    lon, lat,
-                    frame: aladin.view.cooFrame,
-                    isViewCenter: true,
+                    ra, dec,
+                    frame,
+                    center: true,
                 }, aladin);
             }
 
@@ -170,39 +175,46 @@ export class Location extends DOMElement {
                 self.update({
                     mouseX: param.xy.x,
                     mouseY: param.xy.y,
-                    frame: aladin.view.cooFrame,
-                    isViewCenter: false,
+                    frame,
+                    center: false,
                 }, aladin);
             }
         });
 
         ALEvent.POSITION_CHANGED.listenedBy(aladin.aladinDiv, function (e) {
+            // center position in ICRS
+            let {ra, dec} = e.detail;
+            let frame = aladin.getFrame();
 
             self.update({
-                lon: e.detail.lon, 
-                lat: e.detail.lat,
-                isViewCenter: true,
-                frame: aladin.view.cooFrame
+                ra, 
+                dec,
+                center: true,
+                frame
             }, aladin);
         });
 
         ALEvent.FRAME_CHANGED.listenedBy(aladin.aladinDiv, function (e) {
-            let [lon, lat] = aladin.getRaDec();
+            let [ra, dec] = aladin.getRaDec();
+            let frame = aladin.getFrame();
 
             self.update({
-                lon, lat,
-                isViewCenter: true,
-                frame: e.detail.cooFrame
+                ra, dec,
+                center: true,
+                frame
             }, aladin);
         });
 
         this.aladin = aladin;
 
-        let [lon, lat] = aladin.getRaDec();
+        let [ra, dec] = aladin.getRaDec();
+        let frame = aladin.getFrame();
+
         this.update({
-            lon, lat,
-            isViewCenter: true,
-            frame: aladin.view.cooFrame
+            ra,
+            dec,
+            frame,
+            center: true
         }, aladin)
     };
 
@@ -210,6 +222,7 @@ export class Location extends DOMElement {
 
     update(options, aladin) {
         let self = this;
+        // lon and lat must be given in cooFrame
         const updateFromLonLatFunc = (lon, lat, cooFrame) => {
             var coo = new Coo(lon, lat, Location.prec);
             if (cooFrame == CooFrameEnum.ICRS) {
@@ -224,21 +237,21 @@ export class Location extends DOMElement {
             self.field.removeClass('aladin-not-valid');
             self.field.removeClass('aladin-valid'); 
 
-            self.field.element().style.color = options.isViewCenter ? 'var(--aladin-color)' : 'white';
-            //self.field.el.blur()
+            self.field.element().style.color = options.center ? 'var(--aladin-color)' : 'white';
         };
 
-        if (options.lon && options.lat) {
-            updateFromLonLatFunc(options.lon, options.lat, options.frame, true);
+        if (options.ra && options.dec) {
+            let [lon, lat] = radec2Lonlat([options.ra, options.dec], options.frame)
+            updateFromLonLatFunc(lon, lat, options.frame);
         } else if (options.mouseX && options.mouseY) {
             try {
-                let radec = aladin.pix2world(options.mouseX, options.mouseY); // This is given in the frame of the view
-                if (radec) {
-                    if (radec[0] < 0) {
-                        radec = [radec[0] + 360.0, radec[1]];
+                let lonlat = aladin.pix2world(options.mouseX, options.mouseY); // This is given in the frame of the view
+                if (lonlat) {
+                    if (lonlat[0] < 0) {
+                        lonlat = [lonlat[0] + 360.0, lonlat[1]];
                     }
     
-                    updateFromLonLatFunc(radec[0], radec[1], options.frame, false);
+                    updateFromLonLatFunc(lonlat[0], lonlat[1], options.frame);
                 }
             } catch(e) {}
         }

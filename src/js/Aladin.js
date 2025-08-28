@@ -3126,7 +3126,7 @@ aladin.displayFITS(
                     );
                 }
                 if (executeDefaultSuccessAction === true) {
-                    self.wasm.setCenter(meta.ra, meta.dec);
+                    self.gotoRaDec(meta.ra, meta.dec);
                     self.setFoV(meta.fov);
                 }
 

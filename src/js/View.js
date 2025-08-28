@@ -47,6 +47,7 @@ import { ObsCore } from "./vo/ObsCore.js";
 import { HiPS } from "./HiPS.js";
 import { Image } from "./Image.js";
 import { Color } from "./Color.js";
+import { SpectraDisplayer } from "./SpectraDisplayer.js";
 
 export let View = (function () {
 
@@ -589,9 +590,18 @@ export let View = (function () {
     }
 
     View.prototype.selectLayer = function (layer) {
-        if (!this.imageLayers.has(layer)) {
+        let imageLayer = this.imageLayers.get(layer)
+        if (!imageLayer) {
             console.warn(layer + ' does not exists. So cannot be selected');
             return;
+        }
+
+        if (imageLayer.dataproductType === "spectral-cube") {
+            if (!this.spectraDisplayer) {
+                this.spectraDisplayer = new SpectraDisplayer(this, {width: 800, height: 300});
+            }
+
+            this.spectraDisplayer.attachHiPS3D(imageLayer)
         }
 
         this.selectedLayer = layer;
@@ -619,7 +629,6 @@ export let View = (function () {
             catch (err) {
                 return;
             }
-
         };
 
         if (!Utils.hasTouchScreen()) {
@@ -1769,6 +1778,7 @@ export let View = (function () {
         } else {
             // it exists
             alreadyPresentImageLayer = this.imageLayers.get(layerName);
+
             // Notify that this image layer has been replaced by the wasm part
             if (alreadyPresentImageLayer && alreadyPresentImageLayer.added === true) {
                 ALEvent.HIPS_LAYER_REMOVED.dispatchedTo(this.aladinDiv, { layer: alreadyPresentImageLayer });
@@ -1783,9 +1793,9 @@ export let View = (function () {
         this.imageLayers.set(layerName, imageLayer);
 
         // select the layer if he is on top
-        if (idxOverlayLayer == -1) {
+        //if (idxOverlayLayer == -1) {
             this.selectLayer(layerName);
-        }
+        //}
 
         ALEvent.HIPS_LAYER_ADDED.dispatchedTo(this.aladinDiv, { layer: imageLayer });
     }

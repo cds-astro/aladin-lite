@@ -38,6 +38,12 @@
     bottom: 7rem;
     right: 0;
 }
+.aladin-lite-spectra-displayer .aladin-spectra-hips-selector {
+    position: absolute;
+    top: 0;
+    left: 0;
+    max-width: 10rem;
+}
 
 .aladin-imageCanvas {
 	position: absolute;
@@ -861,7 +867,6 @@
     padding: 0.2rem 0;
     font-size: inherit;
     border-radius: 0.2rem;
-    box-shadow: 0 0 1em 0 rgba(0, 0, 0, 0.2);
     cursor: pointer;
     font-family: monospace;
     box-sizing: content-box;

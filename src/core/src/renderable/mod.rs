@@ -452,9 +452,9 @@ impl Layers {
 
             let hips = match &cfg.dataproduct_type {
                 // HiPS cube
-                DataproductType::Cube => HiPS::D3(HiPS3D::new(cfg, gl)?),
+                DataproductType::Cube => HiPS::D3(HiPS3D::new(cfg, gl, &layer)?),
                 // HiPS 3D
-                DataproductType::SpectralCube => HiPS::D3(HiPS3D::new(cfg, gl)?),
+                DataproductType::SpectralCube => HiPS::D3(HiPS3D::new(cfg, gl, &layer)?),
                 // Typical HiPS image
                 _ => HiPS::D2(HiPS2D::new(cfg, gl)?),
             };

@@ -21,7 +21,7 @@ import { ActionButton } from "./gui/Widgets/ActionButton";
 import { Input } from "./gui/Widgets/Input";
 import HomeIconUrl from '../../assets/icons/maximize.svg';
 import SpectraIconUrl from '../../assets/icons/freq.svg';
-
+import { ALEvent } from "./events/ALEvent";
 
 /******************************************************************************
  * Aladin Lite project
@@ -116,7 +116,7 @@ export class SpectraDisplayer {
         }
     };
 
-    constructor(hips, options) {
+    constructor(view, options) {
         let createPlotCanvas = (name) => {
             const canvas = document.createElement("canvas");
             canvas.classList.add(name);
@@ -130,7 +130,7 @@ export class SpectraDisplayer {
             return canvas;
         };
 
-        this.view = hips.view;
+        this.view = view;
 
         this.data = undefined;
         this.scaleX = undefined;
@@ -185,6 +185,20 @@ export class SpectraDisplayer {
             },
         })
 
+        this.selector = new Input({
+            label: "HiPS3D selector:",
+            name: "layer selector",
+            type: 'select',
+            classList: ['aladin-spectra-hips-selector'],
+            options: [],
+            change: (e) => {
+                let name = e.target.value;
+                let hips = self.hips3DList.get(name);
+
+                self.attachHiPS3D(hips)
+            },
+        })
+
         let autoCenterBtn = new ActionButton({
             size: 'small',
             icon: {
@@ -197,11 +211,8 @@ export class SpectraDisplayer {
             },
             classList: ['aladin-spectra-home'],
             action(e) {
-                let midFreq = (self.hips.emMin + self.hips.emMax)*0.5;
-                self.hips.setFrequency({
-                    value: midFreq,
-                    unit: "m"
-                })
+                self.resetScale()
+                self._redraw(self.ctx);
             }
         })
         let extractionBtn = new ActionButton({
@@ -216,7 +227,7 @@ export class SpectraDisplayer {
             },
             classList: ['aladin-spectra-extraction'],
             action(e) {
-
+                // TODO
             }
         })
 
@@ -238,11 +249,17 @@ export class SpectraDisplayer {
         divNode.appendChild(autoCenterBtn.element())
         divNode.appendChild(extractionBtn.element())
 
+        let divHiPSSelector = document.createElement("div")
+        divHiPSSelector.innerHTML = '<span>Survey:</span>';
+        divHiPSSelector.appendChild(this.selector.element())
+        divNode.appendChild(divHiPSSelector)
+
         this.divNode = divNode;
 
         this.view.aladin.aladinDiv.appendChild(divNode);
 
         this.defineEventListeners()
+        this.hips3DList = new Map();
     }
 
     defineEventListeners() {
@@ -253,6 +270,10 @@ export class SpectraDisplayer {
         let ctxCursor = this.ctxCursor;
 
         let self = this;
+
+        let lastClickTime = 0;
+        const DOUBLE_CLICK_DELAY = 300; // most operating systems uses duration between 250ms and 500ms by default.
+
         canvas.addEventListener('mousedown', (e) => {
             const rect = canvas.getBoundingClientRect();
             const mx = e.clientX - rect.left;
@@ -297,6 +318,22 @@ export class SpectraDisplayer {
                         relatedTarget: e.relatedTarget,
                     };
                     const event = new MouseEvent('mousedown', paramsEvent);
+                    // Track timing to simulate dblclick
+                    const now = Date.now();
+                    if (now - lastClickTime < DOUBLE_CLICK_DELAY) {
+                        const dblClickEvent = new MouseEvent('dblclick', {
+                            bubbles: true,
+                            cancelable: true,
+                            clientX: e.clientX,
+                            clientY: e.clientY
+                        });
+
+                        this.view.catalogCanvas.dispatchEvent(dblClickEvent);
+                        lastClickTime = 0; // reset
+                    } else {
+                        lastClickTime = now;
+                    }
+
                     this.view.catalogCanvas.dispatchEvent(event);
                 }
             }
@@ -412,6 +449,81 @@ export class SpectraDisplayer {
 
             this.view.catalogCanvas.dispatchEvent(wheelEvent);
         });
+
+        const updateSelectorList = () => {
+            let options = [];
+            for (const hipsName of this.hips3DList.keys()) {
+                options.push(hipsName)
+            }
+
+            this.selector.update({options})
+        };
+
+        ALEvent.HIPS_LAYER_ADDED.listenedBy(
+            this.view.aladin.aladinDiv,
+            function (e) {
+                let hips = e.detail.layer;
+
+                if (hips.dataproductType === "spectral-cube") {
+                    self.hips3DList.set(hips.name, hips);
+
+                    updateSelectorList()
+                }
+            }
+        );
+
+        ALEvent.HIPS_LAYER_SWAP.listenedBy(
+            this.view.aladin.aladinDiv,
+            function (e) {
+                let firstHiPS = e.detail.firstLayer;
+                let secondHiPS = e.detail.secondLayer;
+
+                self.hips3DList.delete(firstHiPS.name);
+
+                if (secondHiPS.dataproductType === "spectral-cube") {
+                    self.hips3DList.set(secondHiPS.name, secondHiPS);
+                }
+
+                updateSelectorList()
+            }
+        );
+
+        ALEvent.HIPS_LAYER_REMOVED.listenedBy(
+            this.view.aladin.aladinDiv,
+            function (e) {
+                let hips = e.detail.layer;
+                self.hips3DList.delete(hips.name);
+
+                if (hips === this.hips) {
+                    // the hips pointed by the tool has been removed
+                    self.attachHiPS3D(null);
+                }
+
+                if (self.hips3DList.size === 0) {
+                    self.hide()
+                }
+
+                updateSelectorList()
+            }
+        );
+    }
+
+    hide() {
+        if (this.isHidden) {
+            return;
+        }
+
+        this.divNode.style.display = "none";
+        this.isHidden = true;
+    }
+
+    show() {
+        if (!this.isHidden) {
+            return;
+        }
+
+        this.divNode.style.display = "block";
+        this.isHidden = false;
     }
 
     attachHiPS3D(hips) {
@@ -423,12 +535,29 @@ export class SpectraDisplayer {
         // store new references to the new hips
         this.hips = hips;
 
-        this.spectraUpdateCallback = (event) => {
-            this.data = event.detail;
-            this._redraw(this.ctx);
-        };
+        if (hips) {
+            this.spectraUpdateCallback = (event) => {
+                let data = event.detail;
+                console.log(data)
+                if (data.layer === this.hips.layer) {
+                    this.data = data;
+                    this._redraw(this.ctx);
+                }
+            };
+    
+            window.addEventListener("spectra", this.spectraUpdateCallback);
 
-        window.addEventListener("spectra", this.spectraUpdateCallback);
+            this.resetScale();
+            this.show()
+
+            this.selector.update({value: hips.name, title: hips.name})
+        }
+    }
+
+    // When changing the HiPS format, a scale reset is necessary
+    resetScale() {
+        this.minY = undefined;
+        this.maxY = undefined;
     }
 
     enableInteraction() {
@@ -453,6 +582,7 @@ export class SpectraDisplayer {
 
         if (Number.isFinite(this.minY)) {
             this.minY = Math.min(...valuesWithNoNans, this.minY)
+            console.log(this.minY)
         } else {
             this.minY = Math.min(...valuesWithNoNans)
         }
@@ -480,7 +610,7 @@ export class SpectraDisplayer {
 
     _redrawLabels() {
         let self = this;
-        function spectraValue2String(freq, precision) {
+        let spectraValue2String = (freq, precision) => {
             let units = self.unit.units;
 
             let x = SpectraDisplayer.UNIT.convertFrequency(

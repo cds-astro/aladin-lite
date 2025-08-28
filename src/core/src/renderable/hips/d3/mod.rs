@@ -110,6 +110,9 @@ pub struct HiPS3D {
     move_freq: bool,
     // The location of the cursor to extract the spectra
     cursor: Cursor,
+
+    /// name of the layer
+    layer: String,
 }
 
 struct Cursor {
@@ -179,7 +182,7 @@ impl Cursor {
 
     /// Get the window starting and ending hashed at the pixel order
     fn get_window_frequency_range(&self) -> FrequencyWindow {
-        const NUM_VALUES: usize = 100;
+        const NUM_VALUES: usize = 150;
 
         let delta_depth = self.tile_depth.trailing_zeros();
         let pixel_depth = self.cell.f_depth + delta_depth as u8;
@@ -298,7 +301,7 @@ use crate::math::spectra::Freq;
 use js_sys::Reflect;
 
 impl HiPS3D {
-    pub fn new(config: HiPSConfig, gl: &WebGlContext) -> Result<Self, JsValue> {
+    pub fn new(config: HiPSConfig, gl: &WebGlContext, layer: &str) -> Result<Self, JsValue> {
         let mut vao = VertexArrayObject::new(gl);
 
         let num_indices = vec![];
@@ -367,6 +370,7 @@ impl HiPS3D {
             num_indices,
             move_freq,
             cursor,
+            layer: layer.to_string(),
         })
     }
 
@@ -492,9 +496,9 @@ impl HiPS3D {
 
                                 Some(cell)
                             } else {
-                                //None
+                                None
                                 // FIXME ME READ THE MOC
-                                Some(cell)
+                                //Some(cell)
                             }
                         } else {
                             Some(cell)
@@ -599,6 +603,13 @@ impl HiPS3D {
                 &spectra_js_obj,
                 &JsValue::from_str("freqIdxEnd"),
                 &JsValue::from_f64(end as f64),
+            )
+            .unwrap_abort();
+
+            Reflect::set(
+                &spectra_js_obj,
+                &JsValue::from_str("layer"),
+                &JsValue::from_str(&self.layer),
             )
             .unwrap_abort();
         }
@@ -754,7 +765,8 @@ impl HiPS3D {
                         } else {
                             //None
                             // FIXME SFMOC parsing
-                            Some(hpx_f_cell)
+                            //Some(hpx_f_cell)
+                            None
                         }
                     } else {
                         Some(hpx_f_cell)

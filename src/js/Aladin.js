@@ -3093,12 +3093,13 @@ aladin.displayFITS(
                 options.body = JSON.stringify(params);
             }
 
-            return fetch(url, options).then((response) => response.json());
+            return fetch(url, options).then((response) => response.json()).catch(e => console.error(e));
         };
         const get = (url, params) => request(url, params, "GET");
 
         get("https://alasky.unistra.fr/cgi/fits2HiPS", data).then(
             async (response) => {
+                console.log(response, data)
                 if (response.status != "success") {
                     console.error("An error occured: " + response.message);
                     if (errorCallback) {
@@ -3138,7 +3139,7 @@ aladin.displayFITS(
                 // This has to be fixed in the backend but a fast fix is just to wait
                 // before setting a new image survey
             }
-        );
+        ).catch((e) => console.error(e));
     };
 
     Aladin.prototype.displayPNG = Aladin.prototype.displayJPG;

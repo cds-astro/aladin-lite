@@ -509,13 +509,6 @@ export let HiPS = (function () {
 
         // dataproduct type
         self.dataproductType = properties && properties.dataproduct_type;
-        if (self.dataproductType === "spectral-cube") {
-            if (!self.view.spectraDisplayer) {
-                self.view.spectraDisplayer = new SpectraDisplayer(self, {width: 600, height: 300});
-            }
-
-            self.view.spectraDisplayer.attachHiPS3D(self)
-        }
 
         // Tile size
         self.tileSize =
@@ -899,6 +892,10 @@ export let HiPS = (function () {
 
         /// Set image format
         if (options.imgFormat) {
+            if (this.dataproductType === "spectral-cube" && this.view.spectraDisplayer && this.view.spectraDisplayer.hips === this) {
+                this.view.spectraDisplayer.resetScale()
+            }
+
             let imgFormat = options.imgFormat.toLowerCase();
 
             if (imgFormat === "jpg") {

@@ -198,15 +198,15 @@ impl ProjetedGrid {
         if self.enabled {
             let fov = camera.get_field_of_view();
             let bbox = fov.get_bounding_box();
-            let max_dim_px = camera.get_width().max(camera.get_height()) as f64;
-            let step_line_px = max_dim_px * 0.15;
+            //let max_dim_px = camera.get_width().max(camera.get_height()) as f64;
+            //let step_line_px = max_dim_px * 0.15;
 
             let aspect = camera.get_aspect() as f64;
 
             // update meridians
             self.meridians = {
                 // Select the good step with a binary search
-                let step_lon_precised = (bbox.get_lon_size() as f64) * 0.15;
+                let step_lon_precised = bbox.get_lon_size() * 0.15;
                 let step_lon = select_fixed_step(step_lon_precised);
 
                 let decimal_lon_prec = step_lon.to_degrees().log10().abs().ceil() as u8;
@@ -236,7 +236,7 @@ impl ProjetedGrid {
             };
 
             self.parallels = {
-                let step_lat_precised = aspect * (bbox.get_lat_size() as f64) * 0.15;
+                let step_lat_precised = aspect * bbox.get_lat_size() * 0.15;
                 let step_lat = select_fixed_step(step_lat_precised);
 
                 let decimal_lat_prec = step_lat.to_degrees().log10().abs().ceil() as u8;
@@ -349,8 +349,7 @@ const GRID_STEPS: &[f64] = &[
     0.08726647,
     0.17453293,
     0.34906585,
-    //std::f64::consts::FRAC_PI_4,
-    0.52359877559,
+    std::f64::consts::FRAC_PI_6,
 ];
 
 fn select_fixed_step(fov: f64) -> f64 {

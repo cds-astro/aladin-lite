@@ -251,7 +251,7 @@ export let Footprint= (function() {
                 return true;
             }
         }
-        return false;
+        return this.shapes.some((shape) => shape.intersectsBBox(x, y, w, h, view));
     };
 
     return Footprint;

@@ -330,9 +330,11 @@ export let Circle = (function() {
             return false;
         }
 
+        // compute the absolute distance between the middle of the bbox
+        // and the center of the circle 
         const circleDistance = {
-            x: Math.abs(centerXyview[0] - x),
-            y: Math.abs(centerXyview[1] - y)
+            x: Math.abs(centerXyview[0] - (x + w/2)),
+            y: Math.abs(centerXyview[1] - (y + h/2))
         };
 
         if (circleDistance.x > (w/2 + this.radius)) { return false; }

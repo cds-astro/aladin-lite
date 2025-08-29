@@ -135,10 +135,12 @@ export class Selector {
                 }
                 // footprints
                 overlayItems = cat.getFootprints();
+
                 if (overlayItems) {
                     const {x, y, w, h} = selection.bbox();
                     for (var l = 0; l < overlayItems.length; l++) {
                         f = overlayItems[l];
+
                         if (f.intersectsBBox(x, y, w, h, view)) {
                             objListPerCatalog.push(f);
                         }

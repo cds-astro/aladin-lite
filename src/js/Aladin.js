@@ -736,7 +736,7 @@ export let Aladin = (function () {
         gridOptions: {
             enabled: false,
             showLabels: true,
-            thickness: 2,
+            thickness: 1,
             labelSize: 15,
         },
         projection: "SIN",

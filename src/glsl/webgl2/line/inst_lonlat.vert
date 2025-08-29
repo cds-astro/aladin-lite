@@ -38,7 +38,7 @@ void main() {
     float ndc2pix = 2.0 / u_width;
 
     vec2 p_ndc_x = x_b * vertex.x;
-    vec2 p_ndc_y = u_thickness * y_b * vertex.y * vec2(1.0, u_width/u_height) * ndc2pix;
+    vec2 p_ndc_y = (u_thickness + 2.0) * y_b * vertex.y * vec2(1.0, u_width/u_height) * ndc2pix;
 
     vec2 p_ndc = p_a_ndc + p_ndc_x + p_ndc_y;
     gl_Position = vec4(p_ndc, 0.f, 1.f);

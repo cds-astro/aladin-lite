@@ -17,7 +17,9 @@ void main() {
         color = u_color;
 
         // distance from line to compute the anti-aliasing
-        float dist = abs(u_thickness * l.y);
-        color.a = color.a * (1.0 - smoothstep(u_thickness*0.5 - 1.0, u_thickness*0.5, dist));
+        float dist = abs((u_thickness + 2.0) * l.y);
+
+        float half_thickness = (u_thickness + 2.0) * 0.5;
+        color.a = color.a * (1.0 - smoothstep(half_thickness - 1.0, half_thickness, dist));
     }
 }

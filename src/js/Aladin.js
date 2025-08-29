@@ -732,7 +732,7 @@ export let Aladin = (function () {
         reticleColor: "rgb(178, 50, 178)",
         reticleSize: 22,
         gridColor: "rgb(178, 50, 178)",
-        gridOpacity: 0.4,
+        gridOpacity: 0.8,
         gridOptions: {
             enabled: false,
             showLabels: true,

@@ -36,13 +36,13 @@ import A from "./A.js";
 import { Footprint } from "./Footprint.js";
 
 /**
- * Represents options for configuring a catalog.
- *
- * @typedef {Object} CatalogOptions
+* Represents options for configuring a catalog.
+*
+* @typedef {Object} CatalogOptions
 * @property {string} url - The URL of the catalog.
 * @property {string} [name="catalog"] - The name of the catalog.
-* @property {string} [color] - The color associated with the catalog.
-* @property {number} [sourceSize=8] - The size of the sources in the catalog.
+* @property {string|Function} [color] - The color associated with the catalog. A function can be given similar to `shape`.
+* @property {number|Function} [sourceSize=8] - The size of the sources in the catalog. A function can be given similar to `shape`.
 * @property {string|Function|Image|HTMLCanvasElement|HTMLImageElement} [shape="square"] - The shape of the sources (can be, "square", "circle", "plus", "cross", "rhomb", "triangle").
 If a function is given, user can return Image, HTMLImageCanvas, HTMLImageElement or a string being in ["square", "circle", "plus", "cross", "rhomb", "triangle"]. This allows to define different shape for a specific catalog source.
 * @property {number} [limit] - The maximum number of sources to display.
@@ -95,6 +95,10 @@ export let Catalog = (function () {
         this.markerSize = options.sourceSize || 12;
         this.selectSize = this.sourceSize;
         this.shape = options.shape || "square";
+        if (typeof this.shape === "function") {
+            this.shapeFn = this.shape;
+            this.shape = "custom";
+        }
         this.maxNbSources = options.limit || undefined;
         this.onClick = options.onClick || undefined;
         this.readOnly = options.readOnly || false;
@@ -105,10 +109,11 @@ export let Catalog = (function () {
         // allows for filtering of sources
         this.filterFn = options.filter || undefined; // TODO: do the same for catalog
         this.selectionColor = options.selectionColor || "#00ff00";
-        this.hoverColor = options.hoverColor || this.color;
+        this.hoverColor = options.hoverColor || undefined;
 
         this.displayLabel = options.displayLabel || false;
-        this.labelColor = options.labelColor || this.color;
+        this.labelColor = options.labelColor || undefined;
+
         this.labelFont = options.labelFont || "10px sans-serif";
         if (this.displayLabel) {
             this.labelColumn = options.labelColumn;
@@ -475,6 +480,18 @@ export let Catalog = (function () {
         );
     };
 
+    Catalog.prototype.getCacheCanvas = function(shape, color, size) {
+        const key = `${shape}_${size}_${color}`;
+        if (!(key in this.cacheCanvas)) {
+            this.cacheCanvas[key] = Catalog.createShape(
+                shape,
+                color,
+                size
+            )
+        }
+        return this.cacheCanvas[key];
+    };
+
     /**
      * Set the shape of the sources
      *
@@ -493,16 +510,18 @@ export let Catalog = (function () {
         options = options || {};
         this.color = options.color || this.color || Color.getNextColor();
         this.selectionColor = options.selectionColor || this.selectionColor || Color.getNextColor();
-        this.hoverColor = options.hoverColor || this.hoverColor || this.color;
+        this.hoverColor = options.hoverColor || this.hoverColor || undefined;
         this.sourceSize = options.sourceSize || this.sourceSize || 6;
         this.shape = options.shape || this.shape || "square";
+        if (typeof this.shape === "function") {
+            this.shapeFn = this.shape;
+            this.shape = "custom"
+        }
         this.onClick = options.onClick || this.onClick;
 
-        this._shapeIsFunction = false; // if true, the shape is a function drawing on the canvas
-        if (typeof this.shape === "function") {
-            this._shapeIsFunction = true;
+        if (this.shapeFn) {
             // A shape function that operates on the canvas gives the ctx and fov params
-            this._shapeOperatesOnCtx = this.shape.length > 1;
+            this._shapeOperatesOnCtx = this.shapeFn.length > 1;
             // do not need to compute any canvas
 
             // there is a possibility that the user gives a function returning shape objects such as
@@ -517,31 +536,20 @@ export let Catalog = (function () {
             this._shapeIsImageOrCanvas = true;
         }
 
-        this.selectSize = this.sourceSize + 2;
+        if (typeof this.color === "function") {
+            this.colorFn = this.color;
+            this.color = "custom"
+        }
+
+        if (typeof this.sourceSize === "function") {
+            this.sourceSizeFn = this.sourceSize;
+            this.sourceSize = "custom";
+        } else {
+            this.selectSize = this.sourceSize + 2;
+        }
+
         // Create all the variant shaped canvas
         this.cacheCanvas = {}
-        this.cacheHoverCanvas = {}
-        this.cacheSelectCanvas = {}
-
-        for (var shape of Catalog.shapes) {
-            this.cacheCanvas[shape] = Catalog.createShape(
-                shape,
-                this.color,
-                this.sourceSize
-            )
-
-            this.cacheHoverCanvas[shape] = Catalog.createShape(
-                shape,
-                this.hoverColor,
-                this.selectSize
-            );
-
-            this.cacheSelectCanvas[shape] = Catalog.createShape(
-                shape,
-                this.selectionColor,
-                this.selectSize
-            );
-        }
 
         this.reportChange();
     };
@@ -592,48 +600,79 @@ export let Catalog = (function () {
     Catalog.prototype.computeFootprints = function (sources) {
         let footprints = [];
 
-        if (this._shapeIsFunction && !this._shapeOperatesOnCtx) {
+        if ((this.shapeFn || this.colorFn || this.sourceSizeFn) && !this._shapeOperatesOnCtx) {
             for (let source of sources) {
-                try {
-                    let shapes = this.shape(source);
-                    if (shapes) {
-                        shapes = [].concat(shapes);
+                if (this.shapeFn) {
+                    try {
+                        let shapes = this.shapeFn(source);
+                        if (shapes) {
+                            shapes = [].concat(shapes);
 
-                        // Result of the func is an image/canvas
-                        if (shapes.length == 1 && (shapes[0] instanceof Image || shapes[0] instanceof HTMLCanvasElement)) {
-                            source.setImage(shapes[0]);
-                        // Result of the func is shape label ('cross', 'plus', ...)
-                        } else if (shapes.length == 1 && typeof shapes[0] === "string") {
-                            // If not found, select the square canvas
-                            let shape = shapes[0] || "square";
-                            source.setShape(shape)
-                        // Result of the shape is a set of shapes or a footprint
-                        } else {
-                            for (var shape of shapes) {
-                                // Set the same color of the shape than the catalog. 
-                                // FIXME: the color/shape could be a parameter at the source level, allowing the user single catalogs handling different shapes
-                                shape.setColor(this.color)
-                                shape.setSelectionColor(this.selectionColor);
-                                shape.setHoverColor(this.hoverColor);
-                            }
-
-                            let footprint;
-                            if (shapes.length == 1 && shapes[0] instanceof Footprint) {
-                                footprint = shapes[0];
+                            // Result of the func is an image/canvas
+                            if (shapes.length == 1 && (shapes[0] instanceof Image || shapes[0] instanceof HTMLCanvasElement)) {
+                                source.setImage(shapes[0]);
+                            // Result of the func is shape label ('cross', 'plus', ...)
+                            } else if (shapes.length == 1 && typeof shapes[0] === "string") {
+                                // If not found, select the square canvas
+                                let shape = shapes[0] || "square";
+                                source.setShape(shape)
+                            // Result of the shape is a set of shapes or a footprint
                             } else {
-                                footprint = new Footprint(shapes, source);
+                                let color = (this.colorFn && this.colorFn(source)) || this.color;
+                                let hoverColor = this.hoverColor || color;
+
+                                for (var shape of shapes) {
+                                    // Set the same color of the shape than the catalog. 
+                                    // FIXME: the color/shape could be a parameter at the source level, allowing the user single catalogs handling different shapes
+                                    shape.setColor(color)
+                                    shape.setSelectionColor(this.selectionColor);
+                                    shape.setHoverColor(hoverColor);
+                                }
+
+                                let footprint;
+                                if (shapes.length == 1 && shapes[0] instanceof Footprint) {
+                                    footprint = shapes[0];
+                                } else {
+                                    footprint = new Footprint(shapes, source);
+                                }
+
+                                footprint.setCatalog(this);
+
+                                // store the footprints
+                                footprints.push(footprint);
                             }
-
-                            footprint.setCatalog(this);
-
-                            // store the footprints
-                            footprints.push(footprint);
                         }
+                    } catch (e) {
+                        // do not create the footprint
+                        console.warn("Shape computation error");
+                        continue;
                     }
-                } catch (e) {
-                    // do not create the footprint
-                    console.warn("Return of shape function could not be interpreted as a footprint");
-                    continue;
+                }
+
+                if (this.colorFn) {
+                    try {
+                        let color = this.colorFn(source);
+                        if (color) {
+                            source.setColor(color);
+                        }
+                    } catch (e) {
+                        // do not create the footprint
+                        console.warn("Source color computation error");
+                        continue;
+                    }
+                }
+
+                if (this.sourceSizeFn) {
+                    try {
+                        let size = this.sourceSizeFn(source);
+                        if (size) {
+                            source.setSize(size);
+                        }
+                    } catch (e) {
+                        // do not create the footprint
+                        console.warn("Source size computation error");
+                        continue;
+                    }
                 }
             }
         }
@@ -900,21 +939,21 @@ export let Catalog = (function () {
         // Draw the footprints first
         this.drawFootprints(ctx);
 
-        if (this._shapeIsFunction) {
+        if (this.shapeFn) {
             ctx.save();
         }
 
         const drawnSources = this.drawSources(ctx, width, height);
 
-        if (this._shapeIsFunction) {
+        if (this.shapeFn) {
             ctx.restore();
         }
 
         // Draw labels
         if (this.displayLabel) {
-            ctx.fillStyle = this.labelColor;
             ctx.font = this.labelFont;
             drawnSources.forEach((s) => {
+                ctx.fillStyle = this.labelColor || s.color || this.color;
                 this.drawSourceLabel(s, ctx);
             });
         }
@@ -988,7 +1027,7 @@ export let Catalog = (function () {
 
         if (s.x <= width && s.x >= 0 && s.y <= height && s.y >= 0) {
             if (this._shapeOperatesOnCtx) {
-                this.shape(s, ctx, this.view.getViewParams());
+                this.shapeFn(s, ctx, this.view.getViewParams());
             } else if (this._shapeIsImageOrCanvas) {
                 // Global catalog shape set as an Image, an HTMLCanvasElement or HTMLImageElement
                 let canvas = this.shape;
@@ -1011,23 +1050,34 @@ export let Catalog = (function () {
                     s.y - this.sourceSize / 2
                 );
             } else if (s.isSelected) {
-                let cacheSelectCanvas = this.cacheSelectCanvas[s.shape || this.shape] || this.cacheSelectCanvas["square"];
+                let selectSize = (s.size || this.sourceSize) + 2;
+                let shape = s.shape || this.shape || "square"
+                let color = this.selectionColor;
 
+                let cacheSelectedCanvas = this.getCacheCanvas(shape, color, selectSize)
                 ctx.drawImage(
-                    cacheSelectCanvas,
-                    s.x - this.selectSize / 2,
-                    s.y - this.selectSize / 2
+                    cacheSelectedCanvas,
+                    s.x - cacheSelectedCanvas.width / 2,
+                    s.y - cacheSelectedCanvas.height / 2
                 );
             } else if (s.isHovered) {
-                let cacheHoverCanvas = this.cacheHoverCanvas[s.shape || this.shape] || this.cacheHoverCanvas["square"];
+                let selectSize = (s.size || this.sourceSize) + 2;
+                let shape = s.shape || this.shape || "square"
+                let color = this.hoverColor || s.color || this.color;
 
+                let cacheHoverCanvas = this.getCacheCanvas(shape, color, selectSize)
                 ctx.drawImage(
                     cacheHoverCanvas,
-                    s.x - this.selectSize / 2,
-                    s.y - this.selectSize / 2
+                    s.x - cacheHoverCanvas.width / 2,
+                    s.y - cacheHoverCanvas.height / 2
                 );
             } else {
-                let cacheCanvas = this.cacheCanvas[s.shape || this.shape] || this.cacheCanvas["square"];
+                let shape = s.shape || this.shape || "square"
+                let size = s.size || this.sourceSize;
+                let color = s.color || this.color;
+
+                let cacheCanvas = this.getCacheCanvas(shape, color, size)
+                
                 ctx.drawImage(
                     cacheCanvas,
                     s.x - cacheCanvas.width / 2,

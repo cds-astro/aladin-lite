@@ -1158,9 +1158,14 @@ export class OverlayStackBox extends Box {
         }
 
         // retrieve SVG icon, and apply the layer color
+        let color = overlay.color;
+        if (overlay.colorFn) {
+            color = "white"
+        }
+
         return new Icon({
             size: "small",
-            url: Icon.dataURLFromSVG({ svg, color: overlay.color }),
+            url: Icon.dataURLFromSVG({ svg, color }),
             tooltip,
         });
     }

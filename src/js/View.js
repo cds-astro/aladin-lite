@@ -1604,9 +1604,14 @@ export let View = (function () {
                         return source;
                     });
 
+                    let tableColor = catalog.color;
+                    if (catalog.colorFn) {
+                        tableColor = "white" 
+                    }
+
                     let table = {
                         'name': catalog.name,
-                        'color': catalog.color,
+                        'color': tableColor,
                         'rows': sources,
                         'fields': catalog.fields,
                         'showCallback': ObsCore.SHOW_CALLBACKS(this.aladin)

@@ -126,6 +126,14 @@ export let Source = (function() {
         this.shape = shape;
     }
 
+    Source.prototype.setColor = function(color) {
+        this.color = color;
+    }
+
+    Source.prototype.setSize = function(size) {
+        this.size = Math.max(size, 1.0);
+    }
+
     /**
      * Simulates a click on the source
      *

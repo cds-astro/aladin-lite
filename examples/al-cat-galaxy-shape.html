@@ -26,8 +26,16 @@
         limit: 1000,
         //orderBy: 'nb_ref',
         onClick: 'showTable',
-        color: 'yellow',
-        hoverColor: 'blue',
+        color: (s) => {
+          let coo = A.coo();
+          coo.parse(s.data['RAJ2000'] + ' ' + s.data['DEJ2000'])
+
+          let a = (0.1 * Math.pow(10, +s.data.logD25)) / 60;
+          let b = (1.0 / Math.pow(10, +s.data.logR25)) * a
+
+          return `rgb(${s.data["logR25"]*255.0}, ${s.data["logR25"]*255.0}, 255)`
+        },
+        hoverColor: 'red',
         shape: (s) => {
           let coo = A.coo();
           coo.parse(s.data['RAJ2000'] + ' ' + s.data['DEJ2000'])

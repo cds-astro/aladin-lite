@@ -215,7 +215,6 @@ export let ProgressiveCat = (function() {
     };
 
     ProgressiveCat.prototype = {
-
         setView: function(view, idx) {
             var self = this;
             this.view = view;
@@ -370,7 +369,7 @@ export let ProgressiveCat = (function() {
                 return;
             }
 
-            if (this._shapeIsFunction) {
+            if (this.shapeFn) {
                 ctx.save();
             }
 
@@ -433,7 +432,7 @@ export let ProgressiveCat = (function() {
                 }
             });
 
-            if (this._shapeIsFunction) {
+            if (this.shapeFn) {
                 ctx.restore();
             }
         },
@@ -474,6 +473,8 @@ export let ProgressiveCat = (function() {
                 }
             });
         },
+
+        getCacheCanvas: Catalog.prototype.getCacheCanvas,
 
         drawSource: Catalog.prototype.drawSource,
 

@@ -31,15 +31,21 @@
         hoverColor: 'yellow',
         selectionColor: 'white',
         // Footprint associated to sources
-        shape: (s) => {
+        color: (s) => {
           // discard drawing a vector for big pm
           let totalPmSquared = s.data.pmra*s.data.pmra + s.data.pmdec*s.data.pmdec;
           if (totalPmSquared > 6) {
             return;
           }
 
-          let color = rainbowColorMap((totalPmSquared - 2.5) / 2)
-
+          return rainbowColorMap((totalPmSquared - 2.5) / 2)
+        },
+        shape: (s) => {
+          // discard drawing a vector for big pm
+          let totalPmSquared = s.data.pmra*s.data.pmra + s.data.pmdec*s.data.pmdec;
+          if (totalPmSquared > 6) {
+            return;
+          }
           // Compute the mean of pm over the catalog sources
           if (!pmraMean || !pmdecMean) {
             pmraMean = 0, pmdecMean = 0;
@@ -62,7 +68,6 @@
             s.dec,
             s.ra + dra,
             s.dec + ddec,
-            {color}
           )
         }
       });

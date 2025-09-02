@@ -70,9 +70,21 @@
             s.dec + ddec,
           )
         }
+      },
+      () => {
+        aladin.addCatalog(pmCat);
+
+        pmCat.select((s) => {
+          let totalPmSquared = s.data.pmra*s.data.pmra + s.data.pmdec*s.data.pmdec;
+          if (totalPmSquared > 6) {
+            return false;
+          }
+          return totalPmSquared < 3.0;
+        });
       });
-      aladin.addCatalog(pmCat);
   });
+
+  
 
   function rainbowColorMap(value) {
     // Ensure value is within range [0, 1]

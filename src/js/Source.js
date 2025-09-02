@@ -81,6 +81,7 @@ export let Source = (function() {
         if (this.isSelected) {
             return;
         }
+
         this.isSelected = true;
 
         if (this.catalog) {
@@ -92,6 +93,7 @@ export let Source = (function() {
         if (! this.isSelected) {
             return;
         }
+
         this.isSelected = false;
         if (this.catalog) {
             this.catalog.reportChange();

@@ -841,6 +841,33 @@ export let Catalog = (function () {
     };
 
     /**
+     * Select sources of the catalog matching a given callback
+     *
+     * @memberof Catalog
+     * 
+     * @param {Function} filter - A filter callback to select sources of a catalog.
+     */
+    Catalog.prototype.select = function(filter) {
+        let selection = [];
+        if (typeof filter === "function") {
+            for ( var s of this.sources ) {
+                if (!filter || (filter && filter(s))) {
+                    selection.push(s)
+                    console.log(s)
+                }
+            }
+            this.view.selectObjects([selection]);
+        }
+
+        if (this.view && this.view.aladin.callbacksByEventName) {
+            var callback = this.view.aladin.callbacksByEventName['objectsSelected'] || this.view.aladin.callbacksByEventName['select'];
+            if (callback) {
+                callback([selection]);
+            }
+        }
+    }
+
+    /**
      * Set the color of hovered sources
      *
      * @memberof Catalog
@@ -1050,6 +1077,7 @@ export let Catalog = (function () {
                     s.y - this.sourceSize / 2
                 );
             } else if (s.isSelected) {
+                console.log("i am selected")
                 let selectSize = (s.size || this.sourceSize) + 2;
                 let shape = s.shape || this.shape || "square"
                 let color = this.selectionColor;

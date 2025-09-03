@@ -49,6 +49,10 @@ export let Source = (function() {
         this.isHovered = false;
     };
 
+    Source.prototype.setFootprint = function(footprint) {
+        this.footprint = footprint;
+    }
+
     Source.prototype.setCatalog = function(catalog) {
         this.catalog = catalog;
     };
@@ -84,6 +88,10 @@ export let Source = (function() {
 
         this.isSelected = true;
 
+        if (this.footprint) {
+            this.footprint.select();
+        }
+
         if (this.catalog) {
             this.catalog.reportChange();
         }
@@ -95,6 +103,11 @@ export let Source = (function() {
         }
 
         this.isSelected = false;
+
+        if (this.footprint) {
+            this.footprint.deselect();
+        }
+
         if (this.catalog) {
             this.catalog.reportChange();
         }
@@ -104,7 +117,13 @@ export let Source = (function() {
         if (this.isHovered) {
             return;
         }
+
         this.isHovered = true;
+
+        if (this.footprint) {
+            this.footprint.hover();
+        }
+
         if (this.catalog) {
             this.catalog.reportChange();
         }
@@ -115,6 +134,11 @@ export let Source = (function() {
             return;
         }
         this.isHovered = false;
+
+        if (this.footprint) {
+            this.footprint.unhover();
+        }
+
         if (this.catalog) {
             this.catalog.reportChange();
         }
@@ -130,6 +154,10 @@ export let Source = (function() {
 
     Source.prototype.setColor = function(color) {
         this.color = color;
+
+        if (this.footprint) {
+            this.footprint.setColor(color);
+        }
     }
 
     Source.prototype.setSize = function(size) {
@@ -187,12 +215,16 @@ export let Source = (function() {
     };
 
     Source.prototype.isFootprint = function() {
-        return false;
+        return this.footprint !== undefined && this.footprint !== null;
     }
 
     Source.prototype.actionOtherObjectClicked = function() {
         if (this.catalog && this.catalog.onClick) {
             this.deselect();
+        }
+
+        if (this.footprint) {
+            this.footprint.deselect()
         }
     };
 

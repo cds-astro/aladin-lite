@@ -1141,6 +1141,7 @@ export let View = (function () {
                     view.setCursor('pointer');
 
                     for (let o of closests) {
+
                         if (typeof objHoveredFunction === 'function' && (!lastHoveredObject || !lastHoveredObject.includes(o))) {
                             var ret = objHoveredFunction(o, xymouse);
                         }
@@ -2206,7 +2207,7 @@ export let View = (function () {
                         continue;
                     }
 
-                    if (s.hasFootprint === true && s.tooSmallFootprint === false) {
+                    if (s.isFootprint() === true && s.tooSmallFootprint === false) {
                         continue;
                     }
 
@@ -2233,18 +2234,15 @@ export let View = (function () {
         let closests = [];
 
         footprints.forEach((footprint) => {
-            if (!footprint.source || !footprint.source.tooSmallFootprint) {
-                const originLineWidth = footprint.getLineWidth();
-                let spreadedLineWidth = (originLineWidth || 1) + 3;
-                
-                footprint.setLineWidth(spreadedLineWidth);
-                if (footprint.isShowing && footprint.isInStroke(ctx, this, x * window.devicePixelRatio, y * window.devicePixelRatio)) {
-                    closests.push(footprint);
-                }
-                footprint.setLineWidth(originLineWidth);
+            const originLineWidth = footprint.getLineWidth();
+            let spreadedLineWidth = (originLineWidth || 1) + 3;
+            
+            footprint.setLineWidth(spreadedLineWidth);
+            if (footprint.isShowing && footprint.isInStroke(ctx, this, x * window.devicePixelRatio, y * window.devicePixelRatio)) {
+                closests.push(footprint);
             }
+            footprint.setLineWidth(originLineWidth);
         })
-
 
         return closests;
     };
@@ -2269,9 +2267,20 @@ export let View = (function () {
         if (this.catalogs) {
             for (var k = 0; k < this.catalogs.length; k++) {
                 let catalog = this.catalogs[k];
-                let footprints = catalog.getFootprints();
 
-                closests = closests.concat(this.closestFootprints(footprints, ctx, x, y));
+                for (var s of catalog.getSources()) {
+                    if (s.isFootprint() && !s.tooSmallFootprint) {
+                        let footprint = s.footprint;
+                        const originLineWidth = footprint.getLineWidth();
+                        let spreadedLineWidth = (originLineWidth || 1) + 3;
+                        
+                        footprint.setLineWidth(spreadedLineWidth);
+                        if (footprint.isShowing && footprint.isInStroke(ctx, this, x * window.devicePixelRatio, y * window.devicePixelRatio)) {
+                            closests.push(s);
+                        }
+                        footprint.setLineWidth(originLineWidth);
+                    }
+                }
             }
         }
 

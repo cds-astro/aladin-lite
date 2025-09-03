@@ -131,7 +131,7 @@ export let Catalog = (function () {
         this.sources = [];
         this.ra = [];
         this.dec = [];
-        this.footprints = [];
+        //this.footprints = [];
 
         // create this.cacheCanvas
         // cacheCanvas permet de ne créer le path de la source qu'une fois, et de le réutiliser (cf. http://simonsarris.com/blog/427-increasing-performance-by-caching-paths-on-canvas)
@@ -592,14 +592,12 @@ export let Catalog = (function () {
             this.dec.push(sources[k].dec);
         }
 
-        this.recomputeFootprints = true;
+        this.computeFootprints(this.sources);
 
         this.reportChange();
     };
 
     Catalog.prototype.computeFootprints = function (sources) {
-        let footprints = [];
-
         if ((this.shapeFn || this.colorFn || this.sourceSizeFn) && !this._shapeOperatesOnCtx) {
             for (let source of sources) {
                 if (this.shapeFn) {
@@ -633,13 +631,14 @@ export let Catalog = (function () {
                                 if (shapes.length == 1 && shapes[0] instanceof Footprint) {
                                     footprint = shapes[0];
                                 } else {
-                                    footprint = new Footprint(shapes, source);
+                                    footprint = new Footprint(shapes);
                                 }
 
-                                footprint.setCatalog(this);
+                                source.setFootprint(footprint)
+                                //footprint.setCatalog(this);
 
                                 // store the footprints
-                                footprints.push(footprint);
+                                //footprints.push(footprint);
                             }
                         }
                     } catch (e) {
@@ -676,8 +675,6 @@ export let Catalog = (function () {
                 }
             }
         }
-
-        return footprints;
     };
 
     Catalog.prototype.setFields = function (fields) {
@@ -756,9 +753,9 @@ export let Catalog = (function () {
      *
      * @returns {Footprint[]} - an array of all the footprints in the catalog object
      */
-    Catalog.prototype.getFootprints = function () {
+    /*Catalog.prototype.getFootprints = function () {
         return this.footprints;
-    };
+    };*/
 
     /**
      * Select all the source catalog
@@ -853,7 +850,6 @@ export let Catalog = (function () {
             for ( var s of this.sources ) {
                 if (!filter || (filter && filter(s))) {
                     selection.push(s)
-                    console.log(s)
                 }
             }
             this.view.selectObjects([selection]);
@@ -935,7 +931,7 @@ export let Catalog = (function () {
         this.ra.splice(idx, 1);
         this.dec.splice(idx, 1);
 
-        this.recomputeFootprints = true;
+        this.computeFootprints(this.sources);
 
         this.reportChange();
     };
@@ -950,7 +946,7 @@ export let Catalog = (function () {
         this.sources = [];
         this.ra = [];
         this.dec = [];
-        this.footprints = [];
+        //this.footprints = [];
 
         this.reportChange();
     };
@@ -964,7 +960,7 @@ export let Catalog = (function () {
         ctx.strokeStyle = this.color;
 
         // Draw the footprints first
-        this.drawFootprints(ctx);
+        //this.drawFootprints(ctx);
 
         if (this.shapeFn) {
             ctx.save();
@@ -1048,8 +1044,13 @@ export let Catalog = (function () {
             return false;
         }
 
-        if (s.hasFootprint && !s.tooSmallFootprint) {
-            return false;
+        if (s.isFootprint()) {
+            s.footprint.draw(ctx, this.view)
+            s.tooSmallFootprint = s.footprint.isTooSmall();
+
+            if (!s.tooSmallFootprint) {
+                return true;
+            }
         }
 
         if (s.x <= width && s.x >= 0 && s.y <= height && s.y >= 0) {
@@ -1077,7 +1078,6 @@ export let Catalog = (function () {
                     s.y - this.sourceSize / 2
                 );
             } else if (s.isSelected) {
-                console.log("i am selected")
                 let selectSize = (s.size || this.sourceSize) + 2;
                 let shape = s.shape || this.shape || "square"
                 let color = this.selectionColor;
@@ -1133,15 +1133,10 @@ export let Catalog = (function () {
     };
 
     Catalog.prototype.drawFootprints = function (ctx) {
-        if (this.recomputeFootprints) {
-            this.footprints = this.computeFootprints(this.sources);
-            this.recomputeFootprints = false;
-        }
-
         var f;
         for (let k = 0; k < this.footprints.length; k++) {
             f = this.footprints[k];
-            
+
             if (this.filterFn && f.source) {
                 if(!this.filterFn(f.source)) {
                     f.hide()
@@ -1174,9 +1169,9 @@ export let Catalog = (function () {
         }
         this.isShowing = true;
         // Dispatch to the footprints
-        if (this.footprints) {
+        /*if (this.footprints) {
             this.footprints.forEach((f) => f.show());
-        }
+        }*/
 
         this.reportChange();
     };
@@ -1198,10 +1193,6 @@ export let Catalog = (function () {
             this.view.popup.source.catalog == this
         ) {
             this.view.popup.hide();
-        }
-        // Dispatch to the footprints
-        if (this.footprints) {
-            this.footprints.forEach((f) => f.hide());
         }
 
         this.reportChange();

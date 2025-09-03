@@ -63,12 +63,6 @@ export class Selector {
         })
     }
 
-    setMode(mode) {
-        if (mode) {
-            
-        }
-    }
-
     start(mode, callback) {
         this.view.aladin.addStatusBarMessage({
             id: 'selector',
@@ -112,9 +106,9 @@ export class Selector {
             return;
         }
 
+        const bbox = selection.bbox();
         var objList = [];
         var cat, sources, s;
-        var overlayItems, f;
         var objListPerCatalog = [];
         if (view.catalogs) {
             for (var k = 0; k < view.catalogs.length; k++) {
@@ -124,26 +118,27 @@ export class Selector {
                     continue;
                 }
                 sources = cat.getSources();
+                
                 for (var l = 0; l < sources.length; l++) {
                     s = sources[l];
-                    if (!s.isShowing || !s.x || !s.y || s.tooSmallFootprint === false) {
+
+                    if (!s.isShowing || !s.x || !s.y) {
                         continue;
                     }
+
+                    // footprints
+                    if (s.isFootprint() && s.tooSmallFootprint === false) {
+                        if (s.footprint.intersectsBBox(bbox.x, bbox.y, bbox.w, bbox.h, view)) {
+                            console.log("OOOOOO")
+
+                            objListPerCatalog.push(s);
+                        }
+
+                        continue;
+                    }
+
                     if (selection.contains(s)) {
                         objListPerCatalog.push(s);
-                    }
-                }
-                // footprints
-                overlayItems = cat.getFootprints();
-
-                if (overlayItems) {
-                    const {x, y, w, h} = selection.bbox();
-                    for (var l = 0; l < overlayItems.length; l++) {
-                        f = overlayItems[l];
-
-                        if (f.intersectsBBox(x, y, w, h, view)) {
-                            objListPerCatalog.push(f);
-                        }
                     }
                 }
 
@@ -155,7 +150,6 @@ export class Selector {
         }
 
         if (view.overlays) {
-            const {x, y, w, h} = selection.bbox();
             for (var k = 0; k < view.overlays.length; k++) {
                 let overlay = view.overlays[k];
                 if (!overlay.isShowing) {
@@ -168,7 +162,7 @@ export class Selector {
                         continue;
                     }
 
-                    if (o.intersectsBBox(x, y, w, h, view)) {
+                    if (o.intersectsBBox(bbox.x, bbox.y, bbox.w, bbox.h, view)) {
                         objList.push([o]);
                     }
                 }

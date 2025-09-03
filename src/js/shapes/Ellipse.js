@@ -345,7 +345,7 @@ export let Ellipse = (function() {
     };
 
     Ellipse.prototype.intersectsBBox = function(x, y, w, h) {
-        // todo
+
         return false;
     };
     

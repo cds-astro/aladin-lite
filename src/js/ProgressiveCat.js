@@ -75,7 +75,6 @@ export let ProgressiveCat = (function() {
 
         // we cache the list of sources in each healpix tile. Key of the cache is norder+'-'+npix
         this.sourcesCache = new Utils.LRUCache(256);
-        this.footprintsCache = new Utils.LRUCache(256);
 
         //added to allow hips catalogue to also use shape functions
         this.updateShape(options);
@@ -210,8 +209,8 @@ export let ProgressiveCat = (function() {
             newSource.setCatalog(instance);
         }
 
-        let footprints = instance.computeFootprints(sources);
-        return [sources, footprints];
+        instance.computeFootprints(sources);
+        return sources;
     };
 
     ProgressiveCat.prototype = {
@@ -266,9 +265,8 @@ export let ProgressiveCat = (function() {
                 url: self.rootUrl + '/' + 'Norder1/Allsky.tsv',
                 method: 'GET',
                 success: function(tsv) {
-                    let [sources, footprints] = getSources(self, tsv, self.fields);
+                    let sources = getSources(self, tsv, self.fields);
 
-                    self.order1Footprints = footprints;
                     self.order1Sources = sources;
 
                     if (self.order2Sources) {
@@ -286,9 +284,8 @@ export let ProgressiveCat = (function() {
                 url: self.rootUrl + '/' + 'Norder2/Allsky.tsv',
                 method: 'GET',
                 success: function(tsv) {
-                    let [sources, footprints] = getSources(self, tsv, self.fields);
+                    let sources = getSources(self, tsv, self.fields);
 
-                    self.order2Footprints = footprints;
                     self.order2Sources = sources;
 
                     if (self.order1Sources) {
@@ -320,9 +317,8 @@ export let ProgressiveCat = (function() {
 
                     self.fields = getFields(self, xml);
 
-                    let [sources, footprints] = getSources(self, xml.querySelectorAll('CSV').innerText, self.fields);
+                    let sources = getSources(self, xml.querySelectorAll('CSV').innerText, self.fields);
 
-                    self.order2Footprints = footprints
                     self.order2Sources = sources
 
                     if (self.order3Sources) {
@@ -344,8 +340,7 @@ export let ProgressiveCat = (function() {
                 method: 'GET',
                 success: function(text) {
                     let xml = ProgressiveCat.parser.parseFromString(text, "text/xml")
-                    let [sources, footprints] = getSources(self, xml.querySelectorAll('CSV').innerText, self.fields);
-                    self.order3Footprints = footprints
+                    let sources = getSources(self, xml.querySelectorAll('CSV').innerText, self.fields);
                     self.order3Sources = sources
 
                     if (self.order2Sources) {
@@ -414,18 +409,10 @@ export let ProgressiveCat = (function() {
                 }
             }
 
-            let key, sources, footprints;
+            let key, sources;
             this.tilesInView.forEach((tile) => {
                 key = tile[0] + '-' + tile[1];
                 sources = this.sourcesCache.get(key);
-                footprints = this.footprintsCache.get(key);
-
-                if (footprints) {
-                    footprints.forEach((f) => {
-                        f.draw(ctx, this.view)
-                        f.source.tooSmallFootprint = f.isTooSmall();
-                    });
-                }
 
                 if (sources) {
                     this.drawSources(sources, ctx, width, height);
@@ -503,33 +490,6 @@ export let ProgressiveCat = (function() {
             
             return ret;
         },
-
-        getFootprints: function() {
-            var ret = [];
-            if (this.order1Footprints) {
-                ret = ret.concat(this.order1Footprints);
-            }
-            if (this.order2Footprints) {
-                ret = ret.concat(this.order2Footprints);
-            }
-            if (this.order3Footprints) {
-                ret = ret.concat(this.order3Footprints);
-            }
-            if (this.tilesInView) {
-                var footprints, key, t;
-                for (var k=0; k < this.tilesInView.length; k++) {
-                    t = this.tilesInView[k];
-                    key = t[0] + '-' + t[1];
-                    footprints = this.footprintsCache.get(key);
-
-                    if (footprints) {
-                        ret = ret.concat(footprints);
-                    }
-                }
-            }
-            
-            return ret;
-        },
         
         deselectAll: function() {
             if (this.order1Sources) {
@@ -557,11 +517,6 @@ export let ProgressiveCat = (function() {
                 var sources = this.sourcesCache[key];
                 for (var k=0; k<sources.length; k++) {
                     sources[k].deselect();
-                }
-
-                var footprints = this.footprintsCache[key];
-                for (var k=0; k<footprints.length; k++) {
-                    footprints[k].deselect();
                 }
             }
         },
@@ -649,17 +604,15 @@ export let ProgressiveCat = (function() {
                             method: 'GET',
                             //dataType: 'jsonp',
                             success: function(tsv) {
-                                let [sources, footprints] = getSources(self, tsv, self.fields);
+                                let sources = getSources(self, tsv, self.fields);
 
                                 self.sourcesCache.set(key, sources);
-                                self.footprintsCache.set(key, footprints);
 
                                 self.view.requestRedraw();
                             },
                             error: function() {
                                 // on suppose qu'il s'agit d'une erreur 404
                                 self.sourcesCache.set(key, []);
-                                self.footprintsCache.set(key, []);
                             }
                         });
                     })(this, t[0], t[1]);

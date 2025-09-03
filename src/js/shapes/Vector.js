@@ -175,8 +175,29 @@ export let Vector = (function() {
 
         isInStroke: Ellipse.prototype.isInStroke,
 
-        intersectsBBox: function(x, y, w, h) {
-            // todo
+        lineIntersectsBox: Polyline.prototype.lineIntersectsBox,
+
+
+        intersectsBBox: function(x, y, w, h, view) {
+            let p1 = [this.ra1, this.dec1];
+            let p2 = [this.ra2, this.dec2];
+
+            let xy1 = view.aladin.world2pix(p1[0], p1[1]);
+            let xy2 = view.aladin.world2pix(p2[0], p2[1]);
+
+            if (!xy1 || !xy2) {
+                return false;
+            }
+
+            xy1 = {x: xy1[0], y: xy1[1]};
+            xy2 = {x: xy2[0], y: xy2[1]};
+    
+            // Check if line segment intersects with the bounding box
+            if (this.lineIntersectsBox(xy1, xy2, x, y, w, h)) {
+                return true;
+            }
+
+            return false;
         },
     };
 

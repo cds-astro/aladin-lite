@@ -66,6 +66,9 @@ export let ProgressiveCat = (function() {
         this.selectionColor = options.selectionColor || '#00ff00'; // TODO: to be merged with Catalog
         this.hoverColor = options.hoverColor || this.color;
 
+        // when footprints are associated to source, do we need to draw the point source as well ?
+        this.onlyFootprint = options.onlyFootprint ?? true;
+
 
         // allows for filtering of sources
         this.filterFn = options.filter || undefined; // TODO: do the same for catalog

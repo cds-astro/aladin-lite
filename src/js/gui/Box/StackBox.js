@@ -83,6 +83,7 @@ export class OverlayStackBox extends Box {
                 sourceSize: 8,
                 color: "#318d80",
                 hoverColor: 'red',
+                onlyFootprint: false,
                 onClick: "showTable",
                 shape: (s) => {
                     let galaxy = ["Seyfert","Seyfert_1", "Seyfert_2","LSB_G","PartofG","RadioG","Gin","GinPair","HII_G","LensedG","BClG","BlueCompG","EmG","GinCl","GinGroup","StarburstG","LINER","AGN", "Galaxy", "GtowardsGroup", "GtowardsCl", "BrightestCG"].some((n) => s.data.main_type.indexOf(n) >= 0);

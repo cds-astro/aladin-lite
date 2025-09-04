@@ -2207,7 +2207,7 @@ export let View = (function () {
                         continue;
                     }
 
-                    if (s.isFootprint() === true && s.tooSmallFootprint === false) {
+                    if (s.isFootprint() && cat.onlyFootprint && !s.tooSmallFootprint) {
                         continue;
                     }
 
@@ -2285,41 +2285,32 @@ export let View = (function () {
         }
 
         if (!this.objLookup) {
-            //ctx.lineWidth = pastLineWidth;
             return null;
         }
 
-        //ctx.lineWidth = pastLineWidth;
-
         var dist = Number.POSITIVE_INFINITY;
         var closest = null;
-        //for (var r = 0; r <= maxRadius; r++) {
-            //closest = dist = null;
-            for (var dx = -maxRadius; dx <= maxRadius; dx++) {
-                if (!this.objLookup[x + dx]) {
-                    continue;
-                }
-                for (var dy = -maxRadius; dy <= maxRadius; dy++) {
-                    if (this.objLookup[x + dx][y + dy]) {
-                        var d = dx * dx + dy * dy;
-                        if (d < dist) {
-                            dist = d;
-                            closest = this.objLookup[x + dx][y + dy]
-                        } else if (d == dist) {
-                            closest.concat(this.objLookup[x + dx][y + dy])
-                        }
+
+        for (var dx = -maxRadius; dx <= maxRadius; dx++) {
+            if (!this.objLookup[x + dx]) {
+                continue;
+            }
+            for (var dy = -maxRadius; dy <= maxRadius; dy++) {
+                if (this.objLookup[x + dx][y + dy]) {
+                    var d = dx * dx + dy * dy;
+                    if (d < dist) {
+                        dist = d;
+                        closest = this.objLookup[x + dx][y + dy]
+                    } else if (d == dist) {
+                        closest.concat(this.objLookup[x + dx][y + dy])
                     }
                 }
             }
+        }
 
-            if (closest && closest.length > 0) {
-                closests = closests.concat(closest)
-            }
-
-            /*if (closest) {
-                closests = closests.concat(closest);
-            }*/
-        //}
+        if (closest && closest.length > 0) {
+            closests = closests.concat(closest)
+        }
 
         if (closests.length === 0)
             return null;

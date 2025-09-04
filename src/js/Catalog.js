@@ -57,6 +57,7 @@ If a function is given, user can return Image, HTMLImageCanvas, HTMLImageElement
 * @property {string} [labelColumn] - The name of the column to be used for the label.
 * @property {string} [labelColor=color] - The color of the source labels.
 * @property {string} [labelFont="10px sans-serif"] - The font for the source labels.
+* @property {boolean} [onlyFootprint=true] - When shapes/footprints are associated to a source (through a shape function given), decide wheter to show the point source as well. Point source is hidden by default
 */
 
 export let Catalog = (function () {
@@ -111,6 +112,9 @@ export let Catalog = (function () {
         this.selectionColor = options.selectionColor || "#00ff00";
         this.hoverColor = options.hoverColor || undefined;
 
+        // when footprints are associated to source, do we need to draw the point source as well ?
+        this.onlyFootprint = options.onlyFootprint ?? true;
+
         this.displayLabel = options.displayLabel || false;
         this.labelColor = options.labelColor || undefined;
 
@@ -131,7 +135,6 @@ export let Catalog = (function () {
         this.sources = [];
         this.ra = [];
         this.dec = [];
-        //this.footprints = [];
 
         // create this.cacheCanvas
         // cacheCanvas permet de ne créer le path de la source qu'une fois, et de le réutiliser (cf. http://simonsarris.com/blog/427-increasing-performance-by-caching-paths-on-canvas)
@@ -468,7 +471,6 @@ export let Catalog = (function () {
                 if (successCallback) {
                     successCallback({
                         sources,
-                        //footprints,
                         fields,
                     });
                 }
@@ -635,10 +637,6 @@ export let Catalog = (function () {
                                 }
 
                                 source.setFootprint(footprint)
-                                //footprint.setCatalog(this);
-
-                                // store the footprints
-                                //footprints.push(footprint);
                             }
                         }
                     } catch (e) {
@@ -747,17 +745,6 @@ export let Catalog = (function () {
     };
 
     /**
-     * Get all the footprints
-     *
-     * @memberof Catalog
-     *
-     * @returns {Footprint[]} - an array of all the footprints in the catalog object
-     */
-    /*Catalog.prototype.getFootprints = function () {
-        return this.footprints;
-    };*/
-
-    /**
      * Select all the source catalog
      *
      * @memberof Catalog
@@ -848,7 +835,7 @@ export let Catalog = (function () {
         let selection = [];
         if (typeof filter === "function") {
             for ( var s of this.sources ) {
-                if (!filter || (filter && filter(s))) {
+                if (filter(s)) {
                     selection.push(s)
                 }
             }
@@ -946,7 +933,6 @@ export let Catalog = (function () {
         this.sources = [];
         this.ra = [];
         this.dec = [];
-        //this.footprints = [];
 
         this.reportChange();
     };
@@ -958,9 +944,6 @@ export let Catalog = (function () {
 
         // tracé simple
         ctx.strokeStyle = this.color;
-
-        // Draw the footprints first
-        //this.drawFootprints(ctx);
 
         if (this.shapeFn) {
             ctx.save();
@@ -984,6 +967,7 @@ export let Catalog = (function () {
 
     Catalog.prototype.drawSources = function (ctx, width, height) {
         let inside = [];
+        let self = this;
 
         if (!this.sources) {
             return;
@@ -998,8 +982,7 @@ export let Catalog = (function () {
             return self.drawSource(s, ctx, width, height)
         };
 
-        let self = this;
-        this.sources.forEach(function (s, idx) {
+        this.sources.forEach((s, idx) => {
             let drawn = false;
             
             if (xy[2 * idx] && xy[2 * idx + 1]) {
@@ -1048,7 +1031,7 @@ export let Catalog = (function () {
             s.footprint.draw(ctx, this.view)
             s.tooSmallFootprint = s.footprint.isTooSmall();
 
-            if (!s.tooSmallFootprint) {
+            if (!s.tooSmallFootprint && this.onlyFootprint) {
                 return true;
             }
         }
@@ -1132,27 +1115,6 @@ export let Catalog = (function () {
         ctx.fillText(label, s.x, s.y);
     };
 
-    Catalog.prototype.drawFootprints = function (ctx) {
-        var f;
-        for (let k = 0; k < this.footprints.length; k++) {
-            f = this.footprints[k];
-
-            if (this.filterFn && f.source) {
-                if(!this.filterFn(f.source)) {
-                    f.hide()
-                } else {
-                    f.show()
-
-                    f.draw(ctx, this.view);
-                    f.source.tooSmallFootprint = f.isTooSmall();
-                }
-            } else {
-                f.draw(ctx, this.view);
-                f.source.tooSmallFootprint = f.isTooSmall();
-            }
-        }
-    };
-
     // callback function to be called when the status of one of the sources has changed
     Catalog.prototype.reportChange = function () {
         this.view && this.view.requestRedraw();
@@ -1168,10 +1130,6 @@ export let Catalog = (function () {
             return;
         }
         this.isShowing = true;
-        // Dispatch to the footprints
-        /*if (this.footprints) {
-            this.footprints.forEach((f) => f.show());
-        }*/
 
         this.reportChange();
     };

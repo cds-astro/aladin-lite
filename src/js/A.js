@@ -573,6 +573,10 @@ A.catalogFromURL = function (url, options, successCallback, errorCallback, usePr
     const processVOTable = function (table) {
         let {sources, fields} = table;
         c.setFields(fields);
+        if (fields.s_region) {
+            // for ObsCore tables, show also the (ra, dec) as a source
+            c.onlyFootprint = false;
+        }
         c.addSources(sources);
 
         const s_regionFieldFound = Array.from(Object.keys(fields)).find((f) => f.toLowerCase() === 's_region');

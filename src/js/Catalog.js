@@ -552,6 +552,7 @@ export let Catalog = (function () {
 
         // Create all the variant shaped canvas
         this.cacheCanvas = {}
+        this.computeFootprints(this.sources);
 
         this.reportChange();
     };

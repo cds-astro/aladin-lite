@@ -57,7 +57,7 @@ If a function is given, user can return Image, HTMLImageCanvas, HTMLImageElement
 * @property {string} [labelColumn] - The name of the column to be used for the label.
 * @property {string} [labelColor=color] - The color of the source labels.
 * @property {string} [labelFont="10px sans-serif"] - The font for the source labels.
-* @property {boolean} [onlyFootprint=true] - When shapes/footprints are associated to a source (through a shape function given), decide wheter to show the point source as well. Point source is hidden by default
+* @property {boolean} [onlyFootprints=true] - When shapes/footprints are associated to a source (through a shape function given), decide wheter to show the point source as well. Point source is hidden by default
 */
 
 export let Catalog = (function () {
@@ -113,7 +113,7 @@ export let Catalog = (function () {
         this.hoverColor = options.hoverColor || undefined;
 
         // when footprints are associated to source, do we need to draw the point source as well ?
-        this.onlyFootprint = options.onlyFootprint ?? true;
+        this.onlyFootprints = options.onlyFootprints ?? true;
 
         this.displayLabel = options.displayLabel || false;
         this.labelColor = options.labelColor || undefined;
@@ -1032,7 +1032,7 @@ export let Catalog = (function () {
             s.footprint.draw(ctx, this.view)
             s.tooSmallFootprint = s.footprint.isTooSmall();
 
-            if (!s.tooSmallFootprint && this.onlyFootprint) {
+            if (!s.tooSmallFootprint && this.onlyFootprints) {
                 return true;
             }
         }

@@ -67,7 +67,7 @@ export let ProgressiveCat = (function() {
         this.hoverColor = options.hoverColor || this.color;
 
         // when footprints are associated to source, do we need to draw the point source as well ?
-        this.onlyFootprint = options.onlyFootprint ?? true;
+        this.onlyFootprints = options.onlyFootprints ?? true;
 
 
         // allows for filtering of sources

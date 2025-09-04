@@ -291,6 +291,7 @@ export let Ellipse = (function() {
         ctx.globalAlpha = this.opacity;
         ctx.beginPath();
 
+        this.aPixels = px_per_deg * this.a;
         ctx.ellipse(originScreen[0], originScreen[1], px_per_deg * this.a, px_per_deg * this.b, theta, 0, 2*Math.PI, false);
         if (!noStroke) {
             if (this.fillColor) {
@@ -344,9 +345,31 @@ export let Ellipse = (function() {
         return ctx.isPointInStroke(x, y);
     };
 
-    Ellipse.prototype.intersectsBBox = function(x, y, w, h) {
+    Ellipse.prototype.intersectsBBox = function(x, y, w, h, view) {
+        // TODO: currently the same as Circle where radius = a.
+        var centerXyview = view.aladin.world2pix(this.centerRaDec[0], this.centerRaDec[1]);
+        if (!centerXyview) {
+            return false;
+        }
 
-        return false;
+        // compute the absolute distance between the middle of the bbox
+        // and the center of the circle 
+        const circleDistance = {
+            x: Math.abs(centerXyview[0] - (x + w/2)),
+            y: Math.abs(centerXyview[1] - (y + h/2))
+        };
+
+        if (circleDistance.x > (w/2 + this.aPixels)) { return false; }
+        if (circleDistance.y > (h/2 + this.aPixels)) { return false; }
+
+        if (circleDistance.x <= (w/2)) { return true; }
+        if (circleDistance.y <= (h/2)) { return true; }
+
+        const dx = circleDistance.x - w/2;
+        const dy = circleDistance.y - h/2;
+
+        const cornerDistanceSquared = dx*dx + dy*dy;
+        return (cornerDistanceSquared <= (this.aPixels*this.aPixels));
     };
     
     return Ellipse;

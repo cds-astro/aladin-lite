@@ -575,7 +575,7 @@ A.catalogFromURL = function (url, options, successCallback, errorCallback, usePr
         c.setFields(fields);
         if (fields.s_region) {
             // for ObsCore tables, show also the (ra, dec) as a source
-            c.onlyFootprint = false;
+            c.onlyFootprints = false;
         }
         c.addSources(sources);
 

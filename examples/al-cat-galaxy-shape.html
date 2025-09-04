@@ -26,6 +26,7 @@
         limit: 1000,
         //orderBy: 'nb_ref',
         onClick: 'showTable',
+        onlyFootprints: false,
         color: (s) => {
           let coo = A.coo();
           coo.parse(s.data['RAJ2000'] + ' ' + s.data['DEJ2000'])

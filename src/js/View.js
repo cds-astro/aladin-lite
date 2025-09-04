@@ -2207,7 +2207,7 @@ export let View = (function () {
                         continue;
                     }
 
-                    if (s.isFootprint() && cat.onlyFootprint && !s.tooSmallFootprint) {
+                    if (s.isFootprint() && cat.onlyFootprints && !s.tooSmallFootprint) {
                         continue;
                     }
 

@@ -129,8 +129,6 @@ export class Selector {
                     // footprints
                     if (s.isFootprint() && s.tooSmallFootprint === false) {
                         if (s.footprint.intersectsBBox(bbox.x, bbox.y, bbox.w, bbox.h, view)) {
-                            console.log("OOOOOO")
-
                             objListPerCatalog.push(s);
                         }
 

@@ -380,7 +380,7 @@ export let Aladin = (function () {
         this.gotoObject(options.target, undefined);
 
         if (options.log) {
-            var params = options;
+            var params = requestedOptions;
             params["version"] = Aladin.VERSION;
             Logger.log("startup", params);
         }
@@ -2908,9 +2908,13 @@ export let Aladin = (function () {
         this.popup.hide();
     };
 
-    // @API
-    /*
-     * return a URL allowing to share the current view
+
+    /**
+     * Get the URL corresponding to the current view
+     *
+     * @memberof Aladin
+     *
+     * @returns {string} The URL allowing to share the current view
      */
     Aladin.prototype.getShareURL = function () {
         var radec = this.getRaDec();

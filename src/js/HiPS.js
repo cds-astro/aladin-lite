@@ -372,6 +372,8 @@ export let HiPS = (function () {
     
             this.query = new Promise(async (resolve, reject) => {
                 if (isIncompleteOptions) {
+
+                    console.log(self.url)
                     // ID typed url
                     if (self.startUrl && isID) {
                         // First download the properties from the start url

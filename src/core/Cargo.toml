@@ -50,7 +50,8 @@ version = "0.7.3"
 
 [dependencies.moclib]
 package = "moc"
-version = "0.18.0"
+git = "https://github.com/cds-astro/cds-moc-rust"
+branch = "main"
 
 [dependencies.serde]
 version = "^1.0.183"

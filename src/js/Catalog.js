@@ -601,6 +601,9 @@ export let Catalog = (function () {
     };
 
     Catalog.prototype.computeFootprints = function (sources) {
+        if (!sources)
+            return;
+
         if ((this.shapeFn || this.colorFn || this.sourceSizeFn) && !this._shapeOperatesOnCtx) {
             for (let source of sources) {
                 if (this.shapeFn) {

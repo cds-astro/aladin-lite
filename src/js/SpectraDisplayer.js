@@ -383,7 +383,6 @@ export class SpectraDisplayer {
                 this.ctx.lineWidth = 10;
 
                 if (this.ctx.isPointInStroke(mx, my)) {
-                    console.log('Mouse is on stroke!');
                     this.canvas.style.cursor = 'grab';
                 }
 
@@ -394,21 +393,22 @@ export class SpectraDisplayer {
             this.canvas.style.cursor = 'grabbing';
 
             // is dragged
-            const dx = (mx - lastMouse.x) / this.scaleX;
+            let dx = (mx - lastMouse.x) / this.scaleX;
             if (dx != 0) {
                 // set the frequency
                 let curFreq = self.hips.getFrequency();
 
-                let curHash = Number(self.view.wasm.freq2hash(self.hips.layer, curFreq));
-                let nextHash = curHash - Math.round(dx)
-
-                let nextFreq = self.view.wasm.hash2freq(self.hips.layer, BigInt(nextHash));
+               // let curHash = Number(self.view.wasm.freq2hash(self.hips.layer, curFreq));
+                //let nextHash = curHash - Math.round(dx)
+                //let nextFreq = self.view.wasm.hash2freq(self.hips.layer, BigInt(nextHash));
+                let nextFreq = curFreq - Math.ceil(dx) * self.data.freqStep;
                 self.hips.setFrequency({
                     value: nextFreq,
                     unit: 'Hz'
                 })
 
-                const correctedMx = Math.round(dx) * this.scaleX + lastMouse.x;
+                const correctedMx = (Math.ceil(dx) * this.scaleX) + lastMouse.x;
+                //const correctedMx = mx;
                 lastMouse = { x: correctedMx, y: my };
             }
         });
@@ -538,9 +538,9 @@ export class SpectraDisplayer {
         if (hips) {
             this.spectraUpdateCallback = (event) => {
                 let data = event.detail;
-                console.log(data)
                 if (data.layer === this.hips.layer) {
                     this.data = data;
+                    console.log(data)
                     this._redraw(this.ctx);
                 }
             };
@@ -582,7 +582,6 @@ export class SpectraDisplayer {
 
         if (Number.isFinite(this.minY)) {
             this.minY = Math.min(...valuesWithNoNans, this.minY)
-            console.log(this.minY)
         } else {
             this.minY = Math.min(...valuesWithNoNans)
         }

@@ -675,6 +675,10 @@ export let HiPS = (function () {
         this.setOptions({additive});
     };
 
+    HiPS.prototype.isSpectralCube = function() {
+        return this.hipsTileDepth !== undefined && this.hipsTileDepth !== null;
+    }
+
     /**
      * Sets the colormap when rendering the HiPS.
      *

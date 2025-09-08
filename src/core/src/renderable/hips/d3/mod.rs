@@ -226,16 +226,24 @@ impl Cursor {
         let f_hash_val = self.freq.hash(pixel_depth);
 
         //let f_hash_val_0 = (f_hash_val as i64 - NUM_VALUES as i64).max(0) as u64;
-        let f_hash_val_1 = (f_hash_val as i64 + dx)
+        let h1 = (f_hash_val as i64 + dx)
             .min(
                 (Frequency::<u64>::n_cells_max() >> (Frequency::<u64>::MAX_DEPTH - pixel_depth))
                     as i64,
             )
             .max(0) as u64;
 
-        let f_dx_th_slice = Freq::from_hash_with_order(f_hash_val_1, pixel_depth);
+        let h0 = (f_hash_val as i64 - dx)
+            .min(
+                (Frequency::<u64>::n_cells_max() >> (Frequency::<u64>::MAX_DEPTH - pixel_depth))
+                    as i64,
+            )
+            .max(0) as u64;
 
-        f_dx_th_slice - self.freq
+        let f1 = Freq::from_hash_with_order(h1, pixel_depth);
+        let f0 = Freq::from_hash_with_order(h0, pixel_depth);
+
+        Freq((f1 - f0).0 * 0.5)
     }
 
     fn get_surrounding_cell_hashes_along_spectra_axis(&self) -> Range<u64> {
@@ -578,13 +586,6 @@ impl HiPS3D {
         )
         .unwrap_abort();
 
-        Reflect::set(
-            &spectra_js_obj,
-            &JsValue::from_str("fOrder"),
-            &JsValue::from_f64(pixel_depth as f64),
-        )
-        .unwrap_abort();
-
         let mut start = window_pixel_hash.start.max(domain_pixel_hash.start);
         let mut end = window_pixel_hash.end.min(domain_pixel_hash.end);
 
@@ -614,10 +615,12 @@ impl HiPS3D {
             .unwrap_abort();
         }
 
+        let mut freqs = vec![];
         let spectra = self
             .cursor
             .get_surrounding_cells_along_spectra_axis()
             .flat_map(|c| {
+                freqs.extend(c.pixel_frequencies(tile_depth as usize));
                 if let Some(cubic_tex) = self.buffer.get(&c) {
                     (0..(tile_depth as u32))
                         .map(|z| cubic_tex.read_pixel(x, y, z).unwrap_or(f32::NAN))
@@ -641,6 +644,15 @@ impl HiPS3D {
             &spectra_js_obj,
             &JsValue::from_str("values"),
             &js_sys::Float32Array::from(&spectra[..]),
+        )
+        .unwrap_abort();
+
+        //al_core::log(&format!("{:?}", freqs));
+
+        Reflect::set(
+            &spectra_js_obj,
+            &JsValue::from_str("freqs"),
+            &js_sys::Float32Array::from(&freqs[..]),
         )
         .unwrap_abort();
 

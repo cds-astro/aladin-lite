@@ -1,5 +1,6 @@
 use crate::time::Time;
 
+use crate::renderable::hips::d3::Freq;
 use crate::Abort;
 use crate::WebGlContext;
 use al_core::image::fits::FitsImage;
@@ -302,6 +303,18 @@ impl HpxFreqTex {
         } else {
             None
         }
+    }
+
+    pub fn frequencies(&self) -> Vec<f32> {
+        let delta_depth = self.num_slices.trailing_zeros();
+        let pixel_depth = self.cell.f_depth + delta_depth as u8;
+
+        let h0 = self.cell.f_hash << delta_depth;
+        let h1 = (self.cell.f_hash + 1) << delta_depth;
+
+        (h0..h1)
+            .map(|hash| Freq::from_hash_with_order(hash, pixel_depth).0 as f32)
+            .collect()
     }
 
     pub fn set_data_from_jpeg(

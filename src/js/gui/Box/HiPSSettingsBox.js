@@ -35,6 +35,7 @@ import { Form } from "../Widgets/Form.js";
  import colorIconUrl from '../../../../assets/icons/color.svg';
  import pixelHistIconUrl from '../../../../assets/icons/pixel_histogram.svg';
  import { RadioButton } from "../Widgets/Radio.js";
+ import waveOnIconUrl from '../../../../assets/icons/wave-on.svg';
 
  import { Layout } from "../Layout.js";
 
@@ -42,58 +43,62 @@ import { Form } from "../Widgets/Form.js";
      // Constructor
      constructor(aladin, options) {
         let self;
-        let selector = new RadioButton({
-            luminosity: {
-                icon: {
-                    size: 'small',
-                    monochrome: true,
-                    url: luminosityIconUrl
+
+        let radioOptions = () => {
+            return {
+                luminosity: {
+                    icon: {
+                        size: 'small',
+                        monochrome: true,
+                        url: luminosityIconUrl
+                    },
+                    tooltip: {content: 'Contrast', position: {direction: 'bottom'}},
+                    action: (e) => {
+                        const content = Layout.vertical({
+                            layout: [self.selector, self.luminositySettingsContent]
+                        });
+                        self.update({content})
+                    }
                 },
-                tooltip: {content: 'Contrast', position: {direction: 'bottom'}},
-                action: (e) => {
-                    const content = Layout.vertical({
-                        layout: [self.selector, self.luminositySettingsContent]
-                    });
-                    self.update({content})
-                }
-            },
-            opacity: {
-                icon: {
-                    size: 'small',
-                    monochrome: true,
-                    url: opacityIconUrl
+                opacity: {
+                    icon: {
+                        size: 'small',
+                        monochrome: true,
+                        url: opacityIconUrl
+                    },
+                    tooltip: {content: 'Opacity', position: {direction: 'bottom'}},
+                    action: (e) => {
+                        const content = Layout.vertical({layout: [self.selector, self.opacitySettingsContent]});
+                        self.update({content})
+                    }
                 },
-                tooltip: {content: 'Opacity', position: {direction: 'bottom'}},
-                action: (e) => {
-                    const content = Layout.vertical({layout: [self.selector, self.opacitySettingsContent]});
-                    self.update({content})
-                }
-            },
-            colors: {
-                icon: {
-                    size: 'small',
-                    url: colorIconUrl
+                colors: {
+                    icon: {
+                        size: 'small',
+                        url: colorIconUrl
+                    },
+                    tooltip: {content: 'Colormap', position: {direction: 'bottom'}},
+                    action: (e) => {
+                        const content = Layout.vertical({layout: [self.selector, self.colorSettingsContent]});
+                        self.update({content})
+                    }
                 },
-                tooltip: {content: 'Colormap', position: {direction: 'bottom'}},
-                action: (e) => {
-                    const content = Layout.vertical({layout: [self.selector, self.colorSettingsContent]});
-                    self.update({content})
-                }
-            },
-            pixel: {
-                icon: {
-                    size: 'small',
-                    monochrome: true,
-                    url: pixelHistIconUrl
+                pixel: {
+                    icon: {
+                        size: 'small',
+                        monochrome: true,
+                        url: pixelHistIconUrl
+                    },
+                    tooltip: {content: 'Cutouts', position: {direction: 'bottom'}},
+                    action: (e) => {
+                        const content = Layout.vertical({layout: [self.selector, self.pixelSettingsContent]});
+                        self.update({content})
+                    }
                 },
-                tooltip: {content: 'Cutouts', position: {direction: 'bottom'}},
-                action: (e) => {
-                    const content = Layout.vertical({layout: [self.selector, self.pixelSettingsContent]});
-                    self.update({content})
-                }
-            },
-            selected: 'opacity'
-        }, aladin);
+                selected: 'opacity'
+            }
+        };
+        let selector = new RadioButton(radioOptions(), aladin);
 
         // Define the contents
 
@@ -283,6 +288,8 @@ import { Form } from "../Widgets/Form.js";
         aladin.aladinDiv)
         self = this;
 
+        this.radioOptions = radioOptions;
+
         this.aladin = aladin;
         this._addListeners()
 
@@ -328,6 +335,34 @@ import { Form } from "../Widgets/Form.js";
 
     update(options) {
         if (options.layer) {
+            let self = this;
+            if (options.layer.isSpectralCube()) {
+                self.selector = new RadioButton({
+                    ...this.radioOptions(),
+                    spectra: {
+                        icon: {
+                            size: 'small',
+                            monochrome: true,
+                            url: waveOnIconUrl
+                        },
+                        tooltip: {content: 'Spectra', position: {direction: 'bottom'}},
+                        action: (e) => {
+                            let spectraDisplayer = self.aladin.view.spectraDisplayer;
+                            if (spectraDisplayer.isHidden) {
+                                spectraDisplayer.attachHiPS3D(options.layer)
+                                spectraDisplayer.show()
+                            } else {
+                                spectraDisplayer.hide()
+                            } 
+                        }
+                    }
+                }, self.aladin);
+
+                console.log(self)
+                
+                self.update({content: Layout.vertical([self.selector, self.opacitySettingsContent])})
+            }
+
             this._update(options.layer)
         }
 
@@ -335,9 +370,12 @@ import { Form } from "../Widgets/Form.js";
     }
 
     _addListeners() {
+        let self = this;
+
         ALEvent.HIPS_LAYER_CHANGED.listenedBy(this.aladin.aladinDiv, (e) => {
             const hips = e.detail.layer;
             let selectedLayer = this.options.layer;
+
             if (selectedLayer && hips.layer === selectedLayer.layer) {
                 this._update(hips)
             }

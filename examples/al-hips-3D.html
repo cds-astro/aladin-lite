@@ -28,9 +28,9 @@
             }
         );
 
-        hips = aladin.newImageSurvey("https://alasky.cds.unistra.fr/GALFAHI/GALFAHI-Narrow-DR2-3D", {
+        hips = aladin.newImageSurvey("http://alasky.cds.unistra.fr/HIPS3D/MUSE-test", {
             successCallback: (hips) => {
-                hips.setFrequency({value: 0.21101690259115785, unit: "m"}) // GALFA
+                //hips.setFrequency({value: 6.374279333565797E-7, unit: "m"}) // GALFA
             }
         });
         // compressed https://alasky.cds.unistra.fr/test-compression-cubes/DHIGLS/
@@ -40,7 +40,7 @@
         aladin.setImageLayer(hips)
 
         //hips.setFrequency({value: emMin + delta * i, unit: "m"})
-        //hips.setFrequency({value: 0.21059156059066345, unit: "m"}) // MUSE
+        //hips.setFrequency({value: 6.374279333565797E-7, unit: "m"}) // MUSE
         //hips.setFrequency({value: 0.21101690259115785, unit: "m"}) // DGHILG
 
         /*let id;

@@ -149,12 +149,18 @@ Utils.inverseNewtonRaphson = function(y: number, f: Function, fPrime: Function, 
 Utils.binarySearch = function(array, value) {
     var low = 0,
         high = array.length;
-
+    var mid;
     while (low < high) {
-        var mid = (low + high) >>> 1;
-        if (array[mid] > value) low = mid + 1;
-        else high = mid;
+        mid = Math.floor((low + high) / 2);
+        if (array[mid] === value) {
+            return mid;
+        } else if (array[mid] < value) {
+            low = mid + 1;
+        } else {
+            high = mid;
+        }
     }
+
     return low;
 }
 

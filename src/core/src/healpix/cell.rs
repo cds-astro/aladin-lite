@@ -556,6 +556,16 @@ impl HEALPixFreqCell {
 
         f0..f1
     }
+
+    pub fn pixel_frequencies(&self, num_pixels: usize) -> impl Iterator<Item = f32> {
+        let delta_depth = num_pixels.trailing_zeros();
+        let pixel_depth = self.f_depth + delta_depth as u8;
+
+        let h0 = self.f_hash << delta_depth;
+        let h1 = (self.f_hash + 1) << delta_depth;
+
+        (h0..h1).map(move |hash| Freq::from_hash_with_order(hash, pixel_depth).0 as f32)
+    }
 }
 
 // Utils

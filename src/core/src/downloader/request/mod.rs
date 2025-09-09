@@ -152,34 +152,32 @@ async fn query_html_image(
     Ok(image)
 }
 
-
 use wasm_bindgen::JsCast;
-use web_sys::Response;
-use web_sys::window;
 use web_sys::RequestInit;
 use web_sys::RequestMode;
+use web_sys::Response;
 async fn query_bitmap_from_blob(
     url: &str,
     mode: RequestMode,
-    credentials: RequestCredentials
+    credentials: RequestCredentials,
 ) -> Result<web_sys::ImageBitmap, JsValue> {
     let window = web_sys::window().unwrap_abort();
-
 
     let mut opts = RequestInit::new();
     opts.method("GET");
     opts.mode(mode);
     opts.credentials(credentials);
 
-    let request =
-        web_sys::Request::new_with_str_and_init(url, &opts).unwrap_abort();
+    let request = web_sys::Request::new_with_str_and_init(url, &opts).unwrap_abort();
     let resp_value = JsFuture::from(window.fetch_with_request(&request)).await?;
     // `resp_value` is a `Response` object.
     debug_assert!(resp_value.is_instance_of::<Response>());
     let resp: Response = resp_value.dyn_into()?;
 
     if resp.ok() {
-        let blob = JsFuture::from(resp.blob()?).await?.dyn_into::<web_sys::Blob>()?;
+        let blob = JsFuture::from(resp.blob()?)
+            .await?
+            .dyn_into::<web_sys::Blob>()?;
         let image_bitmap = JsFuture::from(window.create_image_bitmap_with_blob(&blob)?).await?;
 
         Ok(image_bitmap.into())

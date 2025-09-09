@@ -27,7 +27,6 @@ use crate::{
 use al_api::moc::MOCOptions;
 use al_core::image::bitmap::Bitmap;
 use al_core::image::fits::FitsImage;
-use al_core::image::html::HTMLImage;
 use al_core::image::ImageType;
 use fitsrs::WCS;
 use moclib::qty::{Frequency, MocQty};
@@ -1313,7 +1312,7 @@ impl App {
 
         match hips {
             HiPS::D2(_) => Err(JsValue::from_str("layer do not refers to a cube")),
-            HiPS::D3(hips) => Ok(hips.get_freq_from_hash(hash).0 as f64),
+            HiPS::D3(hips) => Ok(hips.get_freq_from_hash(hash).0),
         }
     }
 

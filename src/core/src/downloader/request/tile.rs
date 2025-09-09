@@ -1,6 +1,6 @@
 use crate::renderable::CreatorDid;
 use al_core::image::format::ImageFormatType;
-use al_core::texture::format::{PixelType, RGB8U, RGBA8U};
+use al_core::texture::format::PixelType;
 
 use crate::downloader::query;
 use al_core::image::ImageType;
@@ -27,13 +27,13 @@ impl From<TileRequest> for RequestType {
     }
 }
 
+use crate::downloader::request::query_bitmap_from_blob;
+use al_core::image::bitmap::Bitmap;
 use al_core::image::html::HTMLImage;
 use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::JsFuture;
 use web_sys::{RequestInit, Response};
-use al_core::image::bitmap::Bitmap;
-use crate::downloader::request::query_bitmap_from_blob;
 
 impl From<query::Tile> for TileRequest {
     // Create a tile request associated to a HiPS
@@ -67,7 +67,8 @@ impl From<query::Tile> for TileRequest {
             PixelType::RGB8U => Request::new(async move {
                 if create_bitmap_support {
                     // optimized download of tile for GPU (using Blob + Bitmap) without creating any DOM structure
-                    let image_bitmap = query_bitmap_from_blob(&url_clone, mode, credentials).await?;
+                    let image_bitmap =
+                        query_bitmap_from_blob(&url_clone, mode, credentials).await?;
                     Ok(ImageType::ImageRgb8u {
                         image: Bitmap::new(image_bitmap),
                     })
@@ -83,7 +84,8 @@ impl From<query::Tile> for TileRequest {
             PixelType::RGBA8U => Request::new(async move {
                 if create_bitmap_support {
                     // optimized download of tile for GPU (using Blob + Bitmap) without creating any DOM structure
-                    let image_bitmap = query_bitmap_from_blob(&url_clone, mode, credentials).await?;
+                    let image_bitmap =
+                        query_bitmap_from_blob(&url_clone, mode, credentials).await?;
                     Ok(ImageType::ImageRgba8u {
                         image: Bitmap::new(image_bitmap),
                     })
@@ -143,6 +145,5 @@ impl From<query::Tile> for TileRequest {
         }
     }
 }
-
 
 use crate::Abort;

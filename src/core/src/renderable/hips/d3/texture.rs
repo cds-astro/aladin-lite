@@ -6,7 +6,6 @@ use crate::WebGlContext;
 use al_core::image::fits::FitsImage;
 use al_core::image::raw::ImageBuffer;
 use al_core::image::Image;
-use al_core::texture::format::RGBA8U;
 use al_core::texture::format::{PixelType, R16I, R32F, R32I, R8U};
 use al_core::texture::Texture3D;
 use al_core::webgl_ctx::WebGlRenderingCtx;

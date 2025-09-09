@@ -139,8 +139,6 @@ struct FrequencyWindow {
     domain_pixel_hash: Range<u64>,
 }
 
-struct Window {}
-
 use std::ops::Range;
 impl Cursor {
     fn new(cfg: &HiPSConfig) -> Self {

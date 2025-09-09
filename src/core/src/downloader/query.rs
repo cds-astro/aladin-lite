@@ -82,7 +82,11 @@ use crate::renderable::CreatorDid;
 use crate::tile_fetcher::HiPSLocalFiles;
 use web_sys::{RequestCredentials, RequestMode};
 impl Tile {
-    pub fn new(cell: &HEALPixCell, cfg: &HiPSConfig, browser_support: &BrowserFeaturesSupport) -> Self {
+    pub fn new(
+        cell: &HEALPixCell,
+        cfg: &HiPSConfig,
+        browser_support: &BrowserFeaturesSupport,
+    ) -> Self {
         let hips_cdid = cfg.get_creator_did();
         let hips_url = cfg.get_root_url();
         let format = cfg.get_format();
@@ -115,7 +119,12 @@ impl Tile {
         }
     }
 
-    pub fn new_with_channel(cell: &HEALPixCell, channel: u32, cfg: &HiPSConfig, browser_support: &BrowserFeaturesSupport) -> Self {
+    pub fn new_with_channel(
+        cell: &HEALPixCell,
+        channel: u32,
+        cfg: &HiPSConfig,
+        browser_support: &BrowserFeaturesSupport,
+    ) -> Self {
         let hips_cdid = cfg.get_creator_did();
         let hips_url = cfg.get_root_url();
         let format = cfg.get_format();
@@ -149,7 +158,11 @@ impl Tile {
         }
     }
 
-    pub fn new_cubic(hpx_f_cell: &HEALPixFreqCell, cfg: &HiPSConfig, browser_support: &BrowserFeaturesSupport) -> Self {
+    pub fn new_cubic(
+        hpx_f_cell: &HEALPixFreqCell,
+        cfg: &HiPSConfig,
+        browser_support: &BrowserFeaturesSupport,
+    ) -> Self {
         let hips_cdid = cfg.get_creator_did();
         let hips_url = cfg.get_root_url();
         let format = cfg.get_format();

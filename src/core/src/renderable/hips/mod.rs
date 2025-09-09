@@ -67,7 +67,7 @@ impl HiPS {
         &mut self,
         tile_fetcher: &mut TileFetcherQueue,
         camera: &CameraViewPort,
-        browser_features_support: &BrowserFeaturesSupport
+        browser_features_support: &BrowserFeaturesSupport,
     ) {
         match self {
             D2(hips) => hips.look_for_new_tiles(tile_fetcher, camera, browser_features_support),

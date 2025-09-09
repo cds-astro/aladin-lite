@@ -80,4 +80,3 @@ impl From<query::Moc> for MOCRequest {
         }
     }
 }
-

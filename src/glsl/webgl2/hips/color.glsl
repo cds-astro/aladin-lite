@@ -15,18 +15,19 @@ uniform float reversed;
 /////////////////////////////////////////////
 /// RED sampler
 vec4 uvw2c_r(vec3 uv) {    
-    float v = texture(tex, uv).r;
+    vec2 va = texture(tex, uv).ra;
 
-    v = transfer_func(H, v, min_value, max_value);
+    va.x = transfer_func(H, va.x, min_value, max_value);
 
     // apply reversed
-    v = mix(v, 1.0 - v, reversed);
+    va.x = mix(va.x, 1.0 - va.x, reversed);
 
-    return apply_tonal(colormap_f(v));
+    vec4 c = colormap_f(va.x);
+    return apply_tonal(c);
 }
 
 /// RGBA sampler
-vec4 uvw2c_rgba(vec3 uv) {    
+vec4 uvw2c_rgba(vec3 uv) {
     vec4 c = texture(tex, uv).rgba;
 
     c.r = transfer_func(H, c.r, min_value, max_value);
@@ -37,6 +38,19 @@ vec4 uvw2c_rgba(vec3 uv) {
     c.rgb = mix(c.rgb, 1.0 - c.rgb, reversed);
 
     return apply_tonal(c);
+}
+
+vec4 uvw2c_ra(vec3 uv) {
+    vec2 c = texture(tex, uv).rg;
+
+    c.r = transfer_func(H, c.r, min_value, max_value);
+
+    // apply reversed
+    c.r = mix(c.r, 1.0 - c.r, reversed);
+
+    vec3 color = colormap_f(c.r).rgb;
+
+    return apply_tonal(vec4(color, c.g));
 }
 
 vec4 uvw2cmap_rgba(vec3 uv) {    
@@ -53,7 +67,6 @@ vec4 uvw2cmap_rgba(vec3 uv) {
 
 /////////////////////////////////////////////
 /// FITS sampler
-
 vec4 val2c_f32(float x) {
     float alpha = x * scale + offset;
     alpha = transfer_func(H, alpha, min_value, max_value);

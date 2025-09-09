@@ -141,6 +141,24 @@ impl HiPS3DBuffer {
         Ok(())
     }
 
+    pub fn push_tile_from_png(
+        &mut self,
+        cell: &HEALPixFreqCell,
+        decoded_bytes: Box<[u8]>,
+        size: (u32, u32, u32),
+        time_request: Time,
+    ) -> Result<(), JsValue> {
+        self.push_cell(cell, time_request)?;
+
+        let texture = self.textures.get_mut(cell).unwrap_abort();
+
+        // And copy the image in that cubic tile
+        texture.set_data_from_png(decoded_bytes, size)?;
+        self.available_tiles_during_frame = true;
+
+        Ok(())
+    }
+
     // Tell if a texture is available meaning all its sub tiles
     // must have been written for the GPU
     pub fn contains_slice(

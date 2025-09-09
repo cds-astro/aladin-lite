@@ -372,8 +372,6 @@ export let HiPS = (function () {
     
             this.query = new Promise(async (resolve, reject) => {
                 if (isIncompleteOptions) {
-
-                    console.log(self.url)
                     // ID typed url
                     if (self.startUrl && isID) {
                         // First download the properties from the start url
@@ -580,6 +578,8 @@ export let HiPS = (function () {
             } else if (acceptedFormats.indexOf("jpeg") >= 0) {
                 return "jpeg";
             } else if (acceptedFormats.indexOf("fits") >= 0) {
+                return "fits";
+            } else if (acceptedFormats.indexOf("fits.fz") >= 0) {
                 return "fits";
             } else {
                 throw (

@@ -9,8 +9,11 @@ pub trait SpectralUnit: Into<Freq> + Clone + Copy {
 
 use moclib::qty::{Frequency, MocQty};
 
+pub const FREQ_MAX: Freq = Freq(5.846_006_549_323_611e48);
+pub const FREQ_MIN: Freq = Freq(5.048_709_793_414_476e-29);
+
 /// Frequency in Hz unit
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
 pub struct Freq(pub f64);
 
 impl Freq {

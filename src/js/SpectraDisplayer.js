@@ -235,7 +235,7 @@ export class SpectraDisplayer {
         divNode.appendChild(canvasLabels)
         divNode.appendChild(unitSelector.element())
         divNode.appendChild(autoCenterBtn.element())
-        divNode.appendChild(extractionBtn.element())
+        //divNode.appendChild(extractionBtn.element())
 
         this.divNode = divNode;
 
@@ -393,10 +393,12 @@ export class SpectraDisplayer {
                     df = self.data.freqs[self.data.freqs.length - 1] - self.data.freqs[self.data.freqs.length - 2];
                     f = self.data.freqs[self.data.freqs.length - 1] - dx * df;
                 }
+
                 self.hips.setFrequency({
                     value: f,
                     unit: 'Hz'
                 })
+
 
                 lastMouse = { x: mx, y: my };
             }
@@ -538,8 +540,6 @@ export class SpectraDisplayer {
 
             this.resetScale();
             this.show()
-
-            //this.selector.update({value: hips.name, title: hips.name})
         }
     }
 

@@ -675,11 +675,8 @@ impl App {
 
                                             // TODO PNG/JPG case to handle here
                                             match img {
-                                                ImageType::HTMLImageRgba8u {
-                                                    image: HTMLImage { image, .. },
-                                                }
-                                                | ImageType::HTMLImageRgb8u {
-                                                    image: HTMLImage { image, .. },
+                                                ImageType::ImageRgba8u {
+                                                    image: Bitmap { image, .. },
                                                 } => {
                                                     let document = web_sys::window()
                                                         .unwrap_abort()
@@ -696,7 +693,7 @@ impl App {
                                                         .dyn_into::<web_sys::CanvasRenderingContext2d>()?;
                                                     // Get the data once for all for the whole image
                                                     // This takes time so better do it once and not repeatly
-                                                    context.draw_image_with_html_image_element(
+                                                    context.draw_image_with_image_bitmap(
                                                         image, 0.0, 0.0,
                                                     )?;
 
@@ -709,11 +706,6 @@ impl App {
                                                         / (num_cols as f32))
                                                         .ceil()
                                                         as u32;
-
-                                                    debug_assert_eq!(
-                                                        num_rows * num_cols,
-                                                        tile_depth
-                                                    );
 
                                                     let tile_size = *tile_size;
 
@@ -729,11 +721,12 @@ impl App {
 
                                                     let mut decoded_bytes = vec![
                                                         0_u8;
-                                                        (tile_size * tile_size * tile_depth)
+                                                        (tile_size * tile_size * tile_depth * 2)
                                                             as usize
                                                     ];
 
                                                     let mut k = 0;
+                                                    let mut num_tiles_cropped = 0;
                                                     for y in 0..num_rows {
                                                         let sy = y * tile_size;
 
@@ -749,23 +742,31 @@ impl App {
 
                                                                     decoded_bytes[k] =
                                                                         bytes[id_byte as usize];
-                                                                    k += 1;
+                                                                    decoded_bytes[k + 1] =
+                                                                        bytes[id_byte as usize + 3];
+                                                                    k += 2;
                                                                 }
                                                             }
+
+                                                            num_tiles_cropped += 1;
+
+                                                            if num_tiles_cropped == tile_depth {
+                                                                break;
+                                                            }
+                                                        }
+                                                        if num_tiles_cropped == tile_depth {
+                                                            break;
                                                         }
                                                     }
 
-                                                    hips.push_tile_from_jpeg(
+                                                    hips.push_tile_from_png(
                                                         cell,
                                                         decoded_bytes.into_boxed_slice(),
                                                         (tile_size, tile_size, tile_depth),
                                                         tile.request.time_request,
                                                     )?;
                                                 }
-                                                ImageType::ImageRgba8u {
-                                                    image: Bitmap { image, .. },
-                                                }
-                                                | ImageType::ImageRgb8u {
+                                                ImageType::ImageRgb8u {
                                                     image: Bitmap { image, .. },
                                                 } => {
                                                     let document = web_sys::window()

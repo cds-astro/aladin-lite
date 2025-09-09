@@ -179,6 +179,7 @@ impl HiPSProperties {
 #[wasm_bindgen]
 #[serde(rename_all = "camelCase")]
 pub enum ImageExt {
+    #[serde(alias = "fits", alias = "fits.fz")]
     Fits,
     Jpeg,
     Png,

@@ -6,6 +6,7 @@ use crate::WebGlContext;
 use al_core::image::fits::FitsImage;
 use al_core::image::raw::ImageBuffer;
 use al_core::image::Image;
+use al_core::texture::format::RGBA8U;
 use al_core::texture::format::{PixelType, R16I, R32F, R32I, R8U};
 use al_core::texture::Texture3D;
 use al_core::webgl_ctx::WebGlRenderingCtx;
@@ -35,6 +36,10 @@ pub enum HpxFreqData {
         size: (u32, u32, u32),
     },
     Jpeg {
+        data: Box<[u8]>,
+        size: (u32, u32, u32),
+    },
+    Png {
         data: Box<[u8]>,
         size: (u32, u32, u32),
     },
@@ -112,6 +117,12 @@ impl HpxFreqData {
                 let pixel_bytes_off = (x + y * size.0 + z * (size.0 * size.1)) as usize;
 
                 let p = data[pixel_bytes_off];
+                Some(p as f32)
+            }
+            HpxFreqData::Png { data, size } => {
+                let pixel_bytes_off = (x + y * size.0 + z * (size.0 * size.1)) as usize;
+
+                let p = data[2 * pixel_bytes_off];
                 Some(p as f32)
             }
         }
@@ -204,15 +215,28 @@ impl HpxFreqTex {
         let start_time = None;
 
         let texture = match pixel_format {
-            PixelType::RGBA8U | PixelType::RGB8U | PixelType::R8U => {
-                Texture3D::create_empty::<R8U>(
-                    gl,
-                    tile_size as i32,
-                    tile_size as i32,
-                    num_slices as i32,
-                    TEX_PARAMS,
-                )
-            }
+            // alpha transparency
+            PixelType::RGBA8U => Texture3D::create_empty::<R16I>(
+                gl,
+                tile_size as i32,
+                tile_size as i32,
+                num_slices as i32,
+                TEX_PARAMS,
+            ),
+            PixelType::RGB8U => Texture3D::create_empty::<R8U>(
+                gl,
+                tile_size as i32,
+                tile_size as i32,
+                num_slices as i32,
+                TEX_PARAMS,
+            ),
+            PixelType::R8U => Texture3D::create_empty::<R8U>(
+                gl,
+                tile_size as i32,
+                tile_size as i32,
+                num_slices as i32,
+                TEX_PARAMS,
+            ),
             PixelType::R32F => Texture3D::create_empty::<R32F>(
                 gl,
                 tile_size as i32,
@@ -325,9 +349,31 @@ impl HpxFreqTex {
         size: (u32, u32, u32),
     ) -> Result<(), JsValue> {
         let cubic_tile = ImageBuffer::<R8U>::new(decoded_bytes, size.0, size.1, size.2);
+
         cubic_tile.insert_into_3d_texture(&self.texture, &Vector3::<i32>::new(0, 0, 0))?;
 
         self.data = Some(HpxFreqData::Jpeg {
+            data: cubic_tile.data,
+            size,
+        });
+        self.num_stored_slices = self.num_slices;
+        self.start_time = Some(Time::now());
+
+        Ok(())
+    }
+
+    pub fn set_data_from_png(
+        &mut self,
+        // the tile image of the whole cubic tile
+        decoded_bytes: Box<[u8]>,
+        // size of the cube
+        size: (u32, u32, u32),
+    ) -> Result<(), JsValue> {
+        let cubic_tile = ImageBuffer::<R16I>::new(decoded_bytes, size.0, size.1, size.2);
+
+        cubic_tile.insert_into_3d_texture(&self.texture, &Vector3::<i32>::new(0, 0, 0))?;
+
+        self.data = Some(HpxFreqData::Png {
             data: cubic_tile.data,
             size,
         });

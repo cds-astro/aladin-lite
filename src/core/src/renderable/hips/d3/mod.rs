@@ -6,6 +6,8 @@ use crate::healpix::moc::FreqSpaceMoc;
 use crate::math::angle::ToAngle;
 use crate::math::lonlat::LonLatT;
 use crate::math::spectra::SpectralUnit;
+use crate::math::spectra::FREQ_MAX;
+use crate::math::spectra::FREQ_MIN;
 
 use crate::tile_fetcher::TileFetcherQueue;
 use al_api::hips::DataproductType;
@@ -145,7 +147,7 @@ impl Cursor {
         let em_min = cfg.em_min.unwrap_abort();
         let em_max = cfg.em_max.unwrap_abort();
 
-        let freq = em_min;
+        let freq = Freq((em_min.0 + em_max.0) * 0.5);
         let location = LonLatT::new(0.0.to_angle(), 0.0.to_angle());
 
         let f_max_order = cfg.max_depth_freq.unwrap_or(Frequency::<u64>::MAX_DEPTH);
@@ -276,12 +278,14 @@ impl Cursor {
     }
 
     fn set_freq(&mut self, freq: Freq) {
-        self.freq = freq;
+        if freq < FREQ_MAX && freq > FREQ_MIN {
+            self.freq = freq;
 
-        let s_order = self.cell.hpx.depth();
-        let f_order = self.f_max_order - (self.s_max_order - s_order);
+            let s_order = self.cell.hpx.depth();
+            let f_order = self.f_max_order - (self.s_max_order - s_order);
 
-        self.cell = HEALPixFreqCell::from_lonlat(self.location, self.freq, s_order, f_order);
+            self.cell = HEALPixFreqCell::from_lonlat(self.location, self.freq, s_order, f_order);
+        }
     }
 
     fn get_surrounding_cells_along_spectra_axis(
@@ -500,8 +504,6 @@ impl HiPS3D {
                             None
                         } else if let Some(moc) = self.moc.as_ref() {
                             if moc.intersects_cell(&cell) {
-                                //al_core::log("not included in the moc");
-
                                 Some(cell)
                             } else {
                                 None
@@ -646,8 +648,6 @@ impl HiPS3D {
             &js_sys::Float32Array::from(&spectra[..]),
         )
         .unwrap_abort();
-
-        //al_core::log(&format!("{:?}", freqs));
 
         Reflect::set(
             &spectra_js_obj,
@@ -1149,6 +1149,24 @@ impl HiPS3D {
     ) -> Result<(), JsValue> {
         self.buffer
             .push_tile_from_jpeg(cell, data, size, time_request)
+            .map(|()| {
+                if self.cursor.is_contained_in_spectral_view(cell) {
+                    // compute the spectra in case the cell is contained into the current spectral view
+                    self.compute_spectra_on_cursor();
+                }
+            })
+    }
+
+    pub fn push_tile_from_png(
+        &mut self,
+        cell: &HEALPixFreqCell,
+        // the image slice
+        data: Box<[u8]>,
+        size: (u32, u32, u32),
+        time_request: Time,
+    ) -> Result<(), JsValue> {
+        self.buffer
+            .push_tile_from_png(cell, data, size, time_request)
             .map(|()| {
                 if self.cursor.is_contained_in_spectral_view(cell) {
                     // compute the spectra in case the cell is contained into the current spectral view

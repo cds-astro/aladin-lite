@@ -1,6 +1,6 @@
+use crate::math::lonlat::LonLat;
 use crate::math::lonlat::LonLatT;
 use crate::math::PI;
-use crate::math::{lonlat::LonLat};
 
 use moclib::moc::RangeMOCIntoIterator;
 use moclib::{

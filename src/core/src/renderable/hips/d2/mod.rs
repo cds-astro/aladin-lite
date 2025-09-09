@@ -332,7 +332,7 @@ impl HiPS2D {
         &mut self,
         tile_fetcher: &mut TileFetcherQueue,
         camera: &CameraViewPort,
-        browser_features_support: &BrowserFeaturesSupport
+        browser_features_support: &BrowserFeaturesSupport,
     ) {
         // do not add tiles if the view is already at depth 0
         let cfg = self.get_config();
@@ -355,7 +355,11 @@ impl HiPS2D {
                 };
 
                 if make_query {
-                    Some(query::Tile::new(&tile_cell, self.get_config(), browser_features_support))
+                    Some(query::Tile::new(
+                        &tile_cell,
+                        self.get_config(),
+                        browser_features_support,
+                    ))
                 } else {
                     None
                 }
@@ -385,7 +389,11 @@ impl HiPS2D {
 
         for ancestor in ancestors {
             if !self.update_priority_tile(&ancestor) {
-                tile_fetcher.append(query::Tile::new(&ancestor, self.get_config(), browser_features_support));
+                tile_fetcher.append(query::Tile::new(
+                    &ancestor,
+                    self.get_config(),
+                    browser_features_support,
+                ));
             }
         }
     }

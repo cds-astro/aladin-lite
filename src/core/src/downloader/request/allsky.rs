@@ -320,5 +320,4 @@ fn handle_allsky_fits<F: TextureFormat>(
 
 use al_core::texture::format::RGBA8U;
 
-
 use crate::Abort;

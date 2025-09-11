@@ -61,7 +61,7 @@ impl WebGlContext {
     }
 }
 
-fn get_extension<T>(context: &WebGlRenderingCtx, name: &str) -> Result<T, JsValue>
+fn _get_extension<T>(context: &WebGlRenderingCtx, name: &str) -> Result<T, JsValue>
 where
     T: wasm_bindgen::JsCast,
 {

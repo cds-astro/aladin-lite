@@ -96,11 +96,7 @@ impl Downloader {
     }
 
     pub fn delay(&mut self, r: RequestType) {
-        match r {
-            RequestType::Tile(tile) => {
-                self.cache.insert(tile.id.clone(), RequestType::Tile(tile));
-            }
-            _ => unimplemented!(),
-        }
+        let id = r.id().to_owned();
+        self.cache.insert(id, r);
     }
 }

@@ -225,6 +225,9 @@ export class Location extends DOMElement {
         // lon and lat must be given in cooFrame
         const updateFromLonLatFunc = (lon, lat, cooFrame) => {
             var coo = new Coo(lon, lat, Location.prec);
+
+            cooFrame = CooFrameEnum.fromString(cooFrame);
+
             if (cooFrame == CooFrameEnum.ICRS) {
                 self.field.set(coo.format('s/'));
             }

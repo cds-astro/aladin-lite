@@ -50,6 +50,7 @@ export class PolySelect extends FSM {
 
             view.aladin.removeStatusBarMessage('selector')
         }
+
         let btn;
         let mouseout = (params) => {
             let {e, coo} = params;
@@ -215,7 +216,7 @@ export class PolySelect extends FSM {
         };
 
         let fsm;
-        if (Utils.hasTouchScreen()) {
+        //if (Utils.hasTouchScreen()) {
             let mousedown = click;
             let mouseup = click;
 
@@ -259,7 +260,7 @@ export class PolySelect extends FSM {
                     }
                 }
             }
-        } else {
+        /*} else {
             // desktop, laptops...
             fsm = {
                 state: 'off',
@@ -296,7 +297,7 @@ export class PolySelect extends FSM {
                     }
                 }
             }
-        }
+        }*/
 
         super(fsm)
         let self = this;

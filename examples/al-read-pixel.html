@@ -77,7 +77,7 @@
                 let bValues = [];
 
                 let i = 0;
-                for(var [r, g, b] of base.probe({type: 'line', x1: p.a.x, y1: p.a.y, x2: p.b.x, y2: p.b.y})) {
+                for(var [r, g, b] of base.probePixels({type: 'line', x1: p.a.x, y1: p.a.y, x2: p.b.x, y2: p.b.y})) {
                     xValues.push(i)
                     rValues.push(r)
                     gValues.push(g)

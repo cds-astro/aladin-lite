@@ -49,10 +49,30 @@ impl WebGlContext {
 
         #[cfg(feature = "webgl2")]
         {
+            /*if let Ok(r) =
+                get_extension::<web_sys::ExtColorBufferFloat>(&gl, "EXT_color_buffer_float")
+            {
+                let _ = r;
+            }*/
+
             let ctx = WebGlContext { inner: gl };
             Ok(ctx)
         }
     }
+}
+
+fn get_extension<T>(context: &WebGlRenderingCtx, name: &str) -> Result<T, JsValue>
+where
+    T: wasm_bindgen::JsCast,
+{
+    // `unchecked_into` is used here because WebGL extensions aren't actually JS classes
+    // these objects are duck-type representations of the actual Rust classes
+    // https://github.com/rustwasm/wasm-bindgen/pull/1449
+    context
+        .get_extension(name)
+        .ok()
+        .and_then(|maybe_ext| maybe_ext.map(|ext| ext.unchecked_into::<T>()))
+        .ok_or_else(|| JsValue::from_str("Failed to load ext"))
 }
 
 use std::ops::Deref;

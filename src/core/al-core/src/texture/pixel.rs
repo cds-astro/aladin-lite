@@ -21,32 +21,6 @@ pub trait Pixel:
     fn read_pixel(gl: &WebGlContext, x: i32, y: i32) -> Result<Self, JsValue>;
 }
 
-impl Pixel for [f32; 1] {
-    type Item = f32;
-    type Container = ArrayF32;
-    const BLACK: Self = [f32::NAN];
-
-    fn read_pixel(gl: &WebGlContext, x: i32, y: i32) -> Result<Self, JsValue> {
-        let p = js_sys::Uint8Array::new_with_length(4);
-        gl.read_pixels_with_opt_array_buffer_view(
-            x,
-            y,
-            1,
-            1,
-            WebGlRenderingCtx::RGBA,
-            WebGlRenderingCtx::UNSIGNED_BYTE,
-            Some(&p),
-        )?;
-
-        Ok([f32::from_le_bytes([
-            p.at(0).unwrap(),
-            p.at(1).unwrap(),
-            p.at(2).unwrap(),
-            p.at(3).unwrap(),
-        ])])
-    }
-}
-
 impl Pixel for [u8; 4] {
     type Item = u8;
     type Container = ArrayU8;
@@ -74,13 +48,13 @@ impl Pixel for [u8; 3] {
     const BLACK: Self = [0, 0, 0];
 
     fn read_pixel(gl: &WebGlContext, x: i32, y: i32) -> Result<Self, JsValue> {
-        let pixels = js_sys::Uint8Array::new_with_length(3);
+        let pixels = js_sys::Uint8Array::new_with_length(4);
         gl.read_pixels_with_opt_array_buffer_view(
             x,
             y,
             1,
             1,
-            WebGlRenderingCtx::RGB,
+            WebGlRenderingCtx::RGBA,
             WebGlRenderingCtx::UNSIGNED_BYTE,
             Some(&pixels),
         )?;
@@ -147,7 +121,7 @@ impl Pixel for [i16; 1] {
             Some(&p),
         )?;
 
-        Ok([i16::from_le_bytes([p.at(0).unwrap(), p.at(1).unwrap()])])
+        Ok([i16::from_le_bytes([p.at(1).unwrap(), p.at(0).unwrap()])])
     }
 }
 
@@ -169,10 +143,36 @@ impl Pixel for [i32; 1] {
         )?;
 
         Ok([i32::from_le_bytes([
-            p.at(0).unwrap(),
-            p.at(1).unwrap(),
-            p.at(2).unwrap(),
             p.at(3).unwrap(),
+            p.at(2).unwrap(),
+            p.at(1).unwrap(),
+            p.at(0).unwrap(),
+        ])])
+    }
+}
+
+impl Pixel for [f32; 1] {
+    type Item = f32;
+    type Container = ArrayF32;
+    const BLACK: Self = [f32::NAN];
+
+    fn read_pixel(gl: &WebGlContext, x: i32, y: i32) -> Result<Self, JsValue> {
+        let p = js_sys::Uint8Array::new_with_length(4);
+        gl.read_pixels_with_opt_array_buffer_view(
+            x,
+            y,
+            1,
+            1,
+            WebGlRenderingCtx::RGBA,
+            WebGlRenderingCtx::UNSIGNED_BYTE,
+            Some(&p),
+        )?;
+
+        Ok([f32::from_le_bytes([
+            p.at(3).unwrap(),
+            p.at(2).unwrap(),
+            p.at(1).unwrap(),
+            p.at(0).unwrap(),
         ])])
     }
 }

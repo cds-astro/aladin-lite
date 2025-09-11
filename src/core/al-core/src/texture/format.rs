@@ -203,5 +203,3 @@ impl PixelType {
         }
     }
 }
-
-pub const NUM_CHANNELS: usize = 6;

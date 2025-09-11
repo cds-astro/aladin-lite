@@ -331,7 +331,7 @@ import { TogglerActionButton } from "../Button/Toggler.js";
     update(options) {
         if (options.layer) {
             let self = this;
-            if (options.layer.isSpectralCube()) {
+            if (options.layer.isSpectralCube && options.layer.isSpectralCube()) {
                 let spectraDisplayer = self.aladin.view.spectraDisplayer;
 
                 self.spectraBtn = new TogglerActionButton({

@@ -311,7 +311,7 @@ impl Texture2D {
         // Attach the texture as the first color attachment
         //self.attach_to_framebuffer();
         self.gl.framebuffer_texture_2d(
-            WebGlRenderingCtx::READ_FRAMEBUFFER,
+            WebGlRenderingCtx::FRAMEBUFFER,
             WebGlRenderingCtx::COLOR_ATTACHMENT0,
             WebGlRenderingCtx::TEXTURE_2D,
             self.texture.as_ref(),

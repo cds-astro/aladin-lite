@@ -91,7 +91,7 @@ impl Texture2DArray {
 
         // Attach the texture as the first color attachment
         self.gl.framebuffer_texture_layer(
-            WebGlRenderingCtx::READ_FRAMEBUFFER,
+            WebGlRenderingCtx::FRAMEBUFFER,
             WebGlRenderingCtx::COLOR_ATTACHMENT0,
             self.texture.as_ref(),
             0,

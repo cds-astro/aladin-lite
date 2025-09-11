@@ -83,28 +83,30 @@ fn create_hpx_texture_storage(
         ),
     ];
     match channel {
-        PixelType::RGBA8U => Texture2DArray::create_empty::<RGBA8U>(
-            gl, tile_size, tile_size,
-            // 256 is a consensus for targetting the maximum GPU architectures. We create a 128 slices to optimize performance
-            num_tiles, tex_params,
-        ),
-        PixelType::RGB8U => Texture2DArray::create_empty::<RGB8U>(
-            gl, tile_size, tile_size,
-            // 256 is a consensus for targetting the maximum GPU architectures. We create a 128 slices to optimize performance
-            num_tiles, tex_params,
-        ),
+        PixelType::RGBA8U => {
+            Texture2DArray::create_empty::<RGBA8U>(
+                gl, tile_size, tile_size,
+                // 256 is a consensus for targetting the maximum GPU architectures. We create a 128 slices to optimize performance
+                num_tiles, tex_params,
+            )
+        }
+        PixelType::RGB8U => {
+            Texture2DArray::create_empty::<RGB8U>(
+                gl, tile_size, tile_size,
+                // 256 is a consensus for targetting the maximum GPU architectures. We create a 128 slices to optimize performance
+                num_tiles, tex_params,
+            )
+        }
         PixelType::R32F => Texture2DArray::create_empty::<R32F>(
             gl, tile_size, tile_size,
             // 256 is a consensus for targetting the maximum GPU architectures. We create a 128 slices to optimize performance
             num_tiles, tex_params,
         ),
-
         PixelType::R8U => Texture2DArray::create_empty::<R8U>(
             gl, tile_size, tile_size,
             // 256 is a consensus for targetting the maximum GPU architectures. We create a 128 slices to optimize performance
             num_tiles, tex_params,
         ),
-
         PixelType::R16I => Texture2DArray::create_empty::<R16I>(
             gl, tile_size, tile_size,
             // 256 is a consensus for targetting the maximum GPU architectures. We create a 128 slices to optimize performance
@@ -285,7 +287,7 @@ impl HiPS2DBuffer {
                     .tile_pixels
                     .read_pixel(pos_tex.x, pos_tex.y, pos_tex.z)?,
                 _ => {
-                    let uvy = 1.0 - (pos_tex.y as f32 / tile_size);
+                    let uvy = 1.0 - (dx as f32);
                     pos_tex.y = (uvy * tile_size) as i32;
 
                     let f64_v = self

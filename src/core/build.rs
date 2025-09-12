@@ -3,6 +3,8 @@ use walkdir::WalkDir;
 extern crate walkdir;
 use std::io::BufRead;
 
+use std::process::Command;
+
 // All my shaders reside in the 'src/shaders' directory
 fn generate_shaders() -> std::result::Result<(), Box<dyn Error>> {
     println!("generate shaders");
@@ -26,9 +28,48 @@ fn generate_shaders() -> std::result::Result<(), Box<dyn Error>> {
                         .into_owned()
                         .replace("/", "_")
                         .replace("\\", "_");
-                    //let out_name = format!("{}/{}", OUT_PATH, out_file_name);
 
-                    let src = read_shader(path)?;
+                    let mut src = read_shader(path)?;
+
+                    if std::env::var("CARGO_FEATURE_MINIFY_SHADERS").is_ok() {
+                        println!("Feature `minify_shaders` enabled: running shader minifier");
+
+                        // save to a minified path
+                        let mut tmp_path = PathBuf::from(path);
+                        let mut min_path = PathBuf::from(path);
+
+                        let stem = path.file_stem().unwrap();
+                        // Build new filename: stem + ".min" + extension
+                        let tmp_file_name =
+                            format!("{}.{}.tmp", stem.to_string_lossy(), ext.to_string_lossy());
+                        tmp_path.set_file_name(tmp_file_name);
+
+                        let min_file_name =
+                            format!("{}.{}.min", stem.to_string_lossy(), ext.to_string_lossy());
+                        min_path.set_file_name(min_file_name);
+
+                        fs::write(tmp_path.clone(), &src)?;
+
+                        Command::new("mono")
+                            .args(&[
+                                "/Users/matthieubaumann/Downloads/shader_minifier.exe",
+                                "--format",
+                                "text",
+                                "--aggressive-inlining",
+                                "--preserve-externals",
+                                "--move-declarations",
+                                "-o",
+                                min_path.as_os_str().to_str().expect("Invalid UTF-8!"),
+                                tmp_path.as_os_str().to_str().expect("Invalid UTF-8!"),
+                            ])
+                            .status()
+                            .expect("Failed to run shader_minifier");
+
+                        src = read_shader(min_path)?;
+                    } else {
+                        println!("Feature `minify_shaders` not enabled: skipping");
+                    }
+
                     shaders.insert(out_file_name, src);
 
                     println!("cargo:rerun-if-changed=src/shaders/{file_name}");

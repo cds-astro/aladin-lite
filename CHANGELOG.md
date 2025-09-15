@@ -4,10 +4,32 @@
 
 ### What's Changed
 
-* [perf] perform CPU computations with Vec3 and Matrix3 and not 4 dimensions matrices/vectors
-* [feat] lockNorthUp Aladin object new option locking the north pole up to the view center
-
 ## Released
+
+### 3.7.0
+
+#### What's Changed
+
+* [feat] flip longitude axis global method on Aladin by [@bmatthieu3][bmatthieu3] in <https://github.com/cds-astro/aladin-lite/pull/245>
+* [feat] add rotation event by [@ManonMarchand][ManonMarchand] in <https://github.com/cds-astro/aladin-lite/pull/283>
+* [docs] just fixing typo in image's doc by [@ManonMarchand][ManonMarchand] in <https://github.com/cds-astro/aladin-lite/pull/284>
+* [docs] change to an image with correct astrometry in example by [@ManonMarchand][ManonMarchand] in <https://github.com/cds-astro/aladin-lite/pull/290>
+* [docs] clarify use of precision in Coo by [@alexgoff][alexgoff] in <https://github.com/cds-astro/aladin-lite/pull/294>
+* [feat] allow setting HiPS CORS and credential options by [@pmatsson][pmatsson] in <https://github.com/cds-astro/aladin-lite/pull/281>
+* [feat] color picker and read pixel(s) API methods by [@bmatthieu3][bmatthieu3] in <https://github.com/cds-astro/aladin-lite/pull/280>
+* [fix] chandra hips display and akari by [@bmatthieu3][bmatthieu3] in <https://github.com/cds-astro/aladin-lite/pull/306>
+* [enhancement] update to the new version of fitsrs by [@bmatthieu3][bmatthieu3] in <https://github.com/cds-astro/aladin-lite/pull/310>
+* [fix] 26 channel color offset by [@bmatthieu3][bmatthieu3] in <https://github.com/cds-astro/aladin-lite/pull/320>
+* [fix] Circle intersectsBBox by [@emellega][emellega] in <https://github.com/cds-astro/aladin-lite/pull/309>
+* [feat] anti aliasing on lines plotted by the GPU by [@bmatthieu3][bmatthieu3] in <https://github.com/cds-astro/aladin-lite/pull/239>
+* [feat] source custom color and size from its data content by [@bmatthieu3][bmatthieu3] in <https://github.com/cds-astro/aladin-lite/pull/321>
+* [feat] catalog new select method by [@bmatthieu3][bmatthieu3] in <https://github.com/cds-astro/aladin-lite/pull/322>
+* [feat] HiPS 3D impl by [@bmatthieu3][bmatthieu3] in <https://github.com/cds-astro/aladin-lite/pull/314>
+* [feat] customize share URL function by [@tboch][tboch] in <https://github.com/cds-astro/aladin-lite/pull/327>
+* enhancement: use TAP entry point to query NED by [@bmatthieu3][bmatthieu3] in <https://github.com/cds-astro/aladin-lite/pull/257>
+* [perf] refac geometrical computations using Vec3/Mat3 instead of Vec4/Mat4 [@bmatthieu3][bmatthieu3] in <https://github.com/cds-astro/aladin-lite/pull/276>
+* [fix] distortion at poles by [@bmatthieu3][bmatthieu3] in <https://github.com/cds-astro/aladin-lite/pull/247>
+* [feat] new aladin option `lockNorthUp` to keep north pole up [@bmatthieu3][bmatthieu3] in <https://github.com/cds-astro/aladin-lite/pull/272>
 
 ### 3.6.3
 

@@ -76,7 +76,7 @@ features = [ "jpeg", "png",]
 debug = true
 
 [profile.release]
-opt-level = 'z'
+opt-level = "z"
 debug = false
 debug-assertions = false
 overflow-checks = false

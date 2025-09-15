@@ -6,7 +6,7 @@
 
 ## Released
 
-### 3.7.0
+### 3.7.0-beta
 
 #### What's Changed
 

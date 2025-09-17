@@ -133,8 +133,9 @@ async fn query_html_image(
     // Set the CORS and credentials options for the image
     let cors_value = match credentials {
         RequestCredentials::Include => Some("use-credentials"),
-        RequestCredentials::SameOrigin => Some("anonymous"),
-        _ => Some(""),
+        RequestCredentials::Omit => Some("anonymous"),
+        RequestCredentials::SameOrigin => None,
+        _ => None,
     };
 
     let promise = js_sys::Promise::new(

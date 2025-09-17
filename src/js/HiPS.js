@@ -180,13 +180,17 @@ PropertyParser.isPlanetaryBody = function (properties) {
  * @property {number} [brightness=0.0] - The brightness value for the color configuration.
  * @property {number} [contrast=0.0] - The contrast value for the color configuration.
  * @property {string} [requestMode='cors'] - Determines how the request will interact with cross-origin resources.
-    *  - 'cors' - allow cross-origin requests with proper CORS headers.
-    *  - 'no-cors' - send the request without CORS.
-    *  - 'same-origin' - only allow requests to the same origin.
- * @property {string} [requestCredentials='omit'] - Specifies whether to send cookies and HTTP credentials with the request.
-    *  - 'omit' - never send credentials.
-    *  - 'same-origin' - send only for same-origin requests.
-    *  - 'include' - always send, even for cross-origin requests.
+    * <ul> 
+    * <li>'cors' - allow cross-origin requests with proper CORS headers.</li>
+    * <li>'no-cors' - send the request without CORS.</li>
+    * <li>'same-origin' - only allow requests to the same origin.</li>
+    * </ul>
+ * @property {string} [requestCredentials='same-origin'] - Specifies whether to send cookies and HTTP credentials with the request.
+    *  <ul>
+    *  <li>'omit' - never send credentials.</li>
+    *  <li>'same-origin' - send only for same-origin requests.</li>
+    *  <li>'include' - always send, even for cross-origin requests.</li>
+    *  </ul>
  */
 
 /**
@@ -270,7 +274,7 @@ export let HiPS = (function () {
         this.name = (options && options.name) || id;
         this.startUrl = options.startUrl;
         this.requestMode = options && options.requestMode || 'cors';
-        this.requestCredentials = options && options.requestCredentials || 'omit';
+        this.requestCredentials = options && options.requestCredentials || 'same-origin';
 
         this.slice = 0;
 

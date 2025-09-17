@@ -30,7 +30,7 @@
     "HiPS"
   ],
   "scripts": {
-    "wasm:prod": "wasm-pack build ./src/core --target web --release --out-name core -- --features \"webgl2 minify_shaders\" && wasm-opt -Oz --strip-debug --strip-producers --dce -o src/core/pkg/core_bg.wasm src/core/pkg/core_bg.wasm",
+    "wasm:prod": "wasm-pack build ./src/core --target web --release --out-name core -- --features webgl2 && wasm-opt -Oz --strip-debug --strip-producers --dce -o src/core/pkg/core_bg.wasm src/core/pkg/core_bg.wasm",
     "wasm:dev": "wasm-pack build ./src/core --target web --release --out-name core -- --features webgl2",
     "wasm:dbg": "wasm-pack build --dev ./src/core --target web --out-name core -- --features=webgl2,dbg",
     "predeploy": "npm run build:prod && rm -rf aladin-lite*.tgz && npm pack",
@@ -47,7 +47,8 @@
     "test:playwright": "npx playwright test",
     "test:update-snapshots": "npx playwright test --update-snapshots",
     "doc": "jsdoc -c jsdoc.json src/js src/js/shapes src/js/libs/astro && cp aladin-logo.png docs/ && cp jsdoc-custom-style.css docs/ && cp jsdoc-make-responsive.js docs/",
-    "doc:dev": "npm run doc && open docs/index.html"
+    "doc:dev": "npm run doc && open docs/index.html",
+    "analyze": "vite build --mode analyze"
   },
   "devDependencies": {
     "@playwright/test": "^1.47.0",

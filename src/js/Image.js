@@ -402,6 +402,7 @@ export let Image = (function () {
 
                 // Set the automatic computed cuts
                 let [minCut, maxCut] = self.getCuts();
+
                 minCut = minCut || imageParams.min_cut;
                 maxCut = maxCut || imageParams.max_cut;
                 self.setCuts(

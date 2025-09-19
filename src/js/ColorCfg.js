@@ -59,9 +59,9 @@
         }
 
         this.maxCut = {
-            webp: 1.0,
-            jpeg: 1.0,
-            png: 1.0,
+            webp: 255.0,
+            jpeg: 255.0,
+            png: 255.0,
             fits: undefined // wait the default value coming from the properties
         };
         if (options && Number.isFinite(options.maxCut)) {
@@ -95,6 +95,16 @@
             }
         }
 
+        let minCut = this.minCut[this.imgFormat]
+        if (this.imgFormat !== "fits") {
+            minCut /= 255.0
+        }
+
+        let maxCut = this.maxCut[this.imgFormat]
+        if (this.imgFormat !== "fits") {
+            maxCut /= 255.0
+        }
+
         // Reset the whole meta object
         return {
             blendCfg: blend,
@@ -107,8 +117,8 @@
                 kContrast: this.kContrast,
 
                 stretch: this.stretch,
-                minCut: this.minCut[this.imgFormat],
-                maxCut: this.maxCut[this.imgFormat],
+                minCut,
+                maxCut,
                 reversed: this.reversed,
                 cmapName: this.colormap,
             }
@@ -121,7 +131,7 @@
 
         this.setColormap(options.colormap, options)
 
-        this.setCuts(options.minCut, options.maxCut)
+        this.setCuts(options.minCut, options.maxCut, options.cutFormat)
 
         this.setBrightness(options.brightness)
         this.setSaturation(options.saturation)
@@ -249,18 +259,20 @@
     };
 
     // Sets the cuts for the current image format
-    ColorCfg.prototype.setCuts = function(minCut, maxCut) {
+    ColorCfg.prototype.setCuts = function(minCut, maxCut, imgFormat) {
+        imgFormat = imgFormat || this.imgFormat;
+
         if (minCut instanceof Object) {
             // Mincut is given in the form of an javascript object with all the formats
-            this.minCut = minCut
+            this.minCut = {...this.minCut, ...minCut};
         } else if (minCut !== null && minCut !== undefined) {
-            this.minCut[this.imgFormat] = minCut;
+            this.minCut[imgFormat] = minCut;
         }
 
         if (maxCut instanceof Object) {
-            this.maxCut = maxCut;
+            this.maxCut = {...this.maxCut, ...maxCut};
         } else if (maxCut !== null && maxCut !== undefined) {
-            this.maxCut[this.imgFormat] = maxCut;
+            this.maxCut[imgFormat] = maxCut;
         }
     };
 

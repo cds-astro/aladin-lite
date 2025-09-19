@@ -1117,6 +1117,14 @@ otherwise it fits its content options. If those are too big the select can go ou
     left: 0.2rem;
 }
 
+.aladin-link {
+    color: white;
+}
+
+.aladin-link:hover {
+    color: greenyellow;
+}
+
 .aladin-simbadPointer-control {
     position: absolute;
     top: 7.8rem;

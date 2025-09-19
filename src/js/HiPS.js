@@ -31,7 +31,6 @@ import { HiPSProperties } from "./HiPSProperties.js";
 import { Aladin } from "./Aladin.js"; 
 import { CooFrameEnum } from "./CooFrameEnum.js";
 import { Utils } from "./Utils"
-import { SpectraDisplayer } from "./SpectraDisplayer.js";
 
 let PropertyParser = {};
 // Utilitary functions for parsing the properties and giving default values
@@ -733,9 +732,16 @@ export let HiPS = (function () {
      *
      * @param {number} minCut - The low cut value to set for the HiPS.
      * @param {number} maxCut - The high cut value to set for the HiPS.
+     * @param {string} [imgFormat] - The image format for which one wants to set the cuts. By default, the format used is the current imageFormat
      */
-    HiPS.prototype.setCuts = function (minCut, maxCut) {
-        this.setOptions({minCut, maxCut})
+    HiPS.prototype.setCuts = function (minCut, maxCut, imgFormat) {
+        imgFormat = imgFormat?.toLowerCase();
+
+        if (imgFormat === "jpg") {
+            imgFormat = "jpeg";
+        }
+
+        this.setOptions({minCut, maxCut, cutFormat: imgFormat})
     };
 
     /**

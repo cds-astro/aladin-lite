@@ -1300,7 +1300,7 @@ export let View = (function () {
 
                 if (!view.throttledTouchPadZoom) {
                     view.throttledTouchPadZoom = () => {
-                        const factor = Utils.detectTrackPad(e) ? 1.06 : 1.2;
+                        const factor = Utils.detectTrackPad(e) ? 1.07 : 1.2;
                         const currZoomFactor = view.zoom.isZooming ? view.zoom.finalZoom : view.zoomFactor;
                         let newZoomFactor = view.delta > 0 ? currZoomFactor * factor : currZoomFactor / factor;
 

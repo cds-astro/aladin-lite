@@ -781,6 +781,21 @@ export class OverlayStackBox extends Box {
             })
         );
         layout = layout.concat(this._createSurveysList());
+        let self = this;
+        const moreHiPSLink = document.createElement("a");
+        moreHiPSLink.href = "#";
+        moreHiPSLink.classList.add('aladin-link');
+        moreHiPSLink.textContent = "More...";
+        moreHiPSLink.title = "Open the survey browser"
+        moreHiPSLink.addEventListener("click", (e) => {
+            e.preventDefault();
+            if (!self.hipsBrowser)
+                self.hipsBrowser = new HiPSBrowserBox(aladin);
+
+            self.hipsBrowser._show({ position: { anchor: "center center" } });
+        });
+        layout.push(moreHiPSLink)
+
 
         return Layout.vertical({ layout });
     }

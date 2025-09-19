@@ -219,11 +219,6 @@ import { TogglerActionButton } from "../Button/Toggler.js";
                 value: 0.0,
                 change: (e) => {
                     let minCut = +e.target.value
-                    let imgFormat = self.options.layer.imgFormat;
-                    if (imgFormat !== "fits") {
-                        minCut /= 255.0;
-                    }
-
                     self.options.layer.setCuts(minCut, self.options.layer.getColorCfg().getCuts()[1])
                 }
             },
@@ -238,12 +233,6 @@ import { TogglerActionButton } from "../Button/Toggler.js";
                 value: 1.0,
                 change: (e) => {
                     let maxCut = +e.target.value
-
-                    let imgFormat = self.options.layer.imgFormat;
-                    if (imgFormat !== "fits") {
-                        maxCut /= 255.0;
-                    }
-
                     self.options.layer.setCuts(self.options.layer.getColorCfg().getCuts()[0], maxCut)
                 }
             }]
@@ -302,10 +291,6 @@ import { TogglerActionButton } from "../Button/Toggler.js";
         let reversed = colorCfg.getReversed();
 
         let [minCut, maxCut] = colorCfg.getCuts();
-        if (layer.imgFormat !== "fits") {
-            minCut = Math.round(minCut * 255);
-            maxCut = Math.round(maxCut * 255);
-        }
         this.pixelSettingsContent.set('mincut', +minCut.toFixed(4))
         this.pixelSettingsContent.set('maxcut', +maxCut.toFixed(4))
         this.pixelSettingsContent.set('stretch', stretch)

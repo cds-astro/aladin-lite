@@ -134,7 +134,7 @@ async fn query_html_image(
     let cors_value = match credentials {
         RequestCredentials::Include => Some("use-credentials"),
         RequestCredentials::Omit => Some("anonymous"),
-        RequestCredentials::SameOrigin => None,
+        RequestCredentials::SameOrigin => Some(""),
         _ => None,
     };
 

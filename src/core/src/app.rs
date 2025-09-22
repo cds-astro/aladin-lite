@@ -116,7 +116,7 @@ pub struct App {
     //callback_position_changed: js_sys::Function,
 }
 
-use cgmath::{Vector2, Vector3};
+use cgmath::{Vector2, Vector3, Zero};
 
 use crate::math::projection::*;
 pub const BLENDING_ANIM_DURATION: DeltaTime = DeltaTime::from_millis(200.0); // in ms
@@ -1743,7 +1743,37 @@ impl App {
                 self.request_for_new_tiles = true;
             }
         } else {
-            self.out_of_fov = true;
+            // approx move
+            let origin2next = Vector2::new(s2x - s1x, s2y - s1y);
+
+            if origin2next != Vector2::zero() {
+                let prev_pos = self.camera.get_center();
+
+                let prev_cam_position = self.get_center().vector();
+
+                let center_screen = self
+                    .projection
+                    .model_to_screen_space(&prev_cam_position, &self.camera)
+                    .unwrap();
+
+                let next_s = origin2next + center_screen;
+
+                if let Some(cur_pos) = self.projection.screen_to_model_space(&next_s, &self.camera)
+                {
+                    let d = math::vector::angle3(&prev_pos, &cur_pos);
+                    let axis = prev_pos.cross(cur_pos).normalize();
+
+                    self.camera
+                        .apply_axis_rotation(&(-axis), d, &self.projection);
+
+                    self.prev_cam_position = prev_cam_position;
+                    self.request_for_new_tiles = true;
+                } else {
+                    //self.out_of_fov = true;
+                }
+            } else {
+                //self.out_of_fov = true;
+            }
         }
     }
 

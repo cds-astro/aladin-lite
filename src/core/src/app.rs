@@ -87,6 +87,7 @@ pub struct App {
     time_start_dragging: Time,
     time_mouse_high_vel: Time,
     dragging: bool,
+    vel_history: Vec<f32>,
 
     prev_cam_position: Vector3<f64>,
     //prev_center: Vector3<f64>,
@@ -208,6 +209,7 @@ impl App {
 
         let browser_features_support = BrowserFeaturesSupport::new();
 
+        let vel_history = vec![];
         Ok(App {
             gl,
             //ui,
@@ -244,6 +246,7 @@ impl App {
             time_start_dragging,
             time_mouse_high_vel,
             dragging,
+            vel_history,
 
             prev_cam_position,
             out_of_fov,
@@ -1538,7 +1541,16 @@ impl App {
             let dx = crate::math::vector::dist2(&from_mouse_pos, &to_mouse_pos).sqrt();
             self.dist_dragging += dx;
 
+            //let now = Time::now();
+            //let dragging_duration = (now - self.time_start_dragging).as_secs();
+            //let dragging_vel = self.dist_dragging / dragging_duration;
+
+            // 1. Use smoothed velocity instead of instantaneous velocity
             let dv = dx / (Time::now() - self.camera.get_time_of_last_move()).as_secs();
+            self.vel_history.push(dv);
+            if self.vel_history.len() > 5 {
+                self.vel_history.remove(0);
+            }
 
             if dv > 10000.0 {
                 self.time_mouse_high_vel = Time::now();
@@ -1587,15 +1599,18 @@ impl App {
         }
 
         let now = Time::now();
-        let dragging_duration = (now - self.time_start_dragging).as_secs();
-        let dragging_vel = self.dist_dragging / dragging_duration;
+        let avg_vel = self.vel_history.iter().copied().sum::<f32>() / self.vel_history.len() as f32;
 
-        // Detect if there has been a recent acceleration
-        // It is also possible that the dragging time is too short and if it is the case, trigger the inertia
-        let recent_acceleration = (Time::now() - self.time_mouse_high_vel).as_secs() < 0.1
-            || (Time::now() - self.time_start_dragging).as_secs() < 0.1;
+        // 2. Clamp minimum + maximum velocities
+        let min_vel = 1000.0; // tweak
 
-        if dragging_vel < 2000.0 && !recent_acceleration {
+        // 3. Better condition for “recent acceleration”
+        let t_since_drag = (now - self.time_start_dragging).as_secs();
+        let t_since_accel = (now - self.time_mouse_high_vel).as_secs();
+
+        let inertia_trigger =
+            avg_vel > min_vel || ((t_since_drag < 0.15) || (t_since_accel < 0.15));
+        if !inertia_trigger {
             return;
         }
 
@@ -1605,10 +1620,8 @@ impl App {
         let center = self.camera.get_center();
         let axis = self.prev_cam_position.cross(*center).normalize();
 
-        //let delta_time = ((now - time_of_last_move).0 as f64).max(1.0);
         let delta_angle = math::vector::angle3(&self.prev_cam_position, center).to_radians();
-        let ampl = delta_angle * (dragging_vel as f64) * 5e-3;
-        //let ampl = (dragging_vel * 0.01) as f64;
+        let ampl = (delta_angle * avg_vel as f64) * 5e-3;
 
         self.inertia = Some(Inertia::new(ampl.to_radians(), axis, self.north_up))
     }

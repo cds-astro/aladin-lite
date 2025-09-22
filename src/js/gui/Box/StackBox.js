@@ -75,7 +75,7 @@ export class OverlayStackBox extends Box {
     };*/
     static predefinedCats = {
         simbad: {
-            url: "https://axel.u-strasbg.fr/HiPSCatService/SIMBAD",
+            url: "https://axel.cds.unistra.fr/HiPSCatService/SIMBAD",
             options: {
                 id: "simbad",
                 name: "SIMBAD",
@@ -98,7 +98,7 @@ export class OverlayStackBox extends Box {
             },
         },
         gaia: {
-            url: "https://axel.u-strasbg.fr/HiPSCatService/I/355/gaiadr3",
+            url: "https://axel.cds.unistra.fr/HiPSCatService/I/355/gaiadr3",
             options: {
                 id: "gaia-dr3",
                 name: "Gaia DR3",
@@ -109,7 +109,7 @@ export class OverlayStackBox extends Box {
             },
         },
         twomass: {
-            url: "https://axel.u-strasbg.fr/HiPSCatService/II/246/out",
+            url: "https://axel.cds.unistra.fr/HiPSCatService/II/246/out",
             options: {
                 id: "2mass",
                 name: "2MASS",
@@ -790,7 +790,7 @@ export class OverlayStackBox extends Box {
         moreHiPSLink.addEventListener("click", (e) => {
             e.preventDefault();
             if (!self.hipsBrowser)
-                self.hipsBrowser = new HiPSBrowserBox(aladin);
+                self.hipsBrowser = new HiPSBrowserBox(self.aladin);
 
             self.hipsBrowser._show({ position: { anchor: "center center" } });
         });

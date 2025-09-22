@@ -27,6 +27,7 @@ impl Inertia {
         }
     }
 
+    /*
     pub fn apply(&mut self, camera: &mut CameraViewPort, proj: &ProjectionType, _dt: DeltaTime) {
         let t = ((Time::now() - self.time_start).as_millis() / 1000.0) as f64;
         // Undamped angular frequency of the oscillator
@@ -44,6 +45,24 @@ impl Inertia {
         /*let alpha = 1_f32 + (0_f32 - 1_f32) * (10_f32 * t + 1_f32) * (-10_f32 * t).exp();
         let alpha = alpha * alpha;
         let fov = start_fov * (1_f32 - alpha) + goal_fov * alpha;*/
+        camera.apply_axis_rotation(&self.axis, self.speed.to_angle(), proj);
+
+        if self.north_up {
+            camera.set_position_angle(0.0.to_angle(), proj);
+        }
+    }*/
+
+    pub fn apply(&mut self, camera: &mut CameraViewPort, proj: &ProjectionType, _dt: DeltaTime) {
+        let t = ((Time::now() - self.time_start).as_millis() / 1000.0) as f64;
+        // Initial angular velocity
+        let v0 = self.ampl * 0.5;
+
+        // Friction coefficient (tweak this)
+        let damping = 2.5;
+
+        // Exponential decay of angular velocity
+        self.speed = (v0 * (-damping * t).exp()).min(3.0);
+
         camera.apply_axis_rotation(&self.axis, self.speed.to_angle(), proj);
 
         if self.north_up {

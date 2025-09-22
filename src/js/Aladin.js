@@ -941,7 +941,7 @@ export let Aladin = (function () {
                 objectName +
                 "'";
             var url =
-                "//simbad.u-strasbg.fr/simbad/sim-tap/sync?query=" +
+                "//simbad.cds.unistra.fr/simbad/sim-tap/sync?query=" +
                 encodeURIComponent(query) +
                 "&request=doQuery&lang=adql&format=json&phase=run";
 

@@ -362,7 +362,7 @@ A.graphicOverlay = function (options) {
  * @returns {ProgressiveCat} Returns a new Overlay object representing the graphic overlay.
  *
  * @example
- * let gaia = A.catalogHiPS('http://axel.u-strasbg.fr/HiPSCatService/I/345/gaia2', {onClick: 'showTable', color: 'orange', name: 'Gaia', filter: myFilterFunction});
+ * let gaia = A.catalogHiPS('http://axel.cds.unistra.fr/HiPSCatService/I/345/gaia2', {onClick: 'showTable', color: 'orange', name: 'Gaia', filter: myFilterFunction});
  * aladin.addCatalog(gaia)
  */
 A.catalogHiPS = function (url, options) {

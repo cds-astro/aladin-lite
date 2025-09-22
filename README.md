@@ -1,4 +1,4 @@
-# [Aladin Lite](https://aladin.u-strasbg.fr/AladinLite)
+# [Aladin Lite](https://aladin.cds.unistra.fr/AladinLite)
 
 **An astronomical HiPS visualizer in the browser** <img src="aladin-logo.png" alt="Aladin Lite logo" width="220">
 
@@ -8,14 +8,14 @@ See [A&A 578, A114 (2015)](https://arxiv.org/abs/1505.02291) and [IVOA HiPS Reco
 
 Aladin Lite is built to be easily embeddable in any web page. It powers astronomical portals like [ESASky](https://sky.esa.int/), [ESO Science Archive portal](http://archive.eso.org/scienceportal/) and [ALMA Portal](https://almascience.eso.org/asax/).
 
-More details on [Aladin Lite documentation page](http://aladin.u-strasbg.fr/AladinLite/doc/).
+More details on [Aladin Lite documentation page](http://aladin.cds.unistra.fr/AladinLite/doc/).
 A new [API technical documentation](https://cds-astro.github.io/aladin-lite/) is now available.
 
 [![Run tests](https://github.com/cds-astro/aladin-lite/actions/workflows/test.yml/badge.svg)](https://github.com/cds-astro/aladin-lite/actions/workflows/test.yml)
 [![API Documentation](https://img.shields.io/badge/API-documentation-blue.svg)](https://cds-astro.github.io/aladin-lite)
 [![Release page](https://img.shields.io/badge/Release-download-yellow.svg)](https://aladin.cds.unistra.fr/AladinLite/doc/release/)
 
-Try Aladin Lite [here](https://aladin.u-strasbg.fr/AladinLite).
+Try Aladin Lite [here](https://aladin.cds.unistra.fr/AladinLite).
 
 Aladin Lite is made possible thanks to pure Rust core libraries:
 * [cdshealpix](https://github.com/cds-astro/cds-healpix-rust) - for HEALPix projection and unprojection to/from sky coordinates 

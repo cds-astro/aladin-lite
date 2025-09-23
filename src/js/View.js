@@ -1392,8 +1392,10 @@ export let View = (function () {
 
         // Elapsed time since last loop
         const now = performance.now();
-        const elapsedTime = now - timestamp;
-        this.dt = elapsedTime;
+        const elapsedTime = now - this.prevTime;
+        this.prevTime = now;
+
+        //this.dt = elapsedTime;
 
         this.moving = this.wasm.update(elapsedTime);
         

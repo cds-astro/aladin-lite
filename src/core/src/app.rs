@@ -495,7 +495,7 @@ impl App {
         self.inertia.is_some()
     }
 
-    pub(crate) fn update(&mut self, dt: DeltaTime) -> Result<bool, JsValue> {
+    pub(crate) fn update(&mut self, dt: f64) -> Result<bool, JsValue> {
         // a timer stopping the frame if it takes too long
         // useful for garanting a framerate
         let rendering_timer = Time::now();
@@ -1731,7 +1731,6 @@ impl App {
                     }
                 } else {
                     /* 1. Rotate by computing the angle between the last and current position */
-
                     let d = math::vector::angle3(&prev_pos, &cur_pos);
                     let axis = prev_pos.cross(cur_pos).normalize();
 

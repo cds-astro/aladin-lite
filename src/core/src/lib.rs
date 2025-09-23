@@ -194,15 +194,15 @@ impl WebClient {
     ///
     /// # Return
     /// Whether the view is moving or not
-    pub fn update(&mut self, dt: f32) -> Result<bool, JsValue> {
+    pub fn update(&mut self, dt: f64) -> Result<bool, JsValue> {
         // dt refers to the time taking (in ms) rendering the previous frame
-        self.dt = DeltaTime::from_millis(dt);
+        self.dt = DeltaTime::from_millis(dt as f32);
 
         // Update the application and get back the
         // world coordinates of the center of projection in (ra, dec)
         self.app.update(
             // Time of the previous frame rendering
-            self.dt,
+            dt,
         )
     }
 

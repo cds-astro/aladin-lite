@@ -12,16 +12,16 @@ pub struct Inertia {
     // Vector of rotation
     axis: Vector3<f64>,
     // The time when the inertia begins
-    time_start: Time,
+    time_prev: Time,
     north_up: bool,
 }
 
 impl Inertia {
     pub fn new(ampl: f64, axis: Vector3<f64>, north_up: bool) -> Self {
         Inertia {
-            time_start: Time::now(),
+            time_prev: Time::now(),
             ampl,
-            speed: ampl,
+            speed: (ampl * 0.5).min(0.1),
             axis,
             north_up,
         }
@@ -52,18 +52,22 @@ impl Inertia {
         }
     }*/
 
-    pub fn apply(&mut self, camera: &mut CameraViewPort, proj: &ProjectionType, _dt: DeltaTime) {
-        let t = ((Time::now() - self.time_start).as_millis() / 1000.0) as f64;
+    pub fn apply(&mut self, camera: &mut CameraViewPort, proj: &ProjectionType, dt: f64) {
+        self.time_prev = Time::now();
         // Initial angular velocity
-        let v0 = self.ampl * 0.5;
+        //let v0 = self.ampl * 0.5;
 
         // Friction coefficient (tweak this)
-        let damping = 2.5;
+        let damping = 5e-3;
+
+        self.speed *= (-damping * dt).exp();
+        let delta_angle = self.speed * dt;
 
         // Exponential decay of angular velocity
-        self.speed = (v0 * (-damping * t).exp()).min(3.0);
+        // self.speed = (v0 * (-damping * t).exp()).min(3.0);
 
-        camera.apply_axis_rotation(&self.axis, self.speed.to_angle(), proj);
+        //camera.apply_axis_rotation(&self.axis, self.speed.to_angle(), proj);
+        camera.apply_axis_rotation(&self.axis, delta_angle.to_angle(), proj);
 
         if self.north_up {
             camera.set_position_angle(0.0.to_angle(), proj);

@@ -1,5 +1,6 @@
 use crate::math;
 use crate::math::angle::ToAngle;
+use cgmath::One;
 use cgmath::Vector3;
 use cgmath::{BaseFloat, InnerSpace};
 use cgmath::{Euler, Quaternion};
@@ -111,12 +112,26 @@ where
     // Define a rotation from an axis and a angle
     pub fn from_axis_angle(axis: &Vector3<S>, angle: Angle<S>) -> Rotation<S> {
         let angle: Rad<S> = angle.into();
-        let mat = Matrix3::from_axis_angle(axis.normalize(), angle);
-        (&mat).into()
+        let half = angle.0 * S::from(0.5).unwrap();
+
+        let (s, c) = half.sin_cos();
+        let axis = axis.normalize();
+
+        let q = Quaternion::new(c, axis.x * s, axis.y * s, axis.z * s);
+        Rotation(q)
     }
 
     // Define a rotation from a normalized vector
     pub fn from_sky_position(pos: &Vector3<S>) -> Rotation<S> {
+        let (lon, lat) = math::lonlat::xyz_to_radec(pos);
+
+        let qy = Self::from_axis_angle(&Vector3::unit_y(), lon);
+        let qx = Self::from_axis_angle(&Vector3::unit_x(), -lat);
+
+        (qy * qx)
+    }
+
+    /*pub fn from_sky_position(pos: &Vector3<S>) -> Rotation<S> {
         let (lon, lat) = math::lonlat::xyz_to_radec(pos);
 
         let rot_y = Matrix3::from_angle_y(lon);
@@ -124,14 +139,23 @@ where
 
         let mat = rot_y * rot_x;
         (&(mat)).into()
-    }
+    }*/
 
     // Apply a rotation to a position
-    pub fn rotate(&self, pos_world_space: &Vector3<S>) -> Vector3<S> {
-        let w2m: &Matrix3<S> = &self.into();
+    pub fn rotate(&self, v: &Vector3<S>) -> Vector3<S> {
+        /*let w2m: &Matrix3<S> = &self.into();
+        w2m * v*/
+        let qvec = self.0.v; // vector part of the quaternion
 
-        w2m * pos_world_space
+        // uv = qvec × v
+        let uv = qvec.cross(*v);
+        // uuv = qvec × uv
+        let uuv = qvec.cross(uv);
+
+        // v' = v + 2 * (uv * q.w + uuv)
+        *v + ((uv * self.0.s) + uuv) * (S::from(2.0).unwrap())
     }
+
     pub fn inv_rotate(&self, pos_model_space: &Vector3<S>) -> Vector3<S> {
         let w2m: &Matrix3<S> = &self.into();
         let m2w = w2m.transpose();

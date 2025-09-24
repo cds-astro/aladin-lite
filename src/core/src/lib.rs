@@ -116,7 +116,6 @@ mod time;
 
 use crate::{
     camera::CameraViewPort, healpix::moc::SpaceMoc, math::lonlat::LonLatT, shader::ShaderManager,
-    time::DeltaTime,
 };
 
 use al_api::color::{Color, ColorRGBA};
@@ -137,10 +136,6 @@ use math::angle::ArcDeg;
 pub struct WebClient {
     // The app
     app: App,
-
-    // The time between the previous and the current
-    // frame
-    dt: DeltaTime,
 }
 
 use al_api::hips::ImageMetadata;
@@ -167,9 +162,7 @@ impl WebClient {
 
         let app = App::new(&gl, aladin_div, shaders, resources)?;
 
-        let dt = DeltaTime::zero();
-
-        let webclient = WebClient { app, dt };
+        let webclient = WebClient { app };
 
         Ok(webclient)
     }
@@ -196,7 +189,7 @@ impl WebClient {
     /// Whether the view is moving or not
     pub fn update(&mut self, dt: f64) -> Result<bool, JsValue> {
         // dt refers to the time taking (in ms) rendering the previous frame
-        self.dt = DeltaTime::from_millis(dt as f32);
+        //self.dt = DeltaTime::from_millis(dt as f32);
 
         // Update the application and get back the
         // world coordinates of the center of projection in (ra, dec)

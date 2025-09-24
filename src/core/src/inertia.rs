@@ -3,7 +3,7 @@ use cgmath::Vector3;
 use crate::camera::CameraViewPort;
 use crate::math::angle::ToAngle;
 use crate::math::projection::ProjectionType;
-use crate::time::{DeltaTime, Time};
+use crate::time::Time;
 /// State for inertia
 pub struct Inertia {
     // Initial angular distance

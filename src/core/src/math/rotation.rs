@@ -1,6 +1,5 @@
 use crate::math;
 use crate::math::angle::ToAngle;
-use cgmath::One;
 use cgmath::Vector3;
 use cgmath::{BaseFloat, InnerSpace};
 use cgmath::{Euler, Quaternion};
@@ -128,7 +127,7 @@ where
         let qy = Self::from_axis_angle(&Vector3::unit_y(), lon);
         let qx = Self::from_axis_angle(&Vector3::unit_x(), -lat);
 
-        (qy * qx)
+        qy * qx
     }
 
     /*pub fn from_sky_position(pos: &Vector3<S>) -> Rotation<S> {

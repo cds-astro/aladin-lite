@@ -785,11 +785,12 @@ export let View = (function () {
                     return;
                 }
 
+
                 view.pinchZoomParameters.isPinching = true;
                 view.pinchZoomParameters.initialZoomFactor = view.zoomFactor;
                 view.pinchZoomParameters.initialDistance = Math.sqrt(Math.pow(e.targetTouches[0].clientX - e.targetTouches[1].clientX, 2) + Math.pow(e.targetTouches[0].clientY - e.targetTouches[1].clientY, 2));
 
-                view.fingersRotationParameters.initialViewAngleFromCenter = view.wasm.getViewCenter2NorthPoleAngle();
+                view.fingersRotationParameters.initialViewAngleFromCenter = view.wasm.getRotation();
                 view.fingersRotationParameters.initialFingerAngle = Math.atan2(e.targetTouches[1].clientY - e.targetTouches[0].clientY, e.targetTouches[1].clientX - e.targetTouches[0].clientX) * 180.0 / Math.PI;
 
                 return;
@@ -1275,6 +1276,20 @@ export let View = (function () {
         // disable text selection on IE
         //Utils.on(view.aladinDiv, "selectstart", function () { return false; })
 
+        view.prevWheelTime = undefined;
+
+        function normalizeWheel(event) {
+            // Safari/Chrome on macOS: deltaMode = 0 (pixels), but trackpad steps are tiny
+            let scale = 1;
+            if (event.deltaMode === WheelEvent.DOM_DELTA_LINE) {
+                scale = 16; // assume ~16px per line
+            } else if (event.deltaMode === WheelEvent.DOM_DELTA_PAGE) {
+                scale = window.innerHeight;
+            }
+            return event.deltaY * scale;
+        }
+        view.zoomDelta = 0;
+
         Utils.on(view.catalogCanvas, 'wheel', function (e) {
             e.preventDefault();
             e.stopPropagation();
@@ -1295,24 +1310,13 @@ export let View = (function () {
             if (typeof onWheelTriggeredFunction === 'function') {
                 onWheelTriggeredFunction(e)
             } else {
-                // Default Aladin Lite zooming
-                view.delta = e.deltaY || e.detail || (-e.wheelDelta);
-
-                if (!view.throttledTouchPadZoom) {
-                    view.throttledTouchPadZoom = () => {
-                        const factor = Utils.detectTrackPad(e) ? 1.07 : 1.2;
-                        const currZoomFactor = view.zoom.isZooming ? view.zoom.finalZoom : view.zoomFactor;
-                        let newZoomFactor = view.delta > 0 ? currZoomFactor * factor : currZoomFactor / factor;
-
-                        // inside case
-                        view.zoom.apply({
-                            stop: newZoomFactor,
-                            duration: 100,
-                        });
-                    };
-                }
-
-                view.throttledTouchPadZoom();
+                // Default Aladin Lite zooming                
+                const normalizedDelta = e.deltaY && normalizeWheel(e) || e.detail || (-e.wheelDelta);
+                // Accumulate the normalized delta
+                // We do not zoom because we cannot rely on "wheel" event
+                // being triggered at constant time steps
+                // The zoom is delayed to the redraw which is animation frame requested!
+                view.zoomDelta += normalizedDelta;
 
                 if (view.mode === View.TOOL_COLOR_PICKER) {
                     pickColor(xymouse);
@@ -1386,16 +1390,25 @@ export let View = (function () {
     /**
      * redraw the whole view
      */
-    View.prototype.redraw = function (timestamp) {
+    View.prototype.redraw = function (now) {
         // request another frame
         requestAnimFrame(this.redrawClbk);
 
         // Elapsed time since last loop
-        const now = performance.now();
         const elapsedTime = now - this.prevTime;
         this.prevTime = now;
 
-        //this.dt = elapsedTime;
+        if (Math.abs(this.zoomDelta) > 1e-3) {
+            // Apply a fraction each frame (smoothing)
+            let step = this.zoomDelta * 0.2;
+            function wheelToZoomFactor(delta) {
+                const sensitivity = 0.002; // tune this
+                return Math.exp(-delta * sensitivity);
+            }
+
+            this.zoomFactor /= wheelToZoomFactor(step);
+            this.zoomDelta -= step;
+        }
 
         this.moving = this.wasm.update(elapsedTime);
         

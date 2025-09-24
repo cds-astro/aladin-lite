@@ -1759,7 +1759,7 @@ impl App {
 
                 if let Some(cur_pos) = self.projection.screen_to_model_space(&next_s, &self.camera)
                 {
-                    let d = math::vector::angle3(&prev_pos, &cur_pos);
+                    let d = math::vector::angle3(prev_pos, &cur_pos);
                     let axis = prev_pos.cross(cur_pos).normalize();
 
                     self.camera

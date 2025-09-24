@@ -51,7 +51,7 @@ fn generate_shaders() -> std::result::Result<(), Box<dyn Error>> {
                         fs::write(tmp_path.clone(), &src)?;
 
                         Command::new("mono")
-                            .args(&[
+                            .args([
                                 "/Users/matthieubaumann/Downloads/shader_minifier.exe",
                                 "--format",
                                 "text",

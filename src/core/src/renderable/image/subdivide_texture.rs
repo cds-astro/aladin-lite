@@ -88,7 +88,7 @@ where
 
         pixels_written += num_pixels_to_read;
 
-        if F::PIXEL_TYPE.num_channels() == 1 && y % step_cut == 0 {
+        if F::PIXEL_TYPE.num_channels() == 1 && y.is_multiple_of(step_cut) {
             // on a good line
             let bytes_line = &buf[id_tx][off_bytes_dst..(off_bytes_dst + num_bytes_to_read)];
             for x_in_patch in (0..w_patch).step_by(step_cut) {
@@ -153,7 +153,7 @@ where
             }
         }
 
-        if (((dy + 1) % (max_tex_size as usize) == 0) && id_tx == buf.len() - 1)
+        if ((dy + 1).is_multiple_of(max_tex_size as usize) && id_tx == buf.len() - 1)
             || pixels_written >= num_pixels
         {
             // we can create new textures of size max_tex_size

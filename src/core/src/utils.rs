@@ -58,7 +58,7 @@ pub unsafe fn transmute_vec_to_u8<I>(mut s: Vec<I>) -> Vec<u8> {
 
 #[allow(dead_code)]
 pub unsafe fn transmute_vec<I, O>(mut s: Vec<I>) -> Result<Vec<O>, &'static str> {
-    if std::mem::size_of::<I>() % std::mem::size_of::<O>() > 0 {
+    if !std::mem::size_of::<I>().is_multiple_of(std::mem::size_of::<O>()) {
         Err("The input type is not a multiple of the output type")
     } else {
         s.set_len(s.len() * (std::mem::size_of::<I>() / std::mem::size_of::<O>()));

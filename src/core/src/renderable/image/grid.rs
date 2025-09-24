@@ -98,7 +98,7 @@ fn get_coord_uv_it(
         )
         .chain(std::iter::once((
             xmax,
-            if xmax % max_tex_size == 0 {
+            if xmax.is_multiple_of(max_tex_size) {
                 1.0
             } else {
                 get_uv_in_tex_chunk(xmax)
@@ -129,7 +129,7 @@ fn get_coord_uv_it(
         })
         .chain(std::iter::once((
             xmax,
-            if xmax % max_tex_size == 0 {
+            if xmax.is_multiple_of(max_tex_size) {
                 1.0
             } else {
                 get_uv_in_tex_chunk(xmax)

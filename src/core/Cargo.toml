@@ -3,7 +3,7 @@ name = "aladin-lite"
 description = "Aladin Lite v3 introduces a new graphical engine written in Rust with the use of WebGL"
 license = "BSD-3-Clause"
 repository = "https://github.com/cds-astro/aladin-lite"
-version = "3.7.2-beta"
+version = "3.7.3-beta"
 authors = [ "baumannmatthieu0@gmail.com", "matthieu.baumann@astro.unistra.fr",]
 edition = "2018"
 
@@ -24,7 +24,7 @@ enum_dispatch = "0.3.8"
 wasm-bindgen = "=0.2.92"
 async-channel = "1.8.0"
 mapproj = "0.3.0"
-fitsrs = "0.3.4"
+fitsrs = "0.4.0"
 colorgrad = "0.6.2"
 
 [features]

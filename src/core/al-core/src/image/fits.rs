@@ -57,12 +57,11 @@ impl<'a> FitsImage<'a> {
                 HDU::XImage(hdu) | HDU::Primary(hdu) => {
                     // Prefer getting the dimension directly from NAXIS1/NAXIS2 instead of from the WCS
                     // because it may not exist in all HDU images
-                    let width = hdu.get_header().get_xtension().get_naxisn(1);
-                    let height = hdu.get_header().get_xtension().get_naxisn(2);
-
-                    if let (Some(&width), Some(&height)) = (width, height) {
-                        let depth =
-                            *hdu.get_header().get_xtension().get_naxisn(3).unwrap_or(&1) as u32;
+                    let naxis = hdu.get_header().get_xtension().get_naxis();
+                    if naxis.len() >= 2 {
+                        let width = naxis[0];
+                        let height = naxis[1];
+                        let depth = if naxis.len() >= 3 { naxis[2] } else { 1 };
 
                         let header = hdu.get_header();
 
@@ -90,7 +89,7 @@ impl<'a> FitsImage<'a> {
                             trim3,
                             width: width as u32,
                             height: height as u32,
-                            depth,
+                            depth: depth as u32,
                             bitpix,
                             bscale,
                             wcs,

@@ -199,7 +199,9 @@ pub fn vertices(
             };
 
             x_it.clone().map(move |(x, uvx)| {
-                let ndc = if let Some(xyz) = wcs.unproj_xyz(&ImgXY::new(x as f64, y as f64)) {
+                let ndc = if let Some(xyz) =
+                    wcs.unproj_xyz(&ImgXY::new(x as f64 + 0.5, y as f64 + 0.5))
+                {
                     let xyz = crate::coosys::apply_coo_system(
                         CooSystem::ICRS,
                         camera.get_coo_system(),

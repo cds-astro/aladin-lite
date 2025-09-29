@@ -162,7 +162,10 @@ impl Image {
 
         // Compute the fov
         let center = wcs
-            .unproj_lonlat(&ImgXY::new(width as f64 / 2.0, height as f64 / 2.0))
+            .unproj_lonlat(&ImgXY::new(
+                (width as f64 / 2.0) + 0.5,
+                (height as f64 / 2.0) + 0.5,
+            ))
             .ok_or(JsValue::from_str("(w / 2, h / 2) px cannot be unprojected"))?;
         let center_xyz = center.to_xyz();
         let inside = crate::coosys::apply_coo_system(
@@ -172,13 +175,13 @@ impl Image {
         );
 
         let vertices = [
-            wcs.unproj_lonlat(&ImgXY::new(0.0, 0.0))
+            wcs.unproj_lonlat(&ImgXY::new(0.5, 0.5))
                 .ok_or(JsValue::from_str("(0, 0) does not lie in the sky"))?,
-            wcs.unproj_lonlat(&ImgXY::new(width as f64 - 1.0, 0.0))
+            wcs.unproj_lonlat(&ImgXY::new(width as f64 - 0.5, 0.5))
                 .ok_or(JsValue::from_str("(w - 1, 0) does not lie in the sky"))?,
-            wcs.unproj_lonlat(&ImgXY::new(width as f64 - 1.0, height as f64 - 1.0))
+            wcs.unproj_lonlat(&ImgXY::new(width as f64 - 0.5, height as f64 - 0.5))
                 .ok_or(JsValue::from_str("(w - 1, h - 1) does not lie in the sky"))?,
-            wcs.unproj_lonlat(&ImgXY::new(0.0, height as f64 - 1.0))
+            wcs.unproj_lonlat(&ImgXY::new(0.5, height as f64 - 0.5))
                 .ok_or(JsValue::from_str("(0, h - 1) does not lie in the sky"))?,
         ]
         .iter()
@@ -669,7 +672,10 @@ impl Image {
             // let's redefine the region
             let center = self
                 .wcs
-                .unproj_lonlat(&ImgXY::new(width as f64 / 2.0, height as f64 / 2.0))
+                .unproj_lonlat(&ImgXY::new(
+                    (width as f64 / 2.0) + 0.5,
+                    (height as f64 / 2.0) + 0.5,
+                ))
                 .ok_or(JsValue::from_str("(w / 2, h / 2) px cannot be unprojected"))?;
             let center_xyz = center.to_xyz();
             let inside = crate::coosys::apply_coo_system(
@@ -680,16 +686,16 @@ impl Image {
 
             let vertices = [
                 self.wcs
-                    .unproj_lonlat(&ImgXY::new(0.0, 0.0))
+                    .unproj_lonlat(&ImgXY::new(0.5, 0.5))
                     .ok_or(JsValue::from_str("(0, 0) does not lie in the sky"))?,
                 self.wcs
-                    .unproj_lonlat(&ImgXY::new(width as f64 - 1.0, 0.0))
+                    .unproj_lonlat(&ImgXY::new(width as f64 - 1.0, 0.5))
                     .ok_or(JsValue::from_str("(w - 1, 0) does not lie in the sky"))?,
                 self.wcs
-                    .unproj_lonlat(&ImgXY::new(width as f64 - 1.0, height as f64 - 1.0))
+                    .unproj_lonlat(&ImgXY::new(width as f64 - 0.5, height as f64 - 0.5))
                     .ok_or(JsValue::from_str("(w - 1, h - 1) does not lie in the sky"))?,
                 self.wcs
-                    .unproj_lonlat(&ImgXY::new(0.0, height as f64 - 1.0))
+                    .unproj_lonlat(&ImgXY::new(0.5, height as f64 - 0.5))
                     .ok_or(JsValue::from_str("(0, h - 1) does not lie in the sky"))?,
             ]
             .iter()

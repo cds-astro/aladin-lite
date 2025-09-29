@@ -570,42 +570,48 @@ impl CameraViewPort {
     }
 
     fn compute_texture_depth(&mut self) {
-        /*// Compute a depth from a number of pixels on screen
-        let width = self.width;
-        let aperture = self.aperture.0 as f32;
+        // Compute a depth from a number of pixels on screen
+        /*let width = self.width;
+                let aperture = self.aperture as f32;
 
-        let angle_per_pixel = aperture / width;
+                let angle_per_pixel = aperture / width;
 
-        let two_power_two_times_depth_pixel =
-            std::f32::consts::PI / (3.0 * angle_per_pixel * angle_per_pixel);
-        let depth_pixel = (two_power_two_times_depth_pixel.log2() / 2.0).floor() as u32;
+                let two_power_two_times_depth_pixel =
+                    std::f32::consts::PI / (3.0 * angle_per_pixel * angle_per_pixel);
+                let depth_pixel = (two_power_two_times_depth_pixel.log2() / 2.0).ceil() as u32;
 
-        //let survey_max_depth = conf.get_max_depth();
-        // The depth of the texture
-        // A texture of 512x512 pixels will have a depth of 9
-        const DEPTH_OFFSET_TEXTURE: u32 = 9;
-        // The depth of the texture corresponds to the depth of a pixel
-        // minus the offset depth of the texture
-        self.texture_depth = if DEPTH_OFFSET_TEXTURE > depth_pixel {
-            0_u8
-        } else {
-            (depth_pixel - DEPTH_OFFSET_TEXTURE) as u8
-        };*/
+                //let survey_max_depth = conf.get_max_depth();
+                // The depth of the texture
+                // A texture of 512x512 pixels will have a depth of 9
+                const DEPTH_OFFSET_TEXTURE: u32 = 9;
+                // The depth of the texture corresponds to the depth of a pixel
+                // minus the offset depth of the texture
+                self.texture_depth = if DEPTH_OFFSET_TEXTURE > depth_pixel {
+                    0_u8
+                } else {
+                    (depth_pixel - DEPTH_OFFSET_TEXTURE) as u8
+                };
+        */
+        let w_screen_device_px = self.width as f64;
+        //let depth_pixel = 29_usize;
 
-        let w_screen_px = self.width as f64;
-        let smallest_cell_size_px = self.dpi as f64;
-        let mut depth_pixel = 29_usize;
+        let pixel_angle_rad = self.get_aperture() / w_screen_device_px;
 
-        let hpx_cell_size_rad = (smallest_cell_size_px / w_screen_px) * self.get_aperture();
-
-        while depth_pixel > 0 {
-            if crate::healpix::utils::MEAN_HPX_CELL_RES[depth_pixel] > hpx_cell_size_rad {
-                break;
+        // Find the smallest depth such that MEAN_HPX_CELL_RES[depth] > pixel_angle_rad
+        let depth_pixel = match crate::healpix::utils::MEAN_HPX_CELL_RES.binary_search_by(|&res| {
+            if res < pixel_angle_rad {
+                std::cmp::Ordering::Greater
+            } else if res > pixel_angle_rad {
+                std::cmp::Ordering::Less
+            } else {
+                std::cmp::Ordering::Equal
             }
+        }) {
+            Ok(idx) => idx, // exact match
+            Err(idx) => idx,
+        };
 
-            depth_pixel -= 1;
-        }
-        depth_pixel += 1;
+        //al_core::log(&format!("{:?}", depth_pixel));
         const DEPTH_OFFSET_TEXTURE: usize = 9;
         self.texture_depth = if DEPTH_OFFSET_TEXTURE > depth_pixel {
             0_u8

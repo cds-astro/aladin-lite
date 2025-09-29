@@ -219,6 +219,9 @@ pub struct HiPS2D {
     //#[cfg(feature = "webgl1")]
     // layout (location = 0) in vec3 position;
     position: Vec<f32>,
+    //js_position: Float32Array,
+    //cap: usize,
+    //ptr: usize,
     //#[cfg(feature = "webgl1")]
     // layout (location = 1) in vec3 uv_start;
     uv_start: Vec<f32>,
@@ -235,7 +238,6 @@ pub struct HiPS2D {
 
     vao: VertexArrayObject,
     gl: WebGlContext,
-
     moc: Option<SpaceMoc>,
 
     // A buffer storing the cells in the view
@@ -304,6 +306,7 @@ impl HiPS2D {
         let gl = gl.clone();
         let moc = None;
         let hpx_cells_in_view = vec![];
+
         // request the allsky texture
         Ok(Self {
             // The image survey texture buffer
@@ -494,6 +497,7 @@ impl HiPS2D {
     }
 
     fn recompute_vertices(&mut self, camera: &mut CameraViewPort, projection: &ProjectionType) {
+        //al_core::log(&format!("num position: {:?}", self.position.len()));
         self.position.clear();
         self.uv_start.clear();
         self.uv_end.clear();

@@ -575,7 +575,7 @@ impl App {
 
         let mut tile_copied = false;
 
-        const MAX_FRAME_TIME: DeltaTime = DeltaTime::from_millis(1000.0 / 25.0);
+        const MAX_FRAME_TIME: DeltaTime = DeltaTime::from_millis(1000.0 / 40.0);
 
         for rsc in rscs_received {
             if Time::now() - rendering_timer >= MAX_FRAME_TIME {

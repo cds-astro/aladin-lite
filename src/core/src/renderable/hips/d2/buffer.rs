@@ -61,7 +61,7 @@ fn create_hpx_texture_storage(
         (
             WebGlRenderingCtx::TEXTURE_MIN_FILTER,
             // apply mipmapping
-            WebGlRenderingCtx::NEAREST_MIPMAP_NEAREST,
+            WebGlRenderingCtx::LINEAR_MIPMAP_LINEAR,
         ),
         (
             WebGlRenderingCtx::TEXTURE_MAG_FILTER,
@@ -75,10 +75,6 @@ fn create_hpx_texture_storage(
         // Prevents t-coordinate wrapping (repeating)
         (
             WebGlRenderingCtx::TEXTURE_WRAP_T,
-            WebGlRenderingCtx::CLAMP_TO_EDGE,
-        ),
-        (
-            WebGlRenderingCtx::TEXTURE_WRAP_R,
             WebGlRenderingCtx::CLAMP_TO_EDGE,
         ),
     ];

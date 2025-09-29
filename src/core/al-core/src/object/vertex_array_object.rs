@@ -132,6 +132,20 @@ pub mod vao {
             self
         }
 
+        /*pub fn update_from_js_array<T: VertexAttribPointerType>(
+            &mut self,
+            attr: &'static str,
+            usage: u32,
+            js_array: T::ArrayBufferView,
+        ) -> &mut Self {
+            self.vao
+                .array_buffer
+                .get_mut(attr)
+                .unwrap_abort()
+                .update_from_js_array::<T>(usage, js_array);
+            self
+        }*/
+
         pub fn update_element_array<T: VertexAttribPointerType, B: BufferDataStorage<'a, T>>(
             &mut self,
             usage: u32,

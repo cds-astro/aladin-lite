@@ -61,16 +61,9 @@ export let Polyline = (function() {
         return mag2;
     }
 
-    function _drawLine(l, ctx, noStroke) {
-        noStroke = noStroke===true || false;
-
-        ctx.beginPath();
+    function _drawLine(l, ctx) {
         ctx.moveTo(l.x1, l.y1);
         ctx.lineTo(l.x2, l.y2);
-
-        if (!noStroke) {
-            ctx.stroke();
-        }
     }
 
     /**
@@ -232,7 +225,6 @@ export let Polyline = (function() {
             return false;
         }
 
-
         noSmallCheck = noSmallCheck===true || false;
         noStroke = noStroke===true || false;
 
@@ -269,8 +261,6 @@ export let Polyline = (function() {
         let xmax = Number.NEGATIVE_INFINITY
         let ymin = Number.POSITIVE_INFINITY
         let ymax = Number.NEGATIVE_INFINITY;
-
-
 
         let behind = true;
         for (var k=0; k<len; k++) {
@@ -380,10 +370,12 @@ export let Polyline = (function() {
         let v0 = this.closed ? len - 1 : 0;
         let v1 = this.closed ? 0 : 1;
 
+        ctx.globalAlpha = this.opacity;
         ctx.lineWidth = this.lineWidth;
         ctx.beginPath();
 
         for (var k = 0; k < nSegment; k++) {
+
             drawLine(xyView[v0], xyView[v1]);
 
             v0 = v1;
@@ -408,17 +400,15 @@ export let Polyline = (function() {
                 v1 = v1 + 1;
             }
 
-            ctx.save();
             ctx.fillStyle = this.fillColor;
-            ctx.globalAlpha = this.opacity;
             ctx.fill();
-            ctx.restore();
         }
 
         return true;
     };
 
     Polyline.prototype.isInStroke = function(ctx, view, x, y) {
+        ctx.beginPath()
         ctx.lineWidth = this.lineWidth;
 
         let pointXY = [];
@@ -441,8 +431,8 @@ export let Polyline = (function() {
 
             if (v1 && v2) {
                 const line = {x1: v1.x, y1: v1.y, x2: v2.x, y2: v2.y};                                   // new segment
-                _drawLine(line, ctx, true);
-    
+                _drawLine(line, ctx);
+
                 if (ctx.isPointInStroke(x, y)) {                    // x, y is on line?
                     return true;
                 }
@@ -455,7 +445,7 @@ export let Polyline = (function() {
 
             if (v1 && v2) {
                 const line = {x1: v1.x, y1: v1.y, x2: v2.x, y2: v2.y};                                   // new segment
-                _drawLine(line, ctx, true);
+                _drawLine(line, ctx);
     
                 if (ctx.isPointInStroke(x, y)) {                    // x,y is on line?
                     return true;

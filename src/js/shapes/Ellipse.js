@@ -270,7 +270,7 @@ export let Ellipse = (function() {
         if (! baseColor) {
             baseColor = '#ff0000';
         }
-        
+
         if (this.isSelected) {
             if(this.selectionColor) {
                 ctx.strokeStyle = this.selectionColor;
@@ -318,8 +318,6 @@ export let Ellipse = (function() {
                 let [xb, yb] = getVertexOnEllipse(3 * Math.PI * 0.5)
                 let [xc, yc] = getVertexOnEllipse(Math.PI)
                 let [xd, yd] = getVertexOnEllipse(0)
-                ctx.save();
-
                 ctx.lineWidth = Math.max(this.lineWidth * 0.5, 1.0);
                 ctx.setLineDash([this.lineWidth, this.lineWidth]);
 
@@ -329,8 +327,6 @@ export let Ellipse = (function() {
                 ctx.lineTo(xd, yd);
 
                 ctx.stroke();
-
-                ctx.restore()
             }
         }
 

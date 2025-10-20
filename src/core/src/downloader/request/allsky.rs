@@ -150,17 +150,17 @@ impl From<query::Allsky> for AllskyRequest {
                     } = &FitsImage::from_raw_bytes(raw_bytes.as_slice())?[0];
                     match bitpix {
                         Bitpix::U8 => {
-                            Ok(handle_allsky_fits(&raw_bytes, tile_size, allsky_tile_size)?
+                            Ok(handle_allsky_fits(raw_bytes, tile_size, allsky_tile_size)?
                                 .map(|image| ImageType::RawR8ui { image })
                                 .collect())
                         }
                         Bitpix::I16 => {
-                            Ok(handle_allsky_fits(&raw_bytes, tile_size, allsky_tile_size)?
+                            Ok(handle_allsky_fits(raw_bytes, tile_size, allsky_tile_size)?
                                 .map(|image| ImageType::RawR16i { image })
                                 .collect())
                         }
                         Bitpix::I32 => {
-                            Ok(handle_allsky_fits(&raw_bytes, tile_size, allsky_tile_size)?
+                            Ok(handle_allsky_fits(raw_bytes, tile_size, allsky_tile_size)?
                                 .map(|image| ImageType::RawR32i { image })
                                 .collect())
                         }
@@ -178,12 +178,12 @@ impl From<query::Allsky> for AllskyRequest {
                                     data.len() * 4,
                                 )
                             };
-                            Ok(handle_allsky_fits(&raw_bytes, tile_size, allsky_tile_size)?
+                            Ok(handle_allsky_fits(raw_bytes, tile_size, allsky_tile_size)?
                                 .map(|image| ImageType::RawR32i { image })
                                 .collect())
                         }
                         Bitpix::F32 => {
-                            Ok(handle_allsky_fits(&raw_bytes, tile_size, allsky_tile_size)?
+                            Ok(handle_allsky_fits(raw_bytes, tile_size, allsky_tile_size)?
                                 .map(|image| ImageType::RawRgba8u { image })
                                 .collect())
                         }

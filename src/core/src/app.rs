@@ -270,11 +270,8 @@ impl App {
     fn _update_hips_location(&mut self) {
         let camera = &self.camera;
         for hips in self.layers.get_mut_hipses() {
-            match hips {
-                HiPS::D3(hips) => {
-                    hips.set_cursor_location(camera);
-                }
-                _ => (),
+            if let HiPS::D3(hips) = hips {
+                hips.set_cursor_location(camera);
             }
         }
     }

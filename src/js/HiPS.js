@@ -918,7 +918,7 @@ export let HiPS = (function () {
                 imgFormat = "jpeg";
             }
 
-            if (!["fits", "png", "jpeg", "webp"].includes(imgFormat)) {
+            if (!["fits", "png", "jpeg", "webp", "fits.fz"].includes(imgFormat)) {
                 console.warn('Formats must lie in ["fits", "png", "jpg", "webp"]. imgFormat option property ignored');
             } else {
                 // Passed the check, we erase the image format with the new one
@@ -932,7 +932,7 @@ export let HiPS = (function () {
                     this.imgFormat = imgFormat;
 
                     let [minCut, maxCut] = this.getCuts();
-                    if (minCut === undefined && maxCut === undefined && imgFormat === "fits") {
+                    if (minCut === undefined && maxCut === undefined && (imgFormat === "fits" || imgFormat === "fits.fz")) {
                         // sets the default cuts parsed from the properties
                         this.setCuts(this.defaultFitsMinCut, this.defaultFitsMaxCut)
                     }

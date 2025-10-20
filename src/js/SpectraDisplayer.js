@@ -261,7 +261,6 @@ export class SpectraDisplayer {
             const rect = canvas.getBoundingClientRect();
             const mx = e.clientX - rect.left;
             const my = e.clientY - rect.top;
-            
             let v = this.data.values[Math.round(mx / this.scaleX)]
 
             let len = this.data.values.length;
@@ -325,7 +324,7 @@ export class SpectraDisplayer {
         canvas.addEventListener('mousemove', (e) => {
             const rect = canvas.getBoundingClientRect();
             const mx = e.clientX - rect.left;
-            const my = e.clientY - rect.top;
+            const my = e.clientY - rect.top;         
 
             // can be in the spectral area
             let v = this.data.values[Math.round(mx / this.scaleX)]
@@ -535,7 +534,7 @@ export class SpectraDisplayer {
                     this._redraw(this.ctx);
                 }
             };
-    
+
             window.addEventListener("spectra", this.spectraUpdateCallback);
 
             this.resetScale();

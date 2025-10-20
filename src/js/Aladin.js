@@ -1831,7 +1831,7 @@ export let Aladin = (function () {
         // Do not use proxy with CORS headers until we solve that: https://github.com/MattiasBuelens/wasm-streams/issues/20
         //url = Utils.handleCORSNotSameOrigin(url).href;
 
-        let imageOptions = {...options, imgFormat: 'fits', successCallback, errorCallback};
+        let imageOptions = {...options, successCallback, errorCallback};
         let image = new Image(url, imageOptions);
 
         return image;
@@ -3117,7 +3117,6 @@ aladin.displayFITS(
 
         get("https://alasky.unistra.fr/cgi/fits2HiPS", data).then(
             async (response) => {
-                console.log(response, data)
                 if (response.status != "success") {
                     console.error("An error occured: " + response.message);
                     if (errorCallback) {

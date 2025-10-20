@@ -51,12 +51,6 @@ pub unsafe fn transmute_boxed_slice<I, O>(s: Box<[I]>) -> Box<[O]> {
 }
 
 #[allow(dead_code)]
-pub unsafe fn transmute_vec_to_u8<I>(mut s: Vec<I>) -> Vec<u8> {
-    s.set_len(std::mem::size_of_val(&s[..]));
-    std::mem::transmute(s)
-}
-
-#[allow(dead_code)]
 pub unsafe fn transmute_vec<I, O>(mut s: Vec<I>) -> Result<Vec<O>, &'static str> {
     if !std::mem::size_of::<I>().is_multiple_of(std::mem::size_of::<O>()) {
         Err("The input type is not a multiple of the output type")

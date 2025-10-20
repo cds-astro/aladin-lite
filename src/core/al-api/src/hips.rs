@@ -179,8 +179,9 @@ impl HiPSProperties {
 #[wasm_bindgen]
 #[serde(rename_all = "camelCase")]
 pub enum ImageExt {
-    #[serde(alias = "fits", alias = "fits.fz")]
     Fits,
+    #[serde(alias = "fits.fz")]
+    FitsFz,
     Jpeg,
     Png,
     Webp,
@@ -199,6 +200,7 @@ pub enum DataproductType {
 impl std::fmt::Display for ImageExt {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
+            ImageExt::FitsFz => write!(f, "fits.fz"),
             ImageExt::Fits => write!(f, "fits"),
             ImageExt::Png => write!(f, "png"),
             ImageExt::Jpeg => write!(f, "jpg"),

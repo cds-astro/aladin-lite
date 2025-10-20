@@ -3,7 +3,6 @@ use cgmath::Vector3;
 use crate::camera::CameraViewPort;
 use crate::math::angle::ToAngle;
 use crate::math::projection::ProjectionType;
-use crate::time::Time;
 /// State for inertia
 pub struct Inertia {
     // Initial angular distance
@@ -12,14 +11,12 @@ pub struct Inertia {
     // Vector of rotation
     axis: Vector3<f64>,
     // The time when the inertia begins
-    time_prev: Time,
     north_up: bool,
 }
 
 impl Inertia {
     pub fn new(ampl: f64, axis: Vector3<f64>, north_up: bool) -> Self {
         Inertia {
-            time_prev: Time::now(),
             ampl,
             speed: (ampl * 0.5).min(0.1),
             axis,
@@ -53,14 +50,13 @@ impl Inertia {
     }*/
 
     pub fn apply(&mut self, camera: &mut CameraViewPort, proj: &ProjectionType, dt: f64) {
-        self.time_prev = Time::now();
         // Initial angular velocity
         //let v0 = self.ampl * 0.5;
 
         // Friction coefficient (tweak this)
-        let damping = 5e-3;
+        const DAMPING_FACTOR: f64 = 5e-3;
 
-        self.speed *= (-damping * dt).exp();
+        self.speed *= (-DAMPING_FACTOR * dt).exp();
         let delta_angle = self.speed * dt;
 
         // Exponential decay of angular velocity

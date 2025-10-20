@@ -267,6 +267,18 @@ impl App {
         })
     }
 
+    fn _update_hips_location(&mut self) {
+        let camera = &self.camera;
+        for hips in self.layers.get_mut_hipses() {
+            match hips {
+                HiPS::D3(hips) => {
+                    hips.set_cursor_location(camera);
+                }
+                _ => (),
+            }
+        }
+    }
+
     fn look_for_new_tiles(&mut self) -> Result<(), JsValue> {
         // Move the views of the different active hipss
         self.tile_fetcher.clear();
@@ -508,15 +520,13 @@ impl App {
             // The threshold stopping criteria must be dependant
             // of the zoom level, in this case the initial angular distance
             // speed
-            let thresh_speed = inertia.get_start_ampl() * 1e-3;
+            let thresh_speed = inertia.get_start_ampl() * 1e-4;
             let cur_speed = inertia.get_cur_speed();
 
             if cur_speed < thresh_speed {
                 self.inertia = None;
             }
         }
-
-        self.draw()?;
 
         // Check for async retrieval
         if let Ok(img) = self.img_recv.try_recv() {
@@ -548,7 +558,7 @@ impl App {
             .get_resolved_tiles(/*&available_tiles, */&mut self.hipss);*/
 
             if self.request_for_new_tiles
-            //&& Time::now() - self.last_time_request_for_new_tiles > DeltaTime::from(200.0)
+                && Time::now() - self.last_time_request_for_new_tiles > DeltaTime::from(500.0)
             {
                 self.look_for_new_tiles()?;
 
@@ -560,9 +570,9 @@ impl App {
             let fetch_tiles =
                 // * the user is not panning the view
                 // * or the user is but did not move for at least 100ms
-                (Time::now() - self.camera.get_time_of_last_move() >= DeltaTime(100.0) || !self.dragging) &&
+                //(Time::now() - self.camera.get_time_of_last_move() >= DeltaTime(100.0) || !self.dragging) &&
                 // * no inertia action is in progress
-                self.inertia.is_none() &&
+                //self.inertia.is_none() &&
                 // * the user is not zooming
                 !self.camera.has_zoomed();
 
@@ -576,6 +586,18 @@ impl App {
         let mut tile_copied = false;
 
         const MAX_FRAME_TIME: DeltaTime = DeltaTime::from_millis(1000.0 / 40.0);
+
+        // - there is at least one tile in its blending phase
+        let blending_anim_occuring =
+            (Time::now() - self.time_start_blending) < BLENDING_ANIM_DURATION;
+
+        self.rendering = blending_anim_occuring
+            | has_camera_moved
+            | self.camera.has_zoomed()
+            | self.request_redraw
+            | self.inertia.is_some();
+
+        self.draw()?;
 
         for rsc in rscs_received {
             if Time::now() - rendering_timer >= MAX_FRAME_TIME {
@@ -925,16 +947,6 @@ impl App {
             }
         }
 
-        // - there is at least one tile in its blending phase
-        let blending_anim_occuring =
-            (Time::now() - self.time_start_blending) < BLENDING_ANIM_DURATION;
-
-        self.rendering = blending_anim_occuring
-            | has_camera_moved
-            | self.camera.has_zoomed()
-            | self.request_redraw
-            | self.inertia.is_some();
-
         // Reset the flags about the user action
         self.camera.reset();
 
@@ -1031,64 +1043,63 @@ impl App {
         self.layers.reset_frame();*/
 
         //let scene_redraw = self.rendering | force_render;
-        let scene_redraw = true;
+
         //let mut ui = self.ui.lock();
         //let ui_redraw = ui.redraw_needed();
         //if scene_redraw || ui_redraw {
-        if scene_redraw {
-            self.request_redraw = false;
 
-            let shaders = &mut self.shaders;
+        self.request_redraw = false;
 
-            let gl = self.gl.clone();
+        let shaders = &mut self.shaders;
 
-            let camera = &mut self.camera;
+        let gl = self.gl.clone();
 
-            let grid = &mut self.grid;
-            let moc = &mut self.moc;
-            let projection = &self.projection;
+        let camera = &mut self.camera;
 
-            let layers = &mut self.layers;
-            //let catalogs = &self.manager;
-            let colormaps = &self.colormaps;
-            //let fbo_view = &self._fbo_view;
-            //let final_rendering_pass = &self._final_rendering_pass;
+        let grid = &mut self.grid;
+        let moc = &mut self.moc;
+        let projection = &self.projection;
 
-            //fbo_view.draw_onto(
-            //    move || {
-            // Render the scene
-            // Clear all the screen first (only the region set by the scissor)
-            gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
+        let layers = &mut self.layers;
+        //let catalogs = &self.manager;
+        let colormaps = &self.colormaps;
+        //let fbo_view = &self._fbo_view;
+        //let final_rendering_pass = &self._final_rendering_pass;
 
-            // set the blending options
-            layers.draw(camera, shaders, colormaps, projection)?;
+        //fbo_view.draw_onto(
+        //    move || {
+        // Render the scene
+        // Clear all the screen first (only the region set by the scissor)
+        gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
-            // Draw the catalog
-            //let fbo_view = &self.fbo_view;
-            //catalogs.draw(&gl, shaders, camera, colormaps, fbo_view)?;
-            //catalogs.draw(&gl, shaders, camera, colormaps, None, self.projection)?;
-            /*gl.blend_func_separate(
-                WebGl2RenderingContext::SRC_ALPHA,
-                WebGl2RenderingContext::ONE,
-                WebGl2RenderingContext::ONE,
-                WebGl2RenderingContext::ONE,
-            );*/
-            moc.draw(camera, projection, shaders)?;
+        // set the blending options
+        layers.draw(camera, shaders, colormaps, projection)?;
 
-            /*gl.blend_func_separate(
-                WebGl2RenderingContext::SRC_ALPHA,
-                WebGl2RenderingContext::ONE,
-                WebGl2RenderingContext::ONE,
-                WebGl2RenderingContext::ONE,
-            );*/
-            grid.draw(camera, projection, shaders)?;
-            //        Ok(())
-            //    },
-            //    None,
-            //)?;
+        // Draw the catalog
+        //let fbo_view = &self.fbo_view;
+        //catalogs.draw(&gl, shaders, camera, colormaps, fbo_view)?;
+        //catalogs.draw(&gl, shaders, camera, colormaps, None, self.projection)?;
+        /*gl.blend_func_separate(
+            WebGl2RenderingContext::SRC_ALPHA,
+            WebGl2RenderingContext::ONE,
+            WebGl2RenderingContext::ONE,
+            WebGl2RenderingContext::ONE,
+        );*/
+        moc.draw(camera, projection, shaders)?;
 
-            //final_rendering_pass.draw_on_screen(fbo_view, &mut self.shaders)?;
-        }
+        /*gl.blend_func_separate(
+            WebGl2RenderingContext::SRC_ALPHA,
+            WebGl2RenderingContext::ONE,
+            WebGl2RenderingContext::ONE,
+            WebGl2RenderingContext::ONE,
+        );*/
+        grid.draw(camera, projection, shaders)?;
+        //        Ok(())
+        //    },
+        //    None,
+        //)?;
+
+        //final_rendering_pass.draw_on_screen(fbo_view, &mut self.shaders)?;
 
         Ok(())
     }
@@ -1223,7 +1234,7 @@ impl App {
                                 &gl,
                                 wcs,
                                 bitpix,
-                                raw_bytes,
+                                raw_bytes.as_ref(),
                                 bscale,
                                 bzero,
                                 blank,
@@ -1532,6 +1543,8 @@ impl App {
 
         // And stop the current inertia as well if there is one
         self.inertia = None;
+
+        self._update_hips_location();
     }
 
     pub(crate) fn move_mouse(&mut self, s1x: f32, s1y: f32, s2x: f32, s2y: f32) {
@@ -1740,6 +1753,8 @@ impl App {
 
                 self.prev_cam_position = prev_cam_position;
                 self.request_for_new_tiles = true;
+
+                self._update_hips_location();
             }
         } else {
             // approx move
@@ -1767,11 +1782,9 @@ impl App {
 
                     self.prev_cam_position = prev_cam_position;
                     self.request_for_new_tiles = true;
-                } else {
-                    //self.out_of_fov = true;
+
+                    self._update_hips_location();
                 }
-            } else {
-                //self.out_of_fov = true;
             }
         }
     }
@@ -1799,6 +1812,8 @@ impl App {
 
     pub(crate) fn set_zoom_factor(&mut self, zoom_factor: f64) {
         self.camera.set_zoom_factor(zoom_factor, &self.projection);
+
+        self._update_hips_location();
 
         self.request_for_new_tiles = true;
         self.request_redraw = true;

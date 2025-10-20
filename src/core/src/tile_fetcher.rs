@@ -69,6 +69,7 @@ impl HiPSLocalFiles {
             ImageExt::Jpeg => &self.tiles[1],
             ImageExt::Png => &self.tiles[2],
             ImageExt::Webp => &self.tiles[3],
+            ImageExt::FitsFz => todo!(),
         };
 
         tiles_per_fmt[d].get(&i)

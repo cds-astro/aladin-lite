@@ -53,7 +53,7 @@ export class HiPSFilterBox extends Box {
                 url: freqIconUrl,
             },
             tooltip: {content: 'Observation bandwidth', position: {direction: 'bottom'}},
-            toggled: true,
+            toggled: false,
             actionOn: () => {
                 self._triggerFilteringCallback();
             },

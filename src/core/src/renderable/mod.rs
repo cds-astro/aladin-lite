@@ -454,7 +454,11 @@ impl Layers {
                 // HiPS cube
                 DataproductType::Cube => HiPS::D3(HiPS3D::new(cfg, gl, &layer)?),
                 // HiPS 3D
-                DataproductType::SpectralCube => HiPS::D3(HiPS3D::new(cfg, gl, &layer)?),
+                DataproductType::SpectralCube => {
+                    let mut hips = HiPS3D::new(cfg, gl, &layer)?;
+                    hips.set_cursor_location(camera);
+                    HiPS::D3(hips)
+                }
                 // Typical HiPS image
                 _ => HiPS::D2(HiPS2D::new(cfg, gl)?),
             };

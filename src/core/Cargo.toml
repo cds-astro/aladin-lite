@@ -24,8 +24,8 @@ enum_dispatch = "0.3.8"
 wasm-bindgen = "=0.2.92"
 async-channel = "1.8.0"
 mapproj = "0.3.0"
-fitsrs = "0.4.0"
 colorgrad = "0.6.2"
+fitsrs = { path = "../../../fitsrs" }
 
 [features]
 webgl1 = [ "al-core/webgl1", "al-api/webgl1", "web-sys/WebGlRenderingContext", "web-sys/AngleInstancedArrays", "web-sys/ExtSRgb", "web-sys/OesTextureFloat",]

@@ -592,7 +592,7 @@ impl CameraViewPort {
                     (depth_pixel - DEPTH_OFFSET_TEXTURE) as u8
                 };
         */
-        let w_screen_device_px = self.width as f64;
+        let w_screen_device_px = self.width as f64 / (self.dpi as f64);
         //let depth_pixel = 29_usize;
 
         let pixel_angle_rad = self.get_aperture() / w_screen_device_px;

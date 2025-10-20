@@ -11,6 +11,7 @@ use al_core::texture::Texture3D;
 use al_core::webgl_ctx::WebGlRenderingCtx;
 use cgmath::Vector3;
 use fitsrs::hdu::header::Bitpix;
+use std::borrow::Cow;
 use std::cmp::Ordering;
 use std::ops::Range;
 use wasm_bindgen::JsValue;
@@ -283,37 +284,45 @@ impl HpxFreqTex {
     ) -> Result<(), JsValue> {
         let raw_bytes = raw_bytes.to_vec().into_boxed_slice();
 
-        let (trim1, trim2, trim3, width, height, depth, bitpix, data_byte_offset, bscale, bzero) = {
-            let fits = FitsImage::from_raw_bytes(&raw_bytes[..])?;
-            fits[0].insert_into_3d_texture(&self.texture, &Vector3::<i32>::new(0, 0, 0))?;
+        self.data = {
+            let image = FitsImage::from_raw_bytes(&raw_bytes[..])?.pop().unwrap();
+            image.insert_into_3d_texture(&self.texture, &Vector3::<i32>::new(0, 0, 0))?;
 
-            (
-                fits[0].trim1,
-                fits[0].trim2,
-                fits[0].trim3,
-                fits[0].width,
-                fits[0].height,
-                fits[0].depth,
-                fits[0].bitpix,
-                fits[0].data_byte_offset.clone(),
-                fits[0].bscale,
-                fits[0].bzero,
-            )
+            let bitpix = image.bitpix;
+            let trim = (image.trim1, image.trim2, image.trim3);
+            let naxis = (image.width, image.height, image.depth);
+            let bscale = image.bscale;
+            let bzero = image.bzero;
+
+            if let Cow::Owned(uncompressed_bytes) = image.raw_bytes {
+                Some(HpxFreqData::Fits {
+                    data_byte_offset: 0..uncompressed_bytes.len(),
+                    raw_bytes: uncompressed_bytes.into_boxed_slice(),
+                    bitpix,
+                    trim,
+                    naxis,
+                    bscale,
+                    bzero,
+                    size,
+                })
+            } else {
+                let data_byte_offset = image.data_byte_offset.clone();
+
+                std::mem::drop(image);
+
+                Some(HpxFreqData::Fits {
+                    raw_bytes,
+                    data_byte_offset,
+                    bitpix,
+                    trim,
+                    naxis,
+                    bscale,
+                    bzero,
+                    size,
+                })
+            }
         };
 
-        let trim = (trim1, trim2, trim3);
-        let naxis = (width, height, depth);
-
-        self.data = Some(HpxFreqData::Fits {
-            raw_bytes,
-            data_byte_offset: data_byte_offset.clone(),
-            bitpix,
-            trim,
-            naxis,
-            bscale,
-            bzero,
-            size,
-        });
         self.num_stored_slices = self.num_slices;
         self.start_time = Some(Time::now());
 

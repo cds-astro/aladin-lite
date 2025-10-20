@@ -797,6 +797,7 @@ export let View = (function () {
             }
 
             view.dragCoo = xymouse;
+            view.dragPastCoo = xymouse;
 
             view.dragging = true;
 
@@ -816,39 +817,6 @@ export let View = (function () {
             // To disable text selection use css user-select: none instead of putting this value to false
             return true;
         });
-
-        /*
-        Utils.on(view.catalogCanvas, "mouseup", function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-
-            const xymouse = Utils.relMouseCoords(e);
-
-            ALEvent.CANVAS_EVENT.dispatchedTo(view.aladinDiv, {
-                state: {
-                    mode: view.mode,
-                    dragging: view.dragging,
-                    rightClickPressed: view.rightClick
-                },
-                xy: xymouse,
-                ev: e,
-            });
-
-            if (view.rightClick) {
-                if (showContextMenu) {
-                    view.aladin.contextMenu && view.aladin.contextMenu.show({e});
-                }
-
-                view.rightClick = false;
-
-                return;
-            }
-
-            if (view.mode === View.SELECT) {
-                view.selector.dispatch('mouseup', {coo: xymouse})
-            }
-        });
-        */
 
         Utils.on(view.catalogCanvas, "click", function (e) {
             // call listener of 'click' event
@@ -874,6 +842,28 @@ export let View = (function () {
                 return; // listeners are not called
             }
 
+        });
+
+        Utils.on(document, "mouseup", function(e) {
+            var wasDragging = view.realDragging === true;            
+
+            if (view.dragging) { // if we were dragging, reset to default cursor
+                if(view.mode === View.PAN) {
+                    view.setCursor('default');
+                }
+
+                view.dragging = false;
+                if (wasDragging) {
+                    view.realDragging = false;
+
+                    // call the positionChanged once more with a dragging = false
+                    view.throttledPositionChanged(false);
+                }
+
+                if (view.spectraDisplayer) {
+                    view.spectraDisplayer.enableInteraction();
+                }
+            } // end of "if (view.dragging) ... "
         });
 
         // reacting on 'click' rather on 'mouseup' is more reliable when panning the view
@@ -916,26 +906,27 @@ export let View = (function () {
 
             var wasDragging = view.realDragging === true;            
 
-            if (view.dragging) { // if we were dragging, reset to default cursor
+            /*if (view.dragging) { // if we were dragging, reset to default cursor
                 if(view.mode === View.PAN) {
                     view.setCursor('default');
                 }
 
                 view.dragging = false;
-                if (view.spectraDisplayer) {
-                    view.spectraDisplayer.enableInteraction();
-                }
-
                 if (wasDragging) {
                     view.realDragging = false;
 
                     // call the positionChanged once more with a dragging = false
                     view.throttledPositionChanged(false);
                 }
-            } // end of "if (view.dragging) ... "
+
+                if (view.spectraDisplayer) {
+                    view.spectraDisplayer.enableInteraction();
+                }
+            } // end of "if (view.dragging) ... "*/
 
             view.mustClearCatalog = true;
             view.dragCoo = null;
+            view.dragPastCoo = null;
 
             if (e.type === "mouseup") {
                 if (view.mode === View.SELECT) {
@@ -1003,7 +994,9 @@ export let View = (function () {
             // TODO : remplacer par mecanisme de listeners
             // on avertit les catalogues progressifs
             view.refreshProgressiveCats();
-            view.wasm.releaseLeftButtonMouse();
+            if (wasDragging) {
+                view.wasm.releaseLeftButtonMouse();
+            }
         });
 
         var lastHoveredObject; // save last object hovered by mouse
@@ -1250,27 +1243,20 @@ export let View = (function () {
 
             view.realDragging = true;
 
+            if (view.mode === View.PAN) {
+                view.pan = {
+                    s1: view.dragCoo,
+                    s2: xymouse
+                };
+            }
 
-            var s1 = view.dragCoo, s2 = xymouse;
-            // update drag coo with the new position
             view.dragCoo = xymouse;
+            // update drag coo with the new position
 
             /*if (view.mode == View.SELECT) {
                 view.requestRedraw();
                 return;
             }*/
-
-            if (view.mode === View.PAN) {
-                view.wasm.moveMouse(s1.x, s1.y, s2.x, s2.y);
-                view.wasm.goFromTo(s1.x, s1.y, s2.x, s2.y);
-    
-                view.updateCenter();
-    
-                ALEvent.POSITION_CHANGED.dispatchedTo(view.aladin.aladinDiv, view.viewCenter);
-    
-                // Apply position changed callback after the move
-                view.throttledPositionChanged(true);
-            }
         }); //// endof mousemove ////
 
         // disable text selection on IE
@@ -1391,9 +1377,6 @@ export let View = (function () {
      * redraw the whole view
      */
     View.prototype.redraw = function (now) {
-        // request another frame
-        requestAnimFrame(this.redrawClbk);
-
         // Elapsed time since last loop
         const elapsedTime = now - this.prevTime;
         this.prevTime = now;
@@ -1410,8 +1393,27 @@ export let View = (function () {
             this.zoomDelta -= step;
         }
 
+        if (this.pan) {
+            let s1 = this.pan.s1;
+            let s2 = this.pan.s2;
+
+            if (s1 && s2) {
+                this.wasm.moveMouse(s1.x, s1.y, s2.x, s2.y);
+                this.wasm.goFromTo(s1.x, s1.y, s2.x, s2.y);
+
+                this.updateCenter();
+
+                ALEvent.POSITION_CHANGED.dispatchedTo(this.aladin.aladinDiv, this.viewCenter);
+
+                // Apply position changed callback after the move
+                this.throttledPositionChanged(true);
+            }
+
+            this.pan = null;
+        }
+
         this.moving = this.wasm.update(elapsedTime);
-        
+
         // inertia run throttled position
         if (this.moving && this.aladin.callbacksByEventName && this.aladin.callbacksByEventName['positionChanged'] && this.wasm.isInerting()) {
             // run the trottled position
@@ -1424,6 +1426,9 @@ export let View = (function () {
             this.drawAllOverlays();
         }
         this.needRedraw = false;
+
+        // request another frame
+        requestAnimFrame(this.redrawClbk);
     };
 
     View.prototype.drawAllOverlays = function () {
@@ -1701,6 +1706,10 @@ export let View = (function () {
     }
 
     View.prototype.setRotation = function(rotation) {
+        if (Math.abs(rotation - this.aladin.getRotation()) < 1e-5) {
+            return;
+        }
+
         this.wasm.setRotation(rotation);
         var rotationChangedCallback = this.aladin.callbacksByEventName["rotationChanged"];
         typeof rotationChangedCallback === "function" && rotationChangedCallback(rotation);

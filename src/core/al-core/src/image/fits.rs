@@ -1,12 +1,13 @@
 use crate::texture::format::TextureFormat;
 use crate::texture::format::R8U;
 use cgmath::Vector3;
-use fitsrs::card::Value;
+use fitsrs::hdu::data::bintable::data::BinaryTableData;
+use fitsrs::hdu::data::bintable::tile_compressed::pixels::Pixels;
+use fitsrs::hdu::header::extension::bintable::TileCompressedImage;
 use fitsrs::hdu::header::Bitpix;
-use fitsrs::hdu::header::Header;
-use fitsrs::hdu::header::Xtension;
 use fitsrs::WCS;
 use fitsrs::{Fits, HDU};
+use std::borrow::Cow;
 use std::fmt::Debug;
 use std::io::Cursor;
 use std::ops::Range;
@@ -35,15 +36,7 @@ pub struct FitsImage<'a> {
     // bytes offset where the data bytes are located inside the fits
     pub data_byte_offset: Range<usize>,
     // raw bytes of the data image (in Big-Endian)
-    pub raw_bytes: &'a [u8],
-}
-
-fn parse_keyword_as_number<X: Xtension + Debug>(header: &Header<X>, keyword: &str) -> Option<f32> {
-    match header.get(keyword) {
-        Some(Value::Integer { value, .. }) => Some(*value as f32),
-        Some(Value::Float { value, .. }) => Some(*value as f32),
-        _ => None,
-    }
+    pub raw_bytes: Cow<'a, [u8]>,
 }
 
 impl<'a> FitsImage<'a> {
@@ -65,13 +58,13 @@ impl<'a> FitsImage<'a> {
 
                         let header = hdu.get_header();
 
-                        let bscale = parse_keyword_as_number(header, "BSCALE").unwrap_or(1.0);
-                        let bzero = parse_keyword_as_number(header, "BZERO").unwrap_or(0.0);
-                        let blank = parse_keyword_as_number(header, "BLANK");
+                        let bscale = header.get_parsed::<f32>("BSCALE").unwrap_or(1.0);
+                        let bzero = header.get_parsed::<f32>("BZERO").unwrap_or(0.0);
+                        let blank = header.get_parsed::<f32>("BLANK").ok();
 
-                        let trim1 = parse_keyword_as_number(header, "TRIM1").unwrap_or(0.0) as u32;
-                        let trim2 = parse_keyword_as_number(header, "TRIM2").unwrap_or(0.0) as u32;
-                        let trim3 = parse_keyword_as_number(header, "TRIM3").unwrap_or(0.0) as u32;
+                        let trim1 = header.get_parsed::<u32>("TRIM1").unwrap_or(0);
+                        let trim2 = header.get_parsed::<u32>("TRIM2").unwrap_or(0);
+                        let trim3 = header.get_parsed::<u32>("TRIM3").unwrap_or(0);
 
                         let bitpix = hdu.get_header().get_xtension().get_bitpix();
 
@@ -79,7 +72,7 @@ impl<'a> FitsImage<'a> {
                         let len = hdu.get_data_unit_byte_size() as usize;
 
                         let data_byte_offset = off..(off + len);
-                        let raw_bytes = &bytes[data_byte_offset.clone()];
+                        let raw_bytes = Cow::Borrowed(&bytes[data_byte_offset.clone()]);
 
                         let wcs = hdu.wcs().ok();
 
@@ -98,6 +91,81 @@ impl<'a> FitsImage<'a> {
                             data_byte_offset,
                             raw_bytes,
                         });
+                    }
+                }
+                HDU::XBinaryTable(hdu) => {
+                    let header = hdu.get_header();
+                    let bin_table = header.get_xtension();
+
+                    if let Some(TileCompressedImage {
+                        z_bitpix: bitpix,
+                        z_naxisn: naxis,
+                        ..
+                    }) = &bin_table.get_z_image()
+                    {
+                        if naxis.len() >= 2 {
+                            let width = naxis[0] as u32;
+                            let height = naxis[1] as u32;
+
+                            let depth = if naxis.len() >= 3 { naxis[2] as u32 } else { 1 };
+
+                            let bscale = header.get_parsed::<f32>("BSCALE").unwrap_or(1.0);
+                            let bzero = header.get_parsed::<f32>("BZERO").unwrap_or(0.0);
+                            let blank = header.get_parsed::<f32>("BLANK").ok();
+
+                            let trim1 = header.get_parsed::<u32>("TRIM1").unwrap_or(0);
+                            let trim2 = header.get_parsed::<u32>("TRIM2").unwrap_or(0);
+                            let trim3 = header.get_parsed::<u32>("TRIM3").unwrap_or(0);
+
+                            let wcs = hdu.wcs().ok();
+
+                            let off = hdu.get_data_unit_byte_offset() as usize;
+                            let len = hdu.get_data_unit_byte_size() as usize;
+
+                            let data_byte_offset = off..(off + len);
+
+                            let mut bitpix = *bitpix;
+                            let raw_bytes = match fits.get_data(&hdu) {
+                                BinaryTableData::TileCompressed(Pixels::U8(pixels)) => {
+                                    Some(pixels.collect::<Vec<_>>())
+                                }
+                                BinaryTableData::TileCompressed(Pixels::I16(pixels)) => {
+                                    Some(pixels.flat_map(|p| p.to_be_bytes()).collect::<Vec<_>>())
+                                }
+                                BinaryTableData::TileCompressed(Pixels::I32(pixels)) => {
+                                    Some(pixels.flat_map(|p| p.to_be_bytes()).collect::<Vec<_>>())
+                                }
+                                BinaryTableData::TileCompressed(Pixels::F32(pixels)) => {
+                                    Some(pixels.flat_map(|p| p.to_be_bytes()).collect::<Vec<_>>())
+                                }
+                                BinaryTableData::TileCompressed(Pixels::F64(pixels)) => {
+                                    bitpix = Bitpix::F32;
+                                    let raw_bytes =
+                                        pixels.flat_map(|p| p.to_be_bytes()).collect::<Vec<_>>();
+
+                                    Some(raw_bytes)
+                                }
+                                _ => None,
+                            };
+
+                            if let Some(raw_bytes) = raw_bytes {
+                                images.push(Self {
+                                    trim1,
+                                    trim2,
+                                    trim3,
+                                    width,
+                                    height,
+                                    depth,
+                                    bitpix,
+                                    bscale,
+                                    wcs,
+                                    bzero,
+                                    blank,
+                                    data_byte_offset,
+                                    raw_bytes: Cow::Owned(raw_bytes),
+                                });
+                            }
+                        }
                     }
                 }
                 _ => (),
@@ -140,6 +208,7 @@ impl Image for FitsImage<'_> {
                     R8U::view(&new_bytes)
                 }
                 Bitpix::F64 => {
+                    // convert to i64 first
                     let new_bytes: Vec<_> = self
                         .raw_bytes
                         .chunks_exact(8)
@@ -153,7 +222,7 @@ impl Image for FitsImage<'_> {
 
                     R8U::view(&new_bytes)
                 }
-                _ => R8U::view(self.raw_bytes),
+                _ => R8U::view(&self.raw_bytes),
             }
         };
 

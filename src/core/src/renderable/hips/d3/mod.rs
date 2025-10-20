@@ -4,10 +4,15 @@ pub mod texture;
 use crate::browser_support::BrowserFeaturesSupport;
 use crate::healpix::moc::FreqSpaceMoc;
 use crate::math::angle::ToAngle;
+use crate::math::lonlat;
 use crate::math::lonlat::LonLatT;
 use crate::math::spectra::SpectralUnit;
 use crate::math::spectra::FREQ_MAX;
 use crate::math::spectra::FREQ_MIN;
+
+use crate::coosys;
+
+use crate::CooSystem;
 
 use crate::tile_fetcher::TileFetcherQueue;
 use al_api::hips::DataproductType;
@@ -400,9 +405,6 @@ impl HiPS3D {
         camera: &CameraViewPort,
         browser_features_support: &BrowserFeaturesSupport,
     ) {
-        // update the cursor center before downloading new tiles
-        self.set_cursor_location(camera.get_center().into(), camera);
-
         // do not add tiles if the view is already at depth 0
         let cfg = self.get_config();
         let depth_tile = camera
@@ -589,7 +591,7 @@ impl HiPS3D {
         let mut start = window_pixel_hash.start.max(domain_pixel_hash.start);
         let mut end = window_pixel_hash.end.min(domain_pixel_hash.end);
 
-        if start < end {
+        if start <= end {
             start = start - pixel_hash_0 - indices.start;
             end = end - pixel_hash_0 - indices.start;
 
@@ -657,7 +659,15 @@ impl HiPS3D {
         crate::event::send_custom_event("spectra", JsValue::from(spectra_js_obj));
     }
 
-    pub fn set_cursor_location(&mut self, lonlat: LonLatT<f64>, camera: &CameraViewPort) {
+    pub fn set_cursor_location(&mut self, camera: &CameraViewPort) {
+        let (lon, lat) = lonlat::xyz_to_radec(&coosys::apply_coo_system(
+            camera.get_coo_system(),
+            CooSystem::ICRS,
+            camera.get_center(),
+        ));
+
+        let lonlat = LonLatT(lon, lat);
+
         let cfg = self.get_config();
         let s_order = camera
             .get_tile_depth()
@@ -915,6 +925,9 @@ impl HiPS3D {
                             idx + off_indices,
                             idx + 3 + off_indices,
                         ]);
+
+                        idx += 4;
+
                         // GL LINES
                         /*self.idx_vertices.extend([
                             idx + off_indices,
@@ -929,8 +942,6 @@ impl HiPS3D {
                             idx + 3 + off_indices,
                             idx + off_indices,
                         ]);*/
-
-                        idx += 4;
                     }
 
                     off_indices += pos.len() as u16;
@@ -946,23 +957,21 @@ impl HiPS3D {
             }
         }
 
-        {
-            let mut vao = self.vao.bind_for_update();
-            vao.update_array(
-                "position",
-                WebGl2RenderingContext::DYNAMIC_DRAW,
-                VecData(&self.position),
-            )
-            .update_array(
-                "uv",
-                WebGl2RenderingContext::DYNAMIC_DRAW,
-                VecData(&self.uv),
-            )
-            .update_element_array(
-                WebGl2RenderingContext::DYNAMIC_DRAW,
-                VecData(&self.idx_vertices),
-            );
-        }
+        let mut vao = self.vao.bind_for_update();
+        vao.update_array(
+            "position",
+            WebGl2RenderingContext::DYNAMIC_DRAW,
+            VecData(&self.position),
+        )
+        .update_array(
+            "uv",
+            WebGl2RenderingContext::DYNAMIC_DRAW,
+            VecData(&self.uv),
+        )
+        .update_element_array(
+            WebGl2RenderingContext::DYNAMIC_DRAW,
+            VecData(&self.idx_vertices),
+        );
     }
 
     fn reset_available_tiles(&mut self) -> bool {

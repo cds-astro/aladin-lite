@@ -44,7 +44,6 @@ import settingsIconUrl from "../../../../assets/icons/settings.svg";
 import searchIconImg from "../../../../assets/icons/search.svg";
 import downloadIconUrl from '../../../../assets/icons/download.svg';
 
-
 import { TogglerActionButton } from "../Button/Toggler.js";
 import { Icon } from "../Widgets/Icon.js";
 import { Box } from "../Widgets/Box.js";
@@ -731,6 +730,8 @@ export class OverlayStackBox extends Box {
                 // one must add the current HiPS too!
                 favoritesCopy.sort();
 
+                favoritesCopy.push("More...")
+
                 hips.HiPSSelector.update({value: currentHiPS, options: favoritesCopy});
             }
         });
@@ -744,14 +745,6 @@ export class OverlayStackBox extends Box {
                 hips.settingsBtn.toggle();
             }
         }
-
-        /*if (this.hipsBrowser) {
-            this.hipsBrowser._hide();
-        }*/
-
-        /*if (this.catBox) {
-            this.catBox._hide();
-        }*/
 
         if (this.addOverlayBtn) this.addOverlayBtn.hideMenu();
 
@@ -781,22 +774,6 @@ export class OverlayStackBox extends Box {
             })
         );
         layout = layout.concat(this._createSurveysList());
-        let self = this;
-        const moreHiPSLink = document.createElement("a");
-        moreHiPSLink.href = "#";
-        moreHiPSLink.classList.add('aladin-link');
-        moreHiPSLink.textContent = "More...";
-        moreHiPSLink.title = "Open the survey browser"
-        moreHiPSLink.addEventListener("click", (e) => {
-            e.preventDefault();
-            if (!self.hipsBrowser)
-                self.hipsBrowser = new HiPSBrowserBox(self.aladin);
-
-            self.hipsBrowser._show({ position: { anchor: "center center" } });
-        });
-        layout.push(moreHiPSLink)
-
-
         return Layout.vertical({ layout });
     }
 
@@ -945,6 +922,7 @@ export class OverlayStackBox extends Box {
                 options.push(value)
             }
 
+            options.push("More...")
 
             let HiPSSelector = Input.select({
                 value,
@@ -952,6 +930,14 @@ export class OverlayStackBox extends Box {
                 title: layer.name,
                 change: (e) => {
                     let name = e.target.value;
+
+                    if (name === "More...") {
+                        if (!self.hipsBrowser)
+                            self.hipsBrowser = new HiPSBrowserBox(self.aladin);
+
+                        self.hipsBrowser._show({ layer: layer.layer, position: { anchor: "center center" } });
+                        return;
+                    }
                     // search for the
                     let overlayLayer;
                     if (name in self.cachedHiPS) {

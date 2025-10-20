@@ -689,7 +689,7 @@ impl Image {
                     .unproj_lonlat(&ImgXY::new(0.5, 0.5))
                     .ok_or(JsValue::from_str("(0, 0) does not lie in the sky"))?,
                 self.wcs
-                    .unproj_lonlat(&ImgXY::new(width as f64 - 1.0, 0.5))
+                    .unproj_lonlat(&ImgXY::new(width as f64 - 0.5, 0.5))
                     .ok_or(JsValue::from_str("(w - 1, 0) does not lie in the sky"))?,
                 self.wcs
                     .unproj_lonlat(&ImgXY::new(width as f64 - 0.5, height as f64 - 0.5))

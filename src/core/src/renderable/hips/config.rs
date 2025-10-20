@@ -77,7 +77,7 @@ impl HiPSConfig {
         }
 
         let format = match img_ext {
-            ImageExt::Fits => {
+            ImageExt::Fits | ImageExt::FitsFz => {
                 // Check the bitpix to determine the internal format of the tiles
                 if let Some(bitpix) = bitpix {
                     let fmt = (match bitpix {
@@ -176,7 +176,7 @@ impl HiPSConfig {
 
     pub fn set_image_ext(&mut self, ext: ImageExt) -> Result<(), JsValue> {
         let format = match ext {
-            ImageExt::Fits => {
+            ImageExt::Fits | ImageExt::FitsFz => {
                 // Check the bitpix to determine the internal format of the tiles
                 if let Some(bitpix) = self.bitpix {
                     let fmt = (match bitpix {

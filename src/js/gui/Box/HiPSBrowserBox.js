@@ -52,18 +52,28 @@ export class HiPSBrowserBox extends Box {
 
         MocServer.getAllHiPSes().then((HiPSes) => {
             HiPSBrowserBox.HiPSList = {}
+
+            self.HiPSTree = {};
             // Fill the HiPSList from the MOCServer
+
+            // Build a hierarchy w.r.t sorted by regime
             HiPSes.forEach((h) => {
                 let name = h.obs_title;
                 name = name.replace(/:|\'/g, '');
                 HiPSBrowserBox.HiPSList[name] = h;
+
+                self.HiPSTree[h.obs_regime] = self.HiPSTree[h.obs_regime] || {};
+                if (self.HiPSTree[h.obs_regime]) {
+                    self.HiPSTree[h.obs_regime][name] = h
+                }
             });
+
+            console.log("jkjk", self.HiPSTree)
+
 
             // Initialize the autocompletion without any filtering
             self._filterHiPSList({})
         });
-
-
 
         const _parseHiPS = (e) => {
             const value = e.target.value;
@@ -272,6 +282,8 @@ export class HiPSBrowserBox extends Box {
 
             return true;
         };
+
+        filterEnabler.action({target: {checked: true}});
     }
 
     _addHiPS(id, name) {
@@ -430,7 +442,7 @@ export class HiPSBrowserBox extends Box {
 
     _show(options) {
         // Regenerate a new layer name
-        this.layer = Utils.uuidv4()
+        this.layer = (options && options.layer) || Utils.uuidv4();
 
         if (this.filterBox)
             this.filterBox.signalBrowserStatus(false)

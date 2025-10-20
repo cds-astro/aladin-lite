@@ -47,6 +47,28 @@ export class DOMElement {
         this.options = options;
         this.name = options && options.name || Utils.uuidv4()
         this.isHidden = true;
+
+        /*this.el.addEventListener("mouseup", (e) => {
+            var wasDragging = view.realDragging === true;  
+
+            if (view.dragging) { // if we were dragging, reset to default cursor
+                if(view.mode === View.PAN) {
+                    view.setCursor('default');
+                }
+
+                view.dragging = false;
+                if (wasDragging) {
+                    view.realDragging = false;
+
+                    // call the positionChanged once more with a dragging = false
+                    view.throttledPositionChanged(false);
+                }
+
+                if (view.spectraDisplayer) {
+                    view.spectraDisplayer.enableInteraction();
+                }
+            }
+        });*/
     }
 
     element() {

@@ -7,31 +7,55 @@
     <script type="module">
         import A from '../src/js/A.js';
         A.init.then(() => {
-            let aladin = A.aladin('#aladin-lite-div', {fov: 30, survey: "CDS/P/GALEXGR6/AIS/FUV", target: "280 +0", projection: "AIT", showShareControl:true, showSettingsControl: true, showContextMenu:true});
+            let aladin = A.aladin('#aladin-lite-div', {fov: 30, target: "286.411023328 -37.3460065319", projection: "AIT", showShareControl:true, showSettingsControl: true, showContextMenu:true});
             
             aladin.setOverlayImageLayer(A.image(
-                "https://nova.astrometry.net/image/25038473?filename=M61.jpg",
+                "data/img/m82.png",
                 {
-                    name: "M61",
+                    name: "M82",
                     wcs: {
-                        NAXIS: 2, // Minimal header
-                        CTYPE1: 'RA---TAN', // TAN (gnomic) projection
-                        CTYPE2: 'DEC--TAN', // TAN (gnomic) projection
+                        NAXIS: 2, // number of axes
+                        NAXIS1: 3000, // image width
+                        NAXIS2: 1918, // image height
+                        CTYPE3: "RGB", // Tell Aladin this is RGB
+                        WCSAXES: 2, // no comment
+                        CTYPE1: "RA---TAN", // TAN (gnomic) projection + SIP distortions
+                        CTYPE2: "DEC--TAN", // TAN (gnomic) projection + SIP distortions
                         EQUINOX: 2000.0, // Equatorial coordinates definition (yr)
                         LONPOLE: 180.0, // no comment
                         LATPOLE: 0.0, // no comment
-                        CRVAL1: 185.445488837, // RA of reference point
-                        CRVAL2: 4.47896032431, // DEC of reference point
-                        CRPIX1: 588.995094299, // X reference pixel
-                        CRPIX2: 308.307905197, // Y reference pixel
-                        CUNIT1: 'deg', // X pixel scale units
-                        CUNIT2: 'deg', // Y pixel scale units
-                        CD1_1: -0.000223666022989, // Transformation matrix
-                        CD1_2: -0.000296578064584, // no comment
-                        CD2_1: -0.000296427555509, // no comment
-                        CD2_2: 0.000223774308964, // no comment
-                        NAXIS1: 1080, // Image width, in pixels.
-                        NAXIS2: 705 // Image height, in pixels.
+                        CRVAL1: 286.411023328, // RA of reference point
+                        CRVAL2: -37.3460065319, // DEC of reference point
+                        CRPIX1: 2264.1858724, // X reference pixel
+                        CRPIX2: 583.14634196, // Y reference pixel
+                        CUNIT1: "deg", // X pixel scale units
+                        CUNIT2: "deg", // Y pixel scale units
+                        CD1_1: -0.00284225200648, // Transformation matrix
+                        CD1_2: 0.00145908284254, // no comment
+                        CD2_1: -0.00145832184852, // no comment
+                        CD2_2: -0.0028440175499, // no comment
+                        A_ORDER: 2, // Polynomial order, axis 1
+                        A_0_0: 0, A_0_1: 0, A_0_2: 1.97760279295e-7,
+                        A_1_0: 0, A_1_1: 5.32298396638e-7,
+                        A_2_0: -2.16045473726e-6,
+                        B_ORDER: 2, // Polynomial order, axis 2
+                        B_0_0: 0, B_0_1: 0, B_0_2: 3.97377848239e-7,
+                        B_1_0: 0, B_1_1: -2.25823401545e-6,
+                        B_2_0: -1.47800507759e-7,
+                        AP_ORDER: 2, // Inv polynomial order, axis 1
+                        AP_0_0: 0.00617616810622,
+                        AP_0_1: -1.68315582233e-6,
+                        AP_0_2: -1.96504899588e-7,
+                        AP_1_0: -5.8320637913e-6,
+                        AP_1_1: -5.26081207663e-7,
+                        AP_2_0: 2.13760782681e-6,
+                        BP_ORDER: 2, // Inv polynomial order, axis 2
+                        BP_0_0: -0.000681183014773,
+                        BP_0_1: -2.15389849968e-7,
+                        BP_0_2: -3.94508397022e-7,
+                        BP_1_0: 4.51837961352e-6,
+                        BP_1_1: 2.24050293101e-6,
+                        BP_2_0: 1.49195269783e-7
                     },
                     successCallback: (ra, dec, fov, image) => {
                         aladin.gotoRaDec(ra, dec);

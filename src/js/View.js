@@ -844,7 +844,7 @@ export let View = (function () {
 
         });
 
-        Utils.on(document, "mouseup", function(e) {
+        Utils.on(document, "mouseup touchend", function(e) {
             var wasDragging = view.realDragging === true;            
 
             if (view.dragging) { // if we were dragging, reset to default cursor

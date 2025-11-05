@@ -5,6 +5,7 @@
     /* disable x swipe on chrome, firefox */
     /* see. https://stackoverflow.com/questions/30636930/disable-web-page-navigation-on-swipeback-and-forward */
     overscroll-behavior-x: none;
+    overscroll-behavior-y: none; /* Prevents vertical pull-to-refresh */
     /* Hide the draggable boxes that goes out of the view */
     overflow: hidden;
     /* media query on the aladin lite container. not supported everywhere.

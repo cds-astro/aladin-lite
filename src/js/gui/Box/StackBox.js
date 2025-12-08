@@ -955,8 +955,7 @@ export class OverlayStackBox extends Box {
 
             let deleteBtn = ActionButton.createSmallSizedIconBtn({
                 icon: { url: removeIconUrl, monochrome: true },
-
-                disable: layer.layer === "base",
+                //disable: layer.layer === "base",
                 tooltip: { content: "Remove", position: { direction: "top" } },
                 action(e) {
                     self.aladin.removeImageLayer(layer.layer);

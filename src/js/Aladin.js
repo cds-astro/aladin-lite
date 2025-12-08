@@ -2014,7 +2014,7 @@ export let Aladin = (function () {
      * @returns {HiPS|Image} - Returns the image layer corresponding to the base layer
      */
     Aladin.prototype.getBaseImageLayer = function () {
-        return this.view.getImageLayer("base");
+        return this.view.getImageLayer(this.view.overlayLayers && this.view.overlayLayers[0]);
     };
 
     /**
@@ -3003,7 +3003,7 @@ aladin.customizeShareURLFunction(() => {return 'https://sky.esa.int/esasky/?targ
      * @param {Function} [successCallback=<center the view on the FITS file>] - The callback function to be executed on a successful display.
      *      The callback gives the ra, dec, and fov of the image; By default, it centers the view on the FITS file loaded.
      * @param {Function} [errorCallback] - The callback function to be executed if an error occurs during display.
-     * @param {string} [layer="base"] - The name of the layer. If not specified, it will be replace the base layer.
+     * @param {string} [layer] - The name of the layer. If not specified, it will be replace the base layer.
      *
      * @example
 aladin.displayFITS(
@@ -3027,7 +3027,7 @@ aladin.displayFITS(
         options,
         successCallback,
         errorCallback,
-        layer = "base"
+        layer
     ) {
         successCallback =
             successCallback ||
@@ -3041,6 +3041,7 @@ aladin.displayFITS(
             successCallback,
             errorCallback
         );
+        let layer = layer || (this.view.overlayLayers && this.view.overlayLayers[0])
         return this.setOverlayImageLayer(image, layer);
     };
 

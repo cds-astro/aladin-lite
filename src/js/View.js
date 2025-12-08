@@ -256,7 +256,7 @@ export let View = (function () {
         // some variables for mouse handling
         this.dragging = false;
         this.dragCoo = null;
-        this.selectedLayer = 'base';
+        this.selectedLayer = undefined;
 
         this.needRedraw = true;
 
@@ -1887,9 +1887,7 @@ export let View = (function () {
                         // it the best I can do if the MOCServer is out
                         self.aladin.setBaseImageLayer("https://alaskybis.cds.unistra.fr/DSS/DSSColor/");
                     } else {
-                        // there is surveys that have been queried
-                        // rename the first overlay layer to "base"
-                        self.renameLayer(this.overlayLayers[0], "base");
+                        //self.renameLayer(this.overlayLayers[0], "base");
                     }
                 }
             })
@@ -2028,7 +2026,8 @@ export let View = (function () {
         }
     }
 
-    View.prototype.getImageLayer = function (layer = "base") {
+    View.prototype.getImageLayer = function (layer) {
+        let layer = layer || (this.overlayLayers && this.overlayLayers[0]);
         let imageLayerQueried = this.imageLayersBeingQueried.get(layer);
         let imageLayer = this.imageLayers.get(layer);
 

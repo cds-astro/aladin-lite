@@ -79,7 +79,7 @@ export class Dropdown extends Input {
 
         super({
             type: 'text',
-            autocomplete: {options: options.options},
+            //autocomplete: {options: options.options},
             ...options
         })
         this.el.classList.add('search')
@@ -91,11 +91,11 @@ export class Dropdown extends Input {
     update(options) {
         let newOptions = {};
 
-        if (options && options.options) {
+        /*if (options && options.options) {
             newOptions['autocomplete'] = {options: options.options};
 
             delete options.options;
-        }
+        }*/
 
         // add the other input text options
         newOptions = {...newOptions, ...options};

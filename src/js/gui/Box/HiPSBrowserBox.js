@@ -33,6 +33,8 @@ import { Utils } from "../../Utils.ts";
 import { ActionButton } from "../Widgets/ActionButton.js";
 import infoIconUrl from "../../../../assets/icons/info.svg"
 import { Icon } from "../Widgets/Icon.js";
+import { Tree } from "../Widgets/Tree.js";
+import { ALEvent } from "../../events/ALEvent.js";
 
 /******************************************************************************
  * Aladin Lite project
@@ -44,32 +46,109 @@ import { Icon } from "../Widgets/Icon.js";
  *
  *****************************************************************************/
 
+function fillHiPSHierarchy(name, hips, path, hierarchy) {
+    let folders = path.split('/')
+    let curFolder = folders.shift()
+
+    // Some exceptions because the MOCServer client_category field may contain some typos
+    if (['x', 'x-ray', 'xray'].includes(curFolder)) {
+        curFolder = 'x-ray'
+    }
+
+    if (['radion', 'radio'].includes(curFolder)) {
+        curFolder = 'radio'
+    }
+
+    if (curFolder === "deprecated")
+        return;
+
+    hierarchy[curFolder] = hierarchy[curFolder] || {};
+    if (folders.length == 0) {
+        hierarchy[curFolder][name] = hips
+    } else {
+        let newPath = folders.join('/')
+        fillHiPSHierarchy(name, hips, newPath, hierarchy[curFolder])
+    }
+}
+
 export class HiPSBrowserBox extends Box {
     static HiPSList = {};
 
     constructor(aladin, options) {
         let self;
 
+        let filter = (item, params) => {
+            if (params.regime) {
+                if (!item.obs_regime)
+                    return false;
+
+                if (params.regime.toLowerCase() !== item.obs_regime.toLowerCase()) {
+                    return false;
+                }
+            }
+
+            if (params.resolution) {
+                if (!item.hips_tile_width || !item.hips_order) {
+                    return false;
+                }
+
+                let pixelHEALPixOrder = Math.log2(item.hips_tile_width) + (+item.hips_order);
+                let resPixel = Math.sqrt(Math.PI / (3*Math.pow(4, pixelHEALPixOrder)));
+
+                if (resPixel > params.resolution)
+                    return false;
+            }
+
+            if (params.title) {
+                if (!item.obs_title)
+                    return false;
+
+                if (!item.obs_title.toLowerCase().includes(params.title.toLowerCase())) {
+                    return false;
+                }
+            }
+
+            return true;
+        };
+
+        // Search tree
+        let searchTree = new Tree({
+            // a JS object describing the tree to show
+            label: (item) => {
+                let name = item.obs_title.replace(/:|\'/g, '');
+                return name;
+            },
+            // a callback called when the user selects a leaf item of the tree
+            click: (item) => {
+                let image = item.ID || item.hips_service_url;
+                let name = item.obs_title || item.ID;
+                self._addHiPS(image, name)
+            },
+            // a callback called for filtering
+            filter,
+        });
+
         MocServer.getAllHiPSes().then((HiPSes) => {
             HiPSBrowserBox.HiPSList = {}
 
-            self.HiPSTree = {};
+            let hipsHierarchy = {};
             // Fill the HiPSList from the MOCServer
 
             // Build a hierarchy w.r.t sorted by regime
             HiPSes.forEach((h) => {
                 let name = h.obs_title;
                 name = name.replace(/:|\'/g, '');
+
                 HiPSBrowserBox.HiPSList[name] = h;
 
-                self.HiPSTree[h.obs_regime] = self.HiPSTree[h.obs_regime] || {};
-                if (self.HiPSTree[h.obs_regime]) {
-                    self.HiPSTree[h.obs_regime][name] = h
+                if (h.client_category) {
+                    let path = h.client_category.toLowerCase()
+
+                    fillHiPSHierarchy(name, h, path, hipsHierarchy)
                 }
             });
 
-            console.log("jkjk", self.HiPSTree)
-
+            self.searchTree.setHierarchy(hipsHierarchy)
 
             // Initialize the autocompletion without any filtering
             self._filterHiPSList({})
@@ -98,7 +177,6 @@ export class HiPSBrowserBox extends Box {
 
             if (image) {
                 self._addHiPS(image, name)
-                self.searchDropdown.update({title: value});
             }
         };
 
@@ -128,14 +206,11 @@ export class HiPSBrowserBox extends Box {
                         disable: true,
                     })
 
+                    self.searchTree.triggerFilter({title: e.target.value});
+
                     searchDropdown.removeClass('aladin-valid')
                     searchDropdown.removeClass('aladin-not-valid')
                 },
-                change(e) {
-                    e.stopPropagation();
-                    e.preventDefault()
-                    _parseHiPS(e)
-                }
             },
         });
 
@@ -193,13 +268,9 @@ export class HiPSBrowserBox extends Box {
             },
             toggled: false,
             actionOn: (e) => {
-                self.filterBox._show({
-                    position: {
-                        nextTo: filterBtn,
-                        direction: "bottom",
-                        aladin,
-                    },
-                });
+                self.filterBox._show({position: {
+                    anchor: 'right center'
+                }});
             },
             actionOff: (e) => {
                 self.filterBox._hide();
@@ -216,15 +287,17 @@ export class HiPSBrowserBox extends Box {
                         size: 'medium',
                         url: hipsIconUrl,
                         monochrome: true,
-                    }), "HiPS browser"])
+                    }), "HiPS browser"]),
+                    draggable: true,
                 },
-                onDragged: () => {
-                    if (self.filterBtn.toggled) {
-                        self.filterBtn.toggle();
-                    }
-                },
+                //onDragged: () => {
+                    //if (self.filterBtn.toggled) {
+                        //self.filterBtn.toggle();
+                    //}
+                //},
                 classList: ['aladin-HiPS-browser-box'],
                 content: Layout.vertical([
+                    searchTree,
                     Layout.horizontal(["Search:", searchDropdown, infoCurrentHiPSBtn]),
                     Layout.horizontal(["Filter:", Layout.horizontal([filterEnabler, filterBtn, filterNumberElt])]),
                 ]),
@@ -233,6 +306,9 @@ export class HiPSBrowserBox extends Box {
             aladin.aladinDiv
         );
 
+        self = this;
+
+        this.searchTree = searchTree;
         this.filterBox = new HiPSFilterBox(aladin, {
             callback: (params) => {
                 self._filterHiPSList(params);
@@ -247,47 +323,41 @@ export class HiPSBrowserBox extends Box {
 
         this.infoCurrentHiPSBtn = infoCurrentHiPSBtn;
 
-        self = this;
-
-        this.filterCallback = (HiPS, params) => {
-            if (params.regime) {
-                if (!HiPS.obs_regime)
-                    return false;
-
-                if (params.regime.toLowerCase() !== HiPS.obs_regime.toLowerCase()) {
-                    return false;
-                }
-            }
-
-            if (params.spatial) {
-                if (!HiPS.ID)
-                    return false;
-
-                if (Array.isArray(params.spatial) && !(params.spatial.includes(HiPS.ID))) {
-                    return false;
-                }
-            }
-
-            if (params.resolution) {
-                if (!HiPS.hips_tile_width || !HiPS.hips_order) {
-                    return false;
-                }
-
-                let pixelHEALPixOrder = Math.log2(HiPS.hips_tile_width) + (+HiPS.hips_order);
-                let resPixel = Math.sqrt(Math.PI / (3*Math.pow(4, pixelHEALPixOrder)));
-
-                if (resPixel > params.resolution)
-                    return false;
-            }
-
-            return true;
-        };
+        this.filter = filter;
 
         filterEnabler.action({target: {checked: true}});
+
+        this._addListeners();
+
+        this._requestMOCServer();
+    }
+
+    _addListeners() {
+        const requestMOCServerDebounced = Utils.debounce(() => {
+            this._requestMOCServer()
+        }, 500);
+
+        ALEvent.POSITION_CHANGED.listenedBy(this.aladin.aladinDiv, requestMOCServerDebounced);
+        ALEvent.ZOOM_CHANGED.listenedBy(this.aladin.aladinDiv, requestMOCServerDebounced);
+    }
+
+    _requestMOCServer() {
+        if (this.isHidden && this.searchTree) {
+            return;
+        }
+
+        let self = this;
+        MocServer.getAllHiPSesInsideView(this.aladin)
+            .then((HiPSes) => {
+                let HiPSIDs = HiPSes.map((x) => x.ID);
+                self.searchTree.highlightNodes(HiPSIDs)
+            })
     }
 
     _addHiPS(id, name) {
         let self = this;
+
+        self.searchDropdown.update({value: name, title: name});
 
         let hips = A.imageHiPS(id, {
             name,
@@ -414,8 +484,8 @@ export class HiPSBrowserBox extends Box {
             let HiPS = HiPSBrowserBox.HiPSList[key];
             // apply filtering
             if (
-                self.filterCallback &&
-                self.filterCallback(HiPS, params)
+                self.filter &&
+                self.filter(HiPS, params)
             ) {
                 // search with the name or id
                 let name = HiPS.obs_title;
@@ -425,14 +495,15 @@ export class HiPSBrowserBox extends Box {
             }
         }
 
+        if (self.searchTree) {
+            self.searchTree.triggerFilter(params);
+        }
+
         self.searchDropdown.update({ options: HiPSIDs });
         self.filterNumberElt.innerHTML = HiPSIDs.length + "/" + Object.keys(HiPSBrowserBox.HiPSList).length;
     }
 
     _hide() {
-        if (this.filterBox)
-            this.filterBox.signalBrowserStatus(true)
-
         if (this.filterBtn && this.filterBtn.toggled) {
             this.filterBtn.toggle();
         }
@@ -443,10 +514,6 @@ export class HiPSBrowserBox extends Box {
     _show(options) {
         // Regenerate a new layer name
         this.layer = (options && options.layer) || Utils.uuidv4();
-
-        if (this.filterBox)
-            this.filterBox.signalBrowserStatus(false)
-
         super._show(options)
     }
 }

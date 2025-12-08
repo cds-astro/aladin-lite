@@ -1927,12 +1927,12 @@ export let View = (function () {
         this.wasm.swapLayers(firstLayer, secondLayer);
 
         // Swap in overlaylayers
-        const idxFirstLayer = this.overlayLayers.findIndex(overlayLayer => overlayLayer == firstLayer);
-        const idxSecondLayer = this.overlayLayers.findIndex(overlayLayer => overlayLayer == secondLayer);
+        /*const idxFirstLayer = this.overlayLayers.indexOf(firstLayer);
+        const idxSecondLayer = this.overlayLayers.indexOf(secondLayer);
 
         const tmp = this.overlayLayers[idxFirstLayer];
         this.overlayLayers[idxFirstLayer] = this.overlayLayers[idxSecondLayer];
-        this.overlayLayers[idxSecondLayer] = tmp;
+        this.overlayLayers[idxSecondLayer] = tmp;*/
 
         // Tell the layer hierarchy has changed
         ALEvent.HIPS_LAYER_SWAP.dispatchedTo(this.aladinDiv, { firstLayer: firstLayer, secondLayer: secondLayer });

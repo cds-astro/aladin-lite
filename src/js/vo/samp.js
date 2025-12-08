@@ -80,7 +80,7 @@ export class SAMPConnector {
             let params = message["samp.params"];
 
             const {url, name} = params;
-            const image = aladin.createImageFITS(url, {name}, (e) => window.alert(e));
+            const image = aladin.createImageFITS(url, {name}, undefined, (e) => window.alert(e));
 
             aladin.setOverlayImageLayer(image, name);
         };
@@ -92,6 +92,8 @@ export class SAMPConnector {
             let url = params['url'];
             let name = params['name'] || id;
 
+            console.log(id, url, name)
+
             A.catalogFromURL(
                 url,
                 {name, onClick: 'showTable'},
@@ -99,7 +101,7 @@ export class SAMPConnector {
                 (catalog) => {
                     aladin.addCatalog(catalog)
                 },
-                (e) => window.alert(e)
+                (e) => window.alert(e),
             );
         };
 

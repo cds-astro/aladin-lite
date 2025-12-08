@@ -553,6 +553,7 @@ impl App {
             /*let is_there_new_available_tiles = self
             .downloader
             .get_resolved_tiles(/*&available_tiles, */&mut self.hipss);*/
+            //self.tile_fetcher.clear();
 
             if self.request_for_new_tiles
                 && Time::now() - self.last_time_request_for_new_tiles > DeltaTime::from(500.0)
@@ -564,18 +565,18 @@ impl App {
             }
 
             // Tiles are fetched if:
-            let fetch_tiles =
-                // * the user is not panning the view
-                // * or the user is but did not move for at least 100ms
-                //(Time::now() - self.camera.get_time_of_last_move() >= DeltaTime(100.0) || !self.dragging) &&
-                // * no inertia action is in progress
-                //self.inertia.is_none() &&
-                // * the user is not zooming
-                !self.camera.has_zoomed();
+            //let fetch_tiles =
+            // * the user is not panning the view
+            // * or the user is but did not move for at least 100ms
+            //(Time::now() - self.camera.get_time_of_last_move() >= DeltaTime(100.0) || !self.dragging) &&
+            // * no inertia action is in progress
+            //self.inertia.is_none() &&
+            // * the user is not zooming
+            // !self.camera.has_zoomed();
 
-            if fetch_tiles {
-                self.tile_fetcher.notify(self.downloader.clone(), None);
-            }
+            //if fetch_tiles {
+            self.tile_fetcher.notify(self.downloader.clone(), None);
+            //}
         }
 
         let rscs_received = self.downloader.borrow_mut().get_received_resources();

@@ -19,17 +19,11 @@
 
 import { Box } from "../Widgets/Box.js";
 import { Form } from "../Widgets/Form.js";
-import { MocServer } from "../../MocServer.js";
-import { TogglerActionButton } from "../Button/Toggler.js";
 import { Layout } from "../Layout.js";
 import { Angle } from "../../libs/astro/angle.js";
-import { ALEvent } from "../../events/ALEvent.js";
-import { Utils } from "../../Utils.ts";
 import { AladinUtils } from "../../AladinUtils.js";
 import { Input } from "../Widgets/Input.js";
-import freqIconUrl from '../../../../assets/icons/freq.svg';
-import inViewIconUrl from '../../../../assets/icons/inside.svg';
-import targetIconUrl from '../../../../assets/icons/target.svg';
+
 
 /******************************************************************************
  * Aladin Lite project
@@ -45,120 +39,96 @@ export class HiPSFilterBox extends Box {
     constructor(aladin, options) {
         let self;
 
-        let regimeBtn = new TogglerActionButton({
-            content: 'Freq',
-            icon: {
-                monochrome: true,
-                size: 'medium',
-                url: freqIconUrl,
-            },
-            tooltip: {content: 'Observation bandwidth', position: {direction: 'bottom'}},
-            toggled: false,
-            actionOn: () => {
-                self._triggerFilteringCallback();
-            },
-            actionOff: () => {
+        let regimeBtn = Input.checkbox({
+            name: 'Freq',
+            tooltip: {content: 'Observation bandwidth', position: {direction: 'left'}},
+            type: 'checkbox',
+            checked: false,
+            click(e) {
                 self._triggerFilteringCallback();
             }
         });
-        let spatialBtn = new TogglerActionButton({
-            content: 'In view',
-            icon: {
-                monochrome: true,
-                size: 'medium',
-                url: inViewIconUrl,
-            },
-            tooltip: {content: 'Survey in view only!', position: {direction: 'bottom'}},
-            toggled: false,
-            actionOn: () => {
-                self._requestMOCServer();
-            },
-            actionOff: () => {
-                self._triggerFilteringCallback();
-            }
-        });
-        let resolutionBtn = new TogglerActionButton({
-            content: 'Resolution',
-            icon: {
-                monochrome: true,
-                size: 'medium',
-                url: targetIconUrl,
-            },
-            tooltip: {content: 'Check for HiPS with a specific pixel resolution.', position: {direction: 'bottom'}},
-            toggled: false,
-            actionOn: () => {
-                self._triggerFilteringCallback();
-            },
-            actionOff: () => {
+        let resolutionBtn =  Input.checkbox({
+            name: 'Resolution',
+            tooltip: {content: 'Check for HiPS with a specific pixel resolution.', position: {direction: 'left'}},
+            type: 'checkbox',
+            checked: false,
+            click(e) {
                 self._triggerFilteringCallback();
             }
         });
 
-        let logSlider = new Input({
+        let regimeOption = Layout.horizontal({
+            tooltip: {
+                content: "Observation regime",
+                position: { direction: "right" },
+            },
+            label: 'Freq: ',
+            layout: [Input.select({
+                value: "Optical",
+                options: [
+                    "Radio",
+                    "Infrared",
+                    "Millimeter",
+                    "Optical",
+                    "UV",
+                    "EUV",
+                    "X-ray",
+                    "Gamma-ray",
+                ],
+                change: (e) => {
+                    let regime = e.target.value;
+                    self.params["regime"] = regime;
+
+                    self._triggerFilteringCallback();
+                },
+            }), regimeBtn]
+        });
+
+        let resolutionOption = Layout.horizontal({
             label: "Max resolution [°/px]:",
-            name: "res",
-            value: 0.1,
-            type: 'range',
-            cssStyle: {
-                width: '100%'
-            },
-            tooltip: {content: AladinUtils.degreesToString(0.1), position: {direction: 'bottom'}},
-            ticks: [0.1 / 3600, 1 / 3600, 1 / 60, 0.1],
-            stretch: "log",
-            min: 0.1 / 3600,
-            max: 0.1,
-            reversed: true,
-            change: (e, slider, deg) => {
-                slider.update({value: e.target.value, tooltip: {content: AladinUtils.degreesToString(deg), position:{direction:'bottom'}}});
+            layout: [
+                new Input({
+                    name: "res",
+                    value: 0.1,
+                    type: 'range',
+                    cssStyle: {
+                        width: '200px'
+                    },
+                    tooltip: {content: AladinUtils.degreesToString(0.1), position: {direction: 'bottom'}},
+                    ticks: [0.1 / 3600, 1 / 3600, 1 / 60, 0.1],
+                    stretch: "log",
+                    min: 0.1 / 3600,
+                    max: 0.1,
+                    reversed: true,
+                    change: (e, slider, deg) => {
+                        slider.update({value: e.target.value, tooltip: {content: AladinUtils.degreesToString(deg), position:{direction:'bottom'}}});
 
-                let resolution = new Angle(deg);
-                self.params["resolution"] = resolution.degrees();
+                        let resolution = new Angle(deg);
+                        self.params["resolution"] = resolution.degrees();
 
-                self._triggerFilteringCallback();
-            },
+                        self._triggerFilteringCallback();
+                    },
+                }),
+                resolutionBtn,
+            ]
         });
         super(
             {
-                classList: ['aladin-HiPS-filter-box'],
+                header: {
+                    title: 'Filter tags',
+                    draggable: false,
+                },
                 close: false,
+                classList: ['aladin-HiPS-filter-box'],
                 content: Layout.vertical([
-                    '<b>Filter by:</b>',
-                    Layout.horizontal([regimeBtn, spatialBtn, resolutionBtn]),
-                    '<b>Details:</b>',
                     new Form({
                         subInputs: [
                             {
                                 type: "group",
                                 subInputs: [
-                                    {
-                                        label: "Freq:",
-                                        name: "regime",
-                                        value: "Optical",
-                                        type: 'select',
-                                        options: [
-                                            "Radio",
-                                            "Infrared",
-                                            "Millimeter",
-                                            "Optical",
-                                            "UV",
-                                            "EUV",
-                                            "X-ray",
-                                            "Gamma-ray",
-                                        ],
-                                        change: (e) => {
-                                            let regime = e.target.value;
-                                            self.params["regime"] = regime;
-
-                                            //regimeBtn.update({content: regime});
-
-                                            self._triggerFilteringCallback();
-                                        },
-                                        tooltip: {
-                                            content: "Observation regime",
-                                            position: { direction: "right" },
-                                        },
-                                    },
-                                    logSlider
+                                    regimeOption,
+                                    resolutionOption 
                                 ],
                             },
                         ],
@@ -170,60 +140,28 @@ export class HiPSFilterBox extends Box {
 
         self = this;
 
-        this.browserClosed = false;
-
         this.callback = options.callback;
 
         this.regimeBtn = regimeBtn;
-        this.spatialBtn = spatialBtn;
         this.resolutionBtn = resolutionBtn;
 
         this.params = {
             regime: "Optical",
-            spatial: true,
+            highlight: true,
             resolution: 1, // 1°/pixel
         };
         this.on = false;
         this.aladin = aladin;
-        this._addListeners();
-    }
-
-    _addListeners() {
-        const requestMOCServerDebounced = Utils.debounce(() => {
-            this._requestMOCServer()
-        }, 500);
-
-        ALEvent.POSITION_CHANGED.listenedBy(this.aladin.aladinDiv, requestMOCServerDebounced);
-        ALEvent.ZOOM_CHANGED.listenedBy(this.aladin.aladinDiv, requestMOCServerDebounced);
-    }
-
-    _requestMOCServer() {
-        if (!this.spatialBtn.toggled || !this.on || this.browserClosed) {
-            return;
-        }
-
-        let self = this;
-        MocServer.getAllHiPSesInsideView(this.aladin)
-            .then((HiPSes) => {
-                let HiPSIDs = HiPSes.map((x) => x.ID);
-                self.params["spatial"] = HiPSIDs;
-
-                self._triggerFilteringCallback();
-            })
     }
 
     _triggerFilteringCallback() {
         let filterParams = {};
 
-        if (this.regimeBtn.toggled) {
+        if (this.regimeBtn.checked) {
             filterParams['regime'] = this.params['regime']
         }
 
-        if (this.spatialBtn.toggled) {
-            filterParams['spatial'] = this.params['spatial']
-        }
-
-        if (this.resolutionBtn.toggled) {
+        if (this.resolutionBtn.checked) {
             filterParams['resolution'] = this.params['resolution']
         }
 
@@ -232,20 +170,17 @@ export class HiPSFilterBox extends Box {
         }
     }
 
-    signalBrowserStatus(closed) {
+    /*signalBrowserStatus(closed) {
         this.browserClosed = closed;
 
         // open
         if (!closed) {
             this._requestMOCServer()
         }
-    }
+    }*/
 
     enable(enable) {
         this.on = enable;
-
-        if (this.on)
-            this._requestMOCServer();
 
         this._triggerFilteringCallback();
     }

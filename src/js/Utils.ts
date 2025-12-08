@@ -384,7 +384,6 @@ Utils.fetch = function(params) {
         // localhost url
         url = params.url;
     }
-    
 
     let request = new Request(url, {
         method: params.method || 'GET',

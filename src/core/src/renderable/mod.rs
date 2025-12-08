@@ -390,7 +390,15 @@ impl Layers {
                     "Layer {second_layer:?} not found, so cannot be removed.",
                 )))?;
 
-        self.layers.swap(id_first_layer, id_second_layer);
+        if let (Some(k1), Some(k2)) = (self.ids.get(first_layer), self.ids.get(second_layer)) {
+            if let (Some(v1), Some(v2)) = (self.hipses.remove(k1), self.hipses.remove(k2)) {
+                self.hipses.insert(k2.to_string(), v1);
+                self.hipses.insert(k1.to_string(), v2);
+            } else if let (Some(v1), Some(v2)) = (self.images.remove(k1), self.images.remove(k2)) {
+                self.images.insert(k2.to_string(), v1);
+                self.images.insert(k1.to_string(), v2);
+            }
+        }
 
         Ok(())
     }

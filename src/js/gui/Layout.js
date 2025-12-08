@@ -67,6 +67,47 @@ export class Layout extends DOMElement {
                     this.appendContent(item)
                 }
             }
+
+            if (options.draggable) {
+                // retrieve the children and add the drag listeners
+                let draggableFn = options.draggable;
+                let firstSelected = null;
+
+                this.el.childNodes.forEach(div => {
+                    div.addEventListener("click", () => {
+                        // If nothing selected yet → select this one
+                        if (!firstSelected) {
+                            firstSelected = div;
+                            div.classList.add("aladin-item-selected");
+                            return;
+                        }
+
+                        // If clicking the same one again → unselect
+                        if (firstSelected === div) {
+                            div.classList.remove("aladin-item-selected");
+                            firstSelected = null;
+                            return;
+                        }
+
+                        // Otherwise: swap the two elements
+                        let a = firstSelected;
+                        let b = div;
+
+                        let temp = document.createElement("div");
+                        a.parentNode.insertBefore(temp, a);
+                        b.parentNode.insertBefore(a, b);
+                        temp.parentNode.insertBefore(b, temp);
+                        temp.remove();
+
+                        // Exec callback
+                        draggableFn(a, b)
+
+                        // Clear selection
+                        a.classList.remove("aladin-item-selected");
+                        firstSelected = null;
+                    });
+                });
+            }
         }
 
         // The tooltip has to be set once the element
@@ -182,9 +223,5 @@ export class Layout extends DOMElement {
         if (this.options.position) {
             this.setPosition(this.options.position)
         }
-
-        //super._show()
-        // attach to the DOM again
-        //this.attachTo(this.target);
     }
 }

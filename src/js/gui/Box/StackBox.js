@@ -1115,6 +1115,7 @@ export class OverlayStackBox extends Box {
 
             let item = Layout.horizontal({
                 layout: [HiPSSelector, Layout.horizontal(btns)],
+                cssStyle: {'padding': '10px 0px'}
             });
 
             layout.push(item);
@@ -1129,7 +1130,18 @@ export class OverlayStackBox extends Box {
             }
         }
 
-        return layout;
+        return Layout.vertical({
+            layout,
+            draggable: (a, b) => {
+                let i1 = layout.findIndex((x) => x.element() === a);
+                let i2 = layout.findIndex((x) => x.element() === b);
+
+                let h1 = layers[i1];
+                let h2 = layers[i2];
+
+                self.aladin.view.swapLayers(h1.layer, h2.layer);
+            }
+        });
     }
 
     _addOverlayIcon(overlay) {

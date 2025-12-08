@@ -74,12 +74,17 @@ export class Input extends DOMElement {
             this.el.type = this.type;
 
             this.el.checked = this.options.checked;
+            this.checked = this.options.checked;
 
             // for checkbox widgets, we authorize calling the callback name click or change
             let action = this.options.click || this.options.change;
             if (action) {
                 this.el.removeEventListener('click', this.action);
-                this.action = action;
+                this.action = (e) => {
+                    this.checked = this.el.checked;
+
+                    action(e);
+                };
                 this.el.addEventListener('click', this.action);
             }    
         } else if (this.type === "select") {            
@@ -374,6 +379,7 @@ export class Input extends DOMElement {
     set(value) {
         if (this.el.type === "checkbox") {
             this.el.checked = value;
+            this.checked = value;
         } else {
             this.el.value = value;
         }

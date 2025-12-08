@@ -43,7 +43,7 @@ import removeIconUrl from "../../../../assets/icons/remove.svg";
 import settingsIconUrl from "../../../../assets/icons/settings.svg";
 import searchIconImg from "../../../../assets/icons/search.svg";
 import downloadIconUrl from '../../../../assets/icons/download.svg';
-
+import swapIcon from '../../../../assets/icons/swap.svg'
 import { TogglerActionButton } from "../Button/Toggler.js";
 import { Icon } from "../Widgets/Icon.js";
 import { Box } from "../Widgets/Box.js";
@@ -1105,16 +1105,48 @@ export class OverlayStackBox extends Box {
                 },
             });
 
+            self.layer2swap = null;
+            let swapBtn = new ActionButton({
+                size: "small",
+                icon: {
+                    url: swapIcon,
+                    size: "small",
+                    monochrome: true,
+                },
+                tooltip: {
+                    content: "Swap 2 layers",
+                    position: { direction: "top" },
+                },
+                toggled: false,
+                action: (_) => {
+                    let toggled = swapBtn.options.toggled;
+                    if (!toggled) {
+                        if (!self.layer2swap) {
+                            self.layer2swap = layer;
+                        } else {
+                            self.aladin.view.swapLayers(self.layer2swap.layer, layer.layer);
+                        }
+                    } else {
+                        if (self.layer2swap) {
+                            self.layer2swap = null;
+                        }
+                    }
+
+                    swapBtn.update({
+                        toggled: !toggled,
+                    });
+                },
+            });
+
             let btns = [showBtn, settingsBtn];
 
             if (!(layer instanceof Image)) {
                 btns.push(loadMOCBtn);
             }
-            btns.push(deleteBtn);
+            btns = btns.concat([swapBtn, deleteBtn]);
 
             let item = Layout.horizontal({
                 layout: [HiPSSelector, Layout.horizontal(btns)],
-                cssStyle: {'padding': '10px 0px'}
             });
 
             layout.push(item);
@@ -1129,18 +1161,7 @@ export class OverlayStackBox extends Box {
             }
         }
 
-        return Layout.vertical({
-            layout,
-            draggable: (a, b) => {
-                let i1 = layout.findIndex((x) => x.element() === a);
-                let i2 = layout.findIndex((x) => x.element() === b);
-
-                let h1 = layers[i1];
-                let h2 = layers[i2];
-
-                self.aladin.view.swapLayers(h1.layer, h2.layer);
-            }
-        });
+        return layout;
     }
 
     _addOverlayIcon(overlay) {

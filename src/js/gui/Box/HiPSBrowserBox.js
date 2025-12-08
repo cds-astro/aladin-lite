@@ -50,24 +50,29 @@ function fillHiPSHierarchy(name, hips, path, hierarchy) {
     let folders = path.split('/')
     let curFolder = folders.shift()
 
-    // Some exceptions because the MOCServer client_category field may contain some typos
-    if (['x', 'x-ray', 'xray'].includes(curFolder)) {
-        curFolder = 'x-ray'
-    }
-
-    if (['radion', 'radio'].includes(curFolder)) {
-        curFolder = 'radio'
-    }
-
-    if (curFolder === "deprecated")
-        return;
-
-    hierarchy[curFolder] = hierarchy[curFolder] || {};
-    if (folders.length == 0) {
-        hierarchy[curFolder][name] = hips
-    } else {
+    if(curFolder === 'Image') {
         let newPath = folders.join('/')
-        fillHiPSHierarchy(name, hips, newPath, hierarchy[curFolder])
+        fillHiPSHierarchy(name, hips, newPath, hierarchy);
+    } else {
+        // Some exceptions because the MOCServer client_category field may contain some typos
+        if (['X', 'X-ray', 'Xray'].includes(curFolder)) {
+            curFolder = 'X-ray'
+        }
+
+        if (['Radion', 'Radio'].includes(curFolder)) {
+            curFolder = 'Radio'
+        }
+
+        if (curFolder === "Deprecated")
+            return;
+
+        hierarchy[curFolder] = hierarchy[curFolder] || {};
+        if (folders.length == 0) {
+            hierarchy[curFolder][name] = hips
+        } else {
+            let newPath = folders.join('/')
+            fillHiPSHierarchy(name, hips, newPath, hierarchy[curFolder])
+        }
     }
 }
 
@@ -142,7 +147,7 @@ export class HiPSBrowserBox extends Box {
                 HiPSBrowserBox.HiPSList[name] = h;
 
                 if (h.client_category) {
-                    let path = h.client_category.toLowerCase()
+                    let path = h.client_category
 
                     fillHiPSHierarchy(name, h, path, hipsHierarchy)
                 }

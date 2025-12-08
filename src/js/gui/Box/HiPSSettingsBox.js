@@ -240,7 +240,7 @@ import { TogglerActionButton } from "../Button/Toggler.js";
 
         let colorSettingsContent = new Form({
             subInputs: [{
-                    label: 'colormap:',
+                    label: 'cmap:',
                     type: 'select',
                     name: 'cmap',
                     value: 'native',

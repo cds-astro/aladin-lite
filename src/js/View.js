@@ -1877,7 +1877,7 @@ export let View = (function () {
                 // Remove the settled promise
                 this.promises.splice(idx, 1);
 
-                const noMoreLayersToWaitFor = this.promises.length === 0;
+                /*const noMoreLayersToWaitFor = this.promises.length === 0;
 
                 if (noMoreLayersToWaitFor) {
                     if (self.empty) {
@@ -1889,7 +1889,7 @@ export let View = (function () {
                     } else {
                         //self.renameLayer(this.overlayLayers[0], "base");
                     }
-                }
+                }*/
             })
     }
 
@@ -1925,12 +1925,12 @@ export let View = (function () {
         this.wasm.swapLayers(firstLayer, secondLayer);
 
         // Swap in overlaylayers
-        /*const idxFirstLayer = this.overlayLayers.indexOf(firstLayer);
+        const idxFirstLayer = this.overlayLayers.indexOf(firstLayer);
         const idxSecondLayer = this.overlayLayers.indexOf(secondLayer);
 
         const tmp = this.overlayLayers[idxFirstLayer];
         this.overlayLayers[idxFirstLayer] = this.overlayLayers[idxSecondLayer];
-        this.overlayLayers[idxSecondLayer] = tmp;*/
+        this.overlayLayers[idxSecondLayer] = tmp;
 
         // Tell the layer hierarchy has changed
         ALEvent.HIPS_LAYER_SWAP.dispatchedTo(this.aladinDiv, { firstLayer: firstLayer, secondLayer: secondLayer });
@@ -1965,7 +1965,7 @@ export let View = (function () {
         this.overlayLayers.splice(idxOverlaidLayer, 1);
 
         if (this.overlayLayers.length === 0) {
-            this.empty = true;
+            //this.empty = true;
         } else if (this.selectedLayer === layer) {
             // If the layer removed was selected then we select the last layer
             this.selectLayer(this.overlayLayers[this.overlayLayers.length - 1]);
@@ -1974,12 +1974,12 @@ export let View = (function () {
         ALEvent.HIPS_LAYER_REMOVED.dispatchedTo(this.aladinDiv, { layer: imageLayer });
 
         // check if there are no more surveys
-        const noMoreLayersToWaitFor = this.promises.length === 0;
+        /*const noMoreLayersToWaitFor = this.promises.length === 0;
         if (noMoreLayersToWaitFor && this.empty) {
             // no promises to launch!
             const dssId = Aladin.DEFAULT_OPTIONS.survey;
             this.aladin.setBaseImageLayer(dssId);
-        }
+        }*/
     };
 
     View.prototype.contains = function(survey) {
@@ -2027,7 +2027,7 @@ export let View = (function () {
     }
 
     View.prototype.getImageLayer = function (layer) {
-        let layer = layer || (this.overlayLayers && this.overlayLayers[0]);
+        layer = layer || (this.overlayLayers && this.overlayLayers[0]);
         let imageLayerQueried = this.imageLayersBeingQueried.get(layer);
         let imageLayer = this.imageLayers.get(layer);
 

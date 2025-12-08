@@ -2004,7 +2004,7 @@ export let Aladin = (function () {
      * </ul>
      */
     Aladin.prototype.setBaseImageLayer = function (urlOrHiPSOrFITS) {
-        return this.setOverlayImageLayer(urlOrHiPSOrFITS, this.overlayLayers[0] || Utils.uuidv4());
+        return this.setOverlayImageLayer(urlOrHiPSOrFITS, (this.view.overlayLayers && this.view.overlayLayers[0]) || Utils.uuidv4());
     };
 
     /**
@@ -3041,7 +3041,7 @@ aladin.displayFITS(
             successCallback,
             errorCallback
         );
-        let layer = layer || (this.view.overlayLayers && this.view.overlayLayers[0])
+        layer = layer || (this.view.overlayLayers && this.view.overlayLayers[0])
         return this.setOverlayImageLayer(image, layer);
     };
 

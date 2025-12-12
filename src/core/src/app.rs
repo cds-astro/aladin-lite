@@ -1115,10 +1115,6 @@ impl App {
         Ok(())
     }
 
-    pub(crate) fn rename_layer(&mut self, layer: &str, new_layer: &str) -> Result<(), JsValue> {
-        self.layers.rename_layer(layer, new_layer)
-    }
-
     pub(crate) fn swap_layers(
         &mut self,
         first_layer: &str,

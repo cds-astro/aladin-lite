@@ -517,6 +517,8 @@ export class HiPSBrowserBox extends Box {
     }
 
     _show(options) {
+        this._requestMOCServer();
+
         // Regenerate a new layer name
         this.layer = (options && options.layer) || Utils.uuidv4();
         super._show(options)

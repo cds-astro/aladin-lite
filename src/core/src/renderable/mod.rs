@@ -351,29 +351,6 @@ impl Layers {
         }
     }
 
-    pub fn rename_layer(&mut self, layer: &str, new_layer: &str) -> Result<(), JsValue> {
-        let err_layer_not_found =
-            JsValue::from_str(&format!("Layer {layer:?} not found, so cannot be removed."));
-
-        // layer from layers does also need to be removed
-        let id_layer = self
-            .layers
-            .iter()
-            .position(|l| layer == l)
-            .ok_or(err_layer_not_found.clone())?;
-
-        self.layers[id_layer] = new_layer.to_string();
-
-        let meta = self.meta.remove(layer).ok_or(err_layer_not_found.clone())?;
-        let id = self.ids.remove(layer).ok_or(err_layer_not_found)?;
-
-        // Add the new
-        self.meta.insert(new_layer.to_string(), meta);
-        self.ids.insert(new_layer.to_string(), id);
-
-        Ok(())
-    }
-
     pub fn swap_layers(&mut self, first_layer: &str, second_layer: &str) -> Result<(), JsValue> {
         let id_first_layer =
             self.layers
@@ -391,16 +368,6 @@ impl Layers {
                 )))?;
 
         self.layers.swap(id_first_layer, id_second_layer);
-
-        /*if let (Some(k1), Some(k2)) = (self.ids.get(first_layer), self.ids.get(second_layer)) {
-            if let (Some(v1), Some(v2)) = (self.hipses.remove(k1), self.hipses.remove(k2)) {
-                self.hipses.insert(k2.to_string(), v1);
-                self.hipses.insert(k1.to_string(), v2);
-            } else if let (Some(v1), Some(v2)) = (self.images.remove(k1), self.images.remove(k2)) {
-                self.images.insert(k2.to_string(), v1);
-                self.images.insert(k1.to_string(), v2);
-            }
-        }*/
 
         Ok(())
     }

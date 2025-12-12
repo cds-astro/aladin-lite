@@ -137,10 +137,17 @@ export class Tree extends DOMElement {
                     let numFilteringMatching = this.numChildMatchingFilter(child, true);
                     let numTotal = this.numChildMatchingFilter(child, false);
 
-                    elt.innerHTML = label + ` (${numFilteringMatching}/${numTotal})`
+                    let name = label;
+                    elt.innerHTML = name + ` (${numFilteringMatching}/${numTotal})`
+
+                    if (numFilteringMatching == 0) {
+                        elt.style.display = "none";
+                    } else {
+                        elt.style.display = "block";
+                    }
                 }
 
-                elt.style.color = this.hasChildLocatedInFov(child) ? 'green' : 'orange';
+                elt.style.color = this.hasChildLocatedInFov(child) ? 'yellowgreen' : 'orange';
 
                 child.label = label;
                 child.parent = node;
@@ -194,13 +201,13 @@ export class Tree extends DOMElement {
                 if (isLeaf) {
                     // Check if its ID is found in the view
                     if (this.highlight) {
-                        elt.style.color = this.highlight.includes(child.ID) ? 'green' : 'orange';
+                        elt.style.color = this.highlight.includes(child.ID) ? 'yellowgreen' : 'orange';
                     }
                 } else {
                     // we see a parent, we must determine:
                     // * its color: he has at least 1 child inside the FoV => green
                     // * the number of children matching the filter params
-                    elt.style.color = this.hasChildLocatedInFov(child) ? 'green' : 'orange';
+                    elt.style.color = this.hasChildLocatedInFov(child) ? 'yellowgreen' : 'orange';
 
                     // we see a parent, we must determine:
                     // * its color: he has at least 1 child inside the FoV => green
@@ -210,6 +217,12 @@ export class Tree extends DOMElement {
 
                     let name = elt.innerText.split('(');
                     elt.innerHTML = name[0] + ` (${numFilteringMatching}/${numTotal})`
+
+                    if (numFilteringMatching == 0) {
+                        elt.style.display = "none";
+                    } else {
+                        elt.style.display = "block";
+                    }
                 }
             }
         }
@@ -248,6 +261,11 @@ export class Tree extends DOMElement {
 
                     let name = elt.innerText.split('(');
                     elt.innerHTML = name[0] + ` (${numFilteringMatching}/${numTotal})`
+                    if (numFilteringMatching == 0) {
+                        elt.style.display = "none";
+                    } else {
+                        elt.style.display = "block";
+                    }
                 }
             }
         }

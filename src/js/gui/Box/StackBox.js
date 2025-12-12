@@ -964,6 +964,7 @@ export class OverlayStackBox extends Box {
                 },
             });
 
+            let prevOpacity = null;
             let showBtn = ActionButton.createSmallSizedIconBtn({
                 icon: {
                     url: layer.getOpacity() === 0.0 ? hideIconUrl : showIconUrl,
@@ -979,12 +980,15 @@ export class OverlayStackBox extends Box {
 
                     let opacity = layer.getOpacity();
                     if (opacity === 0.0) {
-                        layer.setOpacity(1.0);
+                        let newOpacity = prevOpacity || 1.0;
+                        prevOpacity = null;
+                        layer.setOpacity(newOpacity);
                         btn.update({
                             icon: { monochrome: true, url: showIconUrl },
                             tooltip: { content: "Hide" },
                         });
                     } else {
+                        prevOpacity = opacity;
                         layer.setOpacity(0.0);
                         btn.update({
                             icon: { monochrome: true, url: hideIconUrl },

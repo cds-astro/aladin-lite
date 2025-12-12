@@ -1784,6 +1784,27 @@ export let View = (function () {
         // register its promise
         this.imageLayersBeingQueried.set(layer, imageLayer);
 
+        // Check whether this layer already exist
+        const idxOverlayLayer = this.overlayLayers.findIndex(overlayLayer => overlayLayer == layer);
+        let alreadyPresentImageLayer;
+        if (idxOverlayLayer == -1) {
+            // it does not exist so we add it to the stack
+            this.overlayLayers.push(layer);
+        } else {
+            // it exists
+            alreadyPresentImageLayer = this.imageLayers.get(layer);
+
+            if (alreadyPresentImageLayer) {
+                if (alreadyPresentImageLayer.added === true) {
+                    ALEvent.HIPS_LAYER_REMOVED.dispatchedTo(this.aladinDiv, { layer: alreadyPresentImageLayer });
+                }
+
+                alreadyPresentImageLayer.added = false;
+            }
+            // Notify that this image layer has been replaced by the wasm part
+            this.imageLayers.delete(layer);
+        }
+
         this.addImageLayer(imageLayer, layer);
 
         return imageLayer;
@@ -1793,33 +1814,13 @@ export let View = (function () {
     View.prototype._addLayer = function(imageLayer) {
         // Keep the JS frontend in-line with the wasm state
         const layerName = imageLayer.layer;
-        // Check whether this layer already exist
-        const idxOverlayLayer = this.overlayLayers.findIndex(overlayLayer => overlayLayer == layerName);
-        let alreadyPresentImageLayer;
-        if (idxOverlayLayer == -1) {
-            // it does not exist so we add it to the stack
-            this.overlayLayers.push(layerName);
-        } else {
-            // it exists
-            alreadyPresentImageLayer = this.imageLayers.get(layerName);
-
-            // Notify that this image layer has been replaced by the wasm part
-            if (alreadyPresentImageLayer && alreadyPresentImageLayer.added === true) {
-                ALEvent.HIPS_LAYER_REMOVED.dispatchedTo(this.aladinDiv, { layer: alreadyPresentImageLayer });
-            }
-
-            alreadyPresentImageLayer.added = false;
-            this.imageLayers.delete(layerName);
-        }
 
         imageLayer.added = true;
 
         this.imageLayers.set(layerName, imageLayer);
 
         // select the layer if he is on top
-        //if (idxOverlayLayer == -1) {
-            this.selectLayer(layerName);
-        //}
+        this.selectLayer(layerName);
 
         ALEvent.HIPS_LAYER_ADDED.dispatchedTo(this.aladinDiv, { layer: imageLayer });
     }
@@ -1891,33 +1892,6 @@ export let View = (function () {
                     }
                 }*/
             })
-    }
-
-    // The survey at layer must have been added to the view!
-    View.prototype.renameLayer = function(layer, newLayer) {
-        if (layer === newLayer) {
-            return;
-        }
-
-        // Throw an exception if either the first or the second layers are not in the stack
-        this.wasm.renameLayer(layer, newLayer);
-
-        let imageLayer = this.imageLayers.get(layer);
-        imageLayer.layer = newLayer;
-
-        // Change in overlaylayers
-        const idx = this.overlayLayers.findIndex(overlayLayer => overlayLayer == layer);
-        this.overlayLayers[idx] = newLayer;
-        // Change in imageLayers
-        this.imageLayers.delete(layer);
-        this.imageLayers.set(newLayer, imageLayer);
-
-        if (this.selectedLayer === layer) {
-            this.selectedLayer = newLayer;
-        }
-
-        // Tell the layer hierarchy has changed
-        ALEvent.HIPS_LAYER_RENAMED.dispatchedTo(this.aladinDiv, { layer, newLayer });
     }
 
     View.prototype.swapLayers = function(firstLayer, secondLayer) {

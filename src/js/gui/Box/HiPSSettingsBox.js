@@ -295,13 +295,16 @@ import { TogglerActionButton } from "../Button/Toggler.js";
         this.pixelSettingsContent.set('maxcut', +maxCut.toFixed(4))
         this.pixelSettingsContent.set('stretch', stretch)
         let fmtInput = this.pixelSettingsContent.getInput('fmt')
-
         fmtInput.innerHTML = '';
 
-        for (const option of layer.getAvailableFormats()) {
-            fmtInput.innerHTML += "<option>" + option + "</option>";
+        if (layer.getAvailableFormats()) {
+
+            for (const option of layer.getAvailableFormats()) {
+                fmtInput.innerHTML += "<option>" + option + "</option>";
+            }
+            fmtInput.value = layer.imgFormat;
         }
-        fmtInput.value = layer.imgFormat;
+
             
         this.colorSettingsContent.set('cmap', colormap);
         this.colorSettingsContent.set('reverse', reversed);

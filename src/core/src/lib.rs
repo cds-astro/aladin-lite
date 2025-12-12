@@ -372,12 +372,6 @@ impl WebClient {
         Ok(())
     }
 
-    #[wasm_bindgen(js_name = renameLayer)]
-    pub fn rename_layer(&mut self, layer: String, new_layer: String) -> Result<(), JsValue> {
-        // Deserialize the hips objects that compose the hips
-        self.app.rename_layer(&layer, &new_layer)
-    }
-
     #[wasm_bindgen(js_name = swapLayers)]
     pub fn swap_layers(
         &mut self,

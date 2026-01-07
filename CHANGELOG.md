@@ -6,6 +6,13 @@
 
 ## Released
 
+### 3.8.0
+
+* [fix] horizontal/vertical overlay lines appearing correctly <https://github.com/cds-astro/aladin-lite/issues/334>
+* [fix] layer opacity restored when switching from not visible to visible <https://github.com/cds-astro/aladin-lite/issues/332>
+* [feat] dark/light mode for the interface
+* [fix] polylines shapes size not consistent w.r.t to div size <https://github.com/cds-astro/aladin-lite/issues/331>
+
 ### 3.7.0-beta
 
 #### What's Changed

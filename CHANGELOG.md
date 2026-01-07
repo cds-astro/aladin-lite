@@ -20,6 +20,7 @@
 * [ui] WIP. A toolbar object
 * [fix] fix selection of footprints. In the future allow a skew selection mode and a additive selection shortkey.
 * [fix] inertia bug when zooming in/out
+* [license] License change from GPLv3 to LGPLv3-or-later
 
 ### 3.7.0-beta
 

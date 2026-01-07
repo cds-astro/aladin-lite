@@ -281,7 +281,7 @@ impl App {
         self.tile_fetcher.clear();
         // Loop over the hipss
         for hips in self.layers.get_mut_hipses() {
-            if self.camera.get_tile_depth() == 0 {
+            /*if self.camera.get_tile_depth() == 0 {
                 match hips {
                     HiPS::D2(h) => {
                         let query = query::Allsky::new(h.get_config(), None);
@@ -293,7 +293,7 @@ impl App {
                     // no Allsky generated for HiPS3D
                     HiPS::D3(_) => (),
                 }
-            }
+            }*/
 
             hips.look_for_new_tiles(
                 &mut self.tile_fetcher,
@@ -588,14 +588,6 @@ impl App {
         // - there is at least one tile in its blending phase
         let blending_anim_occuring =
             (Time::now() - self.time_start_blending) < BLENDING_ANIM_DURATION;
-
-        self.rendering = blending_anim_occuring
-            | has_camera_moved
-            | self.camera.has_zoomed()
-            | self.request_redraw
-            | self.inertia.is_some();
-
-        self.draw()?;
 
         for rsc in rscs_received {
             if Time::now() - rendering_timer >= MAX_FRAME_TIME {
@@ -918,6 +910,7 @@ impl App {
                             hips.add_allsky(allsky)?;
                             // Once received ask for redraw
                             self.request_redraw = true;
+                            al_core::log("request redraw");
                         }
                     }
                 }
@@ -944,6 +937,14 @@ impl App {
                 }
             }
         }
+
+        self.rendering = blending_anim_occuring
+            | has_camera_moved
+            | self.camera.has_zoomed()
+            | self.request_redraw
+            | self.inertia.is_some();
+
+        self.draw()?;
 
         // Reset the flags about the user action
         self.camera.reset();
@@ -1071,6 +1072,7 @@ impl App {
         gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
         // set the blending options
+        al_core::log("draw");
         layers.draw(camera, shaders, colormaps, projection)?;
 
         // Draw the catalog

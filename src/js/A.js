@@ -97,6 +97,29 @@ A.aladin = function (divSelector, options) {
         divElement = divSelector;
     }
 
+    let retrieveDefaultMode = () => {
+        const storedPreference = localStorage.getItem("theme");
+        const systemPrefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        const theme = storedPreference || (systemPrefersDark ? "dark" : "light");
+        return theme;
+    }
+    
+    let theme;
+    if (options.mode) {
+        let mode = options.mode.toLowerCase();
+
+        if (mode === 'dark' || mode === 'light') {
+            theme = mode;
+        } else {
+            console.warn("Interface mode option not recognized, only `dark` or `light` are possible values.")
+            theme = retrieveDefaultMode()
+        }
+    } else {
+        theme = retrieveDefaultMode()
+    }
+    // Retrieve the data-theme from localStorage or system preferences
+    divElement.setAttribute("data-theme", theme);
+
     // Associate the CSS inside the div
     var cssStyleSheet = document.createElement('style')
     cssStyleSheet.classList.add("aladin-css");

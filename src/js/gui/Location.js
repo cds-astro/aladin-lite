@@ -240,7 +240,7 @@ export class Location extends DOMElement {
             self.field.removeClass('aladin-not-valid');
             self.field.removeClass('aladin-valid'); 
 
-            self.field.element().style.color = options.center ? 'var(--aladin-color)' : 'white';
+            self.field.element().style.color = options.center ? 'var(--aladin-color)' : 'var(--text-color)';
         };
 
         if (options.ra && options.dec) {

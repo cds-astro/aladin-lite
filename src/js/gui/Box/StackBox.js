@@ -858,9 +858,7 @@ export class OverlayStackBox extends Box {
             let item = Layout.horizontal({
                 layout: [
                     this._addOverlayIcon(overlay),
-                    '<div style="background-color: rgba(0, 0, 0, 0.6); padding: 3px; border-radius: 3px; word-break: break-word;">' +
-                        name +
-                        "</div>",
+                    name,
                     Layout.horizontal({ layout: optBtn }),
                 ],
                 cssStyle: {
@@ -915,6 +913,9 @@ export class OverlayStackBox extends Box {
         hipsOptions.sort()
 
         for (const layer of layers) {
+            if (!layer) {
+                continue;
+            }
             let options = Array.from([...hipsOptions])
             let value = layer.name || layer.id
 

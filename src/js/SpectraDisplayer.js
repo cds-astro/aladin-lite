@@ -169,7 +169,7 @@ export class SpectraDisplayer {
                 SpectraDisplayer.UNIT.VELOCITY.label,
             ],
             tooltip: {
-                content: "Unit between frequency, wavelength and velocity",
+                content: `Unit: ${SpectraDisplayer.UNIT.FREQUENCY.label}, ${SpectraDisplayer.UNIT.WAVELENGTH.label} and ${SpectraDisplayer.UNIT.VELOCITY.label}`,
                 position: {direction: "right"}
             },
             change: (e) => {

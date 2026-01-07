@@ -291,8 +291,11 @@ import { TogglerActionButton } from "../Button/Toggler.js";
         let reversed = colorCfg.getReversed();
 
         let [minCut, maxCut] = colorCfg.getCuts();
-        this.pixelSettingsContent.set('mincut', +minCut.toFixed(4))
-        this.pixelSettingsContent.set('maxcut', +maxCut.toFixed(4))
+        if (minCut)
+            this.pixelSettingsContent.set('mincut', +minCut.toFixed(4))
+        if (maxCut)
+            this.pixelSettingsContent.set('maxcut', +maxCut.toFixed(4))
+
         this.pixelSettingsContent.set('stretch', stretch)
         let fmtInput = this.pixelSettingsContent.getInput('fmt')
         fmtInput.innerHTML = '';

@@ -185,6 +185,17 @@ export class SettingsCtxMenu extends ContextMenu {
             },
             {
                 label: {
+                    content: 'Light/Dark mode'
+                },
+                action(o) {
+                    const currentTheme = self.aladin.aladinDiv.getAttribute("data-theme");
+                    const newTheme = currentTheme === "dark" ? "light" : "dark";
+                    self.aladin.aladinDiv.setAttribute("data-theme", newTheme);
+                    localStorage.setItem("theme", newTheme);
+                }
+            },
+            {
+                label: {
                     content: [self.hpxGridCheckbox, 'HEALPix grid']
                 },
                 mustHide: false,

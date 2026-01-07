@@ -183,6 +183,8 @@ impl From<query::Allsky> for AllskyRequest {
                                 .collect())
                         }
                         Bitpix::F32 => {
+                            al_core::log("allsky fits parsed");
+
                             Ok(handle_allsky_fits(raw_bytes, tile_size, allsky_tile_size)?
                                 .map(|image| ImageType::RawRgba8u { image })
                                 .collect())
@@ -209,11 +211,11 @@ impl From<query::Allsky> for AllskyRequest {
                 }
             }
         });
+        al_core::log("allsky parsed");
 
         Self {
             id,
             hips_cdid,
-            //depth_tile,
             url,
             request,
             channel: slice,

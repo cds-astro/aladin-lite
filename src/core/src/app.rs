@@ -910,7 +910,6 @@ impl App {
                             hips.add_allsky(allsky)?;
                             // Once received ask for redraw
                             self.request_redraw = true;
-                            al_core::log("request redraw");
                         }
                     }
                 }
@@ -1072,7 +1071,6 @@ impl App {
         gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
         // set the blending options
-        al_core::log("draw");
         layers.draw(camera, shaders, colormaps, projection)?;
 
         // Draw the catalog

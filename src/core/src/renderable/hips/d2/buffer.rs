@@ -206,10 +206,7 @@ impl HiPS2DBuffer {
             }
 
             let is_allsky_tile = tile_size == self.config.allsky_tile_size() as u32;
-            al_core::log("cell is root");
             if is_allsky_tile {
-                al_core::log("copied to gpu");
-
                 texture.copy_to_gpu(
                     cell, // The tile cell
                     &image,
@@ -365,7 +362,6 @@ impl HpxTileBuffer for HiPS2DBuffer {
         ];
 
         let channel = config.get_format().get_pixel_format();
-        al_core::log(&format!("channel: {:?}", channel));
         let tile_size = config.get_tile_size();
         let tile_pixels = create_hpx_texture_storage(gl, channel, 128, tile_size)?;
 
@@ -398,7 +394,6 @@ impl HpxTileBuffer for HiPS2DBuffer {
         self.config.set_image_ext(ext)?;
 
         let channel = self.config.get_format().get_pixel_format();
-        al_core::log(&format!("set channel: {:?}", channel));
 
         let tile_size = self.config.get_tile_size();
         self.tile_pixels = create_hpx_texture_storage(gl, channel, 128, tile_size)?;
@@ -482,7 +477,6 @@ impl SendUniforms for HiPS2DBuffer {
         let shader = shader.attach_uniforms_from(&self.config);
 
         if self.allsky_rendering {
-            al_core::log("allsky is rendering");
             for idx in 0..NUM_HPX_TILES_DEPTH_ZERO {
                 let cell = HEALPixCell(0, idx as u64);
 

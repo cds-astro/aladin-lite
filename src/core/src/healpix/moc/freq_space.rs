@@ -99,10 +99,6 @@ impl FreqSpaceMoc {
         let f_hash_0 = f_hash << (Frequency::<u64>::MAX_DEPTH - f_depth);
         let f_hash_1 = (f_hash + 1) << (Frequency::<u64>::MAX_DEPTH - f_depth);
 
-        //let f0 = Frequency::<u64>::hash2freq(5171582628058365952);
-        //let f1 = Frequency::<u64>::hash2freq(5171590187200806912);
-        //al_core::log(&format!("F1: {f0}"));
-
         let hpx_ranges_2d = HpxRanges2D::create_from_freq_ranges_positions(
             vec![f_hash_0..f_hash_1; 1],
             vec![hpx.idx()],

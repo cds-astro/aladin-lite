@@ -41,7 +41,7 @@ export class HiPSFilterBox extends Box {
 
         let regimeBtn = Input.checkbox({
             name: 'Freq',
-            tooltip: {content: 'Observation bandwidth', position: {direction: 'left'}},
+            tooltip: {content: 'enable/disable', position: {direction: 'left'}},
             type: 'checkbox',
             checked: false,
             click(e) {
@@ -50,7 +50,7 @@ export class HiPSFilterBox extends Box {
         });
         let resolutionBtn =  Input.checkbox({
             name: 'Resolution',
-            tooltip: {content: 'Check for HiPS with a specific pixel resolution.', position: {direction: 'left'}},
+            tooltip: {content: 'enable/disable', position: {direction: 'left'}},
             type: 'checkbox',
             checked: false,
             click(e) {
@@ -59,12 +59,12 @@ export class HiPSFilterBox extends Box {
         });
 
         let regimeOption = Layout.horizontal({
-            tooltip: {
-                content: "Observation regime",
-                position: { direction: "right" },
-            },
-            label: 'Freq: ',
+            label: 'Freq:',
             layout: [Input.select({
+                tooltip: {
+                    content: "Observation regime",
+                    position: { direction: "left" },
+                },
                 value: "Optical",
                 options: [
                     "Radio",
@@ -169,15 +169,6 @@ export class HiPSFilterBox extends Box {
             this.callback(filterParams);
         }
     }
-
-    /*signalBrowserStatus(closed) {
-        this.browserClosed = closed;
-
-        // open
-        if (!closed) {
-            this._requestMOCServer()
-        }
-    }*/
 
     enable(enable) {
         this.on = enable;

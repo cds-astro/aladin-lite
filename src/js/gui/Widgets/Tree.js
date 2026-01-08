@@ -21,6 +21,8 @@ import { DOMElement } from "./Widget";
 import { Icon } from "./Icon";
 import folderIconUrl from "../../../../assets/icons/folder.svg";
 
+import { Layout } from "../Layout";
+import { ActionButton } from "./ActionButton";
 /******************************************************************************
  * Aladin Lite project
  *
@@ -40,6 +42,7 @@ export class Tree extends DOMElement {
         super(el, options);
 
         this.click = options && options.click;
+        this.aladin = options && options.aladin;
 
         let rootNode = options && options.root || {};
         this.params = null;
@@ -116,7 +119,22 @@ export class Tree extends DOMElement {
 
         let listElt = document.createElement('ul');
 
-        for (const label of Object.keys(node).sort()) {
+        let labels = Object.keys(node).sort((la, lb) => {
+            let na = node[la];
+            let nb = node[lb];
+
+            let aIsLeaf = typeof na === "object" && 'ID' in na;
+            let bIsLeaf = typeof nb === "object" && 'ID' in nb;
+
+            if (aIsLeaf !== bIsLeaf) {
+                return aIsLeaf - bIsLeaf;
+            } else if (la < lb) {
+                return -1
+            } else {
+                return 1;
+            }
+        });
+        for (const label of labels) {
             if (label !== 'parent' && label !== "label") {
                 let elt = document.createElement('li');
                 // points towards the parent node
@@ -129,7 +147,21 @@ export class Tree extends DOMElement {
                         elt.style.display = "block";
                     }
 
-                    elt.innerHTML = this.label(child);
+                    let label = this.label(child);
+
+                    let layout = [label];
+
+                    if (child.dataproduct_subtype === "color") {
+                        layout.push(new Icon({
+                            size: "small",
+                            url: Icon.dataURLFromSVG({ svg: Icon.SVG_ICONS.COLOR }),
+                        }))
+                    }
+
+                    layout.push(ActionButton.BUTTONS(this.aladin)
+                        .infoHiPS({url: child.hips_service_url}).element()
+                    )
+                    elt.appendChild(Layout.horizontal(layout).element());
                 } else {
                     // we see a parent, we must determine:
                     // * its color: he has at least 1 child inside the FoV => green
@@ -138,7 +170,14 @@ export class Tree extends DOMElement {
                     let numTotal = this.numChildMatchingFilter(child, false);
 
                     let name = label;
-                    elt.innerHTML = name + ` (${numFilteringMatching}/${numTotal})`
+                    elt.appendChild(Layout.horizontal([
+                        new Icon({
+                            size: "small",
+                            monochrome: true,
+                            url: folderIconUrl,
+                        }),
+                        name + ` (${numFilteringMatching}/${numTotal})`
+                    ]).element())
 
                     if (numFilteringMatching == 0) {
                         elt.style.display = "none";
@@ -191,7 +230,23 @@ export class Tree extends DOMElement {
         let elts = this.el.querySelectorAll("li");
         let i = 0;
 
-        for (const label of Object.keys(this.curNode).sort()) {
+        let labels = Object.keys(this.curNode).sort((la, lb) => {
+            let na = this.curNode[la];
+            let nb = this.curNode[lb];
+
+            let aIsLeaf = typeof na === "object" && 'ID' in na;
+            let bIsLeaf = typeof nb === "object" && 'ID' in nb;
+
+            if (aIsLeaf !== bIsLeaf) {
+                return aIsLeaf - bIsLeaf;
+            } else if (la < lb) {
+                return -1
+            } else {
+                return 1;
+            }
+        });
+
+        for (const label of labels) {
             if (label !== 'parent' && label !== "label") {
                 let elt = elts[i];
                 i += 1;
@@ -216,7 +271,15 @@ export class Tree extends DOMElement {
                     let numTotal = this.numChildMatchingFilter(child, false);
 
                     let name = elt.innerText.split('(');
-                    elt.innerHTML = name[0] + ` (${numFilteringMatching}/${numTotal})`
+
+                    elt.innerHTML = Layout.horizontal([
+                        new Icon({
+                            size: "small",
+                            monochrome: true,
+                            url: folderIconUrl,
+                        }),
+                        name[0] + ` (${numFilteringMatching}/${numTotal})`
+                    ]).element().outerHTML
 
                     if (numFilteringMatching == 0) {
                         elt.style.display = "none";
@@ -239,7 +302,22 @@ export class Tree extends DOMElement {
         let elts = this.el.querySelectorAll("li");
         let i = 0;
 
-        for (const label of Object.keys(this.curNode).sort()) {
+        let labels = Object.keys(this.curNode).sort((la, lb) => {
+            let na = this.curNode[la];
+            let nb = this.curNode[lb];
+
+            let aIsLeaf = typeof na === "object" && 'ID' in na;
+            let bIsLeaf = typeof nb === "object" && 'ID' in nb;
+
+            if (aIsLeaf !== bIsLeaf) {
+                return aIsLeaf - bIsLeaf;
+            } else if (la < lb) {
+                return -1
+            } else {
+                return 1;
+            }
+        });
+        for (const label of labels) {
             if (label !== 'parent' && label !== "label") {
                 let elt = elts[i];
                 i += 1;
@@ -260,7 +338,15 @@ export class Tree extends DOMElement {
                     let numTotal = this.numChildMatchingFilter(child, false);
 
                     let name = elt.innerText.split('(');
-                    elt.innerHTML = name[0] + ` (${numFilteringMatching}/${numTotal})`
+                    elt.innerHTML = Layout.horizontal([
+                        new Icon({
+                            size: "small",
+                            monochrome: true,
+                            url: folderIconUrl,
+                        }),
+                        name[0] + ` (${numFilteringMatching}/${numTotal})`
+                    ]).element().outerHTML;
+
                     if (numFilteringMatching == 0) {
                         elt.style.display = "none";
                     } else {
@@ -286,7 +372,22 @@ export class Tree extends DOMElement {
                 return true;
             }
         } else {
-            for (const label of Object.keys(node).sort()) {
+            let labels = Object.keys(node).sort((la, lb) => {
+                let na = node[la];
+                let nb = node[lb];
+
+                let aIsLeaf = typeof na === "object" && 'ID' in na;
+                let bIsLeaf = typeof nb === "object" && 'ID' in nb;
+
+                if (aIsLeaf !== bIsLeaf) {
+                    return aIsLeaf - bIsLeaf;
+                } else if (la < lb) {
+                    return -1
+                } else {
+                    return 1;
+                }
+            });
+            for (const label of labels) {
                 if (label === "parent")
                     continue;
 
@@ -314,7 +415,22 @@ export class Tree extends DOMElement {
             }
         } else {
             let num = 0;
-            for (const label of Object.keys(node).sort()) {
+            let labels = Object.keys(node).sort((la, lb) => {
+                let na = node[la];
+                let nb = node[lb];
+
+                let aIsLeaf = typeof na === "object" && 'ID' in na;
+                let bIsLeaf = typeof nb === "object" && 'ID' in nb;
+
+                if (aIsLeaf !== bIsLeaf) {
+                    return aIsLeaf - bIsLeaf;
+                } else if (la < lb) {
+                    return -1
+                } else {
+                    return 1;
+                }
+            });
+            for (const label of labels) {
                 if (label === "parent")
                     continue;
 

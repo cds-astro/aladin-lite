@@ -21,6 +21,9 @@ import { DOMElement } from "./Widget";
 import { Tooltip } from "./Tooltip";
 import { Icon } from "./Icon";
 import { Layout } from "../Layout";
+
+import infoIconUrl from "../../../../assets/icons/info.svg"
+
 /******************************************************************************
  * Aladin Lite project
  *
@@ -187,5 +190,28 @@ export class ActionButton extends DOMElement {
         opt['info'] = info || undefined;
 
         return new ActionButton(opt, target, position);
+    }
+
+    static BUTTONS(aladin) {
+        return {
+            infoHiPS: (options) => {
+                return new ActionButton({
+                    icon: {
+                        size: 'small',
+                        monochrome: true,
+                        url: infoIconUrl,
+                    },
+                    tooltip: {
+                        global: true,
+                        aladin,
+                        content: "More about that survey?"
+                    },
+                    action(e) {
+                        window.open(options && options.url);
+                    },
+                    ...options
+                })
+            }
+        }
     }
 }

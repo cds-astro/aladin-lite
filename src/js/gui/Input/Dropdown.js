@@ -67,7 +67,6 @@ import infoIconUrl from '../../../../assets/icons/info.svg';
 import { Input } from "../Widgets/Input.js";
  
 export class Dropdown extends Input {
-
      // constructor
      constructor(aladin, options) {
         let self;
@@ -90,12 +89,6 @@ export class Dropdown extends Input {
 
     update(options) {
         let newOptions = {};
-
-        /*if (options && options.options) {
-            newOptions['autocomplete'] = {options: options.options};
-
-            delete options.options;
-        }*/
 
         // add the other input text options
         newOptions = {...newOptions, ...options};

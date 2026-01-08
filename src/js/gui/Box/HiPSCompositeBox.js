@@ -21,25 +21,21 @@ import { MocServer } from "../../MocServer.js";
 
 import { Box } from "../Widgets/Box.js";
 import { Dropdown } from "../Input/Dropdown.js";
-import filterOnUrl from "../../../../assets/icons/filter-on.svg";
-import treeIconUrl from "../../../../assets/icons/tree.svg";
-import filterOffUrl from "../../../../assets/icons/filter-off.svg";
+import hipsIconUrl from "../../../../assets/icons/hips.svg";
 import { Input } from "../Widgets/Input.js";
-import { TogglerActionButton } from "../Button/Toggler.js";
 import { Layout } from "../Layout.js";
-import { HiPSFilterBox } from "./HiPSFilterBox.js";
 import A from "../../A.js";
 import { Utils } from "../../Utils.ts";
 import { ActionButton } from "../Widgets/ActionButton.js";
+import infoIconUrl from "../../../../assets/icons/info.svg"
 import { Icon } from "../Widgets/Icon.js";
-import { Tree } from "../Widgets/Tree.js";
-import { ALEvent } from "../../events/ALEvent.js";
 
 /******************************************************************************
  * Aladin Lite project
  *
- * File gui/HiPSBrowserBox.js
+ * File gui/Box/HiPSCompositeBox.js
  *
+ * The code source of the interface for creating a new composite HiPS survey from multiple surveys
  *
  * Author: Matthieu Baumann[CDS]
  *
@@ -75,64 +71,13 @@ function fillHiPSHierarchy(name, hips, path, hierarchy) {
     }
 }
 
-export class HiPSBrowserBox extends Box {
+export class HiPSCompositeBox extends Box {
     static HiPSList = {};
 
     constructor(aladin, options) {
         let self;
 
-        let filter = (item, params) => {
-            if (params.regime) {
-                if (!item.obs_regime)
-                    return false;
-
-                if (params.regime.toLowerCase() !== item.obs_regime.toLowerCase()) {
-                    return false;
-                }
-            }
-
-            if (params.resolution) {
-                if (!item.hips_tile_width || !item.hips_order) {
-                    return false;
-                }
-
-                let pixelHEALPixOrder = Math.log2(item.hips_tile_width) + (+item.hips_order);
-                let resPixel = Math.sqrt(Math.PI / (3*Math.pow(4, pixelHEALPixOrder)));
-
-                if (resPixel > params.resolution)
-                    return false;
-            }
-
-            if (params.title) {
-                if (!item.obs_title)
-                    return false;
-
-                if (!item.obs_title.toLowerCase().includes(params.title.toLowerCase())) {
-                    return false;
-                }
-            }
-
-            return true;
-        };
-
         // Search tree
-        let searchTree = new Tree({
-            // a JS object describing the tree to show
-            label: (item) => {
-                let name = item.obs_title.replace(/:|\'/g, '');
-                return name;
-            },
-            // a callback called when the user selects a leaf item of the tree
-            click: (item) => {
-                let image = item.ID || item.hips_service_url;
-                let name = item.obs_title || item.ID;
-                self._addHiPS(image, name)
-            },
-            // a callback called for filtering
-            filter,
-            aladin,
-        });
-
         MocServer.getAllHiPSes().then((HiPSes) => {
             HiPSBrowserBox.HiPSList = {}
 
@@ -152,11 +97,6 @@ export class HiPSBrowserBox extends Box {
                     fillHiPSHierarchy(name, h, path, hipsHierarchy)
                 }
             });
-
-            self.searchTree.setHierarchy(hipsHierarchy)
-
-            // Initialize the autocompletion without any filtering
-            self._filterHiPSList({})
         });
 
         const _parseHiPS = (e) => {
@@ -185,7 +125,6 @@ export class HiPSBrowserBox extends Box {
             }
         };
 
-        let typedRecently = false;
         let searchDropdown = new Dropdown(aladin, {
             name: "HiPS browser",
             placeholder: "Browse a HiPS by an URL, ID or keywords",
@@ -202,91 +141,35 @@ export class HiPSBrowserBox extends Box {
                 keydown(e) {
                     e.stopPropagation();
 
-                    // ignore navigation keys
-                    if (e.key.length === 1 || e.key === "Backspace" || e.key === "Delete") {
-                        typedRecently = true;
-                    }
-
                     if (e.key === 'Enter') {
+                        e.preventDefault()
                         _parseHiPS(e)
                     }
                 },
                 input(e) {
-                    setTimeout(() => (typedRecently = false), 0);
-
-                    let value = e.target.value;
                     self.infoCurrentHiPSBtn.update({
                         disable: true,
                     })
 
-                    self.searchTree.triggerFilter({title: value});
-
                     searchDropdown.removeClass('aladin-valid')
                     searchDropdown.removeClass('aladin-not-valid')
-
-                    if (searchDropdown.options && !typedRecently) {
-                        let HiPSIDs = searchDropdown.options.options;
-                        if (HiPSIDs.includes(value)) {
-                            _parseHiPS(e)
-                        }
-                    }
                 },
             },
         });
 
-        let filterEnabler = Input.checkbox({
-            name: "filter-enabler",
-            tooltip: { content: "enable/disable" },
-            checked: false,
-            click(e) {
-                let on = e.target.checked;
-                self.filterBox.enable(on);
-
-                if (!on) {
-                    // if the filter has been disabled we also need to update
-                    // the autocompletion list of the search dropdown
-                    // We give no filter params
-                    self._filterHiPSList({});
-                }
-
-                filterBtn.update({
-                    icon: {
-                        url: on ? filterOnUrl : filterOffUrl,
-                        monochrome: true,
-                    },
-                });
-
-                filterEnabler.update({
-                    checked: on,
-                });
-            },
-        });
-
-        let infoCurrentHiPSBtn = ActionButton.BUTTONS(aladin)
-            .infoHiPS({disable: true})
-
-        let filterBtn = new TogglerActionButton({
+        let infoCurrentHiPSBtn = new ActionButton({
+            disable: true,
             icon: {
-                url: filterOffUrl,
+                size: 'medium',
                 monochrome: true,
+                url: infoIconUrl,
             },
-            size: "small",
             tooltip: {
-                content: "Want to filter HiPS surveys by criteria ?",
-                position: { direction: "top" },
-            },
-            toggled: false,
-            actionOn: (e) => {
-                self.filterBox._show({position: {
-                    anchor: 'right center'
-                }});
-            },
-            actionOff: (e) => {
-                self.filterBox._hide();
-            },
+                global: true,
+                aladin,
+                content: "More about that survey?"
+            }
         });
-
-        let filterNumberElt = document.createElement("div");
 
         super(
             {
@@ -294,16 +177,13 @@ export class HiPSBrowserBox extends Box {
                 header: {
                     title: Layout.horizontal([new Icon({
                         size: 'medium',
-                        url: treeIconUrl,
+                        url: hipsIconUrl,
                         monochrome: true,
-                    }), "HiPS browser"]),
+                    }), "HiPS Compositor"]),
                     draggable: true,
                 },
-                classList: ['aladin-HiPS-browser-box'],
                 content: Layout.vertical([
-                    searchTree,
-                    Layout.horizontal(["Search:", searchDropdown, infoCurrentHiPSBtn]),
-                    Layout.horizontal([Layout.horizontal([filterEnabler, filterBtn, filterNumberElt])]),
+                    Layout.horizontal([searchDropdown, infoCurrentHiPSBtn]),
                 ]),
                 ...options,
             },
@@ -312,51 +192,15 @@ export class HiPSBrowserBox extends Box {
 
         self = this;
 
-        this.searchTree = searchTree;
-        this.filterBox = new HiPSFilterBox(aladin, {
-            callback: (params) => {
-                self._filterHiPSList(params);
-            },
-        })
-        this.filterNumberElt = filterNumberElt;
-        this.filterBox._hide();
-
         this.searchDropdown = searchDropdown;
-        this.filterBtn = filterBtn;
         this.aladin = aladin;
 
         this.infoCurrentHiPSBtn = infoCurrentHiPSBtn;
 
-        this.filter = filter;
-
-        filterEnabler.action({target: {checked: true}});
-
         this._addListeners();
-
-        this._requestMOCServer();
     }
 
-    _addListeners() {
-        const requestMOCServerDebounced = Utils.debounce(() => {
-            this._requestMOCServer()
-        }, 500);
-
-        ALEvent.POSITION_CHANGED.listenedBy(this.aladin.aladinDiv, requestMOCServerDebounced);
-        ALEvent.ZOOM_CHANGED.listenedBy(this.aladin.aladinDiv, requestMOCServerDebounced);
-    }
-
-    _requestMOCServer() {
-        if (this.isHidden && this.searchTree) {
-            return;
-        }
-
-        let self = this;
-        MocServer.getAllHiPSesInsideView(this.aladin)
-            .then((HiPSes) => {
-                let HiPSIDs = HiPSes.map((x) => x.ID);
-                self.searchTree.highlightNodes(HiPSIDs)
-            })
-    }
+    _addListeners() {}
 
     _addHiPS(id, name) {
         let self = this;
@@ -479,45 +323,7 @@ export class HiPSBrowserBox extends Box {
         this.aladin.setOverlayImageLayer(hips, self.layer);
     }
 
-    // This method is executed only if the filter is enabled
-    _filterHiPSList(params) {
-        let self = this;
-        let HiPSIDs = [];
-
-        for (var key in HiPSBrowserBox.HiPSList) {
-            let HiPS = HiPSBrowserBox.HiPSList[key];
-            // apply filtering
-            if (
-                self.filter &&
-                self.filter(HiPS, params)
-            ) {
-                // search with the name or id
-                let name = HiPS.obs_title;
-                name = name.replace(/:|\'/g, "");
-
-                HiPSIDs.push(name);
-            }
-        }
-
-        if (self.searchTree) {
-            self.searchTree.triggerFilter(params);
-        }
-
-        self.searchDropdown.update({ options: HiPSIDs });
-        self.filterNumberElt.innerHTML = HiPSIDs.length + "/" + Object.keys(HiPSBrowserBox.HiPSList).length;
-    }
-
-    _hide() {
-        if (this.filterBtn && this.filterBtn.toggled) {
-            this.filterBtn.toggle();
-        }
-
-        super._hide()
-    }
-
     _show(options) {
-        this._requestMOCServer();
-
         // Regenerate a new layer name
         this.layer = (options && options.layer) || Utils.uuidv4();
         super._show(options)

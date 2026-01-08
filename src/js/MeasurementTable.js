@@ -77,7 +77,7 @@ export let MeasurementTable = (function() {
             tooltip: {
                 global: true,
                 aladin: this.aladin,
-                content: 'Press shift + mouse wheel for scrolling'
+                content: 'Scroll to see more...'
             },
             aladin: this.aladin,
             layout,

@@ -37,14 +37,13 @@
     --hover-color: green;
     --toggle-color: dodgerblue;
     --border-size: 2px;
-    --valid-color: greenyellow;
+    --valid-color: green;
     --error-color: red;
 }
 
 .aladin-tree {
     width: 100%;
-    border-top: 1px solid var(--border-color);
-    border-bottom: 2px solid var(--border-color);
+    border-bottom: var(--border-size) solid var(--border-color);
 }
 
 .aladin-tree .aladin-directory-path {
@@ -286,7 +285,7 @@
 }
 
 .aladin-box {
-    padding: 0.2rem;
+    padding: 0.3rem;
     background: whitesmoke;
     position: absolute;
     font-size: inherit;
@@ -353,7 +352,7 @@
     margin-top: 0 0 2px 0;
     cursor:pointer;
     color: #605F61;
-    border: var(--border-size) solid #AEAEAE;
+    border: var(--border-size) solid var(--border-color);
     border-radius: 3px;
     background: #fff;
     font-size: 1.0rem;
@@ -368,8 +367,10 @@
 
 .aladin-box-separator {
 	height: 0;
-    border-top: 1px solid #d2d2d2;
-    padding-bottom: 5px;
+    border-top: var(--border-size) solid var(--border-color);
+    margin-top: 5px;
+    margin-bottom: 5px;
+
 }
 
 .aladin-restore {
@@ -493,6 +494,7 @@
 
 .aladin-input-text:focus, .aladin-input-number:focus {
     border-color: var(--toggle-color);
+    background-color: var(--bg-color);
 }
 
 [data-theme="light"] .aladin-input-text.search:focus {
@@ -527,12 +529,6 @@
     background-image:none;
     text-indent: 0rem;
     line-height: 1.2rem;
-}
-
-.aladin-input-text.search.aladin-not-valid {
-    -webkit-box-shadow:inset 0px 0px 0px 1px #f00;
-    -moz-box-shadow:inset 0px 0px 0px 1px #f00;
-    box-shadow:inset 0px 0px 0px 1px #f00;
 }
 
 .aladin-input-text.aladin-not-valid {
@@ -882,7 +878,7 @@
     -moz-appearance: none;
     -webkit-appearance: none;
     outline-style: none;
-    padding: 0.2rem;
+    padding: 0.5rem;
     border-radius: 0.2rem;
     font-family: monospace;
     box-sizing: border-box;
@@ -965,7 +961,6 @@ otherwise it fits its content options. If those are too big the select can go ou
 /********** Range Input Styles **********/
 /*Range Reset*/
 .aladin-input-range {
-    background: transparent;
     cursor: pointer;
     margin: 0.8rem 0;
     box-sizing: border-box;
@@ -981,11 +976,20 @@ otherwise it fits its content options. If those are too big the select can go ou
  .aladin-input-range:focus {
    outline: none;
  }
+
+.aladin-input-text:-internal-autofill-selected,
+.aladin-input-text:-internal-autofill-selected:hover,
+.aladin-input-text:-internal-autofill-selected:focus,
+.aladin-input-text:-internal-autofill-selected:active {
+    -webkit-box-shadow: 0 0 0 1000px var(--bg-color) inset !important;
+    box-shadow: 0 0 0 1000px var(--bg-color) inset !important;
+    -webkit-text-fill-color: var(--text-color) !important;
+    padding-left: 0.5rem !important;
+}
  
  /***** Chrome, Safari, Opera and Edge Chromium styles *****/
  
  .aladin-input-range::-webkit-slider-container {
-    background: var(--text-color);
     height: 0.1rem;
     min-height: 0.1rem;
  }
@@ -1184,14 +1188,12 @@ otherwise it fits its content options. If those are too big the select can go ou
 .aladin-HiPS-browser-box .aladin-input-text {
     width: 100%;
     min-width: 300px;
-    padding: 0.5rem;
+
 }
 
 .aladin-cat-browser-box .aladin-input-text.search {
     width: 100%;
     min-width: 300px;
-    padding-top: 0.5rem;
-    padding-bottom: 0.5rem;
 }
 
 .aladin-location {
@@ -1213,6 +1215,7 @@ otherwise it fits its content options. If those are too big the select can go ou
     border-radius: 0 0.2rem 0.2rem 0;
     box-sizing: content-box;
     width: 12.5rem;
+    padding: 0.2rem;
 }
 
 .aladin-location .aladin-location-copy {

@@ -36,6 +36,7 @@ import { Utils } from "../../Utils";
 import { View } from "../../View.js";
 import { HiPSSettingsBox } from "./HiPSSettingsBox.js";
 import hipsIconUrl from "../../../../assets/icons/hips.svg";
+import treeIconUrl from "../../../../assets/icons/tree.svg";
 import showIconUrl from "../../../../assets/icons/show.svg";
 import addIconUrl from "../../../../assets/icons/plus.svg";
 import hideIconUrl from "../../../../assets/icons/hide.svg";
@@ -51,6 +52,7 @@ import { CtxMenuActionButtonOpener } from "../Button/CtxMenuOpener.js";
 import { Input } from "../Widgets/Input.js";
 import { Image } from "../../Image.js";
 import { HiPSBrowserBox } from "./HiPSBrowserBox.js";
+import { HiPSCompositeBox } from "./HiPSCompositeBox.js"
 
 export class OverlayStackBox extends Box {
     /*static previewImagesUrl = {
@@ -501,28 +503,12 @@ export class OverlayStackBox extends Box {
                                     cursor: "help",
                                 },
                             },
-                            content: "Add new survey",
+                            content: "Add a new HiPS",
                         },
                         action: (e) => {
                             e.stopPropagation();
                             e.preventDefault();
 
-                            /*self._hide();
-
-                            self.hipsSelectorBox = new HiPSSelectorBox(self.aladin);
-                            // attach a callback
-                            self.hipsSelectorBox.attach( 
-                                (HiPSId) => {
-                                    let name = Utils.uuidv4()
-                                    self.aladin.setOverlayImageLayer(HiPSId, name)
-
-                                    self.show();
-                                }
-                            );
-
-                            self.hipsSelectorBox._show({
-                                position: self.position,
-                            });*/
                             self.aladin.addNewImageLayer(
                                 'P/DSS2/color'
                             );
@@ -531,7 +517,7 @@ export class OverlayStackBox extends Box {
                     {
                         label: {
                             icon: {
-                                url: hipsIconUrl,
+                                url: treeIconUrl,
                                 monochrome: true,
                                 tooltip: {
                                     content: "From our database...",
@@ -551,6 +537,33 @@ export class OverlayStackBox extends Box {
                                 self.hipsBrowser = new HiPSBrowserBox(aladin);
 
                             self.hipsBrowser._show({position: {
+                                anchor: 'center center'
+                            }});
+                        },
+                    },
+                    {
+                        label: {
+                            icon: {
+                                url: hipsIconUrl,
+                                monochrome: true,
+                                tooltip: {
+                                    content: "Combine different surveys into a color one!",
+                                    position: { direction: "right" },
+                                },
+                                cssStyle: {
+                                    cursor: "help",
+                                },
+                            },
+                            content: "Add a composite HiPS",
+                        },
+                        action: (e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+
+                            if (!self.hipsCompositeBox)
+                                self.hipsCompositeBox = new HiPSCompositeBox(aladin);
+
+                            self.hipsCompositeBox._show({position: {
                                 anchor: 'center center'
                             }});
                         },

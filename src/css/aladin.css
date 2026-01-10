@@ -61,7 +61,6 @@
 }
 .aladin-link {
     list-style-type: none;
-    padding: 0.5em 0px;
     cursor:pointer;
     margin: 0;
 }
@@ -74,8 +73,48 @@
     border-bottom: none;
 }
 
-.aladin-tree li {
-    border-bottom: 1px solid var(--border-color);
+.aladin-tree li > * {
+    border-bottom: var(--border-size) solid var(--border-color);
+    padding: 0.5em 0px;
+}
+
+.aladin-tree li:last-of-type > * {
+    border-bottom: 0px;
+}
+
+#aladin-tooltip-mouse {
+    display: none;
+    position: fixed;
+    pointer-events: none; /* tooltip won't block mouse */
+    z-index: 1000;
+    padding: 0;
+    max-width: 100%;
+}
+#aladin-tooltip-mouse * {
+    margin: 0;
+}
+
+.aladin-fig {
+    display: inline-block;   /* shrink-wraps content */
+    position: relative;
+}
+
+.aladin-fig img {
+    display: block;
+    max-width: 128px;
+    max-height: 128px;
+}
+
+.aladin-fig figcaption {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    
+    color: white;
+    font-size: 11px;
+    text-align: center;
+    background: black;
 }
 
 .aladin-lite-spectra-displayer .aladin-spectra-unit-selector {
@@ -1003,8 +1042,7 @@ otherwise it fits its content options. If those are too big the select can go ou
 
     font-family: monospace;
     line-height: 1rem;
-    
-    float: left;
+
 }
 
 .aladin-tooltip-container .aladin-tooltip {

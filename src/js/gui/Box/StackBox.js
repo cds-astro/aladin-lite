@@ -143,8 +143,6 @@ export class OverlayStackBox extends Box {
 
         this._addListeners();
 
-        this.mocHiPSUrls = {};
-
         this.HiPSui = {};
         let self = this;
         // Add overlay button
@@ -1047,81 +1045,11 @@ export class OverlayStackBox extends Box {
                 },
             });
 
-            let loadMOCBtn = new ActionButton({
-                size: "small",
-
-                icon: {
-                    url: Icon.dataURLFromSVG({ svg: Icon.SVG_ICONS.MOC }),
-                    size: "small",
-                    monochrome: true,
-                },
-                tooltip: {
-                    content: "Add coverage",
-                    position: { direction: "top" },
-                },
-                toggled: (() => {
-                    let overlays = self.aladin.getOverlays();
-                    let found = overlays.find(
-                        (o) => o.type === "moc" && o.name === layer.name
-                    );
-                    return found !== undefined;
-                })(),
-                action: (e) => {
-                    if (!loadMOCBtn.options.toggled) {
-                        // load the moc
-                        let moc = A.MOCFromURL(
-                            layer.url + "/Moc.fits",
-                            { name: layer.name },
-                            () => {
-                                self.mocHiPSUrls[layer.url] = moc;
-
-                                if (self.aladin.statusBar) {
-                                    self.aladin.statusBar.appendMessage({
-                                        message:
-                                            "Coverage of " +
-                                            layer.name +
-                                            " loaded",
-                                        duration: 2000,
-                                        type: "info",
-                                    });
-                                }
-
-                                loadMOCBtn.update({
-                                    toggled: true,
-                                    tooltip: {
-                                        content: "Remove coverage",
-                                        position: { direction: "top" },
-                                    },
-                                });
-                            }
-                        );
-                        self.aladin.addMOC(moc);
-                    } else {
-                        // unload the moc
-                        let moc = self.mocHiPSUrls[layer.url];
-                        self.aladin.removeLayer(moc);
-
-                        delete self.mocHiPSUrls[layer.url];
-
-                        if (self.aladin.statusBar) {
-                            self.aladin.statusBar.appendMessage({
-                                message:
-                                    "Coverage of " + layer.name + " removed",
-                                duration: 2000,
-                                type: "info",
-                            });
-                        }
-
-                        loadMOCBtn.update({
-                            toggled: false,
-                            tooltip: {
-                                content: "Add coverage",
-                                position: { direction: "top" },
-                            },
-                        });
-                    }
-                },
-            });
+            let loadMOCBtn = ActionButton.BUTTONS(aladin)
+                .addMOC({
+                    name: layer.name,
+                    url: layer.url + '/Moc.fits'
+                });
 
             self.layer2swap = null;
             let swapBtn = new ActionButton({

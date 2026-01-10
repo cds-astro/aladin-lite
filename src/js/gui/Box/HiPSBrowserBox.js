@@ -46,6 +46,10 @@ import { ALEvent } from "../../events/ALEvent.js";
  *****************************************************************************/
 
 function fillHiPSHierarchy(name, hips, path, hierarchy) {
+    if (path[path.length - 1] === '/') {
+        path = path.substring(0, path.length - 1);
+    }
+
     let folders = path.split('/')
     let curFolder = folders.shift()
 

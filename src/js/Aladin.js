@@ -358,6 +358,11 @@ export let Aladin = (function () {
 
         this.reticle = new Reticle(this.options, this);
         this.popup = new Popup(this.aladinDiv, this.view);
+        this.tooltip = document.createElement('div')
+        this.tooltip.id = 'aladin-tooltip-mouse';
+        this.tooltip.classList.add("aladin-box")
+
+        this.aladinDiv.appendChild(this.tooltip)
 
         this.ui = [];
 

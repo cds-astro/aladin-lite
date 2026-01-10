@@ -23,7 +23,8 @@ import { Icon } from "./Icon";
 import { Layout } from "../Layout";
 
 import infoIconUrl from "../../../../assets/icons/info.svg"
-
+import targetIconUrl from '../../../../assets/icons/target.svg';
+import A from "../../A";
 /******************************************************************************
  * Aladin Lite project
  *
@@ -192,6 +193,7 @@ export class ActionButton extends DOMElement {
         return new ActionButton(opt, target, position);
     }
 
+    static mocs = {};
     static BUTTONS(aladin) {
         return {
             infoHiPS: (options) => {
@@ -202,8 +204,7 @@ export class ActionButton extends DOMElement {
                         url: infoIconUrl,
                     },
                     tooltip: {
-                        global: true,
-                        aladin,
+                        position: {direction: "top"},
                         content: "More about that survey?"
                     },
                     action(e) {
@@ -211,6 +212,115 @@ export class ActionButton extends DOMElement {
                     },
                     ...options
                 })
+            },
+            targetHiPSLocation: (options) => {
+                let ra = options && options.ra;
+                let dec = options && options.dec;
+                let fov = options && options.fov;
+                return new ActionButton({
+                    icon: {
+                        size: 'small',
+                        monochrome: true,
+                        url: targetIconUrl,
+                    },
+                    disable: ra === undefined || dec === undefined || fov === undefined,
+                    tooltip: {
+                        content: "Target interesting sky location",
+                    },
+                    action(e) {
+                        if (fov !== undefined && ra !== undefined && dec !== undefined) {
+                            aladin.setFoV(+fov)
+                            aladin.gotoObject(ra + ' ' + dec);
+                        }
+                        
+                    },
+                    ...options
+                })
+            },
+            addMOC: (options) => {
+                let name = options && options.name;
+                let url = options && options.url;
+
+                let button = new ActionButton({
+                    size: "small",
+                    icon: {
+                        url: Icon.dataURLFromSVG({ svg: Icon.SVG_ICONS.MOC }),
+                        size: "small",
+                        monochrome: true,
+                    },
+                    tooltip: {
+                        content: "Add coverage",
+                        position: { direction: "top" },
+                    },
+                    toggled: (() => {
+                        let overlays = aladin.getOverlays();
+                        let found = overlays.find(
+                            (o) => o.type === "moc" && o.name === name
+                        );
+                        return found !== undefined;
+                    })(),
+                    action: (e) => {
+                        if (!button.options.toggled) {
+                            // load the moc
+                            let moc = A.MOCFromURL(
+                                url,
+                                { name },
+                                () => {
+                                    if (aladin.statusBar) {
+                                        aladin.statusBar.appendMessage({
+                                            message:
+                                                "Coverage of " +
+                                                name +
+                                                " loaded",
+                                            duration: 2000,
+                                            type: "info",
+                                        });
+                                    }
+
+                                    button.update({
+                                        toggled: true,
+                                        tooltip: {
+                                            content: "Remove coverage",
+                                            position: { direction: "top" },
+                                        },
+                                    });
+                                }
+                            );
+
+                            aladin.addMOC(moc);
+                        } else {
+                            // unload the moc
+                            let overlays = aladin.getOverlays();
+                            let moc = overlays.find(
+                                (o) => {
+                                    console.log(o.name)
+                                    o.type === "moc" && o.name === name
+                                }
+                            );
+                            aladin.removeLayer(moc);
+
+                            if (aladin.statusBar) {
+                                aladin.statusBar.appendMessage({
+                                    message:
+                                        "Coverage of " + name + " removed",
+                                    duration: 2000,
+                                    type: "info",
+                                });
+                            }
+
+                            button.update({
+                                toggled: false,
+                                tooltip: {
+                                    content: "Add coverage",
+                                    position: { direction: "top" },
+                                },
+                            });
+                        }
+                    },
+                    ...options
+                })
+
+                return button;
             }
         }
     }

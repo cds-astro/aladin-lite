@@ -159,9 +159,57 @@ export class Tree extends DOMElement {
                     }
 
                     layout.push(ActionButton.BUTTONS(this.aladin)
-                        .infoHiPS({url: child.hips_service_url}).element()
+                        .infoHiPS({
+                            url: child.hips_service_url,
+                            tooltip: {
+                                aladin: this.aladin,
+                                global: true,
+                                content: "More info on the survey ?",
+                            },
+                        }).element()
                     )
-                    elt.appendChild(Layout.horizontal(layout).element());
+
+                    layout = layout.concat([
+                        ActionButton.BUTTONS(this.aladin)
+                            .targetHiPSLocation({
+                                ra: child.hips_initial_ra,
+                                dec: child.hips_initial_dec,
+                                fov: child.hips_initial_fov,
+                                tooltip: {
+                                    aladin: this.aladin,
+                                    global: true,
+                                    content: "Move to an interesting location",
+                                },
+                            })
+                            .element(),
+                        ActionButton.BUTTONS(this.aladin)
+                            .addMOC({
+                                name: label,
+                                url: child.hips_service_url + '/Moc.fits',
+                                tooltip: {
+                                    aladin: this.aladin,
+                                    global: true,
+                                    content: "Click to add its coverage",
+                                },
+                            })
+                            .element(),
+                    ])
+
+                    let config = {
+                        layout,
+                        tooltip: {
+                            content: '<figure class="aladin-fig"><img ' + 
+                                `src="${child.hips_service_url + "/preview.jpg"}"` +
+                                `alt="${label}" />` +
+                                `<figcaption>${label}</figcaption>` +
+                                '</figure>',
+                            delayShowUpTime: "100ms",
+                            mouse: true,
+                            aladin: this.aladin,
+                        }
+                    };
+
+                    elt.appendChild(Layout.horizontal(config).element());
                 } else {
                     // we see a parent, we must determine:
                     // * its color: he has at least 1 child inside the FoV => green

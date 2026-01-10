@@ -50,8 +50,7 @@ export class Tooltip extends DOMElement {
         }
         options.position.anchor = target;
 
-
-        if (!options.delayShowUpTime) {
+        if (options.delayShowUpTime === undefined) {
             options.delayShowUpTime = 500;
         }
 
@@ -176,6 +175,8 @@ export class Tooltip extends DOMElement {
         return this.el.querySelector('.aladin-tooltip');
     }
     
+    static hoveredEl = null;
+
     static add(options, target) {
         if (target) {
             if (target.tooltip) {
@@ -188,13 +189,42 @@ export class Tooltip extends DOMElement {
 
                 let targetEl = target.element()
 
+                if (options.mouse) {
+                    let tooltip = options.aladin && options.aladin.tooltip;
+
+                    Utils.on(targetEl, 'mousemove', (e) => {
+                        tooltip.style.left = e.clientX + 12 + 'px';
+                        tooltip.style.top  = e.clientY + 12 + 'px';
+                    });
+
+                    Utils.on(targetEl, 'mouseover', (e) => {
+                        if (Tooltip.hoveredEl && Tooltip.hoveredEl.contains(targetEl))
+                            return;
+
+                        Tooltip.hoveredEl = targetEl;
+                        // Change the content to match
+                        tooltip.innerHTML = options.content;
+                        tooltip.style.display = 'block';
+                    });
+
+                    Utils.on(targetEl, 'mouseleave', (e) => {
+                        if (Tooltip.hoveredEl && Tooltip.hoveredEl.contains(targetEl) && Tooltip.hoveredEl !== targetEl) {
+                            return;
+                        }
+
+                        tooltip.style.display = 'none';
+                        Tooltip.hoveredEl = null;
+                    });
+
+                    return;
+                }
+
                 if (options.global) {
                     let statusBar = options.aladin && options.aladin.statusBar;
                     if (!statusBar) {
                         return;
                     }
 
-                    // handle global tooltip div display
                     Utils.on(targetEl, 'mouseover', (e) => {
                         statusBar.removeMessage('tooltip')
                         statusBar.appendMessage({

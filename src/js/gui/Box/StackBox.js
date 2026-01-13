@@ -1045,7 +1045,7 @@ export class OverlayStackBox extends Box {
                 },
             });
 
-            let loadMOCBtn = ActionButton.BUTTONS(aladin)
+            let loadMOCBtn = ActionButton.BUTTONS(self.aladin)
                 .addMOC({
                     name: layer.name,
                     url: layer.url + '/Moc.fits'

@@ -133,28 +133,7 @@ export class HiPSCompositeBox extends Box {
                 aladin,
                 content: 'HiPS url, ID or keyword accepted',
             },
-            actions: {
-                focus(e) {
-                    searchDropdown.removeClass('aladin-valid')
-                    searchDropdown.removeClass('aladin-not-valid')
-                },
-                keydown(e) {
-                    e.stopPropagation();
-
-                    if (e.key === 'Enter') {
-                        e.preventDefault()
-                        _parseHiPS(e)
-                    }
-                },
-                input(e) {
-                    self.infoCurrentHiPSBtn.update({
-                        disable: true,
-                    })
-
-                    searchDropdown.removeClass('aladin-valid')
-                    searchDropdown.removeClass('aladin-not-valid')
-                },
-            },
+            action: (e) => {}
         });
 
         let infoCurrentHiPSBtn = new ActionButton({

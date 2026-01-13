@@ -1835,7 +1835,7 @@ export let View = (function () {
 
         // All image layer promises must be completed (fullfilled or rejected)
         const task = {
-            message: 'Load layer: ' + imageLayer.name,
+            message: imageLayer.name + ' loading...',
             id: Utils.uuidv4(),
         }
         // Ensure all the properties for HiPSes have been seeked

@@ -144,9 +144,11 @@ export class HiPSBrowserBox extends Box {
             // Fill the HiPSList from the MOCServer
 
             // Build a hierarchy w.r.t sorted by regime
+            let HiPSIDs = []
             HiPSes.forEach((h) => {
                 let name = h.obs_title;
                 name = name.replace(/:|\'/g, '');
+                HiPSIDs.push(name)
 
                 HiPSBrowserBox.HiPSList[name] = h;
 
@@ -154,8 +156,16 @@ export class HiPSBrowserBox extends Box {
                     let path = h.client_category
 
                     fillHiPSHierarchy(name, h, path, hipsHierarchy)
+                } else {
+                    let hipsID = h.ID;
+                    hipsID = hipsID.replace('/P', '');
+
+                    let path = "Others/" + hipsID;
+                    fillHiPSHierarchy(name, h, path, hipsHierarchy)
                 }
             });
+
+            self.searchDropdown.update({ options: HiPSIDs });
 
             self.searchTree.setHierarchy(hipsHierarchy)
 
@@ -189,52 +199,24 @@ export class HiPSBrowserBox extends Box {
             }
         };
 
-        let typedRecently = false;
         let searchDropdown = new Dropdown(aladin, {
             name: "HiPS browser",
             placeholder: "Browse a HiPS by an URL, ID or keywords",
             tooltip: {
                 global: true,
                 aladin,
-                content: 'HiPS url, ID or keyword accepted',
+                content: 'HiPS url, ID or keyword accepted.',
             },
-            actions: {
-                focus(e) {
-                    searchDropdown.removeClass('aladin-valid')
-                    searchDropdown.removeClass('aladin-not-valid')
-                },
-                keydown(e) {
-                    e.stopPropagation();
+            action: (e) => {
+                _parseHiPS(e)
+            },
+            input: (e) => {
+                let value = e.target.value;
+                self.searchTree.triggerFilter({title: value});
 
-                    // ignore navigation keys
-                    if (e.key.length === 1 || e.key === "Backspace" || e.key === "Delete") {
-                        typedRecently = true;
-                    }
-
-                    if (e.key === 'Enter') {
-                        _parseHiPS(e)
-                    }
-                },
-                input(e) {
-                    setTimeout(() => (typedRecently = false), 0);
-
-                    let value = e.target.value;
-                    self.infoCurrentHiPSBtn.update({
-                        disable: true,
-                    })
-
-                    self.searchTree.triggerFilter({title: value});
-
-                    searchDropdown.removeClass('aladin-valid')
-                    searchDropdown.removeClass('aladin-not-valid')
-
-                    if (searchDropdown.options && !typedRecently) {
-                        let HiPSIDs = searchDropdown.options.options;
-                        if (HiPSIDs.includes(value)) {
-                            _parseHiPS(e)
-                        }
-                    }
-                },
+                self.infoCurrentHiPSBtn.update({
+                    disable: true,
+                })
             },
         });
 
@@ -486,8 +468,8 @@ export class HiPSBrowserBox extends Box {
     // This method is executed only if the filter is enabled
     _filterHiPSList(params) {
         let self = this;
-        let HiPSIDs = [];
 
+        let numHiPSMatching = 0;
         for (var key in HiPSBrowserBox.HiPSList) {
             let HiPS = HiPSBrowserBox.HiPSList[key];
             // apply filtering
@@ -499,7 +481,7 @@ export class HiPSBrowserBox extends Box {
                 let name = HiPS.obs_title;
                 name = name.replace(/:|\'/g, "");
 
-                HiPSIDs.push(name);
+                numHiPSMatching += 1;
             }
         }
 
@@ -507,8 +489,7 @@ export class HiPSBrowserBox extends Box {
             self.searchTree.triggerFilter(params);
         }
 
-        self.searchDropdown.update({ options: HiPSIDs });
-        self.filterNumberElt.innerHTML = HiPSIDs.length + "/" + Object.keys(HiPSBrowserBox.HiPSList).length;
+        self.filterNumberElt.innerHTML = numHiPSMatching + "/" + Object.keys(HiPSBrowserBox.HiPSList).length;
     }
 
     _hide() {
@@ -520,10 +501,10 @@ export class HiPSBrowserBox extends Box {
     }
 
     _show(options) {
-        this._requestMOCServer();
-
         // Regenerate a new layer name
         this.layer = (options && options.layer) || Utils.uuidv4();
         super._show(options)
+
+        this._requestMOCServer();
     }
 }

@@ -78,6 +78,9 @@ export class Location extends DOMElement {
             autocomplete: 'off',
             autofocus: true,
             actions: {
+                dblclick: (_) => {
+                    field.set('')
+                },
                 focus: (e) => {
                     focused = true;
                 },
@@ -91,8 +94,6 @@ export class Location extends DOMElement {
                     field.removeClass('aladin-valid'); // remove red border
 
                     if (e.key === 'Enter') {
-                        //field.el.blur();
-
                         let object = field.get();
 
                         field.update({placeholder: 'Resolving ' + object + '...'})

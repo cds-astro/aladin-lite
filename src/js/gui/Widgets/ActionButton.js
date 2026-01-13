@@ -193,7 +193,6 @@ export class ActionButton extends DOMElement {
         return new ActionButton(opt, target, position);
     }
 
-    static mocs = {};
     static BUTTONS(aladin) {
         return {
             infoHiPS: (options) => {
@@ -252,70 +251,26 @@ export class ActionButton extends DOMElement {
                         content: "Add coverage",
                         position: { direction: "top" },
                     },
-                    toggled: (() => {
-                        let overlays = aladin.getOverlays();
-                        let found = overlays.find(
-                            (o) => o.type === "moc" && o.name === name
-                        );
-                        return found !== undefined;
-                    })(),
                     action: (e) => {
-                        if (!button.options.toggled) {
-                            // load the moc
-                            let moc = A.MOCFromURL(
-                                url,
-                                { name },
-                                () => {
-                                    if (aladin.statusBar) {
-                                        aladin.statusBar.appendMessage({
-                                            message:
-                                                "Coverage of " +
-                                                name +
-                                                " loaded",
-                                            duration: 2000,
-                                            type: "info",
-                                        });
-                                    }
-
-                                    button.update({
-                                        toggled: true,
-                                        tooltip: {
-                                            content: "Remove coverage",
-                                            position: { direction: "top" },
-                                        },
+                        // load the moc
+                        let moc = A.MOCFromURL(
+                            url,
+                            { name },
+                            () => {
+                                if (aladin.statusBar) {
+                                    aladin.statusBar.appendMessage({
+                                        message:
+                                            "Coverage of " +
+                                            name +
+                                            " loaded",
+                                        duration: 2000,
+                                        type: "info",
                                     });
                                 }
-                            );
-
-                            aladin.addMOC(moc);
-                        } else {
-                            // unload the moc
-                            let overlays = aladin.getOverlays();
-                            let moc = overlays.find(
-                                (o) => {
-                                    console.log(o.name)
-                                    o.type === "moc" && o.name === name
-                                }
-                            );
-                            aladin.removeLayer(moc);
-
-                            if (aladin.statusBar) {
-                                aladin.statusBar.appendMessage({
-                                    message:
-                                        "Coverage of " + name + " removed",
-                                    duration: 2000,
-                                    type: "info",
-                                });
                             }
+                        );
 
-                            button.update({
-                                toggled: false,
-                                tooltip: {
-                                    content: "Add coverage",
-                                    position: { direction: "top" },
-                                },
-                            });
-                        }
+                        aladin.addMOC(moc);
                     },
                     ...options
                 })

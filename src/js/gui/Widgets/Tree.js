@@ -134,6 +134,8 @@ export class Tree extends DOMElement {
                 return 1;
             }
         });
+
+        let noEltsListed = true;
         for (const label of labels) {
             if (label !== 'parent' && label !== "label") {
                 let elt = document.createElement('li');
@@ -145,10 +147,10 @@ export class Tree extends DOMElement {
                         elt.style.display = "none";
                     } else {
                         elt.style.display = "block";
+                        noEltsListed = false;
                     }
 
                     let label = this.label(child);
-
                     let layout = [label];
 
                     if (child.dataproduct_subtype === "color") {
@@ -208,8 +210,17 @@ export class Tree extends DOMElement {
                             aladin: this.aladin,
                         }
                     };
-
-                    elt.appendChild(Layout.horizontal(config).element());
+                    let childElt = Layout.horizontal(config).element();
+                    if (this.highlight) {
+                        if(this.highlight.includes(child.ID)) {
+                            childElt.classList.add("aladin-valid");
+                            childElt.classList.remove("aladin-not-valid");
+                        } else {
+                            childElt.classList.remove("aladin-valid");
+                            childElt.classList.add("aladin-not-valid");
+                        }
+                    }
+                    elt.appendChild(childElt);
                 } else {
                     // we see a parent, we must determine:
                     // * its color: he has at least 1 child inside the FoV => green
@@ -231,10 +242,17 @@ export class Tree extends DOMElement {
                         elt.style.display = "none";
                     } else {
                         elt.style.display = "block";
+                        noEltsListed = false;
                     }
                 }
 
-                elt.style.color = this.hasChildLocatedInFov(child) ? 'yellowgreen' : 'orange';
+                if(this.hasChildLocatedInFov(child)) {
+                    elt.classList.add("aladin-valid");
+                    elt.classList.remove("aladin-not-valid");
+                } else {
+                    elt.classList.remove("aladin-valid");
+                    elt.classList.add("aladin-not-valid");
+                }
 
                 child.label = label;
                 child.parent = node;
@@ -255,7 +273,11 @@ export class Tree extends DOMElement {
             }
         }
 
-        this.el.appendChild(listElt);
+        if (noEltsListed && this.curNode !== this.root) {
+            this.navigate(1)
+        } else {
+            this.el.appendChild(listElt);
+        }
     }
 
     setHierarchy(root) {
@@ -275,68 +297,7 @@ export class Tree extends DOMElement {
     highlightNodes(highlight) {
         this.highlight = highlight
 
-        let elts = this.el.querySelectorAll("li");
-        let i = 0;
-
-        let labels = Object.keys(this.curNode).sort((la, lb) => {
-            let na = this.curNode[la];
-            let nb = this.curNode[lb];
-
-            let aIsLeaf = typeof na === "object" && 'ID' in na;
-            let bIsLeaf = typeof nb === "object" && 'ID' in nb;
-
-            if (aIsLeaf !== bIsLeaf) {
-                return aIsLeaf - bIsLeaf;
-            } else if (la < lb) {
-                return -1
-            } else {
-                return 1;
-            }
-        });
-
-        for (const label of labels) {
-            if (label !== 'parent' && label !== "label") {
-                let elt = elts[i];
-                i += 1;
-                // points towards the parent node
-                let child = this.curNode[label];
-                let isLeaf = typeof child === "object" && 'ID' in child;
-                if (isLeaf) {
-                    // Check if its ID is found in the view
-                    if (this.highlight) {
-                        elt.style.color = this.highlight.includes(child.ID) ? 'yellowgreen' : 'orange';
-                    }
-                } else {
-                    // we see a parent, we must determine:
-                    // * its color: he has at least 1 child inside the FoV => green
-                    // * the number of children matching the filter params
-                    elt.style.color = this.hasChildLocatedInFov(child) ? 'yellowgreen' : 'orange';
-
-                    // we see a parent, we must determine:
-                    // * its color: he has at least 1 child inside the FoV => green
-                    // * the number of children matching the filter params
-                    let numFilteringMatching = this.numChildMatchingFilter(child, true);
-                    let numTotal = this.numChildMatchingFilter(child, false);
-
-                    let name = elt.innerText.split('(');
-
-                    elt.innerHTML = Layout.horizontal([
-                        new Icon({
-                            size: "small",
-                            monochrome: true,
-                            url: folderIconUrl,
-                        }),
-                        name[0] + ` (${numFilteringMatching}/${numTotal})`
-                    ]).element().outerHTML
-
-                    if (numFilteringMatching == 0) {
-                        elt.style.display = "none";
-                    } else {
-                        elt.style.display = "block";
-                    }
-                }
-            }
-        }
+        this._createDOM(this.curNode);
     }
 
     // Set params to null, undefined or {} to disable the filtering
@@ -347,62 +308,7 @@ export class Tree extends DOMElement {
 
         this.params = params;
 
-        let elts = this.el.querySelectorAll("li");
-        let i = 0;
-
-        let labels = Object.keys(this.curNode).sort((la, lb) => {
-            let na = this.curNode[la];
-            let nb = this.curNode[lb];
-
-            let aIsLeaf = typeof na === "object" && 'ID' in na;
-            let bIsLeaf = typeof nb === "object" && 'ID' in nb;
-
-            if (aIsLeaf !== bIsLeaf) {
-                return aIsLeaf - bIsLeaf;
-            } else if (la < lb) {
-                return -1
-            } else {
-                return 1;
-            }
-        });
-        for (const label of labels) {
-            if (label !== 'parent' && label !== "label") {
-                let elt = elts[i];
-                i += 1;
-                // points towards the parent node
-                let child = this.curNode[label];
-                let isLeaf = typeof child === "object" && 'ID' in child;
-                if (isLeaf) {
-                    if(this.params && this.filter && !this.filter(child, this.params)) {
-                        elt.style.display = "none"
-                    } else {
-                        elt.style.display = "block"
-                    }
-                } else {
-                    // we see a parent, we must determine:
-                    // * its color: he has at least 1 child inside the FoV => green
-                    // * the number of children matching the filter params
-                    let numFilteringMatching = this.numChildMatchingFilter(child, true);
-                    let numTotal = this.numChildMatchingFilter(child, false);
-
-                    let name = elt.innerText.split('(');
-                    elt.innerHTML = Layout.horizontal([
-                        new Icon({
-                            size: "small",
-                            monochrome: true,
-                            url: folderIconUrl,
-                        }),
-                        name[0] + ` (${numFilteringMatching}/${numTotal})`
-                    ]).element().outerHTML;
-
-                    if (numFilteringMatching == 0) {
-                        elt.style.display = "none";
-                    } else {
-                        elt.style.display = "block";
-                    }
-                }
-            }
-        }
+        this._createDOM(this.curNode);
     }
 
     hasChildLocatedInFov(node) {

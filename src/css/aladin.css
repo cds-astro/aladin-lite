@@ -65,10 +65,6 @@
     margin: 0;
 }
 
-.aladin-tree li:hover {
-    color: var(--hover-color);
-}
-
 .aladin-tree li:last-child {
     border-bottom: none;
 }
@@ -233,7 +229,7 @@
     color: green;
 }
 .aladin-measurement-div table tr td a:hover {
-    color: var(--hover-color);
+    color: var(--aladin-color);
 }
 
 .aladin-measurement-div table tr td {
@@ -576,6 +572,14 @@
 
 .aladin-input-text.aladin-valid {
     border: var(--border-size) solid var(--valid-color);
+}
+
+.aladin-valid {
+    color: var(--valid-color);
+}
+
+.aladin-not-valid {
+    color: var(--error-color);
 }
 
 .aladin-box-content > div {
@@ -1166,12 +1170,7 @@ otherwise it fits its content options. If those are too big the select can go ou
     left: 0.2rem;
 }
 
-.aladin-link {
-    color: var(--text-color);
-}
-
 .aladin-link:hover {
-    color: var(--hover-color);
     text-decoration: underline;
 }
 

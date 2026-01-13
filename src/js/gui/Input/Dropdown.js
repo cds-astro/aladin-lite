@@ -74,27 +74,70 @@ export class Dropdown extends Input {
             self.el.blur();
         });
 
-        options.options = options.options || [];
+        options.autocomplete = {options: options.options || []};
+        delete options.options;
 
         super({
             type: 'text',
-            //autocomplete: {options: options.options},
+            actions: {
+                focus(_) {
+                    self.removeClass('aladin-valid')
+                    self.removeClass('aladin-not-valid')
+                },
+                dblclick(e) {
+                    self.set('')
+
+                    if (self.options.input) {
+                        self.options.input(e)
+                    }
+                },
+                input(e) {
+                    self.removeClass('aladin-valid')
+                    self.removeClass('aladin-not-valid')
+
+                    if (e.data === undefined) {
+                        // select
+                        self.options.action(e)
+
+                        let value = e.target.value;
+                        self.set('');
+                        
+                        if (self.options.input) {
+                            self.options.input(e)
+                        }
+
+                        self.set(value)
+                    } else {
+                        if (self.options.input) {
+                            self.options.input(e)
+                        }
+                    }
+                },
+                keydown(e) {
+                    if (!e.key) {
+                        return;
+                    }
+
+                    e.stopPropagation();
+                    // ignore navigation keys
+                    if (e.key === 'Enter') {
+                        self.options.action(e)
+                    }
+                },
+            },
             ...options
         })
         this.el.classList.add('search')
 
         self = this;
-        this._addListeners(aladin);
     }
 
     update(options) {
-        let newOptions = {};
+        if (options.options) {
+            options.autocomplete = {options: options.options || []};
+            delete options.options;
+        }
 
-        // add the other input text options
-        newOptions = {...newOptions, ...options};
-        super.update(newOptions)
-    }
-
-    _addListeners(aladin) {
+        super.update(options)
     }
 };

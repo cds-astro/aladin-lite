@@ -51,7 +51,7 @@ import { ActionButton } from "../Widgets/ActionButton.js";
                     CatalogQueryBox.catalogs[cat.obs_title] = cat;
                 });
 
-                inputText.update({autocomplete: {options: Object.keys(CatalogQueryBox.catalogs)}})
+                searchDropdown.update({options: Object.keys(CatalogQueryBox.catalogs)})
             })
 
         const fnIdSelected = function(type, params) {
@@ -120,10 +120,10 @@ import { ActionButton } from "../Widgets/ActionButton.js";
                 self.fnIdSelected('votable', {
                     url: votableUrl,
                     success: () => {
-                        inputText.addClass('aladin-valid');
+                        searchDropdown.addClass('aladin-valid');
                     },
                     error: () => {
-                        inputText.addClass('aladin-not-valid')
+                        searchDropdown.addClass('aladin-not-valid')
                         self.csForm.submit.update({disable: true})
                         self.hipsCatLoad.update({disable: true});
                     }
@@ -134,16 +134,16 @@ import { ActionButton } from "../Widgets/ActionButton.js";
 
                 if (catalog) {
                     self._selectItem(catalog, aladin);
-                    inputText.addClass('aladin-valid');
+                    searchDropdown.addClass('aladin-valid');
                 } else {
                     // consider it as a cat ID and search in catalogs for it
                     const foundCat = Object.values(CatalogQueryBox.catalogs)
                         .find((c) => c.ID === value);
                     if (foundCat) {
                         self._selectItem(foundCat, aladin);
-                        inputText.addClass('aladin-valid')
+                        searchDropdown.addClass('aladin-valid')
                     } else {
-                        inputText.addClass('aladin-not-valid')
+                        searchDropdown.addClass('aladin-not-valid')
                         self.csForm.submit.update({disable: true})
                         self.hipsCatLoad.update({disable: true});
                     }
@@ -151,7 +151,7 @@ import { ActionButton } from "../Widgets/ActionButton.js";
             }
         }
 
-        let inputText = new Dropdown(aladin, {
+        let searchDropdown = new Dropdown(aladin, {
             name: 'catalogs',
             placeholder: "Type ID, title, keyword or URL",
             tooltip: {
@@ -159,22 +159,9 @@ import { ActionButton } from "../Widgets/ActionButton.js";
                 aladin,
                 content: 'HiPS url, ID or keyword accepted',
             },
-            actions: {
-                input(e) {
-                    inputText.removeClass('aladin-valid')
-                    inputText.removeClass('aladin-not-valid')
-                },
-                focus(e) {
-                    inputText.removeClass('aladin-valid')
-                    inputText.removeClass('aladin-not-valid')
-                },
-                change(e) {
-                    e.stopPropagation();
-                    e.preventDefault()
-
-                    _parseEntry(e)
-                },
-            },
+            action: (e) => {
+                _parseEntry(e)
+            }
         });
 
         let self;
@@ -220,7 +207,6 @@ import { ActionButton } from "../Widgets/ActionButton.js";
                     let [lon, lat] = coo.format('s2');
 
                     let fov = new Angle(radius, 1).format();
-                    //selectorBtn.update({tooltip: {content: 'center: ' + ra.toFixed(2) + ', ' + dec.toFixed(2) + '<br\>radius: ' + radius.toFixed(2), position: {direction: 'left'}}})    
                     form.set('ra', lon)
                     form.set('dec', lat)
                     form.set('rad', fov)
@@ -345,7 +331,7 @@ import { ActionButton } from "../Widgets/ActionButton.js";
             content: Layout.vertical(
                 [
                     Layout.horizontal({
-                        layout: ["Search:", inputText], cssStyle: {width: '100%'}
+                        layout: ["Search:", searchDropdown], cssStyle: {width: '100%'}
                     }),
                     Layout.horizontal({
                         layout: ["Progressive catalog:", hipsCatLoad],
@@ -367,7 +353,7 @@ import { ActionButton } from "../Widgets/ActionButton.js";
         self = this;
         this.hipsCatLoad = hipsCatLoad;
         this.csForm = form;
-        this.inputText = inputText;
+        this.searchDropdown = searchDropdown;
         this.fnIdSelected = fnIdSelected;
     }
 

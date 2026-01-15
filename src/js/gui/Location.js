@@ -136,12 +136,10 @@ export class Location extends DOMElement {
         })
         copyBtn.el.classList.add("aladin-location-copy");
  
-        let el = Layout.horizontal({
-            layout: [
-                copyBtn,
-                field
-            ]
-        })
+        let el = Layout.horizontal([
+            copyBtn,
+            field
+        ])
         el.addClass('aladin-location');
 
         super(el)

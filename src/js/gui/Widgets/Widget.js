@@ -18,7 +18,6 @@
 //
 
 import { Utils } from "../../Utils";
-
 /******************************************************************************
  * Aladin Lite project
  *
@@ -47,28 +46,6 @@ export class DOMElement {
         this.options = options;
         this.name = options && options.name || Utils.uuidv4()
         this.isHidden = true;
-
-        /*this.el.addEventListener("mouseup", (e) => {
-            var wasDragging = view.realDragging === true;  
-
-            if (view.dragging) { // if we were dragging, reset to default cursor
-                if(view.mode === View.PAN) {
-                    view.setCursor('default');
-                }
-
-                view.dragging = false;
-                if (wasDragging) {
-                    view.realDragging = false;
-
-                    // call the positionChanged once more with a dragging = false
-                    view.throttledPositionChanged(false);
-                }
-
-                if (view.spectraDisplayer) {
-                    view.spectraDisplayer.enableInteraction();
-                }
-            }
-        });*/
     }
 
     element() {
@@ -119,7 +96,11 @@ export class DOMElement {
     static appendTo(elmt, parent) {
         if(elmt) {
             // Append the updated content
-            if (elmt instanceof DOMElement) {
+            if (Array.isArray(elmt)) {
+                for (var elt of elmt) {
+                    DOMElement.appendTo(elt, parent)
+                }
+            } else if (elmt instanceof DOMElement) {
                 elmt.attachTo(parent)
             } else if (elmt instanceof Element) {                
                 parent.insertAdjacentElement('beforeend', elmt);

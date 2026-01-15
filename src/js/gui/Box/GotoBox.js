@@ -36,20 +36,6 @@ import { SearchTextInput } from "../Input/InputTextSearch.js";
 export class GotoBox extends Box {
     // Constructor
     constructor(aladin) {
-        /*let content = Layout.horizontal([
-            'Go to:',
-            Input.text({
-                //tooltip: {content: 'Search for a VizieR catalogue', position: {direction :'bottom'}},
-                label: "Go to:",
-                name: "goto",
-                type: "text",
-                placeholder: 'Object name/position',
-                autocomplete: 'off',
-                change(e, self) {
-                    self.addEventListener('blur', (event) => {});
-                }
-            })
-        ]);*/
         let textField = new SearchTextInput(aladin, {
             cssStyle: {
                 width: '15rem'

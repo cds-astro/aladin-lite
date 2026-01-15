@@ -142,7 +142,7 @@ export class Form extends DOMElement {
                 groupLayout.push(input)
             });
 
-            let item = new Layout({layout: groupLayout});
+            let item = new Layout(groupLayout, {vertical: true});
             item.addClass('aladin-form-group')
 
             return item;

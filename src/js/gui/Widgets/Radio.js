@@ -87,7 +87,7 @@ export class RadioButton extends DOMElement {
             }
         }
 
-        let el = Layout.horizontal({layout});
+        let el = Layout.horizontal(layout);
 
         super(el, options)
 

@@ -30,7 +30,6 @@
  * 
  *****************************************************************************/
 
-import { Color } from "./Color.js"
 import { Icon } from "./gui/Widgets/Icon.js";
 import { Tabs } from "./gui/Widgets/Tab.js";
 import { Table } from "./gui/Widgets/Table.js";

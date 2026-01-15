@@ -16,3 +16,9 @@ Element.prototype.swap = function (node) {
     // Move `node` to before the sibling of `this`
     parent.insertBefore(node, sibling);
 };
+
+export function isJSObject(obj) {
+    return obj !== null &&
+        typeof obj === "object" &&
+        obj.constructor === Object
+}

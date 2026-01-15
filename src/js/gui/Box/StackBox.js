@@ -770,22 +770,20 @@ export class OverlayStackBox extends Box {
     createLayout() {
         this.HiPSui = {};
 
-        let layout = [Layout.horizontal([this.addOverlayBtn, "Overlays"])];
+        let layout = [[this.addOverlayBtn, "Overlays"]];
 
         layout = layout.concat(this._createOverlaysList());
 
         layout.push(
-            Layout.horizontal({
-                layout: [
-                    this.addHiPSBtn,
-                    "Surveys",
-                    this.filterEnabler,
-                    this.filterBtn,
-                ],
-            })
+            [
+                this.addHiPSBtn,
+                "Surveys",
+                this.filterEnabler,
+                this.filterBtn,
+            ],
         );
         layout = layout.concat(this._createSurveysList());
-        return Layout.vertical({ layout });
+        return Layout.vertical(layout);
     }
 
     _createOverlaysList() {
@@ -866,41 +864,24 @@ export class OverlayStackBox extends Box {
             }
             
 
-            let item = Layout.horizontal({
-                layout: [
+            let item = Layout.horizontal(
+                [
                     this._addOverlayIcon(overlay),
                     name,
-                    Layout.horizontal({ layout: optBtn }),
+                    optBtn,
                 ],
-                cssStyle: {
-                    textAlign: "center",
-                    display: "flex",
-                    alignItems: "center",
-                    listStyle: "none",
-                    justifyContent: "space-between",
-                    width: "100%",
-                },
-            });
+                {
+                    cssStyle: {
+                        textAlign: "center",
+                        display: "flex",
+                        alignItems: "center",
+                        listStyle: "none",
+                        justifyContent: "space-between",
+                        width: "100%",
+                    },
+                }
+            );
 
-            /*if(!Utils.hasTouchScreen()) {
-                layout.push({
-                    label: item,
-                    cssStyle,
-                    hover(e) {
-                        showBtn.el.style.visibility = 'visible'
-                        deleteBtn.el.style.visibility = 'visible'
-                    },
-                    unhover(e) {
-                        showBtn.el.style.visibility = 'hidden'
-                        deleteBtn.el.style.visibility = 'hidden'
-                    },
-                })
-            } else {
-                layout.push({
-                    label: item,
-                    cssStyle
-                })
-            }*/
             layout.push(item);
         }
 
@@ -1091,10 +1072,7 @@ export class OverlayStackBox extends Box {
             }
             btns = btns.concat([swapBtn, deleteBtn]);
 
-            let item = Layout.horizontal({
-                layout: [HiPSSelector, Layout.horizontal(btns)],
-            });
-
+            let item = Layout.horizontal([HiPSSelector, Layout.horizontal(btns)]);
             layout.push(item);
 
             if (!(layer.layer in self.HiPSui)) {

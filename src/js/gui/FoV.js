@@ -83,10 +83,9 @@ export class FoV extends DOMElement {
             '<div class="aladin-monospace-text"></div>'])
         }
 
-        let el = Layout.horizontal({layout});
+        let el = Layout.horizontal(layout);
         if (el) {
             el.addClass('aladin-fov');
-            el.addClass('aladin-dark-theme')
         }
 
         super(el)

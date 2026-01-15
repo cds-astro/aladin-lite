@@ -53,7 +53,6 @@ export class Tree extends DOMElement {
 
         this.attachTo(target, position);
         this._show();
-        this.addClass('aladin-dark-theme')
     }
 
     _setRoot(root) {
@@ -151,16 +150,16 @@ export class Tree extends DOMElement {
                     }
 
                     let label = this.label(child);
-                    let layout = [label];
+                    let layout = {start: [label], end: []};
 
                     if (child.dataproduct_subtype === "color") {
-                        layout.push(new Icon({
+                        layout.end.push(new Icon({
                             size: "small",
                             url: Icon.dataURLFromSVG({ svg: Icon.SVG_ICONS.COLOR }),
                         }))
                     }
 
-                    layout.push(ActionButton.BUTTONS(this.aladin)
+                    layout.end.push(ActionButton.BUTTONS(this.aladin)
                         .infoHiPS({
                             url: child.hips_service_url,
                             tooltip: {
@@ -171,7 +170,7 @@ export class Tree extends DOMElement {
                         }).element()
                     )
 
-                    layout = layout.concat([
+                    layout.end = layout.end.concat([
                         ActionButton.BUTTONS(this.aladin)
                             .targetHiPSLocation({
                                 ra: child.hips_initial_ra,
@@ -197,20 +196,22 @@ export class Tree extends DOMElement {
                             .element(),
                     ])
 
-                    let config = {
+                    console.log(layout)
+                    let childElt = new Layout(
                         layout,
-                        tooltip: {
-                            content: '<figure class="aladin-fig"><img ' + 
-                                `src="${child.hips_service_url + "/preview.jpg"}"` +
-                                `alt="${label}" />` +
-                                `<figcaption>${label}</figcaption>` +
-                                '</figure>',
-                            delayShowUpTime: "100ms",
-                            mouse: true,
-                            aladin: this.aladin,
-                        }
-                    };
-                    let childElt = Layout.horizontal(config).element();
+                        {
+                            vertical: false,
+                            tooltip: {
+                                content: '<figure class="aladin-fig"><img ' + 
+                                    `src="${child.hips_service_url + "/preview.jpg"}"` +
+                                    `alt="${label}" />` +
+                                    `<figcaption>${label}</figcaption>` +
+                                    '</figure>',
+                                delayShowUpTime: "100ms",
+                                mouse: true,
+                                aladin: this.aladin,
+                            }
+                        }).element();
                     if (this.highlight) {
                         if(this.highlight.includes(child.ID)) {
                             childElt.classList.add("aladin-valid");

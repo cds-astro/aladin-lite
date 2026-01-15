@@ -58,37 +58,39 @@ export class HiPSFilterBox extends Box {
             }
         });
 
-        let regimeOption = Layout.horizontal({
-            label: 'Freq:',
-            layout: [Input.select({
-                tooltip: {
-                    content: "Observation regime",
-                    position: { direction: "left" },
-                },
-                value: "Optical",
-                options: [
-                    "Radio",
-                    "Infrared",
-                    "Millimeter",
-                    "Optical",
-                    "UV",
-                    "EUV",
-                    "X-ray",
-                    "Gamma-ray",
-                ],
-                change: (e) => {
-                    let regime = e.target.value;
-                    self.params["regime"] = regime;
+        let regimeOption = new Layout(
+            {
+                start: Input.select({
+                    tooltip: {
+                        content: "Observation regime",
+                        position: { direction: "left" },
+                    },
+                    value: "Optical",
+                    options: [
+                        "Radio",
+                        "Infrared",
+                        "Millimeter",
+                        "Optical",
+                        "UV",
+                        "EUV",
+                        "X-ray",
+                        "Gamma-ray",
+                    ],
+                    change: (e) => {
+                        let regime = e.target.value;
+                        self.params["regime"] = regime;
 
-                    self._triggerFilteringCallback();
-                },
-            }), regimeBtn]
-        });
+                        self._triggerFilteringCallback();
+                    },
+                }),
+                end: regimeBtn
+            },
+            {label: 'Freq:'}
+        );
 
-        let resolutionOption = Layout.horizontal({
-            label: "Max resolution [°/px]:",
-            layout: [
-                new Input({
+        let resolutionOption = new Layout(
+            {
+                start: new Input({
                     name: "res",
                     value: 0.1,
                     type: 'range',
@@ -110,9 +112,10 @@ export class HiPSFilterBox extends Box {
                         self._triggerFilteringCallback();
                     },
                 }),
-                resolutionBtn,
-            ]
-        });
+                end: resolutionBtn,
+            },
+            {label: "Max resolution [°/px]:"}
+        );
         super(
             {
                 header: {
@@ -121,7 +124,7 @@ export class HiPSFilterBox extends Box {
                 },
                 close: false,
                 classList: ['aladin-HiPS-filter-box'],
-                content: Layout.vertical([
+                content: [
                     new Form({
                         subInputs: [
                             {
@@ -133,7 +136,7 @@ export class HiPSFilterBox extends Box {
                             },
                         ],
                     }),
-                ])
+                ]
             },
             aladin.aladinDiv
         );

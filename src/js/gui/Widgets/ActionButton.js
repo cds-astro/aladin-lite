@@ -84,7 +84,7 @@ import A from "../../A";
 export class ActionButton extends DOMElement {
     constructor(options, target, position = "beforeend") {
         let el = document.createElement('button');
-        el.classList.add('aladin-btn', 'aladin-dark-theme');
+        el.classList.add('aladin-btn');
 
         // add it to the dom
         super(el, options);
@@ -147,7 +147,7 @@ export class ActionButton extends DOMElement {
             if (layout.length === 1) {
                 this.appendContent(layout[0])
             } else {
-                this.appendContent(new Layout({layout, orientation: 'horizontal'}))
+                this.appendContent(new Layout(layout))
             }
         }
 

@@ -82,7 +82,6 @@ export class Icon extends DOMElement {
         this._show();
 
         this.addClass('aladin-icon')
-        this.addClass('aladin-dark-theme')
 
         this.attachTo(target, position)
     }

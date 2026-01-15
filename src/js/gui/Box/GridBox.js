@@ -154,15 +154,13 @@ export class GridBox extends Box {
             }
         });
         sliderOpacity.addClass("aladin-input-range")
-        const layout = Layout.horizontal({
-            layout: [
-                enableCheckbox,
-                labelSizeBtn,
-                thicknessLineBtn,
-                colorInput,
-                sliderOpacity
-            ]
-        })
+        const layout = Layout.horizontal([
+            enableCheckbox,
+            labelSizeBtn,
+            thicknessLineBtn,
+            colorInput,
+            sliderOpacity
+        ])
 
         layout.addClass('aladin-grid-frame');
 

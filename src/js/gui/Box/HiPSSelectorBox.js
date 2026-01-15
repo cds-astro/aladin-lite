@@ -80,12 +80,10 @@ import { Input } from "../Widgets/Input.js";
         super(
             {
                 close: false,
-                content: Layout.horizontal({
-                    layout: [
-                        inputText,
-                        loadBtn
-                    ]
-                }),
+                content: Layout.horizontal([
+                    inputText,
+                    loadBtn
+                ]),
                 ...options
             },
             aladin.aladinDiv

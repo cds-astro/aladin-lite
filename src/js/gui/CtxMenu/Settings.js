@@ -285,7 +285,7 @@ export class SettingsCtxMenu extends ContextMenu {
                         }
                     },
                     {
-                        label: Layout.horizontal({layout: ['Examples'], tooltip: { content: 'How to embed Aladin Lite <br \>into your own webpages!', position: {direction: 'bottom'}}}),
+                        label: Layout.horizontal('Examples', { tooltip: { content: 'How to embed Aladin Lite <br \>into your own webpages!', position: {direction: 'bottom'}}}),
                         action(o) {
                             Utils.openNewTab('https://aladin.cds.unistra.fr/AladinLite/doc/API/examples/')
                         }

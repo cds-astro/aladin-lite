@@ -234,7 +234,7 @@ export let Datalink = (function() {
                                                                     title: 'HiPS cube player',
                                                                     draggable: true,
                                                                 },
-                                                                content: Layout.horizontal([prevBtn, nextBtn, slicer, (idxSlice + 1) + '/' + numSlices]),
+                                                                content: [prevBtn, nextBtn, slicer, (idxSlice + 1) + '/' + numSlices],
                                                                 position: {anchor: 'center top'},
                                                             });
                                                             aladinInstance.addUI(cubeDisplayer)

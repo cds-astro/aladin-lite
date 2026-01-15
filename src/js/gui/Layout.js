@@ -18,6 +18,7 @@
 //
 import { DOMElement } from "./Widgets/Widget";
 import { Tooltip } from "./Widgets/Tooltip";
+import { isJSObject } from "./Utils";
 
 /******************************************************************************
  * Aladin Lite project
@@ -34,23 +35,21 @@ import { Tooltip } from "./Widgets/Tooltip";
 export class Layout extends DOMElement {
     /**
      * Create a layout
-     * @param {layout: Array.<DOMElement | String>, cssStyle: Object} options - Represents the structure of the Tabs
+     * @param {layout: Array.<DOMElement | String>} layout - Represents the structure of the Tabs
+     * @param {Object} options - Options object
      * @param {DOMElement} target - The parent element.
      * @param {String} position - The position of the tabs layout relative to the target.
      *     For the list of possibilities, see https://developer.mozilla.org/en-US/docs/Web/API/Element/insertAdjacentHTML
      */
-    constructor(options = {layout: []}, target, position = "beforeend") {
+    constructor(layout, options, target, position = "beforeend") {
         let el = document.createElement('div');
 
-        // The user should also be able to give just a list of DOMElement
-        if (options instanceof Array) {
-            options['layout'] = options;
-        }
-
-        options.layout = options.layout || [];
+        layout = layout || [];
         super(el, options);
 
-        if (options.cssStyle) {
+        this.layout = layout;
+
+        if (options && options.cssStyle) {
             this.setCss(options.cssStyle);
         }
 
@@ -58,17 +57,35 @@ export class Layout extends DOMElement {
         this.attachTo(target, position);
 
         // 2. Once self is attached, attach the children
-        if (options.layout) {
-            if (typeof options.layout === 'string' || options.layout instanceof String) {
-                this.el.innerHTML = options.layout;
-            } else {
+            if (typeof layout === 'string' || layout instanceof String) {
+                this.el.innerHTML = layout;
+            // otherwise it is an object
+            } else if (
+                isJSObject(layout)
+            ) {
+                if (layout.start) {
+                    this.appendContent(new Layout(layout.start));
+                }
+
+                if (layout.end) {
+                    this.appendContent(new Layout(layout.end));
+                }
+
+                this.el.style.justifyContent = "space-between";
+            } else if (Array.isArray(layout)) {
                 // treat it as an array
-                for (const item of options.layout) {
+                for (let item of layout) {
+                    if (Array.isArray(item) || isJSObject(item)) {
+                        item = new Layout(item)
+                    }
                     this.appendContent(item)
                 }
+            } else {
+                const item = layout;
+                this.appendContent(item)
             }
 
-            if (options.draggable) {
+            if (options && options.draggable) {
                 // retrieve the children and add the drag listeners
                 let draggableFn = options.draggable;
                 let firstSelected = null;
@@ -108,43 +125,37 @@ export class Layout extends DOMElement {
                     });
                 });
             }
-        }
 
         // The tooltip has to be set once the element
         // lies in the DOM
-        if (options.tooltip) {
+        if (options && options.tooltip) {
             Tooltip.add(options.tooltip, this)
         }
 
-        if (options.position) {
+        if (options && options.position) {
             this.setPosition(options.position)
         }
 
-        if (options.orientation) {
-            if (options.orientation === 'horizontal') {
-                this.addClass('aladin-horizontal-list')
-            } else {
-                this.addClass('aladin-vertical-list')
-            }
+        if (options && options.vertical && options.vertical === true) {
+            this.addClass('aladin-vertical-list')
+        } else {
+            this.addClass('aladin-horizontal-list')
         }
 
-        if (options.classList) {
+        if (options && options.classList) {
             this.addClass(options.classList)
         }
     }
 
-    static horizontal(options, target, position = "beforeend") {
-        let layout = new Layout(options, target, position);
-        layout.addClass('aladin-horizontal-list');
-
-        return layout;
+    static horizontal(layout, options, target, position = "beforeend") {
+        return new Layout(layout, options, target, position);
     }
 
-    static vertical(options, target, position = "beforeend") {
-        let layout = new Layout(options, target, position);
-        layout.addClass('aladin-vertical-list');
+    static vertical(layout, options, target, position = "beforeend") {
+        let verticalLayout = new Layout(layout, {...options, vertical: true}, target, position);
+        verticalLayout.addClass('aladin-vertical-list');
 
-        return layout;
+        return verticalLayout;
     }
 
     /**
@@ -160,7 +171,7 @@ export class Layout extends DOMElement {
      * @param {DOMElement} item - Represents the structure of the Tabs
      */
     removeItem(item) {
-        let arr = this.options.layout;
+        let arr = this.layout;
 
         var index = arr.indexOf(item);
         if (index > -1) {
@@ -175,7 +186,7 @@ export class Layout extends DOMElement {
      * @param {DOMElement} item - Represents the structure of the Tabs
      */
     appendLast(item) {
-        this.insertItemAtIndex(item, this.options.layout.length);
+        this.insertItemAtIndex(item, this.layout.length);
     }
 
      /**
@@ -185,7 +196,7 @@ export class Layout extends DOMElement {
      *     For the list of possibilities, see https://developer.mozilla.org/en-US/docs/Web/API/Element/insertAdjacentHTML
      */
     insertItemAtIndex(item, index) {
-        this.options.layout.splice(index, 0, item);
+        this.layout.splice(index, 0, item);
         this._show();
     }
 
@@ -195,11 +206,7 @@ export class Layout extends DOMElement {
      */
     empty() {
         // remove all the sub elements
-        /*for (let elmt of this.options.layout) {
-            elmt.remove();
-        }*/
-
-        this.options.layout = [];
+        this.layout = [];
         this._show();
     }
 
@@ -208,19 +215,19 @@ export class Layout extends DOMElement {
         this.el.innerHTML = "";
 
         // apply css
-        if (this.options.cssStyle) {
+        if (this.options && this.options.cssStyle) {
             this.setCss(this.options.cssStyle);
         }
 
-        if (this.options.layout) {
-            for (const item of this.options.layout) {
+        if (this.layout) {
+            for (const item of this.layout) {
                 if (item) {
                     this.appendContent(item)
                 }
             }
         }
 
-        if (this.options.position) {
+        if (this.options && this.options.position) {
             this.setPosition(this.options.position)
         }
     }

@@ -57,13 +57,13 @@ export class Tabs extends DOMElement {
         this.tabSelectedIdx = 0;
 
         let tabs = this.buildTabs(options);
-        this.el = new Layout({
-            layout: [
-                new Layout({layout: tabs.layout, orientation: 'horizontal'}),
+        this.el = Layout.vertical(
+            [
+                tabs.layout,
                 tabs.content
             ],
-            classList: "aladin-table"
-        }).element();
+            { classList: "aladin-table" }
+        ).element();
 
         this._show();
 

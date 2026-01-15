@@ -330,20 +330,25 @@ import { ActionButton } from "../Widgets/ActionButton.js";
             classList: ['aladin-cat-browser-box'],
             content: Layout.vertical(
                 [
-                    Layout.horizontal({
-                        layout: ["Search:", searchDropdown], cssStyle: {width: '100%'}
-                    }),
-                    Layout.horizontal({
-                        layout: ["Progressive catalog:", hipsCatLoad],
-                        cssStyle: {
-                            textAlign: "center",
-                            display: "flex",
-                            alignItems: "center",
-                            listStyle: "none",
-                            justifyContent: "space-between",
-                            width: "100%",
-                        },
-                    }),
+                    Layout.horizontal(
+                        ["Search:", searchDropdown],
+                        {cssStyle:
+                            {width: '100%'}
+                        }
+                    ),
+                    Layout.horizontal(
+                        ["Progressive catalog:", hipsCatLoad],
+                        {
+                            cssStyle: {
+                                textAlign: "center",
+                                display: "flex",
+                                alignItems: "center",
+                                listStyle: "none",
+                                justifyContent: "space-between",
+                                width: "100%",
+                            },
+                        }
+                    ),
                     form
                 ]
             ),

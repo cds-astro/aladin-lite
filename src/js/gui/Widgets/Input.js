@@ -330,7 +330,6 @@ export class Input extends DOMElement {
         }
 
         this.el.classList.add('aladin-input');
-        this.el.classList.add('aladin-dark-theme');
 
         if (this.options.cssStyle) {
             this.setCss(this.options.cssStyle);

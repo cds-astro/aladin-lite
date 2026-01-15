@@ -53,9 +53,7 @@ import { TogglerActionButton } from "../Button/Toggler.js";
                 },
                 tooltip: {content: 'Contrast', position: {direction: 'bottom'}},
                 action: (e) => {
-                    const content = Layout.vertical({
-                        layout: [Layout.horizontal([self.selector, self.spectraBtn]), self.luminositySettingsContent]
-                    });
+                    const content = Layout.vertical([[self.selector, self.spectraBtn], self.luminositySettingsContent]);
                     self.update({content})
                 }
             },
@@ -67,7 +65,7 @@ import { TogglerActionButton } from "../Button/Toggler.js";
                 },
                 tooltip: {content: 'Opacity', position: {direction: 'bottom'}},
                 action: (e) => {
-                    const content = Layout.vertical({layout: [Layout.horizontal([self.selector, self.spectraBtn]), self.opacitySettingsContent]});
+                    const content = Layout.vertical([[self.selector, self.spectraBtn], self.opacitySettingsContent]);
                     self.update({content})
                 }
             },
@@ -78,7 +76,7 @@ import { TogglerActionButton } from "../Button/Toggler.js";
                 },
                 tooltip: {content: 'Colormap', position: {direction: 'bottom'}},
                 action: (e) => {
-                    const content = Layout.vertical({layout: [Layout.horizontal([self.selector, self.spectraBtn]), self.colorSettingsContent]});
+                    const content = Layout.vertical([[self.selector, self.spectraBtn], self.colorSettingsContent]);
                     self.update({content})
                 }
             },
@@ -90,7 +88,7 @@ import { TogglerActionButton } from "../Button/Toggler.js";
                 },
                 tooltip: {content: 'Cutouts', position: {direction: 'bottom'}},
                 action: (e) => {
-                    const content = Layout.vertical({layout: [Layout.horizontal([self.selector, self.spectraBtn]), self.pixelSettingsContent]});
+                    const content = Layout.vertical([[self.selector, self.spectraBtn], self.pixelSettingsContent]);
                     self.update({content})
                 }
             },
@@ -343,7 +341,7 @@ import { TogglerActionButton } from "../Button/Toggler.js";
                     }
                 });
                 
-                self.update({content: Layout.vertical([Layout.horizontal([self.selector, self.spectraBtn]), self.opacitySettingsContent])})
+                self.update({content: Layout.vertical([[self.selector, self.spectraBtn], self.opacitySettingsContent])})
             }
 
             this._update(options.layer)

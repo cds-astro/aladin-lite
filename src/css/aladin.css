@@ -43,6 +43,7 @@
 
 .aladin-tree {
     width: 100%;
+    height: calc(100% - 130px);
     border-bottom: var(--border-size) solid var(--border-color);
 }
 
@@ -56,8 +57,8 @@
 .aladin-tree ul {
     padding:0;
     margin:0;
-    overflow-y: scroll;
-    height: 300px;
+    overflow-y: auto;
+    height: calc(100% - 37px);
 }
 .aladin-link {
     list-style-type: none;
@@ -85,6 +86,7 @@
     z-index: 1000;
     padding: 0;
     max-width: 100%;
+    width: fit-content;
 }
 #aladin-tooltip-mouse * {
     margin: 0;
@@ -335,6 +337,12 @@
     width: min-content;
 
     border: var(--border-size) solid var(--border-color);
+
+    box-sizing: border-box;
+}
+
+.aladin-box .aladin-box-content {
+    height: 100%;
 }
 
 .aladin-container canvas {
@@ -353,11 +361,6 @@
   font-weight: bold;
   white-space: nowrap;
 }
-
-.aladin-box-content {
-  padding: 10px;
-}
-
 .aladin-shareInput {
     width: 300px;
     margin-top: 10px;
@@ -474,12 +477,6 @@
     height: 100%;
 }
 
-/*
-.aladin-icon.aladin-dark-theme {
-    background-color: transparent;
-}
-*/
-
 [data-theme="dark"] .aladin-icon.aladin-icon-monochrome img {
     filter: invert(100%) sepia(91%) saturate(0%) hue-rotate(169deg) brightness(115%) contrast(100%);
 }
@@ -582,10 +579,6 @@
     color: var(--error-color);
 }
 
-.aladin-box-content > div {
-    margin: 10px 0px 0px 0px;
-}
-
 .aladin-button:hover {
 	color: #ffffff;
     background-color: #3276b1;
@@ -593,18 +586,7 @@
 }
 
 .aladin-vertical-list {
-    display: flex;
-    align-items: flex-start; 
     list-style: none;
-    flex-direction: column;
-}
-
-.aladin-vertical-list.left {
-    align-items: flex-start;
-}
-
-.aladin-vertical-list.right {
-    align-items: flex-end;
 }
 
 .aladin-vertical-list > *:first-child {
@@ -951,9 +933,6 @@
     cursor: pointer;
     font-family: monospace;
     box-sizing: content-box;
-    /* <option> colors */
-    /* Remove focus outline */
-    /* Remove IE arrow */
 }
 
 /* This is done so that the select shrink to the size of its parent (coupled with flex)
@@ -1170,6 +1149,23 @@ otherwise it fits its content options. If those are too big the select can go ou
     left: 0.2rem;
 }
 
+.aladin-indicator {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin: 0 5px;
+  vertical-align: middle;
+}
+
+.aladin-indicator.aladin-not-valid {
+  background-color: var(--error-color);
+}
+
+.aladin-indicator.aladin-valid {
+  background-color: var(--valid-color);
+}
+
 .aladin-link:hover {
     text-decoration: underline;
 }
@@ -1222,15 +1218,22 @@ otherwise it fits its content options. If those are too big the select can go ou
     width:100%;
 }
 
+.aladin-HiPS-browser-box {
+    height: 500px;
+    width: 400px;
+}
+
+.aladin-cat-browser-box {
+    width: 300px;
+}
+
 .aladin-HiPS-browser-box .aladin-input-text {
     width: 100%;
-    min-width: 300px;
 
 }
 
 .aladin-cat-browser-box .aladin-input-text.search {
     width: 100%;
-    min-width: 300px;
 }
 
 .aladin-location {

@@ -75,8 +75,6 @@ export class Tooltip extends DOMElement {
 
         super(wrapperEl, options)
 
-        this.element().classList.add('aladin-dark-theme')
-
         this._show();
     }
 

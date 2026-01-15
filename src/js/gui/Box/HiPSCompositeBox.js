@@ -162,7 +162,7 @@ export class HiPSCompositeBox extends Box {
                     draggable: true,
                 },
                 content: Layout.vertical([
-                    Layout.horizontal([searchDropdown, infoCurrentHiPSBtn]),
+                    [searchDropdown, infoCurrentHiPSBtn],
                 ]),
                 ...options,
             },
@@ -232,7 +232,10 @@ export class HiPSCompositeBox extends Box {
                     })
 
                     hips.setSliceNumber(idxSlice)
-                    cubeDisplayer.update({position: cubeDisplayer.position, content: Layout.horizontal([prevBtn, nextBtn, slicer, toStr(idxSlice + 1, true) + '/' + toStr(numSlices, false)])})
+                    cubeDisplayer.update({
+                        position: cubeDisplayer.position,
+                        content: [prevBtn, nextBtn, slicer, toStr(idxSlice + 1, true) + '/' + toStr(numSlices, false)]
+                    })
                 };
 
                 let slicer = Input.slider({

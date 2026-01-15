@@ -24,6 +24,8 @@ import { Dropdown } from "../Input/Dropdown.js";
 import filterOnUrl from "../../../../assets/icons/filter-on.svg";
 import treeIconUrl from "../../../../assets/icons/tree.svg";
 import filterOffUrl from "../../../../assets/icons/filter-off.svg";
+import helpIconUrl from "../../../../assets/icons/help.svg";
+
 import { Input } from "../Widgets/Input.js";
 import { TogglerActionButton } from "../Button/Toggler.js";
 import { Layout } from "../Layout.js";
@@ -222,7 +224,7 @@ export class HiPSBrowserBox extends Box {
 
         let filterEnabler = Input.checkbox({
             name: "filter-enabler",
-            tooltip: { content: "enable/disable" },
+            tooltip: { content: "Enable the filter" },
             checked: false,
             click(e) {
                 let on = e.target.checked;
@@ -274,23 +276,44 @@ export class HiPSBrowserBox extends Box {
 
         let filterNumberElt = document.createElement("div");
 
-        super(
-            {
+        super({
                 close: true,
+                tooltip: {
+                    global: true,
+                    aladin,
+                    content: 'red: out of the view, green: in view'
+                },
                 header: {
-                    title: Layout.horizontal([new Icon({
-                        size: 'medium',
-                        url: treeIconUrl,
-                        monochrome: true,
-                    }), "HiPS browser"]),
+                    title: [
+                        new Icon({
+                            size: 'medium',
+                            url: treeIconUrl,
+                            monochrome: true,
+                        }),
+                        "HiPS browser",
+                        new Icon({
+                            size: 'medium',
+                            url: helpIconUrl,
+                            monochrome: true,
+                            tooltip: {
+                                content: 'HiPS:<br/><span class="aladin-indicator aladin-not-valid"></span> out of the view<br /><span class="aladin-indicator aladin-valid"></span> in view',
+                                mouse: true,
+                                aladin
+                            },
+                            style: {
+                                cursor: 'help'
+                            }
+                        }),
+                    ],
                     draggable: true,
                 },
+                sizeable: true,
                 classList: ['aladin-HiPS-browser-box'],
-                content: Layout.vertical([
+                content: [
                     searchTree,
-                    Layout.horizontal(["Search:", searchDropdown, infoCurrentHiPSBtn]),
-                    Layout.horizontal([Layout.horizontal([filterEnabler, filterBtn, filterNumberElt])]),
-                ]),
+                    ["Search:", searchDropdown, infoCurrentHiPSBtn],
+                    [filterEnabler, filterBtn, filterNumberElt],
+                ],
                 ...options,
             },
             aladin.aladinDiv

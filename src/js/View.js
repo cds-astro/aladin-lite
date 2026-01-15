@@ -276,7 +276,6 @@ export let View = (function () {
             colorPickerElement = document.createElement('span');
             colorPickerElement.classList.add('aladin-color-picker')
             colorPickerElement.classList.add('aladin-view-label')
-            colorPickerElement.classList.add('aladin-dark-theme')
 
             this.aladin.aladinDiv.appendChild(colorPickerElement);
         }

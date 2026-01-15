@@ -51,8 +51,6 @@ export class ContextMenu extends DOMElement {
 
         super(el, options);
 
-        this.addClass('aladin-dark-theme')
-
         this.aladin = aladin;
 
         this.cssStyleDefault = el.style;
@@ -176,7 +174,7 @@ export class ContextMenu extends DOMElement {
                     tooltip = opt.label.tooltip
                 }
 
-                let labelEl = Layout.horizontal({layout, tooltip});
+                let labelEl = Layout.horizontal(layout, {tooltip});
                 labelEl.attachTo(item)
             } else if (opt.disabled && opt.disabled.reason) {
                 let tooltip = {
@@ -184,7 +182,7 @@ export class ContextMenu extends DOMElement {
                     position: {direction: 'top'}
                 }
 
-                let labelEl = Layout.horizontal({layout: opt.label, tooltip});
+                let labelEl = Layout.horizontal(opt.label, {tooltip});
                 labelEl.attachTo(item)
             } else {
                 let wrapEl = document.createElement('div');

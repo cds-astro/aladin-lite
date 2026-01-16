@@ -151,6 +151,13 @@ export class Layout extends DOMElement {
         return new Layout(layout, options, target, position);
     }
 
+    static nested(layout, options, target, position = "beforeend") {
+        let horizontalLayout = new Layout(layout, options, target, position);
+        horizontalLayout.removeClass('aladin-horizontal-list');
+
+        return horizontalLayout;
+    }
+
     static vertical(layout, options, target, position = "beforeend") {
         let verticalLayout = new Layout(layout, {...options, vertical: true}, target, position);
         verticalLayout.addClass('aladin-vertical-list');

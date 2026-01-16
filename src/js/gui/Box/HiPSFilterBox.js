@@ -98,9 +98,9 @@ export class HiPSFilterBox extends Box {
                         width: '200px'
                     },
                     tooltip: {content: AladinUtils.degreesToString(0.1), position: {direction: 'bottom'}},
-                    ticks: [0.1 / 3600, 1 / 3600, 1 / 60, 0.1],
+                    ticks: [0.001 / 3600, 0.01 / 3600, 0.1 / 3600, 1 / 3600, 1 / 60, 0.1],
                     stretch: "log",
-                    min: 0.1 / 3600,
+                    min: 0.001 / 3600,
                     max: 0.1,
                     reversed: true,
                     change: (e, slider, deg) => {

@@ -53,6 +53,9 @@ import { Input } from "../Widgets/Input.js";
 import { Image } from "../../Image.js";
 import { HiPSBrowserBox } from "./HiPSBrowserBox.js";
 import { HiPSCompositeBox } from "./HiPSCompositeBox.js"
+import { Catalog } from "../../Catalog.js";
+import { ProgressiveCat } from "../../ProgressiveCat.js";
+import { Form } from "../Widgets/Form.js";
 
 export class OverlayStackBox extends Box {
     /*static previewImagesUrl = {
@@ -143,7 +146,8 @@ export class OverlayStackBox extends Box {
 
         this._addListeners();
 
-        this.HiPSui = {};
+        this.ui = {};
+
         let self = this;
         // Add overlay button
         this.addOverlayBtn = new CtxMenuActionButtonOpener(
@@ -686,7 +690,7 @@ export class OverlayStackBox extends Box {
             this.aladin.aladinDiv,
             function (e) {
                 const hips = e.detail.layer;
-                let ui = self.HiPSui[hips.layer];
+                let ui = self.ui[hips.layer];
 
                 if (!ui) {
                     return;
@@ -726,34 +730,37 @@ export class OverlayStackBox extends Box {
             }
             // Update the options of the selector
             const favorites = Object.keys(self.cachedHiPS);
-            for (var key in self.HiPSui) {
-                let hips = self.HiPSui[key];
-                let currentHiPS = hips.HiPSSelector.options.value
+            for (var key in self.ui) {
+                let ui = self.ui[key];
+                // refers to an HiPS image survey
+                if (ui.HiPSSelector) {
+                    let currentHiPS = ui.HiPSSelector.options.value
 
-                let favoritesCopy = [...favorites];
+                    let favoritesCopy = [...favorites];
 
-                // add the current hips to the selector as well, even if it has been manually
-                // removed from the HiPSList
-                if (favoritesCopy.indexOf(currentHiPS) < 0) {
-                    favoritesCopy.push(currentHiPS)
+                    // add the current hips to the selector as well, even if it has been manually
+                    // removed from the HiPSList
+                    if (favoritesCopy.indexOf(currentHiPS) < 0) {
+                        favoritesCopy.push(currentHiPS)
+                    }
+
+                    // one must add the current HiPS too!
+                    favoritesCopy.sort();
+
+                    favoritesCopy.push("More...")
+
+                    ui.HiPSSelector.update({value: currentHiPS, options: favoritesCopy});
                 }
-
-                // one must add the current HiPS too!
-                favoritesCopy.sort();
-
-                favoritesCopy.push("More...")
-
-                hips.HiPSSelector.update({value: currentHiPS, options: favoritesCopy});
             }
         });
     }
 
     _hide() {
-        for (var key in this.HiPSui) {
-            let hips = this.HiPSui[key];
-            if (hips.settingsBtn.toggled) {
+        for (var key in this.ui) {
+            let ui = this.ui[key];
+            if (ui.settingsBtn && ui.settingsBtn.toggled) {
                 // toggle off
-                hips.settingsBtn.toggle();
+                ui.settingsBtn.toggle();
             }
         }
 
@@ -768,7 +775,7 @@ export class OverlayStackBox extends Box {
     }
 
     createLayout() {
-        this.HiPSui = {};
+        this.ui = {};
 
         let layout = [[this.addOverlayBtn, "Overlays"]];
 
@@ -798,8 +805,7 @@ export class OverlayStackBox extends Box {
         // list of overlays
         for (const overlay of overlays) {
             const name = overlay.name;
-            let optBtn = [];
-            optBtn.push(new ActionButton({
+            let showBtn = new ActionButton({
                 size: "small",
                 icon: {
                     url: overlay.isShowing ? showIconUrl : hideIconUrl,
@@ -824,25 +830,10 @@ export class OverlayStackBox extends Box {
                         });
                     }
                 },
-            }));
-
-            optBtn.push(new ActionButton({
-                icon: {
-                    url: removeIconUrl,
-                    monochrome: true,
-                },
-                size: "small",
-                /*cssStyle: {
-                    visibility: Utils.hasTouchScreen() ? 'visible' : 'hidden',
-                },*/
-                tooltip: {
-                    content: "Remove",
-                    position: { direction: "top" },
-                },
-                action(e) {
-                    self.aladin.removeLayer(overlay);
-                },
-            }));
+            });
+            let optBtn = [
+                showBtn,
+            ];
 
             if (overlay.serialize) {
                 optBtn.push(new ActionButton({
@@ -862,27 +853,129 @@ export class OverlayStackBox extends Box {
                     },
                 }));
             }
-            
 
-            let item = Layout.horizontal(
-                [
-                    this._addOverlayIcon(overlay),
-                    name,
-                    optBtn,
-                ],
-                {
-                    cssStyle: {
-                        textAlign: "center",
-                        display: "flex",
-                        alignItems: "center",
-                        listStyle: "none",
-                        justifyContent: "space-between",
-                        width: "100%",
+            if (overlay instanceof Catalog || overlay instanceof ProgressiveCat) {
+                let catSettingsBox = new Box({
+                    close: false,
+                    content: new Form({
+                        subInputs: [
+                            {
+                                label: 'Size',
+                                tooltip: {content: 'Size of the sources', position: {direction: 'right'}},
+                                name: 'size',
+                                type: 'range',
+                                min: 2.0,
+                                max: 30.0,
+                                value: overlay.sourceSize,
+                                change: (e) => {
+                                    const size = +e.target.value;
+                                    overlay.setSourceSize(size)
+                                }
+                            },
+                            {
+                                label: 'Shape',
+                                name: 'shape',
+                                type: 'select',
+                                options: (() => {
+                                    if (overlay.shapeFn) {
+                                        return ['custom']
+                                    } else {
+                                        return [
+                                            { value: "plus", label: "+" },
+                                            { value: "rhomb", label: "◇" },
+                                            { value: "triangle", label: "△" },
+                                            { value: "cross", label: "✕" },
+                                            { value: "square", label: "□" },
+                                            { value: "circle", label: "○" },
+                                        ]
+                                    }
+                                })(),
+                                value: overlay.shape,
+                                change: (e) => {
+                                    const shape = e.target.value
+                                    overlay.setShape(shape)
+                                }
+                            },
+                            {
+                                label: 'Color',
+                                name: 'color',
+                                type: 'color',
+                                value: overlay.color,
+                                change: (e) => {
+                                    let hex = e.target.value;
+                                    overlay.setColor(hex)
+                                }
+                            },
+                        ]
+                    }),
+                }, this.aladin.aladinDiv);
+                catSettingsBox._hide()
+
+                // catalog settings
+                let catSettingsBtn = new TogglerActionButton({
+                    icon: { url: settingsIconUrl, monochrome: true },
+                    size: "small",
+                    tooltip: {
+                        content: "Settings",
+                        position: { direction: "top" },
                     },
-                }
-            );
+                    toggled: false,
+                    actionOn: (e) => {
+                        // toggle off the other settings if opened
+                        for (var l in self.ui) {
+                            let ui = self.ui[l]
 
-            layout.push(item);
+                            if (l != name) {
+                                if (ui.settingsBtn)
+                                    ui.settingsBtn.close();
+                            }
+                        }
+
+                        catSettingsBox._show({
+                            position: {
+                                nextTo: catSettingsBtn,
+                                direction: "right",
+                                aladin: self.aladin,
+                            },
+                        });
+                    },
+                    actionOff: (e) => {
+                        catSettingsBox._hide();
+                    },
+                });
+
+                optBtn.push(catSettingsBtn);
+
+                if (!(name in self.ui)) {
+                    self.ui[name] = {
+                        settingsBox: catSettingsBox,
+                        settingsBtn: catSettingsBtn,
+                        showBtn,
+                    };
+                }
+            }
+
+            optBtn.push(new ActionButton({
+                icon: {
+                    url: removeIconUrl,
+                    monochrome: true,
+                },
+                size: "small",
+                tooltip: {
+                    content: "Remove",
+                    position: { direction: "top" },
+                },
+                action(e) {
+                    self.aladin.removeLayer(overlay);
+                },
+            }))
+
+            layout.push(
+                {
+                    start: [this._addOverlayIcon(overlay), name],
+                    end: [optBtn]
+                },
+            );
         }
 
         return layout;
@@ -1005,8 +1098,8 @@ export class OverlayStackBox extends Box {
                 toggled: false,
                 actionOn: (e) => {
                     // toggle off the other settings if opened
-                    for (var l in self.HiPSui) {
-                        let ui = self.HiPSui[l]
+                    for (var l in self.ui) {
+                        let ui = self.ui[l]
 
                         if (l != layer.layer) {
                             ui.settingsBtn.close();
@@ -1075,8 +1168,8 @@ export class OverlayStackBox extends Box {
             let item = Layout.horizontal([HiPSSelector, Layout.horizontal(btns)]);
             layout.push(item);
 
-            if (!(layer.layer in self.HiPSui)) {
-                self.HiPSui[layer.layer] = {
+            if (!(layer.layer in self.ui)) {
+                self.ui[layer.layer] = {
                     HiPSSelector,
                     settingsBox,
                     settingsBtn,

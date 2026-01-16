@@ -624,12 +624,13 @@ export let ProgressiveCat = (function() {
         },
 
         computeFootprints: Catalog.prototype.computeFootprints,
+        setSourceSize: Catalog.prototype.setSourceSize,
+        setShape: Catalog.prototype.setShape,
+        setColor: Catalog.prototype.setColor,
 
         reportChange: function() { // TODO: to be shared with Catalog
             this.view && this.view.requestRedraw();
         }
-    
-
     }; // END OF .prototype functions
     
     ProgressiveCat.parser = new DOMParser();

@@ -57,7 +57,7 @@ export class Tabs extends DOMElement {
         this.tabSelectedIdx = 0;
 
         let tabs = this.buildTabs(options);
-        this.el = Layout.vertical(
+        this.el = Layout.nested(
             [
                 tabs.layout,
                 tabs.content

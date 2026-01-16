@@ -360,6 +360,7 @@
   line-height: 1.5em;
   font-weight: bold;
   white-space: nowrap;
+  width: 100%;
 }
 .aladin-shareInput {
     width: 300px;
@@ -1220,7 +1221,7 @@ otherwise it fits its content options. If those are too big the select can go ou
 
 .aladin-HiPS-browser-box {
     height: 500px;
-    width: 400px;
+    min-width: 300px;
 }
 
 .aladin-cat-browser-box {

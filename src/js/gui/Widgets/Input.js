@@ -92,7 +92,19 @@ export class Input extends DOMElement {
                 let innerHTML = "";
 
                 for (const option of this.options.options) {
-                    innerHTML += "<option>" + option + "</option>";
+                    let value;
+                    let label;
+                    if (option.value) {
+                        value = option.value
+                    } else {
+                        value = option
+                    }
+                    if (option.label) {
+                        label = option.label
+                    } else {
+                        label = option
+                    }
+                    innerHTML += "<option value=\"" + value + "\">" + label + "</option>";
                 }
                 this.el.innerHTML = innerHTML;
             }

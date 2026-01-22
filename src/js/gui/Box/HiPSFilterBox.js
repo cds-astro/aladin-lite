@@ -17,13 +17,12 @@
 //    along with Aladin Lite.
 //
 
+import filterOnUrl from "../../../../assets/icons/filter-on.svg";
 import { Box } from "../Widgets/Box.js";
-import { Form } from "../Widgets/Form.js";
-import { Layout } from "../Layout.js";
 import { Angle } from "../../libs/astro/angle.js";
 import { AladinUtils } from "../../AladinUtils.js";
 import { Input } from "../Widgets/Input.js";
-
+import { Icon } from "../Widgets/Icon.js";
 
 /******************************************************************************
  * Aladin Lite project
@@ -58,84 +57,79 @@ export class HiPSFilterBox extends Box {
             }
         });
 
-        let regimeOption = new Layout(
-            {
-                start: Input.select({
-                    tooltip: {
-                        content: "Observation regime",
-                        position: { direction: "left" },
-                    },
-                    value: "Optical",
-                    options: [
-                        "Radio",
-                        "Infrared",
-                        "Millimeter",
-                        "Optical",
-                        "UV",
-                        "EUV",
-                        "X-ray",
-                        "Gamma-ray",
-                    ],
-                    change: (e) => {
-                        let regime = e.target.value;
-                        self.params["regime"] = regime;
-
-                        self._triggerFilteringCallback();
-                    },
-                }),
-                end: regimeBtn
-            },
-            {label: 'Freq:'}
-        );
-
-        let resolutionOption = new Layout(
-            {
-                start: new Input({
-                    name: "res",
-                    value: 0.1,
-                    type: 'range',
-                    cssStyle: {
-                        width: '200px'
-                    },
-                    tooltip: {content: AladinUtils.degreesToString(0.1), position: {direction: 'bottom'}},
-                    ticks: [0.001 / 3600, 0.01 / 3600, 0.1 / 3600, 1 / 3600, 1 / 60, 0.1],
-                    stretch: "log",
-                    min: 0.001 / 3600,
-                    max: 0.1,
-                    reversed: true,
-                    change: (e, slider, deg) => {
-                        slider.update({value: e.target.value, tooltip: {content: AladinUtils.degreesToString(deg), position:{direction:'bottom'}}});
-
-                        let resolution = new Angle(deg);
-                        self.params["resolution"] = resolution.degrees();
-
-                        self._triggerFilteringCallback();
-                    },
-                }),
-                end: resolutionBtn,
-            },
-            {label: "Max resolution [°/px]:"}
-        );
         super(
             {
                 header: {
-                    title: 'Filter tags',
+                    title: [
+                        new Icon({
+                            size: 'medium',
+                            url: filterOnUrl,
+                            monochrome: true,
+                        }),
+                        'Filter'
+                    ],
                     draggable: false,
                 },
                 close: false,
                 classList: ['aladin-HiPS-filter-box'],
                 content: [
-                    new Form({
-                        subInputs: [
-                            {
-                                type: "group",
-                                subInputs: [
-                                    regimeOption,
-                                    resolutionOption 
+                    {
+                        start: [
+                            "Freq:",
+                            Input.select({
+                                tooltip: {
+                                    content: "Observation regime",
+                                    position: { direction: "left" },
+                                },
+                                value: "Optical",
+                                options: [
+                                    "Radio",
+                                    "Infrared",
+                                    "Millimeter",
+                                    "Optical",
+                                    "UV",
+                                    "EUV",
+                                    "X-ray",
+                                    "Gamma-ray",
                                 ],
-                            },
+                                change: (e) => {
+                                    let regime = e.target.value;
+                                    self.params["regime"] = regime;
+
+                                    self._triggerFilteringCallback();
+                                },
+                            }),
                         ],
-                    }),
+                        end: [regimeBtn]
+                    },
+                    {
+                        start: [
+                            "Max resolution [°/px]:",
+                            new Input({
+                                name: "res",
+                                value: 0.1,
+                                type: 'range',
+                                cssStyle: {
+                                    width: '200px'
+                                },
+                                tooltip: {content: AladinUtils.degreesToString(0.1), position: {direction: 'bottom'}},
+                                ticks: [0.001 / 3600, 0.01 / 3600, 0.1 / 3600, 1 / 3600, 1 / 60, 0.1],
+                                stretch: "log",
+                                min: 0.001 / 3600,
+                                max: 0.1,
+                                reversed: true,
+                                change: (e, slider, deg) => {
+                                    slider.update({value: e.target.value, tooltip: {content: AladinUtils.degreesToString(deg), position:{direction:'bottom'}}});
+
+                                    let resolution = new Angle(deg);
+                                    self.params["resolution"] = resolution.degrees();
+
+                                    self._triggerFilteringCallback();
+                                },
+                            })
+                        ],
+                        end: [resolutionBtn]
+                    }
                 ]
             },
             aladin.aladinDiv

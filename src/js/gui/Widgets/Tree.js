@@ -23,7 +23,7 @@ import folderIconUrl from "../../../../assets/icons/folder.svg";
 
 import { Layout } from "../Layout";
 import { ActionButton } from "./ActionButton";
-
+import { Input } from "./Input";
 /******************************************************************************
  * Aladin Lite project
  *
@@ -46,12 +46,15 @@ export class Tree extends DOMElement {
         this.dblclick = options && options.dblclick;
         this.aladin = options && options.aladin;
 
+        this.onlyInView = false;
+
         let rootNode = options && options.root || {};
         this.params = null;
         this.filter = options && options.filter;
         this.label = options && options.label;
 
         this._setRoot(rootNode);
+
 
         this.attachTo(target, position);
         this._show();
@@ -104,8 +107,6 @@ export class Tree extends DOMElement {
         directoryLinks.reverse()
 
         let directoryListEl = document.createElement('div');
-        directoryListEl.classList.add('aladin-directory-path');
-        directoryListEl.style.display = "inline-block"
 
         for (var link of directoryLinks) {
             directoryListEl.appendChild(link);
@@ -116,7 +117,24 @@ export class Tree extends DOMElement {
             directoryListEl.appendChild(spanSplitEl)
         }
 
-        this.el.appendChild(directoryListEl)
+        let self = this;
+        this.el.appendChild(
+            new Layout({
+                start: [directoryListEl],
+                end: [
+                    Input.checkbox({
+                        name: "filter-out-not-in-view",
+                        tooltip: { content: "Filter out data not in the view", position: {direction: "bottom"} },
+                        checked: this.onlyInView,
+                        click(e) {
+                            self.onlyInView = e.target.checked;
+
+                            self._createDOM(self.curNode)
+                        },
+                    })
+                ]
+            }, {classList: 'aladin-directory-path'}).element()
+        )
 
         let listElt = document.createElement('ul');
 
@@ -254,6 +272,12 @@ export class Tree extends DOMElement {
                         } else {
                             childElt.classList.remove("aladin-valid");
                             childElt.classList.add("aladin-not-found");
+
+                            if (this.onlyInView) {
+                                childElt.style.display = "none";
+                            } else {
+                                childElt.style.display = "block";
+                            }
                         }
                     }
                     elt.appendChild(childElt);
@@ -288,6 +312,12 @@ export class Tree extends DOMElement {
                 } else {
                     elt.classList.remove("aladin-valid");
                     elt.classList.add("aladin-not-found");
+
+                    if (this.onlyInView) {
+                        elt.style.display = "none";
+                    } else {
+                        elt.style.display = "block";
+                    }
                 }
 
                 child.label = label;
@@ -363,7 +393,7 @@ export class Tree extends DOMElement {
 
         let isLeaf = typeof node === "object" && 'ID' in node;
         if (isLeaf) {
-            if (this.highlight.includes(node.ID)) {
+            if (this.highlight.includes(node.ID) && this.params && this.filter && this.filter(node, this.params)) {
                 return true;
             }
         } else {

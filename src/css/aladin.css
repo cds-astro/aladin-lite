@@ -1212,16 +1212,6 @@ otherwise it fits its content options. If those are too big the select can go ou
     border: var(--border-size) solid orange;
 }
 
-.aladin-HiPS-filter-box {
-    margin-top: 0.4rem;
-    /*width: 250px;*/
-}
-
-.aladin-HiPS-filter-box .aladin-horizontal-list {
-    justify-content: space-evenly;
-    width:100%;
-}
-
 .aladin-HiPS-browser-box {
     height: 500px;
     min-width: 400px;

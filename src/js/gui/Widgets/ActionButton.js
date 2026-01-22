@@ -23,7 +23,8 @@ import { Icon } from "./Icon";
 import { Layout } from "../Layout";
 
 import infoIconUrl from "../../../../assets/icons/info.svg"
-import targetIconUrl from '../../../../assets/icons/target.svg';
+import targetIconUrl from "../../../../assets/icons/target.svg";
+import removeIconUrl from "../../../../assets/icons/remove.svg";
 import A from "../../A";
 /******************************************************************************
  * Aladin Lite project
@@ -276,6 +277,19 @@ export class ActionButton extends DOMElement {
                 })
 
                 return button;
+            },
+            remove: (action) => {
+                return new ActionButton({
+                    icon: {
+                        url: removeIconUrl,
+                        monochrome: true,
+                    },
+                    size: "small",
+                    tooltip: {
+                        content: "Remove",
+                    },
+                    action
+                })
             }
         }
     }

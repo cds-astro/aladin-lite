@@ -209,9 +209,6 @@ import { TogglerActionButton } from "../Button/Toggler.js";
             {
                 label: 'min cut:',
                 type: 'number',
-                cssStyle: {
-                    width: '6rem',
-                },
                 tooltip: {content: 'Min cut', position: {direction: 'bottom'}},
                 name: 'mincut',
                 value: 0.0,
@@ -223,9 +220,6 @@ import { TogglerActionButton } from "../Button/Toggler.js";
             {
                 type: 'number',
                 label: 'max cut:',
-                cssStyle: {
-                    width: '6rem',
-                },
                 tooltip: {content: 'Max cut', position: {direction: 'bottom'}},
                 name: 'maxcut',
                 value: 1.0,

@@ -93,7 +93,7 @@ export let View = (function () {
             // 1. Print the original exception message in the console
             //console.error(e)
             // 2. Add a more explicite message to the end user
-            console.error("Problem initializing Aladin Lite. Please contact the support by contacting Matthieu Baumann (baumannmatthieu0@gmail.com) or Thomas Boch (thomas.boch@astro.unistra.fr). You can also open an issue on the Aladin Lite github repository here: https://github.com/cds-astro/aladin-lite. Message error:" + e)
+            console.error("Problem initializing Aladin Lite. Please contact the support by contacting Matthieu Baumann (matthieu.baumann@astro.unistra.fr) or Thomas Boch (thomas.boch@astro.unistra.fr). You can also open an issue on the Aladin Lite github repository here: https://github.com/cds-astro/aladin-lite. Message error:" + e)
         }
 
         this._defineProperties();
@@ -594,6 +594,9 @@ export let View = (function () {
             console.warn(layer + ' does not exists. So cannot be selected');
             return;
         }
+
+        if (this.spectraDisplayer)
+            this.spectraDisplayer.hide();
 
         if (imageLayer.dataproductType === "spectral-cube") {
             if (!this.spectraDisplayer) {

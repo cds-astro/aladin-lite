@@ -456,51 +456,111 @@ export let Polyline = (function() {
         return false;
     };
 
-    Polyline.prototype.intersectsBBox = function(x, y, w, h, view) {
-        for (let i = 0; i < this.raDecArray.length - 1; i++) {
-            let p1 = this.raDecArray[i];
-            let p2 = this.raDecArray[i + 1];
+    Polyline.prototype.intersectsBBox = function (x, y, w, h, view) {
+        let n = this.raDecArray.length;
+        if (n < 2) return false;
 
-            let xy1 = view.aladin.world2pix(p1[0], p1[1]);
-            let xy2 = view.aladin.world2pix(p2[0], p2[1]);
+        // 2️⃣ Edge intersection test
+        let i = this.closed ? n - 1 : 0;
+        let j = this.closed ? 0 : 1;
 
+        let poly = [];
+        while (j < n) {
+            const p1 = this.raDecArray[i];
+            const p2 = this.raDecArray[j];
+
+            const xy1 = view.aladin.world2pix(p1[0], p1[1]);
+            const xy2 = view.aladin.world2pix(p2[0], p2[1]);
+
+            // Skip invalid segments, do NOT abort
             if (!xy1 || !xy2) {
-                return false;
+                i = j++;
+                continue;
             }
 
-            xy1 = {x: xy1[0], y: xy1[1]};
-            xy2 = {x: xy2[0], y: xy2[1]};
-    
-            // Check if line segment intersects with the bounding box
-            if (this.lineIntersectsBox(xy1, xy2, x, y, w, h)) {
+            const a = { x: xy1[0], y: xy1[1] };
+            const b = { x: xy2[0], y: xy2[1] };
+
+            poly.push(a);
+
+            if (Polyline.segmentIntersectsBox(a, b, x, y, w, h)) {
                 return true;
+            }
+
+            i = j++;
+        }
+
+        if (this.closed && poly.length === this.raDecArray.length) {
+            console.log("closed poly")
+            const corners = [
+                { x,  y },
+                { x: x + w, y },
+                { x: x + w, y: y + h },
+                { x,  y: y + h }
+            ];
+
+            for (const c of corners) {
+                if (Polyline.pointInPolygon(c, poly)) {
+                    return true;
+                }
             }
         }
 
         return false;
     };
 
-    Polyline.prototype.lineIntersectsBox = function(p1, p2, x, y, w, h) {
-        // Check if line segment is completely outside the box
-        if ((p1.x < x && p2.x < x) || 
-            (p1.y < y && p2.y < y) || 
-            (p1.x > x + w && p2.x > x + w) || 
-            (p1.y > y + h && p2.y > y + h)) {
-            return false;
-        }
 
-        let m = (p2.y - p1.y) / (p2.x - p1.x);  // Slope of the line
-        let c = p1.y - m * p1.x;  // y-intercept of the line
+    Polyline.segmentIntersectsBox = function (p1, p2, x, y, w, h) {
+        const x2 = x + w;
+        const y2 = y + h;
 
-        // Check if line intersects with the sides of the box
-        if ((p1.y >= y && p1.y <= y + h) || 
-            (p2.y >= y && p2.y <= y + h) || 
-            (m * x + c >= y && m * x + c <= y + h) || 
-            (m * (x + w) + c >= y && m * (x + w) + c <= y + h)) {
+        // 1️⃣ Endpoint inside box
+        if (Polyline.pointInBox(p1, x, y, x2, y2) ||
+            Polyline.pointInBox(p2, x, y, x2, y2)) {
             return true;
         }
 
-        return false;       
+        // 2️⃣ Check intersection with 4 box edges
+        return (
+            Polyline.segmentsIntersect(p1, p2, { x, y }, { x: x2, y }) ||     // top
+            Polyline.segmentsIntersect(p1, p2, { x: x2, y }, { x: x2, y: y2 }) || // right
+            Polyline.segmentsIntersect(p1, p2, { x: x2, y: y2 }, { x, y: y2 }) || // bottom
+            Polyline.segmentsIntersect(p1, p2, { x, y: y2 }, { x, y })           // left
+        );
+    };
+
+    Polyline.pointInBox = function (p, x1, y1, x2, y2) {
+        return p.x >= x1 && p.x <= x2 && p.y >= y1 && p.y <= y2;
+    };
+
+    Polyline.pointInPolygon = function (xy, poly) {
+        let inside = false;
+
+        for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+            const xi = poly[i].x, yi = poly[i].y;
+            const xj = poly[j].x, yj = poly[j].y;
+
+            const intersect =
+                ((yi > xy.y) !== (yj > xy.y)) &&
+                (xy.x < (xj - xi) * (xy.y - yi) / (yj - yi) + xi);
+
+            if (intersect) inside = !inside;
+        }
+
+        return inside;
+    };
+
+    Polyline.segmentsIntersect = function (p1, p2, p3, p4) {
+        function orient(a, b, c) {
+            return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+        }
+
+        const o1 = orient(p1, p2, p3);
+        const o2 = orient(p1, p2, p4);
+        const o3 = orient(p3, p4, p1);
+        const o4 = orient(p3, p4, p2);
+
+        return o1 * o2 < 0 && o3 * o4 < 0;
     };
 
     // static methods
@@ -516,10 +576,10 @@ export let Polyline = (function() {
 
         // check if the line has hit any of the rectangle's sides
         // uses the Line/Line function below
-        let left =   Polyline._intersectLine(x1, y1, x2, y2, 0, 0, 0, rh);
-        let right =  Polyline._intersectLine(x1, y1, x2, y2, rw, 0, rw, rh);
-        let top =    Polyline._intersectLine(x1, y1, x2, y2, 0, 0, rw, 0);
-        let bottom = Polyline._intersectLine(x1, y1, x2, y2, 0, rh, rw, rh);
+        let left =   Polyline.segmentsIntersect({x: x1, y: y1}, {x: x2, y: y2}, {x: 0, y: 0}, {x: 0, y: rh});
+        let right =  Polyline.segmentsIntersect({x: x1, y: y1}, {x: x2, y: y2}, {x: rw, y: 0}, {x: rw, y: rh});
+        let top =    Polyline.segmentsIntersect({x: x1, y: y1}, {x: x2, y: y2}, {x: 0, y: 0}, {x: rw, y: 0});
+        let bottom = Polyline.segmentsIntersect({x: x1, y: y1}, {x: x2, y: y2}, {x: 0, y: rh}, {x: rw, y: rh});
     
         // if ANY of the above are true, the line
         // has hit the rectangle
@@ -527,18 +587,6 @@ export let Polyline = (function() {
             return true;
         }
 
-        return false;
-    };
-
-    Polyline._intersectLine = function(x1, y1, x2, y2, x3, y3, x4, y4) {
-        // Calculate the direction of the lines
-        let uA = ((x4-x3)*(y1-y3) - (y4-y3)*(x1-x3)) / ((y4-y3)*(x2-x1) - (x4-x3)*(y2-y1));
-        let uB = ((x2-x1)*(y1-y3) - (y2-y1)*(x1-x3)) / ((y4-y3)*(x2-x1) - (x4-x3)*(y2-y1));
-    
-        // If uA and uB are between 0-1, lines are colliding
-        if (uA >= 0 && uA <= 1 && uB >= 0 && uB <= 1) {
-            return true;
-        }
         return false;
     };
 

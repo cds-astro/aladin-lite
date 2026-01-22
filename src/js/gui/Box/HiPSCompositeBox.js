@@ -17,19 +17,17 @@
 //    along with Aladin Lite.
 //
 
-import { MocServer } from "../../MocServer.js";
-
 import { Box } from "../Widgets/Box.js";
-import { Dropdown } from "../Input/Dropdown.js";
 import hipsIconUrl from "../../../../assets/icons/hips.svg";
-import { Input } from "../Widgets/Input.js";
-import { Layout } from "../Layout.js";
-import A from "../../A.js";
-import { Utils } from "../../Utils.ts";
-import { ActionButton } from "../Widgets/ActionButton.js";
-import infoIconUrl from "../../../../assets/icons/info.svg"
+import addIconUrl from "../../../../assets/icons/plus.svg";
+import settingsIconUrl from "../../../../assets/icons/settings.svg";
 import { Icon } from "../Widgets/Icon.js";
-
+import { HiPSSelector } from "../Input/HiPSSelector.js";
+import { HiPSBrowserBox } from "./HiPSBrowserBox.js";
+import { Input } from "../Widgets/Input.js";
+import { ActionButton } from "../Widgets/ActionButton.js";
+import { Form } from "../Widgets/Form.js";
+import { TogglerActionButton } from "../Button/Toggler.js";
 /******************************************************************************
  * Aladin Lite project
  *
@@ -41,273 +39,208 @@ import { Icon } from "../Widgets/Icon.js";
  *
  *****************************************************************************/
 
-function fillHiPSHierarchy(name, hips, path, hierarchy) {
-    let folders = path.split('/')
-    let curFolder = folders.shift()
-
-    if(curFolder === 'Image') {
-        let newPath = folders.join('/')
-        fillHiPSHierarchy(name, hips, newPath, hierarchy);
-    } else {
-        // Some exceptions because the MOCServer client_category field may contain some typos
-        if (['X', 'X-ray', 'Xray'].includes(curFolder)) {
-            curFolder = 'X-ray'
-        }
-
-        if (['Radion', 'Radio'].includes(curFolder)) {
-            curFolder = 'Radio'
-        }
-
-        if (curFolder === "Deprecated")
-            return;
-
-        hierarchy[curFolder] = hierarchy[curFolder] || {};
-        if (folders.length == 0) {
-            hierarchy[curFolder][name] = hips
-        } else {
-            let newPath = folders.join('/')
-            fillHiPSHierarchy(name, hips, newPath, hierarchy[curFolder])
-        }
-    }
-}
-
 export class HiPSCompositeBox extends Box {
     static HiPSList = {};
 
     constructor(aladin, options) {
         let self;
 
-        // Search tree
-        MocServer.getAllHiPSes().then((HiPSes) => {
-            HiPSBrowserBox.HiPSList = {}
-
-            let hipsHierarchy = {};
-            // Fill the HiPSList from the MOCServer
-
-            // Build a hierarchy w.r.t sorted by regime
-            HiPSes.forEach((h) => {
-                let name = h.obs_title;
-                name = name.replace(/:|\'/g, '');
-
-                HiPSBrowserBox.HiPSList[name] = h;
-
-                if (h.client_category) {
-                    let path = h.client_category
-
-                    fillHiPSHierarchy(name, h, path, hipsHierarchy)
-                }
-            });
-        });
-
-        const _parseHiPS = (e) => {
-            const value = e.target.value;
-
-            let image, name;
-            // A user can put an url
-            try {
-                image = new URL(value).href;
-                name = image;
-            } catch (e) {
-                // Or he can select a HiPS from the list given
-                const hips = HiPSBrowserBox.HiPSList[value];
-                if (hips) {
-                    image = hips.ID || hips.hips_service_url;
-                    name = hips.obs_title || hips.ID;
-                } else {
-                    // Finally if not found, interpret the input text value as the HiPS (e.g. ID)
-                    image = value;
-                    name = value;
-                }
-            }
-
-            if (image) {
-                self._addHiPS(image, name)
-            }
-        };
-
-        let searchDropdown = new Dropdown(aladin, {
-            name: "HiPS browser",
-            placeholder: "Browse a HiPS by an URL, ID or keywords",
+        let nameInput = Input.text({
             tooltip: {
                 global: true,
                 aladin,
-                content: 'HiPS url, ID or keyword accepted',
+                content: 'What name for your composite survey?'
             },
-            action: (e) => {}
+            placeholder: "What name?...",
+            autocomplete: 'off',
+            autofocus: true,
+            actions: {
+                dblclick: (_) => {
+                    nameInput.set('')
+                },
+                keydown: (e) => {
+                    e.stopPropagation();
+                    //
+                }
+            },
         });
 
-        let infoCurrentHiPSBtn = new ActionButton({
-            disable: true,
-            icon: {
-                size: 'medium',
-                monochrome: true,
-                url: infoIconUrl,
-            },
-            tooltip: {
-                global: true,
-                aladin,
-                content: "More about that survey?"
-            }
-        });
+        let content = [[
+            new ActionButton({
+                icon: {
+                    url: addIconUrl,
+                    size: "small",
+                    monochrome: true,
+                },
+                tooltip: {
+                    content: "Add a new layer",
+                    position: { direction: "top" },
+                },
+                toggled: false,
+                action(_) {
+                    self.content.push(self._addNewHiPS());
+                    self.update({content: self.content})
+                }
+            }),
+            nameInput
+        ]];
 
         super(
             {
                 close: true,
                 header: {
-                    title: Layout.horizontal([new Icon({
-                        size: 'medium',
-                        url: hipsIconUrl,
-                        monochrome: true,
-                    }), "HiPS Compositor"]),
+                    title: [
+                        new Icon({
+                            size: 'medium',
+                            url: hipsIconUrl,
+                            monochrome: true,
+                        }),
+                        "HiPS Compositor"
+                    ],
                     draggable: true,
                 },
-                content: Layout.vertical([
-                    [searchDropdown, infoCurrentHiPSBtn],
-                ]),
+                content,
                 ...options,
             },
             aladin.aladinDiv
         );
 
-        self = this;
-
-        this.searchDropdown = searchDropdown;
         this.aladin = aladin;
 
-        this.infoCurrentHiPSBtn = infoCurrentHiPSBtn;
+        self = this;
 
-        this._addListeners();
+        this.numHiPSLayers = 0;
+        this.content = content.concat([this._addNewHiPS()])
+        this.update({content: this.content})
+
+        this.openSettings = null;
     }
 
-    _addListeners() {}
-
-    _addHiPS(id, name) {
-        let self = this;
-
-        self.searchDropdown.update({value: name, title: name});
-
-        let hips = A.imageHiPS(id, {
-            name,
-            successCallback: (hips) => {
-                self.searchDropdown.removeClass('aladin-not-valid');
-                self.searchDropdown.addClass('aladin-valid');
-
-                self.infoCurrentHiPSBtn.update({
-                    disable: false,
-                    action(e) {
-                        window.open(hips.url);
-                    }
-                })
-
-                self.aladin.removeUIByName("cube_displayer" + hips.layer)
-
-                if (!hips.cubeDepth)
-                    return;
-
-                let numSlices = hips.cubeDepth;
-                let idxSlice = hips.cubeFirstFrame;
-
-                hips.setSliceNumber(idxSlice)
-
-                let toStr = (n, paddingBegin = false) => {
-                    let s = n.toString();
-                    let maxNumDigits = numSlices.toString().length;
-
-                    if (s.length < maxNumDigits) {
-                        let r = '&nbsp;'.repeat(maxNumDigits - s.length)
-                        if (paddingBegin) {
-                            s = r + s 
-                        } else {
-                            s += r
+    _addNewHiPS() {
+        let newLayerLayout = [
+            new HiPSSelector({
+                change(e) {
+                    let name = e.target.value;
+                    
+                    if (name === "More...") {
+                        if (!aladin.hipsBrowser) {
+                            aladin.hipsBrowser = new HiPSBrowserBox(aladin);
                         }
-                    }
 
-                    return s;
+                        aladin.hipsBrowser._show({
+                            selected: (hips) => {
+                                console.log(hips)
+                            },
+                            position: { anchor: "center center" }
+                        });
+                        return;
+                    }
+                }
+            }),
+            this._createLayerSettingsBox(),
+            ActionButton.BUTTONS(aladin)
+                .remove(
+                    (e) => {
+                        let node = e.target.parentElement.parentElement.parentElement;
+                        let idLayer = [...node.parentElement.children].indexOf(node);
+
+                        this.content.splice(idLayer, 1)
+                        this.update({content: this.content})
+
+                        this.numHiPSLayers = this.content.length - 1;
+                    }
+                )
+        ];
+        this.numHiPSLayers += 1;
+
+        return newLayerLayout;
+    }
+
+    _createLayerSettingsBox() {
+        let self = this;
+        let layerSettingsBox = new Box({
+            close: false,
+            content: new Form({
+                subInputs: [
+                    {
+                        type: 'color',
+                        label: "Color",
+                        value: 'red',
+                        name: 'color',
+                        change(e) {
+                            let hex = e.target.value;
+                        }
+                    },
+                    {
+                        label: 'Stretch',
+                        type: "select",
+                        name: 'stretch',
+                        value: 'linear',
+                        options: ['sqrt', 'linear', 'asinh', 'pow2', 'log'],
+                        change(e) {},
+                    },
+                    {
+                        type: 'number',
+                        label: "Min cut",
+                        name: 'mincut',
+                        value: 0.0,
+                        change: (e) => {
+                            let minCut = +e.target.value
+                        }
+                    },
+                    {
+                        label: 'Max cut',
+                        type: "number",
+                        name: 'maxcut',
+                        value: 0.0,
+                        change: (e) => {
+                            let maxCut = +e.target.value
+                        }
+                    },
+                ]
+            }),
+        }, this.aladin.aladinDiv);
+        layerSettingsBox._hide()
+
+        // catalog settings
+        let layerSettingsBtn = new TogglerActionButton({
+            icon: { url: settingsIconUrl, monochrome: true },
+            size: "small",
+            tooltip: {
+                content: "Settings",
+                position: { direction: "top" },
+            },
+            toggled: false,
+            actionOn: (_) => {
+                layerSettingsBox._show({
+                    position: {
+                        nextTo: layerSettingsBtn,
+                        direction: "right",
+                        aladin: self.aladin,
+                    },
+                });
+
+                if (self.openSettings) {
+                    self.openSettings.close();
                 }
 
-                let updateSlice = () => {
-                    slicer.update({
-                        value: idxSlice,
-                        tooltip: {content: (idxSlice + 1) + '/' + numSlices, position: {direction: 'bottom'}},
-                    })
-
-                    hips.setSliceNumber(idxSlice)
-                    cubeDisplayer.update({
-                        position: cubeDisplayer.position,
-                        content: [prevBtn, nextBtn, slicer, toStr(idxSlice + 1, true) + '/' + toStr(numSlices, false)]
-                    })
-                };
-
-                let slicer = Input.slider({
-                    label: "Slice",
-                    name: "cube_slicer" + hips.layer,
-                    ticks: [idxSlice],
-                    tooltip: {content: (idxSlice + 1) + '/' + numSlices, position: {direction: 'bottom'}},
-                    min: 0,
-                    max: numSlices - 1,
-                    value: idxSlice,
-                    actions: {
-                        change: (e) => {
-                            idxSlice = Math.round(e.target.value);
-
-                            updateSlice();
-                        },
-                        input: (e) => {
-                            idxSlice = Math.round(e.target.value);
-
-                            slicer.update({
-                                value: idxSlice,
-                                tooltip: {content: (idxSlice + 1) + '/' + numSlices, position: {direction: 'bottom'}},
-                            })
-                        }
-                    },
-                    cssStyle: {
-                        width: '300px'
-                    }
-                });
-                                                
-                let prevBtn = A.button({
-                    size: 'small',
-                    content: '<',
-                    action(o) {
-                        idxSlice = Math.max(idxSlice - 1, 0);
-                        updateSlice()
-                    }
-                })
-                                                
-                let nextBtn = A.button({
-                    size: 'small',
-                    content: '>',
-                    action(o) {
-                        idxSlice = Math.min(idxSlice + 1, numSlices - 1);
-                        updateSlice()
-                    }
-                })
-
-                let cubeDisplayer = A.box({
-                    close: true,
-                    name: "cube_displayer" + hips.layer,
-                    header: {
-                        title: 'Player for: ' + hips.name,
-                        draggable: true,
-                    },
-                    content: Layout.horizontal([prevBtn, nextBtn, slicer, toStr(idxSlice + 1, true) + '/' + toStr(numSlices, false)]),
-                    position: {anchor: 'center top'},
-                });
-
-                self.aladin.addUI(cubeDisplayer)
+                self.openSettings = layerSettingsBtn;
             },
-            errorCallback: (e) => {
-                self.searchDropdown.removeClass('aladin-valid');
-                self.searchDropdown.addClass('aladin-not-valid');
-            }
+            actionOff: (_) => {
+                layerSettingsBox._hide();
+                if (self.openSettings === layerSettingsBtn) {
+                    self.openSettings = null;
+                }
+            },
         });
-        this.aladin.setOverlayImageLayer(hips, self.layer);
+
+        return layerSettingsBtn
     }
 
-    _show(options) {
-        // Regenerate a new layer name
-        this.layer = (options && options.layer) || Utils.uuidv4();
-        super._show(options)
+    _hide() {
+        if (this.openSettings)
+            this.openSettings.close();
+
+        super._hide()
     }
 }

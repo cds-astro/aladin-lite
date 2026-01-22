@@ -117,23 +117,7 @@ export class StatusBarBox extends Box {
         this.el.title = task.message;
 
         // create message div
-        let message = Layout.horizontal(task.message,
-            {
-                tooltip: {
-                    content: task.message,
-                    position: {
-                        direction: "top",
-                    },
-                    hoverable: true,
-                    delayShowUpTime: '500ms',
-                    cssStyle: {
-                        fontSize: 'x-small',
-                        maxWidth: "200px",
-                        "overflow-wrap": "break-word",
-                    }
-                },
-            }
-        );
+        let message = Layout.horizontal(task.message);
 
         message.addClass("aladin-status-bar-message")
 

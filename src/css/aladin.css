@@ -580,6 +580,10 @@
     color: var(--error-color);
 }
 
+.aladin-not-found {
+    color: darkorange;
+}
+
 .aladin-button:hover {
 	color: #ffffff;
     background-color: #3276b1;
@@ -962,7 +966,7 @@ otherwise it fits its content options. If those are too big the select can go ou
     -webkit-appearance: none;
     outline-style: none;
     padding: 0;
-    border: none;
+    border: var(--border-size) solid var(--border-color);
     border-radius: 0.4rem;
     width: 2rem;
     height: 1.5rem;
@@ -971,13 +975,11 @@ otherwise it fits its content options. If those are too big the select can go ou
 
 .aladin-input-color::-webkit-color-swatch {
     border: none;
-    border-radius: 0.4rem;
     padding: 0;
 }
 
 .aladin-input-color::-webkit-color-swatch-wrapper {
     border: none;
-    border-radius: 0.4rem;
     padding: 0;
 }
 
@@ -1159,8 +1161,8 @@ otherwise it fits its content options. If those are too big the select can go ou
   vertical-align: middle;
 }
 
-.aladin-indicator.aladin-not-valid {
-  background-color: var(--error-color);
+.aladin-indicator.aladin-not-found {
+  background-color: darkorange;
 }
 
 .aladin-indicator.aladin-valid {
@@ -1204,6 +1206,7 @@ otherwise it fits its content options. If those are too big the select can go ou
 
 .aladin-stack-box {
     min-width: 17rem;
+    max-width: 300px;
 }
 .aladin-item-selected {
     border: var(--border-size) solid orange;
@@ -1221,11 +1224,11 @@ otherwise it fits its content options. If those are too big the select can go ou
 
 .aladin-HiPS-browser-box {
     height: 500px;
-    min-width: 300px;
+    min-width: 400px;
 }
 
 .aladin-cat-browser-box {
-    width: 300px;
+    width: 400px;
 }
 
 .aladin-HiPS-browser-box .aladin-input-text {
@@ -1306,6 +1309,12 @@ otherwise it fits its content options. If those are too big the select can go ou
     bottom: 0;
     left: 50%;
     transform: translate(-50%, 0);
+
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    max-width: 50vw;
 }
 
 .aladin-status-bar{

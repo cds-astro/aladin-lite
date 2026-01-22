@@ -45,6 +45,10 @@ export class Box extends DOMElement {
         this._show();
     }
 
+    close() {
+        this._hide()
+    }
+
     _show(options) {
         this.options = {
             ...this.options,
@@ -143,7 +147,7 @@ export class Box extends DOMElement {
                     size: "small",
                     monochrome: true,
                 },
-                tooltip: {content: 'Enlarge the window',  global: true, aladin},
+                tooltip: {content: 'Enlarge the window',  global: true, aladin: this.aladin},
                 cssStyle: {
                     cursor: 'move',
                     position: 'absolute',

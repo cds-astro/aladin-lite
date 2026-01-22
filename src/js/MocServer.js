@@ -51,7 +51,7 @@ export class MocServer {
                 //expr: "dataproduct_type=image",
                 get: "record",
                 fmt: "json",
-                fields: "ID,hips_creator,hips_copyright,hips_order,hips_tile_width,hips_frame,hips_tile_format,obs_title,obs_description,obs_copyright,obs_regime,client_category,dataproduct_subtype,hips_service_url,hips_initial_ra,hips_initial_dec,hips_initial_fov",
+                fields: "ID,hips_creator,hips_copyright,hips_order,hips_tile_width,hips_frame,hips_tile_format,obs_title,obs_description,obs_copyright,obs_regime,client_category,dataproduct_subtype,hips_service_url,hips_initial_ra,hips_initial_dec,hips_initial_fov,em_min,em_max",
             };
     
             this._allHiPSes = Utils.loadFromUrls(MocServer.MIRRORS_HTTPS, {
@@ -96,7 +96,7 @@ export class MocServer {
             expr: "dataproduct_type=image&&ID=" + ids.join(','),
             get: "record",
             fmt: "json",
-            fields: "ID,hips_creator,hips_copyright,hips_frame,hips_tile_format,obs_title,obs_description,obs_copyright,obs_regime,dataproduct_subtype,hips_service_url,hips_initial_ra,hips_initial_dec,hips_initial_fov",
+            fields: "ID,hips_creator,hips_copyright,hips_frame,hips_tile_format,obs_title,obs_description,obs_copyright,obs_regime,dataproduct_subtype,hips_service_url,hips_initial_ra,hips_initial_dec,hips_initial_fov,em_min,em_max",
         };
 
         return Utils.loadFromUrls(MocServer.MIRRORS_HTTPS, {

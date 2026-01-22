@@ -209,35 +209,6 @@ export let Footprint= (function() {
     };
 
     Footprint.prototype.intersectsBBox = function(x, y, w, h, view) {
-        /*if(this.source) {
-            let s = this.source;
-
-            if (!s.isShowing) {
-                return false;
-            }
-
-            let c = null;
-            if (s.x && s.y) {
-                c = {
-                    x: s.x,
-                    y: s.y,
-                };
-            } else {
-                var xy = view.aladin.world2pix(s.ra, s.dec);
-                if (!xy) {
-                    return false;
-                }
-
-                c = {
-                    x: xy[0],
-                    y: xy[1],
-                };
-            }
-
-            if (c.x >= x && c.x <= x + w && c.y >= y && c.y <= y + h) {
-                return true;
-            }
-        }*/
         return this.shapes.some((shape) => shape.intersectsBBox(x, y, w, h, view));
     };
 

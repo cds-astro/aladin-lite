@@ -110,10 +110,13 @@ export class HiPSBrowserBox extends Box {
             }
 
             if (params.title) {
-                if (!item.obs_title)
+                if (!item.obs_title && !item.ID)
                     return false;
 
-                if (!item.obs_title.toLowerCase().includes(params.title.toLowerCase())) {
+                let obsTitleDoesNotMatch = !item.obs_title.toLowerCase().includes(params.title.toLowerCase());
+                let creatorDidDoesNotMatch = !item.ID.toLowerCase().includes(params.title.toLowerCase());
+
+                if (obsTitleDoesNotMatch && creatorDidDoesNotMatch) {
                     return false;
                 }
             }
@@ -133,6 +136,13 @@ export class HiPSBrowserBox extends Box {
                 let image = item.ID || item.hips_service_url;
                 let name = item.obs_title || item.ID;
                 self._addHiPS(image, name)
+            },
+            dblclick: (item) => {
+                let image = item.ID || item.hips_service_url;
+                let name = item.obs_title || item.ID;
+                self._addHiPS(image, name)
+
+                self.close();
             },
             // a callback called for filtering
             filter,
@@ -168,7 +178,6 @@ export class HiPSBrowserBox extends Box {
             });
 
             self.searchDropdown.update({ options: HiPSIDs });
-
             self.searchTree.setHierarchy(hipsHierarchy)
 
             // Initialize the autocompletion without any filtering
@@ -281,7 +290,7 @@ export class HiPSBrowserBox extends Box {
                 tooltip: {
                     global: true,
                     aladin,
-                    content: 'red: out of the view, green: in view'
+                    content: 'orange: out of the view, green: in view'
                 },
                 header: {
                     title: [
@@ -296,7 +305,7 @@ export class HiPSBrowserBox extends Box {
                             url: helpIconUrl,
                             monochrome: true,
                             tooltip: {
-                                content: 'HiPS:<br/><span class="aladin-indicator aladin-not-valid"></span> out of the view<br /><span class="aladin-indicator aladin-valid"></span> in view',
+                                content: 'HiPS:<br/><span class="aladin-indicator aladin-not-found"></span> out of the view<br /><span class="aladin-indicator aladin-valid"></span> in view',
                                 mouse: true,
                                 aladin
                             },
@@ -485,7 +494,8 @@ export class HiPSBrowserBox extends Box {
                 self.searchDropdown.addClass('aladin-not-valid');
             }
         });
-        this.aladin.setOverlayImageLayer(hips, self.layer);
+
+        self.selected(hips)
     }
 
     // This method is executed only if the filter is enabled
@@ -525,7 +535,8 @@ export class HiPSBrowserBox extends Box {
 
     _show(options) {
         // Regenerate a new layer name
-        this.layer = (options && options.layer) || Utils.uuidv4();
+        this.selected = options && options.selected;
+
         super._show(options)
 
         this._requestMOCServer();

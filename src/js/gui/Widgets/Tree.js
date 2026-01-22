@@ -23,6 +23,7 @@ import folderIconUrl from "../../../../assets/icons/folder.svg";
 
 import { Layout } from "../Layout";
 import { ActionButton } from "./ActionButton";
+
 /******************************************************************************
  * Aladin Lite project
  *
@@ -42,6 +43,7 @@ export class Tree extends DOMElement {
         super(el, options);
 
         this.click = options && options.click;
+        this.dblclick = options && options.dblclick;
         this.aladin = options && options.aladin;
 
         let rootNode = options && options.root || {};
@@ -118,6 +120,31 @@ export class Tree extends DOMElement {
 
         let listElt = document.createElement('ul');
 
+        let seekMinEmInNode = (n) => {
+            const isLeaf = typeof n === 'object' && 'ID' in n;
+
+            if (isLeaf) {
+                return (+n.em_min)
+            } else if (typeof n === 'object') {
+                let min = Number.POSITIVE_INFINITY;
+
+                for (var [key, child] of Object.entries(n)) {
+                    if (key === "parent" || key === "label") {
+                        continue;
+                    }
+
+                    let val = seekMinEmInNode(child);
+                    if (Number.isFinite(val)) {
+                        min = Math.min(val, min);
+                    }
+                }
+
+                return min;
+            } else {
+                return Number.POSITIVE_INFINITY;
+            }
+        };
+
         let labels = Object.keys(node).sort((la, lb) => {
             let na = node[la];
             let nb = node[lb];
@@ -127,10 +154,19 @@ export class Tree extends DOMElement {
 
             if (aIsLeaf !== bIsLeaf) {
                 return aIsLeaf - bIsLeaf;
+            } else if (typeof na === "object" && typeof nb === "object") {
+                let emNa = seekMinEmInNode(na)
+                let emNb = seekMinEmInNode(nb)
+
+                if (emNa > emNb) {
+                    return -1;
+                } else {
+                    return 1;
+                }
             } else if (la < lb) {
                 return -1
             } else {
-                return 1;
+                return 1
             }
         });
 
@@ -196,7 +232,6 @@ export class Tree extends DOMElement {
                             .element(),
                     ])
 
-                    console.log(layout)
                     let childElt = new Layout(
                         layout,
                         {
@@ -207,18 +242,18 @@ export class Tree extends DOMElement {
                                     `alt="${label}" />` +
                                     `<figcaption>${label}</figcaption>` +
                                     '</figure>',
-                                delayShowUpTime: "100ms",
                                 mouse: true,
                                 aladin: this.aladin,
                             }
                         }).element();
+
                     if (this.highlight) {
                         if(this.highlight.includes(child.ID)) {
                             childElt.classList.add("aladin-valid");
-                            childElt.classList.remove("aladin-not-valid");
+                            childElt.classList.remove("aladin-not-found");
                         } else {
                             childElt.classList.remove("aladin-valid");
-                            childElt.classList.add("aladin-not-valid");
+                            childElt.classList.add("aladin-not-found");
                         }
                     }
                     elt.appendChild(childElt);
@@ -249,10 +284,10 @@ export class Tree extends DOMElement {
 
                 if(this.hasChildLocatedInFov(child)) {
                     elt.classList.add("aladin-valid");
-                    elt.classList.remove("aladin-not-valid");
+                    elt.classList.remove("aladin-not-found");
                 } else {
                     elt.classList.remove("aladin-valid");
-                    elt.classList.add("aladin-not-valid");
+                    elt.classList.add("aladin-not-found");
                 }
 
                 child.label = label;
@@ -267,6 +302,11 @@ export class Tree extends DOMElement {
                     } else {
                         // not leaf
                         this._createDOM(child);
+                    }
+                })
+                elt.addEventListener('dblclick', (e) => {
+                    if (isLeaf) {
+                        this.dblclick(child)
                     }
                 })
 
@@ -327,23 +367,8 @@ export class Tree extends DOMElement {
                 return true;
             }
         } else {
-            let labels = Object.keys(node).sort((la, lb) => {
-                let na = node[la];
-                let nb = node[lb];
-
-                let aIsLeaf = typeof na === "object" && 'ID' in na;
-                let bIsLeaf = typeof nb === "object" && 'ID' in nb;
-
-                if (aIsLeaf !== bIsLeaf) {
-                    return aIsLeaf - bIsLeaf;
-                } else if (la < lb) {
-                    return -1
-                } else {
-                    return 1;
-                }
-            });
-            for (const label of labels) {
-                if (label === "parent")
+            for (const label of Object.keys(node)) {
+                if (label === "parent" || label === "label")
                     continue;
 
                 let child = node[label];
@@ -370,22 +395,7 @@ export class Tree extends DOMElement {
             }
         } else {
             let num = 0;
-            let labels = Object.keys(node).sort((la, lb) => {
-                let na = node[la];
-                let nb = node[lb];
-
-                let aIsLeaf = typeof na === "object" && 'ID' in na;
-                let bIsLeaf = typeof nb === "object" && 'ID' in nb;
-
-                if (aIsLeaf !== bIsLeaf) {
-                    return aIsLeaf - bIsLeaf;
-                } else if (la < lb) {
-                    return -1
-                } else {
-                    return 1;
-                }
-            });
-            for (const label of labels) {
+            for (const label of Object.keys(node)) {
                 if (label === "parent")
                     continue;
 

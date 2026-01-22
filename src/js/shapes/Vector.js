@@ -193,7 +193,7 @@ export let Vector = (function() {
             xy2 = {x: xy2[0], y: xy2[1]};
     
             // Check if line segment intersects with the bounding box
-            if (this.lineIntersectsBox(xy1, xy2, x, y, w, h)) {
+            if (Polyline.segmentIntersectsBox(xy1, xy2, x, y, w, h)) {
                 return true;
             }
 

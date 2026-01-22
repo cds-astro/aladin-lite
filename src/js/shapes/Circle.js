@@ -159,6 +159,7 @@ export let Circle = (function() {
             return;
         }
         this.isHovered = true;
+        this.setLineWidth(this.getLineWidth() + 2)
         if (this.overlay) {
             this.overlay.reportChange();
         }
@@ -169,6 +170,8 @@ export let Circle = (function() {
             return;
         }
         this.isHovered = false;
+        this.setLineWidth(this.getLineWidth() - 2)
+
         if (this.overlay) {
             this.overlay.reportChange();
         }

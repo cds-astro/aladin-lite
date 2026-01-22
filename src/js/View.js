@@ -906,25 +906,7 @@ export let View = (function () {
                 return;
             }
 
-            var wasDragging = view.realDragging === true;            
-
-            /*if (view.dragging) { // if we were dragging, reset to default cursor
-                if(view.mode === View.PAN) {
-                    view.setCursor('default');
-                }
-
-                view.dragging = false;
-                if (wasDragging) {
-                    view.realDragging = false;
-
-                    // call the positionChanged once more with a dragging = false
-                    view.throttledPositionChanged(false);
-                }
-
-                if (view.spectraDisplayer) {
-                    view.spectraDisplayer.enableInteraction();
-                }
-            } // end of "if (view.dragging) ... "*/
+            var wasDragging = view.realDragging === true;
 
             view.mustClearCatalog = true;
             view.dragCoo = null;

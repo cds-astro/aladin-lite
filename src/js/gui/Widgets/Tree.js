@@ -124,7 +124,7 @@ export class Tree extends DOMElement {
                 end: [
                     Input.checkbox({
                         name: "filter-out-not-in-view",
-                        tooltip: { content: "Filter out data not in the view", position: {direction: "bottom"} },
+                        tooltip: { content: "Mask data not in the view", position: {direction: "bottom"} },
                         checked: this.onlyInView,
                         click(e) {
                             self.onlyInView = e.target.checked;

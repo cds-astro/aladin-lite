@@ -999,8 +999,9 @@ export class OverlayStackBox extends Box {
                     // remove HiPS cube player if any 
                     aladin.removeUIByName("cube_displayer" + hips.layer)
 
-                    if (hips instanceof HiPS && hips === aladin.view.spectraDisplayer.hips) {
-                        aladin.view.spectraDisplayer.hide()
+                    let spectraDisplayer = aladin.view.spectraDisplayer;
+                    if (hips instanceof HiPS && spectraDisplayer && hips === spectraDisplayer.hips) {
+                        spectraDisplayer.hide()
                     }
                 },
             });
@@ -1039,9 +1040,12 @@ export class OverlayStackBox extends Box {
                 },
             });
 
-            let settingsBox = new HiPSSettingsBox(self.aladin);
-            settingsBox.update({ layer: hips });
-            settingsBox._hide();
+            if (!this.settingsBox) {
+                this.settingsBox = new HiPSSettingsBox(self.aladin);
+            }
+            
+            this.settingsBox.update({ layer: hips });
+            this.settingsBox._hide();
 
             let settingsBtn = new TogglerActionButton({
                 icon: { url: settingsIconUrl, monochrome: true },
@@ -1061,7 +1065,7 @@ export class OverlayStackBox extends Box {
                         }
                     }
 
-                    settingsBox._show({
+                    this.settingsBox._show({
                         position: {
                             nextTo: settingsBtn,
                             direction: "right",
@@ -1070,7 +1074,7 @@ export class OverlayStackBox extends Box {
                     });
                 },
                 actionOff: (e) => {
-                    settingsBox._hide();
+                    this.settingsBox._hide();
                 },
             });
 
@@ -1126,7 +1130,7 @@ export class OverlayStackBox extends Box {
             if (!(hips.layer in self.ui)) {
                 self.ui[hips.layer] = {
                     HiPSSelector: HiPSselect,
-                    settingsBox,
+                    settingsBox: this.settingsBox,
                     settingsBtn,
                     showBtn,
                 };

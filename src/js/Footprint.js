@@ -112,11 +112,6 @@ export let Footprint= (function() {
             this.overlay.reportChange();
             return;
         }
-
-        /*let catalog = this.getCatalog();
-        if (catalog) {
-            catalog.view && catalog.view.requestRedraw();
-        }*/
     };
 
     Footprint.prototype.unhover = function() {

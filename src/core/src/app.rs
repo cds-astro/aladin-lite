@@ -1605,6 +1605,10 @@ impl App {
             return;
         }
 
+        if self.vel_history.len() < 5 {
+            return;
+        }
+
         let now = Time::now();
         let avg_vel = self.vel_history.iter().copied().sum::<f32>() / self.vel_history.len() as f32;
 
@@ -1650,6 +1654,11 @@ impl App {
         // For the moment, no animation is triggered.
         // The fov is directly set
         self.camera.set_aperture(fov, &self.projection);
+
+        // reset the parameters that determine if an inertia is needed
+        self.vel_history.clear();
+        self.dist_dragging = 0.0;
+
         self.request_for_new_tiles = true;
         self.request_redraw = true;
     }
@@ -1806,6 +1815,10 @@ impl App {
 
     pub(crate) fn set_zoom_factor(&mut self, zoom_factor: f64) {
         self.camera.set_zoom_factor(zoom_factor, &self.projection);
+
+        // reset the parameters that determine if an inertia is needed
+        self.vel_history.clear();
+        self.dist_dragging = 0.0;
 
         self._update_hips_location();
 

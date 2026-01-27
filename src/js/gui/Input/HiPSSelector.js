@@ -29,8 +29,6 @@
 
 import { ALEvent } from "../../events/ALEvent.js";
 import { Input } from "../Widgets/Input.js";
-import { HiPSBrowserBox } from "../Box/HiPSBrowserBox.js";
-import A from "../../A.js";
 
 export class HiPSSelector extends Input {
     static cachedHiPS = {}
@@ -38,28 +36,47 @@ export class HiPSSelector extends Input {
 
     // constructor
     constructor(options) {
-        let surveys = Object.keys(HiPSSelector.cachedHiPS);
-        surveys.sort()
+        let surveys = [];
+        for (var survey of Object.values(HiPSSelector.cachedHiPS)) {
+            surveys.push({value: survey.id, label: survey.name});
+        }
+        surveys.sort((s1, s2) => {
+            const s1l = s1.label.toLowerCase()
+            const s2l = s2.label.toLowerCase()
+
+            if (s1l < s2l) {
+                return -1;
+            }
+            if (s1l > s2l) {
+                return 1;
+            }
+
+            return 0;
+        });
         
-        surveys = Array.from([...surveys])
-        let current;
+        let current = {};
         if (options.layer) {
-            current = options.layer.name || options.layer.id
+            let id = options.layer.id;
+            let name = options.layer.name;
+
+            current["value"] = id;
+            current["label"] = name;
+            
+            if (!surveys.some(item => item.value === id)) {
+                surveys.push(current)
+            }
         } else {
             current = surveys[0];
         }
 
-        if (surveys.indexOf(current) < 0) {
-            surveys.push(current)
-        }
+        current["title"] = current["label"];
 
         surveys.push("More...")
 
         super({
             type: "select",
-            value: current,
             options: surveys,
-            title: current,
+            ...current,
             ...options
         })
 
@@ -76,32 +93,55 @@ export class HiPSSelector extends Input {
         HiPSSelector.cachedHiPS = {};
 
         for (var hips of favoritesHips) {
-            let key = hips.name || hips.id || hips.url;
+            let key = hips.id || hips.url || hips.name;
             HiPSSelector.cachedHiPS[key] = hips;
         }
 
         // Update the options of the selector
-        const favorites = Object.keys(HiPSSelector.cachedHiPS);
-        for (var selector of HiPSSelector.objects) {
-            // refers to an HiPS image survey
-            let currentHiPS = selector.options.value
+        let favoritesHiPS = []
+        for(var hips of Object.values(HiPSSelector.cachedHiPS)) {
+            favoritesHiPS.push({
+                value: hips.id,
+                label: hips.name
+            })
+        }
 
-            let favoritesCopy = [...favorites];
+        favoritesHiPS.sort((s1, s2) => {
+            const s1l = s1.label.toLowerCase()
+            const s2l = s2.label.toLowerCase()
 
-            // add the current hips to the selector as well, even if it has been manually
-            // removed from the HiPSList
-            if (favoritesCopy.indexOf(currentHiPS) < 0) {
-                favoritesCopy.push(currentHiPS)
+            if (s1l < s2l) {
+                return -1;
+            }
+            if (s1l > s2l) {
+                return 1;
             }
 
-            // one must add the current HiPS too!
-            favoritesCopy.sort();
+            return 0;
+        });
 
-            favoritesCopy.push("More...")
+        for (var selector of HiPSSelector.objects) {
+            // refers to an HiPS image survey
+            let currentFavoriteHiPS = {
+                value: selector.options.value,
+                label: selector.options.label,
+            };
+
+            let favoritesHiPSCopy = [...favoritesHiPS];
+
+            // Add the current hips to the selector as well, even if it has been manually
+            // removed from the HiPSList
+            if (!favoritesHiPSCopy.some(item => item.value === currentFavoriteHiPS.value)) {
+                favoritesHiPSCopy.push(currentFavoriteHiPS)
+            }
+
+            favoritesHiPSCopy.push("More...")
+
+            currentFavoriteHiPS["title"] = currentFavoriteHiPS["label"];
 
             selector.update({
-                value: currentHiPS,
-                options: favoritesCopy
+                ...currentFavoriteHiPS,
+                options: favoritesHiPSCopy
             });
         }
     });

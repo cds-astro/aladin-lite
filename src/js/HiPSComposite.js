@@ -26,31 +26,61 @@
  *
  *****************************************************************************/
 import { HiPS } from "./HiPS.js";
+import A from "./A.js";
 
 export let HiPSComposite = (function () {
     /**
-     * The object describing an image survey
+     * The object describing the color composition of image surveys
      *
      * @class
      * @constructs HiPSComposite
      *
-     * @param {string} id - Mandatory unique identifier for the layer. Can be an arbitrary name
-     * @param {string|FileList|HiPSLocalFiles} url - Can be:
-     * <ul>
-     * <li>An http url towards a HiPS.</li>
-     * <li>A relative path to your HiPS</li>
-     * <li>A special ID pointing towards a HiPS. One can found the list of IDs {@link https://aladin.cds.unistra.fr/hips/list| here}</li>
-     * <li>A dict storing a local HiPS files. This object contains a tile file: hips[order][ipix] = File and refers to the properties file like so: hips["properties"] = File. </li>
-     *     A javascript {@link FileList} pointing to the opened webkit directory is also accepted.
-     * </ul>
-     * @param {HiPSOptions} [options] - The option for the survey
-     *
-     * @description Giving a CDS ID will do a query to the MOCServer first to retrieve metadata. Then it will also check for the presence of faster HiPS nodes to choose a faster url to query to tiles from.
+     * @param {HiPSOptions[]} [options] - The option for the survey
      */
-    function HiPSComposite(hipses, options) {
-        let name = (options && options.name) || hipses[0].name + "_composite";
-
+    function HiPSComposite(options) {
+        this.name = options && options.name || 'Composite HiPS';
+        this.hipses = []
     };
+
+    HiPSComposite.prototype.setOptions = function(options) {
+        this.hipses = [];
+        for (var hipsOptions of options) {
+            let hips = A.HiPS(hipsOptions.id, hipsOptions)
+            this.hipses.push(hips)
+        }
+    };
+
+    HiPSComposite.prototype._setView = HiPS.prototype._setView;
+
+    HiPSComposite.prototype._addToView = function (layer) {
+        this._removeFromView();
+
+        this.layer = layer;
+
+        let i = 0;
+        for (var hips of this.hipses) {
+            hips._addToView(layer + '_' + i)
+            i++;
+        }
+
+        return this
+    };
+
+    HiPSComposite.prototype._removeFromView = function() {
+        for (var hips of this.hipses) {
+            hips._removeFromView()
+        }
+    }
+
+    HiPSComposite.prototype.getOpacity = function() {
+        return this.hipses[0].getOpacity()
+    }
+
+    HiPSComposite.prototype.setOpacity = function(opacity) {
+        for (var hips of this.hipses) {
+            hips.setOpacity(opacity)
+        }
+    }
 
     return HiPSComposite;
 })();

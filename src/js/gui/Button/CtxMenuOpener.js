@@ -29,9 +29,11 @@
  *****************************************************************************/
 
 import { ActionButton } from "../Widgets/ActionButton.js";
-import { ContextMenu } from "../Widgets/ContextMenu.js";
 
 export class CtxMenuActionButtonOpener extends ActionButton {
+
+    static currentlyOpened = null;
+
     // Constructor
     constructor(options, aladin) {
         let self;
@@ -47,37 +49,36 @@ export class CtxMenuActionButtonOpener extends ActionButton {
                 })
         };
 
+
         super({
-            ...options,
-            cssStyle: {
-                backgroundPosition: 'center center',
-                cursor: 'pointer',
-                ...options.cssStyle
-            },
             action(e) {
                 enableTooltips()
 
-                let isHidden = self.ctxMenu.isHidden
+                let isHidden = self.ctxMenu.isHidden;
 
-                ContextMenu.hideAll();
+                self.ctxMenu._hide()
+
+                if (self.ctxMenu.attached === self && !isHidden) {
+                    return;
+                }
 
                 // If it was hidden then reopen it
-                if (isHidden) {
-                    if (options.action) {
-                        options.action(e)
-                    }
-
-                    if (self.layout) {
-                        self.ctxMenu.attach(self.layout)
-                    }
-
-                    self.ctxMenu.show({
-                        position: {
-                            nextTo: self,
-                            direction: options.openDirection,
-                        },
-                    });
+                if (options.action) {
+                    options.action(e)
                 }
+
+                if (self.layout) {
+                    self.ctxMenu.attach(self.layout, self)
+                }
+
+                self.ctxMenu.show({
+                    position: {
+                        nextTo: self,
+                        direction: options.openDirection,
+                    },
+                });
+
+                CtxMenuActionButtonOpener.currentlyOpened = self;
 
                 // the panel is now open and we know the button has a tooltip
                 // => we close it!
@@ -87,20 +88,14 @@ export class CtxMenuActionButtonOpener extends ActionButton {
 
                     aladin.aladinDiv.addEventListener("click", enableTooltips)
                 }
-            }
+            },
+            ...options,
         })
 
         self = this;
 
-        let ctxMenu;
-        if (options.ctxMenu instanceof ContextMenu) {
-            ctxMenu = options.ctxMenu;
-        } else {
-            this.layout = options.ctxMenu;
-            ctxMenu = new ContextMenu(aladin, {hideOnClick: true, hideOnResize: true})
-        }
-
-        self.ctxMenu = ctxMenu;
+        this.ctxMenu = aladin.contextMenu;
+        this.layout = options.ctxMenu;
     }
 
     hideMenu() {
@@ -110,35 +105,5 @@ export class CtxMenuActionButtonOpener extends ActionButton {
     _hide() {
         this.hideMenu();
         super._hide();
-    }
-
-    update(options) {
-        if(options.ctxMenu) {
-            if (options.ctxMenu instanceof ContextMenu) {
-                this.ctxMenu = options.ctxMenu
-            } else {
-                this.layout = options.ctxMenu;
-            }
-        }
-
-        if (!this.ctxMenu) {
-            this.ctxMenu = new ContextMenu(aladin, {hideOnClick: true, hideOnResize: true})
-        }
-
-        super.update(options)
-
-        if (!this.ctxMenu.isHidden) {
-            if (this.layout) {
-                this.ctxMenu.attach(this.layout)
-            }
-
-            this.ctxMenu.show({
-                position: {
-                    nextTo: this,
-                    // it case it is not given then it will be computed by default
-                    direction: options.openDirection,
-                },
-            });
-        }
     }
 }

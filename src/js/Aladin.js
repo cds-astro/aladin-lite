@@ -400,7 +400,7 @@ export let Aladin = (function () {
             }
         }
 
-        // Format the hipslist given by the user before storing it in the aladin objec
+        // Format the hipslist given by the user before storing it in the aladin instance
         this.hipsFavorites = [];
         let hipsList = [].concat(options.hipsList);
 
@@ -426,7 +426,7 @@ export let Aladin = (function () {
 
                 name = hips.name || hips.id || hips.url;
 
-                hipsObj = { ...hipsObj, ...hips };
+                hipsObj = { ...hips };
             } else {
                 console.warn(
                     "unable to parse the survey list item: ",
@@ -444,9 +444,6 @@ export let Aladin = (function () {
             if (name) {
                 hipsObj["name"] = name;
             }
-
-            // at least id or url is defined
-            //let key = name || id || url;
 
             // Merge what is already in the cache for that HiPS with new properties
             // coming from the MOCServer
@@ -537,9 +534,9 @@ export let Aladin = (function () {
 
         // set right click context menu
         if (options.showContextMenu) {
-            this.contextMenu = new ContextMenu(this);
             this.contextMenu.attach(
-                DefaultActionsForContextMenu.getDefaultActions(this)
+                DefaultActionsForContextMenu.getDefaultActions(this),
+                null
             );
         }
 
@@ -564,6 +561,8 @@ export let Aladin = (function () {
 
     Aladin.prototype._setupUI = function (options) {
         let self = this;
+
+        this.contextMenu = new ContextMenu(this);
 
         // Status bar
         if (options.showStatusBar) {
@@ -1775,14 +1774,6 @@ export let Aladin = (function () {
             url: hips.url,
             id: hips.id,
             name: hips.name,
-        })
-
-        // and resort the favorites
-        this.hipsFavorites.sort((h1, h2) => {
-            let k1 = h1.name || h1.id || h1.url;
-            let k2 = h2.name || h2.id || h2.url;
-
-            return k1 < k2;
         })
 
         // send the final event

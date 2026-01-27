@@ -315,8 +315,6 @@ export class Tree extends DOMElement {
 
                     if (this.onlyInView) {
                         elt.style.display = "none";
-                    } else {
-                        elt.style.display = "block";
                     }
                 }
 

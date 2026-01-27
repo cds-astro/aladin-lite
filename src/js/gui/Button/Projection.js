@@ -45,6 +45,8 @@ import { ALEvent } from "../../events/ALEvent";
         options = options || {};
         options.verbosity = (options && options.verbosity) || 'full';
         let projectionName = aladin.getProjectionName();
+        let ctxMenu = _buildLayout(aladin);
+
         super({
             icon: {
                 monochrome: true,
@@ -52,16 +54,13 @@ import { ALEvent } from "../../events/ALEvent";
                 url: projectionIconUrl,
             },
             classList: ['aladin-projection-control'],
-            //content: [options.verbosity === 'full' ? ProjectionEnum[projectionName].label : projectionName],
             content: projectionName,
             tooltip: {content: 'Change the view projection', position: {direction: 'bottom left'}},
+            ctxMenu,
             ...options
         }, aladin);
 
         this.aladin = aladin;
-
-        let ctxMenu = this._buildLayout();
-        this.update({ctxMenu})
 
         this._addEventListeners()
     }
@@ -77,41 +76,23 @@ import { ALEvent } from "../../events/ALEvent";
             self.update({content})
         });
     }
+}
 
-    _buildLayout() {
-        let aladin = this.aladin;
+function _buildLayout(aladin) {
+    let layout = [];
 
-        let layout = [];
-        let self = this;
+    let aladinProj = aladin.getProjectionName();
+    for (const key in ProjectionEnum) {
+        let proj = ProjectionEnum[key];
 
-        let aladinProj = aladin.getProjectionName();
-        for (const key in ProjectionEnum) {
-            let proj = ProjectionEnum[key];
-
-            layout.push({
-                label: proj.label,
-                selected: aladinProj === key,
-                action(o) {
-                    aladin.setProjection(key)
-
-                    let ctxMenu = self._buildLayout(aladin);
-                    //self.update({ctxMenu, content: self.options.verbosity === 'full' ? proj.label : key});
-                    self.update({ctxMenu});
-                }
-            })
-        }
-
-        return layout;
+        layout.push({
+            label: proj.label,
+            selected: aladinProj === key,
+            action(o) {
+                aladin.setProjection(key)
+            }
+        })
     }
 
-    update(options) {
-        super.update(options);
-
-        /*if (options.verbosity) {
-            let ctxMenu = this._buildLayout();
-            let projName = this.aladin.getProjectionName();
-            let label = options.verbosity === 'full' ? ProjectionEnum[projName].label : projName;
-            super.update({ctxMenu, content: label});
-        }*/
-    }
+    return layout;
 }

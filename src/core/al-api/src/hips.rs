@@ -180,11 +180,11 @@ impl HiPSProperties {
 #[serde(rename_all = "camelCase")]
 pub enum ImageExt {
     Fits,
-    #[serde(alias = "fits.fz")]
-    FitsFz,
     Jpeg,
     Png,
     Webp,
+    #[serde(alias = "fits.fz")]
+    FitsFz,
 }
 
 #[derive(Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]

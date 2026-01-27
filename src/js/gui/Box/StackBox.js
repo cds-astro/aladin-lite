@@ -139,7 +139,6 @@ export class OverlayStackBox extends Box {
             aladin.aladinDiv
         );
         this.stackBtn = stackBtn;
-        this.cachedHiPS = {};
 
         this.aladin = aladin;
 
@@ -539,6 +538,11 @@ export class OverlayStackBox extends Box {
 
                             aladin.hipsBrowser._show({
                                 selected: (hips) => {
+                                    let oldHiPS = aladin.getOverlayImageLayer(newLayer);
+                                    if (oldHiPS && hips.id === oldHiPS.id) {
+                                        return;
+                                    }
+
                                     aladin.setOverlayImageLayer(hips, newLayer);
                                 },
                                 position: {
@@ -601,8 +605,9 @@ export class OverlayStackBox extends Box {
                     ContextMenu.webkitDir({
                         label: "Load local HiPS",
                         action(files) {
-                            let id = files[0].webkitRelativePath.split("/")[0];
-                            let name = id;
+                            // Give a different id at each loading.
+                            let id = Utils.uuidv4();
+                            let name = files[0].webkitRelativePath.split("/")[0];
 
                             let hips = self.aladin.createImageSurvey(
                                 id,
@@ -1043,8 +1048,7 @@ export class OverlayStackBox extends Box {
             if (!this.settingsBox) {
                 this.settingsBox = new HiPSSettingsBox(self.aladin);
             }
-            
-            this.settingsBox.update({ layer: hips });
+
             this.settingsBox._hide();
 
             let settingsBtn = new TogglerActionButton({
@@ -1065,6 +1069,7 @@ export class OverlayStackBox extends Box {
                         }
                     }
 
+                    this.settingsBox.update({ layer: hips });
                     this.settingsBox._show({
                         position: {
                             nextTo: settingsBtn,

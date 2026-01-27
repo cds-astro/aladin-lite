@@ -41,6 +41,7 @@ import labelSizeIcon from './../../../../assets/icons/font-size.svg';
 export class GridBox extends Box {
     // Constructor
     constructor(aladin) {
+        let self;
         let colorInput = new Input({
             layout: {
                 name: 'gridColor',
@@ -98,7 +99,7 @@ export class GridBox extends Box {
                     })
                 }
 
-                ctxMenu.attach(ctxMenuLayout);
+                ctxMenu.attach(ctxMenuLayout, self);
                 ctxMenu.show({
                     e: e,
                     position: {
@@ -134,7 +135,7 @@ export class GridBox extends Box {
                     })
                 }
 
-                ctxMenu.attach(ctxMenuLayout);
+                ctxMenu.attach(ctxMenuLayout, self);
                 ctxMenu.show({
                     e: e,
                     position: {
@@ -180,6 +181,7 @@ export class GridBox extends Box {
         this.addClass("aladin-box-night")
 
         this.aladin = aladin;
+        self = this;
 
         this._hide();
     }

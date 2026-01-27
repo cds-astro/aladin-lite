@@ -17,9 +17,17 @@
 //    along with Aladin Lite.
 //
 
+import { Layout } from "../Layout.js";
+import { Input } from "../Widgets/Input.js";
+import { Color } from "../../Color.js";
+import { ALEvent } from "../../events/ALEvent.js";
+import { SAMPActionButton } from "../Button/SAMP.js";
+import helpIconBtn from '../../../../assets/icons/help.svg';
+import { Utils } from "../../Utils";
+import { GridSettingsCtxMenu } from "./../CtxMenu/GridSettings.js";
 import { CtxMenuActionButtonOpener } from "./CtxMenuOpener";
 import settingsIconUrl from './../../../../assets/icons/settings.svg';
-import { SettingsCtxMenu } from "../CtxMenu/Settings";
+
 /******************************************************************************
  * Aladin Lite project
  *
@@ -54,8 +62,248 @@ import { SettingsCtxMenu } from "../CtxMenu/Settings";
                     direction: 'right'
                 }
             },
-            ctxMenu: new SettingsCtxMenu(aladin, options),
+            ctxMenu: _buildLayout(aladin, options),
             ...options
         }, aladin);
     }
+}
+
+function _buildLayout(aladin, options) {
+    let backgroundColorInput = Input.color({
+        name: 'color',
+        value: (() => {
+            let {r, g, b} = aladin.getBackgroundColor();
+            return Color.rgbToHex(r, g, b);
+        })(),
+        change(e) {
+            let hex = e.target.value;
+            aladin.setBackgroundColor(hex)
+        }
+    });
+
+    let reticleColorInput = Input.color({
+        value: new Color(aladin.getReticle().getColor()).toHex(),
+        name: 'reticleColor',
+        change(e) {
+            let hex = e.target.value;
+            aladin.setDefaultColor(hex)
+        }
+    });
+
+    // Event received from aladin
+    ALEvent.BACKGROUND_COLOR_CHANGED.listenedBy(aladin.aladinDiv, function (e) {
+        const {r, g, b} = e.detail.color;
+
+        let hex = Color.rgbToHex(r, g, b);
+        backgroundColorInput.set(hex)
+    });
+
+    ALEvent.RETICLE_CHANGED.listenedBy(aladin.aladinDiv, function (e) {
+        const color = e.detail.color;
+        let hex = new Color(color).toHex();
+
+        reticleColorInput.set(hex)
+    });
+
+    const toggleCheckbox = (checkbox) => {
+        const pastVal = checkbox.get();
+        const curVal = !pastVal;
+
+        checkbox.set(curVal)
+
+        return curVal;
+    };
+
+    let hpxGridCheckbox = Input.checkbox({
+        name: 'hpxgrid', checked: aladin.healpixGrid(),
+        click(e) {
+            let newVal = toggleCheckbox(hpxGridCheckbox);
+            aladin.showHealpixGrid(newVal)
+        }
+    })
+    let reticleCheckbox = Input.checkbox({
+        name: 'reticle',
+        checked: aladin.isReticleDisplayed(),
+        click(e) {
+            let newVal = toggleCheckbox(reticleCheckbox);
+            aladin.showReticle(newVal)
+        }
+    })
+
+    let features = options && options.features;
+    const toggleFeature = (name) => {
+        let feature = features[name];
+        if(feature.isHidden) {
+            feature._show();
+        } else {
+            feature._hide();
+        }
+    }
+
+    let reticle = aladin.getReticle();
+
+    let sliderReticleSize = Input.slider({
+        name: 'reticleSize',
+        type: 'range',
+        min: 0.0,
+        max: 50,
+        value: reticle.getSize(),
+        change(e) {
+            reticle.update({size: e.target.value})
+        }
+    });
+
+    let sampBtn = new SAMPActionButton({
+        size: 'small',
+        action(conn) {
+            if (conn.isConnected()) {
+                conn.unregister();
+            } else {
+                conn.register();
+            }
+
+            //self._hide()
+        }
+    }, aladin);
+
+    return [
+        GridSettingsCtxMenu.getLayout(aladin),
+        {
+            label: {
+                content: ['Reticle']
+            },
+            subMenu: [
+                {
+                    label: {
+                        content: [reticleCheckbox, 'Show/Hide']
+                    },
+                    mustHide: false,
+                    action(o) {
+                        let newVal = toggleCheckbox(reticleCheckbox);
+                        aladin.showReticle(newVal)
+                    }
+                },
+                {
+                    label: {
+                        content: [reticleColorInput, 'Color']
+                    },
+                },
+                {
+                    label: Layout.horizontal(['Size', sliderReticleSize]),
+                }
+            ]
+        },
+        {
+            label: {
+                content: [backgroundColorInput, 'Back color']
+            },
+        },
+        {
+            label: {
+                content: 'Light/Dark mode'
+            },
+            action(o) {
+                const currentTheme = aladin.aladinDiv.getAttribute("data-theme");
+                const newTheme = currentTheme === "dark" ? "light" : "dark";
+                aladin.aladinDiv.setAttribute("data-theme", newTheme);
+                localStorage.setItem("theme", newTheme);
+            }
+        },
+        {
+            label: {
+                content: [hpxGridCheckbox, 'HEALPix grid']
+            },
+            mustHide: false,
+            action(o) {
+                let newVal = toggleCheckbox(hpxGridCheckbox);
+                aladin.showHealpixGrid(newVal)
+            }
+        },
+        {
+            label: {
+                content: [sampBtn, 'SAMP']
+            },
+        },
+        {
+            label: 'Tools',
+            subMenu: [
+                {
+                    label: 'Stack',
+                    selected: !features['stack'].isHidden,
+                    action(o) {
+                        toggleFeature('stack')
+                    }
+                },
+                {
+                    label: 'Simbad',
+                    selected: !features['simbad'].isHidden,
+                    action(o) {
+                        toggleFeature('simbad');
+                    }
+                },
+                {
+                    label: 'Grid',
+                    selected: !features['grid'].isHidden,
+                    action(o) {
+                        toggleFeature('grid');
+                    }
+                }
+            ]
+        },
+        {
+            label: {
+                icon: {
+                    monochrome: true,
+                    tooltip: {content: 'Documentation about Aladin Lite', position: {direction: 'top'}},
+                    url: helpIconBtn,
+                    size: 'small',
+                    cssStyle: {
+                        cursor: 'help',
+                    }
+                },
+                content: 'Help'
+            },
+            subMenu: [
+                {
+                    label: 'Aladin Lite API',
+                    action(o) {
+                        Utils.openNewTab('https://aladin.cds.unistra.fr/AladinLite/doc/API/')
+                    }
+                },
+                {
+                    label: {
+                        content: 'Contact us',
+                        tooltip: { content: 'For bug reports, discussions, feature ideas...', position: {direction: 'bottom'} }
+                    },
+                    subMenu: [
+                        {
+                            label: 'GitHub',
+                            action(o) {
+                                Utils.openNewTab('https://github.com/cds-astro/aladin-lite/issues')
+                            }
+                        },
+                        {
+                            label: 'by email',
+                            action(o) {
+                                Utils.openNewTab('mailto:matthieu.baumann@astro.unistra.fr,thomas.boch@astro.unistra.fr?subject=Aladin Lite issue&body=message%20goes%20here')
+                            }
+                        }
+                    ],
+                },
+                {
+                    label: 'General documentation',
+                    
+                    action(o) {
+                        Utils.openNewTab('https://aladin.cds.unistra.fr/AladinLite/doc/')
+                    }
+                },
+                {
+                    label: Layout.horizontal('Examples', { tooltip: { content: 'How to embed Aladin Lite <br \>into your own webpages!', position: {direction: 'bottom'}}}),
+                    action(o) {
+                        Utils.openNewTab('https://aladin.cds.unistra.fr/AladinLite/doc/API/examples/')
+                    }
+                }
+            ]
+        }
+    ]
 }

@@ -339,7 +339,6 @@ export let HiPS = (function () {
                 await HiPSProperties.fetchFromFile(self.localFiles["properties"])
                     .then((p) => {
                         self._parseProperties(p);
-
                         self.url = "local";
 
                         delete self.localFiles["properties"]
@@ -1075,7 +1074,19 @@ export let HiPS = (function () {
         }
     };
 
-    HiPS.prototype._add2View = function (layer) {
+    HiPS.prototype._removeFromView = function() {
+        if (!this.view)
+            return;
+
+        if (this.added) {
+            this.view.wasm.removeLayer(this.layer);
+        }
+    };
+
+    HiPS.prototype._addToView = function (layer) {
+        if (!this.view)
+            return this;
+
         this.layer = layer;
         let self = this;
 

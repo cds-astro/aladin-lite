@@ -28,6 +28,9 @@ import { Input } from "../Widgets/Input.js";
 import { ActionButton } from "../Widgets/ActionButton.js";
 import { Form } from "../Widgets/Form.js";
 import { TogglerActionButton } from "../Button/Toggler.js";
+import { Utils } from "../../Utils";
+import { HiPSComposite } from "../../HiPSComposite.js";
+
 /******************************************************************************
  * Aladin Lite project
  *
@@ -107,7 +110,11 @@ export class HiPSCompositeBox extends Box {
 
         this.aladin = aladin;
 
+        this.hipsOptions = [];
         self = this;
+
+        this.layer = Utils.uuidv4();
+        this.hipsComposite = new HiPSComposite(this.hipsOptions)
 
         this.numHiPSLayers = 0;
         this.content = content.concat([this._addNewHiPS()])
@@ -117,11 +124,18 @@ export class HiPSCompositeBox extends Box {
     }
 
     _addNewHiPS() {
+        const getIdHiPS = (node) => {
+            let parent = node.parentElement;
+            return [...parent.parentElement.children].indexOf(parent) - 1;
+        };
+        this.hipsOptions.push({});
+        let self = this;
         let newLayerLayout = [
             new HiPSSelector({
                 change(e) {
                     let name = e.target.value;
-                    
+                    let idLayer = getIdHiPS(e.target);
+
                     if (name === "More...") {
                         if (!aladin.hipsBrowser) {
                             aladin.hipsBrowser = new HiPSBrowserBox(aladin);
@@ -129,27 +143,32 @@ export class HiPSCompositeBox extends Box {
 
                         aladin.hipsBrowser._show({
                             selected: (hips) => {
-                                console.log(hips)
+                                self.hipsOptions[idLayer].id = hips.id || hips.url
                             },
                             position: { anchor: "center center" }
                         });
-                        return;
+                    } else {
+                        // it is an hips
+                        let HiPSOptions = HiPSSelector.cachedHiPS[name];
+                        self.hipsOptions[idLayer].id = HiPSOptions.id || HiPSOptions.url
                     }
+
+                    self.hipsComposite.setOptions(self.hipsOptions);
+                    self.aladin.setOverlayImageLayer(self.hipsComposite, self.layer);
                 }
             }),
             this._createLayerSettingsBox(),
             ActionButton.BUTTONS(aladin)
-                .remove(
-                    (e) => {
-                        let node = e.target.parentElement.parentElement.parentElement;
-                        let idLayer = [...node.parentElement.children].indexOf(node);
+                .remove((e) => {
+                    let node = e.target.parentElement.parentElement.parentElement;
+                    let idLayer = [...node.parentElement.children].indexOf(node);
 
-                        this.content.splice(idLayer, 1)
-                        this.update({content: this.content})
+                    this.content.splice(idLayer, 1)
+                    this.hipsOptions.splice(idLayer, 1);
 
-                        this.numHiPSLayers = this.content.length - 1;
-                    }
-                )
+                    this.update({content: this.content})
+                    this.numHiPSLayers = this.content.length - 1;
+                })
         ];
         this.numHiPSLayers += 1;
 
@@ -168,7 +187,10 @@ export class HiPSCompositeBox extends Box {
                         value: 'red',
                         name: 'color',
                         change(e) {
+                            let idLayer = getIdHiPS(e.target);
+
                             let hex = e.target.value;
+
                         }
                     },
                     {

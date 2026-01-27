@@ -61,6 +61,8 @@ import { ActionButton } from "./../Widgets/ActionButton";
             toggled: false,
             action(e) {
                 if (stack.isHidden) {
+                    aladin.contextMenu && aladin.contextMenu._hide()
+
                     stack._show({
                         position: {
                             nextTo: self,

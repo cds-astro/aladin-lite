@@ -48,6 +48,7 @@ import { HiPS } from "./HiPS.js";
 import { Image } from "./Image.js";
 import { Color } from "./Color.js";
 import { SpectraDisplayer } from "./SpectraDisplayer.js";
+import { DefaultActionsForContextMenu } from "./DefaultActionsForContextMenu.js";
 
 export let View = (function () {
 
@@ -937,8 +938,13 @@ export let View = (function () {
             }
 
             if (view.rightClick) {
-                if (showContextMenu) {
-                    view.aladin.contextMenu && view.aladin.contextMenu.show({e});
+                let ctxMenu = view.aladin.contextMenu;
+                if (showContextMenu && ctxMenu) {
+                    ctxMenu.attach(
+                        DefaultActionsForContextMenu.getDefaultActions(view.aladin),
+                        null
+                    );
+                    ctxMenu.show({e});
                 }
 
                 view.rightClick = false;
@@ -1797,14 +1803,13 @@ export let View = (function () {
     // Insert a layer object (Image/HiPS) at a specific index in the stack
     View.prototype._addLayer = function(imageLayer) {
         // Keep the JS frontend in-line with the wasm state
-        const layerName = imageLayer.layer;
-
+        const layer = imageLayer.layer;
         imageLayer.added = true;
 
-        this.imageLayers.set(layerName, imageLayer);
+        this.imageLayers.set(layer, imageLayer);
 
         // select the layer if he is on top
-        this.selectLayer(layerName);
+        this.selectLayer(layer);
 
         ALEvent.HIPS_LAYER_ADDED.dispatchedTo(this.aladinDiv, { layer: imageLayer });
     }
@@ -1828,7 +1833,7 @@ export let View = (function () {
         // so that we can add it to the view (call of _add2View)
         Promise.all([Promise.allSettled(this.promises), imageLayerPromise])
             // Then we add the layer to the view
-            .then((_) => imageLayer._add2View(layer))
+            .then((_) => imageLayer._addToView(layer))
             // Then we keep a track of the layer in the JS front
             .then((imageLayer) => {
                 this._addLayer(imageLayer);
@@ -1861,20 +1866,6 @@ export let View = (function () {
 
                 // Remove the settled promise
                 this.promises.splice(idx, 1);
-
-                /*const noMoreLayersToWaitFor = this.promises.length === 0;
-
-                if (noMoreLayersToWaitFor) {
-                    if (self.empty) {
-                        // no promises to launch and the view has no HiPS.
-                        // This situation can occurs if the MOCServer is out
-                        // If so we can directly put the url of the DSS hosted in alasky,
-                        // it the best I can do if the MOCServer is out
-                        self.aladin.setBaseImageLayer("https://alaskybis.cds.unistra.fr/DSS/DSSColor/");
-                    } else {
-                        //self.renameLayer(this.overlayLayers[0], "base");
-                    }
-                }*/
             })
     }
 
@@ -1904,9 +1895,7 @@ export let View = (function () {
         }
 
         // Update the backend
-        if (imageLayer.added) {
-            this.wasm.removeLayer(layer);
-        }
+        imageLayer._removeFromView();
 
         // Get the survey to remove to dissociate it from the view
         imageLayer.added = false;

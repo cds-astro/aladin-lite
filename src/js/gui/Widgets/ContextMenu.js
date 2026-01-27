@@ -363,7 +363,8 @@ export class ContextMenu extends DOMElement {
         super._show()
     }
 
-    attach(options) {
+    attach(options, attached) {
+        this.attached = attached;
         this.menuOptions = options;
     }
 

@@ -30,9 +30,7 @@
 
 import { ALEvent } from "../../events/ALEvent.js";
 import { Input } from "../Widgets/Input.js";
-import { ActionButton } from "../Widgets/ActionButton.js";
 import { Color } from "../../Color.js";
-import thicknessLineIcon from './../../../../assets/icons/thickness.svg';
 
 export let GridSettingsCtxMenu = (function () {
 
@@ -74,55 +72,6 @@ export let GridSettingsCtxMenu = (function () {
             value: 0.5,
             change(e) {
                 aladin.setCooGrid({labelSize: Math.round(+e.target.value * 20)})
-            }
-        });
-
-        const thicknessLineBtn = ActionButton.createSmallSizedIconBtn({
-            icon: {
-                url: thicknessLineIcon,
-                monochrome: true,
-            },
-            tooltip: {content: 'Grid line thickness', position: {direction: 'left'}},
-            cssStyle: {
-                backgroundColor: '#bababa',
-                borderColor: '#484848',
-                cursor: 'pointer',
-                width: '20px',
-                height: '20px',
-                padding: '0',
-            },
-            action(e) {
-                let ctxMenu = ContextMenu.getInstance(aladin);
-                ctxMenu._hide();
-
-                let ctxMenuLayout = [];
-                for (let thickness = 1; thickness <= 5; thickness++) {
-                    ctxMenuLayout.push({
-                        label: thickness + 'px',
-                        action(o) {
-                            aladin.setCooGrid({thickness: thickness})
-                        }
-                    })
-                }
-
-                ctxMenu.attach(ctxMenuLayout);
-                ctxMenu.show({
-                    e: e,
-                    position: {
-                        nextTo: thicknessLineBtn,
-                        direction: 'bottom',
-                    }
-                })
-            }
-        });
-
-        let enableCheckbox = Input.checkbox({
-            name: 'enableGrid',
-            tooltip: {content: 'Enable/disable the grid', position: {direction: 'left'}},
-            type: 'checkbox',
-            checked: aladin.getGridOptions().enabled,
-            click(e) {
-                aladin.setCooGrid({enabled: enableCheckbox.get()})
             }
         });
 

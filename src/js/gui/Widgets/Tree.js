@@ -199,7 +199,7 @@ export class Tree extends DOMElement {
                     if(this.params && this.filter && !this.filter(child, this.params)) {
                         elt.style.display = "none";
                     } else {
-                        elt.style.display = "block";
+                        elt.style.display = "";
                         noEltsListed = false;
                     }
 
@@ -276,7 +276,7 @@ export class Tree extends DOMElement {
                             if (this.onlyInView) {
                                 childElt.style.display = "none";
                             } else {
-                                childElt.style.display = "block";
+                                childElt.style.display = "";
                             }
                         }
                     }
@@ -301,7 +301,7 @@ export class Tree extends DOMElement {
                     if (numFilteringMatching == 0) {
                         elt.style.display = "none";
                     } else {
-                        elt.style.display = "block";
+                        elt.style.display = "";
                         noEltsListed = false;
                     }
                 }

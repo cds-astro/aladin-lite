@@ -34,20 +34,20 @@ export let ProjectionEnum = {
    SIN: {id: 3, label: "Spheric"},	      /* Orthographic		         */
    // TODO: fix why the projection disappears at fov = 360.0
    ZEA: {id: 4, label: "Zenital equal-area"},	/* Equal-area 		         */
-   //FEYE: {id: 5, fov: 190, label: "fish eye"},
-   //AIR: {id: 6, fov: 360, label: "airy"},
+   /*FEYE: {id: 5, fov: 190, label: "fish eye"},
+   AIR: {id: 6, fov: 360, label: "airy"},
    //AZP: {fov: 180},
-   //ARC: {id: 7, fov: 360, label: "zenital equidistant"},
-   //NCP: {id: 8, fov: 180, label: "north celestial pole"},
+   ARC: {id: 7, fov: 360, label: "zenital equidistant"},
+   NCP: {id: 8, fov: 180, label: "north celestial pole"},*/
    // Cylindrical
    MER: {id: 9, label: "Mercator"},
-   //CAR: {id: 10, fov: 360, label: "plate carrée"},
-   //CEA: {id: 11, fov: 360, label: "cylindrical equal area"},
-   //CYP: {id: 12, fov: 360, label: "cylindrical perspective"},
+   /*CAR: {id: 10, fov: 360, label: "plate carrée"},
+   CEA: {id: 11, fov: 360, label: "cylindrical equal area"},
+   CYP: {id: 12, fov: 360, label: "cylindrical perspective"},*/
    // Pseudo-cylindrical
    AIT: {id: 13, label: "Hammer-Aïtoff"},
-   //PAR: {id: 14, fov: 360, label: "parabolic"},
-   //SFL: {id: 15, fov: 360, label: "sanson-flamsteed"},
+   /*PAR: {id: 14, fov: 360, label: "parabolic"},
+   SFL: {id: 15, fov: 360, label: "sanson-flamsteed"},*/
    MOL: {id: 16, label: "Mollweide"},
    // Conic
    //COD: {id: 17, fov: 360, label: "conic equidistant"},

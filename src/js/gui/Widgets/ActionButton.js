@@ -54,7 +54,7 @@ import A from "../../A";
  * @property {function} [opt.action] - The callback function to execute when the button is clicked.
  * @property {string} [opt.title] - The title attribute for the button.
  * @property {Object} [opt.icon] - An icon object for the button.
- * @property {boolean} [opt.disable=false] - Whether the button is initially disabled.
+ * @property {boolean} [opt.disabled=false] - Whether the button is initially disabled.
  * @property {HTMLElement|string|Widget} [opt.content] - The content to be added to the button.
  * @property {CSSStyleSheet} [opt.cssStyle] - The CSS styles to apply to the button.
  * @property {Object} [opt.tooltip] - A tooltip.
@@ -225,7 +225,7 @@ export class ActionButton extends DOMElement {
                         monochrome: true,
                         url: targetIconUrl,
                     },
-                    disable: ra === undefined || dec === undefined || fov === undefined,
+                    disabled: ra === undefined || dec === undefined || fov === undefined,
                     tooltip: {
                         content: "Target interesting sky location",
                     },

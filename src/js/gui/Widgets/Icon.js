@@ -46,7 +46,7 @@ import { Tooltip } from "./Tooltip";
  * @property {function} [opt.action] - The callback function to execute when the button is clicked.
  * @property {string} [opt.title] - The title attribute for the button.
  * @property {string} [opt.iconURL] - The URL of the icon image for the button.
- * @property {boolean} [opt.disable=false] - Whether the button is initially disabled.
+ * @property {boolean} [opt.disabled=false] - Whether the button is initially disabled.
  * @property {HTMLElement|string|Widget} [opt.content] - The content to be added to the button.
  * @property {CSSStyleSheet} [opt.cssStyle] - The CSS styles to apply to the button.
  * @property {string} [opt.tooltip] - The tooltip text for the button.

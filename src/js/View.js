@@ -836,7 +836,7 @@ export let View = (function () {
                     .then(() => {
                         if (view.aladin.statusBar) {
                             view.aladin.statusBar.appendMessage({
-                                message: `${view.colorPickerTool.probedValue} copied into your clipboard`,
+                                message: `<span class="aladin-indicator" style="background-color: ${view.colorPickerTool.probedValue}"></span> [${view.colorPickerTool.probedValue}] copied into your clipboard`,
                                 duration: 1500,
                                 type: 'info'
                             })

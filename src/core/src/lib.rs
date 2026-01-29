@@ -231,7 +231,7 @@ impl WebClient {
             "ZEA" => self
                 .app
                 .set_projection(ProjectionType::Zea(mapproj::zenithal::zea::Zea::new())), /* Equal-area 		         */
-            /*"FEYE" => self
+            "FEYE" => self
                 .app
                 .set_projection(ProjectionType::Feye(mapproj::zenithal::feye::Feye::new())),
             "AIR" => {
@@ -239,19 +239,19 @@ impl WebClient {
                 //air_proj.set_n_iter(10);
                 //air_proj.set_eps(1e-12);
                 self.app.set_projection(ProjectionType::Air(air_proj))
-            }*/
+            }
             //"AZP",
-            /*"ARC" => self
+            "ARC" => self
                 .app
                 .set_projection(ProjectionType::Arc(mapproj::zenithal::arc::Arc::new())),
             "NCP" => self
                 .app
-                .set_projection(ProjectionType::Ncp(mapproj::zenithal::ncp::Ncp::new())),*/
+                .set_projection(ProjectionType::Ncp(mapproj::zenithal::ncp::Ncp::new())),
             // Cylindrical
             "MER" => self
                 .app
                 .set_projection(ProjectionType::Mer(mapproj::cylindrical::mer::Mer::new())),
-            /*"CAR" => self
+            "CAR" => self
                 .app
                 .set_projection(ProjectionType::Car(mapproj::cylindrical::car::Car::new())),
             "CEA" => self
@@ -259,17 +259,17 @@ impl WebClient {
                 .set_projection(ProjectionType::Cea(mapproj::cylindrical::cea::Cea::new())),
             "CYP" => self
                 .app
-                .set_projection(ProjectionType::Cyp(mapproj::cylindrical::cyp::Cyp::new())),*/
+                .set_projection(ProjectionType::Cyp(mapproj::cylindrical::cyp::Cyp::new())),
             // Pseudo-cylindrical
             "AIT" => self
                 .app
                 .set_projection(ProjectionType::Ait(mapproj::pseudocyl::ait::Ait::new())),
-            /*"PAR" => self
+            "PAR" => self
                 .app
                 .set_projection(ProjectionType::Par(mapproj::pseudocyl::par::Par::new())),
             "SFL" => self
                 .app
-                .set_projection(ProjectionType::Sfl(mapproj::pseudocyl::sfl::Sfl::new())),*/
+                .set_projection(ProjectionType::Sfl(mapproj::pseudocyl::sfl::Sfl::new())),
             "MOL" => {
                 let mut mol_proj = mapproj::pseudocyl::mol::Mol::new();
                 mol_proj.set_n_iter(10);
@@ -277,13 +277,13 @@ impl WebClient {
 
                 self.app.set_projection(ProjectionType::Mol(mol_proj))
             } // Conic
-            /*"COD" => self
+            "COD" => self
                 .app
                 .set_projection(ProjectionType::Cod(mapproj::conic::cod::Cod::new())),
             // Hybrid
             "HPX" => self
                 .app
-                .set_projection(ProjectionType::Hpx(mapproj::hybrid::hpx::Hpx::new())),*/
+                .set_projection(ProjectionType::Hpx(mapproj::hybrid::hpx::Hpx::new())),
             _ => Err(JsValue::from_str(
                 "Not a valid projection name. AIT, ZEA, SIN, STG, TAN, MOL and MER are accepted",
             )),

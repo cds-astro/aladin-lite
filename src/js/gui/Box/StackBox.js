@@ -739,13 +739,13 @@ export class OverlayStackBox extends Box {
     createLayout() {
         this.ui = {};
 
-        let layout = [[this.addOverlayBtn, "Overlays"]];
+        let layout = [[this.addOverlayBtn, "&nbsp;Overlays"]];
 
         layout = layout.concat(this._createOverlaysList());
         layout.push(
             [
                 this.addHiPSBtn,
-                "Surveys",
+                "&nbsp;Surveys",
                 this.filterEnabler,
                 this.filterBtn,
             ],

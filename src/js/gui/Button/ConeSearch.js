@@ -49,7 +49,7 @@ export class ConeSearchActionButton extends ActionButton {
                 url: targetIconUrl
             },
             tooltip: options.tooltip,
-            disable: options.disable,
+            disabled: options.disabled,
             cssStyle: {
                 backgroundPosition: 'center center',
                 cursor: 'pointer',

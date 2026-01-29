@@ -215,7 +215,8 @@ import { WidgetTogglerButton } from "../Button/Toggler.js";
                 change: (e) => {
                     let minCut = +e.target.value
                     self.options.layer.setCuts(minCut, self.options.layer.getColorCfg().getCuts()[1])
-                }
+                },
+                cssStyle: { width: '7rem' }
             },
             {
                 type: 'number',
@@ -226,7 +227,8 @@ import { WidgetTogglerButton } from "../Button/Toggler.js";
                 change: (e) => {
                     let maxCut = +e.target.value
                     self.options.layer.setCuts(self.options.layer.getColorCfg().getCuts()[0], maxCut)
-                }
+                },
+                cssStyle: { width: '7rem' }
             }]
         }); 
 

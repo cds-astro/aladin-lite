@@ -226,7 +226,7 @@ export class HiPSBrowserBox extends Box {
                 self.searchTree.triggerFilter({title: value});
 
                 self.infoCurrentHiPSBtn.update({
-                    disable: true,
+                    disabled: true,
                 })
             },
         });
@@ -260,7 +260,7 @@ export class HiPSBrowserBox extends Box {
         });
 
         let infoCurrentHiPSBtn = ActionButton.BUTTONS(aladin)
-            .infoHiPS({disable: true})
+            .infoHiPS({disabled: true})
 
         let filterBox = new HiPSFilterBox(aladin, {
             callback: (params) => {
@@ -387,7 +387,7 @@ export class HiPSBrowserBox extends Box {
                 self.searchDropdown.addClass('aladin-valid');
 
                 self.infoCurrentHiPSBtn.update({
-                    disable: false,
+                    disabled: false,
                     action(e) {
                         window.open(hips.url);
                     }

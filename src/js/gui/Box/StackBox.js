@@ -564,6 +564,7 @@ export class OverlayStackBox extends Box {
                             },
                             content: "Add a composite HiPS",
                         },
+                        disabled: true,
                         action: (e) => {
                             e.stopPropagation();
                             e.preventDefault();

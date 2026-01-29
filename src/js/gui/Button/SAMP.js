@@ -44,7 +44,7 @@ import waveOffIconUrl from '../../../../assets/icons/wave-off.svg';
                     url: waveOffIconUrl
                 },
                 tooltip: {content: 'SAMP disabled in Aladin Lite options', position: {direction: 'top'}},
-                disable: true,
+                disabled: true,
             }
         } else {
             //let isHubRunning = aladin.samp.isHubCurrentlyRunning();
@@ -92,23 +92,6 @@ import waveOffIconUrl from '../../../../assets/icons/wave-off.svg';
             }
             self.update({icon})
         });
-
-        /*ALEvent.SAMP_HUB_RUNNING.listenedBy(aladin.aladinDiv, function (e) {
-            const isHubRunning = e.detail.isHubRunning;
-
-            if (hubRunning !== isHubRunning) {
-                let newOptions = {
-                    disable: !isHubRunning,
-                    tooltip: isHubRunning ? {content: 'Connect to SAMP hub'} : {content: 'No hub running found'}
-                };
-
-                self.update(newOptions)
-                if (isHubRunning === false) {
-                    self.update({iconURL: waveOffIconUrl})
-                }
-                hubRunning = isHubRunning;
-            }
-        });*/
     }
 
     static sendSources(aladin) {

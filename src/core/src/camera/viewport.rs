@@ -224,6 +224,8 @@ impl CameraViewPort {
         self.view_hpx_cells.get_cells(depth, frame)
     }
 
+    // This method has the role to determine the render mode based on the fov
+    // For large FoV, raytracing drawing mode, rasterizer otherwise
     pub fn is_raytracing(&self, proj: &ProjectionType) -> bool {
         // Check whether the tile depth is 0 for square projection
         // definition domains i.e. Mercator
@@ -240,6 +242,7 @@ impl CameraViewPort {
             ProjectionType::Ait(_) => self.aperture >= 100.0_f64.to_radians(),
             ProjectionType::Mol(_) => self.aperture >= 100.0_f64.to_radians(),
             ProjectionType::Zea(_) => self.aperture >= 140.0_f64.to_radians(),
+            _ => self.aperture >= 140.0_f64.to_radians(),
         }
     }
 

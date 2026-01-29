@@ -124,8 +124,8 @@ import { ActionButton } from "../Widgets/ActionButton.js";
                     },
                     error: () => {
                         searchDropdown.addClass('aladin-not-valid')
-                        self.csForm.submit.update({disable: true})
-                        self.hipsCatLoad.update({disable: true});
+                        self.csForm.submit.update({disabled: true})
+                        self.hipsCatLoad.update({disabled: true});
                     }
                 })
             } catch (e) {
@@ -144,8 +144,8 @@ import { ActionButton } from "../Widgets/ActionButton.js";
                         searchDropdown.addClass('aladin-valid')
                     } else {
                         searchDropdown.addClass('aladin-not-valid')
-                        self.csForm.submit.update({disable: true})
-                        self.hipsCatLoad.update({disable: true});
+                        self.csForm.submit.update({disabled: true})
+                        self.hipsCatLoad.update({disabled: true});
                     }
                 }
             }
@@ -177,7 +177,7 @@ import { ActionButton } from "../Widgets/ActionButton.js";
                 position: {direction: "bottom"}
             },
             content: 'HiPS',
-            disable: true,
+            disabled: true,
             action() {
                 self.fnIdSelected('hips', {
                     hipsURL: self.selectedItem.hips_service_url,
@@ -227,7 +227,7 @@ import { ActionButton } from "../Widgets/ActionButton.js";
 
         let form = new Form({
             submit: {
-                disable: true,
+                disabled: true,
                 icon: {
                     monochrome: true,
                     url: targetIconUrl,
@@ -366,15 +366,15 @@ import { ActionButton } from "../Widgets/ActionButton.js";
         this.selectedItem = item;
 
         if (!item) {
-            this.csForm.submit.update({disable: true})
-            this.hipsCatLoad.update({disable: true});
+            this.csForm.submit.update({disabled: true})
+            this.hipsCatLoad.update({disabled: true});
         } else {
             if (item && item.cs_service_url) {
-                this.csForm.submit.update({disable: false});
+                this.csForm.submit.update({disabled: false});
             }
             
             if (item && item.hips_service_url) {
-                this.hipsCatLoad.update({disable: false});
+                this.hipsCatLoad.update({disabled: false});
             }
         }
     }

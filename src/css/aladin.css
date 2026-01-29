@@ -627,10 +627,6 @@
     justify-content: space-between;
 }
 
-.aladin-form-group > * {
-    margin-bottom: 0.4rem;
-}
-
 .aladin-form-group > *:last-of-type {
     margin-bottom: 0;
 }
@@ -1147,12 +1143,13 @@ otherwise it fits its content options. If those are too big the select can go ou
  */
 
 .aladin-indicator {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  margin: 0 5px;
-  vertical-align: middle;
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    margin: 0 5px;
+    vertical-align: middle;
+    border: var(--border-size) solid var(--border-color);
 }
 
 .aladin-indicator.aladin-not-found {

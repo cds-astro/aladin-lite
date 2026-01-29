@@ -904,7 +904,7 @@ A.catalogFromSkyBot = function (ra, dec, radius, epoch, queryOptions, options, s
  * @param {function} [options.action] - The callback function to execute when the button is clicked.
  * @param {string} [options.title] - The title attribute for the button.
  * @param {Object} [options.icon] - An icon object for the button.
- * @param {boolean} [options.disable=false] - Whether the button is initially disabled.
+ * @param {boolean} [options.disabled=false] - Whether the button is initially disabled.
  * @param {HTMLElement|string|Widget} [options.content] - The content to be added to the button.
  * @param {CSSStyleSheet} [options.cssStyle] - The CSS styles to apply to the button.
  * @param {Object} [options.tooltip] - A tooltip.

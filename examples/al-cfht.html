@@ -7,6 +7,7 @@
 <div id="aladin-lite-div" style="width: 512px; height: 512px"></div>
 
 <script type="module">
+  import showUrl from './../assets/icons/show.svg';
   import A from '../src/js/A.js';
   let aladin;
   A.init.then(() => {
@@ -20,6 +21,16 @@
       aladin.setOverlayImageLayer('JWST2', 'overlay_JWST2');
       aladin.getOverlayImageLayer('overlay_JWST1').setAlpha(0.0);
       aladin.getOverlayImageLayer('overlay_JWST2').setAlpha(0.0);
+
+      aladin.toolbar.add('action_custom', {
+        icon: {
+          url: showUrl,
+          size: "medium"
+        },
+        action(_) {
+          console.log("do a thing")
+        }
+      });
   });
 </script>
 

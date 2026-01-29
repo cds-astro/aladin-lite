@@ -106,7 +106,7 @@ export class Icon extends DOMElement {
             this.el.appendChild(img);
         }
 
-        if (this.options.disable) {
+        if (this.options.disabled) {
             this.el.disabled = true;
             this.addClass('disabled')
         } else {
@@ -118,7 +118,7 @@ export class Icon extends DOMElement {
             this.setCss(this.options.cssStyle);
         }
 
-        if (this.options.monochrome && this.options.monochrome === true) {
+        if (this.options.monochrome === undefined || this.options.monochrome === true) {
             this.addClass('aladin-icon-monochrome');
         }
 

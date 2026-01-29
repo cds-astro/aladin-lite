@@ -17,7 +17,8 @@
 //    along with Aladin Lite.
 //
 import { Layout } from "./Layout";
-
+import { ActionButton } from "./Widgets/ActionButton";
+import { DOMElement } from "./Widgets/Widget";
 /******************************************************************************
  * Aladin Lite project
  *
@@ -40,9 +41,8 @@ export class Toolbar extends Layout {
      *     For the list of possibilities, see https://developer.mozilla.org/en-US/docs/Web/API/Element/insertAdjacentHTML
      */
     constructor(widgets, options, target, position = "beforeend") {
-        let layout = Object.values(widgets);
         super(
-            layout,
+            [],
             {
                 vertical: true,
                 ...options
@@ -52,22 +52,11 @@ export class Toolbar extends Layout {
         )
         
         this.toggled = null;
-        let self = this;
+        this.widgets = {};
 
-        for (let widget of this.layout) {
-            const action = widget.options.action;
-            widget.update({
-                action: (o) => {
-                    // toggle off the current toggled widget
-                    self._toggleOffWidget(widget)
-                    self.toggled = widget;
-
-                    action(o)
-                }
-            })
+        for (let [name, widget] of Object.entries(widgets)) {
+            this.add(name, widget)
         }
-
-        this.widgets = widgets;
     }
 
     // Close the toggled widget if the user clicks on another one
@@ -101,7 +90,7 @@ export class Toolbar extends Layout {
         }
 
         let widget = this.widgets[name];
-        widget.update({disable: false})
+        widget.update({disabled: false})
     }
 
     disable(name) {
@@ -110,11 +99,13 @@ export class Toolbar extends Layout {
         }
 
         let widget = this.widgets[name];
-        widget.update({disable: true})
+        widget.update({disabled: true})
     }
 
     add(name, widget) {
-        this.widgets[name] = widget;
+        if (!(widget instanceof DOMElement)) {
+            widget = new ActionButton(widget)
+        }
 
         const action = widget.options.action;
         widget.update({
@@ -126,6 +117,8 @@ export class Toolbar extends Layout {
                 action(o)
             }
         })
+
+        this.widgets[name] = widget;
 
         this.appendLast(widget);
     }

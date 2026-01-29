@@ -132,7 +132,7 @@ export class ActionButton extends DOMElement {
             layout.push(new Icon(this.options.icon));
         }
 
-        if (this.options.disable) {
+        if (this.options.disabled) {
             this.el.disabled = true;
             this.addClass('disabled')
         } else {

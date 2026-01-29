@@ -27,7 +27,7 @@ import filterOffUrl from "../../../../assets/icons/filter-off.svg";
 import helpIconUrl from "../../../../assets/icons/help.svg";
 
 import { Input } from "../Widgets/Input.js";
-import { TogglerActionButton } from "../Button/Toggler.js";
+import { WidgetTogglerButton } from "../Button/Toggler.js";
 import { Layout } from "../Layout.js";
 import { HiPSFilterBox } from "./HiPSFilterBox.js";
 import A from "../../A.js";
@@ -262,7 +262,12 @@ export class HiPSBrowserBox extends Box {
         let infoCurrentHiPSBtn = ActionButton.BUTTONS(aladin)
             .infoHiPS({disable: true})
 
-        let filterBtn = new TogglerActionButton({
+        let filterBox = new HiPSFilterBox(aladin, {
+            callback: (params) => {
+                self._filterHiPSList(params);
+            },
+        })
+        let filterBtn = new WidgetTogglerButton({
             icon: {
                 url: filterOffUrl,
                 monochrome: true,
@@ -273,14 +278,12 @@ export class HiPSBrowserBox extends Box {
                 position: { direction: "top" },
             },
             toggled: false,
-            actionOn: (e) => {
-                self.filterBox._show({position: {
+            widget: {
+                position: {
                     anchor: 'right center'
-                }});
-            },
-            actionOff: (e) => {
-                self.filterBox._hide();
-            },
+                },
+                obj: filterBox,
+            }
         });
 
         let filterNumberElt = document.createElement("div");
@@ -331,11 +334,7 @@ export class HiPSBrowserBox extends Box {
         self = this;
 
         this.searchTree = searchTree;
-        this.filterBox = new HiPSFilterBox(aladin, {
-            callback: (params) => {
-                self._filterHiPSList(params);
-            },
-        })
+        this.filterBox = filterBox;
         this.filterNumberElt = filterNumberElt;
         this.filterBox._hide();
 

@@ -55,7 +55,7 @@ export class ContextMenu extends DOMElement {
 
         this.cssStyleDefault = el.style;
 
-        if (!options || options.hideOnClick === undefined || options.hideOnClick === true || typeof options.hideOnClick === 'function') {
+        /*if (!options || options.hideOnClick === undefined || options.hideOnClick === true || typeof options.hideOnClick === 'function') {
             this.aladin.aladinDiv.addEventListener('click', (e) => {
                 if (!el.contains(e.target)) {
                     if (options && options.hideOnClick && typeof options.hideOnClick === 'function') {
@@ -65,7 +65,7 @@ export class ContextMenu extends DOMElement {
                     }
                 }
             });
-        }
+        }*/
 
         if (!options || options.hideOnResize === undefined || options.hideOnResize === true) {
             if (Utils.hasTouchScreen()) {
@@ -333,7 +333,7 @@ export class ContextMenu extends DOMElement {
         parent.style.display = "";
     }
 
-    show(options) {
+    _show(options) {
         this.el.innerHTML = '';
         this.el.style = this.cssStyleDefault
 
@@ -363,14 +363,11 @@ export class ContextMenu extends DOMElement {
         super._show()
     }
 
-    attach(options, attached) {
-        this.attached = attached;
-        this.menuOptions = options;
-    }
+    attach(options, toggler) {
+        this._hide()
+        this.setToggler(toggler)
 
-    /* Hide all the defined menus */
-    static hideAll() {
-        ContextMenu._menus.forEach((menu) => menu._hide())
+        this.menuOptions = options;
     }
 
     /// Context menu predefined items

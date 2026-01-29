@@ -362,7 +362,9 @@ export let Image = (function () {
         // Private method for updating the view with the new meta
         Image.prototype._updateMetadata = HiPS.prototype._updateMetadata;
 
-        Image.prototype._add2View = function (layer) {
+        Image.prototype._removeFromView = HiPS.prototype._removeFromView;
+
+        Image.prototype._addToView = function (layer) {
             this.layer = layer;
 
             let self = this;

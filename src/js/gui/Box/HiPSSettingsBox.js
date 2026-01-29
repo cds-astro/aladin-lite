@@ -36,7 +36,7 @@ import { Form } from "../Widgets/Form.js";
  import pixelHistIconUrl from '../../../../assets/icons/pixel_histogram.svg';
  import { RadioButton } from "../Widgets/Radio.js";
  import waveOnIconUrl from '../../../../assets/icons/wave-on.svg';
-import { TogglerActionButton } from "../Button/Toggler.js";
+import { WidgetTogglerButton } from "../Button/Toggler.js";
  import { Layout } from "../Layout.js";
 
  export class HiPSSettingsBox extends Box {
@@ -317,7 +317,7 @@ import { TogglerActionButton } from "../Button/Toggler.js";
             if (options.layer.isSpectralCube && options.layer.isSpectralCube()) {
                 let spectraDisplayer = self.aladin.view.spectraDisplayer;
 
-                self.spectraBtn = new TogglerActionButton({
+                self.spectraBtn = new WidgetTogglerButton({
                     content: 'Spectra',
                     icon: {
                         size: 'small',
@@ -326,12 +326,11 @@ import { TogglerActionButton } from "../Button/Toggler.js";
                     },
                     tooltip: {content: 'Show/hide spectra', position: {direction: 'bottom'}},
                     toggled: true,
-                    actionOn: () => {
+                    enabled(o) {
                         spectraDisplayer.attachHiPS3D(options.layer)
-                        spectraDisplayer.show()
                     },
-                    actionOff: () => {
-                        spectraDisplayer.hide()
+                    widget: {
+                        obj: spectraDisplayer
                     }
                 });
                 

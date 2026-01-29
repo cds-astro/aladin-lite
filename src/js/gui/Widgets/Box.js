@@ -26,7 +26,7 @@ import { Layout } from "../Layout";
 /******************************************************************************
  * Aladin Lite project
  *
- * File gui/Tab.js
+ * File gui/Widgets/Box.js
  *
  * A context menu that shows when the user right clicks, or long touch on touch device
  *
@@ -62,21 +62,9 @@ export class Box extends DOMElement {
         let close = this.options.close === false ? false : true;
         let draggable = false;
         if (close) {
-            new ActionButton({
-                size: 'small',
-                content: '❌',
-                //tooltip: {content: 'Close the window', position: {direction: 'bottom'}},
-                action(e) {
-                    self._hide();
-                },
-                cssStyle: {
-                    position: 'absolute',
-                },
-                position: {
-                    top: 0,
-                    right: 0,
-                }
-            }, this.el);
+            this.el.appendChild(
+                ActionButton.BUTTONS(null).close(this).element()
+            );
         }
 
         if (this.options.onDragged) {

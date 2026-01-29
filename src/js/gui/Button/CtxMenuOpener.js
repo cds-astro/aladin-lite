@@ -28,11 +28,9 @@
  *
  *****************************************************************************/
 
-import { ActionButton } from "../Widgets/ActionButton.js";
-
+import { WidgetTogglerButton } from "./Toggler.js";
+/*
 export class CtxMenuActionButtonOpener extends ActionButton {
-
-    static currentlyOpened = null;
 
     // Constructor
     constructor(options, aladin) {
@@ -49,36 +47,19 @@ export class CtxMenuActionButtonOpener extends ActionButton {
                 })
         };
 
-
         super({
             action(e) {
                 enableTooltips()
 
-                let isHidden = self.ctxMenu.isHidden;
+                let wasClosed = self.ctxMenu.isHidden;
+                self.close()
 
-                self.ctxMenu._hide()
-
-                if (self.ctxMenu.attached === self && !isHidden) {
+                if (self.ctxMenu.toggler === self && !wasClosed) {
                     return;
                 }
 
                 // If it was hidden then reopen it
-                if (options.action) {
-                    options.action(e)
-                }
-
-                if (self.layout) {
-                    self.ctxMenu.attach(self.layout, self)
-                }
-
-                self.ctxMenu.show({
-                    position: {
-                        nextTo: self,
-                        direction: options.openDirection,
-                    },
-                });
-
-                CtxMenuActionButtonOpener.currentlyOpened = self;
+                self.open(e);
 
                 // the panel is now open and we know the button has a tooltip
                 // => we close it!
@@ -98,12 +79,85 @@ export class CtxMenuActionButtonOpener extends ActionButton {
         this.layout = options.ctxMenu;
     }
 
-    hideMenu() {
+    close() {
+        this.closed = true;
         this.ctxMenu._hide();
     }
 
+    open(e) {
+        if (this.layout) {
+            this.ctxMenu.attach(this.layout, this)
+        }
+
+        this.ctxMenu.show({
+            position: {
+                nextTo: this,
+                direction: this.options.openDirection,
+            },
+        });
+
+        this.closed = false;
+    }
+
     _hide() {
-        this.hideMenu();
+        this.close();
         super._hide();
+    }
+}*/
+
+export class CtxMenuActionButtonOpener extends WidgetTogglerButton {
+
+    // Constructor
+    constructor(options, aladin) {
+        let self;
+
+        const enableTooltips = () => {
+            aladin.aladinDiv.removeEventListener('click', enableTooltips);
+
+            aladin.aladinDiv.querySelectorAll('.aladin-tooltip')
+                // for each tooltips reset its visibility and transition delay
+                .forEach((t) => {
+                    t.style.visibility = ''
+                    t.style.transitionDelay = ''
+                })
+        };
+        super({
+            widget: {
+                obj: aladin.contextMenu,
+                position: {direction: (options && options.openDirection) || 'right'}
+            },
+            enable(e) {
+                enableTooltips()
+                // If it was hidden then reopen it
+                if (self.layout) {
+                    self.ctxMenu.attach(self.layout, self)
+                }
+
+                // the panel is now open and we know the button has a tooltip
+                // => we close it!
+                if (self.tooltip && !self.ctxMenu.isHidden) {
+                    self.tooltip.element().style.visibility = 'hidden'
+                    self.tooltip.element().style.transitionDelay = '0ms';
+
+                    aladin.aladinDiv.addEventListener("click", enableTooltips)
+                }
+            },
+            ...options,
+        })
+
+        self = this;
+
+        this.ctxMenu = aladin.contextMenu;
+        this.layout = options.ctxMenu;
+    }
+
+    update(options) {
+        if (options && options.ctxMenu) {
+            console.log(this.ctxMenu, "attach", options.ctxMenu)
+            this.layout = options.ctxMenu;
+            this.ctxMenu.attach(this.layout, this)
+        }
+
+        super.update(options)
     }
 }

@@ -224,8 +224,7 @@ export class HiPSCompositeBox extends Box {
         }, this.aladin.aladinDiv);
         layerSettingsBox._hide()
 
-        // catalog settings
-        let layerSettingsBtn = new TogglerActionButton({
+        /*let layerSettingsBtn = new TogglerActionButton({
             icon: { url: settingsIconUrl, monochrome: true },
             size: "small",
             tooltip: {
@@ -233,7 +232,7 @@ export class HiPSCompositeBox extends Box {
                 position: { direction: "top" },
             },
             toggled: false,
-            actionOn: (_) => {
+            on: (_) => {
                 layerSettingsBox._show({
                     position: {
                         nextTo: layerSettingsBtn,
@@ -248,13 +247,13 @@ export class HiPSCompositeBox extends Box {
 
                 self.openSettings = layerSettingsBtn;
             },
-            actionOff: (_) => {
+            off: (_) => {
                 layerSettingsBox._hide();
                 if (self.openSettings === layerSettingsBtn) {
                     self.openSettings = null;
                 }
             },
-        });
+        });*/
 
         return layerSettingsBtn
     }

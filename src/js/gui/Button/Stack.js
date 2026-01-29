@@ -17,11 +17,9 @@
 //    along with Aladin Lite.
 //
 
-import { CtxMenuActionButtonOpener } from "./CtxMenuOpener";
-import stackOverlayIconUrl from './../../../../assets/icons/stack.svg';
 import { OverlayStackBox } from "../Box/StackBox";
-
-import { ActionButton } from "./../Widgets/ActionButton";
+import { WidgetTogglerButton } from "./Toggler";
+import stackOverlayIconUrl from "./../../../../assets/icons/stack.svg";
 /******************************************************************************
  * Aladin Lite project
  *
@@ -34,18 +32,22 @@ import { ActionButton } from "./../Widgets/ActionButton";
  *
  *****************************************************************************/
 /**
- * Class representing a Tabs layout
- * @extends CtxMenuActionButtonOpener
+ * Class representing the stack
+ * @extends WidgetTogglerButton
  */
- export class OverlayStackButton extends ActionButton {
+ export class Stack extends WidgetTogglerButton {
     /**
      * UI responsible for displaying the viewport infos
      * @param {Aladin} aladin - The aladin instance.
      */
-    constructor(aladin, options) {
-        let self;
-        let stack;
+    constructor(aladin) {
         super({
+            widget: {
+                obj: new OverlayStackBox(aladin),
+                position: {
+                    direction: "right"
+                }
+            },
             icon: {
                 size: 'medium',
                 monochrome: true,
@@ -58,24 +60,6 @@ import { ActionButton } from "./../Widgets/ActionButton";
                     direction: 'top right'
                 }
             },
-            toggled: false,
-            action(e) {
-                if (stack.isHidden) {
-                    aladin.contextMenu && aladin.contextMenu._hide()
-
-                    stack._show({
-                        position: {
-                            nextTo: self,
-                            direction: 'right'
-                        }
-                    })
-                } else {
-                    stack._hide()
-                }
-            },
-            ...options
         });
-        self = this;
-        stack = new OverlayStackBox(aladin, self);
     }
 }

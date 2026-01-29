@@ -43,8 +43,7 @@ export class TogglerActionButton extends ActionButton {
             ...options,
             toggled,
             action(o) {
-                options.action && options.action(o);
-                self.toggle(o);
+                self.toggle(o)
             }
         })
         this.toggled = toggled;
@@ -67,15 +66,73 @@ export class TogglerActionButton extends ActionButton {
     toggle(o) {
         this.toggled = !this.toggled;
         
-        if (this.toggled && this.options.actionOn) {
-            this.options.actionOn(o)
+        if (this.toggled && this.options.on) {
+            this.options.on(o)
         }
 
-        if (!this.toggled && this.options.actionOff) { 
-            this.options.actionOff(o)
+        if (!this.toggled && this.options.off) { 
+            this.options.off(o)
         }
 
         // once the actions has been executed, modify the styling
-        this.update({toggled: this.toggled, tooltip: this.toggled ? this.options.tooltipOn : this.options.tooltipOff})
+        this.update({toggled: this.toggled})
+    }
+
+    // It may happen that the widget closes and so the toggler
+    // has to be notified. For example when the user clicks on a Box that
+    // is attached to a toggler.
+    notify(state) {
+        if (this.toggled === state)
+            return;
+
+        this.toggled = state;
+        this.update({toggled: this.toggled})
+    }
+}
+
+/**
+ * Class representing a Tabs layout
+ * @extends TogglerActionButton
+ */
+ export class WidgetTogglerButton extends TogglerActionButton {
+    /**
+     * UI responsible for displaying the viewport infos
+     * @param {Aladin} aladin - The aladin instance.
+     */
+    constructor(options) {
+        let self;
+
+        let {position, obj} = options && options.widget;
+
+        let widget = obj;
+        let enable = options && options.enable;
+
+        super({
+            toggled: false,
+            on(o) {
+                if (enable)
+                    enable(o)
+
+                widget._show({position})
+            },
+            off(_) {
+                self.close();
+            },
+            ...options
+        });
+        self = this;
+
+        widget.setToggler(this);
+        this.widget = widget;
+
+        if (position && position.direction) {
+            position['nextTo'] = this;
+        }
+    }
+
+    close() {
+        this.widget._hide();
+
+        super.close()
     }
 }

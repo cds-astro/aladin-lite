@@ -837,7 +837,13 @@
     margin-left: 2px;
 }
 
-.aladin-context-menu-item:hover > .aladin-context-sub-menu {
+.aladin-stack-box .aladin-overlay-label {
+    text-align: center;
+    width: 100%;
+}
+
+.aladin-context-menu-item:hover > .aladin-context-sub-menu,
+.aladin-context-menu-item:focus-within > .aladin-context-sub-menu {
     display: block;
 }
 
@@ -1140,18 +1146,6 @@ otherwise it fits its content options. If those are too big the select can go ou
  *
  */
 
-.aladin-stack-control {
-    position: absolute;
-    top: 3rem;
-    left: 0.2rem;
-}
-
-.aladin-settings-control {
-    position: absolute;
-    top: 5.4rem;
-    left: 0.2rem;
-}
-
 .aladin-indicator {
   display: inline-block;
   width: 10px;
@@ -1173,25 +1167,6 @@ otherwise it fits its content options. If those are too big the select can go ou
     text-decoration: underline;
 }
 
-.aladin-simbadPointer-control {
-    position: absolute;
-    top: 7.8rem;
-    left: 0.2rem;
-}
-
-.aladin-grid-control {
-    position: absolute;
-    top: 10.2rem;
-    left: 0.2rem;
-}
-
-
-.aladin-colorPicker-control {
-    position: absolute;
-    top: 15rem;
-    left: 0.2rem;
-}
-
 .aladin-cooFrame {
     position: absolute;
     top: 0.2rem;
@@ -1208,6 +1183,7 @@ otherwise it fits its content options. If those are too big the select can go ou
     min-width: 17rem;
     max-width: 300px;
 }
+
 .aladin-item-selected {
     border: var(--border-size) solid orange;
 }
@@ -1323,10 +1299,14 @@ otherwise it fits its content options. If those are too big the select can go ou
     color: var(--text-color);
 }
 
-.aladin-share-control {
+.aladin-widgets-toolbar {
     position: absolute;
-    top: 12.6rem;
-    left: 0.2rem;
+    top: 3rem;
+    left: .2rem;
+}
+
+.aladin-widgets-toolbar > * {
+    padding-top: 0rem;
 }
 
 .aladin-fullScreen-control {

@@ -105,9 +105,10 @@ export class DOMElement {
             } else if (elmt instanceof Element) {                
                 parent.insertAdjacentElement('beforeend', elmt);
             } else {
-                let wrapEl = document.createElement('div');
-                wrapEl.innerHTML = elmt;
-                parent.insertAdjacentElement('beforeend', wrapEl);
+                const template = document.createElement('template');
+                template.innerHTML = elmt;
+
+                parent.append(template.content.cloneNode(true));
             }
         }
     }
@@ -297,12 +298,24 @@ export class DOMElement {
         }
     }
 
+    setToggler(toggler) {
+        this.toggler = toggler;
+    }
+
     _show() {
+        if (this.toggler) {
+            this.toggler.notify(true)
+        }
+
         this.el.style.display = ""
         this.isHidden = false;
     }
 
     _hide() {
+        if (this.toggler) {
+            this.toggler.notify(false)
+        }
+
         this.isHidden = true;
         this.el.style.display = 'none';
     }

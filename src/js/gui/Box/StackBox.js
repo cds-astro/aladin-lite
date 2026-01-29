@@ -45,7 +45,7 @@ import settingsIconUrl from "../../../../assets/icons/settings.svg";
 import searchIconImg from "../../../../assets/icons/search.svg";
 import downloadIconUrl from '../../../../assets/icons/download.svg';
 import swapIcon from '../../../../assets/icons/swap.svg'
-import { TogglerActionButton } from "../Button/Toggler.js";
+import { WidgetTogglerButton } from "../Button/Toggler.js";
 import { Icon } from "../Widgets/Icon.js";
 import { Box } from "../Widgets/Box.js";
 import { CtxMenuActionButtonOpener } from "../Button/CtxMenuOpener.js";
@@ -126,7 +126,7 @@ export class OverlayStackBox extends Box {
         },
     };
     // Constructor
-    constructor(aladin, stackBtn) {
+    constructor(aladin) {
         super(
             {
                 close: true,
@@ -138,8 +138,6 @@ export class OverlayStackBox extends Box {
             },
             aladin.aladinDiv
         );
-        this.stackBtn = stackBtn;
-
         this.aladin = aladin;
 
         this.mode = "stack";
@@ -730,12 +728,9 @@ export class OverlayStackBox extends Box {
             }
         }
 
-        if (this.addOverlayBtn) this.addOverlayBtn.hideMenu();
+        if (this.addOverlayBtn) this.addOverlayBtn.close();
 
-        if (this.addHiPSBtn) this.addHiPSBtn.hideMenu();
-
-        // toggle the button because the window is closed
-        this.stackBtn.update({toggled: false});
+        if (this.addHiPSBtn) this.addHiPSBtn.close();
 
         super._hide();
     }
@@ -767,6 +762,7 @@ export class OverlayStackBox extends Box {
 
     _createOverlaysList() {
         let self = this;
+        let aladin = self.aladin;
 
         let layout = [];
         const overlays = Array.from(this.aladin.getOverlays())
@@ -848,21 +844,15 @@ export class OverlayStackBox extends Box {
                                 label: 'Shape',
                                 name: 'shape',
                                 type: 'select',
-                                options: (() => {
-                                    if (overlay.shapeFn) {
-                                        return ['custom']
-                                    } else {
-                                        return [
-                                            { value: "plus", label: "+" },
-                                            { value: "rhomb", label: "◇" },
-                                            { value: "triangle", label: "△" },
-                                            { value: "cross", label: "✕" },
-                                            { value: "square", label: "□" },
-                                            { value: "circle", label: "○" },
-                                        ]
-                                    }
-                                })(),
-                                value: overlay.shape,
+                                options: [
+                                    { value: "plus", label: "+" },
+                                    { value: "rhomb", label: "◇" },
+                                    { value: "triangle", label: "△" },
+                                    { value: "cross", label: "✕" },
+                                    { value: "square", label: "□" },
+                                    { value: "circle", label: "○" },
+                                ],
+                                value: (overlay.shapeFn && "square") || overlay.shape,
                                 change: (e) => {
                                     const shape = e.target.value
                                     overlay.setShape(shape)
@@ -884,7 +874,7 @@ export class OverlayStackBox extends Box {
                 catSettingsBox._hide()
 
                 // catalog settings
-                let catSettingsBtn = new TogglerActionButton({
+                let catSettingsBtn = new WidgetTogglerButton({
                     icon: { url: settingsIconUrl, monochrome: true },
                     size: "small",
                     tooltip: {
@@ -892,7 +882,7 @@ export class OverlayStackBox extends Box {
                         position: { direction: "top" },
                     },
                     toggled: false,
-                    actionOn: (e) => {
+                    enable: (_) => {
                         // toggle off the other settings if opened
                         for (var l in self.ui) {
                             let ui = self.ui[l]
@@ -903,17 +893,16 @@ export class OverlayStackBox extends Box {
                             }
                         }
 
-                        catSettingsBox._show({
-                            position: {
-                                nextTo: catSettingsBtn,
-                                direction: "right",
-                                aladin: self.aladin,
-                            },
-                        });
+                        let spectraDisplayer = aladin.view.spectraDisplayer;
+                        if (spectraDisplayer)
+                            spectraDisplayer.attachHiPS3D(options.layer)
                     },
-                    actionOff: (e) => {
-                        catSettingsBox._hide();
-                    },
+                    widget: {
+                        obj: catSettingsBox,
+                        position: {
+                            direction: "right",
+                        }
+                    }
                 });
 
                 optBtn.push(catSettingsBtn);
@@ -933,12 +922,11 @@ export class OverlayStackBox extends Box {
                 }
             ));
 
-            layout.push(
-                {
-                    start: [this._addOverlayIcon(overlay), name],
-                    end: [optBtn]
-                },
-            );
+            layout.push([
+                this._addOverlayIcon(overlay),
+                '<div class="aladin-overlay-label">' + name + "</div>",
+                optBtn
+            ]);
         }
 
         return layout;
@@ -999,7 +987,7 @@ export class OverlayStackBox extends Box {
             let deleteBtn = ActionButton.createSmallSizedIconBtn({
                 icon: { url: removeIconUrl, monochrome: true },
                 tooltip: { content: "Remove", position: { direction: "top" } },
-                action(e) {
+                action: (e) => {
                     aladin.removeImageLayer(hips.layer);
                     // remove HiPS cube player if any 
                     aladin.removeUIByName("cube_displayer" + hips.layer)
@@ -1045,13 +1033,10 @@ export class OverlayStackBox extends Box {
                 },
             });
 
-            if (!this.settingsBox) {
-                this.settingsBox = new HiPSSettingsBox(self.aladin);
-            }
+            let settingsBox = new HiPSSettingsBox(self.aladin);
+            settingsBox._hide();
 
-            this.settingsBox._hide();
-
-            let settingsBtn = new TogglerActionButton({
+            let settingsBtn = new WidgetTogglerButton({
                 icon: { url: settingsIconUrl, monochrome: true },
                 size: "small",
                 tooltip: {
@@ -1059,7 +1044,7 @@ export class OverlayStackBox extends Box {
                     position: { direction: "top" },
                 },
                 toggled: false,
-                actionOn: (e) => {
+                enable: (_) => {
                     // toggle off the other settings if opened
                     for (var l in self.ui) {
                         let ui = self.ui[l]
@@ -1069,18 +1054,14 @@ export class OverlayStackBox extends Box {
                         }
                     }
 
-                    this.settingsBox.update({ layer: hips });
-                    this.settingsBox._show({
-                        position: {
-                            nextTo: settingsBtn,
-                            direction: "right",
-                            aladin: self.aladin,
-                        },
-                    });
+                    settingsBox.update({ layer: hips });
                 },
-                actionOff: (e) => {
-                    this.settingsBox._hide();
-                },
+                widget: {
+                    obj: settingsBox,
+                    position: {
+                        direction: "right",
+                    }
+                }
             });
 
             let loadMOCBtn = ActionButton.BUTTONS(self.aladin)
@@ -1135,7 +1116,7 @@ export class OverlayStackBox extends Box {
             if (!(hips.layer in self.ui)) {
                 self.ui[hips.layer] = {
                     HiPSSelector: HiPSselect,
-                    settingsBox: this.settingsBox,
+                    settingsBox,
                     settingsBtn,
                     showBtn,
                 };
@@ -1200,7 +1181,5 @@ export class OverlayStackBox extends Box {
             ...options,
             ...{ position: this.position },
         });
-
-        this.stackBtn.update({toggled: true});
     }
 }

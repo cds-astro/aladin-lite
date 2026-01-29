@@ -42,7 +42,8 @@ import { Coo } from "./libs/astro/coo.js";
 import { CooConversion } from "./CooConversion.js";
 import { HiPSCache } from "./HiPSCache.js";
 import { HiPSList } from "./DefaultHiPSList.js";
-
+import stackOverlayIconUrl from './../../assets/icons/stack.svg';
+import { Toolbar } from "./gui/Toolbar.js";
 import { ProjectionEnum } from "./ProjectionEnum.js";
 
 import { ALEvent } from "./events/ALEvent.js";
@@ -64,17 +65,18 @@ import A from "./A.js";
 import { StatusBarBox } from "./gui/Box/StatusBarBox.js";
 import { FullScreenActionButton } from "./gui/Button/FullScreen.js";
 import { ProjectionActionButton } from "./gui/Button/Projection.js";
-
+import { Stack } from "./gui/Button/Stack.js";
 // features
 import { SettingsButton } from "./gui/Button/Settings";
 import { SimbadPointer } from "./gui/Button/SimbadPointer";
 import { ColorPicker } from "./gui/Button/ColorPicker";
-import { OverlayStackButton } from "./gui/Button/OverlayStack";
+import { OverlayStackBox } from "./gui/Box/StackBox.js";
 import { GridEnabler } from "./gui/Button/GridEnabler";
 import { CooFrame } from "./gui/Input/CooFrame";
 import { Circle } from "./shapes/Circle";
 import { Ellipse } from "./shapes/Ellipse";
 import { Polyline } from "./shapes/Polyline";
+import { WidgetTogglerButton } from "./gui/Button/Toggler.js";
 
 /**
  * @typedef {Object} AladinOptions
@@ -586,49 +588,51 @@ export let Aladin = (function () {
         }
 
         ////////////////////////////////////////////////////
-        let stack = new OverlayStackButton(this);
-        let simbad = new SimbadPointer(this);
-        let colorPicker = new ColorPicker(this);
-        let grid = new GridEnabler(this);
-        this.addUI(stack);
-        this.addUI(simbad);
-        this.addUI(grid);
-        this.addUI(colorPicker)
+        let widgets = {};
 
         // Add the layers control
-        if (!options.showLayersControl) {
-            stack._hide();
-        }
-
-        // Add the simbad pointer control
-        if (!options.showSimbadPointerControl) {
-            simbad._hide();
-        }
-
-        // Add the projection control
-        // Add the coo grid control
-        if (!options.showCooGridControl) {
-            grid._hide();
-        }
-
-        // Add the projection control
-        // Add the coo grid control
-        if (!options.showColorPickerControl) {
-            colorPicker._hide();
+        if (options.showLayersControl) {
+            let stack = new Stack(this);
+            widgets["stack"] = stack
         }
 
         // Settings control
         if (options.showSettingsControl) {
-            let settings = new SettingsButton(this, {
-                features: { stack, simbad, grid },
-            });
-            this.addUI(settings);
+            let settings = new SettingsButton(this);
+            widgets["settings"] = settings
+        }
+
+        // Add the simbad pointer control
+        if (options.showSimbadPointerControl) {
+            let simbad = new SimbadPointer(this);
+            widgets["simbad"] = simbad
+        }
+
+        // Add the projection control
+        // Add the coo grid control
+        if (options.showCooGridControl) {
+            let grid = new GridEnabler(this);
+            widgets["grid"] = grid;
+        }
+
+        // Add the projection control
+        // Add the coo grid control
+        if (options.showColorPickerControl) {
+            let picker = new ColorPicker(this);
+            widgets["picker"] = picker;
         }
 
         // share control panel
         if (options.showShareControl) {
-            this.addUI(new ShareActionButton(self));
+            let share = new ShareActionButton(this);
+            widgets["share"] = share;
         }
+
+        let toolbar = new Toolbar(widgets, {
+            classList: ["aladin-widgets-toolbar"]
+        })
+        this.toolbar = toolbar;
+        this.addUI(toolbar)
 
         if (options.showProjectionControl) {
             this.projBtn = new ProjectionActionButton(this);
@@ -768,7 +772,7 @@ export let Aladin = (function () {
 
         self.isInFullscreen = !self.isInFullscreen;
 
-        ContextMenu.hideAll();
+        this.contextMenu && this.contextMenu._hide();
 
         this.ui.forEach(ui => {
             if (ui.toggle) {

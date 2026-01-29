@@ -25,6 +25,7 @@ import { Layout } from "../Layout";
 import infoIconUrl from "../../../../assets/icons/info.svg"
 import targetIconUrl from "../../../../assets/icons/target.svg";
 import removeIconUrl from "../../../../assets/icons/remove.svg";
+
 import A from "../../A";
 /******************************************************************************
  * Aladin Lite project
@@ -68,19 +69,20 @@ import A from "../../A";
  *
  * @example
  * const actionButton = new ActionButton({
- *   toggled: false,
- *   action: (e) => { /* callback function * },
- *   title: "Click me",
- *   iconURL: "path/to/icon.png",
- *   cssStyle: "color: red;",
- *   tooltip: {
- *     position: {
- *       direction: 'left,
- *     },
- *     content: 'A tooltip'
- *   },
- *   position: { nextTo: someDOMElement, direction: 'right' }
- * }, document.getElementById('container'));
+    size: 'small',
+    content: '❌',
+    //tooltip: {content: 'Close the window', position: {direction: 'bottom'}},
+    action(e) {
+        self._hide();
+    },
+    cssStyle: {
+        position: 'absolute',
+    },
+    position: {
+        top: 0,
+        right: 0,
+    }
+});
  */
 export class ActionButton extends DOMElement {
     constructor(options, target, position = "beforeend") {
@@ -290,7 +292,21 @@ export class ActionButton extends DOMElement {
                     },
                     action
                 })
-            }
+            },
+            close: (widget) => {
+                return new ActionButton({
+                    size: 'small',
+                    content: '❌',
+                    action(_) {
+                        widget.close();
+                    },
+                    cssStyle: {
+                        position: 'absolute',
+                        top: 0,
+                        right: 0,
+                    },
+                });
+            },
         }
     }
 }

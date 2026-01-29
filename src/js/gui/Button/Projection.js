@@ -44,7 +44,9 @@ import { ALEvent } from "../../events/ALEvent";
     constructor(aladin, options) {
         options = options || {};
         options.verbosity = (options && options.verbosity) || 'full';
+
         let projectionName = aladin.getProjectionName();
+        let self;
         let ctxMenu = _buildLayout(aladin);
 
         super({
@@ -57,9 +59,11 @@ import { ALEvent } from "../../events/ALEvent";
             content: projectionName,
             tooltip: {content: 'Change the view projection', position: {direction: 'bottom left'}},
             ctxMenu,
+            openDirection: 'left',
             ...options
         }, aladin);
 
+        self = this;
         this.aladin = aladin;
 
         this._addEventListeners()
@@ -81,13 +85,11 @@ import { ALEvent } from "../../events/ALEvent";
 function _buildLayout(aladin) {
     let layout = [];
 
-    let aladinProj = aladin.getProjectionName();
     for (const key in ProjectionEnum) {
         let proj = ProjectionEnum[key];
 
         layout.push({
             label: proj.label,
-            selected: aladinProj === key,
             action(o) {
                 aladin.setProjection(key)
             }

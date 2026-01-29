@@ -944,7 +944,7 @@ export let View = (function () {
                         DefaultActionsForContextMenu.getDefaultActions(view.aladin),
                         null
                     );
-                    ctxMenu.show({e});
+                    ctxMenu._show({e});
                 }
 
                 view.rightClick = false;

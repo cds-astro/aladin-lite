@@ -107,9 +107,9 @@ export class ActionButton extends DOMElement {
         }
 
         if (this.options.size === 'small') {
-            this.addClass('small-sized-icon')
+            this.addClass('aladin-small-sized-icon')
         } else if (this.options.size === 'medium') {
-            this.addClass('medium-sized-icon')
+            this.addClass('aladin-medium-sized-icon')
         }
 
         if (this.options.action) {

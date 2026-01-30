@@ -23,7 +23,7 @@ import HomeIconUrl from '../../assets/icons/maximize.svg';
 import SpectraIconUrl from '../../assets/icons/freq.svg';
 import { Utils } from "./Utils";
 import { Aladin } from "./Aladin";
-
+import { DOMElement } from "./gui/Widgets/Widget";
 /******************************************************************************
  * Aladin Lite project
  *
@@ -34,7 +34,7 @@ import { Aladin } from "./Aladin";
  *
  *****************************************************************************/
 
-export class SpectraDisplayer {
+export class SpectraDisplayer extends DOMElement {
     static UNIT = {
         FREQUENCY: {
             label: "f",
@@ -118,6 +118,8 @@ export class SpectraDisplayer {
     };
 
     constructor(view, options) {
+        super()
+
         let createPlotCanvas = (name) => {
             const canvas = document.createElement("canvas");
             canvas.classList.add(name);
@@ -615,7 +617,7 @@ export class SpectraDisplayer {
         );*/
     }
 
-    hide() {
+    _hide() {
         if (this.isHidden) {
             return;
         }
@@ -624,7 +626,7 @@ export class SpectraDisplayer {
         this.isHidden = true;
     }
 
-    show() {
+    _show() {
         if (!this.isHidden) {
             return;
         }
@@ -654,7 +656,7 @@ export class SpectraDisplayer {
             window.addEventListener("spectra", this.spectraUpdateCallback);
 
             this.resetScale();
-            this.show()
+            this._show()
         }
     }
 

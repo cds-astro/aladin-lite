@@ -328,7 +328,7 @@ import { WidgetTogglerButton } from "../Button/Toggler.js";
                     },
                     tooltip: {content: 'Show/hide spectra', position: {direction: 'bottom'}},
                     toggled: true,
-                    enabled(o) {
+                    enable: (o) => {
                         spectraDisplayer.attachHiPS3D(options.layer)
                     },
                     widget: {

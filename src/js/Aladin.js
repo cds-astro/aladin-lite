@@ -42,7 +42,6 @@ import { Coo } from "./libs/astro/coo.js";
 import { CooConversion } from "./CooConversion.js";
 import { HiPSCache } from "./HiPSCache.js";
 import { HiPSList } from "./DefaultHiPSList.js";
-import stackOverlayIconUrl from './../../assets/icons/stack.svg';
 import { Toolbar } from "./gui/Toolbar.js";
 import { ProjectionEnum } from "./ProjectionEnum.js";
 
@@ -70,13 +69,11 @@ import { Stack } from "./gui/Button/Stack.js";
 import { SettingsButton } from "./gui/Button/Settings";
 import { SimbadPointer } from "./gui/Button/SimbadPointer";
 import { ColorPicker } from "./gui/Button/ColorPicker";
-import { OverlayStackBox } from "./gui/Box/StackBox.js";
 import { GridEnabler } from "./gui/Button/GridEnabler";
 import { CooFrame } from "./gui/Input/CooFrame";
 import { Circle } from "./shapes/Circle";
 import { Ellipse } from "./shapes/Ellipse";
 import { Polyline } from "./shapes/Polyline";
-import { WidgetTogglerButton } from "./gui/Button/Toggler.js";
 
 /**
  * @typedef {Object} AladinOptions
@@ -337,6 +334,10 @@ export let Aladin = (function () {
                 ...Aladin.DEFAULT_OPTIONS.gridOptions,
                 ...requestedOptions.gridOptions
             },
+            toolbar: {
+                ...Aladin.DEFAULT_OPTIONS.toolbar,
+                ...requestedOptions.toolbar
+            },
             // and use the slice method to create a new array for the hipsList property:
             // https://stackoverflow.com/questions/7486085/copy-array-by-value
             hipsList: requestedOptions.hipsList || Aladin.DEFAULT_OPTIONS.hipsList.slice()
@@ -561,10 +562,24 @@ export let Aladin = (function () {
         }
     };
 
+    Aladin.prototype._applyTheme = function(newTheme) {
+        this.aladinDiv.setAttribute("data-theme", newTheme);
+        this.toolbar.el.setAttribute("data-theme", newTheme);
+    }
+
     Aladin.prototype._setupUI = function (options) {
         let self = this;
 
         this.contextMenu = new ContextMenu(this);
+
+        let toolbarDivSelector = options && options.toolbar.divSelector || this.aladinDiv;
+        if (!(toolbarDivSelector instanceof HTMLElement)) {
+            toolbarDivSelector = document.querySelector(toolbarDivSelector);
+        }
+        this.toolbar = new Toolbar([], {
+            classList: ["aladin-widgets-toolbar"],
+            vertical: options && options.toolbar.vertical
+        }, toolbarDivSelector)
 
         // Status bar
         if (options.showStatusBar) {
@@ -628,11 +643,9 @@ export let Aladin = (function () {
             widgets["share"] = share;
         }
 
-        let toolbar = new Toolbar(widgets, {
-            classList: ["aladin-widgets-toolbar"]
-        })
-        this.toolbar = toolbar;
-        this.addUI(toolbar)
+        for (let [name, widget] of Object.entries(widgets)) {
+            this.toolbar.add(name, widget);
+        }
 
         if (options.showProjectionControl) {
             this.projBtn = new ProjectionActionButton(this);
@@ -759,6 +772,10 @@ export let Aladin = (function () {
         realFullscreen: false,
         pixelateCanvas: true,
         manualSelection: false,
+        toolbar: {
+            vertical: true,
+            divSelector: null,
+        }
     };
 
     /**

@@ -117,8 +117,6 @@ A.aladin = function (divSelector, options) {
     } else {
         theme = retrieveDefaultMode()
     }
-    // Retrieve the data-theme from localStorage or system preferences
-    divElement.setAttribute("data-theme", theme);
 
     // Associate the CSS inside the div
     var cssStyleSheet = document.createElement('style')
@@ -126,7 +124,10 @@ A.aladin = function (divSelector, options) {
     cssStyleSheet.innerHTML = aladinCSS;
     divElement.appendChild(cssStyleSheet)
 
-    return new Aladin(divElement, options);
+    let aladin = new Aladin(divElement, options);
+    aladin._applyTheme(theme)
+
+    return aladin;
 };
 
 /**

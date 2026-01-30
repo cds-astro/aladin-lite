@@ -197,6 +197,7 @@ import { ShareActionButton } from "./ShareView.js";
                 label: {
                     content: [backgroundColorInput, 'Back color']
                 },
+                mustHide: false,
             },
             {
                 label: {
@@ -206,7 +207,7 @@ import { ShareActionButton } from "./ShareView.js";
                 action(o) {
                     const currentTheme = aladin.aladinDiv.getAttribute("data-theme");
                     const newTheme = currentTheme === "dark" ? "light" : "dark";
-                    aladin.aladinDiv.setAttribute("data-theme", newTheme);
+                    aladin._applyTheme(newTheme);
                     localStorage.setItem("theme", newTheme);
                 }
             },

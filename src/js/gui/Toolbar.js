@@ -43,10 +43,7 @@ export class Toolbar extends Layout {
     constructor(widgets, options, target, position = "beforeend") {
         super(
             [],
-            {
-                vertical: true,
-                ...options
-            },
+            options,
             target,
             position
         )

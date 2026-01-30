@@ -42,6 +42,6 @@ export class SnapshotActionButton extends ActionButton {
             }
         })
 
-        this.addClass('medium-sized-icon')
+        this.addClass('aladin-medium-sized-icon')
     }
 }

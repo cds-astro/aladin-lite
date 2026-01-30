@@ -121,7 +121,7 @@ export class Location extends DOMElement {
             value: parseCoo(),
         });
 
-        field.addClass("medium-sized")
+        field.addClass("aladin-medium-sized")
 
         let copyBtn = new ActionButton({
             icon: {

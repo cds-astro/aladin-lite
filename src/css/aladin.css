@@ -16,7 +16,6 @@
 
     /* Aladin lite default color */
     --aladin-color: #b232b2;
-    --aladin-color-border: #fff;
 }
 
 [data-theme="dark"] {
@@ -507,21 +506,21 @@
     color: var(--text-color);
 }
 
-.aladin-container .small-sized-icon {
+.aladin-small-sized-icon {
     width: 1.2rem;
     height: 1.2rem;
 }
 
-.aladin-container .medium-sized-icon {
+.aladin-medium-sized-icon {
     width: 1.6rem;
     height: 1.6rem;
 }
 
-.aladin-container .medium-sized {
+.aladin-medium-sized {
     height: 1.6rem;
 }
 
-.aladin-container .small-sized {
+.aladin-small-sized {
     height: 1.2rem;
 }
 
@@ -1106,22 +1105,22 @@ otherwise it fits its content options. If those are too big the select can go ou
     transform: translateY(-100%);
 }
 
-.aladin-container .aladin-color-picker {
+.aladin-color-picker {
     transform: translate(10px, 10px);
     position: fixed;
 
     pointer-events: none;
 }
 
-.aladin-container .aladin-view-label {
+.aladin-view-label {
     font-weight: bold;
     font-family: monospace;
     background-color: #00000000;
     font-size: 1rem;
     color: var(--aladin-color);
 
-    text-shadow: 1px 0 var(--aladin-color-border), -1px 0 var(--aladin-color-border), 0 1px var(--aladin-color-border), 0 -1px var(--aladin-color-border),
-               1px 1px var(--aladin-color-border), -1px -1px var(--aladin-color-border), 1px -1px var(--aladin-color-border), -1px 1px var(--aladin-color-border);
+    text-shadow: 1px 0 var(--border-color), -1px 0 var(--border-color), 0 1px var(--border-color), 0 -1px var(--border-color),
+               1px 1px var(--border-color), -1px -1px var(--border-color), 1px -1px var(--border-color), -1px 1px var(--border-color);
 }
 
 /* *********************************************** */
@@ -1304,6 +1303,7 @@ otherwise it fits its content options. If those are too big the select can go ou
 
 .aladin-widgets-toolbar > * {
     padding-top: 0rem;
+    margin-right: 0rem;
 }
 
 .aladin-fullScreen-control {

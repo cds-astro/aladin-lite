@@ -58,7 +58,7 @@
             ...options
         })
 
-        this.addClass('medium-sized');
+        this.addClass('aladin-medium-sized');
 
         self = this;
 

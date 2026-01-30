@@ -597,7 +597,7 @@ export let View = (function () {
         }
 
         if (this.spectraDisplayer)
-            this.spectraDisplayer.hide();
+            this.spectraDisplayer._hide();
 
         if (imageLayer.dataproductType === "spectral-cube") {
             if (!this.spectraDisplayer) {

@@ -995,7 +995,7 @@ export class OverlayStackBox extends Box {
 
                     let spectraDisplayer = aladin.view.spectraDisplayer;
                     if (hips instanceof HiPS && spectraDisplayer && hips === spectraDisplayer.hips) {
-                        spectraDisplayer.hide()
+                        spectraDisplayer._hide()
                     }
                 },
             });

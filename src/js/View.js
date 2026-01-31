@@ -1786,7 +1786,7 @@ export let View = (function () {
 
             if (alreadyPresentImageLayer) {
                 if (alreadyPresentImageLayer.added === true) {
-                    ALEvent.HIPS_LAYER_REMOVED.dispatchedTo(this.aladinDiv, { layer: alreadyPresentImageLayer });
+                    ALEvent.LAYER_REMOVED.dispatchedTo(this.aladinDiv, { layer: alreadyPresentImageLayer });
                 }
 
                 alreadyPresentImageLayer.added = false;
@@ -1811,7 +1811,7 @@ export let View = (function () {
         // select the layer if he is on top
         this.selectLayer(layer);
 
-        ALEvent.HIPS_LAYER_ADDED.dispatchedTo(this.aladinDiv, { layer: imageLayer });
+        ALEvent.LAYER_ADDED.dispatchedTo(this.aladinDiv, { layer: imageLayer });
     }
 
     View.prototype.addImageLayer = function (imageLayer, layer) {
@@ -1869,20 +1869,26 @@ export let View = (function () {
             })
     }
 
-    View.prototype.swapLayers = function(firstLayer, secondLayer) {
+    View.prototype.swapLayers = function(layer1, layer2) {
         // Throw an exception if either the first or the second layers are not in the stack
-        this.wasm.swapLayers(firstLayer, secondLayer);
+        this.wasm.swapLayers(layer1, layer2);
 
         // Swap in overlaylayers
-        const idxFirstLayer = this.overlayLayers.indexOf(firstLayer);
-        const idxSecondLayer = this.overlayLayers.indexOf(secondLayer);
+        const i = this.overlayLayers.indexOf(layer1);
+        const j = this.overlayLayers.indexOf(layer2);
 
-        const tmp = this.overlayLayers[idxFirstLayer];
-        this.overlayLayers[idxFirstLayer] = this.overlayLayers[idxSecondLayer];
-        this.overlayLayers[idxSecondLayer] = tmp;
+        const tmp = this.overlayLayers[i];
+        this.overlayLayers[i] = this.overlayLayers[j];
+        this.overlayLayers[j] = tmp;
 
         // Tell the layer hierarchy has changed
-        ALEvent.HIPS_LAYER_SWAP.dispatchedTo(this.aladinDiv, { firstLayer: firstLayer, secondLayer: secondLayer });
+        ALEvent.LAYER_SWAPPED.dispatchedTo(
+            this.aladinDiv,
+            {
+                layer1: this.imageLayers.get(layer1),
+                layer2: this.imageLayers.get(layer2)
+            }
+        );
     }
 
     View.prototype.removeImageLayer = function (layer) {
@@ -1918,15 +1924,7 @@ export let View = (function () {
             this.selectLayer(this.overlayLayers[this.overlayLayers.length - 1]);
         }
 
-        ALEvent.HIPS_LAYER_REMOVED.dispatchedTo(this.aladinDiv, { layer: imageLayer });
-
-        // check if there are no more surveys
-        /*const noMoreLayersToWaitFor = this.promises.length === 0;
-        if (noMoreLayersToWaitFor && this.empty) {
-            // no promises to launch!
-            const dssId = Aladin.DEFAULT_OPTIONS.survey;
-            this.aladin.setBaseImageLayer(dssId);
-        }*/
+        ALEvent.LAYER_REMOVED.dispatchedTo(this.aladinDiv, { layer: imageLayer });
     };
 
     View.prototype.contains = function(survey) {

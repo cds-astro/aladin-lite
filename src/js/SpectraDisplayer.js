@@ -557,64 +557,6 @@ export class SpectraDisplayer extends DOMElement {
 
             this.view.catalogCanvas.dispatchEvent(wheelEvent);
         });
-
-        /*
-        const updateSelectorList = () => {
-            let options = [];
-            for (const hipsName of this.hips3DList.keys()) {
-                options.push(hipsName)
-            }
-
-            this.selector.update({options})
-        };
-
-        ALEvent.HIPS_LAYER_ADDED.listenedBy(
-            this.view.aladin.aladinDiv,
-            function (e) {
-                let hips = e.detail.layer;
-
-                if (hips.dataproductType === "spectral-cube") {
-                    self.hips3DList.set(hips.name, hips);
-
-                    updateSelectorList()
-                }
-            }
-        );
-
-        ALEvent.HIPS_LAYER_SWAP.listenedBy(
-            this.view.aladin.aladinDiv,
-            function (e) {
-                let firstHiPS = e.detail.firstLayer;
-                let secondHiPS = e.detail.secondLayer;
-
-                self.hips3DList.delete(firstHiPS.name);
-
-                if (secondHiPS.dataproductType === "spectral-cube") {
-                    self.hips3DList.set(secondHiPS.name, secondHiPS);
-                }
-
-                updateSelectorList()
-            }
-        );
-
-        ALEvent.HIPS_LAYER_REMOVED.listenedBy(
-            this.view.aladin.aladinDiv,
-            function (e) {
-                let hips = e.detail.layer;
-                self.hips3DList.delete(hips.name);
-
-                if (hips === this.hips) {
-                    // the hips pointed by the tool has been removed
-                    self.attachHiPS3D(null);
-                }
-
-                if (self.hips3DList.size === 0) {
-                    self.hide()
-                }
-
-                updateSelectorList()
-            }
-        );*/
     }
 
     _hide() {

@@ -869,7 +869,7 @@ export let HiPS = (function () {
                     imgFormat: this.imgFormat,
                 });
                 // once the meta have been well parsed, we can set the meta
-                ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.view.aladinDiv, {
+                ALEvent.LAYER_CHANGED.dispatchedTo(this.view.aladinDiv, {
                     layer: this,
                 });
             }

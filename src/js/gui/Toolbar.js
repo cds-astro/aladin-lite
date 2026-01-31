@@ -34,26 +34,29 @@ import { DOMElement } from "./Widgets/Widget";
 export class Toolbar extends Layout {
     /**
      * Create a layout
-     * @param {layout: Array.<DOMElement | String>} layout - Represents the structure of the Tabs
+     * @param {Object[]} widgets - A list of predefined widgets
      * @param {Object} options - Options object
      * @param {DOMElement} target - The parent element.
      * @param {String} position - The position of the tabs layout relative to the target.
-     *     For the list of possibilities, see https://developer.mozilla.org/en-US/docs/Web/API/Element/insertAdjacentHTML
+     * For the list of possibilities, see https://developer.mozilla.org/en-US/docs/Web/API/Element/insertAdjacentHTML
      */
-    constructor(widgets, options, target, position = "beforeend") {
+    constructor(options, target) {
+        let position = (options && options.position) || 'topleft';
+        delete options.position;
+
         super(
             [],
             options,
             target,
-            position
         )
-        
+
+        console.log("options toolbar", options)
+
+        this.position = position;
+        this.vertical = options && options.vertical === true;
+
         this.toggled = null;
         this.widgets = {};
-
-        for (let [name, widget] of Object.entries(widgets)) {
-            this.add(name, widget)
-        }
     }
 
     // Close the toggled widget if the user clicks on another one
@@ -102,6 +105,35 @@ export class Toolbar extends Layout {
     add(name, widget) {
         if (!(widget instanceof DOMElement)) {
             widget = new ActionButton(widget)
+        }
+
+        switch (this.position) {
+            case 'topleft':
+                widget.update({openDirection: 'right'})
+                this.update({position: {
+                    anchor: 'left top'
+                }})
+                break;
+            case 'topright':
+                widget.update({openDirection: 'left'})
+                this.update({position: {
+                    anchor: 'right top'
+                }})
+                break;
+            case 'bottomleft':
+                widget.update({openDirection: 'top'})
+                this.update({position: {
+                    anchor: 'left bottom'
+                }})
+                break;
+            case 'bottomright':
+                widget.update({openDirection: 'top right'})
+                this.update({position: {
+                    anchor: 'right bottom'
+                }})
+                break;
+            default:
+                break;
         }
 
         const action = widget.options.action;

@@ -51,16 +51,13 @@ export class ALEvent {
   static POSITION_CHANGED  = new ALEvent("AL:position.changed");
   static ZOOM_CHANGED  = new ALEvent("AL:zoom.changed");
 
-  static HIPS_LAYER_ADDED   = new ALEvent("AL:HiPSLayer.added");
-  static HIPS_LAYER_REMOVED = new ALEvent("AL:HiPSLayer.removed");
-  static HIPS_LAYER_RENAMED = new ALEvent("AL:HiPSLayer.renamed");
-  static HIPS_LAYER_SWAP = new ALEvent("AL:HiPSLayer.swap");
-  static HIPS_LAYER_CHANGED  = new ALEvent("AL:HiPSLayer.changed");
+  static LAYER_ADDED   = new ALEvent("AL:Layer.added");
+  static LAYER_REMOVED = new ALEvent("AL:Layer.removed");
+  static LAYER_SWAPPED = new ALEvent("AL:Layer.swapped");
+  static LAYER_CHANGED  = new ALEvent("AL:Layer.changed");
 
   static HIPS_CACHE_UPDATED = new ALEvent("AL:HiPSCache.updated");
-
   static FAVORITE_HIPS_LIST_UPDATED = new ALEvent("AL:HiPSFavorites.updated");
-
 
   static GRAPHIC_OVERLAY_LAYER_ADDED  = new ALEvent("AL:GraphicOverlayLayer.added");
   static GRAPHIC_OVERLAY_LAYER_REMOVED  = new ALEvent("AL:GraphicOverlayLayer.removed");

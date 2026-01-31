@@ -42,7 +42,7 @@ export class TogglerActionButton extends ActionButton {
         super({
             ...options,
             toggled,
-            action(o) {
+            action: (o) => {
                 self.toggle(o)
             }
         })
@@ -102,37 +102,53 @@ export class TogglerActionButton extends ActionButton {
     constructor(options) {
         let self;
 
-        let {position, obj} = options && options.widget;
-
-        let widget = obj;
+        let widget = options && options.widget;
         let enable = options && options.enable;
 
         super({
             toggled: false,
-            on(o) {
+            on: (o) => {
                 if (enable)
                     enable(o)
 
-                widget._show({position})
+                widget._show({
+                    position: self.position
+                })
             },
-            off(_) {
+            off: (_) => {
                 self.close();
             },
             ...options
         });
         self = this;
 
+        this.update(options)
+
         widget.setToggler(this);
         this.widget = widget;
-
-        if (position && position.direction) {
-            position['nextTo'] = this;
-        }
     }
 
     close() {
         this.widget._hide();
 
         super.close()
+    }
+
+    update(options) {
+        this.openDirection = (options && options.openDirection) || this.openDirection;
+        this.openPosition = (options && options.openPosition) || this.openPosition;
+
+        if (this.openPosition) {
+            this.position = {
+                anchor: this.openPosition,
+            }
+        } else {
+            this.position = {
+                direction: this.openDirection,
+                nextTo: this
+            }
+        }
+
+        super.update(options)
     }
 }

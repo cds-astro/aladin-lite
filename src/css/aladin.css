@@ -284,11 +284,22 @@
 
 .aladin-anchor-top{top:0}
 .aladin-anchor-middle{top:50%; transform: translate(0, -50%);/*half of the .box height*/}
-.aladin-anchor-bottom{bottom:0}
+.aladin-anchor-bottom{
+    bottom:0;
 
-.aladin-anchor-left{left:0;}
-.aladin-anchor-center{left:50%; transform: translate(-50%, 0%);/*half of the .box width*/}
-.aladin-anchor-right{right:0;}
+}
+
+.aladin-anchor-left {
+    left: 0;
+    
+}
+.aladin-anchor-center{
+    left:50%;
+    transform: translate(-50%, 0%);/*half of the .box width*/
+}
+.aladin-anchor-right{
+    right:0;
+}
 
 .aladin-anchor-middle.aladin-anchor-center {
     transform: translate(-50%, -50%);
@@ -861,6 +872,22 @@
   text-overflow: ellipsis;
 }
 
+.aladin-context-menu.left {
+    left: 0;
+    transform: translateX(-100%);
+}
+
+.aladin-context-menu.top{
+    top: 0;
+    left: 0;
+    transform: translateY(-100%);
+}
+
+.aladin-context-menu.bottom {
+    top: 100%;
+    left: 0;
+}
+
 .aladin-context-menu .aladin-context-sub-menu.left {
     left: 0;
     transform: translateX(-100%);
@@ -885,6 +912,29 @@
     transform: translate(-100%, -100%);
 }
 
+.aladin-box.left {
+    left: 0;
+    transform: translateX(-100%);
+}
+
+.aladin-box.right {
+    right: 0;
+}
+
+.aladin-box.bottom {
+    top: 100%;
+    left: 0;
+}
+
+.aladin-box.top {
+    top: 0;
+    left: 0;
+    transform: translateY(-100%);
+}
+
+.aladin-box.left.top {
+    transform: translate(-100%, -100%);
+}
 
 .aladin-reticle {
     position: absolute;
@@ -1297,8 +1347,8 @@ otherwise it fits its content options. If those are too big the select can go ou
 
 .aladin-widgets-toolbar {
     position: absolute;
-    top: 3rem;
-    left: .2rem;
+    margin-top: 3rem;
+    margin-bottom: 5rem;
 }
 
 .aladin-widgets-toolbar > * {

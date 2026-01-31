@@ -55,11 +55,11 @@ import { ALEvent } from "../../events/ALEvent";
                 size: 'medium',
                 url: projectionIconUrl,
             },
+            openDirection: 'left',
             classList: ['aladin-projection-control'],
             content: projectionName,
             tooltip: {content: 'Change the view projection', position: {direction: 'bottom left'}},
             ctxMenu,
-            openDirection: 'left',
             ...options
         }, aladin);
 

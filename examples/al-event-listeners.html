@@ -68,8 +68,8 @@
             console.log(pos)
         });
 
-        aladin.on('layerChanged', function(imageLayer, layer, state){
-            console.log(imageLayer, layer, state)
+        aladin.on('stackChanged', function(state) {
+            console.log(state)
         });
 
         cat.sources[0].actionClicked();

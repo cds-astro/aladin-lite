@@ -57,8 +57,6 @@ export class Box extends DOMElement {
 
         this.el.innerHTML = "";
 
-        let self = this;
-
         let close = this.options.close === false ? false : true;
         let draggable = false;
         if (close) {

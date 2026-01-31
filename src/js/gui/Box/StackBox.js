@@ -155,6 +155,7 @@ export class OverlayStackBox extends Box {
                     size: "small",
                     monochrome: true,
                 },
+                openDirection: 'right',
                 tooltip: {
                     content: "A catalog, MOC or footprint",
                     position: { direction: "top" },
@@ -485,6 +486,7 @@ export class OverlayStackBox extends Box {
                     size: "small",
                     monochrome: true,
                 },
+                openDirection: 'right',
                 ctxMenu: [
                     {
                         label: {
@@ -669,25 +671,25 @@ export class OverlayStackBox extends Box {
             }
         );
 
-        ALEvent.HIPS_LAYER_ADDED.listenedBy(
+        ALEvent.LAYER_ADDED.listenedBy(
             this.aladin.aladinDiv,
             function (e) {
                 updateOverlayList();
             }
         );
 
-        ALEvent.HIPS_LAYER_SWAP.listenedBy(this.aladin.aladinDiv, function (e) {
+        ALEvent.LAYER_SWAPPED.listenedBy(this.aladin.aladinDiv, function (e) {
             updateOverlayList();
         });
 
-        ALEvent.HIPS_LAYER_REMOVED.listenedBy(
+        ALEvent.LAYER_REMOVED.listenedBy(
             this.aladin.aladinDiv,
             function (e) {
                 updateOverlayList();
             }
         );
 
-        ALEvent.HIPS_LAYER_CHANGED.listenedBy(
+        ALEvent.LAYER_CHANGED.listenedBy(
             this.aladin.aladinDiv,
             function (e) {
                 const hips = e.detail.layer;
@@ -736,7 +738,20 @@ export class OverlayStackBox extends Box {
         super._hide();
     }
 
+    delete() {
+        if (!this.ui) {
+            return
+        }
+
+        for (let component of Object.values(this.ui)) {
+            for (let elt of Object.values(component)) {
+                elt.remove && elt.remove()
+            }
+        }
+    }
+
     createLayout() {
+        this.delete()
         this.ui = {};
 
         let layout = [[this.addOverlayBtn, "&nbsp;Overlays"]];
@@ -898,12 +913,8 @@ export class OverlayStackBox extends Box {
                         if (spectraDisplayer)
                             spectraDisplayer.attachHiPS3D(options.layer)
                     },
-                    widget: {
-                        obj: catSettingsBox,
-                        position: {
-                            direction: "right",
-                        }
-                    }
+                    widget: catSettingsBox,
+                    openDirection: "right"
                 });
 
                 optBtn.push(catSettingsBtn);
@@ -1057,12 +1068,8 @@ export class OverlayStackBox extends Box {
 
                     settingsBox.update({ layer: hips });
                 },
-                widget: {
-                    obj: settingsBox,
-                    position: {
-                        direction: "right",
-                    }
-                }
+                widget: settingsBox,
+                openDirection: "right",
             });
 
             let loadMOCBtn = ActionButton.BUTTONS(self.aladin)

@@ -155,6 +155,10 @@ import { Polyline } from "./shapes/Polyline";
  * @property {Object} [selector] - More options for the the selector.
  * @property {string} [selector.color] - Color of the selector, defaults to the color of the reticle. Can be a hex color or a function returning a hex color.
  * @property {number} [selector.lineWidth=2] - Width of the selector line.
+ * @property {Object} [toolbar] - Toolbar object
+ * @property {string} [toolbar.divSelector="null"] - A selector to put the toolbar in. By default the toolbar will be inserted in the Aladin Lite view.
+ * @property {string} [toolbar.position="topleft"] - Can be 'topleft', 'topright', 'bottomleft', 'bottomright'. Default to 'topleft'
+ * @property {boolean} [toolbar.vertical=true] - Is the toolbar horizontal or not. Default to vertical
  *
  * @example
  * let aladin = A.aladin({
@@ -253,7 +257,7 @@ import { Polyline } from "./shapes/Polyline";
  */
 
 /**
- * @typedef {('select'|'objectsSelected'|'objectClicked'|'objectHovered'|'objectHoveredStop'|'footprintClicked'|'footprintHovered'|'positionChanged'|'zoomChanged'|'rotationChanged'|'click'|'rightClickMove'|'mouseMove'|'wheelTriggered'|'fullScreenToggled'|'cooFrameChanged'|'resizeChanged'|'projectionChanged'|'layerChanged')} EventListener
+ * @typedef {('select'|'objectsSelected'|'objectClicked'|'objectHovered'|'objectHoveredStop'|'footprintClicked'|'footprintHovered'|'positionChanged'|'zoomChanged'|'rotationChanged'|'click'|'rightClickMove'|'mouseMove'|'wheelTriggered'|'fullScreenToggled'|'cooFrameChanged'|'resizeChanged'|'projectionChanged'|'stackChanged')} EventListener
  *
  * <ul>
  * <li>'positionChanged' is triggered when the view position has been changed. It gives the user the new center position of the view in ICRS frame. See {@link positionChangedParam}</li>
@@ -261,6 +265,7 @@ import { Polyline } from "./shapes/Polyline";
  * <li>'mouseMove' is triggered when the mouse move over the view. It gives the the user the new position of the cursor in the current frame. See {@link mouseMoveParam}</li>
  * <li>'wheelTriggered' allows to redefine the zooming. Listening for it will disable the default zooming heuristic.</li>
  * <li>'objectsSelected', 'objectClicked', 'objectHovered', 'objectHoveredStop', 'footprintClicked', 'footprintHovered' are triggered when a catalog source/footprint has been clicked, hovered, ...
+ * <li>'stackChanged' is triggered when a layer has been added, removed or swapped. The callback passed is an object having fields. The layer object that has been added/removed (or the swapped layers) and a flag that tells you if it has been 'added', 'removed' or 'swapped'.
  * </ul>
  */
 
@@ -300,14 +305,32 @@ export let Aladin = (function () {
 
         const self = this;
 
-        ALEvent.HIPS_LAYER_ADDED.listenedBy(aladinDiv, (imageLayer) => {
-            this.callbacksByEventName["layerChanged"] &&
-            this.callbacksByEventName["layerChanged"](imageLayer.detail.layer, imageLayer.detail.layer.layer, "ADDED");
+        ALEvent.LAYER_ADDED.listenedBy(aladinDiv, (e) => {
+            const {layer} = e.detail;
+            let callback = this.callbacksByEventName["stackChanged"];
+            callback && callback({
+                change: 'added',
+                layer,
+            });
         });
 
-        ALEvent.HIPS_LAYER_REMOVED.listenedBy(aladinDiv, (imageLayer) => {
-            this.callbacksByEventName["layerChanged"] &&
-            this.callbacksByEventName["layerChanged"](imageLayer.detail.layer, imageLayer.detail.layer.layer, "REMOVED");
+        ALEvent.LAYER_REMOVED.listenedBy(aladinDiv, (e) => {
+            const {layer} = e.detail;
+            let callback = this.callbacksByEventName["stackChanged"];
+            callback && callback({
+                change: 'removed',
+                layer
+            });
+        });
+
+        ALEvent.LAYER_SWAPPED.listenedBy(aladinDiv, (e) => {
+            const {layer1, layer2} = e.detail;
+            let callback = this.callbacksByEventName["stackChanged"];
+            callback && callback({
+                change: 'swapped',
+                layer1,
+                layer2
+            });
         });
 
         // if not options was set, try to retrieve them from the query string
@@ -576,9 +599,9 @@ export let Aladin = (function () {
         if (!(toolbarDivSelector instanceof HTMLElement)) {
             toolbarDivSelector = document.querySelector(toolbarDivSelector);
         }
-        this.toolbar = new Toolbar([], {
+        this.toolbar = new Toolbar({
             classList: ["aladin-widgets-toolbar"],
-            vertical: options && options.toolbar.vertical
+            ...options.toolbar
         }, toolbarDivSelector)
 
         // Status bar
@@ -773,8 +796,9 @@ export let Aladin = (function () {
         pixelateCanvas: true,
         manualSelection: false,
         toolbar: {
-            vertical: true,
             divSelector: null,
+            vertical: true,
+            position: 'topleft'
         }
     };
 
@@ -1122,7 +1146,6 @@ export let Aladin = (function () {
 
         return projName;
     };
-    ``;
 
     /**
      * Returns the current coordinate system: possible values are 'ICRS', 'ICRSd', and 'Galactic' .
@@ -1137,6 +1160,16 @@ export let Aladin = (function () {
      */
     Aladin.prototype.getFrame = function () {
         return this.view.cooFrame.label;
+    };
+
+    /**
+     * Get a reference to the Aladin Lite toolbar object. User can append, remove DOMElement/widgets to it
+     *
+     * @memberof Aladin
+     * @returns {Toolbar}
+     */
+    Aladin.prototype.getToolbar = function () {
+        return this.toolbar;
     };
 
     /**
@@ -2248,7 +2281,7 @@ export let Aladin = (function () {
         "cooFrameChanged",
         "resizeChanged",
         "projectionChanged",
-        "layerChanged"
+        "stackChanged"
     ];
 
     /**
@@ -2306,9 +2339,9 @@ export let Aladin = (function () {
             console.log("positionChanged", ra, dec)
         })
 
-        aladin.on("layerChanged", (layer, layerName, state) => {
-            console.log("layerChanged", layer, layerName, state)
-        })
+        aladin.on('stackChanged', function(state) {
+            console.log(state)
+        });
     */
     Aladin.prototype.on = function (what, myFunction) {
         if (Aladin.AVAILABLE_CALLBACKS.indexOf(what) < 0) {

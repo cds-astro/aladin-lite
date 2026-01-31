@@ -278,12 +278,8 @@ export class HiPSBrowserBox extends Box {
                 position: { direction: "top" },
             },
             toggled: false,
-            widget: {
-                position: {
-                    anchor: 'right center'
-                },
-                obj: filterBox,
-            }
+            openPosition: 'right center',
+            widget: filterBox,
         });
 
         let filterNumberElt = document.createElement("div");

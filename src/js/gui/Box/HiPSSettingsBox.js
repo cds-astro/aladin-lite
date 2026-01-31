@@ -331,9 +331,7 @@ import { WidgetTogglerButton } from "../Button/Toggler.js";
                     enable: (o) => {
                         spectraDisplayer.attachHiPS3D(options.layer)
                     },
-                    widget: {
-                        obj: spectraDisplayer
-                    }
+                    widget: spectraDisplayer
                 });
                 
                 self.update({content: Layout.vertical([[self.selector, self.spectraBtn], self.opacitySettingsContent])})
@@ -346,9 +344,7 @@ import { WidgetTogglerButton } from "../Button/Toggler.js";
     }
 
     _addListeners() {
-        let self = this;
-
-        ALEvent.HIPS_LAYER_CHANGED.listenedBy(this.aladin.aladinDiv, (e) => {
+        ALEvent.LAYER_CHANGED.listenedBy(this.aladin.aladinDiv, (e) => {
             const hips = e.detail.layer;
             let selectedLayer = this.options.layer;
 

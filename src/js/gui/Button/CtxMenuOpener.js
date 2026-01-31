@@ -122,10 +122,7 @@ export class CtxMenuActionButtonOpener extends WidgetTogglerButton {
                 })
         };
         super({
-            widget: {
-                obj: aladin.contextMenu,
-                position: {direction: (options && options.openDirection) || 'right'}
-            },
+            widget: aladin.contextMenu,
             enable(e) {
                 enableTooltips()
                 // If it was hidden then reopen it
@@ -153,9 +150,8 @@ export class CtxMenuActionButtonOpener extends WidgetTogglerButton {
 
     update(options) {
         if (options && options.ctxMenu) {
-            console.log(this.ctxMenu, "attach", options.ctxMenu)
             this.layout = options.ctxMenu;
-            this.ctxMenu.attach(this.layout, this)
+            //this.ctxMenu.attach(this.layout, this)
         }
 
         super.update(options)

@@ -12,6 +12,14 @@
 * [fix] layer opacity restored when switching from not visible to visible <https://github.com/cds-astro/aladin-lite/issues/332>
 * [feat] dark/light mode for the interface
 * [fix] polylines shapes size not consistent w.r.t to div size <https://github.com/cds-astro/aladin-lite/issues/331>
+* [feat] 'stackChanged' new event informing when a layer has been added, removed or swapped.
+* [ui] a new HiPS browser window to search and find HiPS among the HiPS worldwide network.
+* [ui] new settings panel for Catalog overlays to change the size, color or shapes of sources
+* [ui] possibility to swap 2 layers. Functional but not definitive, it would be better to allow drag and drop amond the layers.
+* [fix] fix local HiPS loading.
+* [ui] WIP. A toolbar object
+* [fix] fix selection of footprints. In the future allow a skew selection mode and a additive selection shortkey.
+* [fix] inertia bug when zooming in/out
 
 ### 3.7.0-beta
 

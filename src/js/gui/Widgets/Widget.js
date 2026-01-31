@@ -213,9 +213,11 @@ export class DOMElement {
             let aDivRect = aladinDiv.getBoundingClientRect();
             const offViewX = aDivRect.x;
             const offViewY = aDivRect.y;
+
             if (!dir) {
                 // determine the direction with respect to the element given
-                let elX = options.nextTo.el.getBoundingClientRect().left + options.nextTo.el.getBoundingClientRect().width * 0.5 - offViewX;
+                const nextElementRect = nextTo.el.getBoundingClientRect();
+                let elX = nextElementRect.left + nextElementRect.width * 0.5 - offViewX;
                 dir = (elX < innerWidth / 2) ? 'right' : 'left';
             }
 
@@ -224,23 +226,28 @@ export class DOMElement {
             }
 
             let rect = nextTo.getBoundingClientRect();
+            this.el.classList.remove('left', 'right', 'top', 'bottom');
 
             switch (dir) {
                 case 'left':
-                    left = rect.x - offsetWidth - offViewX;
+                    left = rect.x - offViewX;
                     top = rect.y - offViewY;
+                    this.el.classList.add('left');
                     break;
                 case 'right':
                     left = rect.x + rect.width - offViewX;
                     top = rect.y - offViewY;
+                    this.el.classList.add('right');
                     break;
                 case 'top':
                     left = rect.x - offViewX;
-                    top = rect.y - offsetHeight - offViewY;
+                    top = rect.y - offViewY;
+                    this.el.classList.add('top');
                     break;
                 case 'bottom':
                     left = rect.x - offViewX;
                     top = rect.y + rect.height - offViewY;
+                    this.el.classList.add('bottom');
                     break;
                 default:
                     left = 0;
@@ -250,11 +257,11 @@ export class DOMElement {
 
             // Translate if the div in 
             if (typeof top === 'number') {
-                if (top + offsetHeight >= innerHeight) {
+                /*if (top + offsetHeight >= innerHeight) {
                     y = '-' + (top + offsetHeight - innerHeight) + 'px';
                 } else if (top < 0) {
                     y = Math.abs(top) + 'px';
-                }
+                }*/
 
                 top = top + 'px';
             }
@@ -262,11 +269,11 @@ export class DOMElement {
                 bottom = bottom + 'px';
             }
             if (typeof left === 'number') {
-                if (left + offsetWidth > innerWidth) {
+                /*if (left + offsetWidth > innerWidth) {
                     x = '-' + (left + offsetWidth - innerWidth) + 'px';
                 } else if (left < 0) {
                     x = Math.abs(left) + 'px';
-                }
+                }*/
 
                 left = left + 'px';
             }

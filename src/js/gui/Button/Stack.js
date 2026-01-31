@@ -40,14 +40,10 @@ import stackOverlayIconUrl from "./../../../../assets/icons/stack.svg";
      * UI responsible for displaying the viewport infos
      * @param {Aladin} aladin - The aladin instance.
      */
-    constructor(aladin) {
+    constructor(aladin, options) {
         super({
-            widget: {
-                obj: new OverlayStackBox(aladin),
-                position: {
-                    direction: "right"
-                }
-            },
+            openDirection: (options && options.openDirection) || 'right',
+            widget: new OverlayStackBox(aladin),
             icon: {
                 size: 'medium',
                 monochrome: true,
@@ -57,7 +53,7 @@ import stackOverlayIconUrl from "./../../../../assets/icons/stack.svg";
             tooltip: {
                 content: 'Open the overlays menu',
                 position: {
-                    direction: 'top right'
+                    direction: (options && options.openDirection) || 'left'
                 }
             },
         });

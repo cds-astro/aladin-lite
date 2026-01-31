@@ -610,7 +610,7 @@ impl Projection for ProjectionType {
                     )
                     .vector(),
                 );
-                cod.world_to_clip_space(&rot.rotate(&xyz))
+                cod.world_to_clip_space(&rot.rotate(xyz))
             }
             // HEALPix hybrid projection
             ProjectionType::Hpx(hpx) => hpx.world_to_clip_space(xyz),

@@ -27,7 +27,7 @@ import { isJSObject } from "./Utils";
 /******************************************************************************
  * Aladin Lite project
  *
- * File gui/Widgets/layout/Horizontal.js
+ * File gui/Layout.js
  *
  * A layout grouping widgets horizontaly
  *
@@ -37,14 +37,6 @@ import { isJSObject } from "./Utils";
  *****************************************************************************/
 
 export class Layout extends DOMElement {
-    /**
-     * Create a layout
-     * @param {layout: Array.<DOMElement | String>} layout - Represents the structure of the Tabs
-     * @param {Object} options - Options object
-     * @param {DOMElement} target - The parent element.
-     * @param {String} position - The position of the tabs layout relative to the target.
-     *     For the list of possibilities, see https://developer.mozilla.org/en-US/docs/Web/API/Element/insertAdjacentHTML
-     */
     constructor(layout, options, target, position = "beforeend") {
         let el = document.createElement('div');
 

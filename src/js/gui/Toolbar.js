@@ -1,20 +1,23 @@
-// Copyright 2023 - UDS/CNRS
+// SPDX-License-Identifier: LGPL-3.0-or-later
+// Copyright 2013 - UDS/CNRS
 // The Aladin Lite program is distributed under the terms
-// of the GNU General Public License version 3.
+// of the GNU Lesser General Public License version 3
+// or (at your option) any later version.
 //
 // This file is part of Aladin Lite.
 //
 //    Aladin Lite is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, version 3 of the License.
+//    it under the terms of the GNU Lesser General Public License as published by
+//    the Free Software Foundation, either version 3 of the License, or
+//    (at your option) any later version.
 //
 //    Aladin Lite is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+//    GNU Lesser General Public License for more details.
 //
-//    The GNU General Public License is available in COPYING file
-//    along with Aladin Lite.
+//    You should have received a copy of the GNU Lesser General Public License
+//    along with Aladin Lite. If not, see <https://www.gnu.org/licenses/>.
 //
 import { Layout } from "./Layout";
 import { ActionButton } from "./Widgets/ActionButton";
@@ -22,7 +25,7 @@ import { DOMElement } from "./Widgets/Widget";
 /******************************************************************************
  * Aladin Lite project
  *
- * File gui/Widgets/layout/Horizontal.js
+ * File gui/Toolbar.js
  *
  * A layout grouping widgets horizontaly
  *
@@ -33,12 +36,12 @@ import { DOMElement } from "./Widgets/Widget";
 
 export class Toolbar extends Layout {
     /**
-     * Create a layout
-     * @param {Object[]} widgets - A list of predefined widgets
+     * Toolbar instance constructor
+     *
+     * @class
+     * @constructs Toolbar
      * @param {Object} options - Options object
      * @param {DOMElement} target - The parent element.
-     * @param {String} position - The position of the tabs layout relative to the target.
-     * For the list of possibilities, see https://developer.mozilla.org/en-US/docs/Web/API/Element/insertAdjacentHTML
      */
     constructor(options, target) {
         let position = (options && options.position) || 'topleft';
@@ -49,8 +52,6 @@ export class Toolbar extends Layout {
             options,
             target,
         )
-
-        console.log("options toolbar", options)
 
         this.position = position;
         this.vertical = options && options.vertical === true;
@@ -102,6 +103,33 @@ export class Toolbar extends Layout {
         widget.update({disabled: true})
     }
 
+    /**
+     * Add custom clickable actions to the toolbar
+     *
+     * @memberof Toolbar
+     * @param {string} name - A name identifier for your new action
+     * @param {Object} widget - Your clickable action, same as for defining an action button
+     * @param {boolean} [widget.toggled=false] - Whether the button is initially toggled.
+     * @param {function} [widget.action] - The callback function to execute when the button is clicked.
+     * @param {string} [widget.title] - The title attribute for the button.
+     * @param {Object} [widget.icon] - An icon object for the button.
+     * @param {boolean} [widget.disabled=false] - Whether the button is initially disabled.
+     * @param {CSSStyleSheet} [widget.cssStyle] - The CSS styles to apply to the button.
+     * @param {Object} [widget.tooltip] - A tooltip appearing when the user hovers the button.
+     * @param {string} [widget.size] - The size of the button. Can be 'medium' or 'small'
+     *
+     * @example
+     *   aladin.getToolbar()
+     *       .add('action_custom', {
+     *           icon: {
+     *              url: yourIconUrl,
+     *               size: "medium"
+     *           },
+     *           action(_) {
+     *               console.log("do a thing")
+     *           }
+     *       });
+     */
     add(name, widget) {
         if (!(widget instanceof DOMElement)) {
             widget = new ActionButton(widget)

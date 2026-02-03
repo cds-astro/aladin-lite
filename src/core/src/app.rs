@@ -692,36 +692,46 @@ impl App {
                                                 ImageType::ImageRgba8u {
                                                     image: Bitmap { image, .. },
                                                 } => {
-                                                    let document = web_sys::window()
-                                                        .unwrap_abort()
-                                                        .document()
-                                                        .unwrap_abort();
-                                                    let canvas = document
-                                                        .create_element("canvas")?
-                                                        .dyn_into::<web_sys::HtmlCanvasElement>()?;
-                                                    canvas.set_width(image.width());
-                                                    canvas.set_height(image.height());
-                                                    let context = canvas
-                                                        .get_context("2d")?
-                                                        .unwrap_abort()
-                                                        .dyn_into::<web_sys::CanvasRenderingContext2d>()?;
-                                                    // Get the data once for all for the whole image
-                                                    // This takes time so better do it once and not repeatly
-                                                    context.draw_image_with_image_bitmap(
-                                                        image, 0.0, 0.0,
+                                                    let worker = create_worker()?;
+
+                                                    //attach_onmessage(&worker);
+                                                    let msg = js_sys::Object::new();
+                                                    js_sys::Reflect::set(
+                                                        &msg,
+                                                        &"bitmap".into(),
+                                                        &image,
                                                     )?;
 
+                                                    // Transfer ownership (zero-copy)
+                                                    let transfer = js_sys::Array::of1(&image);
+                                                    worker.post_message_with_transfer(
+                                                        &msg, &transfer,
+                                                    )?;
+
+                                                    let tile_size = *tile_size;
+                                                    let tile_depth = *tile_depth;
+
+                                                    let num_cols = image.width() / tile_size;
                                                     // Cut the png in several tile images. See page 3 of
                                                     // https://aladin.cds.unistra.fr/java/DocTechHiPS3D.pdf
-                                                    let tile_depth = *tile_depth;
-                                                    let num_cols =
-                                                        (tile_depth as f32).sqrt().floor() as u32;
                                                     let num_rows = ((tile_depth as f32)
                                                         / (num_cols as f32))
                                                         .ceil()
                                                         as u32;
 
-                                                    let tile_size = *tile_size;
+                                                    let canvas = web_sys::OffscreenCanvas::new(
+                                                        image.width(),
+                                                        image.height(),
+                                                    )?;
+                                                    let context = canvas
+                                                            .get_context("2d")?
+                                                            .unwrap_abort()
+                                                            .dyn_into::<web_sys::OffscreenCanvasRenderingContext2d>()?;
+                                                    // Get the data once for all for the whole image
+                                                    // This takes time so better do it once and not repeatly
+                                                    context.draw_image_with_image_bitmap(
+                                                        image, 0.0, 0.0,
+                                                    )?;
 
                                                     let bytes = context
                                                         .get_image_data(
@@ -1841,4 +1851,13 @@ impl App {
     pub(crate) fn is_rendering(&self) -> bool {
         self.rendering
     }
+}
+
+use web_sys::{Worker, WorkerOptions};
+pub fn create_worker() -> Result<Worker, JsValue> {
+    let mut opts = WorkerOptions::new();
+    opts._type(web_sys::WorkerType::Module);
+
+    let worker = Worker::new_with_options("worker.js", &opts)?;
+    Ok(worker)
 }

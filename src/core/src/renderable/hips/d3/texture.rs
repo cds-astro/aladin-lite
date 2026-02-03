@@ -377,7 +377,7 @@ impl HpxFreqTex {
         // size of the cube
         size: (u32, u32, u32),
     ) -> Result<(), JsValue> {
-        let cubic_tile = ImageBuffer::<R16I>::new(decoded_bytes, size.0, size.1, size.2);
+        let cubic_tile = ImageBuffer::<R8U>::new(decoded_bytes, size.0, size.1, size.2);
 
         cubic_tile.insert_into_3d_texture(&self.texture, &Vector3::<i32>::new(0, 0, 0))?;
 

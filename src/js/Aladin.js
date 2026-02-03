@@ -440,6 +440,7 @@ export let Aladin = (function () {
             if (typeof hips === "string") {
                 try {
                     url = new URL(hips).href;
+                    id = url;
                 } catch (e) {
                     id = hips;
                 }
@@ -473,6 +474,8 @@ export let Aladin = (function () {
             if (name) {
                 hipsObj["name"] = name;
             }
+
+            console.log(hipsObj)
 
             // Merge what is already in the cache for that HiPS with new properties
             // coming from the MOCServer
@@ -630,10 +633,10 @@ export let Aladin = (function () {
 
         ////////////////////////////////////////////////////
         let widgets = {};
-
+        let stack;
         // Add the layers control
         if (options.showLayersControl) {
-            let stack = new Stack(this);
+            stack = new Stack(this);
             widgets["stack"] = stack
         }
 
@@ -683,7 +686,7 @@ export let Aladin = (function () {
         }
 
         if (options.expandLayersControl) {
-            stack.click();
+            stack && stack.click();
         }
 
         this._applyMediaQueriesUI();

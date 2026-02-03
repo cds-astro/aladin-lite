@@ -1026,8 +1026,8 @@ export let View = (function () {
                 view.colorPickerTool.domElement.style.display = "none"
             }
 
-            view.colorPickerTool.domElement.style.left = `${xymouse.x}px`;
-            view.colorPickerTool.domElement.style.top = `${xymouse.y}px`;
+            view.colorPickerTool.domElement.style.left = `${xymouse.x + view.aladin.aladinDiv.getBoundingClientRect().x}px`;
+            view.colorPickerTool.domElement.style.top = `${xymouse.y + view.aladin.aladinDiv.getBoundingClientRect().y}px`;
         }
 
         Utils.on(view.catalogCanvas, "mousemove touchmove", function (e) {

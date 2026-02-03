@@ -343,7 +343,6 @@
     color: #222;
 
     /* Allow scrolling but disable scroll bar */
-    height: min-content;
     width: min-content;
 
     border: var(--border-size) solid var(--border-color);

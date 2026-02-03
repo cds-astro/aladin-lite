@@ -46,7 +46,7 @@ export class ColorPicker extends ActionButton {
             classList: ['aladin-colorPicker-control'],
             size: 'medium',
             tooltip: {
-                content: 'A color picker tool',
+                content: 'Pixel value extractor',
                 position: { direction: 'top right' },
             },
             action(o) {
@@ -70,7 +70,7 @@ export class ColorPicker extends ActionButton {
             if (this.aladin.statusBar) {
                 this.aladin.statusBar.appendMessage({
                     id: 'colorpicker',
-                    message: 'Color picker mode, click on a pixel to copy it',
+                    message: 'Pixel value extractor, click on a pixel to copy it',
                     type: 'info'
                 })
             }

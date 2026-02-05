@@ -215,7 +215,7 @@ impl ProjetedGrid {
                 let start_lon = bbox.lon_min() - (bbox.lon_min() % step_lon);
                 let mut stop_lon = bbox.lon_max();
                 if bbox.all_lon() {
-                    stop_lon -= 1e-3;
+                    stop_lon += 1e-3;
                 }
 
                 let mut meridians = vec![];

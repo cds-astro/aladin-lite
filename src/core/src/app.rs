@@ -708,6 +708,43 @@ impl App {
                                                         &msg, &transfer,
                                                     )?;
 
+                                                    let onmessage = Closure::<
+                                                        dyn FnMut(web_sys::MessageEvent),
+                                                    >::new(
+                                                        move |event: web_sys::MessageEvent| {
+                                                            let data = event.data();
+
+                                                            let width = js_sys::Reflect::get(
+                                                                &data,
+                                                                &"width".into(),
+                                                            )
+                                                            .unwrap();
+                                                            let height = js_sys::Reflect::get(
+                                                                &data,
+                                                                &"height".into(),
+                                                            )
+                                                            .unwrap();
+
+                                                            let width: u32 =
+                                                                width.as_f64().unwrap() as u32;
+                                                            let height: u32 =
+                                                                height.as_f64().unwrap() as u32;
+
+                                                            web_sys::console::log_2(
+                                                                &"Worker replied:".into(),
+                                                                &format!("{width} x {height}")
+                                                                    .into(),
+                                                            );
+                                                        },
+                                                    );
+
+                                                    worker.set_onmessage(Some(
+                                                        onmessage.as_ref().unchecked_ref(),
+                                                    ));
+
+                                                    // 🚨 VERY IMPORTANT: prevent the closure from being dropped
+                                                    onmessage.forget();
+
                                                     let tile_size = *tile_size;
                                                     let tile_depth = *tile_depth;
 
@@ -1855,9 +1892,26 @@ impl App {
 
 use web_sys::{Worker, WorkerOptions};
 pub fn create_worker() -> Result<Worker, JsValue> {
-    let mut opts = WorkerOptions::new();
-    opts._type(web_sys::WorkerType::Module);
+    // JS source code of the worker
+    let worker_source = r#"
+        self.onmessage = (e) => {
+            const { bitmap } = e.data;
+            self.postMessage({
+                width: bitmap.width,
+                height: bitmap.height,
+            });
+        };
+    "#;
 
-    let worker = Worker::new_with_options("worker.js", &opts)?;
+    // Create Blob
+    let parts = js_sys::Array::of1(&JsValue::from_str(worker_source));
+    let blob = web_sys::Blob::new_with_str_sequence(&parts)?;
+
+    // Create object URL
+    let url = web_sys::Url::create_object_url_with_blob(&blob)?;
+
+    let opts = WorkerOptions::new();
+
+    let worker = Worker::new_with_options(&url, &opts)?;
     Ok(worker)
 }

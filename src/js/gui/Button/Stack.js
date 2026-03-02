@@ -56,7 +56,7 @@ import stackOverlayIconUrl from "./../../../../assets/icons/stack.svg";
             tooltip: {
                 content: 'Open the overlays menu',
                 position: {
-                    direction: (options && options.openDirection) || 'left'
+                    direction: (options && options.openDirection) || 'top'
                 }
             },
         });

@@ -7,7 +7,7 @@
     overscroll-behavior-x: none;
     overscroll-behavior-y: none; /* Prevents vertical pull-to-refresh */
     /* Hide the draggable boxes that goes out of the view */
-    overflow: hidden;
+    /*overflow: hidden;*/
     /* media query on the aladin lite container. not supported everywhere.
     There can be a more supported alternative here: https://caniuse.com/?search=grid-template-columns */
     /*container-type: inline-size;*/

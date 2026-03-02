@@ -656,7 +656,7 @@ export let View = (function () {
                 view.aladin.statusBar.removeMessage('opening-ctxmenu')
             }
 
-            view.aladin.contextMenu && view.aladin.contextMenu.show({e});
+            view.aladin.contextMenu && view.aladin.contextMenu._show({e});
         };
         var longTouchTimer;
         var longTouchDuration = 800;
@@ -724,7 +724,6 @@ export let View = (function () {
         }
         var touchStartTime;
         Utils.on(view.catalogCanvas, "mousedown touchstart", function (e) {
-            e.preventDefault();
             e.stopPropagation();
 
             const xymouse = Utils.relMouseCoords(e);
@@ -823,7 +822,6 @@ export let View = (function () {
 
         Utils.on(view.catalogCanvas, "click", function (e) {
             // call listener of 'click' event
-            
             if (view.mode == View.TOOL_SIMBAD_POINTER) {
                 // call Simbad pointer or Planetary features
                 GenericPointer(view, e);
@@ -844,7 +842,6 @@ export let View = (function () {
                     })
                 return; // listeners are not called
             }
-
         });
 
         Utils.on(document, "mouseup touchend", function(e) {

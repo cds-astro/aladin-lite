@@ -475,8 +475,6 @@ export let Aladin = (function () {
                 hipsObj["name"] = name;
             }
 
-            console.log(hipsObj)
-
             // Merge what is already in the cache for that HiPS with new properties
             // coming from the MOCServer
             this.hipsFavorites.push(hipsObj);

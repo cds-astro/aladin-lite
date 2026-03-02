@@ -107,7 +107,7 @@ A.aladin = function (divSelector, options) {
     }
     
     let theme;
-    if (options.mode) {
+    if (options && options.mode) {
         let mode = options.mode.toLowerCase();
 
         if (mode === 'dark' || mode === 'light') {

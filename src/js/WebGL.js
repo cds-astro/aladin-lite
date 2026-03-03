@@ -28,9 +28,7 @@ export let WebGLCtx = (function() {
     function WebGLCtx(ctx, div) {
         this.webclient = new ctx.WebClient(
             div,
-            {
-                'kernel': kernel,
-            }
+            { 'kernel': kernel }
         );
     };
 

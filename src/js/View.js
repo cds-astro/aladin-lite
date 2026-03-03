@@ -640,10 +640,17 @@ export let View = (function () {
 
         // prevent default context menu from appearing (potential clash with right-click cuts control)
         Utils.on(view.catalogCanvas, "contextmenu", function (e) {
-            // do something here...
             e.preventDefault();
-            if(view.aladin.contextMenu) {
+            let ctxMenu = view.aladin.contextMenu;
+            if(ctxMenu) {
                 e.stopPropagation();
+                if (!view.rightClick && showContextMenu) {
+                    ctxMenu.attach(
+                        DefaultActionsForContextMenu.getDefaultActions(view.aladin),
+                        null
+                    );
+                    ctxMenu._show({e});
+                }
             }
         });
 
@@ -736,7 +743,6 @@ export let View = (function () {
                 state: {
                     mode: view.mode,
                     dragging: view.dragging,
-                    rightClickPressed: view.rightClick
                 },
                 type: e.type,
                 xy: xymouse,
@@ -874,7 +880,6 @@ export let View = (function () {
                 state: {
                     mode: view.mode,
                     dragging: view.dragging,
-                    rightClickPressed: view.rightClick
                 },
                 type: e.type,
                 ev: e,
@@ -945,7 +950,7 @@ export let View = (function () {
                 }
 
                 view.rightClick = false;
-
+                showContextMenu = true;
                 return;
             }
 
@@ -1036,7 +1041,6 @@ export let View = (function () {
                 state: {
                     mode: view.mode,
                     dragging: view.dragging,
-                    rightClickPressed: view.rightClick
                 },
                 type: e.type,
                 xy: xymouse,
@@ -1273,7 +1277,6 @@ export let View = (function () {
                 state: {
                     mode: view.mode,
                     dragging: view.dragging,
-                    rightClickPressed: view.rightClick
                 },
                 type: e.type,
                 xy: xymouse,

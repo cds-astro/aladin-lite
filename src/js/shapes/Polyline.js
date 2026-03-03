@@ -45,7 +45,8 @@ import { ProjectionEnum } from "../ProjectionEnum.js";
 * @property {string} [color] - The color of the shape
 * @property {string} [fill=false] - Fill the shape with fillColor
 * @property {string} [fillColor] - A filling color for the shape
-* @property {number} [lineWidth=3] - The line width in pixels
+* @property {number} [lineWidth=2] - The line width in pixels (inherited from overlay if any where it defaults to 3)
+* @property {number} [selectionLineWidth=lineWidth] - The line width in pixels when the shape is selected
 * @property {number} [opacity=1] - The opacity, between 0 (totally transparent) and 1 (totally opaque)
 * @property {string} [selectionColor='#00ff00'] - A selection color
 * @property {string} [hoverColor] -  A hovered color
@@ -75,7 +76,7 @@ export let Polyline = (function() {
      * @param {Array.<number[]>} raDecArray - right-ascension/declination 2-tuple array describing the polyline's vertices in degrees
      * @param {ShapeOptions} options - Configuration options for the polyline. Additional properties:
      * @param {boolean} [options.closed=false] - Close the polyline, default to false.
-     * 
+     *
      * @returns {Polyline} - The polyline shape object
      */
     let Polyline = function(raDecArray, options) {
@@ -85,6 +86,7 @@ export let Polyline = (function() {
         this.fillColor = options['fillColor'] || undefined;
         this.opacity   = options['opacity']   || undefined;
         this.lineWidth = options["lineWidth"] || undefined;
+        this.selectionLineWidth = options["selectionLineWidth"] || undefined;
         this.selectionColor = options["selectionColor"] || '#00ff00';
         this.hoverColor = options["hoverColor"] || undefined;
 
@@ -151,6 +153,7 @@ export let Polyline = (function() {
         }
         this.isHovered = true;
         this.setLineWidth(this.getLineWidth() + 2)
+        this.setSelectionLineWidth(this.getSelectionLineWidth() + 2)
         if (this.overlay) {
             this.overlay.reportChange();
         }
@@ -162,6 +165,7 @@ export let Polyline = (function() {
         }
         this.isHovered = false;
         this.setLineWidth(this.getLineWidth() - 2)
+        this.setSelectionLineWidth(this.getSelectionLineWidth() - 2)
         if (this.overlay) {
             this.overlay.reportChange();
         }
@@ -177,6 +181,21 @@ export let Polyline = (function() {
         }
 
         this.lineWidth = lineWidth;
+        if (this.overlay) {
+            this.overlay.reportChange();
+        }
+    };
+
+    Polyline.prototype.getSelectionLineWidth = function() {
+        return this.selectionLineWidth;
+    };
+
+    Polyline.prototype.setSelectionLineWidth = function(selectionLineWidth) {
+        if (this.selectionLineWidth == selectionLineWidth) {
+            return;
+        }
+
+        this.selectionLineWidth = selectionLineWidth;
         if (this.overlay) {
             this.overlay.reportChange();
         }
@@ -239,8 +258,13 @@ export let Polyline = (function() {
             baseColor = '#ff0000';
         }
 
+        // Decide which line width to use.
         if (!this.lineWidth) {
             this.lineWidth = (this.overlay && this.overlay.lineWidth) || 2;
+        }
+        var drawingLineWidth = this.lineWidth;
+        if (this.isSelected && this.selectionLineWidth) {
+            drawingLineWidth = this.selectionLineWidth;
         }
 
         if (this.isSelected) {
@@ -293,7 +317,7 @@ export let Polyline = (function() {
 
         // do not draw neither if the polygone does not lie inside lineWidth
         if (!noSmallCheck) {
-            this.isTooSmall = (xmax - xmin) < this.lineWidth && (ymax - ymin) < this.lineWidth;
+            this.isTooSmall = (xmax - xmin) < drawingLineWidth && (ymax - ymin) < drawingLineWidth;
 
             if (this.isTooSmall) {
                 return false;
@@ -374,7 +398,7 @@ export let Polyline = (function() {
         let v1 = this.closed ? 0 : 1;
 
         ctx.globalAlpha = this.opacity;
-        ctx.lineWidth = this.lineWidth;
+        ctx.lineWidth = drawingLineWidth;
         ctx.beginPath();
 
         for (var k = 0; k < nSegment; k++) {
@@ -449,7 +473,7 @@ export let Polyline = (function() {
             if (v1 && v2) {
                 const line = {x1: v1.x, y1: v1.y, x2: v2.x, y2: v2.y};                                   // new segment
                 _drawLine(line, ctx);
-    
+
                 if (ctx.isPointInStroke(x, y)) {                    // x,y is on line?
                     return true;
                 }
@@ -494,7 +518,6 @@ export let Polyline = (function() {
         }
 
         if (this.closed && poly.length === this.raDecArray.length) {
-            console.log("closed poly")
             const corners = [
                 { x,  y },
                 { x: x + w, y },
@@ -583,7 +606,7 @@ export let Polyline = (function() {
         let right =  Polyline.segmentsIntersect({x: x1, y: y1}, {x: x2, y: y2}, {x: rw, y: 0}, {x: rw, y: rh});
         let top =    Polyline.segmentsIntersect({x: x1, y: y1}, {x: x2, y: y2}, {x: 0, y: 0}, {x: rw, y: 0});
         let bottom = Polyline.segmentsIntersect({x: x1, y: y1}, {x: x2, y: y2}, {x: 0, y: rh}, {x: rw, y: rh});
-    
+
         // if ANY of the above are true, the line
         // has hit the rectangle
         if (left || right || top || bottom) {

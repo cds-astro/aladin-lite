@@ -29,6 +29,25 @@
  * 
  *****************************************************************************/
 
+
+/**
+* @typedef {Object} SourceOptions
+* @description Options for describing a source
+*
+* @property {boolean} [marker=false] - If the source is a marker. A source marker is associated to a popup that is shown when clicking on it.
+* @property {string} [popupTitle=''] - Only for marker. The title of the popup.
+* @property {string} [popupDesc=''] - Only for marker. The content of the popup.
+* @property {number} [useMarkerDefaultIcon=true] - Only for marker. Set to false to use the regular shape option from the catalog and not the specific marker shape.
+*/
+
+/**
+* @typedef {Object} MarkerOptions
+* @description Options for describing a source marker
+*
+* @property {string} [popupTitle=''] - Only for marker. The title of the popup.
+* @property {string} [popupDesc=''] - Only for marker. The content of the popup.
+* @property {number} [useMarkerDefaultIcon=true] - Only for marker. Set to false to use the regular shape option from the catalog and not the specific marker shape.
+*/
 export let Source = (function() {
     // constructor
     let Source = function(ra, dec, data, options) {
@@ -179,7 +198,9 @@ export let Source = (function() {
                 view.aladin.popup.setTitle(this.popupTitle);
                 view.aladin.popup.setText(this.popupDesc);
                 view.aladin.popup.setSource(this);
-                view.aladin.popup.show();
+
+                if (this.popupDesc || this.popupTitle)
+                    view.aladin.popup.show();
     
                 return;
             }

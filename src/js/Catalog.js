@@ -143,19 +143,6 @@ export let Catalog = (function () {
         // cacheCanvas permet de ne créer le path de la source qu'une fois, et de le réutiliser (cf. http://simonsarris.com/blog/427-increasing-performance-by-caching-paths-on-canvas)
         this.updateShape(options);
 
-        this.cacheMarkerCanvas = document.createElement("canvas");
-        this.cacheMarkerCanvas.width = this.markerSize;
-        this.cacheMarkerCanvas.height = this.markerSize;
-        var cacheMarkerCtx = this.cacheMarkerCanvas.getContext("2d");
-        cacheMarkerCtx.fillStyle = this.color;
-        cacheMarkerCtx.beginPath();
-        var half = this.markerSize / 2;
-        cacheMarkerCtx.arc(half, half, half - 2, 0, 2 * Math.PI, false);
-        cacheMarkerCtx.fill();
-        cacheMarkerCtx.lineWidth = 2;
-        cacheMarkerCtx.strokeStyle = "#ccc";
-        cacheMarkerCtx.stroke();
-
         this.isShowing = true;
     }
 
@@ -518,6 +505,21 @@ export let Catalog = (function () {
         this.hoverColor = options.hoverColor || this.hoverColor || undefined;
         this.sourceSize = options.sourceSize || this.sourceSize || 6;
         this.shape = options.shape || this.shape || "square";
+
+        this.markerSize = this.sourceSize;
+        this.cacheMarkerCanvas = document.createElement("canvas");
+        this.cacheMarkerCanvas.width = this.markerSize;
+        this.cacheMarkerCanvas.height = this.markerSize;
+        var cacheMarkerCtx = this.cacheMarkerCanvas.getContext("2d");
+        cacheMarkerCtx.fillStyle = this.color;
+        cacheMarkerCtx.beginPath();
+        var half = this.markerSize / 2;
+        cacheMarkerCtx.arc(half, half, half - 2, 0, 2 * Math.PI, false);
+        cacheMarkerCtx.fill();
+        cacheMarkerCtx.lineWidth = 2;
+        cacheMarkerCtx.strokeStyle = '#ccc';
+        cacheMarkerCtx.stroke();
+
         if (typeof this.shape === "function") {
             this.shapeFn = this.shape;
             this.shape = "custom"

@@ -1,6 +1,7 @@
 use std::cmp::Ordering;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(serde::Deserialize, serde::Serialize)]
 pub struct HEALPixCell(pub u8, pub u64);
 
 #[derive(Debug)]
@@ -493,6 +494,7 @@ impl Ord for HEALPixCell {
 
 /// A simple object describing a cubic tile of a HiPS3D
 #[derive(Eq, Hash, PartialEq, Clone, Debug)]
+#[derive(serde::Deserialize, serde::Serialize)]
 pub struct HEALPixFreqCell {
     pub hpx: HEALPixCell,
     pub f_hash: u64,

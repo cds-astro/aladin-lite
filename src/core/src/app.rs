@@ -62,6 +62,7 @@ pub struct App {
     //ui: GuiRef,
     shaders: ShaderManager,
     pub camera: CameraViewPort,
+    worker: Worker,
 
     downloader: Rc<RefCell<Downloader>>,
     tile_fetcher: TileFetcherQueue,
@@ -104,6 +105,9 @@ pub struct App {
     colormaps: Colormaps,
 
     pub projection: ProjectionType,
+
+    cubic_tile_send: async_channel::Sender<WorkerResponse>,
+    cubic_tile_recv: async_channel::Receiver<WorkerResponse>,
 
     // Async data receivers
     //img_send: async_channel::Sender<ImageLayer>,
@@ -199,8 +203,7 @@ impl App {
 
         let (_, img_recv) = async_channel::unbounded::<ImageLayer>();
         let (ack_img_send, _) = async_channel::unbounded::<ImageParams>();
-
-        //let line_renderer = RasterizedLineRenderer::new(&gl)?;
+        let (cubic_tile_send, cubic_tile_recv) = async_channel::unbounded::<WorkerResponse>();
 
         let dist_dragging = 0.0;
         let time_start_dragging = Time::now();
@@ -210,6 +213,49 @@ impl App {
         let browser_features_support = BrowserFeaturesSupport::new();
 
         let vel_history = vec![];
+        let worker = create_worker()?;
+        // Send the ack to the js promise so that she finished
+        let cubic_tile_send2 = cubic_tile_send.clone();
+
+        let onmessage = Closure::<
+            dyn FnMut(web_sys::MessageEvent),
+        >::new(
+            move |event: web_sys::MessageEvent| {
+                let data = event.data();
+
+                let bytes_js = js_sys::Reflect::get(&data, &"bytes".into())
+                    .unwrap()
+                    .dyn_into::<js_sys::Uint8Array>()
+                    .expect("is not a uint8 buffer");
+
+                // Zero-copy clone from JS memory
+                let mut bytes = vec![0u8; bytes_js.length() as usize];
+                bytes_js.copy_to(&mut bytes);
+
+                let meta: WorkerResponseMeta = serde_wasm_bindgen::from_value(data).unwrap();
+
+                let response = WorkerResponse {
+                    bytes,
+                    tile_size: meta.tile_size,
+                    tile_depth: meta.tile_depth,
+                    time_request: meta.time_request,
+                    cell: meta.cell,
+                    hips_cdid: meta.hips_cdid
+                };
+                let cubic_tile_send3 = cubic_tile_send2.clone();
+
+                wasm_bindgen_futures::spawn_local(async move {
+                    cubic_tile_send3.send(response).await.unwrap_throw();
+                })
+            },
+        );
+
+        worker.set_onmessage(Some(
+            onmessage.as_ref().unchecked_ref(),
+        ));
+
+        // 🚨 VERY IMPORTANT: prevent the closure from being dropped
+        onmessage.forget();
         Ok(App {
             gl,
             //ui,
@@ -247,6 +293,7 @@ impl App {
             time_mouse_high_vel,
             dragging,
             vel_history,
+            worker,
 
             prev_cam_position,
             out_of_fov,
@@ -262,6 +309,8 @@ impl App {
             //img_send,
             img_recv,
             ack_img_send,
+            cubic_tile_send,
+            cubic_tile_recv,
 
             browser_features_support, //ack_img_recv,
         })
@@ -543,6 +592,19 @@ impl App {
             })
         }
 
+        if let Ok(WorkerResponse { cell, hips_cdid, tile_size, tile_depth, bytes, time_request, .. }) = self.cubic_tile_recv.try_recv() {
+            if let Some(HiPS::D3(hips)) = self.layers.get_mut_hips_from_cdid(&hips_cdid) {
+                hips.push_tile_from_png(
+                    &cell,
+                    bytes.into_boxed_slice(),
+                    (tile_size, tile_size, tile_depth),
+                    Time::now(),
+                )?;
+            }
+
+            self.request_redraw = true;
+        }
+
         let has_camera_moved = self.camera.has_moved();
 
         {
@@ -692,139 +754,45 @@ impl App {
                                                 ImageType::ImageRgba8u {
                                                     image: Bitmap { image, .. },
                                                 } => {
-                                                    let worker = create_worker()?;
-
-                                                    //attach_onmessage(&worker);
                                                     let msg = js_sys::Object::new();
                                                     js_sys::Reflect::set(
                                                         &msg,
                                                         &"bitmap".into(),
                                                         &image,
                                                     )?;
+                                                    js_sys::Reflect::set(
+                                                        &msg,
+                                                        &"tileSize".into(),
+                                                        &JsValue::from_f64(*tile_size as f64),
+                                                    )?;
+                                                    js_sys::Reflect::set(
+                                                        &msg,
+                                                        &"tileDepth".into(),
+                                                        &JsValue::from_f64(*tile_depth as f64),
+                                                    )?;
+                                                    js_sys::Reflect::set(
+                                                        &msg,
+                                                        &"timeRequest".into(),
+                                                        &JsValue::from_f64(tile.request.time_request.as_millis() as f64),
+                                                    )?;
+                                                    js_sys::Reflect::set(
+                                                        &msg,
+                                                        &"cell".into(),
+                                                        &serde_wasm_bindgen::to_value(&cell)
+                                                            .expect("Failed to serialize")
+                                                    )?;
+
+                                                    js_sys::Reflect::set(
+                                                        &msg,
+                                                        &"HiPS".into(),
+                                                        &JsValue::from_str(&tile.hips_cdid),
+                                                    )?;
 
                                                     // Transfer ownership (zero-copy)
                                                     let transfer = js_sys::Array::of1(&image);
-                                                    worker.post_message_with_transfer(
+
+                                                    self.worker.post_message_with_transfer(
                                                         &msg, &transfer,
-                                                    )?;
-
-                                                    let onmessage = Closure::<
-                                                        dyn FnMut(web_sys::MessageEvent),
-                                                    >::new(
-                                                        move |event: web_sys::MessageEvent| {
-                                                            let data = event.data();
-
-                                                            let width = js_sys::Reflect::get(
-                                                                &data,
-                                                                &"width".into(),
-                                                            )
-                                                            .unwrap();
-                                                            let height = js_sys::Reflect::get(
-                                                                &data,
-                                                                &"height".into(),
-                                                            )
-                                                            .unwrap();
-
-                                                            let width: u32 =
-                                                                width.as_f64().unwrap() as u32;
-                                                            let height: u32 =
-                                                                height.as_f64().unwrap() as u32;
-
-                                                            web_sys::console::log_2(
-                                                                &"Worker replied:".into(),
-                                                                &format!("{width} x {height}")
-                                                                    .into(),
-                                                            );
-                                                        },
-                                                    );
-
-                                                    worker.set_onmessage(Some(
-                                                        onmessage.as_ref().unchecked_ref(),
-                                                    ));
-
-                                                    // 🚨 VERY IMPORTANT: prevent the closure from being dropped
-                                                    onmessage.forget();
-
-                                                    let tile_size = *tile_size;
-                                                    let tile_depth = *tile_depth;
-
-                                                    let num_cols = image.width() / tile_size;
-                                                    // Cut the png in several tile images. See page 3 of
-                                                    // https://aladin.cds.unistra.fr/java/DocTechHiPS3D.pdf
-                                                    let num_rows = ((tile_depth as f32)
-                                                        / (num_cols as f32))
-                                                        .ceil()
-                                                        as u32;
-
-                                                    let canvas = web_sys::OffscreenCanvas::new(
-                                                        image.width(),
-                                                        image.height(),
-                                                    )?;
-                                                    let context = canvas
-                                                            .get_context("2d")?
-                                                            .unwrap_abort()
-                                                            .dyn_into::<web_sys::OffscreenCanvasRenderingContext2d>()?;
-                                                    // Get the data once for all for the whole image
-                                                    // This takes time so better do it once and not repeatly
-                                                    context.draw_image_with_image_bitmap(
-                                                        image, 0.0, 0.0,
-                                                    )?;
-
-                                                    let bytes = context
-                                                        .get_image_data(
-                                                            0_f64,
-                                                            0_f64,
-                                                            (num_cols * tile_size) as f64,
-                                                            (num_rows * tile_size) as f64,
-                                                        )?
-                                                        .data()
-                                                        .0;
-
-                                                    let mut decoded_bytes = vec![
-                                                        0_u8;
-                                                        (tile_size * tile_size * tile_depth * 2)
-                                                            as usize
-                                                    ];
-
-                                                    let mut k = 0;
-                                                    let mut num_tiles_cropped = 0;
-                                                    for y in 0..num_rows {
-                                                        let sy = y * tile_size;
-
-                                                        for x in 0..num_cols {
-                                                            let sx = x * tile_size;
-
-                                                            for i in sy..(sy + tile_size) {
-                                                                for j in sx..(sx + tile_size) {
-                                                                    let id_byte = (j + i
-                                                                        * num_cols
-                                                                        * tile_size)
-                                                                        * 4;
-
-                                                                    decoded_bytes[k] =
-                                                                        bytes[id_byte as usize];
-                                                                    decoded_bytes[k + 1] =
-                                                                        bytes[id_byte as usize + 3];
-                                                                    k += 2;
-                                                                }
-                                                            }
-
-                                                            num_tiles_cropped += 1;
-
-                                                            if num_tiles_cropped == tile_depth {
-                                                                break;
-                                                            }
-                                                        }
-                                                        if num_tiles_cropped == tile_depth {
-                                                            break;
-                                                        }
-                                                    }
-
-                                                    hips.push_tile_from_png(
-                                                        cell,
-                                                        decoded_bytes.into_boxed_slice(),
-                                                        (tile_size, tile_size, tile_depth),
-                                                        tile.request.time_request,
                                                     )?;
                                                 }
                                                 ImageType::ImageRgb8u {
@@ -1890,16 +1858,126 @@ impl App {
     }
 }
 
+use serde::Deserialize;
+
+#[derive(Deserialize, Debug)]
+pub struct WorkerResponse {
+    #[serde(rename = "tileSize")]
+    pub tile_size: u32,
+
+    #[serde(rename = "tileDepth")]
+    pub tile_depth: u32,
+
+    pub bytes: Vec<u8>,
+
+    #[serde(rename = "timeRequest")]
+    pub time_request: f32,
+
+    #[serde(rename = "HiPSCDid")]
+    pub hips_cdid: String,
+
+    pub cell: HEALPixFreqCell,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct WorkerResponseMeta {
+    #[serde(rename = "tileSize")]
+    pub tile_size: u32,
+
+    #[serde(rename = "tileDepth")]
+    pub tile_depth: u32,
+
+    #[serde(rename = "timeRequest")]
+    pub time_request: f32,
+
+    #[serde(rename = "HiPSCDid")]
+    pub hips_cdid: String,
+
+    pub cell: HEALPixFreqCell,
+}
+
 use web_sys::{Worker, WorkerOptions};
 pub fn create_worker() -> Result<Worker, JsValue> {
     // JS source code of the worker
     let worker_source = r#"
         self.onmessage = (e) => {
-            const { bitmap } = e.data;
-            self.postMessage({
-                width: bitmap.width,
-                height: bitmap.height,
-            });
+            const { bitmap, tileDepth, tileSize, timeRequest, HiPS, cell } = e.data;
+
+            // Compute tiling layout
+            const numCols = Math.floor(bitmap.width / tileSize);
+
+            // See HiPS3D doc
+            const numRows = Math.ceil(tileDepth / numCols);
+
+            // Create OffscreenCanvas
+            const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+            const context = canvas.getContext("2d");
+
+            // Draw full image once
+            context.drawImage(bitmap, 0, 0);
+
+            // Extract full region needed
+            const imageData = context.getImageData(
+                0,
+                0,
+                numCols * tileSize,
+                numRows * tileSize
+            );
+
+            const bytes = imageData.data; // Uint8ClampedArray (RGBA)
+
+            // Allocate output buffer (2 bytes per pixel)
+            const decodedBytes = new Uint8Array(
+                tileSize * tileSize * tileDepth * 2
+            );
+
+            let k = 0;
+            let numTilesCropped = 0;
+
+            for (let y = 0; y < numRows; y++) {
+                const sy = y * tileSize;
+
+                for (let x = 0; x < numCols; x++) {
+                    const sx = x * tileSize;
+
+                    for (let i = sy; i < sy + tileSize; i++) {
+                        for (let j = sx; j < sx + tileSize; j++) {
+
+                            const idByte = (j + i * numCols * tileSize) * 4;
+
+                            // Copy R channel
+                            decodedBytes[k] = bytes[idByte];
+
+                            // Copy A channel
+                            decodedBytes[k + 1] = bytes[idByte + 3];
+
+                            k += 2;
+                        }
+                    }
+
+                    numTilesCropped++;
+
+                    if (numTilesCropped === tileDepth) {
+                        break;
+                    }
+                }
+
+                if (numTilesCropped === tileDepth) {
+                    break;
+                }
+            }
+
+            self.postMessage(
+                {
+                    tileSize,
+                    tileDepth,
+                    timeRequest,
+                    HiPSCDid: HiPS,
+                    cell,
+                    bytes: decodedBytes,
+                },
+                [decodedBytes.buffer] // transfer of ownership
+            );
         };
     "#;
 

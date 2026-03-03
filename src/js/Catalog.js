@@ -1121,7 +1121,7 @@ export let Catalog = (function () {
             return;
         }
 
-        ctx.fillText(label, s.x, s.y);
+        ctx.fillText(label, s.x + this.sourceSize / 2, s.y);
     };
 
     // callback function to be called when the status of one of the sources has changed

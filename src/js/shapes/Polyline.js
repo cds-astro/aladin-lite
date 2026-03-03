@@ -45,7 +45,7 @@ import { ProjectionEnum } from "../ProjectionEnum.js";
 * @property {string} [color] - The color of the shape
 * @property {string} [fill=false] - Fill the shape with fillColor
 * @property {string} [fillColor] - A filling color for the shape
-* @property {number} [lineWidth=2] - The line width in pixels (inherited from overlay if any where it defaults to 3)
+* @property {number} [lineWidth=2] - The line width in pixels (inherited from overlay, if any, where it defaults to 3)
 * @property {number} [selectionLineWidth=lineWidth] - The line width in pixels when the shape is selected
 * @property {number} [opacity=1] - The opacity, between 0 (totally transparent) and 1 (totally opaque)
 * @property {string} [selectionColor='#00ff00'] - A selection color

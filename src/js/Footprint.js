@@ -51,6 +51,7 @@ export let Footprint= (function() {
         this.shapes = [].concat(shapes);
 
         this.isShowing = true;
+    	this.isSelected = false;
         this.isHovered = false;
 
         this.overlay = null;
@@ -71,7 +72,7 @@ export let Footprint= (function() {
     /*Footprint.prototype.setCatalog = function(catalog) {
         if (this.source) {
             this.source.setCatalog(catalog);
-        
+
         }
     };*/
 
@@ -94,10 +95,12 @@ export let Footprint= (function() {
     };
 
     Footprint.prototype.select = function() {
+    	this.isSelected = true;
         this.shapes.forEach((shape) => shape.select())
     };
 
     Footprint.prototype.deselect = function() {
+    	this.isSelected = false;
         this.shapes.forEach((shape) => shape.deselect())
     };
 
@@ -135,6 +138,14 @@ export let Footprint= (function() {
 
     Footprint.prototype.setLineWidth = function(lineWidth) {
         this.shapes.forEach((shape) => shape.setLineWidth(lineWidth))
+    };
+
+    Footprint.prototype.getSelectionLineWidth = function() {
+        return this.shapes && this.shapes[0].getSelectionLineWidth();
+    };
+
+    Footprint.prototype.setSelectionLineWidth = function(selectionLineWidth) {
+        this.shapes.forEach((shape) => shape.setSelectionLineWidth(selectionLineWidth))
     };
 
     Footprint.prototype.setColor = function(color) {

@@ -397,7 +397,7 @@ export let View = (function () {
 
         var computedWidth = Math.floor(parseFloat(this.aladinDiv.getBoundingClientRect().width)) || 1.0;
         var computedHeight = Math.floor(parseFloat(this.aladinDiv.getBoundingClientRect().height)) || 1.0;
-        
+
         this.width = Math.max(computedWidth, 1);
         this.height = Math.max(computedHeight, 1); // this prevents many problems when div size is equal to 0
 
@@ -673,7 +673,7 @@ export let View = (function () {
         var handleSelect = function(xy, tolerance) {
             tolerance = tolerance || 5;
             var objs = view.closestObjects(xy.x, xy.y, tolerance);
-            
+
             view.unselectObjects();
 
             if (objs) {
@@ -717,7 +717,7 @@ export let View = (function () {
                 view.selectObjects(objs);
 
                 view.lastClickedObject = objs;
-                
+
             } else {
                 // If there is a past clicked object
                 if (view.lastClickedObject) {
@@ -779,7 +779,7 @@ export let View = (function () {
                     })
                 }
 
-                longTouchTimer = setTimeout(() => {onlongtouch(e); view.dragging = false;}, longTouchDuration); 
+                longTouchTimer = setTimeout(() => {onlongtouch(e); view.dragging = false;}, longTouchDuration);
                 touchStartTime = Date.now();
 
             }
@@ -851,7 +851,7 @@ export let View = (function () {
         });
 
         Utils.on(document, "mouseup touchend", function(e) {
-            var wasDragging = view.realDragging === true;            
+            var wasDragging = view.realDragging === true;
 
             if (view.dragging) { // if we were dragging, reset to default cursor
                 if(view.mode === View.PAN) {
@@ -933,10 +933,10 @@ export let View = (function () {
                 if (e.type === "touchend") {
                     if (view.mode === View.SELECT) {
                         view.selector.dispatch('mouseup', {coo: xymouse})
-                        
+
                         return;
                     }
-                } 
+                }
             }
 
             if (view.rightClick) {
@@ -1165,13 +1165,13 @@ export let View = (function () {
                         if (typeof objHoveredFunction === 'function' && (!lastHoveredObject || !lastHoveredObject.includes(o))) {
                             var ret = objHoveredFunction(o, xymouse);
                         }
-    
+
                         if (o.isFootprint()) {
                             if (typeof footprintHoveredFunction === 'function' && (!lastHoveredObject || !lastHoveredObject.includes(o))) {
                                 var ret = footprintHoveredFunction(o, xymouse);
                             }
                         }
-    
+
                         if (!lastHoveredObject || !lastHoveredObject.includes(o)) {
                             o.hover();
                         }
@@ -1211,7 +1211,7 @@ export let View = (function () {
                             }
                         }
                     }
-                    
+
                     lastHoveredObject = null;
                 }
 
@@ -1286,7 +1286,7 @@ export let View = (function () {
             if (typeof onWheelTriggeredFunction === 'function') {
                 onWheelTriggeredFunction(e)
             } else {
-                // Default Aladin Lite zooming                
+                // Default Aladin Lite zooming
                 const normalizedDelta = e.deltaY && normalizeWheel(e) || e.detail || (-e.wheelDelta);
                 // Accumulate the normalized delta
                 // We do not zoom because we cannot rely on "wheel" event
@@ -1326,7 +1326,7 @@ export let View = (function () {
                     break;
                 default:
                     break;
-                
+
             }
         });
     };
@@ -1588,14 +1588,14 @@ export let View = (function () {
         if (this.manualSelection) {
             return;
         }
-        
+
         // unselect the previous selection
         this.unselectObjects();
-        
+
         if (Array.isArray(selection)) {
             this.selection = selection;
         } else {
-            // select the new 
+            // select the new
             this.selection = Selector.getObjects(selection, this);
         }
 
@@ -1612,7 +1612,7 @@ export let View = (function () {
                     let cat = obj.getCatalog();
 
                     // trigger the non action clicked if it does not show the table
-                    // table show is handled below 
+                    // table show is handled below
                     if (obj.actionClicked) {
                         if (!cat || !cat.onClick || cat.onClick !== "showTable") {
                             obj.actionClicked()
@@ -1642,13 +1642,13 @@ export let View = (function () {
                         } else {
                             source = o;
                         }
-    
+
                         return source;
                     });
 
                     let tableColor = catalog.color;
                     if (catalog.colorFn) {
-                        tableColor = "white" 
+                        tableColor = "white"
                     }
 
                     let table = {
@@ -1658,7 +1658,7 @@ export let View = (function () {
                         'fields': catalog.fields,
                         'showCallback': ObsCore.SHOW_CALLBACKS(this.aladin)
                     };
-    
+
                     return table;
                 })
 
@@ -1994,7 +1994,7 @@ export let View = (function () {
         }
 
         this.projection = ProjectionEnum[projName];
-        
+
         // Change the projection here
         this.wasm.setProjection(projName);
         this.updateZoomState()
@@ -2235,8 +2235,12 @@ export let View = (function () {
 
         footprints.forEach((footprint) => {
             const originLineWidth = footprint.getLineWidth();
-            let spreadedLineWidth = (originLineWidth || 1) + 3;
-            
+            let drawingLineWidth = originLineWidth;
+            if (footprint.isSelected && footprint.getSelectionLineWidth()) {
+                drawingLineWidth = footprint.getSelectionLineWidth();
+            }
+            let spreadedLineWidth = (drawingLineWidth || 1) + 3;
+
             footprint.setLineWidth(spreadedLineWidth);
             if (footprint.isShowing && footprint.isInStroke(ctx, this, x * window.devicePixelRatio, y * window.devicePixelRatio)) {
                 closests.push(footprint);
@@ -2272,8 +2276,12 @@ export let View = (function () {
                     if (s.isFootprint() && !s.tooSmallFootprint) {
                         let footprint = s.footprint;
                         const originLineWidth = footprint.getLineWidth();
-                        let spreadedLineWidth = (originLineWidth || 1) + 3;
-                        
+                        let drawingLineWidth = originLineWidth;
+                        if (footprint.isSelected && footprint.getSelectionLineWidth()) {
+                            drawingLineWidth = footprint.getSelectionLineWidth();
+                        }
+                        let spreadedLineWidth = (drawingLineWidth || 1) + 3;
+
                         footprint.setLineWidth(spreadedLineWidth);
                         if (footprint.isShowing && footprint.isInStroke(ctx, this, x * window.devicePixelRatio, y * window.devicePixelRatio)) {
                             closests.push(s);

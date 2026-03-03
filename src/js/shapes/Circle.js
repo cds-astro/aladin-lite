@@ -52,6 +52,7 @@ export let Circle = (function() {
         this.fillColor = options['fillColor'] || undefined;
         this.lineWidth = options["lineWidth"] || undefined;
         this.selectionColor = options["selectionColor"] || '#00ff00';
+        this.selectionLineWidth = options["selectionLineWidth"] || undefined;
         this.hoverColor = options["hoverColor"] || undefined;
         this.opacity    = options['opacity']   || 1;
 
@@ -112,6 +113,20 @@ export let Circle = (function() {
         return this.lineWidth;
     };
 
+    Circle.prototype.setSelectionLineWidth = function(selectionLineWidth) {
+        if (this.selectionLineWidth == selectionLineWidth) {
+            return;
+        }
+        this.selectionLineWidth = selectionLineWidth;
+        if (this.overlay) {
+            this.overlay.reportChange();
+        }
+    };
+
+    Circle.prototype.getSelectionLineWidth = function() {
+        return this.selectionLineWidth;
+    };
+
     Circle.prototype.setOverlay = function(overlay) {
         this.overlay = overlay;
     };
@@ -162,6 +177,7 @@ export let Circle = (function() {
         }
         this.isHovered = true;
         this.setLineWidth(this.getLineWidth() + 2)
+        this.setSelectionLineWidth(this.getSelectionLineWidth() + 2)
         if (this.overlay) {
             this.overlay.reportChange();
         }
@@ -173,6 +189,7 @@ export let Circle = (function() {
         }
         this.isHovered = false;
         this.setLineWidth(this.getLineWidth() - 2)
+        this.setSelectionLineWidth(this.getSelectionLineWidth() - 2)
 
         if (this.overlay) {
             this.overlay.reportChange();
@@ -203,10 +220,19 @@ export let Circle = (function() {
             return false;
         }
 
+        // Decide which line width to use.
+        if (!this.lineWidth) {
+            this.lineWidth = (this.overlay && this.overlay.lineWidth) || 2;
+        }
+        let drawingLineWidth = this.lineWidth;
+        if (this.isSelected && this.selectionLineWidth) {
+            drawingLineWidth = this.selectionLineWidth;
+        }
+
         noSmallCheck = noSmallCheck===true || false;
         if (!noSmallCheck) {
             const px_per_deg = view.width / view.fov;
-            this.isTooSmall = this.radiusDegrees * 2 * px_per_deg < this.lineWidth;
+            this.isTooSmall = this.radiusDegrees * 2 * px_per_deg < drawingLineWidth;
             if (this.isTooSmall) {
                 return false;
             }
@@ -302,11 +328,7 @@ export let Circle = (function() {
             ctx.strokeStyle = baseColor;
         }
 
-        if (!this.lineWidth) {
-            this.lineWidth = (this.overlay && this.overlay.lineWidth) || 2;
-        }
-
-        ctx.lineWidth = this.lineWidth;
+        ctx.lineWidth = drawingLineWidth;
         ctx.globalAlpha = this.opacity;
         ctx.beginPath();
         ctx.arc(this.center.x, this.center.y, this.radius, 0, 2*Math.PI, false);
@@ -336,7 +358,7 @@ export let Circle = (function() {
         }
 
         // compute the absolute distance between the middle of the bbox
-        // and the center of the circle 
+        // and the center of the circle
         const circleDistance = {
             x: Math.abs(centerXyview[0] - (x + w/2)),
             y: Math.abs(centerXyview[1] - (y + h/2))

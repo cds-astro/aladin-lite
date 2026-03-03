@@ -22,13 +22,13 @@
 
 /******************************************************************************
  * Aladin Lite project
- * 
+ *
  * Class Vector
- * 
+ *
  * A vector is a graphical overlay connecting 2 points with end or begin arrows on it
- * 
+ *
  * Author: Matthieu Baumann[CDS]
- * 
+ *
  *****************************************************************************/
 import { Polyline } from "./Polyline.js";
 import { Utils } from '../Utils';
@@ -38,7 +38,7 @@ import { Ellipse } from "./Ellipse.js";
 export let Vector = (function() {
     /**
      * Represents an vector.
-     * 
+     *
      * A vector is a graphical overlay connecting 2 sky positions with end or begin arrows on it
      *
      * @class
@@ -49,7 +49,7 @@ export let Vector = (function() {
      * @param {number} dec2 - Declination (Dec) coordinate of the center in degrees.
      * @param {ShapeOptions} options - Options for configuring the vector. Additional properties:
      * @param {boolean} [options.arrow=false] - Add an arrow pointing from (ra1, dec1) to (ra2, dec2)
-     * 
+     *
      * @returns {Vector} - The vector shape object
      */
     let Vector = function(ra1, dec1, ra2, dec2, options) {
@@ -57,6 +57,7 @@ export let Vector = (function() {
         this.color     = options['color']     || undefined;
         this.opacity   = options['opacity']   || undefined;
         this.lineWidth = options['lineWidth'] || undefined;
+        this.selectionLineWidth = options["selectionLineWidth"] || undefined;
         this.selectionColor = options["selectionColor"] || '#00ff00';
         this.hoverColor = options["hoverColor"] || undefined;
         this.arrow = options["arrow"] === undefined ? false : options["arrow"];
@@ -81,15 +82,18 @@ export let Vector = (function() {
         isFootprint: Polyline.prototype.isFootprint,
         show: Polyline.prototype.show,
         hide: Polyline.prototype.hide,
-        
+
         select: Polyline.prototype.select,
         deselect: Polyline.prototype.deselect,
-        
+
         hover: Polyline.prototype.hover,
         unhover: Polyline.prototype.unhover,
-        
+
         getLineWidth: Polyline.prototype.getLineWidth,
         setLineWidth: Polyline.prototype.setLineWidth,
+
+        getSelectionLineWidth: Polyline.prototype.getSelectionLineWidth,
+        setSelectionLineWidth: Polyline.prototype.setSelectionLineWidth,
 
         setColor: Polyline.prototype.setColor,
         setSelectionColor: Polyline.prototype.setSelectionColor,
@@ -105,7 +109,7 @@ export let Vector = (function() {
             const v2 = view.aladin.world2pix(this.ra2, this.dec2);
             if (!v2)
                 return false;
-            
+
             const xmin = Math.min(v1[0], v2[0]);
             const xmax = Math.max(v1[0], v2[0]);
             const ymin = Math.min(v1[1], v2[1]);
@@ -119,6 +123,10 @@ export let Vector = (function() {
             let baseColor = this.color || (this.overlay && this.overlay.color) || '#ff0000';
             if (!this.lineWidth) {
                 this.lineWidth = (this.overlay && this.overlay.lineWidth) || 2;
+            }
+            let drawingLineWidth = this.lineWidth;
+            if (this.isSelected && this.selectionLineWidth) {
+                drawingLineWidth = this.selectionLineWidth;
             }
 
             // too small
@@ -137,7 +145,7 @@ export let Vector = (function() {
                 ctx.strokeStyle = baseColor;
             }
 
-            ctx.lineWidth = this.lineWidth;
+            ctx.lineWidth = drawingLineWidth;
             ctx.globalAlpha = this.opacity;
 
             ctx.beginPath();
@@ -147,7 +155,7 @@ export let Vector = (function() {
             if (this.arrow) {
                 // draw the arrow
                 var angle, x, y, xh, yh;
-                var arrowRad = this.lineWidth * 3;
+                var arrowRad = drawingLineWidth * 3;
 
                 angle = Math.atan2(v2[1] - v1[1], v2[0] - v1[0])
                 xh = v2[0];
@@ -192,7 +200,7 @@ export let Vector = (function() {
 
             xy1 = {x: xy1[0], y: xy1[1]};
             xy2 = {x: xy2[0], y: xy2[1]};
-    
+
             // Check if line segment intersects with the bounding box
             if (Polyline.segmentIntersectsBox(xy1, xy2, x, y, w, h)) {
                 return true;

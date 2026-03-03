@@ -105,7 +105,7 @@ A.aladin = function (divSelector, options) {
         const theme = storedPreference || (systemPrefersDark ? "dark" : "light");
         return theme;
     }
-    
+
     let theme;
     if (options && options.mode) {
         let mode = options.mode.toLowerCase();
@@ -421,7 +421,7 @@ A.coo = function (longitude, latitude, prec) {
  *
  * @param {Circle[]|Polyline[]|Ellipse[]|Vector[]} shapes - an array of A.polygon objects
  * @param {Source} [source] - a A.source object associated with the footprint
- * 
+ *
  * @returns {Footprint} Returns a new Footprint object
  */
 A.footprint = function(shapes, source) {
@@ -618,6 +618,7 @@ A.catalogFromURL = function (url, options, successCallback, errorCallback, usePr
                 fp.setColor(c.color);
                 fp.setHoverColor(c.hoverColor);
                 fp.setSelectionColor(c.selectionColor);
+                fp.setSelectionLineWidth(c.selectionLineWidth);
 
                 return fp;
             })

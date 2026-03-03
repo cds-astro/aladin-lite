@@ -55,6 +55,7 @@ If a function is given, user can return Image, HTMLImageCanvas, HTMLImageElement
 * @property {string} [decField] - The ID or name of the field holding Declination (dec).
 * @property {function} [filter] - The filtering function for sources.
 * @property {string} [selectionColor="#00ff00"] - The color to apply to selected sources in the catalog.
+* @property {string} [selectionLineWidth] - The line width to apply to selected source footprints in the catalog (i.e. can be used by custom shape function).
 * @property {string} [hoverColor=color] - The color to apply to sources in the catalog when they are hovered.
 * @property {boolean} [displayLabel=false] - Whether to display labels for sources.
 * @property {string} [labelColumn] - The name of the column to be used for the label.
@@ -113,6 +114,7 @@ export let Catalog = (function () {
         // allows for filtering of sources
         this.filterFn = options.filter || undefined; // TODO: do the same for catalog
         this.selectionColor = options.selectionColor || "#00ff00";
+        this.selectionLineWidth = options.selectionLineWidth || undefined;
         this.hoverColor = options.hoverColor || undefined;
 
         // when footprints are associated to source, do we need to draw the point source as well ?
@@ -492,6 +494,7 @@ export let Catalog = (function () {
      * @param {Object} [options] - shape options
      * @param {string} [options.color] - the color of the shape
      * @param {string} [options.selectionColor] - the color of the shape when selected
+     * @param {string} [selectionLineWidth] - The line width to apply to selected source footprints in the catalog.
      * @param {number} [options.sourceSize] - size of the shape
      * @param {string} [options.hoverColor=options.color] - the color to apply to sources in the catalog when they are hovered.
      * @param {string|Function|HTMLImageCanvas|HTMLImageElement} [options.shape="square"] - the type of the shape. Can be square, rhomb, plus, cross, triangle, circle.
@@ -502,6 +505,7 @@ export let Catalog = (function () {
         options = options || {};
         this.color = options.color || this.color || Color.getNextColor();
         this.selectionColor = options.selectionColor || this.selectionColor || Color.getNextColor();
+        this.selectionLineWidth = options.selectionLineWidth || this.selectionLineWidth;
         this.hoverColor = options.hoverColor || this.hoverColor || undefined;
         this.sourceSize = options.sourceSize || this.sourceSize || 6;
         this.shape = options.shape || this.shape || "square";
@@ -562,7 +566,7 @@ export let Catalog = (function () {
         this.reportChange();
     };
 
-    
+
 
     /**
      * Add sources to the catalog
@@ -631,11 +635,12 @@ export let Catalog = (function () {
                                 let hoverColor = this.hoverColor || color;
 
                                 for (var shape of shapes) {
-                                    // Set the same color of the shape than the catalog. 
+                                    // Set the same color of the shape than the catalog.
                                     // FIXME: the color/shape could be a parameter at the source level, allowing the user single catalogs handling different shapes
                                     shape.setColor(color)
                                     shape.setSelectionColor(this.selectionColor);
                                     shape.setHoverColor(hoverColor);
+                                    shape.setSelectionLineWidth(this.selectionLineWidth);
                                 }
 
                                 let footprint;
@@ -787,9 +792,9 @@ export let Catalog = (function () {
      * Get one source by its index in the catalog
      *
      * @memberof Catalog
-     * 
+     *
      * @param {number} idx - the index of the source in the catalog sources
-     * 
+     *
      * @returns {Source} - the source at the index
      */
     Catalog.prototype.getSource = function (idx) {
@@ -813,7 +818,7 @@ export let Catalog = (function () {
      * Set the color of the catalog
      *
      * @memberof Catalog
-     * 
+     *
      * @param {String} - the new color
      */
     Catalog.prototype.setColor = function (color) {
@@ -825,7 +830,7 @@ export let Catalog = (function () {
      * Set the color of selected sources
      *
      * @memberof Catalog
-     * 
+     *
      * @param {String} - the new color
      */
     Catalog.prototype.setSelectionColor = function (color) {
@@ -833,11 +838,23 @@ export let Catalog = (function () {
         this.updateShape();
     };
 
+     /**
+     * Set the selectionLineWidth which can be used by the shape draw function for selected catalog elements.
+     *
+     * @memberof Catalog
+     *
+     * @param {String} - the new selection line width
+     */
+    Catalog.prototype.setSelectionLineWidth = function (selectionLineWidth) {
+        this.selectionLineWidth = selectionLineWidth;
+        this.updateShape();
+    };
+
     /**
      * Select sources of the catalog matching a given callback
      *
      * @memberof Catalog
-     * 
+     *
      * @param {Function} filter - A filter callback to select sources of a catalog.
      */
     Catalog.prototype.select = function(filter) {
@@ -863,7 +880,7 @@ export let Catalog = (function () {
      * Set the color of hovered sources
      *
      * @memberof Catalog
-     * 
+     *
      * @param {String} - the new color
      */
     Catalog.prototype.setHoverColor = function (color) {
@@ -875,7 +892,7 @@ export let Catalog = (function () {
      * Set the size of the catalog sources
      *
      * @memberof Catalog
-     * 
+     *
      * @param {number} - the new size
      */
     Catalog.prototype.setSourceSize = function (sourceSize) {
@@ -888,7 +905,7 @@ export let Catalog = (function () {
      * Set the shape of the catalog sources
      *
      * @memberof Catalog
-     * 
+     *
      * @param {string|Function|HTMLImageCanvas|HTMLImageElement} [shape="square"] - the type of the shape. Can be square, rhomb, plus, cross, triangle, circle.
      * A callback function can also be called that return an HTMLImageElement in function of the source object. A canvas or an image can also be given.
      */
@@ -901,7 +918,7 @@ export let Catalog = (function () {
      * Get the size of the catalog sources
      *
      * @memberof Catalog
-     * 
+     *
      * @returns {number} - the size of the sources
      */
     Catalog.prototype.getSourceSize = function () {
@@ -912,7 +929,7 @@ export let Catalog = (function () {
      * Remove a specific source from the catalog
      *
      * @memberof Catalog
-     * 
+     *
      * @param {Source} - the source to remove
      */
     Catalog.prototype.remove = function (source) {
@@ -993,7 +1010,7 @@ export let Catalog = (function () {
 
         this.sources.forEach((s, idx) => {
             let drawn = false;
-            
+
             if (xy[2 * idx] && xy[2 * idx + 1]) {
                 if (self.filterFn) {
                     if(!self.filterFn(s)) {
@@ -1097,7 +1114,7 @@ export let Catalog = (function () {
                 let color = s.color || this.color;
 
                 let cacheCanvas = this.getCacheCanvas(shape, color, size)
-                
+
                 ctx.drawImage(
                     cacheCanvas,
                     s.x - cacheCanvas.width / 2,

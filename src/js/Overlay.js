@@ -48,7 +48,7 @@ import { Color } from './Color';
 
 export let GraphicOverlay = (function() {
     /**
-     * Represents an overlay containing Footprints, whether it is 
+     * Represents an overlay containing Footprints, whether it is
      *
      * @class
      * @constructs GraphicOverlay
@@ -124,10 +124,10 @@ export let GraphicOverlay = (function() {
 
     /**
      * Parse a STCS string and returns a list of footprints (only circles, polygons and ellipses given in ICRS or FK5J2000 frame are handled).
-     * For visualization purposes, the difference between FK5J2000 and ICRS system is not noticeable. Therefore one can be interpreted as the other. 
+     * For visualization purposes, the difference between FK5J2000 and ICRS system is not noticeable. Therefore one can be interpreted as the other.
      *
      * @memberof GraphicOverlay
-     * 
+     *
      * @returns {Circle[]|Polyline[]|Ellipse[]} The list of mixed circles, polygons and ellipses
      */
     GraphicOverlay.parseSTCS = function(stcs, options) {
@@ -216,8 +216,8 @@ export let GraphicOverlay = (function() {
      * Add an array (or single) shapes (i.e. Footprint, Circle, Polyline, Ellipse, Vector, ...)
      *
      * @memberof GraphicOverlay
-     * 
-     * @param {Footprint[]|Circle[]|Polyline[]|Ellipse[]|Vector[]} overlaysToAdd - a list (or single) shapes to add to the overlay 
+     *
+     * @param {Footprint[]|Circle[]|Polyline[]|Ellipse[]|Vector[]} overlaysToAdd - a list (or single) shapes to add to the overlay
      */
     GraphicOverlay.prototype.addFootprints = function(overlaysToAdd) {
         overlaysToAdd = [].concat(overlaysToAdd)
@@ -250,9 +250,9 @@ export let GraphicOverlay = (function() {
      * Returns a shape by an index
      *
      * @memberof GraphicOverlay
-     * 
+     *
      * @param {number} idx - The index of the shape to retrieve
-     * 
+     *
      * @returns {Footprint|Circle|Polyline|Ellipse|Vector} The shape
      */
     GraphicOverlay.prototype.getFootprint = function(idx) {
@@ -327,10 +327,10 @@ export let GraphicOverlay = (function() {
      * Increase the brightness of a color by a percentage
      *
      * @memberof GraphicOverlay
-     * 
+     *
      * @param {string} hex - The color given in hexadecimal e.g. '#ffa0bb'
      * @param {number} percent - The percentage to increase the brightness of
-     * 
+     *
      * @returns {string} The new color given as an hexadecimal string
      */
     GraphicOverlay.increaseBrightness = function(hex, percent){
@@ -356,7 +356,7 @@ export let GraphicOverlay = (function() {
      * Set the color of the shapes inside the overlay
      *
      * @memberof GraphicOverlay
-     * 
+     *
      * @param {string} color - the new color in hexadecimal e.g. '#ff00ff'
      */
     GraphicOverlay.prototype.setColor = function(color) {
@@ -368,7 +368,7 @@ export let GraphicOverlay = (function() {
      * Set the line width of the shapes inside the overlay
      *
      * @memberof GraphicOverlay
-     * 
+     *
      * @param {number} lineWidth - the new line width in pixels
      */
     GraphicOverlay.prototype.setLineWidth = function(lineWidth) {
@@ -380,7 +380,7 @@ export let GraphicOverlay = (function() {
      * Set the dash line property
      *
      * @memberof GraphicOverlay
-     * 
+     *
      * @param {Array.<number>} [lineDash=[]] - See the segments property {@link https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/setLineDash#segments| here}
      */
     GraphicOverlay.prototype.setLineDash = function(lineDash) {

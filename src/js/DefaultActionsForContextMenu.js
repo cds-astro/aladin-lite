@@ -129,6 +129,7 @@ export let DefaultActionsForContextMenu = (function () {
                         label: 'FITS image', action(o) {
                             let input = document.createElement('input');
                             input.type = 'file';
+                            input.accept = ".fits";
                             input.onchange = _ => {
                                 let files = Array.from(input.files);
 

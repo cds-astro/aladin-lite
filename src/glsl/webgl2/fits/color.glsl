@@ -21,7 +21,7 @@ vec4 val2c_f32(float x) {
     // apply reversed
     alpha = mix(alpha, 1.0 - alpha, reversed);
 
-    vec4 new_color = mix(colormap_f(alpha), vec4(0.0), float(isinf(x)));
+    vec4 new_color = mix(colormap_f(alpha), vec4(0.0), float(isinf(x) || isnan(x)));
     return apply_tonal(new_color);
 }
 
@@ -32,7 +32,7 @@ vec4 val2c(float x) {
     // apply reversed
     alpha = mix(alpha, 1.0 - alpha, reversed);
 
-    vec4 new_color = mix(colormap_f(alpha), vec4(0.0), float(x == blank || isnan(x)));
+    vec4 new_color = mix(colormap_f(alpha), vec4(0.0), float(x == blank));
     return apply_tonal(new_color);
 }
 

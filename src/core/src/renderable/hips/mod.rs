@@ -19,17 +19,6 @@ use wasm_bindgen::JsValue;
 
 mod subdivide;
 
-/*
-pub(crate) trait HpxTile {
-    // Getter
-    // Returns the current time if the texture is not full
-    fn start_time(&self) -> Time;
-
-    fn time_request(&self) -> Time;
-
-    fn cell(&self) -> &HEALPixCell;
-}*/
-
 pub(crate) trait HpxTileBuffer {
     type T;
     type C;

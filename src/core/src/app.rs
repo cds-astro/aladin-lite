@@ -256,6 +256,9 @@ impl App {
 
         // 🚨 VERY IMPORTANT: prevent the closure from being dropped
         onmessage.forget();
+
+        gl.blend_func(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE_MINUS_SRC_ALPHA);
+
         Ok(App {
             gl,
             //ui,

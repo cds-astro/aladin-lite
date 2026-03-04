@@ -58,11 +58,20 @@ impl Texture3D {
             pixel_type: F::PIXEL_TYPE,
         })));
 
-        Ok(Texture3D {
+        let s = Texture3D {
             texture,
             gl: gl.clone(),
             metadata,
-        })
+        };
+        let voxel_count = F::NUM_CHANNELS * (width as usize) * (height as usize) * (depth as usize);
+        let zeros = vec![0xff; voxel_count as usize];
+        s.bind().tex_sub_image_3d_with_opt_u8_array(0, 0, 0,
+            width,
+            height,
+            depth,
+            Some(&zeros[..])
+        );
+        Ok(s)
     }
 
     pub fn generate_mipmap(&self) {

@@ -55,7 +55,7 @@ If a function is given, user can return Image, HTMLImageCanvas, HTMLImageElement
 * @property {string} [decField] - The ID or name of the field holding Declination (dec).
 * @property {function} [filter] - The filtering function for sources.
 * @property {string} [selectionColor="#00ff00"] - The color to apply to selected sources in the catalog.
-* @property {string} [selectionLineWidth] - The line width to apply to selected source footprints in the catalog (i.e. can be used by custom shape function).
+* @property {string} [selectionLineWidth] - The line width to apply to selected source footprints in the catalog (i.e. the shapes returned by a custom shape function).
 * @property {string} [hoverColor=color] - The color to apply to sources in the catalog when they are hovered.
 * @property {boolean} [displayLabel=false] - Whether to display labels for sources.
 * @property {string} [labelColumn] - The name of the column to be used for the label.

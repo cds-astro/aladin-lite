@@ -526,10 +526,14 @@ export let Image = (function () {
                             // obj.wcs (object) = The wcs parsed from the image
                             if (obj.wcsdata) {
                                 if (img.width !== obj.wcs.NAXIS1) {
+                                    obj.wcs.CDELT1 = obj.wcs.CDELT1 * (obj.wcs.NAXIS1 / img.width);
+                                    obj.wcs.CRPIX1 *= img.width / obj.wcs.NAXIS1;
                                     obj.wcs.NAXIS1 = img.width;
                                 }
 
                                 if (img.height !== obj.wcs.NAXIS2) {
+                                    obj.wcs.CDELT2 = obj.wcs.CDELT2 * (obj.wcs.NAXIS2 / img.height);
+                                    obj.wcs.CRPIX2 *= img.height / obj.wcs.NAXIS2;
                                     obj.wcs.NAXIS2 = img.height;
                                 }
 
@@ -567,7 +571,6 @@ export let Image = (function () {
                 let wcs = self.options && self.options.wcs;
                 wcs.NAXIS1 = wcs.NAXIS1 || img.width;
                 wcs.NAXIS2 = wcs.NAXIS2 || img.height;
-
                 return self.view.wasm
                     .addRGBAImage(
                         bytes,

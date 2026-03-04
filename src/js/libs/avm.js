@@ -181,7 +181,6 @@ export let AVM = (function() {
 
         if (this.xmp) {
             tags = this.readAVM(this.xmp);
-
             if (tags) {
                 this.tags = tags;
 

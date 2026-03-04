@@ -2123,7 +2123,7 @@ export let View = (function () {
         this.mocs = [];
 
         this.allOverlayLayers.forEach((overlay) => {
-            ALEvent.GRAPHIC_OVERLAY_LAYER_REMOVED.dispatchedTo(this.aladinDiv, { layer: overlay });
+            ALEvent.GRAPHIC_OVERLAY_LAYER_REMOVED.dispatchedTo(this.aladinDiv, { overlay });
         })
         this.allOverlayLayers = [];
 
@@ -2159,7 +2159,7 @@ export let View = (function () {
             this.overlays.splice(indexToDelete, 1);
         }
 
-        ALEvent.GRAPHIC_OVERLAY_LAYER_REMOVED.dispatchedTo(this.aladinDiv, { layer: overlay });
+        ALEvent.GRAPHIC_OVERLAY_LAYER_REMOVED.dispatchedTo(this.aladinDiv, { overlay });
 
         this.mustClearCatalog = true;
         this.requestRedraw();

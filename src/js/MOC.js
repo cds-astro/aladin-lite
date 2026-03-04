@@ -199,7 +199,7 @@ export let MOC = (function() {
                 self.view.insertOverlay(self, idx);
 
                 // Tell the MOC has been fully loaded and can be sent as an event
-                ALEvent.GRAPHIC_OVERLAY_LAYER_ADDED.dispatchedTo(self.view.aladinDiv, {layer: self});
+                ALEvent.GRAPHIC_OVERLAY_LAYER_ADDED.dispatchedTo(self.view.aladinDiv, {overlay: self});
 
                 self.view.requestRedraw();
             })

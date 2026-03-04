@@ -579,7 +579,11 @@ use std::fmt::Display;
 impl Display for Angle<f64> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.fmt {
-            AngleFormatter::Sexagesimal { mut prec, plus, hours } => {
+            AngleFormatter::Sexagesimal {
+                mut prec,
+                plus,
+                hours,
+            } => {
                 let unit = if hours {
                     // to preserve the same angular precision the new prec is p+log10​(15) ≈ p+1.18 < p+2
                     prec += 2;

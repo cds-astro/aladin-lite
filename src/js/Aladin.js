@@ -308,6 +308,29 @@ export let Aladin = (function () {
 
         const self = this;
 
+        ALEvent.GRAPHIC_OVERLAY_LAYER_ADDED.listenedBy(
+            aladinDiv,
+            (e) => {
+                const {overlay} = e.detail;
+                let callback = this.callbacksByEventName["stackChanged"];
+                callback && callback({
+                    change: 'added',
+                    overlay,
+                });
+            }
+        );
+
+        ALEvent.GRAPHIC_OVERLAY_LAYER_REMOVED.listenedBy(
+            aladinDiv, (e) => {
+                const {overlay} = e.detail;
+                let callback = this.callbacksByEventName["stackChanged"];
+                callback && callback({
+                    change: 'removed',
+                    overlay,
+                });
+            }
+        );
+
         ALEvent.LAYER_ADDED.listenedBy(aladinDiv, (e) => {
             const {layer} = e.detail;
             let callback = this.callbacksByEventName["stackChanged"];
@@ -1601,7 +1624,7 @@ export let Aladin = (function () {
         this.view.addCatalog(catalog);
 
         ALEvent.GRAPHIC_OVERLAY_LAYER_ADDED.dispatchedTo(this.aladinDiv, {
-            layer: catalog,
+            overlay: catalog,
         });
     };
 
@@ -1614,9 +1637,7 @@ export let Aladin = (function () {
     Aladin.prototype.addOverlay = function (overlay) {
         this.view.addOverlay(overlay);
 
-        ALEvent.GRAPHIC_OVERLAY_LAYER_ADDED.dispatchedTo(this.aladinDiv, {
-            layer: overlay,
-        });
+        ALEvent.GRAPHIC_OVERLAY_LAYER_ADDED.dispatchedTo(this.aladinDiv, { overlay });
     };
 
 

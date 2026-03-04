@@ -64,12 +64,15 @@ impl Texture3D {
             metadata,
         };
         let voxel_count = F::NUM_CHANNELS * (width as usize) * (height as usize) * (depth as usize);
-        let zeros = vec![0xff; voxel_count as usize];
-        s.bind().tex_sub_image_3d_with_opt_u8_array(0, 0, 0,
+        let zeros = vec![0xff; voxel_count];
+        s.bind().tex_sub_image_3d_with_opt_u8_array(
+            0,
+            0,
+            0,
             width,
             height,
             depth,
-            Some(&zeros[..])
+            Some(&zeros[..]),
         );
         Ok(s)
     }

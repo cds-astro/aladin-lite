@@ -106,7 +106,6 @@ pub struct App {
 
     pub projection: ProjectionType,
 
-    cubic_tile_send: async_channel::Sender<WorkerResponse>,
     cubic_tile_recv: async_channel::Receiver<WorkerResponse>,
 
     // Async data receivers
@@ -215,11 +214,7 @@ impl App {
         let vel_history = vec![];
         let worker = create_worker()?;
         // Send the ack to the js promise so that she finished
-        let cubic_tile_send2 = cubic_tile_send.clone();
-
-        let onmessage = Closure::<
-            dyn FnMut(web_sys::MessageEvent),
-        >::new(
+        let onmessage = Closure::<dyn FnMut(web_sys::MessageEvent)>::new(
             move |event: web_sys::MessageEvent| {
                 let data = event.data();
 
@@ -238,26 +233,26 @@ impl App {
                     bytes,
                     tile_size: meta.tile_size,
                     tile_depth: meta.tile_depth,
-                    time_request: meta.time_request,
                     cell: meta.cell,
-                    hips_cdid: meta.hips_cdid
+                    hips_cdid: meta.hips_cdid,
                 };
-                let cubic_tile_send3 = cubic_tile_send2.clone();
+                let c = cubic_tile_send.clone();
 
                 wasm_bindgen_futures::spawn_local(async move {
-                    cubic_tile_send3.send(response).await.unwrap_throw();
+                    c.send(response).await.unwrap_throw();
                 })
             },
         );
 
-        worker.set_onmessage(Some(
-            onmessage.as_ref().unchecked_ref(),
-        ));
+        worker.set_onmessage(Some(onmessage.as_ref().unchecked_ref()));
 
         // 🚨 VERY IMPORTANT: prevent the closure from being dropped
         onmessage.forget();
 
-        gl.blend_func(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE_MINUS_SRC_ALPHA);
+        gl.blend_func(
+            WebGl2RenderingContext::SRC_ALPHA,
+            WebGl2RenderingContext::ONE_MINUS_SRC_ALPHA,
+        );
 
         Ok(App {
             gl,
@@ -312,7 +307,6 @@ impl App {
             //img_send,
             img_recv,
             ack_img_send,
-            cubic_tile_send,
             cubic_tile_recv,
 
             browser_features_support, //ack_img_recv,
@@ -595,7 +589,15 @@ impl App {
             })
         }
 
-        if let Ok(WorkerResponse { cell, hips_cdid, tile_size, tile_depth, bytes, time_request, .. }) = self.cubic_tile_recv.try_recv() {
+        if let Ok(WorkerResponse {
+            cell,
+            hips_cdid,
+            tile_size,
+            tile_depth,
+            bytes,
+            ..
+        }) = self.cubic_tile_recv.try_recv()
+        {
             if let Some(HiPS::D3(hips)) = self.layers.get_mut_hips_from_cdid(&hips_cdid) {
                 hips.push_tile_from_png(
                     &cell,
@@ -761,7 +763,7 @@ impl App {
                                                     js_sys::Reflect::set(
                                                         &msg,
                                                         &"bitmap".into(),
-                                                        &image,
+                                                        image,
                                                     )?;
                                                     js_sys::Reflect::set(
                                                         &msg,
@@ -775,14 +777,9 @@ impl App {
                                                     )?;
                                                     js_sys::Reflect::set(
                                                         &msg,
-                                                        &"timeRequest".into(),
-                                                        &JsValue::from_f64(tile.request.time_request.as_millis() as f64),
-                                                    )?;
-                                                    js_sys::Reflect::set(
-                                                        &msg,
                                                         &"cell".into(),
                                                         &serde_wasm_bindgen::to_value(&cell)
-                                                            .expect("Failed to serialize")
+                                                            .expect("Failed to serialize"),
                                                     )?;
 
                                                     js_sys::Reflect::set(
@@ -792,7 +789,7 @@ impl App {
                                                     )?;
 
                                                     // Transfer ownership (zero-copy)
-                                                    let transfer = js_sys::Array::of1(&image);
+                                                    let transfer = js_sys::Array::of1(image);
 
                                                     self.worker.post_message_with_transfer(
                                                         &msg, &transfer,
@@ -1873,9 +1870,6 @@ pub struct WorkerResponse {
 
     pub bytes: Vec<u8>,
 
-    #[serde(rename = "timeRequest")]
-    pub time_request: f32,
-
     #[serde(rename = "HiPSCDid")]
     pub hips_cdid: String,
 
@@ -1890,9 +1884,6 @@ pub struct WorkerResponseMeta {
     #[serde(rename = "tileDepth")]
     pub tile_depth: u32,
 
-    #[serde(rename = "timeRequest")]
-    pub time_request: f32,
-
     #[serde(rename = "HiPSCDid")]
     pub hips_cdid: String,
 
@@ -1904,7 +1895,7 @@ pub fn create_worker() -> Result<Worker, JsValue> {
     // JS source code of the worker
     let worker_source = r#"
         self.onmessage = (e) => {
-            const { bitmap, tileDepth, tileSize, timeRequest, HiPS, cell } = e.data;
+            const { bitmap, tileDepth, tileSize, HiPS, cell } = e.data;
 
             // Compute tiling layout
             const numCols = Math.floor(bitmap.width / tileSize);
@@ -1974,7 +1965,6 @@ pub fn create_worker() -> Result<Worker, JsValue> {
                 {
                     tileSize,
                     tileDepth,
-                    timeRequest,
                     HiPSCDid: HiPS,
                     cell,
                     bytes: decodedBytes,

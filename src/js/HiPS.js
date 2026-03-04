@@ -864,6 +864,12 @@ export let HiPS = (function () {
         }
     }
 
+    HiPS.prototype.getFrequencyWindow = function() {
+        if (this.added) {
+            return this.view.wasm.getFreqWindow(this.layer);
+        }
+    }
+
     // Private method for updating the backend with the new meta
     HiPS.prototype._updateMetadata = function () {
         try {

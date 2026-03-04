@@ -309,6 +309,19 @@ impl Cursor {
     fn get_freq(&self) -> Freq {
         self.freq
     }
+
+    fn get_freq_window(&self) -> [Freq; 2] {
+        let FrequencyWindow {
+            window_pixel_hash: f_hash_val,
+            pixel_depth,
+            ..
+        } = self.get_window_frequency_range();
+
+        let f0 = Freq::from_hash_with_order(f_hash_val.start, pixel_depth);
+        let f1 = Freq::from_hash_with_order(f_hash_val.end, pixel_depth);
+
+        [f0, f1]
+    }
 }
 
 use super::HpxTileBuffer;
@@ -722,6 +735,10 @@ impl HiPS3D {
 
     pub fn get_freq(&self) -> Freq {
         self.cursor.get_freq()
+    }
+
+    pub fn get_freq_window(&self) -> [Freq; 2] {
+        self.cursor.get_freq_window()
     }
 
     fn recompute_vertices(&mut self, camera: &CameraViewPort, proj: &ProjectionType) {

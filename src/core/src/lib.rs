@@ -410,6 +410,13 @@ impl WebClient {
         self.app.get_hips_frequency(&layer)
     }
 
+    #[wasm_bindgen(js_name = getFreqWindow)]
+    pub fn get_hips_frequency_window(&mut self, layer: String) -> Result<Vec<f32>, JsValue> {
+        let fw = self.app.get_hips_frequency_window(&layer)?;
+
+        Ok(vec![fw[0].0 as f32, fw[1].0 as f32])
+    }
+
     #[wasm_bindgen(js_name = freq2hash)]
     pub fn get_freq_hash(&mut self, layer: String, freq: f64) -> Result<u64, JsValue> {
         self.app.get_freq_hash(&layer, freq)

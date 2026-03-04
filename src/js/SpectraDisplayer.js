@@ -594,6 +594,7 @@ export class SpectraDisplayer extends DOMElement {
                 let data = event.detail;
                 if (data.layer === this.hips.layer) {
                     this.data = data;
+                    console.log(data)
                     this._redraw(this.ctx);
                 }
             };

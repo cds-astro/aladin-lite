@@ -1327,6 +1327,18 @@ impl App {
         }
     }
 
+    pub(crate) fn get_hips_frequency_window(&mut self, layer: &str) -> Result<[Freq; 2], JsValue> {
+        let hips = self
+            .layers
+            .get_mut_hips_from_layer(layer)
+            .ok_or_else(|| JsValue::from_str("Layer not found"))?;
+
+        match hips {
+            HiPS::D2(_) => Err(JsValue::from_str("layer do not refers to a cube")),
+            HiPS::D3(hips) => Ok(hips.get_freq_window()),
+        }
+    }
+
     pub(crate) fn get_freq_from_hash(&mut self, layer: &str, hash: u64) -> Result<f64, JsValue> {
         let hips = self
             .layers

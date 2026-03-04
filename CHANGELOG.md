@@ -8,6 +8,7 @@
 
 ### 3.8.0
 
+* [feat] Add selectionLineWidth option for shapes and catalogs. <https://github.com/cds-astro/aladin-lite/pull/354>
 * [fix] horizontal/vertical overlay lines appearing correctly <https://github.com/cds-astro/aladin-lite/issues/334>
 * [fix] layer opacity restored when switching from not visible to visible <https://github.com/cds-astro/aladin-lite/issues/332>
 * [feat] dark/light mode for the interface

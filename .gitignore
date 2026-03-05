@@ -39,6 +39,8 @@ jsdoc-make-responsivedocs
 test-results/
 playwright-report/
 
+tests/run-examples.spec.ts-snapshots
+
 ## packaged tar obtained from the cmd: npm run predeploy or npm run deploy
 aladin-lite*.tgz
 # folder where the generated bundle lies 

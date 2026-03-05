@@ -8,6 +8,8 @@
 
 ### 3.8.0
 
+
+* [fix] Fix shape hover colors when overlay uses named color (increaseBrightness() accepts names now) <https://github.com/cds-astro/aladin-lite/issues/355>
 * [feat] Selected and hovered items (shapes, sources, ...) are rendered at last. <https://github.com/cds-astro/aladin-lite/issues/337>
 * [feat] Add selectionLineWidth option for shapes and catalogs. <https://github.com/cds-astro/aladin-lite/pull/354>
 * [fix] horizontal/vertical overlay lines appearing correctly <https://github.com/cds-astro/aladin-lite/issues/334>

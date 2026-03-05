@@ -203,10 +203,6 @@ export class Layout extends DOMElement {
         this._show();
     }
 
-    /**
-     * Empty the layout
-     * @param {content: String|DOMElement, swappable: Boolean, disabled: Boolean, selected: Boolean} item - Represents the structure of the Tabs
-     */
     empty() {
         // remove all the sub elements
         this.layout = [];

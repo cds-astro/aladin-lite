@@ -1,23 +1,24 @@
+// SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright 2013 - UDS/CNRS
 // The Aladin Lite program is distributed under the terms
-// of the GNU General Public License version 3.
+// of the GNU Lesser General Public License version 3
+// or (at your option) any later version.
 //
 // This file is part of Aladin Lite.
 //
 //    Aladin Lite is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, version 3 of the License.
+//    it under the terms of the GNU Lesser General Public License as published by
+//    the Free Software Foundation, either version 3 of the License, or
+//    (at your option) any later version.
 //
 //    Aladin Lite is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+//    GNU Lesser General Public License for more details.
 //
-//    The GNU General Public License is available in COPYING file
-//    along with Aladin Lite.
+//    You should have received a copy of the GNU Lesser General Public License
+//    along with Aladin Lite. If not, see <https://www.gnu.org/licenses/>.
 //
-
-
 
 /******************************************************************************
  * Aladin Lite project
@@ -47,19 +48,17 @@ export class ALEvent {
 
   static UPDATE_CMAP_LIST  = new ALEvent("AL:cmap.updated");
 
+  // Gives the center position in ICRS
   static POSITION_CHANGED  = new ALEvent("AL:position.changed");
   static ZOOM_CHANGED  = new ALEvent("AL:zoom.changed");
 
-  static HIPS_LAYER_ADDED   = new ALEvent("AL:HiPSLayer.added");
-  static HIPS_LAYER_REMOVED = new ALEvent("AL:HiPSLayer.removed");
-  static HIPS_LAYER_RENAMED = new ALEvent("AL:HiPSLayer.renamed");
-  static HIPS_LAYER_SWAP = new ALEvent("AL:HiPSLayer.swap");
+  static LAYER_ADDED   = new ALEvent("AL:Layer.added");
+  static LAYER_REMOVED = new ALEvent("AL:Layer.removed");
+  static LAYER_SWAPPED = new ALEvent("AL:Layer.swapped");
+  static LAYER_CHANGED  = new ALEvent("AL:Layer.changed");
 
   static HIPS_CACHE_UPDATED = new ALEvent("AL:HiPSCache.updated");
-
   static FAVORITE_HIPS_LIST_UPDATED = new ALEvent("AL:HiPSFavorites.updated");
-
-  static HIPS_LAYER_CHANGED  = new ALEvent("AL:HiPSLayer.changed");
 
   static GRAPHIC_OVERLAY_LAYER_ADDED  = new ALEvent("AL:GraphicOverlayLayer.added");
   static GRAPHIC_OVERLAY_LAYER_REMOVED  = new ALEvent("AL:GraphicOverlayLayer.removed");
@@ -70,7 +69,7 @@ export class ALEvent {
   static SAMP_CONNECTED  = new ALEvent("AL:samp.connected");
   static SAMP_DISCONNECTED  = new ALEvent("AL:samp.disconnected");
 
-  static CANVAS_EVENT  = new ALEvent("AL:Event");
+  static CANVAS_EVENT = new ALEvent("AL:Event");
 
   static RETICLE_CHANGED = new ALEvent("AL:Reticle.changed")
 

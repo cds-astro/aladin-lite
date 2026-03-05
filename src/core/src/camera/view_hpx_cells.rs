@@ -1,9 +1,9 @@
-use crate::camera::XYZWModel;
+use crate::camera::XYZModel;
 use crate::healpix::cell::HEALPixCell;
 
 use crate::math::projection::*;
 
-use crate::HEALPixCoverage;
+use crate::SpaceMoc;
 
 use moclib::moc::{range::op::degrade::degrade, RangeMOCIterator};
 
@@ -30,7 +30,7 @@ impl ViewHpxCells {
         &mut self,
         camera_depth: u8,
         fov: &FieldOfView,
-        center: &XYZWModel<f64>,
+        center: &XYZModel<f64>,
         camera_frame: CooSystem,
         proj: &ProjectionType,
         // survey frame
@@ -48,7 +48,7 @@ impl ViewHpxCells {
         &mut self,
         camera_depth: u8,
         fov: &FieldOfView,
-        center: &XYZWModel<f64>,
+        center: &XYZModel<f64>,
         camera_frame: CooSystem,
         proj: &ProjectionType,
         // survey frame
@@ -68,7 +68,7 @@ impl ViewHpxCells {
         &mut self,
         camera_depth: u8,
         fov: &FieldOfView,
-        center: &XYZWModel<f64>,
+        center: &XYZModel<f64>,
         camera_frame: CooSystem,
         proj: &ProjectionType,
     ) {
@@ -84,7 +84,7 @@ impl ViewHpxCells {
         self.hpx_cells[frame as usize].get_cells(depth)
     }
 
-    pub(super) fn get_cov(&self, frame: CooSystem) -> &HEALPixCoverage {
+    pub(super) fn get_cov(&self, frame: CooSystem) -> &SpaceMoc {
         self.hpx_cells[frame as usize].get_cov()
     }
 
@@ -109,7 +109,7 @@ pub struct HpxCells {
     // An index vector referring to the indices of each depth cells
     //idx_rng: [Option<Range<usize>>; MAX_HPX_DEPTH as usize + 1],
     // Coverage created in the frame
-    cov: HEALPixCoverage,
+    cov: SpaceMoc,
     // boolean refering to if the cells in the view has changed
     //new_cells: bool,
 }
@@ -127,7 +127,7 @@ use super::FieldOfView;
 impl HpxCells {
     pub fn new(frame: CooSystem) -> Self {
         //let cells = Vec::new();
-        let cov = HEALPixCoverage::empty(29);
+        let cov = SpaceMoc::empty(29);
 
         //let idx_rng = Default::default();
 
@@ -149,7 +149,7 @@ impl HpxCells {
         &mut self,
         camera_depth: u8,
         fov: &FieldOfView,
-        center: &XYZWModel<f64>,
+        center: &XYZModel<f64>,
         camera_frame: CooSystem,
         proj: &ProjectionType,
     ) {
@@ -203,7 +203,7 @@ impl HpxCells {
         if depth == cov_depth {
             self.cov
                 .flatten_to_fixed_depth_cells()
-                .map(move |idx| HEALPixCell(depth, idx))
+                .map(|idx| HEALPixCell(depth, idx))
                 .collect()
         } else if depth > self.cov.depth_max() {
             let cov_d = self.cov.depth_max();
@@ -212,7 +212,7 @@ impl HpxCells {
 
             self.cov
                 .flatten_to_fixed_depth_cells()
-                .flat_map(move |idx| {
+                .flat_map(|idx| {
                     // idx is at depth_max
                     HEALPixCell(cov_d, idx).get_children_cells(dd)
                 })
@@ -221,7 +221,7 @@ impl HpxCells {
             // compute the cells from the coverage
             degrade((&self.cov.0).into_range_moc_iter(), depth)
                 .flatten_to_fixed_depth_cells()
-                .map(move |idx| HEALPixCell(depth, idx))
+                .map(|idx| HEALPixCell(depth, idx))
                 .collect()
         }
     }
@@ -257,7 +257,7 @@ impl HpxCells {
     }*/
 
     #[inline(always)]
-    pub fn get_cov(&self) -> &HEALPixCoverage {
+    pub fn get_cov(&self) -> &SpaceMoc {
         &self.cov
     }
 

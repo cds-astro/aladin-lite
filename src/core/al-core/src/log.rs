@@ -6,6 +6,11 @@ extern "C" {
     pub fn log(s: &str);
 }
 
+#[macro_export]
+macro_rules! al_print {
+    ($($arg:tt)*) => { al_core::log(&format!("{:?}", $($arg),*)) };
+}
+
 // ----------------------------------------------------------------------------
 // Helpers to hide some of the verbosity of web_sys
 

@@ -1,22 +1,24 @@
-// Copyright 2023 - UDS/CNRS
+// SPDX-License-Identifier: LGPL-3.0-or-later
+// Copyright 2013 - UDS/CNRS
 // The Aladin Lite program is distributed under the terms
-// of the GNU General Public License version 3.
+// of the GNU Lesser General Public License version 3
+// or (at your option) any later version.
 //
 // This file is part of Aladin Lite.
 //
 //    Aladin Lite is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, version 3 of the License.
+//    it under the terms of the GNU Lesser General Public License as published by
+//    the Free Software Foundation, either version 3 of the License, or
+//    (at your option) any later version.
 //
 //    Aladin Lite is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+//    GNU Lesser General Public License for more details.
 //
-//    The GNU General Public License is available in COPYING file
-//    along with Aladin Lite.
+//    You should have received a copy of the GNU Lesser General Public License
+//    along with Aladin Lite. If not, see <https://www.gnu.org/licenses/>.
 //
-
 
 /******************************************************************************
  * Aladin Lite project
@@ -51,13 +53,11 @@ export class ContextMenu extends DOMElement {
 
         super(el, options);
 
-        this.addClass('aladin-dark-theme')
-
         this.aladin = aladin;
 
         this.cssStyleDefault = el.style;
 
-        if (!options || options.hideOnClick === undefined || options.hideOnClick === true || typeof options.hideOnClick === 'function') {
+        /*if (!options || options.hideOnClick === undefined || options.hideOnClick === true || typeof options.hideOnClick === 'function') {
             this.aladin.aladinDiv.addEventListener('click', (e) => {
                 if (!el.contains(e.target)) {
                     if (options && options.hideOnClick && typeof options.hideOnClick === 'function') {
@@ -67,7 +67,7 @@ export class ContextMenu extends DOMElement {
                     }
                 }
             });
-        }
+        }*/
 
         if (!options || options.hideOnResize === undefined || options.hideOnResize === true) {
             if (Utils.hasTouchScreen()) {
@@ -176,7 +176,7 @@ export class ContextMenu extends DOMElement {
                     tooltip = opt.label.tooltip
                 }
 
-                let labelEl = Layout.horizontal({layout, tooltip});
+                let labelEl = Layout.horizontal(layout, {tooltip});
                 labelEl.attachTo(item)
             } else if (opt.disabled && opt.disabled.reason) {
                 let tooltip = {
@@ -184,7 +184,7 @@ export class ContextMenu extends DOMElement {
                     position: {direction: 'top'}
                 }
 
-                let labelEl = Layout.horizontal({layout: opt.label, tooltip});
+                let labelEl = Layout.horizontal(opt.label, {tooltip});
                 labelEl.attachTo(item)
             } else {
                 let wrapEl = document.createElement('div');
@@ -335,7 +335,7 @@ export class ContextMenu extends DOMElement {
         parent.style.display = "";
     }
 
-    show(options) {
+    _show(options) {
         this.el.innerHTML = '';
         this.el.style = this.cssStyleDefault
 
@@ -365,13 +365,11 @@ export class ContextMenu extends DOMElement {
         super._show()
     }
 
-    attach(options) {
-        this.menuOptions = options;
-    }
+    attach(options, toggler) {
+        this._hide()
+        this.setToggler(toggler)
 
-    /* Hide all the defined menus */
-    static hideAll() {
-        ContextMenu._menus.forEach((menu) => menu._hide())
+        this.menuOptions = options;
     }
 
     /// Context menu predefined items

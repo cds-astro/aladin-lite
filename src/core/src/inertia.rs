@@ -3,8 +3,6 @@ use cgmath::Vector3;
 use crate::camera::CameraViewPort;
 use crate::math::angle::ToAngle;
 use crate::math::projection::ProjectionType;
-use crate::time::{DeltaTime, Time};
-
 /// State for inertia
 pub struct Inertia {
     // Initial angular distance
@@ -13,19 +11,20 @@ pub struct Inertia {
     // Vector of rotation
     axis: Vector3<f64>,
     // The time when the inertia begins
-    time_start: Time,
+    north_up: bool,
 }
 
 impl Inertia {
-    pub fn new(ampl: f64, axis: Vector3<f64>) -> Self {
+    pub fn new(ampl: f64, axis: Vector3<f64>, north_up: bool) -> Self {
         Inertia {
-            time_start: Time::now(),
-            ampl: ampl,
-            speed: ampl,
-            axis: axis,
+            ampl,
+            speed: (ampl * 0.5).min(0.1),
+            axis,
+            north_up,
         }
     }
 
+    /*
     pub fn apply(&mut self, camera: &mut CameraViewPort, proj: &ProjectionType, _dt: DeltaTime) {
         let t = ((Time::now() - self.time_start).as_millis() / 1000.0) as f64;
         // Undamped angular frequency of the oscillator
@@ -35,7 +34,7 @@ impl Inertia {
         // where:
         // * k is the stiffness of the ressort
         // * m is its mass
-        let w0 = 10.0;
+        let w0 = 7.0;
         // The angular distance goes from d0 to 0.0
         //self.speed = self.ampl * ((-w0 * t).exp());
         // The angular distance goes from d0 to 0.0
@@ -43,7 +42,32 @@ impl Inertia {
         /*let alpha = 1_f32 + (0_f32 - 1_f32) * (10_f32 * t + 1_f32) * (-10_f32 * t).exp();
         let alpha = alpha * alpha;
         let fov = start_fov * (1_f32 - alpha) + goal_fov * alpha;*/
-        camera.apply_rotation(&self.axis, self.speed.to_angle(), proj)
+        camera.apply_axis_rotation(&self.axis, self.speed.to_angle(), proj);
+
+        if self.north_up {
+            camera.set_position_angle(0.0.to_angle(), proj);
+        }
+    }*/
+
+    pub fn apply(&mut self, camera: &mut CameraViewPort, proj: &ProjectionType, dt: f64) {
+        // Initial angular velocity
+        //let v0 = self.ampl * 0.5;
+
+        // Friction coefficient (tweak this)
+        const DAMPING_FACTOR: f64 = 5e-3;
+
+        self.speed *= (-DAMPING_FACTOR * dt).exp();
+        let delta_angle = self.speed * dt;
+
+        // Exponential decay of angular velocity
+        // self.speed = (v0 * (-damping * t).exp()).min(3.0);
+
+        //camera.apply_axis_rotation(&self.axis, self.speed.to_angle(), proj);
+        camera.apply_axis_rotation(&self.axis, delta_angle.to_angle(), proj);
+
+        if self.north_up {
+            camera.set_position_angle(0.0.to_angle(), proj);
+        }
     }
 
     pub fn get_start_ampl(&self) -> f64 {

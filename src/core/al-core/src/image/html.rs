@@ -1,13 +1,13 @@
 /* ------------------------------------------------------ */
 #[derive(Debug)]
 pub struct HTMLImage<F> {
-    image: web_sys::HtmlImageElement,
+    pub image: web_sys::HtmlImageElement,
     format: std::marker::PhantomData<F>,
 }
 
 impl<F> HTMLImage<F>
 where
-    F: ImageFormat + Clone,
+    F: TextureFormat + Clone,
 {
     pub fn new(image: web_sys::HtmlImageElement) -> Self {
         Self {
@@ -15,16 +15,20 @@ where
             format: std::marker::PhantomData,
         }
     }
+
+    pub fn element(&self) -> &web_sys::HtmlImageElement {
+        &self.image
+    }
 }
 
-use crate::image::format::ImageFormat;
 use crate::image::Image;
+use crate::texture::format::TextureFormat;
 use crate::texture::Tex3D;
 use cgmath::Vector3;
 use wasm_bindgen::JsValue;
 impl<F> Image for HTMLImage<F>
 where
-    F: ImageFormat,
+    F: TextureFormat,
 {
     fn insert_into_3d_texture<T: Tex3D>(
         &self,
@@ -41,5 +45,9 @@ where
         );
 
         Ok(())
+    }
+
+    fn get_size(&self) -> (u32, u32, u32) {
+        (self.image.width(), self.image.height(), 1)
     }
 }

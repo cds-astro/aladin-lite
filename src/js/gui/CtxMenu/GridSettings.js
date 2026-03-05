@@ -1,23 +1,24 @@
-// Copyright 2023 - UDS/CNRS
+// SPDX-License-Identifier: LGPL-3.0-or-later
+// Copyright 2013 - UDS/CNRS
 // The Aladin Lite program is distributed under the terms
-// of the GNU General Public License version 3.
+// of the GNU Lesser General Public License version 3
+// or (at your option) any later version.
 //
 // This file is part of Aladin Lite.
 //
 //    Aladin Lite is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, version 3 of the License.
+//    it under the terms of the GNU Lesser General Public License as published by
+//    the Free Software Foundation, either version 3 of the License, or
+//    (at your option) any later version.
 //
 //    Aladin Lite is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+//    GNU Lesser General Public License for more details.
 //
-//    The GNU General Public License is available in COPYING file
-//    along with Aladin Lite.
+//    You should have received a copy of the GNU Lesser General Public License
+//    along with Aladin Lite. If not, see <https://www.gnu.org/licenses/>.
 //
-
-
 
 /******************************************************************************
  * Aladin Lite project
@@ -30,9 +31,7 @@
 
 import { ALEvent } from "../../events/ALEvent.js";
 import { Input } from "../Widgets/Input.js";
-import { ActionButton } from "../Widgets/ActionButton.js";
 import { Color } from "../../Color.js";
-import thicknessLineIcon from './../../../../assets/icons/thickness.svg';
 
 export let GridSettingsCtxMenu = (function () {
 
@@ -74,55 +73,6 @@ export let GridSettingsCtxMenu = (function () {
             value: 0.5,
             change(e) {
                 aladin.setCooGrid({labelSize: Math.round(+e.target.value * 20)})
-            }
-        });
-
-        const thicknessLineBtn = ActionButton.createSmallSizedIconBtn({
-            icon: {
-                url: thicknessLineIcon,
-                monochrome: true,
-            },
-            tooltip: {content: 'Grid line thickness', position: {direction: 'left'}},
-            cssStyle: {
-                backgroundColor: '#bababa',
-                borderColor: '#484848',
-                cursor: 'pointer',
-                width: '20px',
-                height: '20px',
-                padding: '0',
-            },
-            action(e) {
-                let ctxMenu = ContextMenu.getInstance(aladin);
-                ctxMenu._hide();
-
-                let ctxMenuLayout = [];
-                for (let thickness = 1; thickness <= 5; thickness++) {
-                    ctxMenuLayout.push({
-                        label: thickness + 'px',
-                        action(o) {
-                            aladin.setCooGrid({thickness: thickness})
-                        }
-                    })
-                }
-
-                ctxMenu.attach(ctxMenuLayout);
-                ctxMenu.show({
-                    e: e,
-                    position: {
-                        nextTo: thicknessLineBtn,
-                        direction: 'bottom',
-                    }
-                })
-            }
-        });
-
-        let enableCheckbox = Input.checkbox({
-            name: 'enableGrid',
-            tooltip: {content: 'Enable/disable the grid', position: {direction: 'left'}},
-            type: 'checkbox',
-            checked: aladin.getGridOptions().enabled,
-            click(e) {
-                aladin.setCooGrid({enabled: enableCheckbox.get()})
             }
         });
 

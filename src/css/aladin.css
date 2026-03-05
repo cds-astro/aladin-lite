@@ -5,13 +5,135 @@
     /* disable x swipe on chrome, firefox */
     /* see. https://stackoverflow.com/questions/30636930/disable-web-page-navigation-on-swipeback-and-forward */
     overscroll-behavior-x: none;
+    overscroll-behavior-y: none; /* Prevents vertical pull-to-refresh */
     /* Hide the draggable boxes that goes out of the view */
-    overflow: hidden;
+    /*overflow: hidden;*/
     /* media query on the aladin lite container. not supported everywhere.
     There can be a more supported alternative here: https://caniuse.com/?search=grid-template-columns */
     /*container-type: inline-size;*/
 
     font-size: 0.9rem;
+
+    /* Aladin lite default color */
+    --aladin-color: #b232b2;
+}
+
+[data-theme="dark"] {
+	--bg-color: black;
+	--text-color: #ececec;
+    --border-color: #ececec;
+    --hover-color: greenyellow;
+    --toggle-color: dodgerblue;
+    --valid-color: greenyellow;
+    --error-color: red;
+    --border-size: 1px;
+}
+
+[data-theme="light"] {
+	--bg-color: #ececec;
+	--text-color: #212121;
+    --border-color: #212121;
+    --hover-color: green;
+    --toggle-color: dodgerblue;
+    --border-size: 2px;
+    --valid-color: green;
+    --error-color: red;
+}
+
+.aladin-tree {
+    width: 100%;
+    height: calc(100% - 130px);
+    border-bottom: var(--border-size) solid var(--border-color);
+}
+
+.aladin-tree .aladin-directory-path {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+    width: 100%;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.aladin-tree ul {
+    padding:0;
+    margin:0;
+    overflow-y: auto;
+    height: calc(100% - 37px);
+}
+.aladin-link {
+    list-style-type: none;
+    cursor:pointer;
+    margin: 0;
+}
+
+.aladin-tree li:last-child {
+    border-bottom: none;
+}
+
+.aladin-tree li > * {
+    border-bottom: var(--border-size) solid var(--border-color);
+    padding: 0.5em 0px;
+}
+
+.aladin-tree li:last-of-type > * {
+    border-bottom: 0px;
+}
+
+#aladin-tooltip-mouse {
+    display: none;
+    position: fixed;
+    pointer-events: none; /* tooltip won't block mouse */
+    z-index: 1000;
+    padding: 0;
+    max-width: 100%;
+    width: fit-content;
+}
+#aladin-tooltip-mouse * {
+    margin: 0;
+}
+
+.aladin-fig {
+    display: inline-block;   /* shrink-wraps content */
+    position: relative;
+}
+
+.aladin-fig img {
+    display: block;
+    max-width: 128px;
+    max-height: 128px;
+}
+
+.aladin-fig figcaption {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    
+    color: white;
+    font-size: 11px;
+    text-align: center;
+    background: black;
+}
+
+.aladin-lite-spectra-displayer .aladin-spectra-unit-selector {
+    position: absolute;
+    bottom: 3rem;
+    right: 0;
+}
+.aladin-lite-spectra-displayer .aladin-spectra-home {
+    position: absolute;
+    bottom: 5rem;
+    right: 0;
+}
+.aladin-lite-spectra-displayer .aladin-spectra-extraction {
+    position: absolute;
+    bottom: 7rem;
+    right: 0;
+}
+.aladin-lite-spectra-displayer .aladin-spectra-hips-selector {
+    position: absolute;
+    top: 0;
+    left: 0;
+    max-width: 10rem;
 }
 
 .aladin-imageCanvas {
@@ -59,16 +181,18 @@
 .aladin-measurement-div {
     font-family: monospace;
 
-    display: block;
+    border-top-left-radius: 0;
 
     max-height: 30vh;
     max-width: 100%;
-    overflow-x: auto;
-    overflow-y: auto;
-    white-space: nowrap;
 
-    border-radius: 3px;
-    border-top-left-radius: 0;
+    overflow: auto;
+    white-space: nowrap;
+    max-height: 200px;
+
+    overscroll-behavior: contain;
+    scroll-behavior: auto;
+
 }
 
 .aladin-btn.tab {
@@ -78,9 +202,11 @@
 }
 
 .aladin-measurement-div table {
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
     table-layout: fixed;
-    white-space: nowrap;
+    min-width: 100%;
+    width: max-content;
 }
 
 .aladin-measurement-div table::-webkit-scrollbar {
@@ -88,26 +214,23 @@
 }
 
 .aladin-measurement-div table thead {
-    position: sticky;
-    width: 100%;
     top: 0;
+    position: sticky; /* optional but helps */
 }
 
-.aladin-measurement-div.aladin-dark-theme table thead {
-    background-color: #000;
-    color: white;
-
-}
-
-.aladin-measurement-div table th {
+.aladin-measurement-div table thead th {
+    position: sticky;
     padding: 0.3em 0.5em;
+    border-bottom: var(--border-size) solid var(--border-color);
+    background-color: var(--bg-color);
+    color: var(--text-color);
 }
 
 .aladin-measurement-div table tr td a {
     color: green;
 }
 .aladin-measurement-div table tr td a:hover {
-    color: greenyellow;
+    color: var(--aladin-color);
 }
 
 .aladin-measurement-div table tr td {
@@ -161,11 +284,22 @@
 
 .aladin-anchor-top{top:0}
 .aladin-anchor-middle{top:50%; transform: translate(0, -50%);/*half of the .box height*/}
-.aladin-anchor-bottom{bottom:0}
+.aladin-anchor-bottom{
+    bottom:0;
 
-.aladin-anchor-left{left:0;}
-.aladin-anchor-center{left:50%; transform: translate(-50%, 0%);/*half of the .box width*/}
-.aladin-anchor-right{right:0;}
+}
+
+.aladin-anchor-left {
+    left: 0;
+    
+}
+.aladin-anchor-center{
+    left:50%;
+    transform: translate(-50%, 0%);/*half of the .box width*/
+}
+.aladin-anchor-right{
+    right:0;
+}
 
 .aladin-anchor-middle.aladin-anchor-center {
     transform: translate(-50%, -50%);
@@ -198,27 +332,26 @@
 }
 
 .aladin-box {
-    padding: 0.2rem;
+    padding: 0.3rem;
     background: whitesmoke;
-    border-radius: 2px;
     position: absolute;
     font-size: inherit;
 
     font-family: monospace;
     background: #fff;
 
-    line-height: 1.3;
     color: #222;
-    /*box-shadow: 0 0 6px rgba(0,0,0,0.2);*/
 
     /* Allow scrolling but disable scroll bar */
-    -ms-overflow-style: none; /* for Internet Explorer, Edge */
-    scrollbar-width: none; /* for Firefox */
-    /*overflow-y: auto;*/ 
-    overflow-y: none;
-    max-height: 500px;
-    /*max-width: fit-content;*/
-    height: fit-content;
+    width: min-content;
+
+    border: var(--border-size) solid var(--border-color);
+
+    box-sizing: border-box;
+}
+
+.aladin-box .aladin-box-content {
+    height: 100%;
 }
 
 .aladin-container canvas {
@@ -236,12 +369,8 @@
   line-height: 1.5em;
   font-weight: bold;
   white-space: nowrap;
+  width: 100%;
 }
-
-.aladin-box-content {
-  padding: 10px;
-}
-
 .aladin-shareInput {
     width: 300px;
     margin-top: 10px;
@@ -250,7 +379,7 @@
 
 .aladin-indicatorBtn {
     color: #605F61!important;
-    border: 1px solid #AEAEAE!important;
+    border: var(--border-size) solid #AEAEAE!important;
 
     border-radius: 3px;
     font-size: 1rem;
@@ -271,7 +400,7 @@
     margin-top: 0 0 2px 0;
     cursor:pointer;
     color: #605F61;
-    border: 1px solid #AEAEAE;
+    border: var(--border-size) solid var(--border-color);
     border-radius: 3px;
     background: #fff;
     font-size: 1.0rem;
@@ -286,8 +415,10 @@
 
 .aladin-box-separator {
 	height: 0;
-    border-top: 1px solid #d2d2d2;
-    margin: 5px 0px 5px -4px;
+    border-top: var(--border-size) solid var(--border-color);
+    margin-top: 5px;
+    margin-bottom: 5px;
+
 }
 
 .aladin-restore {
@@ -317,19 +448,19 @@
     white-space: nowrap;
     vertical-align: middle;
     cursor: pointer;
-    border: 1px solid #484848;
+    border: var(--border-size) solid var(--border-color);
     border-radius: 3px;
-    color: black;
-    background-color: #bababa;
+    color: var(--text-color);
+    background-color: var(--bg-color);
 
     font-family: monospace;
 }
 
-.aladin-btn.aladin-dark-theme.toggled {
-    border-color: dodgerblue;
+.aladin-btn.toggled {
+    border-color: var(--toggle-color);
 }
-.aladin-btn.aladin-dark-theme:hover, .aladin-input-select.aladin-dark-theme:hover {
-    border-color: greenyellow;
+.aladin-btn:hover, .aladin-input-select:hover {
+    border-color: var(--hover-color);
 }
 
 .aladin-btn.disabled {
@@ -356,66 +487,81 @@
     height: 100%;
 }
 
-.aladin-icon.aladin-dark-theme {
-    background-color: transparent;
-}
-
-.aladin-icon.aladin-dark-theme.aladin-icon-monochrome img {
+[data-theme="dark"] .aladin-icon.aladin-icon-monochrome img {
     filter: invert(100%) sepia(91%) saturate(0%) hue-rotate(169deg) brightness(115%) contrast(100%);
 }
 
-.aladin-btn.aladin-dark-theme {
-    background-color: rgba(0, 0, 0, 0.5);
-    border-color: white;
+.aladin-btn {
+    background-color: var(--bg-color);
+    border-color: var(--border-color);
 }
 
-.aladin-measurement-div.aladin-dark-theme {
-    background-color: rgba(0, 0, 0, 0.8);
-    border: 1px solid white;
+.aladin-measurement-div {
+    background-color: var(--bg-color);
+    border: var(--border-size) solid var(--border-color);
 }
 
-.aladin-measurement-div.aladin-dark-theme table {
-    color: white;
+.aladin-measurement-div table {
+    color: var(--text-color);
 }
 
-.aladin-box.aladin-dark-theme {
-    background-color: rgba(0, 0, 0, 0.8);
-    color: white;
+.aladin-box {
+    background-color: var(--bg-color);
+    color: var(--text-color);
 }
 
-.aladin-input-select.aladin-dark-theme {
-    background-color: rgba(0, 0, 0, 0.5);
-    border: 1px solid white;
+.aladin-input-select {
+    background-color: var(--bg-color);
+    border: var(--border-size) solid var(--text-color);
+    color: var(--text-color);
 }
 
-.aladin-container .small-sized-icon {
+.aladin-small-sized-icon {
     width: 1.2rem;
     height: 1.2rem;
 }
 
-.aladin-container .medium-sized-icon {
+.aladin-medium-sized-icon {
     width: 1.6rem;
     height: 1.6rem;
 }
 
-.aladin-container .medium-sized {
+.aladin-medium-sized {
     height: 1.6rem;
 }
 
-.aladin-container .small-sized {
+.aladin-small-sized {
     height: 1.2rem;
 }
 
-.aladin-input-text.aladin-dark-theme:focus, .aladin-input-number.aladin-dark-theme:focus {
-    border-color: dodgerblue;
+.aladin-input-text:focus, .aladin-input-number:focus {
+    border-color: var(--toggle-color);
+    background-color: var(--bg-color);
 }
 
-.aladin-input-text.aladin-dark-theme.search {
-    text-shadow: 0px 0px 2px #000;
+[data-theme="light"] .aladin-input-text.search:focus {
+    background-image: url(../../assets/icons/search.svg);
+    background-size: 1.8rem;
+    background-repeat: no-repeat;
+    padding-left: 1.8rem;
 }
 
-.aladin-input-text.search:focus, .aladin-input-text.search:hover {
-    background-image: url(../../assets/icons/search-white.svg);
+[data-theme="light"] .aladin-input-text.search:hover {
+    background-image: url(../../assets/icons/search.svg);
+    background-size: 1.8rem;
+    background-repeat: no-repeat;
+    padding-left: 1.8rem;
+}
+
+[data-theme="dark"] .aladin-input-text.search:focus {
+    background-image: url(../../assets/icons/search-dark.svg);
+    background-size: 1.8rem;
+    background-repeat: no-repeat;
+    padding-left: 1.8rem;
+}
+
+[data-theme="dark"] .aladin-input-text.search:hover {
+    background-image: url(../../assets/icons/search-dark.svg);
     background-size: 1.8rem;
     background-repeat: no-repeat;
     padding-left: 1.8rem;
@@ -427,32 +573,24 @@
     line-height: 1.2rem;
 }
 
-.aladin-input-text.search.aladin-not-valid {
-    -webkit-box-shadow:inset 0px 0px 0px 1px #f00;
-    -moz-box-shadow:inset 0px 0px 0px 1px #f00;
-    box-shadow:inset 0px 0px 0px 1px #f00;
+.aladin-input-text.aladin-not-valid {
+    border: var(--border-size) solid var(--error-color);
 }
 
-.aladin-input-text.aladin-dark-theme.aladin-not-valid {
-    border: 1px solid red;
+.aladin-input-text.aladin-valid {
+    border: var(--border-size) solid var(--valid-color);
 }
 
-.aladin-input-text.aladin-dark-theme.aladin-valid {
-    border: 1px solid yellowgreen;
+.aladin-valid {
+    color: var(--valid-color);
 }
 
-.aladin-cancelBtn {
-    background-color: #ca4242;
-    border-color: #bd3935;
+.aladin-not-valid {
+    color: var(--error-color);
 }
 
-.aladin-validBtn {
-    background-color: #42c739;
-    border-color: #38a730;
-}
-
-.aladin-box-content > div {
-    margin: 10px 0px 0px 0px;
+.aladin-not-found {
+    color: darkorange;
 }
 
 .aladin-button:hover {
@@ -462,26 +600,15 @@
 }
 
 .aladin-vertical-list {
-    display: flex;
-    align-items: flex-start; 
     list-style: none;
-    flex-direction: column;
-}
-
-.aladin-vertical-list.left {
-    align-items: flex-start;
-}
-
-.aladin-vertical-list.right {
-    align-items: flex-end;
 }
 
 .aladin-vertical-list > *:first-child {
-    margin-top: 0;
+    padding-top: 0;
 }
 
 .aladin-vertical-list > * {
-    margin-top: 0.5rem;
+    padding-top: 0.5rem;
 }
 
 .aladin-horizontal-list {
@@ -505,12 +632,11 @@
 
 .aladin-form .aladin-form-input {
     display: flex;
-    justify-content: flex-end;
     align-items: center;
-    margin-bottom: 0.4rem;
+    justify-content: space-between;
 }
 
-.aladin-form .aladin-form-input:last-of-type {
+.aladin-form-group > *:last-of-type {
     margin-bottom: 0;
 }
 
@@ -525,10 +651,6 @@
 
 .aladin-form .aladin-form-input select {
     width: 100%;
-}
-
-.aladin-form .aladin-form-input > label {
-    flex: 1;
 }
 
 .aladin-form .aladin-form-input .aladin-input {
@@ -546,7 +668,7 @@
 .aladin-popup {
     /*font-family: Verdana, Geneva, Tahoma, sans-serif;*/
     background: white;
-    border: 1px solid #bbb;
+    border: var(--border-size) solid #bbb;
     border-radius: 2px;
     padding: 4px;
     top: 80px;
@@ -683,12 +805,8 @@
     margin: 0;
     padding: 0;
 
-    /*font-family: Verdana, Geneva, Tahoma, sans-serif;*/
-
-    border-radius: 3px;
-
-    border-bottom: 1px solid white;
-    border-right: 1px solid white;
+    border-bottom: var(--border-size) solid var(--border-color);
+    border-right: var(--border-size) solid var(--border-color);
 }
 
 .aladin-context-menu .aladin-context-menu-item {
@@ -701,29 +819,22 @@
     padding: 0.2rem 0.4rem;
     position: relative;
 
-    box-shadow:inset 1px 1px 0px 0px #fff;
+    box-shadow:inset var(--border-size) var(--border-size) 0px 0px var(--border-color);
 
-    background-color: rgba(0, 0, 0, 0.9);
+    background-color: var(--bg-color);
 
     margin: 0;
     box-sizing: content-box;
     line-height: normal;
 }
 
-.aladin-context-menu .aladin-context-menu-item:first-of-type {
-   border-top-left-radius: 3px;
-   border-top-right-radius: 3px;
-}
-
 .aladin-context-menu .aladin-context-menu-item:last-of-type {
     border-bottom: 0;
-    border-bottom-left-radius: 3px;
-    border-bottom-right-radius: 3px;
 }
 
 .aladin-context-menu .aladin-context-menu-item.aladin-context-menu-item-disabled {
     cursor: not-allowed;
-    color: red;
+    color: var(--error-color);
 }
 
 .aladin-context-menu .aladin-context-menu-item.aladin-context-menu-item-selected::after {
@@ -731,16 +842,22 @@
     margin-left: 2px;
 }
 
-.aladin-context-menu-item:hover > .aladin-context-sub-menu {
+.aladin-stack-box .aladin-overlay-label {
+    text-align: center;
+    width: 100%;
+}
+
+.aladin-context-menu-item:hover > .aladin-context-sub-menu,
+.aladin-context-menu-item:focus-within > .aladin-context-sub-menu {
     display: block;
 }
 
 .aladin-context-menu-item:hover  {
-    color: greenyellow;
+    color: var(--hover-color);
 }
 
 .aladin-context-menu-item:not(hover)  {
-    color: white;
+    color: var(--text-color);
 }
 
 .aladin-context-menu-item .aladin-context-sub-menu {
@@ -754,15 +871,22 @@
   text-overflow: ellipsis;
 }
 
-/*.aladin-context-menu-item:first-of-type {
-    border-top: 1px solid #d2d2d2;
-    margin-top: -1px;
-}*/
-/*
-.aladin-context-menu .aladin-context-menu-item:hover > .aladin-context-sub-menu {
-    display: block;
+.aladin-context-menu.left {
+    left: 0;
+    transform: translateX(-100%);
 }
-*/
+
+.aladin-context-menu.top{
+    top: 0;
+    left: 0;
+    transform: translateY(-100%);
+}
+
+.aladin-context-menu.bottom {
+    top: 100%;
+    left: 0;
+}
+
 .aladin-context-menu .aladin-context-sub-menu.left {
     left: 0;
     transform: translateX(-100%);
@@ -787,6 +911,29 @@
     transform: translate(-100%, -100%);
 }
 
+.aladin-box.left {
+    left: 0;
+    transform: translateX(-100%);
+}
+
+.aladin-box.right {
+    right: 0;
+}
+
+.aladin-box.bottom {
+    top: 100%;
+    left: 0;
+}
+
+.aladin-box.top {
+    top: 0;
+    left: 0;
+    transform: translateY(-100%);
+}
+
+.aladin-box.left.top {
+    transform: translate(-100%, -100%);
+}
 
 .aladin-reticle {
     position: absolute;
@@ -811,15 +958,16 @@
     -moz-appearance: none;
     -webkit-appearance: none;
     outline-style: none;
-    padding: 0.2rem;
+    padding: 0.5rem;
     border-radius: 0.2rem;
     font-family: monospace;
     box-sizing: border-box;
 }
 
-.aladin-input-text.aladin-dark-theme, .aladin-input-number.aladin-dark-theme {
-    background-color: rgba(0, 0, 0, 0.5);
-    border: 1px solid white;
+.aladin-input-text, .aladin-input-number {
+    background-color: var(--bg-color);
+    border: var(--border-size) solid var(--border-color);
+    color: var(--text-color)
 }
 
 .aladin-input-text::placeholder {
@@ -830,21 +978,22 @@
 /* Input select */
 .aladin-input-select {
     /* Reset */
-    border: 1px solid white;
+    border: var(--border-size) solid var(--border-color);
     outline: 0;
     /*font: inherit;*/
     /* Personalize */
     padding: 0.2rem 0;
     font-size: inherit;
     border-radius: 0.2rem;
-    box-shadow: 0 0 1em 0 rgba(0, 0, 0, 0.2);
     cursor: pointer;
     font-family: monospace;
-    width: 100%;
     box-sizing: content-box;
-    /* <option> colors */
-    /* Remove focus outline */
-    /* Remove IE arrow */
+}
+
+/* This is done so that the select shrink to the size of its parent (coupled with flex)
+otherwise it fits its content options. If those are too big the select can go out of its parent */
+.aladin-horizontal-list .aladin-input-select {
+    width: 100%;
 }
 
 .aladin-input-select option {
@@ -867,7 +1016,7 @@
     -webkit-appearance: none;
     outline-style: none;
     padding: 0;
-    border: none;
+    border: var(--border-size) solid var(--border-color);
     border-radius: 0.4rem;
     width: 2rem;
     height: 1.5rem;
@@ -876,20 +1025,17 @@
 
 .aladin-input-color::-webkit-color-swatch {
     border: none;
-    border-radius: 0.4rem;
     padding: 0;
 }
 
 .aladin-input-color::-webkit-color-swatch-wrapper {
     border: none;
-    border-radius: 0.4rem;
     padding: 0;
 }
 
 /********** Range Input Styles **********/
 /*Range Reset*/
 .aladin-input-range {
-    background: transparent;
     cursor: pointer;
     margin: 0.8rem 0;
     box-sizing: border-box;
@@ -905,54 +1051,27 @@
  .aladin-input-range:focus {
    outline: none;
  }
+
+.aladin-input-text:-internal-autofill-selected,
+.aladin-input-text:-internal-autofill-selected:hover,
+.aladin-input-text:-internal-autofill-selected:focus,
+.aladin-input-text:-internal-autofill-selected:active {
+    -webkit-box-shadow: 0 0 0 1000px var(--bg-color) inset !important;
+    box-shadow: 0 0 0 1000px var(--bg-color) inset !important;
+    -webkit-text-fill-color: var(--text-color) !important;
+    padding-left: 0.5rem !important;
+}
  
  /***** Chrome, Safari, Opera and Edge Chromium styles *****/
  
  .aladin-input-range::-webkit-slider-container {
-    background: white;
     height: 0.1rem;
     min-height: 0.1rem;
  }
- 
-/*
-.aladin-input-range-datalist {
-    -webkit-appearance: none;
-    appearance: none;
-    display: none;
-    display: flex;
-    position: absolute;
-    width: 100%;
-    padding:0;
-    margin:0;
-    height: 0.1rem;
-    top: 0rem;
-    pointer-events: none;
-}
-
-
-.aladin-input-range-datalist option {
-    -webkit-appearance: none;
-    appearance: none;
-    position: absolute;
-    transform: translate(-50%, 0);
-    justify-content: center;
-    text-align: center;
-    width: 0.1rem;
-    border-radius: 0.1rem;
-    height: 0.1rem;
-    padding: 0;
-    margin: 0;
-    background: #D3D3D3;
-}*/
- 
- .aladin-dark-theme {
-    color: white;
-}
 
 /* *********************************************** */
 
 /* Tooltip */
-
 .aladin-tooltip-container {
     position: relative;
     /* take the size of its inner div child */
@@ -960,17 +1079,12 @@
     font-family: monospace;
     line-height: 1rem;
 
-    /*z-index: 100;*/
-    
-    float: left;
 }
 
 .aladin-tooltip-container .aladin-tooltip {
     pointer-events: none;
     cursor: default;
     visibility: hidden;
-    background-color: white;
-    color: black;
 
     width: max-content; 
     
@@ -984,15 +1098,13 @@
  
     /* Position the tooltip text - see examples below! */
     position: absolute;
+    color: var(--text-color);
+    background-color: var(--bg-color);
+    border: var(--border-size) solid var(--border-color);
 
     /*font-family: Verdana, Geneva, Tahoma, sans-serif;*/
 
     transition-delay: 100ms;
-}
-
-.aladin-tooltip-container .aladin-tooltip.aladin-dark-theme {
-    background-color: #333;
-    color: white;
 }
 
 /* Show the tooltip text when you mouse over the tooltip container */
@@ -1042,6 +1154,24 @@
     transform: translateY(-100%);
 }
 
+.aladin-color-picker {
+    transform: translate(10px, 10px);
+    position: fixed;
+
+    pointer-events: none;
+}
+
+.aladin-view-label {
+    font-weight: bold;
+    font-family: monospace;
+    background-color: #00000000;
+    font-size: 1rem;
+    color: var(--aladin-color);
+
+    text-shadow: 1px 0 var(--border-color), -1px 0 var(--border-color), 0 1px var(--border-color), 0 -1px var(--border-color),
+               1px 1px var(--border-color), -1px -1px var(--border-color), 1px -1px var(--border-color), -1px 1px var(--border-color);
+}
+
 /* *********************************************** */
 
 /* Cursors */
@@ -1060,28 +1190,26 @@
  *
  */
 
-.aladin-stack-control {
-    position: absolute;
-    top: 3rem;
-    left: 0.2rem;
+.aladin-indicator {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    margin: 0 5px;
+    vertical-align: middle;
+    border: var(--border-size) solid var(--border-color);
 }
 
-.aladin-settings-control {
-    position: absolute;
-    top: 5.4rem;
-    left: 0.2rem;
+.aladin-indicator.aladin-not-found {
+  background-color: darkorange;
 }
 
-.aladin-simbadPointer-control {
-    position: absolute;
-    top: 7.8rem;
-    left: 0.2rem;
+.aladin-indicator.aladin-valid {
+  background-color: var(--valid-color);
 }
 
-.aladin-grid-control {
-    position: absolute;
-    top: 10.2rem;
-    left: 0.2rem;
+.aladin-link:hover {
+    text-decoration: underline;
 }
 
 .aladin-cooFrame {
@@ -1091,35 +1219,36 @@
 
     font-family: monospace;
 
-    color: white;
+    color: var(--text-color);
 
     border-radius: 0.4rem;
 }
 
 .aladin-stack-box {
-    width: 17rem;
+    min-width: 17rem;
+    max-width: 300px;
 }
 
-.aladin-HiPS-filter-box {
-    margin-top: 0.4rem;
+.aladin-item-selected {
+    border: var(--border-size) solid orange;
 }
 
-.aladin-HiPS-filter-box .aladin-horizontal-list {
-    justify-content: space-evenly;
-    width:100%;
+.aladin-HiPS-browser-box {
+    height: 500px;
+    min-width: 400px;
+}
+
+.aladin-cat-browser-box {
+    width: 400px;
 }
 
 .aladin-HiPS-browser-box .aladin-input-text {
     width: 100%;
-    min-width: 300px;
-    padding: 0.5rem;
+
 }
 
 .aladin-cat-browser-box .aladin-input-text.search {
     width: 100%;
-    min-width: 300px;
-    padding-top: 0.5rem;
-    padding-bottom: 0.5rem;
 }
 
 .aladin-location {
@@ -1128,7 +1257,7 @@
     left: 4.75rem;
     font-family: monospace;
 
-    color: white;
+    color: var(--text-color);
 
     border-radius: 0.2rem;
 }
@@ -1141,6 +1270,7 @@
     border-radius: 0 0.2rem 0.2rem 0;
     box-sizing: content-box;
     width: 12.5rem;
+    padding: 0.2rem;
 }
 
 .aladin-location .aladin-location-copy {
@@ -1150,11 +1280,21 @@
 }
 
 .aladin-fov {
+    background-color: transparent;
+}
+
+[data-theme="light"] .aladin-fov {
+    color: white;
+}
+
+[data-theme="dark"] .aladin-fov {
+    color: var(--text-color);
+}
+
+.aladin-fov {
     position: absolute;
     bottom: 0.2rem;
     left: 0.2rem;
-
-    background-color: red;
 
     font-family: monospace;
 
@@ -1180,15 +1320,17 @@
     bottom: 0;
     left: 50%;
     transform: translate(-50%, 0);
+
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    max-width: 50vw;
 }
 
-.aladin-status-bar.aladin-dark-theme {
-    color: white;
-    background-color: black;
-}
-
-.aladin-fov.aladin-dark-theme {
-    background-color: rgba(0, 0, 0, 0.5);
+.aladin-status-bar{
+    color: var(--text-color);
+    background-color: var(--bg-color);
 }
 
 .aladin-table {
@@ -1198,14 +1340,19 @@
     max-width: calc(100% - 0.4rem);
     line-height: 1rem;
 }
-.aladin-measurement-div.aladin-dark-theme {
-    color: white;
+.aladin-measurement-div {
+    color: var(--text-color);
 }
 
-.aladin-share-control {
+.aladin-widgets-toolbar {
     position: absolute;
-    top: 12.6rem;
-    left: 0.2rem;
+    margin-top: 3rem;
+    margin-bottom: 5rem;
+}
+
+.aladin-widgets-toolbar > * {
+    padding-top: 0rem;
+    margin-right: 0rem;
 }
 
 .aladin-fullScreen-control {
@@ -1261,21 +1408,3 @@
         display: none;
     }
 }
-
-/*@media screen and (max-width: 31rem) {
-    .aladin-projection-control {
-        display: none;
-    }
-}*/
-/*@container (max-width: 40rem) {
-    .aladin-input-text.aladin-dark-theme.search {
-        width: 6rem;
-        text-shadow: 0px 0px 2px #000;
-    }
-}
-
-@container (max-width: 31rem) {
-    .aladin-fov .aladin-monospace-text {
-        display: none;
-    }
-}*/

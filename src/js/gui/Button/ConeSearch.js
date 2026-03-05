@@ -1,22 +1,24 @@
+// SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright 2013 - UDS/CNRS
 // The Aladin Lite program is distributed under the terms
-// of the GNU General Public License version 3.
+// of the GNU Lesser General Public License version 3
+// or (at your option) any later version.
 //
 // This file is part of Aladin Lite.
 //
 //    Aladin Lite is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, version 3 of the License.
+//    it under the terms of the GNU Lesser General Public License as published by
+//    the Free Software Foundation, either version 3 of the License, or
+//    (at your option) any later version.
 //
 //    Aladin Lite is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+//    GNU Lesser General Public License for more details.
 //
-//    The GNU General Public License is available in COPYING file
-//    along with Aladin Lite.
+//    You should have received a copy of the GNU Lesser General Public License
+//    along with Aladin Lite. If not, see <https://www.gnu.org/licenses/>.
 //
-
 
 /******************************************************************************
  * Aladin Lite project
@@ -28,17 +30,9 @@
  *
  *****************************************************************************/
 
- import { ActionButton } from "../Widgets/ActionButton.js";
- import targetIconUrl from '../../../../assets/icons/target.svg';
+import { ActionButton } from "../Widgets/ActionButton.js";
+import targetIconUrl from '../../../../assets/icons/target.svg';
 
- /*
- options = {
-     action: (connector) => {
- 
-     }
-     tooltip
- }
- */
 export class ConeSearchActionButton extends ActionButton {
     // Constructor
     constructor(options, aladin) {
@@ -49,7 +43,7 @@ export class ConeSearchActionButton extends ActionButton {
                 url: targetIconUrl
             },
             tooltip: options.tooltip,
-            disable: options.disable,
+            disabled: options.disabled,
             cssStyle: {
                 backgroundPosition: 'center center',
                 cursor: 'pointer',

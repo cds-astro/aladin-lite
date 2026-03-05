@@ -4,8 +4,6 @@ use wasm_bindgen::prelude::wasm_bindgen;
 
 #[cfg(feature = "webgl2")]
 pub type WebGlRenderingCtx = web_sys::WebGl2RenderingContext;
-#[cfg(feature = "webgl1")]
-pub type WebGlRenderingCtx = web_sys::WebGlRenderingContext;
 
 #[derive(Deserialize, Debug, Clone, Copy)]
 #[serde(rename_all = "camelCase")]
@@ -94,7 +92,7 @@ impl fmt::Display for BlendFactor {
             BlendFactor::OneMinusSrcAlpha => "OneMinusSrcAlpha",
             BlendFactor::OneMinusConstantColor => "OneMinusConstantColor",
         };
-        write!(f, "{}", str)
+        write!(f, "{str}")
     }
 }
 impl fmt::Display for BlendFunc {
@@ -113,6 +111,6 @@ impl fmt::Display for BlendFunc {
             #[cfg(feature = "webgl2")]
             BlendFunc::Max => "Max",*/
         };
-        write!(f, "{}", str)
+        write!(f, "{str}")
     }
 }

@@ -1,22 +1,24 @@
+// SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright 2013 - UDS/CNRS
 // The Aladin Lite program is distributed under the terms
-// of the GNU General Public License version 3.
+// of the GNU Lesser General Public License version 3
+// or (at your option) any later version.
 //
 // This file is part of Aladin Lite.
 //
 //    Aladin Lite is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, version 3 of the License.
+//    it under the terms of the GNU Lesser General Public License as published by
+//    the Free Software Foundation, either version 3 of the License, or
+//    (at your option) any later version.
 //
 //    Aladin Lite is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+//    GNU Lesser General Public License for more details.
 //
-//    The GNU General Public License is available in COPYING file
-//    along with Aladin Lite.
+//    You should have received a copy of the GNU Lesser General Public License
+//    along with Aladin Lite. If not, see <https://www.gnu.org/licenses/>.
 //
-
 
 /******************************************************************************
  * Aladin Lite project
@@ -33,7 +35,6 @@ import { samp } from "../libs/samp";
 import A from "../A";
 
 export class SAMPConnector {
-
     static _createTag = (function() {
         var count = 0;
         return function() {
@@ -73,7 +74,7 @@ export class SAMPConnector {
             var params = message["samp.params"];
 
             const {url, name} = params;
-            let moc = A.MOCFromURL(url, {name, lineWidth: 3});
+            let moc = A.MOCFromURL(url, {name});
             aladin.addMOC(moc);
         };
 
@@ -81,7 +82,7 @@ export class SAMPConnector {
             let params = message["samp.params"];
 
             const {url, name} = params;
-            const image = aladin.createImageFITS(url, {name}, (e) => window.alert(e));
+            const image = aladin.createImageFITS(url, {name}, undefined, (e) => window.alert(e));
 
             aladin.setOverlayImageLayer(image, name);
         };
@@ -93,6 +94,8 @@ export class SAMPConnector {
             let url = params['url'];
             let name = params['name'] || id;
 
+            console.log(id, url, name)
+
             A.catalogFromURL(
                 url,
                 {name, onClick: 'showTable'},
@@ -100,7 +103,7 @@ export class SAMPConnector {
                 (catalog) => {
                     aladin.addCatalog(catalog)
                 },
-                (e) => window.alert(e)
+                (e) => window.alert(e),
             );
         };
 

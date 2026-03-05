@@ -26,6 +26,18 @@ where
     }
 
     pub fn is_ccw(&self) -> bool {
-        crate::math::utils::ccw_tri(&self.v1, &self.v2, &self.v3)
+        crate::math::utils::ccw_tri(self.v1, self.v2, self.v3)
+    }
+
+    pub fn is_elongated(&self) -> bool {
+        let mag2_12 = (self.v1[0] - self.v2[0]) * (self.v1[0] - self.v2[0])
+            + (self.v1[1] - self.v2[1]) * (self.v1[1] - self.v2[1]);
+        let mag2_13 = (self.v1[0] - self.v3[0]) * (self.v1[0] - self.v3[0])
+            + (self.v1[1] - self.v3[1]) * (self.v1[1] - self.v3[1]);
+        let mag2_23 = (self.v2[0] - self.v3[0]) * (self.v2[0] - self.v3[0])
+            + (self.v2[1] - self.v3[1]) * (self.v2[1] - self.v3[1]);
+
+        let l = S::from(0.2).unwrap();
+        mag2_12 >= l || mag2_23 >= l || mag2_13 >= l
     }
 }

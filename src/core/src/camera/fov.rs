@@ -1,6 +1,6 @@
-use cgmath::{Matrix4, Vector2};
+use cgmath::{Matrix3, Vector2};
 
-use crate::math::projection::coo_space::{XYZWModel, XYZWWorld, XYNDC};
+use crate::math::projection::coo_space::{XYZModel, XYZWorld, XYNDC};
 
 use crate::math::sph_geom::region::{Intersection, PoleContained, Region};
 use crate::math::{projection::Projection, sph_geom::bbox::BoundingBox};
@@ -14,7 +14,7 @@ fn ndc_to_world(
     ndc_to_clip: &Vector2<f64>,
     clip_zoom_factor: f64,
     projection: &ProjectionType,
-) -> Option<Vec<XYZWWorld<f64>>> {
+) -> Option<Vec<XYZWorld<f64>>> {
     // Deproject the FOV from ndc to the world space
     let mut world_coo = Vec::with_capacity(ndc_coo.len());
 
@@ -34,7 +34,7 @@ fn ndc_to_world(
 
     Some(world_coo)
 }
-fn world_to_model(world_coo: &[XYZWWorld<f64>], w2m: &Matrix4<f64>) -> Vec<XYZWModel<f64>> {
+fn world_to_model(world_coo: &[XYZWorld<f64>], w2m: &Matrix3<f64>) -> Vec<XYZModel<f64>> {
     let mut model_coo = Vec::with_capacity(world_coo.len());
 
     for w in world_coo.iter() {
@@ -54,15 +54,15 @@ fn linspace(a: f64, b: f64, num: usize) -> Vec<f64> {
     res
 }
 
-const NUM_VERTICES_WIDTH: usize = 3;
-const NUM_VERTICES_HEIGHT: usize = 3;
+const NUM_VERTICES_WIDTH: usize = 4;
+const NUM_VERTICES_HEIGHT: usize = 4;
 const NUM_VERTICES: usize = 4 + 2 * NUM_VERTICES_WIDTH + 2 * NUM_VERTICES_HEIGHT;
 // This struct belongs to the CameraViewPort
 pub struct FieldOfView {
     // Vertices
     ndc_vertices: Vec<XYNDC<f64>>,
-    world_vertices: Option<Vec<XYZWWorld<f64>>>,
-    model_vertices: Option<Vec<XYZWModel<f64>>>,
+    world_vertices: Option<Vec<XYZWorld<f64>>>,
+    model_vertices: Option<Vec<XYZModel<f64>>>,
 
     reg: Region,
 }
@@ -73,22 +73,20 @@ impl FieldOfView {
         ndc_to_clip: &Vector2<f64>,
         clip_zoom_factor: f64,
         // rotation
-        rotation_mat: &Matrix4<f64>,
+        rotation_mat: &Matrix3<f64>,
         // projection
         projection: &ProjectionType,
     ) -> Self {
         let mut x_ndc = linspace(-1., 1., NUM_VERTICES_WIDTH + 2);
 
-        x_ndc.extend(iter::repeat(1.0).take(NUM_VERTICES_HEIGHT));
+        x_ndc.extend(iter::repeat_n(1.0, NUM_VERTICES_HEIGHT));
         x_ndc.extend(linspace(1., -1., NUM_VERTICES_WIDTH + 2));
-        x_ndc.extend(iter::repeat(-1.0).take(NUM_VERTICES_HEIGHT));
+        x_ndc.extend(iter::repeat_n(-1.0, NUM_VERTICES_HEIGHT));
 
-        let mut y_ndc = iter::repeat(-1.0)
-            .take(NUM_VERTICES_WIDTH + 1)
-            .collect::<Vec<_>>();
+        let mut y_ndc = iter::repeat_n(-1.0, NUM_VERTICES_WIDTH + 1).collect::<Vec<_>>();
 
         y_ndc.extend(linspace(-1., 1., NUM_VERTICES_HEIGHT + 2));
-        y_ndc.extend(iter::repeat(1.0).take(NUM_VERTICES_WIDTH));
+        y_ndc.extend(iter::repeat_n(1.0, NUM_VERTICES_WIDTH));
         y_ndc.extend(linspace(1., -1., NUM_VERTICES_HEIGHT + 2));
         y_ndc.pop();
 
@@ -123,7 +121,7 @@ impl FieldOfView {
         &mut self,
         ndc_to_clip: &Vector2<f64>,
         clip_zoom_factor: f64,
-        rotate_mat: &Matrix4<f64>,
+        rotate_mat: &Matrix3<f64>,
         projection: &ProjectionType,
     ) {
         self.world_vertices = ndc_to_world(
@@ -135,7 +133,7 @@ impl FieldOfView {
         self.set_rotation(rotate_mat);
     }
 
-    pub fn set_rotation(&mut self, rotate_mat: &Matrix4<f64>) {
+    pub fn set_rotation(&mut self, rotate_mat: &Matrix3<f64>) {
         if let Some(world_vertices) = &self.world_vertices {
             self.model_vertices = Some(world_to_model(world_vertices, rotate_mat));
         } else {
@@ -186,7 +184,7 @@ impl FieldOfView {
         }
     }
 
-    pub fn get_vertices(&self) -> Option<&Vec<XYZWModel<f64>>> {
+    pub fn get_vertices(&self) -> Option<&Vec<XYZModel<f64>>> {
         self.model_vertices.as_ref()
     }
 

@@ -12,26 +12,35 @@ impl<T> Deref for UV<T> {
     }
 }
 
-use super::d2::texture::HpxTexture2D;
 use crate::healpix::cell::HEALPixCell;
-use crate::renderable::hips::HpxTile;
+
 pub struct TileUVW(pub [Vector3<f32>; 4]);
 impl TileUVW {
     // The texture cell passed must be a child of texture
-    pub fn new(cell: &HEALPixCell, texture: &HpxTexture2D) -> TileUVW {
+    pub fn new(cell: &HEALPixCell, parent_cell: &Option<HEALPixCell>, w: f32) -> TileUVW {
         // Index of the texture in the total set of textures
-        let texture_idx = texture.idx();
+        //let texture_idx = texture.idx();
 
         // Row and column indexes of the tile in its texture
-        let (idx_col_in_tex, idx_row_in_tex) = cell.offset_in_parent(texture.cell());
+        let (u, v, ds) = if let Some(parent) = parent_cell {
+            let (idx_col_in_tex, idx_row_in_tex) = cell.offset_in_parent(parent);
 
-        let nside = (1 << (cell.depth() - texture.cell().depth())) as f32;
-        let u = (idx_row_in_tex as f32) / nside;
-        let v = (idx_col_in_tex as f32) / nside;
+            let nside = (1 << (cell.depth() - parent.depth())) as f32;
+            let ds = 1_f32 / nside;
 
-        let ds = 1_f32 / nside;
+            let u = (idx_row_in_tex as f32) / nside;
+            let v = (idx_col_in_tex as f32) / nside;
 
-        let w = texture_idx as f32;
+            (u, v, ds)
+        } else {
+            (0.0, 0.0, 1.0)
+        };
+
+        //let u = 0.0;
+        //let v = 0.0;
+        //let ds = 1.0;
+
+        // let w = texture_idx as f32;
         TileUVW([
             Vector3::new(u, v, w),
             Vector3::new(u + ds, v, w),

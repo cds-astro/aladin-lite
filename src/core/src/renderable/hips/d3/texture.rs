@@ -1,23 +1,140 @@
-use crate::renderable::hips::d2::texture::HpxTexture2D;
-use crate::{healpix::cell::HEALPixCell, time::Time};
+use crate::time::Time;
 
-use al_core::image::format::{
-    ChannelType, R16I, R32F, R32I, R64F, R8UI, RGB32F, RGB8U, RGBA32F, RGBA8U,
-};
+use crate::renderable::hips::d3::Freq;
+use crate::Abort;
+use crate::WebGlContext;
+use al_core::image::fits::FitsImage;
+use al_core::image::raw::ImageBuffer;
 use al_core::image::Image;
+use al_core::texture::format::{PixelType, R16I, R32F, R32I, R8U};
 use al_core::texture::Texture3D;
 use al_core::webgl_ctx::WebGlRenderingCtx;
 use cgmath::Vector3;
+use fitsrs::hdu::header::Bitpix;
+use std::borrow::Cow;
+use std::cmp::Ordering;
+use std::ops::Range;
 use wasm_bindgen::JsValue;
 
-pub struct HpxTexture3D {
-    tile_cell: HEALPixCell,
-    // Precomputed uniq number
-    uniq: i32,
+pub enum HpxFreqData {
+    Fits {
+        // The raw bytes of the whole cubic FITS file, data big endian
+        raw_bytes: Box<[u8]>,
+        // Offset to the data bytes of the cubic tile
+        data_byte_offset: Range<usize>,
+        // Number of bytes per pixel (deduced from the bitpix)
+        bitpix: Bitpix,
+        // Triming offset indices when reading the data
+        trim: (u32, u32, u32),
+        // Naxis
+        naxis: (u32, u32, u32),
+        // Scaling value
+        bscale: f32,
+        // Offset value
+        bzero: f32,
+        // The real size of the cube
+        size: (u32, u32, u32),
+    },
+    Jpeg {
+        data: Box<[u8]>,
+        size: (u32, u32, u32),
+    },
+    Png {
+        data: Box<[u8]>,
+        size: (u32, u32, u32),
+    },
+}
+
+pub enum Pixel {
+    F32(f32),
+    I32(i32),
+    I16(i16),
+    U8(u8),
+}
+
+impl Pixel {
+    pub fn to_f32(&self) -> f32 {
+        match *self {
+            Pixel::F32(v) => v,
+            Pixel::I16(v) => v as f32,
+            Pixel::I32(v) => v as f32,
+            Pixel::U8(v) => v as f32,
+        }
+    }
+}
+
+impl HpxFreqData {
+    pub fn read_pixel(&self, x: u32, y: u32, z: u32) -> Option<f32> {
+        match self {
+            HpxFreqData::Fits {
+                raw_bytes,
+                data_byte_offset,
+                bitpix,
+                trim,
+                naxis,
+                bscale,
+                bzero,
+                size,
+            } => {
+                // Do not remember the origin in fits image data is left-down corner
+                let y = size.1 - y;
+
+                let x_in_data = (trim.0..(trim.0 + naxis.0)).contains(&x);
+                let y_in_data = (trim.1..(trim.1 + naxis.1)).contains(&y);
+                let z_in_data = (trim.2..(trim.2 + naxis.2)).contains(&z);
+
+                if !x_in_data || !y_in_data || !z_in_data {
+                    None
+                } else {
+                    let x = x - trim.0;
+                    let y = y - trim.1;
+                    let z = z - trim.2;
+
+                    let data_raw_bytes = &raw_bytes[data_byte_offset.clone()];
+                    let bytes_per_pixel = bitpix.byte_size();
+                    let pixel_bytes_off =
+                        bytes_per_pixel * (x + y * naxis.0 + z * (naxis.0 * naxis.1)) as usize;
+
+                    let p = &data_raw_bytes[pixel_bytes_off..(pixel_bytes_off + bytes_per_pixel)];
+
+                    let pixel = match bitpix {
+                        Bitpix::U8 => Pixel::U8(p[0]),
+                        Bitpix::I16 => Pixel::I16(i16::from_be_bytes([p[0], p[1]])),
+                        Bitpix::I32 => Pixel::I32(i32::from_be_bytes([p[0], p[1], p[2], p[3]])),
+                        Bitpix::F32 => Pixel::F32(f32::from_be_bytes([p[0], p[1], p[2], p[3]])),
+                        Bitpix::F64 => Pixel::F32(f64::from_be_bytes([
+                            p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7],
+                        ]) as f32),
+                        Bitpix::I64 => Pixel::I32(i64::from_be_bytes([
+                            p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7],
+                        ]) as i32),
+                    };
+
+                    Some(pixel.to_f32() * (*bscale) + (*bzero))
+                }
+            }
+            HpxFreqData::Jpeg { data, size } => {
+                let pixel_bytes_off = (x + y * size.0 + z * (size.0 * size.1)) as usize;
+
+                let p = data[pixel_bytes_off];
+                Some(p as f32)
+            }
+            HpxFreqData::Png { data, size } => {
+                let pixel_bytes_off = (x + y * size.0 + z * (size.0 * size.1)) as usize;
+
+                let p = data[2 * pixel_bytes_off];
+                Some(p as f32)
+            }
+        }
+    }
+}
+
+pub struct HpxFreqTex {
+    pub cell: HEALPixFreqCell,
     // The time the texture has been received
     // If the texture contains multiple tiles, then the receiving time
     // is set when all the tiles have been copied to the buffer
-    start_time: Option<Time>,
+    pub start_time: Option<Time>,
     // The time request of the texture is the time request
     // of the first tile being inserted in it
     // It is then only given in the constructor of Texture
@@ -26,281 +143,277 @@ pub struct HpxTexture3D {
     // texture. But this is too expensive because at each tile inserted
     // in the buffer, one should reevalute the priority of the texture
     // in the buffer's binary heap.
-    time_request: Time,
+    pub time_request: Time,
 
+    // OLD CODE
     // We autorize 512 cubic tiles of size 32 each which allows to store max 16384 slices
-    textures: Vec<Option<Texture3D>>,
+    //textures: Vec<Option<Texture3D>>,
     // A set of already inserted slices. Each cubic tiles can have 32 slices. The occupancy of the
     // slices inside a cubic tile is done with a u32 mask. Limited to 16384 slices
-    blocks: [u32; 512],
+    //blocks: [u32; 512],
     // sorted index list of 32-length blocks that are not empty
-    block_indices: Vec<usize>,
+    //block_indices: Vec<usize>,
+    /// The webgl2 3D texture of the cubic tile
+    pub texture: Texture3D,
+
+    data: Option<HpxFreqData>,
+
+    // The real image data for accessing the pixel values
+    //data: ImageType,
+    /// A bitvector keeping track of the slices that have been inserted into the 3D texture
+    /// It is limited to a cube depth of 256 (~ to the max texture size).
+    slice_idx: [u32; 8],
+
+    /// Depth of the tile
+    num_slices: u16,
+    /// Number of slices copied (concerns only HiPSCube)
+    num_stored_slices: u16,
 }
 
-use crate::renderable::hips::config::HiPSConfig;
-use crate::WebGlContext;
+const TEX_PARAMS: &[(u32, u32)] = &[
+    (
+        WebGlRenderingCtx::TEXTURE_MIN_FILTER,
+        WebGlRenderingCtx::NEAREST,
+    ),
+    (
+        WebGlRenderingCtx::TEXTURE_MAG_FILTER,
+        WebGlRenderingCtx::NEAREST,
+    ),
+    // Prevents s-coordinate wrapping (repeating)
+    (
+        WebGlRenderingCtx::TEXTURE_WRAP_S,
+        WebGlRenderingCtx::CLAMP_TO_EDGE,
+    ),
+    // Prevents t-coordinate wrapping (repeating)
+    (
+        WebGlRenderingCtx::TEXTURE_WRAP_T,
+        WebGlRenderingCtx::CLAMP_TO_EDGE,
+    ),
+    // Prevents r-coordinate wrapping (repeating)
+    (
+        WebGlRenderingCtx::TEXTURE_WRAP_R,
+        WebGlRenderingCtx::CLAMP_TO_EDGE,
+    ),
+];
 
-use crate::renderable::hips::HpxTile;
-
-impl HpxTexture3D {
-    pub fn new(tile_cell: HEALPixCell, time_request: Time) -> Self {
+use crate::healpix::cell::HEALPixFreqCell;
+impl HpxFreqTex {
+    pub fn new(
+        // The cubic tile definition to locate the cube in the sky + spectral axis
+        cell: HEALPixFreqCell,
+        // The time the request has been made, i.e. when the tile was needed
+        time_request: Time,
+        // The size of the cubis tile
+        tile_size: u16,
+        // The depth of the cubic tile. Must be a power of two
+        num_slices: u16,
+        // pixel format
+        pixel_format: PixelType,
+        // The Gl context
+        gl: &WebGlContext,
+    ) -> Result<Self, JsValue> {
         let start_time = None;
-        let uniq = tile_cell.uniq();
-        let textures = std::iter::repeat(None).take(512).collect();
-        let blocks = [0; 512];
-        let block_indices = Vec::new();
-        Self {
-            tile_cell,
-            uniq,
+
+        let texture = match pixel_format {
+            // alpha transparency
+            PixelType::RGBA8U => Texture3D::create_empty::<R16I>(
+                gl,
+                tile_size as i32,
+                tile_size as i32,
+                num_slices as i32,
+                TEX_PARAMS,
+            ),
+            PixelType::RGB8U => Texture3D::create_empty::<R8U>(
+                gl,
+                tile_size as i32,
+                tile_size as i32,
+                num_slices as i32,
+                TEX_PARAMS,
+            ),
+            PixelType::R8U => Texture3D::create_empty::<R8U>(
+                gl,
+                tile_size as i32,
+                tile_size as i32,
+                num_slices as i32,
+                TEX_PARAMS,
+            ),
+            PixelType::R32F => Texture3D::create_empty::<R32F>(
+                gl,
+                tile_size as i32,
+                tile_size as i32,
+                num_slices as i32,
+                TEX_PARAMS,
+            ),
+            PixelType::R16I => Texture3D::create_empty::<R16I>(
+                gl,
+                tile_size as i32,
+                tile_size as i32,
+                num_slices as i32,
+                TEX_PARAMS,
+            ),
+            PixelType::R32I => Texture3D::create_empty::<R32I>(
+                gl,
+                tile_size as i32,
+                tile_size as i32,
+                num_slices as i32,
+                TEX_PARAMS,
+            ),
+        }?;
+
+        let data = None;
+        let num_stored_slices = 0;
+        let slice_idx = [0x0; 8];
+        Ok(Self {
+            cell,
+            slice_idx,
             time_request,
             start_time,
-            textures,
-            blocks,
-            block_indices,
-        }
+            data,
+            texture,
+            num_slices,
+            num_stored_slices,
+        })
     }
 
-    pub fn find_nearest_slice(&self, slice: u16) -> Option<u16> {
-        let block_idx = (slice >> 5) as usize;
+    pub fn set_data_from_fits(
+        &mut self,
+        // the tile image of the whole cubic tile
+        raw_bytes: js_sys::Uint8Array,
+        // size of the cube
+        size: (u32, u32, u32),
+    ) -> Result<(), JsValue> {
+        let raw_bytes = raw_bytes.to_vec().into_boxed_slice();
 
-        match self.block_indices.binary_search(&block_idx) {
-            Ok(_) => {
-                if self.contains_slice(slice) {
-                    Some(slice)
-                } else {
-                    // the slice is not present but we know there is one in the block
-                    let block = self.blocks[block_idx];
+        self.data = {
+            let image = FitsImage::from_raw_bytes(&raw_bytes[..])?.pop().unwrap();
+            image.insert_into_3d_texture(&self.texture, &Vector3::<i32>::new(0, 0, 0))?;
 
-                    let slice_idx = (slice & 0x1f) as u32;
+            let bitpix = image.bitpix;
+            let trim = (image.trim1, image.trim2, image.trim3);
+            let naxis = (image.width, image.height, image.depth);
+            let bscale = image.bscale;
+            let bzero = image.bzero;
 
-                    let m2 = if slice_idx == 31 {
-                        0
-                    } else {
-                        0xffffffff >> (slice_idx + 1)
-                    };
-                    let m1 = (!m2) & !(1 << (31 - slice_idx));
+            if let Cow::Owned(uncompressed_bytes) = image.raw_bytes {
+                Some(HpxFreqData::Fits {
+                    data_byte_offset: 0..uncompressed_bytes.len(),
+                    raw_bytes: uncompressed_bytes.into_boxed_slice(),
+                    bitpix,
+                    trim,
+                    naxis,
+                    bscale,
+                    bzero,
+                    size,
+                })
+            } else {
+                let data_byte_offset = image.data_byte_offset.clone();
 
-                    let lb = ((block & m1) >> (32 - slice_idx)) as u32;
-                    let rb = (block & m2) as u32;
+                std::mem::drop(image);
 
-                    let lb_trailing_zeros = (lb.trailing_zeros() as u16).min(slice_idx as u16);
-                    let rb_leading_zeros = (rb.leading_zeros() - slice_idx - 1) as u16;
-
-                    let no_more_left_bits = slice_idx - (lb_trailing_zeros as u32) == 0;
-                    let no_more_right_bits = slice_idx + (rb_leading_zeros as u32) == 31;
-
-                    match (no_more_left_bits, no_more_right_bits) {
-                        (false, false) => {
-                            if lb_trailing_zeros <= rb_leading_zeros {
-                                Some(slice - lb_trailing_zeros - 1)
-                            } else {
-                                Some(slice + rb_leading_zeros + 1)
-                            }
-                        }
-                        (false, true) => {
-                            if lb_trailing_zeros <= rb_leading_zeros {
-                                Some(slice - lb_trailing_zeros - 1)
-                            } else {
-                                // explore next block
-                                if block_idx == self.blocks.len() - 1 {
-                                    // no after block
-                                    Some(slice - lb_trailing_zeros - 1)
-                                } else {
-                                    // get the next block
-                                    let next_block = self.blocks[block_idx + 1];
-
-                                    let num_bits_to_next_block =
-                                        next_block.leading_zeros() as u16 + rb_leading_zeros;
-
-                                    if num_bits_to_next_block < lb_trailing_zeros {
-                                        Some(slice + num_bits_to_next_block + 1)
-                                    } else {
-                                        Some(slice - lb_trailing_zeros - 1)
-                                    }
-                                }
-                            }
-                        }
-                        (true, false) => {
-                            if rb_leading_zeros <= lb_trailing_zeros {
-                                Some(slice + rb_leading_zeros + 1)
-                            } else {
-                                // explore previous block
-                                if block_idx == 0 {
-                                    // no after block
-                                    Some(slice + rb_leading_zeros + 1)
-                                } else {
-                                    // get the next block
-                                    let prev_block = self.blocks[block_idx - 1];
-
-                                    let num_bits_from_prev_block =
-                                        prev_block.trailing_zeros() as u16 + lb_trailing_zeros;
-                                    if num_bits_from_prev_block < rb_leading_zeros {
-                                        Some(slice - num_bits_from_prev_block - 1)
-                                    } else {
-                                        Some(slice + rb_leading_zeros + 1)
-                                    }
-                                }
-                            }
-                        }
-                        (true, true) => unreachable!(),
-                    }
-                }
+                Some(HpxFreqData::Fits {
+                    raw_bytes,
+                    data_byte_offset,
+                    bitpix,
+                    trim,
+                    naxis,
+                    bscale,
+                    bzero,
+                    size,
+                })
             }
-            Err(i) => {
-                let prev_block = if i > 0 {
-                    self.block_indices.get(i - 1)
-                } else {
-                    None
-                };
+        };
 
-                let cur_block = self.block_indices.get(i);
-                match (prev_block, cur_block) {
-                    (Some(b_idx_1), Some(b_idx_2)) => {
-                        let b1 = self.blocks[*b_idx_1];
-                        let b2 = self.blocks[*b_idx_2];
+        self.num_stored_slices = self.num_slices;
+        self.start_time = Some(Time::now());
 
-                        let b1_tz = b1.trailing_zeros() as usize;
-                        let b2_lz = b2.leading_zeros() as usize;
-
-                        let slice_b1 = ((*b_idx_1 << 5) + 32 - b1_tz - 1) as u16;
-                        let slice_b2 = ((*b_idx_2 << 5) + b2_lz) as u16;
-                        if slice - slice_b1 <= slice_b2 - slice {
-                            // the nearest slice is in b1
-                            Some(slice_b1 as u16)
-                        } else {
-                            // the nearest slice is in b2
-                            Some(slice_b2 as u16)
-                        }
-                    }
-                    (None, Some(b_idx_2)) => {
-                        let b2 = self.blocks[*b_idx_2];
-                        let b2_lz = b2.leading_zeros() as usize;
-
-                        Some(((*b_idx_2 << 5) + b2_lz) as u16)
-                    }
-                    (Some(b_idx_1), None) => {
-                        let b1 = self.blocks[*b_idx_1];
-                        let b1_tz = b1.trailing_zeros() as usize;
-
-                        Some(((*b_idx_1 << 5) + 32 - b1_tz - 1) as u16)
-                    }
-                    (None, None) => None,
-                }
-            }
-        }
+        Ok(())
     }
 
-    pub fn get_3d_block_from_slice(&self, slice: u16) -> Option<&Texture3D> {
-        let block_idx = (slice >> 5) as usize;
-
-        self.textures[block_idx].as_ref()
-    }
-
-    pub fn extract_2d_slice_texture(&self, slice: u16) -> Option<HpxTexture2D> {
-        // Find the good sub cube containing the slice
-        let block_idx = (slice >> 5) as usize;
-        let slice_idx = (slice & 0x1f) as u8;
-
-        // check the texture is there
-        if self.blocks[block_idx] & (1 << (31 - slice_idx)) != 0 {
-            Some(HpxTexture2D::new(
-                &self.tile_cell,
-                slice_idx as i32,
-                self.time_request,
-            ))
+    pub fn read_pixel(&self, x: u32, y: u32, z: u32) -> Option<f32> {
+        if let Some(data) = &self.data {
+            data.read_pixel(x, y, z)
         } else {
             None
         }
     }
 
+    pub fn frequencies(&self) -> Vec<f32> {
+        let delta_depth = self.num_slices.trailing_zeros();
+        let pixel_depth = self.cell.f_depth + delta_depth as u8;
+
+        let h0 = self.cell.f_hash << delta_depth;
+        let h1 = (self.cell.f_hash + 1) << delta_depth;
+
+        (h0..h1)
+            .map(|hash| Freq::from_hash_with_order(hash, pixel_depth).0 as f32)
+            .collect()
+    }
+
+    pub fn set_data_from_jpeg(
+        &mut self,
+        // the tile image of the whole cubic tile
+        decoded_bytes: Box<[u8]>,
+        // size of the cube
+        size: (u32, u32, u32),
+    ) -> Result<(), JsValue> {
+        let cubic_tile = ImageBuffer::<R8U>::new(decoded_bytes, size.0, size.1, size.2);
+
+        cubic_tile.insert_into_3d_texture(&self.texture, &Vector3::<i32>::new(0, 0, 0))?;
+
+        self.data = Some(HpxFreqData::Jpeg {
+            data: cubic_tile.data,
+            size,
+        });
+        self.num_stored_slices = self.num_slices;
+        self.start_time = Some(Time::now());
+
+        Ok(())
+    }
+
+    pub fn set_data_from_png(
+        &mut self,
+        // the tile image of the whole cubic tile
+        decoded_bytes: Box<[u8]>,
+        // size of the cube
+        size: (u32, u32, u32),
+    ) -> Result<(), JsValue> {
+        let cubic_tile = ImageBuffer::<R8U>::new(decoded_bytes, size.0, size.1, size.2);
+
+        cubic_tile.insert_into_3d_texture(&self.texture, &Vector3::<i32>::new(0, 0, 0))?;
+
+        self.data = Some(HpxFreqData::Png {
+            data: cubic_tile.data,
+            size,
+        });
+        self.num_stored_slices = self.num_slices;
+        self.start_time = Some(Time::now());
+
+        Ok(())
+    }
+
     // Panic if cell is not contained in the texture
     // Do nothing if the texture is full
     // Return true if the tile is newly added
-    pub fn append<I: Image>(
+    // Used by HiPS Cubes
+    pub fn append_tile_slice<I: Image>(
         &mut self,
+        // the tile image of 1 slice
         image: I,
-        slice: u16,
-        cfg: &HiPSConfig,
-        gl: &WebGlContext,
+        // the slice offset in the cubic tile
+        offset: u16,
     ) -> Result<(), JsValue> {
-        let block_idx = (slice >> 5) as usize;
+        // If there is already something, do not tex sub
+        let block_idx = (offset >> 5) as usize;
+        let slice_idx = (offset & 0x1f) as u8;
 
-        let texture = if let Some(texture) = self.textures[block_idx as usize].as_ref() {
-            texture
-        } else {
-            let tile_size = cfg.get_tile_size();
-            let params = &[
-                (
-                    WebGlRenderingCtx::TEXTURE_MIN_FILTER,
-                    WebGlRenderingCtx::NEAREST,
-                ),
-                (
-                    WebGlRenderingCtx::TEXTURE_MAG_FILTER,
-                    WebGlRenderingCtx::NEAREST,
-                ),
-                // Prevents s-coordinate wrapping (repeating)
-                (
-                    WebGlRenderingCtx::TEXTURE_WRAP_S,
-                    WebGlRenderingCtx::CLAMP_TO_EDGE,
-                ),
-                // Prevents t-coordinate wrapping (repeating)
-                (
-                    WebGlRenderingCtx::TEXTURE_WRAP_T,
-                    WebGlRenderingCtx::CLAMP_TO_EDGE,
-                ),
-                // Prevents r-coordinate wrapping (repeating)
-                (
-                    WebGlRenderingCtx::TEXTURE_WRAP_R,
-                    WebGlRenderingCtx::CLAMP_TO_EDGE,
-                ),
-            ];
+        if self.slice_idx[block_idx] & (1 << (31 - slice_idx)) == 0 {
+            image.insert_into_3d_texture(
+                &self.texture,
+                &Vector3::<i32>::new(0, 0, slice_idx as i32),
+            )?;
 
-            let texture = match cfg.get_format().get_channel() {
-                ChannelType::RGBA32F => {
-                    Texture3D::create_empty::<RGBA32F>(gl, tile_size, tile_size, 32, params)
-                }
-                ChannelType::RGB32F => {
-                    Texture3D::create_empty::<RGB32F>(gl, tile_size, tile_size, 32, params)
-                }
-                ChannelType::RGBA8U => {
-                    Texture3D::create_empty::<RGBA8U>(gl, tile_size, tile_size, 32, params)
-                }
-                ChannelType::RGB8U => {
-                    Texture3D::create_empty::<RGB8U>(gl, tile_size, tile_size, 32, params)
-                }
-                ChannelType::R32F => {
-                    Texture3D::create_empty::<R32F>(gl, tile_size, tile_size, 32, params)
-                }
-                ChannelType::R64F => {
-                    Texture3D::create_empty::<R64F>(gl, tile_size, tile_size, 32, params)
-                }
-                ChannelType::R8UI => {
-                    Texture3D::create_empty::<R8UI>(gl, tile_size, tile_size, 32, params)
-                }
-                ChannelType::R16I => {
-                    Texture3D::create_empty::<R16I>(gl, tile_size, tile_size, 32, params)
-                }
-                ChannelType::R32I => {
-                    Texture3D::create_empty::<R32I>(gl, tile_size, tile_size, 32, params)
-                }
-            };
-            self.textures[block_idx] = Some(texture?);
-
-            self.textures[block_idx].as_ref().unwrap()
-        };
-
-        let slice_idx = slice & 0x1f;
-
-        // if there is already something, do not tex sub
-        if self.blocks[block_idx] & (1 << (31 - slice_idx)) == 0 {
-            image.insert_into_3d_texture(texture, &Vector3::<i32>::new(0, 0, slice_idx as i32))?;
-
-            match self.block_indices.binary_search(&block_idx) {
-                Ok(_) => {} // element already in vector @ `pos`
-                Err(i) => self.block_indices.insert(i, block_idx),
-            }
-
-            self.blocks[block_idx] |= 1 << (31 - slice_idx);
+            self.slice_idx[block_idx] |= 1 << (31 - slice_idx);
+            self.num_stored_slices += 1;
         }
 
         self.start_time = Some(Time::now());
@@ -309,87 +422,29 @@ impl HpxTexture3D {
     }
 
     // Cell must be contained in the texture
-    pub fn contains_slice(&self, slice: u16) -> bool {
-        let block_idx = (slice >> 5) as usize;
-        let idx_in_block = slice & 0x1f;
+    pub fn contains_slice(&self, offset: u16) -> bool {
+        let block_idx = (offset >> 5) as usize;
+        let slice_idx = offset & 0x1f;
 
-        (self.blocks[block_idx] >> (31 - idx_in_block)) & 0x1 == 1
+        (self.slice_idx[block_idx] >> (31 - slice_idx)) & 0x1 == 1
     }
 }
 
-impl HpxTile for HpxTexture3D {
-    // Getter
-    // Returns the current time if the texture is not full
-    fn start_time(&self) -> Time {
-        if let Some(t) = self.start_time {
-            t
-        } else {
-            Time::now()
-        }
-    }
-
-    fn time_request(&self) -> Time {
-        self.time_request
-    }
-
-    fn cell(&self) -> &HEALPixCell {
-        &self.tile_cell
-    }
-}
-
-use std::cmp::Ordering;
-impl PartialOrd for HpxTexture3D {
+impl PartialOrd for HpxFreqTex {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.uniq.partial_cmp(&other.uniq)
+        Some(self.cmp(other))
     }
 }
-use crate::Abort;
-impl Ord for HpxTexture3D {
+
+impl Ord for HpxFreqTex {
     fn cmp(&self, other: &Self) -> Ordering {
         self.partial_cmp(other).unwrap_abort()
     }
 }
 
-impl PartialEq for HpxTexture3D {
+impl PartialEq for HpxFreqTex {
     fn eq(&self, other: &Self) -> bool {
-        self.uniq == other.uniq
+        self.cell == other.cell
     }
 }
-impl Eq for HpxTexture3D {}
-
-/*
-pub struct TextureUniforms<'a> {
-    texture: &'a HpxTexture3D,
-    name: String,
-}
-
-impl<'a> TextureUniforms<'a> {
-    pub fn new(texture: &Texture, idx_texture: i32) -> TextureUniforms {
-        let name = format!("textures_tiles[{}].", idx_texture);
-        TextureUniforms { texture, name }
-    }
-}
-
-use al_core::shader::{SendUniforms, ShaderBound};
-impl<'a> SendUniforms for TextureUniforms<'a> {
-    fn attach_uniforms<'b>(&self, shader: &'b ShaderBound<'b>) -> &'b ShaderBound<'b> {
-        shader
-            .attach_uniform(&format!("{}{}", self.name, "uniq"), &self.texture.uniq)
-            .attach_uniform(
-                &format!("{}{}", self.name, "texture_idx"),
-                &self.texture.idx,
-            )
-            .attach_uniform(
-                &format!("{}{}", self.name, "empty"),
-                //&((self.texture.full as u8) as f32),
-                &0.0,
-            )
-            .attach_uniform(
-                &format!("{}{}", self.name, "start_time"),
-                &self.texture.start_time(),
-            );
-
-        shader
-    }
-}
-*/
+impl Eq for HpxFreqTex {}

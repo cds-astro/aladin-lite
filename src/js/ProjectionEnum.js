@@ -1,23 +1,24 @@
+// SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright 2013 - UDS/CNRS
 // The Aladin Lite program is distributed under the terms
-// of the GNU General Public License version 3.
+// of the GNU Lesser General Public License version 3
+// or (at your option) any later version.
 //
 // This file is part of Aladin Lite.
 //
 //    Aladin Lite is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, version 3 of the License.
+//    it under the terms of the GNU Lesser General Public License as published by
+//    the Free Software Foundation, either version 3 of the License, or
+//    (at your option) any later version.
 //
 //    Aladin Lite is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+//    GNU Lesser General Public License for more details.
 //
-//    The GNU General Public License is available in COPYING file
-//    along with Aladin Lite.
+//    You should have received a copy of the GNU Lesser General Public License
+//    along with Aladin Lite. If not, see <https://www.gnu.org/licenses/>.
 //
-
-
 
 /******************************************************************************
  * Aladin Lite project
@@ -29,26 +30,26 @@
  *****************************************************************************/
 export let ProjectionEnum = {
    // Zenithal
-   TAN: {id: 1, fov: 150, label: "Tangential"},	         /* Gnomonic projection      */
-   STG: {id: 2, fov: 240, label: "Stereographic"},	      /* Stereographic projection */
-   SIN: {id: 3, fov: 1000, label: "Spheric"},	      /* Orthographic		         */
+   TAN: {id: 1, label: "Tangential"},	         /* Gnomonic projection      */
+   STG: {id: 2, label: "Stereographic"},	      /* Stereographic projection */
+   SIN: {id: 3, label: "Spheric"},	      /* Orthographic		         */
    // TODO: fix why the projection disappears at fov = 360.0
-   ZEA: {id: 4, fov: 1000, label: "Zenital equal-area"},	/* Equal-area 		         */
-   //FEYE: {id: 5, fov: 190, label: "fish eye"},
-   //AIR: {id: 6, fov: 360, label: "airy"},
+   ZEA: {id: 4, label: "Zenital equal-area"},	/* Equal-area 		         */
+   /*FEYE: {id: 5, fov: 190, label: "fish eye"},
+   AIR: {id: 6, fov: 360, label: "airy"},
    //AZP: {fov: 180},
-   //ARC: {id: 7, fov: 360, label: "zenital equidistant"},
-   //NCP: {id: 8, fov: 180, label: "north celestial pole"},
+   ARC: {id: 7, fov: 360, label: "zenital equidistant"},
+   NCP: {id: 8, fov: 180, label: "north celestial pole"},*/
    // Cylindrical
-   MER: {id: 9, fov: 360, label: "Mercator"},
-   //CAR: {id: 10, fov: 360, label: "plate carrée"},
-   //CEA: {id: 11, fov: 360, label: "cylindrical equal area"},
-   //CYP: {id: 12, fov: 360, label: "cylindrical perspective"},
+   MER: {id: 9, label: "Mercator"},
+   /*CAR: {id: 10, fov: 360, label: "plate carrée"},
+   CEA: {id: 11, fov: 360, label: "cylindrical equal area"},
+   CYP: {id: 12, fov: 360, label: "cylindrical perspective"},*/
    // Pseudo-cylindrical
-   AIT: {id: 13, fov: 1000, label: "Hammer-Aïtoff"},
-   //PAR: {id: 14, fov: 360, label: "parabolic"},
-   //SFL: {id: 15, fov: 360, label: "sanson-flamsteed"},
-   MOL: {id: 16, fov: 1000, label: "Mollweide"},
+   AIT: {id: 13, label: "Hammer-Aïtoff"},
+   /*PAR: {id: 14, fov: 360, label: "parabolic"},
+   SFL: {id: 15, fov: 360, label: "sanson-flamsteed"},*/
+   MOL: {id: 16, label: "Mollweide"},
    // Conic
    //COD: {id: 17, fov: 360, label: "conic equidistant"},
    // Hybrid

@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, serde::Deserialize, serde::Serialize)]
 pub struct HEALPixCell(pub u8, pub u64);
 
 #[derive(Debug)]
@@ -15,8 +15,9 @@ use healpix::compass_point::MainWind;
 use healpix::compass_point::Ordinal;
 use healpix::compass_point::OrdinalMap;
 
+use crate::math::lonlat::LonLatT;
 use crate::utils;
-use crate::Abort;
+
 impl HEALPixCell {
     // Build the parent cell
     #[inline(always)]
@@ -76,18 +77,30 @@ impl HEALPixCell {
     }
 
     #[inline(always)]
-    pub fn idx(&self) -> u64 {
+    pub(crate) const fn idx(&self) -> u64 {
         self.1
     }
 
     #[inline(always)]
-    pub fn depth(&self) -> u8 {
+    pub(crate) const fn depth(&self) -> u8 {
         self.0
+    }
+
+    #[inline(always)]
+    pub fn nside(&self) -> u64 {
+        1 << self.depth()
     }
 
     #[inline(always)]
     pub fn is_root(&self) -> bool {
         self.depth() == 0
+    }
+
+    #[inline(always)]
+    pub fn hash_with_dxdy(depth: u8, lon: f64, lat: f64) -> (Self, f64, f64) {
+        let (hash, dx, dy) = healpix::nested::hash_with_dxdy(depth, lon, lat);
+
+        (HEALPixCell(depth, hash), dx, dy)
     }
 
     // Find the smallest HEALPix cell containing self and another cells
@@ -136,7 +149,7 @@ impl HEALPixCell {
                 let mut smallest_ancestor = c1.smallest_common_ancestor(c2);
 
                 while let (Some(ancestor), Some(cell)) = (smallest_ancestor, cells.next()) {
-                    smallest_ancestor = ancestor.smallest_common_ancestor(&cell);
+                    smallest_ancestor = ancestor.smallest_common_ancestor(cell);
                 }
 
                 smallest_ancestor
@@ -169,6 +182,19 @@ impl HEALPixCell {
     }
 
     #[inline]
+    pub(crate) const fn subdivide(&self) -> [HEALPixCell; 4] {
+        let children_depth = self.depth() + 1;
+        let children_idx = self.idx() << 2;
+
+        [
+            HEALPixCell(children_depth, children_idx),
+            HEALPixCell(children_depth, children_idx + 1),
+            HEALPixCell(children_depth, children_idx + 2),
+            HEALPixCell(children_depth, children_idx + 3),
+        ]
+    }
+
+    #[inline]
     pub fn allsky(depth: u8) -> impl Iterator<Item = HEALPixCell> {
         let npix = 12 << ((depth as usize) << 1);
         (0_u64..(npix as u64)).map(move |pix| HEALPixCell(depth, pix))
@@ -193,7 +219,7 @@ impl HEALPixCell {
     }
 
     #[inline(always)]
-    pub fn is_on_pole(&self) -> bool {
+    pub(crate) fn is_on_pole(&self) -> bool {
         let HEALPixCell(depth, idx) = *self;
 
         let two_times_depth = 2 * depth;
@@ -205,6 +231,25 @@ impl HEALPixCell {
             8..=11 => (idx_d0 << two_times_depth) == idx,
             _ => unreachable!(),
         }
+    }
+
+    #[inline(always)]
+    pub(crate) fn is_on_base_cell_edges(&self) -> bool {
+        let base_cell = self.ancestor(self.depth());
+
+        let nside_minus_one = (self.nside() - 1) as u32;
+
+        let (x, y) = self.offset_in_parent(&base_cell);
+
+        if x == 0 || x == nside_minus_one {
+            return true;
+        }
+
+        if y == 0 || y == nside_minus_one {
+            return true;
+        }
+
+        false
     }
 
     // Given in ICRS
@@ -437,12 +482,89 @@ impl Iterator for HEALPixTilesIter {
 // Follow the z-order curve
 impl PartialOrd for HEALPixCell {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.z_29().partial_cmp(&other.z_29())
+        Some(self.cmp(other))
     }
 }
 impl Ord for HEALPixCell {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.partial_cmp(other).unwrap_abort()
+        self.z_29().cmp(&other.z_29())
+    }
+}
+
+/// A simple object describing a cubic tile of a HiPS3D
+#[derive(Eq, Hash, PartialEq, Clone, Debug, serde::Deserialize, serde::Serialize)]
+pub struct HEALPixFreqCell {
+    pub hpx: HEALPixCell,
+    pub f_hash: u64,
+    pub f_depth: u8,
+}
+
+use crate::math::spectra::Freq;
+use crate::math::spectra::SpectralUnit;
+
+impl HEALPixFreqCell {
+    pub fn from_lonlat(lonlat: LonLatT<f64>, freq: Freq, s_depth: u8, f_depth: u8) -> Self {
+        let hpx = HEALPixCell::new(
+            s_depth,
+            lonlat.lon().to_radians(),
+            lonlat.lat().to_radians(),
+        );
+
+        let f_hash = freq.hash(f_depth);
+
+        Self {
+            hpx,
+            f_hash,
+            f_depth,
+        }
+    }
+
+    pub fn new(hpx: HEALPixCell, f_hash: u64, f_depth: u8) -> Self {
+        Self {
+            hpx,
+            f_hash,
+            f_depth,
+        }
+    }
+
+    pub fn hpx_parent(&self) -> Self {
+        Self {
+            hpx: self.hpx.parent(),
+            f_hash: self.f_hash,
+            f_depth: self.f_depth,
+        }
+    }
+
+    pub fn parent(&self) -> Self {
+        Self {
+            hpx: self.hpx.parent(),
+            f_hash: self.f_hash >> 1,
+            f_depth: self.f_depth - 1,
+        }
+    }
+
+    pub fn is_hpx_root(&self) -> bool {
+        self.hpx.is_root()
+    }
+
+    pub fn freq_range(&self) -> Range<Freq> {
+        let f0 = Freq::from_hash_with_order(self.f_hash, self.f_depth);
+        let f1 = Freq::from_hash_with_order(
+            (self.f_hash + 1).min(Freq::num_max_cells(self.f_depth) as u64),
+            self.f_depth,
+        );
+
+        f0..f1
+    }
+
+    pub fn pixel_frequencies(&self, num_pixels: usize) -> impl Iterator<Item = f32> {
+        let delta_depth = num_pixels.trailing_zeros();
+        let pixel_depth = self.f_depth + delta_depth as u8;
+
+        let h0 = self.f_hash << delta_depth;
+        let h1 = (self.f_hash + 1) << delta_depth;
+
+        (h0..h1).map(move |hash| Freq::from_hash_with_order(hash, pixel_depth).0 as f32)
     }
 }
 

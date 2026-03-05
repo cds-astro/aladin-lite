@@ -1,3 +1,25 @@
+// SPDX-License-Identifier: LGPL-3.0-or-later
+// Copyright 2013 - UDS/CNRS
+// The Aladin Lite program is distributed under the terms
+// of the GNU Lesser General Public License version 3
+// or (at your option) any later version.
+//
+// This file is part of Aladin Lite.
+//
+//    Aladin Lite is free software: you can redistribute it and/or modify
+//    it under the terms of the GNU Lesser General Public License as published by
+//    the Free Software Foundation, either version 3 of the License, or
+//    (at your option) any later version.
+//
+//    Aladin Lite is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+//    GNU Lesser General Public License for more details.
+//
+//    You should have received a copy of the GNU Lesser General Public License
+//    along with Aladin Lite. If not, see <https://www.gnu.org/licenses/>.
+//
+
 /******************************************************************************
  * Aladin Lite project
  * 
@@ -26,7 +48,7 @@ import { ALEvent } from "./events/ALEvent.js";
 * @property {Boolean} [perimeter=false] - Draw the perimeter of the MOC only with `options.color`.
 * @property {string} [edge=!fill && !perimeter] - Draw the edges of the HEALPix cells with `options.color`.
     The HEALPix cell edges compositing the MOC will be drawn if `fill` and `perimeter` are false
-* @property {number} [lineWidth=3] - The line width in pixels 
+* @property {number} [lineWidth=1] - The line width in pixels 
 * @property {number} [opacity=1.0] - The opacity of the colors
 */
 
@@ -37,6 +59,13 @@ export let MOC = (function() {
      * @class
      * @constructs MOC
      * @param {MOCOptions} options - Configuration options for the MOC
+     * @property {boolean} perimeter - Show perimeter
+     * @property {boolean} edge - Show the edges of HEALPix cells composing the MOC
+     * @property {boolean} fill - Fill the MOC
+     * @property {number} lineWidth - The width of lines used to draw the MOC
+     * @property {number} opacity - Opacity of the edges, cells, etc... of a MOC
+     * @property {string} color - Color of the edges/perimeter
+     * @property {string} fillColor - Color to fill the MOC with
      */
     let MOC = function(options) {
         //this.order = undefined;
@@ -86,7 +115,7 @@ export let MOC = (function() {
         }
 
         this.opacity = Math.max(0, Math.min(1, this.opacity)); // 0 <= this.opacity <= 1
-        this.lineWidth = options["lineWidth"] || 3;
+        this.lineWidth = options["lineWidth"] || 1;
 
         //this.proxyCalled = false; // this is a flag to check whether we already tried to load the MOC through the proxy
 
@@ -170,7 +199,7 @@ export let MOC = (function() {
                 self.view.insertOverlay(self, idx);
 
                 // Tell the MOC has been fully loaded and can be sent as an event
-                ALEvent.GRAPHIC_OVERLAY_LAYER_ADDED.dispatchedTo(self.view.aladinDiv, {layer: self});
+                ALEvent.GRAPHIC_OVERLAY_LAYER_ADDED.dispatchedTo(self.view.aladinDiv, {overlay: self});
 
                 self.view.requestRedraw();
             })
@@ -216,6 +245,33 @@ export let MOC = (function() {
                 },
                 set(lineWidth) {
                     this._lineWidth = lineWidth;
+                    this.reportChange();
+                }
+            },
+            perimeter: {
+                get() {
+                    return this._perimeter;
+                },
+                set(perimeter) {
+                    this._perimeter = perimeter;
+                    this.reportChange();
+                }
+            },
+            fill: {
+                get() {
+                    return this._fill;
+                },
+                set(fill) {
+                    this._fill = fill;
+                    this.reportChange();
+                }
+            },
+            edge: {
+                get() {
+                    return this._edge;
+                },
+                set(edge) {
+                    this._edge = edge;
                     this.reportChange();
                 }
             },

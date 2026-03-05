@@ -1,25 +1,27 @@
-// Copyright 2023 - UDS/CNRS
+// SPDX-License-Identifier: LGPL-3.0-or-later
+// Copyright 2013 - UDS/CNRS
 // The Aladin Lite program is distributed under the terms
-// of the GNU General Public License version 3.
+// of the GNU Lesser General Public License version 3
+// or (at your option) any later version.
 //
 // This file is part of Aladin Lite.
 //
 //    Aladin Lite is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, version 3 of the License.
+//    it under the terms of the GNU Lesser General Public License as published by
+//    the Free Software Foundation, either version 3 of the License, or
+//    (at your option) any later version.
 //
 //    Aladin Lite is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+//    GNU Lesser General Public License for more details.
 //
-//    The GNU General Public License is available in COPYING file
-//    along with Aladin Lite.
+//    You should have received a copy of the GNU Lesser General Public License
+//    along with Aladin Lite. If not, see <https://www.gnu.org/licenses/>.
 //
 
 import { DOMElement } from "./Widget";
 import { Tooltip } from "./Tooltip";
-import { Utils } from "../../Utils";
 
 /******************************************************************************
  * Aladin Lite project
@@ -74,12 +76,17 @@ export class Input extends DOMElement {
             this.el.type = this.type;
 
             this.el.checked = this.options.checked;
+            this.checked = this.options.checked;
 
             // for checkbox widgets, we authorize calling the callback name click or change
             let action = this.options.click || this.options.change;
             if (action) {
                 this.el.removeEventListener('click', this.action);
-                this.action = action;
+                this.action = (e) => {
+                    this.checked = this.el.checked;
+
+                    action(e);
+                };
                 this.el.addEventListener('click', this.action);
             }    
         } else if (this.type === "select") {            
@@ -87,7 +94,19 @@ export class Input extends DOMElement {
                 let innerHTML = "";
 
                 for (const option of this.options.options) {
-                    innerHTML += "<option>" + option + "</option>";
+                    let value;
+                    let label;
+                    if (option.value) {
+                        value = option.value
+                    } else {
+                        value = option
+                    }
+                    if (option.label) {
+                        label = option.label
+                    } else {
+                        label = option
+                    }
+                    innerHTML += "<option value=\"" + value + "\">" + label + "</option>";
                 }
                 this.el.innerHTML = innerHTML;
             }
@@ -325,7 +344,6 @@ export class Input extends DOMElement {
         }
 
         this.el.classList.add('aladin-input');
-        this.el.classList.add('aladin-dark-theme');
 
         if (this.options.cssStyle) {
             this.setCss(this.options.cssStyle);
@@ -374,6 +392,7 @@ export class Input extends DOMElement {
     set(value) {
         if (this.el.type === "checkbox") {
             this.el.checked = value;
+            this.checked = value;
         } else {
             this.el.value = value;
         }

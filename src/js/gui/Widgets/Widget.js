@@ -1,24 +1,26 @@
-// Copyright 2023 - UDS/CNRS
+// SPDX-License-Identifier: LGPL-3.0-or-later
+// Copyright 2013 - UDS/CNRS
 // The Aladin Lite program is distributed under the terms
-// of the GNU General Public License version 3.
+// of the GNU Lesser General Public License version 3
+// or (at your option) any later version.
 //
 // This file is part of Aladin Lite.
 //
 //    Aladin Lite is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, version 3 of the License.
+//    it under the terms of the GNU Lesser General Public License as published by
+//    the Free Software Foundation, either version 3 of the License, or
+//    (at your option) any later version.
 //
 //    Aladin Lite is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+//    GNU Lesser General Public License for more details.
 //
-//    The GNU General Public License is available in COPYING file
-//    along with Aladin Lite.
+//    You should have received a copy of the GNU Lesser General Public License
+//    along with Aladin Lite. If not, see <https://www.gnu.org/licenses/>.
 //
 
 import { Utils } from "../../Utils";
-
 /******************************************************************************
  * Aladin Lite project
  *
@@ -97,14 +99,19 @@ export class DOMElement {
     static appendTo(elmt, parent) {
         if(elmt) {
             // Append the updated content
-            if (elmt instanceof DOMElement) {
+            if (Array.isArray(elmt)) {
+                for (var elt of elmt) {
+                    DOMElement.appendTo(elt, parent)
+                }
+            } else if (elmt instanceof DOMElement) {
                 elmt.attachTo(parent)
             } else if (elmt instanceof Element) {                
                 parent.insertAdjacentElement('beforeend', elmt);
             } else {
-                let wrapEl = document.createElement('div');
-                wrapEl.innerHTML = elmt;
-                parent.insertAdjacentElement('beforeend', wrapEl);
+                const template = document.createElement('template');
+                template.innerHTML = elmt;
+
+                parent.append(template.content.cloneNode(true));
             }
         }
     }
@@ -209,9 +216,11 @@ export class DOMElement {
             let aDivRect = aladinDiv.getBoundingClientRect();
             const offViewX = aDivRect.x;
             const offViewY = aDivRect.y;
+
             if (!dir) {
                 // determine the direction with respect to the element given
-                let elX = options.nextTo.el.getBoundingClientRect().left + options.nextTo.el.getBoundingClientRect().width * 0.5 - offViewX;
+                const nextElementRect = nextTo.el.getBoundingClientRect();
+                let elX = nextElementRect.left + nextElementRect.width * 0.5 - offViewX;
                 dir = (elX < innerWidth / 2) ? 'right' : 'left';
             }
 
@@ -220,23 +229,28 @@ export class DOMElement {
             }
 
             let rect = nextTo.getBoundingClientRect();
+            this.el.classList.remove('left', 'right', 'top', 'bottom');
 
             switch (dir) {
                 case 'left':
-                    left = rect.x - offsetWidth - offViewX;
+                    left = rect.x - offViewX;
                     top = rect.y - offViewY;
+                    this.el.classList.add('left');
                     break;
                 case 'right':
                     left = rect.x + rect.width - offViewX;
                     top = rect.y - offViewY;
+                    this.el.classList.add('right');
                     break;
                 case 'top':
                     left = rect.x - offViewX;
-                    top = rect.y - offsetHeight - offViewY;
+                    top = rect.y - offViewY;
+                    this.el.classList.add('top');
                     break;
                 case 'bottom':
                     left = rect.x - offViewX;
                     top = rect.y + rect.height - offViewY;
+                    this.el.classList.add('bottom');
                     break;
                 default:
                     left = 0;
@@ -246,11 +260,11 @@ export class DOMElement {
 
             // Translate if the div in 
             if (typeof top === 'number') {
-                if (top + offsetHeight >= innerHeight) {
+                /*if (top + offsetHeight >= innerHeight) {
                     y = '-' + (top + offsetHeight - innerHeight) + 'px';
                 } else if (top < 0) {
                     y = Math.abs(top) + 'px';
-                }
+                }*/
 
                 top = top + 'px';
             }
@@ -258,11 +272,11 @@ export class DOMElement {
                 bottom = bottom + 'px';
             }
             if (typeof left === 'number') {
-                if (left + offsetWidth > innerWidth) {
+                /*if (left + offsetWidth > innerWidth) {
                     x = '-' + (left + offsetWidth - innerWidth) + 'px';
                 } else if (left < 0) {
                     x = Math.abs(left) + 'px';
-                }
+                }*/
 
                 left = left + 'px';
             }
@@ -294,12 +308,24 @@ export class DOMElement {
         }
     }
 
+    setToggler(toggler) {
+        this.toggler = toggler;
+    }
+
     _show() {
+        if (this.toggler) {
+            this.toggler.notify(true)
+        }
+
         this.el.style.display = ""
         this.isHidden = false;
     }
 
     _hide() {
+        if (this.toggler) {
+            this.toggler.notify(false)
+        }
+
         this.isHidden = true;
         this.el.style.display = 'none';
     }

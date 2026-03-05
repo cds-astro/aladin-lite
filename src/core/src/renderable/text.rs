@@ -95,7 +95,7 @@ impl Renderer for TextRenderManager {
         // reset the font and color
         self.ctx
             .set_font(&format!("{}px verdana, sans-serif", self.font_size));
-        self.ctx.set_fill_style_str(&self.color);
+        self.ctx.set_fill_style(&JsValue::from_str(&self.color));
     }
 
     fn end(&mut self) {}

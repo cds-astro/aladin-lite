@@ -1,26 +1,35 @@
-// Copyright 2023 - UDS/CNRS
+// SPDX-License-Identifier: LGPL-3.0-or-later
+// Copyright 2013 - UDS/CNRS
 // The Aladin Lite program is distributed under the terms
-// of the GNU General Public License version 3.
+// of the GNU Lesser General Public License version 3
+// or (at your option) any later version.
 //
 // This file is part of Aladin Lite.
 //
 //    Aladin Lite is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, version 3 of the License.
+//    it under the terms of the GNU Lesser General Public License as published by
+//    the Free Software Foundation, either version 3 of the License, or
+//    (at your option) any later version.
 //
 //    Aladin Lite is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+//    GNU Lesser General Public License for more details.
 //
-//    The GNU General Public License is available in COPYING file
-//    along with Aladin Lite.
+//    You should have received a copy of the GNU Lesser General Public License
+//    along with Aladin Lite. If not, see <https://www.gnu.org/licenses/>.
 //
 
 import { DOMElement } from "./Widget";
 import { Tooltip } from "./Tooltip";
 import { Icon } from "./Icon";
 import { Layout } from "../Layout";
+
+import infoIconUrl from "../../../../assets/icons/info.svg"
+import targetIconUrl from "../../../../assets/icons/target.svg";
+import removeIconUrl from "../../../../assets/icons/remove.svg";
+
+import A from "../../A";
 /******************************************************************************
  * Aladin Lite project
  *
@@ -48,7 +57,7 @@ import { Layout } from "../Layout";
  * @property {function} [opt.action] - The callback function to execute when the button is clicked.
  * @property {string} [opt.title] - The title attribute for the button.
  * @property {Object} [opt.icon] - An icon object for the button.
- * @property {boolean} [opt.disable=false] - Whether the button is initially disabled.
+ * @property {boolean} [opt.disabled=false] - Whether the button is initially disabled.
  * @property {HTMLElement|string|Widget} [opt.content] - The content to be added to the button.
  * @property {CSSStyleSheet} [opt.cssStyle] - The CSS styles to apply to the button.
  * @property {Object} [opt.tooltip] - A tooltip.
@@ -63,24 +72,25 @@ import { Layout } from "../Layout";
  *
  * @example
  * const actionButton = new ActionButton({
- *   toggled: false,
- *   action: (e) => { /* callback function * },
- *   title: "Click me",
- *   iconURL: "path/to/icon.png",
- *   cssStyle: "color: red;",
- *   tooltip: {
- *     position: {
- *       direction: 'left,
- *     },
- *     content: 'A tooltip'
- *   },
- *   position: { nextTo: someDOMElement, direction: 'right' }
- * }, document.getElementById('container'));
+    size: 'small',
+    content: '❌',
+    //tooltip: {content: 'Close the window', position: {direction: 'bottom'}},
+    action(e) {
+        self._hide();
+    },
+    cssStyle: {
+        position: 'absolute',
+    },
+    position: {
+        top: 0,
+        right: 0,
+    }
+});
  */
 export class ActionButton extends DOMElement {
     constructor(options, target, position = "beforeend") {
         let el = document.createElement('button');
-        el.classList.add('aladin-btn', 'aladin-dark-theme');
+        el.classList.add('aladin-btn');
 
         // add it to the dom
         super(el, options);
@@ -100,9 +110,9 @@ export class ActionButton extends DOMElement {
         }
 
         if (this.options.size === 'small') {
-            this.addClass('small-sized-icon')
+            this.addClass('aladin-small-sized-icon')
         } else if (this.options.size === 'medium') {
-            this.addClass('medium-sized-icon')
+            this.addClass('aladin-medium-sized-icon')
         }
 
         if (this.options.action) {
@@ -125,7 +135,7 @@ export class ActionButton extends DOMElement {
             layout.push(new Icon(this.options.icon));
         }
 
-        if (this.options.disable) {
+        if (this.options.disabled) {
             this.el.disabled = true;
             this.addClass('disabled')
         } else {
@@ -143,7 +153,7 @@ export class ActionButton extends DOMElement {
             if (layout.length === 1) {
                 this.appendContent(layout[0])
             } else {
-                this.appendContent(new Layout({layout, orientation: 'horizontal'}))
+                this.appendContent(new Layout(layout))
             }
         }
 
@@ -187,5 +197,119 @@ export class ActionButton extends DOMElement {
         opt['info'] = info || undefined;
 
         return new ActionButton(opt, target, position);
+    }
+
+    static BUTTONS(aladin) {
+        return {
+            infoHiPS: (options) => {
+                return new ActionButton({
+                    icon: {
+                        size: 'small',
+                        monochrome: true,
+                        url: infoIconUrl,
+                    },
+                    tooltip: {
+                        position: {direction: "top"},
+                        content: "More about that survey?"
+                    },
+                    action(e) {
+                        window.open(options && options.url);
+                    },
+                    ...options
+                })
+            },
+            targetHiPSLocation: (options) => {
+                let ra = options && options.ra;
+                let dec = options && options.dec;
+                let fov = options && options.fov;
+                return new ActionButton({
+                    icon: {
+                        size: 'small',
+                        monochrome: true,
+                        url: targetIconUrl,
+                    },
+                    disabled: ra === undefined || dec === undefined || fov === undefined,
+                    tooltip: {
+                        content: "Target interesting sky location",
+                    },
+                    action(e) {
+                        if (fov !== undefined && ra !== undefined && dec !== undefined) {
+                            aladin.setFoV(+fov)
+                            aladin.gotoObject(ra + ' ' + dec);
+                        }
+                        
+                    },
+                    ...options
+                })
+            },
+            addMOC: (options) => {
+                let name = options && options.name;
+                let url = options && options.url;
+
+                let button = new ActionButton({
+                    size: "small",
+                    icon: {
+                        url: Icon.dataURLFromSVG({ svg: Icon.SVG_ICONS.MOC }),
+                        size: "small",
+                        monochrome: true,
+                    },
+                    tooltip: {
+                        content: "Add coverage",
+                        position: { direction: "top" },
+                    },
+                    action: (e) => {
+                        // load the moc
+                        let moc = A.MOCFromURL(
+                            url,
+                            { name },
+                            () => {
+                                if (aladin.statusBar) {
+                                    aladin.statusBar.appendMessage({
+                                        message:
+                                            "Coverage of " +
+                                            name +
+                                            " loaded",
+                                        duration: 2000,
+                                        type: "info",
+                                    });
+                                }
+                            }
+                        );
+
+                        aladin.addMOC(moc);
+                    },
+                    ...options
+                })
+
+                return button;
+            },
+            remove: (action) => {
+                return new ActionButton({
+                    icon: {
+                        url: removeIconUrl,
+                        monochrome: true,
+                    },
+                    size: "small",
+                    tooltip: {
+                        content: "Remove",
+                    },
+                    action
+                })
+            },
+            close: (widget) => {
+                return new ActionButton({
+                    size: 'small',
+                    content: '❌',
+                    action(_) {
+                        widget.close();
+                    },
+                    cssStyle: {
+                        position: 'absolute',
+                        top: 0,
+                        right: 0,
+                    },
+                });
+            },
+        }
     }
 }

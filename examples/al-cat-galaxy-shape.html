@@ -4,7 +4,7 @@
 </head>
 <body>
 
-<div id="aladin-lite-div" style="width: 1024px; height: 768px"></div>
+<div id="aladin-lite-div" style="width: 200px; height: 768px"></div>
 <script>let aladin;</script>
 <script type="module">
   import A from '../src/js/A.js';
@@ -14,7 +14,6 @@
         target: "M31",
         fov: 89.78,
         showContextMenu: true,
-        fullScreen: true,
         showSimbadPointerControl: true,
         showShareControl: true,
         showSettingsControl: true,
@@ -26,8 +25,17 @@
         limit: 1000,
         //orderBy: 'nb_ref',
         onClick: 'showTable',
-        color: 'yellow',
-        hoverColor: 'blue',
+        onlyFootprints: false,
+        color: (s) => {
+          let coo = A.coo();
+          coo.parse(s.data['RAJ2000'] + ' ' + s.data['DEJ2000'])
+
+          let a = (0.1 * Math.pow(10, +s.data.logD25)) / 60;
+          let b = (1.0 / Math.pow(10, +s.data.logR25)) * a
+
+          return `rgb(${s.data["logR25"]*255.0}, ${s.data["logR25"]*255.0}, 255)`
+        },
+        hoverColor: 'red',
         shape: (s) => {
           let coo = A.coo();
           coo.parse(s.data['RAJ2000'] + ' ' + s.data['DEJ2000'])

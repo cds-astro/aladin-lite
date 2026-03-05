@@ -1,20 +1,23 @@
+// SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright 2013 - UDS/CNRS
 // The Aladin Lite program is distributed under the terms
-// of the GNU General Public License version 3.
+// of the GNU Lesser General Public License version 3
+// or (at your option) any later version.
 //
 // This file is part of Aladin Lite.
 //
 //    Aladin Lite is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, version 3 of the License.
+//    it under the terms of the GNU Lesser General Public License as published by
+//    the Free Software Foundation, either version 3 of the License, or
+//    (at your option) any later version.
 //
 //    Aladin Lite is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+//    GNU Lesser General Public License for more details.
 //
-//    The GNU General Public License is available in COPYING file
-//    along with Aladin Lite.
+//    You should have received a copy of the GNU Lesser General Public License
+//    along with Aladin Lite. If not, see <https://www.gnu.org/licenses/>.
 //
 
 import { MocServer } from "../../MocServer.js";
@@ -22,27 +25,62 @@ import { MocServer } from "../../MocServer.js";
 import { Box } from "../Widgets/Box.js";
 import { Dropdown } from "../Input/Dropdown.js";
 import filterOnUrl from "../../../../assets/icons/filter-on.svg";
-import hipsIconUrl from "../../../../assets/icons/hips.svg";
+import treeIconUrl from "../../../../assets/icons/tree.svg";
 import filterOffUrl from "../../../../assets/icons/filter-off.svg";
+import helpIconUrl from "../../../../assets/icons/help.svg";
+
 import { Input } from "../Widgets/Input.js";
-import { TogglerActionButton } from "../Button/Toggler.js";
+import { WidgetTogglerButton } from "../Button/Toggler.js";
 import { Layout } from "../Layout.js";
 import { HiPSFilterBox } from "./HiPSFilterBox.js";
 import A from "../../A.js";
 import { Utils } from "../../Utils.ts";
 import { ActionButton } from "../Widgets/ActionButton.js";
-import infoIconUrl from "../../../../assets/icons/info.svg"
 import { Icon } from "../Widgets/Icon.js";
+import { Tree } from "../Widgets/Tree.js";
+import { ALEvent } from "../../events/ALEvent.js";
 
 /******************************************************************************
  * Aladin Lite project
  *
- * File gui/HiPSBrowserBox.js
- *
+ * File gui/Box/HiPSBrowserBox.js
  *
  * Author: Matthieu Baumann[CDS]
- *
  *****************************************************************************/
+
+function fillHiPSHierarchy(name, hips, path, hierarchy) {
+    if (path[path.length - 1] === '/') {
+        path = path.substring(0, path.length - 1);
+    }
+
+    let folders = path.split('/')
+    let curFolder = folders.shift()
+
+    if(curFolder === 'Image') {
+        let newPath = folders.join('/')
+        fillHiPSHierarchy(name, hips, newPath, hierarchy);
+    } else {
+        // Some exceptions because the MOCServer client_category field may contain some typos
+        if (['X', 'X-ray', 'Xray'].includes(curFolder)) {
+            curFolder = 'X-ray'
+        }
+
+        if (['Radion', 'Radio'].includes(curFolder)) {
+            curFolder = 'Radio'
+        }
+
+        if (curFolder === "Deprecated")
+            return;
+
+        hierarchy[curFolder] = hierarchy[curFolder] || {};
+        if (folders.length == 0) {
+            hierarchy[curFolder][name] = hips
+        } else {
+            let newPath = folders.join('/')
+            fillHiPSHierarchy(name, hips, newPath, hierarchy[curFolder])
+        }
+    }
+}
 
 export class HiPSBrowserBox extends Box {
     static HiPSList = {};
@@ -50,20 +88,102 @@ export class HiPSBrowserBox extends Box {
     constructor(aladin, options) {
         let self;
 
+        let filter = (item, params) => {
+            if (params.regime) {
+                if (!item.obs_regime)
+                    return false;
+
+                if (params.regime.toLowerCase() !== item.obs_regime.toLowerCase()) {
+                    return false;
+                }
+            }
+
+            if (params.resolution) {
+                if (!item.hips_tile_width || !item.hips_order) {
+                    return false;
+                }
+
+                let pixelHEALPixOrder = Math.log2(item.hips_tile_width) + (+item.hips_order);
+                let resPixel = Math.sqrt(Math.PI / (3*Math.pow(4, pixelHEALPixOrder)));
+
+                if (resPixel > params.resolution)
+                    return false;
+            }
+
+            if (params.title) {
+                if (!item.obs_title && !item.ID)
+                    return false;
+
+                let obsTitleDoesNotMatch = !item.obs_title.toLowerCase().includes(params.title.toLowerCase());
+                let creatorDidDoesNotMatch = !item.ID.toLowerCase().includes(params.title.toLowerCase());
+
+                if (obsTitleDoesNotMatch && creatorDidDoesNotMatch) {
+                    return false;
+                }
+            }
+
+            return true;
+        };
+
+        // Search tree
+        let searchTree = new Tree({
+            // a JS object describing the tree to show
+            label: (item) => {
+                let name = item.obs_title.replace(/:|\'/g, '');
+                return name;
+            },
+            // a callback called when the user selects a leaf item of the tree
+            click: (item) => {
+                let image = item.ID || item.hips_service_url;
+                let name = item.obs_title || item.ID;
+                self._addHiPS(image, name)
+            },
+            dblclick: (item) => {
+                let image = item.ID || item.hips_service_url;
+                let name = item.obs_title || item.ID;
+                self._addHiPS(image, name)
+
+                self.close();
+            },
+            // a callback called for filtering
+            filter,
+            aladin,
+        });
+
         MocServer.getAllHiPSes().then((HiPSes) => {
             HiPSBrowserBox.HiPSList = {}
+
+            let hipsHierarchy = {};
             // Fill the HiPSList from the MOCServer
+
+            // Build a hierarchy w.r.t sorted by regime
+            let HiPSIDs = []
             HiPSes.forEach((h) => {
                 let name = h.obs_title;
                 name = name.replace(/:|\'/g, '');
+                HiPSIDs.push(name)
+
                 HiPSBrowserBox.HiPSList[name] = h;
+
+                if (h.client_category) {
+                    let path = h.client_category
+
+                    fillHiPSHierarchy(name, h, path, hipsHierarchy)
+                } else {
+                    let hipsID = h.ID;
+                    hipsID = hipsID.replace('/P', '');
+
+                    let path = "Others/" + hipsID;
+                    fillHiPSHierarchy(name, h, path, hipsHierarchy)
+                }
             });
+
+            self.searchDropdown.update({ options: HiPSIDs });
+            self.searchTree.setHierarchy(hipsHierarchy)
 
             // Initialize the autocompletion without any filtering
             self._filterHiPSList({})
         });
-
-
 
         const _parseHiPS = (e) => {
             const value = e.target.value;
@@ -88,7 +208,6 @@ export class HiPSBrowserBox extends Box {
 
             if (image) {
                 self._addHiPS(image, name)
-                self.searchDropdown.update({title: value});
             }
         };
 
@@ -98,39 +217,24 @@ export class HiPSBrowserBox extends Box {
             tooltip: {
                 global: true,
                 aladin,
-                content: 'HiPS url, ID or keyword accepted',
+                content: 'HiPS url, ID or keyword accepted.',
             },
-            actions: {
-                focus(e) {
-                    searchDropdown.removeClass('aladin-valid')
-                    searchDropdown.removeClass('aladin-not-valid')
-                },
-                keydown(e) {
-                    e.stopPropagation();
+            action: (e) => {
+                _parseHiPS(e)
+            },
+            input: (e) => {
+                let value = e.target.value;
+                self.searchTree.triggerFilter({title: value});
 
-                    if (e.key === 'Enter') {
-                        e.preventDefault()
-                        _parseHiPS(e)
-                    }
-                },
-                input(e) {
-                    self.infoCurrentHiPSBtn.update({
-                        disable: true,
-                    })
-
-                    searchDropdown.removeClass('aladin-valid')
-                    searchDropdown.removeClass('aladin-not-valid')
-                },
-                change(e) {
-                    e.stopPropagation();
-                    e.preventDefault()
-                    _parseHiPS(e)
-                }
+                self.infoCurrentHiPSBtn.update({
+                    disabled: true,
+                })
             },
         });
 
         let filterEnabler = Input.checkbox({
             name: "filter-enabler",
+            tooltip: { content: "Enable the filter" },
             checked: false,
             click(e) {
                 let on = e.target.checked;
@@ -156,21 +260,15 @@ export class HiPSBrowserBox extends Box {
             },
         });
 
-        let infoCurrentHiPSBtn = new ActionButton({
-            disable: true,
-            icon: {
-                size: 'medium',
-                monochrome: true,
-                url: infoIconUrl,
-            },
-            tooltip: {
-                global: true,
-                aladin,
-                content: "More about that survey?"
-            }
-        });
+        let infoCurrentHiPSBtn = ActionButton.BUTTONS(aladin)
+            .infoHiPS({disabled: true})
 
-        let filterBtn = new TogglerActionButton({
+        let filterBox = new HiPSFilterBox(aladin, {
+            callback: (params) => {
+                self._filterHiPSList(params);
+            },
+        })
+        let filterBtn = new WidgetTogglerButton({
             icon: {
                 url: filterOffUrl,
                 monochrome: true,
@@ -181,52 +279,59 @@ export class HiPSBrowserBox extends Box {
                 position: { direction: "top" },
             },
             toggled: false,
-            actionOn: (e) => {
-                self.filterBox._show({
-                    position: {
-                        nextTo: filterBtn,
-                        direction: "bottom",
-                        aladin,
-                    },
-                });
-            },
-            actionOff: (e) => {
-                self.filterBox._hide();
-            },
+            openPosition: 'right center',
+            widget: filterBox,
         });
 
         let filterNumberElt = document.createElement("div");
 
-        super(
-            {
+        super({
                 close: true,
+                tooltip: {
+                    global: true,
+                    aladin,
+                    content: 'orange: out of the view, green: in view'
+                },
                 header: {
-                    title: Layout.horizontal([new Icon({
-                        size: 'medium',
-                        url: hipsIconUrl,
-                        monochrome: true,
-                    }), "HiPS browser"])
+                    title: [
+                        new Icon({
+                            size: 'medium',
+                            url: treeIconUrl,
+                            monochrome: true,
+                        }),
+                        "HiPS browser",
+                        new Icon({
+                            size: 'medium',
+                            url: helpIconUrl,
+                            monochrome: true,
+                            tooltip: {
+                                content: 'HiPS:<br/><span class="aladin-indicator aladin-not-found"></span> out of the view<br /><span class="aladin-indicator aladin-valid"></span> in view',
+                                mouse: true,
+                                aladin
+                            },
+                            style: {
+                                cursor: 'help'
+                            }
+                        }),
+                    ],
+                    draggable: true,
                 },
-                onDragged: () => {
-                    if (self.filterBtn.toggled) {
-                        self.filterBtn.toggle();
-                    }
-                },
+                sizeable: true,
                 classList: ['aladin-HiPS-browser-box'],
-                content: Layout.vertical([
-                    Layout.horizontal(["Search:", searchDropdown, infoCurrentHiPSBtn]),
-                    Layout.horizontal(["Filter:", Layout.horizontal([filterEnabler, filterBtn, filterNumberElt])]),
-                ]),
+                content: [
+                    searchTree,
+                    ["Search:", searchDropdown, infoCurrentHiPSBtn],
+                    [filterEnabler, filterBtn, filterNumberElt],
+                ],
                 ...options,
             },
             aladin.aladinDiv
         );
 
-        this.filterBox = new HiPSFilterBox(aladin, {
-            callback: (params) => {
-                self._filterHiPSList(params);
-            },
-        })
+        self = this;
+
+        this.searchTree = searchTree;
+        this.filterBox = filterBox;
         this.filterNumberElt = filterNumberElt;
         this.filterBox._hide();
 
@@ -236,45 +341,41 @@ export class HiPSBrowserBox extends Box {
 
         this.infoCurrentHiPSBtn = infoCurrentHiPSBtn;
 
-        self = this;
+        this.filter = filter;
 
-        this.filterCallback = (HiPS, params) => {
-            if (params.regime) {
-                if (!HiPS.obs_regime)
-                    return false;
+        filterEnabler.action({target: {checked: true}});
 
-                if (params.regime.toLowerCase() !== HiPS.obs_regime.toLowerCase()) {
-                    return false;
-                }
-            }
+        this._addListeners();
 
-            if (params.spatial) {
-                if (!HiPS.ID)
-                    return false;
+        this._requestMOCServer();
+    }
 
-                if (Array.isArray(params.spatial) && !(params.spatial.includes(HiPS.ID))) {
-                    return false;
-                }
-            }
+    _addListeners() {
+        const requestMOCServerDebounced = Utils.debounce(() => {
+            this._requestMOCServer()
+        }, 500);
 
-            if (params.resolution) {
-                if (!HiPS.hips_tile_width || !HiPS.hips_order) {
-                    return false;
-                }
+        ALEvent.POSITION_CHANGED.listenedBy(this.aladin.aladinDiv, requestMOCServerDebounced);
+        ALEvent.ZOOM_CHANGED.listenedBy(this.aladin.aladinDiv, requestMOCServerDebounced);
+    }
 
-                let pixelHEALPixOrder = Math.log2(HiPS.hips_tile_width) + (+HiPS.hips_order);
-                let resPixel = Math.sqrt(Math.PI / (3*Math.pow(4, pixelHEALPixOrder)));
+    _requestMOCServer() {
+        if (this.isHidden && this.searchTree) {
+            return;
+        }
 
-                if (resPixel > params.resolution)
-                    return false;
-            }
-
-            return true;
-        };
+        let self = this;
+        MocServer.getAllHiPSesInsideView(this.aladin)
+            .then((HiPSes) => {
+                let HiPSIDs = HiPSes.map((x) => x.ID);
+                self.searchTree.highlightNodes(HiPSIDs)
+            })
     }
 
     _addHiPS(id, name) {
         let self = this;
+
+        self.searchDropdown.update({value: name, title: name});
 
         let hips = A.imageHiPS(id, {
             name,
@@ -283,7 +384,7 @@ export class HiPSBrowserBox extends Box {
                 self.searchDropdown.addClass('aladin-valid');
 
                 self.infoCurrentHiPSBtn.update({
-                    disable: false,
+                    disabled: false,
                     action(e) {
                         window.open(hips.url);
                     }
@@ -389,37 +490,38 @@ export class HiPSBrowserBox extends Box {
                 self.searchDropdown.addClass('aladin-not-valid');
             }
         });
-        this.aladin.setOverlayImageLayer(hips, self.layer);
+
+        self.selected(hips)
     }
 
     // This method is executed only if the filter is enabled
     _filterHiPSList(params) {
         let self = this;
-        let HiPSIDs = [];
 
+        let numHiPSMatching = 0;
         for (var key in HiPSBrowserBox.HiPSList) {
             let HiPS = HiPSBrowserBox.HiPSList[key];
             // apply filtering
             if (
-                self.filterCallback &&
-                self.filterCallback(HiPS, params)
+                self.filter &&
+                self.filter(HiPS, params)
             ) {
                 // search with the name or id
                 let name = HiPS.obs_title;
                 name = name.replace(/:|\'/g, "");
 
-                HiPSIDs.push(name);
+                numHiPSMatching += 1;
             }
         }
 
-        self.searchDropdown.update({ options: HiPSIDs });
-        self.filterNumberElt.innerHTML = HiPSIDs.length + "/" + Object.keys(HiPSBrowserBox.HiPSList).length;
+        if (self.searchTree) {
+            self.searchTree.triggerFilter(params);
+        }
+
+        self.filterNumberElt.innerHTML = numHiPSMatching + "/" + Object.keys(HiPSBrowserBox.HiPSList).length;
     }
 
     _hide() {
-        if (this.filterBox)
-            this.filterBox.signalBrowserStatus(true)
-
         if (this.filterBtn && this.filterBtn.toggled) {
             this.filterBtn.toggle();
         }
@@ -429,11 +531,10 @@ export class HiPSBrowserBox extends Box {
 
     _show(options) {
         // Regenerate a new layer name
-        this.layer = Utils.uuidv4()
-
-        if (this.filterBox)
-            this.filterBox.signalBrowserStatus(false)
+        this.selected = options && options.selected;
 
         super._show(options)
+
+        this._requestMOCServer();
     }
 }

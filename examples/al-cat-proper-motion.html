@@ -16,8 +16,6 @@
         fov: 10,
         showContextMenu: true,
         fullScreen: true,
-        showSimbadPointerControl: true,
-        showShareControl: true,
         showSettingsControl: true,
         showStackLayerControl: true,
         samp: true,
@@ -31,15 +29,21 @@
         hoverColor: 'yellow',
         selectionColor: 'white',
         // Footprint associated to sources
-        shape: (s) => {
+        color: (s) => {
           // discard drawing a vector for big pm
           let totalPmSquared = s.data.pmra*s.data.pmra + s.data.pmdec*s.data.pmdec;
           if (totalPmSquared > 6) {
             return;
           }
 
-          let color = rainbowColorMap((totalPmSquared - 2.5) / 2)
-
+          return rainbowColorMap((totalPmSquared - 2.5) / 2)
+        },
+        shape: (s) => {
+          // discard drawing a vector for big pm
+          let totalPmSquared = s.data.pmra*s.data.pmra + s.data.pmdec*s.data.pmdec;
+          if (totalPmSquared > 6) {
+            return;
+          }
           // Compute the mean of pm over the catalog sources
           if (!pmraMean || !pmdecMean) {
             pmraMean = 0, pmdecMean = 0;
@@ -62,12 +66,23 @@
             s.dec,
             s.ra + dra,
             s.dec + ddec,
-            {color}
           )
         }
+      },
+      () => {
+        aladin.addCatalog(pmCat);
+
+        pmCat.select((s) => {
+          let totalPmSquared = s.data.pmra*s.data.pmra + s.data.pmdec*s.data.pmdec;
+          if (totalPmSquared > 6) {
+            return false;
+          }
+          return totalPmSquared < 3.0;
+        });
       });
-      aladin.addCatalog(pmCat);
   });
+
+  
 
   function rainbowColorMap(value) {
     // Ensure value is within range [0, 1]

@@ -48,7 +48,17 @@ pub struct HiPSProperties {
     hips_initial_fov: Option<f64>,
     hips_initial_ra: Option<f64>,
     hips_initial_dec: Option<f64>,
+    // HiPS cube
     hips_cube_depth: Option<u32>,
+
+    // HiPS 3D keywords
+    hips_order_freq: Option<u8>,
+    hips_tile_depth: Option<u8>,
+
+    /// Start of spectral coordinates (in meters)
+    em_min: Option<f32>,
+    /// End of spectral coordinates (in meters)
+    em_max: Option<f32>,
 
     // Parametrable by the user
     #[allow(unused)]
@@ -56,10 +66,29 @@ pub struct HiPSProperties {
     #[allow(unused)]
     max_cutout: Option<f32>,
 
+    dataproduct_type: Option<DataproductType>,
+
     creator_did: String,
+
+    request_credentials: String,
+    request_mode: String,
 }
 
 impl HiPSProperties {
+    #[inline(always)]
+    pub fn get_hips_order_freq(&self) -> Option<u8> {
+        self.hips_order_freq
+    }
+    #[inline(always)]
+    pub fn get_hips_tile_depth(&self) -> Option<u8> {
+        self.hips_tile_depth
+    }
+
+    #[inline(always)]
+    pub fn get_dataproduct_type(&self) -> Option<DataproductType> {
+        self.dataproduct_type
+    }
+
     #[inline(always)]
     pub fn get_url(&self) -> &str {
         &self.url
@@ -124,6 +153,26 @@ impl HiPSProperties {
     pub fn get_initial_dec(&self) -> Option<f64> {
         self.hips_initial_dec
     }
+
+    #[inline(always)]
+    pub fn get_request_credentials(&self) -> &str {
+        &self.request_credentials
+    }
+
+    #[inline(always)]
+    pub fn get_request_mode(&self) -> &str {
+        &self.request_mode
+    }
+
+    #[inline(always)]
+    pub fn get_em_min(&self) -> Option<f32> {
+        self.em_min
+    }
+
+    #[inline(always)]
+    pub fn get_em_max(&self) -> Option<f32> {
+        self.em_max
+    }
 }
 
 #[derive(Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -134,11 +183,24 @@ pub enum ImageExt {
     Jpeg,
     Png,
     Webp,
+    #[serde(alias = "fits.fz")]
+    FitsFz,
+}
+
+#[derive(Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[wasm_bindgen]
+#[serde(rename_all = "camelCase")]
+pub enum DataproductType {
+    #[serde(rename = "spectral-cube")]
+    SpectralCube,
+    Image,
+    Cube,
 }
 
 impl std::fmt::Display for ImageExt {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
+            ImageExt::FitsFz => write!(f, "fits.fz"),
             ImageExt::Fits => write!(f, "fits"),
             ImageExt::Png => write!(f, "png"),
             ImageExt::Jpeg => write!(f, "jpg"),
@@ -150,9 +212,10 @@ impl std::fmt::Display for ImageExt {
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
 #[wasm_bindgen]
-#[derive(Clone, Copy, PartialEq, Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, PartialEq, Debug, Deserialize, Serialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub enum TransferFunction {
+    #[default]
     Linear,
     Sqrt,
     Log,
@@ -173,12 +236,6 @@ impl TransferFunction {
         } else {
             TransferFunction::Asinh
         }
-    }
-}
-
-impl Default for TransferFunction {
-    fn default() -> Self {
-        TransferFunction::Linear
     }
 }
 
@@ -223,14 +280,8 @@ pub struct ImageMetadata {
     pub blend_cfg: BlendCfg,
     #[serde(default = "default_opacity")]
     pub opacity: f32,
-    #[serde(default = "default_longitude_reversed")]
-    pub longitude_reversed: bool,
     /// the current format chosen
     pub img_format: ImageExt,
-}
-
-fn default_longitude_reversed() -> bool {
-    true
 }
 
 fn default_opacity() -> f32 {

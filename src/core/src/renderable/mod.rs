@@ -12,11 +12,8 @@ pub mod utils;
 use crate::renderable::image::Image;
 use crate::tile_fetcher::TileFetcherQueue;
 
-use al_core::image::format::ChannelType;
-
-pub use catalog::Manager;
-
 use al_api::color::ColorRGB;
+use al_api::hips::DataproductType;
 use al_api::hips::HiPSCfg;
 use al_api::hips::ImageMetadata;
 use al_api::image::ImageParams;
@@ -24,6 +21,7 @@ use al_api::image::ImageParams;
 use al_core::colormap::Colormaps;
 
 use al_core::shader::Shader;
+use al_core::texture::format::PixelType;
 use al_core::VertexArrayObject;
 use al_core::WebGlContext;
 
@@ -136,7 +134,7 @@ impl Layers {
         //   the HEALPix cell in which it is located.
         //   We get the texture from this cell and draw the pixel
         //   This mode of rendering is used for big FoVs
-        let raytracer = RayTracer::new(gl, &projection)?;
+        let raytracer = RayTracer::new(gl, projection)?;
         let gl = gl.clone();
 
         let mut screen_vao = VertexArrayObject::new(&gl);
@@ -178,7 +176,7 @@ impl Layers {
     pub fn set_hips_url(&mut self, cdid: &CreatorDid, new_url: String) -> Result<(), JsValue> {
         if let Some(hips) = self.hipses.get_mut(cdid) {
             // update the root_url
-            hips.get_config_mut().set_root_url(new_url.clone());
+            hips.set_root_url(new_url);
 
             Ok(())
         } else {
@@ -194,7 +192,7 @@ impl Layers {
 
     pub fn set_projection(&mut self, projection: &ProjectionType) -> Result<(), JsValue> {
         // Recompute the raytracer
-        self.raytracer = RayTracer::new(&self.gl, &projection)?;
+        self.raytracer = RayTracer::new(&self.gl, projection)?;
         Ok(())
     }
 
@@ -216,9 +214,13 @@ impl Layers {
         let raytracer = &self.raytracer;
         let raytracing = camera.is_raytracing(projection);
 
+        // The first layer or the background must be plot with no blending
+        self.gl.disable(WebGl2RenderingContext::BLEND);
+
         // Check whether a hips to plot is allsky
         // if neither are, we draw a font
         // if there are, we do not draw nothing
+
         let mut idx_start_layer = -1;
 
         for (idx, layer) in self.layers.iter().enumerate() {
@@ -228,12 +230,17 @@ impl Layers {
             if let Some(hips) = self.hipses.get(cdid) {
                 // Check if a HiPS is fully opaque so that we cannot see the background
                 // In that case, no need to draw a background because a HiPS will fully cover it
-                let full_covering_hips = (hips.get_config().get_format().get_channel() == ChannelType::RGB8U || hips.is_allsky()) && meta.opacity == 1.0;
+                let full_covering_hips = (hips.get_config().get_format().get_pixel_format()
+                    == PixelType::RGB8U
+                    || hips.is_allsky())
+                    && meta.opacity == 1.0;
                 if full_covering_hips {
                     idx_start_layer = idx as i32;
                 }
             }
         }
+
+        let mut blending_enabled = false;
 
         // Need to render transparency font
         if idx_start_layer == -1 {
@@ -258,6 +265,9 @@ impl Layers {
 
             // The background (index -1) has been drawn, we can draw the first HiPS
             idx_start_layer = 0;
+
+            self.gl.enable(WebGl2RenderingContext::BLEND);
+            blending_enabled = true;
         }
 
         let layers_to_render = &self.layers[(idx_start_layer as usize)..];
@@ -283,6 +293,11 @@ impl Layers {
                     }
                 }
             }
+
+            if !blending_enabled {
+                self.gl.enable(WebGl2RenderingContext::BLEND);
+                blending_enabled = true;
+            }
         }
 
         Ok(())
@@ -295,10 +310,8 @@ impl Layers {
         proj: &ProjectionType,
         tile_fetcher: &mut TileFetcherQueue,
     ) -> Result<usize, JsValue> {
-        let err_layer_not_found = JsValue::from_str(&format!(
-            "Layer {:?} not found, so cannot be removed.",
-            layer
-        ));
+        let err_layer_not_found =
+            JsValue::from_str(&format!("Layer {layer:?} not found, so cannot be removed."));
         // Color configs, and urls are indexed by layer
         self.meta.remove(layer).ok_or(err_layer_not_found.clone())?;
         let id = self.ids.remove(layer).ok_or(err_layer_not_found.clone())?;
@@ -309,12 +322,6 @@ impl Layers {
             .position(|l| layer == l)
             .ok_or(err_layer_not_found)?;
         self.layers.remove(id_layer);
-
-        // Loop over all the meta for its longitude reversed property
-        // and set the camera to it if there is at least one
-        let longitude_reversed = self.meta.values().any(|meta| meta.longitude_reversed);
-
-        camera.set_longitude_reversed(longitude_reversed, proj);
 
         // Check if the url is still used
         let id_still_used = self.ids.values().any(|rem_id| rem_id == &id);
@@ -333,41 +340,15 @@ impl Layers {
                 tile_fetcher.delete_hips_local_files(hips.get_config().get_creator_did());
 
                 Ok(id_layer)
-            } else if let Some(_) = self.images.remove(&id) {
+            } else if self.images.remove(&id).is_some() {
                 // A FITS image has been found and removed
                 Ok(id_layer)
             } else {
                 Err(JsValue::from_str(&format!(
-                    "Url found {:?} is associated to no 2D HiPSes.",
-                    id
+                    "Url found {id:?} is associated to no 2D HiPSes."
                 )))
             }
         }
-    }
-
-    pub fn rename_layer(&mut self, layer: &str, new_layer: &str) -> Result<(), JsValue> {
-        let err_layer_not_found = JsValue::from_str(&format!(
-            "Layer {:?} not found, so cannot be removed.",
-            layer
-        ));
-
-        // layer from layers does also need to be removed
-        let id_layer = self
-            .layers
-            .iter()
-            .position(|l| layer == l)
-            .ok_or(err_layer_not_found.clone())?;
-
-        self.layers[id_layer] = new_layer.to_string();
-
-        let meta = self.meta.remove(layer).ok_or(err_layer_not_found.clone())?;
-        let id = self.ids.remove(layer).ok_or(err_layer_not_found)?;
-
-        // Add the new
-        self.meta.insert(new_layer.to_string(), meta);
-        self.ids.insert(new_layer.to_string(), id);
-
-        Ok(())
     }
 
     pub fn swap_layers(&mut self, first_layer: &str, second_layer: &str) -> Result<(), JsValue> {
@@ -376,16 +357,14 @@ impl Layers {
                 .iter()
                 .position(|l| l == first_layer)
                 .ok_or(JsValue::from_str(&format!(
-                    "Layer {:?} not found, so cannot be removed.",
-                    first_layer
+                    "Layer {first_layer:?} not found, so cannot be removed."
                 )))?;
         let id_second_layer =
             self.layers
                 .iter()
                 .position(|l| l == second_layer)
                 .ok_or(JsValue::from_str(&format!(
-                    "Layer {:?} not found, so cannot be removed.",
-                    second_layer
+                    "Layer {second_layer:?} not found, so cannot be removed.",
                 )))?;
 
         self.layers.swap(id_first_layer, id_second_layer);
@@ -413,8 +392,7 @@ impl Layers {
         let layer_already_found = self.layers.iter().any(|l| l == &layer);
 
         let idx = if layer_already_found {
-            let idx = self.remove_layer(&layer, camera, proj, tile_fetcher)?;
-            idx
+            self.remove_layer(&layer, camera, proj, tile_fetcher)?
         } else {
             self.layers.len()
         };
@@ -423,11 +401,6 @@ impl Layers {
 
         // 2. Add the meta information of the layer
         self.meta.insert(layer.clone(), meta);
-        // Loop over all the meta for its longitude reversed property
-        // and set the camera to it if there is at least one
-        let longitude_reversed = self.meta.values().any(|meta| meta.longitude_reversed);
-
-        camera.set_longitude_reversed(longitude_reversed, proj);
 
         // 3. Add the image hips
         let creator_did = String::from(properties.get_creator_did());
@@ -454,11 +427,17 @@ impl Layers {
             }*/
             camera.register_view_frame(cfg.get_frame(), proj);
 
-            let hips = if cfg.get_cube_depth().is_some() {
+            let hips = match &cfg.dataproduct_type {
                 // HiPS cube
-                HiPS::D3(HiPS3D::new(cfg, gl)?)
-            } else {
-                HiPS::D2(HiPS2D::new(cfg, gl)?)
+                DataproductType::Cube => HiPS::D3(HiPS3D::new(cfg, gl, &layer)?),
+                // HiPS 3D
+                DataproductType::SpectralCube => {
+                    let mut hips = HiPS3D::new(cfg, gl, &layer)?;
+                    hips.set_cursor_location(camera);
+                    HiPS::D3(hips)
+                }
+                // Typical HiPS image
+                _ => HiPS::D2(HiPS2D::new(cfg, gl)?),
             };
 
             // add the frame to the camera
@@ -492,8 +471,7 @@ impl Layers {
         let layer_already_found = self.layers.iter().any(|s| s == &layer);
 
         let idx = if layer_already_found {
-            let idx = self.remove_layer(&layer, camera, proj, tile_fetcher)?;
-            idx
+            self.remove_layer(&layer, camera, proj, tile_fetcher)?
         } else {
             self.layers.len()
         };
@@ -502,11 +480,6 @@ impl Layers {
 
         // 2. Add the meta information of the layer
         self.meta.insert(layer.clone(), meta);
-        // Loop over all the meta for its longitude reversed property
-        // and set the camera to it if there is at least one
-        let longitude_reversed = self.meta.values().any(|meta| meta.longitude_reversed);
-
-        camera.set_longitude_reversed(longitude_reversed, proj);
 
         // 3. Add the fits image
         // The layer does not already exist
@@ -515,17 +488,6 @@ impl Layers {
         let fits_already_found = self.images.keys().any(|image_id| image_id == &id);
 
         if !fits_already_found {
-            // The fits has not been loaded yet
-            /*if let Some(initial_ra) = properties.get_initial_ra() {
-                if let Some(initial_dec) = properties.get_initial_dec() {
-                    camera.set_center::<P>(&LonLatT::new(Angle((initial_ra).to_radians()), Angle((initial_dec).to_radians())), &properties.get_frame());
-                }
-            }
-
-            if let Some(initial_fov) = properties.get_initial_fov() {
-                camera.set_aperture::<P>(Angle((initial_fov).to_radians()));
-            }*/
-
             self.images.insert(id.clone(), images);
         }
 
@@ -545,14 +507,10 @@ impl Layers {
             .ok_or_else(|| JsValue::from(js_sys::Error::new("Survey not found")))
     }
 
-    pub fn set_layer_cfg(
-        &mut self,
-        layer: String,
-        meta: ImageMetadata,
-    ) -> Result<(), JsValue> {
+    pub fn set_layer_cfg(&mut self, layer: String, meta: ImageMetadata) -> Result<(), JsValue> {
         // Expect the image hips to be found in the hash map
         self.meta.insert(layer.clone(), meta).ok_or_else(|| {
-            JsValue::from(js_sys::Error::new(&format!("{:?} layer not found", layer)))
+            JsValue::from(js_sys::Error::new(&format!("{layer:?} layer not found")))
         })?;
 
         Ok(())
@@ -561,10 +519,7 @@ impl Layers {
     // Accessors
     // HiPSes getters
     pub fn get_hips_from_layer(&self, layer: &str) -> Option<&HiPS> {
-        self.ids
-            .get(layer)
-            .map(|cdid| self.hipses.get(cdid))
-            .flatten()
+        self.ids.get(layer).and_then(|cdid| self.hipses.get(cdid))
     }
 
     pub fn get_mut_hips_from_layer(&mut self, layer: &str) -> Option<&mut HiPS> {
@@ -593,11 +548,7 @@ impl Layers {
     }
 
     pub fn get_image_from_layer(&self, layer: &str) -> Option<&[Image]> {
-        let images = self
-            .ids
-            .get(layer)
-            .map(|url| self.images.get(url))
-            .flatten();
+        let images = self.ids.get(layer).and_then(|url| self.images.get(url));
 
         images.map(|images| images.as_slice())
     }

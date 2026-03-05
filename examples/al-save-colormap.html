@@ -15,16 +15,17 @@
         let survey1 = aladin.getBaseImageLayer();
         survey1.setColormap('magma', {stretch: 'linear'});
 
-        let survey2 = aladin.newImageSurvey("CSIRO/P/RACS/low/I");
-        aladin.setImageLayer(survey2)
+        let survey2 = aladin.newImageSurvey("CSIRO/P/RACS/low/I", {name: 'racs low'});
         survey2.setColormap('rdbu', {stretch: 'linear'});
+
+        aladin.setImageLayer(survey2)
+
 
         let survey3 = aladin.newImageSurvey("CSIRO/P/RACS/mid/I");
         aladin.setImageLayer(survey3)
         survey3.setColormap('cubehelix', {stretch: 'asinh'});
 
         aladin.setImageLayer(survey2);
-
         setTimeout(() => {
             aladin.removeHiPSFromFavorites(survey3)
         }, 5000);

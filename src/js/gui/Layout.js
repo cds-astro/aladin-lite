@@ -1,28 +1,33 @@
-// Copyright 2023 - UDS/CNRS
+// SPDX-License-Identifier: LGPL-3.0-or-later
+// Copyright 2013 - UDS/CNRS
 // The Aladin Lite program is distributed under the terms
-// of the GNU General Public License version 3.
+// of the GNU Lesser General Public License version 3
+// or (at your option) any later version.
 //
 // This file is part of Aladin Lite.
 //
 //    Aladin Lite is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, version 3 of the License.
+//    it under the terms of the GNU Lesser General Public License as published by
+//    the Free Software Foundation, either version 3 of the License, or
+//    (at your option) any later version.
 //
 //    Aladin Lite is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+//    GNU Lesser General Public License for more details.
 //
-//    The GNU General Public License is available in COPYING file
-//    along with Aladin Lite.
+//    You should have received a copy of the GNU Lesser General Public License
+//    along with Aladin Lite. If not, see <https://www.gnu.org/licenses/>.
 //
+
 import { DOMElement } from "./Widgets/Widget";
 import { Tooltip } from "./Widgets/Tooltip";
+import { isJSObject } from "./Utils";
 
 /******************************************************************************
  * Aladin Lite project
  *
- * File gui/Widgets/layout/Horizontal.js
+ * File gui/Layout.js
  *
  * A layout grouping widgets horizontaly
  *
@@ -32,25 +37,15 @@ import { Tooltip } from "./Widgets/Tooltip";
  *****************************************************************************/
 
 export class Layout extends DOMElement {
-    /**
-     * Create a layout
-     * @param {layout: Array.<DOMElement | String>, cssStyle: Object} options - Represents the structure of the Tabs
-     * @param {DOMElement} target - The parent element.
-     * @param {String} position - The position of the tabs layout relative to the target.
-     *     For the list of possibilities, see https://developer.mozilla.org/en-US/docs/Web/API/Element/insertAdjacentHTML
-     */
-    constructor(options = {layout: []}, target, position = "beforeend") {
+    constructor(layout, options, target, position = "beforeend") {
         let el = document.createElement('div');
 
-        // The user should also be able to give just a list of DOMElement
-        if (options instanceof Array) {
-            options['layout'] = options;
-        }
-
-        options.layout = options.layout || [];
+        layout = layout || [];
         super(el, options);
 
-        if (options.cssStyle) {
+        this.layout = layout;
+
+        if (options && options.cssStyle) {
             this.setCss(options.cssStyle);
         }
 
@@ -58,52 +53,112 @@ export class Layout extends DOMElement {
         this.attachTo(target, position);
 
         // 2. Once self is attached, attach the children
-        if (options.layout) {
-            if (typeof options.layout === 'string' || options.layout instanceof String) {
-                this.el.innerHTML = options.layout;
-            } else {
+            if (typeof layout === 'string' || layout instanceof String) {
+                this.el.innerHTML = layout;
+            // otherwise it is an object
+            } else if (
+                isJSObject(layout)
+            ) {
+                if (layout.start) {
+                    this.appendContent(new Layout(layout.start));
+                }
+
+                if (layout.end) {
+                    this.appendContent(new Layout(layout.end));
+                }
+
+                this.el.style.justifyContent = "space-between";
+            } else if (Array.isArray(layout)) {
                 // treat it as an array
-                for (const item of options.layout) {
+                for (let item of layout) {
+                    if (Array.isArray(item) || isJSObject(item)) {
+                        item = new Layout(item)
+                    }
                     this.appendContent(item)
                 }
+            } else {
+                const item = layout;
+                this.appendContent(item)
             }
-        }
+
+            if (options && options.draggable) {
+                // retrieve the children and add the drag listeners
+                let draggableFn = options.draggable;
+                let firstSelected = null;
+
+                this.el.childNodes.forEach(div => {
+                    div.addEventListener("click", () => {
+                        // If nothing selected yet → select this one
+                        if (!firstSelected) {
+                            firstSelected = div;
+                            div.classList.add("aladin-item-selected");
+                            return;
+                        }
+
+                        // If clicking the same one again → unselect
+                        if (firstSelected === div) {
+                            div.classList.remove("aladin-item-selected");
+                            firstSelected = null;
+                            return;
+                        }
+
+                        // Otherwise: swap the two elements
+                        let a = firstSelected;
+                        let b = div;
+
+                        let temp = document.createElement("div");
+                        a.parentNode.insertBefore(temp, a);
+                        b.parentNode.insertBefore(a, b);
+                        temp.parentNode.insertBefore(b, temp);
+                        temp.remove();
+
+                        // Exec callback
+                        draggableFn(a, b)
+
+                        // Clear selection
+                        a.classList.remove("aladin-item-selected");
+                        firstSelected = null;
+                    });
+                });
+            }
 
         // The tooltip has to be set once the element
         // lies in the DOM
-        if (options.tooltip) {
+        if (options && options.tooltip) {
             Tooltip.add(options.tooltip, this)
         }
 
-        if (options.position) {
+        if (options && options.position) {
             this.setPosition(options.position)
         }
 
-        if (options.orientation) {
-            if (options.orientation === 'horizontal') {
-                this.addClass('aladin-horizontal-list')
-            } else {
-                this.addClass('aladin-vertical-list')
-            }
+        if (options && options.vertical && options.vertical === true) {
+            this.addClass('aladin-vertical-list')
+        } else {
+            this.addClass('aladin-horizontal-list')
         }
 
-        if (options.classList) {
+        if (options && options.classList) {
             this.addClass(options.classList)
         }
     }
 
-    static horizontal(options, target, position = "beforeend") {
-        let layout = new Layout(options, target, position);
-        layout.addClass('aladin-horizontal-list');
-
-        return layout;
+    static horizontal(layout, options, target, position = "beforeend") {
+        return new Layout(layout, options, target, position);
     }
 
-    static vertical(options, target, position = "beforeend") {
-        let layout = new Layout(options, target, position);
-        layout.addClass('aladin-vertical-list');
+    static nested(layout, options, target, position = "beforeend") {
+        let horizontalLayout = new Layout(layout, options, target, position);
+        horizontalLayout.removeClass('aladin-horizontal-list');
 
-        return layout;
+        return horizontalLayout;
+    }
+
+    static vertical(layout, options, target, position = "beforeend") {
+        let verticalLayout = new Layout(layout, {...options, vertical: true}, target, position);
+        verticalLayout.addClass('aladin-vertical-list');
+
+        return verticalLayout;
     }
 
     /**
@@ -119,7 +174,7 @@ export class Layout extends DOMElement {
      * @param {DOMElement} item - Represents the structure of the Tabs
      */
     removeItem(item) {
-        let arr = this.options.layout;
+        let arr = this.layout;
 
         var index = arr.indexOf(item);
         if (index > -1) {
@@ -134,7 +189,7 @@ export class Layout extends DOMElement {
      * @param {DOMElement} item - Represents the structure of the Tabs
      */
     appendLast(item) {
-        this.insertItemAtIndex(item, this.options.layout.length);
+        this.insertItemAtIndex(item, this.layout.length);
     }
 
      /**
@@ -144,21 +199,13 @@ export class Layout extends DOMElement {
      *     For the list of possibilities, see https://developer.mozilla.org/en-US/docs/Web/API/Element/insertAdjacentHTML
      */
     insertItemAtIndex(item, index) {
-        this.options.layout.splice(index, 0, item);
+        this.layout.splice(index, 0, item);
         this._show();
     }
 
-    /**
-     * Empty the layout
-     * @param {content: String|DOMElement, swappable: Boolean, disabled: Boolean, selected: Boolean} item - Represents the structure of the Tabs
-     */
     empty() {
         // remove all the sub elements
-        /*for (let elmt of this.options.layout) {
-            elmt.remove();
-        }*/
-
-        this.options.layout = [];
+        this.layout = [];
         this._show();
     }
 
@@ -167,24 +214,20 @@ export class Layout extends DOMElement {
         this.el.innerHTML = "";
 
         // apply css
-        if (this.options.cssStyle) {
+        if (this.options && this.options.cssStyle) {
             this.setCss(this.options.cssStyle);
         }
 
-        if (this.options.layout) {
-            for (const item of this.options.layout) {
+        if (this.layout) {
+            for (const item of this.layout) {
                 if (item) {
                     this.appendContent(item)
                 }
             }
         }
 
-        if (this.options.position) {
+        if (this.options && this.options.position) {
             this.setPosition(this.options.position)
         }
-
-        //super._show()
-        // attach to the DOM again
-        //this.attachTo(this.target);
     }
 }

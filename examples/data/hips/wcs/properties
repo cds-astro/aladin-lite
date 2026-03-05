@@ -1,0 +1,33 @@
+creator_did          = ivo://UNK.AUTH/P/474-2244-wcs
+obs_title            = 474-2244-wcs.fits
+hips_builder         = Aladin/HipsGen v12.135
+hips_version         = 1.4
+hips_frame           = galactic
+hips_order           = 10
+hips_order_min       = 0
+hips_tile_width      = 512
+hips_status          = public master clonableOnce
+hips_tile_format     = png
+hips_pixel_bitpix    = -32
+hips_pixel_cut       = -670.2 64044
+hips_data_range      = -38085 98627
+hips_initial_ra      = 11.66767
+hips_initial_dec     = -24.86479
+hips_initial_fov     = 5.90651
+hips_pixel_scale     = 1.118E-4
+s_pixel_scale        = 1.222E-4
+dataproduct_type     = image
+hipsgen_date         = 2024-11-13T17:07Z
+hipsgen_params       = in=NAROO/474-2244-wcs.fits out=/var/www/tmp/HiPS/474-2244-wcs id=474-2244-wcs maxThread=20
+data_pixel_bitpix    = -32
+hips_sampling        = bilinear
+hips_overlay         = overlayMean mergeOverwrite treeMean
+hips_release_date    = 2024-11-13T18:33Z
+hips_data_minmax     = -21385 73221
+moc_sky_fraction     = 0.001074
+hipsgen_date_1       = 2024-11-13T18:25Z
+hipsgen_params_1     = in=NAROO/474-2244-wcs.fits out=/var/www/tmp/HiPS/474-2244-wcs id=474-2244-wcs maxThread=20
+hips_creation_date   = 2024-11-13T18:25Z
+hips_estsize         = 24116525
+hips_nb_tiles        = 36636
+hips_check_code      = png:735272809

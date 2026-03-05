@@ -1,3 +1,25 @@
+// SPDX-License-Identifier: LGPL-3.0-or-later
+// Copyright 2013 - UDS/CNRS
+// The Aladin Lite program is distributed under the terms
+// of the GNU Lesser General Public License version 3
+// or (at your option) any later version.
+//
+// This file is part of Aladin Lite.
+//
+//    Aladin Lite is free software: you can redistribute it and/or modify
+//    it under the terms of the GNU Lesser General Public License as published by
+//    the Free Software Foundation, either version 3 of the License, or
+//    (at your option) any later version.
+//
+//    Aladin Lite is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+//    GNU Lesser General Public License for more details.
+//
+//    You should have received a copy of the GNU Lesser General Public License
+//    along with Aladin Lite. If not, see <https://www.gnu.org/licenses/>.
+//
+
 export let HiPSList = (function () {
     function HiPSList() {}
 
@@ -11,6 +33,16 @@ export let HiPSList = (function () {
             imgFormat: "jpeg",
             cooFrame: "equatorial",
             startUrl: "https://alasky.cds.unistra.fr/DSS/DSSColor",
+        },
+        {
+            creatorDid: "ivo://erosita/dr1/rate/rgb",
+            id: "erosita/dr1/rate/rgb",
+            name: "eROSITA-DE DR1 RGB (0.2-0.5, 0.5-1.0, 1.0-2.0 keV) Rate Image",
+            maxOrder: 6,
+            tileSize: 512,
+            imgFormat: "png",
+            cooFrame: "equatorial",
+            startUrl: "https://erosita.mpe.mpg.de/dr1/erodat/static/hips/eRASS1_RGB_Rate_c010/"
         },
         {
             creatorDid: "ivo://CDS/P/2MASS/color",
@@ -202,7 +234,7 @@ export let HiPSList = (function () {
             imgFormat: "jpeg",
             minOrder: 3,
             startUrl: "https://alasky.cds.unistra.fr/IPAC/IPAC_P_GLIMPSE360",
-        }
+        },
     ];
 
     return HiPSList;

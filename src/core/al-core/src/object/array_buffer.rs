@@ -93,8 +93,6 @@ pub trait VertexAttribPointerType: std::marker::Sized {
     }
 }
 use crate::webgl_ctx::WebGlRenderingCtx;
-use js_sys::WebAssembly;
-use wasm_bindgen::JsCast;
 impl VertexAttribPointerType for u8 {
     type ArrayBufferView = js_sys::Uint8Array;
 
@@ -308,7 +306,7 @@ impl VertexAttribPointerType for f32 {
     type ArrayBufferView = Float32Array;
 
     fn array_buffer_view<'a, B: BufferDataStorage<'a, Self>>(data: B) -> Self::ArrayBufferView {
-        let data = data.get_slice();
+        /*let data = data.get_slice();
         //unsafe { Self::ArrayBufferView::view(&data) }
         let memory_buffer = wasm_bindgen::memory()
             .unchecked_ref::<WebAssembly::Memory>()
@@ -316,7 +314,9 @@ impl VertexAttribPointerType for f32 {
 
         let len = data.len();
         let ptr = data.as_ptr() as u32 / 4;
-        Float32Array::new(&memory_buffer).subarray(ptr, ptr + len as u32)
+        Float32Array::new(&memory_buffer).subarray(ptr, ptr + len as u32)*/
+        let data = data.get_slice();
+        unsafe { Self::ArrayBufferView::view(data) }
     }
 
     fn buffer_sub_data_with_i32_and_array_buffer_view<'a, B: BufferDataStorage<'a, Self>>(
@@ -409,9 +409,9 @@ impl ArrayBuffer {
         }
     }
 
-    pub fn set_vertex_attrib_pointer_by_name<'a, T: VertexAttribPointerType>(
+    pub fn set_vertex_attrib_pointer_by_name<T: VertexAttribPointerType>(
         &self,
-        shader: &ShaderBound<'a>,
+        shader: &ShaderBound<'_>,
         location: &str,
     ) {
         let loc = shader.get_attrib_location(&self.gl, location);
@@ -434,11 +434,7 @@ impl ArrayBuffer {
             .vertex_attrib_divisor_angle(loc as u32, 0);
     }
 
-    pub fn disable_vertex_attrib_pointer_by_name<'a>(
-        &self,
-        shader: &ShaderBound<'a>,
-        location: &str,
-    ) {
+    pub fn disable_vertex_attrib_pointer_by_name(&self, shader: &ShaderBound<'_>, location: &str) {
         let loc = shader.get_attrib_location(&self.gl, location);
         self.gl.disable_vertex_attrib_array(loc as u32);
     }
@@ -466,6 +462,30 @@ impl ArrayBuffer {
             );
         }
     }
+
+    /*pub fn update_from_js_array<'a, T: VertexAttribPointerType>(
+        &mut self,
+        usage: u32,
+        data: T::ArrayBufferView,
+    ) {
+        self.bind();
+        if self.len >= data.len() {
+            T::buffer_sub_data_with_i32_and_array_buffer_view(
+                &self.gl,
+                data,
+                WebGlRenderingCtx::ARRAY_BUFFER,
+            );
+        } else {
+            self.len = data.len();
+
+            T::buffer_data_with_array_buffer_view(
+                &self.gl,
+                data,
+                WebGlRenderingCtx::ARRAY_BUFFER,
+                usage,
+            );
+        }
+    }*/
 }
 
 impl VertexBufferObject for ArrayBuffer {

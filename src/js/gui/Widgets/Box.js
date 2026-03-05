@@ -1,31 +1,34 @@
-// Copyright 2023 - UDS/CNRS
+// SPDX-License-Identifier: LGPL-3.0-or-later
+// Copyright 2013 - UDS/CNRS
 // The Aladin Lite program is distributed under the terms
-// of the GNU General Public License version 3.
+// of the GNU Lesser General Public License version 3
+// or (at your option) any later version.
 //
 // This file is part of Aladin Lite.
 //
 //    Aladin Lite is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, version 3 of the License.
+//    it under the terms of the GNU Lesser General Public License as published by
+//    the Free Software Foundation, either version 3 of the License, or
+//    (at your option) any later version.
 //
 //    Aladin Lite is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+//    GNU Lesser General Public License for more details.
 //
-//    The GNU General Public License is available in COPYING file
-//    along with Aladin Lite.
+//    You should have received a copy of the GNU Lesser General Public License
+//    along with Aladin Lite. If not, see <https://www.gnu.org/licenses/>.
 //
-
 import { DOMElement } from "./Widget";
 import { ActionButton } from "./ActionButton";
+import enlargeIconImg from '../../../../assets/icons/enlarge.svg';
 import moveIconImg from '../../../../assets/icons/move.svg';
 import { Layout } from "../Layout";
 
 /******************************************************************************
  * Aladin Lite project
  *
- * File gui/Tab.js
+ * File gui/Widgets/Box.js
  *
  * A context menu that shows when the user right clicks, or long touch on touch device
  *
@@ -33,16 +36,6 @@ import { Layout } from "../Layout";
  * Author: Matthieu Baumann[CDS]
  *
  *****************************************************************************/
-
-/* Example of layout
-[{
-    content: ''
-    title: '',
-    color: <label color>,
-    backgroundColor: <background tab color>,
-    action: () => {}
-},]
-*/
 export class Box extends DOMElement {
     constructor(options, target, position = "beforeend") {
         let el = document.createElement("div");
@@ -52,7 +45,10 @@ export class Box extends DOMElement {
 
         this.attachTo(target, position);
         this._show();
-        this.addClass('aladin-dark-theme')
+    }
+
+    close() {
+        this._hide()
     }
 
     _show(options) {
@@ -63,26 +59,12 @@ export class Box extends DOMElement {
 
         this.el.innerHTML = "";
 
-        let self = this;
-
         let close = this.options.close === false ? false : true;
         let draggable = false;
         if (close) {
-            new ActionButton({
-                size: 'small',
-                content: '❌',
-                //tooltip: {content: 'Close the window', position: {direction: 'bottom'}},
-                action(e) {
-                    self._hide();
-                },
-                cssStyle: {
-                    position: 'absolute',
-                },
-                position: {
-                    top: 0,
-                    right: 0,
-                }
-            }, this.el);
+            this.el.appendChild(
+                ActionButton.BUTTONS(null).close(this).element()
+            );
         }
 
         if (this.options.onDragged) {
@@ -97,7 +79,7 @@ export class Box extends DOMElement {
                 titleEl = document.createElement('div')
                 titleEl.classList.add("aladin-box-title");
 
-                DOMElement.appendTo(header.title, titleEl);
+                DOMElement.appendTo(new Layout(header.title), titleEl);
             }
     
             let draggableEl;
@@ -120,7 +102,7 @@ export class Box extends DOMElement {
                 });
             }
     
-            let headerEl = Layout.horizontal([draggableEl, titleEl], this.el);
+            let headerEl = Layout.horizontal([draggableEl, titleEl], {}, this.el);
             if (draggable) {
                 dragElement(headerEl.element(), this.el, this.options.onDragged);
                 headerEl.element().style.cursor = 'move';
@@ -137,11 +119,33 @@ export class Box extends DOMElement {
 
         if (this.options.content) {
             let content = this.options.content
-            //if (Array.isArray(content)) {
+            if (content instanceof Layout) {
                 this.appendContent(content);
-            //} else {
-            //    this.appendContent(content);
-            //}
+            } else {
+                this.appendContent(Layout.vertical(content));
+            }
+
+            this.el.lastChild.classList.add("aladin-box-content");
+        }
+
+        if (this.options.sizeable) {
+            let sizeableBtn = new ActionButton({
+                icon: {
+                    url: enlargeIconImg,
+                    size: "small",
+                    monochrome: true,
+                },
+                tooltip: {content: 'Enlarge the window',  global: true, aladin: this.aladin},
+                cssStyle: {
+                    cursor: 'move',
+                    position: 'absolute',
+                    bottom: 0,
+                    right: 0
+                },
+            });
+            this.appendContent(sizeableBtn);
+
+            enlargeElement(sizeableBtn.element(), this.el);
         }
 
         if (this.options.position) {
@@ -218,5 +222,40 @@ function dragElement(triggerElt, elmnt, onDragged) {
         if (t + r.height / 2 > aladinDiv.offsetHeight) {
             elmnt.style.top = (aladinDiv.offsetHeight - r.height / 2) + "px";
         }
+    }
+}
+
+function enlargeElement(triggerElt, elmnt) {
+    let pos3 = 0, pos4 = 0;
+
+    triggerElt.onmousedown = dragMouseDown;
+
+    function dragMouseDown(e) {
+        e.preventDefault();
+        pos3 = e.clientX;
+        pos4 = e.clientY;
+        document.onmouseup = closeDragElement;
+        document.onmousemove = elementDrag;
+    }
+
+    function elementDrag(e) {
+        e.preventDefault();
+
+        const dx = e.clientX - pos3;
+        const dy = e.clientY - pos4;
+
+        pos3 = e.clientX;
+        pos4 = e.clientY;
+
+        const newWidth  = elmnt.offsetWidth  + 2*dx;
+        const newHeight = elmnt.offsetHeight + 2*dy;
+
+        elmnt.style.width  = Math.max(20, newWidth) + "px";
+        elmnt.style.height = Math.max(20, newHeight) + "px";
+    }
+
+    function closeDragElement() {
+        document.onmouseup = null;
+        document.onmousemove = null;
     }
 }

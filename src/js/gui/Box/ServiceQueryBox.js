@@ -1,30 +1,32 @@
-// Copyright 2023 - UDS/CNRS
+// SPDX-License-Identifier: LGPL-3.0-or-later
+// Copyright 2013 - UDS/CNRS
 // The Aladin Lite program is distributed under the terms
-// of the GNU General Public License version 3.
+// of the GNU Lesser General Public License version 3
+// or (at your option) any later version.
 //
 // This file is part of Aladin Lite.
 //
 //    Aladin Lite is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, version 3 of the License.
+//    it under the terms of the GNU Lesser General Public License as published by
+//    the Free Software Foundation, either version 3 of the License, or
+//    (at your option) any later version.
 //
 //    Aladin Lite is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+//    GNU Lesser General Public License for more details.
 //
-//    The GNU General Public License is available in COPYING file
-//    along with Aladin Lite.
+//    You should have received a copy of the GNU Lesser General Public License
+//    along with Aladin Lite. If not, see <https://www.gnu.org/licenses/>.
 //
 
 
 /******************************************************************************
  * Aladin Lite project
  *
- * File gui/SODAQueryWindow.js
+ * File gui/Box/ServiceQueryBox.js
  *
  * A form window aiming to query a SODA service cutout
- *
  *
  * Author: Matthieu Baumann [CDS]
  *
@@ -140,13 +142,10 @@ export class ServiceQueryBox extends Box {
                                 let [ra, dec] = self.aladin.pix2world(c.x, c.y);
                                 let radius = self.aladin.angularDist(c.x, c.y, c.x + c.r, c.y);
                 
-                                //var hlon = this.lon/15.0;
-                                //var strlon = Numbers.toSexagesimal(hlon, this.prec+1, false);
                                 let coo = new Coo(ra, dec, 7);
                                 let [lon, lat] = coo.format('d2');
             
                                 let fov = new Angle(radius, 1).degrees();
-                                //selectorBtn.update({tooltip: {content: 'center: ' + ra.toFixed(2) + ', ' + dec.toFixed(2) + '<br\>radius: ' + radius.toFixed(2), position: {direction: 'left'}}})    
                                 self.form.set('ra', lon)
                                 self.form.set('dec', lat)
                                 self.form.set('rad', fov)

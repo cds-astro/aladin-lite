@@ -4,14 +4,14 @@ layout (location = 0) in vec2 p_a_lonlat;
 layout (location = 1) in vec2 p_b_lonlat;
 layout (location = 2) in vec2 vertex;
 
-uniform mat4 u_2world;
+uniform mat3 u_2world;
 uniform vec2 ndc_to_clip;
 uniform float czf;
 uniform float u_width;
 uniform float u_height;
 uniform float u_thickness;
 
-out float l;
+out vec2 l;
 
 #include ../projection/projection.glsl;
 
@@ -20,14 +20,13 @@ void main() {
     vec3 p_a_xyz = lonlat2xyz(p_a_lonlat);
     vec3 p_b_xyz = lonlat2xyz(p_b_lonlat);
     // 2. Convert to the world coo system
-    vec4 p_a_w = u_2world * vec4(p_a_xyz, 1.0); 
-    vec4 p_b_w = u_2world * vec4(p_b_xyz, 1.0);
+    vec3 p_a_w = u_2world * p_a_xyz; 
+    vec3 p_b_w = u_2world * p_b_xyz;
     // 3. Process the projection
-    vec2 p_a_clip = proj(p_a_w.xyz);
-    vec2 p_b_clip = proj(p_b_w.xyz);
+    vec2 p_a_clip = proj(p_a_w);
+    vec2 p_b_clip = proj(p_b_w);
 
     vec2 da = p_a_clip - p_b_clip;
-    l = dot(da, da);
 
     vec2 p_a_ndc = p_a_clip / (ndc_to_clip * czf);
     vec2 p_b_ndc = p_b_clip / (ndc_to_clip * czf);
@@ -37,6 +36,12 @@ void main() {
     vec2 y_b = normalize(vec2(-x_b.y, x_b.x));
 
     float ndc2pix = 2.0 / u_width;
-    vec2 p_ndc = p_a_ndc + x_b * vertex.x + u_thickness * y_b * vertex.y * vec2(1.0, u_width/u_height) * ndc2pix;
+
+    vec2 p_ndc_x = x_b * vertex.x;
+    vec2 p_ndc_y = (u_thickness + 2.0) * y_b * vertex.y * vec2(1.0, u_width/u_height) * ndc2pix;
+
+    vec2 p_ndc = p_a_ndc + p_ndc_x + p_ndc_y;
     gl_Position = vec4(p_ndc, 0.f, 1.f);
+
+    l = vec2(dot(da, da), vertex.y);
 }

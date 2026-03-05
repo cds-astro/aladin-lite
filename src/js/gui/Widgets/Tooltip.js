@@ -1,22 +1,24 @@
-// Copyright 2023 - UDS/CNRS
+// SPDX-License-Identifier: LGPL-3.0-or-later
+// Copyright 2013 - UDS/CNRS
 // The Aladin Lite program is distributed under the terms
-// of the GNU General Public License version 3.
+// of the GNU Lesser General Public License version 3
+// or (at your option) any later version.
 //
 // This file is part of Aladin Lite.
 //
 //    Aladin Lite is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, version 3 of the License.
+//    it under the terms of the GNU Lesser General Public License as published by
+//    the Free Software Foundation, either version 3 of the License, or
+//    (at your option) any later version.
 //
 //    Aladin Lite is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+//    GNU Lesser General Public License for more details.
 //
-//    The GNU General Public License is available in COPYING file
-//    along with Aladin Lite.
+//    You should have received a copy of the GNU Lesser General Public License
+//    along with Aladin Lite. If not, see <https://www.gnu.org/licenses/>.
 //
-
 
 /******************************************************************************
  * Aladin Lite project
@@ -41,6 +43,19 @@ export class Tooltip extends DOMElement {
         let el = document.createElement('span');
         el.classList.add('aladin-tooltip');
 
+        // Set the anchor to the element on which
+        // the tooltip is set
+        if (!options.position) {
+            options.position = {
+                direction: 'right',
+            }
+        }
+        options.position.anchor = target;
+
+        if (options.delayShowUpTime === undefined) {
+            options.delayShowUpTime = 500;
+        }
+
         let targetParent = target.parentNode;
 
         // Insert it into the DOM tree
@@ -60,22 +75,7 @@ export class Tooltip extends DOMElement {
             wrapperEl.appendChild(el);
         }
 
-        // Set the anchor to the element on which
-        // the tooltip is set
-        if (!options.position) {
-            options.position = {
-                direction: 'right',
-            }
-        }
-        options.position.anchor = target;
-
-        if (!options.delayShowUpTime) {
-            options.delayShowUpTime = 500;
-        }
-
         super(wrapperEl, options)
-
-        this.element().classList.add('aladin-dark-theme')
 
         this._show();
     }
@@ -175,6 +175,8 @@ export class Tooltip extends DOMElement {
         return this.el.querySelector('.aladin-tooltip');
     }
     
+    static hoveredEl = null;
+
     static add(options, target) {
         if (target) {
             if (target.tooltip) {
@@ -185,14 +187,45 @@ export class Tooltip extends DOMElement {
                     return;
                 }
 
+                let targetEl = target.element()
+
+                if (options.mouse) {
+                    let tooltip = options.aladin && options.aladin.tooltip;
+
+                    Utils.on(targetEl, 'mousemove', (e) => {
+                        tooltip.style.left = e.clientX + 12 + 'px';
+                        tooltip.style.top  = e.clientY + 12 + 'px';
+                    });
+
+                    Utils.on(targetEl, 'mouseover', (e) => {
+                        if (Tooltip.hoveredEl && Tooltip.hoveredEl.contains(targetEl))
+                            return;
+
+                        Tooltip.hoveredEl = targetEl;
+                        // Change the content to match
+                        tooltip.innerHTML = options.content;
+                        tooltip.style.display = 'block';
+                    });
+
+                    Utils.on(targetEl, 'mouseleave', (e) => {
+                        if (Tooltip.hoveredEl && Tooltip.hoveredEl.contains(targetEl) && Tooltip.hoveredEl !== targetEl) {
+                            return;
+                        }
+
+                        tooltip.style.display = 'none';
+                        Tooltip.hoveredEl = null;
+                    });
+
+                    return;
+                }
+
                 if (options.global) {
                     let statusBar = options.aladin && options.aladin.statusBar;
                     if (!statusBar) {
                         return;
                     }
 
-                    // handle global tooltip div display
-                    Utils.on(target.el, 'mouseover', (e) => {
+                    Utils.on(targetEl, 'mouseover', (e) => {
                         statusBar.removeMessage('tooltip')
                         statusBar.appendMessage({
                             id: 'tooltip',
@@ -201,13 +234,14 @@ export class Tooltip extends DOMElement {
                             type: 'tooltip'
                         })
                     });
-                    Utils.on(target.el, 'mouseout', (e) => {
+
+                    Utils.on(targetEl, 'mouseout', (e) => {
                         statusBar.removeMessage('tooltip')
                     });
                     return;
                 }
 
-                target.tooltip = new Tooltip(options, target.element())
+                target.tooltip = new Tooltip(options, targetEl)
             }
         }
     }

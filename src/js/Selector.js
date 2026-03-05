@@ -1,25 +1,30 @@
-// Copyright 2015 - UDS/CNRS
+// SPDX-License-Identifier: LGPL-3.0-or-later
+// Copyright 2013 - UDS/CNRS
 // The Aladin Lite program is distributed under the terms
-// of the GNU General Public License version 3.
+// of the GNU Lesser General Public License version 3
+// or (at your option) any later version.
 //
 // This file is part of Aladin Lite.
 //
 //    Aladin Lite is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, version 3 of the License.
+//    it under the terms of the GNU Lesser General Public License as published by
+//    the Free Software Foundation, either version 3 of the License, or
+//    (at your option) any later version.
 //
 //    Aladin Lite is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+//    GNU Lesser General Public License for more details.
 //
-//    The GNU General Public License is available in COPYING file
-//    along with Aladin Lite.
+//    You should have received a copy of the GNU Lesser General Public License
+//    along with Aladin Lite. If not, see <https://www.gnu.org/licenses/>.
 //
+
 
 import { Color } from "./Color";
 import { CircleSelect } from "./FiniteStateMachine/CircleSelect";
 import { PolySelect } from "./FiniteStateMachine/PolySelect";
+import { LineSelect } from "./FiniteStateMachine/LineSelect";
 import { RectSelect } from "./FiniteStateMachine/RectSelect";
 import { ALEvent } from "./events/ALEvent";
 /******************************************************************************
@@ -61,32 +66,28 @@ export class Selector {
         })
     }
 
-    setMode(mode) {
-        if (mode) {
-            let options = {
-                color: this.color,
-                lineWidth: this.lineWidth
-            };
-
-            if (mode === 'circle') {
-                this.select = new CircleSelect(options, this.view)
-            } else if (mode === 'rect') {
-                this.select = new RectSelect(options, this.view)
-            } else if (mode === 'poly') {
-                this.select = new PolySelect(options, this.view)
-            }
-        }
-    }
-
     start(mode, callback) {
-        this.view.aladin.removeStatusBarMessage('selector')
         this.view.aladin.addStatusBarMessage({
             id: 'selector',
             message: 'You entered the selection mode',
             type: 'info'
         })
 
-        this.setMode(mode);
+        let options = {
+            color: this.color,
+            lineWidth: this.lineWidth
+        };
+
+        if (mode === 'circle') {
+            this.select = new CircleSelect(options, this.view)
+        } else if (mode === 'rect') {
+            this.select = new RectSelect(options, this.view)
+        } else if (mode === 'poly') {
+            this.select = new PolySelect(options, this.view)
+        } else if (mode === 'line') {
+            this.select = new LineSelect(options, this.view)
+        }
+
         this.dispatch('start', {callback})
     }
 
@@ -108,9 +109,9 @@ export class Selector {
             return;
         }
 
+        const bbox = selection.bbox();
         var objList = [];
         var cat, sources, s;
-        var overlayItems, f;
         var objListPerCatalog = [];
         if (view.catalogs) {
             for (var k = 0; k < view.catalogs.length; k++) {
@@ -120,24 +121,25 @@ export class Selector {
                     continue;
                 }
                 sources = cat.getSources();
+                
                 for (var l = 0; l < sources.length; l++) {
                     s = sources[l];
-                    if (!s.isShowing || !s.x || !s.y || s.tooSmallFootprint === false) {
+
+                    if (!s.isShowing || !s.x || !s.y) {
                         continue;
                     }
+
+                    // footprints
+                    if (s.isFootprint() && s.tooSmallFootprint === false) {
+                        if (s.footprint.intersectsBBox(bbox.x, bbox.y, bbox.w, bbox.h, view)) {
+                            objListPerCatalog.push(s);
+                        }
+
+                        continue;
+                    }
+
                     if (selection.contains(s)) {
                         objListPerCatalog.push(s);
-                    }
-                }
-                // footprints
-                overlayItems = cat.getFootprints();
-                if (overlayItems) {
-                    const {x, y, w, h} = selection.bbox();
-                    for (var l = 0; l < overlayItems.length; l++) {
-                        f = overlayItems[l];
-                        if (f.intersectsBBox(x, y, w, h, view)) {
-                            objListPerCatalog.push(f);
-                        }
                     }
                 }
 
@@ -149,7 +151,6 @@ export class Selector {
         }
 
         if (view.overlays) {
-            const {x, y, w, h} = selection.bbox();
             for (var k = 0; k < view.overlays.length; k++) {
                 let overlay = view.overlays[k];
                 if (!overlay.isShowing) {
@@ -162,7 +163,7 @@ export class Selector {
                         continue;
                     }
 
-                    if (o.intersectsBBox(x, y, w, h, view)) {
+                    if (o.intersectsBBox(bbox.x, bbox.y, bbox.w, bbox.h, view)) {
                         objList.push([o]);
                     }
                 }

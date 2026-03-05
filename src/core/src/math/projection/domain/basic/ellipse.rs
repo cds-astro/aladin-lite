@@ -16,7 +16,7 @@ impl ProjDef for Ellipse {
         let mut p = Vector2::new(xy.x.abs(), xy.y.abs());
         let mut ab = Vector2::new(self.a, self.b);
 
-        let sdf = if p.x == 0.0 {
+        if p.x == 0.0 {
             -(self.b - p.y)
         } else if p.y == 0.0 {
             -(self.a - p.x)
@@ -61,8 +61,6 @@ impl ProjDef for Ellipse {
             let q = Vector2::new(ab.x * co, ab.y * si);
 
             (q - p).magnitude() * (p.y - q.y).signum()
-        };
-
-        sdf
+        }
     }
 }

@@ -1,21 +1,25 @@
+// SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright 2013 - UDS/CNRS
 // The Aladin Lite program is distributed under the terms
-// of the GNU General Public License version 3.
+// of the GNU Lesser General Public License version 3
+// or (at your option) any later version.
 //
 // This file is part of Aladin Lite.
 //
 //    Aladin Lite is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, version 3 of the License.
+//    it under the terms of the GNU Lesser General Public License as published by
+//    the Free Software Foundation, either version 3 of the License, or
+//    (at your option) any later version.
 //
 //    Aladin Lite is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+//    GNU Lesser General Public License for more details.
 //
-//    The GNU General Public License is available in COPYING file
-//    along with Aladin Lite.
+//    You should have received a copy of the GNU Lesser General Public License
+//    along with Aladin Lite. If not, see <https://www.gnu.org/licenses/>.
 //
+
 
 /******************************************************************************
  * Aladin Lite project
@@ -136,12 +140,11 @@ export let Image = (function () {
         this.id = url;
         this.name = (options && options.name) || this.url;
         this.imgFormat = options && options.imgFormat;
-        //this.formats = [this.imgFormat];
+        this.acceptedFormats = [this.imgFormat];
+
         // callbacks
         this.successCallback = options && options.successCallback;
         this.errorCallback = options && options.errorCallback;
-
-        this.longitudeReversed = false;
 
         this.colorCfg = new ColorCfg(options);
         this.options = options || {};
@@ -329,11 +332,18 @@ export let Image = (function () {
          */
         Image.prototype.readPixel = HiPS.prototype.readPixel;
 
-       
-        /** PRIVATE METHODS **/
+        /**
+         * Get the list of accepted tile format for that HiPS
+         *
+         * @memberof Image
+         *
+         * @returns {string[]} Returns the formats accepted for the survey, i.e. the formats of tiles that are availables. Could be PNG, WEBP, JPG and FITS.
+         */
+        Image.prototype.getAvailableFormats = HiPS.prototype.getAvailableFormats;
+
+
         Image.prototype._setView = function (view) {
             this.view = view;
-            this._saveInCache();
         };
 
         // FITS images does not mean to be used for storing planetary data
@@ -356,7 +366,9 @@ export let Image = (function () {
         // Private method for updating the view with the new meta
         Image.prototype._updateMetadata = HiPS.prototype._updateMetadata;
 
-        Image.prototype._add = function (layer) {
+        Image.prototype._removeFromView = HiPS.prototype._removeFromView;
+
+        Image.prototype._addToView = function (layer) {
             this.layer = layer;
 
             let self = this;
@@ -365,37 +377,38 @@ export let Image = (function () {
             if (this.imgFormat === 'fits') {
                 promise = this._addFITS(layer)
                     .catch(e => {
-                        console.error(`Image located at ${this.url} could not be parsed as fits file. Is the imgFormat specified correct?`)
+                        console.error(`Image located at ${this.url} could not be parsed as fits file. Is the imgFormat specified correct? Reason: `, e)
                         return Promise.reject(e)
                     })
             } else if (this.imgFormat === 'jpeg' || this.imgFormat === 'png') {
-
                 promise = this._addJPGOrPNG(layer)
                     .catch(e => {
-                        console.error(`Image located at ${this.url} could not be parsed as a ${this.imgFormat} file. Is the imgFormat specified correct?`);
+                        console.error(`Image located at ${this.url} could not be parsed as a ${this.imgFormat} file. Is the imgFormat specified correct? Reason: `, e);
                         return Promise.reject(e)
                     })
             } else {
+                console.info("Image format not specified, trying parsing a FITS image:")
                 // imgformat not defined we will try first supposing it is a fits file and then use the jpg heuristic
                 promise = self._addFITS(layer)
                     .catch(e => {
+                        console.info("FITS failing, trying parsing a JPG/PNG image:")
                         return self._addJPGOrPNG(layer)
-                            .catch(e => {
-                                console.error(`Image located at ${self.url} could not be parsed as jpg/png/tif image file. Aborting...`)
+                            .catch(e2 => {
+                                console.error(`Image located at ${self.url} could not be parsed as jpg/png/tif image file. Reason: `, e2)
                                 return Promise.reject(e);
                             })
                     })
             }
 
             promise = promise.then((imageParams) => {
-                self.formats = [self.imgFormat];
+                self.acceptedFormats = [self.imgFormat];
 
                 // There is at least one entry in imageParams
                 self.added = true;
-                self._setView(self.view);
 
                 // Set the automatic computed cuts
                 let [minCut, maxCut] = self.getCuts();
+
                 minCut = minCut || imageParams.min_cut;
                 maxCut = maxCut || imageParams.max_cut;
                 self.setCuts(
@@ -436,31 +449,31 @@ export let Image = (function () {
 
             return Utils.fetch({
                 url: this.url,
-                dataType: 'readableStream',
-                success: (stream) => {
-                    return self.view.wasm.addImageFITS(
-                        stream,
+                dataType: 'arrayBuffer',
+                success: (buf) => {
+                    return self.view.wasm.addFITSImage(
+                        new Uint8Array(buf),
                         {
                             ...self.colorCfg.get(),
-                            longitudeReversed: this.longitudeReversed,
                             imgFormat: 'fits',
                         },
                         layer
                     )
                 },
                 error: (e) => {
+                    console.error(e)
+                    console.info("Trying querying the FITS through proxy:" + Aladin.JSONP_PROXY)
                     // try as cors 
                     const url = Aladin.JSONP_PROXY + '?url=' + self.url;
 
                     return Utils.fetch({
                         url: url,
-                        dataType: 'readableStream',
-                        success: (stream) => {
-                            return self.view.wasm.addImageFITS(
-                                stream,
+                        dataType: 'arrayBuffer',
+                        success: (buf) => {
+                            return self.view.wasm.addFITSImage(
+                                new Uint8Array(buf),
                                 {
                                     ...self.colorCfg.get(),
-                                    longitudeReversed: this.longitudeReversed,
                                     imgFormat: 'fits',
                                 },
                                 layer
@@ -470,7 +483,8 @@ export let Image = (function () {
                 }
             })
             .then((imageParams) => {
-                self.imgFormat = 'fits';
+                self.imgFormat = 'fits'
+                self.colorCfg.setOptions({imgFormat: 'fits'});
 
                 return Promise.resolve(imageParams);
             })
@@ -494,12 +508,8 @@ export let Image = (function () {
                         var ctx = canvas.getContext("2d");
                         ctx.drawImage(img, 0, 0, img.width, img.height);
         
-                        const imageData = ctx.getImageData(0, 0, img.width, img.height);
-        
-                        const blob = new Blob([imageData.data]);
-                        const stream = blob.stream(1024);
-        
-                        resolve(stream)
+                        const imageData = ctx.getImageData(0, 0, img.width, img.height);      
+                        resolve(imageData.data)
                     };
 
                     if (!self.options.wcs) {
@@ -516,10 +526,14 @@ export let Image = (function () {
                             // obj.wcs (object) = The wcs parsed from the image
                             if (obj.wcsdata) {
                                 if (img.width !== obj.wcs.NAXIS1) {
+                                    obj.wcs.CDELT1 = obj.wcs.CDELT1 * (obj.wcs.NAXIS1 / img.width);
+                                    obj.wcs.CRPIX1 *= img.width / obj.wcs.NAXIS1;
                                     obj.wcs.NAXIS1 = img.width;
                                 }
 
                                 if (img.height !== obj.wcs.NAXIS2) {
+                                    obj.wcs.CDELT2 = obj.wcs.CDELT2 * (obj.wcs.NAXIS2 / img.height);
+                                    obj.wcs.CRPIX2 *= img.height / obj.wcs.NAXIS2;
                                     obj.wcs.NAXIS2 = img.height;
                                 }
 
@@ -547,31 +561,35 @@ export let Image = (function () {
                         return;
                     }
 
+                    console.error(e);
+                    console.info("Using proxy", Aladin.JSONP_PROXY)
                     proxyUsed = true;
                     img.src = Aladin.JSONP_PROXY + '?url=' + self.url;
                 }
             })
-            .then((readableStream) => {
+            .then((bytes) => {
                 let wcs = self.options && self.options.wcs;
                 wcs.NAXIS1 = wcs.NAXIS1 || img.width;
                 wcs.NAXIS2 = wcs.NAXIS2 || img.height;
-
                 return self.view.wasm
-                    .addImageWithWCS(
-                        readableStream,
+                    .addRGBAImage(
+                        bytes,
                         wcs,
                         {
                             ...self.colorCfg.get(),
-                            longitudeReversed: this.longitudeReversed,
                             imgFormat: 'jpeg',
                         },
                         layer
                     )
             })
             .then((imageParams) => {
-                self.imgFormat = 'jpeg';
+                self.imgFormat = 'jpeg'
+                self.colorCfg.setOptions({imgFormat: 'jpeg'});
                 return Promise.resolve(imageParams);
             })
+            /*.catch((e) => {
+                console.error(e)
+            })*/
             .finally(() => {
                 img.remove();
             });

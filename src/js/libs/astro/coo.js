@@ -12,7 +12,7 @@ import { AstroMath } from "./astroMath.js";
  * 
  * @param {number} longitude longitude (decimal degrees)
  * @param {number} latitude latitude (decimal degrees)
- * @param {number} prec precision
+ * @param {number} prec precision for `format` method
  * (8: 1/1000th sec, 7: 1/100th sec, 6: 1/10th sec, 5: sec, 4: 1/10th min, 3: min, 2: 1/10th deg, 1: deg
  */
 export let Coo = function(longitude, latitude, prec) {
@@ -224,8 +224,8 @@ Coo.prototype = {
 	},
 
 	/**
-	 * Format coordinates according to the options
-	 * @param {string} options 'd': decimal, 's': sexagésimal, '/': space separated, '2': return [ra,dec] in an array
+	 * Format coordinates according to the options. Decimal and sexagesimal will use the `precision` value that the `Coo` was created with.
+	 * @param {'d'|'s'|'/'|'2'} options 'd': decimal, 's': sexagésimal, '/': space separated, '2': return [ra,dec] in an array
 	 * @return the formatted coordinates
 	 */
 	format: function(options) {

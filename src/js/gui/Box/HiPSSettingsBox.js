@@ -1,27 +1,29 @@
+// SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright 2013 - UDS/CNRS
 // The Aladin Lite program is distributed under the terms
-// of the GNU General Public License version 3.
+// of the GNU Lesser General Public License version 3
+// or (at your option) any later version.
 //
 // This file is part of Aladin Lite.
 //
 //    Aladin Lite is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, version 3 of the License.
+//    it under the terms of the GNU Lesser General Public License as published by
+//    the Free Software Foundation, either version 3 of the License, or
+//    (at your option) any later version.
 //
 //    Aladin Lite is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+//    GNU Lesser General Public License for more details.
 //
-//    The GNU General Public License is available in COPYING file
-//    along with Aladin Lite.
+//    You should have received a copy of the GNU Lesser General Public License
+//    along with Aladin Lite. If not, see <https://www.gnu.org/licenses/>.
 //
-
 
 /******************************************************************************
  * Aladin Lite project
  *
- * File gui/Stack/Menu.js
+ * File gui/Box/HiPSSettingsBox.js
  *
  *
  * Author: Matthieu Baumann [CDS, matthieu.baumann@astro.unistra.fr]
@@ -35,13 +37,15 @@ import { Form } from "../Widgets/Form.js";
  import colorIconUrl from '../../../../assets/icons/color.svg';
  import pixelHistIconUrl from '../../../../assets/icons/pixel_histogram.svg';
  import { RadioButton } from "../Widgets/Radio.js";
-
+ import waveOnIconUrl from '../../../../assets/icons/wave-on.svg';
+import { WidgetTogglerButton } from "../Button/Toggler.js";
  import { Layout } from "../Layout.js";
 
  export class HiPSSettingsBox extends Box {
      // Constructor
      constructor(aladin, options) {
         let self;
+
         let selector = new RadioButton({
             luminosity: {
                 icon: {
@@ -51,9 +55,7 @@ import { Form } from "../Widgets/Form.js";
                 },
                 tooltip: {content: 'Contrast', position: {direction: 'bottom'}},
                 action: (e) => {
-                    const content = Layout.vertical({
-                        layout: [self.selector, self.luminositySettingsContent]
-                    });
+                    const content = Layout.vertical([[self.selector, self.spectraBtn], self.luminositySettingsContent]);
                     self.update({content})
                 }
             },
@@ -65,7 +67,7 @@ import { Form } from "../Widgets/Form.js";
                 },
                 tooltip: {content: 'Opacity', position: {direction: 'bottom'}},
                 action: (e) => {
-                    const content = Layout.vertical({layout: [self.selector, self.opacitySettingsContent]});
+                    const content = Layout.vertical([[self.selector, self.spectraBtn], self.opacitySettingsContent]);
                     self.update({content})
                 }
             },
@@ -76,7 +78,7 @@ import { Form } from "../Widgets/Form.js";
                 },
                 tooltip: {content: 'Colormap', position: {direction: 'bottom'}},
                 action: (e) => {
-                    const content = Layout.vertical({layout: [self.selector, self.colorSettingsContent]});
+                    const content = Layout.vertical([[self.selector, self.spectraBtn], self.colorSettingsContent]);
                     self.update({content})
                 }
             },
@@ -88,7 +90,7 @@ import { Form } from "../Widgets/Form.js";
                 },
                 tooltip: {content: 'Cutouts', position: {direction: 'bottom'}},
                 action: (e) => {
-                    const content = Layout.vertical({layout: [self.selector, self.pixelSettingsContent]});
+                    const content = Layout.vertical([[self.selector, self.spectraBtn], self.pixelSettingsContent]);
                     self.update({content})
                 }
             },
@@ -209,47 +211,32 @@ import { Form } from "../Widgets/Form.js";
             {
                 label: 'min cut:',
                 type: 'number',
-                cssStyle: {
-                    width: '6rem',
-                },
                 tooltip: {content: 'Min cut', position: {direction: 'bottom'}},
                 name: 'mincut',
                 value: 0.0,
                 change: (e) => {
                     let minCut = +e.target.value
-                    let imgFormat = self.options.layer.imgFormat;
-                    if (imgFormat !== "fits") {
-                        minCut /= 255.0;
-                    }
-
                     self.options.layer.setCuts(minCut, self.options.layer.getColorCfg().getCuts()[1])
-                }
+                },
+                cssStyle: { width: '7rem' }
             },
             {
                 type: 'number',
                 label: 'max cut:',
-                cssStyle: {
-                    width: '6rem',
-                },
                 tooltip: {content: 'Max cut', position: {direction: 'bottom'}},
                 name: 'maxcut',
                 value: 1.0,
                 change: (e) => {
                     let maxCut = +e.target.value
-
-                    let imgFormat = self.options.layer.imgFormat;
-                    if (imgFormat !== "fits") {
-                        maxCut /= 255.0;
-                    }
-
                     self.options.layer.setCuts(self.options.layer.getColorCfg().getCuts()[0], maxCut)
-                }
+                },
+                cssStyle: { width: '7rem' }
             }]
         }); 
 
         let colorSettingsContent = new Form({
             subInputs: [{
-                    label: 'colormap:',
+                    label: 'cmap:',
                     type: 'select',
                     name: 'cmap',
                     value: 'native',
@@ -300,20 +287,23 @@ import { Form } from "../Widgets/Form.js";
         let reversed = colorCfg.getReversed();
 
         let [minCut, maxCut] = colorCfg.getCuts();
-        if (layer.imgFormat !== "fits") {
-            minCut = Math.round(minCut * 255);
-            maxCut = Math.round(maxCut * 255);
-        }
-        this.pixelSettingsContent.set('mincut', +minCut.toFixed(4))
-        this.pixelSettingsContent.set('maxcut', +maxCut.toFixed(4))
+        if (minCut)
+            this.pixelSettingsContent.set('mincut', +minCut.toFixed(4))
+        if (maxCut)
+            this.pixelSettingsContent.set('maxcut', +maxCut.toFixed(4))
+
         this.pixelSettingsContent.set('stretch', stretch)
         let fmtInput = this.pixelSettingsContent.getInput('fmt')
-
         fmtInput.innerHTML = '';
-        for (const option of layer.formats) {
-            fmtInput.innerHTML += "<option>" + option + "</option>";
+
+        if (layer.getAvailableFormats()) {
+
+            for (const option of layer.getAvailableFormats()) {
+                fmtInput.innerHTML += "<option>" + option + "</option>";
+            }
+            fmtInput.value = layer.imgFormat;
         }
-        fmtInput.value = layer.imgFormat;
+
             
         this.colorSettingsContent.set('cmap', colormap);
         this.colorSettingsContent.set('reverse', reversed);
@@ -327,6 +317,28 @@ import { Form } from "../Widgets/Form.js";
 
     update(options) {
         if (options.layer) {
+            let self = this;
+            if (options.layer.isSpectralCube && options.layer.isSpectralCube()) {
+                let spectraDisplayer = self.aladin.view.spectraDisplayer;
+
+                self.spectraBtn = new WidgetTogglerButton({
+                    content: 'Spectra',
+                    icon: {
+                        size: 'small',
+                        monochrome: true,
+                        url: waveOnIconUrl
+                    },
+                    tooltip: {content: 'Show/hide spectra', position: {direction: 'bottom'}},
+                    toggled: true,
+                    enable: (o) => {
+                        spectraDisplayer.attachHiPS3D(options.layer)
+                    },
+                    widget: spectraDisplayer
+                });
+                
+                self.update({content: Layout.vertical([[self.selector, self.spectraBtn], self.opacitySettingsContent])})
+            }
+
             this._update(options.layer)
         }
 
@@ -334,9 +346,10 @@ import { Form } from "../Widgets/Form.js";
     }
 
     _addListeners() {
-        ALEvent.HIPS_LAYER_CHANGED.listenedBy(this.aladin.aladinDiv, (e) => {
+        ALEvent.LAYER_CHANGED.listenedBy(this.aladin.aladinDiv, (e) => {
             const hips = e.detail.layer;
             let selectedLayer = this.options.layer;
+
             if (selectedLayer && hips.layer === selectedLayer.layer) {
                 this._update(hips)
             }

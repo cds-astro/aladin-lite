@@ -36,7 +36,7 @@ where
         let d = valid_reg.sdf(&v);
 
         // Perform the ray marching advancement
-        v = v + dir * d;
+        v += dir * d;
         is_in = valid_reg.is_in(&v);
 
         i += 1;

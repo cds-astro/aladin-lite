@@ -1,4 +1,4 @@
-use crate::{healpix::coverage::HEALPixCoverage, CameraViewPort, ShaderManager};
+use crate::{healpix::moc::SpaceMoc, CameraViewPort, ShaderManager};
 use al_core::WebGlContext;
 use wasm_bindgen::JsValue;
 
@@ -67,7 +67,7 @@ impl MOCRenderer {
 
     pub fn push_back(
         &mut self,
-        moc: HEALPixCoverage,
+        moc: SpaceMoc,
         cfg: MOCOptions,
         camera: &mut CameraViewPort,
         proj: &ProjectionType,
@@ -80,9 +80,9 @@ impl MOCRenderer {
         //self.layers.push(key);
     }
 
-    pub fn get_hpx_coverage(&self, moc_uuid: &str) -> Option<&HEALPixCoverage> {
+    pub fn get_hpx_coverage(&self, moc_uuid: &str) -> Option<&SpaceMoc> {
         if let Some(idx) = self.cfgs.iter().position(|cfg| cfg.get_uuid() == moc_uuid) {
-            Some(&self.mocs[idx].get_full_moc())
+            Some(self.mocs[idx].get_full_moc())
         } else {
             None
         }
@@ -104,10 +104,7 @@ impl MOCRenderer {
         }
     }
 
-    pub fn set_options(
-        &mut self,
-        options: MOCOptions,
-    ) -> Option<MOCOptions> {
+    pub fn set_options(&mut self, options: MOCOptions) -> Option<MOCOptions> {
         let name = options.get_uuid();
 
         if let Some(idx) = self.cfgs.iter().position(|cfg| cfg.get_uuid() == name) {

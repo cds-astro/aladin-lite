@@ -1,4 +1,4 @@
-use crate::image::format::ImageFormat;
+use crate::texture::format::TextureFormat;
 use web_sys::HtmlCanvasElement;
 use web_sys::WebGlTexture;
 
@@ -19,11 +19,10 @@ pub struct Texture3D {
     texture: Option<WebGlTexture>,
 
     metadata: Option<Rc<RefCell<Texture2DMeta>>>,
-    _depth: i32,
 }
 
 impl Texture3D {
-    pub fn create_empty<F: ImageFormat>(
+    pub fn create_empty<F: TextureFormat>(
         gl: &WebGlContext,
         // The weight of the individual textures
         width: i32,
@@ -54,24 +53,35 @@ impl Texture3D {
         let metadata = Some(Rc::new(RefCell::new(Texture2DMeta {
             width: width as u32,
             height: height as u32,
-            internal_format: F::INTERNAL_FORMAT,
             format: F::FORMAT,
-            type_: F::TYPE,
+            ty: F::TYPE,
+            pixel_type: F::PIXEL_TYPE,
         })));
 
-        Ok(Texture3D {
+        let s = Texture3D {
             texture,
             gl: gl.clone(),
-            _depth: depth,
             metadata,
-        })
+        };
+        let voxel_count = F::NUM_CHANNELS * (width as usize) * (height as usize) * (depth as usize);
+        let zeros = vec![0xff; voxel_count];
+        s.bind().tex_sub_image_3d_with_opt_u8_array(
+            0,
+            0,
+            0,
+            width,
+            height,
+            depth,
+            Some(&zeros[..]),
+        );
+        Ok(s)
     }
 
     pub fn generate_mipmap(&self) {
         self.gl.generate_mipmap(WebGlRenderingCtx::TEXTURE_3D);
     }
 
-    pub fn bind(&self) -> Texture3DBound {
+    pub fn bind(&self) -> Texture3DBound<'_> {
         self.gl
             .bind_texture(WebGlRenderingCtx::TEXTURE_3D, self.texture.as_ref());
 
@@ -113,7 +123,7 @@ pub struct Texture3DBound<'a> {
     tex: &'a Texture3D,
 }
 
-impl<'a> Texture3DBound<'a> {
+impl Texture3DBound<'_> {
     pub fn tex_sub_image_3d_with_html_image_element(
         &self,
         dx: i32,
@@ -135,7 +145,7 @@ impl<'a> Texture3DBound<'a> {
                 image.height() as i32,
                 1,
                 metadata.format,
-                metadata.type_,
+                metadata.ty,
                 image,
             )
             .expect("Sub texture 3d");
@@ -162,7 +172,7 @@ impl<'a> Texture3DBound<'a> {
                 canvas.height() as i32,
                 1,
                 metadata.format,
-                metadata.type_,
+                metadata.ty,
                 canvas,
             )
             .expect("Sub texture 2d");
@@ -189,12 +199,13 @@ impl<'a> Texture3DBound<'a> {
                 image.height() as i32,
                 1,
                 metadata.format,
-                metadata.type_,
+                metadata.ty,
                 image,
             )
             .expect("Sub texture 2d");
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn tex_sub_image_3d_with_opt_array_buffer_view(
         &self,
         dx: i32,
@@ -219,13 +230,14 @@ impl<'a> Texture3DBound<'a> {
                 h,
                 d,
                 metadata.format,
-                metadata.type_,
+                metadata.ty,
                 image,
             )
             .expect("Sub texture 2d");
     }
 
     #[allow(dead_code)]
+    #[allow(clippy::too_many_arguments)]
     pub fn tex_sub_image_3d_with_opt_u8_array(
         &self,
         idx: i32,
@@ -249,7 +261,7 @@ impl<'a> Texture3DBound<'a> {
                 h,
                 d,
                 metadata.format,
-                metadata.type_,
+                metadata.ty,
                 pixels,
             )
             .expect("Sub texture 2d");

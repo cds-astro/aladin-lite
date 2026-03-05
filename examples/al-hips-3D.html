@@ -1,0 +1,62 @@
+<!doctype html>
+<html>
+    <head>
+    </head>
+<body>
+
+
+<div id="aladin-lite-div" style="width: 768px; height: 512px"></div>
+<script>let aladin; let hips;</script>
+<script type="module">
+    import A from '../src/js/A.js';
+    A.init.then(() => {
+        aladin = A.aladin(
+            '#aladin-lite-div',
+            {
+                showSimbadPointerControl: true,
+                projection: 'AIT', // set a projection
+                fov: 8.0, // initial field of view in degrees
+                target: '10.6875598 +41.1402170', // initial target
+                cooFrame: 'icrs', // set galactic frame
+                reticleColor: '#ff89ff', // change reticle color
+                showContextMenu: true,
+                showFrame: true,
+                showZoomControl:true,
+                showSettingsControl:true,
+                fullScreen: true,
+                samp: true,
+            }
+        );
+
+        hips = aladin.newImageSurvey("https://alasky.cds.unistra.fr/HIPS3D/LGLBSHI-test-compression/", {
+            successCallback: (hips) => {
+                //hips.setFrequency({value: 6.374279333565797E-7, unit: "m"}) // GALFA
+            }
+        });
+        // compressed https://alasky.cds.unistra.fr/test-compression-cubes/DHIGLS/
+        //hips = aladin.newImageSurvey("http://alasky.cds.unistra.fr/DHIGLS");
+        //hips = aladin.newImageSurvey("https://alasky.cds.unistra.fr/MUSE3D");
+        // http://alasky.cds.unistra.fr/LGLBSHI
+        aladin.setImageLayer(hips)
+
+        //hips.setFrequency({value: emMin + delta * i, unit: "m"})
+        //hips.setFrequency({value: 6.374279333565797E-7, unit: "m"}) // MUSE
+        //hips.setFrequency({value: 0.21101690259115785, unit: "m"}) // DGHILG
+
+        /*let id;
+        aladin.on("zoomChanged", () => {
+            if (id)
+                clearTimeout(id);
+            id = setTimeout(() => {
+                console.log("wheel stopped, new cone search here")
+            }, 500);
+        })*/
+    });
+</script>
+<style>
+    .aladin-cat-browser-box {
+        width: 600px;
+    }
+</style>
+</body>
+</html>

@@ -1,7 +1,6 @@
 use wasm_bindgen::prelude::wasm_bindgen;
 
 use super::color::{Color, ColorRGBA};
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct MOCOptions {
@@ -19,6 +18,7 @@ use crate::{color::ColorRGB, Abort};
 use std::convert::TryInto;
 #[wasm_bindgen]
 impl MOCOptions {
+    #[allow(clippy::too_many_arguments)]
     #[wasm_bindgen(constructor)]
     pub fn new(
         uuid: String,

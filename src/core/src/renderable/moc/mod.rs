@@ -3,7 +3,7 @@ pub mod renderer;
 pub use renderer::MOCRenderer;
 
 use crate::camera::CameraViewPort;
-use crate::healpix::coverage::HEALPixCoverage;
+use crate::healpix::moc::SpaceMoc;
 use crate::math::projection::ProjectionType;
 use crate::renderable::WebGl2RenderingContext;
 use crate::shader::ShaderManager;
@@ -32,11 +32,11 @@ pub struct MOC {
 
     inner: [Option<MOCIntern>; 3],
 
-    pub moc: HEALPixCoverage,
+    pub moc: SpaceMoc,
 }
 
 impl MOC {
-    pub(super) fn new(gl: WebGlContext, moc: HEALPixCoverage, cfg: &MOCOptions) -> Self {
+    pub(super) fn new(gl: WebGlContext, moc: SpaceMoc, cfg: &MOCOptions) -> Self {
         let sky_fraction = moc.sky_fraction() as f32;
         let max_order = moc.depth_max();
 
@@ -223,16 +223,12 @@ impl MOCIntern {
             }
         };
 
-        Self {
-            vao,
-            gl,
-            mode,
-        }
+        Self { vao, gl, mode }
     }
 
     fn vertices_in_view<'a>(
         &self,
-        moc: &'a HEALPixCoverage,
+        moc: &'a SpaceMoc,
         camera: &'a mut CameraViewPort,
     ) -> impl Iterator<Item = [(f64, f64); 4]> + 'a {
         let view_moc = camera.get_cov(CooSystem::ICRS);
@@ -254,7 +250,7 @@ impl MOCIntern {
 
     fn draw(
         &mut self,
-        moc: &HEALPixCoverage,
+        moc: &SpaceMoc,
         camera: &mut CameraViewPort,
         proj: &ProjectionType,
         shaders: &mut ShaderManager,
@@ -263,7 +259,7 @@ impl MOCIntern {
         match self.mode {
             RenderModeType::Perimeter { thickness, color } => {
                 let moc_in_view = moc
-                    .overlapped_by_iter(&camera.get_cov(CooSystem::ICRS))
+                    .overlapped_by_iter(camera.get_cov(CooSystem::ICRS))
                     .into_range_moc();
                 let perimeter_vertices_iter = moc_in_view
                     .border_elementary_edges()
@@ -394,7 +390,7 @@ impl MOCIntern {
                 let mut indices: Vec<u32> = vec![];
                 let vertices = self
                     .vertices_in_view(moc, camera)
-                    .map(|v| {
+                    .flat_map(|v| {
                         let vertices = [
                             v[0].0 as f32,
                             v[0].1 as f32,
@@ -407,10 +403,10 @@ impl MOCIntern {
                         ];
 
                         indices.extend_from_slice(&[
-                            off_idx + 0,
+                            off_idx,
                             off_idx + 2,
                             off_idx + 1,
-                            off_idx + 0,
+                            off_idx,
                             off_idx + 3,
                             off_idx + 2,
                         ]);
@@ -419,7 +415,6 @@ impl MOCIntern {
 
                         vertices
                     })
-                    .flatten()
                     .collect();
 
                 let num_idx = indices.len() as i32;
@@ -436,7 +431,7 @@ impl MOCIntern {
                 let icrs2view = CooSystem::ICRS.to(camera.get_coo_system());
                 let view2world = camera.get_m2w();
                 let icrs2world = view2world * icrs2view;
-                
+
                 self.gl.enable(WebGl2RenderingContext::CULL_FACE);
 
                 crate::shader::get_shader(&self.gl, shaders, "moc_base.vert", "moc_base.frag")?
@@ -462,32 +457,28 @@ impl MOCIntern {
 
     fn compute_edge_paths_iter<'a>(
         &self,
-        moc: &'a HEALPixCoverage,
+        moc: &'a SpaceMoc,
         camera: &'a mut CameraViewPort,
     ) -> impl Iterator<Item = f32> + 'a {
-        self.vertices_in_view(moc, camera)
-            .map(|v| {
-                let vertices = [
-                    v[0].0 as f32,
-                    v[0].1 as f32,
-                    v[1].0 as f32,
-                    v[1].1 as f32,
-                    v[1].0 as f32,
-                    v[1].1 as f32,
-                    v[2].0 as f32,
-                    v[2].1 as f32,
-                    v[2].0 as f32,
-                    v[2].1 as f32,
-                    v[3].0 as f32,
-                    v[3].1 as f32,
-                    v[3].0 as f32,
-                    v[3].1 as f32,
-                    v[0].0 as f32,
-                    v[0].1 as f32,
-                ];
-
-                vertices
-            })
-            .flatten()
+        self.vertices_in_view(moc, camera).flat_map(|v| {
+            [
+                v[0].0 as f32,
+                v[0].1 as f32,
+                v[1].0 as f32,
+                v[1].1 as f32,
+                v[1].0 as f32,
+                v[1].1 as f32,
+                v[2].0 as f32,
+                v[2].1 as f32,
+                v[2].0 as f32,
+                v[2].1 as f32,
+                v[3].0 as f32,
+                v[3].1 as f32,
+                v[3].0 as f32,
+                v[3].1 as f32,
+                v[0].0 as f32,
+                v[0].1 as f32,
+            ]
+        })
     }
 }

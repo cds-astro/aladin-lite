@@ -1,6 +1,6 @@
 pub mod viewport;
 use crate::math::lonlat::LonLat;
-use crate::math::projection::coo_space::XYZWModel;
+use crate::math::projection::coo_space::XYZModel;
 pub use viewport::CameraViewPort;
 
 pub mod fov;
@@ -8,17 +8,17 @@ pub use fov::FieldOfView;
 pub mod view_hpx_cells;
 
 use crate::CooSystem;
-use crate::HEALPixCoverage;
 use crate::ProjectionType;
+use crate::SpaceMoc;
 
 pub fn build_fov_coverage(
     depth: u8,
     fov: &FieldOfView,
-    camera_center: &XYZWModel<f64>,
+    camera_center: &XYZModel<f64>,
     camera_frame: CooSystem,
     frame: CooSystem,
     proj: &ProjectionType,
-) -> HEALPixCoverage {
+) -> SpaceMoc {
     if let Some(vertices) = fov.get_vertices() {
         // The vertices coming from the camera are in a specific coo sys
         // but cdshealpix accepts them to be given in ICRS coo sys
@@ -40,25 +40,24 @@ pub fn build_fov_coverage(
             // See https://github.com/cds-astro/cds-moc-rust/issues/3
 
             let hpx_idxs_iter = vertices_iter.map(|v| {
-                let (lon, lat) = crate::math::lonlat::xyzw_to_radec(&v);
+                let (lon, lat) = crate::math::lonlat::xyz_to_radec(&v);
                 ::healpix::nested::hash(depth, lon.to_radians(), lat.to_radians())
             });
 
-            HEALPixCoverage::from_fixed_hpx_cells(depth, hpx_idxs_iter, Some(vertices.len()))
+            SpaceMoc::from_fixed_hpx_cells(depth, hpx_idxs_iter, Some(vertices.len()))
         } else {
             // The polygon is not too small for the depth asked
             let inside_vertex = crate::coosys::apply_coo_system(camera_frame, frame, camera_center);
 
             // Prefer to query from_polygon with depth >= 2
-            let moc = HEALPixCoverage::from_3d_coos(depth, vertices_iter, &inside_vertex);
 
-            moc
+            SpaceMoc::from_3d_coos(depth, vertices_iter, &inside_vertex)
         }
     } else {
-        let center_xyzw = crate::coosys::apply_coo_system(camera_frame, frame, camera_center);
+        let center_xyz = crate::coosys::apply_coo_system(camera_frame, frame, camera_center);
 
         let biggest_fov_rad = proj.aperture_start().to_radians();
-        let lonlat = center_xyzw.lonlat();
-        HEALPixCoverage::from_cone(&lonlat, biggest_fov_rad * 0.5, depth)
+        let lonlat = center_xyz.lonlat();
+        SpaceMoc::from_cone(&lonlat, biggest_fov_rad * 0.5, depth)
     }
 }

@@ -3,9 +3,9 @@
 <head>
 </head>
 <body>
-<div id="al1" style="width: 500px; height: 500px">
+<div id="al1" style="width: 200px; height: 200px">
 </div>
-<div id="al2" style="width: 500px; height: 500px">
+<div id="al2" style="width: 200px; height: 200px">
 </div>
   
 <script type="module">
@@ -15,7 +15,7 @@
   A.init.then(() => {
       // Start up Aladin Lite
       al1 = A.aladin('#al1', {target: 'M51', fov: 0.3, survey: 'P/DSS2/color', fullScreen: false, showContextMenu: true, showShareControl: true});
-      al2 = A.aladin('#al2', {target: 'M51', fov: 180, survey: 'P/PanSTARRS/DR1/z', fullScreen: false, showContextMenu: true, showShareControl: true});
+      al2 = A.aladin('#al2', {target: 'M51', fov: 180, survey: 'P/PanSTARRS/DR1/z', showColorPickerControl: true, fullScreen: false, showContextMenu: true, showShareControl: true});
   });
 </script>
 

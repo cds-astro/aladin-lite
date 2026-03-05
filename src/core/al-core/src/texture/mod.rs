@@ -1,6 +1,7 @@
 pub mod array;
 pub use array::Texture2DArray;
 
+pub mod format;
 pub mod pixel;
 pub use pixel::*;
 
@@ -11,6 +12,7 @@ pub use mod_3d::Texture3D;
 use web_sys::HtmlCanvasElement;
 use web_sys::WebGlTexture;
 
+use crate::texture::format::PixelType;
 use crate::webgl_ctx::WebGlContext;
 use crate::webgl_ctx::WebGlRenderingCtx;
 use wasm_bindgen::prelude::*;
@@ -23,8 +25,8 @@ pub static mut CUR_IDX_TEX_UNIT: u8 = 0;
 #[allow(dead_code)]
 pub struct Texture2DMeta {
     pub format: u32,
-    pub internal_format: i32,
-    pub type_: u32,
+    pub ty: u32,
+    pub pixel_type: PixelType,
 
     pub width: u32,
     pub height: u32,
@@ -45,13 +47,13 @@ pub enum SamplerType {
     Unsigned,
 }
 
-use crate::image::format::ImageFormat;
-//use super::pixel::PixelType;
+use crate::texture::format::TextureFormat;
+
 use std::cell::RefCell;
 use std::path::Path;
 use std::rc::Rc;
 impl Texture2D {
-    pub fn create_from_path<P: AsRef<Path>, F: ImageFormat>(
+    pub fn create_from_path<P: AsRef<Path>, F: TextureFormat>(
         gl: &WebGlContext,
         name: &'static str,
         src: &P,
@@ -59,12 +61,11 @@ impl Texture2D {
     ) -> Result<Texture2D, JsValue> {
         let image = HtmlImageElement::new().unwrap_abort();
 
-        #[cfg(feature = "webgl2")]
         let texture = gl.create_texture();
 
         let onerror = {
             Closure::wrap(Box::new(move || {
-                println!("Cannot load texture located at: {:?}", name);
+                println!("Cannot load texture located at: {name:?}");
             }) as Box<dyn Fn()>)
         };
 
@@ -72,14 +73,13 @@ impl Texture2D {
         let height = image.height();
 
         let metadata = Rc::new(RefCell::new(Texture2DMeta {
-            width: width,
-            height: height,
-            internal_format: F::INTERNAL_FORMAT,
+            width,
+            height,
             format: F::FORMAT,
-            type_: F::TYPE,
+            ty: F::TYPE,
+            pixel_type: F::PIXEL_TYPE,
         }));
 
-        #[cfg(feature = "webgl2")]
         let onload = {
             let image = image.clone();
             let gl = gl.clone();
@@ -129,7 +129,6 @@ impl Texture2D {
 
         let gl = gl.clone();
         Ok(Texture2D {
-            #[cfg(feature = "webgl2")]
             texture,
 
             gl,
@@ -138,7 +137,7 @@ impl Texture2D {
         })
     }
 
-    pub fn create_from_raw_pixels<F: ImageFormat>(
+    pub fn create_from_raw_pixels<F: TextureFormat>(
         gl: &WebGlContext,
         width: i32,
         height: i32,
@@ -163,12 +162,12 @@ impl Texture2D {
         Ok(texture)
     }
 
-    pub fn create_from_raw_bytes<F: ImageFormat>(
+    pub fn create_from_raw_bytes<F: TextureFormat>(
         gl: &WebGlContext,
         width: i32,
         height: i32,
         tex_params: &'static [(u32, u32)],
-        bytes: Option<&[u8]>,
+        bytes: &[u8],
     ) -> Result<Texture2D, JsValue> {
         let texture = gl.create_texture();
 
@@ -185,7 +184,14 @@ impl Texture2D {
             width,
             height,
         );
-        gl.tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_u8_array(
+        let view = unsafe {
+            let len = bytes.len() / (std::mem::size_of::<<F::P as Pixel>::Item>());
+            let pixels =
+                std::slice::from_raw_parts(bytes.as_ptr() as *const <F::P as Pixel>::Item, len);
+            F::view(pixels)
+        };
+
+        gl.tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_array_buffer_view(
             WebGlRenderingCtx::TEXTURE_2D,
             0,
             0,
@@ -194,7 +200,7 @@ impl Texture2D {
             height,
             F::FORMAT,
             F::TYPE,
-            bytes,
+            Some(view.as_ref()),
         )
         .expect("Texture 2D");
 
@@ -202,9 +208,9 @@ impl Texture2D {
         let metadata = Some(Rc::new(RefCell::new(Texture2DMeta {
             width: width as u32,
             height: height as u32,
-            internal_format: F::INTERNAL_FORMAT,
             format: F::FORMAT,
-            type_: F::TYPE,
+            ty: F::TYPE,
+            pixel_type: F::PIXEL_TYPE,
         })));
 
         Ok(Texture2D {
@@ -216,7 +222,7 @@ impl Texture2D {
         })
     }
 
-    pub fn create_empty_with_format<F: ImageFormat>(
+    pub fn create_empty_with_format<F: TextureFormat>(
         gl: &WebGlContext,
         width: i32,
         height: i32,
@@ -242,15 +248,14 @@ impl Texture2D {
         let metadata = Some(Rc::new(RefCell::new(Texture2DMeta {
             width: width as u32,
             height: height as u32,
-            internal_format: F::INTERNAL_FORMAT,
             format: F::FORMAT,
-            type_: F::TYPE,
+            ty: F::TYPE,
+            pixel_type: F::PIXEL_TYPE,
         })));
+
         Ok(Texture2D {
             texture,
-
             gl,
-
             metadata,
         })
     }
@@ -290,7 +295,7 @@ impl Texture2D {
         self
     }
 
-    pub fn bind(&self) -> Texture2DBound {
+    pub fn bind(&self) -> Texture2DBound<'_> {
         self.gl
             .bind_texture(WebGlRenderingCtx::TEXTURE_2D, self.texture.as_ref());
 
@@ -306,7 +311,7 @@ impl Texture2D {
         // Attach the texture as the first color attachment
         //self.attach_to_framebuffer();
         self.gl.framebuffer_texture_2d(
-            WebGlRenderingCtx::READ_FRAMEBUFFER,
+            WebGlRenderingCtx::FRAMEBUFFER,
             WebGlRenderingCtx::COLOR_ATTACHMENT0,
             WebGlRenderingCtx::TEXTURE_2D,
             self.texture.as_ref(),
@@ -330,35 +335,31 @@ impl Texture2D {
             self.gl
                 .viewport(0, 0, metadata.width as i32, metadata.height as i32);
 
-            #[cfg(feature = "webgl2")]
-            let value = match (metadata.format, metadata.type_) {
-                (WebGlRenderingCtx::RED_INTEGER, WebGlRenderingCtx::UNSIGNED_BYTE) => {
+            let value = match metadata.pixel_type {
+                PixelType::R8U => {
                     let p = <[u8; 1]>::read_pixel(&self.gl, x, y)?;
                     Ok(serde_wasm_bindgen::to_value(&p[0])?)
                 }
-                (WebGlRenderingCtx::RED_INTEGER, WebGlRenderingCtx::SHORT) => {
+                PixelType::R16I => {
                     let p = <[i16; 1]>::read_pixel(&self.gl, x, y)?;
                     Ok(serde_wasm_bindgen::to_value(&p[0])?)
                 }
-                (WebGlRenderingCtx::RED_INTEGER, WebGlRenderingCtx::INT) => {
+                PixelType::R32I => {
                     let p = <[i32; 1]>::read_pixel(&self.gl, x, y)?;
                     Ok(serde_wasm_bindgen::to_value(&p[0])?)
                 }
-                (WebGlRenderingCtx::RED, WebGlRenderingCtx::FLOAT) => {
+                PixelType::R32F => {
                     let p = <[f32; 1]>::read_pixel(&self.gl, x, y)?;
                     Ok(serde_wasm_bindgen::to_value(&p[0])?)
                 }
-                (WebGlRenderingCtx::RGB, WebGlRenderingCtx::UNSIGNED_BYTE) => {
+                PixelType::RGB8U => {
                     let p = <[u8; 3]>::read_pixel(&self.gl, x, y)?;
                     Ok(serde_wasm_bindgen::to_value(&p)?)
                 }
-                (WebGlRenderingCtx::RGBA, WebGlRenderingCtx::UNSIGNED_BYTE) => {
+                PixelType::RGBA8U => {
                     let p = <[u8; 4]>::read_pixel(&self.gl, x, y)?;
                     Ok(serde_wasm_bindgen::to_value(&p)?)
                 }
-                _ => Err(JsValue::from_str(
-                    "Pixel retrieval not implemented for that texture format.",
-                )),
             };
 
             // Unbind the framebuffer
@@ -399,7 +400,7 @@ pub struct Texture2DBound<'a> {
     texture_2d: &'a Texture2D,
 }
 
-impl<'a> Texture2DBound<'a> {
+impl Texture2DBound<'_> {
     pub fn tex_sub_image_2d_with_u32_and_u32_and_html_image_element(
         &self,
         dx: i32,
@@ -417,24 +418,10 @@ impl<'a> Texture2DBound<'a> {
                 dx,
                 dy,
                 metadata.format,
-                metadata.type_,
+                metadata.ty,
                 image,
             )
             .expect("Sub texture 2d");
-        #[cfg(feature = "webgl1")]
-        self.texture_2d
-            .gl
-            .tex_sub_image_2d_with_u32_and_u32_and_image(
-                WebGlRenderingCtx::TEXTURE_2D,
-                0,
-                dx,
-                dy,
-                metadata.format,
-                metadata.type_,
-                image,
-            )
-            .expect("Sub texture 2d");
-        //self.texture_2d.gl.flush();
     }
 
     pub fn tex_sub_image_2d_with_u32_and_u32_and_html_canvas_element(
@@ -454,24 +441,10 @@ impl<'a> Texture2DBound<'a> {
                 dx,
                 dy,
                 metadata.format,
-                metadata.type_,
+                metadata.ty,
                 canvas,
             )
             .expect("Sub texture 2d");
-        #[cfg(feature = "webgl1")]
-        self.texture_2d
-            .gl
-            .tex_sub_image_2d_with_u32_and_u32_and_canvas(
-                WebGlRenderingCtx::TEXTURE_2D,
-                0,
-                dx,
-                dy,
-                metadata.format,
-                metadata.type_,
-                canvas,
-            )
-            .expect("Sub texture 2d");
-        //self.texture_2d.gl.flush();
     }
 
     pub fn tex_sub_image_2d_with_u32_and_u32_and_image_bitmap(
@@ -491,7 +464,7 @@ impl<'a> Texture2DBound<'a> {
                 dx,
                 dy,
                 metadata.format,
-                metadata.type_,
+                metadata.ty,
                 image,
             )
             .expect("Sub texture 2d");
@@ -504,7 +477,7 @@ impl<'a> Texture2DBound<'a> {
                 dx,
                 dy,
                 metadata.format,
-                metadata.type_,
+                metadata.ty,
                 image,
             )
             .expect("Sub texture 2d");
@@ -530,7 +503,7 @@ impl<'a> Texture2DBound<'a> {
                 width,
                 height,
                 metadata.format,
-                metadata.type_,
+                metadata.ty,
                 image,
             )
             .expect("Sub texture 2d");
@@ -556,7 +529,7 @@ impl<'a> Texture2DBound<'a> {
                 width,
                 height,
                 metadata.format,
-                metadata.type_,
+                metadata.ty,
                 pixels,
             )
             .expect("Sub texture 2d");
@@ -588,6 +561,7 @@ pub trait Tex3D {
         image: &web_sys::ImageBitmap,
     );
 
+    #[allow(clippy::too_many_arguments)]
     fn tex_sub_image_3d_with_opt_array_buffer_view(
         &self,
         dx: i32,
@@ -599,6 +573,7 @@ pub trait Tex3D {
         view: Option<&js_sys::Object>,
     );
 
+    #[allow(clippy::too_many_arguments)]
     fn tex_sub_image_3d_with_opt_u8_array(
         &self,
         dx: i32,

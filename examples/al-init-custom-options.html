@@ -3,8 +3,6 @@
     <head>
     </head>
 <body>
-
-
 <div id="aladin-lite-div" style="width: 768px; height: 512px"></div>
 <script>let aladin;</script>
 <script type="module">
@@ -14,7 +12,7 @@
             '#aladin-lite-div',
             {
                 showSimbadPointerControl: true,
-                survey: 'P/allWISE/color', // set initial image survey
+                survey: 'https://skies.esac.esa.int/AKARI/color/', // set initial image survey
                 projection: 'AIT', // set a projection
                 fov: 360, // initial field of view in degrees
                 target: 'orion', // initial target
@@ -23,23 +21,18 @@
                 reticleSize: 64, // change reticle size
                 showContextMenu: true,
                 showShareControl: true,
+                showCooGridControl: true,
+                showColorPickerControl: true,
                 showFrame: true,
                 showZoomControl:true,
                 showSettingsControl:true,
                 showCooGrid: true,
                 fullScreen: true,
                 samp: true,
+                realFullscreen: true,
+                lockNorthUp: true,
             }
         );
-
-        /*let id;
-        aladin.on("zoomChanged", () => {
-            if (id)
-                clearTimeout(id);
-            id = setTimeout(() => {
-                console.log("wheel stopped, new cone search here")
-            }, 500);
-        })*/
     });
 </script>
 </body>

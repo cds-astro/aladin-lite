@@ -1,4 +1,4 @@
-#[derive(PartialEq, PartialOrd, Clone, Copy, Debug)]
+#[derive(PartialEq, PartialOrd, Clone, Copy, Default, Debug)]
 pub struct Time(pub f32);
 
 use crate::utils;
@@ -12,7 +12,7 @@ impl Time {
         let r = f()?;
         let duration = Time::now() - start_time;
         // print the duration in the console
-        al_core::log(&format!("{:?} time: {:?}", label, duration));
+        al_core::log(&format!("{label:?} time: {duration:?}"));
 
         Ok(r)
     }

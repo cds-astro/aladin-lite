@@ -1,19 +1,18 @@
 // A request image should not be used outside this module
 // but contained inside a more specific type of query (e.g. for a tile or allsky)
 pub mod allsky;
-pub mod blank;
 pub mod moc;
 pub mod tile;
 
-/* ------------------------------------- */
+use wasm_bindgen_futures::JsFuture;
 
 use crate::time::Time;
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 pub type Url = String;
 pub struct Request<R> {
-    data: Rc<RefCell<Option<R>>>,
-    time_request: Time,
+    pub data: Rc<RefCell<Option<R>>>,
+    pub time_request: Time,
     // Flag telling if the tile has been copied so that
     // the HtmlImageElement can be reused to download another tile
     //ready: bool,
@@ -76,17 +75,19 @@ where
     pub fn resolve_status(&self) -> ResolvedStatus {
         self.resolved.get()
     }
+
+    pub fn get_data(&self) -> Rc<RefCell<Option<R>>> {
+        self.data.clone()
+    }
 }
 
 use allsky::AllskyRequest;
-use blank::PixelMetadataRequest;
 use moc::MOCRequest;
 use tile::TileRequest;
 pub enum RequestType {
     Tile(TileRequest),
     Allsky(AllskyRequest),
-    PixelMetadata(PixelMetadataRequest),
-    Moc(MOCRequest), //..
+    Moc(MOCRequest),
 }
 
 use crate::downloader::QueryId;
@@ -95,44 +96,95 @@ impl RequestType {
         match self {
             RequestType::Tile(request) => &request.id,
             RequestType::Allsky(request) => &request.id,
-            RequestType::PixelMetadata(request) => &request.id,
             RequestType::Moc(request) => &request.hips_cdid,
         }
     }
-}
 
-impl<'a> From<&'a RequestType> for Option<Resource> {
-    fn from(request: &'a RequestType) -> Self {
-        match request {
-            RequestType::Tile(request) => Option::<Tile>::from(request).map(Resource::Tile),
-            RequestType::Allsky(request) => Option::<Allsky>::from(request).map(Resource::Allsky),
-            RequestType::PixelMetadata(request) => {
-                Option::<PixelMetadata>::from(request).map(Resource::PixelMetadata)
-            }
-            RequestType::Moc(request) => Option::<Moc>::from(request).map(Resource::Moc),
+    pub fn is_resolved(&self) -> bool {
+        match self {
+            RequestType::Tile(request) => request.request.is_resolved(),
+            RequestType::Allsky(request) => request.request.is_resolved(),
+            RequestType::Moc(request) => request.request.is_resolved(),
         }
     }
-}
-
-use allsky::Allsky;
-use blank::PixelMetadata;
-use moc::Moc;
-use tile::Tile;
-pub enum Resource {
-    Tile(Tile),
-    Allsky(Allsky),
-    PixelMetadata(PixelMetadata),
-    Moc(Moc),
 }
 
 /*
-impl Resource {
-    pub fn id(&self) -> &String {
-        match self {
-            Resource::Tile(tile) => &format!("{:?}:{:?}", tile.cell.depth(), tile.cell.idx()),
-            Resource::Allsky(allsky) => allsky.get_hips_cdid(),
-            Resource::PixelMetadata(PixelMetadata { hips_cdid, .. }) => hips_cdid,
-            Resource::Moc(moc) => moc.get_hips_cdid(),
+impl From<RequestType> for Option<Resource> {
+    fn from(request: RequestType) -> Self {
+        match request {
+            RequestType::Tile(request) => Option::<Tile>::from(request).map(Resource::Tile),
+            RequestType::Allsky(request) => Option::<Allsky>::from(request).map(Resource::Allsky),
+            RequestType::Moc(request) => Option::<FetchedMoc>::from(request).map(Resource::Moc),
         }
     }
 }*/
+
+use crate::Abort;
+use web_sys::RequestCredentials;
+
+async fn query_html_image(
+    url: &str,
+    credentials: RequestCredentials,
+) -> Result<web_sys::HtmlImageElement, JsValue> {
+    let image = web_sys::HtmlImageElement::new().unwrap_abort();
+    let image_cloned = image.clone();
+
+    // Set the CORS and credentials options for the image
+    let cors_value = match credentials {
+        RequestCredentials::Include => Some("use-credentials"),
+        RequestCredentials::Omit => Some("anonymous"),
+        RequestCredentials::SameOrigin => Some(""),
+        _ => None,
+    };
+
+    let promise = js_sys::Promise::new(
+        &mut (Box::new(move |resolve, reject| {
+            // Ask for CORS permissions
+            image_cloned.set_cross_origin(cors_value);
+            image_cloned.set_onload(Some(&resolve));
+            image_cloned.set_onerror(Some(&reject));
+            image_cloned.set_src(url);
+        }) as Box<dyn FnMut(js_sys::Function, js_sys::Function)>),
+    );
+
+    let _ = JsFuture::from(promise).await?;
+
+    Ok(image)
+}
+
+use wasm_bindgen::JsCast;
+use web_sys::RequestInit;
+use web_sys::RequestMode;
+use web_sys::Response;
+async fn query_bitmap_from_blob(
+    url: &str,
+    mode: RequestMode,
+    credentials: RequestCredentials,
+) -> Result<web_sys::ImageBitmap, JsValue> {
+    let window = web_sys::window().unwrap_abort();
+
+    let mut opts = RequestInit::new();
+    opts.method("GET");
+    opts.mode(mode);
+    opts.credentials(credentials);
+
+    let request = web_sys::Request::new_with_str_and_init(url, &opts).unwrap_abort();
+    let resp_value = JsFuture::from(window.fetch_with_request(&request)).await?;
+    // `resp_value` is a `Response` object.
+    debug_assert!(resp_value.is_instance_of::<Response>());
+    let resp: Response = resp_value.dyn_into()?;
+
+    if resp.ok() {
+        let blob = JsFuture::from(resp.blob()?)
+            .await?
+            .dyn_into::<web_sys::Blob>()?;
+        let image_bitmap = JsFuture::from(window.create_image_bitmap_with_blob(&blob)?).await?;
+
+        Ok(image_bitmap.into())
+    } else {
+        Err(JsValue::from_str(
+            "Response status code not between 200-299.",
+        ))
+    }
+}

@@ -14,7 +14,7 @@
         aladin = A.aladin('#aladin-lite-div', {showSettingsControl: true, survey: "P/PanSTARRS/DR1/color-z-zg-g", showReticle: false, projection: "AIT", cooFrame: 'icrs', target: "stephan's quintet", fov: startFov, showGotoControl: false, showFrame: false, fullScreen: true, showLayersControl: true, showCooGridControl: false});
 
         const chft = aladin.createImageSurvey('CFHT', "CFHT deep view of NGC7331 and Stephan's quintet u+g+r", "https://cds.unistra.fr/~derriere/PR_HiPS/2022_Duc/", null, null, {imgFormat: 'png'});
-        const nircamJWST = aladin.createImageSurvey('Nircam', "Stephans Quintet NIRCam+MIRI", "http://alasky.cds.unistra.fr/JWST/CDS_P_JWST_Stephans-Quintet_NIRCam+MIRI/", null, null, {imgFormat: 'png', colormap: "viridis"});
+        const nircamJWST = aladin.createImageSurvey('Nircam', "Stephans Quintet NIRCam+MIRI", "https://alasky.cds.unistra.fr/JWST/CDS_P_JWST_Stephans-Quintet_NIRCam-MIRI/", null, null, {imgFormat: 'png', colormap: "viridis"});
         
         aladin.setOverlayImageLayer("CFHT", "CFHT");
         aladin.setOverlayImageLayer("Nircam", "Nircam");
@@ -30,7 +30,7 @@
                 fov *= 0.997;
                 rotation += 0.07;
 
-                aladin.setViewCenter2NorthPoleAngle(rotation)
+                aladin.setRotation(rotation)
                 aladin.setFoV(fov);
 
                 if (fov < 3 && fov > 0.5) {

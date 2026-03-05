@@ -1,20 +1,23 @@
+// SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright 2013 - UDS/CNRS
 // The Aladin Lite program is distributed under the terms
-// of the GNU General Public License version 3.
+// of the GNU Lesser General Public License version 3
+// or (at your option) any later version.
 //
 // This file is part of Aladin Lite.
 //
 //    Aladin Lite is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, version 3 of the License.
+//    it under the terms of the GNU Lesser General Public License as published by
+//    the Free Software Foundation, either version 3 of the License, or
+//    (at your option) any later version.
 //
 //    Aladin Lite is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+//    GNU Lesser General Public License for more details.
 //
-//    The GNU General Public License is available in COPYING file
-//    along with Aladin Lite.
+//    You should have received a copy of the GNU Lesser General Public License
+//    along with Aladin Lite. If not, see <https://www.gnu.org/licenses/>.
 //
 
 /******************************************************************************
@@ -42,7 +45,7 @@ import { Coo } from "./libs/astro/coo.js";
 import { CooConversion } from "./CooConversion.js";
 import { HiPSCache } from "./HiPSCache.js";
 import { HiPSList } from "./DefaultHiPSList.js";
-
+import { Toolbar } from "./gui/Toolbar.js";
 import { ProjectionEnum } from "./ProjectionEnum.js";
 
 import { ALEvent } from "./events/ALEvent.js";
@@ -64,11 +67,11 @@ import A from "./A.js";
 import { StatusBarBox } from "./gui/Box/StatusBarBox.js";
 import { FullScreenActionButton } from "./gui/Button/FullScreen.js";
 import { ProjectionActionButton } from "./gui/Button/Projection.js";
-
+import { Stack } from "./gui/Button/Stack.js";
 // features
 import { SettingsButton } from "./gui/Button/Settings";
 import { SimbadPointer } from "./gui/Button/SimbadPointer";
-import { OverlayStackButton } from "./gui/Button/OverlayStack";
+import { ColorPicker } from "./gui/Button/ColorPicker";
 import { GridEnabler } from "./gui/Button/GridEnabler";
 import { CooFrame } from "./gui/Input/CooFrame";
 import { Circle } from "./shapes/Circle";
@@ -94,63 +97,72 @@ import { Polyline } from "./shapes/Polyline";
  * @property {string} [backgroundColor="rgb(60, 60, 60)"] - Background color in RGB format.
  *
  * @property {boolean} [showZoomControl=true] - Whether to show the zoom control toolbar.
- * This element belongs to the FoV UI thus its CSS class is `aladin-fov` 
+ * This element belongs to the FoV UI thus its CSS class is `aladin-fov`
  * @property {boolean} [showLayersControl=true] - Whether to show the layers control toolbar.
- * CSS class for that button is `aladin-stack-control` 
+ * CSS class for that button is `aladin-stack-control`
  * @property {boolean} [expandLayersControl=false] - Whether to show the stack box opened at starting
  * CSS class for the stack box is `aladin-stack-box`
  * @property {boolean} [showFullscreenControl=true] - Whether to show the fullscreen control toolbar.
- * CSS class for that button is `aladin-fullScreen-control` 
+ * CSS class for that button is `aladin-fullScreen-control`
  * @property {boolean} [showSimbadPointerControl=false] - Whether to show the Simbad pointer control toolbar.
- * CSS class for that button is `aladin-simbadPointer-control` 
+ * CSS class for that button is `aladin-simbadPointer-control`
  * @property {boolean} [showCooGridControl=false] - Whether to show the coordinate grid control toolbar.
- * CSS class for that button is `aladin-grid-control` 
+ * CSS class for that button is `aladin-grid-control`
  * @property {boolean} [showSettingsControl=false] - Whether to show the settings control toolbar.
- * CSS class for that button is `aladin-settings-control` 
+ * CSS class for that button is `aladin-settings-control`
+ * @property {boolean} [showColorPickerControl=false] - Whether to show the color picker tool.
+ * CSS class for that button is `aladin-colorPicker-control`
  * @property {boolean} [showShareControl=false] - Whether to show the share control toolbar.
- * CSS class for that button is `aladin-share-control` 
+ * CSS class for that button is `aladin-share-control`
  * @property {boolean} [showStatusBar=true] - Whether to show the status bar. Enabled by default.
- * CSS class for that button is `aladin-status-bar` 
+ * CSS class for that button is `aladin-status-bar`
  * @property {boolean} [showFrame=true] - Whether to show the viewport frame.
- * CSS class for that button is `aladin-cooFrame` 
+ * CSS class for that button is `aladin-cooFrame`
  * @property {boolean} [showFov=true] - Whether to show the field of view indicator.
- * CSS class for that button is `aladin-fov` 
+ * CSS class for that button is `aladin-fov`
  * @property {boolean} [showCooLocation=true] - Whether to show the coordinate location indicator.
- * CSS class for that button is `aladin-location` 
+ * CSS class for that button is `aladin-location`
  * @property {boolean} [showProjectionControl=true] - Whether to show the projection control toolbar.
- * CSS class for that button is `aladin-projection-control` 
+ * CSS class for that button is `aladin-projection-control`
  * @property {boolean} [showContextMenu=false] - Whether to show the context menu.
  * @property {boolean} [showReticle=true] - Whether to show the reticle.
  * @property {boolean} [showCatalog=true] - Whether to show the catalog.
  * @property {boolean} [showCooGrid=true] - Whether the coordinates grid should be shown at startup.
- *
+ * @property {boolean} [inertia=true] - Whether mouse release triggers an inertia effect.
+ * @property {boolean} [lockNorthUp=false] - If true, the north pole will always be up.
  * @property {boolean} [fullScreen=false] - Whether to start in full-screen mode.
  * @property {string} [reticleColor="rgb(178, 50, 178)"] - Color of the reticle in RGB format.
  * @property {number} [reticleSize=22] - Size of the reticle.
- * 
- * @property {string} [gridColor="rgb(178, 50, 178)"] - Color of the grid in RGB format. 
+ *
+ * @property {string} [gridColor="rgb(178, 50, 178)"] - Color of the grid in RGB format.
  *                                                      Is overshadowed by gridOptions.color if defined.
- * @property {number} [gridOpacity=0.8] - Opacity of the grid (0 to 1). 
+ * @property {number} [gridOpacity=0.8] - Opacity of the grid (0 to 1).
  *                                        Is overshadowed by gridOptions.opacity if defined.
  * @property {Object} [gridOptions] - More options for the grid.
- * @property {string} [gridOptions.color="rgb(178, 50, 178)"] - Color of the grid. Can be specified as a named color 
+ * @property {string} [gridOptions.color="rgb(178, 50, 178)"] - Color of the grid. Can be specified as a named color
  *                    (see {@link https://developer.mozilla.org/en-US/docs/Web/CSS/named-color| named colors}),
- *                    as rgb (ex: "rgb(178, 50, 178)"), or as a hex color (ex: "#86D6AE").              
+ *                    as rgb (ex: "rgb(178, 50, 178)"), or as a hex color (ex: "#86D6AE").
  * @property {number} [gridOptions.thickness=2] - The thickness of the grid, in pixels.
  * @property {number} [gridOptions.opacity=0.8] - Opacity of the grid and labels. It is comprised between 0 and 1.
  * @property {boolean} [gridOptions.showLabels=true] - Whether the grid has labels.
  * @property {number} [gridOptions.labelSize=15] - The font size of the labels.
- * 
+ *
  * @property {string} [projection="SIN"] - Projection type. Can be 'SIN' for orthographic, 'MOL' for mollweide, 'AIT' for hammer-aitoff, 'ZEA' for zenital equal-area or 'MER' for mercator
- * @property {boolean} [log=true] - Whether to log events.
+ * @property {boolean} [longitudeReversed=false] - Longitude reverse axis flag. Set to true to reverse the longitude axis. This is especially needed for planetary survey visualization. Default is set to false.
+* @property {boolean} [log=true] - Whether to log events.
  * @property {boolean} [samp=false] - Whether to enable SAMP (Simple Application Messaging Protocol).
  * @property {boolean} [realFullscreen=false] - Whether to use real fullscreen mode.
  * @property {boolean} [pixelateCanvas=true] - Whether to pixelate the canvas.
  * @property {boolean} [manualSelection=false] - When set to true, no selection will be performed, only events will be generated.
+ * @property {string} [mode] - Interface theme, can be either 'dark' or 'light'. If not set, the mode will be retrieved from your browser preference or your localStorage.
  * @property {Object} [selector] - More options for the the selector.
  * @property {string} [selector.color] - Color of the selector, defaults to the color of the reticle. Can be a hex color or a function returning a hex color.
  * @property {number} [selector.lineWidth=2] - Width of the selector line.
- * 
+ * @property {Object} [toolbar] - Toolbar object
+ * @property {string} [toolbar.divSelector="null"] - A selector to put the toolbar in. By default the toolbar will be inserted in the Aladin Lite view.
+ * @property {string} [toolbar.position="topleft"] - Can be 'topleft', 'topright', 'bottomleft', 'bottomright'. Default to 'topleft'
+ * @property {boolean} [toolbar.vertical=true] - Is the toolbar horizontal or not. Default to vertical
+ *
  * @example
  * let aladin = A.aladin({
     target: 'galactic center',
@@ -185,7 +197,6 @@ import { Polyline } from "./shapes/Polyline";
 
 /**
  * @typedef {Object} CircleSelection
- * @description Options for configuring the Aladin Lite instance.
  *
  * @property {number} x - x coordinate of the center's circle in pixels
  * @property {number} y - y coordinate of the center's circle in pixels
@@ -196,7 +207,6 @@ import { Polyline } from "./shapes/Polyline";
 
 /**
  * @typedef {Object} RectSelection
- * @description Options for configuring the Aladin Lite instance.
  *
  * @property {number} x - top left x coordinate of the rectangle in pixels
  * @property {number} y - top left y coordinate of the rectangle in pixels
@@ -207,8 +217,18 @@ import { Polyline } from "./shapes/Polyline";
  */
 
 /**
+ * @typedef {Object} LineSelection
+ *
+ * @property {Object} a - start point vertex
+ * @property {number} [a.x] - x coo screen in pixels
+ * @property {number} [a.y] - y coo screen in pixels
+ * @property {Object} b - end point vertex
+ * @property {number} [b.x] - x coo screen in pixels
+ * @property {number} [b.y] - y coo screen in pixels
+ */
+
+/**
  * @typedef {Object} PolygonSelection
- * @description Options for configuring the Aladin Lite instance.
  *
  * @property {Object[]} vertices - vertices of the polygon selection in pixels. Each vertex has a x and y key in pixels.
  * @property {function} contains - function taking a {x, y} object telling if the vertex is contained in the selection or not
@@ -223,29 +243,33 @@ import { Polyline } from "./shapes/Polyline";
  */
 
 /**
- * @typedef {string} ListenerCallback
- * String with possible values:
- *      'select' (deprecated, use objectsSelected instead),
- *      'objectsSelected',
-        'objectClicked',
-        'objectHovered',
-        'objectHoveredStop',
+ * @typedef {Object} positionChangedParam
+ * @property {number} ra - Right-Ascenscion of the center screen
+ * @property {number} dec - Declination of the center screen
+ * @property {boolean} dragging - A flag to tell whether the view is currently being dragged
+ * @property {string} [frame="icrs"] - The frame in which the position is given. Always 'icrs' in this case
+ */
 
-        'footprintClicked',
-        'footprintHovered',
+/**
+ * @typedef {Object} mouseMoveParam
+ * @property {number} ra - Right-Ascenscion of the cursor in the sky
+ * @property {number} dec - Declination of the cursor in the sky
+ * @property {number} x - X screen position of the cursor
+ * @property {number} y - Y screen position of the cursor
+ * @property {string} frame - The frame in which the position is given. Corresponds to the current view frame.
+ */
 
-        'positionChanged',
-        'zoomChanged',
-
-        'click',
-        'rightClickMove',
-        'mouseMove',
-
-        'fullScreenToggled',
-        'cooFrameChanged',
-        'resizeChanged',
-        'projectionChanged',
-        'layerChanged'
+/**
+ * @typedef {('select'|'objectsSelected'|'objectClicked'|'objectHovered'|'objectHoveredStop'|'footprintClicked'|'footprintHovered'|'positionChanged'|'zoomChanged'|'rotationChanged'|'click'|'rightClickMove'|'mouseMove'|'wheelTriggered'|'fullScreenToggled'|'cooFrameChanged'|'resizeChanged'|'projectionChanged'|'stackChanged')} EventListener
+ *
+ * <ul>
+ * <li>'positionChanged' is triggered when the view position has been changed. It gives the user the new center position of the view in ICRS frame. See {@link positionChangedParam}</li>
+ * <li>'select' is <b>deprecated</b>, please use 'objectsSelected' instead.</li>
+ * <li>'mouseMove' is triggered when the mouse move over the view. It gives the the user the new position of the cursor in the current frame. See {@link mouseMoveParam}</li>
+ * <li>'wheelTriggered' allows to redefine the zooming. Listening for it will disable the default zooming heuristic.</li>
+ * <li>'objectsSelected', 'objectClicked', 'objectHovered', 'objectHoveredStop', 'footprintClicked', 'footprintHovered' are triggered when a catalog source/footprint has been clicked, hovered, ...
+ * <li>'stackChanged' is triggered when a layer has been added, removed or swapped. The callback passed is an object having fields. The layer object that has been added/removed (or the swapped layers) and a flag that tells you if it has been 'added', 'removed' or 'swapped'.
+ * </ul>
  */
 
 export let Aladin = (function () {
@@ -269,6 +293,9 @@ export let Aladin = (function () {
         this.callbacksByEventName = {}; // we store the callback functions (on 'zoomChanged', 'positionChanged', ...) here
         this.hipsCache = new HiPSCache();
 
+        this.customShareURLFn = null;
+
+
         // check that aladinDiv exists, stop immediately otherwise
         if (!aladinDiv) {
             console.error(
@@ -281,14 +308,55 @@ export let Aladin = (function () {
 
         const self = this;
 
-        ALEvent.HIPS_LAYER_ADDED.listenedBy(aladinDiv, (imageLayer) => {
-            this.callbacksByEventName["layerChanged"] &&
-            this.callbacksByEventName["layerChanged"](imageLayer.detail.layer, imageLayer.detail.layer.layer, "ADDED");
+        ALEvent.GRAPHIC_OVERLAY_LAYER_ADDED.listenedBy(
+            aladinDiv,
+            (e) => {
+                const {overlay} = e.detail;
+                let callback = this.callbacksByEventName["stackChanged"];
+                callback && callback({
+                    change: 'added',
+                    overlay,
+                });
+            }
+        );
+
+        ALEvent.GRAPHIC_OVERLAY_LAYER_REMOVED.listenedBy(
+            aladinDiv, (e) => {
+                const {overlay} = e.detail;
+                let callback = this.callbacksByEventName["stackChanged"];
+                callback && callback({
+                    change: 'removed',
+                    overlay,
+                });
+            }
+        );
+
+        ALEvent.LAYER_ADDED.listenedBy(aladinDiv, (e) => {
+            const {layer} = e.detail;
+            let callback = this.callbacksByEventName["stackChanged"];
+            callback && callback({
+                change: 'added',
+                layer,
+            });
         });
 
-        ALEvent.HIPS_LAYER_REMOVED.listenedBy(aladinDiv, (imageLayer) => {
-            this.callbacksByEventName["layerChanged"] &&
-            this.callbacksByEventName["layerChanged"](imageLayer.detail.layer, imageLayer.detail.layer.layer, "REMOVED");
+        ALEvent.LAYER_REMOVED.listenedBy(aladinDiv, (e) => {
+            const {layer} = e.detail;
+            let callback = this.callbacksByEventName["stackChanged"];
+            callback && callback({
+                change: 'removed',
+                layer
+            });
+        });
+
+        ALEvent.LAYER_SWAPPED.listenedBy(aladinDiv, (e) => {
+            const {layer1, layer2} = e.detail;
+            let callback = this.callbacksByEventName["stackChanged"];
+            callback && callback({
+                change: 'swapped',
+                layer1,
+                layer2
+            });
         });
 
         // if not options was set, try to retrieve them from the query string
@@ -315,6 +383,10 @@ export let Aladin = (function () {
                 ...Aladin.DEFAULT_OPTIONS.gridOptions,
                 ...requestedOptions.gridOptions
             },
+            toolbar: {
+                ...Aladin.DEFAULT_OPTIONS.toolbar,
+                ...requestedOptions.toolbar
+            },
             // and use the slice method to create a new array for the hipsList property:
             // https://stackoverflow.com/questions/7486085/copy-array-by-value
             hipsList: requestedOptions.hipsList || Aladin.DEFAULT_OPTIONS.hipsList.slice()
@@ -338,6 +410,11 @@ export let Aladin = (function () {
 
         this.reticle = new Reticle(this.options, this);
         this.popup = new Popup(this.aladinDiv, this.view);
+        this.tooltip = document.createElement('div')
+        this.tooltip.id = 'aladin-tooltip-mouse';
+        this.tooltip.classList.add("aladin-box")
+
+        this.aladinDiv.appendChild(this.tooltip)
 
         this.ui = [];
 
@@ -364,7 +441,7 @@ export let Aladin = (function () {
         this.gotoObject(options.target, undefined);
 
         if (options.log) {
-            var params = options;
+            var params = requestedOptions;
             params["version"] = Aladin.VERSION;
             Logger.log("startup", params);
         }
@@ -374,8 +451,8 @@ export let Aladin = (function () {
                 this.createCatalogFromVOTable(options.catalogUrls[k]);
             }
         }
-        
-        // Format the hipslist given by the user before storing it in the aladin objec
+
+        // Format the hipslist given by the user before storing it in the aladin instance
         this.hipsFavorites = [];
         let hipsList = [].concat(options.hipsList);
 
@@ -386,6 +463,7 @@ export let Aladin = (function () {
             if (typeof hips === "string") {
                 try {
                     url = new URL(hips).href;
+                    id = url;
                 } catch (e) {
                     id = hips;
                 }
@@ -401,7 +479,7 @@ export let Aladin = (function () {
 
                 name = hips.name || hips.id || hips.url;
 
-                hipsObj = { ...hipsObj, ...hips };
+                hipsObj = { ...hips };
             } else {
                 console.warn(
                     "unable to parse the survey list item: ",
@@ -420,12 +498,15 @@ export let Aladin = (function () {
                 hipsObj["name"] = name;
             }
 
-            // at least id or url is defined
-            //let key = name || id || url;
-
             // Merge what is already in the cache for that HiPS with new properties
             // coming from the MOCServer
             this.hipsFavorites.push(hipsObj);
+            // Favorites are also directly pushed to the cache
+            this.hipsCache.append(hipsObj.id, hipsObj)
+        }
+
+        if (options.samp) {
+            this.samp = new SAMPConnector(this);
         }
 
         this._setupUI(options);
@@ -445,11 +526,7 @@ export let Aladin = (function () {
                 });
             } else if (options.survey === HiPS.DEFAULT_SURVEY_ID) {
                 // DSS is cached inside HiPS class, no need to provide any further information
-                const survey = this.createImageSurvey(
-                    HiPS.DEFAULT_SURVEY_ID
-                );
-
-                this.setBaseImageLayer(survey);
+                this.setBaseImageLayer(HiPS.DEFAULT_SURVEY_ID);
             } else {
                 this.setBaseImageLayer(options.survey);
             }
@@ -485,22 +562,24 @@ export let Aladin = (function () {
         // maximize control
         if (options.showFullscreenControl) {
             // react to fullscreenchange event to restore initial width/height (if user pressed ESC to go back from full screen)
+            // This event is only triggered with realFullscreen on
             Utils.on(
                 document,
                 "fullscreenchange webkitfullscreenchange mozfullscreenchange MSFullscreenChange",
-                function (e) {
+                () => {
                     var fullscreenElt =
                         document.fullscreenElement ||
                         document.webkitFullscreenElement ||
                         document.mozFullScreenElement ||
                         document.msFullscreenElement;
                     if (fullscreenElt === null || fullscreenElt === undefined) {
-                        self.toggleFullscreen(options.realFullscreen);
-
-                        var fullScreenToggledFn =
-                            self.callbacksByEventName["fullScreenToggled"];
-                        typeof fullScreenToggledFn === "function" &&
-                            fullScreenToggledFn(self.isInFullscreen);
+                        // fix: Only toggle off the screen once because in case of closing the real fullscreen from the ui button, this could be called 2 times
+                        // * one toggleFullscreen from the button itself
+                        // * one toggleFullscreen from the fullscreenchange event
+                        // => resulting in closing and opening the fullscreen again.
+                        if (self.isInFullscreen) {
+                            self.toggleFullscreen(options.realFullscreen);
+                        }
                     }
                 }
             );
@@ -508,14 +587,16 @@ export let Aladin = (function () {
 
         // set right click context menu
         if (options.showContextMenu) {
-            this.contextMenu = new ContextMenu(this);
             this.contextMenu.attach(
-                DefaultActionsForContextMenu.getDefaultActions(this)
+                DefaultActionsForContextMenu.getDefaultActions(this),
+                null
             );
         }
 
-        if (options.samp) {
-            this.samp = new SAMPConnector(this);
+        // lockNorthUp option
+        this.lockNorthUp = options.lockNorthUp || false;
+        if (this.lockNorthUp) {
+            this.wasm.lockNorthUp();
         }
 
         if (options.inertia !== undefined) {
@@ -523,12 +604,32 @@ export let Aladin = (function () {
         }
 
         if (options.northPoleOrientation) {
-            this.setViewCenter2NorthPoleAngle(options.northPoleOrientation);
+            this.setRotation(options.northPoleOrientation);
+        }
+
+        if (options.longitudeReversed !== undefined && options.longitudeReversed !== null) {
+            this.reverseLongitude(options.longitudeReversed)
         }
     };
 
+    Aladin.prototype._applyTheme = function(newTheme) {
+        this.aladinDiv.setAttribute("data-theme", newTheme);
+        this.toolbar.el.setAttribute("data-theme", newTheme);
+    }
+
     Aladin.prototype._setupUI = function (options) {
         let self = this;
+
+        this.contextMenu = new ContextMenu(this);
+
+        let toolbarDivSelector = options && options.toolbar.divSelector || this.aladinDiv;
+        if (!(toolbarDivSelector instanceof HTMLElement)) {
+            toolbarDivSelector = document.querySelector(toolbarDivSelector);
+        }
+        this.toolbar = new Toolbar({
+            classList: ["aladin-widgets-toolbar"],
+            ...options.toolbar
+        }, toolbarDivSelector)
 
         // Status bar
         if (options.showStatusBar) {
@@ -552,40 +653,48 @@ export let Aladin = (function () {
         }
 
         ////////////////////////////////////////////////////
-        let stack = new OverlayStackButton(this);
-        let simbad = new SimbadPointer(this);
-        let grid = new GridEnabler(this);
-        this.addUI(stack);
-        this.addUI(simbad);
-        this.addUI(grid);
-
+        let widgets = {};
+        let stack;
         // Add the layers control
-        if (!options.showLayersControl) {
-            stack._hide();
-        }
-
-        // Add the simbad pointer control
-        if (!options.showSimbadPointerControl) {
-            simbad._hide();
-        }
-
-        // Add the projection control
-        // Add the coo grid control
-        if (!options.showCooGridControl) {
-            grid._hide();
+        if (options.showLayersControl) {
+            stack = new Stack(this);
+            widgets["stack"] = stack
         }
 
         // Settings control
         if (options.showSettingsControl) {
-            let settings = new SettingsButton(this, {
-                features: { stack, simbad, grid },
-            });
-            this.addUI(settings);
+            let settings = new SettingsButton(this);
+            widgets["settings"] = settings
+        }
+
+        // Add the simbad pointer control
+        if (options.showSimbadPointerControl) {
+            let simbad = new SimbadPointer(this);
+            widgets["simbad"] = simbad
+        }
+
+        // Add the projection control
+        // Add the coo grid control
+        if (options.showCooGridControl) {
+            let grid = new GridEnabler(this);
+            widgets["grid"] = grid;
+        }
+
+        // Add the projection control
+        // Add the coo grid control
+        if (options.showColorPickerControl) {
+            let picker = new ColorPicker(this);
+            widgets["picker"] = picker;
         }
 
         // share control panel
         if (options.showShareControl) {
-            this.addUI(new ShareActionButton(self));
+            let share = new ShareActionButton(this);
+            widgets["share"] = share;
+        }
+
+        for (let [name, widget] of Object.entries(widgets)) {
+            this.toolbar.add(name, widget);
         }
 
         if (options.showProjectionControl) {
@@ -598,7 +707,7 @@ export let Aladin = (function () {
         }
 
         if (options.expandLayersControl) {
-            stack.click();
+            stack && stack.click();
         }
 
         this._applyMediaQueriesUI();
@@ -677,6 +786,7 @@ export let Aladin = (function () {
         showSimbadPointerControl: false,
         showCooGridControl: false,
         showSettingsControl: false,
+        showColorPickerControl: false,
         // Share toolbar
         showShareControl: false,
 
@@ -701,25 +811,36 @@ export let Aladin = (function () {
         gridOptions: {
             enabled: false,
             showLabels: true,
-            thickness: 2,
+            thickness: 1,
             labelSize: 15,
         },
         projection: "SIN",
         log: true,
         samp: false,
+        // Longitude reversed flag
+        longitudeReversed: false,
         realFullscreen: false,
         pixelateCanvas: true,
-        manualSelection: false
+        manualSelection: false,
+        toolbar: {
+            divSelector: null,
+            vertical: true,
+            position: 'topleft'
+        }
     };
 
-    // realFullscreen: AL div expands not only to the size of its parent, but takes the whole available screen estate
+    /**
+     * Toggle the fullscreen of the Aladin Lite view
+     *
+     * @memberof Aladin
+     * @param {boolean} realFullscreen - If true, AL div expands not only to the size of its parent, but takes the whole available screen estate
+     */
     Aladin.prototype.toggleFullscreen = function (realFullscreen) {
         let self = this;
 
-        realFullscreen = Boolean(realFullscreen);
         self.isInFullscreen = !self.isInFullscreen;
 
-        ContextMenu.hideAll();
+        this.contextMenu && this.contextMenu._hide();
 
         this.ui.forEach(ui => {
             if (ui.toggle) {
@@ -727,12 +848,6 @@ export let Aladin = (function () {
                 ui.toggle();
             }
         })
-
-        if (this.aladinDiv.classList.contains("aladin-fullscreen")) {
-            this.aladinDiv.classList.remove("aladin-fullscreen");
-        } else {
-            this.aladinDiv.classList.add("aladin-fullscreen");
-        }
 
         if (realFullscreen) {
             // go to "real" full screen mode
@@ -763,6 +878,8 @@ export let Aladin = (function () {
                 }
             }
         }
+
+        this.aladinDiv.classList.toggle("aladin-fullscreen");
 
         // Delay the fixLayoutDimensions layout for firefox
         /*setTimeout(function () {
@@ -822,7 +939,7 @@ export let Aladin = (function () {
     };
 
     /**
-     * Sets the field of view (FoV) of the Aladin instance to the specified angle in degrees.
+     * Set the field of view (FoV) of the view in degrees.
      *
      * @memberof Aladin
      * @param {number} FoV - The angle of the field of view in degrees.
@@ -832,10 +949,58 @@ export let Aladin = (function () {
      * aladin.setFoV(60);
      */
     Aladin.prototype.setFoV = function (FoV) {
-        this.view.setZoom(FoV);
+        this.view.setFoV(FoV);
     };
 
     Aladin.prototype.setFov = Aladin.prototype.setFoV;
+
+    /**
+     * Set the screen scaling zoom factor of the view.
+     *
+     * @memberof Aladin
+     * @param {number} zoomFactor - Scaling screen factor
+     */
+    Aladin.prototype.setZoomFactor = function (zoomFactor) {
+        this.view.setZoomFactor(zoomFactor);
+    };
+
+    /**
+     * Get the screen scaling zoom factor of the view.
+     *
+     * @memberof Aladin
+     */
+    Aladin.prototype.getZoomFactor = function () {
+        return this.view.zoomFactor;
+    };
+
+    /**
+     * Read pixels inside the Aladin Lite canvas
+     *
+     * @description
+     * Returns the rgba pixels composing the current view.
+     * Please keep in mind that this method returns the actual colors that you see in the screen, it is not intended to return values coming from the progenitors.
+     * For a knowing exactly the values of a specific HiPS (e.g. the real FITS values from HiPS FITS tiles) please use the method {@link HiPS#readPixel}.
+     *
+     * @memberof Aladin
+     * @param {PixelProber[]|RectProber[]} [prober] - A prob object. Can be unique prober or a list of it. By default, the center of the view is probed, i.e. the pixel under the reticle.
+     * @returns {ImageData} A {@link https://developer.mozilla.org/fr/docs/Web/API/ImageData| ImageData} JS object coming from the canvas probing. Its `data` field stores the byte pixel array containing a list of 4 bytes RGBA values.
+     */
+     Aladin.prototype.readCanvas = function (prober) {
+        prober = prober || {x: this.view.width / 2, y: this.view.height / 2};
+
+        let probers = [].concat(prober)
+
+        let pixels = []
+        for (var prober of probers) {
+            pixels.push(this.view.readPixel(prober))
+        }
+
+        if (probers.length === 1) {
+            return pixels[0]
+        } else {
+            return pixels;
+        }
+    };
 
     // @API
     // (experimental) try to adjust the FoV to the given object name. Does nothing if object is not known from Simbad
@@ -853,7 +1018,7 @@ export let Aladin = (function () {
                 objectName +
                 "'";
             var url =
-                "//simbad.u-strasbg.fr/simbad/sim-tap/sync?query=" +
+                "//simbad.cds.unistra.fr/simbad/sim-tap/sync?query=" +
                 encodeURIComponent(query) +
                 "&request=doQuery&lang=adql&format=json&phase=run";
 
@@ -891,7 +1056,7 @@ export let Aladin = (function () {
      * Sets the coordinate frame of the Aladin instance to the specified frame.
      *
      * @memberof Aladin
-     * @param {string} frame - The name of the coordinate frame. Possible values: 'j2000d', 'j2000', 'gal', 'icrs'. The given string is case insensitive.
+     * @param {string} frame - The name of the coordinate frame. Possible values: 'j2000d', 'j2000', 'gal', 'icrs', 'equatorial'. The given string is case insensitive.
      *
      * @example
      * // Set the coordinate frame to 'J2000'
@@ -913,6 +1078,21 @@ export let Aladin = (function () {
         if (typeof frameChangedFunction === "function") {
             frameChangedFunction(newFrame.label);
         }
+    };
+
+    /**
+     * Change the default color of Aladin Lite. By default, #b232b2
+     *
+     * @memberof Aladin
+     * @param {string} color - A color given as a string. Hex, `rgb(r, g, b)` or css label colored e.g. `orange` are accepted
+     */
+    Aladin.prototype.setDefaultColor = function(color) {
+        let aladinColor = new Color(color)
+        this.reticle.update({color: aladinColor.toHex()})
+        this.aladinDiv.style.setProperty('--aladin-color', aladinColor.toHex())
+
+        let aladinBorderColor = Color.getLabelColorForBackground(`rgb(${aladinColor.r}, ${aladinColor.g}, ${aladinColor.b})`);
+        this.aladinDiv.style.setProperty('--aladin-color-border', aladinBorderColor)
     };
 
     /**
@@ -993,7 +1173,6 @@ export let Aladin = (function () {
 
         return projName;
     };
-    ``;
 
     /**
      * Returns the current coordinate system: possible values are 'ICRS', 'ICRSd', and 'Galactic' .
@@ -1008,6 +1187,16 @@ export let Aladin = (function () {
      */
     Aladin.prototype.getFrame = function () {
         return this.view.cooFrame.label;
+    };
+
+    /**
+     * Get a reference to the Aladin Lite toolbar object. User can append, remove DOMElement/widgets to it
+     *
+     * @memberof Aladin
+     * @returns {Toolbar}
+     */
+    Aladin.prototype.getToolbar = function () {
+        return this.toolbar;
     };
 
     /**
@@ -1297,18 +1486,16 @@ export let Aladin = (function () {
     Aladin.prototype.zoomToFoV = function (fov, duration, complete) {
         duration = duration || 5;
 
-        this.zoomAnimationParams = null;
-
-        var zoomAnimationParams = {};
-        zoomAnimationParams["start"] = new Date().getTime();
-        zoomAnimationParams["end"] = new Date().getTime() + 1000 * duration;
         var fovArray = this.getFov();
-        zoomAnimationParams["fovStart"] = Math.max(fovArray[0], fovArray[1]);
-        zoomAnimationParams["fovEnd"] = fov;
-        zoomAnimationParams["complete"] = complete;
-        zoomAnimationParams["running"] = true;
 
-        this.zoomAnimationParams = zoomAnimationParams;
+        this.zoomAnimationParams = {
+            start: new Date().getTime(),
+            end: new Date().getTime() + 1000 * duration,
+            fovStart: Math.max(fovArray[0], fovArray[1]),
+            fovEnd: fov,
+            complete: complete,
+            running: true,
+        };
         doZoomAnimation(this);
     };
 
@@ -1437,7 +1624,7 @@ export let Aladin = (function () {
         this.view.addCatalog(catalog);
 
         ALEvent.GRAPHIC_OVERLAY_LAYER_ADDED.dispatchedTo(this.aladinDiv, {
-            layer: catalog,
+            overlay: catalog,
         });
     };
 
@@ -1450,9 +1637,7 @@ export let Aladin = (function () {
     Aladin.prototype.addOverlay = function (overlay) {
         this.view.addOverlay(overlay);
 
-        ALEvent.GRAPHIC_OVERLAY_LAYER_ADDED.dispatchedTo(this.aladinDiv, {
-            layer: overlay,
-        });
+        ALEvent.GRAPHIC_OVERLAY_LAYER_ADDED.dispatchedTo(this.aladinDiv, { overlay });
     };
 
 
@@ -1481,7 +1666,7 @@ export let Aladin = (function () {
         for (var ui of ui) {
             this.ui.push(ui);
             ui.attachTo(this.aladinDiv);
-    
+
             // as the ui is pushed to the dom, setting position may need the aladin instance to work
             // so we recompute it
             if (ui.options) {
@@ -1569,10 +1754,8 @@ export let Aladin = (function () {
         let hipsOptions = { id, name, maxOrder, url, cooFrame, ...options };
         let hips = new HiPS(id, url || id, hipsOptions)
 
-        // This allows to retrieve the survey's options when it will be
-        // added later to the view.
-        if (this instanceof Aladin && !this.hipsCache.contains(hips.id)) {
-            // Add it to the cache as soon as possible if we have a reference to the aladin object
+        // A HiPS can be refered by its unique ID thus we add it to the cache (cf excample/al-cfht.html that refers to HiPS object just by their unique ID)
+        if (this instanceof Aladin) {
             this.hipsCache.append(hips.id, hipsOptions)
         }
 
@@ -1602,10 +1785,10 @@ export let Aladin = (function () {
 
     /**
      * Remove a HiPS from the list of favorites.
-     * 
-     * This send a event of type 
+     *
+     * This send a event of type
      * FAVORITE_HIPS_LIST_UPDATED which can be listened to
-     * 
+     *
      * @throws A warning when the asset is currently present in the view
      *
      * @memberof Aladin
@@ -1632,7 +1815,7 @@ export let Aladin = (function () {
             }
         })
 
-        // a hips matches 
+        // a hips matches
         if (idx >= 0) {
             this.hipsFavorites.splice(idx, 1);
             // Send a change of favorites for the UI selector to adapt their optional list
@@ -1642,11 +1825,11 @@ export let Aladin = (function () {
 
     /**
      * Add a HiPS to the list of favorites.
-     * 
-     * If already present it will not add it again. This send a event of type 
+     *
+     * If already present it will not add it again. This send a event of type
      * FAVORITE_HIPS_LIST_UPDATED which can be listened to. Once added, the favorite list
      * will be sorted by the name of the hips.
-     * 
+     *
      * @memberof Aladin
      * @param {HiPS} hips - The HiPS to add to the favorites
      */
@@ -1670,14 +1853,6 @@ export let Aladin = (function () {
             url: hips.url,
             id: hips.id,
             name: hips.name,
-        })
-
-        // and resort the favorites
-        this.hipsFavorites.sort((h1, h2) => {
-            let k1 = h1.name || h1.id || h1.url;
-            let k2 = h2.name || h2.id || h2.url;
-
-            return k1 < k2;
         })
 
         // send the final event
@@ -1773,13 +1948,23 @@ export let Aladin = (function () {
     Aladin.prototype.newImageSurvey = function (id, options) {
         // a wrapper on createImageSurvey that aggregates all params in an options object
         return this.createImageSurvey(
-            id, 
+            id,
             options && options.name,
             id,
             options && options.cooFrame,
             options && options.maxOrder,
             options
         );
+    };
+
+    /**
+     * Reverse the longitude axis of the view globally
+     *
+     * @memberof Aladin
+     * @param {Boolean} [longitudeReversed] - Reverse the longitude axis
+     */
+    Aladin.prototype.reverseLongitude = function (longitudeReversed) {
+        this.view.reverseLongitude(longitudeReversed)
     };
 
     /**
@@ -1895,7 +2080,7 @@ export let Aladin = (function () {
      * </ul>
      */
     Aladin.prototype.setBaseImageLayer = function (urlOrHiPSOrFITS) {
-        return this.setOverlayImageLayer(urlOrHiPSOrFITS, "base");
+        return this.setOverlayImageLayer(urlOrHiPSOrFITS, (this.view.overlayLayers && this.view.overlayLayers[0]) || Utils.uuidv4());
     };
 
     /**
@@ -1905,7 +2090,7 @@ export let Aladin = (function () {
      * @returns {HiPS|Image} - Returns the image layer corresponding to the base layer
      */
     Aladin.prototype.getBaseImageLayer = function () {
-        return this.view.getImageLayer("base");
+        return this.view.getImageLayer(this.view.overlayLayers && this.view.overlayLayers[0]);
     };
 
     /**
@@ -1929,16 +2114,18 @@ export let Aladin = (function () {
         let imageLayer;
 
         let hipsCache = this.hipsCache;
+
         // 1. User gives an ID
         if (typeof urlOrHiPSOrFITS === "string") {
             const idOrUrl = urlOrHiPSOrFITS;
             // many cases here
             // 1/ It has been already added to the cache
             let cachedOptions = hipsCache.get(idOrUrl)
+
             if (cachedOptions) {
                 imageLayer = A.HiPS(idOrUrl, cachedOptions);
             } else {
-                // 2/ Not in the cache, then we create the hips from this url/id and 
+                // 2/ Not in the cache, then we create the hips from this url/id and
                 // go to the case 3
                 imageLayer = A.HiPS(idOrUrl);
 
@@ -1954,16 +2141,14 @@ export let Aladin = (function () {
                 if (!cachedLayerOptions) {
                     hipsCache.append(imageLayer.id, imageLayer.options)
                 } else {
-                    // set the options from what is in the cache
-                    imageLayer.setOptions(cachedLayerOptions);
+                    // Set the image layer object with the options from the cache.
+                    imageLayer.setOptions(cachedLayerOptions)
                 }
             }
         }
 
         // Add it to the hipsList if it is not there yet
         this.addHiPSToFavorites(imageLayer)
-
-        imageLayer.layer = layer;
 
         return this.view.setOverlayImageLayer(imageLayer, layer);
     };
@@ -1998,25 +2183,29 @@ export let Aladin = (function () {
      * view in the counter clockwise order (or towards the east)
      */
     Aladin.prototype.setRotation = function (rotation) {
-        this.view.setViewCenter2NorthPoleAngle(rotation);
+        if (!rotation) {
+            console.warn("Rotation angle is not valid:", rotation)
+            return;
+        }
+        this.view.setRotation(rotation);
     };
 
 
-   
+
      /**
      * Get the view center to north pole angle in degrees. This is equivalent to getting the 3rd Euler angle
      *
      * @memberof Aladin
-     * 
+     *
      * @returns {number} - Angle between the position center and the north pole
      */
     Aladin.prototype.getRotation = function () {
-        return this.view.wasm.getViewCenter2NorthPoleAngle();
+        return this.view.wasm.getRotation();
     };
 
     /**
      * Set the view center rotation in degrees
-     * 
+     *
      * @deprecated Use Aladin.prototype.setRotation instead
      *
      * @memberof Aladin
@@ -2029,9 +2218,9 @@ export let Aladin = (function () {
      * Get the view center to north pole angle in degrees. This is equivalent to getting the 3rd Euler angle
      *
      * @memberof Aladin
-     * 
+     *
      * @deprecated
-     * 
+     *
      * @returns {number} - Angle between the position center and the north pole
      */
     Aladin.prototype.getViewCenter2NorthPoleAngle = Aladin.prototype.getRotation;
@@ -2110,30 +2299,32 @@ export let Aladin = (function () {
 
         "positionChanged",
         "zoomChanged",
+        "rotationChanged",
 
         "click",
         "rightClickMove",
         "mouseMove",
+        "wheelTriggered",
 
         "fullScreenToggled",
         "cooFrameChanged",
         "resizeChanged",
         "projectionChanged",
-        "layerChanged"
+        "stackChanged"
     ];
 
     /**
      * Listen aladin for specific events
      *
      * @memberof Aladin
-     * @param {ListenerCallback} what - e.g. objectHovered, select, zoomChanged, positionChanged
+     * @param {EventListener} what - e.g. objectHovered, select, zoomChanged, positionChanged, wheelTriggered
      * @param {function} myFunction - a callback function.
      * Note: <ul>
      * <li>positionChanged and zoomChanged are throttled every 100ms.</li>
      * <li>positionChanged's callback gives an object having ra and dec keywords of the current position in ICRS frame. See the below example.</li>
      * </ul>
      * @example
-        // define function triggered when  a source is hovered
+        // Define a function triggered when a source is hovered
         aladin.on('objectHovered', function(object, xyMouseCoords) {
             if (object) {
                 msg = 'You hovered object ' + object.data.name + ' located at ' + object.ra + ', ' + object.dec + '; mouse coords - x: '
@@ -2177,10 +2368,10 @@ export let Aladin = (function () {
             console.log("positionChanged", ra, dec)
         })
 
-        aladin.on("layerChanged", (layer, layerName, state) => {
-            console.log("layerChanged", layer, layerName, state)
-        })
-     */
+        aladin.on('stackChanged', function(state) {
+            console.log(state)
+        });
+    */
     Aladin.prototype.on = function (what, myFunction) {
         if (Aladin.AVAILABLE_CALLBACKS.indexOf(what) < 0) {
             return;
@@ -2195,7 +2386,7 @@ export let Aladin = (function () {
 
     /**
      * Select specific objects in the view
-     * 
+     *
      * @memberof Aladin
      * @param {?Array.<Source, Footprint, Circle, Ellipse, Polyline, Vector>} objects - If null is passed then nothing will be selected and sources already selected will be deselected
      */
@@ -2227,12 +2418,13 @@ export let Aladin = (function () {
      * Enters selection mode
      *
      * @memberof Aladin
-     * @param {string} [mode='rect'] - The mode of selection, can be either, 'rect', 'poly', or 'circle'
+     * @param {'circle'|'rect'|'poly'|'line'} [mode='rect'] - The mode of selection, can be either, 'rect', 'poly', or 'circle'
      * @param {function} [callback] - A function called once the selection has been done
      * The callback accepts one parameter depending of the mode used: <br/>
      * - If mode='circle' that parameter is of type {@link CircleSelection} <br/>
      * - If mode='rect' that parameter is of type {@link RectSelection} <br/>
-     * - If mode='poly' that parameter is of type {@link PolygonSelection}
+     * - If mode='poly' that parameter is of type {@link PolygonSelection} <br/>
+     * - If mode='line' the selection resolves into a {@link LineSelection} object
      *
      * @example
      * // Creates and add a MOC from the user polygonal selection
@@ -2264,10 +2456,11 @@ export let Aladin = (function () {
 
     Aladin.prototype.fire = function (what, params) {
         if (what === "selectstart") {
-            const { mode, callback } = params;
-            this.view.startSelection(mode, callback);
+            this.view.setMode(View.SELECT, params)
         } else if (what === "simbad") {
             this.view.setMode(View.TOOL_SIMBAD_POINTER);
+        } else if (what === "colorpicker") {
+            this.view.setMode(View.TOOL_COLOR_PICKER);
         } else if (what === "default") {
             this.view.setMode(View.PAN);
         }
@@ -2309,15 +2502,6 @@ export let Aladin = (function () {
      * aladin.setCooGrid({ enabled: true });
      */
     Aladin.prototype.setCooGrid = function (options) {
-        if (options.color) {
-            // 1. the user has maybe given some
-            options.color = new Color(options.color);
-            // 3. convert from 0-255 to 0-1
-            options.color.r /= 255;
-            options.color.g /= 255;
-            options.color.b /= 255;
-        }
-
         this.view.setGridOptions(options);
     };
 
@@ -2346,7 +2530,6 @@ export let Aladin = (function () {
     // TODO : integrate somehow into API ?
     Aladin.prototype.exportAsPNG = function (downloadFile = false) {
         (async () => {
-
             const url = await this.getViewDataURL();
 
             if (downloadFile) {
@@ -2545,7 +2728,7 @@ export let Aladin = (function () {
 
                 // Reverse the Eq 9 from the WCS II paper from Mark Calabretta to obtain LONPOLE
                 // function of CRVAL2 and native coordinates of the fiducial ref point, i.e. (phi_0, theta_0) = (0, 0)
-                // for cylindrical projections 
+                // for cylindrical projections
                 WCS.LONPOLE = Math.asin(Math.sin(dLon * toRad) * Math.cos(WCS.CRVAL2 * toRad)) * toDeg;
 
                 if (WCS.CRVAL2 < 0) {
@@ -2562,14 +2745,15 @@ export let Aladin = (function () {
      * Restrict the FoV range between a min and a max value
      *
      * @memberof Aladin
-     * @param {number} minFoV - in degrees when zoom in at max. If undefined, the zooming in is not limited
-     * @param {number} maxFoV - in degrees when zoom out at max. If undefined, the zooming out is not limited
+     * @param {number} [minFoV=1.0 / 36000.0] - in degrees. By default, the zoom is limited to 0.1 arcsec
+     * @param {number} maxFoV - in degrees. If undefined, zooming out is not limited
      *
      * @example
      * let aladin = A.aladin('#aladin-lite-div');
      * aladin.setFoVRange(30, 60);
      */
     Aladin.prototype.setFoVRange = function (minFoV, maxFoV) {
+        minFoV = minFoV || (1.0 / 36000.0);
         this.view.setFoVRange(minFoV, maxFoV);
     };
 
@@ -2624,7 +2808,7 @@ export let Aladin = (function () {
             if (frame instanceof string) {
                 frame = CooFrameEnum.fromString(frame, CooFrameEnum.ICRS);
             }
-    
+
             if (frame.label == CooFrameEnum.SYSTEMS.GAL) {
                 frame = Aladin.wasmLibs.core.CooSystem.GAL;
             }
@@ -2706,16 +2890,11 @@ export let Aladin = (function () {
      *                       and the second element is the FoV height.
      */
     Aladin.prototype.getFov = function () {
-        // can go up to 1000 deg
         var fovX = this.view.fov;
         var s = this.getSize();
 
-        // constrain to the projection definition domain
-        fovX = Math.min(fovX, this.view.projection.fov);
         var fovY = (s[1] / s[0]) * fovX;
-
         fovY = Math.min(fovY, 180);
-        // TODO : take into account AITOFF projection where fov can be larger than 180
 
         return [fovX, fovY];
     };
@@ -2815,14 +2994,18 @@ export let Aladin = (function () {
      * return a URL allowing to share the current view
      */
     Aladin.prototype.getShareURL = function () {
-        var radec = this.getRaDec();
-        var coo = new Coo();
+        // do we have a custom share URL function set?
+        if (this.customShareURLFn) {
+            return this.customShareURLFn();
+        }
+
+        const radec = this.getRaDec();
+        const coo = new Coo();
         coo.prec = 7;
         coo.lon = radec[0];
         coo.lat = radec[1];
 
-        return (
-            Aladin.URL_PREVIEWER +
+        return Aladin.URL_PREVIEWER +
             "?target=" +
             encodeURIComponent(coo.format("s")) +
             "&fov=" +
@@ -2830,9 +3013,24 @@ export let Aladin = (function () {
             "&survey=" +
             encodeURIComponent(
                 this.getBaseImageLayer().id || this.getBaseImageLayer().rootUrl
-            )
-        );
+            );
     };
+
+    /**
+     * Customize share URL creation
+     * @memberof Aladin
+     * @param {Function} [customShareURLFn] - The function that will be called when a user clicks on "Get view URL", to share with collaborators
+     *
+     * @example
+aladin.customizeShareURLFunction(() => {return 'https://sky.esa.int/esasky/?target=' + aladin.getRaDec()[0] + '%20' + aladin.getRaDec()[1] + '&fov=' + aladin.getFoV()[0]})
+     */
+    Aladin.prototype.customizeShareURLFunction = function(customShareURLFn) {
+        if (! typeof customShareURLFn === 'function') {
+            this.customShareURLFn = null;
+        }
+
+        this.customShareURLFn = customShareURLFn;
+    }
 
     // @API
     /*
@@ -2885,7 +3083,7 @@ export let Aladin = (function () {
      * @param {Function} [successCallback=<center the view on the FITS file>] - The callback function to be executed on a successful display.
      *      The callback gives the ra, dec, and fov of the image; By default, it centers the view on the FITS file loaded.
      * @param {Function} [errorCallback] - The callback function to be executed if an error occurs during display.
-     * @param {string} [layer="base"] - The name of the layer. If not specified, it will be replace the base layer.
+     * @param {string} [layer] - The name of the layer. If not specified, it will be replace the base layer.
      *
      * @example
 aladin.displayFITS(
@@ -2909,7 +3107,7 @@ aladin.displayFITS(
         options,
         successCallback,
         errorCallback,
-        layer = "base"
+        layer
     ) {
         successCallback =
             successCallback ||
@@ -2923,6 +3121,7 @@ aladin.displayFITS(
             successCallback,
             errorCallback
         );
+        layer = layer || (this.view.overlayLayers && this.view.overlayLayers[0])
         return this.setOverlayImageLayer(image, layer);
     };
 
@@ -2993,7 +3192,7 @@ aladin.displayFITS(
                 options.body = JSON.stringify(params);
             }
 
-            return fetch(url, options).then((response) => response.json());
+            return fetch(url, options).then((response) => response.json()).catch(e => console.error(e));
         };
         const get = (url, params) => request(url, params, "GET");
 
@@ -3028,7 +3227,7 @@ aladin.displayFITS(
                     );
                 }
                 if (executeDefaultSuccessAction === true) {
-                    self.wasm.setCenter(meta.ra, meta.dec);
+                    self.gotoRaDec(meta.ra, meta.dec);
                     self.setFoV(meta.fov);
                 }
 
@@ -3038,7 +3237,7 @@ aladin.displayFITS(
                 // This has to be fixed in the backend but a fast fix is just to wait
                 // before setting a new image survey
             }
-        );
+        ).catch((e) => console.error(e));
     };
 
     Aladin.prototype.displayPNG = Aladin.prototype.displayJPG;
@@ -3047,7 +3246,7 @@ aladin.displayFITS(
      * Add a custom colormap from a list of colors
      *
      * @memberof Aladin
-     * 
+     *
      * @returns - The list of all the colormap labels
      */
     Aladin.prototype.getListOfColormaps = function() {
@@ -3060,9 +3259,9 @@ aladin.displayFITS(
      * @memberof Aladin
      * @param {string} label - The label of the colormap
      * @param {string[]} colors - A list string colors
-     * 
+     *
      * @example
-     * 
+     *
      * aladin.addColormap('mycmap', ["lightblue", "red", "violet", "#ff00aaff"])
      */
     Aladin.prototype.addColormap = function(label, colors) {

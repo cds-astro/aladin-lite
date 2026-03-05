@@ -10,13 +10,19 @@ pub struct Downloader {
     requests: Vec<RequestType>,
     queried_list: HashSet<QueryId>,
 
-    cache: Cache<QueryId, Resource>,
+    cache: Cache<QueryId, RequestType>,
 }
 
 use crate::fifo_cache::Cache;
 
 use query::Query;
-use request::{RequestType, Resource};
+use request::RequestType;
+
+impl Default for Downloader {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl Downloader {
     pub fn new() -> Downloader {
@@ -56,26 +62,23 @@ impl Downloader {
         }
     }
 
-    pub fn get_received_resources(&mut self) -> Vec<Resource> {
+    pub fn get_received_resources(&mut self) -> Vec<RequestType> {
         let mut rscs = vec![];
+        let mut not_finished_requests = vec![];
 
         let mut finished_query_list = vec![];
-        self.requests = self
-            .requests
-            .drain(..)
-            .filter(|request| {
-                // If the request resolves into a resource
-                if let Some(rsc) = request.into() {
-                    rscs.push(rsc);
-                    finished_query_list.push(request.id().clone());
 
-                    false
-                // The request is not resolved, we keep it
-                } else {
-                    true
-                }
-            })
-            .collect();
+        while let Some(request) = self.requests.pop() {
+            if request.is_resolved() {
+                finished_query_list.push(request.id().clone());
+                rscs.push(request);
+            // The request is not resolved, we keep it
+            } else {
+                not_finished_requests.push(request);
+            }
+        }
+
+        self.requests = not_finished_requests;
 
         for query_id in finished_query_list.into_iter() {
             self.queried_list.remove(&query_id);
@@ -92,18 +95,8 @@ impl Downloader {
         self.queried_list.contains(id)
     }
 
-    pub fn delay(&mut self, r: Resource) {
-        match r {
-            Resource::Tile(tile) => {
-                let k = format!(
-                    "{:?}{:?}/{:?}",
-                    tile.get_hips_cdid(),
-                    tile.cell.depth(),
-                    tile.cell.idx()
-                );
-                self.cache.insert(k, Resource::Tile(tile));
-            }
-            _ => unimplemented!(),
-        }
+    pub fn delay(&mut self, r: RequestType) {
+        let id = r.id().to_owned();
+        self.cache.insert(id, r);
     }
 }

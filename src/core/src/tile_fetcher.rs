@@ -1,17 +1,19 @@
+use crate::downloader::query::CellDesc;
 use crate::downloader::{query, Downloader};
 use crate::time::{DeltaTime, Time};
 use crate::Abort;
 
+use al_api::moc::MOCOptions;
 use std::cell::RefCell;
 use std::collections::{HashMap, VecDeque};
 use std::rc::Rc;
-use al_api::moc::MOCOptions;
 
 const MAX_NUM_TILE_FETCHING: usize = 8;
 const MAX_QUERY_QUEUE_LENGTH: usize = 100;
 
 use crate::renderable::hips::HiPS;
 
+#[derive(Default)]
 pub struct TileFetcherQueue {
     // A stack of queries to fetch
     queries: VecDeque<query::Tile>,
@@ -25,6 +27,7 @@ pub struct TileFetcherQueue {
 #[derive(Debug)]
 #[wasm_bindgen]
 pub struct HiPSLocalFiles {
+    #[allow(clippy::type_complexity)]
     tiles: Box<[Box<[HashMap<u64, web_sys::File>]>; 4]>,
     moc: web_sys::File,
 }
@@ -66,12 +69,15 @@ impl HiPSLocalFiles {
             ImageExt::Jpeg => &self.tiles[1],
             ImageExt::Png => &self.tiles[2],
             ImageExt::Webp => &self.tiles[3],
+            ImageExt::FitsFz => todo!(),
         };
 
-        return tiles_per_fmt[d].get(&i);
+        tiles_per_fmt[d].get(&i)
     }
+}
 
-    fn get_moc(&self) -> &web_sys::File {
+impl HiPSLocalFiles {
+    pub fn get_moc(&self) -> &web_sys::File {
         &self.moc
     }
 }
@@ -142,18 +148,23 @@ impl TileFetcherQueue {
 
     fn check_in_file_list(&self, mut query: Tile) -> Result<Tile, JsValue> {
         if let Some(local_hips) = self.hips_local_files.get(&query.hips_cdid) {
-            if let Some(tile) =
-                local_hips.get_tile(&query.cell, query.format.get_ext_file().clone())
-            {
-                if let Ok(url) = web_sys::Url::create_object_url_with_blob(tile.as_ref()) {
-                    // rewrite the url
-                    query.url = url;
-                    Ok(query)
-                } else {
-                    Err(JsValue::from_str("could not create an url from the tile"))
+            // TODO modify local hips file structure to support freq indices as well
+            match query.cell {
+                CellDesc::HiPS2D { cell, .. } => {
+                    if let Some(tile) = local_hips.get_tile(&cell, *query.format.get_ext_file()) {
+                        if let Ok(url) = web_sys::Url::create_object_url_with_blob(tile.as_ref()) {
+                            // rewrite the url
+                            query.url = url;
+                            Ok(query)
+                        } else {
+                            Err(JsValue::from_str("could not create an url from the tile"))
+                        }
+                    } else {
+                        Ok(query)
+                    }
                 }
-            } else {
-                Ok(query)
+                // TODO Support for HiPS3D/Cube
+                _ => Ok(query),
             }
         } else {
             Ok(query)
@@ -189,54 +200,48 @@ impl TileFetcherQueue {
         downloader: Rc<RefCell<Downloader>>,
     ) {
         let cfg = hips.get_config();
-        // Request for the allsky first
-        // The allsky is not mandatory present in a HiPS service but it is better to first try to search for it
-        //downloader.fetch(query::PixelMetadata::new(cfg));
-        // Try to fetch the MOC
-        let hips_cdid = cfg.get_creator_did();
-        let moc_url = if let Some(local_hips) = self.hips_local_files.get(hips_cdid) {
-            if let Ok(url) =
-                web_sys::Url::create_object_url_with_blob(local_hips.get_moc().as_ref())
-            {
-                url
-            } else {
-                format!("{}/Moc.fits", cfg.get_root_url())
-            }
-        } else {
-            format!("{}/Moc.fits", cfg.get_root_url())
-        };
 
         downloader.borrow_mut().fetch(query::Moc::new(
-            moc_url,
-            cfg.get_creator_did().to_string(),
+            cfg,
+            &self.hips_local_files,
             MOCOptions::default(),
         ));
 
-        let tile_size = cfg.get_tile_size();
-        //Request the allsky for the small tile size or if base tiles are not available
-        if tile_size <= 128 || cfg.get_min_depth_tile() > 0 {
-            // Request the allsky
-            downloader.borrow_mut().fetch(query::Allsky::new(
-                cfg,
-                match hips {
-                    HiPS::D2(_) => None,
-                    HiPS::D3(h) => Some(h.get_slice() as u32),
-                },
-            ));
-        } else if cfg.get_min_depth_tile() == 0 {
-            #[cfg(target_arch = "wasm32")]
+        // Request the allsky for the small tile size or if base tiles are not available
+
+        // Request the allsky
+        let dl = downloader.clone();
+
+        // Allsky query
+        match hips {
+            HiPS::D2(_) => {
+                let allsky_query = query::Allsky::new(cfg, None);
+
+                crate::utils::set_timeout(
+                    move || {
+                        dl.borrow_mut().fetch(allsky_query);
+                    },
+                    100,
+                );
+            }
+            // Do not ask for allsky for HiPS3D
+            HiPS::D3(_) => (),
+        }
+
+        // FIXME: this still might be important to keep but for HiPS2D only
+        /*if cfg.get_min_depth_tile() == 0 {
             for tile_cell in crate::healpix::cell::ALLSKY_HPX_CELLS_D0 {
-                if let Ok(query) = self.check_in_file_list(hips.get_tile_query(tile_cell)) {
+                if let Ok(query) = self.check_in_file_list(hips.build_tile_query(tile_cell)) {
                     let dl = downloader.clone();
 
                     crate::utils::set_timeout(
                         move || {
                             dl.borrow_mut().fetch(query);
                         },
-                        2_000,
+                        100,
                     );
                 }
             }
-        }
+        }*/
     }
 }

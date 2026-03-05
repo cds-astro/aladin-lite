@@ -37,7 +37,10 @@
         colorPicker.value = cat.color;
         colorPicker.addEventListener('input', function (e) {
             // Change the color of the catalog
-            cat.updateShape({color: this.value});
+            console.log(this.value)
+            cat.updateShape({color: () => {
+                return '#00ff00'
+            }});
         })
 
         // Define the box

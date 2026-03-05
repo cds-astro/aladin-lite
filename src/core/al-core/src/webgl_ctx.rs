@@ -4,17 +4,11 @@ use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;
 use web_sys::HtmlElement;
 
-#[cfg(feature = "webgl2")]
 pub type WebGlRenderingCtx = web_sys::WebGl2RenderingContext;
-#[cfg(feature = "webgl1")]
-pub type WebGlRenderingCtx = web_sys::WebGlRenderingContext;
 
 #[derive(Clone)]
 pub struct WebGlContext {
     inner: Rc<WebGlRenderingCtx>,
-
-    #[cfg(feature = "webgl1")]
-    pub ext: WebGlExt,
 }
 
 #[derive(Clone)]
@@ -55,32 +49,19 @@ impl WebGlContext {
 
         #[cfg(feature = "webgl2")]
         {
-            if let Ok(r) =
+            /*if let Ok(r) =
                 get_extension::<web_sys::ExtColorBufferFloat>(&gl, "EXT_color_buffer_float")
             {
                 let _ = r;
-            }
+            }*/
 
             let ctx = WebGlContext { inner: gl };
             Ok(ctx)
         }
-
-        #[cfg(feature = "webgl1")]
-        {
-            let angles_ext =
-                get_extension::<web_sys::AngleInstancedArrays>(&gl, "ANGLE_instanced_arrays")?;
-            let _ = get_extension::<web_sys::OesTextureFloat>(&gl, "OES_texture_float")?;
-            let _ = get_extension::<web_sys::ExtSRgb>(&gl, "EXT_sRGB")?;
-
-            Ok(WebGlContext {
-                inner: gl,
-                ext: WebGlExt { angles: angles_ext },
-            })
-        }
     }
 }
 
-fn get_extension<T>(context: &WebGlRenderingCtx, name: &str) -> Result<T, JsValue>
+fn _get_extension<T>(context: &WebGlRenderingCtx, name: &str) -> Result<T, JsValue>
 where
     T: wasm_bindgen::JsCast,
 {

@@ -1,27 +1,29 @@
-// Copyright 2015 - UDS/CNRS
+// SPDX-License-Identifier: LGPL-3.0-or-later
+// Copyright 2013 - UDS/CNRS
 // The Aladin Lite program is distributed under the terms
-// of the GNU General Public License version 3.
+// of the GNU Lesser General Public License version 3
+// or (at your option) any later version.
 //
 // This file is part of Aladin Lite.
 //
 //    Aladin Lite is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, version 3 of the License.
+//    it under the terms of the GNU Lesser General Public License as published by
+//    the Free Software Foundation, either version 3 of the License, or
+//    (at your option) any later version.
 //
 //    Aladin Lite is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+//    GNU Lesser General Public License for more details.
 //
-//    The GNU General Public License is available in COPYING file
-//    along with Aladin Lite.
+//    You should have received a copy of the GNU Lesser General Public License
+//    along with Aladin Lite. If not, see <https://www.gnu.org/licenses/>.
 //
 
 import { FSM } from "../FiniteStateMachine";
 import { ActionButton } from "../gui/Widgets/ActionButton";
 import { View } from "../View";
 import finishIconUrl from '../../../assets/icons/finish.svg';
-import { Utils } from "../Utils";
 import { Selector } from "../Selector";
 
 /******************************************************************************
@@ -50,6 +52,7 @@ export class PolySelect extends FSM {
 
             view.aladin.removeStatusBarMessage('selector')
         }
+
         let btn;
         let mouseout = (params) => {
             let {e, coo} = params;
@@ -66,8 +69,6 @@ export class PolySelect extends FSM {
 
         let start = (params) => {
             const {callback} = params;
-            view.setMode(View.SELECT)
-
             this.callback = callback;
             // reset the coo
             this.coos = [];
@@ -217,7 +218,7 @@ export class PolySelect extends FSM {
         };
 
         let fsm;
-        if (Utils.hasTouchScreen()) {
+        //if (Utils.hasTouchScreen()) {
             let mousedown = click;
             let mouseup = click;
 
@@ -261,7 +262,7 @@ export class PolySelect extends FSM {
                     }
                 }
             }
-        } else {
+        /*} else {
             // desktop, laptops...
             fsm = {
                 state: 'off',
@@ -298,7 +299,7 @@ export class PolySelect extends FSM {
                     }
                 }
             }
-        }
+        }*/
 
         super(fsm)
         let self = this;

@@ -19,10 +19,10 @@
         <meta name="viewport" content="viewport-fit=cover, width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
     </head>
 <body>
-
 <script src="https://code.jquery.com/jquery-1.10.1.min.js"></script>
 <script type="text/javascript">
     let aladin;
+    let longitudeReversed = false;
 </script>
 <div id="aladin-lite-div" style="width:100vw;height:100vh;">
     <div id="calibCircle" style="display: none;"></div>
@@ -37,8 +37,8 @@
     <!-- fin temporaire gestion cercle -->
 
 	<b>Orientation</b><br>
-              <button id="hips-coronelli" class="pure-button" name="ref-hips" onclick="aladin.setImageSurvey('Coronelli')">Normal</button><br>
-              <button id="hips-illenoroc" class="pure-button" name="ref-hips" onclick="aladin.setImageSurvey('illenoroC')">Inversé</button>
+              <button id="hips-coronelli" class="pure-button" name="ref-hips" onclick="aladin.reverseLongitude(false)">Normal</button><br>
+              <button id="hips-illenoroc" class="pure-button" name="ref-hips" onclick="aladin.reverseLongitude(true);">Inversé</button>
 	<br><br>
 
 	<b>Constellations</b>
@@ -74,6 +74,13 @@
 	       <a href="#"><img id="coronelli-stars-red" class="catcoro coro-star" src="star_red.png"></a>
 	       <a href="#"><img id="coronelli-stars-blue" class="catcoro coro-star" src="star_blue.png"></a>
 	    </div>
+<div>Coronelli2<br>
+	    <!--a id="coronelli-stars" class="pure-button catcoro" href="#">Coronelli</a-->
+	       <a href="#"><img id="coronelli-stars-white" class="catcoro coro-star" src="star_white.png"></a>
+	       <a href="#"><img id="coronelli-stars-yellow" class="catcoro coro-star" src="star_yellow.png"></a><br>
+	       <a href="#"><img id="coronelli-stars-red" class="catcoro coro-star" src="star_red.png"></a>
+	       <a href="#"><img id="coronelli-stars-blue" class="catcoro coro-star" src="star_blue.png"></a>
+	    </div>
 	<br><br>
 
         <b>Navigation</b>&nbsp;&nbsp;<br><button id="stop">Stop</button>
@@ -95,6 +102,14 @@
             &nbsp;→&nbsp;<a class="pure-button nav-button nav-flyto" href="#">Move</a>
 	</div>
 	<div id="coo_halley">
+            <a class="pure-button nav-button nav-goto" href="#">Halley</a><br>
+            &nbsp;→&nbsp;<a class="pure-button nav-button nav-flyto" href="#">Move</a>
+	</div>
+    <div id="coo_halley">
+            <a class="pure-button nav-button nav-goto" href="#">Halley</a><br>
+            &nbsp;→&nbsp;<a class="pure-button nav-button nav-flyto" href="#">Move</a>
+	</div>
+    <div id="coo_halley">
             <a class="pure-button nav-button nav-goto" href="#">Halley</a><br>
             &nbsp;→&nbsp;<a class="pure-button nav-button nav-flyto" href="#">Move</a>
 	</div>
@@ -230,12 +245,10 @@
     import {Utils} from '../src/js/Utils';
 
     A.init.then(() => {
-        var hipsDir="http://alasky.u-strasbg.fr/CDS_P_Coronelli";
-        aladin = A.aladin("#aladin-lite-div", {showSimbadPointerControl: true, expandLayersControl: true, realFullscreen: true, fov: 100, allowFullZoomout: true, showReticle: false });
-        aladin.createImageSurvey('illenoroC', 'illenoroC', hipsDir, 'equatorial', 4, {imgFormat: 'jpg', longitudeReversed: false});
-        aladin.createImageSurvey('Coronelli', 'Coronelli', hipsDir, 'equatorial', 4, {imgFormat: 'jpg', longitudeReversed: true});
-        aladin.setImageSurvey('Coronelli');
-
+        var hipsDir="http://alasky.cds.unistra.fr/CDS_P_Coronelli";
+        aladin = A.aladin("#aladin-lite-div", {showSimbadPointerControl: true, lockNorthUp: true, reverseLongitude: true, realFullscreen: true, fov: 100, allowFullZoomout: true, showReticle: false });
+        aladin.createImageSurvey('Coronelli', 'Coronelli', hipsDir, 'equatorial', 4, {imgFormat: 'jpg', minOrder: 3});
+        aladin.setImageSurvey('Coronelli')
         $('#layersControlLeft').show();
         $('#layersCL2').show();
         $('#layersControlRight').show();
@@ -344,14 +357,14 @@
 
         // listen click on navigation buttons
         $('.nav-button').click(function() {
-        var cooTarget = $(this).parent().attr('id');
+            var cooTarget = $(this).parent().attr('id');
 
-        if ($(this).hasClass("nav-goto")) {
-            aladin.gotoRaDec(cooNav[cooTarget].ra, cooNav[cooTarget].dec);
-        }
-        else if ($(this).hasClass("nav-flyto")) {
-            aladin.animateToRaDec(cooNav[cooTarget].ra, cooNav[cooTarget].dec, cooNav[cooTarget].time);
-        }
+            if ($(this).hasClass("nav-goto")) {
+                aladin.gotoRaDec(cooNav[cooTarget].ra, cooNav[cooTarget].dec);
+            }
+            else if ($(this).hasClass("nav-flyto")) {
+                aladin.animateToRaDec(cooNav[cooTarget].ra, cooNav[cooTarget].dec, cooNav[cooTarget].time);
+            }
         });
 
         // stop animations

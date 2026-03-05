@@ -1,0 +1,22 @@
+<!doctype html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, height=device-height, maximum-scale=1.0, initial-scale=1.0, user-scalable=no">
+</head>
+<body>
+<div id="aladin-lite-div" style="width: 500px; height: 500px"></div>
+
+<script type="text/javascript" src="./../dist/aladin.umd.cjs" charset="utf-8"></script>
+<script type="text/javascript">
+    var aladin;
+    A.init.then(() => {
+        aladin = A.aladin('#aladin-lite-div', {fullScreen: true, cooFrame: "ICRSd", showSimbadPointerControl: true, showShareControl: true, showShareControl: true, survey: 'https://alasky.cds.unistra.fr/DSS/DSSColor/', fov: 1.0, target: 'M 20', showContextMenu: true});
+
+        // customize share URL function
+        aladin.customizeShareURLFunction(() => {return 'https://sky.esa.int/esasky/?target=' + aladin.getRaDec()[0] + '%20' + aladin.getRaDec()[1] + '&fov=' + aladin.getFoV()[0]})
+
+    });
+</script>
+
+</body>
+</html>

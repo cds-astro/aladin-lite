@@ -1,0 +1,21 @@
+#version 300 es
+precision lowp float;
+precision lowp sampler2D;
+precision mediump int;
+
+out vec4 out_frag_color;
+in vec2 frag_uv;
+
+uniform sampler2D tex;
+uniform float opacity;
+
+#include ./color.glsl;
+
+void main() {
+    // FITS y axis looks down
+    vec2 uv = frag_uv;
+    uv.y = 1.0 - uv.y;
+
+    out_frag_color = uv2c_u8(frag_uv);
+    out_frag_color.a = out_frag_color.a * opacity;
+}

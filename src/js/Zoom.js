@@ -1,23 +1,24 @@
+// SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright 2013 - UDS/CNRS
 // The Aladin Lite program is distributed under the terms
-// of the GNU General Public License version 3.
+// of the GNU Lesser General Public License version 3
+// or (at your option) any later version.
 //
 // This file is part of Aladin Lite.
 //
 //    Aladin Lite is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, version 3 of the License.
+//    it under the terms of the GNU Lesser General Public License as published by
+//    the Free Software Foundation, either version 3 of the License, or
+//    (at your option) any later version.
 //
 //    Aladin Lite is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+//    GNU Lesser General Public License for more details.
 //
-//    The GNU General Public License is available in COPYING file
-//    along with Aladin Lite.
+//    You should have received a copy of the GNU Lesser General Public License
+//    along with Aladin Lite. If not, see <https://www.gnu.org/licenses/>.
 //
-
-
 
 /******************************************************************************
  * Aladin Lite project
@@ -36,24 +37,16 @@ import { requestAnimFrame } from "./libs/RequestAnimationFrame.js";
 	};
 
     Zoom.prototype.apply = function(options) {
-        let startZoom = options['start'] || this.view.fov;
+        let startZoom = options['start'] || this.view.zoomFactor;
         let finalZoom = options['stop'] || undefined;
         let interpolationDuration = options['duration'] || 1000; // default to 1seconds
         if (!finalZoom)
             return;
 
-        // clamp the zoom to the view params minFov and maxFov and the projection bounds
-        //finalZoom = Math.min(finalZoom, this.view.projection.fov);
-        // then clamp the fov between minFov and maxFov
-        const minFoV = this.view.minFoV;
-        const maxFoV = this.view.maxFoV;
-
-        if (minFoV) {
-            finalZoom = Math.max(finalZoom, minFoV);
-        }
-
-        if (maxFoV) {
-            finalZoom = Math.min(finalZoom, maxFoV);
+        // Get a relative error for stopping the zooming
+        const relativeErr = Math.abs(finalZoom - startZoom) * 0.01;
+        const zoomFn = (zoom) => {
+            this.view.setZoomFactor(zoom)
         }
 
         this.finalZoom = finalZoom;
@@ -97,6 +90,7 @@ import { requestAnimFrame } from "./libs/RequestAnimationFrame.js";
             if (self.stop) {
                 self.isZooming = false;
                 self.stop = false;
+                self.finalZoom = undefined;
             } else {
                 self.x = ( performance.now() - self.startTime ) / interpolationDuration;
                 interpolatedZoom = Zoom.hermiteCubic.f(self.x, self.x1, self.x2, self.y1, self.y2, self.m1, self.m2);
@@ -104,13 +98,13 @@ import { requestAnimFrame } from "./libs/RequestAnimationFrame.js";
                 interpolatedZoom = Math.max(0, interpolatedZoom);
     
                 // Apply zoom level to map or perform any necessary rendering
-                self.view.setZoom(interpolatedZoom);
-    
-                self.fov = interpolatedZoom;
+                zoomFn(interpolatedZoom);
 
-                if (self.x >= self.x2 || Math.abs(interpolatedZoom - self.finalZoom) < 1e-4) {
-                    self.view.setZoom(self.finalZoom);
+                if (self.x >= self.x2 || Math.abs(interpolatedZoom - self.finalZoom) <= relativeErr) {
+                    zoomFn(self.finalZoom);
 
+                    self.isZooming = false;
+                } else if (self.view.wasm.atZoomBoundaries()) {
                     self.isZooming = false;
                 } else {
                     // Request the next frame

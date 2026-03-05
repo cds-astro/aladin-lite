@@ -1,5 +1,5 @@
-use cgmath::BaseFloat;
 use crate::Abort;
+use cgmath::BaseFloat;
 // ArcDeg wrapper structure
 #[derive(Clone, Copy)]
 pub struct ArcDeg<T: BaseFloat>(pub T);
@@ -42,19 +42,18 @@ where
     }
 }
 
-impl<T> ToString for ArcDeg<T>
+impl<T> Display for ArcDeg<T>
 where
-    T: BaseFloat + ToString,
+    T: BaseFloat + Display,
 {
-    fn to_string(&self) -> String {
-        self.0.to_string()
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
 
 // ArcHour wrapper structure
 #[derive(Clone, Copy)]
 pub struct ArcHour<T: BaseFloat>(pub T);
-
 
 impl<T> From<Rad<T>> for ArcHour<T>
 where
@@ -81,12 +80,12 @@ where
     }
 }
 
-impl<T> ToString for ArcHour<T>
+impl<T> Display for ArcHour<T>
 where
-    T: BaseFloat + ToString,
+    T: BaseFloat + Display,
 {
-    fn to_string(&self) -> String {
-        self.0.to_string()
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
 
@@ -132,27 +131,18 @@ where
     }
 }
 
-impl<T> ToString for ArcMin<T>
+impl<T> Display for ArcMin<T>
 where
-    T: BaseFloat + ToString,
+    T: BaseFloat + Display,
 {
-    fn to_string(&self) -> String {
-        self.0.to_string()
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
 
 // ArcSec wrapper structure
 #[derive(Clone, Copy)]
 pub struct ArcSec<T: BaseFloat>(pub T);
-
-impl<T> ArcSec<T>
-where
-    T: BaseFloat,
-{
-    fn _truncate(&mut self) {
-        *self = Self((*self).trunc());
-    }
-}
 
 impl<T> From<Rad<T>> for ArcSec<T>
 where
@@ -180,12 +170,12 @@ where
     }
 }
 
-impl<T> ToString for ArcSec<T>
+impl<T> Display for ArcSec<T>
 where
-    T: BaseFloat + ToString,
+    T: BaseFloat + Display,
 {
-    fn to_string(&self) -> String {
-        self.0.to_string()
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
 
@@ -201,130 +191,6 @@ where
 }
 
 use al_api::angle::Format;
-/*
-pub enum SerializeFmt {
-    DMS,
-    HMS,
-    DMM,
-    DD,
-}
-
-use al_api::angle_fmt::AngleSerializeFmt;
-impl From<AngleSerializeFmt> for SerializeFmt {
-    fn from(value: AngleSerializeFmt) -> Self {
-        match value {
-            AngleSerializeFmt::DMS => SerializeFmt::DMS,
-            AngleSerializeFmt::HMS => SerializeFmt::HMS,
-            AngleSerializeFmt::DMM => SerializeFmt::DMM,
-            AngleSerializeFmt::DD => SerializeFmt::DD,
-        }
-    }
-}
-
-impl SerializeFmt {
-    pub fn to_string<S: BaseFloat + ToString>(&self, angle: Angle<S>) -> String {
-        match &self {
-            Self::DMS => DMS::to_string(angle),
-            Self::HMS => HMS::to_string(angle),
-            Self::DMM => DMM::to_string(angle),
-            Self::DD => DD::to_string(angle),
-        }
-    }
-}*/
-
-/*pub trait SerializeToString {
-    fn to_string(&self) -> String;
-}
-
-impl<S> SerializeToString for Angle<S>
-where
-    S: BaseFloat + ToString,
-{
-    fn to_string<F: FormatType>(&self) -> String {
-        F::to_string(*self)
-    }
-}*/
-
-/*
-pub struct DMS;
-pub struct HMS;
-pub struct DMM;
-pub struct DD;
-pub trait FormatType {
-    fn to_string<S: BaseFloat + ToString>(angle: Angle<S>) -> String;
-}
-
-impl FormatType for DD {
-    fn to_string<S: BaseFloat + ToString>(angle: Angle<S>) -> String {
-        let angle = Rad(angle.0);
-        let degrees: ArcDeg<S> = angle.into();
-
-        degrees.to_string()
-    }
-}
-impl FormatType for DMM {
-    fn to_string<S: BaseFloat + ToString>(angle: Angle<S>) -> String {
-        let angle = Rad(angle.0);
-
-        let mut degrees: ArcDeg<S> = angle.into();
-        let minutes = degrees.get_frac_minutes();
-
-        degrees.truncate();
-
-        let mut result = degrees.to_string() + " ";
-        result += &minutes.to_string();
-
-        result
-    }
-}
-
-impl FormatType for DMS {
-    fn to_string<S: BaseFloat + ToString>(angle: Angle<S>) -> String {
-        let angle = Rad(angle.0);
-        let degrees: ArcDeg<S> = angle.into();
-        let minutes = degrees.get_frac_minutes();
-        let seconds = minutes.get_frac_seconds();
-
-        let num_sec_per_minutes = S::from(60).unwrap_abort();
-
-        let degrees = degrees.trunc();
-        let minutes = minutes.trunc() % num_sec_per_minutes;
-        let seconds = seconds.trunc() % num_sec_per_minutes;
-
-        let mut result = degrees.to_string() + "°";
-        result += &minutes.to_string();
-        result += "\'";
-        result += &seconds.to_string();
-        result += "\'\'";
-
-        result
-    }
-}
-
-impl FormatType for HMS {
-    fn to_string<S: BaseFloat + ToString>(angle: Angle<S>) -> String {
-        let angle = Rad(angle.0);
-
-        let hours: ArcHour<S> = angle.into();
-        let minutes = hours.get_frac_minutes();
-        let seconds = minutes.get_frac_seconds();
-
-        let num_sec_per_minutes = S::from(60).unwrap_abort();
-
-        let hours = hours.trunc();
-        let minutes = minutes.trunc() % num_sec_per_minutes;
-        let seconds = seconds.trunc() % num_sec_per_minutes;
-
-        let mut result = hours.to_string() + "h";
-        result += &minutes.to_string();
-        result += "\'";
-        result += &seconds.to_string();
-        result += "\'\'";
-
-        result
-    }
-}*/
-
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -339,7 +205,10 @@ where
 {
     pub fn new<T: Into<Rad<S>>>(angle: T) -> Angle<S> {
         let radians: Rad<S> = angle.into();
-        Angle { rad: radians.0, fmt: AngleFormatter::default() }
+        Angle {
+            rad: radians.0,
+            fmt: AngleFormatter::default(),
+        }
     }
 
     pub fn cos(&self) -> S {
@@ -409,7 +278,7 @@ where
         S::max_value().to_angle()
     }
 
-    pub fn to_radians(&self) -> S {
+    pub const fn to_radians(&self) -> S {
         self.rad
     }
 
@@ -438,7 +307,10 @@ where
     S: BaseFloat,
 {
     fn to_angle(self) -> Angle<S> {
-        Angle { rad: self, fmt: Default::default() } 
+        Angle {
+            rad: self,
+            fmt: Default::default(),
+        }
     }
 }
 
@@ -694,7 +566,7 @@ pub enum AngleFormatter {
     Decimal {
         /// Number of digit of precision
         prec: u8,
-    }
+    },
 }
 
 impl Default for AngleFormatter {
@@ -707,8 +579,14 @@ use std::fmt::Display;
 impl Display for Angle<f64> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.fmt {
-            AngleFormatter::Sexagesimal { prec, plus, hours } => {
+            AngleFormatter::Sexagesimal {
+                mut prec,
+                plus,
+                hours,
+            } => {
                 let unit = if hours {
+                    // to preserve the same angular precision the new prec is p+log10​(15) ≈ p+1.18 < p+2
+                    prec += 2;
                     self.to_hours()
                 } else {
                     self.to_degrees()
@@ -720,7 +598,7 @@ impl Display for Angle<f64> {
                 // Format the unit value to sexagesimal.
                 // The precision 8 corresponds to the formatting: deg/hour min sec.ddd
                 write!(f, "{}", Format::toSexagesimal(unit, 8, plus))
-            },
+            }
             AngleFormatter::Decimal { prec } => {
                 write!(f, "{:.1$}°", self.to_degrees(), prec as usize)
             }

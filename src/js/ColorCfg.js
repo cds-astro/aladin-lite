@@ -1,20 +1,23 @@
+// SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright 2013 - UDS/CNRS
 // The Aladin Lite program is distributed under the terms
-// of the GNU General Public License version 3.
+// of the GNU Lesser General Public License version 3
+// or (at your option) any later version.
 //
 // This file is part of Aladin Lite.
 //
 //    Aladin Lite is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, version 3 of the License.
+//    it under the terms of the GNU Lesser General Public License as published by
+//    the Free Software Foundation, either version 3 of the License, or
+//    (at your option) any later version.
 //
 //    Aladin Lite is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+//    GNU Lesser General Public License for more details.
 //
-//    The GNU General Public License is available in COPYING file
-//    along with Aladin Lite.
+//    You should have received a copy of the GNU Lesser General Public License
+//    along with Aladin Lite. If not, see <https://www.gnu.org/licenses/>.
 //
 
 /******************************************************************************
@@ -41,17 +44,31 @@
         this.stretch = (options && options.stretch) || "linear";
         this.stretch = this.stretch.toLowerCase();
         this.reversed = false;
+        // Keep the image tile format because we want the cuts
+        this.imgFormat = options.imgFormat || 'png';
 
         if (options && options.reversed === true) {
             this.reversed = true;
         }
 
+        this.minCut = {
+            webp: 0.0,
+            jpeg: 0.0,
+            png: 0.0,
+            fits: undefined // wait the default value coming from the properties
+        };
         if (options && Number.isFinite(options.minCut)) {
-            this.minCut = options.minCut;
+            this.minCut[this.imgFormat] = options.minCut;
         }
 
+        this.maxCut = {
+            webp: 255.0,
+            jpeg: 255.0,
+            png: 255.0,
+            fits: undefined // wait the default value coming from the properties
+        };
         if (options && Number.isFinite(options.maxCut)) {
-            this.maxCut = options.maxCut;
+            this.maxCut[this.imgFormat] = options.maxCut;
         }
 
         this.additiveBlending = options && options.additive;
@@ -81,6 +98,16 @@
             }
         }
 
+        let minCut = this.minCut[this.imgFormat]
+        if (this.imgFormat !== "fits") {
+            minCut /= 255.0
+        }
+
+        let maxCut = this.maxCut[this.imgFormat]
+        if (this.imgFormat !== "fits") {
+            maxCut /= 255.0
+        }
+
         // Reset the whole meta object
         return {
             blendCfg: blend,
@@ -93,8 +120,8 @@
                 kContrast: this.kContrast,
 
                 stretch: this.stretch,
-                minCut: this.minCut,
-                maxCut: this.maxCut,
+                minCut,
+                maxCut,
                 reversed: this.reversed,
                 cmapName: this.colormap,
             }
@@ -102,9 +129,12 @@
     }
     
     ColorCfg.prototype.setOptions = function(options) {
+        // Update the imgFormat 
+        this.imgFormat = options.imgFormat || this.imgFormat;
+
         this.setColormap(options.colormap, options)
 
-        this.setCuts(options.minCut, options.maxCut)
+        this.setCuts(options.minCut, options.maxCut, options.cutFormat)
 
         this.setBrightness(options.brightness)
         this.setSaturation(options.saturation)
@@ -231,18 +261,30 @@
         return this.reversed;
     };
 
-    // @api
-    ColorCfg.prototype.setCuts = function(minCut, maxCut) {
-        if (minCut === null || minCut === undefined || maxCut === null || maxCut === undefined) {
-            return;
+    // Sets the cuts for the current image format
+    ColorCfg.prototype.setCuts = function(minCut, maxCut, imgFormat) {
+        imgFormat = imgFormat || this.imgFormat;
+
+        if (minCut instanceof Object) {
+            // Mincut is given in the form of an javascript object with all the formats
+            this.minCut = {...this.minCut, ...minCut};
+        } else if (minCut !== null && minCut !== undefined) {
+            this.minCut[imgFormat] = minCut;
         }
 
-        this.minCut = minCut;
-        this.maxCut = maxCut;
+        if (maxCut instanceof Object) {
+            this.maxCut = {...this.maxCut, ...maxCut};
+        } else if (maxCut !== null && maxCut !== undefined) {
+            this.maxCut[imgFormat] = maxCut;
+        }
     };
 
+    // Returns the cuts for the current image format
     ColorCfg.prototype.getCuts = function() {
-        return [this.minCut, this.maxCut];
+        return [
+            this.minCut[this.imgFormat],
+            this.maxCut[this.imgFormat]
+        ];
     };
 
     return ColorCfg;

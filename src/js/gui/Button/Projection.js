@@ -1,20 +1,23 @@
-// Copyright 2023 - UDS/CNRS
+// SPDX-License-Identifier: LGPL-3.0-or-later
+// Copyright 2013 - UDS/CNRS
 // The Aladin Lite program is distributed under the terms
-// of the GNU General Public License version 3.
+// of the GNU Lesser General Public License version 3
+// or (at your option) any later version.
 //
 // This file is part of Aladin Lite.
 //
 //    Aladin Lite is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, version 3 of the License.
+//    it under the terms of the GNU Lesser General Public License as published by
+//    the Free Software Foundation, either version 3 of the License, or
+//    (at your option) any later version.
 //
 //    Aladin Lite is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+//    GNU Lesser General Public License for more details.
 //
-//    The GNU General Public License is available in COPYING file
-//    along with Aladin Lite.
+//    You should have received a copy of the GNU Lesser General Public License
+//    along with Aladin Lite. If not, see <https://www.gnu.org/licenses/>.
 //
 
 import { CtxMenuActionButtonOpener } from "./CtxMenuOpener";
@@ -44,24 +47,27 @@ import { ALEvent } from "../../events/ALEvent";
     constructor(aladin, options) {
         options = options || {};
         options.verbosity = (options && options.verbosity) || 'full';
+
         let projectionName = aladin.getProjectionName();
+        let self;
+        let ctxMenu = _buildLayout(aladin);
+
         super({
             icon: {
                 monochrome: true,
                 size: 'medium',
                 url: projectionIconUrl,
             },
+            openDirection: 'left',
             classList: ['aladin-projection-control'],
-            //content: [options.verbosity === 'full' ? ProjectionEnum[projectionName].label : projectionName],
             content: projectionName,
             tooltip: {content: 'Change the view projection', position: {direction: 'bottom left'}},
+            ctxMenu,
             ...options
         }, aladin);
 
+        self = this;
         this.aladin = aladin;
-
-        let ctxMenu = this._buildLayout();
-        this.update({ctxMenu})
 
         this._addEventListeners()
     }
@@ -77,41 +83,21 @@ import { ALEvent } from "../../events/ALEvent";
             self.update({content})
         });
     }
+}
 
-    _buildLayout() {
-        let aladin = this.aladin;
+function _buildLayout(aladin) {
+    let layout = [];
 
-        let layout = [];
-        let self = this;
+    for (const key in ProjectionEnum) {
+        let proj = ProjectionEnum[key];
 
-        let aladinProj = aladin.getProjectionName();
-        for (const key in ProjectionEnum) {
-            let proj = ProjectionEnum[key];
-
-            layout.push({
-                label: proj.label,
-                selected: aladinProj === key,
-                action(o) {
-                    aladin.setProjection(key)
-
-                    let ctxMenu = self._buildLayout(aladin);
-                    //self.update({ctxMenu, content: self.options.verbosity === 'full' ? proj.label : key});
-                    self.update({ctxMenu});
-                }
-            })
-        }
-
-        return layout;
+        layout.push({
+            label: proj.label,
+            action(o) {
+                aladin.setProjection(key)
+            }
+        })
     }
 
-    update(options) {
-        super.update(options);
-
-        /*if (options.verbosity) {
-            let ctxMenu = this._buildLayout();
-            let projName = this.aladin.getProjectionName();
-            let label = options.verbosity === 'full' ? ProjectionEnum[projName].label : projName;
-            super.update({ctxMenu, content: label});
-        }*/
-    }
+    return layout;
 }

@@ -1,22 +1,24 @@
+// SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright 2013 - UDS/CNRS
 // The Aladin Lite program is distributed under the terms
-// of the GNU General Public License version 3.
+// of the GNU Lesser General Public License version 3
+// or (at your option) any later version.
 //
 // This file is part of Aladin Lite.
 //
 //    Aladin Lite is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, version 3 of the License.
+//    it under the terms of the GNU Lesser General Public License as published by
+//    the Free Software Foundation, either version 3 of the License, or
+//    (at your option) any later version.
 //
 //    Aladin Lite is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+//    GNU Lesser General Public License for more details.
 //
-//    The GNU General Public License is available in COPYING file
-//    along with Aladin Lite.
+//    You should have received a copy of the GNU Lesser General Public License
+//    along with Aladin Lite. If not, see <https://www.gnu.org/licenses/>.
 //
-
 
 /******************************************************************************
  * Aladin Lite project
@@ -97,13 +99,37 @@ A.aladin = function (divSelector, options) {
         divElement = divSelector;
     }
 
+    let retrieveDefaultMode = () => {
+        const storedPreference = localStorage.getItem("theme");
+        const systemPrefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        const theme = storedPreference || (systemPrefersDark ? "dark" : "light");
+        return theme;
+    }
+
+    let theme;
+    if (options && options.mode) {
+        let mode = options.mode.toLowerCase();
+
+        if (mode === 'dark' || mode === 'light') {
+            theme = mode;
+        } else {
+            console.warn("Interface mode option not recognized, only `dark` or `light` are possible values.")
+            theme = retrieveDefaultMode()
+        }
+    } else {
+        theme = retrieveDefaultMode()
+    }
+
     // Associate the CSS inside the div
     var cssStyleSheet = document.createElement('style')
     cssStyleSheet.classList.add("aladin-css");
     cssStyleSheet.innerHTML = aladinCSS;
     divElement.appendChild(cssStyleSheet)
 
-    return new Aladin(divElement, options);
+    let aladin = new Aladin(divElement, options);
+    aladin._applyTheme(theme)
+
+    return aladin;
 };
 
 /**
@@ -142,14 +168,14 @@ A.HiPS = function (id, options) {
  A.imageHiPS = A.HiPS;
 
 /**
- * Creates a celestial source object with the given coordinates.
+ * Creates an image object from an url.
  *
  * @function
  * @name A.image
  * @memberof A
- * @param {string} url - Options describing the fits file. An url is mandatory
- * @param {ImageOptions} [options] - Options describing the fits file. An url is mandatory
- * @returns {Image} - A HiPS image object
+ * @param {string} url - URL to the image file (can be jpeg, png or fits). An url is mandatory
+ * @param {ImageOptions} [options] - Options describing the image file.
+ * @returns {Image} - An image object
  * @example
 *  aladin.setOverlayImageLayer(A.image(
  *       "https://nova.astrometry.net/image/25038473?filename=M61.jpg",
@@ -362,7 +388,7 @@ A.graphicOverlay = function (options) {
  * @returns {ProgressiveCat} Returns a new Overlay object representing the graphic overlay.
  *
  * @example
- * let gaia = A.catalogHiPS('http://axel.u-strasbg.fr/HiPSCatService/I/345/gaia2', {onClick: 'showTable', color: 'orange', name: 'Gaia', filter: myFilterFunction});
+ * let gaia = A.catalogHiPS('http://axel.cds.unistra.fr/HiPSCatService/I/345/gaia2', {onClick: 'showTable', color: 'orange', name: 'Gaia', filter: myFilterFunction});
  * aladin.addCatalog(gaia)
  */
 A.catalogHiPS = function (url, options) {
@@ -395,7 +421,7 @@ A.coo = function (longitude, latitude, prec) {
  *
  * @param {Circle[]|Polyline[]|Ellipse[]|Vector[]} shapes - an array of A.polygon objects
  * @param {Source} [source] - a A.source object associated with the footprint
- * 
+ *
  * @returns {Footprint} Returns a new Footprint object
  */
 A.footprint = function(shapes, source) {
@@ -573,6 +599,10 @@ A.catalogFromURL = function (url, options, successCallback, errorCallback, usePr
     const processVOTable = function (table) {
         let {sources, fields} = table;
         c.setFields(fields);
+        if (fields.s_region) {
+            // for ObsCore tables, show also the (ra, dec) as a source
+            c.onlyFootprints = false;
+        }
         c.addSources(sources);
 
         const s_regionFieldFound = Array.from(Object.keys(fields)).find((f) => f.toLowerCase() === 's_region');
@@ -588,6 +618,7 @@ A.catalogFromURL = function (url, options, successCallback, errorCallback, usePr
                 fp.setColor(c.color);
                 fp.setHoverColor(c.hoverColor);
                 fp.setSelectionColor(c.selectionColor);
+                fp.setSelectionLineWidth(c.selectionLineWidth);
 
                 return fp;
             })
@@ -877,7 +908,7 @@ A.catalogFromSkyBot = function (ra, dec, radius, epoch, queryOptions, options, s
  * @param {function} [options.action] - The callback function to execute when the button is clicked.
  * @param {string} [options.title] - The title attribute for the button.
  * @param {Object} [options.icon] - An icon object for the button.
- * @param {boolean} [options.disable=false] - Whether the button is initially disabled.
+ * @param {boolean} [options.disabled=false] - Whether the button is initially disabled.
  * @param {HTMLElement|string|Widget} [options.content] - The content to be added to the button.
  * @param {CSSStyleSheet} [options.cssStyle] - The CSS styles to apply to the button.
  * @param {Object} [options.tooltip] - A tooltip.
@@ -1036,7 +1067,7 @@ A.init = (async () => {
         .createElement('canvas')
         .getContext('webgl2');
 
-    await init({});
+    await init();
     // Check for webgl2 support
     if (isWebGL2Supported) {
         Aladin.wasmLibs.core = module;

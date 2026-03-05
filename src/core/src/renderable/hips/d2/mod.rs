@@ -2,15 +2,21 @@ pub mod buffer;
 pub mod texture;
 
 use crate::app::BLENDING_ANIM_DURATION;
-use crate::renderable::hips::HpxTile;
+use crate::browser_support::BrowserFeaturesSupport;
+use crate::downloader::query;
+use crate::downloader::query::CellDesc;
+use crate::downloader::request::allsky::AllskyRequest;
+use crate::math::angle::ToAngle;
+use crate::tile_fetcher::TileFetcherQueue;
 use al_api::hips::ImageExt;
 use al_api::hips::ImageMetadata;
 use al_core::colormap::Colormap;
 use al_core::colormap::Colormaps;
-use al_core::image::format::ChannelType;
+use al_core::texture::format::PixelType;
+use cgmath::Vector2;
 use cgmath::Vector3;
 
-use crate::downloader::query;
+use crate::renderable::hips::FitsParams;
 
 use al_core::image::Image;
 
@@ -27,23 +33,20 @@ use crate::ProjectionType;
 use crate::camera::CameraViewPort;
 
 use crate::shader::ShaderManager;
-use crate::{math::lonlat::LonLatT, utils};
+use crate::utils;
 
-use crate::downloader::request::allsky::Allsky;
-use crate::healpix::{cell::HEALPixCell, coverage::HEALPixCoverage};
-use crate::renderable::utils::index_patch::DefaultPatchIndexIter;
+use crate::healpix::{cell::HEALPixCell, moc::SpaceMoc};
 use crate::time::Time;
-use crate::math::angle::ToAngle;
-
 
 use super::config::HiPSConfig;
+use crate::math::lonlat::LonLat;
 use std::collections::HashSet;
 
 // Recursively compute the number of subdivision needed for a cell
 // to not be too much skewed
 
 use buffer::HiPS2DBuffer;
-use texture::HpxTexture2D;
+use texture::HpxTex;
 
 use super::raytracing::RayTracer;
 use super::uv::{TileCorner, TileUVW};
@@ -62,13 +65,21 @@ pub struct HpxDrawData<'a> {
 
 impl<'a> HpxDrawData<'a> {
     fn from_texture(
-        starting_texture: &HpxTexture2D,
-        ending_texture: &HpxTexture2D,
+        starting_texture: &HpxTex,
+        ending_texture: &HpxTex,
         cell: &'a HEALPixCell,
     ) -> Self {
-        let uv_0 = TileUVW::new(cell, starting_texture);
-        let uv_1 = TileUVW::new(cell, ending_texture);
-        let start_time = ending_texture.start_time().as_millis();
+        let uv_0 = TileUVW::new(
+            cell,
+            &Some(starting_texture.cell),
+            starting_texture.idx() as f32,
+        );
+        let uv_1 = TileUVW::new(
+            cell,
+            &Some(ending_texture.cell),
+            ending_texture.idx() as f32,
+        );
+        let start_time = ending_texture.start_time.unwrap_or(Time::now()).as_millis();
 
         Self {
             uv_0,
@@ -84,7 +95,10 @@ impl<'a> HpxDrawData<'a> {
         let start_time = BLENDING_ANIM_DURATION.as_millis();
 
         Self {
-            cell, uv_0, uv_1, start_time
+            cell,
+            uv_0,
+            uv_1,
+            start_time,
         }
     }
 }
@@ -95,44 +109,48 @@ pub fn get_raster_shader<'a>(
     shaders: &'a mut ShaderManager,
     config: &HiPSConfig,
 ) -> Result<&'a Shader, JsValue> {
-    if config.get_format().is_colored() {
-        if cmap.label() == "native" {
-            crate::shader::get_shader(
-                gl,
-                shaders,
-                "hips_rasterizer_raster.vert",
-                "hips_rasterizer_color.frag",
-            )
-        } else {
-            crate::shader::get_shader(
-                gl,
-                shaders,
-                "hips_rasterizer_raster.vert",
-                "hips_rasterizer_color_to_colormap.frag",
-            )
-        }
-    } else {
-        if config.tex_storing_unsigned_int {
-            crate::shader::get_shader(
-                gl,
-                shaders,
-                "hips_rasterizer_raster.vert",
-                "hips_rasterizer_grayscale_to_colormap_u.frag",
-            )
-        } else if config.tex_storing_integers {
-            crate::shader::get_shader(
-                gl,
-                shaders,
-                "hips_rasterizer_raster.vert",
-                "hips_rasterizer_grayscale_to_colormap_i.frag",
-            )
-        } else {
-            crate::shader::get_shader(
-                gl,
-                shaders,
-                "hips_rasterizer_raster.vert",
-                "hips_rasterizer_grayscale_to_colormap.frag",
-            )
+    match config.get_format().get_pixel_format() {
+        PixelType::R8U => crate::shader::get_shader(
+            gl,
+            shaders,
+            "hips_rasterizer_raster.vert",
+            "hips_rasterizer_u8.frag",
+        ),
+        PixelType::R16I => crate::shader::get_shader(
+            gl,
+            shaders,
+            "hips_rasterizer_raster.vert",
+            "hips_rasterizer_i16.frag",
+        ),
+        PixelType::R32I => crate::shader::get_shader(
+            gl,
+            shaders,
+            "hips_rasterizer_raster.vert",
+            "hips_rasterizer_i32.frag",
+        ),
+        PixelType::R32F => crate::shader::get_shader(
+            gl,
+            shaders,
+            "hips_rasterizer_raster.vert",
+            "hips_rasterizer_f32.frag",
+        ),
+        // color case
+        _ => {
+            if cmap.label() == "native" {
+                crate::shader::get_shader(
+                    gl,
+                    shaders,
+                    "hips_rasterizer_raster.vert",
+                    "hips_rasterizer_rgba.frag",
+                )
+            } else {
+                crate::shader::get_shader(
+                    gl,
+                    shaders,
+                    "hips_rasterizer_raster.vert",
+                    "hips_rasterizer_rgba2cmap.frag",
+                )
+            }
         }
     }
 }
@@ -143,45 +161,48 @@ pub fn get_raytracer_shader<'a>(
     shaders: &'a mut ShaderManager,
     config: &HiPSConfig,
 ) -> Result<&'a Shader, JsValue> {
-    //let colored_hips = config.is_colored();
-    if config.get_format().is_colored() {
-        if cmap.label() == "native" {
-            crate::shader::get_shader(
-                gl,
-                shaders,
-                "hips_raytracer_raytracer.vert",
-                "hips_raytracer_color.frag",
-            )
-        } else {
-            crate::shader::get_shader(
-                gl,
-                shaders,
-                "hips_raytracer_raytracer.vert",
-                "hips_raytracer_color_to_colormap.frag",
-            )
-        }
-    } else {
-        if config.tex_storing_unsigned_int {
-            crate::shader::get_shader(
-                gl,
-                shaders,
-                "hips_raytracer_raytracer.vert",
-                "hips_raytracer_grayscale_to_colormap_u.frag",
-            )
-        } else if config.tex_storing_integers {
-            crate::shader::get_shader(
-                gl,
-                shaders,
-                "hips_raytracer_raytracer.vert",
-                "hips_raytracer_grayscale_to_colormap_i.frag",
-            )
-        } else {
-            crate::shader::get_shader(
-                gl,
-                shaders,
-                "hips_raytracer_raytracer.vert",
-                "hips_raytracer_grayscale_to_colormap.frag",
-            )
+    match config.get_format().get_pixel_format() {
+        PixelType::R8U => crate::shader::get_shader(
+            gl,
+            shaders,
+            "hips_raytracer_raytracer.vert",
+            "hips_raytracer_u8.frag",
+        ),
+        PixelType::R16I => crate::shader::get_shader(
+            gl,
+            shaders,
+            "hips_raytracer_raytracer.vert",
+            "hips_raytracer_i16.frag",
+        ),
+        PixelType::R32I => crate::shader::get_shader(
+            gl,
+            shaders,
+            "hips_raytracer_raytracer.vert",
+            "hips_raytracer_i32.frag",
+        ),
+        PixelType::R32F => crate::shader::get_shader(
+            gl,
+            shaders,
+            "hips_raytracer_raytracer.vert",
+            "hips_raytracer_f32.frag",
+        ),
+        // color case
+        _ => {
+            if cmap.label() == "native" {
+                crate::shader::get_shader(
+                    gl,
+                    shaders,
+                    "hips_raytracer_raytracer.vert",
+                    "hips_raytracer_rgba.frag",
+                )
+            } else {
+                crate::shader::get_shader(
+                    gl,
+                    shaders,
+                    "hips_raytracer_raytracer.vert",
+                    "hips_raytracer_rgba2cmap.frag",
+                )
+            }
         }
     }
 }
@@ -198,6 +219,9 @@ pub struct HiPS2D {
     //#[cfg(feature = "webgl1")]
     // layout (location = 0) in vec3 position;
     position: Vec<f32>,
+    //js_position: Float32Array,
+    //cap: usize,
+    //ptr: usize,
     //#[cfg(feature = "webgl1")]
     // layout (location = 1) in vec3 uv_start;
     uv_start: Vec<f32>,
@@ -214,11 +238,12 @@ pub struct HiPS2D {
 
     vao: VertexArrayObject,
     gl: WebGlContext,
-
-    footprint_moc: Option<HEALPixCoverage>,
+    moc: Option<SpaceMoc>,
 
     // A buffer storing the cells in the view
     hpx_cells_in_view: Vec<HEALPixCell>,
+
+    pub(crate) fits_params: Option<FitsParams>,
 }
 
 use super::HpxTileBuffer;
@@ -279,8 +304,9 @@ impl HiPS2D {
         let buffer = HiPS2DBuffer::new(gl, config)?;
 
         let gl = gl.clone();
-        let footprint_moc = None;
+        let moc = None;
         let hpx_cells_in_view = vec![];
+
         // request the allsky texture
         Ok(Self {
             // The image survey texture buffer
@@ -291,6 +317,8 @@ impl HiPS2D {
 
             gl,
 
+            fits_params: None,
+
             position,
             uv_start,
             uv_end,
@@ -298,78 +326,83 @@ impl HiPS2D {
 
             idx_vertices,
 
-            footprint_moc,
+            moc,
             hpx_cells_in_view,
         })
     }
 
-    pub fn look_for_new_tiles<'a>(
-        &'a mut self,
-        camera: &'a CameraViewPort,
-        proj: &ProjectionType,
-    ) -> Option<impl Iterator<Item = HEALPixCell> + 'a> {
+    pub fn look_for_new_tiles(
+        &mut self,
+        tile_fetcher: &mut TileFetcherQueue,
+        camera: &CameraViewPort,
+        browser_features_support: &BrowserFeaturesSupport,
+    ) {
         // do not add tiles if the view is already at depth 0
         let cfg = self.get_config();
-        let mut depth_tile = (camera.get_texture_depth() + cfg.delta_depth())
+        let depth_tile = camera
+            .get_tile_depth()
             .min(cfg.get_max_depth_tile())
             .max(cfg.get_min_depth_tile());
-        let dd = cfg.delta_depth();
 
-        //let min_depth_tile = self.get_min_depth_tile();
-        //let delta_depth = self.get_config().delta_depth();
-
-        //let min_bound_depth = min_depth_tile.max(delta_depth);
-        // do not ask to query tiles that:
-        // * either do not exist because < to min_depth_tile
-        // * either are part of a base tile already handled i.e. tiles < delta_depth
-        //console_log(depth_tile);
-        //console_log(min_bound_depth);
-
-        //if depth_tile >= min_bound_depth {
-        //let depth_tile = depth_tile.max(min_bound_depth);
         let survey_frame = cfg.get_frame();
-        let mut already_considered_tiles = HashSet::new();
+        let min_tile_depth = cfg.get_min_depth_tile();
 
-        // raytracer is rendering and the shader only renders HPX texture cells of depth 0
-        if camera.is_raytracing(proj) {
-            depth_tile = 0;
-        }
-
-        let tile_cells_iter = camera
+        let tile_queries_iter = camera
             .get_hpx_cells(depth_tile, survey_frame)
-            //.flat_map(move |cell| {
-            //    let texture_cell = cell.get_texture_cell(delta_depth);
-            //    texture_cell.get_tile_cells(delta_depth)
-            //})
             .into_iter()
-            .flat_map(move |tile_cell| {
-                let tex_cell = tile_cell.get_texture_cell(dd);
-                tex_cell.get_tile_cells(dd)
-            })
-            .filter(move |tile_cell| {
-                if already_considered_tiles.contains(tile_cell) {
-                    return false;
-                }
-
-                already_considered_tiles.insert(*tile_cell);
-
-                if let Some(moc) = self.footprint_moc.as_ref() {
-                    moc.intersects_cell(tile_cell) && !self.update_priority_tile(tile_cell)
+            .filter_map(|tile_cell| {
+                let make_query = if let Some(moc) = self.moc.as_ref() {
+                    moc.intersects_cell(&tile_cell) && !self.update_priority_tile(&tile_cell)
                 } else {
-                    !self.update_priority_tile(tile_cell)
+                    !self.update_priority_tile(&tile_cell)
+                };
+
+                if make_query {
+                    Some(query::Tile::new(
+                        &tile_cell,
+                        self.get_config(),
+                        browser_features_support,
+                    ))
+                } else {
+                    None
                 }
             });
 
-        Some(tile_cells_iter)
+        let mut ancestors = HashSet::new();
+
+        for tile_query in tile_queries_iter {
+            match tile_query.cell {
+                CellDesc::HiPS2D { cell, .. } => {
+                    let tile_cell = cell;
+                    tile_fetcher.append(tile_query);
+
+                    // check if we are starting aladin lite or not.
+                    // If so we want to retrieve only the tiles in the view and access them
+                    // directly i.e. without blending them with less precised tiles
+                    if tile_fetcher.get_num_tile_fetched() > 0
+                        && tile_cell.depth() >= min_tile_depth + 3
+                    {
+                        let ancestor_tile_cell = tile_cell.ancestor(3);
+                        ancestors.insert(ancestor_tile_cell);
+                    }
+                }
+                _ => unreachable!(),
+            }
+        }
+
+        for ancestor in ancestors {
+            if !self.update_priority_tile(&ancestor) {
+                tile_fetcher.append(query::Tile::new(
+                    &ancestor,
+                    self.get_config(),
+                    browser_features_support,
+                ));
+            }
+        }
     }
 
     pub fn contains_tile(&self, cell: &HEALPixCell) -> bool {
         self.buffer.contains_tile(cell)
-    }
-
-    pub fn get_tile_query(&self, cell: &HEALPixCell) -> query::Tile {
-        let cfg = self.get_config();
-        query::Tile::new(cell, None, cfg)
     }
 
     pub fn update(&mut self, camera: &mut CameraViewPort, projection: &ProjectionType) {
@@ -393,7 +426,7 @@ impl HiPS2D {
         let cfg = self.get_config();
         // Get the coo system transformation matrix
         let hips_frame = cfg.get_frame();
-        let depth = camera.get_texture_depth().min(cfg.get_max_depth_texture());
+        let depth = camera.get_tile_depth().min(cfg.get_max_depth_tile());
 
         let hpx_cells_in_view = camera.get_hpx_cells(depth, hips_frame);
         let new_cells = if hpx_cells_in_view.len() != self.hpx_cells_in_view.len() {
@@ -412,13 +445,13 @@ impl HiPS2D {
     }
 
     #[inline]
-    pub fn set_moc(&mut self, moc: HEALPixCoverage) {
-        self.footprint_moc = Some(moc);
+    pub fn set_moc(&mut self, moc: SpaceMoc) {
+        self.moc = Some(moc);
     }
 
     #[inline]
-    pub fn get_moc(&self) -> Option<&HEALPixCoverage> {
-        self.footprint_moc.as_ref()
+    pub fn get_moc(&self) -> Option<&SpaceMoc> {
+        self.moc.as_ref()
     }
 
     pub fn set_image_ext(&mut self, ext: ImageExt) -> Result<(), JsValue> {
@@ -429,16 +462,42 @@ impl HiPS2D {
         self.buffer.config().is_allsky
     }
 
-    // Position given is in the camera space
     pub fn read_pixel(
         &self,
-        p: &LonLatT<f64>,
+        x: f64,
+        y: f64,
         camera: &CameraViewPort,
+        proj: &ProjectionType,
     ) -> Result<JsValue, JsValue> {
-        self.buffer.read_pixel(p, camera)
+        if let Some(xyz) = proj.screen_to_model_space(&Vector2::new(x, y), camera) {
+            // 1. Convert it to the hips frame system
+            let cfg = self.buffer.config();
+            let camera_frame = camera.get_coo_system();
+            let hips_frame = cfg.get_frame();
+
+            let lonlat = crate::coosys::apply_coo_system(camera_frame, hips_frame, &xyz).lonlat();
+
+            // Get the array of textures from that survey
+            let depth = camera.get_tile_depth().min(cfg.get_max_depth_tile());
+
+            // compute the tex
+            let (pix, dx, dy) = crate::healpix::utils::hash_with_dxdy(depth, &lonlat);
+            let tile_cell = HEALPixCell(depth, pix);
+
+            let (bscale, bzero) = if let Some(FitsParams { bscale, bzero, .. }) = self.fits_params {
+                (bscale, bzero)
+            } else {
+                (1.0, 0.0)
+            };
+
+            self.buffer.read_pixel(&tile_cell, dx, dy, bscale, bzero)
+        } else {
+            Err(JsValue::from_str("Out of projection"))
+        }
     }
 
     fn recompute_vertices(&mut self, camera: &mut CameraViewPort, projection: &ProjectionType) {
+        //al_core::log(&format!("num position: {:?}", self.position.len()));
         self.position.clear();
         self.uv_start.clear();
         self.uv_end.clear();
@@ -447,15 +506,26 @@ impl HiPS2D {
 
         let cfg = self.buffer.config();
         // Get the coo system transformation matrix
-        let channel = cfg.get_format().get_channel();
+        let channel = cfg.get_format().get_pixel_format();
 
         // Retrieve the model and inverse model matrix
         let mut off_indices = 0;
+        // Define a global level of subdivisions for all the healpix tile cells in the view
+        // This should prevent seeing many holes
+        // We compute it from the first cell in the view but it might be an under/over estimate for the other cells in the view
+        let num_sub = self
+            .hpx_cells_in_view
+            .iter()
+            .map(|cell| super::subdivide::num_hpx_subdivision(cell, camera, projection))
+            .max()
+            .unwrap();
 
+        //let num_sub =
+        //    super::subdivide::num_hpx_subdivision(&self.hpx_cells_in_view[0], camera, projection);
         for cell in &self.hpx_cells_in_view {
             // filter textures that are not in the moc
-            let cell_in_cov = if let Some(moc) = self.footprint_moc.as_ref() {
-                if moc.intersects_cell(&cell) {
+            let cell_in_cov = if let Some(moc) = self.moc.as_ref() {
+                if moc.intersects_cell(cell) {
                     // Rasterizer does not render tiles that are not in the MOC
                     // This is not a problem for transparency rendered HiPses (FITS or PNG)
                     // but JPEG tiles do have black when no pixels data is found
@@ -496,29 +566,20 @@ impl HiPS2D {
                     } else {
                         unreachable!()
                     }
-                } else {
-                    if let Some(parent_cell) = self.buffer.get_nearest_parent(cell) {
-                        if let Some(ending_cell_in_tex) = self.buffer.get(&parent_cell) {
-                            if let Some(grand_parent_cell) =
-                                self.buffer.get_nearest_parent(&parent_cell)
+                } else if let Some(parent_cell) = self.buffer.get_nearest_parent(cell) {
+                    if let Some(ending_cell_in_tex) = self.buffer.get(&parent_cell) {
+                        if let Some(grand_parent_cell) =
+                            self.buffer.get_nearest_parent(&parent_cell)
+                        {
+                            if let Some(starting_cell_in_tex) = self.buffer.get(&grand_parent_cell)
                             {
-                                if let Some(starting_cell_in_tex) =
-                                    self.buffer.get(&grand_parent_cell)
-                                {
-                                    Some(HpxDrawData::from_texture(
-                                        starting_cell_in_tex,
-                                        ending_cell_in_tex,
-                                        cell,
-                                    ))
-                                } else {
-                                    // no blending
-                                    Some(HpxDrawData::from_texture(
-                                        ending_cell_in_tex,
-                                        ending_cell_in_tex,
-                                        cell,
-                                    ))
-                                }
+                                Some(HpxDrawData::from_texture(
+                                    starting_cell_in_tex,
+                                    ending_cell_in_tex,
+                                    cell,
+                                ))
                             } else {
+                                // no blending
                                 Some(HpxDrawData::from_texture(
                                     ending_cell_in_tex,
                                     ending_cell_in_tex,
@@ -526,22 +587,28 @@ impl HiPS2D {
                                 ))
                             }
                         } else {
-                            unreachable!()
+                            Some(HpxDrawData::from_texture(
+                                ending_cell_in_tex,
+                                ending_cell_in_tex,
+                                cell,
+                            ))
                         }
                     } else {
-                        // No ancestor has been found in the buffer to draw.
-                        // We might want to check if the HiPS channel is JPEG to mock a cell that will be drawn in black
-                        if channel == ChannelType::RGB8U {
-                            Some(HpxDrawData::new(cell))
-                        } else {
-                            None
-                        }
+                        unreachable!()
+                    }
+                } else {
+                    // No ancestor has been found in the buffer to draw.
+                    // We might want to check if the HiPS channel is JPEG to mock a cell that will be drawn in black
+                    if channel == PixelType::RGB8U {
+                        Some(HpxDrawData::new(cell))
+                    } else {
+                        None
                     }
                 }
             } else {
                 // No ancestor has been found in the buffer to draw.
                 // We might want to check if the HiPS channel is JPEG to mock a cell that will be drawn in black
-                if channel == ChannelType::RGB8U {
+                if channel == PixelType::RGB8U {
                     Some(HpxDrawData::new(cell))
                 } else {
                     None
@@ -552,70 +619,76 @@ impl HiPS2D {
                 cell,
                 uv_0,
                 uv_1,
-                start_time
-            }) = hpx_cell {
+                start_time,
+            }) = hpx_cell
+            {
                 let d01s = uv_0[TileCorner::BottomRight].x - uv_0[TileCorner::BottomLeft].x;
                 let d02s = uv_0[TileCorner::TopLeft].y - uv_0[TileCorner::BottomLeft].y;
                 let d01e = uv_1[TileCorner::BottomRight].x - uv_1[TileCorner::BottomLeft].x;
                 let d02e = uv_1[TileCorner::TopLeft].y - uv_1[TileCorner::BottomLeft].y;
 
+                let sub_cells = super::subdivide::subdivide_hpx_cell(cell, num_sub, camera);
 
-                let num_subdivision =
-                    super::subdivide::num_hpxcell_subdivision(cell, camera, projection);
+                let mut pos = Vec::with_capacity(sub_cells.len() * 4);
 
-                let n_segments_by_side: usize = 1 << (num_subdivision as usize);
-                let n_segments_by_side_f32 = n_segments_by_side as f32;
+                let mut idx = 0;
 
-                let n_vertices_per_segment = n_segments_by_side + 1;
+                for sub_cell in sub_cells {
+                    let (i, j) = sub_cell.offset_in_parent(cell);
+                    let nside = (1 << (sub_cell.depth() - cell.depth())) as f32;
 
-                let mut pos = Vec::with_capacity((n_segments_by_side + 1) * 4);
+                    for ((lon, lat), (di, dj)) in
+                        sub_cell
+                            .vertices()
+                            .iter()
+                            .zip([(0, 0), (1, 0), (1, 1), (0, 1)])
+                    {
+                        let hj0 = ((j + dj) as f32) / nside;
+                        let hi0 = ((i + di) as f32) / nside;
 
-                let grid_lonlat =
-                    healpix::nested::grid(cell.depth(), cell.idx(), n_segments_by_side as u16);
-                let grid_lonlat_iter = grid_lonlat.iter();
+                        let uv_start = [
+                            uv_0[TileCorner::BottomLeft].x + hj0 * d01s,
+                            uv_0[TileCorner::BottomLeft].y + hi0 * d02s,
+                            uv_0[TileCorner::BottomLeft].z,
+                        ];
 
-                for (idx, &(lon, lat)) in grid_lonlat_iter.enumerate() {
-                    let i: usize = idx / n_vertices_per_segment;
-                    let j: usize = idx % n_vertices_per_segment;
+                        let uv_end = [
+                            uv_1[TileCorner::BottomLeft].x + hj0 * d01e,
+                            uv_1[TileCorner::BottomLeft].y + hi0 * d02e,
+                            uv_1[TileCorner::BottomLeft].z,
+                        ];
 
-                    let hj0 = (j as f32) / n_segments_by_side_f32;
-                    let hi0 = (i as f32) / n_segments_by_side_f32;
+                        self.uv_start.extend(uv_start);
+                        self.uv_end.extend(uv_end);
+                        self.time_tile_received.push(start_time);
 
-                    let uv_start = [
-                        uv_0[TileCorner::BottomLeft].x + hj0 * d01s,
-                        uv_0[TileCorner::BottomLeft].y + hi0 * d02s,
-                        uv_0[TileCorner::BottomLeft].z,
-                    ];
+                        let xyz = crate::math::lonlat::radec_to_xyz(lon.to_angle(), lat.to_angle());
+                        pos.push([xyz.x as f32, xyz.y as f32, xyz.z as f32]);
+                    }
 
-                    let uv_end = [
-                        uv_1[TileCorner::BottomLeft].x + hj0 * d01e,
-                        uv_1[TileCorner::BottomLeft].y + hi0 * d02e,
-                        uv_1[TileCorner::BottomLeft].z,
-                    ];
+                    // GL TRIANGLES
+                    self.idx_vertices.extend([
+                        idx + off_indices,
+                        idx + 1 + off_indices,
+                        idx + 2 + off_indices,
+                        idx + off_indices,
+                        idx + 2 + off_indices,
+                        idx + 3 + off_indices,
+                    ]);
+                    // GL LINES
+                    /*self.idx_vertices.extend([
+                        idx + off_indices,
+                        idx + 1 + off_indices,
+                        idx + 1 + off_indices,
+                        idx + 2 + off_indices,
+                        idx + 2 + off_indices,
+                        idx + 3 + off_indices,
+                        idx + 3 + off_indices,
+                        idx + off_indices,
+                    ]);*/
 
-                    self.uv_start.extend(uv_start);
-                    self.uv_end.extend(uv_end);
-                    self.time_tile_received.push(start_time);
-
-                    let xyz = crate::math::lonlat::radec_to_xyz(lon.to_angle(), lat.to_angle());
-                    pos.push([xyz.x as f32, xyz.y as f32, xyz.z as f32]);
+                    idx += 4;
                 }
-
-                let patch_indices_iter = DefaultPatchIndexIter::new(
-                    &(0..=n_segments_by_side),
-                    &(0..=n_segments_by_side),
-                    n_vertices_per_segment,
-                )
-                .flatten()
-                .map(|indices| {
-                    [
-                        indices.0 + off_indices,
-                        indices.1 + off_indices,
-                        indices.2 + off_indices,
-                    ]
-                })
-                .flatten();
-                self.idx_vertices.extend(patch_indices_iter);
 
                 off_indices += pos.len() as u16;
 
@@ -668,16 +741,16 @@ impl HiPS2D {
         }
     }
 
-    pub fn add_tile<I: Image>(
+    pub fn push_tile<I: Image>(
         &mut self,
         cell: &HEALPixCell,
         image: I,
         time_request: Time,
     ) -> Result<(), JsValue> {
-        self.buffer.push(&cell, image, time_request)
+        self.buffer.push(cell, image, time_request)
     }
 
-    pub fn add_allsky(&mut self, allsky: Allsky) -> Result<(), JsValue> {
+    pub fn add_allsky(&mut self, allsky: AllskyRequest) -> Result<(), JsValue> {
         self.buffer.push_allsky(allsky)
     }
 
@@ -693,7 +766,7 @@ impl HiPS2D {
     }
 
     pub fn draw(
-        &self,
+        &mut self,
         shaders: &mut ShaderManager,
         colormaps: &Colormaps,
         camera: &CameraViewPort,
@@ -707,10 +780,20 @@ impl HiPS2D {
         let hips_frame = hips_cfg.get_frame();
         let c = selected_frame.to(hips_frame);
 
-        let raytracing = camera.is_raytracing(proj);
-        let config = self.get_config();
+        let mut draw_allsky = camera.is_raytracing(proj);
+        if !draw_allsky {
+            let tile_size = self.get_config().get_tile_size();
+            let pixel_p1 =
+                camera.get_tile_depth() as u32 + crate::math::utils::log_2_unchecked(tile_size);
 
-        //self.gl.enable(WebGl2RenderingContext::BLEND);
+            let tile_size_order3_in_allsky = tile_size.min(64);
+            let pixel_p2 = 3 + crate::math::utils::log_2_unchecked(tile_size_order3_in_allsky);
+
+            draw_allsky = pixel_p1 <= pixel_p2;
+        }
+
+        self.buffer.render_allsky(draw_allsky);
+        let config = self.get_config();
 
         let ImageMetadata {
             color,
@@ -723,10 +806,10 @@ impl HiPS2D {
         let cmap = colormaps.get(color.cmap_name.as_ref());
 
         blend_cfg.enable(&self.gl, || {
-            if raytracing {
+            if draw_allsky {
                 let w2v = c * (*camera.get_w2m());
 
-                let shader = get_raytracer_shader(cmap, &self.gl, shaders, &config)?;
+                let shader = get_raytracer_shader(cmap, &self.gl, shaders, config)?;
 
                 let shader = shader.bind(&self.gl);
                 shader
@@ -737,9 +820,20 @@ impl HiPS2D {
                     .attach_uniforms_from(color)
                     .attach_uniform("model", &w2v)
                     .attach_uniform("current_time", &utils::get_current_time())
-                    .attach_uniform("no_tile_color",  &(if config.get_format().get_channel() == ChannelType::RGB8U { Vector4::new(0.0, 0.0, 0.0, 1.0) } else { Vector4::new(0.0, 0.0, 0.0, 0.0) }))
+                    .attach_uniform(
+                        "no_tile_color",
+                        &(if config.get_format().get_pixel_format() == PixelType::RGB8U {
+                            Vector4::new(0.0, 0.0, 0.0, 1.0)
+                        } else {
+                            Vector4::new(0.0, 0.0, 0.0, 0.0)
+                        }),
+                    )
                     .attach_uniform("opacity", opacity)
                     .attach_uniforms_from(colormaps);
+
+                if let Some(fits_params) = self.fits_params.as_ref() {
+                    shader.attach_uniforms_from(fits_params);
+                }
 
                 raytracer.draw(&shader);
             } else {
@@ -757,7 +851,7 @@ impl HiPS2D {
                 // - The UVs are changed if:
                 //     * new cells are added/removed (because new cells are added)
                 //     * there are new available tiles for the GPU
-                let shader = get_raster_shader(cmap, &self.gl, shaders, &config)?.bind(&self.gl);
+                let shader = get_raster_shader(cmap, &self.gl, shaders, config)?.bind(&self.gl);
 
                 shader
                     .attach_uniforms_from(&self.buffer)
@@ -769,10 +863,17 @@ impl HiPS2D {
                     .attach_uniform("current_time", &utils::get_current_time())
                     .attach_uniform("opacity", opacity)
                     .attach_uniform("u_proj", proj)
-                    .attach_uniforms_from(colormaps)
+                    .attach_uniforms_from(colormaps);
+
+                if let Some(fits_params) = self.fits_params.as_ref() {
+                    shader.attach_uniforms_from(fits_params);
+                }
+
+                shader
                     .bind_vertex_array_object_ref(&self.vao)
                     .draw_elements_with_i32(
                         WebGl2RenderingContext::TRIANGLES,
+                        //WebGl2RenderingContext::LINES,
                         Some(self.num_idx as i32),
                         WebGl2RenderingContext::UNSIGNED_SHORT,
                         0,
@@ -783,7 +884,14 @@ impl HiPS2D {
         })?;
 
         //self.gl.disable(WebGl2RenderingContext::BLEND);
-
         Ok(())
+    }
+
+    pub fn set_fits_params(&mut self, bscale: f32, bzero: f32, blank: Option<f32>) {
+        self.fits_params = Some(FitsParams {
+            bscale,
+            bzero,
+            blank,
+        });
     }
 }

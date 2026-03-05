@@ -10,8 +10,8 @@ use crate::math::lonlat::LonLat;
 use crate::math::projection::coo_space::XYScreen;
 use crate::math::TWICE_PI;
 
-use crate::math::angle::ToAngle;
 use crate::math::angle::AngleFormatter;
+use crate::math::angle::ToAngle;
 use al_api::angle::Formatter;
 use cgmath::Vector2;
 use core::ops::Range;
@@ -40,7 +40,7 @@ impl Label {
         camera: &CameraViewPort,
         projection: &ProjectionType,
         fmt: Formatter,
-        grid_decimal_prec: u8
+        grid_decimal_prec: u8,
     ) -> Option<Self> {
         let fov = camera.get_field_of_view();
         let d = if fov.contains_north_pole() {
@@ -66,8 +66,8 @@ impl Label {
         let m1: Vector3<_> = lonlat.vector();
         let m2 = (m1 + d * 1e-3).normalize();
 
-        let d1 = projection.model_to_screen_space(&m1.extend(1.0), camera)?;
-        let d2 = projection.model_to_screen_space(&m2.extend(1.0), camera)?;
+        let d1 = projection.model_to_screen_space(&m1, camera)?;
+        let d2 = projection.model_to_screen_space(&m2, camera)?;
 
         let dt = (d2 - d1).normalize();
         let db = Vector2::new(dt.y.abs(), dt.x.abs());
@@ -79,12 +79,16 @@ impl Label {
 
         let mut angle = lon.to_angle();
         let fmt = match fmt {
-            Formatter::Decimal => {
-                AngleFormatter::Decimal { prec: grid_decimal_prec }
+            Formatter::Decimal => AngleFormatter::Decimal {
+                prec: grid_decimal_prec,
             },
             Formatter::Sexagesimal => {
                 // Sexagesimal formatting for longitudes is HMS
-                AngleFormatter::Sexagesimal { prec: grid_decimal_prec, plus: false, hours: true }
+                AngleFormatter::Sexagesimal {
+                    prec: grid_decimal_prec,
+                    plus: false,
+                    hours: true,
+                }
             }
         };
         angle.set_format(fmt);
@@ -113,7 +117,7 @@ impl Label {
         camera: &CameraViewPort,
         projection: &ProjectionType,
         fmt: Formatter,
-        grid_decimal_prec: u8
+        grid_decimal_prec: u8,
     ) -> Option<Self> {
         let lonlat = match options {
             LabelOptions::Centered => {
@@ -126,7 +130,7 @@ impl Label {
         let m1: Vector3<_> = lonlat.vector();
 
         let mut t = Vector3::new(-m1.z, 0.0, m1.x).normalize();
-        let center = camera.get_center().truncate();
+        let center = camera.get_center();
 
         let dot_t_center = center.dot(t);
         if dot_t_center.abs() < 1e-4 {
@@ -137,20 +141,24 @@ impl Label {
 
         let m2 = (m1 + t * 1e-3).normalize();
 
-        let d1 = projection.model_to_screen_space(&m1.extend(1.0), camera)?;
-        let d2 = projection.model_to_screen_space(&m2.extend(1.0), camera)?;
+        let d1 = projection.model_to_screen_space(&m1, camera)?;
+        let d2 = projection.model_to_screen_space(&m2, camera)?;
 
         let dt = (d2 - d1).normalize();
         let db = Vector2::new(dt.y.abs(), dt.x.abs());
 
         let mut angle = lat.to_angle();
         let fmt = match fmt {
-            Formatter::Decimal => {
-                AngleFormatter::Decimal { prec: grid_decimal_prec }
+            Formatter::Decimal => AngleFormatter::Decimal {
+                prec: grid_decimal_prec,
             },
             Formatter::Sexagesimal => {
                 // Sexagesimal formatting for latitudes is DMS with an optional '+' character
-                AngleFormatter::Sexagesimal { prec: grid_decimal_prec, plus: true, hours: false }
+                AngleFormatter::Sexagesimal {
+                    prec: grid_decimal_prec,
+                    plus: true,
+                    hours: false,
+                }
             }
         };
         angle.set_format(fmt);

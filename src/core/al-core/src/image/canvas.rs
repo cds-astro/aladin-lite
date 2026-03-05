@@ -7,7 +7,7 @@ pub struct Canvas<F> {
 
 impl<F> Canvas<F>
 where
-    F: ImageFormat + Clone,
+    F: TextureFormat + Clone,
 {
     pub fn new(canvas: web_sys::HtmlCanvasElement) -> Self {
         Self {
@@ -17,14 +17,14 @@ where
     }
 }
 
-use crate::image::format::ImageFormat;
 use crate::image::Image;
+use crate::texture::format::TextureFormat;
 use crate::texture::Tex3D;
 use cgmath::Vector3;
 use wasm_bindgen::JsValue;
 impl<F> Image for Canvas<F>
 where
-    F: ImageFormat,
+    F: TextureFormat,
 {
     fn insert_into_3d_texture<T: Tex3D>(
         &self,
@@ -41,5 +41,9 @@ where
         );
 
         Ok(())
+    }
+
+    fn get_size(&self) -> (u32, u32, u32) {
+        (self.canvas.width(), self.canvas.height(), 1)
     }
 }

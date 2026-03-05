@@ -1,22 +1,24 @@
+// SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright 2013 - UDS/CNRS
 // The Aladin Lite program is distributed under the terms
-// of the GNU General Public License version 3.
+// of the GNU Lesser General Public License version 3
+// or (at your option) any later version.
 //
 // This file is part of Aladin Lite.
 //
 //    Aladin Lite is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, version 3 of the License.
+//    it under the terms of the GNU Lesser General Public License as published by
+//    the Free Software Foundation, either version 3 of the License, or
+//    (at your option) any later version.
 //
 //    Aladin Lite is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+//    GNU Lesser General Public License for more details.
 //
-//    The GNU General Public License is available in COPYING file
-//    along with Aladin Lite.
+//    You should have received a copy of the GNU Lesser General Public License
+//    along with Aladin Lite. If not, see <https://www.gnu.org/licenses/>.
 //
-
 
 /******************************************************************************
  * Aladin Lite project
@@ -28,10 +30,9 @@
  *
  *****************************************************************************/
 
-import { ActionButton } from "../Widgets/ActionButton.js";
-import { ContextMenu } from "../Widgets/ContextMenu.js";
+import { WidgetTogglerButton } from "./Toggler.js";
+export class CtxMenuActionButtonOpener extends WidgetTogglerButton {
 
-export class CtxMenuActionButtonOpener extends ActionButton {
     // Constructor
     constructor(options, aladin) {
         let self;
@@ -46,99 +47,29 @@ export class CtxMenuActionButtonOpener extends ActionButton {
                     t.style.transitionDelay = ''
                 })
         };
-
         super({
-            ...options,
-            cssStyle: {
-                backgroundPosition: 'center center',
-                cursor: 'pointer',
-                ...options.cssStyle
-            },
-            action(e) {
-                enableTooltips()
-
-                let isHidden = self.ctxMenu.isHidden
-
-                ContextMenu.hideAll();
-
+            widget: aladin.contextMenu,
+            enable(e) {
                 // If it was hidden then reopen it
-                if (isHidden) {
-                    if (options.action) {
-                        options.action(e)
-                    }
-
-                    if (self.layout) {
-                        self.ctxMenu.attach(self.layout)
-                    }
-
-                    self.ctxMenu.show({
-                        position: {
-                            nextTo: self,
-                            direction: options.openDirection,
-                        },
-                    });
+                if (self.layout) {
+                    self.ctxMenu.attach(self.layout, self)
                 }
-
-                // the panel is now open and we know the button has a tooltip
-                // => we close it!
-                if (self.tooltip && !self.ctxMenu.isHidden) {
-                    self.tooltip.element().style.visibility = 'hidden'
-                    self.tooltip.element().style.transitionDelay = '0ms';
-
-                    aladin.aladinDiv.addEventListener("click", enableTooltips)
-                }
-            }
+            },
+            ...options,
         })
 
         self = this;
 
-        let ctxMenu;
-        if (options.ctxMenu instanceof ContextMenu) {
-            ctxMenu = options.ctxMenu;
-        } else {
-            this.layout = options.ctxMenu;
-            ctxMenu = new ContextMenu(aladin, {hideOnClick: true, hideOnResize: true})
-        }
-
-        self.ctxMenu = ctxMenu;
-    }
-
-    hideMenu() {
-        this.ctxMenu._hide();
-    }
-
-    _hide() {
-        this.hideMenu();
-        super._hide();
+        this.ctxMenu = aladin.contextMenu;
+        this.layout = options.ctxMenu;
     }
 
     update(options) {
-        if(options.ctxMenu) {
-            if (options.ctxMenu instanceof ContextMenu) {
-                this.ctxMenu = options.ctxMenu
-            } else {
-                this.layout = options.ctxMenu;
-            }
-        }
-
-        if (!this.ctxMenu) {
-            this.ctxMenu = new ContextMenu(aladin, {hideOnClick: true, hideOnResize: true})
+        if (options && options.ctxMenu) {
+            this.layout = options.ctxMenu;
+            //this.ctxMenu.attach(this.layout, this)
         }
 
         super.update(options)
-
-        if (!this.ctxMenu.isHidden) {
-            if (this.layout) {
-                this.ctxMenu.attach(this.layout)
-            }
-
-            this.ctxMenu.show({
-                position: {
-                    nextTo: this,
-                    // it case it is not given then it will be computed by default
-                    direction: options.openDirection,
-                },
-            });
-        }
     }
 }

@@ -17,6 +17,7 @@
 //extern crate num;
 //extern crate num_traits;
 //use crate::time::Time;
+
 #[cfg(feature = "dbg")]
 use std::panic;
 
@@ -39,7 +40,7 @@ pub trait Abort {
 impl<T> Abort for Option<T> {
     type Item = T;
 
-    #[inline]
+    #[inline(always)]
     fn unwrap_abort(self) -> Self::Item {
         use std::process;
         match self {
@@ -51,7 +52,7 @@ impl<T> Abort for Option<T> {
 impl<T, E> Abort for Result<T, E> {
     type Item = T;
 
-    #[inline]
+    #[inline(always)]
     fn unwrap_abort(self) -> Self::Item {
         use std::process;
         match self {
@@ -65,7 +66,7 @@ extern crate serde_json;
 #[macro_use]
 extern crate enum_dispatch;
 
-#[inline]
+#[inline(always)]
 pub fn unwrap_abort<T>(o: Option<T>) -> T {
     use std::process;
     match o {
@@ -85,12 +86,13 @@ mod utils;
 
 use math::projection::*;
 
-use moclib::moc::RangeMOCIntoIterator;
 //use votable::votable::VOTableWrapper;
 use crate::tile_fetcher::HiPSLocalFiles;
+use al_api::moc::MOCOptions;
 use wasm_bindgen::prelude::*;
 use web_sys::HtmlElement;
-use al_api::moc::MOCOptions;
+
+use fitsrs::{WCSParams, WCS};
 
 use crate::math::angle::ToAngle;
 
@@ -99,8 +101,10 @@ pub mod async_task;
 mod camera;
 mod shaders;
 
+mod browser_support;
 mod coosys;
 mod downloader;
+mod event;
 mod fifo_cache;
 mod healpix;
 mod inertia;
@@ -110,16 +114,9 @@ mod shader;
 mod tile_fetcher;
 mod time;
 
-use crate::downloader::request::moc::from_fits_hpx;
 use crate::{
-    camera::CameraViewPort, healpix::coverage::HEALPixCoverage, math::lonlat::LonLatT,
-    shader::ShaderManager, time::DeltaTime,
+    camera::CameraViewPort, healpix::moc::SpaceMoc, math::lonlat::LonLatT, shader::ShaderManager,
 };
-use moclib::deser::fits;
-use moclib::deser::fits::MocIdxType;
-use moclib::deser::fits::MocQtyType;
-
-use std::io::Cursor;
 
 use al_api::color::{Color, ColorRGBA};
 use al_api::coo_system::CooSystem;
@@ -130,23 +127,15 @@ use al_core::Colormap;
 use al_core::WebGlContext;
 
 use app::App;
-use cgmath::{Vector2, Vector4};
+use cgmath::{Vector2, Vector3};
 
 use crate::healpix::cell::HEALPixCell;
 use math::angle::ArcDeg;
-use moclib::{
-    moc::{CellMOCIntoIterator, CellMOCIterator, RangeMOCIterator},
-    qty::Hpx,
-};
 
 #[wasm_bindgen]
 pub struct WebClient {
     // The app
     app: App,
-
-    // The time between the previous and the current
-    // frame
-    dt: DeltaTime,
 }
 
 use al_api::hips::ImageMetadata;
@@ -173,9 +162,7 @@ impl WebClient {
 
         let app = App::new(&gl, aladin_div, shaders, resources)?;
 
-        let dt = DeltaTime::zero();
-
-        let webclient = WebClient { app, dt };
+        let webclient = WebClient { app };
 
         Ok(webclient)
     }
@@ -187,7 +174,7 @@ impl WebClient {
 
     #[wasm_bindgen(js_name = isInerting)]
     pub fn is_inerting(&self) -> bool {
-        return self.app.is_inerting();
+        self.app.is_inerting()
     }
 
     /// Update the view
@@ -200,15 +187,15 @@ impl WebClient {
     ///
     /// # Return
     /// Whether the view is moving or not
-    pub fn update(&mut self, dt: f32) -> Result<bool, JsValue> {
+    pub fn update(&mut self, dt: f64) -> Result<bool, JsValue> {
         // dt refers to the time taking (in ms) rendering the previous frame
-        self.dt = DeltaTime::from_millis(dt);
+        //self.dt = DeltaTime::from_millis(dt as f32);
 
         // Update the application and get back the
         // world coordinates of the center of projection in (ra, dec)
         self.app.update(
             // Time of the previous frame rendering
-            self.dt,
+            dt,
         )
     }
 
@@ -244,7 +231,7 @@ impl WebClient {
             "ZEA" => self
                 .app
                 .set_projection(ProjectionType::Zea(mapproj::zenithal::zea::Zea::new())), /* Equal-area 		         */
-            /*"FEYE" => self
+            "FEYE" => self
                 .app
                 .set_projection(ProjectionType::Feye(mapproj::zenithal::feye::Feye::new())),
             "AIR" => {
@@ -252,19 +239,19 @@ impl WebClient {
                 //air_proj.set_n_iter(10);
                 //air_proj.set_eps(1e-12);
                 self.app.set_projection(ProjectionType::Air(air_proj))
-            }*/
+            }
             //"AZP",
-            /*"ARC" => self
+            "ARC" => self
                 .app
                 .set_projection(ProjectionType::Arc(mapproj::zenithal::arc::Arc::new())),
             "NCP" => self
                 .app
-                .set_projection(ProjectionType::Ncp(mapproj::zenithal::ncp::Ncp::new())),*/
+                .set_projection(ProjectionType::Ncp(mapproj::zenithal::ncp::Ncp::new())),
             // Cylindrical
             "MER" => self
                 .app
                 .set_projection(ProjectionType::Mer(mapproj::cylindrical::mer::Mer::new())),
-            /*"CAR" => self
+            "CAR" => self
                 .app
                 .set_projection(ProjectionType::Car(mapproj::cylindrical::car::Car::new())),
             "CEA" => self
@@ -272,17 +259,17 @@ impl WebClient {
                 .set_projection(ProjectionType::Cea(mapproj::cylindrical::cea::Cea::new())),
             "CYP" => self
                 .app
-                .set_projection(ProjectionType::Cyp(mapproj::cylindrical::cyp::Cyp::new())),*/
+                .set_projection(ProjectionType::Cyp(mapproj::cylindrical::cyp::Cyp::new())),
             // Pseudo-cylindrical
             "AIT" => self
                 .app
                 .set_projection(ProjectionType::Ait(mapproj::pseudocyl::ait::Ait::new())),
-            /*"PAR" => self
+            "PAR" => self
                 .app
                 .set_projection(ProjectionType::Par(mapproj::pseudocyl::par::Par::new())),
             "SFL" => self
                 .app
-                .set_projection(ProjectionType::Sfl(mapproj::pseudocyl::sfl::Sfl::new())),*/
+                .set_projection(ProjectionType::Sfl(mapproj::pseudocyl::sfl::Sfl::new())),
             "MOL" => {
                 let mut mol_proj = mapproj::pseudocyl::mol::Mol::new();
                 mol_proj.set_n_iter(10);
@@ -290,13 +277,13 @@ impl WebClient {
 
                 self.app.set_projection(ProjectionType::Mol(mol_proj))
             } // Conic
-            /*"COD" => self
+            "COD" => self
                 .app
                 .set_projection(ProjectionType::Cod(mapproj::conic::cod::Cod::new())),
             // Hybrid
             "HPX" => self
                 .app
-                .set_projection(ProjectionType::Hpx(mapproj::hybrid::hpx::Hpx::new())),*/
+                .set_projection(ProjectionType::Hpx(mapproj::hybrid::hpx::Hpx::new())),
             _ => Err(JsValue::from_str(
                 "Not a valid projection name. AIT, ZEA, SIN, STG, TAN, MOL and MER are accepted",
             )),
@@ -350,33 +337,31 @@ impl WebClient {
         Ok(())
     }
 
-    #[wasm_bindgen(js_name = addImageFITS)]
-    pub fn add_image_fits(
+    #[wasm_bindgen(js_name = addFITSImage)]
+    pub fn add_fits_image(
         &mut self,
-        stream: web_sys::ReadableStream,
+        bytes: &[u8],
         cfg: JsValue,
         layer: String,
     ) -> Result<js_sys::Promise, JsValue> {
         let cfg: ImageMetadata = serde_wasm_bindgen::from_value(cfg)?;
-
-        self.app.add_image_fits(stream, cfg, layer)
+        self.app.add_fits_image(bytes, cfg, layer)
     }
 
-    #[wasm_bindgen(js_name = addImageWithWCS)]
-    pub fn add_image_with_wcs(
+    #[wasm_bindgen(js_name = addRGBAImage)]
+    pub fn add_rgba_image(
         &mut self,
-        stream: web_sys::ReadableStream,
+        bytes: &[u8],
         wcs: JsValue,
         cfg: JsValue,
         layer: String,
     ) -> Result<js_sys::Promise, JsValue> {
-        use wcs::{WCSParams, WCS};
         let cfg: ImageMetadata = serde_wasm_bindgen::from_value(cfg)?;
         let wcs_params: WCSParams = serde_wasm_bindgen::from_value(wcs)?;
-        let wcs = WCS::new(&wcs_params).map_err(|e| JsValue::from_str(&format!("{:?}", e)))?;
 
-        self.app
-            .add_image_from_blob_and_wcs(layer, stream, wcs, cfg)
+        let wcs = WCS::new(&wcs_params).map_err(|e| JsValue::from_str(&format!("{e:?}")))?;
+
+        self.app.add_rgba_image(layer, bytes, wcs, cfg)
     }
 
     #[wasm_bindgen(js_name = removeLayer)]
@@ -385,12 +370,6 @@ impl WebClient {
         self.app.remove_layer(&layer)?;
 
         Ok(())
-    }
-
-    #[wasm_bindgen(js_name = renameLayer)]
-    pub fn rename_layer(&mut self, layer: String, new_layer: String) -> Result<(), JsValue> {
-        // Deserialize the hips objects that compose the hips
-        self.app.rename_layer(&layer, &new_layer)
     }
 
     #[wasm_bindgen(js_name = swapLayers)]
@@ -421,9 +400,31 @@ impl WebClient {
         self.app.set_image_hips_color_cfg(layer, meta)
     }
 
-    #[wasm_bindgen(js_name = setSliceNumber)]
-    pub fn set_hips_slice_number(&mut self, layer: String, slice: u32) -> Result<(), JsValue> {
-        self.app.set_hips_slice_number(&layer, slice)
+    #[wasm_bindgen(js_name = setFreq)]
+    pub fn set_hips_frequency(&mut self, layer: String, frequency: f32) -> Result<(), JsValue> {
+        self.app.set_hips_frequency(&layer, frequency)
+    }
+
+    #[wasm_bindgen(js_name = getFreq)]
+    pub fn get_hips_frequency(&mut self, layer: String) -> Result<f32, JsValue> {
+        self.app.get_hips_frequency(&layer)
+    }
+
+    #[wasm_bindgen(js_name = getFreqWindow)]
+    pub fn get_hips_frequency_window(&mut self, layer: String) -> Result<Vec<f32>, JsValue> {
+        let fw = self.app.get_hips_frequency_window(&layer)?;
+
+        Ok(vec![fw[0].0 as f32, fw[1].0 as f32])
+    }
+
+    #[wasm_bindgen(js_name = freq2hash)]
+    pub fn get_freq_hash(&mut self, layer: String, freq: f64) -> Result<u64, JsValue> {
+        self.app.get_freq_hash(&layer, freq)
+    }
+
+    #[wasm_bindgen(js_name = hash2freq)]
+    pub fn get_freq_from_hash(&mut self, layer: String, hash: u64) -> Result<f64, JsValue> {
+        self.app.get_freq_from_hash(&layer, hash)
     }
 
     #[wasm_bindgen(js_name = setBackgroundColor)]
@@ -469,6 +470,12 @@ impl WebClient {
         Ok(fov)
     }
 
+    /// Get the max aperture of a projection (in degrees)
+    #[wasm_bindgen(js_name = atZoomBoundaries)]
+    pub fn get_max_aperture(&self) -> bool {
+        self.app.camera.at_zoom_boundaries(&self.app.projection)
+    }
+
     /// Set the field of view
     ///
     /// # Arguments
@@ -476,13 +483,12 @@ impl WebClient {
     /// * `fov` - The field of view in degrees
     #[wasm_bindgen(js_name = setFieldOfView)]
     pub fn set_fov(&mut self, fov: f64) -> Result<(), JsValue> {
-        let fov = ArcDeg(fov).into();
-
-        self.app.set_fov(fov);
+        self.app.set_fov(fov.to_radians());
 
         Ok(())
     }
 
+    /// Enable/Disable inertia effect after panning and releasing the mouse
     #[wasm_bindgen(js_name = setInertia)]
     pub fn set_inertia(&mut self, inertia: bool) -> Result<(), JsValue> {
         self.app.set_inertia(inertia);
@@ -490,23 +496,57 @@ impl WebClient {
         Ok(())
     }
 
+    /// Set a range of FoVs that contrains the zooming in that range
+    ///
+    /// # Arguments
+    ///
+    /// * `min_fov` - The minimum field of view value in degrees
+    /// * `max_fov` - The maximum field of view value in degrees
+    #[wasm_bindgen(js_name = setFoVRange)]
+    pub fn set_fov_range(
+        &mut self,
+        min_fov: Option<f64>,
+        max_fov: Option<f64>,
+    ) -> Result<(), JsValue> {
+        self.app.set_fov_range(min_fov, max_fov);
+
+        Ok(())
+    }
+
+    /// Get the FoV range in degrees
+    #[wasm_bindgen(js_name = getFoVRange)]
+    pub fn get_fov_range(&self) -> Box<[f64]> {
+        Box::new([
+            self.app
+                .camera
+                .min_fov
+                .map(|v| v.to_degrees())
+                .unwrap_or(-1.0),
+            self.app
+                .camera
+                .max_fov
+                .map(|v| v.to_degrees())
+                .unwrap_or(-1.0),
+        ])
+    }
+
     /// Set the absolute orientation of the view
     ///
     /// # Arguments
     ///
     /// * `theta` - The rotation angle in degrees
-    #[wasm_bindgen(js_name = setViewCenter2NorthPoleAngle)]
-    pub fn set_view_center_pos_angle(&mut self, theta: f64) -> Result<(), JsValue> {
+    #[wasm_bindgen(js_name = setRotation)]
+    pub fn set_rotation(&mut self, theta: f64) -> Result<(), JsValue> {
         let theta = ArcDeg(theta);
-        self.app.set_view_center_pos_angle(theta);
+        self.app.set_position_angle(theta);
 
         Ok(())
     }
 
     /// Get the absolute orientation angle of the view
-    #[wasm_bindgen(js_name = getViewCenter2NorthPoleAngle)]
-    pub fn get_north_shift_angle(&mut self) -> Result<f64, JsValue> {
-        let phi = self.app.get_north_shift_angle();
+    #[wasm_bindgen(js_name = getRotation)]
+    pub fn get_rotation(&mut self) -> Result<f64, JsValue> {
+        let phi = self.app.get_position_angle();
         Ok(phi.to_degrees())
     }
 
@@ -523,8 +563,14 @@ impl WebClient {
 
     /// Get if the longitude axis is reversed
     #[wasm_bindgen(js_name = getLongitudeReversed)]
-    pub fn get_longitude_reversed(&mut self) -> bool {
+    pub fn get_longitude_reversed(&self) -> bool {
         self.app.get_longitude_reversed()
+    }
+
+    /// Set the longitude axis reversed globally
+    #[wasm_bindgen(js_name = setLongitudeReversed)]
+    pub fn set_longitude_reversed(&mut self, longitude_reversed: bool) {
+        self.app.set_longitude_reversed(longitude_reversed);
     }
 
     /// Get the field of view angle value when the view is zoomed out to its maximum
@@ -537,14 +583,21 @@ impl WebClient {
         self.app.get_max_fov().to_degrees()
     }
 
-    /// Get the clip zoom factor of the view
+    /// Get the zoom factor of the view
     ///
     /// This factor is deduced from the field of view angle.
     /// It is a constant which when multiplied to the screen coordinates
     /// gives the coordinates in clipping space.
-    #[wasm_bindgen(js_name = getClipZoomFactor)]
-    pub fn get_clip_zoom_factor(&self) -> Result<f64, JsValue> {
-        Ok(self.app.get_clip_zoom_factor())
+    #[wasm_bindgen(js_name = getZoomFactor)]
+    pub fn get_zoom_factor(&self) -> Result<f64, JsValue> {
+        Ok(self.app.get_zoom_factor())
+    }
+
+    /// Set the zoom factor of the view
+    #[wasm_bindgen(js_name = setZoomFactor)]
+    pub fn set_zoom_factor(&mut self, zoom_factor: f64) -> Result<(), JsValue> {
+        self.app.set_zoom_factor(zoom_factor);
+        Ok(())
     }
 
     /// Set the center of the view in ICRS coosys
@@ -563,6 +616,11 @@ impl WebClient {
         self.app.set_center(&location);
 
         Ok(())
+    }
+
+    #[wasm_bindgen(js_name = lockNorthUp)]
+    pub fn lock_north_up(&mut self) {
+        self.app.lock_north_up();
     }
 
     /// Get the center of the view
@@ -669,16 +727,12 @@ impl WebClient {
         let vertices = lon
             .iter()
             .zip(lat.iter())
-            .map(|(&lon, &lat)| {
-                let xy = self
-                    .app
+            .flat_map(|(&lon, &lat)| {
+                self.app
                     .world_to_screen(lon, lat)
                     .map(|v| [v.x, v.y])
-                    .unwrap_or([0.0, 0.0]);
-
-                xy
+                    .unwrap_or([0.0, 0.0])
             })
-            .flatten()
             .collect::<Vec<_>>();
 
         vertices.into_boxed_slice()
@@ -844,7 +898,7 @@ impl WebClient {
         Ok(())
     }
 
-    /// Project a line to the screen
+    /// Project a great circle arc on the screen
     ///
     /// # Returns
     ///
@@ -859,23 +913,33 @@ impl WebClient {
     /// * `lat1` - The latitude in degrees of the starting line point
     /// * `lon2` - The longitude in degrees of the ending line point
     /// * `lat2` - The latitude in degrees of the ending line point
-    /*#[wasm_bindgen(js_name = projectLine)]
-    pub fn project_line(
+    #[wasm_bindgen(js_name = projectGreatCircleArc)]
+    pub fn project_great_circle_arc(
         &self,
         lon1: f64,
         lat1: f64,
         lon2: f64,
         lat2: f64,
     ) -> Result<Box<[f64]>, JsValue> {
-        let vertices = self.app.project_line(lon1, lat1, lon2, lat2);
+        let vertices = crate::renderable::line::great_circle_arc::project(
+            lon1.to_radians(),
+            lat1.to_radians(),
+            lon2.to_radians(),
+            lat2.to_radians(),
+            &self.app.camera,
+            &self.app.projection,
+        );
 
         let vertices = vertices
             .into_iter()
-            .flat_map(|v| vec![v.x, v.y])
+            .flat_map(|ndc| {
+                let sxy = crate::math::projection::ndc_to_screen_space(&ndc, &self.app.camera);
+                [sxy.x, sxy.y]
+            })
             .collect::<Vec<_>>();
 
         Ok(vertices.into_boxed_slice())
-    }*/
+    }
 
     /// Get the list of colormap supported
     ///
@@ -919,7 +983,7 @@ impl WebClient {
         let grad = colorgrad::CustomGradient::new()
             .colors(&rgba_colors?)
             .build()
-            .map_err(|err| JsValue::from_str(&format!("{:?}", err)))?;
+            .map_err(|err| JsValue::from_str(&format!("{err:?}")))?;
 
         let cmap = Colormap::new(&label, grad);
         self.app.add_cmap(label, cmap)?;
@@ -949,10 +1013,21 @@ impl WebClient {
     /// * `x` - The x screen coordinate in pixels
     /// * `y` - The y screen coordinate in pixels
     /// * `base_url` - The base url of the hips identifying it
-    #[wasm_bindgen(js_name = readPixel)]
-    pub fn read_pixel(&self, x: f64, y: f64, layer: String) -> Result<JsValue, JsValue> {
-        let pixel = self.app.read_pixel(&Vector2::new(x, y), layer.as_str())?;
-        Ok(pixel)
+    #[wasm_bindgen(js_name = probePixel)]
+    pub fn probe_pixel(&self, x: f64, y: f64, layer: String) -> Result<JsValue, JsValue> {
+        self.app.read_pixel(x, y, layer.as_str())
+    }
+
+    #[wasm_bindgen(js_name = probeLineOfPixels)]
+    pub fn probe_line_of_pixels(
+        &self,
+        x1: f64,
+        y1: f64,
+        x2: f64,
+        y2: f64,
+        layer: String,
+    ) -> Result<Vec<JsValue>, JsValue> {
+        self.app.read_line_of_pixels(x1, y1, x2, y2, layer.as_str())
     }
 
     #[wasm_bindgen(js_name = getVisibleCells)]
@@ -985,20 +1060,11 @@ impl WebClient {
     }
 
     #[wasm_bindgen(js_name = addJSONMoc)]
-    pub fn add_json_moc(
-        &mut self,
-        options: MOCOptions,
-        data: &JsValue,
-    ) -> Result<(), JsValue> {
+    pub fn add_json_moc(&mut self, options: MOCOptions, data: &JsValue) -> Result<(), JsValue> {
         let str: String = js_sys::JSON::stringify(data)?.into();
 
-        let moc = moclib::deser::json::from_json_aladin::<u64, Hpx<u64>>(&str)
-            .map_err(|e| JsValue::from(js_sys::Error::new(&e.to_string())))?
-            .into_cell_moc_iter()
-            .ranges()
-            .into_range_moc();
-
-        self.app.add_moc(HEALPixCoverage(moc), options)?;
+        let smoc = SpaceMoc::from_json(&str)?;
+        self.app.add_moc(smoc, options)?;
 
         Ok(())
     }
@@ -1006,18 +1072,8 @@ impl WebClient {
     #[wasm_bindgen(js_name = addFITSMOC)]
     pub fn add_fits_moc(&mut self, options: MOCOptions, data: &[u8]) -> Result<(), JsValue> {
         //let bytes = js_sys::Uint8Array::new(array_buffer).to_vec();
-        let moc = match fits::from_fits_ivoa_custom(Cursor::new(&data[..]), false)
-            .map_err(|e| JsValue::from_str(&e.to_string()))?
-        {
-            MocIdxType::U16(MocQtyType::<u16, _>::Hpx(moc)) => {
-                Ok(crate::downloader::request::moc::from_fits_hpx(moc))
-            }
-            MocIdxType::U32(MocQtyType::<u32, _>::Hpx(moc)) => Ok(from_fits_hpx(moc)),
-            MocIdxType::U64(MocQtyType::<u64, _>::Hpx(moc)) => Ok(from_fits_hpx(moc)),
-            _ => Err(JsValue::from_str("MOC not supported. Must be a HPX MOC")),
-        }?;
-
-        self.app.add_moc(HEALPixCoverage(moc), options)?;
+        let smoc = SpaceMoc::from_fits_raw_bytes(data)?;
+        self.app.add_moc(smoc, options)?;
 
         Ok(())
     }
@@ -1032,7 +1088,7 @@ impl WebClient {
     ) -> Result<(), JsValue> {
         let tile_d = self.app.get_norder();
         let pixel_d = tile_d + 9;
-        let moc = HEALPixCoverage::from_cone(
+        let moc = SpaceMoc::from_cone(
             &LonLatT::new(
                 ra_deg.to_radians().to_angle(),
                 dec_deg.to_radians().to_angle(),
@@ -1059,14 +1115,14 @@ impl WebClient {
         let vertex_it = ra_deg
             .iter()
             .zip(dec_deg.iter())
-            .map(|(ra, dec)| -> Vector4<f64> {
+            .map(|(ra, dec)| -> Vector3<f64> {
                 let lonlat = LonLatT(ra.to_radians().to_angle(), dec.to_radians().to_angle());
                 lonlat.vector()
             });
 
-        let v_in = &Vector4::new(1.0, 0.0, 0.0, 1.0);
+        let v_in = &Vector3::new(1.0, 0.0, 0.0);
 
-        let mut moc = HEALPixCoverage::from_3d_coos(pixel_d as u8 - 1, vertex_it, &v_in);
+        let mut moc = SpaceMoc::from_3d_coos(pixel_d as u8 - 1, vertex_it, v_in);
         if moc.sky_fraction() > 0.5 {
             moc = moc.not();
         }
@@ -1091,12 +1147,7 @@ impl WebClient {
     }
 
     #[wasm_bindgen(js_name = mocContains)]
-    pub fn moc_contains(
-        &mut self,
-        moc_uuid: String,
-        lon: f64,
-        lat: f64,
-    ) -> Result<bool, JsValue> {
+    pub fn moc_contains(&mut self, moc_uuid: String, lon: f64, lat: f64) -> Result<bool, JsValue> {
         let moc = self
             .app
             .get_moc(&moc_uuid)
@@ -1117,15 +1168,9 @@ impl WebClient {
             .get_moc(&moc_uuid)
             .ok_or_else(|| JsValue::from(js_sys::Error::new("MOC not found")))?;
 
-        let mut buf: Vec<u8> = Default::default();
-        let json = (&moc.0)
-            .into_range_moc_iter()
-            .cells()
-            .to_json_aladin(None, &mut buf)
-            .map(|()| unsafe { String::from_utf8_unchecked(buf) })
-            .map_err(|err| JsValue::from_str(&format!("{:?}", err)))?;
+        let json = moc.serialize_to_json()?;
 
-        serde_wasm_bindgen::to_value(&json).map_err(|err| JsValue::from_str(&format!("{:?}", err)))
+        serde_wasm_bindgen::to_value(&json).map_err(|err| JsValue::from_str(&format!("{err:?}")))
     }
 
     #[wasm_bindgen(js_name = getMOCSkyFraction)]

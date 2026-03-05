@@ -189,7 +189,7 @@ impl Manager {
     ) {
         // Create the HashMap storing the source indices with respect to the
         // HEALPix cell at depth 7 in which they are contained
-        let catalog = Catalog::new::<P>(&self.gl, colormap, sources);
+        let catalog = Catalog::new(&self.gl, colormap, sources);
 
         // Update the number of sources loaded
         //self.num_sources += num_instances_in_catalog as usize;
@@ -223,7 +223,7 @@ impl Manager {
 
     pub fn get_mut_catalog(&mut self, name: &str) -> Result<&mut Catalog, Error> {
         self.catalogs.get_mut(name).ok_or(Error::CatalogNotPresent {
-            message: format!("{} catalog is not present!", name),
+            message: format!("{name} catalog is not present!"),
         })
     }
 
@@ -232,7 +232,6 @@ impl Manager {
         // Cells that are of depth > 7 are not handled by the hashmap (limited to depth 7)
         // For these cells, we draw all the sources lying in the ancestor cell of depth 7 containing
         // this cell
-        //if camera.get_aperture() > P::RASTER_THRESHOLD_ANGLE {
         if camera.get_field_of_view().is_allsky() {
             let cells = crate::healpix::cell::ALLSKY_HPX_CELLS_D0;
 
@@ -240,7 +239,7 @@ impl Manager {
                 catalog.update(cells);
             }
         } else {
-            let depth = camera.get_texture_depth().min(7);
+            let depth = camera.get_tile_depth().min(7);
             let cells = camera.get_hpx_cells(depth, CooSystem::ICRS);
 
             for catalog in self.catalogs.values_mut() {
@@ -287,11 +286,7 @@ const MAX_SOURCES_PER_CATALOG: f32 = 50000.0;
 
 use crate::Abort;
 impl Catalog {
-    fn new<P: Projection>(
-        gl: &WebGlContext,
-        colormap: Colormap,
-        mut lonlat: Box<[LonLatT<f32>]>,
-    ) -> Catalog {
+    fn new(gl: &WebGlContext, colormap: Colormap, mut lonlat: Box<[LonLatT<f32>]>) -> Catalog {
         let alpha = 1_f32;
         let strength = 1_f32;
         let index_vec = IdxVec::from_coo(&mut lonlat);
@@ -407,14 +402,14 @@ impl Catalog {
 
         for cell in cells {
             let sources_idx = self.index_vec.get_item_indices_inside_hpx_cell(cell);
-            total_sources += (sources_idx.end - sources_idx.start) as usize;
+            total_sources += sources_idx.end - sources_idx.start;
         }
 
         total_sources
     }
 
     // Cells are of depth <= 7
-    fn update(&mut self, cells: &[HEALPixCell]) {
+    pub fn update(&mut self, cells: &[HEALPixCell]) {
         let num_sources_in_fov = self.get_total_num_sources_in_fov(cells) as f32;
         // reset the sources in the frame
         let mut sources: Vec<_> = vec![];
@@ -425,8 +420,7 @@ impl Catalog {
             for c in cell.get_children_cells(delta_depth as u8) {
                 // Define the total number of sources being in this kernel depth tile
                 let sources_in_cell = self.index_vec.get_item_indices_inside_hpx_cell(&c);
-                let num_sources_in_kernel_cell =
-                    (sources_in_cell.end - sources_in_cell.start) as usize;
+                let num_sources_in_kernel_cell = sources_in_cell.end - sources_in_cell.start;
                 if num_sources_in_kernel_cell > 0 {
                     let num_sources = (((num_sources_in_kernel_cell as f32) / num_sources_in_fov)
                         * MAX_SOURCES_PER_CATALOG) as usize;
@@ -460,6 +454,7 @@ impl Catalog {
             );
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn draw(
         &self,
         gl: &WebGlContext,
@@ -516,7 +511,7 @@ impl Catalog {
                         .draw_elements_instanced_with_i32(
                             WebGl2RenderingContext::TRIANGLES,
                             0,
-                            self.num_instances as i32,
+                            self.num_instances,
                         );
                     Ok(())
                 },

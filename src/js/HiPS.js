@@ -1,21 +1,25 @@
+// SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright 2013 - UDS/CNRS
 // The Aladin Lite program is distributed under the terms
-// of the GNU General Public License version 3.
+// of the GNU Lesser General Public License version 3
+// or (at your option) any later version.
 //
 // This file is part of Aladin Lite.
 //
 //    Aladin Lite is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, version 3 of the License.
+//    it under the terms of the GNU Lesser General Public License as published by
+//    the Free Software Foundation, either version 3 of the License, or
+//    (at your option) any later version.
 //
 //    Aladin Lite is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+//    GNU Lesser General Public License for more details.
 //
-//    The GNU General Public License is available in COPYING file
-//    along with Aladin Lite.
+//    You should have received a copy of the GNU Lesser General Public License
+//    along with Aladin Lite. If not, see <https://www.gnu.org/licenses/>.
 //
+
 
 /******************************************************************************
  * Aladin Lite project
@@ -30,6 +34,8 @@ import { ColorCfg } from "./ColorCfg.js";
 import { HiPSProperties } from "./HiPSProperties.js";
 import { Aladin } from "./Aladin.js"; 
 import { CooFrameEnum } from "./CooFrameEnum.js";
+import { Utils } from "./Utils"
+
 let PropertyParser = {};
 // Utilitary functions for parsing the properties and giving default values
 /// Mandatory tileSize property
@@ -74,12 +80,12 @@ PropertyParser.minOrder = function (properties) {
     return minOrder;
 };
 
-PropertyParser.formats = function (properties) {
-    let formats = (properties && properties.hips_tile_format) || "jpeg";
+PropertyParser.acceptedFormats = function (properties) {
+    let acceptedFormats = (properties && properties.hips_tile_format) || "jpeg";
 
-    formats = formats.split(" ").map((fmt) => fmt.toLowerCase());
+    acceptedFormats = acceptedFormats.split(" ").map((fmt) => fmt.toLowerCase());
 
-    return formats;
+    return acceptedFormats;
 };
 
 PropertyParser.initialFov = function (properties) {
@@ -102,6 +108,18 @@ PropertyParser.skyFraction = function (properties) {
             +properties.moc_sky_fraction) ||
         0.0;
     return skyFraction;
+};
+
+PropertyParser.hipsDataMinmax = function (properties) {
+    let data_minmax =
+        properties &&
+        properties.hips_data_minmax &&
+        properties.hips_data_minmax.split(" ");
+
+    const minData = data_minmax && parseFloat(data_minmax[0]);
+    const maxData = data_minmax && parseFloat(data_minmax[1]);
+
+    return [minData, maxData];
 };
 
 PropertyParser.cutouts = function (properties) {
@@ -141,20 +159,18 @@ PropertyParser.isPlanetaryBody = function (properties) {
  * <li>The coordinate frame of the HiPS</li>
  * </ul>
  * 
- * @deprecated The longitudeReversed property is now deprecated from version 3.6.1. This property will be removed from version 3.7.0 and replaced with a method flipping the longitude axis directly on the {@link Aladin} view object and not at the HiPS level.
- * 
  * @typedef {Object} HiPSOptions
  * @property {string} [name] - The name of the survey to be displayed in the UI
  * @property {Function} [successCallback] - A callback executed when the HiPS has been loaded
  * @property {Function} [errorCallback] - A callback executed when the HiPS could not be loaded
  * @property {string} [imgFormat] - Formats accepted 'webp', 'png', 'jpeg' or 'fits'. Will raise an error if the HiPS does not contain tiles in this format
- * @property {CooFrame} [cooFrame="ICRS"] - Coordinate frame of the survey tiles
+ * @property {CooFrame} [cooFrame] - Coordinate frame of the survey tiles. If not given, the one from the parsed properties file will be retrieved.
  * @property {number} [maxOrder] - The maximum HEALPix order of the HiPS, i.e the HEALPix order of the most refined tile images of the HiPS.
  * @property {number} [numBitsPerPixel] - Useful if you want to display the FITS tiles of a HiPS. It specifies the number of bits per pixel. Possible values are:
  * -64: double, -32: float, 8: unsigned byte, 16: short, 32: integer 32 bits, 64: integer 64 bits
  * @property {number} [tileSize] - The width of the HEALPix tile images. Mostly 512 pixels but can be 256, 128, 64, 32
  * @property {number} [minOrder] - If not given, retrieved from the properties of the survey.
- * @property {boolean} [longitudeReversed=false] - Deprecated since 3.6.1: Set it to True for planetary survey visualization 
+ * @property {boolean} [longitudeReversed] - Deprecated The longitudeReversed property is now deprecated since version 3.6.1. This property has been removed since version 3.7.0 and replaced with {@link Aladin#reverseLongitude} set directly on the {@link Aladin} view object and not at the HiPS level.
  * @property {number} [opacity=1.0] - Opacity of the survey or image (value between 0 and 1).
  * @property {string} [colormap="native"] - The colormap configuration for the survey or image.
  * @property {string} [stretch="linear"] - The stretch configuration for the survey or image.
@@ -166,7 +182,58 @@ PropertyParser.isPlanetaryBody = function (properties) {
  * @property {number} [saturation=0.0] - The saturation value for the color configuration.
  * @property {number} [brightness=0.0] - The brightness value for the color configuration.
  * @property {number} [contrast=0.0] - The contrast value for the color configuration.
+ * @property {string} [requestMode='cors'] - Determines how the request will interact with cross-origin resources.
+    * <ul> 
+    * <li>'cors' - allow cross-origin requests with proper CORS headers.</li>
+    * <li>'no-cors' - send the request without CORS.</li>
+    * <li>'same-origin' - only allow requests to the same origin.</li>
+    * </ul>
+ * @property {string} [requestCredentials='same-origin'] - Specifies whether to send cookies and HTTP credentials with the request.
+    *  <ul>
+    *  <li>'omit' - never send credentials.</li>
+    *  <li>'same-origin' - send only for same-origin requests.</li>
+    *  <li>'include' - always send, even for cross-origin requests.</li>
+    *  </ul>
  */
+
+/**
+ * Screen pixel prober type
+ * 
+ * @typedef {Object} PixelProber
+ * @property {number} [x] - x screen coordinate. Default is set to the view center, i.e. half the width in pixels of the aladin lite div.
+ * @property {number} [y] - y screen coordinate. Default is set to the view center, i.e. half the height in pixels of the aladin lite div.
+ */
+
+/**
+ * Screen line prober type
+ * 
+ * @typedef {Object} LineProber
+ * @property {number} [x1] - x start point screen coordinate
+ * @property {number} [y1] - y start point screen coordinate
+ * @property {number} [x2] - x end point screen coordinate
+ * @property {number} [y2] - y end point screen coordinate
+ */
+
+/**
+ * Sky great circle arc prober type
+ * 
+ * @typedef {Object} GreatCircleArcProber
+ * @property {number} [ra1] - ra first point sky coordinate (in icrs) frame
+ * @property {number} [dec1] - dec first point sky coordinate (in icrs) frame
+ * @property {number} [ra2] - ra end point sky coordinate (in icrs) frame
+ * @property {number} [dec2] - dec end point sky coordinate (in icrs) frame
+ */
+
+/**
+ * Screen rectangular prober type
+ * 
+ * @typedef {Object} RectProber
+ * @property {number} [top] - top screen pixel coordinate
+ * @property {number} [left] - left screen pixel coordinate
+ * @property {number} [w] - width in screen pixel
+ * @property {number} [h] - height in screen pixel
+ */
+
 
 /**
  * JS {@link https://developer.mozilla.org/fr/docs/Web/API/FileList| FileList} API type
@@ -181,7 +248,6 @@ PropertyParser.isPlanetaryBody = function (properties) {
  * @property {File} properties - The local properties file of the HiPS
  */
 
- 
 export let HiPS = (function () {
     /**
      * The object describing an image survey
@@ -210,6 +276,8 @@ export let HiPS = (function () {
         this.options = options;
         this.name = (options && options.name) || id;
         this.startUrl = options.startUrl;
+        this.requestMode = options && options.requestMode || 'cors';
+        this.requestCredentials = options && options.requestCredentials || 'same-origin';
 
         this.slice = 0;
 
@@ -255,12 +323,8 @@ export let HiPS = (function () {
         this.cooFrame = CooFrameEnum.fromString(options.cooFrame, null);
         this.tileSize = options.tileSize;
         this.skyFraction = options.skyFraction;
-        this.longitudeReversed =
-            options.longitudeReversed === undefined
-                ? false
-                : options.longitudeReversed;
         this.imgFormat = options.imgFormat;
-        this.formats = options.formats;
+        this.acceptedFormats = options.formats;
         this.defaultFitsMinCut = options.defaultFitsMinCut;
         this.defaultFitsMaxCut = options.defaultFitsMaxCut;
         this.numBitsPerPixel = options.numBitsPerPixel;
@@ -269,6 +333,126 @@ export let HiPS = (function () {
         this.successCallback = options.successCallback;
 
         this.colorCfg = new ColorCfg(options);
+
+        let self = this;
+
+        if (this.localFiles) {
+            // Fetch the properties file
+            this.query = new Promise(async (resolve, reject) => {
+                // look for the properties file
+                await HiPSProperties.fetchFromFile(self.localFiles["properties"])
+                    .then((p) => {
+                        self._parseProperties(p);
+                        self.url = "local";
+
+                        delete self.localFiles["properties"]
+                    })
+                    .catch((e) => reject("HiPS " + self.id + " error: " + self.localFiles["properties"] + " does not point towards a local HiPS.\nReason: " + e.stack))
+
+                resolve(self);
+            });
+        } else {
+            let isIncompleteOptions = true;
+
+            let isID = Utils.isUrl(this.url) === undefined;
+    
+            if (this.imgFormat === "fits") {
+                // a fits is given
+                isIncompleteOptions = !(
+                    this.maxOrder &&
+                    (!isID && this.url) &&
+                    this.imgFormat &&
+                    this.tileSize &&
+                    this.cooFrame &&
+                    this.numBitsPerPixel
+                );
+            } else {
+                isIncompleteOptions = !(
+                    this.maxOrder &&
+                    (!isID && this.url) &&
+                    this.imgFormat &&
+                    this.tileSize &&
+                    this.cooFrame
+                );
+            }
+    
+            this.query = new Promise(async (resolve, reject) => {
+                if (isIncompleteOptions) {
+                    // ID typed url
+                    if (self.startUrl && isID) {
+                        // First download the properties from the start url
+                        await HiPSProperties.fetchFromUrl(self.startUrl, self.requestMode, self.requestCredentials)
+                            .then((p) => {
+                                self._parseProperties(p);
+                            })
+                            .catch((e) => reject("HiPS " + self.id + " error: starting url " + self.startUrl + " given does not points to a HiPS location.\nReason: " + e.stack))
+    
+                        // the url stores a "CDS ID" we take it prioritaly
+                        // if the url is null, take the id, this is for some tests
+                        // to pass because some users might just give null as url param and a "CDS ID" as id param
+                        let id = self.url || self.id;
+
+                        self.url = self.startUrl;
+
+                        setTimeout(
+                            () => {
+                                if (!self.added)
+                                    return;
+
+                                HiPSProperties.fetchFromID(id)
+                                    .then((p) => {
+                                        self._fetchFasterUrlFromProperties(p);
+                                    })
+                                    .catch((e) => reject("HiPS " + self.id + " error: CDS ID " + id + " is not found.\nReason: " + e.stack));
+                            },
+                            1000
+                        );
+                    } else if (!self.startUrl && isID) {
+                        // the url stores a "CDS ID" we take it prioritaly
+                        // if the url is null, take the id, this is for some tests
+                        // to pass because some users might just give null as url param and a "CDS ID" as id param
+                        let id = self.url || self.id;
+
+                        await HiPSProperties.fetchFromID(id)
+                            .then((p) => {
+                                self.url = p.hips_service_url;
+
+                                self._parseProperties(p);
+                                self._fetchFasterUrlFromProperties(p);
+                            })
+                            .catch((_) => {
+                                // If no ID has been found then it may actually be a path
+                                // url pointing to a local HiPS
+                                return HiPSProperties.fetchFromUrl(id)
+                                    .then((p) => {
+                                        self._parseProperties(p);
+                                    })
+                                    .catch((e) => reject("HiPS " + self.id + " error: " + id + " does not refer to a found CDS ID nor a local path pointing towards a HiPS.\nReason: " + e.stack))
+                            })
+                    } else {
+                        await HiPSProperties.fetchFromUrl(self.url, self.requestMode, self.requestCredentials)
+                            .then((p) => {
+                                self._parseProperties(p);
+                            })
+                            .catch((e) => reject("HiPS " + self.id + " error: HiPS not found at url " + self.url + "\nReason: " + e.stack))
+                    }
+                } else {
+                    self._parseProperties({
+                        hips_order: self.maxOrder,
+                        hips_service_url: self.url,
+                        hips_tile_width: self.tileSize,
+                        hips_frame: self.cooFrame.label
+                    })
+                }
+    
+                if (self.updateHiPSCache) {
+                    self._saveInCache();
+                    self.updateHiPSCache = false;
+                }
+    
+                resolve(self);
+            });
+        }
     };
 
     HiPS.prototype._fetchFasterUrlFromProperties = function(properties) {
@@ -285,7 +469,6 @@ export let HiPS = (function () {
                     );
 
                     self.url = url;
-
                     // If added to the backend, then we need to tell it the url has changed
                     if (self.added) {
                         self.view.wasm.setHiPSUrl(
@@ -305,9 +488,24 @@ export let HiPS = (function () {
         let self = this;
         self.creatorDid = properties.creator_did || self.creatorDid;
 
-        // Cube depth
+        // HiPS Cube special keywords
         self.cubeDepth = properties && properties.hips_cube_depth && +properties.hips_cube_depth;
         self.cubeFirstFrame = properties && properties.hips_cube_firstframe && +properties.hips_cube_firstframe;
+        self.emMin = properties && properties.em_min && +properties.em_min;
+        self.emMax = properties && properties.em_max && +properties.em_max;
+
+        if (self.emMax < self.emMin) {
+            let tmp = self.emMin;
+            self.emMin = self.emMax;
+            self.emMax = tmp;
+        }
+
+        self.hipsDataMinMax = PropertyParser.hipsDataMinmax(properties);
+
+        // HiPS3D special keywords
+        self.hipsOrderFreq = properties && properties.hips_order_freq && +properties.hips_order_freq;
+        self.hipsTileDepth = properties && properties.hips_tile_depth && +properties.hips_tile_depth;
+        self.obsRestFreq = properties && properties.obs_restfreq && +properties.obs_restfreq;
 
         // Max order
         const maxOrder = PropertyParser.maxOrder(properties)
@@ -315,13 +513,16 @@ export let HiPS = (function () {
             self.maxOrder = maxOrder;
         }
 
+        // dataproduct type
+        self.dataproductType = properties && properties.dataproduct_type;
+
         // Tile size
         self.tileSize =
             PropertyParser.tileSize(properties) || self.tileSize;
 
         // Tile formats
-        self.formats =
-            PropertyParser.formats(properties) || self.formats;
+        self.acceptedFormats =
+            PropertyParser.acceptedFormats(properties) || self.acceptedFormats;
 
         // Min order
         const minOrder = PropertyParser.minOrder(properties)
@@ -352,8 +553,8 @@ export let HiPS = (function () {
 
         // Cutouts
         const cutoutFromProperties = PropertyParser.cutouts(properties);
-        self.defaultFitsMinCut = cutoutFromProperties[0];
-        self.defaultFitsMaxCut = cutoutFromProperties[1];
+        self.defaultFitsMinCut = cutoutFromProperties[0] || 0.0;
+        self.defaultFitsMaxCut = cutoutFromProperties[1] || 1.0;
 
         // Bitpix
         self.numBitsPerPixel =
@@ -362,9 +563,8 @@ export let HiPS = (function () {
         // HiPS body
         if (properties.hips_body) {
             self.hipsBody = properties.hips_body;
-            // Use the property to define and check some user given infos
-            // Longitude reversed
-            self.longitudeReversed = true;
+            // The HiPS is a planetary one, so we reverse the longitude axis globally
+            self.view.aladin.reverseLongitude(true)
         }
 
         // Give a better name if we have the HiPS metadata
@@ -375,81 +575,42 @@ export let HiPS = (function () {
 
         self.creatorDid = self.creatorDid || self.id || self.url;
 
-        // Image format
-        if (self.imgFormat) {
-            // transform to lower case
-            self.imgFormat = self.imgFormat.toLowerCase();
-            // convert JPG -> JPEG
-            if (self.imgFormat === "jpg") {
-                self.imgFormat = "jpeg";
-            }
-
-            // user wants a fits but the properties tells this format is not available
-            if (
-                self.imgFormat === "fits" &&
-                self.formats &&
-                self.formats.indexOf("fits") < 0
-            ) {
-                throw self.name + " does not provide fits tiles";
-            }
-
-            if (
-                self.imgFormat === "webp" &&
-                self.formats &&
-                self.formats.indexOf("webp") < 0
-            ) {
-                throw self.name + " does not provide webp tiles";
-            }
-
-            if (
-                self.imgFormat === "png" &&
-                self.formats &&
-                self.formats.indexOf("png") < 0
-            ) {
-                throw self.name + " does not provide png tiles";
-            }
-
-            if (
-                self.imgFormat === "jpeg" &&
-                self.formats &&
-                self.formats.indexOf("jpeg") < 0
-            ) {
-                throw self.name + " does not provide jpeg tiles";
-            }
-        } else {
-            // user wants nothing then we choose one from the properties
-            if (self.formats.indexOf("webp") >= 0) {
-                self.imgFormat = "webp";
-            } else if (self.formats.indexOf("png") >= 0) {
-                self.imgFormat = "png";
-            } else if (self.formats.indexOf("jpeg") >= 0) {
-                self.imgFormat = "jpeg";
-            } else if (self.formats.indexOf("fits") >= 0) {
-                self.imgFormat = "fits";
+        // check the imgFormat with respect to the formats accepted image format
+        const chooseTileFormat = (acceptedFormats) => {
+            if (acceptedFormats.indexOf("webp") >= 0) {
+                return "webp";
+            } else if (acceptedFormats.indexOf("png") >= 0) {
+                return "png";
+            } else if (acceptedFormats.indexOf("jpeg") >= 0) {
+                return "jpeg";
+            } else if (acceptedFormats.indexOf("fits") >= 0) {
+                return "fits";
+            } else if (acceptedFormats.indexOf("fits.fz") >= 0) {
+                return "fits";
             } else {
                 throw (
                     "Unsupported format(s) found in the properties: " +
-                    self.formats
+                    acceptedFormats
                 );
             }
+        };
+
+        // Set an image format with respect to the ones available for that HiPS if:
+        // * the format is unknown
+        // * the format is known but is not available for that HiPS
+        if (!self.imgFormat || !self.acceptedFormats.includes(self.imgFormat)) {
+            // Switch automatically to a available format
+            let imgFormat = chooseTileFormat(self.acceptedFormats);
+            self.setImageFormat(imgFormat)
+
+            console.info(self.id + " tile format chosen: " + self.imgFormat)
         }
 
-        // Cutouts
-        let minCut, maxCut;
-        if (self.imgFormat === "fits") {
-            // Take into account the default cuts given by the property file (this is true especially for FITS HiPSes)
-            minCut = self.colorCfg.minCut || self.defaultFitsMinCut || 0.0;
-            maxCut = self.colorCfg.maxCut || self.defaultFitsMaxCut || 1.0;
-        } else {
-            minCut = self.colorCfg.minCut || 0.0;
-            maxCut = self.colorCfg.maxCut || 1.0;
+        // Set a cuts for fits formats if no cuts has been yet given
+        let [minCut, maxCut] = self.getCuts();
+        if (self.imgFormat === "fits" && minCut === undefined && maxCut === undefined) {
+            self.setCuts(self.defaultFitsMinCut, self.defaultFitsMaxCut);
         }
-
-        self.setOptions({minCut, maxCut});
-
-        self.formats = self.formats || [self.imgFormat];
-
-        self._saveInCache();
     }
 
     /**
@@ -472,99 +633,23 @@ export let HiPS = (function () {
      *
      * @memberof HiPS
      *
-     * @param {string} format - The desired image format. Should be one of ["fits", "png", "jpg", "webp"].
+     * @param {string} imgFormat - The desired image format. Should be one of ["fits", "png", "jpg", "webp"].
      *
      * @throws {string} Throws an error if the provided format is not one of the supported formats or if the format is not available for the specific HiPS.
      */
-    HiPS.prototype.setImageFormat = function (format) {
-        let self = this;
-        self.query.then(() => {
-            let imgFormat = format.toLowerCase();
-
-            if (
-                imgFormat !== "fits" &&
-                imgFormat !== "png" &&
-                imgFormat !== "jpg" &&
-                imgFormat !== "jpeg" &&
-                imgFormat !== "webp"
-            ) {
-                throw 'Formats must lie in ["fits", "png", "jpg", "webp"]';
-            }
-
-            if (imgFormat === "jpg") {
-                imgFormat = "jpeg";
-            }
-
-            // Passed the check, we erase the image format with the new one
-            // We do nothing if the imgFormat is the same
-            if (self.imgFormat === imgFormat) {
-                return;
-            }
-
-            // Check the properties to see if the given format is available among the list
-            // If the properties have not been retrieved yet, it will be tested afterwards
-            const availableFormats = self.formats;
-            // user wants a fits but the metadata tells this format is not available
-            if (
-                imgFormat === "fits" &&
-                availableFormats.indexOf("fits") < 0
-            ) {
-                throw self.id + " does not provide fits tiles";
-            }
-
-            if (
-                imgFormat === "webp" &&
-                availableFormats.indexOf("webp") < 0
-            ) {
-                throw self.id + " does not provide webp tiles";
-            }
-
-            if (
-                imgFormat === "png" &&
-                availableFormats.indexOf("png") < 0
-            ) {
-                throw self.id + " does not provide png tiles";
-            }
-
-            if (
-                imgFormat === "jpeg" &&
-                availableFormats.indexOf("jpeg") < 0
-            ) {
-                throw self.id + " does not provide jpeg tiles";
-            }
-
-            // Switch from png/webp/jpeg to fits
-            if (
-                (self.imgFormat === "png" ||
-                    self.imgFormat === "webp" ||
-                    self.imgFormat === "jpeg") &&
-                imgFormat === "fits"
-            ) {
-                if (Number.isFinite(self.defaultFitsMinCut) && Number.isFinite(self.defaultFitsMaxCut)) {
-                    // reset cuts to those given from the properties
-                    self.setCuts(self.defaultFitsMinCut, self.defaultFitsMaxCut);
-                }
-                // Switch from fits to png/webp/jpeg
-            } else if (self.imgFormat === "fits") {
-                self.setCuts(0.0, 1.0);
-            }
-
-            // Check if it is a fits
-            self.imgFormat = imgFormat;
-
-            self._updateMetadata();
-        });
+    HiPS.prototype.setImageFormat = function (imgFormat) {
+        this.setOptions({imgFormat});
     };
 
     /**
-     * Sets the opacity factor when rendering the HiPS
+     * Get the list of accepted tile format for that HiPS
      *
      * @memberof HiPS
      *
      * @returns {string[]} Returns the formats accepted for the survey, i.e. the formats of tiles that are availables. Could be PNG, WEBP, JPG and FITS.
      */
     HiPS.prototype.getAvailableFormats = function () {
-        return this.formats;
+        return this.acceptedFormats;
     };
 
     /**
@@ -595,6 +680,10 @@ export let HiPS = (function () {
     HiPS.prototype.setBlendingConfig = function (additive = false) {
         this.setOptions({additive});
     };
+
+    HiPS.prototype.isSpectralCube = function() {
+        return this.hipsTileDepth !== undefined && this.hipsTileDepth !== null;
+    }
 
     /**
      * Sets the colormap when rendering the HiPS.
@@ -632,6 +721,8 @@ export let HiPS = (function () {
      * @param {boolean} [options.reversed=false] - Reverse the colormap axis.
      */
     HiPS.prototype.setColormap = function (colormap, options) {
+        colormap = colormap || this.options.colormap;
+
         this.setOptions({colormap, ...options})
     };
 
@@ -644,9 +735,16 @@ export let HiPS = (function () {
      *
      * @param {number} minCut - The low cut value to set for the HiPS.
      * @param {number} maxCut - The high cut value to set for the HiPS.
+     * @param {string} [imgFormat] - The image format for which one wants to set the cuts. By default, the format used is the current imageFormat
      */
-    HiPS.prototype.setCuts = function (minCut, maxCut) {
-        this.setOptions({minCut, maxCut})
+    HiPS.prototype.setCuts = function (minCut, maxCut, imgFormat) {
+        imgFormat = imgFormat?.toLowerCase();
+
+        if (imgFormat === "jpg") {
+            imgFormat = "jpeg";
+        }
+
+        this.setOptions({minCut, maxCut, cutFormat: imgFormat})
     };
 
     /**
@@ -716,7 +814,59 @@ export let HiPS = (function () {
         this.slice = slice;
 
         if (this.added) {
-            this.view.wasm.setSliceNumber(this.layer, slice);
+            let meters = this.emMin + ((slice / this.cubeDepth) * (this.emMax - this.emMin));
+
+            let freq = 299792458.0 / meters;
+            this.view.wasm.setFreq(this.layer, freq);
+        }
+    }
+
+    /**
+     * Set the frequency to look at (for HiPS3D object only).
+     *
+     * @memberof HiPS
+     *
+     * @param {Object} [options] - frequency object
+     * @param {number} [options.value] = The frequency value expressed in `options.unit`
+     * @param {"Hz"|"m"|"m/s"} [options.unit="Hz"] - The unit of the frequency passed
+     * @param {number} [options.restFreq] - "The rest frequency (in Hz) to use for computing the velocity in m.s-1"
+     */
+    HiPS.prototype.setFrequency = function(options) {
+        if (this.added) {
+            const SPEED_OF_LIGHT = 299792458.0;
+
+            const value = options && options.value;
+            const unit = options && options.unit;
+
+            let freq;
+            if (unit === "m") {
+                freq = SPEED_OF_LIGHT / value;
+            } else if (unit === "m/s") {
+                // A velocity is given in "m/s"
+                const restFreq = options && options.restFreq;
+                if (!restFreq) {
+                    throw 'When giving a velocity, a rest frequency must be given as well for computing the frequency to query the HiPS'
+                }
+
+                freq = restFreq * (1.0 - value / SPEED_OF_LIGHT)
+            } else {
+                // unit is "Hz"
+                freq = value;
+            }
+
+            this.view.wasm.setFreq(this.layer, freq);
+        }
+    }
+
+    HiPS.prototype.getFrequency = function() {
+        if (this.added) {
+            return this.view.wasm.getFreq(this.layer);
+        }
+    }
+
+    HiPS.prototype.getFrequencyWindow = function() {
+        if (this.added) {
+            return this.view.wasm.getFreqWindow(this.layer);
         }
     }
 
@@ -726,17 +876,16 @@ export let HiPS = (function () {
             if (this.added) {
                 this.view.wasm.setImageMetadata(this.layer, {
                     ...this.colorCfg.get(),
-                    longitudeReversed: this.longitudeReversed,
                     imgFormat: this.imgFormat,
                 });
                 // once the meta have been well parsed, we can set the meta
-                ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.view.aladinDiv, {
+                ALEvent.LAYER_CHANGED.dispatchedTo(this.view.aladinDiv, {
                     layer: this,
                 });
-
-                // Save it in the JS HiPS cache
-                this._saveInCache();
             }
+
+            // Save it in the JS HiPS cache
+            this._saveInCache();
         } catch (e) {
             // Display the error message
             console.error(e);
@@ -744,11 +893,13 @@ export let HiPS = (function () {
     };
 
     /**
-     * Set color options generic method for changing colormap, opacity, ... of the HiPS
+    * Set color options generic method for changing colormap, opacity, ... of the HiPS
     *
     * @memberof HiPS
     *  
     * @param {Object} options
+    * @param {number} [options.imgFormat] - Image format of the HiPS tiles. Possible values are "jpeg", "png", "webp" or "fits".
+    * Some formats might not be handled depending on the survey simply because tiles of that format have not been generated.
     * @param {number} [options.opacity=1.0] - Opacity of the survey or image (value between 0 and 1).
     * @param {string} [options.colormap="native"] - The colormap configuration for the survey or image.
     * @param {string} [options.stretch="linear"] - The stretch configuration for the survey or image.
@@ -764,12 +915,48 @@ export let HiPS = (function () {
     HiPS.prototype.setOptions = function(options) {
         this.colorCfg.setOptions(options);
 
-        // FIXME, change api of setColormap to take an option object having a name field
-        if (options.colormap == null || options.colormap == undefined) {
-            delete options.colormap;
+        /// Set image format
+        if (options.imgFormat) {
+            if (this.dataproductType === "spectral-cube" && this.view.spectraDisplayer && this.view.spectraDisplayer.hips === this) {
+                this.view.spectraDisplayer.resetScale()
+            }
+
+            let imgFormat = options.imgFormat.toLowerCase();
+
+            if (imgFormat === "jpg") {
+                imgFormat = "jpeg";
+            }
+
+            if (!["fits", "png", "jpeg", "webp", "fits.fz"].includes(imgFormat)) {
+                console.warn('Formats must lie in ["fits", "png", "jpg", "webp"]. imgFormat option property ignored');
+            } else {
+                // Passed the check, we erase the image format with the new one
+                // We do nothing if the imgFormat is the same
+                
+                // Check the properties to see if the given format is available among the list
+                // If the properties have not been retrieved yet, it will be tested afterwards
+                const availableFormats = this.acceptedFormats;
+                // user wants a fits but the metadata tells this format is not available
+                if (!availableFormats || (availableFormats && availableFormats.indexOf(imgFormat) >= 0)) {
+                    this.imgFormat = imgFormat;
+
+                    let [minCut, maxCut] = this.getCuts();
+                    if (minCut === undefined && maxCut === undefined && (imgFormat === "fits" || imgFormat === "fits.fz")) {
+                        // sets the default cuts parsed from the properties
+                        this.setCuts(this.defaultFitsMinCut, this.defaultFitsMaxCut)
+                    }
+                } else {
+                    console.warn(this.id + " does not provide " + imgFormat + " tiles")
+                }
+            }
         }
 
-        this.options = {...this.options, ...options};
+        this.options = {
+            ...this.options,
+            ...options,
+            minCut: this.colorCfg.minCut,
+            maxCut: this.colorCfg.maxCut
+        };
 
         this._updateMetadata();
     };
@@ -816,146 +1003,79 @@ export let HiPS = (function () {
     HiPS.prototype.getAlpha = HiPS.prototype.getOpacity;
 
     /**
-     * Read a specific screen pixel value
+     * Probe the HiPS at a screen pixel location.
      * 
-     * @todo This has not yet been implemented
+     * @description
+     * Returns the true pixel value for the pixel located at the given (x, y) pixel screen position.
+     * This method returns the true value coming from the tiles (color or 1 channel fits). It does not take into
+     * account the apply of a transfer function, a colormap, cuts etc... It only returns the true pixel value coming from the tile
+     * 
+     * If you want to retrieve the pixels after apply of a transfer function, colormap, etc... i.e. if you are not looking for
+     * the real HiPS pixel values, then you might be more interested in {@link Aladin#readPixel} instead.
+     * 
      * @memberof HiPS
-     * @param {number} x - x axis in screen pixels to probe
-     * @param {number} y - y axis in screen pixels to probe
-     * @returns {number} the value of that pixel
+     * @param {number} [x] - x screen pixel coordinate. Default is set to the view center, i.e. half the width in pixels of the aladin lite div.
+     * @param {number} [y] - y screen pixel coordinate. Default is set to the view center, i.e. half the height in pixels of the aladin lite div.
+     * @returns {number} - The pixel value coming directly from the tiles
      */
     HiPS.prototype.readPixel = function (x, y) {
-        return this.view.wasm.readPixel(x, y, this.layer);
+        x = x || (this.view.width / 2);
+        y = y || (this.view.height / 2);
+        return this.view.wasm.probePixel(x, y, this.layer);
+    };
+
+    /**
+     * Probe the HiPS true pixels
+     * 
+     * @description
+     * Returns the true pixels composing this HiPS.
+     * This method returns the true value coming from the tiles (whether it refers to colored or 1 channel fits ones). It does not take into
+     * account the apply of a transfer function, a colormap, cuts etc... i.e. it returns the true pixel values coming from the tiles.
+     * 
+     * This method is called by {@link HiPS#readPixel} with a pixel prober on the view center.
+     * 
+     * If you want to retrieve the pixels you directly see on the screen, then you might be more interested in {@link Aladin#readCanvas} instead.
+     * 
+     * @memberof HiPS
+     * @param {PixelProber|LineProber|GreatCircleArcProber} prober - A prob object. Only, `pixel`, `line` or `arc` are accepted.
+     * @returns {number[]} The pixel value(s) probed.
+     */
+    HiPS.prototype.probePixels = function (prober) {
+        if (Utils.isNumber(prober.x) && Utils.isNumber(prober.y)) {
+            // pixel probing
+            return this.readPixel(prober.x, prober.y);
+        } else if (Utils.isNumber(prober.x1) && Utils.isNumber(prober.y1) && Utils.isNumber(prober.x2) && Utils.isNumber(prober.y2)) {
+            // line probing
+            return this.view.wasm.probeLineOfPixels(prober.x1, prober.y1, prober.x2, prober.y2, this.layer);
+        } else if (Utils.isNumber(prober.ra1) && Utils.isNumber(prober.dec1) && Utils.isNumber(prober.ra2) && Utils.isNumber(prober.dec2)) {
+            // get the vertices along the great circle arc
+            let pixelsAlongArc = view.wasm.projectGreatCircleArc(prober.ra1, prober.dec1, prober.ra2, prober.dec2);
+
+            let pixels = []
+            for (var i = 0; i < pixelsAlongArc.length; i+=4) {
+                pixels = pixels.concat(this.probe({
+                    x1: pixelsAlongArc[i],
+                    y1: pixelsAlongArc[i+1],
+                    x2: pixelsAlongArc[i+2],
+                    y2: pixelsAlongArc[i+3],
+                }))
+            }
+
+            return pixels
+        }
     };
 
     HiPS.prototype._setView = function (view) {
-        let self = this;
-
-        // do not allow to call setView multiple times otherwise
-        // the querying to the properties and the search to the best
-        // HiPS node will be done again for the same hiPS
-        if (this.view) {
-            return;
-        }
         this.view = view;
-
-        if (this.localFiles) {
-            // Fetch the properties file
-            self.query = (async () => {
-                // look for the properties file
-                await HiPSProperties.fetchFromFile(self.localFiles["properties"])
-                    .then((p) => {
-                        self._parseProperties(p);
-
-                        self.url = "local";
-
-                        delete self.localFiles["properties"]
-                    })
-
-                return self;
-            })();
-            
-            return;
-        }
-
-        let isIncompleteOptions = true;
-
-        // This is very dirty but it allows me to differentiate the location from whether it is an ID or a plain url
-        let isID = this.url.includes("P/") || this.url.includes("C/")
-        
-        if (this.imgFormat === "fits") {
-            // a fits is given
-            isIncompleteOptions = !(
-                this.maxOrder &&
-                (!isID && this.url) &&
-                this.imgFormat &&
-                this.tileSize &&
-                this.cooFrame &&
-                this.numBitsPerPixel
-            );
-        } else {
-            isIncompleteOptions = !(
-                this.maxOrder &&
-                (!isID && this.url) &&
-                this.imgFormat &&
-                this.tileSize &&
-                this.cooFrame
-            );
-        }
-
-        self.query = (async () => {
-            if (isIncompleteOptions) {
-                // ID typed url
-                if (self.startUrl && isID) {
-
-                    // First download the properties from the start url
-                    await HiPSProperties.fetchFromUrl(self.startUrl)
-                        .then((p) => {
-                            self._parseProperties(p);
-                        })
-
-                    try {
-                        // the url stores a "CDS ID" we take it prioritaly
-                        // if the url is null, take the id, this is for some tests
-                        // to pass because some users might just give null as url param and a "CDS ID" as id param
-                        let id = self.url || self.id;
-
-                        self.url = self.startUrl;
-
-                        setTimeout(
-                            () => {
-                                if (!self.added)
-                                    return;
-
-                                HiPSProperties.fetchFromID(id)
-                                    .then((p) => {
-                                        //self.url = self.startUrl;
-                                        self._fetchFasterUrlFromProperties(p);
-                                    })
-                            },
-                            1000
-                        );
-                    } catch (e) {
-                        throw e;
-                    }
-                } else if (!this.startUrl && isID) {
-                    try {
-                        // the url stores a "CDS ID" we take it prioritaly
-                        // if the url is null, take the id, this is for some tests
-                        // to pass because some users might just give null as url param and a "CDS ID" as id param
-                        let id = self.url || self.id;
-
-                        await HiPSProperties.fetchFromID(id)
-                            .then((p) => {
-                                self.url = p.hips_service_url;
-
-                                self._parseProperties(p);
-                                self._fetchFasterUrlFromProperties(p);
-                            })
-                    } catch (e) {
-                        throw e;
-                    }
-                } else {
-                    await HiPSProperties.fetchFromUrl(self.url)
-                        .then((p) => {
-                            self._parseProperties(p);
-                        })
-                }
-            } else {
-                self._parseProperties({
-                    hips_order: this.maxOrder,
-                    hips_service_url: this.url,
-                    hips_tile_width: this.tileSize,
-                    hips_frame: this.cooFrame.label
-                })
-            }
-
-            return self;
-        })()
     };
 
     /* Precondition: view is attached */
     HiPS.prototype._saveInCache = function () {
+        if (!this.view) {
+            this.updateHiPSCache = true;
+            return;
+        }
+
         let self = this;
         let hipsCache = this.view.aladin.hipsCache;
 
@@ -964,7 +1084,19 @@ export let HiPS = (function () {
         }
     };
 
-    HiPS.prototype._add = function (layer) {
+    HiPS.prototype._removeFromView = function() {
+        if (!this.view)
+            return;
+
+        if (this.added) {
+            this.view.wasm.removeLayer(this.layer);
+        }
+    };
+
+    HiPS.prototype._addToView = function (layer) {
+        if (!this.view)
+            return this;
+
         this.layer = layer;
         let self = this;
 
@@ -976,20 +1108,29 @@ export let HiPS = (function () {
                 maxOrder: self.maxOrder,
                 cooFrame: self.cooFrame.system,
                 tileSize: self.tileSize,
-                formats: self.formats,
+                formats: self.acceptedFormats,
                 bitpix: self.numBitsPerPixel,
                 skyFraction: self.skyFraction,
                 minOrder: self.minOrder,
                 hipsInitialFov: self.initialFov,
                 hipsInitialRa: self.initialRa,
                 hipsInitialDec: self.initialDec,
+                emMin: self.emMin,
+                emMax: self.emMax,
+                // HiPS Cube
                 hipsCubeDepth: self.cubeDepth,
+                // HiPS3D
+                hipsTileDepth: self.hipsTileDepth,
+                hipsOrderFreq: self.hipsOrderFreq,
+                // Dataproduct type
+                dataproductType: self.dataproductType, 
                 isPlanetaryBody: self.isPlanetaryBody(),
                 hipsBody: self.hipsBody,
+                requestCredentials: self.requestCredentials,
+                requestMode: self.requestMode,
             },
             meta: {
                 ...this.colorCfg.get(),
-                longitudeReversed: this.longitudeReversed,
                 imgFormat: this.imgFormat,
             }
         };
@@ -1025,16 +1166,13 @@ export let HiPS = (function () {
             localFiles
         );
 
-        return Promise.resolve(this)
-            .then((hips) => {
-                this.added = true;
+        this.added = true;
 
-                if (hips.successCallback) {
-                    hips.successCallback(hips)
-                }
+        if (this.successCallback) {
+            this.successCallback(this)
+        }
 
-                return hips
-            });
+        return this
     };
 
     HiPS.DEFAULT_SURVEY_ID = "P/DSS2/color";

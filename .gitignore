@@ -15,9 +15,11 @@ package-lock.json
 src/core/Cargo.lock
 src/core/target/
 
-# this rust file is generated when compiling the code, so it is not
-# useful to put it on git
-src/core/src/shaders.rs
+# the tmp glsl files used when minifying the shaders into the wasm (build.rs)
+src/glsl/webgl2/**/*.min
+src/glsl/webgl2/**/*.tmp
+
+package/
 
 ## python related
 # python environment
@@ -36,6 +38,8 @@ jsdoc-make-responsivedocs
 ## playwright testing framework related
 test-results/
 playwright-report/
+
+tests/run-examples.spec.ts-snapshots
 
 ## packaged tar obtained from the cmd: npm run predeploy or npm run deploy
 aladin-lite*.tgz

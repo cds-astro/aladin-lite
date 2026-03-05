@@ -9,8 +9,9 @@
 // World space
 use crate::camera::CameraViewPort;
 use crate::domain::sdf::ProjDefType;
+use crate::math::rotation::Rotation;
 
-use coo_space::XYZWModel;
+use coo_space::XYZModel;
 //use crate::num_traits::FloatConst;
 use crate::math::PI;
 
@@ -21,8 +22,8 @@ pub mod domain;
 
 use crate::math::angle::ToAngle;
 
-use domain::{basic, full::FullScreen};
 use crate::math::angle::Angle;
+use domain::{basic, cod::Cod, full::FullScreen, hpx::Hpx, par::Par};
 /* S <-> NDC space conversion methods */
 pub fn screen_to_ndc_space(
     pos_screen_space: &XYScreen<f64>,
@@ -61,7 +62,7 @@ pub fn ndc_to_screen_space(
 /* NDC <-> CLIP space conversion methods */
 pub fn clip_to_ndc_space(pos_clip_space: &XYClip<f64>, camera: &CameraViewPort) -> XYNDC<f64> {
     let ndc_to_clip = camera.get_ndc_to_clip();
-    let clip_zoom_factor = camera.get_clip_zoom_factor();
+    let clip_zoom_factor = camera.get_zoom_factor();
 
     Vector2::new(
         pos_clip_space.x / (ndc_to_clip.x * clip_zoom_factor),
@@ -74,7 +75,7 @@ pub fn ndc_to_clip_space(
     camera: &CameraViewPort,
 ) -> XYClip<f64> {
     let ndc_to_clip = camera.get_ndc_to_clip();
-    let clip_zoom_factor = camera.get_clip_zoom_factor();
+    let clip_zoom_factor = camera.get_zoom_factor();
 
     Vector2::new(
         pos_normalized_device.x * ndc_to_clip.x * clip_zoom_factor,
@@ -101,7 +102,7 @@ pub fn screen_to_clip_space(
 
 use al_api::coo_system::CooSystem;
 
-use crate::coo_space::{XYClip, XYZWWorld};
+use crate::coo_space::{XYClip, XYZWorld};
 
 pub enum ProjectionType {
     // Zenithal projections
@@ -114,15 +115,15 @@ pub enum ProjectionType {
     /* ZEA,	     Equal-area 		        */
     Zea(mapproj::zenithal::zea::Zea),
     /* FEYE,     Fish-eyes                  */
-    //Feye(mapproj::zenithal::feye::Feye),
+    Feye(mapproj::zenithal::feye::Feye),
     /* AIR,                                 */
-    //Air(mapproj::zenithal::air::Air),
+    Air(mapproj::zenithal::air::Air),
     //AZP: {fov: 180},
     //Azp(mapproj::zenithal::azp::Azp),
     /* ARC,                                 */
-    //Arc(mapproj::zenithal::arc::Arc),
+    Arc(mapproj::zenithal::arc::Arc),
     /* NCP,                                 */
-    //Ncp(mapproj::zenithal::ncp::Ncp),
+    Ncp(mapproj::zenithal::ncp::Ncp),
 
     // Pseudo-cylindrical projections
     /* AIT,      Aitoff                     */
@@ -130,26 +131,26 @@ pub enum ProjectionType {
     // MOL,      Mollweide                  */
     Mol(mapproj::pseudocyl::mol::Mol),
     // PAR,                                 */
-    //Par(mapproj::pseudocyl::par::Par),
+    Par(mapproj::pseudocyl::par::Par),
     // SFL,                                 */
-    //Sfl(mapproj::pseudocyl::sfl::Sfl),
+    Sfl(mapproj::pseudocyl::sfl::Sfl),
 
     // Cylindrical projections
     // MER,      Mercator                   */
     Mer(mapproj::cylindrical::mer::Mer),
     // CAR,                                 */
-    //Car(mapproj::cylindrical::car::Car),
+    Car(mapproj::cylindrical::car::Car),
     // CEA,                                 */
-    //Cea(mapproj::cylindrical::cea::Cea),
+    Cea(mapproj::cylindrical::cea::Cea),
     // CYP,                                 */
-    //Cyp(mapproj::cylindrical::cyp::Cyp),
+    Cyp(mapproj::cylindrical::cyp::Cyp),
 
     // Conic projections
     // COD,                                 */
-    //Cod(mapproj::conic::cod::Cod),
+    Cod(mapproj::conic::cod::Cod),
 
     // HEALPix hybrid projection
-    //Hpx(mapproj::hybrid::hpx::Hpx),
+    Hpx(mapproj::hybrid::hpx::Hpx),
 }
 
 use crate::math::lonlat::LonLat;
@@ -163,7 +164,7 @@ impl ProjectionType {
     }
 
     /// Screen to model space deprojection
-
+    ///
     /// Perform a screen to the world space deprojection
     ///
     /// # Arguments
@@ -174,7 +175,7 @@ impl ProjectionType {
         &self,
         pos_screen_space: &XYScreen<f64>,
         camera: &CameraViewPort,
-    ) -> Option<XYZWWorld<f64>> {
+    ) -> Option<XYZWorld<f64>> {
         // Change the screen position according to the dpi
         //let dpi = camera.get_dpi();
         let pos_screen_space = *pos_screen_space;
@@ -183,8 +184,6 @@ impl ProjectionType {
         let pos_clip_space = ndc_to_clip_space(&pos_normalized_device, camera);
         self.clip_to_world_space(&pos_clip_space)
     }
-
-    /// Screen to model space deprojection
 
     /// Perform a screen to the world space deprojection
     ///
@@ -196,7 +195,7 @@ impl ProjectionType {
         &self,
         pos_screen_space: &XYScreen<f64>,
         camera: &CameraViewPort,
-    ) -> Option<XYZWModel<f64>> {
+    ) -> Option<XYZModel<f64>> {
         self.screen_to_world_space(pos_screen_space, camera)
             .map(|world_pos| camera.get_w2m() * world_pos)
     }
@@ -205,14 +204,14 @@ impl ProjectionType {
         &self,
         ndc_pos: &XYNDC<f64>,
         camera: &CameraViewPort,
-    ) -> Option<XYZWModel<f64>> {
+    ) -> Option<XYZModel<f64>> {
         self.normalized_device_to_world_space(ndc_pos, camera)
             .map(|world_pos| camera.get_w2m() * world_pos)
     }
 
     pub fn model_to_screen_space(
         &self,
-        pos_model_space: &XYZWModel<f64>,
+        pos_model_space: &XYZModel<f64>,
         camera: &CameraViewPort,
     ) -> Option<XYScreen<f64>> {
         let m2w = camera.get_m2w();
@@ -222,7 +221,7 @@ impl ProjectionType {
 
     pub fn icrs_celestial_to_screen_space(
         &self,
-        celestial_pos: &XYZWModel<f64>,
+        celestial_pos: &XYZModel<f64>,
         camera: &CameraViewPort,
     ) -> Option<XYScreen<f64>> {
         self.icrs_celestial_to_normalized_device_space(celestial_pos, camera)
@@ -231,7 +230,7 @@ impl ProjectionType {
 
     pub fn icrs_celestial_to_normalized_device_space(
         &self,
-        celestial_pos: &XYZWModel<f64>,
+        celestial_pos: &XYZModel<f64>,
         camera: &CameraViewPort,
     ) -> Option<XYNDC<f64>> {
         let view_coosys = camera.get_coo_system();
@@ -244,7 +243,7 @@ impl ProjectionType {
 
     pub fn model_to_normalized_device_space(
         &self,
-        pos_model_space: &XYZWModel<f64>,
+        pos_model_space: &XYZModel<f64>,
         camera: &CameraViewPort,
     ) -> Option<XYNDC<f64>> {
         let m2w = camera.get_m2w();
@@ -254,15 +253,13 @@ impl ProjectionType {
 
     pub fn model_to_clip_space(
         &self,
-        pos_model_space: &XYZWModel<f64>,
+        pos_model_space: &XYZModel<f64>,
         camera: &CameraViewPort,
     ) -> Option<XYClip<f64>> {
         let m2w = camera.get_m2w();
         let pos_world_space = m2w * pos_model_space;
         self.world_to_clip_space(&pos_world_space)
     }
-
-    /// World to screen space projection
 
     /// World to screen space transformation
     ///
@@ -272,7 +269,7 @@ impl ProjectionType {
     /// * `y` - Y mouse position in homogenous screen space (between [-1, 1])
     pub fn world_to_normalized_device_space(
         &self,
-        pos_world_space: &XYZWWorld<f64>,
+        pos_world_space: &XYZWorld<f64>,
         camera: &CameraViewPort,
     ) -> Option<XYNDC<f64>> {
         self.world_to_clip_space(pos_world_space)
@@ -283,77 +280,64 @@ impl ProjectionType {
         &self,
         ndc_pos: &XYNDC<f64>,
         camera: &CameraViewPort,
-    ) -> Option<XYZWWorld<f64>> {
+    ) -> Option<XYZWorld<f64>> {
         let clip_pos = ndc_to_clip_space(ndc_pos, camera);
         self.clip_to_world_space(&clip_pos)
     }
 
     pub fn world_to_screen_space(
         &self,
-        pos_world_space: &XYZWWorld<f64>,
+        pos_world_space: &XYZWorld<f64>,
         camera: &CameraViewPort,
     ) -> Option<XYScreen<f64>> {
         self.world_to_normalized_device_space(pos_world_space, camera)
             .map(|pos_normalized_device| ndc_to_screen_space(&pos_normalized_device, camera))
     }
 
-    /*pub(crate) fn is_allsky(&self) -> bool {
-        match self {
-            ProjectionType::Sin(_) | ProjectionType::Tan(_) => false,
-            //| ProjectionType::Feye(_)
-            //| ProjectionType::Ncp(_) => false,
-            _ => true,
-        }
-    }*/
-
     pub const fn bounds_size_ratio(&self) -> f64 {
         match self {
             // Zenithal projections
             /* TAN,      Gnomonic projection        */
             ProjectionType::Tan(_) => 1.0,
-            /* STG,	     Stereographic projection   */
+            /* STG,         Stereographic projection   */
             ProjectionType::Stg(_) => 1.0,
-            /* SIN,	     Orthographic		        */
+            /* SIN,         Orthographic                       */
             ProjectionType::Sin(_) => 1.0,
-            /* ZEA,	     Equal-area 		        */
+            /* ZEA,         Equal-area                         */
             ProjectionType::Zea(_) => 1.0,
             /* FEYE,     Fish-eyes                  */
-            //ProjectionType::Feye(_) => 1.0,
+            ProjectionType::Feye(_) => 1.0,
             /* AIR,                                 */
-            //ProjectionType::Air(_) => 1.0,
+            ProjectionType::Air(_) => 1.0,
             //AZP: {fov: 180},
             //Azp(mapproj::zenithal::azp::Azp),
             /* ARC,                                 */
-            //ProjectionType::Arc(_) => 1.0,
+            ProjectionType::Arc(_) => 1.0,
             /* NCP,                                 */
-            //ProjectionType::Ncp(_) => 1.0,
-
+            ProjectionType::Ncp(_) => 1.0,
             // Pseudo-cylindrical projections
             /* AIT,      Aitoff                     */
             ProjectionType::Ait(_) => 2.0,
             // MOL,      Mollweide                  */
             ProjectionType::Mol(_) => 2.0,
             // PAR,                                 */
-            //ProjectionType::Par(_) => 2.0,
+            ProjectionType::Par(_) => 2.0,
             // SFL,                                 */
-            //ProjectionType::Sfl(_) => 2.0,
-
+            ProjectionType::Sfl(_) => 2.0,
             // Cylindrical projections
             // MER,      Mercator                   */
             ProjectionType::Mer(_) => 1.0,
             // CAR,                                 */
-            //ProjectionType::Car(_) => 1.0,
+            ProjectionType::Car(_) => 1.0,
             // CEA,                                 */
-            //ProjectionType::Cea(_) => 1.0,
+            ProjectionType::Cea(_) => 1.0,
             // CYP,                                 */
-            //ProjectionType::Cyp(_) => 1.0,
-
+            ProjectionType::Cyp(_) => 1.0,
             // Conic projections
             // COD,                                 */
-            //ProjectionType::Cod(_) => 1.0,
-
+            ProjectionType::Cod(_) => 1.0,
             // HEALPix hybrid projection
-            //ProjectionType::Hpx(_) => 2.0,
+            ProjectionType::Hpx(_) => 2.0,
         }
     }
 
@@ -367,17 +351,17 @@ impl ProjectionType {
             /* SIN,	     Orthographic		        */
             ProjectionType::Sin(_) => 180.0_f64.to_radians().to_angle(),
             /* ZEA,	     Equal-area 		        */
-            ProjectionType::Zea(_) => 360.0_f64.to_radians().to_angle(),
+            ProjectionType::Zea(_) => 359.9_f64.to_radians().to_angle(),
             /* FEYE,     Fish-eyes                  */
-            //ProjectionType::Feye(_) => 190.0,
+            ProjectionType::Feye(_) => 190.0_f64.to_radians().to_angle(),
             /* AIR,                                 */
-            //ProjectionType::Air(_) => 360.0,
+            ProjectionType::Air(_) => 360.0_f64.to_radians().to_angle(),
             //AZP: {fov: 180},
-            //Azp(mapproj::zenithal::azp::Azp),
+            //ProjectionType::Azp(mapproj::zenithal::azp::Azp),
             /* ARC,                                 */
-            //ProjectionType::Arc(_) => 360.0,
+            ProjectionType::Arc(_) => 360.0_f64.to_radians().to_angle(),
             /* NCP,                                 */
-            //ProjectionType::Ncp(_) => 180.0,
+            ProjectionType::Ncp(_) => 180.0_f64.to_radians().to_angle(),
 
             // Pseudo-cylindrical projections
             /* AIT,      Aitoff                     */
@@ -385,30 +369,30 @@ impl ProjectionType {
             // MOL,      Mollweide                  */
             ProjectionType::Mol(_) => 360.0_f64.to_radians().to_angle(),
             // PAR,                                 */
-            //ProjectionType::Par(_) => 360.0,
+            ProjectionType::Par(_) => 360.0_f64.to_radians().to_angle(),
             // SFL,                                 */
-            //ProjectionType::Sfl(_) => 360.0,
+            ProjectionType::Sfl(_) => 360.0_f64.to_radians().to_angle(),
 
             // Cylindrical projections
             // MER,      Mercator                   */
             ProjectionType::Mer(_) => 360.0_f64.to_radians().to_angle(),
             // CAR,                                 */
-            //ProjectionType::Car(_) => 360.0,
+            ProjectionType::Car(_) => 360.0_f64.to_radians().to_angle(),
             // CEA,                                 */
-            //ProjectionType::Cea(_) => 360.0,
+            ProjectionType::Cea(_) => 360.0_f64.to_radians().to_angle(),
             // CYP,                                 */
-            //ProjectionType::Cyp(_) => 360.0,
+            ProjectionType::Cyp(_) => 360.0_f64.to_radians().to_angle(),
 
             // Conic projections
             // COD,                                 */
-            //ProjectionType::Cod(_) => 330.0,
+            ProjectionType::Cod(_) => 330.0_f64.to_radians().to_angle(),
 
             // HEALPix hybrid projection
-            //ProjectionType::Hpx(_) => 360.0,
+            ProjectionType::Hpx(_) => 360.0_f64.to_radians().to_angle(),
         }
     }
 
-    pub fn get_area(&self) -> &ProjDefType {
+    pub const fn get_area(&self) -> &ProjDefType {
         match self {
             // Zenithal projections
             /* TAN,      Gnomonic projection        */
@@ -432,27 +416,27 @@ impl ProjectionType {
                 &DISK
             }
             /* FEYE,     Fish-eyes                  */
-            /*ProjectionType::Feye(_) => {
+            ProjectionType::Feye(_) => {
                 const DISK: ProjDefType = ProjDefType::Disk(basic::disk::Disk { radius: 1.0 });
                 &DISK
-            }*/
+            }
             /* AIR,                                 */
-            /*ProjectionType::Air(_) => {
+            ProjectionType::Air(_) => {
                 const DISK: ProjDefType = ProjDefType::FullScreen(FullScreen);
                 &DISK
-            }*/
+            }
             //AZP: {fov: 180},
             //Azp(mapproj::zenithal::azp::Azp),
             /* ARC,                                 */
-            /*ProjectionType::Arc(_) => {
+            ProjectionType::Arc(_) => {
                 const DISK: ProjDefType = ProjDefType::Disk(basic::disk::Disk { radius: 1.0 });
                 &DISK
-            }*/
+            }
             /* NCP,                                 */
-            /*ProjectionType::Ncp(_) => {
+            ProjectionType::Ncp(_) => {
                 const DISK: ProjDefType = ProjDefType::Disk(basic::disk::Disk { radius: 1.0 });
                 &DISK
-            }*/
+            }
 
             // Pseudo-cylindrical projections
             /* AIT,      Aitoff                     */
@@ -466,15 +450,15 @@ impl ProjectionType {
                 &ELLIPSE
             }
             // PAR,                                 */
-            /*ProjectionType::Par(_) => {
+            ProjectionType::Par(_) => {
                 const PAR: ProjDefType = ProjDefType::Par(Par);
                 &PAR
-            }*/
+            }
             // SFL,                                 */
-            /*ProjectionType::Sfl(_) => {
+            ProjectionType::Sfl(_) => {
                 const PAR: ProjDefType = ProjDefType::Par(Par);
                 &PAR
-            }*/
+            }
 
             // Cylindrical projections
             // MER,      Mercator                   */
@@ -482,39 +466,39 @@ impl ProjectionType {
                 const FULL_SCREEN: ProjDefType = ProjDefType::FullScreen(FullScreen);
                 &FULL_SCREEN
             } // CAR,                                 */
-              /*ProjectionType::Car(_) => {
-                  const FULL_SCREEN: ProjDefType = ProjDefType::FullScreen(FullScreen);
-                  &FULL_SCREEN
-              }*/
-              // CEA,                                 */
-              /*ProjectionType::Cea(_) => {
-                  const FULL_SCREEN: ProjDefType = ProjDefType::FullScreen(FullScreen);
-                  &FULL_SCREEN
-              }*/
-              // CYP,                                 */
-              /*ProjectionType::Cyp(_) => {
-                  const FULL_SCREEN: ProjDefType = ProjDefType::FullScreen(FullScreen);
-                  &FULL_SCREEN
-              }*/
+            ProjectionType::Car(_) => {
+                const FULL_SCREEN: ProjDefType = ProjDefType::FullScreen(FullScreen);
+                &FULL_SCREEN
+            }
+            // CEA,                                 */
+            ProjectionType::Cea(_) => {
+                const FULL_SCREEN: ProjDefType = ProjDefType::FullScreen(FullScreen);
+                &FULL_SCREEN
+            }
+            // CYP,                                 */
+            ProjectionType::Cyp(_) => {
+                const FULL_SCREEN: ProjDefType = ProjDefType::FullScreen(FullScreen);
+                &FULL_SCREEN
+            }
 
-              // Conic projections
-              // COD,                                 */
-              /*ProjectionType::Cod(_) => {
-                  const CONIC: ProjDefType = ProjDefType::Cod(Cod::new());
-                  &CONIC
-              }*/
-              // HEALPix hybrid projection
-              /*ProjectionType::Hpx(_) => {
-                  const HPX_DEF_REG: ProjDefType = ProjDefType::Hpx(Hpx);
-                  &HPX_DEF_REG
-              }*/
+            // Conic projections
+            // COD,                                 */
+            ProjectionType::Cod(_) => {
+                const CONIC: ProjDefType = ProjDefType::Cod(Cod::new());
+                &CONIC
+            }
+            // HEALPix hybrid projection
+            ProjectionType::Hpx(_) => {
+                const HPX_DEF_REG: ProjDefType = ProjDefType::Hpx(Hpx);
+                &HPX_DEF_REG
+            }
         }
     }
 }
 
 impl Projection for ProjectionType {
     /// Deprojection
-    fn clip_to_world_space(&self, xy: &XYClip<f64>) -> Option<XYZWWorld<f64>> {
+    fn clip_to_world_space(&self, xy: &XYClip<f64>) -> Option<XYZWorld<f64>> {
         match self {
             // Zenithal projections
             /* TAN,      Gnomonic projection        */
@@ -526,15 +510,15 @@ impl Projection for ProjectionType {
             /* ZEA,	     Equal-area 		        */
             ProjectionType::Zea(zea) => zea.clip_to_world_space(xy),
             /* FEYE,     Fish-eyes                  */
-            //ProjectionType::Feye(feye) => feye.clip_to_world_space(xy),
+            ProjectionType::Feye(feye) => feye.clip_to_world_space(xy),
             /* AIR,                                 */
-            //ProjectionType::Air(air) => air.clip_to_world_space(xy),
+            ProjectionType::Air(air) => air.clip_to_world_space(xy),
             //AZP: {fov: 180},
             //Azp(mapproj::zenithal::azp::Azp),
             /* ARC,                                 */
-            //ProjectionType::Arc(arc) => arc.clip_to_world_space(xy),
+            ProjectionType::Arc(arc) => arc.clip_to_world_space(xy),
             /* NCP,                                 */
-            //ProjectionType::Ncp(ncp) => ncp.clip_to_world_space(xy),
+            ProjectionType::Ncp(ncp) => ncp.clip_to_world_space(xy),
 
             // Pseudo-cylindrical projections
             /* AIT,      Aitoff                     */
@@ -542,86 +526,94 @@ impl Projection for ProjectionType {
             // MOL,      Mollweide                  */
             ProjectionType::Mol(mol) => mol.clip_to_world_space(xy),
             // PAR,                                 */
-            //ProjectionType::Par(par) => par.clip_to_world_space(xy),
+            ProjectionType::Par(par) => par.clip_to_world_space(xy),
             // SFL,                                 */
-            //ProjectionType::Sfl(sfl) => sfl.clip_to_world_space(xy),
+            ProjectionType::Sfl(sfl) => sfl.clip_to_world_space(xy),
 
             // Cylindrical projections
             // MER,      Mercator                   */
             ProjectionType::Mer(mer) => mer.clip_to_world_space(xy),
             // CAR,                                 */
-            //ProjectionType::Car(car) => car.clip_to_world_space(xy),
+            ProjectionType::Car(car) => car.clip_to_world_space(xy),
             // CEA,                                 */
-            //ProjectionType::Cea(cea) => cea.clip_to_world_space(xy),
+            ProjectionType::Cea(cea) => cea.clip_to_world_space(xy),
             // CYP,                                 */
-            //ProjectionType::Cyp(cyp) => cyp.clip_to_world_space(xy),
+            ProjectionType::Cyp(cyp) => cyp.clip_to_world_space(xy),
 
             // Conic projections
             // COD,                                 */
-            /*ProjectionType::Cod(cod) => cod.clip_to_world_space(xy).map(|xyzw| {
+            ProjectionType::Cod(cod) => cod.clip_to_world_space(xy).map(|xyz| {
                 let rot = Rotation::from_sky_position(
-                    &LonLatT::new(0.0_f64.to_angle(), (HALF_PI * 0.5).to_angle()).vector(),
+                    &LonLatT::new(
+                        0.0_f64.to_angle(),
+                        (mapproj::math::HALF_PI * 0.5).to_angle(),
+                    )
+                    .vector(),
                 );
-                rot.inv_rotate(&xyzw)
-            }),*/
+                rot.inv_rotate(&xyz)
+            }),
             // HEALPix hybrid projection
-            //ProjectionType::Hpx(hpx) => hpx.clip_to_world_space(xy),
+            ProjectionType::Hpx(hpx) => hpx.clip_to_world_space(xy),
         }
     }
 
     // Projection
-    fn world_to_clip_space(&self, xyzw: &XYZWWorld<f64>) -> Option<XYClip<f64>> {
+    fn world_to_clip_space(&self, xyz: &XYZWorld<f64>) -> Option<XYClip<f64>> {
         match self {
             // Zenithal projections
             /* TAN,      Gnomonic projection        */
-            ProjectionType::Tan(tan) => tan.world_to_clip_space(xyzw),
+            ProjectionType::Tan(tan) => tan.world_to_clip_space(xyz),
             /* STG,	     Stereographic projection   */
-            ProjectionType::Stg(stg) => stg.world_to_clip_space(xyzw),
+            ProjectionType::Stg(stg) => stg.world_to_clip_space(xyz),
             /* SIN,	     Orthographic		        */
-            ProjectionType::Sin(sin) => sin.world_to_clip_space(xyzw),
+            ProjectionType::Sin(sin) => sin.world_to_clip_space(xyz),
             /* ZEA,	     Equal-area 		        */
-            ProjectionType::Zea(zea) => zea.world_to_clip_space(xyzw),
+            ProjectionType::Zea(zea) => zea.world_to_clip_space(xyz),
             /* FEYE,     Fish-eyes                  */
-            //ProjectionType::Feye(feye) => feye.world_to_clip_space(xyzw),
+            ProjectionType::Feye(feye) => feye.world_to_clip_space(xyz),
             /* AIR,                                 */
-            //ProjectionType::Air(air) => air.world_to_clip_space(xyzw),
+            ProjectionType::Air(air) => air.world_to_clip_space(xyz),
             //AZP: {fov: 180},
             //Azp(mapproj::zenithal::azp::Azp),
             /* ARC,                                 */
-            //ProjectionType::Arc(arc) => arc.world_to_clip_space(xyzw),
+            ProjectionType::Arc(arc) => arc.world_to_clip_space(xyz),
             /* NCP,                                 */
-            //ProjectionType::Ncp(ncp) => ncp.world_to_clip_space(xyzw),
+            ProjectionType::Ncp(ncp) => ncp.world_to_clip_space(xyz),
 
             // Pseudo-cylindrical projections
             /* AIT,      Aitoff                     */
-            ProjectionType::Ait(ait) => ait.world_to_clip_space(xyzw),
+            ProjectionType::Ait(ait) => ait.world_to_clip_space(xyz),
             // MOL,      Mollweide                  */
-            ProjectionType::Mol(mol) => mol.world_to_clip_space(xyzw),
+            ProjectionType::Mol(mol) => mol.world_to_clip_space(xyz),
             // PAR,                                 */
-            //ProjectionType::Par(par) => par.world_to_clip_space(xyzw),
+            ProjectionType::Par(par) => par.world_to_clip_space(xyz),
             // SFL,                                 */
-            //ProjectionType::Sfl(sfl) => sfl.world_to_clip_space(xyzw),
+            ProjectionType::Sfl(sfl) => sfl.world_to_clip_space(xyz),
 
             // Cylindrical projections
             // MER,      Mercator                   */
-            ProjectionType::Mer(mer) => mer.world_to_clip_space(xyzw),
+            ProjectionType::Mer(mer) => mer.world_to_clip_space(xyz),
             // CAR,                                 */
-            //ProjectionType::Car(car) => car.world_to_clip_space(xyzw),
+            ProjectionType::Car(car) => car.world_to_clip_space(xyz),
             // CEA,                                 */
-            //ProjectionType::Cea(cea) => cea.world_to_clip_space(xyzw),
+            ProjectionType::Cea(cea) => cea.world_to_clip_space(xyz),
             // CYP,                                 */
-            //ProjectionType::Cyp(cyp) => cyp.world_to_clip_space(xyzw),
+            ProjectionType::Cyp(cyp) => cyp.world_to_clip_space(xyz),
             // Conic projections
             // COD,                                 */
-            /*ProjectionType::Cod(cod) => {
+            ProjectionType::Cod(cod) => {
                 // The Cod projection is centered on (0, 45 deg)
                 let rot = Rotation::from_sky_position(
-                    &LonLatT::new(0.0_f64.to_angle(), (HALF_PI * 0.5).to_angle()).vector(),
+                    &LonLatT::new(
+                        0.0_f64.to_angle(),
+                        (mapproj::math::HALF_PI * 0.5).to_angle(),
+                    )
+                    .vector(),
                 );
-                cod.world_to_clip_space(&rot.rotate(&xyzw))
-            }*/
+                cod.world_to_clip_space(&rot.rotate(xyz))
+            }
             // HEALPix hybrid projection
-            //ProjectionType::Hpx(hpx) => hpx.world_to_clip_space(xyzw),
+            ProjectionType::Hpx(hpx) => hpx.world_to_clip_space(xyz),
         }
     }
 }
@@ -651,11 +643,12 @@ impl UniformType for ProjectionType {
             // Cylindrical projections
             // MER,      Mercator                   */
             ProjectionType::Mer(_) => gl.uniform1i(location, 6),
+            _ => gl.uniform1i(location, 6),
         }
     }
 }
 
-use cgmath::Vector4;
+use cgmath::Vector3;
 
 use mapproj::CanonicalProjection;
 pub trait Projection {
@@ -664,24 +657,24 @@ pub trait Projection {
     /// # Arguments
     ///
     /// * ``pos_clip_space`` - The position in the clipping space (orthonorlized space)
-    fn clip_to_world_space(&self, xy_clip: &XYClip<f64>) -> Option<XYZWWorld<f64>>;
+    fn clip_to_world_space(&self, xy_clip: &XYClip<f64>) -> Option<XYZWorld<f64>>;
     /// World to the clipping space deprojection
     ///
     /// # Arguments
     ///
     /// * ``pos_world_space`` - The position in the world space
-    fn world_to_clip_space(&self, pos_world_space: &XYZWWorld<f64>) -> Option<XYClip<f64>>;
+    fn world_to_clip_space(&self, pos_world_space: &XYZWorld<f64>) -> Option<XYClip<f64>>;
 
     /// (`alpha_p`, `delta_p`) in the WCS II paper from Mark Calabretta.
     #[inline]
-    fn north_pole_world_space(&self) -> XYZWWorld<f64> {
+    fn north_pole_world_space(&self) -> XYZWorld<f64> {
         // This is always defined
         self.clip_to_world_space(&XYClip::new(0.0, 1.0 - 1e-5))
             .unwrap()
     }
 
     #[inline]
-    fn south_pole_world_space(&self) -> XYZWWorld<f64> {
+    fn south_pole_world_space(&self) -> XYZWorld<f64> {
         // This is always defined
         self.clip_to_world_space(&XYClip::new(0.0, -1.0 + 1e-5))
             .unwrap()
@@ -695,7 +688,7 @@ use self::coo_space::XYNDC;
 
 use super::lonlat::LonLatT;
 
-impl<'a, P> Projection for &'a P
+impl<P> Projection for &P
 where
     P: CanonicalProjection,
 {
@@ -704,7 +697,7 @@ where
     /// # Arguments
     ///
     /// * ``pos_clip_space`` - The position in the clipping space (orthonorlized space)
-    fn clip_to_world_space(&self, xy_clip: &XYClip<f64>) -> Option<XYZWWorld<f64>> {
+    fn clip_to_world_space(&self, xy_clip: &XYClip<f64>) -> Option<XYZWorld<f64>> {
         let proj_bounds = self.bounds();
         // Scale the xy_clip space so that it maps the proj definition domain of mapproj
         let xy_mapproj = {
@@ -729,7 +722,7 @@ where
             // Xmpp <-> Zal
             // -Ympp <-> Xal
             // Zmpp <-> Yal
-            Vector4::new(-xyz_mapproj.y(), xyz_mapproj.z(), xyz_mapproj.x(), 1.0)
+            Vector3::new(-xyz_mapproj.y(), xyz_mapproj.z(), xyz_mapproj.x())
         })
     }
     /// World to the clipping space deprojection
@@ -737,7 +730,7 @@ where
     /// # Arguments
     ///
     /// * ``pos_world_space`` - The position in the world space
-    fn world_to_clip_space(&self, pos_world_space: &XYZWWorld<f64>) -> Option<XYClip<f64>> {
+    fn world_to_clip_space(&self, pos_world_space: &XYZWorld<f64>) -> Option<XYClip<f64>> {
         // Xmpp <-> Zal
         // -Ympp <-> Xal
         // Zmpp <-> Yal
@@ -788,11 +781,11 @@ mod tests {
                 for y in 0..(h as u32) {
                     let xy = Vector2::new(x, y);
                     let clip_xy = Vector2::new(
-                        2.0 * ((xy.x as f64) / (w as f64)) - 1.0,
-                        2.0 * ((xy.y as f64) / (h as f64)) - 1.0,
+                        2.0 * ((xy.x as f64) / w) - 1.0,
+                        2.0 * ((xy.y as f64) / h) - 1.0,
                     );
                     let rgb = if let Some(pos) = projection.clip_to_world_space(&clip_xy) {
-                        let pos = pos.truncate().normalize();
+                        let pos = pos.normalize();
                         Rgb([
                             ((pos.x * 0.5 + 0.5) * 256.0) as u8,
                             ((pos.y * 0.5 + 0.5) * 256.0) as u8,
@@ -802,7 +795,7 @@ mod tests {
                         Rgb([255, 255, 255])
                     };
 
-                    img.put_pixel(x as u32, y as u32, rgb);
+                    img.put_pixel(x, y, rgb);
                 }
             }
             img.save(filename).unwrap_abort();
@@ -825,7 +818,7 @@ mod tests {
             "./../img/zea.jpg",
             ProjectionType::Zea(mapproj::zenithal::zea::Zea),
         );
-        /*generate_projection_map(
+        generate_projection_map(
             "./../img/feye.png",
             ProjectionType::Feye(mapproj::zenithal::feye::Feye),
         );
@@ -840,14 +833,14 @@ mod tests {
         generate_projection_map(
             "./../img/air.png",
             ProjectionType::Air(mapproj::zenithal::air::Air::new()),
-        );*/
+        );
 
         // Cylindrical
         generate_projection_map(
             "./../img/mer.jpg",
             ProjectionType::Mer(mapproj::cylindrical::mer::Mer),
         );
-        /*generate_projection_map(
+        generate_projection_map(
             "./../img/car.png",
             ProjectionType::Car(mapproj::cylindrical::car::Car),
         );
@@ -858,26 +851,26 @@ mod tests {
         generate_projection_map(
             "./../img/cyp.png",
             ProjectionType::Cyp(mapproj::cylindrical::cyp::Cyp::new()),
-        );*/
+        );
         // Pseudo-cylindrical
         generate_projection_map(
             "./../img/ait.jpg",
             ProjectionType::Ait(mapproj::pseudocyl::ait::Ait),
         );
-        /*generate_projection_map(
+        generate_projection_map(
             "./../img/car.png",
             ProjectionType::Par(mapproj::pseudocyl::par::Par),
         );
         generate_projection_map(
             "./../img/cea.png",
             ProjectionType::Sfl(mapproj::pseudocyl::sfl::Sfl),
-        );*/
+        );
         generate_projection_map(
             "./../img/mol.jpg",
             ProjectionType::Mol(mapproj::pseudocyl::mol::Mol::new()),
         );
         // Conic
-        /*generate_projection_map(
+        generate_projection_map(
             "./../img/cod.png",
             ProjectionType::Cod(mapproj::conic::cod::Cod::new()),
         );
@@ -885,6 +878,6 @@ mod tests {
         generate_projection_map(
             "./../img/hpx.png",
             ProjectionType::Hpx(mapproj::hybrid::hpx::Hpx),
-        );*/
+        );
     }
 }

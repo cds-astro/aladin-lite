@@ -11,11 +11,12 @@
     import A from '../src/js/A.js';
     let aladin;
     A.init.then(() => {
-        aladin = A.aladin('#aladin-lite-div', {cooFrame: "icrs", log: false, backgroundColor: 'red'});
+        aladin = A.aladin('#aladin-lite-div', {cooFrame: "icrs", log: false, backgroundColor: 'rgba(0, 0, 0, 255)'});
 
         aladin.displayFITS(
             //'https://fits.gsfc.nasa.gov/samples/FOCx38i0101t_c0f.fits', // url of the fits file
             'data/fits/panstarrs-g-m61.fits',
+            //'https://almascience.eso.org/dataPortal/member.uid___A001_X88f_X297.calibrated_final_cont_Sgr_B1off.pbcor.fits',
             {
                 name: 'm61',
                 colormap: 'viridis'

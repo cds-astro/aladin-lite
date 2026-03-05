@@ -1,5 +1,5 @@
 use super::MOC;
-use crate::{camera::CameraViewPort, HEALPixCoverage};
+use crate::{camera::CameraViewPort, SpaceMoc};
 use al_api::moc::MOCOptions;
 
 pub struct MOCHierarchy {
@@ -10,11 +10,15 @@ pub struct MOCHierarchy {
 }
 use al_core::WebGlContext;
 impl MOCHierarchy {
-    pub fn from_full_res_moc(gl: WebGlContext, full_res_moc: HEALPixCoverage, options: &MOCOptions) -> Self {
+    pub fn from_full_res_moc(
+        gl: WebGlContext,
+        full_res_moc: SpaceMoc,
+        options: &MOCOptions,
+    ) -> Self {
         let full_res_depth = full_res_moc.depth();
 
         let mut mocs: Vec<_> = (0..full_res_depth)
-            .map(|d| MOC::new(gl.clone(), HEALPixCoverage(full_res_moc.degraded(d)), options))
+            .map(|d| MOC::new(gl.clone(), SpaceMoc(full_res_moc.degraded(d)), options))
             .collect();
 
         mocs.push(MOC::new(gl.clone(), full_res_moc, options));
@@ -28,7 +32,7 @@ impl MOCHierarchy {
 
     pub fn set_options(&mut self, options: &MOCOptions) {
         for moc in &mut self.mocs {
-            moc.set_options(&options, self.gl.clone());
+            moc.set_options(options, self.gl.clone());
         }
     }
 
@@ -55,8 +59,7 @@ impl MOCHierarchy {
         let smallest_cell_size_px = 8.0;
         let mut d = self.full_res_depth as usize;
 
-        let hpx_cell_size_rad =
-            (smallest_cell_size_px / w_screen_px) * camera.get_aperture().to_radians();
+        let hpx_cell_size_rad = (smallest_cell_size_px / w_screen_px) * camera.get_aperture();
 
         while d > 0 {
             //self.mocs[d].cell_indices_in_view(camera);
@@ -65,13 +68,13 @@ impl MOCHierarchy {
                 break;
             }
 
-            d = d - 1;
+            d -= 1;
         }
 
         &mut self.mocs[d]
     }
 
-    pub fn get_full_moc(&self) -> &HEALPixCoverage {
+    pub fn get_full_moc(&self) -> &SpaceMoc {
         &self.mocs.last().unwrap().moc
     }
 

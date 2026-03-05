@@ -1,24 +1,24 @@
+// SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright 2013 - UDS/CNRS
 // The Aladin Lite program is distributed under the terms
-// of the GNU General Public License version 3.
+// of the GNU Lesser General Public License version 3
+// or (at your option) any later version.
 //
 // This file is part of Aladin Lite.
 //
 //    Aladin Lite is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, version 3 of the License.
+//    it under the terms of the GNU Lesser General Public License as published by
+//    the Free Software Foundation, either version 3 of the License, or
+//    (at your option) any later version.
 //
 //    Aladin Lite is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+//    GNU Lesser General Public License for more details.
 //
-//    The GNU General Public License is available in COPYING file
-//    along with Aladin Lite.
+//    You should have received a copy of the GNU Lesser General Public License
+//    along with Aladin Lite. If not, see <https://www.gnu.org/licenses/>.
 //
-
-
-
 
 /******************************************************************************
  * Aladin Lite project
@@ -44,12 +44,12 @@ import { Zoom } from './Zoom.js'
 import { Footprint } from "./Footprint.js";
 import { Selector } from "./Selector.js";
 import { ObsCore } from "./vo/ObsCore.js";
-import { DefaultActionsForContextMenu } from "./DefaultActionsForContextMenu.js";
-import { Layout } from "./gui/Layout.js";
-import { SAMPActionButton } from "./gui/Button/SAMP.js";
 import { HiPS } from "./HiPS.js";
 import { Image } from "./Image.js";
-
+import { Color } from "./Color.js";
+import { SpectraDisplayer } from "./SpectraDisplayer.js";
+import { DefaultActionsForContextMenu } from "./DefaultActionsForContextMenu.js";
+import { Source } from "./Source.js";
 export let View = (function () {
 
     /** Constructor */
@@ -94,8 +94,18 @@ export let View = (function () {
             // 1. Print the original exception message in the console
             //console.error(e)
             // 2. Add a more explicite message to the end user
-            console.error("Problem initializing Aladin Lite. Please contact the support by contacting Matthieu Baumann (baumannmatthieu0@gmail.com) or Thomas Boch (thomas.boch@astro.unistra.fr). You can also open an issue on the Aladin Lite github repository here: https://github.com/cds-astro/aladin-lite. Message error:" + e)
+            console.error("Problem initializing Aladin Lite. Please contact the support by contacting Matthieu Baumann (matthieu.baumann@astro.unistra.fr) or Thomas Boch (thomas.boch@astro.unistra.fr). You can also open an issue on the Aladin Lite github repository here: https://github.com/cds-astro/aladin-lite. Message error:" + e)
         }
+
+        this._defineProperties();
+
+        // I realized debouncing a little bit the resize process
+        // prevents the div from flickering in white !
+        // Let's keep that like that (with a very small debounced time of 2ms).
+        this.debounceResize = Utils.debounce(() => {
+            self.wasm.resize(self.width, self.height);
+            self.updateZoomState()
+        }, 2);
 
         // Attach the drag and drop events to the view
         this.aladinDiv.ondrop = (event) => {
@@ -138,7 +148,8 @@ export let View = (function () {
                             posChangedFn({
                                 ra: pos[0],
                                 dec: pos[1],
-                                dragging: dragging
+                                dragging: dragging,
+                                frame: 'ICRS'
                             });
                         } catch(e) {
                             console.error(e)
@@ -172,12 +183,13 @@ export let View = (function () {
             View.CALLBACKS_THROTTLE_TIME_MS,
         );
 
+        this.debounceProgCatOnZoom = Utils.debounce(() => {
+            self.refreshProgressiveCats();
+            self.drawAllOverlays();
+        }, 300);
+
         this.mustClearCatalog = true;
         this.mode = View.PAN;
-
-        // 0.1 arcsec
-        this.minFoV = 1 / 36000;
-        this.maxFoV = null;
 
         this.healpixGrid = new HealpixGrid();
         this.then = Date.now();
@@ -186,10 +198,9 @@ export let View = (function () {
         lon = lat = 0;
 
         // FoV init settings
-        let initialFov = this.options.fov || 180.0;
         this.pinchZoomParameters = {
             isPinching: false, // true if a pinch zoom is ongoing
-            initialFov: undefined,
+            initialZoomFactor: undefined,
             initialDistance: undefined,
         };
 
@@ -198,10 +209,10 @@ export let View = (function () {
         this.setProjection(projName)
 
         // Then set the zoom properly once the projection is defined
-        this.setZoom(initialFov)
+        this.fov = this.options.fov || 180.0
 
         // Target position settings
-        this.viewCenter = { lon, lat }; // position of center of view
+        this.viewCenter = { ra: lon, dec: lat }; // position of center of view always in ICRS
 
         // Coo frame setting
         const cooFrame = CooFrameEnum.fromString(this.options.cooFrame, CooFrameEnum.ICRS);
@@ -246,9 +257,7 @@ export let View = (function () {
         // some variables for mouse handling
         this.dragging = false;
         this.dragCoo = null;
-        this.rightclickx = null;
-        this.rightclicky = null;
-        this.selectedLayer = 'base';
+        this.selectedLayer = undefined;
 
         this.needRedraw = true;
 
@@ -263,14 +272,23 @@ export let View = (function () {
         this.fadingLatestUpdate = null;
         this.dateRequestRedraw = null;
 
+        let colorPickerElement = document.getElementById('aladin-picker-tooltip');
+        if (!colorPickerElement) {
+            colorPickerElement = document.createElement('span');
+            colorPickerElement.classList.add('aladin-color-picker')
+            colorPickerElement.classList.add('aladin-view-label')
+
+            this.aladin.aladinDiv.appendChild(colorPickerElement);
+        }
+
+        this.colorPickerTool = {
+            domElement: colorPickerElement,
+            probedValue: null
+        };
+
         init(this);
         // listen to window resize and reshape canvases
         this.resizeTimer = null;
-        /*if ('ontouchstart' in window) {
-            Utils.on(document, 'orientationchange', (e) => {
-                self.fixLayoutDimensions();
-            })
-        } else {*/
 
         this.resizeObserver = new ResizeObserver(() => {
             self.fixLayoutDimensions();
@@ -279,32 +297,15 @@ export let View = (function () {
         self.resizeObserver.observe(this.aladinDiv)
 
         self.fixLayoutDimensions();
+
         self.redraw()
-
-        // in some contexts (Jupyter notebook for instance), the parent div changes little time after Aladin Lite creation
-        // this results in canvas dimension to be incorrect.
-        // The following line tries to fix this issue
-        /*setTimeout(function () {
-            var computedWidth = $(self.aladinDiv).width();
-            var computedHeight = $(self.aladinDiv).height();
-
-            if (self.width !== computedWidth || self.height === computedHeight) {
-                self.fixLayoutDimensions();
-                // As the WebGL backend has been resized correctly by
-                // the previous call, we can get the zoom factor from it
-
-                self.setZoom(self.fov); // needed to force recomputation of displayed FoV
-            }
-
-            self.requestRedraw();
-        }, 1000);*/ 
     };
 
     // different available modes
     View.PAN = 0;
     View.SELECT = 1;
     View.TOOL_SIMBAD_POINTER = 2;
-
+    View.TOOL_COLOR_PICKER = 3;
 
     // TODO: should be put as an option at layer level
     View.DRAW_SOURCES_WHILE_DRAGGING = true;
@@ -312,6 +313,27 @@ export let View = (function () {
 
     View.CALLBACKS_THROTTLE_TIME_MS = 100; // minimum time between two consecutive callback calls
 
+
+    View.prototype._defineProperties = function() {
+        Object.defineProperties(this, {
+            fov: {
+                get() {
+                    return this.wasm.getFieldOfView();
+                },
+                set(newFov) {
+                    this.setFoV(newFov);
+                }
+            },
+            zoomFactor: {
+                get() {
+                    return this.wasm.getZoomFactor();
+                },
+                set(newZoomFactor) {
+                    this.setZoomFactor(newZoomFactor);
+                }
+            }
+        });
+    }
 
     // (re)create needed canvases
     View.prototype.createCanvases = function () {
@@ -348,17 +370,21 @@ export let View = (function () {
     };
 
     View.prototype.setFoVRange = function(minFoV, maxFoV) {
-        if (minFoV && maxFoV && minFoV > maxFoV) {
-            var tmp = minFoV;
-            minFoV = maxFoV;
-            maxFoV = tmp;
+        this.wasm.setFoVRange(minFoV, maxFoV)
+        this.updateZoomState();
+    }
+
+    View.prototype.getFoVRange = function() {
+        let [minFoV, maxFoV] = this.wasm.getFoVRange();
+        if (minFoV == -1.0) {
+            minFoV = null;
         }
 
-        this.minFoV = minFoV || (1.0 / 36000);
-        this.maxFoV = maxFoV;
+        if (maxFoV == -1.0) {
+            maxFoV = null;
+        }
 
-        // reset the field of view
-        this.setZoom(this.fov);
+        return [minFoV, maxFoV]
     }
 
     // called at startup and when window is resized
@@ -371,7 +397,7 @@ export let View = (function () {
 
         var computedWidth = Math.floor(parseFloat(this.aladinDiv.getBoundingClientRect().width)) || 1.0;
         var computedHeight = Math.floor(parseFloat(this.aladinDiv.getBoundingClientRect().height)) || 1.0;
-        
+
         this.width = Math.max(computedWidth, 1);
         this.height = Math.max(computedHeight, 1); // this prevents many problems when div size is equal to 0
 
@@ -393,15 +419,11 @@ export let View = (function () {
         this.catalogCtx.canvas.style.height = this.height + "px";
         this.catalogCtx.scale(window.devicePixelRatio, window.devicePixelRatio);
 
-        /*this.gridCtx = this.gridCanvas.getContext("2d");
-        this.gridCtx.canvas.width = this.width;
-        this.gridCtx.canvas.height = this.height;
-*/
         this.imageCtx = this.imageCanvas.getContext("webgl2");
         this.imageCtx.canvas.style.width = this.width + "px";
         this.imageCtx.canvas.style.height = this.height + "px";
-        this.wasm.resize(this.width, this.height);
-        this.setZoom(this.fov)
+
+        this.debounceResize();
 
         pixelateCanvasContext(this.imageCtx, this.aladin.options.pixelateCanvas);
 
@@ -439,11 +461,14 @@ export let View = (function () {
         ctx.oImageSmoothingEnabled = enableSmoothing;
     }
 
-    View.prototype.startSelection = function(mode, callback) {
-        this.selector.start(mode, callback);
-    }
+    View.prototype.setMode = function (mode, params) {
+        // hide the picker tooltip
+        this.colorPickerTool.domElement.style.display = "none";
+        // in case we are in the selection mode
+        this.requestRedraw();
 
-    View.prototype.setMode = function (mode) {
+        this.aladin.removeStatusBarMessage('selector')
+
         this.mode = mode;
 
         if (this.mode == View.TOOL_SIMBAD_POINTER) {
@@ -455,6 +480,13 @@ export let View = (function () {
             this.setCursor('default');
         }
         else if (this.mode == View.SELECT) {
+            this.setCursor('crosshair');
+            this.aladin.showReticle(false)
+
+            const { mode, callback } = params;
+            this.selector.start(mode, callback);
+        } else if (this.mode == View.TOOL_COLOR_PICKER) {
+            this.colorPickerTool.domElement.style.display = "block";
             this.setCursor('crosshair');
             this.aladin.showReticle(false)
         }
@@ -470,18 +502,7 @@ export let View = (function () {
         this.catalogCanvas.style.cursor = cursor;
     };
 
-    View.prototype.getCanvas = async function (imgType, width, height, withLogo=true) {
-        const loadImage = function (url) {
-            return new Promise((resolve, reject) => {
-                const image = document.createElement("img")
-                image.src = url
-                image.onload = () => resolve(image)
-                image.onerror = () => reject(new Error('could not load image'))
-            })
-        }
-
-        imgType = imgType || "image/png";
-
+    View.prototype.getRawPixelsCanvas = function(width, height) {
         const canvas = this.wasm.canvas();
 
         const c = document.createElement('canvas');
@@ -492,6 +513,22 @@ export let View = (function () {
 
         ctx.drawImage(canvas, 0, 0, c.width, c.height);
         ctx.drawImage(this.catalogCanvas, 0, 0, c.width, c.height);
+
+        return c;
+    };
+
+    View.prototype.getCanvas = async function (width, height, withLogo=true) {
+        const loadImage = function (url) {
+            return new Promise((resolve, reject) => {
+                const image = document.createElement("img")
+                image.src = url
+                image.onload = () => resolve(image)
+                image.onerror = () => reject(new Error('could not load image'))
+            })
+        }
+
+        const c = this.getRawPixelsCanvas(width, height)
+        let ctx = c.getContext("2d");
 
         // draw the reticle if it is on the view
         let reticle = this.aladin.reticle;
@@ -513,13 +550,13 @@ export let View = (function () {
         }
 
         return c;
-    }
+    };
 
     /**
      * Return dataURL string corresponding to the current view
      */
     View.prototype.getCanvasDataURL = async function (imgType, width, height, withLogo=true) {
-        const c = await this.getCanvas(imgType, width, height, withLogo);
+        const c = await this.getCanvas(width, height, withLogo);
         return c.toDataURL(imgType);
     };
 
@@ -527,26 +564,20 @@ export let View = (function () {
      * Return ArrayBuffer corresponding to the current view
      */
     View.prototype.getCanvasArrayBuffer = async function (imgType, width, height, withLogo=true) {
-        const c = await this.getCanvas(imgType, width, height, withLogo);
-        return new Promise((resolve, reject) => {
-            c.toBlob(blob => {
-                if (blob) {
-                    const reader = new FileReader();
-                    reader.onloadend = () => resolve(reader.result);
-                    reader.onerror = () => reject(new Error('Error reading blob as ArrayBuffer'));
-                    reader.readAsArrayBuffer(blob);
-                } else {
-                    reject(new Error('Canvas toBlob failed'));
-                }
-            }, imgType);
-        });
+        return this.getCanvasBlob(imgType, width, height, withLogo)
+            .then((blob) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.onerror = () => reject(new Error('Error reading blob as ArrayBuffer'));
+                reader.readAsArrayBuffer(blob);
+            });
     }
 
     /**
      * Return Blob corresponding to the current view
      */
     View.prototype.getCanvasBlob = async function (imgType, width, height, withLogo=true) {
-        const c = await this.getCanvas(imgType, width, height, withLogo);
+        const c = await this.getCanvas(width, height, withLogo);
         return new Promise((resolve, reject) => {
             c.toBlob(blob => {
                 if (blob) {
@@ -554,14 +585,26 @@ export let View = (function () {
                 } else {
                     reject(new Error('Canvas toBlob failed'));
                 }
-            });
+            }, imgType);
         });
     }
 
     View.prototype.selectLayer = function (layer) {
-        if (!this.imageLayers.has(layer)) {
+        let imageLayer = this.imageLayers.get(layer)
+        if (!imageLayer) {
             console.warn(layer + ' does not exists. So cannot be selected');
             return;
+        }
+
+        if (this.spectraDisplayer)
+            this.spectraDisplayer._hide();
+
+        if (imageLayer.dataproductType === "spectral-cube") {
+            if (!this.spectraDisplayer) {
+                this.spectraDisplayer = new SpectraDisplayer(this, {width: 800, height: 300});
+            }
+
+            this.spectraDisplayer.attachHiPS3D(imageLayer)
         }
 
         this.selectedLayer = layer;
@@ -584,12 +627,11 @@ export let View = (function () {
                 const [lon, lat] = view.aladin.pix2world(xymouse.x, xymouse.y, 'icrs');
                 view.pointTo(lon, lat);
                 // reset the rotation around center view
-                view.setViewCenter2NorthPoleAngle(0.0);
+                view.setRotation(0.0);
             }
             catch (err) {
                 return;
             }
-
         };
 
         if (!Utils.hasTouchScreen()) {
@@ -598,10 +640,17 @@ export let View = (function () {
 
         // prevent default context menu from appearing (potential clash with right-click cuts control)
         Utils.on(view.catalogCanvas, "contextmenu", function (e) {
-            // do something here...
             e.preventDefault();
-            if(view.aladin.contextMenu) {
+            let ctxMenu = view.aladin.contextMenu;
+            if(ctxMenu) {
                 e.stopPropagation();
+                if (!view.rightClick && showContextMenu) {
+                    ctxMenu.attach(
+                        DefaultActionsForContextMenu.getDefaultActions(view.aladin),
+                        null
+                    );
+                    ctxMenu._show({e});
+                }
             }
         });
 
@@ -614,16 +663,17 @@ export let View = (function () {
                 view.aladin.statusBar.removeMessage('opening-ctxmenu')
             }
 
-            view.aladin.contextMenu && view.aladin.contextMenu.show({e});
+            view.aladin.contextMenu && view.aladin.contextMenu._show({e});
         };
         var longTouchTimer;
         var longTouchDuration = 800;
+        var showContextMenu = true;
         var xystart;
 
         var handleSelect = function(xy, tolerance) {
             tolerance = tolerance || 5;
             var objs = view.closestObjects(xy.x, xy.y, tolerance);
-            
+
             view.unselectObjects();
 
             if (objs) {
@@ -631,6 +681,7 @@ export let View = (function () {
                 var footprintClickedFunction = view.aladin.callbacksByEventName['footprintClicked'];
 
                 let objsByCats = {};
+                let shapes = [];
                 for (let o of objs) {
                     // classify the different objects by catalog
                     let cat = o.getCatalog && o.getCatalog();
@@ -649,13 +700,24 @@ export let View = (function () {
                             footprintClickedFunction(o, xy);
                         }
                     }
+
+                    // If this shape has a catalog then it will be selected from its source
+                    // so we will not add it
+                    if (!cat) {
+                        shapes.push(o);
+                    }
                 }
 
-                // rewrite objs
+                // Rewrite objs
                 objs = Array.from(Object.values(objsByCats));
+                // Add the external shapes (i.e. which are not associated with catalog sources e.g. those from GraphicOverlay)
+                if (shapes.length > 0) {
+                    objs.push(shapes)
+                }
                 view.selectObjects(objs);
+
                 view.lastClickedObject = objs;
-                
+
             } else {
                 // If there is a past clicked object
                 if (view.lastClickedObject) {
@@ -669,16 +731,18 @@ export let View = (function () {
         }
         var touchStartTime;
         Utils.on(view.catalogCanvas, "mousedown touchstart", function (e) {
-            e.preventDefault();
             e.stopPropagation();
 
             const xymouse = Utils.relMouseCoords(e);
+
+            if (view.spectraDisplayer) {
+                view.spectraDisplayer.disableInteraction();
+            }
 
             ALEvent.CANVAS_EVENT.dispatchedTo(view.aladinDiv, {
                 state: {
                     mode: view.mode,
                     dragging: view.dragging,
-                    rightClickPressed: view.rightClick
                 },
                 type: e.type,
                 xy: xymouse,
@@ -688,9 +752,7 @@ export let View = (function () {
 
             if (e.which === 3 || e.button === 2) {
                 view.rightClick = true;
-                view.rightClickTimeStart = Date.now();
-                view.rightclickx = xymouse.x;
-                view.rightclicky = xymouse.y;
+                showContextMenu = true;
 
                 if (view.selectedLayer) {
                     const imageLayer = view.imageLayers.get(view.selectedLayer);
@@ -698,9 +760,7 @@ export let View = (function () {
                         // Take as start cut values what is inside the properties
                         // If the cuts are not defined in the metadata of the survey
                         // then we take what has been defined by the user
-                        cutMinInit = imageLayer.getColorCfg().minCut || 0.0;
-                        cutMaxInit = imageLayer.getColorCfg().maxCut || 1.0;
-                        
+                        [cutMinInit, cutMaxInit] = imageLayer.getCuts();
                     }
                 }
 
@@ -719,7 +779,7 @@ export let View = (function () {
                     })
                 }
 
-                longTouchTimer = setTimeout(() => {onlongtouch(e); view.dragging = false;}, longTouchDuration); 
+                longTouchTimer = setTimeout(() => {onlongtouch(e); view.dragging = false;}, longTouchDuration);
                 touchStartTime = Date.now();
 
             }
@@ -728,20 +788,27 @@ export let View = (function () {
             if (e.type === 'touchstart' && e.targetTouches && e.targetTouches.length >= 2) {
                 view.dragging = false;
 
+                // Do not start the pinched rotation if the north up is locked
+                if (view.aladin.lockNorthUp === true) {
+                    return;
+                }
+
+
                 view.pinchZoomParameters.isPinching = true;
-                var fov = view.wasm.getFieldOfView();
-                view.pinchZoomParameters.initialFov = fov;
+                view.pinchZoomParameters.initialZoomFactor = view.zoomFactor;
                 view.pinchZoomParameters.initialDistance = Math.sqrt(Math.pow(e.targetTouches[0].clientX - e.targetTouches[1].clientX, 2) + Math.pow(e.targetTouches[0].clientY - e.targetTouches[1].clientY, 2));
 
-                view.fingersRotationParameters.initialViewAngleFromCenter = view.wasm.getViewCenter2NorthPoleAngle();
+                view.fingersRotationParameters.initialViewAngleFromCenter = view.wasm.getRotation();
                 view.fingersRotationParameters.initialFingerAngle = Math.atan2(e.targetTouches[1].clientY - e.targetTouches[0].clientY, e.targetTouches[1].clientX - e.targetTouches[0].clientX) * 180.0 / Math.PI;
 
                 return;
             }
 
             view.dragCoo = xymouse;
+            view.dragPastCoo = xymouse;
 
             view.dragging = true;
+
             view.aladin.contextMenu && view.aladin.contextMenu._hide()
 
             if (view.mode === View.PAN) {
@@ -759,55 +826,64 @@ export let View = (function () {
             return true;
         });
 
-        Utils.on(view.catalogCanvas, "mouseup", function (e) {
-            e.preventDefault();
-            e.stopPropagation();
+        Utils.on(view.catalogCanvas, "click", function (e) {
+            // call listener of 'click' event
+            if (view.mode == View.TOOL_SIMBAD_POINTER) {
+                // call Simbad pointer or Planetary features
+                GenericPointer(view, e);
 
-            const xymouse = Utils.relMouseCoords(e);
-
-            ALEvent.CANVAS_EVENT.dispatchedTo(view.aladinDiv, {
-                state: {
-                    mode: view.mode,
-                    dragging: view.dragging,
-                    rightClickPressed: view.rightClick
-                },
-                xy: xymouse,
-                ev: e,
-            });
-
-            if (view.rightClick) {
-                const rightClickDurationMs = Date.now() - view.rightClickTimeStart;
-                if (rightClickDurationMs < 100) {
-                    view.aladin.contextMenu && view.aladin.contextMenu.show({e});
-                }
-
-                view.rightClick = false;
-                view.rightclickx = null;
-                view.rightclicky = null;
-                view.rightClickTimeStart = undefined;
-
-                return;
+                return; // when in TOOL_SIMBAD_POINTER mode, we do not call the listeners
             }
 
-            if (view.mode === View.SELECT) {
-                view.selector.dispatch('mouseup', {coo: xymouse})
+            if (view.mode == View.TOOL_COLOR_PICKER) {
+                Utils.copy2Clipboard(view.colorPickerTool.probedValue)
+                    .then(() => {
+                        if (view.aladin.statusBar) {
+                            view.aladin.statusBar.appendMessage({
+                                message: `<span class="aladin-indicator" style="background-color: ${view.colorPickerTool.probedValue}"></span> [${view.colorPickerTool.probedValue}] copied into your clipboard`,
+                                duration: 1500,
+                                type: 'info'
+                            })
+                        }
+                    })
+                return; // listeners are not called
             }
         });
 
+        Utils.on(document, "mouseup touchend", function(e) {
+            var wasDragging = view.realDragging === true;
+
+            if (view.dragging) { // if we were dragging, reset to default cursor
+                if(view.mode === View.PAN) {
+                    view.setCursor('default');
+                }
+
+                view.dragging = false;
+                if (wasDragging) {
+                    view.realDragging = false;
+
+                    // call the positionChanged once more with a dragging = false
+                    view.throttledPositionChanged(false);
+                }
+
+                if (view.spectraDisplayer) {
+                    view.spectraDisplayer.enableInteraction();
+                }
+            } // end of "if (view.dragging) ... "
+        });
+
         // reacting on 'click' rather on 'mouseup' is more reliable when panning the view
-        Utils.on(view.catalogCanvas, "click mouseout touchend touchcancel", function (e) {
+        Utils.on(view.catalogCanvas, "mouseup mouseout touchend touchcancel", function (e) {
             const xymouse = Utils.relMouseCoords(e);
 
             ALEvent.CANVAS_EVENT.dispatchedTo(view.aladinDiv, {
                 state: {
                     mode: view.mode,
                     dragging: view.dragging,
-                    rightClickPressed: view.rightClick
                 },
                 type: e.type,
                 ev: e,
             });
-
 
             if (e.type === 'touchend' || e.type === 'touchcancel') {
                 if (longTouchTimer) {
@@ -815,14 +891,13 @@ export let View = (function () {
                         view.aladin.statusBar.removeMessage('opening-ctxmenu')
                     }
                     clearTimeout(longTouchTimer)
+                    longTouchTimer = undefined;
                 }
             }
 
-            xystart = undefined;
-
             if ((e.type === 'touchend' || e.type === 'touchcancel') && view.pinchZoomParameters.isPinching) {
                 view.pinchZoomParameters.isPinching = false;
-                view.pinchZoomParameters.initialFov = view.pinchZoomParameters.initialDistance = undefined;
+                view.pinchZoomParameters.initialZoomFactor = view.pinchZoomParameters.initialDistance = undefined;
 
                 return;
             }
@@ -834,25 +909,17 @@ export let View = (function () {
                 return;
             }
 
-            var wasDragging = view.realDragging === true;            
-
-            if (view.dragging) { // if we were dragging, reset to default cursor
-                if(view.mode === View.PAN) {
-                    view.setCursor('default');
-                }
-
-                view.dragging = false;
-
-                if (wasDragging) {
-                    view.realDragging = false;
-
-                    // call the positionChanged once more with a dragging = false
-                    view.throttledPositionChanged(false);
-                }
-            } // end of "if (view.dragging) ... "
+            var wasDragging = view.realDragging === true;
 
             view.mustClearCatalog = true;
             view.dragCoo = null;
+            view.dragPastCoo = null;
+
+            if (e.type === "mouseup") {
+                if (view.mode === View.SELECT) {
+                    view.selector.dispatch('mouseup', {coo: xymouse})
+                }
+            }
 
             if (e.type === "mouseout" || e.type === "touchend" || e.type === "touchcancel") {
                 if (e.type === "mouseout" || e.type === "touchcancel") {
@@ -866,17 +933,25 @@ export let View = (function () {
                 if (e.type === "touchend") {
                     if (view.mode === View.SELECT) {
                         view.selector.dispatch('mouseup', {coo: xymouse})
-                        
+
                         return;
                     }
-                } 
+                }
             }
 
-            if (view.mode == View.TOOL_SIMBAD_POINTER) {
-                // call Simbad pointer or Planetary features
-                GenericPointer(view, e);
+            if (view.rightClick) {
+                let ctxMenu = view.aladin.contextMenu;
+                if (showContextMenu && ctxMenu) {
+                    ctxMenu.attach(
+                        DefaultActionsForContextMenu.getDefaultActions(view.aladin),
+                        null
+                    );
+                    ctxMenu._show({e});
+                }
 
-                return; // when in TOOL_SIMBAD_POINTER mode, we do not call the listeners
+                view.rightClick = false;
+                showContextMenu = true;
+                return;
             }
 
             // popup to show ?
@@ -896,7 +971,6 @@ export let View = (function () {
                 }
             }
 
-            // call listener of 'click' event
             var onClickFunction = view.aladin.callbacksByEventName['click'];
             if (typeof onClickFunction === 'function') {
                 var pos = view.aladin.pix2world(xymouse.x, xymouse.y, "icrs");
@@ -905,23 +979,61 @@ export let View = (function () {
                 }
             }
 
-            // TODO : remplacer par mecanisme de listeners
-            // on avertit les catalogues progressifs
-            view.refreshProgressiveCats();
-
-            //view.requestRedraw();
-            view.wasm.releaseLeftButtonMouse();
-
             if (view.mode === View.SELECT && e.type === "click") {
                 view.selector.dispatch('click', {coo: xymouse})
             }
+
+            // TODO : remplacer par mecanisme de listeners
+            // on avertit les catalogues progressifs
+            view.refreshProgressiveCats();
+            if (wasDragging) {
+                view.wasm.releaseLeftButtonMouse();
+            }
         });
 
-        var lastHoveredObject; // save last object hovered by mouse
+        view.lastHoveredObject = null;
         var lastMouseMovePos = null;
+        const pickColor = (xymouse) => {
+            const layers = view.aladin.getStackLayers()
+            let lastImageLayer = view.aladin.getOverlayImageLayer(layers[layers.length - 1])
+            try {
+                let probedValue = lastImageLayer.readPixel(xymouse.x, xymouse.y);
+                view.colorPickerTool.domElement.style.display = "block"
+
+                if (probedValue !== null && probedValue.length === 3) {
+                    // rgb color
+                    const r = probedValue[0];
+                    const g = probedValue[1];
+                    const b = probedValue[2];
+
+                    view.colorPickerTool.probedValue = Color.rgbToHex(r, g, b);
+                    view.colorPickerTool.domElement.innerText = view.colorPickerTool.probedValue
+                } else if (probedValue !== null && probedValue.length === 4) {
+                    // rgba color
+                    const r = probedValue[0];
+                    const g = probedValue[1];
+                    const b = probedValue[2];
+                    const a = probedValue[3];
+
+                    view.colorPickerTool.probedValue = Color.rgbaToHex(r, g, b, a);
+                    view.colorPickerTool.domElement.innerText = view.colorPickerTool.probedValue
+                } else {
+                    // 1-channel color
+                    view.colorPickerTool.probedValue = probedValue;
+                    view.colorPickerTool.domElement.innerText = probedValue
+                }
+            } catch(e) {
+                console.warn("Pixel color reading: " + e)
+                // out of the projection, we probe no pixel
+                view.colorPickerTool.domElement.style.display = "none"
+            }
+
+            view.colorPickerTool.domElement.style.left = `${xymouse.x + view.aladin.aladinDiv.getBoundingClientRect().x}px`;
+            view.colorPickerTool.domElement.style.top = `${xymouse.y + view.aladin.aladinDiv.getBoundingClientRect().y}px`;
+        }
+
         Utils.on(view.catalogCanvas, "mousemove touchmove", function (e) {
             e.preventDefault();
-            //e.stopPropagation();
 
             const xymouse = Utils.relMouseCoords(e);
 
@@ -929,22 +1041,23 @@ export let View = (function () {
                 state: {
                     mode: view.mode,
                     dragging: view.dragging,
-                    rightClickPressed: view.rightClick
                 },
                 type: e.type,
                 xy: xymouse,
             });
 
+            let dist;
+            if (xystart) {
+                dist = (xymouse.x - xystart.x)*(xymouse.x - xystart.x) + (xymouse.y - xystart.y)*(xymouse.y - xystart.y);
+            }
+
             if (e.type === 'touchmove' && xystart) {
-                let dist = (() => {
-                    return (xymouse.x - xystart.x)*(xymouse.x - xystart.x) + (xymouse.y - xystart.y)*(xymouse.y - xystart.y)
-                })();
                 if (longTouchTimer && dist > 100) {
                     if (view.aladin.statusBar) {
                         view.aladin.statusBar.removeMessage('opening-ctxmenu')
                     }
                     clearTimeout(longTouchTimer)
-                    xystart = undefined;
+                    longTouchTimer = undefined;
                 }
             }
 
@@ -957,10 +1070,11 @@ export let View = (function () {
                     return;
                 }
 
-                const rightClickDurationMs = Date.now() - view.rightClickTimeStart;
-                if (rightClickDurationMs < 100) {
+                if (dist < 100) {
                     return;
                 }
+
+                showContextMenu = false;
 
                 if(view.selectedLayer) {
                     let selectedLayer = view.imageLayers.get(view.selectedLayer);
@@ -1006,13 +1120,13 @@ export let View = (function () {
                         // planetary survey case
                         rotation -= fingerAngleDiff;
                     }
-                    view.setViewCenter2NorthPoleAngle(rotation);
+                    view.setRotation(rotation);
                 }
 
                 // zoom
                 const dist = Math.sqrt(Math.pow(e.touches[0].clientX - e.touches[1].clientX, 2) + Math.pow(e.touches[0].clientY - e.touches[1].clientY, 2));
-                const fov = Math.min(Math.max(view.pinchZoomParameters.initialFov * view.pinchZoomParameters.initialDistance / dist, 0.00002777777), view.projection.fov);
-                view.setZoom(fov);
+                const zoomFactor = view.pinchZoomParameters.initialZoomFactor * view.pinchZoomParameters.initialDistance / dist;
+                view.zoomFactor = zoomFactor;
 
                 return;
             }
@@ -1027,11 +1141,11 @@ export let View = (function () {
                 if (typeof onMouseMoveFunction === 'function') {
                     var pos = view.aladin.pix2world(xymouse.x, xymouse.y);
                     if (pos !== undefined) {
-                        onMouseMoveFunction({ ra: pos[0], dec: pos[1], x: xymouse.x, y: xymouse.y });
+                        onMouseMoveFunction({ ra: pos[0], dec: pos[1], x: xymouse.x, y: xymouse.y, frame: view.cooFrame.label });
                     }
                     // send null ra and dec when we go out of the "sky"
                     else if (lastMouseMovePos != null) {
-                        onMouseMoveFunction({ ra: null, dec: null, x: xymouse.x, y: xymouse.y });
+                        onMouseMoveFunction({ ra: null, dec: null, x: xymouse.x, y: xymouse.y, frame: view.cooFrame.label });
                     }
                     lastMouseMovePos = pos;
                 }
@@ -1047,26 +1161,27 @@ export let View = (function () {
                     view.setCursor('pointer');
 
                     for (let o of closests) {
-                        if (typeof objHoveredFunction === 'function' && (!lastHoveredObject || !lastHoveredObject.includes(o))) {
+
+                        if (typeof objHoveredFunction === 'function' && (!view.lastHoveredObject || !view.lastHoveredObject.includes(o))) {
                             var ret = objHoveredFunction(o, xymouse);
                         }
-    
+
                         if (o.isFootprint()) {
-                            if (typeof footprintHoveredFunction === 'function' && (!lastHoveredObject || !lastHoveredObject.includes(o))) {
+                            if (typeof footprintHoveredFunction === 'function' && (!view.lastHoveredObject || !view.lastHoveredObject.includes(o))) {
                                 var ret = footprintHoveredFunction(o, xymouse);
                             }
                         }
-    
-                        if (!lastHoveredObject || !lastHoveredObject.includes(o)) {
+
+                        if (!view.lastHoveredObject || !view.lastHoveredObject.includes(o)) {
                             o.hover();
                         }
                     }
 
                     // unhover the objects in lastHoveredObjects that are not in closest anymore
-                    if (lastHoveredObject) {
+                    if (view.lastHoveredObject) {
                         var objHoveredStopFunction = view.aladin.callbacksByEventName['objectHoveredStop'];
 
-                        for (let lho of lastHoveredObject) {
+                        for (let lho of view.lastHoveredObject) {
                             if (!closests.includes(lho)) {
                                 lho.unhover();
 
@@ -1076,19 +1191,19 @@ export let View = (function () {
                             }
                         }
                     }
-                    lastHoveredObject = closests;
+                    view.lastHoveredObject = closests;
                 } else {
                     view.setCursor('default');
-                    if (lastHoveredObject) {
+                    if (view.lastHoveredObject) {
                         var objHoveredStopFunction = view.aladin.callbacksByEventName['objectHoveredStop'];
 
                         /*if (typeof objHoveredStopFunction === 'function') {
                             // call callback function to notify we left the hovered object
-                            var ret = objHoveredStopFunction(lastHoveredObject, xymouse);
+                            var ret = objHoveredStopFunction(view.lastHoveredObject, xymouse);
                         }
 
-                        lastHoveredObject.unhover();*/
-                        for (let lho of lastHoveredObject) {
+                        view.lastHoveredObject.unhover();*/
+                        for (let lho of view.lastHoveredObject) {
                             lho.unhover();
 
                             if (typeof objHoveredStopFunction === 'function') {
@@ -1096,8 +1211,8 @@ export let View = (function () {
                             }
                         }
                     }
-                    
-                    lastHoveredObject = null;
+
+                    view.lastHoveredObject = null;
                 }
 
                 if (e.type === "mousemove") {
@@ -1109,41 +1224,48 @@ export let View = (function () {
                 view.selector.dispatch('mousemove', {coo: xymouse})
             }
 
+            if (view.mode === View.TOOL_COLOR_PICKER) {
+                pickColor(xymouse);
+            }
+
             if (!view.dragging) {
                 return;
             }
 
             view.realDragging = true;
 
+            if (view.mode === View.PAN) {
+                view.pan = {
+                    s1: view.dragCoo,
+                    s2: xymouse
+                };
+            }
 
-            var s1 = view.dragCoo, s2 = xymouse;
-            // update drag coo with the new position
             view.dragCoo = xymouse;
+            // update drag coo with the new position
 
             /*if (view.mode == View.SELECT) {
                 view.requestRedraw();
                 return;
             }*/
-
-            if (view.mode === View.PAN) {
-                view.wasm.moveMouse(s1.x, s1.y, s2.x, s2.y);
-                view.wasm.goFromTo(s1.x, s1.y, s2.x, s2.y);
-    
-                view.updateCenter();
-    
-                ALEvent.POSITION_CHANGED.dispatchedTo(view.aladin.aladinDiv, view.viewCenter);
-    
-                // Apply position changed callback after the move
-                view.throttledPositionChanged(true);
-            }
         }); //// endof mousemove ////
 
         // disable text selection on IE
         //Utils.on(view.aladinDiv, "selectstart", function () { return false; })
-        /*var eventCount = 0;
-        var eventCountStart;
-        var isTouchPad;
-        let id;*/
+
+        view.prevWheelTime = undefined;
+
+        function normalizeWheel(event) {
+            // Safari/Chrome on macOS: deltaMode = 0 (pixels), but trackpad steps are tiny
+            let scale = 1;
+            if (event.deltaMode === WheelEvent.DOM_DELTA_LINE) {
+                scale = 16; // assume ~16px per line
+            } else if (event.deltaMode === WheelEvent.DOM_DELTA_PAGE) {
+                scale = window.innerHeight;
+            }
+            return event.deltaY * scale;
+        }
+        view.zoomDelta = 0;
 
         Utils.on(view.catalogCanvas, 'wheel', function (e) {
             e.preventDefault();
@@ -1155,88 +1277,27 @@ export let View = (function () {
                 state: {
                     mode: view.mode,
                     dragging: view.dragging,
-                    rightClickPressed: view.rightClick
                 },
                 type: e.type,
                 xy: xymouse,
             });
 
-            if (view.rightClick) {
-                return;
+            var onWheelTriggeredFunction = view.aladin.callbacksByEventName['wheelTriggered'];
+            if (typeof onWheelTriggeredFunction === 'function') {
+                onWheelTriggeredFunction(e)
+            } else {
+                // Default Aladin Lite zooming
+                const normalizedDelta = e.deltaY && normalizeWheel(e) || e.detail || (-e.wheelDelta);
+                // Accumulate the normalized delta
+                // We do not zoom because we cannot rely on "wheel" event
+                // being triggered at constant time steps
+                // The zoom is delayed to the redraw which is animation frame requested!
+                view.zoomDelta += normalizedDelta;
+
+                if (view.mode === View.TOOL_COLOR_PICKER) {
+                    pickColor(xymouse);
+                }
             }
-
-            if (!view.debounceProgCatOnZoom) {
-                var self = view;
-                view.debounceProgCatOnZoom = Utils.debounce(function () {
-                    self.refreshProgressiveCats();
-                    self.drawAllOverlays();
-                }, 300);
-            }
-
-            view.debounceProgCatOnZoom();
-            //view.throttledZoomChanged();
-
-            // Zoom heuristic
-            // First detect the device
-            // See https://stackoverflow.com/questions/10744645/detect-touchpad-vs-mouse-in-javascript
-            // for detecting the use of a touchpad
-            /*view.isTouchPadDefined = isTouchPad || typeof isTouchPad !== "undefined";
-            if (!view.isTouchPadDefined) {
-                if (eventCount === 0) {
-                    view.delta = 0;
-                    eventCountStart = new Date().getTime();
-                }
-
-                eventCount++;
-
-                if (new Date().getTime() - eventCountStart > 100) {
-                    if (eventCount > 10) {
-                        isTouchPad = true;
-                    } else {
-                        isTouchPad = false;
-                    }
-                    view.isTouchPadDefined = true;
-                }
-            }*/
-
-            // only ensure the touch pad test has been done before zooming
-            /*if (!view.isTouchPadDefined) {
-                return false;
-            }*/
-
-            // touch pad defined
-            view.delta = e.deltaY || e.detail || (-e.wheelDelta);
-
-            //if (isTouchPad) {
-                if (!view.throttledTouchPadZoom) {
-                    view.throttledTouchPadZoom = () => {
-                        const factor = 2.0;
-                        let newFov = view.delta > 0 ? view.fov * factor : view.fov / factor;
-
-                        // inside case
-                        view.zoom.apply({
-                            stop: newFov,
-                            duration: 100
-                        });
-                    };
-                }
-
-                view.throttledTouchPadZoom();
-            /*} else {
-                if (!view.throttledMouseScrollZoom) {
-                    view.throttledMouseScrollZoom = () => {
-                        const factor = 2
-                        let newFov = view.delta > 0 ? view.fov * factor : view.fov / factor;
-                        // standard mouse wheel zooming
-                        view.zoom.apply({
-                            stop: newFov,
-                            duration: 100
-                        });
-                    };
-                }
-                
-                view.throttledMouseScrollZoom()
-            }*/
 
             return false;
         });
@@ -1255,17 +1316,9 @@ export let View = (function () {
                 return;
 
             switch (e.keyCode) {
-                // shift
-                case 16:
-                    view.aladin.select('rect', (selection) => {
-                        view.selectObjects(selection);
-                    })
-                    break;
                 // escape
                 case 27:
-                    // if there is a selection occuring
-                    view.selector && view.selector.cancel()
-
+                    // Called when realfullscreen is false. Escaping from real fullscreen does not seem to trigger the keydown event
                     if (view.aladin.isInFullscreen) {
                         view.aladin.toggleFullscreen(view.aladin.options.realFullscreen);
                     }
@@ -1273,7 +1326,7 @@ export let View = (function () {
                     break;
                 default:
                     break;
-                
+
             }
         });
     };
@@ -1310,28 +1363,52 @@ export let View = (function () {
         };
     };
 
-    View.FPS_INTERVAL = 1000 / 140;
-
     /**
      * redraw the whole view
      */
-    View.prototype.redraw = function (timestamp) {
-        // request another frame
-        requestAnimFrame(this.redrawClbk);
-
+    View.prototype.redraw = function (now) {
         // Elapsed time since last loop
-        const now = performance.now();
-        const elapsedTime = now - timestamp;
-        this.dt = elapsedTime;
+        const elapsedTime = now - this.prevTime;
+        this.prevTime = now;
+
+        if (Math.abs(this.zoomDelta) > 1e-3) {
+            // Apply a fraction each frame (smoothing)
+            let step = this.zoomDelta * 0.2;
+            function wheelToZoomFactor(delta) {
+                const sensitivity = 0.002; // tune this
+                return Math.exp(-delta * sensitivity);
+            }
+
+            this.zoomFactor /= wheelToZoomFactor(step);
+            this.zoomDelta -= step;
+        }
+
+        if (this.pan) {
+            let s1 = this.pan.s1;
+            let s2 = this.pan.s2;
+
+            if (s1 && s2) {
+                this.wasm.moveMouse(s1.x, s1.y, s2.x, s2.y);
+                this.wasm.goFromTo(s1.x, s1.y, s2.x, s2.y);
+
+                this.updateCenter();
+
+                ALEvent.POSITION_CHANGED.dispatchedTo(this.aladin.aladinDiv, this.viewCenter);
+
+                // Apply position changed callback after the move
+                this.throttledPositionChanged(true);
+            }
+
+            this.pan = null;
+        }
 
         this.moving = this.wasm.update(elapsedTime);
-        
+
         // inertia run throttled position
         if (this.moving && this.aladin.callbacksByEventName && this.aladin.callbacksByEventName['positionChanged'] && this.wasm.isInerting()) {
             // run the trottled position
             this.throttledPositionChanged(false);
         }
-
 
         ////// 2. Draw catalogues////////
         const isViewRendering = this.wasm.isRendering();
@@ -1340,7 +1417,8 @@ export let View = (function () {
         }
         this.needRedraw = false;
 
-        //this.then = now % View.FPS_INTERVAL;
+        // request another frame
+        requestAnimFrame(this.redrawClbk);
     };
 
     View.prototype.drawAllOverlays = function () {
@@ -1366,6 +1444,7 @@ export let View = (function () {
                 cat.draw(ctx, this.width, this.height);
             }
         }
+
         // draw popup catalog
         if (this.catalogForPopup.isShowing && this.catalogForPopup.sources.length > 0) {
             if (!this.catalogCanvasCleared) {
@@ -1391,6 +1470,32 @@ export let View = (function () {
             for (var i = 0; i < this.overlays.length; i++) {
                 this.overlays[i].draw(ctx);
             }
+        }
+
+        // Draw selected items (catalog sources, overlay, footprints, ...) afterwards
+        if (this.selection) {
+            this.selection.forEach((objList) => {
+                objList.forEach((o) => {
+                    if (o instanceof Source) {
+                        o.draw(ctx, this.width, this.height)
+                    } else {
+                        // Circle, Ellipse, Footprints, ...
+                        o.draw(ctx, this)
+                    }
+                })
+            });
+        }
+
+        // Draw hovered items afterwards
+        if (this.lastHoveredObject) {
+            this.lastHoveredObject.forEach((o) => {
+                if (o instanceof Source) {
+                    o.draw(ctx, this.width, this.height)
+                } else {
+                    // Circle, Ellipse, Footprints, ...
+                    o.draw(ctx, this)
+                }
+            })
         }
 
         // Redraw HEALPix grid
@@ -1438,6 +1543,10 @@ export let View = (function () {
         }
     };
 
+    View.prototype.reverseLongitude = function(longitudeReversed) {
+        this.wasm.setLongitudeReversed(longitudeReversed);
+    }
+
     View.prototype.refreshProgressiveCats = function () {
         if (!this.catalogs) {
             return;
@@ -1458,6 +1567,30 @@ export let View = (function () {
         this.wasm.queryDisc(norder, lon, lat, radius).forEach(x => pixList.push(Number(x)));
 
         return pixList;
+    };
+
+    View.prototype.readPixel = function(prober) {
+        // Hide the coo grid
+        this.aladin.hideCooGrid();
+
+        // Ask for the redraw to make the coo grid hiding effective
+        this.redraw()
+
+        let c = this.getRawPixelsCanvas(null, null);
+        let ctx = c.getContext("2d");
+
+        let imageData;
+
+        if (Utils.isNumber(prober.x) && Utils.isNumber(prober.y)) {
+            imageData = ctx.getImageData(prober.x, prober.y, 1, 1);
+        } else if (Utils.isNumber(prober.top) && Utils.isNumber(prober.left) && Utils.isNumber(prober.w) && Utils.isNumber(prober.h)) {
+            imageData = ctx.getImageData(prober.top, prober.left, prober.w, prober.h);
+        }
+
+        // Show the coo grid back again
+        this.aladin.showCooGrid();
+
+        return imageData;
     };
 
     View.prototype.unselectObjects = function() {
@@ -1482,14 +1615,14 @@ export let View = (function () {
         if (this.manualSelection) {
             return;
         }
-        
+
         // unselect the previous selection
         this.unselectObjects();
-        
+
         if (Array.isArray(selection)) {
             this.selection = selection;
         } else {
-            // select the new 
+            // select the new
             this.selection = Selector.getObjects(selection, this);
         }
 
@@ -1506,7 +1639,7 @@ export let View = (function () {
                     let cat = obj.getCatalog();
 
                     // trigger the non action clicked if it does not show the table
-                    // table show is handled below 
+                    // table show is handled below
                     if (obj.actionClicked) {
                         if (!cat || !cat.onClick || cat.onClick !== "showTable") {
                             obj.actionClicked()
@@ -1536,18 +1669,23 @@ export let View = (function () {
                         } else {
                             source = o;
                         }
-    
+
                         return source;
                     });
 
+                    let tableColor = catalog.color;
+                    if (catalog.colorFn) {
+                        tableColor = "white"
+                    }
+
                     let table = {
                         'name': catalog.name,
-                        'color': catalog.color,
+                        'color': tableColor,
                         'rows': sources,
                         'fields': catalog.fields,
                         'showCallback': ObsCore.SHOW_CALLBACKS(this.aladin)
                     };
-    
+
                     return table;
                 })
 
@@ -1560,45 +1698,50 @@ export let View = (function () {
     };
 
     // Called for touchmove events
-    View.prototype.setZoom = function (fov) {
-        // limit the fov in function of the projection
-        fov = Math.min(fov, this.projection.fov);
+    View.prototype.setZoomFactor = function(zoomFactor) {
+        this.wasm.setZoomFactor(zoomFactor);
+        this.updateZoomState();
+    }
 
-        // then clamp the fov between minFov and maxFov
-        const minFoV = this.minFoV;
-        const maxFoV = this.maxFoV;
-
-        if (minFoV) {
-            fov = Math.max(fov, minFoV);
-        }
-
-        if (maxFoV) {
-            fov = Math.min(fov, maxFoV);
-        }
-
-        this.wasm.setFieldOfView(fov);
-        this.updateZoomState(fov);
-    };
+    View.prototype.setFoV = function(fov) {
+        this.wasm.setFieldOfView(fov)
+        this.updateZoomState();
+    }
 
     View.prototype.increaseZoom = function () {
         this.zoom.apply({
-            stop: this.fov / 1.8,
-            duration: 100
+            stop: this.zoomFactor / 1.4,
+            duration: 200,
         });
     }
 
     View.prototype.decreaseZoom = function () {
         this.zoom.apply({
-            stop: this.fov * 1.8,
-            duration: 100
+            stop: this.zoomFactor * 1.4,
+            duration: 200,
         });
     }
 
-    View.prototype.setViewCenter2NorthPoleAngle = function(rotation) {
-        this.wasm.setViewCenter2NorthPoleAngle(rotation);
+    View.prototype.setRotation = function(rotation) {
+        if (Math.abs(rotation - this.aladin.getRotation()) < 1e-5) {
+            return;
+        }
+
+        this.wasm.setRotation(rotation);
+        var rotationChangedCallback = this.aladin.callbacksByEventName["rotationChanged"];
+        typeof rotationChangedCallback === "function" && rotationChangedCallback(rotation);
     }
 
     View.prototype.setGridOptions = function (options) {
+        if (options.color) {
+            // 1. the user has maybe given some
+            options.color = new Color(options.color);
+            // 3. convert from 0-255 to 0-1
+            options.color.r /= 255;
+            options.color.g /= 255;
+            options.color.b /= 255;
+        }
+
         this.gridCfg = {...this.gridCfg, ...options};
         this.wasm.setGridOptions(this.gridCfg);
 
@@ -1611,32 +1754,17 @@ export let View = (function () {
 
     View.prototype.getGridOptions = function() {
         return this.gridCfg;
-    }
+    };
 
-    View.prototype.updateZoomState = function (fov) {
-        // Get the new zoom values from the backend
-        const newFov = fov || this.wasm.getFieldOfView()
-
-        // Disable the coo grid labels if we are too unzoomed
-        const maxFovGridLabels = 360;
-        if (this.fov <= maxFovGridLabels && newFov > maxFovGridLabels) {
-            let gridOptions = this.getGridOptions()
-            if (gridOptions) {
-                this.originalShowLabels = gridOptions.showLabels;
-                this.aladin.setCooGrid({showLabels: false});
-            }
-           
-        } else if (this.fov > maxFovGridLabels && newFov <= maxFovGridLabels) {
-            this.aladin.setCooGrid({showLabels:this.originalShowLabels});
-        }
-
-        this.fov = newFov;
+    View.prototype.updateZoomState = function () {
         this.computeNorder();
 
         let fovX = this.fov;
         let fovY = this.height / this.width * fovX;
         fovX = Math.min(fovX, 360);
         fovY = Math.min(fovY, 180);
+
+        this.debounceProgCatOnZoom();
 
         ALEvent.ZOOM_CHANGED.dispatchedTo(this.aladinDiv, { fovX, fovY });
 
@@ -1667,47 +1795,50 @@ export let View = (function () {
     View.prototype.setOverlayImageLayer = function (imageLayer, layer = "overlay") {
         // set the view to the image layer object
         // do the properties query if needed
+        imageLayer.layer = layer;
         imageLayer._setView(this);
 
         // register its promise
         this.imageLayersBeingQueried.set(layer, imageLayer);
+
+        // Check whether this layer already exist
+        const idxOverlayLayer = this.overlayLayers.findIndex(overlayLayer => overlayLayer == layer);
+        let alreadyPresentImageLayer;
+        if (idxOverlayLayer == -1) {
+            // it does not exist so we add it to the stack
+            this.overlayLayers.push(layer);
+        } else {
+            // it exists
+            alreadyPresentImageLayer = this.imageLayers.get(layer);
+
+            if (alreadyPresentImageLayer) {
+                if (alreadyPresentImageLayer.added === true) {
+                    ALEvent.LAYER_REMOVED.dispatchedTo(this.aladinDiv, { layer: alreadyPresentImageLayer });
+                }
+
+                alreadyPresentImageLayer.added = false;
+            }
+            // Notify that this image layer has been replaced by the wasm part
+            this.imageLayers.delete(layer);
+        }
 
         this.addImageLayer(imageLayer, layer);
 
         return imageLayer;
     };
 
+    // Insert a layer object (Image/HiPS) at a specific index in the stack
     View.prototype._addLayer = function(imageLayer) {
-        const layerName = imageLayer.layer;
-        // Check whether this layer already exist
-        const idxOverlayLayer = this.overlayLayers.findIndex(overlayLayer => overlayLayer == layerName);
-        let alreadyPresentImageLayer;
-        if (idxOverlayLayer == -1) {
-            // it does not exist so we add it to the stack
-            this.overlayLayers.push(layerName);
-        } else {
-            // it exists
-            alreadyPresentImageLayer = this.imageLayers.get(layerName);
-            alreadyPresentImageLayer.added = false;
+        // Keep the JS frontend in-line with the wasm state
+        const layer = imageLayer.layer;
+        imageLayer.added = true;
 
-            this.imageLayers.delete(layerName);
-        }
-
-        //imageLayer.added = true;
-
-        this.imageLayers.set(layerName, imageLayer);
+        this.imageLayers.set(layer, imageLayer);
 
         // select the layer if he is on top
-        if (idxOverlayLayer == -1) {
-            this.selectLayer(layerName);
-        }
-        
-        // Notify that this image layer has been replaced by the wasm part
-        if (alreadyPresentImageLayer) {
-            ALEvent.HIPS_LAYER_REMOVED.dispatchedTo(this.aladinDiv, { layer: alreadyPresentImageLayer });
-        }
+        this.selectLayer(layer);
 
-        ALEvent.HIPS_LAYER_ADDED.dispatchedTo(this.aladinDiv, { layer: imageLayer });
+        ALEvent.LAYER_ADDED.dispatchedTo(this.aladinDiv, { layer: imageLayer });
     }
 
     View.prototype.addImageLayer = function (imageLayer, layer) {
@@ -1715,32 +1846,29 @@ export let View = (function () {
         // start the query
         const imageLayerPromise = imageLayer.query;
 
+        let idx = this.promises.length;
         this.promises.push(imageLayerPromise);
 
         // All image layer promises must be completed (fullfilled or rejected)
         const task = {
-            message: 'Load layer: ' + imageLayer.name,
+            message: imageLayer.name + ' loading...',
             id: Utils.uuidv4(),
         }
-        Promise.allSettled(this.promises)
-            .then(() => imageLayerPromise)
-            // The promise is resolved and we now have access
-            // to the image layer objet (whether it is an HiPS or an Image)
+        // Ensure all the properties for HiPSes have been seeked
+        ALEvent.FETCH.dispatchedTo(document, {task});
+        // All the remaining promises must be terminated and the current one must be resolved
+        // so that we can add it to the view (call of _add2View)
+        Promise.all([Promise.allSettled(this.promises), imageLayerPromise])
+            // Then we add the layer to the view
+            .then((_) => imageLayer._addToView(layer))
+            // Then we keep a track of the layer in the JS front
             .then((imageLayer) => {
-                // Add to the backend
-                imageLayer._setView(this)
-                const promise = imageLayer._add(layer);
-                ALEvent.FETCH.dispatchedTo(document, {task});
+                this._addLayer(imageLayer);
 
-                return promise;
-            })
-            .then((imageLayer) => {
                 // If the image layer has successfuly been added
                 this.empty = false;
 
-                this._addLayer(imageLayer);
-
-                // change the view frame in case we have a planetary hips loaded
+                // Change the view frame in case we have a planetary hips loaded
                 if (imageLayer.hipsBody) {
                     if (this.options.showFrame) {
                         this.aladin.setFrame('J2000d');
@@ -1764,68 +1892,30 @@ export let View = (function () {
                 self.imageLayersBeingQueried.delete(layer);
 
                 // Remove the settled promise
-                let idx = this.promises.findIndex(p => p == imageLayerPromise);
                 this.promises.splice(idx, 1);
-
-                const noMoreLayersToWaitFor = this.promises.length === 0;
-
-                if (noMoreLayersToWaitFor) {
-                    if (self.empty) {
-                        // no promises to launch and the view has no HiPS.
-                        // This situation can occurs if the MOCServer is out
-                        // If so we can directly put the url of the DSS hosted in alasky,
-                        // it the best I can do if the MOCServer is out
-                        self.aladin.setBaseImageLayer("https://alaskybis.cds.unistra.fr/DSS/DSSColor/");
-                    } else {
-                        // there is surveys that have been queried
-                        // rename the first overlay layer to "base"
-                        self.renameLayer(this.overlayLayers[0], "base");
-                    }
-                }
             })
     }
 
-    // The survey at layer must have been added to the view!
-    View.prototype.renameLayer = function(layer, newLayer) {
-        if (layer === newLayer) {
-            return;
-        }
-
+    View.prototype.swapLayers = function(layer1, layer2) {
         // Throw an exception if either the first or the second layers are not in the stack
-        this.wasm.renameLayer(layer, newLayer);
-
-        let imageLayer = this.imageLayers.get(layer);
-        imageLayer.layer = newLayer;
-
-        // Change in overlaylayers
-        const idx = this.overlayLayers.findIndex(overlayLayer => overlayLayer == layer);
-        this.overlayLayers[idx] = newLayer;
-        // Change in imageLayers
-        this.imageLayers.delete(layer);
-        this.imageLayers.set(newLayer, imageLayer);
-
-        if (this.selectedLayer === layer) {
-            this.selectedLayer = newLayer;
-        }
-
-        // Tell the layer hierarchy has changed
-        ALEvent.HIPS_LAYER_RENAMED.dispatchedTo(this.aladinDiv, { layer, newLayer });
-    }
-
-    View.prototype.swapLayers = function(firstLayer, secondLayer) {
-        // Throw an exception if either the first or the second layers are not in the stack
-        this.wasm.swapLayers(firstLayer, secondLayer);
+        this.wasm.swapLayers(layer1, layer2);
 
         // Swap in overlaylayers
-        const idxFirstLayer = this.overlayLayers.findIndex(overlayLayer => overlayLayer == firstLayer);
-        const idxSecondLayer = this.overlayLayers.findIndex(overlayLayer => overlayLayer == secondLayer);
+        const i = this.overlayLayers.indexOf(layer1);
+        const j = this.overlayLayers.indexOf(layer2);
 
-        const tmp = this.overlayLayers[idxFirstLayer];
-        this.overlayLayers[idxFirstLayer] = this.overlayLayers[idxSecondLayer];
-        this.overlayLayers[idxSecondLayer] = tmp;
+        const tmp = this.overlayLayers[i];
+        this.overlayLayers[i] = this.overlayLayers[j];
+        this.overlayLayers[j] = tmp;
 
         // Tell the layer hierarchy has changed
-        ALEvent.HIPS_LAYER_SWAP.dispatchedTo(this.aladinDiv, { firstLayer: firstLayer, secondLayer: secondLayer });
+        ALEvent.LAYER_SWAPPED.dispatchedTo(
+            this.aladinDiv,
+            {
+                layer1: this.imageLayers.get(layer1),
+                layer2: this.imageLayers.get(layer2)
+            }
+        );
     }
 
     View.prototype.removeImageLayer = function (layer) {
@@ -1838,9 +1928,7 @@ export let View = (function () {
         }
 
         // Update the backend
-        if (imageLayer.added) {
-            this.wasm.removeLayer(layer);
-        }
+        imageLayer._removeFromView();
 
         // Get the survey to remove to dissociate it from the view
         imageLayer.added = false;
@@ -1857,21 +1945,13 @@ export let View = (function () {
         this.overlayLayers.splice(idxOverlaidLayer, 1);
 
         if (this.overlayLayers.length === 0) {
-            this.empty = true;
+            //this.empty = true;
         } else if (this.selectedLayer === layer) {
             // If the layer removed was selected then we select the last layer
             this.selectLayer(this.overlayLayers[this.overlayLayers.length - 1]);
         }
 
-        ALEvent.HIPS_LAYER_REMOVED.dispatchedTo(this.aladinDiv, { layer: imageLayer });
-
-        // check if there are no more surveys
-        const noMoreLayersToWaitFor = this.promises.length === 0;
-        if (noMoreLayersToWaitFor && this.empty) {
-            // no promises to launch!
-            const dssId = Aladin.DEFAULT_OPTIONS.survey;
-            this.aladin.setBaseImageLayer(dssId);
-        }
+        ALEvent.LAYER_REMOVED.dispatchedTo(this.aladinDiv, { layer: imageLayer });
     };
 
     View.prototype.contains = function(survey) {
@@ -1918,7 +1998,8 @@ export let View = (function () {
         }
     }
 
-    View.prototype.getImageLayer = function (layer = "base") {
+    View.prototype.getImageLayer = function (layer) {
+        layer = layer || (this.overlayLayers && this.overlayLayers[0]);
         let imageLayerQueried = this.imageLayersBeingQueried.get(layer);
         let imageLayer = this.imageLayers.get(layer);
 
@@ -1940,11 +2021,10 @@ export let View = (function () {
         }
 
         this.projection = ProjectionEnum[projName];
-        
+
         // Change the projection here
         this.wasm.setProjection(projName);
-        let newProjFov = Math.min(this.fov, this.projection.fov);
-        this.setZoom(newProjFov)
+        this.updateZoomState()
 
         const projFn = this.aladin.callbacksByEventName['projectionChanged'];
         (typeof projFn === 'function') && projFn(projName);
@@ -1975,9 +2055,17 @@ export let View = (function () {
     };
 
     View.prototype.updateCenter = function() {
-        const [ra, dec] = this.wasm.getCenter();
-        this.viewCenter.lon = ra;
-        this.viewCenter.lat = dec;
+        // Center position in the frame of the view
+        const [lon, lat] = this.wasm.getCenter();
+
+        // ICRS conversion
+        let [ra, dec] = this.wasm.viewToICRSCooSys(lon, lat);
+
+        if (ra < 0) {
+            ra = ra + 360.0
+        }
+
+        this.viewCenter = {ra, dec};
     }
 
     View.prototype.showHealpixGrid = function (show) {
@@ -2022,15 +2110,12 @@ export let View = (function () {
             return;
         }
 
-        this.viewCenter.lon = ra;
-        this.viewCenter.lat = dec;  
+        this.viewCenter = {ra, dec};
 
         // Put a javascript code here to do some animation
-        this.wasm.setCenter(this.viewCenter.lon, this.viewCenter.lat);
+        this.wasm.setCenter(this.viewCenter.ra, this.viewCenter.dec);
 
         ALEvent.POSITION_CHANGED.dispatchedTo(this.aladin.aladinDiv, this.viewCenter);
-
-        this.requestRedraw();
 
         var self = this;
         setTimeout(function () { self.refreshProgressiveCats(); }, 1000);
@@ -2065,7 +2150,7 @@ export let View = (function () {
         this.mocs = [];
 
         this.allOverlayLayers.forEach((overlay) => {
-            ALEvent.GRAPHIC_OVERLAY_LAYER_REMOVED.dispatchedTo(this.aladinDiv, { layer: overlay });
+            ALEvent.GRAPHIC_OVERLAY_LAYER_REMOVED.dispatchedTo(this.aladinDiv, { overlay });
         })
         this.allOverlayLayers = [];
 
@@ -2101,7 +2186,7 @@ export let View = (function () {
             this.overlays.splice(indexToDelete, 1);
         }
 
-        ALEvent.GRAPHIC_OVERLAY_LAYER_REMOVED.dispatchedTo(this.aladinDiv, { layer: overlay });
+        ALEvent.GRAPHIC_OVERLAY_LAYER_REMOVED.dispatchedTo(this.aladinDiv, { overlay });
 
         this.mustClearCatalog = true;
         this.requestRedraw();
@@ -2149,7 +2234,7 @@ export let View = (function () {
                         continue;
                     }
 
-                    if (s.hasFootprint === true && s.tooSmallFootprint === false) {
+                    if (s.isFootprint() && cat.onlyFootprints && !s.tooSmallFootprint) {
                         continue;
                     }
 
@@ -2174,26 +2259,21 @@ export let View = (function () {
         }
 
         let closests = [];
-        const fLineWidth = (footprints && footprints[0] && footprints[0].getLineWidth()) || 1;
-        let lw = fLineWidth + 3;
-        //for (var lw = startLw + 1; lw <= startLw + 3; lw++) {
-            footprints.forEach((footprint) => {
-                if (!footprint.source || !footprint.source.tooSmallFootprint) {
-                    // Hidden footprints are not considered
-                    //let originLineWidth = footprint.getLineWidth();
-    
-                    footprint.setLineWidth(lw);
-                    if (footprint.isShowing && footprint.isInStroke(ctx, this, x * window.devicePixelRatio, y * window.devicePixelRatio)) {
-                        closests.push(footprint);
-                    }
-                    footprint.setLineWidth(fLineWidth);
-                }
-            })
 
-        /*    if (closests.length > 0) {
-                break;
+        footprints.forEach((footprint) => {
+            const originLineWidth = footprint.getLineWidth();
+            let drawingLineWidth = originLineWidth;
+            if (footprint.isSelected && footprint.getSelectionLineWidth()) {
+                drawingLineWidth = footprint.getSelectionLineWidth();
             }
-        }*/
+            let spreadedLineWidth = (drawingLineWidth || 1) + 3;
+
+            footprint.setLineWidth(spreadedLineWidth);
+            if (footprint.isShowing && footprint.isInStroke(ctx, this, x * window.devicePixelRatio, y * window.devicePixelRatio)) {
+                closests.push(footprint);
+            }
+            footprint.setLineWidth(originLineWidth);
+        })
 
         return closests;
     };
@@ -2205,13 +2285,11 @@ export let View = (function () {
         var canvas = this.catalogCanvas;
         var ctx = canvas.getContext("2d");
         // this makes footprint selection easier as the catch-zone is larger
-        //let pastLineWidth = ctx.lineWidth;
 
         let closests = [];
         if (this.overlays) {
             for (var k = 0; k < this.overlays.length; k++) {
                 overlay = this.overlays[k];
-
                 closests = closests.concat(this.closestFootprints(overlay.overlayItems, ctx, x, y));
             }
         }
@@ -2220,48 +2298,54 @@ export let View = (function () {
         if (this.catalogs) {
             for (var k = 0; k < this.catalogs.length; k++) {
                 let catalog = this.catalogs[k];
-                let footprints = catalog.getFootprints();
 
-                closests = closests.concat(this.closestFootprints(footprints, ctx, x, y));
+                for (var s of catalog.getSources()) {
+                    if (s.isFootprint() && !s.tooSmallFootprint) {
+                        let footprint = s.footprint;
+                        const originLineWidth = footprint.getLineWidth();
+                        let drawingLineWidth = originLineWidth;
+                        if (footprint.isSelected && footprint.getSelectionLineWidth()) {
+                            drawingLineWidth = footprint.getSelectionLineWidth();
+                        }
+                        let spreadedLineWidth = (drawingLineWidth || 1) + 3;
+
+                        footprint.setLineWidth(spreadedLineWidth);
+                        if (footprint.isShowing && footprint.isInStroke(ctx, this, x * window.devicePixelRatio, y * window.devicePixelRatio)) {
+                            closests.push(s);
+                        }
+                        footprint.setLineWidth(originLineWidth);
+                    }
+                }
             }
         }
 
         if (!this.objLookup) {
-            //ctx.lineWidth = pastLineWidth;
             return null;
         }
 
-        //ctx.lineWidth = pastLineWidth;
-
         var dist = Number.POSITIVE_INFINITY;
         var closest = null;
-        //for (var r = 0; r <= maxRadius; r++) {
-            //closest = dist = null;
-            for (var dx = -maxRadius; dx <= maxRadius; dx++) {
-                if (!this.objLookup[x + dx]) {
-                    continue;
-                }
-                for (var dy = -maxRadius; dy <= maxRadius; dy++) {
-                    if (this.objLookup[x + dx][y + dy]) {
-                        var d = dx * dx + dy * dy;
-                        if (d < dist) {
-                            dist = d;
-                            closest = this.objLookup[x + dx][y + dy]
-                        } else if (d == dist) {
-                            closest.concat(this.objLookup[x + dx][y + dy])
-                        }
+
+        for (var dx = -maxRadius; dx <= maxRadius; dx++) {
+            if (!this.objLookup[x + dx]) {
+                continue;
+            }
+            for (var dy = -maxRadius; dy <= maxRadius; dy++) {
+                if (this.objLookup[x + dx][y + dy]) {
+                    var d = dx * dx + dy * dy;
+                    if (d < dist) {
+                        dist = d;
+                        closest = this.objLookup[x + dx][y + dy]
+                    } else if (d == dist) {
+                        closest.concat(this.objLookup[x + dx][y + dy])
                     }
                 }
             }
+        }
 
-            if (closest && closest.length > 0) {
-                closests = closests.concat(closest)
-            }
-
-            /*if (closest) {
-                closests = closests.concat(closest);
-            }*/
-        //}
+        if (closest && closest.length > 0) {
+            closests = closests.concat(closest)
+        }
 
         if (closests.length === 0)
             return null;

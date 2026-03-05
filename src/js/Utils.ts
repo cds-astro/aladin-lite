@@ -1,22 +1,24 @@
+// SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright 2013 - UDS/CNRS
 // The Aladin Lite program is distributed under the terms
-// of the GNU General Public License version 3.
+// of the GNU Lesser General Public License version 3
+// or (at your option) any later version.
 //
 // This file is part of Aladin Lite.
 //
 //    Aladin Lite is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, version 3 of the License.
+//    it under the terms of the GNU Lesser General Public License as published by
+//    the Free Software Foundation, either version 3 of the License, or
+//    (at your option) any later version.
 //
 //    Aladin Lite is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+//    GNU Lesser General Public License for more details.
 //
-//    The GNU General Public License is available in COPYING file
-//    along with Aladin Lite.
+//    You should have received a copy of the GNU Lesser General Public License
+//    along with Aladin Lite. If not, see <https://www.gnu.org/licenses/>.
 //
-
 
 /******************************************************************************
  * Aladin Lite project
@@ -149,12 +151,18 @@ Utils.inverseNewtonRaphson = function(y: number, f: Function, fPrime: Function, 
 Utils.binarySearch = function(array, value) {
     var low = 0,
         high = array.length;
-
+    var mid;
     while (low < high) {
-        var mid = (low + high) >>> 1;
-        if (array[mid] > value) low = mid + 1;
-        else high = mid;
+        mid = Math.floor((low + high) / 2);
+        if (array[mid] === value) {
+            return mid;
+        } else if (array[mid] < value) {
+            low = mid + 1;
+        } else {
+            high = mid;
+        }
     }
+
     return low;
 }
 
@@ -192,6 +200,22 @@ Utils.throttle = function (fn, threshhold, scope) {
             fn.apply(context, args)
         }
     }
+}
+
+// Way of detecting if the computer has trackpad or a regular mouse wheel thanks to that post:
+// https://stackoverflow.com/questions/10744645/detect-touchpad-vs-mouse-in-javascript
+Utils.detectTrackPad = function (e) {
+    var isTrackpad = false;
+    if (e.wheelDeltaY) {
+        if (e.wheelDeltaY === (e.deltaY * -3)) {
+        isTrackpad = true;
+        }
+    }
+    else if (e.deltaMode === 0) {
+        isTrackpad = true;
+    }
+
+    return isTrackpad
 }
 
 
@@ -362,7 +386,6 @@ Utils.fetch = function(params) {
         // localhost url
         url = params.url;
     }
-    
 
     let request = new Request(url, {
         method: params.method || 'GET',
@@ -381,6 +404,8 @@ Utils.fetch = function(params) {
                 return resp.json();
             } else if (params.dataType && params.dataType.includes('blob')) {
                 return resp.blob();
+            } else if (params.dataType && params.dataType.includes('arrayBuffer')) {
+                return resp.arrayBuffer();
             } else if (params.dataType && params.dataType.includes('readableStream')) {
                 return Promise.resolve(resp.body);
             } else {

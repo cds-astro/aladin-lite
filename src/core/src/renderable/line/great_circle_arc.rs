@@ -32,8 +32,8 @@ pub fn project(
     let v1: Vector3<_> = lonlat1.vector();
     let v2: Vector3<_> = lonlat2.vector();
 
-    let p1 = projection.model_to_normalized_device_space(&v1.extend(1.0), camera);
-    let p2 = projection.model_to_normalized_device_space(&v2.extend(1.0), camera);
+    let p1 = projection.model_to_normalized_device_space(&v1, camera);
+    let p2 = projection.model_to_normalized_device_space(&v2, camera);
 
     match (p1, p2) {
         (Some(_), Some(_)) => {
@@ -63,14 +63,17 @@ fn sub_valid_domain(
     projection: &ProjectionType,
     camera: &CameraViewPort,
 ) -> (XYZModel<f64>, XYZModel<f64>) {
-    let d_alpha = camera.get_aperture().to_radians() * 0.02;
+    let d_alpha = camera.get_aperture() * 0.02;
 
     let mut vv = valid_v;
     let mut vi = invalid_v;
     while crate::math::vector::angle3(&vv, &vi).to_radians() > d_alpha {
         let vm = (vv + vi).normalize();
         // check whether is it defined or not
-        if let Some(_) = projection.model_to_normalized_device_space(&vm.extend(1.0), camera) {
+        if projection
+            .model_to_normalized_device_space(&vm, camera)
+            .is_some()
+        {
             vv = vm;
         } else {
             vi = vm;
@@ -89,13 +92,13 @@ fn project_line(
     projection: &ProjectionType,
     iter: usize,
 ) -> bool {
-    let p1 = projection.model_to_normalized_device_space(&v1.extend(1.0), camera);
-    let p2 = projection.model_to_normalized_device_space(&v2.extend(1.0), camera);
+    let p1 = projection.model_to_normalized_device_space(v1, camera);
+    let p2 = projection.model_to_normalized_device_space(v2, camera);
 
     if iter < MAX_ITERATION {
         // Project them. We are always facing the camera
         let vm = (v1 + v2).normalize();
-        let pm = projection.model_to_normalized_device_space(&vm.extend(1.0), camera);
+        let pm = projection.model_to_normalized_device_space(&vm, camera);
 
         match (p1, pm, p2) {
             (Some(p1), Some(pm), Some(p2)) => {
@@ -159,6 +162,7 @@ fn project_line(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn subdivide(
     vertices: &mut Vec<XYNDC<f64>>,
     v1: &XYZModel<f64>,

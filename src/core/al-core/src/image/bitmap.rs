@@ -6,11 +6,11 @@ pub struct Bitmap<F> {
     format: std::marker::PhantomData<F>,
 }
 
-use crate::image::format::ImageFormat;
 use crate::image::Image;
+use crate::texture::format::TextureFormat;
 impl<F> Bitmap<F>
 where
-    F: ImageFormat + Clone,
+    F: TextureFormat + Clone,
 {
     pub fn new(image: web_sys::ImageBitmap) -> Self {
         Self {
@@ -23,7 +23,7 @@ use crate::texture::Tex3D;
 use wasm_bindgen::JsValue;
 impl<F> Image for Bitmap<F>
 where
-    F: ImageFormat + Clone,
+    F: TextureFormat + Clone,
 {
     fn insert_into_3d_texture<T: Tex3D>(
         &self,
@@ -33,5 +33,9 @@ where
         textures.tex_sub_image_3d_with_image_bitmap(offset.x, offset.y, offset.z, &self.image);
 
         Ok(())
+    }
+
+    fn get_size(&self) -> (u32, u32, u32) {
+        (self.image.width(), self.image.height(), 1)
     }
 }

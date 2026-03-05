@@ -5,29 +5,31 @@ pub enum UserAction {
     Moving = 3,
     Starting = 4,
 }
-use web_sys::WebGl2RenderingContext;
 
+use web_sys::WebGl2RenderingContext;
 // Longitude reversed identity matrix
-const ID_R: &Matrix4<f64> = &Matrix4::new(
-    -1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
-);
+const ID_R: &Matrix3<f64> = &Matrix3::new(-1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0);
 
 use super::{fov::FieldOfView, view_hpx_cells::ViewHpxCells};
 use crate::healpix::cell::HEALPixCell;
-use crate::healpix::coverage::HEALPixCoverage;
+use crate::healpix::moc::SpaceMoc;
 use crate::math::angle::ToAngle;
-use crate::math::{projection::coo_space::XYZWModel, projection::domain::sdf::ProjDef};
+use crate::math::{projection::coo_space::XYZModel, projection::domain::sdf::ProjDef};
+use cgmath::{InnerSpace, Vector3};
 
-use cgmath::{Matrix4, Vector2};
+use cgmath::{Matrix3, Vector2};
+const APERTURE_LOWER_LIMIT_RAD: f64 = (1.0_f64 / 36000.0).to_radians();
+const ZOOM_FACTOR_UPPER_LIMIT: f64 = 2.0;
+
 pub struct CameraViewPort {
     // The field of view angle
-    aperture: Angle<f64>,
+    aperture: f64,
     // The rotation of the camera
-    center: Vector4<f64>,
+    center: Vector3<f64>,
     w2m_rot: Rotation<f64>,
 
-    w2m: Matrix4<f64>,
-    m2w: Matrix4<f64>,
+    w2m: Matrix3<f64>,
+    m2w: Matrix3<f64>,
     // The width over height ratio
     aspect: f32,
     // The width of the screen in pixels
@@ -44,7 +46,7 @@ pub struct CameraViewPort {
 
     // Internal variable used for projection purposes
     ndc_to_clip: Vector2<f64>,
-    clip_zoom_factor: f64,
+    zoom_factor: f64,
     // The vertices in model space of the camera
     // This is useful for computing views according
     // to different image surveys
@@ -71,6 +73,11 @@ pub struct CameraViewPort {
     gl: WebGlContext,
     coo_sys: CooSystem,
     reversed_longitude: bool,
+
+    // min field of view, by default 0.1 arcsec
+    pub(crate) min_fov: Option<f64>,
+    // an optional max field of view
+    pub(crate) max_fov: Option<f64>,
 }
 use al_api::coo_system::CooSystem;
 use al_core::WebGlContext;
@@ -81,7 +88,7 @@ use crate::{
 };
 
 use crate::LonLatT;
-use cgmath::{SquareMatrix, Vector4};
+use cgmath::SquareMatrix;
 use wasm_bindgen::JsCast;
 
 const MAX_DPI_LIMIT: f32 = 2.0;
@@ -96,11 +103,11 @@ impl CameraViewPort {
     ) -> CameraViewPort {
         let last_user_action = UserAction::Starting;
 
-        let aperture = projection.aperture_start();
+        let aperture = projection.aperture_start().to_radians();
 
-        let w2m = Matrix4::identity();
+        let w2m = Matrix3::identity();
         let m2w = w2m;
-        let center = Vector4::new(0.0, 0.0, 0.0, 1.0);
+        let center = Vector3::new(0.0, 0.0, 0.0);
         let moved = false;
         let zoomed = false;
 
@@ -122,9 +129,9 @@ impl CameraViewPort {
 
         let aspect = height / width;
         let ndc_to_clip = Vector2::new(1.0, (height as f64) / (width as f64));
-        let clip_zoom_factor = 1.0;
+        let zoom_factor = 1.0;
 
-        let fov = FieldOfView::new(&ndc_to_clip, clip_zoom_factor, &w2m, projection);
+        let fov = FieldOfView::new(&ndc_to_clip, zoom_factor, &w2m, projection);
         let gl = gl.clone();
 
         let is_allsky = true;
@@ -154,7 +161,7 @@ impl CameraViewPort {
 
             // Internal variable used for projection purposes
             ndc_to_clip,
-            clip_zoom_factor,
+            zoom_factor,
             // The field of view
             fov,
             view_hpx_cells,
@@ -177,6 +184,9 @@ impl CameraViewPort {
             coo_sys,
             // a flag telling if the viewport has a reversed longitude axis
             reversed_longitude,
+
+            min_fov: None,
+            max_fov: None,
         }
     }
 
@@ -206,7 +216,7 @@ impl CameraViewPort {
         self.view_hpx_cells.has_changed()
     }*/
 
-    pub fn get_cov(&self, frame: CooSystem) -> &HEALPixCoverage {
+    pub fn get_cov(&self, frame: CooSystem) -> &SpaceMoc {
         self.view_hpx_cells.get_cov(frame)
     }
 
@@ -214,6 +224,8 @@ impl CameraViewPort {
         self.view_hpx_cells.get_cells(depth, frame)
     }
 
+    // This method has the role to determine the render mode based on the fov
+    // For large FoV, raytracing drawing mode, rasterizer otherwise
     pub fn is_raytracing(&self, proj: &ProjectionType) -> bool {
         // Check whether the tile depth is 0 for square projection
         // definition domains i.e. Mercator
@@ -223,13 +235,14 @@ impl CameraViewPort {
 
         // check the projection
         match proj {
-            ProjectionType::Tan(_) => self.aperture >= 100.0_f64.to_radians().to_angle(),
-            ProjectionType::Mer(_) => self.aperture >= 120.0_f64.to_radians().to_angle(),
-            ProjectionType::Stg(_) => self.aperture >= 200.0_f64.to_radians().to_angle(),
+            ProjectionType::Tan(_) => self.aperture >= 100.0_f64.to_radians(),
+            ProjectionType::Mer(_) => self.aperture >= 120.0_f64.to_radians(),
+            ProjectionType::Stg(_) => self.aperture >= 200.0_f64.to_radians(),
             ProjectionType::Sin(_) => false,
-            ProjectionType::Ait(_) => self.aperture >= 100.0_f64.to_radians().to_angle(),
-            ProjectionType::Mol(_) => self.aperture >= 100.0_f64.to_radians().to_angle(),
-            ProjectionType::Zea(_) => self.aperture >= 140.0_f64.to_radians().to_angle(),
+            ProjectionType::Ait(_) => self.aperture >= 100.0_f64.to_radians(),
+            ProjectionType::Mol(_) => self.aperture >= 100.0_f64.to_radians(),
+            ProjectionType::Zea(_) => self.aperture >= 140.0_f64.to_radians(),
+            _ => self.aperture >= 140.0_f64.to_radians(),
         }
     }
 
@@ -271,19 +284,15 @@ impl CameraViewPort {
     }
 
     pub fn set_screen_size(&mut self, width: f32, height: f32, projection: &ProjectionType) {
-        self.width = (width as f32) * self.dpi;
-        self.height = (height as f32) * self.dpi;
+        self.width = width * self.dpi;
+        self.height = height * self.dpi;
 
         self.aspect = width / height;
         // Compute the new clip zoom factor
         self.compute_ndc_to_clip_factor(projection);
 
-        self.fov.set_aperture(
-            &self.ndc_to_clip,
-            self.clip_zoom_factor,
-            &self.w2m,
-            projection,
-        );
+        self.fov
+            .set_aperture(&self.ndc_to_clip, self.zoom_factor, &self.w2m, projection);
 
         let proj_area = projection.get_area();
         self.is_allsky = !proj_area.is_in(&math::projection::ndc_to_clip_space(
@@ -309,11 +318,7 @@ impl CameraViewPort {
     }
 
     pub fn compute_ndc_to_clip_factor(&mut self, proj: &ProjectionType) {
-        self.ndc_to_clip = if self.height < self.width {
-            Vector2::new(1.0, (self.height as f64) / (self.width as f64))
-        } else {
-            Vector2::new((self.width as f64) / (self.height as f64), 1.0)
-        };
+        self.ndc_to_clip = Vector2::new(1.0, (self.height as f64) / (self.width as f64));
 
         let bounds_size_ratio = proj.bounds_size_ratio();
         self.ndc_to_clip.y *= bounds_size_ratio;
@@ -325,7 +330,74 @@ impl CameraViewPort {
         self.set_aperture(self.aperture, proj);
     }
 
-    pub fn set_aperture(&mut self, aperture: Angle<f64>, proj: &ProjectionType) {
+    /// Give a FoV range in radians
+    pub(crate) fn set_fov_range(
+        &mut self,
+        mut min_fov: Option<f64>,
+        mut max_fov: Option<f64>,
+        proj: &ProjectionType,
+    ) {
+        // Invert the min and max bounds if min > max
+        if let (Some(min_fov), Some(max_fov)) = (min_fov.as_mut(), max_fov.as_mut()) {
+            if *max_fov < *min_fov {
+                std::mem::swap(max_fov, min_fov);
+            }
+        }
+
+        self.min_fov = min_fov;
+        self.max_fov = max_fov;
+
+        self.set_aperture(self.aperture, proj);
+    }
+
+    pub(crate) fn at_zoom_boundaries(&self, proj: &ProjectionType) -> bool {
+        // The zoom factor cannot exceed an upper limit
+        if self.zoom_factor >= ZOOM_FACTOR_UPPER_LIMIT {
+            return true;
+        }
+
+        // The field of view cannot go deeper a lower limit
+        if self.aperture <= APERTURE_LOWER_LIMIT_RAD {
+            return true;
+        }
+
+        // The field of view might be forced in a user defined range
+        if let Some(min_fov) = self.min_fov {
+            if self.aperture <= min_fov {
+                return true;
+            }
+        }
+        if let Some(max_fov) = self.max_fov {
+            if self.aperture >= max_fov {
+                return true;
+            }
+        }
+
+        let can_unzoom_more = !matches!(
+            proj,
+            ProjectionType::Tan(_) | ProjectionType::Mer(_) | ProjectionType::Stg(_)
+        );
+
+        if !can_unzoom_more && self.zoom_factor >= 1.0 {
+            return true;
+        }
+
+        false
+    }
+
+    pub(crate) fn set_aperture(&mut self, mut aperture: f64, proj: &ProjectionType) {
+        // Force the given aperture by a range given by the user
+        if let Some(min_fov) = self.min_fov {
+            aperture = aperture.max(min_fov);
+        }
+
+        if let Some(max_fov) = self.max_fov {
+            aperture = aperture.min(max_fov);
+        }
+
+        // Limit internally the aperture to 0.1 arcsec
+        aperture = aperture.max(APERTURE_LOWER_LIMIT_RAD);
+
         // Checking if we are zooming or unzooming
         // This is used internaly for the raytracer to compute
         // blending between tiles and their parents (or children)
@@ -337,24 +409,16 @@ impl CameraViewPort {
             self.last_user_action
         };
 
-        let can_unzoom_more = match proj {
-            ProjectionType::Tan(_)
-            | ProjectionType::Mer(_)
-            //| ProjectionType::Air(_)
-            | ProjectionType::Stg(_) => false,
-            //| ProjectionType::Car(_)
-            //| ProjectionType::Cea(_)
-            //| ProjectionType::Cyp(_)
-            //| ProjectionType::Hpx(_) => false,
-            _ => true,
-        };
+        let can_unzoom_more = !matches!(
+            proj,
+            ProjectionType::Tan(_) | ProjectionType::Mer(_) | ProjectionType::Stg(_)
+        );
 
-        let aperture_start = proj.aperture_start();
+        let aperture_start: f64 = proj.aperture_start().to_radians();
 
-        self.clip_zoom_factor = if aperture > aperture_start {
-            //al_core::log(&format!("a: {:?}, as: {:?}", aperture, aperture_start));
+        self.zoom_factor = if aperture > aperture_start {
             if can_unzoom_more {
-                aperture.to_radians() / aperture_start.to_radians()
+                aperture / aperture_start
             } else {
                 1.0
             }
@@ -362,35 +426,24 @@ impl CameraViewPort {
             // Compute the new clip zoom factor
             let a = aperture.abs();
 
-            let v0 = math::lonlat::radec_to_xyzw(-a / 2.0, 0.0.to_angle());
-            let v1 = math::lonlat::radec_to_xyzw(a / 2.0, 0.0.to_angle());
+            let v0 = math::lonlat::radec_to_xyz(-a.to_angle() / 2.0, 0.0.to_angle());
+            let v1 = math::lonlat::radec_to_xyz(a.to_angle() / 2.0, 0.0.to_angle());
 
             // Vertex in the WCS of the FOV
-            if self.width < self.height {
-                if let (Some(p0), Some(p1)) =
-                    (proj.world_to_clip_space(&v0), proj.world_to_clip_space(&v1))
-                {
-                    (0.5 * (p1.x - p0.x).abs()).min(1.0)
-                } else {
-                    1.0
-                }
+            if let (Some(p0), Some(p1)) =
+                (proj.world_to_clip_space(&v0), proj.world_to_clip_space(&v1))
+            {
+                (0.5 * (p1.x - p0.x).abs()).min(1.0)
             } else {
-                if let (Some(p0), Some(p1)) =
-                    (proj.world_to_clip_space(&v0), proj.world_to_clip_space(&v1))
-                {
-                    (0.5 * (p1.x - p0.x).abs()).min(1.0)
-                } else {
-                    1.0
-                }
+                1.0
             }
         };
 
+        // Limit the zoom factor to not unzoom too much
+        self.zoom_factor = self.zoom_factor.min(ZOOM_FACTOR_UPPER_LIMIT);
+
+        // Limit later the aperture to aperture_start
         self.aperture = aperture.min(aperture_start);
-        //self.aperture = aperture;
-
-        //al_core::log(&format!("zoom factor {:?}", self.clip_zoom_factor));
-
-        //console_log(&format!("clip factor {:?}", self.aperture));
 
         // Project this vertex into the screen
         self.moved = true;
@@ -398,7 +451,101 @@ impl CameraViewPort {
         self.time_last_move = Time::now();
 
         self.fov
-            .set_aperture(&self.ndc_to_clip, self.clip_zoom_factor, &self.w2m, proj);
+            .set_aperture(&self.ndc_to_clip, self.zoom_factor, &self.w2m, proj);
+
+        let proj_area = proj.get_area();
+        self.is_allsky = !proj_area.is_in(&math::projection::ndc_to_clip_space(
+            &Vector2::new(-1.0, -1.0),
+            self,
+        ));
+
+        self.compute_texture_depth();
+
+        // Recompute the scissor with the new aperture
+        self.recompute_scissor();
+
+        // Compute the hpx cells
+        self.view_hpx_cells.update(
+            self.texture_depth,
+            &self.fov,
+            &self.center,
+            self.get_coo_system(),
+            proj,
+        );
+    }
+
+    pub(crate) fn set_zoom_factor(&mut self, zoom_factor: f64, proj: &ProjectionType) {
+        // Checking if we are zooming or unzooming
+        // This is used internaly for the raytracer to compute
+        // blending between tiles and their parents (or children)
+        self.last_user_action = if self.zoom_factor > zoom_factor {
+            UserAction::Zooming
+        } else if self.zoom_factor < zoom_factor {
+            UserAction::Unzooming
+        } else {
+            self.last_user_action
+        };
+
+        let can_unzoom_more = !matches!(
+            proj,
+            ProjectionType::Tan(_) | ProjectionType::Mer(_) | ProjectionType::Stg(_)
+        );
+
+        // Set the zoom factor
+        self.zoom_factor = zoom_factor;
+        // Limit it to prevent unzooming infinitely
+        self.zoom_factor = self.zoom_factor.min(ZOOM_FACTOR_UPPER_LIMIT);
+
+        let aperture_start = proj.aperture_start().to_radians();
+
+        // clamp it to one if we cannot unzoom more (because of the projection)
+        let aperture = if !can_unzoom_more && zoom_factor >= 1.0 {
+            self.zoom_factor = 1.0;
+
+            aperture_start
+        } else if can_unzoom_more && zoom_factor >= 1.0 {
+            aperture_start
+        } else {
+            // zoom_factor < 1.0
+            if let Some((lon, _)) = proj
+                .clip_to_world_space(&Vector2::new(self.zoom_factor, 0.0))
+                .map(|xyz| math::lonlat::xyz_to_radec(&xyz))
+            {
+                lon.to_radians().abs() * 2.0
+            } else {
+                aperture_start
+            }
+        };
+
+        // Force the given aperture to be in an optional range given by the user
+        let mut clamped_aperture = aperture;
+        if let Some(min_fov) = self.min_fov {
+            clamped_aperture = clamped_aperture.max(min_fov);
+        }
+
+        if let Some(max_fov) = self.max_fov {
+            clamped_aperture = clamped_aperture.min(max_fov);
+        }
+
+        // The aperture must also be > to a lower limit
+        clamped_aperture = clamped_aperture.max(APERTURE_LOWER_LIMIT_RAD);
+
+        if clamped_aperture != aperture {
+            // there has been a clamping of the aperture, then we recompute the zoom factor
+            // with the new clamped aperture
+            self.set_aperture(clamped_aperture, proj);
+            return;
+        }
+
+        self.aperture = aperture;
+
+        // Project this vertex into the screen
+        self.moved = true;
+        self.zoomed = true;
+        self.time_last_move = Time::now();
+
+        self.fov
+            .set_aperture(&self.ndc_to_clip, self.zoom_factor, &self.w2m, proj);
 
         let proj_area = proj.get_area();
         self.is_allsky = !proj_area.is_in(&math::projection::ndc_to_clip_space(
@@ -422,43 +569,48 @@ impl CameraViewPort {
     }
 
     fn compute_texture_depth(&mut self) {
-        /*// Compute a depth from a number of pixels on screen
-        let width = self.width;
-        let aperture = self.aperture.0 as f32;
+        // Compute a depth from a number of pixels on screen
+        /*let width = self.width;
+                let aperture = self.aperture as f32;
 
-        let angle_per_pixel = aperture / width;
+                let angle_per_pixel = aperture / width;
 
-        let two_power_two_times_depth_pixel =
-            std::f32::consts::PI / (3.0 * angle_per_pixel * angle_per_pixel);
-        let depth_pixel = (two_power_two_times_depth_pixel.log2() / 2.0).floor() as u32;
+                let two_power_two_times_depth_pixel =
+                    std::f32::consts::PI / (3.0 * angle_per_pixel * angle_per_pixel);
+                let depth_pixel = (two_power_two_times_depth_pixel.log2() / 2.0).ceil() as u32;
 
-        //let survey_max_depth = conf.get_max_depth();
-        // The depth of the texture
-        // A texture of 512x512 pixels will have a depth of 9
-        const DEPTH_OFFSET_TEXTURE: u32 = 9;
-        // The depth of the texture corresponds to the depth of a pixel
-        // minus the offset depth of the texture
-        self.texture_depth = if DEPTH_OFFSET_TEXTURE > depth_pixel {
-            0_u8
-        } else {
-            (depth_pixel - DEPTH_OFFSET_TEXTURE) as u8
-        };*/
+                //let survey_max_depth = conf.get_max_depth();
+                // The depth of the texture
+                // A texture of 512x512 pixels will have a depth of 9
+                const DEPTH_OFFSET_TEXTURE: u32 = 9;
+                // The depth of the texture corresponds to the depth of a pixel
+                // minus the offset depth of the texture
+                self.texture_depth = if DEPTH_OFFSET_TEXTURE > depth_pixel {
+                    0_u8
+                } else {
+                    (depth_pixel - DEPTH_OFFSET_TEXTURE) as u8
+                };
+        */
+        let w_screen_device_px = self.width as f64 / (self.dpi as f64);
+        //let depth_pixel = 29_usize;
 
-        let w_screen_px = self.width as f64;
-        let smallest_cell_size_px = self.dpi as f64;
-        let mut depth_pixel = 29 as usize;
+        let pixel_angle_rad = self.get_aperture() / w_screen_device_px;
 
-        let hpx_cell_size_rad =
-            (smallest_cell_size_px / w_screen_px) * self.get_aperture().to_radians();
-
-        while depth_pixel > 0 {
-            if crate::healpix::utils::MEAN_HPX_CELL_RES[depth_pixel] > hpx_cell_size_rad {
-                break;
+        // Find the smallest depth such that MEAN_HPX_CELL_RES[depth] > pixel_angle_rad
+        let depth_pixel = match crate::healpix::utils::MEAN_HPX_CELL_RES.binary_search_by(|&res| {
+            if res < pixel_angle_rad {
+                std::cmp::Ordering::Greater
+            } else if res > pixel_angle_rad {
+                std::cmp::Ordering::Less
+            } else {
+                std::cmp::Ordering::Equal
             }
+        }) {
+            Ok(idx) => idx, // exact match
+            Err(idx) => idx,
+        };
 
-            depth_pixel = depth_pixel - 1;
-        }
-        depth_pixel += 1;
+        //al_core::log(&format!("{:?}", depth_pixel));
         const DEPTH_OFFSET_TEXTURE: usize = 9;
         self.texture_depth = if DEPTH_OFFSET_TEXTURE > depth_pixel {
             0_u8
@@ -467,11 +619,11 @@ impl CameraViewPort {
         };
     }
 
-    pub fn get_texture_depth(&self) -> u8 {
+    pub fn get_tile_depth(&self) -> u8 {
         self.texture_depth
     }
 
-    pub fn apply_rotation(
+    pub fn apply_axis_rotation(
         &mut self,
         axis: &cgmath::Vector3<f64>,
         angle: Angle<f64>,
@@ -484,15 +636,33 @@ impl CameraViewPort {
         self.update_rot_matrices(proj);
     }
 
+    pub fn apply_lonlat_rotation(
+        &mut self,
+        dlon: Angle<f64>,
+        dlat: Angle<f64>,
+        proj: &ProjectionType,
+    ) {
+        let center = self.get_center();
+        let rot =
+            Rotation::from_axis_angle(&Vector3::new(center.z, 0.0, -center.x).normalize(), dlat)
+                * Rotation::from_axis_angle(&Vector3::unit_y(), -dlon)
+                * Rotation::from_sky_position(center);
+
+        self.set_rotation(&rot, proj);
+    }
+
     /// center lonlat must be given in icrs frame
     pub fn set_center(&mut self, lonlat: &LonLatT<f64>, proj: &ProjectionType) {
-        let icrs_pos: Vector4<_> = lonlat.vector();
+        let icrs_pos = lonlat.vector();
+        self.set_center_xyz(&icrs_pos, proj);
+    }
 
-        let view_pos = CooSystem::ICRS.to(self.get_coo_system()) * icrs_pos;
-        let rot_to_center = Rotation::from_sky_position(&view_pos);
+    pub fn set_center_xyz(&mut self, xyz: &Vector3<f64>, proj: &ProjectionType) {
+        let center = CooSystem::ICRS.to(self.get_coo_system()) * xyz;
+        let rot_to_center = Rotation::from_sky_position(&center);
 
-        let phi = self.get_center_pos_angle();
-        let third_euler_rot = Rotation::from_axis_angle(&view_pos.truncate(), phi);
+        let phi = self.get_position_angle();
+        let third_euler_rot = Rotation::from_axis_angle(&center, phi);
 
         let rot = third_euler_rot * rot_to_center;
 
@@ -501,15 +671,16 @@ impl CameraViewPort {
         self.set_rotation(&rot, proj);
     }
 
-    pub fn set_center_pos_angle(&mut self, phi: Angle<f64>, proj: &ProjectionType) {
-        let rot_to_center = Rotation::from_sky_position(&self.center);
-        let third_euler_rot = Rotation::from_axis_angle(&self.center.truncate(), phi);
+    pub fn set_position_angle(&mut self, phi: Angle<f64>, proj: &ProjectionType) {
+        let c = self.center;
+        let rot_to_center = Rotation::from_sky_position(&c);
+        let third_euler_rot = Rotation::from_axis_angle(&c, phi);
 
         let total_rot = third_euler_rot * rot_to_center;
         self.set_rotation(&total_rot, proj);
     }
 
-    fn set_rotation(&mut self, rot: &Rotation<f64>, proj: &ProjectionType) {
+    pub fn set_rotation(&mut self, rot: &Rotation<f64>, proj: &ProjectionType) {
         self.w2m_rot = *rot;
 
         self.update_rot_matrices(proj);
@@ -564,11 +735,11 @@ impl CameraViewPort {
     }
 
     // Accessors
-    pub fn get_w2m(&self) -> &cgmath::Matrix4<f64> {
+    pub fn get_w2m(&self) -> &cgmath::Matrix3<f64> {
         &self.w2m
     }
 
-    pub fn get_m2w(&self) -> &cgmath::Matrix4<f64> {
+    pub fn get_m2w(&self) -> &cgmath::Matrix3<f64> {
         &self.m2w
     }
 
@@ -580,11 +751,11 @@ impl CameraViewPort {
         &self.ndc_to_clip
     }
 
-    pub fn get_clip_zoom_factor(&self) -> f64 {
-        self.clip_zoom_factor
+    pub fn get_zoom_factor(&self) -> f64 {
+        self.zoom_factor
     }
 
-    pub fn get_vertices(&self) -> Option<&Vec<XYZWModel<f64>>> {
+    pub fn get_vertices(&self) -> Option<&Vec<XYZModel<f64>>> {
         self.fov.get_vertices()
     }
 
@@ -622,13 +793,14 @@ impl CameraViewPort {
         self.zoomed = false;
     }
 
+    /// Aperture is given in radians
     #[inline]
-    pub fn get_aperture(&self) -> Angle<f64> {
+    pub fn get_aperture(&self) -> f64 {
         self.aperture
     }
 
     #[inline]
-    pub fn get_center(&self) -> &Vector4<f64> {
+    pub fn get_center(&self) -> &Vector3<f64> {
         &self.center
     }
 
@@ -645,7 +817,7 @@ impl CameraViewPort {
         self.coo_sys
     }
 
-    pub fn get_center_pos_angle(&self) -> Angle<f64> {
+    pub fn get_position_angle(&self) -> Angle<f64> {
         (self.w2m.x.y).atan2(self.w2m.y.y).to_angle()
     }
 }
@@ -687,7 +859,7 @@ impl SendUniforms for CameraViewPort {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
         shader
             .attach_uniform("ndc_to_clip", &self.ndc_to_clip) // Send ndc to clip
-            .attach_uniform("czf", &self.clip_zoom_factor); // Send clip zoom factor
+            .attach_uniform("czf", &self.zoom_factor); // Send clip zoom factor
 
         shader
     }

@@ -5,41 +5,69 @@ uniform float min_value;
 uniform float max_value;
 uniform int H;
 uniform float reversed;
-uniform float size_tile_uv;
-uniform int tex_storing_fits;
 
 #include ../colormaps/colormap.glsl;
-#include ./transfer_funcs.glsl;
-#include ./tonal_corrections.glsl;
-#include ./hsv.glsl;
+#include ../transfer_funcs.glsl;
+#include ../tonal_corrections.glsl;
+#include ../hsv.glsl;
+#include ../decode.glsl;
 
-vec4 get_pixels(vec3 uv) {
-    return texture(tex, uv);
-}
+/////////////////////////////////////////////
+/// RED sampler
+vec4 uvw2c_r(vec3 uv) {    
+    vec2 va = texture(tex, uv).ra;
 
-vec3 reverse_uv(vec3 uv) {
-    uv.y = size_tile_uv + 2.0*size_tile_uv*floor(uv.y / size_tile_uv) - uv.y;
-    return uv;
-}
-
-vec4 apply_color_settings(vec4 color) {
-    color.r = transfer_func(H, color.r, min_value, max_value);
-    color.g = transfer_func(H, color.g, min_value, max_value);
-    color.b = transfer_func(H, color.b, min_value, max_value);
+    va.x = transfer_func(H, va.x, min_value, max_value);
 
     // apply reversed
-    color.rgb = mix(color.rgb, 1.0 - color.rgb, reversed);
+    va.x = mix(va.x, 1.0 - va.x, reversed);
 
-    return apply_tonal(color);
+    vec4 c = colormap_f(va.x);
+    return apply_tonal(c);
 }
 
-vec4 get_color_from_texture(vec3 UV) {
-    vec4 color = get_pixels(UV);
-    
-    return apply_color_settings(color);
+/// RGBA sampler
+vec4 uvw2c_rgba(vec3 uv) {
+    vec4 c = texture(tex, uv).rgba;
+
+    c.r = transfer_func(H, c.r, min_value, max_value);
+    c.g = transfer_func(H, c.g, min_value, max_value);
+    c.b = transfer_func(H, c.b, min_value, max_value);
+
+    // apply reversed
+    c.rgb = mix(c.rgb, 1.0 - c.rgb, reversed);
+
+    return apply_tonal(c);
 }
 
-vec4 apply_colormap_to_grayscale(float x) {
+vec4 uvw2c_ra(vec3 uv) {
+    vec2 c = texture(tex, uv).rg;
+
+    c.r = transfer_func(H, c.r, min_value, max_value);
+
+    // apply reversed
+    c.r = mix(c.r, 1.0 - c.r, reversed);
+
+    vec3 color = colormap_f(c.r).rgb;
+
+    return apply_tonal(vec4(color, c.g));
+}
+
+vec4 uvw2cmap_rgba(vec3 uv) {    
+    float v = texture(tex, uv).r;
+    // apply transfer f
+    v = transfer_func(H, v, min_value, max_value);
+    // apply cmap
+    vec4 c = colormap_f(v);
+    // apply reversed
+    c.rgb = mix(c.rgb, 1.0 - c.rgb, reversed);
+
+    return apply_tonal(c);
+}
+
+/////////////////////////////////////////////
+/// FITS sampler
+vec4 val2c_f32(float x) {
     float alpha = x * scale + offset;
     alpha = transfer_func(H, alpha, min_value, max_value);
 
@@ -50,23 +78,33 @@ vec4 apply_colormap_to_grayscale(float x) {
     return apply_tonal(new_color);
 }
 
-highp float decode32(highp vec4 rgba) {
-    highp float Sign = 1.0 - step(128.0,rgba[0])*2.0;
-    highp float Exponent = 2.0 * mod(rgba[0],128.0) + step(128.0,rgba[1]) - 127.0; 
-    highp float Mantissa = mod(rgba[1],128.0)*65536.0 + rgba[2]*256.0 +rgba[3] + float(0x800000);
-    highp float Result =  Sign * exp2(Exponent) * (Mantissa * exp2(-23.0 )); 
-    return Result;
+vec4 val2c(float x) {
+    float alpha = x * scale + offset;
+    alpha = transfer_func(H, alpha, min_value, max_value);
+
+    // apply reversed
+    alpha = mix(alpha, 1.0 - alpha, reversed);
+
+    vec4 new_color = mix(colormap_f(alpha), vec4(0.0), float(x == blank));
+    return apply_tonal(new_color);
 }
 
-vec4 get_colormap_from_grayscale_texture(vec3 UV) {
-    // FITS data pixels are reversed along the y axis
-    vec3 uv = mix(UV, reverse_uv(UV), float(tex_storing_fits == 1));
-
-    float value = decode32(get_pixels(uv).abgr*255.0);
-    return apply_colormap_to_grayscale(value);
+vec4 uvw2c_f32(vec3 uv) {
+    float val = decode_f32(texture(tex, uv).rgba*255.0);
+    return val2c_f32(val);
 }
 
-vec4 get_colormap_from_color_texture(vec3 uv) {
-    float value = get_pixels(uv).r;
-    return apply_colormap_to_grayscale(value);
+vec4 uvw2c_i32(vec3 uv) {
+    float val = float(decode_i32(texture(tex, uv).rgba));
+    return mix(val2c(val), vec4(0.0), float(val == -1.0));
+}
+
+vec4 uvw2c_i16(vec3 uv) {
+    float val = float(decode_i16(texture(tex, uv).rg));
+    return mix(val2c(val), vec4(0.0), float(val == -1.0));
+}
+
+vec4 uvw2c_u8(vec3 uv) {
+    float val = float(decode_u8(texture(tex, uv).r));
+    return val2c(val);
 }

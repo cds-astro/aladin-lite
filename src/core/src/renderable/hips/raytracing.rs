@@ -59,7 +59,7 @@ fn generate_xyz_position(projection: &ProjectionType) -> Vec<f32> {
                 2.0 * ((xy.y as f64) / (h as f64)) - 1.0,
             );
             if let Some(pos) = projection.clip_to_world_space(&clip_xy) {
-                let pos = pos.truncate().normalize();
+                let pos = pos.normalize();
                 /*let mut d: u32 = 0;
                 d |= 3 << 30;
                 d |= (((pos.z * 0.5 + 0.5) * (1024.0 as f64)) as u32) << 20;
@@ -162,7 +162,7 @@ impl RayTracer {
         &self.vao
     }
 
-    pub fn draw<'a>(&self, shader: &ShaderBound<'a>) {
+    pub fn draw(&self, shader: &ShaderBound<'_>) {
         #[cfg(feature = "webgl2")]
         shader
             .bind_vertex_array_object_ref(&self.vao)

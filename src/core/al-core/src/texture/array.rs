@@ -1,4 +1,5 @@
-use crate::image::format::ImageFormat;
+use crate::texture::format::PixelType;
+use crate::texture::format::TextureFormat;
 use web_sys::HtmlCanvasElement;
 use web_sys::WebGlTexture;
 
@@ -21,7 +22,7 @@ pub struct Texture2DArray {
 }
 
 impl Texture2DArray {
-    pub fn create_empty<F: ImageFormat>(
+    pub fn create_empty<F: TextureFormat>(
         gl: &WebGlContext,
         // The weight of the individual textures
         width: i32,
@@ -52,9 +53,9 @@ impl Texture2DArray {
         let metadata = Some(Rc::new(RefCell::new(Texture2DMeta {
             width: width as u32,
             height: height as u32,
-            internal_format: F::INTERNAL_FORMAT,
+            pixel_type: F::PIXEL_TYPE,
+            ty: F::TYPE,
             format: F::FORMAT,
-            type_: F::TYPE,
         })));
 
         Ok(Texture2DArray {
@@ -69,7 +70,7 @@ impl Texture2DArray {
         self.gl.generate_mipmap(WebGlRenderingCtx::TEXTURE_2D_ARRAY);
     }
 
-    pub fn bind(&self) -> Texture2DArrayBound {
+    pub fn bind(&self) -> Texture2DArrayBound<'_> {
         self.gl
             .bind_texture(WebGlRenderingCtx::TEXTURE_2D_ARRAY, self.texture.as_ref());
 
@@ -90,7 +91,7 @@ impl Texture2DArray {
 
         // Attach the texture as the first color attachment
         self.gl.framebuffer_texture_layer(
-            WebGlRenderingCtx::READ_FRAMEBUFFER,
+            WebGlRenderingCtx::FRAMEBUFFER,
             WebGlRenderingCtx::COLOR_ATTACHMENT0,
             self.texture.as_ref(),
             0,
@@ -114,35 +115,31 @@ impl Texture2DArray {
             self.gl
                 .viewport(0, 0, metadata.width as i32, metadata.height as i32);
 
-            #[cfg(feature = "webgl2")]
-            let value = match (metadata.format, metadata.type_) {
-                (WebGlRenderingCtx::RED_INTEGER, WebGlRenderingCtx::UNSIGNED_BYTE) => {
+            let value = match metadata.pixel_type {
+                PixelType::R8U => {
                     let p = <[u8; 1]>::read_pixel(&self.gl, x, y)?;
                     Ok(serde_wasm_bindgen::to_value(&p[0])?)
                 }
-                (WebGlRenderingCtx::RED_INTEGER, WebGlRenderingCtx::SHORT) => {
+                PixelType::R16I => {
                     let p = <[i16; 1]>::read_pixel(&self.gl, x, y)?;
                     Ok(serde_wasm_bindgen::to_value(&p[0])?)
                 }
-                (WebGlRenderingCtx::RED_INTEGER, WebGlRenderingCtx::INT) => {
+                PixelType::R32I => {
                     let p = <[i32; 1]>::read_pixel(&self.gl, x, y)?;
                     Ok(serde_wasm_bindgen::to_value(&p[0])?)
                 }
-                (WebGlRenderingCtx::RED, WebGlRenderingCtx::FLOAT) => {
+                PixelType::R32F => {
                     let p = <[f32; 1]>::read_pixel(&self.gl, x, y)?;
                     Ok(serde_wasm_bindgen::to_value(&p[0])?)
                 }
-                (WebGlRenderingCtx::RGB, WebGlRenderingCtx::UNSIGNED_BYTE) => {
+                PixelType::RGB8U => {
                     let p = <[u8; 3]>::read_pixel(&self.gl, x, y)?;
                     Ok(serde_wasm_bindgen::to_value(&p)?)
                 }
-                (WebGlRenderingCtx::RGBA, WebGlRenderingCtx::UNSIGNED_BYTE) => {
+                PixelType::RGBA8U => {
                     let p = <[u8; 4]>::read_pixel(&self.gl, x, y)?;
                     Ok(serde_wasm_bindgen::to_value(&p)?)
                 }
-                _ => Err(JsValue::from_str(
-                    "Pixel retrieval not implemented for that texture format.",
-                )),
             };
 
             // Unbind the framebuffer
@@ -194,7 +191,7 @@ pub struct Texture2DArrayBound<'a> {
     tex: &'a Texture2DArray,
 }
 
-impl<'a> Texture2DArrayBound<'a> {
+impl Texture2DArrayBound<'_> {
     pub fn tex_sub_image_3d_with_html_image_element(
         &self,
         dx: i32,
@@ -216,7 +213,7 @@ impl<'a> Texture2DArrayBound<'a> {
                 image.height() as i32,
                 1,
                 metadata.format,
-                metadata.type_,
+                metadata.ty,
                 image,
             )
             .expect("Sub texture 3d");
@@ -243,7 +240,7 @@ impl<'a> Texture2DArrayBound<'a> {
                 canvas.height() as i32,
                 1,
                 metadata.format,
-                metadata.type_,
+                metadata.ty,
                 canvas,
             )
             .expect("Sub texture 2d");
@@ -270,7 +267,7 @@ impl<'a> Texture2DArrayBound<'a> {
                 image.height() as i32,
                 1,
                 metadata.format,
-                metadata.type_,
+                metadata.ty,
                 image,
             )
             .expect("Sub texture 2d");
@@ -299,7 +296,7 @@ impl<'a> Texture2DArrayBound<'a> {
                 h,
                 1,
                 metadata.format,
-                metadata.type_,
+                metadata.ty,
                 image,
             )
             .expect("Sub texture 2d");
@@ -328,7 +325,7 @@ impl<'a> Texture2DArrayBound<'a> {
                 h,
                 1,
                 metadata.format,
-                metadata.type_,
+                metadata.ty,
                 pixels,
             )
             .expect("Sub texture 2d");

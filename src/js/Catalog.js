@@ -1005,6 +1005,12 @@ export let Catalog = (function () {
             s.x = xy[2 * idx];
             s.y = xy[2 * idx + 1];
 
+            if (s.isHovered || s.isSelected) {
+                // These sources will be drawn on the top of the others so we mark it as drawn
+                // for the moment but will really draw them after all catalogs have been drawn
+                return true;
+            }
+
             return self.drawSource(s, ctx, width, height)
         };
 

@@ -8,6 +8,7 @@
 
 ### 3.8.0
 
+* [feat] Selected and hovered items (shapes, sources, ...) are rendered at last. <https://github.com/cds-astro/aladin-lite/issues/337>
 * [feat] Add selectionLineWidth option for shapes and catalogs. <https://github.com/cds-astro/aladin-lite/pull/354>
 * [fix] horizontal/vertical overlay lines appearing correctly <https://github.com/cds-astro/aladin-lite/issues/334>
 * [fix] layer opacity restored when switching from not visible to visible <https://github.com/cds-astro/aladin-lite/issues/332>

@@ -49,7 +49,7 @@ import { Image } from "./Image.js";
 import { Color } from "./Color.js";
 import { SpectraDisplayer } from "./SpectraDisplayer.js";
 import { DefaultActionsForContextMenu } from "./DefaultActionsForContextMenu.js";
-
+import { Source } from "./Source.js";
 export let View = (function () {
 
     /** Constructor */
@@ -991,7 +991,7 @@ export let View = (function () {
             }
         });
 
-        var lastHoveredObject; // save last object hovered by mouse
+        view.lastHoveredObject = null;
         var lastMouseMovePos = null;
         const pickColor = (xymouse) => {
             const layers = view.aladin.getStackLayers()
@@ -1162,26 +1162,26 @@ export let View = (function () {
 
                     for (let o of closests) {
 
-                        if (typeof objHoveredFunction === 'function' && (!lastHoveredObject || !lastHoveredObject.includes(o))) {
+                        if (typeof objHoveredFunction === 'function' && (!view.lastHoveredObject || !view.lastHoveredObject.includes(o))) {
                             var ret = objHoveredFunction(o, xymouse);
                         }
 
                         if (o.isFootprint()) {
-                            if (typeof footprintHoveredFunction === 'function' && (!lastHoveredObject || !lastHoveredObject.includes(o))) {
+                            if (typeof footprintHoveredFunction === 'function' && (!view.lastHoveredObject || !view.lastHoveredObject.includes(o))) {
                                 var ret = footprintHoveredFunction(o, xymouse);
                             }
                         }
 
-                        if (!lastHoveredObject || !lastHoveredObject.includes(o)) {
+                        if (!view.lastHoveredObject || !view.lastHoveredObject.includes(o)) {
                             o.hover();
                         }
                     }
 
                     // unhover the objects in lastHoveredObjects that are not in closest anymore
-                    if (lastHoveredObject) {
+                    if (view.lastHoveredObject) {
                         var objHoveredStopFunction = view.aladin.callbacksByEventName['objectHoveredStop'];
 
-                        for (let lho of lastHoveredObject) {
+                        for (let lho of view.lastHoveredObject) {
                             if (!closests.includes(lho)) {
                                 lho.unhover();
 
@@ -1191,19 +1191,19 @@ export let View = (function () {
                             }
                         }
                     }
-                    lastHoveredObject = closests;
+                    view.lastHoveredObject = closests;
                 } else {
                     view.setCursor('default');
-                    if (lastHoveredObject) {
+                    if (view.lastHoveredObject) {
                         var objHoveredStopFunction = view.aladin.callbacksByEventName['objectHoveredStop'];
 
                         /*if (typeof objHoveredStopFunction === 'function') {
                             // call callback function to notify we left the hovered object
-                            var ret = objHoveredStopFunction(lastHoveredObject, xymouse);
+                            var ret = objHoveredStopFunction(view.lastHoveredObject, xymouse);
                         }
 
-                        lastHoveredObject.unhover();*/
-                        for (let lho of lastHoveredObject) {
+                        view.lastHoveredObject.unhover();*/
+                        for (let lho of view.lastHoveredObject) {
                             lho.unhover();
 
                             if (typeof objHoveredStopFunction === 'function') {
@@ -1212,7 +1212,7 @@ export let View = (function () {
                         }
                     }
 
-                    lastHoveredObject = null;
+                    view.lastHoveredObject = null;
                 }
 
                 if (e.type === "mousemove") {
@@ -1444,6 +1444,7 @@ export let View = (function () {
                 cat.draw(ctx, this.width, this.height);
             }
         }
+
         // draw popup catalog
         if (this.catalogForPopup.isShowing && this.catalogForPopup.sources.length > 0) {
             if (!this.catalogCanvasCleared) {
@@ -1469,6 +1470,32 @@ export let View = (function () {
             for (var i = 0; i < this.overlays.length; i++) {
                 this.overlays[i].draw(ctx);
             }
+        }
+
+        // Draw selected items (catalog sources, overlay, footprints, ...) afterwards
+        if (this.selection) {
+            this.selection.forEach((objList) => {
+                objList.forEach((o) => {
+                    if (o instanceof Source) {
+                        o.draw(ctx, this.width, this.height)
+                    } else {
+                        // Circle, Ellipse, Footprints, ...
+                        o.draw(ctx, this)
+                    }
+                })
+            });
+        }
+
+        // Draw hovered items afterwards
+        if (this.lastHoveredObject) {
+            this.lastHoveredObject.forEach((o) => {
+                if (o instanceof Source) {
+                    o.draw(ctx, this.width, this.height)
+                } else {
+                    // Circle, Ellipse, Footprints, ...
+                    o.draw(ctx, this)
+                }
+            })
         }
 
         // Redraw HEALPix grid

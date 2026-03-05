@@ -250,5 +250,11 @@ export let Source = (function() {
         }
     };
 
+    Source.prototype.draw = function(ctx, width, height) {
+        if (this.catalog) {
+            this.catalog.drawSource(this, ctx, width, height);
+        }
+    }
+
     return Source;
 })();

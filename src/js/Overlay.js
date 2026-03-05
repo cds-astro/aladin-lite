@@ -293,31 +293,12 @@ export let GraphicOverlay = (function() {
         ctx.lineWidth = this.lineWidth;
         ctx.setLineDash(this.lineDash);
 
-        // 1. Drawing polygons
-
-        // TODO: les overlay polygons devrait se tracer lui meme (methode draw)
-        //ctx.lineWidth = this.lineWidth;
-    	//ctx.beginPath();
-    	/*var xyviews = [];
-
-    	for (var k=0, len = this.overlays.length; k<len; k++) {
-    	    xyviews.push(this.drawFootprint(this.overlays[k], ctx, width, height));
-    	}*/
-        //ctx.stroke();
-
-    	// selection drawing
-        /*ctx.strokeStyle= Overlay.increaseBrightness(this.color, 50);
-        ctx.beginPath();
-        for (var k=0, len = this.overlays.length; k<len; k++) {
-            if (this.overlays[k].isSelected) {
-                this.drawFootprintSelected(ctx, xyviews[k]);
-            }
-        }
-    	ctx.stroke();*/
-
         // 2. Circle and polylines drawing
     	for (var k=0; k<this.overlayItems.length; k++) {
-    	    this.overlayItems[k].draw(ctx, this.view);
+            let item = this.overlayItems[k];
+            if (!item.isHovered && !item.isSelected) {
+                item.draw(ctx, this.view);
+            }
     	}
 
         ctx.restore();

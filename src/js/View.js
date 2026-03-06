@@ -1893,6 +1893,15 @@ export let View = (function () {
 
                 // Remove the settled promise
                 this.promises.splice(idx, 1);
+
+                const noMoreLayersToWaitFor = this.promises.length === 0;
+                if (noMoreLayersToWaitFor && self.empty) {
+                    // no promises to launch and the view has no HiPS.
+                    // This situation can occurs if the MOCServer is out
+                    // If so we can directly put the url of the DSS hosted in alasky,
+                    // it the best I can do if the MOCServer is out
+                    self.aladin.setBaseImageLayer(Aladin.DEFAULT_OPTIONS.survey);
+                }
             })
     }
 
@@ -2003,7 +2012,10 @@ export let View = (function () {
         let imageLayerQueried = this.imageLayersBeingQueried.get(layer);
         let imageLayer = this.imageLayers.get(layer);
 
-        return imageLayer || imageLayerQueried;
+        let obj = imageLayer || imageLayerQueried;
+
+        if (obj && obj.added)
+            return obj;
     };
 
     View.prototype.requestRedraw = function () {

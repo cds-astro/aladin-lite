@@ -72,7 +72,7 @@ export let ProgressiveCat = (function() {
 
 
         // allows for filtering of sources
-        this.filterFn = options.filter || undefined; // TODO: do the same for catalog
+        this.filterFn = options.filter || undefined; // TODO: do the same for catalog
 
 
         this.onClick = options.onClick || undefined; // TODO: inherit from catalog

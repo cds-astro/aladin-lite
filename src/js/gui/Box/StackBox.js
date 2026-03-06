@@ -1090,7 +1090,7 @@ export class OverlayStackBox extends Box {
                     monochrome: true,
                 },
                 tooltip: {
-                    content: "Swap 2 layers",
+                    content: "Click on this button for both layers you want to swap",
                     position: { direction: "top" },
                 },
                 toggled: false,

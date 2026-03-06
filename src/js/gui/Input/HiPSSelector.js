@@ -87,7 +87,7 @@ export class HiPSSelector extends Input {
 };
 
 (function () {
-    ALEvent.FAVORITE_HIPS_LIST_UPDATED.listenedBy(document.body, (event) => {
+    ALEvent.FAVORITE_HIPS_LIST_UPDATED.listenedBy(document, (event) => {
         let favoritesHips = event.detail;
 
         HiPSSelector.cachedHiPS = {};

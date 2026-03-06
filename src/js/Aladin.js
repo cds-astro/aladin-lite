@@ -511,7 +511,7 @@ export let Aladin = (function () {
 
         this._setupUI(options);
 
-        ALEvent.FAVORITE_HIPS_LIST_UPDATED.dispatchedTo(document.body, this.hipsFavorites);
+        ALEvent.FAVORITE_HIPS_LIST_UPDATED.dispatchedTo(document, this.hipsFavorites);
 
         if (options.survey) {
             if (Array.isArray(options.survey)) {
@@ -1819,7 +1819,7 @@ export let Aladin = (function () {
         if (idx >= 0) {
             this.hipsFavorites.splice(idx, 1);
             // Send a change of favorites for the UI selector to adapt their optional list
-            ALEvent.FAVORITE_HIPS_LIST_UPDATED.dispatchedTo(document.body, this.hipsFavorites);
+            ALEvent.FAVORITE_HIPS_LIST_UPDATED.dispatchedTo(document, this.hipsFavorites);
         }
     }
 
@@ -1856,7 +1856,7 @@ export let Aladin = (function () {
         })
 
         // send the final event
-        ALEvent.FAVORITE_HIPS_LIST_UPDATED.dispatchedTo(document.body, this.hipsFavorites);
+        ALEvent.FAVORITE_HIPS_LIST_UPDATED.dispatchedTo(document, this.hipsFavorites);
     }
 
     /**

@@ -126,10 +126,10 @@ export let DefaultActionsForContextMenu = (function () {
                 },
                 subMenu: [
                     {
-                        label: 'FITS image', action(o) {
+                        label: 'Load image', action(o) {
                             let input = document.createElement('input');
                             input.type = 'file';
-                            input.accept = ".fits";
+                            input.accept = ['.fits', '.png', '.jpg'];
                             input.onchange = _ => {
                                 let files = Array.from(input.files);
 
@@ -138,14 +138,16 @@ export let DefaultActionsForContextMenu = (function () {
                                     const name = file.name;
 
                                     // Consider other cases
-                                    const image = a.createImageFITS(
+                                    const image = A.image(
                                         url,
-                                        {name},
-                                        (ra, dec, fov, _) => {
-                                            // Center the view around the new fits object
-                                            a.gotoRaDec(ra, dec);
-                                            a.setFoV(fov * 1.1);
-                                        }
+                                        {
+                                            name,
+                                            successCallback: (ra, dec, fov, _) => {
+                                                // Center the view around the new fits object
+                                                a.gotoRaDec(ra, dec);
+                                                a.setFoV(fov * 1.1);
+                                            }
+                                        },
                                     );
 
                                     a.setOverlayImageLayer(image, name)

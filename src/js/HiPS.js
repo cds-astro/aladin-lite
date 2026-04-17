@@ -122,6 +122,18 @@ PropertyParser.hipsDataMinmax = function (properties) {
     return [minData, maxData];
 };
 
+PropertyParser.dataRange = function (properties) {
+    let range =
+        properties &&
+        properties.hips_data_range &&
+        properties.hips_data_range.split(" ");
+
+    const minRange = range && parseFloat(range[0]);
+    const maxRange = range && parseFloat(range[1]);
+
+    return [minRange, maxRange];
+};
+
 PropertyParser.cutouts = function (properties) {
     let cuts =
         properties &&
@@ -501,6 +513,8 @@ export let HiPS = (function () {
         }
 
         self.hipsDataMinMax = PropertyParser.hipsDataMinmax(properties);
+
+        self.dataRange = PropertyParser.dataRange(properties);
 
         // HiPS3D special keywords
         self.hipsOrderFreq = properties && properties.hips_order_freq && +properties.hips_order_freq;

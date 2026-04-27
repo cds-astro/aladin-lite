@@ -50,7 +50,54 @@ import { Color } from "./Color.js";
 import { SpectraDisplayer } from "./SpectraDisplayer.js";
 import { DefaultActionsForContextMenu } from "./DefaultActionsForContextMenu.js";
 import { Source } from "./Source.js";
+import { blobToArrayBuffer, blobToDataURL, buildAvmFromWcs, injectAvmIntoPngBlob } from "./AvmUtils.js";
 export let View = (function () {
+
+    const normalizeImageType = function (imgType) {
+        return imgType || "image/png";
+    };
+
+    const canvasToBlob = function (canvas, imgType) {
+        return new Promise((resolve, reject) => {
+            canvas.toBlob((blob) => {
+                if (blob) {
+                    resolve(blob);
+                } else {
+                    reject(new Error("Canvas toBlob failed"));
+                }
+            }, imgType);
+        });
+    };
+
+    const exportCanvasBlob = async function (view, canvas, imgType) {
+        const effectiveImgType = normalizeImageType(imgType);
+        let blob = await canvasToBlob(canvas, effectiveImgType);
+
+        if (effectiveImgType !== "image/png") {
+            return blob;
+        }
+
+        const wcs = view.aladin.getViewWCS();
+        if (!wcs || typeof wcs !== "object") {
+            return blob;
+        }
+
+        const avm = buildAvmFromWcs(wcs, {
+            rotation: view.aladin.getRotation(),
+        });
+
+        if (!avm) {
+            return blob;
+        }
+
+        try {
+            blob = await injectAvmIntoPngBlob(blob, avm);
+        } catch (error) {
+            console.warn("Could not inject AVM metadata into PNG export", error);
+        }
+
+        return blob;
+    };
 
     /** Constructor */
     function View(aladin) {
@@ -557,20 +604,16 @@ export let View = (function () {
      */
     View.prototype.getCanvasDataURL = async function (imgType, width, height, withLogo=true) {
         const c = await this.getCanvas(width, height, withLogo);
-        return c.toDataURL(imgType);
+        const blob = await exportCanvasBlob(this, c, imgType);
+        return blobToDataURL(blob);
     };
 
     /**
      * Return ArrayBuffer corresponding to the current view
      */
     View.prototype.getCanvasArrayBuffer = async function (imgType, width, height, withLogo=true) {
-        return this.getCanvasBlob(imgType, width, height, withLogo)
-            .then((blob) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result);
-                reader.onerror = () => reject(new Error('Error reading blob as ArrayBuffer'));
-                reader.readAsArrayBuffer(blob);
-            });
+        const blob = await this.getCanvasBlob(imgType, width, height, withLogo);
+        return blobToArrayBuffer(blob);
     }
 
     /**
@@ -578,15 +621,7 @@ export let View = (function () {
      */
     View.prototype.getCanvasBlob = async function (imgType, width, height, withLogo=true) {
         const c = await this.getCanvas(width, height, withLogo);
-        return new Promise((resolve, reject) => {
-            c.toBlob(blob => {
-                if (blob) {
-                    resolve(blob);
-                } else {
-                    reject(new Error('Canvas toBlob failed'));
-                }
-            }, imgType);
-        });
+        return exportCanvasBlob(this, c, imgType);
     }
 
     View.prototype.selectLayer = function (layer) {

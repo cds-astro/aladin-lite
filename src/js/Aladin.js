@@ -74,6 +74,7 @@ import { SimbadPointer } from "./gui/Button/SimbadPointer";
 import { ColorPicker } from "./gui/Button/ColorPicker";
 import { GridEnabler } from "./gui/Button/GridEnabler";
 import { CooFrame } from "./gui/Input/CooFrame";
+import { SelectionMode } from "./gui/Button/SelectionMode";
 import { Circle } from "./shapes/Circle";
 import { Ellipse } from "./shapes/Ellipse";
 import { Polyline } from "./shapes/Polyline";
@@ -110,6 +111,8 @@ import { Polyline } from "./shapes/Polyline";
  * CSS class for that button is `aladin-grid-control`
  * @property {boolean} [showSettingsControl=false] - Whether to show the settings control toolbar.
  * CSS class for that button is `aladin-settings-control`
+ * @property {boolean} [showSelectionModeControl=false] - Whether to show the selection mode menu opener button.
+ * CSS class for that button is `aladin-selectionMode-control`
  * @property {boolean} [showColorPickerControl=false] - Whether to show the color picker tool.
  * CSS class for that button is `aladin-colorPicker-control`
  * @property {boolean} [showShareControl=false] - Whether to show the share control toolbar.
@@ -155,6 +158,7 @@ import { Polyline } from "./shapes/Polyline";
  * @property {boolean} [pixelateCanvas=true] - Whether to pixelate the canvas.
  * @property {boolean} [manualSelection=false] - When set to true, no selection will be performed, only events will be generated.
  * @property {string} [mode] - Interface theme, can be either 'dark' or 'light'. If not set, the mode will be retrieved from your browser preference or your localStorage.
+ * @property {string} [selectionMode="edge"] - When set to 'skewer' footprints are selected by clicking inside them.  For 'edge' footprints are selected by clicking on their edges.
  * @property {Object} [selector] - More options for the the selector.
  * @property {string} [selector.color] - Color of the selector, defaults to the color of the reticle. Can be a hex color or a function returning a hex color.
  * @property {number} [selector.lineWidth=2] - Width of the selector line.
@@ -674,15 +678,19 @@ export let Aladin = (function () {
             widgets["simbad"] = simbad
         }
 
-        // Add the projection control
         // Add the coo grid control
         if (options.showCooGridControl) {
             let grid = new GridEnabler(this);
             widgets["grid"] = grid;
         }
 
-        // Add the projection control
-        // Add the coo grid control
+        // Show selection mode control
+        if (options.showSelectionModeControl) {
+            let selectionMode = new SelectionMode(this);
+            widgets["selectionMode"] = selectionMode
+        }
+
+        // Add the color picker control
         if (options.showColorPickerControl) {
             let picker = new ColorPicker(this);
             widgets["picker"] = picker;
@@ -698,6 +706,7 @@ export let Aladin = (function () {
             this.toolbar.add(name, widget);
         }
 
+        // Add the projection control
         if (options.showProjectionControl) {
             this.projBtn = new ProjectionActionButton(this);
             this.addUI(this.projBtn);
@@ -784,6 +793,7 @@ export let Aladin = (function () {
         showSimbadPointerControl: false,
         showCooGridControl: false,
         showSettingsControl: false,
+        showSelectionModeControl: false,
         showColorPickerControl: false,
         // Share toolbar
         showShareControl: false,

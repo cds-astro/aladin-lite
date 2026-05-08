@@ -27,15 +27,16 @@ import { PolySelect } from "./FiniteStateMachine/PolySelect";
 import { LineSelect } from "./FiniteStateMachine/LineSelect";
 import { RectSelect } from "./FiniteStateMachine/RectSelect";
 import { ALEvent } from "./events/ALEvent";
+import { Utils } from './Utils';
 /******************************************************************************
  * Aladin Lite project
- * 
+ *
  * Class Selector
- * 
+ *
  * A selector
- * 
+ *
  * Author: Matthieu Baumann[CDS]
- * 
+ *
  *****************************************************************************/
 
 export class Selector {
@@ -121,7 +122,7 @@ export class Selector {
                     continue;
                 }
                 sources = cat.getSources();
-                
+
                 for (var l = 0; l < sources.length; l++) {
                     s = sources[l];
 
@@ -169,6 +170,62 @@ export class Selector {
                 }
             }
         }
+
+        return objList;
+    }
+
+    /**
+     * Retrieves objects skewered by the cursor position or specified coordinates.  An object is
+     * skewered if it is a shape that contains the specified coordinate, or is a catalog object within 3 pixels
+     * of the specified coordinate.
+     *
+     * If e is a mouse event (as opposed to an object with x and y values), the mouse coordinates
+     * of the event are used.
+     *
+     * This is implemented by simulating the interactive selection of a circle region with a 3 pixel radius)
+     * around the given coordinates and returns all catalog sources and overlay items intersecting with it.
+     *
+     * @param {Event|Object} e - Mouse coordinate via mouse event or object with x and y properties
+     * @param {Object} view - The Aladin View instance containing catalogs and overlays
+     * @returns {Array<Array>} Array of object lists, where each subarray contains objects
+     *          from a single catalog or overlay that intersect with the selection region.
+     *          Returns empty array if no objects are found.
+     */
+    static getSkewerObjects(e, view) {
+        // Get the xy from the event
+        let xymouse;
+        if (e instanceof Event) {
+            xymouse = Utils.relMouseCoords(e);
+        } else {
+            xymouse = e;
+        }
+        const x = xymouse.x;
+        const y = xymouse.y;
+
+        // Perform a selection using a circle around x, y as if drawn by dragging 3 pixels.
+        const r2 = 9;
+        const r = Math.sqrt(r2);
+
+        let selectorObject = {
+            x, y, r,
+            label: 'circle',
+            contains(s) {
+                let dx = (s.x - x)
+                let dy = (s.y - y);
+
+                return dx*dx + dy*dy <= r2;
+            },
+            bbox() {
+                return {
+                    x: x - r,
+                    y: y - r,
+                    w: 2*r,
+                    h: 2*r
+                }
+            }
+        };
+
+        let objList = Selector.getObjects(selectorObject, view);
 
         return objList;
     }

@@ -11,6 +11,7 @@ There are distincts CSS class names for users wanting to personnalize the defaul
 * `aladin-simbadPointer-control` targets the Simbad pointer control button
 * `aladin-grid-control`  targets the coordinate grid trigger button
 * `aladin-settings-control` targets the settings menu opener button
+* `aladin-selectionMode-control` targets the selection mode menu opener button
 * `aladin-share-control` targets the share menu opener button
 * `aladin-projection-control` targets the projection selector button
 * `aladin-stack-box` targets the stack box

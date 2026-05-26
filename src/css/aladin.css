@@ -3,7 +3,7 @@
 	border: 0px solid #ddd;
     /* SVG inside divs add a 4px height: https://stackoverflow.com/questions/75751593/why-there-is-additional-4px-height-for-div-when-there-is-svg-inside-it */
     /* disable x swipe on chrome, firefox */
-    /* see. https://stackoverflow.com/questions/30636930/disable-web-page-navigation-on-swipeback-and-forward */
+    /* Prevent page navigation swipe on windows phone: https://stackoverflow.com/questions/30636930/disable-web-page-navigation-on-swipeback-and-forward */
     overscroll-behavior-x: none;
     overscroll-behavior-y: none; /* Prevents vertical pull-to-refresh */
     /* Hide the draggable boxes that goes out of the view */
@@ -15,7 +15,7 @@
     font-size: 0.9rem;
 
     /* Aladin lite default color */
-    --aladin-color: #b232b2;
+    --aladin-color: #ff54ff;
 }
 
 [data-theme="dark"] {
@@ -114,26 +114,29 @@
     background: black;
 }
 
-.aladin-lite-spectra-displayer .aladin-spectra-unit-selector {
+.aladin-spectra-displayer {
     position: absolute;
-    bottom: 3rem;
-    right: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 0;
+    overflow: hidden;
+    width: 100%;
 }
-.aladin-lite-spectra-displayer .aladin-spectra-home {
+
+.aladin-spectra-displayer .aladin-spectra-unit {
     position: absolute;
-    bottom: 5rem;
-    right: 0;
+    bottom: 0;
+    right: 8rem;
 }
-.aladin-lite-spectra-displayer .aladin-spectra-extraction {
+.aladin-spectra-displayer .aladin-spectra-home {
+    position: absolute;
+    bottom: 0;
+    right: 6rem;
+}
+.aladin-spectra-displayer .aladin-spectra-extraction {
     position: absolute;
     bottom: 7rem;
     right: 0;
-}
-.aladin-lite-spectra-displayer .aladin-spectra-hips-selector {
-    position: absolute;
-    top: 0;
-    left: 0;
-    max-width: 10rem;
 }
 
 .aladin-imageCanvas {
@@ -1302,14 +1305,21 @@ otherwise it fits its content options. If those are too big the select can go ou
     line-height: 1.7rem;
 }
 
-.aladin-fov .aladin-zoom-out {
-    margin-right: 0;
-    border-right: none;
-    border-radius: 0.4rem 0px 0px 0.4rem;
+.aladin-zoom {
+    position: absolute;
+    top: 50%;
+    right: 0;
+    transform: translateY(-50%);
 }
 
-.aladin-fov .aladin-zoom-in {
-    border-radius: 0px 0.4rem 0.4rem 0px;
+.aladin-zoom-out {
+    margin-right: 0;
+    border-top: none;
+    border-radius: 0 0 0.4rem 0.4rem;
+}
+
+.aladin-zoom-in {
+    border-radius: 0.4rem 0.4rem 0 0;
 }
 
 .aladin-status-bar {
@@ -1348,6 +1358,7 @@ otherwise it fits its content options. If those are too big the select can go ou
     position: absolute;
     margin-top: 3rem;
     margin-bottom: 5rem;
+    left: 0.2rem;
 }
 
 .aladin-widgets-toolbar > * {

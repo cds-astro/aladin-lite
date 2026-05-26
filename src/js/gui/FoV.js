@@ -23,9 +23,9 @@
 /******************************************************************************
  * Aladin Lite project
  * 
- * File Location.js
+ * File FoV.js
  * 
- * Author: Thomas Boch[CDS]
+ * Author: Matthieu Baumann[CDS]
  * 
  *****************************************************************************/
 import { Numbers } from "../libs/astro/coo.js";
@@ -48,7 +48,7 @@ export class FoV extends DOMElement {
             let zoomIn = new ActionButton({
                 classList: 'aladin-zoom-in',
                 size: 'small',
-                tooltip: {content: 'zoom in', position: {direction: 'top'}},
+                tooltip: {content: 'zoom in', position: {direction: 'left'}},
                 icon: {
                     monochrome: true,
                     size: 'small',
@@ -61,7 +61,7 @@ export class FoV extends DOMElement {
             let zoomOut = new ActionButton({
                 size: 'small',
                 classList: 'aladin-zoom-out',
-                tooltip: {content: 'zoom out', position: {direction: 'top'}},
+                tooltip: {content: 'zoom out', position: {direction: 'left'}},
                 icon: {
                     monochrome: true,
                     size: 'small',
@@ -74,14 +74,23 @@ export class FoV extends DOMElement {
             zoomIn.el.classList.add('aladin-zoom-in');
             zoomOut.el.classList.add('aladin-zoom-out');
 
-            layout.push(zoomOut)
-            layout.push(zoomIn)
+            let aladinZoomDiv = document.createElement("div")
+            aladinZoomDiv.classList.add('aladin-zoom')
+            aladinZoomDiv.appendChild(zoomIn.element());
+            aladinZoomDiv.appendChild(zoomOut.element());
+
+            aladin.aladinDiv.appendChild(aladinZoomDiv);
+
+            //layout.push(zoomOut)
+            //layout.push(zoomIn)
         }
 
         if (options.showFov) {
-            layout.push(...['<div class="aladin-monospace-text"></div>',
-            '<div class="aladin-monospace-text">&times;</div>',
-            '<div class="aladin-monospace-text"></div>'])
+            layout.push(
+                '<div class="aladin-monospace-text"></div>' +
+                '<div class="aladin-monospace-text">&times;</div>' +
+                '<div class="aladin-monospace-text"></div>'
+            )
         }
 
         let el = Layout.horizontal(layout);

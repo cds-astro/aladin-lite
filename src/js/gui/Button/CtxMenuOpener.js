@@ -51,7 +51,7 @@ export class CtxMenuActionButtonOpener extends WidgetTogglerButton {
             widget: aladin.contextMenu,
             enable(e) {
                 // If it was hidden then reopen it
-                if (self.layout) {
+                if (self.layout && self.ctxMenu) {
                     self.ctxMenu.attach(self.layout, self)
                 }
             },

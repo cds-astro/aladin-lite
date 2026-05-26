@@ -163,15 +163,15 @@ export let Datalink = (function() {
                                                             let idxSlice = +properties.hips_cube_firstframe;
                                             
                                                             let updateSlice = () => {
-                                                                let colorCfg = aladinInstance.getOverlayImageLayer(layer).getColorCfg();
+                                                                let pHiPS = aladinInstance.getOverlayImageLayer(layer);
                                                                 let hips = aladinInstance.setOverlayImageLayer(cubeOnTheFlyUrl + idxSlice, layer)
                                                                 hips.setOptions({
-                                                                    opacity: colorCfg.opacity,
-                                                                    minCut: colorCfg.minCut,
-                                                                    maxCut: colorCfg.maxCut,
-                                                                    colormap: colorCfg.colormap,
-                                                                    stretch: colorCfg.stretch,
-                                                                    reversed: colorCfg.reversed
+                                                                    opacity: pHiPS.opacity,
+                                                                    minCut: pHiPS.minCut,
+                                                                    maxCut: pHiPS.maxCut,
+                                                                    colormap: pHiPS.colormap,
+                                                                    stretch: pHiPS.stretch,
+                                                                    reversed: pHiPS.reversed
                                                                 })
                                             
                                                                 slicer.update({

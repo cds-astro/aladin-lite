@@ -58,7 +58,7 @@ import { HiPSCompositeBox } from "./HiPSCompositeBox.js"
 import { Catalog } from "../../Catalog.js";
 import { ProgressiveCat } from "../../ProgressiveCat.js";
 import { Form } from "../Widgets/Form.js";
-import { HiPSSelector } from "./../Input/HiPSSelector.js";
+import { LayerSelector } from "../Input/LayerSelector.js";
 import { HiPS } from "../../HiPS.js";
 
 export class OverlayStackBox extends Box {
@@ -541,11 +541,6 @@ export class OverlayStackBox extends Box {
 
                             aladin.hipsBrowser._show({
                                 selected: (hips) => {
-                                    let oldHiPS = aladin.getOverlayImageLayer(newLayer);
-                                    if (oldHiPS && hips.id === oldHiPS.id) {
-                                        return;
-                                    }
-
                                     aladin.setOverlayImageLayer(hips, newLayer);
                                 },
                                 position: {
@@ -912,9 +907,10 @@ export class OverlayStackBox extends Box {
                             }
                         }
 
-                        let spectraDisplayer = aladin.view.spectraDisplayer;
-                        if (spectraDisplayer)
+                        /*let spectraDisplayer = aladin.view.spectraDisplayer;
+                        if (spectraDisplayer) {
                             spectraDisplayer.attachHiPS3D(options.layer)
+                        } */
                     },
                     widget: catSettingsBox,
                     openDirection: "right"
@@ -967,7 +963,7 @@ export class OverlayStackBox extends Box {
                 continue;
             }
 
-            let HiPSselect = new HiPSSelector({
+            let layerSelect = new LayerSelector({
                 layer: hips,
                 change(e) {
                     let name = e.target.value;
@@ -976,10 +972,12 @@ export class OverlayStackBox extends Box {
                         if (!aladin.hipsBrowser) {
                             aladin.hipsBrowser = new HiPSBrowserBox(aladin);
                         }
-
+                        
+                        let newLayer = Utils.uuidv4();
+                        
                         aladin.hipsBrowser._show({
                             selected: (hips) => {
-                                self.aladin.setOverlayImageLayer(hips, hips.layer);
+                                self.aladin.setOverlayImageLayer(hips, newLayer);
                             },
                             position: { anchor: "center center" }
                         });
@@ -987,10 +985,15 @@ export class OverlayStackBox extends Box {
                     }
 
                     let overlayLayer;
-                    if (name in HiPSSelector.cachedHiPS) {
+                    if (name in LayerSelector.cachedLayers) {
                         // it is an hips
-                        let HiPSOptions = HiPSSelector.cachedHiPS[name];
-                        overlayLayer = A.HiPS(HiPSOptions.id || HiPSOptions.url, HiPSOptions);
+                        let layerOptions = LayerSelector.cachedLayers[name];
+                        //if (layerOptions.type === "hips") {
+                        //    overlayLayer = A.HiPS(layerOptions.id || layerOptions.url, layerOptions);
+                        //} else if (layerOptions.type === "image") {
+                        //    overlayLayer = A.image(layerOptions.url, layerOptions);
+                        //}
+                        overlayLayer = layerOptions.id;
                     } else {
                         overlayLayer = hips
                     }
@@ -1121,12 +1124,12 @@ export class OverlayStackBox extends Box {
             }
             btns = btns.concat([swapBtn, deleteBtn]);
 
-            let item = Layout.horizontal([HiPSselect, Layout.horizontal(btns)]);
+            let item = Layout.horizontal([layerSelect, Layout.horizontal(btns)]);
             layout.push(item);
 
             if (!(hips.layer in self.ui)) {
                 self.ui[hips.layer] = {
-                    HiPSSelector: HiPSselect,
+                    //layerSelector: layerSelect,
                     settingsBox,
                     settingsBtn,
                     showBtn,

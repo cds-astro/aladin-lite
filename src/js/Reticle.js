@@ -54,7 +54,7 @@ export let Reticle = (function() {
 
         let color = options && options.reticleColor || Aladin.DEFAULT_OPTIONS.reticleColor;
         let size = options && options.reticleSize || Aladin.DEFAULT_OPTIONS.reticleSize;
-        
+
         let show;
         if (options.showReticle === undefined) {
             show = Aladin.DEFAULT_OPTIONS.showReticle;

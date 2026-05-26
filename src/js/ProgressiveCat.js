@@ -248,18 +248,28 @@ export let ProgressiveCat = (function() {
 
         _loadMetadata: function() {
             var self = this;
-            let request = new Request(self.rootUrl + '/' + 'Metadata.xml', {
+            let request = new Request(self.rootUrl + '/' + 'metadata.xml', {
                 method: 'GET'
             })
             fetch(request)
-                .then((resp) => resp.text())
+                .then((resp) => {
+                    if (!resp.ok) {
+                        let request = new Request(self.rootUrl + '/' + 'Metadata.xml', {
+                            method: 'GET'
+                        })
+                        return fetch(request)
+                            .then((resp) => resp.text())
+                    } else {
+                        return resp.text()
+                    }
+                })
                 .then((text) => {
                     let xml = ProgressiveCat.parser.parseFromString(text, "text/xml")
 
                     self.fields = getFields(self, xml);
                     self._loadAllskyNewMethod();
                 })
-                .catch(err => self._loadAllskyOldMethod());
+                .catch(err => self._loadAllskyOldMethod())
         },
 
         _loadAllskyNewMethod: function() {
@@ -598,10 +608,6 @@ export let ProgressiveCat = (function() {
                     (function(self, norder, ipix) { // wrapping function is needed to be able to retrieve norder and ipix in ajax success function
                         var key = norder + '-' + ipix;
                         Utils.fetch({
-                            /*
-                            url: Aladin.JSONP_PROXY,
-                            data: {"url": self.getTileURL(norder, ipix)},
-                            */
                             // ATTENTION : je passe en JSON direct, car je n'arrive pas a choper les 404 en JSONP
                             url: self.getTileURL(norder, ipix),
                             desc: "Get tile .tsv " + norder + ' ' + ipix + ' of ' + self.name,

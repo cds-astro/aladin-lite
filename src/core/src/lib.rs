@@ -465,9 +465,9 @@ impl WebClient {
 
     /// Get the field of the view in degrees
     #[wasm_bindgen(js_name = getFieldOfView)]
-    pub fn get_fov(&self) -> Result<f64, JsValue> {
+    pub fn get_fov(&self) -> Result<Vec<f64>, JsValue> {
         let fov = self.app.get_fov();
-        Ok(fov)
+        Ok(fov.into())
     }
 
     /// Get the max aperture of a projection (in degrees)

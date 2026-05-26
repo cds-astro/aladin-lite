@@ -1452,8 +1452,8 @@ impl App {
 
     pub(crate) fn resize(&mut self, width: f32, height: f32) {
         self.camera.set_screen_size(width, height, &self.projection);
-        self.camera
-            .set_zoom_factor(self.camera.get_zoom_factor(), &self.projection);
+        //self.camera
+        //    .set_zoom_factor(self.camera.get_zoom_factor(), &self.projection);
 
         // resize the view fbo
         //let screen_size = self.camera.get_screen_size();
@@ -1853,8 +1853,8 @@ impl App {
         self.request_redraw = true;
     }
 
-    pub(crate) fn get_fov(&self) -> f64 {
-        self.camera.get_aperture().to_degrees()
+    pub(crate) fn get_fov(&self) -> [f64; 2] {
+        [self.camera.get_aperture().to_degrees(), self.camera.get_aperture_y().to_degrees()]
     }
 
     pub(crate) fn get_colormaps(&self) -> &Colormaps {

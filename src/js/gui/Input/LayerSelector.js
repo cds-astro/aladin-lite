@@ -20,7 +20,7 @@
 /******************************************************************************
  * Aladin Lite project
  * 
- * File gui/Input/HiPSSelector.js
+ * File gui/Input/LayerSelector.js
  *
  * 
  * Author: Matthieu Baumann[CDS]
@@ -30,14 +30,14 @@
 import { ALEvent } from "../../events/ALEvent.js";
 import { Input } from "../Widgets/Input.js";
 
-export class HiPSSelector extends Input {
-    static cachedHiPS = {}
+export class LayerSelector extends Input {
+    static cachedLayers = {}
     static objects = [];
 
     // constructor
     constructor(options) {
         let surveys = [];
-        for (var survey of Object.values(HiPSSelector.cachedHiPS)) {
+        for (var survey of Object.values(LayerSelector.cachedLayers)) {
             surveys.push({value: survey.id, label: survey.name});
         }
         surveys.sort((s1, s2) => {
@@ -82,31 +82,31 @@ export class HiPSSelector extends Input {
 
         self = this;
 
-        HiPSSelector.objects.push(self);
+        LayerSelector.objects.push(self);
     }
 };
 
 (function () {
-    ALEvent.FAVORITE_HIPS_LIST_UPDATED.listenedBy(document, (event) => {
-        let favoritesHips = event.detail;
+    ALEvent.FAVORITE_LAYERS_LIST_UPDATED.listenedBy(document, (event) => {
+        let favoritesLayer = event.detail;
 
-        HiPSSelector.cachedHiPS = {};
+        LayerSelector.cachedLayers = {};
 
-        for (var hips of favoritesHips) {
-            let key = hips.id || hips.url || hips.name;
-            HiPSSelector.cachedHiPS[key] = hips;
+        for (var layer of favoritesLayer) {
+            let key = layer.id || layer.url || layer.name;
+            LayerSelector.cachedLayers[key] = layer;
         }
 
         // Update the options of the selector
-        let favoritesHiPS = []
-        for(var hips of Object.values(HiPSSelector.cachedHiPS)) {
-            favoritesHiPS.push({
-                value: hips.id,
-                label: hips.name
+        let favorites = []
+        for(var layer of Object.values(LayerSelector.cachedLayers)) {
+            favorites.push({
+                value: layer.id,
+                label: layer.name
             })
         }
 
-        favoritesHiPS.sort((s1, s2) => {
+        favorites.sort((s1, s2) => {
             const s1l = s1.label.toLowerCase()
             const s2l = s2.label.toLowerCase()
 
@@ -120,28 +120,28 @@ export class HiPSSelector extends Input {
             return 0;
         });
 
-        for (var selector of HiPSSelector.objects) {
+        for (var selector of LayerSelector.objects) {
             // refers to an HiPS image survey
-            let currentFavoriteHiPS = {
+            let currentFavorite = {
                 value: selector.options.value,
                 label: selector.options.label,
             };
 
-            let favoritesHiPSCopy = [...favoritesHiPS];
+            let favoritesCopy = [...favorites];
 
             // Add the current hips to the selector as well, even if it has been manually
             // removed from the HiPSList
-            if (!favoritesHiPSCopy.some(item => item.value === currentFavoriteHiPS.value)) {
-                favoritesHiPSCopy.push(currentFavoriteHiPS)
+            if (!favoritesCopy.some(item => item.value === currentFavorite.value)) {
+                favoritesCopy.push(currentFavorite)
             }
 
-            favoritesHiPSCopy.push("More...")
+            favoritesCopy.push("More...")
 
-            currentFavoriteHiPS["title"] = currentFavoriteHiPS["label"];
+            currentFavorite["title"] = currentFavorite["label"];
 
             selector.update({
-                ...currentFavoriteHiPS,
-                options: favoritesHiPSCopy
+                ...currentFavorite,
+                options: favoritesCopy
             });
         }
     });

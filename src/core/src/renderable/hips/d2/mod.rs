@@ -796,28 +796,27 @@ impl HiPS2D {
         let config = self.get_config();
 
         let ImageMetadata {
-            color,
             opacity,
-            blend_cfg,
+            blending,
+            colormap,
             ..
         } = cfg;
 
         // Get the colormap from the color
-        let cmap = colormaps.get(color.cmap_name.as_ref());
+        let colormap = colormaps.get(colormap.as_ref());
 
-        blend_cfg.enable(&self.gl, || {
+        blending.enable(&self.gl, || {
             if draw_allsky {
                 let w2v = c * (*camera.get_w2m());
 
-                let shader = get_raytracer_shader(cmap, &self.gl, shaders, config)?;
+                let shader = get_raytracer_shader(colormap, &self.gl, shaders, config)?;
 
                 let shader = shader.bind(&self.gl);
                 shader
                     .attach_uniforms_from(camera)
                     .attach_uniforms_from(&self.buffer)
                     // send the cmap appart from the color config
-                    .attach_uniforms_with_params_from(cmap, colormaps)
-                    .attach_uniforms_from(color)
+                    .attach_uniforms_with_params_from(cfg, colormaps)
                     .attach_uniform("model", &w2v)
                     .attach_uniform("current_time", &utils::get_current_time())
                     .attach_uniform(
@@ -851,13 +850,13 @@ impl HiPS2D {
                 // - The UVs are changed if:
                 //     * new cells are added/removed (because new cells are added)
                 //     * there are new available tiles for the GPU
-                let shader = get_raster_shader(cmap, &self.gl, shaders, config)?.bind(&self.gl);
+                let shader = get_raster_shader(colormap, &self.gl, shaders, config)?.bind(&self.gl);
 
                 shader
                     .attach_uniforms_from(&self.buffer)
                     // send the cmap appart from the color config
-                    .attach_uniforms_with_params_from(cmap, colormaps)
-                    .attach_uniforms_from(color)
+                    .attach_uniforms_with_params_from(colormap, colormaps)
+                    .attach_uniforms_from(cfg)
                     .attach_uniforms_from(camera)
                     .attach_uniform("inv_model", &v2w)
                     .attach_uniform("current_time", &utils::get_current_time())

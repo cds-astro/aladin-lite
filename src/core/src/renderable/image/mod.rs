@@ -722,9 +722,8 @@ impl Image {
         //self.gl.enable(WebGl2RenderingContext::BLEND);
 
         let ImageMetadata {
-            color,
             opacity,
-            blend_cfg,
+            blending,
             ..
         } = cfg;
 
@@ -758,7 +757,7 @@ impl Image {
         //self.gl.disable(WebGl2RenderingContext::CULL_FACE);
 
         // 2. Draw it if its opacity is not null
-        blend_cfg.enable(&self.gl, || {
+        blending.enable(&self.gl, || {
             let mut off_indices = 0;
             for &idx_tex in self.idx_tex.iter() {
                 let texture = &self.textures[idx_tex];
@@ -767,7 +766,7 @@ impl Image {
                 let shader_bound = shader.bind(&self.gl);
 
                 shader_bound
-                    .attach_uniforms_with_params_from(color, colormaps)
+                    .attach_uniforms_with_params_from(cfg, colormaps)
                     .attach_uniform("opacity", opacity)
                     .attach_uniform("tex", texture)
                     .attach_uniform("scale", &self.bscale)

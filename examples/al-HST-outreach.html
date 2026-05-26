@@ -107,7 +107,7 @@ if (params.has('fov')) {
     A.init.then(() => {
 aladin = A.aladin("#aladin-lite-div", {showSimbadPointerControl: true, target: target, fov: fov });
 aladin.setOverlayImageLayer('https://alasky.cds.unistra.fr/HST-outreach/CDS_P_HST_EPO');
-aladin.getOverlayImageLayer().setAlpha(1.0);
+aladin.getOverlayImageLayer().setAlpha(0.5);
 aladin.toggleFullscreen();
     });
 

@@ -6,6 +6,20 @@
 
 ## Released
 
+### 3.9.0-beta
+
+* [feat] AVM tag reading from PNG extension images by [@bmatthieu3][bmatthieu3] <https://github.com/cds-astro/aladin-lite/issues/349>
+* [feat] Export of aladin lite view with AVM tags [@tboch][tboch] <https://github.com/cds-astro/aladin-lite/issues/349>
+* [fix] Switching back and forth the layer to an image <https://github.com/cds-astro/aladin-lite/issues/359> by [@bmatthieu3][bmatthieu3]
+* [fix] Open settings on catalog with a HiPS3D <https://github.com/cds-astro/aladin-lite/issues/360>
+* [fix] keep the cut values for each tile format <https://github.com/cds-astro/aladin-lite/issues/361>
+* [fix] Keep approx the same level of zoom when the screen is resized <https://github.com/cds-astro/aladin-lite/issues/362>
+* [fix] <https://github.com/cds-astro/aladin-lite/issues/363>
+* [fix] <https://github.com/cds-astro/aladin-lite/issues/364>
+* [feat] Support of SIP astrometry keywords in FITS file <https://github.com/cds-astro/aladin-lite/issues/365>
+* [fix] <https://github.com/cds-astro/aladin-lite/issues/371>
+* [feat] Progressive catalogs: first try loading metadata.xml, switch back on Metadata.xml if it fails <https://github.com/cds-astro/aladin-lite/issues/357>
+
 ### 3.8.0
 
 

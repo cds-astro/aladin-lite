@@ -105,6 +105,11 @@ export let View = (function () {
         this.debounceResize = Utils.debounce(() => {
             self.wasm.resize(self.width, self.height);
             self.updateZoomState()
+
+            if (self.spectraDisplayer) {
+                self.spectraDisplayer.updateCanvas()
+                self.spectraDisplayer._redraw()
+            }
         }, 2);
 
         // Attach the drag and drop events to the view
@@ -318,7 +323,7 @@ export let View = (function () {
         Object.defineProperties(this, {
             fov: {
                 get() {
-                    return this.wasm.getFieldOfView();
+                    return this.wasm.getFieldOfView()[0];
                 },
                 set(newFov) {
                     this.setFoV(newFov);
@@ -601,7 +606,7 @@ export let View = (function () {
 
         if (imageLayer.dataproductType === "spectral-cube") {
             if (!this.spectraDisplayer) {
-                this.spectraDisplayer = new SpectraDisplayer(this, {width: 800, height: 300});
+                this.spectraDisplayer = new SpectraDisplayer(this, {height: 250});
             }
 
             this.spectraDisplayer.attachHiPS3D(imageLayer)
@@ -641,16 +646,19 @@ export let View = (function () {
         // prevent default context menu from appearing (potential clash with right-click cuts control)
         Utils.on(view.catalogCanvas, "contextmenu", function (e) {
             e.preventDefault();
-            let ctxMenu = view.aladin.contextMenu;
-            if(ctxMenu) {
-                e.stopPropagation();
-                if (!view.rightClick && showContextMenu) {
-                    ctxMenu.attach(
-                        DefaultActionsForContextMenu.getDefaultActions(view.aladin),
-                        null
-                    );
-                    ctxMenu._show({e});
-                }
+
+            if (view.aladin.options.showContextMenu) {
+                let ctxMenu = view.aladin.contextMenu;
+                if(ctxMenu) {
+                    e.stopPropagation();
+                    if (!view.rightClick && showContextMenu) {
+                        ctxMenu.attach(
+                            DefaultActionsForContextMenu.getDefaultActions(view.aladin),
+                            null
+                        );
+                        ctxMenu._show({e});
+                    }
+                }   
             }
         });
 
@@ -941,7 +949,7 @@ export let View = (function () {
 
             if (view.rightClick) {
                 let ctxMenu = view.aladin.contextMenu;
-                if (showContextMenu && ctxMenu) {
+                if (showContextMenu && ctxMenu && view.aladin.options.showContextMenu) {
                     ctxMenu.attach(
                         DefaultActionsForContextMenu.getDefaultActions(view.aladin),
                         null
@@ -1760,9 +1768,11 @@ export let View = (function () {
         this.computeNorder();
 
         let fovX = this.fov;
-        let fovY = this.height / this.width * fovX;
+        let fovY = this.wasm.getFieldOfView()[1];
         fovX = Math.min(fovX, 360);
         fovY = Math.min(fovY, 180);
+
+        this.fovY = fovY;
 
         this.debounceProgCatOnZoom();
 
@@ -1801,27 +1811,6 @@ export let View = (function () {
         // register its promise
         this.imageLayersBeingQueried.set(layer, imageLayer);
 
-        // Check whether this layer already exist
-        const idxOverlayLayer = this.overlayLayers.findIndex(overlayLayer => overlayLayer == layer);
-        let alreadyPresentImageLayer;
-        if (idxOverlayLayer == -1) {
-            // it does not exist so we add it to the stack
-            this.overlayLayers.push(layer);
-        } else {
-            // it exists
-            alreadyPresentImageLayer = this.imageLayers.get(layer);
-
-            if (alreadyPresentImageLayer) {
-                if (alreadyPresentImageLayer.added === true) {
-                    ALEvent.LAYER_REMOVED.dispatchedTo(this.aladinDiv, { layer: alreadyPresentImageLayer });
-                }
-
-                alreadyPresentImageLayer.added = false;
-            }
-            // Notify that this image layer has been replaced by the wasm part
-            this.imageLayers.delete(layer);
-        }
-
         this.addImageLayer(imageLayer, layer);
 
         return imageLayer;
@@ -1833,12 +1822,46 @@ export let View = (function () {
         const layer = imageLayer.layer;
         imageLayer.added = true;
 
+        const idxOverlayLayer = this.overlayLayers.findIndex(overlayLayer => overlayLayer == layer);
+        if (idxOverlayLayer === -1) {
+            this.overlayLayers.push(layer);
+        } else {
+            // layer already present
+            // it exists
+            var alreadyPresentImageLayer = this.imageLayers.get(layer);
+
+            if (alreadyPresentImageLayer) {
+                //let idx = this.removeImageLayer(layer)
+                //if (idx >= 0) {
+                //    this.overlayLayers.splice(idx, 0, layer);
+                //}
+            }
+
+            // Notify that this image layer has been replaced by the wasm part
+            //this.imageLayers.delete(layer);
+        }
+
         this.imageLayers.set(layer, imageLayer);
 
         // select the layer if he is on top
         this.selectLayer(layer);
 
         ALEvent.LAYER_ADDED.dispatchedTo(this.aladinDiv, { layer: imageLayer });
+    }
+
+    View.prototype._waitsForLayer = function() {
+        return this.promises.length !== 0;
+    }
+
+    View.prototype.getFirstLayer = function() {
+        let layer = this.overlayLayers && this.overlayLayers[0];
+
+        if (!layer) {
+            // the overlay has not yet been added and is currently queried.
+            layer = this.imageLayersBeingQueried.keys().next().value;
+        }
+
+        return layer;
     }
 
     View.prototype.addImageLayer = function (imageLayer, layer) {
@@ -1883,6 +1906,8 @@ export let View = (function () {
                     imageLayer.errorCallback(e);
                 }
 
+                this.removeImageLayer(imageLayer);
+
                 throw e;
             })
             .finally(() => {
@@ -1894,8 +1919,15 @@ export let View = (function () {
                 // Remove the settled promise
                 this.promises.splice(idx, 1);
 
-                const noMoreLayersToWaitFor = this.promises.length === 0;
-                if (noMoreLayersToWaitFor && self.empty) {
+                const waitsForLayer = this._waitsForLayer();
+                if (!waitsForLayer && this.delayedBaseLayerCalledParams && this.delayedBaseLayerCalledParams !== layer) {
+                    this.aladin.setBaseImageLayer(this.delayedBaseLayerCalledParams)
+                    this.delayedBaseLayerCalledParams = null;
+
+                    return;
+                }
+
+                if (!waitsForLayer && self.empty) {
                     // no promises to launch and the view has no HiPS.
                     // This situation can occurs if the MOCServer is out
                     // If so we can directly put the url of the DSS hosted in alasky,
@@ -1933,7 +1965,7 @@ export let View = (function () {
 
         if (imageLayer === undefined) {
             // there is nothing to remove
-            return;
+            return -1;
         }
 
         // Update the backend
@@ -1941,26 +1973,22 @@ export let View = (function () {
 
         // Get the survey to remove to dissociate it from the view
         imageLayer.added = false;
-        // Delete it
-        this.imageLayers.delete(layer);
 
         const idxOverlaidLayer = this.overlayLayers.findIndex(overlaidLayer => overlaidLayer == layer);
-        if (idxOverlaidLayer == -1) {
-            // layer not found
-            return;
-        }
+        // Delete it
+        this.imageLayers.delete(layer);
 
         // Remove it from the layer stack
         this.overlayLayers.splice(idxOverlaidLayer, 1);
 
-        if (this.overlayLayers.length === 0) {
-            //this.empty = true;
-        } else if (this.selectedLayer === layer) {
+        if (this.overlayLayers.length > 0 && this.selectedLayer === layer) {
             // If the layer removed was selected then we select the last layer
             this.selectLayer(this.overlayLayers[this.overlayLayers.length - 1]);
         }
 
         ALEvent.LAYER_REMOVED.dispatchedTo(this.aladinDiv, { layer: imageLayer });
+
+        return idxOverlaidLayer;
     };
 
     View.prototype.contains = function(survey) {
@@ -2014,8 +2042,7 @@ export let View = (function () {
 
         let obj = imageLayer || imageLayerQueried;
 
-        if (obj && obj.added)
-            return obj;
+        return obj;
     };
 
     View.prototype.requestRedraw = function () {

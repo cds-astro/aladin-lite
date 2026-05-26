@@ -431,6 +431,23 @@ Utils.fetch = function(params) {
         })
 }
 
+Utils.fetchWithProxy = function(params) {
+    return Utils.fetch({
+        ...params,
+        error: (e) => {
+            console.error(e)
+            console.info("Trying querying the proxy:" + JSONP_PROXY)
+            // Try as CORS
+            const url = JSONP_PROXY + '?url=' + params.url;
+            console.log(url)
+            return Utils.fetch({
+                ...params,
+                url,
+            });
+        }
+    })
+}
+
 Utils.on = function(element, events, callback) {
     events.split(' ')
         .forEach(e => {

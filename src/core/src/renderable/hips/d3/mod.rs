@@ -1064,13 +1064,13 @@ impl HiPS3D {
         }
 
         let ImageMetadata {
-            color,
+            colormap,
             opacity,
-            blend_cfg,
+            blending,
             ..
         } = cfg;
 
-        let cmap = colormaps.get(color.cmap_name.as_ref());
+        let colormap = colormaps.get(colormap.as_ref());
 
         let v2w = (*camera.get_m2w()) * c.transpose();
 
@@ -1090,7 +1090,7 @@ impl HiPS3D {
 
         let shader = get_raster_shader(&self.gl, shaders, hips_cfg)?;
         for (cell, num_indices) in self.cells.iter().zip(self.num_indices.iter()) {
-            blend_cfg.enable(&self.gl, || {
+            blending.enable(&self.gl, || {
                 // Bind the shader at each draw of a cell to not exceed the max number of tex image units bindable
                 // to a shader. It is 32 in my case
                 let shaderbound = shader.bind(&self.gl);
@@ -1098,8 +1098,8 @@ impl HiPS3D {
                 shaderbound
                     .attach_uniform("tex", &self.buffer.get(cell).unwrap_abort().texture)
                     .attach_uniforms_from(&self.buffer)
-                    .attach_uniforms_with_params_from(cmap, colormaps)
-                    .attach_uniforms_from(color)
+                    .attach_uniforms_with_params_from(colormap, colormaps)
+                    .attach_uniforms_from(cfg)
                     .attach_uniforms_from(camera)
                     .attach_uniform("inv_model", &v2w)
                     .attach_uniform("opacity", opacity)

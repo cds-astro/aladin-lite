@@ -22,7 +22,7 @@ import hipsIconUrl from "../../../../assets/icons/hips.svg";
 import addIconUrl from "../../../../assets/icons/plus.svg";
 import settingsIconUrl from "../../../../assets/icons/settings.svg";
 import { Icon } from "../Widgets/Icon.js";
-import { HiPSSelector } from "../Input/HiPSSelector.js";
+import { LayerSelector } from "../Input/LayerSelector.js";
 import { HiPSBrowserBox } from "./HiPSBrowserBox.js";
 import { Input } from "../Widgets/Input.js";
 import { ActionButton } from "../Widgets/ActionButton.js";
@@ -131,7 +131,7 @@ export class HiPSCompositeBox extends Box {
         this.hipsOptions.push({});
         let self = this;
         let newLayerLayout = [
-            new HiPSSelector({
+            new LayerSelector({
                 change(e) {
                     let name = e.target.value;
                     let idLayer = getIdHiPS(e.target);
@@ -149,7 +149,7 @@ export class HiPSCompositeBox extends Box {
                         });
                     } else {
                         // it is an hips
-                        let HiPSOptions = HiPSSelector.cachedHiPS[name];
+                        let HiPSOptions = LayerSelector.cachedLayers[name];
                         self.hipsOptions[idLayer].id = HiPSOptions.id || HiPSOptions.url
                     }
 

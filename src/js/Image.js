@@ -29,11 +29,10 @@
  * Authors: Matthieu Baumann [CDS]
  *
  *****************************************************************************/
-import { ColorCfg } from "./ColorCfg.js";
-import { Aladin } from "./Aladin.js";
 import { Utils } from "./Utils";
 import { AVM } from "./libs/avm.js";
 import { HiPS } from "./HiPS.js";
+import { JSONP_PROXY } from "./Constants";
 
 /**
  * @typedef {Object} WCS
@@ -140,13 +139,55 @@ export let Image = (function () {
         this.id = url;
         this.name = (options && options.name) || this.url;
         this.imgFormat = options && options.imgFormat;
-        this.acceptedFormats = [this.imgFormat];
+        this.formats = [this.imgFormat];
+        this.type = "image"
+
+        // Opacity of the survey/image
+        this.opacity = (options && options.opacity) || 1.0;
+
+        // Colormap config options
+        this.colormap = (options && options.colormap) || "native";
+        this.colormap = this.colormap.toLowerCase();
+
+        this.stretch = (options && options.stretch) || "linear";
+        this.stretch = this.stretch.toLowerCase();
+        this.reversed = false;
+
+        if (options && options.reversed === true) {
+            this.reversed = true;
+        }
+
+        this.minCut = {
+            webp: 0.0,
+            jpeg: 0.0,
+            png: 0.0,
+            fits: undefined // wait the default value coming from the properties
+        };    
+
+        this.maxCut = {
+            webp: 255.0,
+            jpeg: 255.0,
+            png: 255.0,
+            fits: undefined // wait the default value coming from the properties
+        };
+
+        this.setCuts(options.minCut, options.maxCut);
+
+        this.blending = options && options.blending;
+        if (this.blending === undefined)  {
+            this.blending = false;
+        }
+
+        // A default value for gamma correction
+        this.gamma = (options && options.gamma) || 1.0;
+        this.saturation = (options && options.saturation) || 0.0;
+        this.brightness = (options && options.brightness) || 0.0;
+        this.contrast = (options && options.contrast) || 0.0;
 
         // callbacks
         this.successCallback = options && options.successCallback;
         this.errorCallback = options && options.errorCallback;
 
-        this.colorCfg = new ColorCfg(options);
         this.options = options || {};
 
         let self = this;
@@ -301,8 +342,6 @@ export let Image = (function () {
          */
         Image.prototype.setAlpha = HiPS.prototype.setOpacity;
     
-        Image.prototype.getColorCfg = HiPS.prototype.getColorCfg;
-    
         /**
          * Get the opacity of the image layer
          * 
@@ -341,7 +380,13 @@ export let Image = (function () {
          */
         Image.prototype.getAvailableFormats = HiPS.prototype.getAvailableFormats;
 
-
+        Image.prototype.getColormap = HiPS.prototype.getColormap;
+        Image.prototype.getReversed = HiPS.prototype.getReversed;
+        Image.prototype.getBrightness = HiPS.prototype.getBrightness;
+        Image.prototype.getSaturation = HiPS.prototype.getSaturation;
+        Image.prototype.getContrast = HiPS.prototype.getContrast;
+        Image.prototype.getGamma = HiPS.prototype.getGamma;
+    
         Image.prototype._setView = function (view) {
             this.view = view;
         };
@@ -361,7 +406,29 @@ export let Image = (function () {
         };
 
         /* Private method view is already attached */
-        Image.prototype._saveInCache = HiPS.prototype._saveInCache;
+        /* Precondition: view is attached */
+        Image.prototype._saveInCache = function () {
+            if (!this.view) {
+                this.updateHiPSCache = true;
+                return;
+            }
+
+            this.updateHiPSCache = false;
+
+            let self = this;
+            let hipsCache = this.view.aladin.hipsCache;
+
+            if (hipsCache.contains(self.id)) {
+                hipsCache.update(self.id, {
+                    url: self.url,
+                    formats: self.formats,
+                    name: this.name,
+                    id: this.id,
+                    type: this.type,
+                    ...this._getMetadata(),
+                })
+            }
+        };
 
         // Private method for updating the view with the new meta
         Image.prototype._updateMetadata = HiPS.prototype._updateMetadata;
@@ -401,7 +468,7 @@ export let Image = (function () {
             }
 
             promise = promise.then((imageParams) => {
-                self.acceptedFormats = [self.imgFormat];
+                self.formats = [self.imgFormat];
 
                 // There is at least one entry in imageParams
                 self.added = true;
@@ -451,31 +518,27 @@ export let Image = (function () {
                 url: this.url,
                 dataType: 'arrayBuffer',
                 success: (buf) => {
+                    self.imgFormat = 'fits';
                     return self.view.wasm.addFITSImage(
                         new Uint8Array(buf),
-                        {
-                            ...self.colorCfg.get(),
-                            imgFormat: 'fits',
-                        },
+                        self._prepareMetadataForWASM(),
                         layer
                     )
                 },
                 error: (e) => {
                     console.error(e)
-                    console.info("Trying querying the FITS through proxy:" + Aladin.JSONP_PROXY)
+                    console.info("Trying querying the FITS through proxy:" + JSONP_PROXY)
                     // try as cors 
-                    const url = Aladin.JSONP_PROXY + '?url=' + self.url;
+                    const url = JSONP_PROXY + '?url=' + self.url;
 
                     return Utils.fetch({
-                        url: url,
+                        url,
                         dataType: 'arrayBuffer',
                         success: (buf) => {
+                            self.imgFormat = 'fits';
                             return self.view.wasm.addFITSImage(
                                 new Uint8Array(buf),
-                                {
-                                    ...self.colorCfg.get(),
-                                    imgFormat: 'fits',
-                                },
+                                self._prepareMetadataForWASM(),
                                 layer
                             )
                         },
@@ -484,17 +547,33 @@ export let Image = (function () {
             })
             .then((imageParams) => {
                 self.imgFormat = 'fits'
-                self.colorCfg.setOptions({imgFormat: 'fits'});
-
                 return Promise.resolve(imageParams);
             })
         };
+
+        Image.prototype._getMetadata = HiPS.prototype._getMetadata;
+
+        Image.prototype._prepareMetadataForWASM = HiPS.prototype._prepareMetadataForWASM;
 
         Image.prototype._addJPGOrPNG = function(layer) {
             let self = this;
             let img = document.createElement('img');
 
-            return new Promise((resolve, reject) => {
+            console.log(this.url)
+            let checkImgFormat = Utils.fetchWithProxy({url: this.url, dataType: 'arrayBuffer'})
+                .then(arrayBuffer => {
+                    const view = new DataView(arrayBuffer);
+                    // See the magic bytes for JPEG or PNG files
+                    if (view.getUint8(0) === 0xFF && view.getUint8(1) === 0xD8) {
+                        return "jpeg";
+                    } else if (view.getUint8(0) === 0x89 && view.getUint8(1) === 0x50) {
+                        return "png";
+                    } else {
+                        throw new Error("Unknown image format");
+                    }
+                })
+
+            let loadImg = new Promise((resolve, reject) => {
                 img.src = this.url;
                 img.crossOrigin = "Anonymous";
                 img.onload = () => {
@@ -504,6 +583,8 @@ export let Image = (function () {
                         canvas.width = img.width;
                         canvas.height = img.height;
                     
+                        img.arrat
+
                         // Copy the image contents to the canvas
                         var ctx = canvas.getContext("2d");
                         ctx.drawImage(img, 0, 0, img.width, img.height);
@@ -525,10 +606,18 @@ export let Image = (function () {
                             // obj.tags (object) = An array containing all the loaded tags e.g. obj.tags['Headline']
                             // obj.wcs (object) = The wcs parsed from the image
                             if (obj.wcsdata) {
+                                if (obj.wcs.NAXIS1 === undefined) {
+                                    obj.wcs.NAXIS1 = img.width;
+                                }
+
                                 if (img.width !== obj.wcs.NAXIS1) {
                                     obj.wcs.CDELT1 = obj.wcs.CDELT1 * (obj.wcs.NAXIS1 / img.width);
                                     obj.wcs.CRPIX1 *= img.width / obj.wcs.NAXIS1;
                                     obj.wcs.NAXIS1 = img.width;
+                                }
+
+                                if (obj.wcs.NAXIS2 === undefined) {
+                                    obj.wcs.NAXIS2 = img.height;
                                 }
 
                                 if (img.height !== obj.wcs.NAXIS2) {
@@ -561,38 +650,32 @@ export let Image = (function () {
                         return;
                     }
 
-                    console.error(e);
-                    console.info("Using proxy", Aladin.JSONP_PROXY)
+                    console.info("Using proxy", JSONP_PROXY)
                     proxyUsed = true;
-                    img.src = Aladin.JSONP_PROXY + '?url=' + self.url;
+                    img.src = JSONP_PROXY + '?url=' + self.url;
                 }
-            })
-            .then((bytes) => {
-                let wcs = self.options && self.options.wcs;
-                wcs.NAXIS1 = wcs.NAXIS1 || img.width;
-                wcs.NAXIS2 = wcs.NAXIS2 || img.height;
-                return self.view.wasm
-                    .addRGBAImage(
-                        bytes,
-                        wcs,
-                        {
-                            ...self.colorCfg.get(),
-                            imgFormat: 'jpeg',
-                        },
-                        layer
-                    )
-            })
-            .then((imageParams) => {
-                self.imgFormat = 'jpeg'
-                self.colorCfg.setOptions({imgFormat: 'jpeg'});
-                return Promise.resolve(imageParams);
-            })
-            /*.catch((e) => {
-                console.error(e)
-            })*/
-            .finally(() => {
-                img.remove();
             });
+
+            return Promise.all([loadImg, checkImgFormat])
+                .then(([imgBytes, imgFormat]) => {
+                    let wcs = self.options && self.options.wcs;
+                    wcs.NAXIS1 = wcs.NAXIS1 || img.width;
+                    wcs.NAXIS2 = wcs.NAXIS2 || img.height;
+                    wcs.NAXIS = wcs.NAXIS || 2;
+
+                    self.imgFormat = imgFormat;
+
+                    return self.view.wasm
+                        .addRGBAImage(
+                            imgBytes,
+                            wcs,
+                            self._prepareMetadataForWASM(),
+                            layer
+                        )
+                })
+                .finally(() => {
+                    img.remove();
+                });
         };
 
     return Image;

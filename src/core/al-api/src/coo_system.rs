@@ -31,8 +31,8 @@ use wasm_bindgen::prelude::*;
 #[wasm_bindgen]
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Deserialize, Hash)]
 pub enum CooSystem {
-    ICRS,
-    GAL,
+    ICRS = 0,
+    GAL = 1,
 }
 
 pub const NUM_COOSYSTEM: usize = 2;

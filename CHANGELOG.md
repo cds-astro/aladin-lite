@@ -19,6 +19,7 @@
 * [feat] Support of SIP astrometry keywords in FITS file <https://github.com/cds-astro/aladin-lite/issues/365>
 * [fix] <https://github.com/cds-astro/aladin-lite/issues/371>
 * [feat] Progressive catalogs: first try loading metadata.xml, switch back on Metadata.xml if it fails <https://github.com/cds-astro/aladin-lite/issues/357>
+* [feat] Support skewer selection for footprints/shapes <https://github.com/cds-astro/aladin-lite/issues/369> by [@tomdonaldson][tomdonaldson]
 
 ### 3.8.0
 
@@ -541,6 +542,7 @@ Aladin Lite is made possible thanks to those people:
 * [@simontorres][simontorres]
 * [@szpetny][szpetny]
 * [@tboch][tboch]
+* [@tomdonaldson][tomdonaldson]
 * [@Xen0Xys][Xen0Xys]
 
 [alexgoff]: https://github.com/alexgoff
@@ -553,5 +555,5 @@ Aladin Lite is made possible thanks to those people:
 [simontorres]: https://github.com/simontorres
 [szpetny]: https://github.com/szpetny
 [tboch]: https://github.com/tboch
+[tomdonaldson]: https://github.com/tomdonaldson
 [Xen0Xys]: https://github.com/Xen0Xys
-

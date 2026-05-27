@@ -1,5 +1,3 @@
-use wasm_bindgen::JsValue;
-
 use super::blend::BlendCfg;
 use serde::Deserialize;
 
@@ -282,7 +280,6 @@ pub struct ImageMetadata {
 fn default_opacity() -> f32 {
     1.0
 }
-use crate::Abort;
 
 impl ImageMetadata {
     pub fn visible(&self) -> bool {

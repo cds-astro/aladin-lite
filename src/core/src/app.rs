@@ -1854,7 +1854,10 @@ impl App {
     }
 
     pub(crate) fn get_fov(&self) -> [f64; 2] {
-        [self.camera.get_aperture().to_degrees(), self.camera.get_aperture_y().to_degrees()]
+        [
+            self.camera.get_aperture().to_degrees(),
+            self.camera.get_aperture_y().to_degrees(),
+        ]
     }
 
     pub(crate) fn get_colormaps(&self) -> &Colormaps {

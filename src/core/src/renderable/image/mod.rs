@@ -722,9 +722,7 @@ impl Image {
         //self.gl.enable(WebGl2RenderingContext::BLEND);
 
         let ImageMetadata {
-            opacity,
-            blending,
-            ..
+            opacity, blending, ..
         } = cfg;
 
         let shader = match self.pixel_type {

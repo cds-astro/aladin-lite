@@ -199,7 +199,7 @@ impl CameraViewPort {
             max_fov: None,
 
             scissor_w,
-            scissor_h
+            scissor_h,
         }
     }
 
@@ -301,7 +301,6 @@ impl CameraViewPort {
 
     pub fn set_screen_size(&mut self, width: f32, height: f32, projection: &ProjectionType) {
         let old_w = self.width;
-        let old_h = self.height;
         self.width = width * self.dpi;
         self.height = height * self.dpi;
 

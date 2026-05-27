@@ -2111,10 +2111,8 @@ export let View = (function () {
     View.prototype.addImageLayer = function (imageLayer, layer) {
         let self = this;
         // start the query
-        const imageLayerPromise = imageLayer.query;
-
-        let idx = this.promises.length;
-        this.promises.push(imageLayerPromise);
+        const promise = imageLayer.query;
+        this.promises.push(promise);
 
         // All image layer promises must be completed (fullfilled or rejected)
         const task = {
@@ -2125,7 +2123,7 @@ export let View = (function () {
         ALEvent.FETCH.dispatchedTo(document, {task});
         // All the remaining promises must be terminated and the current one must be resolved
         // so that we can add it to the view (call of _add2View)
-        Promise.all([Promise.allSettled(this.promises), imageLayerPromise])
+        Promise.all([Promise.allSettled(this.promises), promise])
             // Then we add the layer to the view
             .then((_) => imageLayer._addToView(layer))
             // Then we keep a track of the layer in the JS front
@@ -2159,11 +2157,11 @@ export let View = (function () {
                 ALEvent.RESOURCE_FETCHED.dispatchedTo(document, {task});
 
                 self.imageLayersBeingQueried.delete(layer);
-
                 // Remove the settled promise
-                this.promises.splice(idx, 1);
+                this.promises = this.promises.filter(p => p !== promise);
 
                 const waitsForLayer = this._waitsForLayer();
+
                 if (!waitsForLayer && this.delayedBaseLayerCalledParams && this.delayedBaseLayerCalledParams !== layer) {
                     this.aladin.setBaseImageLayer(this.delayedBaseLayerCalledParams)
                     this.delayedBaseLayerCalledParams = null;
@@ -2171,7 +2169,7 @@ export let View = (function () {
                     return;
                 }
 
-                if (!waitsForLayer && self.empty) {
+                if (!waitsForLayer && this.empty) {
                     // no promises to launch and the view has no HiPS.
                     // This situation can occurs if the MOCServer is out
                     // If so we can directly put the url of the DSS hosted in alasky,

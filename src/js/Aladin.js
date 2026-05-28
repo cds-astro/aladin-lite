@@ -1958,7 +1958,7 @@ export let Aladin = (function () {
         return this.createImageSurvey(
             id,
             options && options.name,
-            id,
+            options && options.url || id,
             options && options.cooFrame,
             options && options.maxOrder,
             options
@@ -2211,7 +2211,7 @@ export let Aladin = (function () {
      * view in the counter clockwise order (or towards the east)
      */
     Aladin.prototype.setRotation = function (rotation) {
-        if (!rotation) {
+        if (Utils.isNumber(rotation)) {
             console.warn("Rotation angle is not valid:", rotation)
             return;
         }
@@ -2808,13 +2808,8 @@ export let Aladin = (function () {
             if (typeof frame === "string") {
                 frame = CooFrameEnum.fromString(frame, CooFrameEnum.ICRS);
             }
-
-            // Map to the numeric wasm-bindgen CooSystem discriminant
-            frame = (frame.system === CooFrameEnum.SYSTEMS.GAL)
-                ? Aladin.wasmLibs.core.CooSystem.GAL
-                : Aladin.wasmLibs.core.CooSystem.ICRS;
         }
-        let [lon, lat] = this.view.wasm.pix2world(x, y, frame);
+        let [lon, lat] = this.view.wasm.pix2world(x, y, CooFrameEnum.toWasm(frame));
 
        return [lon < 0 ? lon + 360.0 : lon, lat];
     };
@@ -2836,16 +2831,10 @@ export let Aladin = (function () {
             if (typeof frame === "string") {
                 frame = CooFrameEnum.fromString(frame, CooFrameEnum.ICRS);
             }
-
-            // Map to the numeric wasm-bindgen CooSystem discriminant
-            frame = (frame.system === CooFrameEnum.SYSTEMS.GAL)
-                ? Aladin.wasmLibs.core.CooSystem.GAL
-                : Aladin.wasmLibs.core.CooSystem.ICRS;
         }
         // frame === undefined/null → passed as-is, WASM treats as None (default system)
 
-
-        return this.view.wasm.world2pix(lon, lat, frame);
+        return this.view.wasm.world2pix(lon, lat, CooFrameEnum.toWasm(frame));
     };
 
     /**

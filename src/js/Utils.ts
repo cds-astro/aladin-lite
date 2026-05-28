@@ -439,7 +439,6 @@ Utils.fetchWithProxy = function(params) {
             console.info("Trying querying the proxy:" + JSONP_PROXY)
             // Try as CORS
             const url = JSONP_PROXY + '?url=' + params.url;
-            console.log(url)
             return Utils.fetch({
                 ...params,
                 url,

@@ -559,7 +559,6 @@ export let Image = (function () {
             let self = this;
             let img = document.createElement('img');
 
-            console.log(this.url)
             let checkImgFormat = Utils.fetchWithProxy({url: this.url, dataType: 'arrayBuffer'})
                 .then(arrayBuffer => {
                     const view = new DataView(arrayBuffer);

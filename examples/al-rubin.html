@@ -1,0 +1,36 @@
+<!doctype html>
+<html>
+<head>
+</head>
+<body>
+    <div id="aladin-lite-div" style="width: 1024px; height: 768px"></div>
+    <script type="module">
+        import A from '../src/js/A.js';
+        let aladin;
+
+        A.init.then(() => {
+            aladin = A.aladin("#aladin-lite-div", {
+                fov: 2,
+                survey:
+                "https://images.rubinobservatory.org/hips/SVImages_v2/color_ugri",
+                backgroundColor: "rgb(0,0,0)",
+                cooFrame: "ICRSd",
+            });
+
+            aladin.setFoVRange(0.002, 10);
+            aladin.gotoRaDec(186.5, 6.95);
+            
+            const secondSurvey = {
+                imgFormat: "webp",
+                cooFrame: "ICRSd", 
+                maxOrder: 11,
+                url: "https://images.rubinobservatory.org/hips/asteroids/color_ugri",
+            };
+            
+            const hips = A.HiPS(secondSurvey.url, { ...secondSurvey, opacity: 1 });
+            
+            aladin.setOverlayImageLayer(hips);
+        });
+    </script>
+</body>
+</html>

@@ -42,11 +42,10 @@ PropertyParser.tileSize = function (properties) {
     let tileSize =
         (properties &&
             properties.hips_tile_width &&
-            +properties.hips_tile_width) ||
-        512;
+            +properties.hips_tile_width)
 
     // Check if the tile width size is a power of 2
-    if (tileSize & (tileSize - 1 !== 0)) {
+    if (tileSize && ((tileSize & (tileSize - 1)) !== 0)) {
         tileSize = 512;
     }
 
@@ -175,11 +174,11 @@ PropertyParser.isPlanetaryBody = function (properties) {
  * @property {Function} [successCallback] - A callback executed when the HiPS has been loaded
  * @property {Function} [errorCallback] - A callback executed when the HiPS could not be loaded
  * @property {string} [imgFormat] - Formats accepted 'webp', 'png', 'jpeg' or 'fits'. Will raise an error if the HiPS does not contain tiles in this format
- * @property {CooFrame} [cooFrame] - Coordinate frame of the survey tiles. If not given, the one from the parsed properties file will be retrieved.
+ * @property {string} [cooFrame] - Coordinate frame of the survey tiles. If not given, the one from the parsed properties file will be retrieved. Possible values: 'ICRS', 'ICRSd', 'galactic', 'equatorial', 'j2000' 
  * @property {number} [maxOrder] - The maximum HEALPix order of the HiPS, i.e the HEALPix order of the most refined tile images of the HiPS.
- * @property {number} [numBitsPerPixel] - Useful if you want to display the FITS tiles of a HiPS. It specifies the number of bits per pixel. Possible values are:
+ * @property {number} [bitpix] - Useful if you want to display the FITS tiles of a HiPS. It specifies the number of bits per pixel. Possible values are:
  * -64: double, -32: float, 8: unsigned byte, 16: short, 32: integer 32 bits, 64: integer 64 bits
- * @property {number} [tileSize] - The width of the HEALPix tile images. Mostly 512 pixels but can be 256, 128, 64, 32
+ * @property {number} [tileSize=512] - The width of the HEALPix tile images. Mostly 512 pixels but can be 256, 128, 64, 32
  * @property {number} [minOrder] - If not given, retrieved from the properties of the survey.
  * @property {boolean} [longitudeReversed] - Deprecated The longitudeReversed property is now deprecated since version 3.6.1. This property has been removed since version 3.7.0 and replaced with {@link Aladin#reverseLongitude} set directly on the {@link Aladin} view object and not at the HiPS level.
  * @property {number} [opacity=1.0] - Opacity of the survey or image (value between 0 and 1).
@@ -281,7 +280,7 @@ export let HiPS = (function () {
      */
     function HiPS(id, location, options) {
         this.added = false;
-        // Unique identifier for a survey
+        // Required ID, synonym of the CreatorDid of a HiPS
         this.id = id;
 
         this.name = (options && options.name) || id;
@@ -329,20 +328,23 @@ export let HiPS = (function () {
 
         this.url = location;
 
+        // Max order Required
         this.maxOrder = options && options.maxOrder;
         this.minOrder = (options && options.minOrder) || 0;
+        // Frame Required
         this.cooFrame = options && CooFrameEnum.fromString(options.cooFrame, null)?.system;
-        this.tileSize = options && options.tileSize;
+        this.tileSize = options && options.tileSize || 512;
         this.skyFraction = options && options.skyFraction;
+        // Image format Required
         this.imgFormat = options && options.imgFormat;
-        this.formats = options && options.formats;
+        this.formats = (options && options.formats) || (this.imgFormat && [this.imgFormat]);
         this.defaultFitsMinCut = options && options.defaultFitsMinCut;
         this.defaultFitsMaxCut = options && options.defaultFitsMaxCut;
-        this.numBitsPerPixel = options && options.numBitsPerPixel;
-        this.creatorDid = options && options.creatorDid;
+        this.bitpix = options && options.bitpix;
+        this.creatorDid = (options && options.creatorDid) || this.id || this.url;
         this.errorCallback = options && options.errorCallback;
         this.successCallback = options && options.successCallback;
-        this.dataproductType = options && options.dataproductType;
+        this.dataproductType = options && options.dataproductType || 'image';
         this.tileDepth = options && options.tileDepth;
         this.orderFreq = options && options.orderFreq;
         this.emMin = options && options.emMin;
@@ -410,34 +412,33 @@ export let HiPS = (function () {
                 resolve(self);
             });
         } else {
-            let isIncompleteOptions = true;
+            let mustRequestProperties = true;
 
-            let isID = Utils.isUrl(this.url) === undefined;
+            let isUrl = Utils.isUrl(this.url) !== undefined;
     
             if (this.imgFormat === "fits") {
                 // a fits is given
-                isIncompleteOptions = !(
+                mustRequestProperties = !(
                     this.maxOrder &&
-                    (!isID && this.url) &&
+                    isUrl &&
                     this.imgFormat &&
-                    this.tileSize &&
                     this.cooFrame &&
-                    this.numBitsPerPixel
+                    // TODO: this should not be mandatory, one just parse FITS files
+                    this.bitpix
                 );
             } else {
-                isIncompleteOptions = !(
+                mustRequestProperties = !(
                     this.maxOrder &&
-                    (!isID && this.url) &&
+                    isUrl &&
                     this.imgFormat &&
-                    this.tileSize &&
                     this.cooFrame
                 );
             }
     
             this.query = new Promise(async (resolve, reject) => {
-                if (isIncompleteOptions) {
+                if (mustRequestProperties) {
                     // ID typed url
-                    if (self.startUrl && isID) {
+                    if (self.startUrl && !isUrl) {
                         // First download the properties from the start url
                         await HiPSProperties.fetchFromUrl(self.startUrl, self.requestMode, self.requestCredentials)
                             .then((p) => {
@@ -465,7 +466,7 @@ export let HiPS = (function () {
                             },
                             1000
                         );
-                    } else if (!self.startUrl && isID) {
+                    } else if (!self.startUrl && !isUrl) {
                         // the url stores a "CDS ID" we take it prioritaly
                         // if the url is null, take the id, this is for some tests
                         // to pass because some users might just give null as url param and a "CDS ID" as id param
@@ -495,12 +496,12 @@ export let HiPS = (function () {
                             .catch((e) => reject("HiPS " + self.id + " error: HiPS not found at url " + self.url + "\nReason: " + e.stack))
                     }
                 } else {
-                    self._parseProperties({
+                    /*self._parseProperties({
                         hips_order: self.maxOrder,
                         hips_service_url: self.url,
                         hips_tile_width: self.tileSize,
                         hips_frame: self.cooFrame
-                    })
+                    })*/
                 }
     
                 if (self.updateHiPSCache) {
@@ -581,7 +582,7 @@ export let HiPS = (function () {
 
         // Tile formats
         self.formats =
-            PropertyParser.formats(properties) || self.formats || ["jpeg"];
+            PropertyParser.formats(properties) || self.formats;
 
         // Min order
         const minOrder = PropertyParser.minOrder(properties)
@@ -594,7 +595,7 @@ export let HiPS = (function () {
             PropertyParser.cooFrame(properties);
         // Parse the cooframe from the properties but if it fails, take the one given by the user
         // If the user gave nothing, then take ICRS as the default one
-        self.cooFrame = CooFrameEnum.fromString(cooFrame, self.cooFrame || CooFrameEnum.ICRS).system;
+        self.cooFrame = CooFrameEnum.fromString(cooFrame, null)?.system || self.cooFrame || CooFrameEnum.ICRS.system;
 
         // sky fraction
         self.skyFraction = PropertyParser.skyFraction(properties);
@@ -616,8 +617,8 @@ export let HiPS = (function () {
         self.defaultFitsMaxCut = cutoutFromProperties[1] || 1.0;
 
         // Bitpix
-        self.numBitsPerPixel =
-            PropertyParser.bitpix(properties) || self.numBitsPerPixel;
+        self.bitpix =
+            PropertyParser.bitpix(properties) || self.bitpix;
 
         // HiPS body
         if (properties.hips_body) {
@@ -631,8 +632,6 @@ export let HiPS = (function () {
 
         self.name = self.name || self.id || self.url;
         self.name = self.name.replace(/  +/g, ' ');
-
-        self.creatorDid = self.creatorDid || self.id || self.url;
 
         // check the imgFormat with respect to the formats accepted image format
         const chooseTileFormat = (formats) => {
@@ -1254,7 +1253,7 @@ export let HiPS = (function () {
                 cooFrame: self.cooFrame,
                 tileSize: self.tileSize,
                 formats: self.formats,
-                numBitsPerPixel: self.numBitsPerPixel,
+                bitpix: self.bitpix,
                 skyFraction: self.skyFraction,
                 minOrder: self.minOrder,
                 initialFov: self.initialFov,
@@ -1325,7 +1324,7 @@ export let HiPS = (function () {
                 cooFrame: self.cooFrame,
                 tileSize: self.tileSize,
                 formats: self.formats,
-                bitpix: self.numBitsPerPixel,
+                bitpix: self.bitpix,
                 skyFraction: self.skyFraction,
                 minOrder: self.minOrder,
                 initialFov: self.initialFov,

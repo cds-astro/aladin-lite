@@ -120,7 +120,7 @@ Aladin Lite can be imported with:
 
 ## Licence
 
-Aladin Lite is currently licensed under GPL v3.0
+Aladin Lite is currently licensed under LGPL-3.0-or-later
 
 If you think this license might prevent you from using Aladin Lite in your pages/application/portal, please open an issue or [contact us](mailto:cds-question@unistra.fr)
 

@@ -1,5 +1,5 @@
 #version 300 es
-precision lowp float;
+precision highp float;
 
 in vec2 out_uv;
 in vec3 out_p;

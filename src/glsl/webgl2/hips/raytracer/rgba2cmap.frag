@@ -1,9 +1,9 @@
 #version 300 es
-precision lowp float;
-precision lowp sampler2DArray;
-precision lowp sampler2DArray;
-precision lowp isampler2DArray;
-precision mediump int;
+precision highp float;
+precision highp sampler2DArray;
+precision highp sampler2DArray;
+precision highp isampler2DArray;
+precision highp int;
 
 in vec3 frag_pos;
 in vec2 out_clip_pos;

@@ -1,6 +1,6 @@
 #version 300 es
 
-precision lowp float;
+precision highp float;
 out vec4 color;
 
 uniform vec4 u_color;

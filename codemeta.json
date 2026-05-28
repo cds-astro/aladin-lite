@@ -1,7 +1,7 @@
 {
     "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
     "@type": "SoftwareSourceCode",
-    "license": "https://spdx.org/licenses/GPL-3.0",
+    "license": "https://spdx.org/licenses/LGPL-3.0-or-later",
     "codeRepository": "https://github.com/cds-astro/aladin-lite",
     "dateCreated": "2013-05-01",
     "datePublished": "2013-05-01",

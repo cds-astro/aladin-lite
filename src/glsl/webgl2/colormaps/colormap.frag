@@ -1,6 +1,6 @@
 #version 300 es
-precision lowp float;
-precision lowp sampler2D;
+precision highp float;
+precision highp sampler2D;
 
 in vec2 out_uv;
 out vec4 color;

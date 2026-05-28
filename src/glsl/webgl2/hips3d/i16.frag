@@ -1,8 +1,8 @@
 #version 300 es
-precision lowp float;
-precision lowp sampler3D;
-precision lowp isampler3D;
-precision lowp usampler3D;
+precision highp float;
+precision highp sampler3D;
+precision highp isampler3D;
+precision highp usampler3D;
 
 uniform sampler3D tex;
 

@@ -2211,7 +2211,7 @@ export let Aladin = (function () {
      * view in the counter clockwise order (or towards the east)
      */
     Aladin.prototype.setRotation = function (rotation) {
-        if (Utils.isNumber(rotation)) {
+        if (!Utils.isNumber(rotation)) {
             console.warn("Rotation angle is not valid:", rotation)
             return;
         }

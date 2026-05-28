@@ -581,6 +581,10 @@ export let View = (function () {
     };
 
     View.prototype.getRawPixelsCanvas = function(width, height) {
+        // important: redraw must be called just before getting the pixels
+        // because the drawing buffer is not preserved (preserveDrawingBuffer = false) 
+        this.redraw()
+
         const canvas = this.wasm.canvas();
 
         const c = document.createElement('canvas');

@@ -48,6 +48,11 @@ export class SAMPConnector {
         let callHandler = cc.callHandler;
         this.cc = cc;
 
+        let isLocalhost = (url) => {
+            const { hostname } = new URL(url);
+            return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+        };
+
         let self = this;
         // listen for hub deconnexion/shutdown and unregister if so
         callHandler["samp.hub.event.shutdown"] = function(senderId, message, isCall) {
@@ -91,13 +96,12 @@ export class SAMPConnector {
             let params = message["samp.params"];
 
             let id = params['table-id'];
-            let url = params['url'];
+            let origUrl = params['url'];
+            let finalUrl = isLocalhost(origUrl) ? cc.connection.translateUrl(origUrl) : origUrl;
             let name = params['name'] || id;
 
-            console.log(id, url, name)
-
             A.catalogFromURL(
-                url,
+                finalUrl,
                 {name, onClick: 'showTable'},
                 // Add the catalog if the query has succeded
                 (catalog) => {
@@ -120,11 +124,13 @@ export class SAMPConnector {
             let params = message["samp.params"];
 
             let id = params['table-id'];
-            let url = params['url'];
+            let origUrl = params['url'];
+            let finalUrl = isLocalhost(origUrl) ? cc.connection.translateUrl(origUrl) : origUrl;
+
             let rowList = params['row-list'];
 
             // search for the catalog
-            let catalog = selectCatalog(id, url)
+            let catalog = selectCatalog(id, finalUrl)
 
             if (catalog) {
                 let objects = [];
@@ -140,11 +146,13 @@ export class SAMPConnector {
             let params = message["samp.params"];
 
             let id = params['table-id'];
-            let url = params['url'];
+            let origUrl = params['url'];
+            let finalUrl = isLocalhost(origUrl) ? cc.connection.translateUrl(origUrl) : origUrl;
+
             let row = params['row'];
 
             // search for the catalog
-            let catalog = selectCatalog(id, url)
+            let catalog = selectCatalog(id, finalUrl)
 
             if (catalog) {
                 const source = catalog.sources[row];

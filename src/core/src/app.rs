@@ -1176,7 +1176,7 @@ impl App {
         layer: String,
         bytes: &[u8],
         wcs: WCS,
-        cfg: ImageMetadata,
+        options: ImageMetadata,
     ) -> Result<js_sys::Promise, JsValue> {
         let gl = self.gl.clone();
 
@@ -1188,7 +1188,7 @@ impl App {
                     images: vec![image],
                     id: layer.clone(),
                     layer,
-                    meta: cfg,
+                    options,
                 };
 
                 let params = layer.get_params();
@@ -1212,9 +1212,11 @@ impl App {
     pub(crate) fn add_fits_image(
         &mut self,
         bytes: &[u8],
-        meta: ImageMetadata,
+        options: ImageMetadata,
         layer: String,
     ) -> Result<js_sys::Promise, JsValue> {
+        use fitsrs::hdu::header::ValueMap;
+
         let gl = self.gl.clone();
         // Stop the current inertia
         // And disable it while the fits has not been loaded
@@ -1225,19 +1227,20 @@ impl App {
         let gz = fitsrs::gz::GzReader::new(Cursor::new(bytes))
             .map_err(|_| JsValue::from_str("Error creating gz wrapper"))?;
 
-        let parse_fits_images_from_bytes = |raw_bytes: &[u8]| -> Result<Vec<Image>, JsValue> {
-            Ok(FitsImage::from_raw_bytes(raw_bytes)?
+        let parse_fits_images_from_bytes = |raw_bytes: &[u8]| -> Result<(Vec<Image>, Vec<ValueMap>), JsValue> {
+            let (images, headers) = FitsImage::from_raw_bytes(raw_bytes)?
                 .into_iter()
                 .filter_map(
                     |FitsImage {
-                         bitpix,
-                         bscale,
-                         bzero,
-                         blank,
-                         wcs,
-                         raw_bytes,
-                         ..
-                     }| {
+                        bitpix,
+                        bscale,
+                        bzero,
+                        blank,
+                        wcs,
+                        raw_bytes,
+                        header,
+                        ..
+                    }| {
                         if let Some(wcs) = wcs {
                             let image = Image::from_fits_hdu(
                                 &gl,
@@ -1250,16 +1253,18 @@ impl App {
                                 camera_coo_sys,
                             )
                             .ok()?;
-                            Some(image)
+                            Some((image, header))
                         } else {
                             None
                         }
                     },
                 )
-                .collect::<Vec<_>>())
+                .collect::<(Vec<_>, Vec<_>)>();
+            
+            Ok((images, headers))
         };
 
-        let images = match gz {
+        let (images, headers) = match gz {
             fitsrs::gz::GzReader::GzReader(bytes) => parse_fits_images_from_bytes(bytes.get_ref())?,
             fitsrs::gz::GzReader::Reader(bytes) => parse_fits_images_from_bytes(bytes.get_ref())?,
         };
@@ -1267,12 +1272,13 @@ impl App {
         if images.is_empty() {
             Err(JsValue::from_str("no images have been parsed"))
         } else {
+
             let layer = ImageLayer {
                 images,
                 id: layer.clone(),
 
                 layer,
-                meta,
+                options,
             };
 
             let params = layer.get_params();
@@ -1284,7 +1290,14 @@ impl App {
             )?;
             self.request_redraw = true;
 
-            let promise = js_sys::Promise::resolve(&serde_wasm_bindgen::to_value(&params)?);
+            let obj: js_sys::Object = serde_wasm_bindgen::to_value(&params)?
+                .dyn_into()?;
+
+            use std::iter::FromIterator;
+            let arr = js_sys::Array::from_iter(headers.iter().map(|header| serde_wasm_bindgen::to_value(&header).unwrap()));
+            js_sys::Reflect::set(&obj, &"headers".into(), &arr).unwrap();
+
+            let promise = js_sys::Promise::resolve(&obj.into());
             Ok(promise)
         }
     }

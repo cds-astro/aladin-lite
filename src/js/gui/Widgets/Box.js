@@ -203,7 +203,7 @@ function dragElement(triggerElt, elmnt, onDragged) {
         document.onmouseup = null;
         document.onmousemove = null;
 
-        var r = elmnt.getBoundingClientRect();
+        /*var r = elmnt.getBoundingClientRect();
 
         if (t < r.height / 2) {
             elmnt.style.top = r.height / 2 + "px";
@@ -221,7 +221,7 @@ function dragElement(triggerElt, elmnt, onDragged) {
 
         if (t + r.height / 2 > aladinDiv.offsetHeight) {
             elmnt.style.top = (aladinDiv.offsetHeight - r.height / 2) + "px";
-        }
+        }*/
     }
 }
 

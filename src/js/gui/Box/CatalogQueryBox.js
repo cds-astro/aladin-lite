@@ -43,15 +43,19 @@ import { ActionButton } from "../Widgets/ActionButton.js";
 
  export class CatalogQueryBox extends Box {
     static catalogs = {};
+    static catTitle2Id = {};
     constructor(aladin, options) {
         // Query the mocserver
         MocServer.getAllCatalogHiPSes()
             .then((catalogs) => {
                 catalogs.forEach((cat) => {
-                    CatalogQueryBox.catalogs[cat.obs_title] = cat;
+                    //console.log(cat)
+                    CatalogQueryBox.catalogs[cat.ID] = cat;
+                    CatalogQueryBox.catTitle2Id[cat.obs_title] = cat.ID;
                 });
 
-                searchDropdown.update({options: Object.keys(CatalogQueryBox.catalogs)})
+                //console.log(CatalogQueryBox.catalogs)
+                searchDropdown.update({options: Object.keys(CatalogQueryBox.catTitle2Id)})
             })
 
         const fnIdSelected = function(type, params) {
@@ -130,7 +134,8 @@ import { ActionButton } from "../Widgets/ActionButton.js";
                 })
             } catch (e) {
                 // Or he can select a HiPS from the list given
-                const catalog = CatalogQueryBox.catalogs[value];
+                const catID = CatalogQueryBox.catTitle2Id[value]; 
+                const catalog = CatalogQueryBox.catalogs[catID];
 
                 if (catalog) {
                     self._selectItem(catalog, aladin);

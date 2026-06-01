@@ -103,8 +103,8 @@ pub struct ImageLayer {
     pub layer: String,
     pub id: String,
     pub images: Vec<Image>,
-    /// Its color
-    pub meta: ImageMetadata,
+    /// Display options
+    pub options: ImageMetadata,
 }
 
 impl ImageLayer {
@@ -464,7 +464,8 @@ impl Layers {
             layer,
             id,
             images,
-            meta,
+            options,
+            ..
         } = image;
 
         // 1. Add the layer name
@@ -479,7 +480,7 @@ impl Layers {
         self.layers.insert(idx, layer.to_string());
 
         // 2. Add the meta information of the layer
-        self.meta.insert(layer.clone(), meta);
+        self.meta.insert(layer.clone(), options);
 
         // 3. Add the fits image
         // The layer does not already exist

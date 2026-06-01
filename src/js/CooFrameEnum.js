@@ -29,6 +29,8 @@
  * 
  *****************************************************************************/
 
+import { Aladin } from "./Aladin";
+
 export let CooFrameEnum = (function() {
 
     // Corresponds to the Rust CooSystem enum possibilities.
@@ -59,6 +61,20 @@ export let CooFrameEnum = (function() {
             else {
                 return defaultValue ? defaultValue : null;
             }
+        },
+
+        toWasm: function(cooFrame) {
+            let frame = null;
+
+            let system = cooFrame?.system;
+
+            if (system === CooFrameEnum.SYSTEMS.ICRS) {
+                frame = Aladin.wasmLibs.core.CooSystem.ICRS;
+            } else if (system === CooFrameEnum.SYSTEMS.GAL) {
+                frame = Aladin.wasmLibs.core.CooSystem.GAL;
+            }
+
+            return frame;
         }
     };
     

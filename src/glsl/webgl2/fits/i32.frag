@@ -1,7 +1,7 @@
 #version 300 es
-precision lowp float;
-precision lowp sampler2D;
-precision mediump int;
+precision highp float;
+precision highp sampler2D;
+precision highp int;
 
 out vec4 out_frag_color;
 in vec2 frag_uv;

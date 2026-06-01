@@ -74,6 +74,7 @@ import { SimbadPointer } from "./gui/Button/SimbadPointer";
 import { ColorPicker } from "./gui/Button/ColorPicker";
 import { GridEnabler } from "./gui/Button/GridEnabler";
 import { CooFrame } from "./gui/Input/CooFrame";
+import { SelectionMode } from "./gui/Button/SelectionMode";
 import { Circle } from "./shapes/Circle";
 import { Ellipse } from "./shapes/Ellipse";
 import { Polyline } from "./shapes/Polyline";
@@ -110,6 +111,8 @@ import { Polyline } from "./shapes/Polyline";
  * CSS class for that button is `aladin-grid-control`
  * @property {boolean} [showSettingsControl=false] - Whether to show the settings control toolbar.
  * CSS class for that button is `aladin-settings-control`
+ * @property {boolean} [showSelectionModeControl=false] - Whether to show the selection mode menu opener button.
+ * CSS class for that button is `aladin-selectionMode-control`
  * @property {boolean} [showColorPickerControl=false] - Whether to show the color picker tool.
  * CSS class for that button is `aladin-colorPicker-control`
  * @property {boolean} [showShareControl=false] - Whether to show the share control toolbar.
@@ -155,6 +158,7 @@ import { Polyline } from "./shapes/Polyline";
  * @property {boolean} [pixelateCanvas=true] - Whether to pixelate the canvas.
  * @property {boolean} [manualSelection=false] - When set to true, no selection will be performed, only events will be generated.
  * @property {string} [mode] - Interface theme, can be either 'dark' or 'light'. If not set, the mode will be retrieved from your browser preference or your localStorage.
+ * @property {string} [selectionMode="edge"] - When set to 'skewer' footprints are selected by clicking inside them.  For 'edge' footprints are selected by clicking on their edges.
  * @property {Object} [selector] - More options for the the selector.
  * @property {string} [selector.color] - Color of the selector, defaults to the color of the reticle. Can be a hex color or a function returning a hex color.
  * @property {number} [selector.lineWidth=2] - Width of the selector line.
@@ -407,7 +411,6 @@ export let Aladin = (function () {
 
         // Aladin logo
         new AladinLogo(this.aladinDiv);
-
         this.reticle = new Reticle(this.options, this);
         this.popup = new Popup(this.aladinDiv, this.view);
         this.tooltip = document.createElement('div')
@@ -453,7 +456,7 @@ export let Aladin = (function () {
         }
 
         // Format the hipslist given by the user before storing it in the aladin instance
-        this.hipsFavorites = [];
+        this.layerFavorites = [];
         let hipsList = [].concat(options.hipsList);
 
         for (var hips of hipsList) {
@@ -498,9 +501,11 @@ export let Aladin = (function () {
                 hipsObj["name"] = name;
             }
 
+            hipsObj["type"] = "hips";
+
             // Merge what is already in the cache for that HiPS with new properties
             // coming from the MOCServer
-            this.hipsFavorites.push(hipsObj);
+            this.layerFavorites.push(hipsObj);
             // Favorites are also directly pushed to the cache
             this.hipsCache.append(hipsObj.id, hipsObj)
         }
@@ -511,7 +516,7 @@ export let Aladin = (function () {
 
         this._setupUI(options);
 
-        ALEvent.FAVORITE_HIPS_LIST_UPDATED.dispatchedTo(document.body, this.hipsFavorites);
+        ALEvent.FAVORITE_LAYERS_LIST_UPDATED.dispatchedTo(document, this.layerFavorites);
 
         if (options.survey) {
             if (Array.isArray(options.survey)) {
@@ -673,15 +678,19 @@ export let Aladin = (function () {
             widgets["simbad"] = simbad
         }
 
-        // Add the projection control
         // Add the coo grid control
         if (options.showCooGridControl) {
             let grid = new GridEnabler(this);
             widgets["grid"] = grid;
         }
 
-        // Add the projection control
-        // Add the coo grid control
+        // Show selection mode control
+        if (options.showSelectionModeControl) {
+            let selectionMode = new SelectionMode(this);
+            widgets["selectionMode"] = selectionMode
+        }
+
+        // Add the color picker control
         if (options.showColorPickerControl) {
             let picker = new ColorPicker(this);
             widgets["picker"] = picker;
@@ -697,6 +706,7 @@ export let Aladin = (function () {
             this.toolbar.add(name, widget);
         }
 
+        // Add the projection control
         if (options.showProjectionControl) {
             this.projBtn = new ProjectionActionButton(this);
             this.addUI(this.projBtn);
@@ -759,9 +769,6 @@ export let Aladin = (function () {
     /**** CONSTANTS ****/
     Aladin.VERSION = version;
 
-    Aladin.JSONP_PROXY = "https://alaskybis.cds.unistra.fr/cgi/JSONProxy";
-    //Aladin.JSONP_PROXY = "https://alaskybis.unistra.fr/cgi/JSONProxy";
-
     Aladin.URL_PREVIEWER = "https://aladin.cds.unistra.fr/AladinLite/";
 
     // access to WASM libraries
@@ -786,6 +793,7 @@ export let Aladin = (function () {
         showSimbadPointerControl: false,
         showCooGridControl: false,
         showSettingsControl: false,
+        showSelectionModeControl: false,
         showColorPickerControl: false,
         // Share toolbar
         showShareControl: false,
@@ -804,10 +812,10 @@ export let Aladin = (function () {
         showCatalog: true, // TODO: still used ??
 
         fullScreen: false,
-        reticleColor: "rgb(178, 50, 178)",
+        reticleColor: "#ff54ff",
         reticleSize: 22,
-        gridColor: "rgb(178, 50, 178)",
-        gridOpacity: 0.8,
+        gridColor: "#ff54ff",
+        gridOpacity: 1.0,
         gridOptions: {
             enabled: false,
             showLabels: true,
@@ -1751,7 +1759,7 @@ export let Aladin = (function () {
         maxOrder,
         options
     ) {
-        let hipsOptions = { id, name, maxOrder, url, cooFrame, ...options };
+        let hipsOptions = { id, name, maxOrder, url, cooFrame, type: "hips", ...options };
         let hips = new HiPS(id, url || id, hipsOptions)
 
         // A HiPS can be refered by its unique ID thus we add it to the cache (cf excample/al-cfht.html that refers to HiPS object just by their unique ID)
@@ -1787,7 +1795,7 @@ export let Aladin = (function () {
      * Remove a HiPS from the list of favorites.
      *
      * This send a event of type
-     * FAVORITE_HIPS_LIST_UPDATED which can be listened to
+     * FAVORITE_LAYERS_LIST_UPDATED which can be listened to
      *
      * @throws A warning when the asset is currently present in the view
      *
@@ -1807,7 +1815,7 @@ export let Aladin = (function () {
         }
 
         // find the index of the hips to remove
-        const idx = this.hipsFavorites.findIndex((hipsObj) => {
+        const idx = this.layerFavorites.findIndex((hipsObj) => {
             if (typeof hips !== "string") {
                 return hipsObj.name == hips.name || hipsObj.id == hips.id || hipsObj.url == hips.url;
             } else {
@@ -1817,9 +1825,9 @@ export let Aladin = (function () {
 
         // a hips matches
         if (idx >= 0) {
-            this.hipsFavorites.splice(idx, 1);
+            this.layerFavorites.splice(idx, 1);
             // Send a change of favorites for the UI selector to adapt their optional list
-            ALEvent.FAVORITE_HIPS_LIST_UPDATED.dispatchedTo(document.body, this.hipsFavorites);
+            ALEvent.FAVORITE_LAYERS_LIST_UPDATED.dispatchedTo(document, this.layerFavorites);
         }
     }
 
@@ -1827,19 +1835,19 @@ export let Aladin = (function () {
      * Add a HiPS to the list of favorites.
      *
      * If already present it will not add it again. This send a event of type
-     * FAVORITE_HIPS_LIST_UPDATED which can be listened to. Once added, the favorite list
+     * FAVORITE_LAYERS_LIST_UPDATED which can be listened to. Once added, the favorite list
      * will be sorted by the name of the hips.
      *
      * @memberof Aladin
-     * @param {HiPS} hips - The HiPS to add to the favorites
+     * @param {HiPS|Image} layer - The HiPS to add to the favorites
      */
-    Aladin.prototype.addHiPSToFavorites = function(hips) {
+    Aladin.prototype.addHiPSToFavorites = function(layer) {
         // find the index of the hips to remove
-        const idx = this.hipsFavorites.findIndex((hipsObj) => {
-            if (typeof hips !== "string") {
-                return hipsObj.name == hips.name || hipsObj.id == hips.id || hipsObj.url == hips.url;
+        const idx = this.layerFavorites.findIndex((obj) => {
+            if (typeof layer !== "string") {
+                return obj.id == layer.id;
             } else {
-                return hipsObj.name == hips || hipsObj.id == hips || hipsObj.url == hips;
+                return obj.id == layer;
             }
         })
 
@@ -1849,14 +1857,14 @@ export let Aladin = (function () {
         }
 
         // add the new favorite HiPS
-        this.hipsFavorites.push({
-            url: hips.url,
-            id: hips.id,
-            name: hips.name,
+        this.layerFavorites.push({
+            url: layer.url,
+            id: layer.id,
+            name: layer.name,
         })
 
         // send the final event
-        ALEvent.FAVORITE_HIPS_LIST_UPDATED.dispatchedTo(document.body, this.hipsFavorites);
+        ALEvent.FAVORITE_LAYERS_LIST_UPDATED.dispatchedTo(document, this.layerFavorites);
     }
 
     /**
@@ -1950,7 +1958,7 @@ export let Aladin = (function () {
         return this.createImageSurvey(
             id,
             options && options.name,
-            id,
+            options && options.url || id,
             options && options.cooFrame,
             options && options.maxOrder,
             options
@@ -1982,6 +1990,11 @@ export let Aladin = (function () {
     Aladin.prototype.addNewImageLayer = function (survey = "P/DSS2/color") {
         let layerName = Utils.uuidv4();
         return this.setOverlayImageLayer(survey, layerName);
+        //let newHiPS = A.HiPS(survey);
+        //newHiPS.id = this.hipsCache.makeUniqLayerName(newHiPS.id);
+        //newHiPS.name = newHiPS.id;
+
+        //return this.setOverlayImageLayer(newHiPS, layerName);
     };
 
     /**
@@ -2080,7 +2093,14 @@ export let Aladin = (function () {
      * </ul>
      */
     Aladin.prototype.setBaseImageLayer = function (urlOrHiPSOrFITS) {
-        return this.setOverlayImageLayer(urlOrHiPSOrFITS, (this.view.overlayLayers && this.view.overlayLayers[0]) || Utils.uuidv4());
+        /*if (this.view._waitsForLayer()) {
+            // delay this call
+            this.view.delayedBaseLayerCalledParams = urlOrHiPSOrFITS;
+            return;
+        }*/
+        let firstLayer = this.view.getFirstLayer();
+
+        return this.setOverlayImageLayer(urlOrHiPSOrFITS, firstLayer || Utils.uuidv4());
     };
 
     /**
@@ -2090,7 +2110,9 @@ export let Aladin = (function () {
      * @returns {HiPS|Image} - Returns the image layer corresponding to the base layer
      */
     Aladin.prototype.getBaseImageLayer = function () {
-        return this.view.getImageLayer(this.view.overlayLayers && this.view.overlayLayers[0]);
+        let firstLayer = this.view.getFirstLayer();
+
+        return this.view.getImageLayer(firstLayer);
     };
 
     /**
@@ -2108,7 +2130,7 @@ export let Aladin = (function () {
      * on top the 'base' layer. If the layer is already present in the view, it will be replaced by the new HiPS/FITS image given here.
      */
     Aladin.prototype.setOverlayImageLayer = function (
-        urlOrHiPSOrFITS,
+        urlOrHiPSOrImage,
         layer = "overlay"
     ) {
         let imageLayer;
@@ -2116,14 +2138,17 @@ export let Aladin = (function () {
         let hipsCache = this.hipsCache;
 
         // 1. User gives an ID
-        if (typeof urlOrHiPSOrFITS === "string") {
-            const idOrUrl = urlOrHiPSOrFITS;
+        if (typeof urlOrHiPSOrImage === "string") {
+            const idOrUrl = urlOrHiPSOrImage;
             // many cases here
             // 1/ It has been already added to the cache
             let cachedOptions = hipsCache.get(idOrUrl)
-
             if (cachedOptions) {
-                imageLayer = A.HiPS(idOrUrl, cachedOptions);
+                if (cachedOptions.type === "hips") {
+                    imageLayer = A.HiPS(idOrUrl, cachedOptions)
+                } else if (cachedOptions.type === "image") {
+                    imageLayer = A.image(idOrUrl, cachedOptions);
+                }
             } else {
                 // 2/ Not in the cache, then we create the hips from this url/id and
                 // go to the case 3
@@ -2133,17 +2158,20 @@ export let Aladin = (function () {
             }
         } else {
             // 3/ It is an image survey.
-            imageLayer = urlOrHiPSOrFITS;
+            imageLayer = urlOrHiPSOrImage;
 
-            if (imageLayer instanceof HiPS) {
-                let cachedLayerOptions = hipsCache.get(imageLayer.id)
+            let cachedLayerOptions = hipsCache.get(imageLayer.id)
 
-                if (!cachedLayerOptions) {
-                    hipsCache.append(imageLayer.id, imageLayer.options)
-                } else {
-                    // Set the image layer object with the options from the cache.
-                    imageLayer.setOptions(cachedLayerOptions)
+            if (!cachedLayerOptions) {
+                let type = "hips";
+                if (imageLayer instanceof Image) {
+                    type = "image";
                 }
+
+                hipsCache.append(imageLayer.id, {...imageLayer.options, type})
+            } else {
+                // Set the image layer object with the options from the cache.
+                imageLayer.setOptions(cachedLayerOptions)
             }
         }
 
@@ -2183,7 +2211,7 @@ export let Aladin = (function () {
      * view in the counter clockwise order (or towards the east)
      */
     Aladin.prototype.setRotation = function (rotation) {
-        if (!rotation) {
+        if (!Utils.isNumber(rotation)) {
             console.warn("Rotation angle is not valid:", rotation)
             return;
         }
@@ -2777,18 +2805,13 @@ export let Aladin = (function () {
      */
     Aladin.prototype.pix2world = function (x, y, frame) {
         if (frame) {
-            frame = CooFrameEnum.fromString(frame, CooFrameEnum.ICRS);
+            if (typeof frame === "string") {
+                frame = CooFrameEnum.fromString(frame, CooFrameEnum.ICRS);
+            }
         }
+        let [lon, lat] = this.view.wasm.pix2world(x, y, CooFrameEnum.toWasm(frame));
 
-        let lonlat = this.view.wasm.pix2world(x, y, frame && frame.system);
-
-        let [lon, lat] = lonlat;
-
-        if (lon < 0) {
-            return [lon + 360.0, lat];
-        }
-
-        return [lon, lat];
+       return [lon < 0 ? lon + 360.0 : lon, lat];
     };
 
     /**
@@ -2805,19 +2828,13 @@ export let Aladin = (function () {
      */
     Aladin.prototype.world2pix = function (lon, lat, frame) {
         if (frame) {
-            if (frame instanceof string) {
+            if (typeof frame === "string") {
                 frame = CooFrameEnum.fromString(frame, CooFrameEnum.ICRS);
             }
-
-            if (frame.label == CooFrameEnum.SYSTEMS.GAL) {
-                frame = Aladin.wasmLibs.core.CooSystem.GAL;
-            }
-            else {
-                frame = Aladin.wasmLibs.core.CooSystem.ICRS;
-            }
         }
+        // frame === undefined/null → passed as-is, WASM treats as None (default system)
 
-        return this.view.wasm.world2pix(lon, lat, frame);
+        return this.view.wasm.world2pix(lon, lat, CooFrameEnum.toWasm(frame));
     };
 
     /**
@@ -2891,10 +2908,7 @@ export let Aladin = (function () {
      */
     Aladin.prototype.getFov = function () {
         var fovX = this.view.fov;
-        var s = this.getSize();
-
-        var fovY = (s[1] / s[0]) * fovX;
-        fovY = Math.min(fovY, 180);
+        var fovY = this.view.fovY;
 
         return [fovX, fovY];
     };

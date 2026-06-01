@@ -58,7 +58,7 @@ export class ALEvent {
   static LAYER_CHANGED  = new ALEvent("AL:Layer.changed");
 
   static HIPS_CACHE_UPDATED = new ALEvent("AL:HiPSCache.updated");
-  static FAVORITE_HIPS_LIST_UPDATED = new ALEvent("AL:HiPSFavorites.updated");
+  static FAVORITE_LAYERS_LIST_UPDATED = new ALEvent("AL:HiPSFavorites.updated");
 
   static GRAPHIC_OVERLAY_LAYER_ADDED  = new ALEvent("AL:GraphicOverlayLayer.added");
   static GRAPHIC_OVERLAY_LAYER_REMOVED  = new ALEvent("AL:GraphicOverlayLayer.removed");

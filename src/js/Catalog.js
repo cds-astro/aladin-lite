@@ -517,7 +517,8 @@ export let Catalog = (function () {
         var cacheMarkerCtx = this.cacheMarkerCanvas.getContext("2d");
         cacheMarkerCtx.fillStyle = this.color;
         cacheMarkerCtx.beginPath();
-        var half = this.markerSize / 2;
+        var half = Math.max(this.markerSize / 2, 2.0);
+        
         cacheMarkerCtx.arc(half, half, half - 2, 0, 2 * Math.PI, false);
         cacheMarkerCtx.fill();
         cacheMarkerCtx.lineWidth = 2;

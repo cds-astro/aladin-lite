@@ -24,6 +24,7 @@ const ZOOM_FACTOR_UPPER_LIMIT: f64 = 2.0;
 pub struct CameraViewPort {
     // The field of view angle
     aperture: f64,
+    aperture_y: f64,
     // The rotation of the camera
     center: Vector3<f64>,
     w2m_rot: Rotation<f64>,
@@ -78,6 +79,9 @@ pub struct CameraViewPort {
     pub(crate) min_fov: Option<f64>,
     // an optional max field of view
     pub(crate) max_fov: Option<f64>,
+
+    scissor_w: f64,
+    scissor_h: f64,
 }
 use al_api::coo_system::CooSystem;
 use al_core::WebGlContext;
@@ -104,6 +108,7 @@ impl CameraViewPort {
         let last_user_action = UserAction::Starting;
 
         let aperture = projection.aperture_start().to_radians();
+        let aperture_y = aperture;
 
         let w2m = Matrix3::identity();
         let m2w = w2m;
@@ -127,6 +132,9 @@ impl CameraViewPort {
         let width = width * dpi;
         let height = height * dpi;
 
+        let scissor_w = width as f64;
+        let scissor_h = height as f64;
+
         let aspect = height / width;
         let ndc_to_clip = Vector2::new(1.0, (height as f64) / (width as f64));
         let zoom_factor = 1.0;
@@ -144,6 +152,8 @@ impl CameraViewPort {
         CameraViewPort {
             // The field of view angle
             aperture,
+            aperture_y,
+
             center,
             // The rotation of the cameraq
             w2m_rot,
@@ -187,6 +197,9 @@ impl CameraViewPort {
 
             min_fov: None,
             max_fov: None,
+
+            scissor_w,
+            scissor_h,
         }
     }
 
@@ -246,7 +259,7 @@ impl CameraViewPort {
         }
     }
 
-    fn recompute_scissor(&self) {
+    fn recompute_scissor(&mut self) {
         // Clear all the screen before updating the scissor
         //self.gl.scissor(0, 0, self.width as i32, self.height as i32);
         //self.gl.clear(web_sys::WebGl2RenderingContext::COLOR_BUFFER_BIT);
@@ -274,6 +287,9 @@ impl CameraViewPort {
         let w = (tr_s.x - tl_s.x).min(self.width as f64);
         let h = (br_s.y - tr_s.y).min(self.height as f64);
 
+        self.scissor_w = w;
+        self.scissor_h = h;
+
         // Specify a scissor here
         self.gl.scissor(
             (tl_s.x as i32).max(0),
@@ -284,6 +300,7 @@ impl CameraViewPort {
     }
 
     pub fn set_screen_size(&mut self, width: f32, height: f32, projection: &ProjectionType) {
+        let old_w = self.width;
         self.width = width * self.dpi;
         self.height = height * self.dpi;
 
@@ -291,8 +308,9 @@ impl CameraViewPort {
         // Compute the new clip zoom factor
         self.compute_ndc_to_clip_factor(projection);
 
-        self.fov
-            .set_aperture(&self.ndc_to_clip, self.zoom_factor, &self.w2m, projection);
+        self.set_zoom_factor(self.zoom_factor * ((self.width / old_w) as f64), projection);
+
+        //self.set_aperture(self.aperture * ((self.width / old_w) as f64), projection);
 
         let proj_area = projection.get_area();
         self.is_allsky = !proj_area.is_in(&math::projection::ndc_to_clip_space(
@@ -445,6 +463,12 @@ impl CameraViewPort {
         // Limit later the aperture to aperture_start
         self.aperture = aperture.min(aperture_start);
 
+        if self.scissor_h < (self.height - 1.0).into() {
+            self.aperture_y = aperture_start;
+        } else {
+            self.aperture_y = self.aperture / (self.aspect as f64);
+        }
+
         // Project this vertex into the screen
         self.moved = true;
         self.zoomed = true;
@@ -539,6 +563,12 @@ impl CameraViewPort {
 
         self.aperture = aperture;
 
+        if self.scissor_h < (self.height - 1.0).into() {
+            self.aperture_y = aperture_start;
+        } else {
+            self.aperture_y = self.aperture / (self.aspect as f64);
+        }
+
         // Project this vertex into the screen
         self.moved = true;
         self.zoomed = true;
@@ -610,7 +640,6 @@ impl CameraViewPort {
             Err(idx) => idx,
         };
 
-        //al_core::log(&format!("{:?}", depth_pixel));
         const DEPTH_OFFSET_TEXTURE: usize = 9;
         self.texture_depth = if DEPTH_OFFSET_TEXTURE > depth_pixel {
             0_u8
@@ -797,6 +826,11 @@ impl CameraViewPort {
     #[inline]
     pub fn get_aperture(&self) -> f64 {
         self.aperture
+    }
+
+    #[inline]
+    pub fn get_aperture_y(&self) -> f64 {
+        self.aperture_y
     }
 
     #[inline]

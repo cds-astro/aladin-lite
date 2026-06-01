@@ -309,12 +309,15 @@ export let GraphicOverlay = (function() {
      *
      * @memberof GraphicOverlay
      *
-     * @param {string} hex - The color given in hexadecimal e.g. '#ffa0bb'
+     * @param {string} color - Any CSS color string (hex e.g. '#ffa0bb', rgb(), named color)
      * @param {number} percent - The percentage to increase the brightness of
      *
      * @returns {string} The new color given as an hexadecimal string
      */
-    GraphicOverlay.increaseBrightness = function(hex, percent){
+    GraphicOverlay.increaseBrightness = function(color, percent){
+        // Normalize the color to hex.
+        var hex = Color.standardizeColor(color);
+
         // strip the leading # if it's there
         hex = hex.replace(/^\s*#|\s*$/g, '');
 

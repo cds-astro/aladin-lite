@@ -7,10 +7,10 @@
     <script type="module">
         import A from '../src/js/A.js';
 A.init.then(() => {
-    let aladin = A.aladin('#aladin-lite-div', {target: "23 28 32.46 -00 10 38.9", fov: 4, projection: "AIT"});
+    let aladin = A.aladin('#aladin-lite-div', {survey: ["lksldf", 'ljkjsdf'], target: "23 28 32.46 -00 10 38.9", fov: 4, projection: "AIT"});
     
-    let hsc = aladin.newImageSurvey("P/HSC/DR2/deep/g", {colormap:"Purples", imgFormat: "fits"});
-    aladin.setBaseImageLayer(hsc);
+    //let hsc = aladin.newImageSurvey("P/HSC/DR2/deep/g", {colormap:"Purples", imgFormat: "fits"});
+    //aladin.setBaseImageLayer(hsc);
 
 });
 </script>

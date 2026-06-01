@@ -29,16 +29,15 @@ impl WebGlContext {
             .dyn_into::<web_sys::HtmlCanvasElement>()
             .unwrap_abort();
 
-        // See https://stackoverflow.com/a/26790802/13456997
-        // preserveDrawingBuffer enabled for exporting the view as a PNG
-        let context_options =
-            js_sys::JSON::parse("{\"antialias\":false, \"preserveDrawingBuffer\": true}")?;
+        //let context_options = js_sys::JSON::parse("{}")?;
+        //let context_options =
+        //    js_sys::JSON::parse("{\"antialias\":false}")?;
         //js_sys::JSON::parse("{\"antialias\":false}")?;
 
         #[cfg(feature = "webgl2")]
         let gl = Rc::new(
             canvas
-                .get_context_with_context_options("webgl2", context_options.as_ref())?
+                .get_context("webgl2")?
                 .unwrap_abort()
                 .dyn_into::<WebGlRenderingCtx>()
                 .unwrap_abort(),

@@ -14,7 +14,6 @@
                 {
                     name: "spitzer-ssc2005-24a1",
                     successCallback: (ra, dec, fov, image) => {
-                        console.log(ra, dec)
                         aladin.gotoRaDec(ra, dec);
                         aladin.setFoV(fov * 5)
                     }

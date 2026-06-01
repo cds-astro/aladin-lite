@@ -6,7 +6,9 @@
  *
  * Licensed under the MPL http://www.mozilla.org/MPL/MPL-1.1.txt
  *
- * S
+ * This code has been adapted to the use of Aladin Lite. It features:
+ * - fixes that has been discovered with the testing of multiple images found.
+ * - The support of PNGs
  */
 
 export let AVM = (function() {
@@ -117,7 +119,13 @@ export let AVM = (function() {
 
         const findAVM = (arrayBuffer) => {
             const view = new DataView(arrayBuffer);
-            var oAVM = _obj.findAVMinJPEG(view);
+            // See the magic bytes for JPEG or PNG files
+            var oAVM;
+            if (view.getUint8(0) === 0xFF && view.getUint8(1) === 0xD8)
+                oAVM = _obj.findAVMinJPEG(view);
+            if (view.getUint8(0) === 0x89 && view.getUint8(1) === 0x50)
+                oAVM = _obj.findAVMinPNG(view);
+
             _obj.wcs = oAVM || {};
 
             _obj.wcsdata = _obj.wcs !== undefined && Object.keys(_obj.wcs).length > 0;
@@ -136,7 +144,6 @@ export let AVM = (function() {
                     findAVM(arrayBuffer)
                 })
         }
-        
     }
 
     function addEvent(oElement, strEvent, fncHandler){
@@ -172,6 +179,77 @@ export let AVM = (function() {
         }
     }
 
+    AVM.prototype.findAVMinPNG = function(oFile) {
+        // PNG signature: 8 bytes - 0x89 PNG \r \n 0x1a \n
+        if (
+            oFile.getUint8(0) !== 0x89 ||
+            oFile.getUint8(1) !== 0x50 || // 'P'
+            oFile.getUint8(2) !== 0x4E || // 'N'
+            oFile.getUint8(3) !== 0x47 || // 'G'
+            oFile.getUint8(4) !== 0x0D ||
+            oFile.getUint8(5) !== 0x0A ||
+            oFile.getUint8(6) !== 0x1A ||
+            oFile.getUint8(7) !== 0x0A
+        ) return false; // not a valid PNG
+
+        var iOffset = 8; // skip the 8-byte PNG signature
+        var iLength = oFile.byteLength;
+
+        while (iOffset < iLength) {
+            // Each PNG chunk: [4 bytes length][4 bytes type][data][4 bytes CRC]
+            var iChunkLength = oFile.getUint32(iOffset, false);     // big-endian
+
+            // Read the 4-byte chunk type as a string
+            var sChunkType =
+                String.fromCharCode(oFile.getUint8(iOffset + 4)) +
+                String.fromCharCode(oFile.getUint8(iOffset + 5)) +
+                String.fromCharCode(oFile.getUint8(iOffset + 6)) +
+                String.fromCharCode(oFile.getUint8(iOffset + 7));
+
+            if (sChunkType === 'iTXt' || sChunkType === 'tEXt' || sChunkType === 'zTXt') {
+                // AVM data is typically stored in an iTXt chunk with keyword "AVM"
+                // iTXt layout: [keyword]\0[compression flag][compression method][language]\0[translated keyword]\0[text]
+                // tEXt layout: [keyword]\0[text]
+                var iDataOffset = iOffset + 8; // skip length (4) + type (4)
+                var iDataEnd    = iDataOffset + iChunkLength;
+
+                // Read the keyword (null-terminated)
+                var sKeyword = '';
+                var i = iDataOffset;
+                while (i < iDataEnd && oFile.getUint8(i) !== 0x00) {
+                    sKeyword += String.fromCharCode(oFile.getUint8(i));
+                    i++;
+                }
+
+                //if (sKeyword === 'AVM') {
+                    // Skip past the null terminator
+                    i++; // now at compression flag (iTXt) or text start (tEXt)
+
+                    if (sChunkType === 'iTXt') {
+                        // Skip: compression flag (1) + compression method (1)
+                        i += 2;
+                        // Skip language tag (null-terminated)
+                        while (i < iDataEnd && oFile.getUint8(i) !== 0x00) i++;
+                        i++; // skip null
+                        // Skip translated keyword (null-terminated)
+                        while (i < iDataEnd && oFile.getUint8(i) !== 0x00) i++;
+                        i++; // skip null
+                    }
+
+                    // i now points to the start of the actual AVM text data
+                    return this.readAVMDataAsWCS(oFile, i, iDataEnd - i);
+                //}
+            }
+
+            if (sChunkType === 'IEND') break; // end of PNG, stop searching
+
+            // Move to the next chunk: length (4) + type (4) + data + CRC (4)
+            iOffset += 4 + 4 + iChunkLength + 4;
+        }
+
+        return false;
+    }
+
     AVM.prototype.readAVMDataAsWCS = function(oFile) {
         var tags = undefined;
 
@@ -200,7 +278,7 @@ export let AVM = (function() {
                 if (unwindTag(tags['Spatial.Equinox']))
                     wcs.EQUINOX = +unwindTag(tags['Spatial.Equinox']);
 
-                wcs.NAXIS = tags['Spatial.ReferenceDimension'] && +tags['Spatial.ReferenceDimension'].length;
+                wcs.NAXIS = 2;
                 wcs.NAXIS1 = tags['Spatial.ReferenceDimension'] && +tags['Spatial.ReferenceDimension'][0];
                 wcs.NAXIS2 = tags['Spatial.ReferenceDimension'] && +tags['Spatial.ReferenceDimension'][1];
 
@@ -219,9 +297,9 @@ export let AVM = (function() {
                         wcs.CROTA2 = +unwindTag(tags['Spatial.Rotation']);
                     }
                 }
-
-                wcs.CRPIX1 = tags['Spatial.ReferencePixel'] && +tags['Spatial.ReferencePixel'][0];
-                wcs.CRPIX2 = tags['Spatial.ReferencePixel'] && +tags['Spatial.ReferencePixel'][1];
+                const spatialRef = tags['Spatial.ReferencePixel']
+                wcs.CRPIX1 = spatialRef && +spatialRef[0]
+                wcs.CRPIX2 = spatialRef && +spatialRef[1]
 
                 wcs.CRVAL1 = tags['Spatial.ReferenceValue'] && +tags['Spatial.ReferenceValue'][0];
                 wcs.CRVAL2 = tags['Spatial.ReferenceValue'] && +tags['Spatial.ReferenceValue'][1];

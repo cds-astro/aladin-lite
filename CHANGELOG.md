@@ -6,8 +6,25 @@
 
 ## Released
 
+### 3.9.0-beta
+
+* [feat] AVM tag reading from PNG extension images by [@bmatthieu3][bmatthieu3] <https://github.com/cds-astro/aladin-lite/issues/349>
+* [feat] Export of aladin lite view with AVM tags [@tboch][tboch] <https://github.com/cds-astro/aladin-lite/issues/349>
+* [fix] Switching back and forth the layer to an image <https://github.com/cds-astro/aladin-lite/issues/359> by [@bmatthieu3][bmatthieu3]
+* [fix] Open settings on catalog with a HiPS3D <https://github.com/cds-astro/aladin-lite/issues/360>
+* [fix] keep the cut values for each tile format <https://github.com/cds-astro/aladin-lite/issues/361>
+* [fix] Keep approx the same level of zoom when the screen is resized <https://github.com/cds-astro/aladin-lite/issues/362>
+* [fix] <https://github.com/cds-astro/aladin-lite/issues/363>
+* [fix] <https://github.com/cds-astro/aladin-lite/issues/364>
+* [feat] Support of SIP astrometry keywords in FITS file <https://github.com/cds-astro/aladin-lite/issues/365>
+* [fix] <https://github.com/cds-astro/aladin-lite/issues/371>
+* [feat] Progressive catalogs: first try loading metadata.xml, switch back on Metadata.xml if it fails <https://github.com/cds-astro/aladin-lite/issues/357>
+* [feat] Support skewer selection for footprints/shapes <https://github.com/cds-astro/aladin-lite/issues/369> by [@tomdonaldson][tomdonaldson]
+
 ### 3.8.0
 
+
+* [fix] Fix shape hover colors when overlay uses named color (increaseBrightness() accepts names now) <https://github.com/cds-astro/aladin-lite/issues/355>
 * [feat] Selected and hovered items (shapes, sources, ...) are rendered at last. <https://github.com/cds-astro/aladin-lite/issues/337>
 * [feat] Add selectionLineWidth option for shapes and catalogs. <https://github.com/cds-astro/aladin-lite/pull/354>
 * [fix] horizontal/vertical overlay lines appearing correctly <https://github.com/cds-astro/aladin-lite/issues/334>
@@ -525,6 +542,7 @@ Aladin Lite is made possible thanks to those people:
 * [@simontorres][simontorres]
 * [@szpetny][szpetny]
 * [@tboch][tboch]
+* [@tomdonaldson][tomdonaldson]
 * [@Xen0Xys][Xen0Xys]
 
 [alexgoff]: https://github.com/alexgoff
@@ -537,5 +555,5 @@ Aladin Lite is made possible thanks to those people:
 [simontorres]: https://github.com/simontorres
 [szpetny]: https://github.com/szpetny
 [tboch]: https://github.com/tboch
+[tomdonaldson]: https://github.com/tomdonaldson
 [Xen0Xys]: https://github.com/Xen0Xys
-

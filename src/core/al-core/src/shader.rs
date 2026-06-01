@@ -289,20 +289,9 @@ impl UniformType for TransferFunction {
     }
 }
 
-use al_api::hips::HiPSColor;
 use al_api::hips::ImageMetadata;
 
 impl SendUniforms for ImageMetadata {
-    fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
-        shader
-            .attach_uniforms_from(&self.color)
-            .attach_uniform("opacity", &self.opacity);
-
-        shader
-    }
-}
-
-impl SendUniforms for HiPSColor {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
         let reversed = self.reversed as u8 as f32;
 
@@ -310,17 +299,18 @@ impl SendUniforms for HiPSColor {
             .attach_uniform("H", &self.stretch)
             .attach_uniform("min_value", &self.min_cut.unwrap_or(0.0))
             .attach_uniform("max_value", &self.max_cut.unwrap_or(1.0))
-            .attach_uniform("k_gamma", &self.k_gamma)
-            .attach_uniform("k_saturation", &self.k_saturation)
-            .attach_uniform("k_brightness", &self.k_brightness)
-            .attach_uniform("k_contrast", &self.k_contrast)
-            .attach_uniform("reversed", &reversed);
+            .attach_uniform("k_gamma", &self.gamma)
+            .attach_uniform("k_saturation", &self.saturation)
+            .attach_uniform("k_brightness", &self.brightness)
+            .attach_uniform("k_contrast", &self.contrast)
+            .attach_uniform("reversed", &reversed)
+            .attach_uniform("opacity", &self.opacity);
 
         shader
     }
 }
 
-impl SendUniformsWithParams<Colormaps> for HiPSColor {
+impl SendUniformsWithParams<Colormaps> for ImageMetadata {
     fn attach_uniforms_with_params<'a>(
         &self,
         shader: &'a ShaderBound<'a>,
@@ -328,18 +318,19 @@ impl SendUniformsWithParams<Colormaps> for HiPSColor {
     ) -> &'a ShaderBound<'a> {
         let reversed = self.reversed as u8 as f32;
 
-        let cmap = cmaps.get(self.cmap_name.as_ref());
+        let cmap = cmaps.get(self.colormap.as_ref());
         shader
             .attach_uniforms_from(cmaps)
             .attach_uniforms_with_params_from(cmap, cmaps)
             .attach_uniform("H", &self.stretch)
             .attach_uniform("min_value", &self.min_cut.unwrap_or(0.0))
             .attach_uniform("max_value", &self.max_cut.unwrap_or(1.0))
-            .attach_uniform("k_gamma", &self.k_gamma)
-            .attach_uniform("k_saturation", &self.k_saturation)
-            .attach_uniform("k_brightness", &self.k_brightness)
-            .attach_uniform("k_contrast", &self.k_contrast)
-            .attach_uniform("reversed", &reversed);
+            .attach_uniform("k_gamma", &self.gamma)
+            .attach_uniform("k_saturation", &self.saturation)
+            .attach_uniform("k_brightness", &self.brightness)
+            .attach_uniform("k_contrast", &self.contrast)
+            .attach_uniform("reversed", &reversed)
+            .attach_uniform("opacity", &self.opacity);
 
         shader
     }

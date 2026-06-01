@@ -30,7 +30,6 @@
  *
  *****************************************************************************/
 import { ALEvent } from "./events/ALEvent.js";
-import { ColorCfg } from "./ColorCfg.js";
 import { HiPSProperties } from "./HiPSProperties.js";
 import { Aladin } from "./Aladin.js"; 
 import { CooFrameEnum } from "./CooFrameEnum.js";
@@ -43,11 +42,10 @@ PropertyParser.tileSize = function (properties) {
     let tileSize =
         (properties &&
             properties.hips_tile_width &&
-            +properties.hips_tile_width) ||
-        512;
+            +properties.hips_tile_width)
 
     // Check if the tile width size is a power of 2
-    if (tileSize & (tileSize - 1 !== 0)) {
+    if (tileSize && ((tileSize & (tileSize - 1)) !== 0)) {
         tileSize = 512;
     }
 
@@ -59,7 +57,7 @@ PropertyParser.cooFrame = function (properties) {
     let cooFrame =
         (properties && properties.hips_body && "ICRSd") ||
         (properties && properties.hips_frame) ||
-        "icrs";
+        "ICRS";
     return cooFrame;
 };
 
@@ -80,12 +78,12 @@ PropertyParser.minOrder = function (properties) {
     return minOrder;
 };
 
-PropertyParser.acceptedFormats = function (properties) {
-    let acceptedFormats = (properties && properties.hips_tile_format) || "jpeg";
+PropertyParser.formats = function (properties) {
+    let formats = properties?.hips_tile_format;
 
-    acceptedFormats = acceptedFormats.split(" ").map((fmt) => fmt.toLowerCase());
+    formats = formats?.split(" ").map((fmt) => fmt.toLowerCase());
 
-    return acceptedFormats;
+    return formats;
 };
 
 PropertyParser.initialFov = function (properties) {
@@ -120,6 +118,18 @@ PropertyParser.hipsDataMinmax = function (properties) {
     const maxData = data_minmax && parseFloat(data_minmax[1]);
 
     return [minData, maxData];
+};
+
+PropertyParser.dataRange = function (properties) {
+    let range =
+        properties &&
+        properties.hips_data_range &&
+        properties.hips_data_range.split(" ");
+
+    const minRange = range && parseFloat(range[0]);
+    const maxRange = range && parseFloat(range[1]);
+
+    return [minRange, maxRange];
 };
 
 PropertyParser.cutouts = function (properties) {
@@ -164,11 +174,11 @@ PropertyParser.isPlanetaryBody = function (properties) {
  * @property {Function} [successCallback] - A callback executed when the HiPS has been loaded
  * @property {Function} [errorCallback] - A callback executed when the HiPS could not be loaded
  * @property {string} [imgFormat] - Formats accepted 'webp', 'png', 'jpeg' or 'fits'. Will raise an error if the HiPS does not contain tiles in this format
- * @property {CooFrame} [cooFrame] - Coordinate frame of the survey tiles. If not given, the one from the parsed properties file will be retrieved.
+ * @property {string} [cooFrame] - Coordinate frame of the survey tiles. If not given, the one from the parsed properties file will be retrieved. Possible values: 'ICRS', 'ICRSd', 'galactic', 'equatorial', 'j2000' 
  * @property {number} [maxOrder] - The maximum HEALPix order of the HiPS, i.e the HEALPix order of the most refined tile images of the HiPS.
- * @property {number} [numBitsPerPixel] - Useful if you want to display the FITS tiles of a HiPS. It specifies the number of bits per pixel. Possible values are:
+ * @property {number} [bitpix] - Useful if you want to display the FITS tiles of a HiPS. It specifies the number of bits per pixel. Possible values are:
  * -64: double, -32: float, 8: unsigned byte, 16: short, 32: integer 32 bits, 64: integer 64 bits
- * @property {number} [tileSize] - The width of the HEALPix tile images. Mostly 512 pixels but can be 256, 128, 64, 32
+ * @property {number} [tileSize=512] - The width of the HEALPix tile images. Mostly 512 pixels but can be 256, 128, 64, 32
  * @property {number} [minOrder] - If not given, retrieved from the properties of the survey.
  * @property {boolean} [longitudeReversed] - Deprecated The longitudeReversed property is now deprecated since version 3.6.1. This property has been removed since version 3.7.0 and replaced with {@link Aladin#reverseLongitude} set directly on the {@link Aladin} view object and not at the HiPS level.
  * @property {number} [opacity=1.0] - Opacity of the survey or image (value between 0 and 1).
@@ -177,7 +187,7 @@ PropertyParser.isPlanetaryBody = function (properties) {
  * @property {boolean} [reversed=false] - If true, the colormap is reversed; otherwise, it is not reversed.
  * @property {number} [minCut] - The minimum cut value for the color configuration. If not given, 0.0 for JPEG/PNG surveys, the value of the property file for FITS surveys
  * @property {number} [maxCut] - The maximum cut value for the color configuration. If not given, 1.0 for JPEG/PNG surveys, the value of the property file for FITS surveys
- * @property {boolean} [additive=false] - If true, additive blending is applied; otherwise, it is not applied.
+ * @property {boolean} [blending=false] - If true, additive blending is applied; otherwise, it is not applied.
  * @property {number} [gamma=1.0] - The gamma correction value for the color configuration.
  * @property {number} [saturation=0.0] - The saturation value for the color configuration.
  * @property {number} [brightness=0.0] - The brightness value for the color configuration.
@@ -256,7 +266,7 @@ export let HiPS = (function () {
      * @constructs HiPS
      *
      * @param {string} id - Mandatory unique identifier for the layer. Can be an arbitrary name
-     * @param {string|FileList|HiPSLocalFiles} url - Can be:
+     * @param {string|FileList|HiPSLocalFiles} location - Can be:
      * <ul>
      * <li>An http url towards a HiPS.</li>
      * <li>A relative path to your HiPS</li>
@@ -270,14 +280,14 @@ export let HiPS = (function () {
      */
     function HiPS(id, location, options) {
         this.added = false;
-        // Unique identifier for a survey
+        // Required ID, synonym of the CreatorDid of a HiPS
         this.id = id;
 
-        this.options = options;
         this.name = (options && options.name) || id;
-        this.startUrl = options.startUrl;
+        this.startUrl = options && options.startUrl;
         this.requestMode = options && options.requestMode || 'cors';
         this.requestCredentials = options && options.requestCredentials || 'same-origin';
+        this.type = "hips"
 
         this.slice = 0;
 
@@ -318,21 +328,71 @@ export let HiPS = (function () {
 
         this.url = location;
 
-        this.maxOrder = options.maxOrder;
-        this.minOrder = options.minOrder || 0;
-        this.cooFrame = CooFrameEnum.fromString(options.cooFrame, null);
-        this.tileSize = options.tileSize;
-        this.skyFraction = options.skyFraction;
-        this.imgFormat = options.imgFormat;
-        this.acceptedFormats = options.formats;
-        this.defaultFitsMinCut = options.defaultFitsMinCut;
-        this.defaultFitsMaxCut = options.defaultFitsMaxCut;
-        this.numBitsPerPixel = options.numBitsPerPixel;
-        this.creatorDid = options.creatorDid;
-        this.errorCallback = options.errorCallback;
-        this.successCallback = options.successCallback;
+        // Max order Required
+        this.maxOrder = options && options.maxOrder;
+        this.minOrder = (options && options.minOrder) || 0;
+        // Frame Required
+        this.cooFrame = options && CooFrameEnum.fromString(options.cooFrame, null)?.system;
+        this.tileSize = options && options.tileSize || 512;
+        this.skyFraction = options && options.skyFraction;
+        // Image format Required
+        this.imgFormat = options && options.imgFormat;
+        this.formats = (options && options.formats) || (this.imgFormat && [this.imgFormat]);
+        this.defaultFitsMinCut = options && options.defaultFitsMinCut;
+        this.defaultFitsMaxCut = options && options.defaultFitsMaxCut;
+        this.bitpix = options && options.bitpix;
+        this.creatorDid = (options && options.creatorDid) || this.id || this.url;
+        this.errorCallback = options && options.errorCallback;
+        this.successCallback = options && options.successCallback;
+        this.dataproductType = options && options.dataproductType || 'image';
+        this.tileDepth = options && options.tileDepth;
+        this.orderFreq = options && options.orderFreq;
+        this.emMin = options && options.emMin;
+        this.emMax = options && options.emMax;
 
-        this.colorCfg = new ColorCfg(options);
+        // Opacity of the survey/image
+        this.opacity = (options && options.opacity) || 1.0;
+
+        // Colormap config options
+        this.colormap = (options && options.colormap) || "native";
+        this.colormap = this.colormap.toLowerCase();
+
+        this.stretch = (options && options.stretch) || "linear";
+        this.stretch = this.stretch.toLowerCase();
+        this.reversed = false;
+        // Keep the image tile format because we want the cuts
+        this.imgFormat = (options && options.imgFormat) || 'png';
+
+        if (options && options.reversed === true) {
+            this.reversed = true;
+        }
+
+        this.minCut = {
+            webp: 0.0,
+            jpeg: 0.0,
+            png: 0.0,
+            fits: undefined // wait the default value coming from the properties
+        };    
+
+        this.maxCut = {
+            webp: 255.0,
+            jpeg: 255.0,
+            png: 255.0,
+            fits: undefined // wait the default value coming from the properties
+        };
+
+        this.setCuts(options.minCut, options.maxCut);
+
+        this.blending = options && options.blending;
+        if (this.blending === undefined)  {
+            this.blending = false;
+        }
+
+        // A default value for gamma correction
+        this.gamma = (options && options.gamma) || 1.0;
+        this.saturation = (options && options.saturation) || 0.0;
+        this.brightness = (options && options.brightness) || 0.0;
+        this.contrast = (options && options.contrast) || 0.0;
 
         let self = this;
 
@@ -352,34 +412,33 @@ export let HiPS = (function () {
                 resolve(self);
             });
         } else {
-            let isIncompleteOptions = true;
+            let mustRequestProperties = true;
 
-            let isID = Utils.isUrl(this.url) === undefined;
+            let isUrl = Utils.isUrl(this.url) !== undefined;
     
             if (this.imgFormat === "fits") {
                 // a fits is given
-                isIncompleteOptions = !(
+                mustRequestProperties = !(
                     this.maxOrder &&
-                    (!isID && this.url) &&
+                    isUrl &&
                     this.imgFormat &&
-                    this.tileSize &&
                     this.cooFrame &&
-                    this.numBitsPerPixel
+                    // TODO: this should not be mandatory, one just parse FITS files
+                    this.bitpix
                 );
             } else {
-                isIncompleteOptions = !(
+                mustRequestProperties = !(
                     this.maxOrder &&
-                    (!isID && this.url) &&
+                    isUrl &&
                     this.imgFormat &&
-                    this.tileSize &&
                     this.cooFrame
                 );
             }
     
             this.query = new Promise(async (resolve, reject) => {
-                if (isIncompleteOptions) {
+                if (mustRequestProperties) {
                     // ID typed url
-                    if (self.startUrl && isID) {
+                    if (self.startUrl && !isUrl) {
                         // First download the properties from the start url
                         await HiPSProperties.fetchFromUrl(self.startUrl, self.requestMode, self.requestCredentials)
                             .then((p) => {
@@ -407,7 +466,7 @@ export let HiPS = (function () {
                             },
                             1000
                         );
-                    } else if (!self.startUrl && isID) {
+                    } else if (!self.startUrl && !isUrl) {
                         // the url stores a "CDS ID" we take it prioritaly
                         // if the url is null, take the id, this is for some tests
                         // to pass because some users might just give null as url param and a "CDS ID" as id param
@@ -437,17 +496,16 @@ export let HiPS = (function () {
                             .catch((e) => reject("HiPS " + self.id + " error: HiPS not found at url " + self.url + "\nReason: " + e.stack))
                     }
                 } else {
-                    self._parseProperties({
+                    /*self._parseProperties({
                         hips_order: self.maxOrder,
                         hips_service_url: self.url,
                         hips_tile_width: self.tileSize,
-                        hips_frame: self.cooFrame.label
-                    })
+                        hips_frame: self.cooFrame
+                    })*/
                 }
     
                 if (self.updateHiPSCache) {
-                    self._saveInCache();
-                    self.updateHiPSCache = false;
+                    self._updateMetadata()
                 }
     
                 resolve(self);
@@ -491,8 +549,8 @@ export let HiPS = (function () {
         // HiPS Cube special keywords
         self.cubeDepth = properties && properties.hips_cube_depth && +properties.hips_cube_depth;
         self.cubeFirstFrame = properties && properties.hips_cube_firstframe && +properties.hips_cube_firstframe;
-        self.emMin = properties && properties.em_min && +properties.em_min;
-        self.emMax = properties && properties.em_max && +properties.em_max;
+        self.emMin = (properties && properties.em_min && +properties.em_min) || self.emMin;
+        self.emMax = (properties && properties.em_max && +properties.em_max) || self.emMax;
 
         if (self.emMax < self.emMin) {
             let tmp = self.emMin;
@@ -500,11 +558,13 @@ export let HiPS = (function () {
             self.emMax = tmp;
         }
 
-        self.hipsDataMinMax = PropertyParser.hipsDataMinmax(properties);
+        self.dataMinMax = PropertyParser.hipsDataMinmax(properties);
+
+        self.dataRange = PropertyParser.dataRange(properties);
 
         // HiPS3D special keywords
-        self.hipsOrderFreq = properties && properties.hips_order_freq && +properties.hips_order_freq;
-        self.hipsTileDepth = properties && properties.hips_tile_depth && +properties.hips_tile_depth;
+        self.orderFreq = (properties && properties.hips_order_freq && +properties.hips_order_freq) || self.orderFreq;
+        self.tileDepth = (properties && properties.hips_tile_depth && +properties.hips_tile_depth) || self.tileDepth;
         self.obsRestFreq = properties && properties.obs_restfreq && +properties.obs_restfreq;
 
         // Max order
@@ -514,15 +574,15 @@ export let HiPS = (function () {
         }
 
         // dataproduct type
-        self.dataproductType = properties && properties.dataproduct_type;
+        self.dataproductType = properties && properties.dataproduct_type || self.dataproductType;
 
         // Tile size
         self.tileSize =
             PropertyParser.tileSize(properties) || self.tileSize;
 
         // Tile formats
-        self.acceptedFormats =
-            PropertyParser.acceptedFormats(properties) || self.acceptedFormats;
+        self.formats =
+            PropertyParser.formats(properties) || self.formats;
 
         // Min order
         const minOrder = PropertyParser.minOrder(properties)
@@ -535,7 +595,7 @@ export let HiPS = (function () {
             PropertyParser.cooFrame(properties);
         // Parse the cooframe from the properties but if it fails, take the one given by the user
         // If the user gave nothing, then take ICRS as the default one
-        self.cooFrame = CooFrameEnum.fromString(cooFrame, self.cooFrame || CooFrameEnum.ICRS);
+        self.cooFrame = CooFrameEnum.fromString(cooFrame, null)?.system || self.cooFrame || CooFrameEnum.ICRS.system;
 
         // sky fraction
         self.skyFraction = PropertyParser.skyFraction(properties);
@@ -557,8 +617,8 @@ export let HiPS = (function () {
         self.defaultFitsMaxCut = cutoutFromProperties[1] || 1.0;
 
         // Bitpix
-        self.numBitsPerPixel =
-            PropertyParser.bitpix(properties) || self.numBitsPerPixel;
+        self.bitpix =
+            PropertyParser.bitpix(properties) || self.bitpix;
 
         // HiPS body
         if (properties.hips_body) {
@@ -573,24 +633,22 @@ export let HiPS = (function () {
         self.name = self.name || self.id || self.url;
         self.name = self.name.replace(/  +/g, ' ');
 
-        self.creatorDid = self.creatorDid || self.id || self.url;
-
         // check the imgFormat with respect to the formats accepted image format
-        const chooseTileFormat = (acceptedFormats) => {
-            if (acceptedFormats.indexOf("webp") >= 0) {
+        const chooseTileFormat = (formats) => {
+            if (formats.indexOf("webp") >= 0) {
                 return "webp";
-            } else if (acceptedFormats.indexOf("png") >= 0) {
+            } else if (formats.indexOf("png") >= 0) {
                 return "png";
-            } else if (acceptedFormats.indexOf("jpeg") >= 0) {
+            } else if (formats.indexOf("jpeg") >= 0) {
                 return "jpeg";
-            } else if (acceptedFormats.indexOf("fits") >= 0) {
+            } else if (formats.indexOf("fits") >= 0) {
                 return "fits";
-            } else if (acceptedFormats.indexOf("fits.fz") >= 0) {
+            } else if (formats.indexOf("fits.fz") >= 0) {
                 return "fits";
             } else {
                 throw (
                     "Unsupported format(s) found in the properties: " +
-                    acceptedFormats
+                    formats
                 );
             }
         };
@@ -598,9 +656,9 @@ export let HiPS = (function () {
         // Set an image format with respect to the ones available for that HiPS if:
         // * the format is unknown
         // * the format is known but is not available for that HiPS
-        if (!self.imgFormat || !self.acceptedFormats.includes(self.imgFormat)) {
+        if (!self.imgFormat || !self.formats.includes(self.imgFormat)) {
             // Switch automatically to a available format
-            let imgFormat = chooseTileFormat(self.acceptedFormats);
+            let imgFormat = chooseTileFormat(self.formats);
             self.setImageFormat(imgFormat)
 
             console.info(self.id + " tile format chosen: " + self.imgFormat)
@@ -649,18 +707,7 @@ export let HiPS = (function () {
      * @returns {string[]} Returns the formats accepted for the survey, i.e. the formats of tiles that are availables. Could be PNG, WEBP, JPG and FITS.
      */
     HiPS.prototype.getAvailableFormats = function () {
-        return this.acceptedFormats;
-    };
-
-    /**
-     * Sets the opacity factor when rendering the HiPS
-     *
-     * @memberof HiPS
-     *
-     * @param {number} opacity - Opacity of the survey to set. Between 0 and 1
-     */
-    HiPS.prototype.setOpacity = function (opacity) {
-        this.setOptions({opacity})
+        return this.formats;
     };
 
     /**
@@ -668,7 +715,7 @@ export let HiPS = (function () {
      *
      * @memberof HiPS
      *
-     * @param {boolean} [additive=false] - When rendering this survey on top of the already rendered ones, the final color of the screen is computed like:
+     * @param {boolean} [blending=false] - When rendering this survey on top of the already rendered ones, the final color of the screen is computed like:
      * <br />
      * <br />opacity * this_survey_color + (1 - opacity) * already_rendered_color for the default mode
      * <br />opacity * this_survey_color + already_rendered_color for the additive mode
@@ -677,12 +724,12 @@ export let HiPS = (function () {
      * Additive mode allows you to do linear survey color combination i.e. let's define 3 surveys named s1, s2, s3. Each could be associated to one color channel, i.e. s1 with red, s2 with green and s3 with the blue color channel.
      * If the additive blending mode is enabled, then the final pixel color of your screen will be: rgb = [s1_opacity * s1_color; s2_opacity * s2_color; s3_opacity * s3_color]
      */
-    HiPS.prototype.setBlendingConfig = function (additive = false) {
-        this.setOptions({additive});
+    HiPS.prototype.setBlendingConfig = function (blending = false) {
+        this.setOptions({blending});
     };
 
     HiPS.prototype.isSpectralCube = function() {
-        return this.hipsTileDepth !== undefined && this.hipsTileDepth !== null;
+        return this.tileDepth !== undefined && this.tileDepth !== null;
     }
 
     /**
@@ -721,9 +768,7 @@ export let HiPS = (function () {
      * @param {boolean} [options.reversed=false] - Reverse the colormap axis.
      */
     HiPS.prototype.setColormap = function (colormap, options) {
-        colormap = colormap || this.options.colormap;
-
-        this.setOptions({colormap, ...options})
+        this.setOptions({colormap, ...options});
     };
 
     /**
@@ -737,54 +782,11 @@ export let HiPS = (function () {
      * @param {number} maxCut - The high cut value to set for the HiPS.
      * @param {string} [imgFormat] - The image format for which one wants to set the cuts. By default, the format used is the current imageFormat
      */
-    HiPS.prototype.setCuts = function (minCut, maxCut, imgFormat) {
-        imgFormat = imgFormat?.toLowerCase();
-
-        if (imgFormat === "jpg") {
-            imgFormat = "jpeg";
-        }
-
-        this.setOptions({minCut, maxCut, cutFormat: imgFormat})
+    HiPS.prototype.setCuts = function (minCut, maxCut, cutFormat) {
+        this.setOptions({minCut, maxCut, cutFormat})
     };
 
-    /**
-     * Returns the low and high cuts under the form of a 2 element array
-     *
-     * @memberof HiPS
-     *
-     * @returns {number[]} The low and high cut values for the HiPS.
-     */
-    HiPS.prototype.getCuts = function () {
-        return this.colorCfg.getCuts();
-    };
-
-    /**
-     * Sets the gamma correction factor for the HiPS.
-     *
-     * This method updates the gamma of the HiPS.
-     *
-     * @memberof HiPS
-     *
-     * @param {number} gamma - The saturation value to set for the HiPS. Between 0.1 and 10
-     */
-    HiPS.prototype.setGamma = function (gamma) {
-        this.setOptions({gamma})
-    };
-
-    /**
-     * Sets the saturation for the HiPS.
-     *
-     * This method updates the saturation of the HiPS.
-     *
-     * @memberof HiPS
-     *
-     * @param {number} saturation - The saturation value to set for the HiPS. Between 0 and 1
-     */
-    HiPS.prototype.setSaturation = function (saturation) {
-        this.setOptions({saturation})
-    };
-
-    /**
+     /**
      * Sets the brightness for the HiPS.
      *
      * This method updates the brightness of the HiPS.
@@ -793,8 +795,13 @@ export let HiPS = (function () {
      *
      * @param {number} brightness - The brightness value to set for the HiPS. Between 0 and 1
      */
-    HiPS.prototype.setBrightness = function (brightness) {
+    HiPS.prototype.setBrightness = function(brightness) {
         this.setOptions({brightness})
+    };
+
+    // @api
+    HiPS.prototype.getBrightness = function() {
+        return this.brightness;
     };
 
     /**
@@ -806,8 +813,101 @@ export let HiPS = (function () {
      *
      * @param {number} contrast - The contrast value to set for the HiPS. Between 0 and 1
      */
-    HiPS.prototype.setContrast = function (contrast) {
+    HiPS.prototype.setContrast = function(contrast) {
         this.setOptions({contrast})
+    };
+
+    // @api
+    HiPS.prototype.getContrast = function() {
+        return this.kContrast;
+    };
+
+    /**
+     * Sets the saturation for the HiPS.
+     *
+     * This method updates the saturation of the HiPS.
+     *
+     * @memberof HiPS
+     *
+     * @param {number} saturation - The saturation value to set for the HiPS. Between 0 and 1
+     */
+    HiPS.prototype.setSaturation = function(saturation) {
+        this.setOptions({saturation})
+    };
+
+    // @api
+    HiPS.prototype.getSaturation = function() {
+        return this.kSaturation;
+    };
+
+    /**
+     * Sets the gamma correction factor for the HiPS.
+     *
+     * This method updates the gamma of the HiPS.
+     *
+     * @memberof HiPS
+     *
+     * @param {number} gamma - The saturation value to set for the HiPS. Between 0.1 and 10
+     */
+    HiPS.prototype.setGamma = function(gamma) {
+        this.setOptions({gamma})
+    };
+
+    // @api
+    HiPS.prototype.getGamma = function() {
+        return this.kGamma;
+    };
+
+    /**
+     * Sets the opacity factor when rendering the HiPS
+     *
+     * @memberof HiPS
+     *
+     * @param {number} opacity - Opacity of the survey to set. Between 0 and 1
+     */
+    HiPS.prototype.setOpacity = function(opacity) {
+        this.setOptions({opacity})
+    };
+
+    /**
+     * Get the opacity of the HiPS layer
+     * 
+     * @memberof HiPS
+     * 
+     * @returns {number} The opacity of the layer
+     */
+    HiPS.prototype.getOpacity = function() {
+        return this.opacity;
+    };
+
+    // @api
+    HiPS.prototype.getAlpha = HiPS.prototype.getOpacity;
+
+    HiPS.prototype.getBlendingConfig = function() {
+        return this.blending;
+    };
+
+    // @api
+    HiPS.prototype.getColormap = function() {
+        return this.colormap;
+    };
+
+    HiPS.prototype.getReversed = function() {
+        return this.reversed;
+    };
+
+    /**
+     * Returns the low and high cuts under the form of a 2 element array
+     *
+     * @memberof HiPS
+     *
+     * @returns {number[]} The low and high cut values for the HiPS.
+     */
+    HiPS.prototype.getCuts = function() {
+        return [
+            this.minCut[this.imgFormat],
+            this.maxCut[this.imgFormat]
+        ];
     };
 
     HiPS.prototype.setSliceNumber = function(slice) {
@@ -830,6 +930,9 @@ export let HiPS = (function () {
      * @param {number} [options.value] = The frequency value expressed in `options.unit`
      * @param {"Hz"|"m"|"m/s"} [options.unit="Hz"] - The unit of the frequency passed
      * @param {number} [options.restFreq] - "The rest frequency (in Hz) to use for computing the velocity in m.s-1"
+     *
+     * @example
+     * hips3d.setFrequency({ value: 1420302592, unit: 'Hz' })
      */
     HiPS.prototype.setFrequency = function(options) {
         if (this.added) {
@@ -858,12 +961,22 @@ export let HiPS = (function () {
         }
     }
 
+    /**
+     * Get the frequency in Hz
+     *
+     * @memberof HiPS
+     */
     HiPS.prototype.getFrequency = function() {
         if (this.added) {
             return this.view.wasm.getFreq(this.layer);
         }
     }
 
+    /**
+     * Get the frequency window around the current observed frequency in Hz
+     *
+     * @memberof HiPS
+     */
     HiPS.prototype.getFrequencyWindow = function() {
         if (this.added) {
             return this.view.wasm.getFreqWindow(this.layer);
@@ -874,10 +987,7 @@ export let HiPS = (function () {
     HiPS.prototype._updateMetadata = function () {
         try {
             if (this.added) {
-                this.view.wasm.setImageMetadata(this.layer, {
-                    ...this.colorCfg.get(),
-                    imgFormat: this.imgFormat,
-                });
+                this.view.wasm.setImageMetadata(this.layer, this._prepareMetadataForWASM());
                 // once the meta have been well parsed, we can set the meta
                 ALEvent.LAYER_CHANGED.dispatchedTo(this.view.aladinDiv, {
                     layer: this,
@@ -906,14 +1016,93 @@ export let HiPS = (function () {
     * @param {boolean} [options.reversed=false] - If true, the colormap is reversed; otherwise, it is not reversed.
     * @param {number} [options.minCut] - The minimum cut value for the color configuration. If not given, 0.0 for JPEG/PNG surveys, the value of the property file for FITS surveys
     * @param {number} [options.maxCut] - The maximum cut value for the color configuration. If not given, 1.0 for JPEG/PNG surveys, the value of the property file for FITS surveys
-    * @param {boolean} [options.additive=false] - If true, additive blending is applied; otherwise, it is not applied.
+    * @param {boolean} [options.blending=false] - If true, additive blending is applied; otherwise, it is not applied.
     * @param {number} [options.gamma=1.0] - The gamma correction value for the color configuration.
     * @param {number} [options.saturation=0.0] - The saturation value for the color configuration.
     * @param {number} [options.brightness=0.0] - The brightness value for the color configuration.
     * @param {number} [options.contrast=0.0] - The contrast value for the color configuration.
      */
     HiPS.prototype.setOptions = function(options) {
-        this.colorCfg.setOptions(options);
+        /// imgFormat
+        if (options && options.imgFormat) {
+            this.imgFormat = options.imgFormat
+        }
+
+        /// colormap
+        if (options && options.colormap) {
+            this.colormap = options.colormap.toLowerCase()
+        }
+
+        /// stretch
+        if (options && options.stretch) {
+            let stretch = options.stretch;
+            this.stretch = stretch.toLowerCase()
+        }
+        
+        /// reversed
+        if (options && options.reversed !== undefined) {
+            this.reversed = options.reversed;
+        }
+
+        /// cuts
+        let cutFormat = options.cutFormat?.toLowerCase() || this.imgFormat;
+
+        if (cutFormat === "jpg") {
+            cutFormat = "jpeg";
+        }
+
+        
+        let minCut = options && options.minCut;
+        if (minCut instanceof Object) {
+            // Mincut is given in the form of an javascript object with all the formats
+            this.minCut = {...this.minCut, ...minCut};
+        } else if (minCut !== null && minCut !== undefined) {
+            this.minCut[cutFormat] = minCut;
+        }
+
+        let maxCut = options && options.maxCut;
+        if (maxCut instanceof Object) {
+            this.maxCut = {...this.maxCut, ...maxCut};
+        } else if (maxCut !== null && maxCut !== undefined) {
+            this.maxCut[cutFormat] = maxCut;
+        }
+        
+        if (options && Utils.isNumber(options.brightness)) {
+            let brightness = options.brightness;
+
+            brightness = +brightness || 0.0; // coerce to number
+            this.brightness = Math.max(-1, Math.min(brightness, 1));
+        }
+        
+        if (options && Utils.isNumber(options.saturation)) {
+            let saturation = options.saturation;
+            saturation = +saturation || 0.0; // coerce to number
+
+            this.saturation = Math.max(-1, Math.min(saturation, 1));
+        }
+
+        if (options && Utils.isNumber(options.contrast)) {
+            let contrast = options.contrast;
+
+            contrast = +contrast || 0.0; // coerce to number
+            this.contrast = Math.max(-1, Math.min(contrast, 1));
+        }
+
+        if (options && Utils.isNumber(options.gamma)) {
+            let gamma = options.gamma;
+            gamma = +gamma; // coerce to number
+            this.gamma = Math.max(0.1, Math.min(gamma, 10));
+        }
+
+        if (options && Utils.isNumber(options.opacity)) {
+            let opacity = options.opacity;
+            opacity = +opacity; // coerce to number
+            this.opacity = Math.max(0, Math.min(opacity, 1));
+        }
+    
+        if (options && options.blending) {
+            this.blending = options.blending;
+        }
 
         /// Set image format
         if (options.imgFormat) {
@@ -932,10 +1121,10 @@ export let HiPS = (function () {
             } else {
                 // Passed the check, we erase the image format with the new one
                 // We do nothing if the imgFormat is the same
-                
+
                 // Check the properties to see if the given format is available among the list
                 // If the properties have not been retrieved yet, it will be tested afterwards
-                const availableFormats = this.acceptedFormats;
+                const availableFormats = this.formats;
                 // user wants a fits but the metadata tells this format is not available
                 if (!availableFormats || (availableFormats && availableFormats.indexOf(imgFormat) >= 0)) {
                     this.imgFormat = imgFormat;
@@ -950,13 +1139,6 @@ export let HiPS = (function () {
                 }
             }
         }
-
-        this.options = {
-            ...this.options,
-            ...options,
-            minCut: this.colorCfg.minCut,
-            maxCut: this.colorCfg.maxCut
-        };
 
         this._updateMetadata();
     };
@@ -983,24 +1165,6 @@ export let HiPS = (function () {
      * @deprecated
      */
     HiPS.prototype.setAlpha = HiPS.prototype.setOpacity;
-
-    // @api
-    HiPS.prototype.getColorCfg = function () {
-        return this.colorCfg;
-    };
-    
-    /**
-     * Get the opacity of the HiPS layer
-     * 
-     * @memberof HiPS
-     * 
-     * @returns {number} The opacity of the layer
-     */
-    HiPS.prototype.getOpacity = function () {
-        return this.colorCfg.getOpacity();
-    };
-
-    HiPS.prototype.getAlpha = HiPS.prototype.getOpacity;
 
     /**
      * Probe the HiPS at a screen pixel location.
@@ -1076,11 +1240,43 @@ export let HiPS = (function () {
             return;
         }
 
+        this.updateHiPSCache = false;
+
         let self = this;
         let hipsCache = this.view.aladin.hipsCache;
 
         if (hipsCache.contains(self.id)) {
-            hipsCache.append(self.id, this.options)
+            hipsCache.update(self.id, {
+                creatorDid: self.creatorDid,
+                url: self.url,
+                maxOrder: self.maxOrder,
+                cooFrame: self.cooFrame,
+                tileSize: self.tileSize,
+                formats: self.formats,
+                bitpix: self.bitpix,
+                skyFraction: self.skyFraction,
+                minOrder: self.minOrder,
+                initialFov: self.initialFov,
+                initialRa: self.initialRa,
+                initialDec: self.initialDec,
+                emMin: self.emMin,
+                emMax: self.emMax,
+                // HiPS Cube
+                cubeDepth: self.cubeDepth,
+                // HiPS3D
+                tileDepth: self.tileDepth,
+                orderFreq: self.orderFreq,
+                // Dataproduct type
+                dataproductType: self.dataproductType, 
+                isPlanetaryBody: self.isPlanetaryBody(),
+                hipsBody: self.hipsBody,
+                requestCredentials: self.requestCredentials,
+                requestMode: self.requestMode,
+                name: this.name,
+                id: this.id,
+                type: this.type,
+                ...this._getMetadata(),
+            })
         }
     };
 
@@ -1091,6 +1287,25 @@ export let HiPS = (function () {
         if (this.added) {
             this.view.wasm.removeLayer(this.layer);
         }
+    };
+
+    HiPS.prototype._getMetadata = function() {
+        return {
+            imgFormat: this.imgFormat,
+            blending: this.blending,
+            opacity: this.opacity,
+            // Tonal corrections constants
+            gamma: this.gamma,
+            saturation: this.saturation,
+            brightness: this.brightness,
+            contrast: this.contrast,
+
+            stretch: this.stretch,
+            minCut: this.minCut,
+            maxCut: this.maxCut,
+            reversed: this.reversed,
+            colormap: this.colormap,
+        };
     };
 
     HiPS.prototype._addToView = function (layer) {
@@ -1106,22 +1321,22 @@ export let HiPS = (function () {
                 creatorDid: self.creatorDid,
                 url: self.url,
                 maxOrder: self.maxOrder,
-                cooFrame: self.cooFrame.system,
+                cooFrame: self.cooFrame,
                 tileSize: self.tileSize,
-                formats: self.acceptedFormats,
-                bitpix: self.numBitsPerPixel,
+                formats: self.formats,
+                bitpix: self.bitpix,
                 skyFraction: self.skyFraction,
                 minOrder: self.minOrder,
-                hipsInitialFov: self.initialFov,
-                hipsInitialRa: self.initialRa,
-                hipsInitialDec: self.initialDec,
+                initialFov: self.initialFov,
+                initialRa: self.initialRa,
+                initialDec: self.initialDec,
                 emMin: self.emMin,
                 emMax: self.emMax,
                 // HiPS Cube
-                hipsCubeDepth: self.cubeDepth,
+                cubeDepth: self.cubeDepth,
                 // HiPS3D
-                hipsTileDepth: self.hipsTileDepth,
-                hipsOrderFreq: self.hipsOrderFreq,
+                tileDepth: self.tileDepth,
+                orderFreq: self.orderFreq,
                 // Dataproduct type
                 dataproductType: self.dataproductType, 
                 isPlanetaryBody: self.isPlanetaryBody(),
@@ -1129,10 +1344,7 @@ export let HiPS = (function () {
                 requestCredentials: self.requestCredentials,
                 requestMode: self.requestMode,
             },
-            meta: {
-                ...this.colorCfg.get(),
-                imgFormat: this.imgFormat,
-            }
+            meta: this._prepareMetadataForWASM()
         };
 
         let localFiles;
@@ -1175,7 +1387,41 @@ export let HiPS = (function () {
         return this
     };
 
+    HiPS.prototype._prepareMetadataForWASM = function() {
+        let metadata = this._getMetadata();
+        let blending = {
+            srcColorFactor: 'SrcAlpha',
+            dstColorFactor: 'OneMinusSrcAlpha',
+            func: 'FuncAdd' 
+        };
+
+        if (this.blending) {
+            blending = {
+                srcColorFactor: 'SrcAlpha',
+                dstColorFactor: 'One',
+                func: 'FuncAdd' 
+            }
+        }
+
+        let minCut = this.minCut[this.imgFormat]
+        if (this.imgFormat !== "fits") {
+            minCut /= 255.0
+        }
+
+        let maxCut = this.maxCut[this.imgFormat]
+        if (this.imgFormat !== "fits") {
+            maxCut /= 255.0
+        }
+
+        metadata["minCut"] = minCut;
+        metadata["maxCut"] = maxCut;
+        metadata["blending"] = blending;
+
+        return metadata;
+    };
+
     HiPS.DEFAULT_SURVEY_ID = "P/DSS2/color";
 
     return HiPS;
 })();
+

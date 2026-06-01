@@ -50,7 +50,54 @@ import { Color } from "./Color.js";
 import { SpectraDisplayer } from "./SpectraDisplayer.js";
 import { DefaultActionsForContextMenu } from "./DefaultActionsForContextMenu.js";
 import { Source } from "./Source.js";
+import { blobToArrayBuffer, blobToDataURL, buildAvmFromWcs, injectAvmIntoPngBlob } from "./AvmUtils.js";
 export let View = (function () {
+
+    const normalizeImageType = function (imgType) {
+        return imgType || "image/png";
+    };
+
+    const canvasToBlob = function (canvas, imgType) {
+        return new Promise((resolve, reject) => {
+            canvas.toBlob((blob) => {
+                if (blob) {
+                    resolve(blob);
+                } else {
+                    reject(new Error("Canvas toBlob failed"));
+                }
+            }, imgType);
+        });
+    };
+
+    const exportCanvasBlob = async function (view, canvas, imgType) {
+        const effectiveImgType = normalizeImageType(imgType);
+        let blob = await canvasToBlob(canvas, effectiveImgType);
+
+        if (effectiveImgType !== "image/png") {
+            return blob;
+        }
+
+        const wcs = view.aladin.getViewWCS();
+        if (!wcs || typeof wcs !== "object") {
+            return blob;
+        }
+
+        const avm = buildAvmFromWcs(wcs, {
+            rotation: view.aladin.getRotation(),
+        });
+
+        if (!avm) {
+            return blob;
+        }
+
+        try {
+            blob = await injectAvmIntoPngBlob(blob, avm);
+        } catch (error) {
+            console.warn("Could not inject AVM metadata into PNG export", error);
+        }
+
+        return blob;
+    };
 
     /** Constructor */
     function View(aladin) {
@@ -105,6 +152,11 @@ export let View = (function () {
         this.debounceResize = Utils.debounce(() => {
             self.wasm.resize(self.width, self.height);
             self.updateZoomState()
+
+            if (self.spectraDisplayer) {
+                self.spectraDisplayer.updateCanvas()
+                self.spectraDisplayer._redraw()
+            }
         }, 2);
 
         // Attach the drag and drop events to the view
@@ -221,6 +273,13 @@ export let View = (function () {
         this.selector = new Selector(this, this.options.selector);
         this.manualSelection = (this.options && this.options.manualSelection) || false;
 
+        // Selection mode
+        this.selectionMode = View.SELECTION_MODE_EDGE;
+        if (this.options.selectionMode === 'skewer') {
+            this.selectionMode = View.SELECTION_MODE_SKEWER;
+        }
+
+
         // current reference image survey displayed
         this.imageLayers = new Map();
 
@@ -307,6 +366,10 @@ export let View = (function () {
     View.TOOL_SIMBAD_POINTER = 2;
     View.TOOL_COLOR_PICKER = 3;
 
+    // Selection modes
+    View.SELECTION_MODE_EDGE = 0;
+    View.SELECTION_MODE_SKEWER = 1;
+
     // TODO: should be put as an option at layer level
     View.DRAW_SOURCES_WHILE_DRAGGING = true;
     View.DRAW_MOCS_WHILE_DRAGGING = true;
@@ -318,7 +381,7 @@ export let View = (function () {
         Object.defineProperties(this, {
             fov: {
                 get() {
-                    return this.wasm.getFieldOfView();
+                    return this.wasm.getFieldOfView()[0];
                 },
                 set(newFov) {
                     this.setFoV(newFov);
@@ -462,6 +525,13 @@ export let View = (function () {
     }
 
     View.prototype.setMode = function (mode, params) {
+
+        // Undo the specialized cursors, if any.
+        const prevMode = this.mode;
+        if (prevMode == View.TOOL_SIMBAD_POINTER) {
+            this.catalogCanvas.classList.remove('aladin-sp-cursor');
+        }
+
         // hide the picker tooltip
         this.colorPickerTool.domElement.style.display = "none";
         // in case we are in the selection mode
@@ -494,6 +564,14 @@ export let View = (function () {
         ALEvent.MODE.dispatchedTo(this.aladin.aladinDiv, {mode});
     };
 
+    View.prototype.setSelectionMode = function (selectionMode) {
+        this.selectionMode = selectionMode;
+    };
+
+    View.prototype.getSelectionMode = function () {
+        return this.selectionMode;
+    };
+
     View.prototype.setCursor = function (cursor) {
         if (this.catalogCanvas.style.cursor == cursor) {
             return;
@@ -503,6 +581,10 @@ export let View = (function () {
     };
 
     View.prototype.getRawPixelsCanvas = function(width, height) {
+        // important: redraw must be called just before getting the pixels
+        // because the drawing buffer is not preserved (preserveDrawingBuffer = false) 
+        this.redraw()
+
         const canvas = this.wasm.canvas();
 
         const c = document.createElement('canvas');
@@ -557,20 +639,16 @@ export let View = (function () {
      */
     View.prototype.getCanvasDataURL = async function (imgType, width, height, withLogo=true) {
         const c = await this.getCanvas(width, height, withLogo);
-        return c.toDataURL(imgType);
+        const blob = await exportCanvasBlob(this, c, imgType);
+        return blobToDataURL(blob);
     };
 
     /**
      * Return ArrayBuffer corresponding to the current view
      */
     View.prototype.getCanvasArrayBuffer = async function (imgType, width, height, withLogo=true) {
-        return this.getCanvasBlob(imgType, width, height, withLogo)
-            .then((blob) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result);
-                reader.onerror = () => reject(new Error('Error reading blob as ArrayBuffer'));
-                reader.readAsArrayBuffer(blob);
-            });
+        const blob = await this.getCanvasBlob(imgType, width, height, withLogo);
+        return blobToArrayBuffer(blob);
     }
 
     /**
@@ -578,15 +656,7 @@ export let View = (function () {
      */
     View.prototype.getCanvasBlob = async function (imgType, width, height, withLogo=true) {
         const c = await this.getCanvas(width, height, withLogo);
-        return new Promise((resolve, reject) => {
-            c.toBlob(blob => {
-                if (blob) {
-                    resolve(blob);
-                } else {
-                    reject(new Error('Canvas toBlob failed'));
-                }
-            }, imgType);
-        });
+        return exportCanvasBlob(this, c, imgType);
     }
 
     View.prototype.selectLayer = function (layer) {
@@ -601,7 +671,7 @@ export let View = (function () {
 
         if (imageLayer.dataproductType === "spectral-cube") {
             if (!this.spectraDisplayer) {
-                this.spectraDisplayer = new SpectraDisplayer(this, {width: 800, height: 300});
+                this.spectraDisplayer = new SpectraDisplayer(this, {height: 250});
             }
 
             this.spectraDisplayer.attachHiPS3D(imageLayer)
@@ -641,16 +711,19 @@ export let View = (function () {
         // prevent default context menu from appearing (potential clash with right-click cuts control)
         Utils.on(view.catalogCanvas, "contextmenu", function (e) {
             e.preventDefault();
-            let ctxMenu = view.aladin.contextMenu;
-            if(ctxMenu) {
-                e.stopPropagation();
-                if (!view.rightClick && showContextMenu) {
-                    ctxMenu.attach(
-                        DefaultActionsForContextMenu.getDefaultActions(view.aladin),
-                        null
-                    );
-                    ctxMenu._show({e});
-                }
+
+            if (view.aladin.options.showContextMenu) {
+                let ctxMenu = view.aladin.contextMenu;
+                if(ctxMenu) {
+                    e.stopPropagation();
+                    if (!view.rightClick && showContextMenu) {
+                        ctxMenu.attach(
+                            DefaultActionsForContextMenu.getDefaultActions(view.aladin),
+                            null
+                        );
+                        ctxMenu._show({e});
+                    }
+                }   
             }
         });
 
@@ -670,11 +743,9 @@ export let View = (function () {
         var showContextMenu = true;
         var xystart;
 
-        var handleSelect = function(xy, tolerance) {
+        var handleSelect = function(xy, tolerance, withModifierKey=false) {
             tolerance = tolerance || 5;
             var objs = view.closestObjects(xy.x, xy.y, tolerance);
-
-            view.unselectObjects();
 
             if (objs) {
                 var objClickedFunction = view.aladin.callbacksByEventName['objectClicked'];
@@ -714,11 +785,14 @@ export let View = (function () {
                 if (shapes.length > 0) {
                     objs.push(shapes)
                 }
-                view.selectObjects(objs);
+                view.selectObjects(objs, withModifierKey);
 
                 view.lastClickedObject = objs;
 
             } else {
+
+                view.unselectObjects();
+
                 // If there is a past clicked object
                 if (view.lastClickedObject) {
                     // TODO: do we need to keep that triggering ?
@@ -729,6 +803,95 @@ export let View = (function () {
                 }
             }
         }
+
+        /**
+         * Perform a skewer-based selection of objects at the specified mouse position.
+         *
+         * @param {Event|Object} e - Mouse coordinate via mouse event or object with x and y properties
+         * @param {boolean} withModifierKey - If true, toggles selection (adds/removes from existing selection);
+         *                                    if false, replaces current selection
+         */
+        var handleSkewerSelect = function(e, withModifierKey) {
+
+            const objList = Selector.getSkewerObjects(e, view);
+            view.selectObjects(objList, withModifierKey);
+        }
+
+        /**
+         * Make the selected objects appear hovered and make all other objects appear unhovered,
+         * firing the appropriate callbacks for both cases.
+         *
+         * The also sets the cursor to a pointer to indicate that some object(s) would be
+         * select on click in the current mouse position.
+         *
+         * @param {Array} objects - Array of objects to apply hover state to
+         * @param {Object} xymouse - Mouse coordinates with x and y properties
+         */
+        var hoverObjects = function(objects, xymouse) {
+            var objHoveredFunction = view.aladin.callbacksByEventName['objectHovered'];
+            var footprintHoveredFunction = view.aladin.callbacksByEventName['footprintHovered'];
+
+            view.setCursor('pointer');
+
+            for (let o of objects) {
+
+                if (typeof objHoveredFunction === 'function' && (!view.lastHoveredObject || !view.lastHoveredObject.includes(o))) {
+                    var ret = objHoveredFunction(o, xymouse);
+                }
+
+                if (o.isFootprint()) {
+                    if (typeof footprintHoveredFunction === 'function' && (!view.lastHoveredObject || !view.lastHoveredObject.includes(o))) {
+                        var ret = footprintHoveredFunction(o, xymouse);
+                    }
+                }
+
+                if (!view.lastHoveredObject || !view.lastHoveredObject.includes(o)) {
+                    o.hover();
+                }
+            }
+
+            // unhover the objects in lastHoveredObjects that are not in closest anymore
+            if (view.lastHoveredObject) {
+                var objHoveredStopFunction = view.aladin.callbacksByEventName['objectHoveredStop'];
+
+                for (let lho of view.lastHoveredObject) {
+                    if (!objects.includes(lho)) {
+                        lho.unhover();
+
+                        if (typeof objHoveredStopFunction === 'function') {
+                            objHoveredStopFunction(lho, xymouse);
+                        }
+                    }
+                }
+            }
+            view.lastHoveredObject = objects;
+        }
+
+        /**
+         * Removes hover state from all previously hovered objects and fires the
+         * apropriate callbacks.
+         *
+         * The also resets the cursor to the default to indicate that no objects would be
+         * selected on click in the current mouse position.
+         *
+         * @param {Object} xymouse - Mouse coordinates with x and y properties
+         */
+        var unhoverObjects = function(xymouse) {
+            view.setCursor('default');
+            if (view.lastHoveredObject) {
+                var objHoveredStopFunction = view.aladin.callbacksByEventName['objectHoveredStop'];
+                for (let lho of view.lastHoveredObject) {
+                    lho.unhover();
+
+                    if (typeof objHoveredStopFunction === 'function') {
+                        objHoveredStopFunction(lho, xymouse);
+                    }
+                }
+            }
+
+            view.lastHoveredObject = null;
+        }
+
         var touchStartTime;
         Utils.on(view.catalogCanvas, "mousedown touchstart", function (e) {
             e.stopPropagation();
@@ -875,6 +1038,7 @@ export let View = (function () {
         // reacting on 'click' rather on 'mouseup' is more reliable when panning the view
         Utils.on(view.catalogCanvas, "mouseup mouseout touchend touchcancel", function (e) {
             const xymouse = Utils.relMouseCoords(e);
+            const withModifierKey = e.ctrlKey || e.metaKey;
 
             ALEvent.CANVAS_EVENT.dispatchedTo(view.aladinDiv, {
                 state: {
@@ -941,7 +1105,7 @@ export let View = (function () {
 
             if (view.rightClick) {
                 let ctxMenu = view.aladin.contextMenu;
-                if (showContextMenu && ctxMenu) {
+                if (showContextMenu && ctxMenu && view.aladin.options.showContextMenu) {
                     ctxMenu.attach(
                         DefaultActionsForContextMenu.getDefaultActions(view.aladin),
                         null
@@ -963,11 +1127,19 @@ export let View = (function () {
                         const elapsedTime = Date.now() - touchStartTime;
                         if (elapsedTime < 100) {
                             view.updateObjectsLookup();
-                            handleSelect(xymouse, 15);
+                            if (view.selectionMode === View.SELECTION_MODE_SKEWER) {
+                                handleSkewerSelect(e, withModifierKey)
+                            } else {
+                                handleSelect(xymouse, 15, withModifierKey);
+                            }
                         }
                     }
                 } else {
-                    handleSelect(xymouse);
+                    if (view.selectionMode === View.SELECTION_MODE_EDGE) {
+                        handleSelect(xymouse, 5, withModifierKey);
+                    } else {
+                        handleSkewerSelect(e, withModifierKey);
+                    }
                 }
             }
 
@@ -1150,70 +1322,30 @@ export let View = (function () {
                     lastMouseMovePos = pos;
                 }
 
-                // closestObjects is very costly, we would like to not do it
-                // especially if the objectHovered function is not defined.
-                var closests = view.closestObjects(xymouse.x, xymouse.y, 5);
+                if (view.selectionMode === View.SELECTION_MODE_EDGE) {
+                    // We're in edge selection mode for footprints.  closestObjects() will find those footprints by closeness to a footprint edge.
+                    // closestObjects is very costly, we would like to not do it
+                    // especially if the objectHovered function is not defined.
+                    var closests = view.closestObjects(xymouse.x, xymouse.y, 5);
 
-                if (closests) {
-                    var objHoveredFunction = view.aladin.callbacksByEventName['objectHovered'];
-                    var footprintHoveredFunction = view.aladin.callbacksByEventName['footprintHovered'];
+                    if (closests) {
+                        hoverObjects(closests, xymouse);
+                    } else {
+                        unhoverObjects(view, xymouse);
+                    }
+                } else if (view.selectionMode === View.SELECTION_MODE_SKEWER) {
+                    // We're in skewer mode.  Let's see what would be selected.
+                    const skewerTargetsByLayer = Selector.getSkewerObjects(e, view);
+                    const skewerObjects = skewerTargetsByLayer.flat();
 
-                    view.setCursor('pointer');
-
-                    for (let o of closests) {
-
-                        if (typeof objHoveredFunction === 'function' && (!view.lastHoveredObject || !view.lastHoveredObject.includes(o))) {
-                            var ret = objHoveredFunction(o, xymouse);
-                        }
-
-                        if (o.isFootprint()) {
-                            if (typeof footprintHoveredFunction === 'function' && (!view.lastHoveredObject || !view.lastHoveredObject.includes(o))) {
-                                var ret = footprintHoveredFunction(o, xymouse);
-                            }
-                        }
-
-                        if (!view.lastHoveredObject || !view.lastHoveredObject.includes(o)) {
-                            o.hover();
-                        }
+                    if (skewerObjects.length > 0) {
+                        hoverObjects(skewerObjects, xymouse);
+                    } else {
+                        unhoverObjects(view, xymouse);
                     }
 
-                    // unhover the objects in lastHoveredObjects that are not in closest anymore
-                    if (view.lastHoveredObject) {
-                        var objHoveredStopFunction = view.aladin.callbacksByEventName['objectHoveredStop'];
-
-                        for (let lho of view.lastHoveredObject) {
-                            if (!closests.includes(lho)) {
-                                lho.unhover();
-
-                                if (typeof objHoveredStopFunction === 'function') {
-                                    objHoveredStopFunction(lho, xymouse);
-                                }
-                            }
-                        }
-                    }
-                    view.lastHoveredObject = closests;
-                } else {
-                    view.setCursor('default');
-                    if (view.lastHoveredObject) {
-                        var objHoveredStopFunction = view.aladin.callbacksByEventName['objectHoveredStop'];
-
-                        /*if (typeof objHoveredStopFunction === 'function') {
-                            // call callback function to notify we left the hovered object
-                            var ret = objHoveredStopFunction(view.lastHoveredObject, xymouse);
-                        }
-
-                        view.lastHoveredObject.unhover();*/
-                        for (let lho of view.lastHoveredObject) {
-                            lho.unhover();
-
-                            if (typeof objHoveredStopFunction === 'function') {
-                                objHoveredStopFunction(lho, xymouse);
-                            }
-                        }
-                    }
-
-                    view.lastHoveredObject = null;
                 }
+
 
                 if (e.type === "mousemove") {
                     return;
@@ -1348,6 +1480,7 @@ export let View = (function () {
 
         view.displayHpxGrid = false;
         view.displayCatalog = false;
+        view.skewerEnabled = false;
     };
 
     View.prototype.requestRedrawAtDate = function (date) {
@@ -1593,6 +1726,9 @@ export let View = (function () {
         return imageData;
     };
 
+    /**
+     * Unselects all currently selected objects.
+     */
     View.prototype.unselectObjects = function() {
         if (this.manualSelection) {
             return;
@@ -1611,9 +1747,22 @@ export let View = (function () {
         this.requestRedraw();
     }
 
-    View.prototype.selectObjects = function(selection) {
+    /**
+     * Selects the specified objects in the view.
+     *
+     * If withModifierKey is true, it modifies the existing selection (adds/removes).
+     * Otherwise, it replaces the current selection.
+     *
+     * @param {Array|Object} selection - The objects to select, either an array or a selector object.
+     * @param {boolean} [withModifierKey=false] - Whether to modify (versus replace) the existing selections.
+     */
+    View.prototype.selectObjects = function(selection, withModifierKey=false) {
         if (this.manualSelection) {
             return;
+        }
+
+        if (Array.isArray(selection) && withModifierKey) {
+            selection = this.computeModifiedSelection(selection)
         }
 
         // unselect the previous selection
@@ -1693,6 +1842,113 @@ export let View = (function () {
         }
     }
 
+    View.prototype._getLayerForObj = function(obj) {
+        let layer = null;
+        if (obj.getCatalog) {
+            layer = obj.getCatalog()
+        } else {
+            layer = obj.overlay
+        }
+        return layer
+    }
+
+    View.prototype._copySelectionsToStage = function(selections, stage, overlays, exclude) {
+        for (const group of selections) {
+            for (const obj of group) {
+                const objExcluded = exclude.includes(obj)
+                if (!objExcluded) {
+                    const layer = this._getLayerForObj(obj)
+                    const idx = overlays.findIndex(item => item.uuid === layer.uuid);
+                    if (idx >= 0) {
+                        stage[idx].push(obj)
+                    } else {
+                        console.warn("Layer not found for selected obj: " + obj)
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Computes the full set of selections that should result if the specified (pending) objects were
+     * selected with a modifier key pressed.
+     *
+     * If there are existing selections, it adds pending items that aren't selected,
+     * or removes all pending items if they are all already selected.
+     *
+     * Organizes selections by overlay layers as expected by selectObjects.
+     *
+     * @param {Array<Array>} pending - Array of array of objects to potentially add/remove from selection.
+     * @returns {Array<Array>} The modified selection array.
+     */
+    View.prototype.computeModifiedSelection = function(pending) {
+        const current = this.selection
+        let modSelection = pending
+        if (current && current.length > 0) {
+            // There are some items already selected.
+            // We will be adding all the pending selections that are not already selected,
+            // UNLESS all of the pending selections are already selected, in which case
+            // they will all be unselected.
+            const toAdd = []
+            let mightRemove = []
+            modSelection = []  // We will build a new selection list from the current and pending selections
+
+            // stage will have one row for each existing overlay in which to collect all desired selections.
+            const overlays = this.aladin.getOverlays()
+            const stage = new Array(overlays.length).fill(null).map(() => []);
+
+            // Put already-selected items in mightRemove and not-yet-selected items in toAdd.
+            for (const group of pending) {
+                for (const obj of group) {
+                    if (obj.isSelected) {
+                        mightRemove.push(obj)
+                    } else {
+                        toAdd.push(obj)
+                    }
+                }
+            }
+
+            // If there is anything in toAdd, then clear mightRemove since they will be left selected.
+            if (toAdd.length > 0) {
+                mightRemove = []
+            }
+
+            // Copy current selections to stage except for anything in mightRemove
+            this._copySelectionsToStage(current, stage, overlays, mightRemove)
+
+            // Copy toAdd selections to stage
+            this._copySelectionsToStage([toAdd], stage, overlays, [])
+
+            // Build new modified selections list from stage.
+            // I can preserve the layer order, but I don't know how to preserve the order within
+            // layers without looping through all objects.  Hopefully that order doesn't matter.
+            for (let i=0; i<stage.length; i++) {
+                if (stage[i].length > 0) {
+                    // We have selected objects in this layer so will add the layer (or list of overlays) to modSelection
+
+                    if (overlays[i].type === 'catalog') {
+                        // The layer is a catalog so we add one entry for all its selections
+                        const catLayer = []
+                        modSelection.push(catLayer)
+                        for (const obj of stage[i]) {
+                            catLayer.push(obj)
+                        }
+
+                    } else {
+                        // Assume it's a graphicalOverlay and add separate entries for each selected obj
+                        // (That is the way objects in graphicalOverlays are currently selected.  If they start
+                        // being selected all in one list per overlay, then that can change here.)
+                        for (const obj of stage[i]) {
+                            modSelection.push([obj])
+                        }
+                    }
+                }
+            }
+
+        }
+        return modSelection;
+    }
+
     View.prototype.getVisibleCells = function (norder) {
         return this.wasm.getVisibleCells(norder);
     };
@@ -1760,9 +2016,11 @@ export let View = (function () {
         this.computeNorder();
 
         let fovX = this.fov;
-        let fovY = this.height / this.width * fovX;
+        let fovY = this.wasm.getFieldOfView()[1];
         fovX = Math.min(fovX, 360);
         fovY = Math.min(fovY, 180);
+
+        this.fovY = fovY;
 
         this.debounceProgCatOnZoom();
 
@@ -1801,27 +2059,6 @@ export let View = (function () {
         // register its promise
         this.imageLayersBeingQueried.set(layer, imageLayer);
 
-        // Check whether this layer already exist
-        const idxOverlayLayer = this.overlayLayers.findIndex(overlayLayer => overlayLayer == layer);
-        let alreadyPresentImageLayer;
-        if (idxOverlayLayer == -1) {
-            // it does not exist so we add it to the stack
-            this.overlayLayers.push(layer);
-        } else {
-            // it exists
-            alreadyPresentImageLayer = this.imageLayers.get(layer);
-
-            if (alreadyPresentImageLayer) {
-                if (alreadyPresentImageLayer.added === true) {
-                    ALEvent.LAYER_REMOVED.dispatchedTo(this.aladinDiv, { layer: alreadyPresentImageLayer });
-                }
-
-                alreadyPresentImageLayer.added = false;
-            }
-            // Notify that this image layer has been replaced by the wasm part
-            this.imageLayers.delete(layer);
-        }
-
         this.addImageLayer(imageLayer, layer);
 
         return imageLayer;
@@ -1833,6 +2070,25 @@ export let View = (function () {
         const layer = imageLayer.layer;
         imageLayer.added = true;
 
+        const idxOverlayLayer = this.overlayLayers.findIndex(overlayLayer => overlayLayer == layer);
+        if (idxOverlayLayer === -1) {
+            this.overlayLayers.push(layer);
+        } else {
+            // layer already present
+            // it exists
+            var alreadyPresentImageLayer = this.imageLayers.get(layer);
+
+            if (alreadyPresentImageLayer) {
+                //let idx = this.removeImageLayer(layer)
+                //if (idx >= 0) {
+                //    this.overlayLayers.splice(idx, 0, layer);
+                //}
+            }
+
+            // Notify that this image layer has been replaced by the wasm part
+            //this.imageLayers.delete(layer);
+        }
+
         this.imageLayers.set(layer, imageLayer);
 
         // select the layer if he is on top
@@ -1841,13 +2097,26 @@ export let View = (function () {
         ALEvent.LAYER_ADDED.dispatchedTo(this.aladinDiv, { layer: imageLayer });
     }
 
+    View.prototype._waitsForLayer = function() {
+        return this.promises.length !== 0;
+    }
+
+    View.prototype.getFirstLayer = function() {
+        let layer = this.overlayLayers && this.overlayLayers[0];
+
+        if (!layer) {
+            // the overlay has not yet been added and is currently queried.
+            layer = this.imageLayersBeingQueried.keys().next().value;
+        }
+
+        return layer;
+    }
+
     View.prototype.addImageLayer = function (imageLayer, layer) {
         let self = this;
         // start the query
-        const imageLayerPromise = imageLayer.query;
-
-        let idx = this.promises.length;
-        this.promises.push(imageLayerPromise);
+        const promise = imageLayer.query;
+        this.promises.push(promise);
 
         // All image layer promises must be completed (fullfilled or rejected)
         const task = {
@@ -1858,7 +2127,7 @@ export let View = (function () {
         ALEvent.FETCH.dispatchedTo(document, {task});
         // All the remaining promises must be terminated and the current one must be resolved
         // so that we can add it to the view (call of _add2View)
-        Promise.all([Promise.allSettled(this.promises), imageLayerPromise])
+        Promise.all([Promise.allSettled(this.promises), promise])
             // Then we add the layer to the view
             .then((_) => imageLayer._addToView(layer))
             // Then we keep a track of the layer in the JS front
@@ -1883,6 +2152,8 @@ export let View = (function () {
                     imageLayer.errorCallback(e);
                 }
 
+                this.removeImageLayer(imageLayer);
+
                 throw e;
             })
             .finally(() => {
@@ -1890,9 +2161,25 @@ export let View = (function () {
                 ALEvent.RESOURCE_FETCHED.dispatchedTo(document, {task});
 
                 self.imageLayersBeingQueried.delete(layer);
-
                 // Remove the settled promise
-                this.promises.splice(idx, 1);
+                this.promises = this.promises.filter(p => p !== promise);
+
+                const waitsForLayer = this._waitsForLayer();
+
+                if (!waitsForLayer && this.delayedBaseLayerCalledParams && this.delayedBaseLayerCalledParams !== layer) {
+                    this.aladin.setBaseImageLayer(this.delayedBaseLayerCalledParams)
+                    this.delayedBaseLayerCalledParams = null;
+
+                    return;
+                }
+
+                if (!waitsForLayer && this.empty) {
+                    // no promises to launch and the view has no HiPS.
+                    // This situation can occurs if the MOCServer is out
+                    // If so we can directly put the url of the DSS hosted in alasky,
+                    // it the best I can do if the MOCServer is out
+                    self.aladin.setBaseImageLayer(Aladin.DEFAULT_OPTIONS.survey);
+                }
             })
     }
 
@@ -1924,7 +2211,7 @@ export let View = (function () {
 
         if (imageLayer === undefined) {
             // there is nothing to remove
-            return;
+            return -1;
         }
 
         // Update the backend
@@ -1932,26 +2219,22 @@ export let View = (function () {
 
         // Get the survey to remove to dissociate it from the view
         imageLayer.added = false;
-        // Delete it
-        this.imageLayers.delete(layer);
 
         const idxOverlaidLayer = this.overlayLayers.findIndex(overlaidLayer => overlaidLayer == layer);
-        if (idxOverlaidLayer == -1) {
-            // layer not found
-            return;
-        }
+        // Delete it
+        this.imageLayers.delete(layer);
 
         // Remove it from the layer stack
         this.overlayLayers.splice(idxOverlaidLayer, 1);
 
-        if (this.overlayLayers.length === 0) {
-            //this.empty = true;
-        } else if (this.selectedLayer === layer) {
+        if (this.overlayLayers.length > 0 && this.selectedLayer === layer) {
             // If the layer removed was selected then we select the last layer
             this.selectLayer(this.overlayLayers[this.overlayLayers.length - 1]);
         }
 
         ALEvent.LAYER_REMOVED.dispatchedTo(this.aladinDiv, { layer: imageLayer });
+
+        return idxOverlaidLayer;
     };
 
     View.prototype.contains = function(survey) {
@@ -2003,7 +2286,9 @@ export let View = (function () {
         let imageLayerQueried = this.imageLayersBeingQueried.get(layer);
         let imageLayer = this.imageLayers.get(layer);
 
-        return imageLayer || imageLayerQueried;
+        let obj = imageLayer || imageLayerQueried;
+
+        return obj;
     };
 
     View.prototype.requestRedraw = function () {
@@ -2355,3 +2640,5 @@ export let View = (function () {
 
     return View;
 })();
+
+

@@ -40,6 +40,7 @@ import { Form } from "../Widgets/Form.js";
  import waveOnIconUrl from '../../../../assets/icons/wave-on.svg';
 import { WidgetTogglerButton } from "../Button/Toggler.js";
  import { Layout } from "../Layout.js";
+ import { Utils } from "../../Utils";
 
  export class HiPSSettingsBox extends Box {
      // Constructor
@@ -204,7 +205,7 @@ import { WidgetTogglerButton } from "../Button/Toggler.js";
                 value: 'linear',
                 options: ['sqrt', 'linear', 'asinh', 'pow2', 'log'],
                 change(e) {
-                    self.options.layer.setColormap(self.options.layer.getColorCfg().getColormap(), {stretch: e.target.value});
+                    self.options.layer.setColormap(self.options.layer.getColormap(), {stretch: e.target.value});
                 },
                 tooltip: {content: 'stretch function', position: {direction: 'bottom'}}
             },
@@ -216,7 +217,7 @@ import { WidgetTogglerButton } from "../Button/Toggler.js";
                 value: 0.0,
                 change: (e) => {
                     let minCut = +e.target.value
-                    self.options.layer.setCuts(minCut, self.options.layer.getColorCfg().getCuts()[1])
+                    self.options.layer.setCuts(minCut, self.options.layer.getCuts()[1])
                 },
                 cssStyle: { width: '7rem' }
             },
@@ -228,7 +229,7 @@ import { WidgetTogglerButton } from "../Button/Toggler.js";
                 value: 1.0,
                 change: (e) => {
                     let maxCut = +e.target.value
-                    self.options.layer.setCuts(self.options.layer.getColorCfg().getCuts()[0], maxCut)
+                    self.options.layer.setCuts(self.options.layer.getCuts()[0], maxCut)
                 },
                 cssStyle: { width: '7rem' }
             }]
@@ -281,17 +282,19 @@ import { WidgetTogglerButton } from "../Button/Toggler.js";
     }
 
     _update(layer) {
-        let colorCfg = layer.getColorCfg();
-        let stretch = colorCfg.stretch;
-        let colormap = colorCfg.getColormap();
-        let reversed = colorCfg.getReversed();
+        let stretch = layer.stretch;
+        let colormap = layer.getColormap();
+        let reversed = layer.getReversed();
 
-        let [minCut, maxCut] = colorCfg.getCuts();
-        if (minCut)
+        let [minCut, maxCut] = layer.getCuts();
+        if (Utils.isNumber(minCut)) {
             this.pixelSettingsContent.set('mincut', +minCut.toFixed(4))
-        if (maxCut)
+        }
+            
+        if (Utils.isNumber(maxCut)) {
             this.pixelSettingsContent.set('maxcut', +maxCut.toFixed(4))
-
+        }
+            
         this.pixelSettingsContent.set('stretch', stretch)
         let fmtInput = this.pixelSettingsContent.getInput('fmt')
         fmtInput.innerHTML = '';
@@ -309,10 +312,10 @@ import { WidgetTogglerButton } from "../Button/Toggler.js";
         this.colorSettingsContent.set('reverse', reversed);
 
         this.opacitySettingsContent.set('opacity', layer.getOpacity());
-        this.luminositySettingsContent.set('brightness', colorCfg.getBrightness());
-        this.luminositySettingsContent.set('contrast', colorCfg.getContrast());
-        this.luminositySettingsContent.set('gamma', colorCfg.getGamma());
-        this.luminositySettingsContent.set('saturation', colorCfg.getSaturation());
+        this.luminositySettingsContent.set('brightness', layer.getBrightness());
+        this.luminositySettingsContent.set('contrast', layer.getContrast());
+        this.luminositySettingsContent.set('gamma', layer.getGamma());
+        this.luminositySettingsContent.set('saturation', layer.getSaturation());
     }
 
     update(options) {

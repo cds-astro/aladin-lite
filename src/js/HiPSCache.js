@@ -37,11 +37,17 @@ export let HiPSCache = (function () {
         this.cache = {}
     };
 
+    HiPSCache.prototype.update = function (key, obj) {
+        this.cache[key] = obj;
+
+        ALEvent.HIPS_CACHE_UPDATED.dispatchedTo(document.body);
+    };
+
     /*
     * key can be a CDS ID or an url. TODO could be an options.name too.
     */
-    HiPSCache.prototype.append = function (key, options) {
-        this.cache[key] = options;
+    HiPSCache.prototype.append = function (key, obj) {
+        this.cache[key] = obj;
 
         ALEvent.HIPS_CACHE_UPDATED.dispatchedTo(document.body);
     };
@@ -59,7 +65,9 @@ export let HiPSCache = (function () {
     * key can be a CDS ID or an url. TODO could be an options.name too.
     */
     HiPSCache.prototype.get = function (key) {
-        return this.cache[key];
+        let obj = this.cache[key];
+
+        return obj;
     };
 
     /*

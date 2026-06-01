@@ -1,5 +1,3 @@
-use wasm_bindgen::JsValue;
-
 use super::blend::BlendCfg;
 use serde::Deserialize;
 
@@ -45,15 +43,15 @@ pub struct HiPSProperties {
     sky_fraction: Option<f32>,
     min_order: Option<u8>,
 
-    hips_initial_fov: Option<f64>,
-    hips_initial_ra: Option<f64>,
-    hips_initial_dec: Option<f64>,
+    initial_fov: Option<f64>,
+    initial_ra: Option<f64>,
+    initial_dec: Option<f64>,
     // HiPS cube
-    hips_cube_depth: Option<u32>,
+    cube_depth: Option<u32>,
 
     // HiPS 3D keywords
-    hips_order_freq: Option<u8>,
-    hips_tile_depth: Option<u8>,
+    order_freq: Option<u8>,
+    tile_depth: Option<u8>,
 
     /// Start of spectral coordinates (in meters)
     em_min: Option<f32>,
@@ -77,11 +75,11 @@ pub struct HiPSProperties {
 impl HiPSProperties {
     #[inline(always)]
     pub fn get_hips_order_freq(&self) -> Option<u8> {
-        self.hips_order_freq
+        self.order_freq
     }
     #[inline(always)]
     pub fn get_hips_tile_depth(&self) -> Option<u8> {
-        self.hips_tile_depth
+        self.tile_depth
     }
 
     #[inline(always)]
@@ -111,7 +109,7 @@ impl HiPSProperties {
 
     #[inline(always)]
     pub fn get_cube_depth(&self) -> Option<u32> {
-        self.hips_cube_depth
+        self.cube_depth
     }
 
     #[inline(always)]
@@ -141,17 +139,17 @@ impl HiPSProperties {
 
     #[inline(always)]
     pub fn get_initial_fov(&self) -> Option<f64> {
-        self.hips_initial_fov
+        self.initial_fov
     }
 
     #[inline(always)]
     pub fn get_initial_ra(&self) -> Option<f64> {
-        self.hips_initial_ra
+        self.initial_ra
     }
 
     #[inline(always)]
     pub fn get_initial_dec(&self) -> Option<f64> {
-        self.hips_initial_dec
+        self.initial_dec
     }
 
     #[inline(always)]
@@ -246,9 +244,13 @@ impl From<String> for TransferFunction {
 }
 
 use crate::colormap::CmapLabel;
-#[derive(Deserialize, Debug, Clone)]
+
+#[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
-pub struct HiPSColor {
+#[derive(Clone)]
+#[wasm_bindgen]
+pub struct ImageMetadata {
+    /// Color config
     // transfer function called before evaluating the colormap
     pub stretch: TransferFunction,
     // low cut
@@ -258,26 +260,17 @@ pub struct HiPSColor {
     // flag to tell the colormap is queried reversed
     pub reversed: bool,
     // the colormap
-    pub cmap_name: CmapLabel,
-    /// tonal color tuning factors
-    pub k_gamma: f32,
-    pub k_saturation: f32,
-    pub k_contrast: f32,
-    pub k_brightness: f32,
-}
-
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-#[derive(Clone)]
-#[wasm_bindgen]
-pub struct ImageMetadata {
-    /// Color config
     #[wasm_bindgen(skip)]
-    pub color: HiPSColor,
+    pub colormap: CmapLabel,
+    /// tonal color tuning factors
+    pub gamma: f32,
+    pub saturation: f32,
+    pub contrast: f32,
+    pub brightness: f32,
 
     // Blending config
     #[serde(default)]
-    pub blend_cfg: BlendCfg,
+    pub blending: BlendCfg,
     #[serde(default = "default_opacity")]
     pub opacity: f32,
     /// the current format chosen
@@ -286,91 +279,6 @@ pub struct ImageMetadata {
 
 fn default_opacity() -> f32 {
     1.0
-}
-use crate::Abort;
-
-#[wasm_bindgen]
-impl ImageMetadata {
-    #[wasm_bindgen(setter = color)]
-    pub fn set_color(&mut self, color: JsValue) -> std::result::Result<(), JsValue> {
-        self.color = serde_wasm_bindgen::from_value(color)?;
-
-        Ok(())
-    }
-
-    #[wasm_bindgen(getter = color)]
-    pub fn color(&self) -> JsValue {
-        let js_color_obj = js_sys::Object::new();
-
-        let HiPSColor {
-            stretch,
-            min_cut,
-            max_cut,
-            reversed,
-            cmap_name,
-            k_gamma,
-            k_saturation,
-            k_brightness,
-            k_contrast,
-        } = &self.color;
-
-        js_sys::Reflect::set(
-            &js_color_obj,
-            &"stretch".into(),
-            &serde_wasm_bindgen::to_value(&stretch).unwrap_abort(),
-        )
-        .unwrap_abort();
-        js_sys::Reflect::set(
-            &js_color_obj,
-            &"minCut".into(),
-            &serde_wasm_bindgen::to_value(&min_cut).unwrap_abort(),
-        )
-        .unwrap_abort();
-        js_sys::Reflect::set(
-            &js_color_obj,
-            &"maxCut".into(),
-            &serde_wasm_bindgen::to_value(&max_cut).unwrap_abort(),
-        )
-        .unwrap_abort();
-        js_sys::Reflect::set(
-            &js_color_obj,
-            &"kGamma".into(),
-            &serde_wasm_bindgen::to_value(&k_gamma).unwrap_abort(),
-        )
-        .unwrap_abort();
-        js_sys::Reflect::set(
-            &js_color_obj,
-            &"kSaturation".into(),
-            &serde_wasm_bindgen::to_value(&k_saturation).unwrap_abort(),
-        )
-        .unwrap_abort();
-        js_sys::Reflect::set(
-            &js_color_obj,
-            &"kBrightness".into(),
-            &serde_wasm_bindgen::to_value(&k_brightness).unwrap_abort(),
-        )
-        .unwrap_abort();
-        js_sys::Reflect::set(
-            &js_color_obj,
-            &"kContrast".into(),
-            &serde_wasm_bindgen::to_value(&k_contrast).unwrap_abort(),
-        )
-        .unwrap_abort();
-        js_sys::Reflect::set(
-            &js_color_obj,
-            &"reversed".into(),
-            &JsValue::from_bool(*reversed),
-        )
-        .unwrap_abort();
-        js_sys::Reflect::set(
-            &js_color_obj,
-            &"colormap".into(),
-            &serde_wasm_bindgen::to_value(&cmap_name).unwrap_abort(),
-        )
-        .unwrap_abort();
-
-        js_color_obj.into()
-    }
 }
 
 impl ImageMetadata {

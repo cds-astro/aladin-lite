@@ -113,9 +113,11 @@ export class TogglerActionButton extends ActionButton {
                 if (enable)
                     enable(o)
 
-                widget._show({
-                    position: self.position
-                })
+                if (widget) {
+                    widget._show({
+                        position: self.position
+                    })
+                }
             },
             off: (_) => {
                 self.close();
@@ -126,12 +128,15 @@ export class TogglerActionButton extends ActionButton {
 
         this.update(options)
 
-        widget.setToggler(this);
+        if (widget)
+            widget.setToggler(this);
+
         this.widget = widget;
     }
 
     close() {
-        this.widget._hide();
+        if (this.widget)
+            this.widget._hide();
 
         super.close()
     }

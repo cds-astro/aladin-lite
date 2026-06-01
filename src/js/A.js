@@ -29,7 +29,6 @@
  * Author: Thomas Boch[CDS]
  *
  *****************************************************************************/
-
 import { MOC } from "./MOC.js";
 import { GraphicOverlay } from "./Overlay.js";
 import { Circle } from "./shapes/Circle.js";
@@ -58,7 +57,6 @@ import aladinCSS from './../css/aladin.css?inline';
 ///////////////////////////////
 /////// Aladin Lite API ///////
 ///////////////////////////////
-
 /**
  * @namespace A
  * @description Aladin Lite API namespace for creating celestial objects.
@@ -1062,6 +1060,7 @@ A.Utils = AladinUtils;
  *     console.error('Error initializing Aladin Lite:', error);
  *   });
  */
+
 A.init = (async () => {
     const isWebGL2Supported = document
         .createElement('canvas')
@@ -1076,6 +1075,6 @@ A.init = (async () => {
         // According to caniuse, https://caniuse.com/webgl2, webgl2 is supported by 89% of users
         throw "WebGL2 not supported by your browser";
     }
-})();
+})()
 
 export default A;

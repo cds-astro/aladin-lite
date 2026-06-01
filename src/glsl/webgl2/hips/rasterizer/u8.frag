@@ -1,6 +1,6 @@
 #version 300 es
-precision lowp float;
-precision lowp sampler2DArray;
+precision highp float;
+precision highp sampler2DArray;
 
 uniform sampler2DArray tex;
 

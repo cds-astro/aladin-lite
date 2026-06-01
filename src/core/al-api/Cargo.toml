@@ -1,6 +1,6 @@
 [package]
 name = "al-api"
-version = "3.8.1"
+version = "3.9.0"
 authors = ["baumannmatthieu0@gmail.com", "matthieu.baumann@astro.unistra.fr"]
 edition = "2018"
 

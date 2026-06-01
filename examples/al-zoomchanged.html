@@ -21,7 +21,7 @@
             console.log("Rotation just changed to ", rotation);
         })
         aladin.on("positionChanged", ({ra, dec}) => {
-            console.log('call to aladin', aladin.pix2world(300, 300))
+            console.log('call to aladin', aladin.pix2world(300, 300, 'gal'))
             console.log('positionChanged in icrs', ra, dec)
         })
 

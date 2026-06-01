@@ -973,10 +973,10 @@ export class OverlayStackBox extends Box {
                             aladin.hipsBrowser = new HiPSBrowserBox(aladin);
                         }
                         
-                        let newLayer = Utils.uuidv4();
-                        
+                        let newLayer = hips.layer;
                         aladin.hipsBrowser._show({
                             selected: (hips) => {
+
                                 self.aladin.setOverlayImageLayer(hips, newLayer);
                             },
                             position: { anchor: "center center" }

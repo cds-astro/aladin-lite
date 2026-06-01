@@ -186,6 +186,11 @@ HiPSProperties.getFasterMirrorUrl = function (metadata) {
             mode: 'cors',
             cache: "no-cache",
         };
+
+        if (baseUrl.slice(-1) === '/') {
+            baseUrl = baseUrl.substr(0, baseUrl.length - 1);
+        }
+
         let validRequest = await fetch(baseUrl + '/properties', options).then((resp) => {
             // completed request before timeout fired
             clearTimeout(timeoutId)

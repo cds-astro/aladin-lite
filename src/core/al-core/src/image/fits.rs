@@ -41,7 +41,7 @@ pub struct FitsImage<'a> {
     pub raw_bytes: Cow<'a, [u8]>,
 
     // keep the header keywords and their values
-    pub header: ValueMap
+    pub header: ValueMap,
 }
 
 impl<'a> FitsImage<'a> {
@@ -81,7 +81,7 @@ impl<'a> FitsImage<'a> {
 
                         let wcs = hdu.wcs().ok();
 
-                        let values: &ValueMap = &*header;
+                        let values: &ValueMap = header;
                         images.push(Self {
                             trim1,
                             trim2,
@@ -96,7 +96,7 @@ impl<'a> FitsImage<'a> {
                             blank,
                             data_byte_offset,
                             raw_bytes,
-                            header: values.clone()
+                            header: values.clone(),
                         });
                     }
                 }
@@ -156,7 +156,7 @@ impl<'a> FitsImage<'a> {
                             };
 
                             if let Some(raw_bytes) = raw_bytes {
-                                let values: &ValueMap = &*header;
+                                let values: &ValueMap = header;
 
                                 images.push(Self {
                                     trim1,
@@ -172,7 +172,7 @@ impl<'a> FitsImage<'a> {
                                     blank,
                                     data_byte_offset,
                                     raw_bytes: Cow::Owned(raw_bytes),
-                                    header: values.clone()
+                                    header: values.clone(),
                                 });
                             }
                         }

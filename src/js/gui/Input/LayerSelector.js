@@ -80,9 +80,7 @@ export class LayerSelector extends Input {
             ...options
         })
 
-        self = this;
-
-        LayerSelector.objects.push(self);
+        LayerSelector.objects.push(this);
     }
 };
 

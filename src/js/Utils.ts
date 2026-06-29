@@ -244,6 +244,10 @@ Utils.LRUCache.prototype = {
                 return 0
             })
 
+            let keyDel = keys[size - 1];
+            delete items[keyDel];
+            delete expires[keyDel];
+
             size--
         }
 

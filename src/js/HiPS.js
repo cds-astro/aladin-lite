@@ -563,7 +563,7 @@ export let HiPS = (function () {
         self.dataRange = PropertyParser.dataRange(properties);
 
         // HiPS3D special keywords
-        self.orderFreq = (properties && properties.hips_order_freq && +properties.hips_order_freq) || self.orderFreq;
+        self.orderFreq = (properties && ((properties.hips_order_axis2 && +properties.hips_order_axis2) || (properties.hips_order_freq && +properties.hips_order_freq))) || self.orderFreq;
         self.tileDepth = (properties && properties.hips_tile_depth && +properties.hips_tile_depth) || self.tileDepth;
         self.obsRestFreq = properties && properties.obs_restfreq && +properties.obs_restfreq;
 

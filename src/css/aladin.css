@@ -26,7 +26,12 @@
     --toggle-color: dodgerblue;
     --valid-color: greenyellow;
     --error-color: red;
-    --border-size: 1px;
+    --border-size: 2px;
+    --badge-color-int: white;
+    --badge-color-flt: white;
+    --badge-color-str: white;
+    --badge-color-log: white;
+    --badge-color-unk: white;
 }
 
 [data-theme="light"] {
@@ -38,6 +43,16 @@
     --border-size: 2px;
     --valid-color: green;
     --error-color: red;
+    --badge-color-int: #0C447C;
+    --badge-color-flt: #085041;
+    --badge-color-str: #3C3489;
+    --badge-color-log: #633806;
+    --badge-color-unk: #444441;
+}
+
+.fits-table {
+    overflow-y: scroll;
+    max-height: 400px;
 }
 
 .aladin-tree {
@@ -122,6 +137,17 @@
     overflow: hidden;
     width: 100%;
 }
+
+.aladin-container .fits-header-info {
+    overflow: scroll; max-width: 80vw; max-height: 400px
+}
+.aladin-container .fits-table { border-collapse: collapse; font-family: monospace; font-size: 13px; table-layout: fixed; }
+.aladin-container .fits-table td { padding: 5px 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.aladin-container .badge-int { color: var(--badge-color-int); padding: 0.1rem; border-radius: 0.5rem; border: 2px solid #0C447C; }
+.aladin-container .badge-flt { color: var(--badge-color-flt); padding: 0.1rem; border-radius: 0.5rem; border: 2px solid #085041; }
+.aladin-container .badge-str { color: var(--badge-color-str); padding: 0.1rem; border-radius: 0.5rem; border: 2px solid #3C3489; }
+.aladin-container .badge-log { color: var(--badge-color-log); padding: 0.1rem; border-radius: 0.5rem; border: 2px solid #633806; }
+.aladin-container .badge-unk { color: var(--badge-color-unk); padding: 0.1rem; border-radius: 0.5rem; border: 2px solid #444441; }
 
 .aladin-spectra-displayer .aladin-spectra-unit {
     position: absolute;
@@ -241,7 +267,7 @@
 }
 
 .aladin-measurement-div table tr td, .aladin-measurement-div table tr td a {
-    max-width: 10rem;
+    /*max-width: 10rem;*/
     text-overflow: ellipsis;
 
     white-space: nowrap;

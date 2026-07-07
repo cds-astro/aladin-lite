@@ -19,6 +19,8 @@ use core::ops::Range;
 const OFF_TANGENT: f64 = 70.0;
 const OFF_BI_TANGENT: f64 = 5.0;
 
+use crate::renderable::grid::Arc;
+
 pub enum LabelOptions {
     Centered,
     OnSide,
@@ -34,13 +36,12 @@ pub struct Label {
 }
 impl Label {
     pub fn from_meridian(
-        lon: f64,
+        lon: Arc,
         lat: &Range<f64>,
         options: LabelOptions,
         camera: &CameraViewPort,
         projection: &ProjectionType,
         fmt: Formatter,
-        grid_decimal_prec: u8,
     ) -> Option<Self> {
         let fov = camera.get_field_of_view();
         let d = if fov.contains_north_pole() {
@@ -58,9 +59,9 @@ impl Label {
                     lat = lat.signum() * 70.0_f64.to_radians();
                 }
 
-                LonLatT::new(lon.to_angle(), lat.to_angle())
+                LonLatT::new(lon.to_degrees().to_radians().to_angle(), lat.to_degrees().to_radians().to_angle())
             }
-            LabelOptions::OnSide => LonLatT::new(lon.to_angle(), lat.start.to_angle()),
+            LabelOptions::OnSide => LonLatT::new(lon.to_degrees().to_radians().to_angle(), lat.start.to_angle()),
         };
 
         let m1: Vector3<_> = lonlat.vector();
@@ -72,27 +73,17 @@ impl Label {
         let dt = (d2 - d1).normalize();
         let db = Vector2::new(dt.y.abs(), dt.x.abs());
 
-        let mut lon = m1.lon().to_radians();
+        /*let mut lon = m1.lon().to_degrees().to_radians();
         if lon < 0.0 {
             lon += TWICE_PI;
-        }
+        }*/
 
-        let mut angle = lon.to_angle();
-        let fmt = match fmt {
-            Formatter::Decimal => AngleFormatter::Decimal {
-                prec: grid_decimal_prec,
-            },
+        let content = match fmt {
+            Formatter::Decimal => lon.to_decimals().display(4, true).to_string(),
             Formatter::Sexagesimal => {
-                // Sexagesimal formatting for longitudes is HMS
-                AngleFormatter::Sexagesimal {
-                    prec: grid_decimal_prec,
-                    plus: false,
-                    hours: true,
-                }
+                lon.display(2, false).to_string()
             }
         };
-        angle.set_format(fmt);
-        let content = angle.to_string();
 
         let position = if !fov.is_allsky() {
             d1 + OFF_TANGENT * dt - OFF_BI_TANGENT * db
@@ -111,20 +102,19 @@ impl Label {
     }
 
     pub fn from_parallel(
-        lat: f64,
+        lat: Arc,
         lon: &Range<f64>,
         options: LabelOptions,
         camera: &CameraViewPort,
         projection: &ProjectionType,
         fmt: Formatter,
-        grid_decimal_prec: u8,
     ) -> Option<Self> {
         let lonlat = match options {
             LabelOptions::Centered => {
                 let lon = camera.get_center().lon();
-                LonLatT::new(lon, lat.to_angle())
+                LonLatT::new(lon, lat.to_degrees().to_radians().to_angle())
             }
-            LabelOptions::OnSide => LonLatT::new(lon.start.to_angle(), lat.to_angle()),
+            LabelOptions::OnSide => LonLatT::new(lon.start.to_angle(), lat.to_degrees().to_radians().to_angle()),
         };
 
         let m1: Vector3<_> = lonlat.vector();
@@ -147,22 +137,13 @@ impl Label {
         let dt = (d2 - d1).normalize();
         let db = Vector2::new(dt.y.abs(), dt.x.abs());
 
-        let mut angle = lat.to_angle();
-        let fmt = match fmt {
-            Formatter::Decimal => AngleFormatter::Decimal {
-                prec: grid_decimal_prec,
-            },
+        let content = match fmt {
+            Formatter::Decimal => lat.to_decimals().display(4, true).to_string(),
             Formatter::Sexagesimal => {
-                // Sexagesimal formatting for latitudes is DMS with an optional '+' character
-                AngleFormatter::Sexagesimal {
-                    prec: grid_decimal_prec,
-                    plus: true,
-                    hours: false,
-                }
+                lat.display(2, true).to_string()
             }
         };
-        angle.set_format(fmt);
-        let content = angle.to_string();
+        //angle.set_format(fmt);
 
         let fov = camera.get_field_of_view();
         let position = if !fov.is_allsky() && !fov.contains_pole() {

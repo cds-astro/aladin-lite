@@ -35,19 +35,23 @@ import { Form } from "../Widgets/Form.js";
  import opacityIconUrl from '../../../../assets/icons/opacity.svg';
  import luminosityIconUrl from '../../../../assets/icons/brightness.svg';
  import colorIconUrl from '../../../../assets/icons/color.svg';
+import headerUrl from '../../../../assets/icons/header.svg';
  import pixelHistIconUrl from '../../../../assets/icons/pixel_histogram.svg';
  import { RadioButton } from "../Widgets/Radio.js";
  import waveOnIconUrl from '../../../../assets/icons/wave-on.svg';
 import { WidgetTogglerButton } from "../Button/Toggler.js";
  import { Layout } from "../Layout.js";
  import { Utils } from "../../Utils";
+ import { Image } from "../../Image.js";
+import { CtxMenuActionButtonOpener } from "../Button/CtxMenuOpener.js";
+import { Input } from "../Widgets/Input.js";
 
  export class HiPSSettingsBox extends Box {
      // Constructor
      constructor(aladin, options) {
         let self;
 
-        let selector = new RadioButton({
+        let opt = {
             luminosity: {
                 icon: {
                     size: 'small',
@@ -96,10 +100,11 @@ import { WidgetTogglerButton } from "../Button/Toggler.js";
                 }
             },
             selected: 'opacity'
-        }, aladin);
+        };
+
+        let selector = new RadioButton(opt, aladin);
 
         // Define the contents
-
         let opacitySettingsContent = new Form({
             type: 'group',
             subInputs: [
@@ -321,7 +326,8 @@ import { WidgetTogglerButton } from "../Button/Toggler.js";
     update(options) {
         if (options.layer) {
             let self = this;
-            if (options.layer.isSpectralCube && options.layer.isSpectralCube()) {
+            let layer = options.layer;
+            if (layer.isSpectralCube && layer.isSpectralCube()) {
                 let spectraDisplayer = self.aladin.view.spectraDisplayer;
 
                 self.spectraBtn = new WidgetTogglerButton({
@@ -338,7 +344,7 @@ import { WidgetTogglerButton } from "../Button/Toggler.js";
                     },
                     widget: spectraDisplayer
                 });
-                
+
                 self.update({content: Layout.vertical([[self.selector, self.spectraBtn], self.opacitySettingsContent])})
             }
 
@@ -362,6 +368,7 @@ import { WidgetTogglerButton } from "../Button/Toggler.js";
             let cmapSelector = this.colorSettingsContent.getInput('cmap');
             cmapSelector.update({options: this.aladin.getListOfColormaps()})
         });
+
+        
     }
 }
- 

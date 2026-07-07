@@ -133,7 +133,20 @@ export let Image = (function () {
     function Image(url, options) {
         // Name of the layer
         this.layer = null;
-        this.added = false;
+        this._added = false;
+        this._addedResolvers = [];
+
+        Object.defineProperty(this, 'added', {
+            get() { return this._added; },
+            set(val) {
+                this._added = val;
+                if (val) {
+                    this._addedResolvers.forEach(resolve => resolve());
+                    this._addedResolvers = [];
+                }
+            }
+        });
+
         // Set it to a default value
         this.url = url;
         this.id = url;
@@ -546,9 +559,65 @@ export let Image = (function () {
                 }
             })
             .then((imageParams) => {
+                self.headers = imageParams.headers;
                 self.imgFormat = 'fits'
                 return Promise.resolve(imageParams);
             })
+        };
+
+        Image.prototype._waitUntilAdded = function() {
+            if (this._added) return Promise.resolve();
+            let self = this;
+            return new Promise((resolve) => {
+                self._addedResolvers.push(resolve);
+            });
+        };
+
+        /**
+         * Return the full header of a FITS HDU
+         * 
+         * The FITS has to be loaded first otherwise undefined will be returned
+         * 
+         * @memberof Image
+         * @method
+         * @param {number} [hduIdx=0] - Index of the HDU
+         * @returns {Promise<Map>} The header of the HDU in the form of a Map
+         */
+        Image.prototype.getHeader = function(HDUIdx=0) {
+            return this._waitUntilAdded().then(() => {
+                if (HDUIdx >= this.headers.length) {
+                    throw 'No HDU found at this index';
+                }
+
+                return this.headers[HDUIdx];
+            });
+        }
+
+        /**
+         * Return a name for a FITS HDU
+         * 
+         * @memberof Image
+         * @method
+         * @param {number} [hduIdx=0] - Index of the HDU
+         * @returns {Promise<String>} A name for that HDU containing its extension type, its extname if present and its idx
+         */
+        Image.prototype.getHDUName = function(HDUIdx=0) {
+            return this._waitUntilAdded().then(() => {
+                if (HDUIdx >= this.headers.length) {
+                    throw 'No HDU found at this index';
+                }
+
+                const header = this.headers[HDUIdx];
+
+                let extname = header.get('EXTNAME')?.extname?.String?.value;
+                const xtension = header.get('XTENSION')?.String?.value;
+
+                if (HDUIdx == 0) {
+                    return 'HDU ' + (extname ? extname : '') + ' (PRIMARY)'
+                } else {
+                    return 'HDU ' + xtension + (extname ? ' ' + extname : '') + ' (' + HDUIdx + ')';
+                }
+            });
         };
 
         Image.prototype._getMetadata = HiPS.prototype._getMetadata;

@@ -66,7 +66,7 @@ export let Datalink = (function() {
                         data[key] = row[field.idx];
                     }
 
-                    measures.push({data: data})
+                    measures.push({data})
                 })
                 let self = this;
                 let datalinkTable = {
@@ -282,7 +282,7 @@ export let Datalink = (function() {
                     }
                 }
 
-                aladinInstance.measurementTable.showMeasurement([datalinkTable]);
+                aladinInstance.measurementTable.addTab(datalinkTable);
             // SODA service descriptor
             } else if (rsc && rsc.baseUrl && rsc.inputParams) {
                 // Try to parse a SODA service descriptor resource

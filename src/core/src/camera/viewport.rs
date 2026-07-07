@@ -233,7 +233,7 @@ impl CameraViewPort {
         self.view_hpx_cells.get_cov(frame)
     }
 
-    pub fn get_hpx_cells(&self, depth: u8, frame: CooSystem) -> Vec<HEALPixCell> {
+    pub fn get_hpx_cells(&self, depth: u8, frame: CooSystem) -> Box<dyn Iterator<Item = HEALPixCell> + '_> {
         self.view_hpx_cells.get_cells(depth, frame)
     }
 

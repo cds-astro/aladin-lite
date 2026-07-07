@@ -2275,6 +2275,18 @@ export let Aladin = (function () {
     };
 
     /**
+     * Is the view still active
+     * 
+     * Returns a boolean on whether there is pending downloaded tiles or the view is currently refreshing.
+     *
+     * @memberof Aladin
+     * @returns {bool}
+     */
+    Aladin.prototype.isStillActive = function () {
+        return this.view.stillActive;
+    };
+
+    /**
      * Get list of layers
      *
      * @memberof Aladin

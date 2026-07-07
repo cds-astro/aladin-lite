@@ -238,6 +238,16 @@ export class Tooltip extends DOMElement {
                     Utils.on(targetEl, 'mouseout', (e) => {
                         statusBar.removeMessage('tooltip')
                     });
+
+                    // Clean up status bar message if the element is removed from the DOM
+                    const observer = new MutationObserver(() => {
+                        if (!document.contains(targetEl)) {
+                            statusBar.removeMessage('tooltip');
+                            observer.disconnect();
+                        }
+                    });
+
+                    observer.observe(document.body, { childList: true, subtree: true });
                     return;
                 }
 

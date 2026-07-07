@@ -131,6 +131,8 @@ export let View = (function () {
             this.aladin.wasm = webglCtx.webclient;
             this.wasm = this.aladin.wasm;
 
+            this.wasm.setOnTileResolved(() => { this.requestRedraw() });
+
             ALEvent.AL_USE_WASM.listenedBy(this.aladinDiv, function (e) {
                 let callback = e.detail.callback;
 
@@ -152,6 +154,8 @@ export let View = (function () {
         this.debounceResize = Utils.debounce(() => {
             self.wasm.resize(self.width, self.height);
             self.updateZoomState()
+
+            self.requestRedraw();
 
             if (self.spectraDisplayer) {
                 self.spectraDisplayer.updateCanvas()
@@ -357,7 +361,7 @@ export let View = (function () {
 
         self.fixLayoutDimensions();
 
-        self.redraw()
+        self.requestRedraw()
     };
 
     // different available modes
@@ -387,14 +391,6 @@ export let View = (function () {
                     this.setFoV(newFov);
                 }
             },
-            zoomFactor: {
-                get() {
-                    return this.wasm.getZoomFactor();
-                },
-                set(newZoomFactor) {
-                    this.setZoomFactor(newZoomFactor);
-                }
-            }
         });
     }
 
@@ -896,6 +892,8 @@ export let View = (function () {
         Utils.on(view.catalogCanvas, "mousedown touchstart", function (e) {
             e.stopPropagation();
 
+            view.requestRedraw();
+
             const xymouse = Utils.relMouseCoords(e);
 
             if (view.spectraDisplayer) {
@@ -1015,6 +1013,8 @@ export let View = (function () {
 
         Utils.on(document, "mouseup touchend", function(e) {
             var wasDragging = view.realDragging === true;
+
+            view.requestRedraw();
 
             if (view.dragging) { // if we were dragging, reset to default cursor
                 if(view.mode === View.PAN) {
@@ -1266,6 +1266,8 @@ export let View = (function () {
 
                     if (lr <= rr) {
                         selectedLayer.setCuts(lr, rr)
+
+                        view.requestRedraw();
                     }
                 }
 
@@ -1293,6 +1295,8 @@ export let View = (function () {
                         rotation -= fingerAngleDiff;
                     }
                     view.setRotation(rotation);
+
+                    view.requestRedraw();
                 }
 
                 // zoom
@@ -1333,6 +1337,9 @@ export let View = (function () {
                     } else {
                         unhoverObjects(view, xymouse);
                     }
+
+                    view.drawAllOverlays();
+
                 } else if (view.selectionMode === View.SELECTION_MODE_SKEWER) {
                     // We're in skewer mode.  Let's see what would be selected.
                     const skewerTargetsByLayer = Selector.getSkewerObjects(e, view);
@@ -1344,8 +1351,8 @@ export let View = (function () {
                         unhoverObjects(view, xymouse);
                     }
 
+                    this.drawAllOverlays();
                 }
-
 
                 if (e.type === "mousemove") {
                     return;
@@ -1374,6 +1381,8 @@ export let View = (function () {
             }
 
             view.dragCoo = xymouse;
+            view.requestRedraw();
+
             // update drag coo with the new position
 
             /*if (view.mode == View.SELECT) {
@@ -1402,6 +1411,8 @@ export let View = (function () {
         Utils.on(view.catalogCanvas, 'wheel', function (e) {
             e.preventDefault();
             e.stopPropagation();
+
+            view.requestRedraw();
 
             const xymouse = Utils.relMouseCoords(e);
             view.xy = xymouse
@@ -1500,13 +1511,16 @@ export let View = (function () {
      * redraw the whole view
      */
     View.prototype.redraw = function (now) {
+        this.animFrameId = null; // clear at the start of each frame
         // Elapsed time since last loop
-        const elapsedTime = now - this.prevTime;
+        const elapsedTime = Math.min(now - this.prevTime, 64); // cap spike frames
         this.prevTime = now;
 
+        let zoom = null;
         if (Math.abs(this.zoomDelta) > 1e-3) {
             // Apply a fraction each frame (smoothing)
             let step = this.zoomDelta * 0.2;
+
             function wheelToZoomFactor(delta) {
                 const sensitivity = 0.002; // tune this
                 return Math.exp(-delta * sensitivity);
@@ -1514,44 +1528,69 @@ export let View = (function () {
 
             this.zoomFactor /= wheelToZoomFactor(step);
             this.zoomDelta -= step;
+
+            zoom = this.zoomFactor;
         }
 
+        let pan = null;
         if (this.pan) {
-            let s1 = this.pan.s1;
-            let s2 = this.pan.s2;
+            const { s1, s2 } = this.pan;
 
             if (s1 && s2) {
-                this.wasm.moveMouse(s1.x, s1.y, s2.x, s2.y);
-                this.wasm.goFromTo(s1.x, s1.y, s2.x, s2.y);
-
-                this.updateCenter();
-
-                ALEvent.POSITION_CHANGED.dispatchedTo(this.aladin.aladinDiv, this.viewCenter);
-
-                // Apply position changed callback after the move
-                this.throttledPositionChanged(true);
+                pan = [s1.x, s1.y, s2.x, s2.y];
             }
 
             this.pan = null;
         }
 
-        this.moving = this.wasm.update(elapsedTime);
+        const { moving, needs_draw, has_pending, is_inerting, ra, dec, zoom_factor, fov_x, fov_y } = this.wasm.poll(elapsedTime, pan, zoom);
+        this.moving = moving;
+        if (zoom) {
+            this.computeNorder();
+
+            let fovX = fov_x;
+            let fovY = fov_y;
+            fovX = Math.min(fovX, 360);
+            fovY = Math.min(fovY, 180);
+
+            this.fovY = fovY;
+
+            this.debounceProgCatOnZoom();
+
+            ALEvent.ZOOM_CHANGED.dispatchedTo(this.aladinDiv, { fovX, fovY });
+
+            this.throttledZoomChanged();
+        }
+        let ra_ = ra < 0 ? ra + 360.0 : ra;
+        this.viewCenter = { ra: ra_, dec };
+        this.zoomFactor = zoom_factor;
 
         // inertia run throttled position
-        if (this.moving && this.aladin.callbacksByEventName && this.aladin.callbacksByEventName['positionChanged'] && this.wasm.isInerting()) {
-            // run the trottled position
-            this.throttledPositionChanged(false);
+        if (this.moving) {
+            ALEvent.POSITION_CHANGED.dispatchedTo(this.aladin.aladinDiv, this.viewCenter);
+            this.throttledPositionChanged(!is_inerting);
         }
 
         ////// 2. Draw catalogues////////
-        const isViewRendering = this.wasm.isRendering();
-        if (isViewRendering || this.needRedraw) {
+        if (needs_draw | this.needRedraw) {
+            this.wasm.draw();
             this.drawAllOverlays();
+            this.needRedraw = false;
         }
-        this.needRedraw = false;
 
         // request another frame
-        requestAnimFrame(this.redrawClbk);
+        // Only keep loop alive if there is work to do
+        this.stillActive = has_pending || moving || needs_draw;
+        if (this.stillActive) {
+            this.animFrameId = requestAnimFrame(this.redrawClbk);
+        }
+    };
+
+    View.prototype._wakeUp = function () {
+        if (!this.animFrameId) {
+            this.prevTime = performance.now();
+            this.animFrameId = requestAnimFrame(this.redrawClbk);
+        }
     };
 
     View.prototype.drawAllOverlays = function () {
@@ -1734,11 +1773,13 @@ export let View = (function () {
             return;
         }
 
-        this.aladin.measurementTable.hide();
-
         if (this.selection) {
             this.selection.forEach((objList) => {
                 objList.forEach((o) => o.deselect())
+
+                if (objList[0]) {
+                    this.aladin.measurementTable.hideTab(objList[0].catalog?.name);
+                }
             });
 
             this.selection = null;
@@ -1838,7 +1879,7 @@ export let View = (function () {
                     return table;
                 })
 
-            this.aladin.measurementTable.showMeasurement(tables);
+                this.aladin.measurementTable.addTab(tables);
         }
     }
 
@@ -1955,7 +1996,7 @@ export let View = (function () {
 
     // Called for touchmove events
     View.prototype.setZoomFactor = function(zoomFactor) {
-        this.wasm.setZoomFactor(zoomFactor);
+        //this.wasm.setZoomFactor(zoomFactor);
         this.updateZoomState();
     }
 
@@ -1965,17 +2006,13 @@ export let View = (function () {
     }
 
     View.prototype.increaseZoom = function () {
-        this.zoom.apply({
-            stop: this.zoomFactor / 1.4,
-            duration: 200,
-        });
+        this.zoomDelta -= 300.0;
+        this.requestRedraw();
     }
 
     View.prototype.decreaseZoom = function () {
-        this.zoom.apply({
-            stop: this.zoomFactor * 1.4,
-            duration: 200,
-        });
+        this.zoomDelta += 300.0;
+        this.requestRedraw();
     }
 
     View.prototype.setRotation = function(rotation) {
@@ -1984,6 +2021,8 @@ export let View = (function () {
         }
 
         this.wasm.setRotation(rotation);
+        this.requestRedraw();
+
         var rotationChangedCallback = this.aladin.callbacksByEventName["rotationChanged"];
         typeof rotationChangedCallback === "function" && rotationChangedCallback(rotation);
     }
@@ -2014,6 +2053,8 @@ export let View = (function () {
 
     View.prototype.updateZoomState = function () {
         this.computeNorder();
+
+        console.log("update zoom factor")
 
         let fovX = this.fov;
         let fovY = this.wasm.getFieldOfView()[1];
@@ -2178,7 +2219,16 @@ export let View = (function () {
                     // This situation can occurs if the MOCServer is out
                     // If so we can directly put the url of the DSS hosted in alasky,
                     // it the best I can do if the MOCServer is out
-                    self.aladin.setBaseImageLayer(Aladin.DEFAULT_OPTIONS.survey);
+                    const trySetDefaultLayer = () => {
+                        if (!navigator.onLine) {
+                            // No connection — wait for it to come back
+                            window.addEventListener('online', trySetDefaultLayer, { once: true });
+                            return;
+                        }
+                        self.aladin.setBaseImageLayer(Aladin.DEFAULT_OPTIONS.survey);
+                    };
+
+                    trySetDefaultLayer();
                 }
             })
     }
@@ -2293,6 +2343,8 @@ export let View = (function () {
 
     View.prototype.requestRedraw = function () {
         this.needRedraw = true;
+
+        this._wakeUp();
     };
 
     View.prototype.setProjection = function (projName) {
@@ -2406,6 +2458,8 @@ export let View = (function () {
         setTimeout(function () { self.refreshProgressiveCats(); }, 1000);
         // Apply position changed callback after the move
         self.throttledPositionChanged(false);
+
+        self.requestRedraw()
     };
 
     View.prototype.makeUniqLayerName = function (name) {

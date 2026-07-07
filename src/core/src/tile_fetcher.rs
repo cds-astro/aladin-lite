@@ -1,6 +1,6 @@
 use crate::downloader::query::CellDesc;
 use crate::downloader::{query, Downloader};
-use crate::time::{DeltaTime, Time};
+use crate::time::Time;
 use crate::Abort;
 
 use al_api::moc::MOCOptions;
@@ -8,7 +8,7 @@ use std::cell::RefCell;
 use std::collections::{HashMap, VecDeque};
 use std::rc::Rc;
 
-const MAX_NUM_TILE_FETCHING: usize = 8;
+pub const MAX_NUM_TILE_FETCHING: usize = 3;
 const MAX_QUERY_QUEUE_LENGTH: usize = 100;
 
 use crate::renderable::hips::HiPS;
@@ -127,19 +127,9 @@ impl TileFetcherQueue {
         self.base_tile_queries.push(query);
     }
 
-    pub fn notify(&mut self, downloader: Rc<RefCell<Downloader>>, dt: Option<DeltaTime>) {
-        // notify all the x ms
-        let now = Time::now();
-
-        if let Some(dt) = dt {
-            if now - self.tiles_fetched_time >= dt {
-                self.tiles_fetched_time = now;
-                self.fetch(downloader);
-            }
-        } else {
-            self.tiles_fetched_time = now;
-            self.fetch(downloader);
-        }
+    pub fn notify(&mut self, downloader: Rc<RefCell<Downloader>>) {
+        self.tiles_fetched_time = Time::now();
+        self.fetch(downloader);
     }
 
     pub fn get_num_tile_fetched(&self) -> usize {
@@ -179,8 +169,9 @@ impl TileFetcherQueue {
             }
         }
 
+        let num_concurrent_requests = downloader.borrow().num_concurrent_requests();
         let mut num_fetched_tile = 0;
-        while num_fetched_tile < MAX_NUM_TILE_FETCHING && !self.queries.is_empty() {
+        while num_fetched_tile < MAX_NUM_TILE_FETCHING as i16 - num_concurrent_requests as i16 && !self.queries.is_empty() {
             let query = self.queries.pop_back().unwrap_abort();
 
             if let Ok(query) = self.check_in_file_list(query) {
@@ -191,7 +182,7 @@ impl TileFetcherQueue {
             }
         }
 
-        self.num_tiles_fetched += num_fetched_tile;
+        self.num_tiles_fetched += num_fetched_tile as usize;
     }
 
     pub fn launch_starting_hips_requests(

@@ -349,7 +349,6 @@ impl HiPS2D {
 
         let tile_queries_iter = camera
             .get_hpx_cells(depth_tile, survey_frame)
-            .into_iter()
             .filter_map(|tile_cell| {
                 let make_query = if let Some(moc) = self.moc.as_ref() {
                     moc.intersects_cell(&tile_cell) && !self.update_priority_tile(&tile_cell)
@@ -428,7 +427,7 @@ impl HiPS2D {
         let hips_frame = cfg.get_frame();
         let depth = camera.get_tile_depth().min(cfg.get_max_depth_tile());
 
-        let hpx_cells_in_view = camera.get_hpx_cells(depth, hips_frame);
+        let hpx_cells_in_view = camera.get_hpx_cells(depth, hips_frame).collect::<Vec<_>>();
         let new_cells = if hpx_cells_in_view.len() != self.hpx_cells_in_view.len() {
             true
         } else {

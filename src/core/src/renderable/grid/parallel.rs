@@ -13,11 +13,10 @@ use crate::renderable::line;
 use core::ops::Range;
 
 pub fn get_intersecting_parallel(
-    lat: f64,
+    lat: Arc,
     camera: &CameraViewPort,
     projection: &ProjectionType,
     fmt: Formatter,
-    grid_decimal_prec: u8,
 ) -> Option<Parallel> {
     let fov = camera.get_field_of_view();
     if fov.get_bounding_box().get_lon_size() > PI {
@@ -32,11 +31,10 @@ pub fn get_intersecting_parallel(
             LabelOptions::Centered,
             projection,
             fmt,
-            grid_decimal_prec,
         ))
     } else {
         // Longitude fov < PI
-        let i = fov.intersects_parallel(lat);
+        let i = fov.intersects_parallel(lat.to_degrees().to_radians());
         match i {
             Intersection::Included => {
                 let camera_center = camera.get_center();
@@ -49,7 +47,6 @@ pub fn get_intersecting_parallel(
                     LabelOptions::Centered,
                     projection,
                     fmt,
-                    grid_decimal_prec,
                 ))
             }
             Intersection::Intersect { vertices } => {
@@ -73,7 +70,6 @@ pub fn get_intersecting_parallel(
                     LabelOptions::OnSide,
                     projection,
                     fmt,
-                    grid_decimal_prec,
                 ))
             }
             Intersection::Empty => None,
@@ -90,16 +86,16 @@ pub struct Parallel {
 }
 
 use super::label::LabelOptions;
+use crate::renderable::grid::Arc;
 
 impl Parallel {
     pub fn new(
-        lat: f64,
+        lat: Arc,
         lon: &Range<f64>,
         camera: &CameraViewPort,
         label_options: LabelOptions,
         projection: &ProjectionType,
         fmt: Formatter,
-        grid_decimal_prec: u8,
     ) -> Self {
         let label = Label::from_parallel(
             lat,
@@ -108,8 +104,9 @@ impl Parallel {
             camera,
             projection,
             fmt,
-            grid_decimal_prec,
         );
+
+        let lat = lat.to_degrees().to_radians();
 
         // Draw the full parallel
         let vertices = if lon.end - lon.start > PI {

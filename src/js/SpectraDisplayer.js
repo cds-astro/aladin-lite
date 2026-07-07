@@ -287,10 +287,10 @@ export class SpectraDisplayer extends DOMElement {
 
         Utils.on(canvas, 'mousedown touchstart', (e) => {
             mouseDownTime = Date.now();
-            mouseDownPos = Utils.relMouseCoords(e);
+            mouseDownPos = {x: e.clientX, y: e.clientY};
 
             const mx = mouseDownPos.x;
-            const my = mouseDownPos.y;
+            const my = Utils.relMouseCoords(e).y;
             let v = this.data.values[Math.round(mx / this.scaleX)]
 
             let len = this.data.values.length;
@@ -359,8 +359,8 @@ export class SpectraDisplayer extends DOMElement {
             }
         });
             
-        Utils.on(canvas, 'mousemove touchmove', (e) => {
-            if (!this.enabled) {
+        Utils.on(document, 'mousemove touchmove', (e) => {
+            /*if (!this.enabled) {
                 let paramsEvent = {
                     bubbles: e.bubbles,
                     cancelable: e.cancelable,
@@ -381,11 +381,13 @@ export class SpectraDisplayer extends DOMElement {
                 let touchEvent = new TouchEvent("touchmove", paramsEvent);
                 this.view.catalogCanvas.dispatchEvent(touchEvent);
                 return;
-            }
+            }*/
 
-            let mouseXY = Utils.relMouseCoords(e)
-            const mx = mouseXY.x;
-            const my = mouseXY.y;         
+            //let mouseXY = Utils.relMouseCoords(e)
+            //const mx = mouseXY.x;
+            //const my = mouseXY.y;         
+            const mx = e.clientX;
+            const my = Utils.relMouseCoords(e).y;
 
             // can be in the spectral area
             let v = this.data.values[Math.round(mx / this.scaleX)]
@@ -449,6 +451,7 @@ export class SpectraDisplayer extends DOMElement {
                 return;
             }
 
+            canvas.style.cursor = 'grabbing';
             
             this.mouseFreq = null;
 
@@ -482,13 +485,14 @@ export class SpectraDisplayer extends DOMElement {
                     unit: 'Hz'
                 })
                 this.lastMouse = { x: mx, y: my };
+
+                self.view.requestRedraw();
             }
         });
 
-        Utils.on(canvas, 'mouseup touchend', (e) => {
-            let w = this.view.aladin.aladinDiv.getBoundingClientRect().width;
+        Utils.on(document, 'mouseup touchend', (e) => {
 
-            if (!this.enabled) {
+            /*if (!this.enabled) {
                 let paramsEvent = {
                     bubbles: e.bubbles,
                     cancelable: e.cancelable,
@@ -509,12 +513,13 @@ export class SpectraDisplayer extends DOMElement {
                 let touchEvent = new TouchEvent("touchend", paramsEvent);
                 this.view.catalogCanvas.dispatchEvent(touchEvent);
                 return;
-            }
+            }*/
 
             this.isDragging = false;
             canvas.style.cursor = 'default';
 
-            let mouseXY = Utils.relMouseCoords(e);
+            //let mouseXY = Utils.relMouseCoords(e);
+            let mouseXY = {x: e.clientX, y: e.clientY};
 
             const timeDiff = Date.now() - mouseDownTime;
             const dx = mouseXY.x - mouseDownPos.x;
@@ -570,7 +575,7 @@ export class SpectraDisplayer extends DOMElement {
             }
 
 
-            if (e.type !== "touchend") {
+            /*if (e.type !== "touchend") {
                 const clickEvent = new MouseEvent('click', {
                     bubbles: true,
                     cancelable: true,
@@ -578,12 +583,13 @@ export class SpectraDisplayer extends DOMElement {
                     clientY: e.clientY
                 });
                 this.view.catalogCanvas.dispatchEvent(clickEvent);
-            }
+            }*/
         });
 
-        Utils.on(canvas, 'mouseout touchcancel', (e) => {
+        /*Utils.on(canvas, 'mouseout touchcancel', (e) => {
+
             this.isDragging = false;
-        });
+        });*/
 
         Utils.on(canvas, 'wheel', (e) => {
             // stop the propagation to prevent scrolling on the page 

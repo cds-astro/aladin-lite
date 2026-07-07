@@ -26,6 +26,8 @@ use al_core::VecData;
 use al_core::WebGlContext;
 use al_core::{Texture2D, VertexArrayObject};
 
+use fitsrs::hdu::header::ValueMap;
+
 use crate::camera::CameraViewPort;
 use crate::math::sph_geom::region::Region;
 use crate::Colormaps;
@@ -55,6 +57,7 @@ pub struct Image {
     blank: Option<f32>,
     bscale: f32,
     bzero: f32,
+    header: Option<ValueMap>,
 
     cuts: Range<f32>,
     /// The center of the fits
@@ -97,6 +100,10 @@ const TEX_PARAMS: &[(u32, u32)] = &[
     ),
 ];
 impl Image {
+    pub fn get_header_dict(&self) -> Option<&ValueMap> {
+        self.header.as_ref()
+    }
+
     #[allow(clippy::too_many_arguments)]
     fn init_buffers(
         gl: WebGlContext,
@@ -106,6 +113,7 @@ impl Image {
         bzero: f32,
         blank: Option<f32>,
         coo_sys: CooSystem,
+        header: Option<ValueMap>
     ) -> Result<Self, JsValue> {
         let dim = wcs.img_dimensions();
         let (width, height) = (dim[0] as u64, dim[1] as u64);
@@ -224,6 +232,7 @@ impl Image {
             bscale,
             bzero,
             blank,
+            header,
 
             // Centered field of view allowing to locate the fits
             centered_fov,
@@ -256,6 +265,7 @@ impl Image {
         bscale: f32,
         bzero: f32,
         blank: Option<f32>,
+        header: Option<ValueMap>,
         // Coo sys of the view
         coo_sys: CooSystem,
     ) -> Result<Self, JsValue> {
@@ -535,7 +545,7 @@ impl Image {
             }
         };
 
-        Self::init_buffers(gl.clone(), patches, wcs, bscale, bzero, blank, coo_sys)
+        Self::init_buffers(gl.clone(), patches, wcs, bscale, bzero, blank, coo_sys, header)
     }
 
     pub fn from_rgba_bytes(
@@ -584,6 +594,7 @@ impl Image {
             bzero,
             blank,
             coo_sys,
+            None
         )
     }
 

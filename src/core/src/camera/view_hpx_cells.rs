@@ -80,7 +80,7 @@ impl ViewHpxCells {
         }
     }
 
-    pub(super) fn get_cells(&self, depth: u8, frame: CooSystem) -> Vec<HEALPixCell> {
+    pub(super) fn get_cells(&self, depth: u8, frame: CooSystem) -> Box<dyn Iterator<Item = HEALPixCell> + '_> {
         self.hpx_cells[frame as usize].get_cells(depth)
     }
 
@@ -197,32 +197,29 @@ impl HpxCells {
 
     // Accessors
     // depth MUST be < to camera tile depth
-    pub fn get_cells(&self, depth: u8) -> Vec<HEALPixCell> {
+    pub fn get_cells(&self, depth: u8) -> Box<dyn Iterator<Item = HEALPixCell> + '_> {
         let cov_depth = self.cov.depth_max();
 
         if depth == cov_depth {
-            self.cov
-                .flatten_to_fixed_depth_cells()
-                .map(|idx| HEALPixCell(depth, idx))
-                .collect()
-        } else if depth > self.cov.depth_max() {
-            let cov_d = self.cov.depth_max();
+            Box::new(
+                self.cov
+                    .flatten_to_fixed_depth_cells()
+                    .map(move |idx| HEALPixCell(depth, idx))
+            )
+        } else if depth > cov_depth {
+            let cov_d = cov_depth;
             let dd = depth - cov_d;
-            // compute the cells from the coverage
-
-            self.cov
-                .flatten_to_fixed_depth_cells()
-                .flat_map(|idx| {
-                    // idx is at depth_max
-                    HEALPixCell(cov_d, idx).get_children_cells(dd)
-                })
-                .collect()
+            Box::new(
+                self.cov
+                    .flatten_to_fixed_depth_cells()
+                    .flat_map(move |idx| HEALPixCell(cov_d, idx).get_children_cells(dd))
+            )
         } else {
-            // compute the cells from the coverage
-            degrade((&self.cov.0).into_range_moc_iter(), depth)
-                .flatten_to_fixed_depth_cells()
-                .map(|idx| HEALPixCell(depth, idx))
-                .collect()
+            Box::new(
+                degrade((&self.cov.0).into_range_moc_iter(), depth)
+                    .flatten_to_fixed_depth_cells()
+                    .map(move |idx| HEALPixCell(depth, idx))
+            )
         }
     }
 

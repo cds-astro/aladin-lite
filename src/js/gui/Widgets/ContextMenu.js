@@ -28,7 +28,7 @@
  * A context menu that shows when the user right clicks, or long touch on touch device
  *
  *
- * Author: Thomas Boch[CDS]
+ * Author: Thomas Boch[CDS], Matthieu Baumann[CDS]
  *
  *****************************************************************************/
 
@@ -57,18 +57,6 @@ export class ContextMenu extends DOMElement {
 
         this.cssStyleDefault = el.style;
 
-        /*if (!options || options.hideOnClick === undefined || options.hideOnClick === true || typeof options.hideOnClick === 'function') {
-            this.aladin.aladinDiv.addEventListener('click', (e) => {
-                if (!el.contains(e.target)) {
-                    if (options && options.hideOnClick && typeof options.hideOnClick === 'function') {
-                        options.hideOnClick(e)
-                    } else {
-                        this._hide()
-                    }
-                }
-            });
-        }*/
-
         if (!options || options.hideOnResize === undefined || options.hideOnResize === true) {
             if (Utils.hasTouchScreen()) {
                 if (screen && 'orientation' in screen) {
@@ -90,8 +78,6 @@ export class ContextMenu extends DOMElement {
 
         ContextMenu._menus.push(this);
     }
-
-    //static lastHoveredItem;
 
     _attachOption(target, opt, e, cssStyle) {
         let item = document.createElement('li');
@@ -350,7 +336,7 @@ export class ContextMenu extends DOMElement {
             this.setCss(options.cssStyle);
         }
 
-        let mouseCoords = options && options.e && Utils.relMouseCoords(options.e)
+        let mouseCoords = options && options.e && {x: options.e.x, y: options.e.y};
         // Set position
         const position =
         options && options.position ||

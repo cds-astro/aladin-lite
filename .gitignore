@@ -9,8 +9,6 @@ deploy/
 # node dependencies
 node_modules/
 
-package-lock.json
-
 # rust tmp files for useful for the compilation phase
 src/core/Cargo.lock
 src/core/target/

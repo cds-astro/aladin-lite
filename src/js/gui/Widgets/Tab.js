@@ -54,7 +54,6 @@ export class Tabs extends DOMElement {
      *     For the list of possibilities, see https://developer.mozilla.org/en-US/docs/Web/API/Element/insertAdjacentHTML
      */
     constructor(options, target, position = "beforeend") {
-
         let el;
         super(el, options);
         this.tabSelectedIdx = 0;
@@ -74,7 +73,7 @@ export class Tabs extends DOMElement {
             this.scrollLeftPosition = e.target.scrollLeft
         };
 
-        this.el.querySelector('.aladin-measurement-div').addEventListener("scroll", this.scrollCallback)
+        this.el.querySelector('.aladin-measurement-div')?.addEventListener("scroll", this.scrollCallback)
 
         this.attachTo(target, position);
     }
@@ -83,6 +82,9 @@ export class Tabs extends DOMElement {
         let contentTabOptions = [];
         let tabsLayout = [];
         let self = this;
+
+        if (options.layout.length === 0)
+            return {};
     
         options.layout.forEach((tab, index) => {
             // Create the content tab div
@@ -180,8 +182,11 @@ export class Tabs extends DOMElement {
         let contentTabEl = document.createElement("div");
         contentTabEl.style.maxWidth = '100%';
     
-        contentTabOptions[0].style.display = 'block';
-        tabsLayout[0].update({toggled: true})
+        if (contentTabOptions.length > 0) {
+            contentTabOptions[0].style.display = 'block';
+            tabsLayout[0].update({toggled: true})
+        }
+        
         for(let contentTabOptionEl of contentTabOptions) {
             // Add it to the view
             contentTabEl.appendChild(contentTabOptionEl)
@@ -196,7 +201,9 @@ export class Tabs extends DOMElement {
     setScrollPosition(left) {
         this.scrollLeftPosition = left
 
-        this.el.querySelector('.aladin-measurement-div').scrollLeft = left;
+        let tableDivElement = this.el.querySelector('.aladin-measurement-div');
+        if (tableDivElement)
+            tableDivElement.scrollLeft = left;
     }
 
     _show() {
@@ -212,7 +219,7 @@ export class Tabs extends DOMElement {
     }
 
     remove() {
-        this.el.querySelector('.aladin-measurement-div').removeEventListener("scroll", this.scrollCallback)
+        this.el.querySelector('.aladin-measurement-div')?.removeEventListener("scroll", this.scrollCallback)
 
         super.remove();
     }

@@ -252,6 +252,10 @@ pub enum ImageType {
         raw_bytes: js_sys::Uint8Array,
         size: (u32, u32, u32),
     },
+    Blob {
+        blob: web_sys::Blob,
+        size: (u32, u32, u32),
+    },
     Canvas {
         canvas: Canvas<RGBA8U>,
     },
@@ -307,7 +311,8 @@ impl Image for ImageType {
                 for image in images {
                     image.insert_into_3d_texture(textures, offset)?
                 }
-            }
+            },
+            ImageType::Blob { .. } => unreachable!(),
             ImageType::Canvas { canvas } => canvas.insert_into_3d_texture(textures, offset)?,
             ImageType::ImageRgba8u { image } => image.insert_into_3d_texture(textures, offset)?,
             ImageType::ImageRgb8u { image } => image.insert_into_3d_texture(textures, offset)?,
@@ -332,6 +337,7 @@ impl Image for ImageType {
         match self {
             ImageType::FitsRawBytes { size, .. } => *size,
             ImageType::Canvas { canvas } => canvas.get_size(),
+            ImageType::Blob { size, .. } => *size,
             ImageType::ImageRgba8u { image } => image.get_size(),
             ImageType::ImageRgb8u { image } => image.get_size(),
             ImageType::HTMLImageRgba8u { image } => image.get_size(),

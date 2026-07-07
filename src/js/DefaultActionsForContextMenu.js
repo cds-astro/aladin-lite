@@ -129,7 +129,7 @@ export let DefaultActionsForContextMenu = (function () {
                         label: 'Load image', action(o) {
                             let input = document.createElement('input');
                             input.type = 'file';
-                            input.accept = ['.fits', '.png', '.jpg'];
+                            input.accept = ['.fits', '.gz', '.png', '.jpg'];
                             input.onchange = _ => {
                                 let files = Array.from(input.files);
 

@@ -21,12 +21,16 @@
                 name: 'm61',
                 colormap: 'viridis'
             }, // no optional params
-            (ra, dec, fov, _) => {
+            (ra, dec, fov, image) => {
                 // ra, dec and fov are centered around the fits image
                 aladin.gotoRaDec(ra, dec);
                 aladin.setFoV(fov);
             },
         );
+
+        (async () => {
+            let header = await aladin.getOverlayImageLayer().getHeader(0);
+        })();
     });
 </script>
 </body>

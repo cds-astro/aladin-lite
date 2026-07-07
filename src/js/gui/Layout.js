@@ -132,7 +132,7 @@ export class Layout extends DOMElement {
             this.setPosition(options.position)
         }
 
-        if (options && options.vertical && options.vertical === true) {
+        if (options && options.vertical === true) {
             this.addClass('aladin-vertical-list')
         } else {
             this.addClass('aladin-horizontal-list')

@@ -1,4 +1,4 @@
-use crate::healpix::cell::HEALPixFreqCell;
+use crate::healpix::cell::HEALPix3DCell;
 use moclib::hpxranges2d::HpxRanges2D;
 use moclib::ranges::ranges2d::Ranges2D;
 
@@ -26,6 +26,8 @@ use moclib::deser::fits::MocQtyType;
 use moclib::mocranges2d::Moc2DRanges;
 
 use std::io::Cursor;
+
+use crate::math::quantity::frequency::Freq;
 
 impl FreqSpaceMoc {
     /// Create a FreqSpaceMoc from a
@@ -89,21 +91,14 @@ impl FreqSpaceMoc {
         todo!()
     }
 
-    pub fn intersects_cell(&self, cell: &HEALPixFreqCell) -> bool {
-        let HEALPixFreqCell {
-            hpx,
-            f_hash,
-            f_depth,
-        } = *cell;
-
-        let f_hash_0 = f_hash << (Frequency::<u64>::MAX_DEPTH - f_depth);
-        let f_hash_1 = (f_hash + 1) << (Frequency::<u64>::MAX_DEPTH - f_depth);
+    pub fn intersects_cell(&self, cell: &HEALPix3DCell) -> bool {
+        let freq_range = cell.qty_idx_range::<Freq>();
 
         let hpx_ranges_2d = HpxRanges2D::create_from_freq_ranges_positions(
-            vec![f_hash_0..f_hash_1; 1],
-            vec![hpx.idx()],
+            vec![freq_range; 1],
+            vec![cell.hpx.idx()],
             Frequency::<u64>::MAX_DEPTH,
-            hpx.depth(),
+            cell.hpx.depth(),
         );
 
         !self.0.intersection(&hpx_ranges_2d).is_empty()

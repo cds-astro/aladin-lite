@@ -28,7 +28,7 @@
  * A context menu that shows when the user right clicks, or long touch on touch device
  *
  *
- * Author: Thomas Boch[CDS]
+ * Author: Thomas Boch[CDS], Matthieu Baumann[CDS]
  *
  *****************************************************************************/
 
@@ -57,18 +57,6 @@ export class ContextMenu extends DOMElement {
 
         this.cssStyleDefault = el.style;
 
-        /*if (!options || options.hideOnClick === undefined || options.hideOnClick === true || typeof options.hideOnClick === 'function') {
-            this.aladin.aladinDiv.addEventListener('click', (e) => {
-                if (!el.contains(e.target)) {
-                    if (options && options.hideOnClick && typeof options.hideOnClick === 'function') {
-                        options.hideOnClick(e)
-                    } else {
-                        this._hide()
-                    }
-                }
-            });
-        }*/
-
         if (!options || options.hideOnResize === undefined || options.hideOnResize === true) {
             if (Utils.hasTouchScreen()) {
                 if (screen && 'orientation' in screen) {
@@ -90,8 +78,6 @@ export class ContextMenu extends DOMElement {
 
         ContextMenu._menus.push(this);
     }
-
-    //static lastHoveredItem;
 
     _attachOption(target, opt, e, cssStyle) {
         let item = document.createElement('li');
@@ -313,17 +299,21 @@ export class ContextMenu extends DOMElement {
             let o = parent.getBoundingClientRect();
             let c = child.getBoundingClientRect();
 
-            child.classList.remove('left', 'right', 'top', 'bottom');
+            //child.classList.remove('left', 'right', 'top', 'bottom');
 
+            console.log(aladinRect.right - (o.x + o.width), c.width)
             // First check if there is place towards the right, which is the desired behaviour
             if (aladinRect.right - (o.x + o.width) >= c.width) {
+                //child.classList.add('right');
                 // do nothing as it is by default considering this case
             } else if (o.x - aladinRect.left >= c.width) {
-                child.classList.add('left');
+                                console.log("left")
+
+                //child.classList.add('left');
             } else if (aladinRect.bottom - (o.y + o.height) >= c.height) {
-                child.classList.add('bottom');
+                //child.classList.add('bottom');
             } else {
-                child.classList.add('top');
+                //child.classList.add('top');
             }
         }
 
@@ -350,7 +340,7 @@ export class ContextMenu extends DOMElement {
             this.setCss(options.cssStyle);
         }
 
-        let mouseCoords = options && options.e && Utils.relMouseCoords(options.e)
+        let mouseCoords = options && options.e && {x: options.e.x, y: options.e.y};
         // Set position
         const position =
         options && options.position ||

@@ -1,12 +1,22 @@
 use crate::browser_support::BrowserFeaturesSupport;
 use crate::downloader::request::moc::MOCRequest;
 use crate::math::angle::ToAngle;
-use crate::math::spectra::Freq;
 use crate::renderable::hips::HiPS;
 use crate::renderable::image::Image;
 use crate::renderable::ImageLayer;
 use crate::tile_fetcher::HiPSLocalFiles;
-use crate::Abort;
+use crate::spectra_displayer::SpectraDisplayer;
+use crate::math::quantity::Qty;
+use crate::math::quantity::frequency::Freq;
+
+use crate::coo_space::CooSpace;
+use crate::renderable::line::Style;
+use crate::ColorRGBA;
+use crate::renderable::line::PathVertices;
+
+use crate::renderable::line::RasterizedLineRenderer;
+
+use crate::PollInfo;
 use crate::{
     camera::CameraViewPort,
     downloader::Downloader,
@@ -24,6 +34,12 @@ use crate::{
     tile_fetcher::TileFetcherQueue,
     time::DeltaTime,
 };
+use serde::Serialize;
+
+use crate::HEALPixCell;
+
+use crate::worker::{create_worker, Tile3DAttributes, TileAttributes, WorkerResponse};
+
 use al_api::moc::MOCOptions;
 use al_core::image::bitmap::Bitmap;
 use al_core::image::fits::FitsImage;
@@ -45,6 +61,7 @@ use al_api::{
 };
 
 use crate::healpix::moc::Moc;
+use std::cell::Cell;
 
 use web_sys::{HtmlElement, WebGl2RenderingContext};
 
@@ -55,6 +72,7 @@ use crate::renderable::final_pass::RenderPass;
 use al_core::FrameBufferObject;
 
 use al_api::image::ImageParams;
+use web_sys::Worker;
 
 pub struct App {
     pub gl: WebGlContext,
@@ -62,7 +80,8 @@ pub struct App {
     //ui: GuiRef,
     shaders: ShaderManager,
     pub camera: CameraViewPort,
-    worker: Worker,
+    worker_tile_3d: Worker,
+    worker_tile: Worker,
 
     downloader: Rc<RefCell<Downloader>>,
     tile_fetcher: TileFetcherQueue,
@@ -70,7 +89,6 @@ pub struct App {
 
     time_start_blending: Time,
     request_redraw: bool,
-    rendering: bool,
 
     // The grid renderable
     grid: ProjetedGrid,
@@ -78,6 +96,8 @@ pub struct App {
     moc: MOCRenderer,
     // Catalog manager
     manager: Manager,
+
+    line_renderer: RasterizedLineRenderer,
 
     // Task executor
     //exec: Rc<RefCell<TaskExecutor>>,
@@ -95,18 +115,18 @@ pub struct App {
     out_of_fov: bool,
     //tasks_finished: bool,
     catalog_loaded: bool,
-    last_time_request_for_new_tiles: Time,
     request_for_new_tiles: bool,
+    num_tiles_to_be_copied: Rc<Cell<i32>>,
 
     _final_rendering_pass: RenderPass,
     _fbo_view: FrameBufferObject,
     _fbo_ui: FrameBufferObject,
-    //line_renderer: RasterizedLineRenderer,
+
     colormaps: Colormaps,
 
     pub projection: ProjectionType,
 
-    cubic_tile_recv: async_channel::Receiver<WorkerResponse>,
+    worker_resp_recv: async_channel::Receiver<WorkerResponse>,
 
     // Async data receivers
     //img_send: async_channel::Sender<ImageLayer>,
@@ -114,6 +134,8 @@ pub struct App {
     ack_img_send: async_channel::Sender<ImageParams>,
 
     browser_features_support: BrowserFeaturesSupport,
+
+    pub spectra_displayer: SpectraDisplayer,
     //ack_img_recv: async_channel::Receiver<ImageParams>,
     // callbacks
     //callback_position_changed: js_sys::Function,
@@ -130,6 +152,14 @@ use cgmath::InnerSpace;
 use crate::downloader::query::{self, CellDesc};
 use crate::downloader::request::RequestType;
 use al_api::resources::Resources;
+
+use al_api::cell::HEALPixCellProjeted;
+
+use crate::healpix::cell::HEALPix3DCell;
+
+use al_api::color::ColorRGB;
+
+use crate::downloader::request::on_resolved::call_on_resolved_cb;
 
 impl App {
     pub fn new(
@@ -181,7 +211,6 @@ impl App {
 
         //let tasks_finished = false;
         let request_redraw = false;
-        let rendering = true;
         let prev_cam_position = *camera.get_center();
         //let prev_center = Vector3::new(0.0, 1.0, 0.0);
         let out_of_fov = false;
@@ -192,9 +221,6 @@ impl App {
         let _final_rendering_pass = RenderPass::new(&gl)?;
         let tile_fetcher = TileFetcherQueue::new();
 
-        //let ui = Gui::new(aladin_div_name, &gl)?;
-        let last_time_request_for_new_tiles = Time::now();
-
         let request_for_new_tiles = true;
 
         let moc = MOCRenderer::new(&gl)?;
@@ -202,7 +228,7 @@ impl App {
 
         let (_, img_recv) = async_channel::unbounded::<ImageLayer>();
         let (ack_img_send, _) = async_channel::unbounded::<ImageParams>();
-        let (cubic_tile_send, cubic_tile_recv) = async_channel::unbounded::<WorkerResponse>();
+        let (worker_resp_send, worker_resp_recv) = async_channel::unbounded::<WorkerResponse>();
 
         let dist_dragging = 0.0;
         let time_start_dragging = Time::now();
@@ -212,10 +238,10 @@ impl App {
         let browser_features_support = BrowserFeaturesSupport::new();
 
         let vel_history = vec![];
-        let worker = create_worker()?;
-        // Send the ack to the js promise so that she finished
-        let onmessage = Closure::<dyn FnMut(web_sys::MessageEvent)>::new(
-            move |event: web_sys::MessageEvent| {
+        let num_tiles_to_be_copied = Rc::new(Cell::new(0_i32));
+        let worker_tile_3d = create_worker(
+            include_str!("./workers/decodeHiPS3DTile.js"),
+            move |event: web_sys::MessageEvent| -> WorkerResponse {
                 let data = event.data();
 
                 let bytes_js = js_sys::Reflect::get(&data, &"bytes".into())
@@ -227,47 +253,52 @@ impl App {
                 let mut bytes = vec![0u8; bytes_js.length() as usize];
                 bytes_js.copy_to(&mut bytes);
 
-                let meta: WorkerResponseMeta = serde_wasm_bindgen::from_value(data).unwrap();
+                let attrs: Tile3DAttributes = serde_wasm_bindgen::from_value(data).unwrap();
 
-                let response = WorkerResponse {
-                    bytes,
-                    tile_size: meta.tile_size,
-                    tile_depth: meta.tile_depth,
-                    cell: meta.cell,
-                    hips_cdid: meta.hips_cdid,
-                };
-                let c = cubic_tile_send.clone();
-
-                wasm_bindgen_futures::spawn_local(async move {
-                    c.send(response).await.unwrap_throw();
-                })
+                WorkerResponse::Tile3D { bytes, attrs }
             },
-        );
+            worker_resp_send.clone(),
+        )?;
+        let worker_tile = create_worker(
+            include_str!("./workers/decodeHiPSTile.js"),
+            move |event: web_sys::MessageEvent| -> WorkerResponse {
+                let data = event.data();
 
-        worker.set_onmessage(Some(onmessage.as_ref().unchecked_ref()));
+                let bitmap = js_sys::Reflect::get(&data, &"bitmap".into())
+                    .unwrap()
+                    .dyn_into::<web_sys::ImageBitmap>()
+                    .expect("is not an image bitmap");
 
-        // 🚨 VERY IMPORTANT: prevent the closure from being dropped
-        onmessage.forget();
+                let attrs: TileAttributes = serde_wasm_bindgen::from_value(data).unwrap();
+
+                call_on_resolved_cb();
+
+                WorkerResponse::Tile { bitmap, attrs }
+            },
+            worker_resp_send.clone(),
+        )?;
 
         gl.blend_func(
             WebGl2RenderingContext::SRC_ALPHA,
             WebGl2RenderingContext::ONE_MINUS_SRC_ALPHA,
         );
 
+        let line_renderer = RasterizedLineRenderer::new(&gl)?;
+
+        let spectra_displayer = SpectraDisplayer::new();
+
         Ok(App {
             gl,
-            //ui,
             shaders,
 
             camera,
 
-            last_time_request_for_new_tiles,
             request_for_new_tiles,
             downloader,
             layers,
+            num_tiles_to_be_copied,
 
             time_start_blending,
-            rendering,
             request_redraw,
             // The grid renderable
             grid,
@@ -281,7 +312,7 @@ impl App {
             _fbo_ui,
             _final_rendering_pass,
 
-            //line_renderer,
+            line_renderer,
 
             // inertia
             inertia,
@@ -291,7 +322,8 @@ impl App {
             time_mouse_high_vel,
             dragging,
             vel_history,
-            worker,
+            worker_tile_3d,
+            worker_tile,
 
             prev_cam_position,
             out_of_fov,
@@ -301,30 +333,23 @@ impl App {
 
             tile_fetcher,
             north_up: false,
+            spectra_displayer,
             colormaps,
             projection,
 
             //img_send,
             img_recv,
             ack_img_send,
-            cubic_tile_recv,
+            worker_resp_recv,
 
             browser_features_support, //ack_img_recv,
         })
     }
 
-    fn _update_hips_location(&mut self) {
-        let camera = &self.camera;
-        for hips in self.layers.get_mut_hipses() {
-            if let HiPS::D3(hips) = hips {
-                hips.set_cursor_location(camera);
-            }
-        }
-    }
-
     fn look_for_new_tiles(&mut self) -> Result<(), JsValue> {
-        // Move the views of the different active hipss
+        // Move the views of the different active hips
         self.tile_fetcher.clear();
+        let q_order = self.spectra_displayer.q_order();
         // Loop over the hipss
         for hips in self.layers.get_mut_hipses() {
             /*if self.camera.get_tile_depth() == 0 {
@@ -345,8 +370,11 @@ impl App {
                 &mut self.tile_fetcher,
                 &self.camera,
                 &self.browser_features_support,
+                q_order
             );
         }
+
+        self.spectra_displayer.launch_new_tile_requests(&mut self.tile_fetcher, &self.browser_features_support, &self.layers);
 
         Ok(())
     }
@@ -424,15 +452,7 @@ impl App {
 
         Ok(())
     }*/
-}
 
-use al_api::cell::HEALPixCellProjeted;
-
-use crate::healpix::cell::{HEALPixCell, HEALPixFreqCell};
-
-use al_api::color::ColorRGB;
-
-impl App {
     pub(crate) fn set_background_color(&mut self, color: ColorRGB) {
         self.layers.set_background_color(color);
         self.request_redraw = true;
@@ -457,16 +477,16 @@ impl App {
 
                 let v = cell.vertices();
                 let proj2screen = |(lon, lat): &(f64, f64)| -> Option<[f64; 2]> {
-                    // 1. convert to xyz
+                    // 1. Convert to xyz
                     let xyz = crate::math::lonlat::radec_to_xyz(lon.to_angle(), lat.to_angle());
-                    // 2. get it back to the camera frame system
+                    // 2. Get it back to the camera frame system
                     let xyz = crate::coosys::apply_coo_system(
                         CooSystem::ICRS,
                         self.camera.get_coo_system(),
                         &xyz,
                     );
 
-                    // 3. project on screen
+                    // 3. Project on screen
                     self.projection
                         .model_to_clip_space(&xyz, &self.camera)
                         .map(|p| [p.x, p.y])
@@ -542,35 +562,12 @@ impl App {
         Ok(())
     }
 
-    /*pub(crate) fn set_callback_position_changed(&mut self, callback: js_sys::Function) {
-        self.callback_position_changed = callback;
-    }*/
-
-    pub(crate) fn is_inerting(&self) -> bool {
-        self.inertia.is_some()
+    pub fn has_pending_tiles(&self) -> bool {
+        self.downloader.borrow().num_concurrent_requests() > 0
+            || self.num_tiles_to_be_copied.get() > 0
     }
 
-    pub(crate) fn update(&mut self, dt: f64) -> Result<bool, JsValue> {
-        // a timer stopping the frame if it takes too long
-        // useful for garanting a framerate
-        let rendering_timer = Time::now();
-
-        if let Some(inertia) = self.inertia.as_mut() {
-            inertia.apply(&mut self.camera, &self.projection, dt);
-            // Always request for new tiles while moving
-            self.request_for_new_tiles = true;
-
-            // The threshold stopping criteria must be dependant
-            // of the zoom level, in this case the initial angular distance
-            // speed
-            let thresh_speed = inertia.get_start_ampl() * 1e-4;
-            let cur_speed = inertia.get_cur_speed();
-
-            if cur_speed < thresh_speed {
-                self.inertia = None;
-            }
-        }
-
+    pub(crate) fn poll_worker_responses(&mut self) -> Result<(), JsValue> {
         // Check for async retrieval
         if let Ok(img) = self.img_recv.try_recv() {
             let params = img.get_params();
@@ -589,381 +586,69 @@ impl App {
             })
         }
 
-        if let Ok(WorkerResponse {
-            cell,
-            hips_cdid,
-            tile_size,
-            tile_depth,
-            bytes,
-            ..
-        }) = self.cubic_tile_recv.try_recv()
-        {
-            if let Some(HiPS::D3(hips)) = self.layers.get_mut_hips_from_cdid(&hips_cdid) {
-                hips.push_tile_from_png(
-                    &cell,
-                    bytes.into_boxed_slice(),
-                    (tile_size, tile_size, tile_depth),
-                    Time::now(),
-                )?;
-            }
+        let mut cubic_tiles_copied = false;
 
-            self.request_redraw = true;
-        }
+        while let Ok(response) = self.worker_resp_recv.try_recv() {
+            match response {
+                WorkerResponse::Tile3D {
+                    attrs:
+                        Tile3DAttributes {
+                            cell,
+                            hips_cdid,
+                            tile_size,
+                            tile_depth,
+                        },
+                    bytes,
+                } => {
+                    self.num_tiles_to_be_copied
+                        .set(self.num_tiles_to_be_copied.get() - 1);
 
-        let has_camera_moved = self.camera.has_moved();
+                    if let Some(HiPS::D3(hips)) = self.layers.get_mut_hips_from_cdid(&hips_cdid) {
+                        hips.push_tile_from_png(
+                            &cell,
+                            bytes.into_boxed_slice(),
+                            (tile_size, tile_size, tile_depth),
+                            Time::now(),
+                        )?;
 
-        {
-            // Newly available tiles must lead to
-            // 1. Surveys must be aware of the new available tiles
-            //self.hipss.set_available_tiles(&available_tiles);
-            // 2. Get the resolved tiles and push them to the image hipss
-            /*let is_there_new_available_tiles = self
-            .downloader
-            .get_resolved_tiles(/*&available_tiles, */&mut self.hipss);*/
-            //self.tile_fetcher.clear();
-
-            if self.request_for_new_tiles
-                && Time::now() - self.last_time_request_for_new_tiles > DeltaTime::from(500.0)
-            {
-                self.look_for_new_tiles()?;
-
-                self.request_for_new_tiles = false;
-                self.last_time_request_for_new_tiles = Time::now();
-            }
-
-            // Tiles are fetched if:
-            //let fetch_tiles =
-            // * the user is not panning the view
-            // * or the user is but did not move for at least 100ms
-            //(Time::now() - self.camera.get_time_of_last_move() >= DeltaTime(100.0) || !self.dragging) &&
-            // * no inertia action is in progress
-            //self.inertia.is_none() &&
-            // * the user is not zooming
-            // !self.camera.has_zoomed();
-
-            //if fetch_tiles {
-            self.tile_fetcher.notify(self.downloader.clone(), None);
-            //}
-        }
-
-        let rscs_received = self.downloader.borrow_mut().get_received_resources();
-
-        let mut tile_copied = false;
-
-        const MAX_FRAME_TIME: DeltaTime = DeltaTime::from_millis(1000.0 / 40.0);
-
-        // - there is at least one tile in its blending phase
-        let blending_anim_occuring =
-            (Time::now() - self.time_start_blending) < BLENDING_ANIM_DURATION;
-
-        for rsc in rscs_received {
-            if Time::now() - rendering_timer >= MAX_FRAME_TIME {
-                self.downloader.borrow_mut().delay(rsc);
-                continue;
-            }
-
-            match rsc {
-                RequestType::Tile(tile) => {
-                    /*if self.camera.has_moved() {
-                        self.downloader
-                        .borrow_mut()
-                        .delay(RequestType::Tile(tile));
-                        continue;
-                    }*/
-
-                    if let Some(hips) = self.layers.get_mut_hips_from_cdid(&tile.hips_cdid) {
-                        let cfg = hips.get_config();
-
-                        if cfg.get_format() == tile.format {
-                            let fov_coverage = self.camera.get_cov(cfg.get_frame());
-                            let hpx_cell = tile.cell.get_hpx();
-
-                            let included_in_coverage = fov_coverage.intersects_cell(hpx_cell);
-
-                            //let is_tile_root = tile.cell().depth() == delta_depth;
-                            //let _depth = tile.cell().depth();
-                            // do not perform tex_sub costly GPU calls while the camera is zooming
-                            if hpx_cell.is_root() || included_in_coverage {
-                                let image = tile.request.get_data().clone();
-
-                                // 1. For FITS tiles, parse the bscale/bzero and optional blank
-                                // FIXME. We should consider these constants as per tiles and not for
-                                // whole HiPS they belong to.
-                                if let Some(ImageType::FitsRawBytes {
-                                    raw_bytes: raw_bytes_buf,
-                                    ..
-                                }) = &*image.borrow()
-                                {
-                                    // check if the metadata has not been set
-                                    if hips.get_fits_params().is_none() {
-                                        let raw_bytes = raw_bytes_buf.to_vec();
-
-                                        let FitsImage {
-                                            bscale,
-                                            bzero,
-                                            blank,
-                                            ..
-                                        } = FitsImage::from_raw_bytes(raw_bytes.as_slice())?[0];
-                                        hips.set_fits_params(bscale, bzero, blank);
-                                    }
-                                };
-
-                                // 2. Add the tile to its HiPS
-                                if let Some(img) = &*image.borrow() {
-                                    // For PNG/JPEG cubic tiles, all the slices are in the lonely image
-                                    match (&tile.cell, hips) {
-                                        (CellDesc::HiPS2D { cell, .. }, HiPS::D2(hips)) => {
-                                            hips.push_tile(cell, img, tile.request.time_request)?
-                                        }
-                                        (
-                                            CellDesc::HiPSCube { cell, channel, .. },
-                                            HiPS::D3(hips),
-                                        ) => {
-                                            // We build an artificial cube
-                                            let f_hash = (*channel / 32) as u64;
-                                            let slice_idx = (*channel % 32) as u16;
-
-                                            let cell = HEALPixFreqCell::new(
-                                                *cell,
-                                                f_hash,
-                                                Frequency::<u64>::MAX_DEPTH,
-                                            );
-                                            hips.push_tile_slice(
-                                                &cell,
-                                                img,
-                                                tile.request.time_request,
-                                                slice_idx,
-                                            )?
-                                        }
-                                        (
-                                            CellDesc::HiPS3D {
-                                                cell,
-                                                tile_size,
-                                                tile_depth,
-                                            },
-                                            HiPS::D3(hips),
-                                        ) => {
-                                            // As the decoding and copying to the GPU of cubic tile is more costly
-                                            // (not that much but there is more because they are smaller)
-                                            // then we delay their treatment through the frames
-                                            if tile_copied {
-                                                self.downloader
-                                                    .borrow_mut()
-                                                    .delay(RequestType::Tile(tile));
-                                                continue;
-                                            }
-                                            tile_copied = true;
-
-                                            // TODO PNG/JPG case to handle here
-                                            match img {
-                                                ImageType::ImageRgba8u {
-                                                    image: Bitmap { image, .. },
-                                                } => {
-                                                    let msg = js_sys::Object::new();
-                                                    js_sys::Reflect::set(
-                                                        &msg,
-                                                        &"bitmap".into(),
-                                                        image,
-                                                    )?;
-                                                    js_sys::Reflect::set(
-                                                        &msg,
-                                                        &"tileSize".into(),
-                                                        &JsValue::from_f64(*tile_size as f64),
-                                                    )?;
-                                                    js_sys::Reflect::set(
-                                                        &msg,
-                                                        &"tileDepth".into(),
-                                                        &JsValue::from_f64(*tile_depth as f64),
-                                                    )?;
-                                                    js_sys::Reflect::set(
-                                                        &msg,
-                                                        &"cell".into(),
-                                                        &serde_wasm_bindgen::to_value(&cell)
-                                                            .expect("Failed to serialize"),
-                                                    )?;
-
-                                                    js_sys::Reflect::set(
-                                                        &msg,
-                                                        &"HiPS".into(),
-                                                        &JsValue::from_str(&tile.hips_cdid),
-                                                    )?;
-
-                                                    // Transfer ownership (zero-copy)
-                                                    let transfer = js_sys::Array::of1(image);
-
-                                                    self.worker.post_message_with_transfer(
-                                                        &msg, &transfer,
-                                                    )?;
-                                                }
-                                                ImageType::ImageRgb8u {
-                                                    image: Bitmap { image, .. },
-                                                } => {
-                                                    let document = web_sys::window()
-                                                        .unwrap_abort()
-                                                        .document()
-                                                        .unwrap_abort();
-                                                    let canvas = document
-                                                        .create_element("canvas")?
-                                                        .dyn_into::<web_sys::HtmlCanvasElement>()?;
-                                                    canvas.set_width(image.width());
-                                                    canvas.set_height(image.height());
-                                                    let context = canvas
-                                                        .get_context("2d")?
-                                                        .unwrap_abort()
-                                                        .dyn_into::<web_sys::CanvasRenderingContext2d>()?;
-                                                    // Get the data once for all for the whole image
-                                                    // This takes time so better do it once and not repeatly
-                                                    context.draw_image_with_image_bitmap(
-                                                        image, 0.0, 0.0,
-                                                    )?;
-
-                                                    // Cut the png in several tile images. See page 3 of
-                                                    // https://aladin.cds.unistra.fr/java/DocTechHiPS3D.pdf
-                                                    let tile_depth = *tile_depth;
-                                                    let num_cols =
-                                                        (tile_depth as f32).sqrt().floor() as u32;
-                                                    let num_rows = ((tile_depth as f32)
-                                                        / (num_cols as f32))
-                                                        .ceil()
-                                                        as u32;
-
-                                                    let tile_size = *tile_size;
-
-                                                    let bytes = context
-                                                        .get_image_data(
-                                                            0_f64,
-                                                            0_f64,
-                                                            (num_cols * tile_size) as f64,
-                                                            (num_rows * tile_size) as f64,
-                                                        )?
-                                                        .data()
-                                                        .0;
-
-                                                    let mut decoded_bytes = vec![
-                                                        0_u8;
-                                                        (tile_size * tile_size * tile_depth)
-                                                            as usize
-                                                    ];
-
-                                                    let mut k = 0;
-                                                    let mut num_tiles_cropped = 0;
-                                                    for y in 0..num_rows {
-                                                        let sy = y * tile_size;
-
-                                                        for x in 0..num_cols {
-                                                            let sx = x * tile_size;
-
-                                                            for i in sy..(sy + tile_size) {
-                                                                for j in sx..(sx + tile_size) {
-                                                                    let id_byte = (j + i
-                                                                        * num_cols
-                                                                        * tile_size)
-                                                                        * 4;
-
-                                                                    decoded_bytes[k] =
-                                                                        bytes[id_byte as usize];
-                                                                    k += 1;
-                                                                }
-                                                            }
-
-                                                            num_tiles_cropped += 1;
-
-                                                            if num_tiles_cropped == tile_depth {
-                                                                break;
-                                                            }
-                                                        }
-                                                        if num_tiles_cropped == tile_depth {
-                                                            break;
-                                                        }
-                                                    }
-
-                                                    hips.push_tile_from_jpeg(
-                                                        cell,
-                                                        decoded_bytes.into_boxed_slice(),
-                                                        (tile_size, tile_size, tile_depth),
-                                                        tile.request.time_request,
-                                                    )?;
-                                                }
-                                                ImageType::FitsRawBytes { raw_bytes, size } => hips
-                                                    .push_tile_from_fits(
-                                                        cell,
-                                                        raw_bytes.clone(),
-                                                        *size,
-                                                        tile.request.time_request,
-                                                    )?,
-                                                _ => unreachable!(),
-                                            }
-                                        }
-                                        _ => unreachable!(),
-                                    }
-                                    self.request_redraw = true;
-                                    self.time_start_blending = Time::now();
-                                };
-                            }
-                        }
+                        cubic_tiles_copied = true;
                     }
+
+                    self.request_redraw = true;
+                    self.time_start_blending = Time::now();
                 }
-                RequestType::Allsky(allsky) => {
-                    if let Some(HiPS::D2(hips)) =
-                        self.layers.get_mut_hips_from_cdid(&allsky.hips_cdid)
-                    {
-                        let is_missing = allsky.missing();
-                        if is_missing {
-                            // The allsky image is missing so we donwload all the tiles contained into
-                            // the 0's cell
-                            for base_hpx_cell in crate::healpix::cell::ALLSKY_HPX_CELLS_D0 {
-                                let query = query::Tile::new(
-                                    base_hpx_cell,
-                                    hips.get_config(),
-                                    &self.browser_features_support,
-                                );
-                                self.tile_fetcher.append_base_tile(query);
-                            }
-                        } else {
-                            // tell the hips to not download tiles which order is <= 3 because the allsky
-                            // give them already
-                            hips.add_allsky(allsky)?;
-                            // Once received ask for redraw
-                            self.request_redraw = true;
-                        }
-                    }
-                }
-                RequestType::Moc(moc) => {
-                    let moc_hips_cdid = moc.hips_cdid;
-                    //let url = &moc_url[..moc_url.find("/Moc.fits").unwrap_abort()];
-                    if let Some(hips) = self.layers.get_mut_hips_from_cdid(&moc_hips_cdid) {
-                        let MOCRequest { request, .. } = moc;
-                        if let Some(moc) = &*request.get_data().borrow() {
-                            match (hips, moc) {
-                                (HiPS::D2(hips), Moc::Space(moc)) => {
-                                    hips.set_moc(moc.clone());
-                                }
-                                (HiPS::D3(hips), Moc::FreqSpace(moc)) => {
-                                    hips.set_moc(moc.clone());
-                                }
-                                _ => (),
-                            }
+                WorkerResponse::Tile {
+                    attrs:
+                        TileAttributes {
+                            cell,
+                            hips,
+                            tile_size: _,
+                        },
+                    bitmap,
+                } => {
+                    self.num_tiles_to_be_copied
+                        .set(self.num_tiles_to_be_copied.get() - 1);
 
-                            self.request_for_new_tiles = true;
-                            self.request_redraw = true;
-                        };
+                    if let Some(HiPS::D2(hips)) = self.layers.get_mut_hips_from_cdid(&hips) {
+                        hips.push_tile(
+                            &cell,
+                            ImageType::ImageRgba8u {
+                                image: Bitmap::new(bitmap),
+                            },
+                            Time::now(),
+                        )?;
                     }
+                    self.request_redraw = true;
+                    self.time_start_blending = Time::now();
                 }
             }
         }
 
-        self.rendering = blending_anim_occuring
-            | has_camera_moved
-            | self.camera.has_zoomed()
-            | self.request_redraw
-            | self.inertia.is_some();
+        if cubic_tiles_copied {
+            self.spectra_displayer.redraw(&self.layers);
+        }
 
-        self.draw()?;
-
-        // Reset the flags about the user action
-        self.camera.reset();
-
-        Ok(has_camera_moved)
+        Ok(())
     }
 
     pub(crate) fn read_pixel(&self, x: f64, y: f64, layer: &str) -> Result<JsValue, JsValue> {
@@ -996,71 +681,7 @@ impl App {
         self.grid.draw_labels()
     }
 
-    pub(crate) fn draw(&mut self) -> Result<(), JsValue> {
-        /*let scene_redraw = self.rendering | force_render;
-        let mut ui = self.ui.lock();
-
-        if scene_redraw {
-            let shaders = &mut self.shaders;
-            let gl = self.gl.clone();
-            let camera = &self.camera;
-
-            let grid = &mut self.grid;
-            let layers = &mut self.layers;
-            let catalogs = &self.manager;
-            let colormaps = &self.colormaps;
-            let fbo_view = &self.fbo_view;
-
-            fbo_view.draw_onto(
-                move || {
-                    // Render the scene
-                    gl.clear_color(0.00, 0.00, 0.00, 1.0);
-                    gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
-
-                    layers.draw(camera, shaders, colormaps);
-
-                    // Draw the catalog
-                    catalogs.draw(&gl, shaders, camera, colormaps, fbo_view)?;
-
-                    grid.draw(camera, shaders)?;
-
-                    Ok(())
-                },
-                None,
-            )?;
-
-            // Reset the flags about the user action
-            self.camera.reset();
-        }
-
-        let gl = self.gl.clone();
-
-        let ui_redraw = ui.redraw_needed();
-        if ui_redraw {
-            let dpi  = self.camera.get_dpi();
-
-            self.fbo_ui.draw_onto(move || {
-                ui.draw(&gl, dpi)?;
-
-                Ok(())
-            }, None)?;
-        }
-
-        // If neither of the scene or the ui has been redraw then do nothing
-        // otherwise, redraw both fbos on the screen
-        if scene_redraw || ui_redraw {
-            self.final_rendering_pass.draw_on_screen(&self.fbo_view);
-            self.final_rendering_pass.draw_on_screen(&self.fbo_ui);
-        }
-
-        self.layers.reset_frame();*/
-
-        //let scene_redraw = self.rendering | force_render;
-
-        //let mut ui = self.ui.lock();
-        //let ui_redraw = ui.redraw_needed();
-        //if scene_redraw || ui_redraw {
-
+    pub(crate) fn draw_internal(&mut self) -> Result<(), JsValue> {
         self.request_redraw = false;
 
         let shaders = &mut self.shaders;
@@ -1076,6 +697,8 @@ impl App {
         let layers = &mut self.layers;
         //let catalogs = &self.manager;
         let colormaps = &self.colormaps;
+        let line_renderer = &self.line_renderer;
+        let spectra_displayer = &self.spectra_displayer;
         //let fbo_view = &self._fbo_view;
         //let final_rendering_pass = &self._final_rendering_pass;
 
@@ -1086,7 +709,7 @@ impl App {
         gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
         // set the blending options
-        layers.draw(camera, shaders, colormaps, projection)?;
+        layers.draw(camera, shaders, colormaps, projection, spectra_displayer)?;
 
         // Draw the catalog
         //let fbo_view = &self.fbo_view;
@@ -1111,6 +734,7 @@ impl App {
         //    },
         //    None,
         //)?;
+        line_renderer.draw(shaders, camera, projection)?;
 
         //final_rendering_pass.draw_on_screen(fbo_view, &mut self.shaders)?;
 
@@ -1140,6 +764,18 @@ impl App {
         self.request_redraw = true;
 
         Ok(())
+    }
+
+    pub(crate) fn attach_hips3d(&mut self, layer: &str) {
+        if let Some(HiPS::D3(hips)) = self.layers.get_hips_from_layer(&layer) {
+            self.spectra_displayer.attach_hips3d(&hips);
+            // Compute a default freq order from the hips attached and the current fov
+            let s_order = self.camera.get_tile_depth();
+            let q_order = self.spectra_displayer.q_max_order - self.spectra_displayer.s_max_order + s_order;
+
+            self.spectra_displayer.set_q_order(q_order);
+            self.update_spectra_displayer();
+        }
     }
 
     pub(crate) fn add_hips(
@@ -1251,6 +887,7 @@ impl App {
                                     bscale,
                                     bzero,
                                     blank,
+                                    Some(header.clone()),
                                     camera_coo_sys,
                                 )
                                 .ok()?;
@@ -1305,14 +942,27 @@ impl App {
         }
     }
 
+    pub fn is_hdu_visible(&self, layer: &str, hdu_id: usize) -> Result<bool, JsValue> {
+        self.layers.is_hdu_visible(layer, hdu_id)
+    }
+
+    pub fn make_hdu_visible(
+        &mut self,
+        layer: &str,
+        hdu_id: usize,
+        visible: bool,
+    ) -> Result<(), JsValue> {
+        self.layers.make_hdu_visible(layer, hdu_id, visible)
+    }
+
     pub(crate) fn get_layer_cfg(&self, layer: &str) -> Result<ImageMetadata, JsValue> {
         self.layers.get_layer_cfg(layer)
     }
 
-    pub(crate) fn set_hips_frequency(
+    pub(crate) fn set_hips_quantity(
         &mut self,
         layer: &str,
-        frequency: f32,
+        quantity: f64,
     ) -> Result<(), JsValue> {
         let hips = self
             .layers
@@ -1322,61 +972,101 @@ impl App {
         self.request_for_new_tiles = true;
 
         match hips {
+            HiPS::D2(_) => return Err(JsValue::from_str("layer does not refer to a cube")),
+            HiPS::D3(hips) => {
+                hips.set_qty(quantity);
+            }
+        }
+
+        if self.spectra_displayer.layer.as_deref() == Some(layer) {
+            self.spectra_displayer.set_qty(quantity);
+            self.update_spectra_displayer();
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn get_hips_quantity(&mut self, layer: &str) -> Result<f32, JsValue> {
+        let hips = self
+            .layers
+            .get_mut_hips_from_layer(layer)
+            .ok_or_else(|| JsValue::from_str("Layer not found"))?;
+
+        match hips {
             HiPS::D2(_) => Err(JsValue::from_str("layer do not refers to a cube")),
             HiPS::D3(hips) => {
-                hips.set_freq(Freq(frequency as f64));
-
-                Ok(())
+                let q: f64 = hips.get_qty().into();
+                Ok(q as f32)
             }
         }
     }
 
-    pub(crate) fn get_hips_frequency(&mut self, layer: &str) -> Result<f32, JsValue> {
-        let hips = self
-            .layers
-            .get_mut_hips_from_layer(layer)
-            .ok_or_else(|| JsValue::from_str("Layer not found"))?;
-
-        match hips {
-            HiPS::D2(_) => Err(JsValue::from_str("layer do not refers to a cube")),
-            HiPS::D3(hips) => Ok(hips.get_freq().0 as f32),
-        }
+    pub(crate) fn hash2freq(&mut self, hash: u64, order: u8) -> f64 {
+        Freq::from_hash_with_order(hash, order).0
     }
 
-    pub(crate) fn get_hips_frequency_window(&mut self, layer: &str) -> Result<[Freq; 2], JsValue> {
-        let hips = self
-            .layers
-            .get_mut_hips_from_layer(layer)
-            .ok_or_else(|| JsValue::from_str("Layer not found"))?;
-
-        match hips {
-            HiPS::D2(_) => Err(JsValue::from_str("layer do not refers to a cube")),
-            HiPS::D3(hips) => Ok(hips.get_freq_window()),
-        }
+    pub(crate) fn freq2hash(&mut self, freq: f64, order: u8) -> u64 {
+        Freq(freq).hash(order)
     }
 
-    pub(crate) fn get_freq_from_hash(&mut self, layer: &str, hash: u64) -> Result<f64, JsValue> {
-        let hips = self
-            .layers
-            .get_mut_hips_from_layer(layer)
-            .ok_or_else(|| JsValue::from_str("Layer not found"))?;
-
-        match hips {
-            HiPS::D2(_) => Err(JsValue::from_str("layer do not refers to a cube")),
-            HiPS::D3(hips) => Ok(hips.get_freq_from_hash(hash).0),
+    fn draw_spectra_spatial_counterpart(&mut self) {
+        if self.spectra_displayer.is_hidden() {
+            return;
         }
+
+        let paths = self.spectra_displayer.get_hpx_region()
+            .into_iter()
+            .map(|cell| {
+                let vertices = cell.vertices()
+                    .map(|(mut lon, lat)| {
+                        lon = if lon > std::f64::consts::PI { lon - 2.0 * std::f64::consts::PI } else { lon };
+                        [lon, lat]
+                    });
+
+                PathVertices {
+                    vertices: [vertices[0], vertices[1], vertices[2], vertices[3], vertices[0]]
+                }
+            });
+
+        self.line_renderer.add_stroke_paths(
+            paths,
+            2.0,
+            &ColorRGBA { r: 0.0, g: 1.0, b: 0.0, a: 1.0 },
+            &Style::None,
+            CooSpace::LonLat,
+            "hpx_spectra_counterpart"
+        );
     }
 
-    pub(crate) fn get_freq_hash(&mut self, layer: &str, freq: f64) -> Result<u64, JsValue> {
-        let hips = self
-            .layers
-            .get_mut_hips_from_layer(layer)
-            .ok_or_else(|| JsValue::from_str("Layer not found"))?;
+    pub(crate) fn hide_spectra_displayer(&mut self) {
+        self.spectra_displayer.hide();
 
-        match hips {
-            HiPS::D2(_) => Err(JsValue::from_str("layer do not refers to a cube")),
-            HiPS::D3(hips) => Ok(hips.get_freq_hash(Freq(freq))),
-        }
+        self.line_renderer.add_stroke_paths(
+            std::iter::empty::<PathVertices<Vec<[f64; 2]>>>(),
+            2.0,
+            &ColorRGBA { r: 0.0, g: 1.0, b: 0.0, a: 1.0 },
+            &Style::None,
+            CooSpace::LonLat,
+            "hpx_spectra_counterpart"
+        );
+    }
+
+    pub(crate) fn show_spectra_displayer(&mut self) {
+        self.spectra_displayer.show();
+
+        self.draw_spectra_spatial_counterpart();
+    }
+
+    pub(crate) fn set_dq(&mut self, dq: f64) -> Result<(), JsValue> {
+        self.spectra_displayer.set_dq(dq);
+        self.update_spectra_displayer();
+
+        self.draw_spectra_spatial_counterpart();
+
+        self.request_redraw = true;
+        self.request_for_new_tiles = true;
+
+        Ok(())
     }
 
     pub(crate) fn set_image_hips_color_cfg(
@@ -1509,6 +1199,18 @@ impl App {
         Ok(())
     }
 
+    pub(crate) fn set_spectra_radius(&mut self, rad: Angle<f64>) {
+        self.spectra_displayer.set_radius(rad);
+        self.update_spectra_displayer();
+        self.draw_spectra_spatial_counterpart();
+    }
+
+    pub(crate) fn set_spectra_center(&mut self, ra: Angle<f64>, dec: Angle<f64>) {
+        self.spectra_displayer.set_location(&LonLatT::new(ra, dec));
+        self.update_spectra_displayer();
+        self.draw_spectra_spatial_counterpart();
+    }
+
     pub(crate) fn set_kernel_strength(
         &mut self,
         name: String,
@@ -1581,35 +1283,11 @@ impl App {
 
         self.camera.set_center(lonlat, &self.projection);
         self.request_for_new_tiles = true;
+        self.request_redraw = true;
 
+        
         // And stop the current inertia as well if there is one
         self.inertia = None;
-
-        self._update_hips_location();
-    }
-
-    pub(crate) fn move_mouse(&mut self, s1x: f32, s1y: f32, s2x: f32, s2y: f32) {
-        if self.dragging {
-            let from_mouse_pos = [s1x, s1y];
-            let to_mouse_pos = [s2x, s2y];
-            let dx = crate::math::vector::dist2(&from_mouse_pos, &to_mouse_pos).sqrt();
-            self.dist_dragging += dx;
-
-            //let now = Time::now();
-            //let dragging_duration = (now - self.time_start_dragging).as_secs();
-            //let dragging_vel = self.dist_dragging / dragging_duration;
-
-            // 1. Use smoothed velocity instead of instantaneous velocity
-            let dv = dx / (Time::now() - self.camera.get_time_of_last_move()).as_secs();
-            self.vel_history.push(dv);
-            if self.vel_history.len() > 5 {
-                self.vel_history.remove(0);
-            }
-
-            if dv > 10000.0 {
-                self.time_mouse_high_vel = Time::now();
-            }
-        }
     }
 
     pub(crate) fn press_left_button_mouse(&mut self) {
@@ -1725,6 +1403,28 @@ impl App {
     }
 
     pub(crate) fn go_from_to(&mut self, s1x: f64, s1y: f64, s2x: f64, s2y: f64) {
+        if self.dragging {
+            let from_mouse_pos = [s1x as f32, s1y as f32];
+            let to_mouse_pos = [s2x as f32, s2y as f32];
+            let dx = crate::math::vector::dist2(&from_mouse_pos, &to_mouse_pos).sqrt();
+            self.dist_dragging += dx;
+
+            //let now = Time::now();
+            //let dragging_duration = (now - self.time_start_dragging).as_secs();
+            //let dragging_vel = self.dist_dragging / dragging_duration;
+
+            // 1. Use smoothed velocity instead of instantaneous velocity
+            let dv = dx / (Time::now() - self.camera.get_time_of_last_move()).as_secs();
+            self.vel_history.push(dv);
+            if self.vel_history.len() > 5 {
+                self.vel_history.remove(0);
+            }
+
+            if dv > 10000.0 {
+                self.time_mouse_high_vel = Time::now();
+            }
+        }
+
         // Select the HiPS layer rendered lastly
         if let (Some(w1), Some(w2)) = (
             self.projection
@@ -1803,8 +1503,6 @@ impl App {
 
                 self.prev_cam_position = prev_cam_position;
                 self.request_for_new_tiles = true;
-
-                self._update_hips_location();
             }
         } else {
             // approx move
@@ -1832,11 +1530,18 @@ impl App {
 
                     self.prev_cam_position = prev_cam_position;
                     self.request_for_new_tiles = true;
-
-                    self._update_hips_location();
                 }
             }
         }
+    }
+
+    /// Spectra displayer freq has been changed i.e:
+    /// * its location
+    /// * its freq resolution/order
+    /// New tiles can be fetched and the plot must be redrawn
+    fn update_spectra_displayer(&mut self) {
+        self.spectra_displayer.launch_new_tile_requests(&mut self.tile_fetcher, &self.browser_features_support, &self.layers);
+        self.spectra_displayer.redraw(&self.layers);
     }
 
     pub(crate) fn lock_north_up(&mut self) {
@@ -1867,8 +1572,6 @@ impl App {
         self.vel_history.clear();
         self.dist_dragging = 0.0;
 
-        self._update_hips_location();
-
         self.request_for_new_tiles = true;
         self.request_redraw = true;
     }
@@ -1888,136 +1591,335 @@ impl App {
         self.gl.canvas()
     }
 
-    pub(crate) fn is_rendering(&self) -> bool {
-        self.rendering
-    }
-}
+    // Lightweight - always called, no drawing
+    pub(crate) fn poll(
+        &mut self,
+        dt: f64,
+        pan: Option<Box<[f64]>>,
+        zoom: Option<f64>,
+    ) -> Result<PollInfo, JsValue> {
+        // Handle pan/zoom
+        if let Some(pan) = pan {
+            self.go_from_to(pan[0], pan[1], pan[2], pan[3]);
+        }
 
-use serde::Deserialize;
+        if let Some(zoom) = zoom {
+            self.set_zoom_factor(zoom);
+        }
 
-#[derive(Deserialize, Debug)]
-pub struct WorkerResponse {
-    #[serde(rename = "tileSize")]
-    pub tile_size: u32,
+        // Inertia
+        if let Some(inertia) = self.inertia.as_mut() {
+            inertia.apply(&mut self.camera, &self.projection, dt);
+            // Always request for new tiles while moving
+            self.request_for_new_tiles = true;
 
-    #[serde(rename = "tileDepth")]
-    pub tile_depth: u32,
+            // The threshold stopping criteria must be dependant
+            // of the zoom level, in this case the initial angular distance
+            // speed
+            let thresh_speed = inertia.get_start_ampl() * 1e-4;
+            let cur_speed = inertia.get_cur_speed();
 
-    pub bytes: Vec<u8>,
+            if cur_speed < thresh_speed {
+                self.inertia = None;
+            }
+        }
 
-    #[serde(rename = "HiPSCDid")]
-    pub hips_cdid: String,
+        // Request new tiles if needed
+        // Every frame, no timer
+        let in_flight = self.downloader.borrow().num_concurrent_requests();
 
-    pub cell: HEALPixFreqCell,
-}
+        if self.request_for_new_tiles {
+            // Delays the tile fetching. Limit the number of concurrent fetches and thus the number of tiles
+            // received/to handle simultaneously, which may affect the performance.
+            if in_flight < crate::tile_fetcher::MAX_NUM_TILE_FETCHING {
+                self.look_for_new_tiles()?; // only issues up to (MAX - in_flight) requests
+                self.request_for_new_tiles = false;
+            }
+        }
 
-#[derive(Deserialize, Debug)]
-pub struct WorkerResponseMeta {
-    #[serde(rename = "tileSize")]
-    pub tile_size: u32,
+        // Poll worker responses — always needed
+        self.poll_worker_responses()?;
 
-    #[serde(rename = "tileDepth")]
-    pub tile_depth: u32,
-
-    #[serde(rename = "HiPSCDid")]
-    pub hips_cdid: String,
-
-    pub cell: HEALPixFreqCell,
-}
-
-use web_sys::{Worker, WorkerOptions};
-pub fn create_worker() -> Result<Worker, JsValue> {
-    // JS source code of the worker
-    let worker_source = r#"
-        self.onmessage = (e) => {
-            const { bitmap, tileDepth, tileSize, HiPS, cell } = e.data;
-
-            // Compute tiling layout
-            const numCols = Math.floor(bitmap.width / tileSize);
-
-            // See HiPS3D doc
-            const numRows = Math.ceil(tileDepth / numCols);
-
-            // Create OffscreenCanvas
-            const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
-            const context = canvas.getContext("2d");
-
-            // Draw full image once
-            context.drawImage(bitmap, 0, 0);
-
-            // Extract full region needed
-            const imageData = context.getImageData(
-                0,
-                0,
-                numCols * tileSize,
-                numRows * tileSize
-            );
-
-            const bytes = imageData.data; // Uint8ClampedArray (RGBA)
-
-            // Allocate output buffer (2 bytes per pixel)
-            const decodedBytes = new Uint8Array(
-                tileSize * tileSize * tileDepth * 2
-            );
-
-            let k = 0;
-            let numTilesCropped = 0;
-
-            for (let y = 0; y < numRows; y++) {
-                const sy = y * tileSize;
-
-                for (let x = 0; x < numCols; x++) {
-                    const sx = x * tileSize;
-
-                    for (let i = sy; i < sy + tileSize; i++) {
-                        for (let j = sx; j < sx + tileSize; j++) {
-
-                            const idByte = (j + i * numCols * tileSize) * 4;
-
-                            // Copy R channel
-                            decodedBytes[k] = bytes[idByte];
-
-                            // Copy A channel
-                            decodedBytes[k + 1] = bytes[idByte + 3];
-
-                            k += 2;
-                        }
-                    }
-
-                    numTilesCropped++;
-
-                    if (numTilesCropped === tileDepth) {
-                        break;
-                    }
-                }
-
-                if (numTilesCropped === tileDepth) {
-                    break;
-                }
+        let rscs_received = self.downloader.borrow_mut().get_received_resources();
+        let mut cubic_tiles_copied = false;
+        const MAX_FRAME_TIME: DeltaTime = DeltaTime::from_millis(1000.0 / 40.0);
+        let rendering_timer = Time::now();
+        for rsc in rscs_received {
+            if Time::now() - rendering_timer >= MAX_FRAME_TIME {
+                self.downloader.borrow_mut().delay(rsc);
+                continue;
             }
 
-            self.postMessage(
-                {
-                    tileSize,
-                    tileDepth,
-                    HiPSCDid: HiPS,
-                    cell,
-                    bytes: decodedBytes,
-                },
-                [decodedBytes.buffer] // transfer of ownership
-            );
+            match rsc {
+                RequestType::Tile(tile) => {
+                    if let Some(hips) = self.layers.get_mut_hips_from_cdid(&tile.hips_cdid) {
+                        let cfg = hips.get_config();
+
+                        if cfg.get_format() == tile.format {
+                            let fov_coverage = self.camera.get_cov(cfg.get_frame());
+                            let hpx_cell = tile.cell.get_hpx();
+
+                            let included_in_coverage = fov_coverage.intersects_cell(hpx_cell);
+
+                            //let is_tile_root = tile.cell().depth() == delta_depth;
+                            //let _depth = tile.cell().depth();
+                            // do not perform tex_sub costly GPU calls while the camera is zooming
+                            if hpx_cell.is_root() || included_in_coverage {
+                                let image = tile.request.get_data().clone();
+
+                                // 1. For FITS tiles, parse the bscale/bzero and optional blank
+                                // FIXME. We should consider these constants as per tiles and not for
+                                // whole HiPS they belong to.
+                                if let Some(ImageType::FitsRawBytes {
+                                    raw_bytes: raw_bytes_buf,
+                                    ..
+                                }) = &*image.borrow()
+                                {
+                                    // check if the metadata has not been set
+                                    if hips.get_fits_params().is_none() {
+                                        let raw_bytes = raw_bytes_buf.to_vec();
+
+                                        let FitsImage {
+                                            bscale,
+                                            bzero,
+                                            blank,
+                                            ..
+                                        } = FitsImage::from_raw_bytes(raw_bytes.as_slice())?[0];
+                                        hips.set_fits_params(bscale, bzero, blank);
+                                    }
+                                };
+
+                                // 2. Add the tile to its HiPS
+                                if let Some(img) = &*image.borrow() {
+                                    // For PNG/JPEG cubic tiles, all the slices are in the lonely image
+                                    match (&tile.cell, hips) {
+                                        (CellDesc::HiPS2D { cell, .. }, HiPS::D2(hips)) => {
+                                            match img {
+                                                ImageType::Blob { blob, size } => {
+                                                    #[derive(Serialize)]
+                                                    #[serde(rename_all = "camelCase")]
+                                                    struct TileMessage<'a> {
+                                                        tile_size: u32,
+                                                        cell: &'a HEALPixCell,
+                                                        hips: &'a str,
+                                                        // bitmap is a JsValue, handle separately
+                                                    }
+                                                    let msg = serde_wasm_bindgen::to_value(
+                                                        &TileMessage {
+                                                            tile_size: size.0,
+                                                            cell,
+                                                            hips: &tile.hips_cdid,
+                                                        },
+                                                    )?;
+
+                                                    // Attach the non-serializable bitmap separately
+                                                    js_sys::Reflect::set(
+                                                        &msg,
+                                                        &"blob".into(),
+                                                        blob,
+                                                    )?;
+
+                                                    self.worker_tile.post_message(&msg)?;
+                                                    self.num_tiles_to_be_copied
+                                                        .set(self.num_tiles_to_be_copied.get() + 1);
+                                                }
+                                                _ => {
+                                                    self.time_start_blending = Time::now();
+                                                    self.request_redraw = true;
+
+                                                    hips.push_tile(
+                                                        cell,
+                                                        img,
+                                                        tile.request.time_request,
+                                                    )?
+                                                }
+                                            }
+                                        }
+                                        (
+                                            CellDesc::HiPSCube { cell, channel, .. },
+                                            HiPS::D3(hips),
+                                        ) => {
+                                            // We build an artificial cube
+                                            let f_hash = (*channel / 32) as u64;
+                                            let slice_idx = (*channel % 32) as u16;
+
+                                            let cell = HEALPix3DCell::new(
+                                                *cell,
+                                                f_hash,
+                                                Frequency::<u64>::MAX_DEPTH,
+                                            );
+
+                                            self.time_start_blending = Time::now();
+                                            self.request_redraw = true;
+
+                                            hips.push_tile_slice(
+                                                &cell,
+                                                img,
+                                                tile.request.time_request,
+                                                slice_idx,
+                                            )?
+                                        }
+                                        (
+                                            CellDesc::HiPS3D {
+                                                cell,
+                                                tile_size,
+                                                tile_depth,
+                                            },
+                                            HiPS::D3(hips),
+                                        ) => {
+                                            // TODO PNG/JPG case to handle here
+                                            match img {
+                                                ImageType::Blob { blob, .. } => {
+                                                    #[derive(Serialize)]
+                                                    #[serde(rename_all = "camelCase")]
+                                                    struct TileMessage<'a> {
+                                                        tile_size: u32,
+                                                        cell: &'a HEALPix3DCell,
+                                                        tile_depth: u32,
+                                                        hips: &'a str,
+                                                        // bitmap is a JsValue, handle separately
+                                                    }
+                                                    let msg = serde_wasm_bindgen::to_value(
+                                                        &TileMessage {
+                                                            tile_size: *tile_size,
+                                                            cell,
+                                                            hips: &tile.hips_cdid,
+                                                            tile_depth: *tile_depth,
+                                                        },
+                                                    )?;
+
+                                                    self.num_tiles_to_be_copied
+                                                        .set(self.num_tiles_to_be_copied.get() + 1);
+
+                                                    // Attach the non-serializable bitmap separately
+                                                    js_sys::Reflect::set(
+                                                        &msg,
+                                                        &"blob".into(),
+                                                        blob,
+                                                    )?;
+
+                                                    self.worker_tile_3d.post_message(&msg)?;
+                                                }
+                                                ImageType::FitsRawBytes { raw_bytes, size } => {
+                                                    self.time_start_blending = Time::now();
+                                                    self.request_redraw = true;
+
+                                                    hips.push_tile_from_fits(
+                                                        cell,
+                                                        raw_bytes.clone(),
+                                                        *size,
+                                                        tile.request.time_request,
+                                                    )?;
+
+                                                    cubic_tiles_copied = true;
+                                                }
+                                                _ => unreachable!(),
+                                            }
+                                        }
+                                        _ => unreachable!(),
+                                    }
+                                };
+                            }
+                        }
+                    }
+                }
+                RequestType::Allsky(allsky) => {
+                    if let Some(HiPS::D2(hips)) =
+                        self.layers.get_mut_hips_from_cdid(&allsky.hips_cdid)
+                    {
+                        let is_missing = allsky.missing();
+                        if is_missing {
+                            // The allsky image is missing so we donwload all the tiles contained into
+                            // the 0's cell
+                            for base_hpx_cell in crate::healpix::cell::ALLSKY_HPX_CELLS_D0 {
+                                let query = query::Tile::new(
+                                    base_hpx_cell,
+                                    hips.get_config(),
+                                    &self.browser_features_support,
+                                );
+                                self.tile_fetcher.append_base_tile(query);
+                            }
+                        } else {
+                            // tell the hips to not download tiles which order is <= 3 because the allsky
+                            // give them already
+                            hips.add_allsky(allsky)?;
+                            // Once received ask for redraw
+                            self.request_redraw = true;
+                        }
+                    }
+                }
+                RequestType::Moc(moc) => {
+                    let moc_hips_cdid = moc.hips_cdid;
+                    //let url = &moc_url[..moc_url.find("/Moc.fits").unwrap_abort()];
+                    if let Some(hips) = self.layers.get_mut_hips_from_cdid(&moc_hips_cdid) {
+                        let MOCRequest { request, .. } = moc;
+                        if let Some(moc) = &*request.get_data().borrow() {
+                            match (hips, moc) {
+                                (HiPS::D2(hips), Moc::Space(moc)) => {
+                                    hips.set_moc(moc.clone());
+                                }
+                                (HiPS::D3(hips), Moc::FreqSpace(moc)) => {
+                                    hips.set_moc(moc.clone());
+                                }
+                                _ => (),
+                            }
+
+                            self.request_for_new_tiles = true;
+                            self.request_redraw = true;
+                        };
+                    }
+                }
+            }
+        }
+
+        if cubic_tiles_copied {
+            self.spectra_displayer.redraw(&self.layers);
+        }
+
+        let center = self.view_to_icrs_coosys(&self.get_center());
+        let ra: ArcDeg<f64> = center.lon().into();
+        let dec: ArcDeg<f64> = center.lat().into();
+
+        let blending_anim_occuring =
+            (Time::now() - self.time_start_blending) < BLENDING_ANIM_DURATION;
+
+        let needs_draw = blending_anim_occuring
+            | self.camera.has_moved()
+            | self.camera.has_zoomed()
+            | self.request_redraw;
+
+        let has_pending_tiles = self.has_pending_tiles();
+
+        self.tile_fetcher.notify(self.downloader.clone());
+
+        let poll_info = PollInfo {
+            needs_draw,
+            moving: self.camera.has_moved(),
+            zoom_factor: self.camera.get_zoom_factor(),
+            has_pending: has_pending_tiles,
+            is_inerting: self.inertia.is_some(),
+            ra: *ra,
+            dec: *dec, // center coords
+            fov_x: self.camera.get_aperture().to_degrees(),
+            fov_y: self.camera.get_aperture_y().to_degrees(),
         };
-    "#;
 
-    // Create Blob
-    let parts = js_sys::Array::of1(&JsValue::from_str(worker_source));
-    let blob = web_sys::Blob::new_with_str_sequence(&parts)?;
+        Ok(poll_info)
+    }
 
-    // Create object URL
-    let url = web_sys::Url::create_object_url_with_blob(&blob)?;
+    pub(crate) fn draw(&mut self) -> Result<(), JsValue> {
+        // a timer stopping the frame if it takes too long
+        // useful for garanting a framerate
+        //let rendering_timer = Time::now();
 
-    let opts = WorkerOptions::new();
+        self.draw_internal()?;
 
-    let worker = Worker::new_with_options(&url, &opts)?;
-    Ok(worker)
+        // At end of each render:
+        //let sync = gl.fence_sync(WebGl2RenderingContext::SYNC_GPU_COMMANDS_COMPLETE, 0);
+        //self.gl.flush();
+        // optionally check sync status before next frame
+        self.camera.reset();
+
+        Ok(())
+    }
 }

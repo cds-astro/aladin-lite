@@ -1,4 +1,5 @@
 use crate::math::TWICE_PI;
+use crate::math::PI;
 use crate::Abort;
 use cgmath::{BaseFloat, Matrix3, Rad, Vector3};
 
@@ -26,8 +27,8 @@ where
     /// * ``lon`` - Longitude
     /// * ``lat`` - Latitude
     pub fn new(mut lon: Angle<S>, lat: Angle<S>) -> LonLatT<S> {
-        if lon.to_radians() < S::zero() {
-            lon += S::from(TWICE_PI).unwrap_abort();
+        if lon.to_radians() > S::from(PI).unwrap_abort() {
+            lon -= S::from(TWICE_PI).unwrap_abort();
         }
 
         LonLatT(lon, lat)
@@ -86,6 +87,15 @@ where
     #[inline]
     fn from_lonlat(lonlat: &LonLatT<S>) -> Self {
         *lonlat
+    }
+}
+
+use al_core::WebGlContext;
+use al_core::shader::UniformType;
+use web_sys::WebGlUniformLocation;
+impl UniformType for LonLatT<f64> {
+    fn uniform(gl: &WebGlContext, location: Option<&WebGlUniformLocation>, lonlat: &Self) {
+        gl.uniform2f(location, lonlat.lon().to_radians() as f32, lonlat.lat().to_radians() as f32);
     }
 }
 

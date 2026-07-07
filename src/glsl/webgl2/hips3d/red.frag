@@ -11,7 +11,7 @@ in vec3 frag_uv;
 out vec4 out_frag_color;
 uniform float opacity;
 
-#include ../hips/color.glsl;
+#include color.glsl;
 
 void main() {
     vec3 uv = vec3(frag_uv.xyz);

@@ -230,12 +230,10 @@ export let Circle = (function() {
         }
 
         noSmallCheck = noSmallCheck===true || false;
-        if (!noSmallCheck) {
-            const px_per_deg = view.width / view.fov;
-            this.isTooSmall = this.radiusDegrees * 2 * px_per_deg < drawingLineWidth;
-            if (this.isTooSmall) {
-                return false;
-            }
+        const px_per_deg = view.width / view.fov;
+        this.isTooSmall = this.radiusDegrees * 2 * px_per_deg < drawingLineWidth;
+        if (!noSmallCheck && this.isTooSmall) {    
+            return false;
         }
 
         noStroke = noStroke===true || false;

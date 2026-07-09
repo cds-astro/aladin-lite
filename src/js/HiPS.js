@@ -819,7 +819,7 @@ export let HiPS = (function () {
 
     // @api
     HiPS.prototype.getContrast = function() {
-        return this.kContrast;
+        return this.contrast;
     };
 
     /**
@@ -837,7 +837,7 @@ export let HiPS = (function () {
 
     // @api
     HiPS.prototype.getSaturation = function() {
-        return this.kSaturation;
+        return this.saturation;
     };
 
     /**
@@ -855,7 +855,7 @@ export let HiPS = (function () {
 
     // @api
     HiPS.prototype.getGamma = function() {
-        return this.kGamma;
+        return this.gamma;
     };
 
     /**
@@ -1141,6 +1141,10 @@ export let HiPS = (function () {
         }
 
         this._updateMetadata();
+
+        if (this.view) {
+            this.view.requestRedraw();
+        }
     };
 
     /**

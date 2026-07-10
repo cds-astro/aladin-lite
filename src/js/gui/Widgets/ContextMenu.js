@@ -299,17 +299,21 @@ export class ContextMenu extends DOMElement {
             let o = parent.getBoundingClientRect();
             let c = child.getBoundingClientRect();
 
-            child.classList.remove('left', 'right', 'top', 'bottom');
+            //child.classList.remove('left', 'right', 'top', 'bottom');
 
+            console.log(aladinRect.right - (o.x + o.width), c.width)
             // First check if there is place towards the right, which is the desired behaviour
             if (aladinRect.right - (o.x + o.width) >= c.width) {
+                //child.classList.add('right');
                 // do nothing as it is by default considering this case
             } else if (o.x - aladinRect.left >= c.width) {
-                child.classList.add('left');
+                                console.log("left")
+
+                //child.classList.add('left');
             } else if (aladinRect.bottom - (o.y + o.height) >= c.height) {
-                child.classList.add('bottom');
+                //child.classList.add('bottom');
             } else {
-                child.classList.add('top');
+                //child.classList.add('top');
             }
         }
 

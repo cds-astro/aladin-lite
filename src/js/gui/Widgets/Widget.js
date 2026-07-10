@@ -168,7 +168,9 @@ export class DOMElement {
 
         // handle the anchor/dir case with higher priority
         const {offsetWidth, offsetHeight} = el;
-        
+
+        this.el.classList.remove('left', 'right', 'top', 'bottom');
+
         // take on less priority the left and top
         if (options && (options.left !== undefined || options.top !== undefined || options.right !== undefined || options.bottom !== undefined)) {
             el.style.position = 'absolute';
@@ -229,7 +231,6 @@ export class DOMElement {
             }
 
             let rect = nextTo.getBoundingClientRect();
-            this.el.classList.remove('left', 'right', 'top', 'bottom');
 
             switch (dir) {
                 case 'left':

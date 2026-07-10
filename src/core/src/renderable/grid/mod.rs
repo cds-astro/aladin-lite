@@ -217,7 +217,6 @@ impl ProjetedGrid {
                 
                 let start_idx = (bbox.lon_min() / step_lon.to_degrees().to_radians()).floor() as i32;
                 let mut start_lon: Arc = step_lon * start_idx;
-                al_core::log(&format!("start lon: {:?}", start_lon));
 
                 let compute_meridian = |start_lon: Arc, stop_lon: Arc| -> Vec<Meridian> {
                     let mut meridians = vec![];

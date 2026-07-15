@@ -583,13 +583,81 @@ export let Image = (function () {
          * @param {number} [hduIdx=0] - Index of the HDU
          * @returns {Promise<Map>} The header of the HDU in the form of a Map
          */
-        Image.prototype.getHeader = function(HDUIdx=0) {
+        Image.prototype.getHDUHeader = function(HDUIdx=0) {
             return this._waitUntilAdded().then(() => {
                 if (HDUIdx >= this.headers.length) {
                     throw 'No HDU found at this index';
                 }
 
                 return this.headers[HDUIdx];
+            });
+        }
+
+        /**
+         * Return all the FITS HDU names
+         * 
+         * Get the list of all the HDU names contained into the FITS
+         * 
+         * @memberof Image
+         * @method
+         * @returns {Promise<Array<String>>} A promise resolving into the list of HDU names
+         */
+        Image.prototype.getAllHDUNames = function() {
+            return this._waitUntilAdded().then(async () => {
+                let names = [];
+                for (var HDUIdx = 0; HDUIdx < this.headers.length; HDUIdx++) {
+                    names.push(await this.getHDUName(HDUIdx));
+                }
+
+                return names;
+            });
+        }
+
+        /**
+         * Show a specific FITS HDU
+         * 
+         * @memberof Image
+         * @method
+         * @param {number} [hduIdx=0] - Index of the HDU to show
+         */
+        Image.prototype.showHDU = function(HDUIdx=0) {
+            this._waitUntilAdded().then(() => {
+                if (HDUIdx >= this.headers.length) {
+                    throw 'No HDU found at this index';
+                }
+
+                this.view.wasm.makeHDUVisible(this.layer, HDUIdx, true);
+            });
+        }
+
+        /**
+         * Hide a specific FITS HDU
+         * 
+         * @memberof Image
+         * @method
+         * @param {number} [hduIdx=0] - Index of the HDU to hide
+         */
+        Image.prototype.hideHDU = function(HDUIdx=0) {
+            this._waitUntilAdded().then(() => {
+                if (HDUIdx >= this.headers.length) {
+                    throw 'No HDU found at this index';
+                }
+
+                this.view.wasm.makeHDUVisible(this.layer, HDUIdx, false);
+            });
+        }
+
+        /**
+         * Hide all the FITS HDUs
+         * 
+         * @memberof Image
+         * @method
+         */
+        Image.prototype.hideAllHDUs = function() {
+            this._waitUntilAdded().then(async () => {
+                for (var HDUIdx = 0; HDUIdx < this.headers.length; HDUIdx++) {
+                    this.hideHDU(HDUIdx);
+                }
             });
         }
 

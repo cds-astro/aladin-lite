@@ -2054,8 +2054,6 @@ export let View = (function () {
     View.prototype.updateZoomState = function () {
         this.computeNorder();
 
-        console.log("update zoom factor")
-
         let fovX = this.fov;
         let fovY = this.wasm.getFieldOfView()[1];
         fovX = Math.min(fovX, 360);

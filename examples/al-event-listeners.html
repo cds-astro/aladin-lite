@@ -64,6 +64,8 @@
             console.log("resize")
         });
 
+        aladin.off('resizeChanged');
+
         aladin.on('projectionChanged', function(proj) {
             console.log(proj)
         });

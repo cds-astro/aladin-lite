@@ -2420,6 +2420,20 @@ export let Aladin = (function () {
         this.callbacksByEventName[what] = myFunction;
     };
 
+    /**
+     * Unregister listening to an aladin event
+     *
+     * @memberof Aladin
+     * @param {EventListener} what - e.g. objectHovered, select, zoomChanged, positionChanged, wheelTriggered
+     * */
+    Aladin.prototype.off = function (what) {
+        if (Aladin.AVAILABLE_CALLBACKS.indexOf(what) < 0) {
+            return;
+        }
+
+        delete this.callbacksByEventName[what];
+    };
+
     Aladin.prototype.addListener = function (alEventName, customFn) {
         new ALEvent(alEventName).listenedBy(this.aladinDiv, customFn);
     };

@@ -1,10 +1,8 @@
-/// This stores globally a notifier function that wakes up the JS.
-// It ultimately triggers a redraw of the scene.
-
-use std::cell::RefCell;
+//! This stores globally a notifier function that wakes up the JS.
+//! It ultimately triggers a redraw of the scene.
 
 thread_local! {
-    static WAKE_UP_CB: RefCell<Option<js_sys::Function>> = RefCell::new(None);
+    static WAKE_UP_CB: RefCell<Option<js_sys::Function>> = const { RefCell::new(None) };
 }
 
 pub fn set_on_resolved_cb(cb: js_sys::Function) {
@@ -12,6 +10,7 @@ pub fn set_on_resolved_cb(cb: js_sys::Function) {
 }
 
 use crate::JsValue;
+use std::cell::RefCell;
 pub fn call_on_resolved_cb() {
     WAKE_UP_CB.with(|f| {
         if let Some(cb) = f.borrow().as_ref() {

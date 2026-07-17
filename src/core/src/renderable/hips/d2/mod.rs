@@ -347,25 +347,26 @@ impl HiPS2D {
         let survey_frame = cfg.get_frame();
         let min_tile_depth = cfg.get_min_depth_tile();
 
-        let tile_queries_iter = camera
-            .get_hpx_cells(depth_tile, survey_frame)
-            .filter_map(|tile_cell| {
-                let make_query = if let Some(moc) = self.moc.as_ref() {
-                    moc.intersects_cell(&tile_cell) && !self.update_priority_tile(&tile_cell)
-                } else {
-                    !self.update_priority_tile(&tile_cell)
-                };
+        let tile_queries_iter =
+            camera
+                .get_hpx_cells(depth_tile, survey_frame)
+                .filter_map(|tile_cell| {
+                    let make_query = if let Some(moc) = self.moc.as_ref() {
+                        moc.intersects_cell(&tile_cell) && !self.update_priority_tile(&tile_cell)
+                    } else {
+                        !self.update_priority_tile(&tile_cell)
+                    };
 
-                if make_query {
-                    Some(query::Tile::new(
-                        &tile_cell,
-                        self.get_config(),
-                        browser_features_support,
-                    ))
-                } else {
-                    None
-                }
-            });
+                    if make_query {
+                        Some(query::Tile::new(
+                            &tile_cell,
+                            self.get_config(),
+                            browser_features_support,
+                        ))
+                    } else {
+                        None
+                    }
+                });
 
         let mut ancestors = HashSet::new();
 

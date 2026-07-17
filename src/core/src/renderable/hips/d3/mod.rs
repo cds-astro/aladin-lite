@@ -436,23 +436,23 @@ impl HiPS3D {
                     as u64;
                 let tile_depth = 32;
 
-                let tiles_iter = camera
-                    .get_hpx_cells(depth_tile, survey_frame)
-                    .into_iter()
-                    .filter(|tile_cell| {
-                        if let Some(moc) = self.moc.as_ref() {
-                            // TODO: Check this part of code, the moc is only spatial so it should intersect whatever f hash you give
-                            let f_hash = channel_idx / tile_depth;
-                            let cell = HEALPixFreqCell::new(
-                                *tile_cell,
-                                f_hash,
-                                Frequency::<u64>::MAX_DEPTH,
-                            );
-                            moc.intersects_cell(&cell)
-                        } else {
-                            true
-                        }
-                    });
+                let tiles_iter =
+                    camera
+                        .get_hpx_cells(depth_tile, survey_frame)
+                        .filter(|tile_cell| {
+                            if let Some(moc) = self.moc.as_ref() {
+                                // TODO: Check this part of code, the moc is only spatial so it should intersect whatever f hash you give
+                                let f_hash = channel_idx / tile_depth;
+                                let cell = HEALPixFreqCell::new(
+                                    *tile_cell,
+                                    f_hash,
+                                    Frequency::<u64>::MAX_DEPTH,
+                                );
+                                moc.intersects_cell(&cell)
+                            } else {
+                                true
+                            }
+                        });
 
                 let min_tile_depth = cfg.get_min_depth_tile();
                 let mut ancestors = HashSet::new();
@@ -496,7 +496,6 @@ impl HiPS3D {
 
                 let cubic_tiles_iter = camera
                     .get_hpx_cells(depth_tile, survey_frame)
-                    .into_iter()
                     // query the tiles in the camera view
                     .filter_map(|tile_cell| {
                         let f_hash = self.cursor.get_freq().hash(f_order);

@@ -86,7 +86,6 @@ mod utils;
 
 pub mod worker;
 
-
 use math::projection::*;
 
 //use votable::votable::VOTableWrapper;
@@ -207,7 +206,12 @@ impl WebClient {
     }
 
     #[wasm_bindgen(js_name = poll)]
-    pub fn poll(&mut self, dt: f64, pan: Option<Box<[f64]>>, zoom: Option<f64>) -> Result<PollInfo, JsValue> {
+    pub fn poll(
+        &mut self,
+        dt: f64,
+        pan: Option<Box<[f64]>>,
+        zoom: Option<f64>,
+    ) -> Result<PollInfo, JsValue> {
         // dt refers to the time taking (in ms) rendering the previous frame
         //self.dt = DeltaTime::from_millis(dt as f32);
 
@@ -215,9 +219,7 @@ impl WebClient {
         // world coordinates of the center of projection in (ra, dec)
         self.app.poll(
             // Time of the previous frame rendering
-            dt,
-            pan,
-            zoom
+            dt, pan, zoom,
         )
     }
 
@@ -371,11 +373,7 @@ impl WebClient {
     }
 
     #[wasm_bindgen(js_name = isHDUVisible)]
-    pub fn is_hdu_visible(
-        &self,
-        layer: String,
-        hdu_id: usize,
-    ) -> Result<bool, JsValue> {
+    pub fn is_hdu_visible(&self, layer: String, hdu_id: usize) -> Result<bool, JsValue> {
         self.app.is_hdu_visible(layer.as_str(), hdu_id)
     }
 
@@ -386,7 +384,7 @@ impl WebClient {
         hdu_id: usize,
         visible: bool,
     ) -> Result<(), JsValue> {
-       self.app.make_hdu_visible(layer.as_str(), hdu_id, visible)
+        self.app.make_hdu_visible(layer.as_str(), hdu_id, visible)
     }
 
     #[wasm_bindgen(js_name = addRGBAImage)]

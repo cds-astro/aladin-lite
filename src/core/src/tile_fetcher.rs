@@ -171,7 +171,9 @@ impl TileFetcherQueue {
 
         let num_concurrent_requests = downloader.borrow().num_concurrent_requests();
         let mut num_fetched_tile = 0;
-        while num_fetched_tile < MAX_NUM_TILE_FETCHING as i16 - num_concurrent_requests as i16 && !self.queries.is_empty() {
+        while num_fetched_tile < MAX_NUM_TILE_FETCHING as i16 - num_concurrent_requests as i16
+            && !self.queries.is_empty()
+        {
             let query = self.queries.pop_back().unwrap_abort();
 
             if let Ok(query) = self.check_in_file_list(query) {

@@ -2,8 +2,8 @@
 // but contained inside a more specific type of query (e.g. for a tile or allsky)
 pub mod allsky;
 pub mod moc;
-pub mod tile;
 pub mod on_resolved;
+pub mod tile;
 
 use wasm_bindgen_futures::JsFuture;
 
@@ -162,6 +162,7 @@ use wasm_bindgen::JsCast;
 use web_sys::RequestInit;
 use web_sys::RequestMode;
 use web_sys::Response;
+#[allow(dead_code)]
 async fn query_bitmap_from_blob(
     url: &str,
     mode: RequestMode,

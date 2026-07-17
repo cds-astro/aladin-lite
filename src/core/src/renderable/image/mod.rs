@@ -113,7 +113,7 @@ impl Image {
         bzero: f32,
         blank: Option<f32>,
         coo_sys: CooSystem,
-        header: Option<ValueMap>
+        header: Option<ValueMap>,
     ) -> Result<Self, JsValue> {
         let dim = wcs.img_dimensions();
         let (width, height) = (dim[0] as u64, dim[1] as u64);
@@ -545,7 +545,16 @@ impl Image {
             }
         };
 
-        Self::init_buffers(gl.clone(), patches, wcs, bscale, bzero, blank, coo_sys, header)
+        Self::init_buffers(
+            gl.clone(),
+            patches,
+            wcs,
+            bscale,
+            bzero,
+            blank,
+            coo_sys,
+            header,
+        )
     }
 
     pub fn from_rgba_bytes(
@@ -594,7 +603,7 @@ impl Image {
             bzero,
             blank,
             coo_sys,
-            None
+            None,
         )
     }
 

@@ -8,9 +8,7 @@ use cgmath::Vector3;
 
 use crate::math::lonlat::LonLat;
 use crate::math::projection::coo_space::XYScreen;
-use crate::math::TWICE_PI;
 
-use crate::math::angle::AngleFormatter;
 use crate::math::angle::ToAngle;
 use al_api::angle::Formatter;
 use cgmath::Vector2;
@@ -59,9 +57,15 @@ impl Label {
                     lat = lat.signum() * 70.0_f64.to_radians();
                 }
 
-                LonLatT::new(lon.to_degrees().to_radians().to_angle(), lat.to_degrees().to_radians().to_angle())
+                LonLatT::new(
+                    lon.to_degrees().to_radians().to_angle(),
+                    lat.to_degrees().to_radians().to_angle(),
+                )
             }
-            LabelOptions::OnSide => LonLatT::new(lon.to_degrees().to_radians().to_angle(), lat.start.to_angle()),
+            LabelOptions::OnSide => LonLatT::new(
+                lon.to_degrees().to_radians().to_angle(),
+                lat.start.to_angle(),
+            ),
         };
 
         let m1: Vector3<_> = lonlat.vector();
@@ -80,9 +84,7 @@ impl Label {
 
         let content = match fmt {
             Formatter::Decimal => lon.to_decimals().display(4, true).to_string(),
-            Formatter::Sexagesimal => {
-                lon.display(2, false).to_string()
-            }
+            Formatter::Sexagesimal => lon.display(2, false).to_string(),
         };
 
         let position = if !fov.is_allsky() {
@@ -114,7 +116,10 @@ impl Label {
                 let lon = camera.get_center().lon();
                 LonLatT::new(lon, lat.to_degrees().to_radians().to_angle())
             }
-            LabelOptions::OnSide => LonLatT::new(lon.start.to_angle(), lat.to_degrees().to_radians().to_angle()),
+            LabelOptions::OnSide => LonLatT::new(
+                lon.start.to_angle(),
+                lat.to_degrees().to_radians().to_angle(),
+            ),
         };
 
         let m1: Vector3<_> = lonlat.vector();
@@ -139,9 +144,7 @@ impl Label {
 
         let content = match fmt {
             Formatter::Decimal => lat.to_decimals().display(4, true).to_string(),
-            Formatter::Sexagesimal => {
-                lat.display(2, true).to_string()
-            }
+            Formatter::Sexagesimal => lat.display(2, true).to_string(),
         };
         //angle.set_format(fmt);
 

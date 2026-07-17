@@ -97,14 +97,7 @@ impl Parallel {
         projection: &ProjectionType,
         fmt: Formatter,
     ) -> Self {
-        let label = Label::from_parallel(
-            lat,
-            lon,
-            label_options,
-            camera,
-            projection,
-            fmt,
-        );
+        let label = Label::from_parallel(lat, lon, label_options, camera, projection, fmt);
 
         let lat = lat.to_degrees().to_radians();
 

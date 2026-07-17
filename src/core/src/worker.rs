@@ -1,10 +1,9 @@
-
 use serde::Deserialize;
 
+use crate::healpix::cell::HEALPixFreqCell;
 use wasm_bindgen::closure::Closure;
 use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;
-use crate::healpix::cell::HEALPixFreqCell;
 use wasm_bindgen::UnwrapThrowExt;
 
 #[derive(Deserialize, Debug)]
@@ -33,7 +32,6 @@ pub struct TileAttributes {
     pub cell: HEALPixCell,
 }
 
-use al_core::image::ImageType;
 #[derive(Debug)]
 pub enum WorkerResponse {
     Tile3D {
@@ -43,13 +41,17 @@ pub enum WorkerResponse {
     Tile {
         attrs: TileAttributes,
         bitmap: web_sys::ImageBitmap,
-    }
+    },
 }
 
 use web_sys::{Worker, WorkerOptions};
-pub fn create_worker<F>(src: &'static str, onmessage: F, sender: async_channel::Sender<WorkerResponse>) -> Result<Worker, JsValue>
+pub fn create_worker<F>(
+    src: &'static str,
+    onmessage: F,
+    sender: async_channel::Sender<WorkerResponse>,
+) -> Result<Worker, JsValue>
 where
-    F: Fn(web_sys::MessageEvent) -> WorkerResponse + 'static
+    F: Fn(web_sys::MessageEvent) -> WorkerResponse + 'static,
 {
     // Create Blob
     let parts = js_sys::Array::of1(&JsValue::from_str(src));

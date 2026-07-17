@@ -3,9 +3,9 @@ use al_api::angle::Formatter;
 use super::label::{Label, LabelOptions};
 use crate::math::lonlat::LonLat;
 use crate::math::sph_geom::region::Intersection;
+use crate::renderable::grid::Arc;
 use crate::CameraViewPort;
 use core::ops::Range;
-use crate::renderable::grid::Arc;
 
 use crate::math::MINUS_HALF_PI;
 use crate::ProjectionType;
@@ -58,14 +58,7 @@ pub fn get_intersecting_meridian(
                             lat1..MINUS_HALF_PI
                         };
 
-                        Meridian::new(
-                            lon,
-                            &lat,
-                            LabelOptions::OnSide,
-                            camera,
-                            projection,
-                            fmt,
-                        )
+                        Meridian::new(lon, &lat, LabelOptions::OnSide, camera, projection, fmt)
                     }
                     2 => {
                         // full intersection
@@ -117,18 +110,16 @@ impl Meridian {
         projection: &ProjectionType,
         fmt: Formatter,
     ) -> Self {
-        let label = Label::from_meridian(
-            lon,
-            lat,
-            label_options,
-            camera,
-            projection,
-            fmt,
-        );
+        let label = Label::from_meridian(lon, lat, label_options, camera, projection, fmt);
 
         // Draw the full parallel
         let vertices = crate::renderable::line::great_circle_arc::project(
-            lon.to_degrees().to_radians(), lat.start, lon.to_degrees().to_radians(), lat.end, camera, projection,
+            lon.to_degrees().to_radians(),
+            lat.start,
+            lon.to_degrees().to_radians(),
+            lat.end,
+            camera,
+            projection,
         )
         .into_iter()
         .map(|v| [v.x as f32, v.y as f32])

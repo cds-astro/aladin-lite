@@ -80,7 +80,11 @@ impl ViewHpxCells {
         }
     }
 
-    pub(super) fn get_cells(&self, depth: u8, frame: CooSystem) -> Box<dyn Iterator<Item = HEALPixCell> + '_> {
+    pub(super) fn get_cells(
+        &self,
+        depth: u8,
+        frame: CooSystem,
+    ) -> Box<dyn Iterator<Item = HEALPixCell> + '_> {
         self.hpx_cells[frame as usize].get_cells(depth)
     }
 
@@ -204,7 +208,7 @@ impl HpxCells {
             Box::new(
                 self.cov
                     .flatten_to_fixed_depth_cells()
-                    .map(move |idx| HEALPixCell(depth, idx))
+                    .map(move |idx| HEALPixCell(depth, idx)),
             )
         } else if depth > cov_depth {
             let cov_d = cov_depth;
@@ -212,13 +216,13 @@ impl HpxCells {
             Box::new(
                 self.cov
                     .flatten_to_fixed_depth_cells()
-                    .flat_map(move |idx| HEALPixCell(cov_d, idx).get_children_cells(dd))
+                    .flat_map(move |idx| HEALPixCell(cov_d, idx).get_children_cells(dd)),
             )
         } else {
             Box::new(
                 degrade((&self.cov.0).into_range_moc_iter(), depth)
                     .flatten_to_fixed_depth_cells()
-                    .map(move |idx| HEALPixCell(depth, idx))
+                    .map(move |idx| HEALPixCell(depth, idx)),
             )
         }
     }

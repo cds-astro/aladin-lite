@@ -7,8 +7,6 @@ use crate::renderable::image::Image;
 use crate::renderable::ImageLayer;
 use crate::tile_fetcher::HiPSLocalFiles;
 use crate::PollInfo;
-use serde::Serialize;
-use crate::Abort;
 use crate::{
     camera::CameraViewPort,
     downloader::Downloader,
@@ -26,10 +24,11 @@ use crate::{
     tile_fetcher::TileFetcherQueue,
     time::DeltaTime,
 };
+use serde::Serialize;
 
 use crate::HEALPixCell;
 
-use crate::worker::{create_worker, WorkerResponse, Tile3DAttributes, TileAttributes};
+use crate::worker::{create_worker, Tile3DAttributes, TileAttributes, WorkerResponse};
 
 use al_api::moc::MOCOptions;
 use al_core::image::bitmap::Bitmap;
@@ -51,8 +50,8 @@ use al_api::{
     hips::{HiPSCfg, ImageMetadata},
 };
 
-use std::cell::Cell;
 use crate::healpix::moc::Moc;
+use std::cell::Cell;
 
 use web_sys::{HtmlElement, WebGl2RenderingContext};
 
@@ -80,7 +79,6 @@ pub struct App {
 
     time_start_blending: Time,
     request_redraw: bool,
-    rendering: bool,
 
     // The grid renderable
     grid: ProjetedGrid,
@@ -105,7 +103,6 @@ pub struct App {
     out_of_fov: bool,
     //tasks_finished: bool,
     catalog_loaded: bool,
-    last_time_request_for_new_tiles: Time,
     request_for_new_tiles: bool,
     num_tiles_to_be_copied: Rc<Cell<i32>>,
 
@@ -118,7 +115,6 @@ pub struct App {
     pub projection: ProjectionType,
 
     worker_resp_recv: async_channel::Receiver<WorkerResponse>,
-    worker_resp_send: async_channel::Sender<WorkerResponse>,
 
     // Async data receivers
     //img_send: async_channel::Sender<ImageLayer>,
@@ -145,7 +141,7 @@ use al_api::resources::Resources;
 
 use al_api::cell::HEALPixCellProjeted;
 
-use crate::healpix::cell::{HEALPixFreqCell};
+use crate::healpix::cell::HEALPixFreqCell;
 
 use al_api::color::ColorRGB;
 
@@ -201,7 +197,6 @@ impl App {
 
         //let tasks_finished = false;
         let request_redraw = false;
-        let rendering = true;
         let prev_cam_position = *camera.get_center();
         //let prev_center = Vector3::new(0.0, 1.0, 0.0);
         let out_of_fov = false;
@@ -211,9 +206,6 @@ impl App {
 
         let _final_rendering_pass = RenderPass::new(&gl)?;
         let tile_fetcher = TileFetcherQueue::new();
-
-        //let ui = Gui::new(aladin_div_name, &gl)?;
-        let last_time_request_for_new_tiles = Time::now();
 
         let request_for_new_tiles = true;
 
@@ -249,12 +241,9 @@ impl App {
 
                 let attrs: Tile3DAttributes = serde_wasm_bindgen::from_value(data).unwrap();
 
-                WorkerResponse::Tile3D {
-                    bytes,
-                    attrs,
-                }
+                WorkerResponse::Tile3D { bytes, attrs }
             },
-            worker_resp_send.clone()
+            worker_resp_send.clone(),
         )?;
         let worker_tile = create_worker(
             include_str!("./workers/decodeHiPSTile.js"),
@@ -267,15 +256,12 @@ impl App {
                     .expect("is not an image bitmap");
 
                 let attrs: TileAttributes = serde_wasm_bindgen::from_value(data).unwrap();
-                
+
                 call_on_resolved_cb();
 
-                WorkerResponse::Tile {
-                    bitmap,
-                    attrs,
-                }
+                WorkerResponse::Tile { bitmap, attrs }
             },
-            worker_resp_send.clone()
+            worker_resp_send.clone(),
         )?;
 
         gl.blend_func(
@@ -289,14 +275,12 @@ impl App {
 
             camera,
 
-            last_time_request_for_new_tiles,
             request_for_new_tiles,
             downloader,
             layers,
             num_tiles_to_be_copied,
 
             time_start_blending,
-            rendering,
             request_redraw,
             // The grid renderable
             grid,
@@ -338,7 +322,6 @@ impl App {
             img_recv,
             ack_img_send,
             worker_resp_recv,
-            worker_resp_send,
 
             browser_features_support, //ack_img_recv,
         })
@@ -566,7 +549,8 @@ impl App {
     }
 
     pub fn has_pending_tiles(&self) -> bool {
-        self.downloader.borrow().num_concurrent_requests() > 0 || self.num_tiles_to_be_copied.get() > 0
+        self.downloader.borrow().num_concurrent_requests() > 0
+            || self.num_tiles_to_be_copied.get() > 0
     }
 
     pub(crate) fn poll_worker_responses(&mut self) -> Result<(), JsValue> {
@@ -591,15 +575,17 @@ impl App {
         while let Ok(response) = self.worker_resp_recv.try_recv() {
             match response {
                 WorkerResponse::Tile3D {
-                    attrs: Tile3DAttributes {
-                        cell,
-                        hips_cdid,
-                        tile_size,
-                        tile_depth,
-                    },
-                    bytes
+                    attrs:
+                        Tile3DAttributes {
+                            cell,
+                            hips_cdid,
+                            tile_size,
+                            tile_depth,
+                        },
+                    bytes,
                 } => {
-                    self.num_tiles_to_be_copied.set(self.num_tiles_to_be_copied.get() - 1);
+                    self.num_tiles_to_be_copied
+                        .set(self.num_tiles_to_be_copied.get() - 1);
 
                     if let Some(HiPS::D3(hips)) = self.layers.get_mut_hips_from_cdid(&hips_cdid) {
                         hips.push_tile_from_png(
@@ -612,17 +598,25 @@ impl App {
 
                     self.request_redraw = true;
                     self.time_start_blending = Time::now();
-                },
+                }
                 WorkerResponse::Tile {
-                    attrs: TileAttributes { cell, hips, tile_size },
+                    attrs:
+                        TileAttributes {
+                            cell,
+                            hips,
+                            tile_size: _,
+                        },
                     bitmap,
                 } => {
-                    self.num_tiles_to_be_copied.set(self.num_tiles_to_be_copied.get() - 1);
+                    self.num_tiles_to_be_copied
+                        .set(self.num_tiles_to_be_copied.get() - 1);
 
                     if let Some(HiPS::D2(hips)) = self.layers.get_mut_hips_from_cdid(&hips) {
                         hips.push_tile(
                             &cell,
-                            ImageType::ImageRgba8u { image: Bitmap::new(bitmap) },
+                            ImageType::ImageRgba8u {
+                                image: Bitmap::new(bitmap),
+                            },
                             Time::now(),
                         )?;
                     }
@@ -631,7 +625,7 @@ impl App {
                 }
             }
         }
-        
+
         Ok(())
     }
 
@@ -911,11 +905,7 @@ impl App {
         }
     }
 
-    pub fn is_hdu_visible(
-        &self,
-        layer: &str,
-        hdu_id: usize,
-    ) -> Result<bool, JsValue> {
+    pub fn is_hdu_visible(&self, layer: &str, hdu_id: usize) -> Result<bool, JsValue> {
         self.layers.is_hdu_visible(layer, hdu_id)
     }
 
@@ -925,7 +915,7 @@ impl App {
         hdu_id: usize,
         visible: bool,
     ) -> Result<(), JsValue> {
-       self.layers.make_hdu_visible(layer, hdu_id, visible)
+        self.layers.make_hdu_visible(layer, hdu_id, visible)
     }
 
     pub(crate) fn get_layer_cfg(&self, layer: &str) -> Result<ImageMetadata, JsValue> {
@@ -1341,7 +1331,7 @@ impl App {
                 self.time_mouse_high_vel = Time::now();
             }
         }
-        
+
         // Select the HiPS layer rendered lastly
         if let (Some(w1), Some(w2)) = (
             self.projection
@@ -1506,7 +1496,12 @@ impl App {
     }
 
     // Lightweight - always called, no drawing
-    pub(crate) fn poll(&mut self, dt: f64, pan: Option<Box<[f64]>>, zoom: Option<f64>) -> Result<PollInfo, JsValue> {
+    pub(crate) fn poll(
+        &mut self,
+        dt: f64,
+        pan: Option<Box<[f64]>>,
+        zoom: Option<f64>,
+    ) -> Result<PollInfo, JsValue> {
         // Handle pan/zoom
         if let Some(pan) = pan {
             self.go_from_to(pan[0], pan[1], pan[2], pan[3]);
@@ -1606,7 +1601,7 @@ impl App {
                                     match (&tile.cell, hips) {
                                         (CellDesc::HiPS2D { cell, .. }, HiPS::D2(hips)) => {
                                             match img {
-                                                ImageType::Blob {blob, size} => {
+                                                ImageType::Blob { blob, size } => {
                                                     #[derive(Serialize)]
                                                     #[serde(rename_all = "camelCase")]
                                                     struct TileMessage<'a> {
@@ -1615,23 +1610,34 @@ impl App {
                                                         hips: &'a str,
                                                         // bitmap is a JsValue, handle separately
                                                     }
-                                                    let msg = serde_wasm_bindgen::to_value(&TileMessage {
-                                                        tile_size: size.0,
-                                                        cell: &cell,
-                                                        hips: &tile.hips_cdid,
-                                                    })?;
+                                                    let msg = serde_wasm_bindgen::to_value(
+                                                        &TileMessage {
+                                                            tile_size: size.0,
+                                                            cell,
+                                                            hips: &tile.hips_cdid,
+                                                        },
+                                                    )?;
 
                                                     // Attach the non-serializable bitmap separately
-                                                    js_sys::Reflect::set(&msg, &"blob".into(), blob)?;
+                                                    js_sys::Reflect::set(
+                                                        &msg,
+                                                        &"blob".into(),
+                                                        blob,
+                                                    )?;
 
                                                     self.worker_tile.post_message(&msg)?;
-                                                    self.num_tiles_to_be_copied.set(self.num_tiles_to_be_copied.get() + 1);
-                                                },
+                                                    self.num_tiles_to_be_copied
+                                                        .set(self.num_tiles_to_be_copied.get() + 1);
+                                                }
                                                 _ => {
                                                     self.time_start_blending = Time::now();
                                                     self.request_redraw = true;
 
-                                                    hips.push_tile(cell, img, tile.request.time_request)?
+                                                    hips.push_tile(
+                                                        cell,
+                                                        img,
+                                                        tile.request.time_request,
+                                                    )?
                                                 }
                                             }
                                         }
@@ -1669,7 +1675,7 @@ impl App {
                                         ) => {
                                             // TODO PNG/JPG case to handle here
                                             match img {
-                                                ImageType::Blob {blob, size} => {
+                                                ImageType::Blob { blob, .. } => {
                                                     #[derive(Serialize)]
                                                     #[serde(rename_all = "camelCase")]
                                                     struct TileMessage<'a> {
@@ -1679,20 +1685,27 @@ impl App {
                                                         hips: &'a str,
                                                         // bitmap is a JsValue, handle separately
                                                     }
-                                                    let msg = serde_wasm_bindgen::to_value(&TileMessage {
-                                                        tile_size: *tile_size,
-                                                        cell: &cell,
-                                                        hips: &tile.hips_cdid,
-                                                        tile_depth: *tile_depth,
-                                                    })?;
+                                                    let msg = serde_wasm_bindgen::to_value(
+                                                        &TileMessage {
+                                                            tile_size: *tile_size,
+                                                            cell,
+                                                            hips: &tile.hips_cdid,
+                                                            tile_depth: *tile_depth,
+                                                        },
+                                                    )?;
 
-                                                    self.num_tiles_to_be_copied.set(self.num_tiles_to_be_copied.get() + 1);
+                                                    self.num_tiles_to_be_copied
+                                                        .set(self.num_tiles_to_be_copied.get() + 1);
 
                                                     // Attach the non-serializable bitmap separately
-                                                    js_sys::Reflect::set(&msg, &"blob".into(), blob)?;
+                                                    js_sys::Reflect::set(
+                                                        &msg,
+                                                        &"blob".into(),
+                                                        blob,
+                                                    )?;
 
                                                     self.worker_tile_3d.post_message(&msg)?;
-                                                },
+                                                }
                                                 ImageType::FitsRawBytes { raw_bytes, size } => {
                                                     self.time_start_blending = Time::now();
                                                     self.request_redraw = true;
@@ -1703,7 +1716,7 @@ impl App {
                                                         *size,
                                                         tile.request.time_request,
                                                     )?
-                                                },
+                                                }
                                                 _ => unreachable!(),
                                             }
                                         }
@@ -1783,7 +1796,8 @@ impl App {
             zoom_factor: self.camera.get_zoom_factor(),
             has_pending: self.has_pending_tiles(),
             is_inerting: self.inertia.is_some(),
-            ra: *ra, dec: *dec, // center coords
+            ra: *ra,
+            dec: *dec, // center coords
             fov_x: self.camera.get_aperture().to_degrees(),
             fov_y: self.camera.get_aperture_y().to_degrees(),
         })
@@ -1800,7 +1814,6 @@ impl App {
         //let sync = gl.fence_sync(WebGl2RenderingContext::SYNC_GPU_COMMANDS_COMPLETE, 0);
         //self.gl.flush();
         // optionally check sync status before next frame
-
 
         Ok(())
     }

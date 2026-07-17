@@ -8,8 +8,8 @@ use al_core::image::ImageType;
 use super::super::query::CellDesc;
 use super::Url;
 use super::{Request, RequestType};
-use crate::downloader::request::query_html_image;
 use crate::downloader::request::query_blob;
+use crate::downloader::request::query_html_image;
 use crate::downloader::QueryId;
 
 pub struct TileRequest {
@@ -28,7 +28,6 @@ impl From<TileRequest> for RequestType {
     }
 }
 
-use al_core::image::bitmap::Bitmap;
 use al_core::image::html::HTMLImage;
 use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;
@@ -74,10 +73,7 @@ impl From<query::Tile> for TileRequest {
                     })*/
                     let blob = query_blob(&url_clone, mode, credentials).await?;
 
-                    Ok(ImageType::Blob {
-                        blob,
-                        size
-                    })
+                    Ok(ImageType::Blob { blob, size })
                 } else {
                     // HTMLImageElement
                     let image = query_html_image(&url_clone, credentials).await?;
@@ -97,10 +93,7 @@ impl From<query::Tile> for TileRequest {
                     })*/
                     let blob = query_blob(&url_clone, mode, credentials).await?;
 
-                    Ok(ImageType::Blob {
-                        blob,
-                        size
-                    })
+                    Ok(ImageType::Blob { blob, size })
                 } else {
                     // HTMLImageElement
                     let image = query_html_image(&url_clone, credentials).await?;

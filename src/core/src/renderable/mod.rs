@@ -497,32 +497,35 @@ impl Layers {
 
         if !fits_already_found {
             let num_hdus = images.len();
-            let visible = images.iter()
+            let visible = images
+                .iter()
                 .map(|image| {
                     if num_hdus == 1 {
                         true
-                    } else {
-                        if let Some(header) = image.get_header_dict() {
-                            let extname = header.get_parsed::<String>("EXTNAME");
-                            let extname = extname.as_ref();
-                            if let Ok(extname) = extname {
-                                let s = extname.as_str();
+                    } else if let Some(header) = image.get_header_dict() {
+                        let extname = header.get_parsed::<String>("EXTNAME");
+                        let extname = extname.as_ref();
+                        if let Ok(extname) = extname {
+                            let s = extname.as_str();
 
-                                s == "SCI"
-                            } else {
-                                // No EXTNAME found, we make the HDU visible
-                                true
-                            }
+                            s == "SCI"
                         } else {
+                            // No EXTNAME found, we make the HDU visible
                             true
                         }
+                    } else {
+                        true
                     }
-                }).collect();
+                })
+                .collect();
 
-            self.images.insert(id.clone(), Images {
-                stack: images,
-                visible
-            });
+            self.images.insert(
+                id.clone(),
+                Images {
+                    stack: images,
+                    visible,
+                },
+            );
         }
 
         self.ids.insert(layer.clone(), id.clone());
@@ -575,28 +578,41 @@ impl Layers {
     // FITS images getters
     pub fn get_mut_image_from_layer(&mut self, layer: &str) -> Option<&mut [Image]> {
         if let Some(url) = self.ids.get(layer) {
-            self.images.get_mut(url).map(|images| images.stack.as_mut_slice())
+            self.images
+                .get_mut(url)
+                .map(|images| images.stack.as_mut_slice())
         } else {
             None
         }
     }
 
     pub(crate) fn is_hdu_visible(&self, layer: &str, hdu_idx: usize) -> Result<bool, JsValue> {
-        let url = self.ids.get(layer)
+        let url = self
+            .ids
+            .get(layer)
             .ok_or_else(|| JsValue::from_str("No HDU found"))?;
 
-        self.images.get(url.as_str())
-            .and_then(|images| {
-                images.visible.get(hdu_idx)
-            })
-            .ok_or_else(|| JsValue::from_str("No HDU found")).copied()
+        self.images
+            .get(url.as_str())
+            .and_then(|images| images.visible.get(hdu_idx))
+            .ok_or_else(|| JsValue::from_str("No HDU found"))
+            .copied()
     }
 
-    pub(crate) fn make_hdu_visible(&mut self, layer: &str, hdu_idx: usize, visible: bool) -> Result<(), JsValue> {
-        let url = self.ids.get(layer)
+    pub(crate) fn make_hdu_visible(
+        &mut self,
+        layer: &str,
+        hdu_idx: usize,
+        visible: bool,
+    ) -> Result<(), JsValue> {
+        let url = self
+            .ids
+            .get(layer)
             .ok_or_else(|| JsValue::from_str("No HDU found"))?;
 
-        let v = self.images.get_mut(url.as_str())
+        let v = self
+            .images
+            .get_mut(url.as_str())
             .and_then(|images| images.visible.get_mut(hdu_idx))
             .ok_or_else(|| JsValue::from_str("No HDU found"))?;
 

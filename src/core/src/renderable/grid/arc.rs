@@ -1,18 +1,8 @@
-#[derive(Clone, Copy)]
-#[derive(PartialEq)]
-#[derive(Debug)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub enum Arc {
-    DMS {
-        deg: i32,
-        minute: u32,
-        second: f64,
-    },
-    HMS {
-        hour: i32,
-        minute: u32,
-        second: f64,
-    },
-    D(f64)
+    DMS { deg: i32, minute: u32, second: f64 },
+    HMS { hour: i32, minute: u32, second: f64 },
+    D(f64),
 }
 
 impl Arc {
@@ -24,7 +14,7 @@ impl Arc {
         Arc::HMS {
             hour: h,
             minute: m,
-            second: s
+            second: s,
         }
     }
 
@@ -32,7 +22,7 @@ impl Arc {
         Self::DMS {
             deg: 0,
             minute: 0,
-            second: value
+            second: value,
         }
     }
 
@@ -40,7 +30,7 @@ impl Arc {
         Self::DMS {
             deg: 0,
             minute: value,
-            second: 0.0
+            second: 0.0,
         }
     }
 
@@ -48,19 +38,29 @@ impl Arc {
         Self::DMS {
             deg: value,
             minute: 0,
-            second: 0.0
+            second: 0.0,
         }
     }
 
     pub fn to_degrees(&self) -> f64 {
         match self {
-            Self::DMS { deg, minute, second } => {
+            Self::DMS {
+                deg,
+                minute,
+                second,
+            } => {
                 let sign = if *deg < 0 { -1.0 } else { 1.0 };
                 sign * (deg.unsigned_abs() as f64 + (*minute as f64) / 60.0 + second / 3600.0)
             }
-            Self::HMS { hour, minute, second } => {
+            Self::HMS {
+                hour,
+                minute,
+                second,
+            } => {
                 let sign = if *hour < 0 { -1.0 } else { 1.0 };
-                sign * (hour.unsigned_abs() as f64 * 15.0 + (*minute as f64) * 0.25 + second / 240.0)
+                sign * (hour.unsigned_abs() as f64 * 15.0
+                    + (*minute as f64) * 0.25
+                    + second / 240.0)
             }
             Self::D(deg) => *deg,
         }
@@ -82,11 +82,15 @@ impl Arc {
                 let sign = if total_tsec < 0.0 { -1 } else { 1 };
                 let total_abs = total_tsec.abs();
 
-                let hour   = ((total_abs / 3600.0) as i32 * sign) % 24;
+                let hour = ((total_abs / 3600.0) as i32 * sign) % 24;
                 let minute = ((total_abs % 3600.0) / 60.0) as u32;
                 let second = total_abs % 60.0;
 
-                Self::HMS { hour, minute, second }
+                Self::HMS {
+                    hour,
+                    minute,
+                    second,
+                }
             }
         }
     }
@@ -110,14 +114,20 @@ impl Neg for Arc {
 
     fn neg(self) -> Self::Output {
         match self {
-            Self::DMS { deg, minute, second } => {
-                Self::DMS {
-                    deg: -deg,
-                    minute,
-                    second,
-                }
+            Self::DMS {
+                deg,
+                minute,
+                second,
+            } => Self::DMS {
+                deg: -deg,
+                minute,
+                second,
             },
-            Self::HMS { hour, minute, second } => {
+            Self::HMS {
+                hour,
+                minute,
+                second,
+            } => {
                 let mut hour = -hour;
                 if hour < 0 {
                     hour += 24;
@@ -127,19 +137,29 @@ impl Neg for Arc {
                     minute,
                     second,
                 }
-            },
-            Self::D(deg) => Self::D(-deg)
+            }
+            Self::D(deg) => Self::D(-deg),
         }
     }
 }
-
 
 impl Add for Arc {
     type Output = Self;
 
     fn add(self, other: Self) -> Self {
         match (self, other) {
-            (Self::DMS { deg: d1, minute: m1, second: s1 }, Self::DMS { deg: d2, minute: m2, second: s2 }) => {
+            (
+                Self::DMS {
+                    deg: d1,
+                    minute: m1,
+                    second: s1,
+                },
+                Self::DMS {
+                    deg: d2,
+                    minute: m2,
+                    second: s2,
+                },
+            ) => {
                 let sign1 = if d1 < 0 { -1.0 } else { 1.0 };
                 let arcsec1 = sign1 * (d1.unsigned_abs() as f64 * 3600.0 + m1 as f64 * 60.0 + s1);
 
@@ -151,13 +171,28 @@ impl Add for Arc {
                 let sign = if total < 0.0 { -1 } else { 1 };
                 let total_abs = total.abs();
 
-                let deg    = (total_abs / 3600.0) as i32 * sign;
+                let deg = (total_abs / 3600.0) as i32 * sign;
                 let minute = ((total_abs % 3600.0) / 60.0) as u32;
                 let second = total_abs % 60.0;
 
-                Self::DMS { deg, minute, second }
-            },
-            (Self::HMS { hour: h1, minute: m1, second: s1 }, Self::HMS { hour: h2, minute: m2, second: s2 }) => {
+                Self::DMS {
+                    deg,
+                    minute,
+                    second,
+                }
+            }
+            (
+                Self::HMS {
+                    hour: h1,
+                    minute: m1,
+                    second: s1,
+                },
+                Self::HMS {
+                    hour: h2,
+                    minute: m2,
+                    second: s2,
+                },
+            ) => {
                 let sign1 = if h1 < 0 { -1.0 } else { 1.0 };
                 let tsec1 = sign1 * (h1.unsigned_abs() as f64 * 3600.0 + m1 as f64 * 60.0 + s1);
 
@@ -176,10 +211,14 @@ impl Add for Arc {
                 let minute = ((total_abs % 3600.0) / 60.0) as u32;
                 let second = total_abs % 60.0;
 
-                Self::HMS { hour, minute, second }
+                Self::HMS {
+                    hour,
+                    minute,
+                    second,
+                }
             }
             (Self::D(d1), Self::D(d2)) => Self::D(d1 + d2),
-            (lhs, rhs) => Self::D(lhs.to_degrees() + rhs.to_degrees())
+            (lhs, rhs) => Self::D(lhs.to_degrees() + rhs.to_degrees()),
         }
     }
 }
@@ -199,7 +238,11 @@ impl Mul<u32> for Arc {
 
     fn mul(self, rhs: u32) -> Self::Output {
         match self {
-            Self::DMS { deg, minute, second } => {
+            Self::DMS {
+                deg,
+                minute,
+                second,
+            } => {
                 let new_second = second * (rhs as f64);
                 let dminute = new_second.div_euclid(60.0) as u32;
 
@@ -212,7 +255,11 @@ impl Mul<u32> for Arc {
                     second: new_second.rem_euclid(60.0),
                 }
             }
-            Self::HMS { hour, minute, second } => {
+            Self::HMS {
+                hour,
+                minute,
+                second,
+            } => {
                 let new_second = second * (rhs as f64);
                 let dminute = new_second.div_euclid(60.0) as u32;
 
@@ -245,7 +292,11 @@ pub struct ArcDisplay<'a> {
 
 impl Arc {
     pub fn display(&self, precision: usize, plus: bool) -> ArcDisplay<'_> {
-        ArcDisplay { arc: self, precision, plus }
+        ArcDisplay {
+            arc: self,
+            precision,
+            plus,
+        }
     }
 }
 
@@ -256,24 +307,60 @@ impl fmt::Display for ArcDisplay<'_> {
         let sec_width = 3 + p;
 
         match self.arc {
-            Arc::DMS { deg, minute, second } => {
-                let sign = if *deg < 0 { "-" } else if self.plus { "+" } else { "" };
+            Arc::DMS {
+                deg,
+                minute,
+                second,
+            } => {
+                let sign = if *deg < 0 {
+                    "-"
+                } else if self.plus {
+                    "+"
+                } else {
+                    ""
+                };
                 write!(
-                    f, "{}{:02}°{:02}′{:0>width$.prec$}″",
-                    sign, deg.unsigned_abs(), minute, second,
-                    width = sec_width, prec = p
+                    f,
+                    "{}{:02}°{:02}′{:0>width$.prec$}″",
+                    sign,
+                    deg.unsigned_abs(),
+                    minute,
+                    second,
+                    width = sec_width,
+                    prec = p
                 )
             }
-            Arc::HMS { hour, minute, second } => {
-                let sign = if *hour < 0 { "-" } else if self.plus { "+" } else { "" };
+            Arc::HMS {
+                hour,
+                minute,
+                second,
+            } => {
+                let sign = if *hour < 0 {
+                    "-"
+                } else if self.plus {
+                    "+"
+                } else {
+                    ""
+                };
                 write!(
-                    f, "{}{}h{:02}m{:0>width$.prec$}s",
-                    sign, hour.unsigned_abs(), minute, second,
-                    width = sec_width, prec = p
+                    f,
+                    "{}{}h{:02}m{:0>width$.prec$}s",
+                    sign,
+                    hour.unsigned_abs(),
+                    minute,
+                    second,
+                    width = sec_width,
+                    prec = p
                 )
             }
             Arc::D(deg) => {
-                let sign = if *deg < 0.0 { "" } else if self.plus { "+" } else { "" };
+                let sign = if *deg < 0.0 {
+                    ""
+                } else if self.plus {
+                    "+"
+                } else {
+                    ""
+                };
                 write!(f, "{}{:.prec$}°", sign, deg, prec = p)
             }
         }

@@ -1,16 +1,15 @@
+pub mod arc;
 pub mod label;
 pub mod meridian;
 pub mod parallel;
-pub mod arc;
 
 use crate::shader::ShaderManager;
 use crate::Abort;
 use al_core::VecData;
-use parallel::Parallel;
 use arc::Arc;
+use parallel::Parallel;
 
 use crate::camera::CameraViewPort;
-use crate::math::HALF_PI;
 use crate::ProjectionType;
 use al_api::color::ColorRGBA;
 use al_api::grid::GridCfg;
@@ -203,8 +202,6 @@ impl ProjetedGrid {
             //let max_dim_px = camera.get_width().max(camera.get_height()) as f64;
             //let step_line_px = max_dim_px * 0.15;
 
-            let aspect = camera.get_aspect() as f64;
-
             // update meridians
             self.meridians = {
                 // Select the good step with a binary search
@@ -214,20 +211,18 @@ impl ProjetedGrid {
                 // Add meridians
                 //let start_lon = bbox.lon_min() - (bbox.lon_min() % step_lon);
                 let mut stop_lon = Arc::from_degrees(bbox.lon_max().to_degrees());
-                
-                let start_idx = (bbox.lon_min() / step_lon.to_degrees().to_radians()).floor() as i32;
+
+                let start_idx =
+                    (bbox.lon_min() / step_lon.to_degrees().to_radians()).floor() as i32;
                 let mut start_lon: Arc = step_lon * start_idx;
 
                 let compute_meridian = |start_lon: Arc, stop_lon: Arc| -> Vec<Meridian> {
                     let mut meridians = vec![];
                     let mut lon = start_lon;
                     while lon.to_degrees() < stop_lon.to_degrees() {
-                        if let Some(p) = meridian::get_intersecting_meridian(
-                            lon,
-                            camera,
-                            projection,
-                            self.fmt,
-                        ) {
+                        if let Some(p) =
+                            meridian::get_intersecting_meridian(lon, camera, projection, self.fmt)
+                        {
                             meridians.push(p);
                         }
                         lon = lon + step_lon;
@@ -243,10 +238,18 @@ impl ProjetedGrid {
                 } else if bbox.contains_longitude(0.0) {
                     let mut meridians = Vec::new();
 
-                    let max_bound = if start_lon.to_degrees() > stop_lon.to_degrees() { start_lon } else { stop_lon };
-                    
-                    let lonlat_east: Arc = step_lon * ((max_bound.to_degrees().to_radians() / step_lon.to_degrees().to_radians()).floor() as i32);
-                    let lonlat_west: Arc = Arc::from_degrees(360.0 - lonlat_east.to_degrees()).to_hms();
+                    let max_bound = if start_lon.to_degrees() > stop_lon.to_degrees() {
+                        start_lon
+                    } else {
+                        stop_lon
+                    };
+
+                    let lonlat_east: Arc = step_lon
+                        * ((max_bound.to_degrees().to_radians()
+                            / step_lon.to_degrees().to_radians())
+                        .floor() as i32);
+                    let lonlat_west: Arc =
+                        Arc::from_degrees(360.0 - lonlat_east.to_degrees()).to_hms();
 
                     meridians.extend(compute_meridian(Arc::from_hms(0, 0, 0.0), lonlat_east));
                     meridians.extend(compute_meridian(lonlat_west, Arc::from_hms(24, 0, 0.0)));
@@ -261,10 +264,9 @@ impl ProjetedGrid {
                 let step_lat_precised = bbox.get_lat_size() * 0.25;
                 let step_lat = select_fixed_step(step_lat_precised.to_degrees());
 
-                let decimal_lat_prec = 15;
-
-                let start_idx = (bbox.lat_min() / step_lat.to_degrees().to_radians()).floor() as i32;
-                let mut start_lat: Arc = step_lat * start_idx;
+                let start_idx =
+                    (bbox.lat_min() / step_lat.to_degrees().to_radians()).floor() as i32;
+                let start_lat: Arc = step_lat * start_idx;
 
                 /*if start_lat == -HALF_PI {
                     start_lat += step_lat;
@@ -274,12 +276,9 @@ impl ProjetedGrid {
 
                 let mut parallels = vec![];
                 while lat.to_degrees() < stop_lat.to_degrees() {
-                    if let Some(p) = parallel::get_intersecting_parallel(
-                        lat,
-                        camera,
-                        projection,
-                        self.fmt,
-                    ) {
+                    if let Some(p) =
+                        parallel::get_intersecting_parallel(lat, camera, projection, self.fmt)
+                    {
                         parallels.push(p);
                     }
                     lat = lat + step_lat;
@@ -361,12 +360,13 @@ const GRID_STEPS: &[Arc] = &[
     Arc::deg(1),
     Arc::deg(5),
     Arc::deg(15),
-    Arc::deg(30)
+    Arc::deg(30),
 ];
 
 fn select_fixed_step(fov: f64) -> Arc {
     match GRID_STEPS.binary_search_by(|v| {
-        v.to_degrees().partial_cmp(&fov)
+        v.to_degrees()
+            .partial_cmp(&fov)
             .expect("Couldn't compare values, maybe because the fov given is NaN")
     }) {
         Ok(idx) => GRID_STEPS[idx],

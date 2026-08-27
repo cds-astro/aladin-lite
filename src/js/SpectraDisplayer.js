@@ -126,6 +126,10 @@ export class SpectraDisplayer extends DOMElement {
         });
     }
 
+    isShowingFreqUnit() {
+        return this.unit === SpectraDisplayer.UNIT.FREQUENCY;
+    }
+
     constructor(view, options) {
         super()
 
@@ -682,7 +686,6 @@ export class SpectraDisplayer extends DOMElement {
     }
 
     _redraw() {
-
         const values = this.data.values;
         let len = values.length;
 
@@ -847,11 +850,14 @@ export class SpectraDisplayer extends DOMElement {
         let i = 0;
         let i1 = array.length;
 
+        const freqIdxStart = this.data.freqIdxStart !== undefined && (this.isShowingFreqUnit() ? this.data.freqIdxStart : i1 - this.data.freqIdxEnd);
+        const freqIdxEnd = this.data.freqIdxEnd !== undefined && (this.isShowingFreqUnit() ? this.data.freqIdxEnd : i1 - this.data.freqIdxStart);
+
         while (i < i1) {
             let y;
             let x = i * this.scaleX;
 
-            const inValidDomain = this.data.freqIdxStart !== undefined && this.data.freqIdxEnd !== undefined && i >= this.data.freqIdxStart && i <= this.data.freqIdxEnd;
+            const inValidDomain = freqIdxStart !== undefined && freqIdxEnd !== undefined && i >= freqIdxStart && i <= freqIdxEnd;
 
             if (inValidDomain) {
                 const tileNotReceived = !Number.isFinite(array[i]);

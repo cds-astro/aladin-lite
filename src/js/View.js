@@ -159,7 +159,7 @@ export let View = (function () {
 
             if (self.spectraDisplayer) {
                 self.spectraDisplayer.updateCanvas()
-                self.spectraDisplayer._redraw()
+                self.spectraDisplayer.requestRedraw()
             }
         }, 2);
 
@@ -282,7 +282,6 @@ export let View = (function () {
         if (this.options.selectionMode === 'skewer') {
             this.selectionMode = View.SELECTION_MODE_SKEWER;
         }
-
 
         // current reference image survey displayed
         this.imageLayers = new Map();
@@ -686,6 +685,8 @@ export let View = (function () {
         let onDblClick = function (e) {
             const xymouse = Utils.relMouseCoords(e);
 
+
+            console.log(xymouse)
             // deselect all the selected sources with Select panel
             view.unselectObjects();
 
@@ -701,11 +702,11 @@ export let View = (function () {
         };
 
         if (!Utils.hasTouchScreen()) {
-            Utils.on(view.catalogCanvas, 'dblclick', onDblClick);
+            Utils.on(view.aladin.aladinDiv, 'dblclick', onDblClick);
         }
 
         // prevent default context menu from appearing (potential clash with right-click cuts control)
-        Utils.on(view.catalogCanvas, "contextmenu", function (e) {
+        Utils.on(view.aladin.aladinDiv, "contextmenu", function (e) {
             e.preventDefault();
 
             if (view.aladin.options.showContextMenu) {
@@ -889,15 +890,19 @@ export let View = (function () {
         }
 
         var touchStartTime;
-        Utils.on(view.catalogCanvas, "mousedown touchstart", function (e) {
+        Utils.on(view.aladin.aladinDiv, "mousedown touchstart", function (e) {
+            console.log("mousedown main")
             e.stopPropagation();
 
             view.requestRedraw();
 
             const xymouse = Utils.relMouseCoords(e);
+            view.xy = xymouse
+
 
             if (view.spectraDisplayer) {
-                view.spectraDisplayer.disableInteraction();
+                //view.spectraDisplayer.disableInteraction();
+                view.spectraDisplayer.start(e);
             }
 
             ALEvent.CANVAS_EVENT.dispatchedTo(view.aladinDiv, {
@@ -987,7 +992,7 @@ export let View = (function () {
             return true;
         });
 
-        Utils.on(view.catalogCanvas, "click", function (e) {
+        Utils.on(view.aladin.aladinDiv, "click", function (e) {
             // call listener of 'click' event
             if (view.mode == View.TOOL_SIMBAD_POINTER) {
                 // call Simbad pointer or Planetary features
@@ -1011,7 +1016,7 @@ export let View = (function () {
             }
         });
 
-        Utils.on(document, "mouseup touchend", function(e) {
+        Utils.on(view.aladin.aladinDiv, "mouseup touchend", function(e) {
             var wasDragging = view.realDragging === true;
 
             view.requestRedraw();
@@ -1030,14 +1035,16 @@ export let View = (function () {
                 }
 
                 if (view.spectraDisplayer) {
-                    view.spectraDisplayer.enableInteraction();
+                    //view.spectraDisplayer.enableInteraction();
                 }
             } // end of "if (view.dragging) ... "
         });
 
         // reacting on 'click' rather on 'mouseup' is more reliable when panning the view
-        Utils.on(view.catalogCanvas, "mouseup mouseout touchend touchcancel", function (e) {
+        Utils.on(view.aladin.aladinDiv, "mouseup mouseout touchend touchcancel", function (e) {
             const xymouse = Utils.relMouseCoords(e);
+            view.xy = xymouse
+
             const withModifierKey = e.ctrlKey || e.metaKey;
 
             ALEvent.CANVAS_EVENT.dispatchedTo(view.aladinDiv, {
@@ -1204,10 +1211,16 @@ export let View = (function () {
             view.colorPickerTool.domElement.style.top = `${xymouse.y + view.aladin.aladinDiv.getBoundingClientRect().y}px`;
         }
 
-        Utils.on(view.catalogCanvas, "mousemove touchmove", function (e) {
+        Utils.on(view.aladin.aladinDiv, "mousemove touchmove", function (e) {
             e.preventDefault();
+            console.log("mousemove main")
 
             const xymouse = Utils.relMouseCoords(e);
+            view.xy = xymouse
+
+            if (view.spectraDisplayer && view.spectraDisplayer.isInteracting()) {
+                return;
+            }
 
             ALEvent.CANVAS_EVENT.dispatchedTo(view.aladinDiv, {
                 state: {
@@ -1396,19 +1409,9 @@ export let View = (function () {
 
         view.prevWheelTime = undefined;
 
-        function normalizeWheel(event) {
-            // Safari/Chrome on macOS: deltaMode = 0 (pixels), but trackpad steps are tiny
-            let scale = 1;
-            if (event.deltaMode === WheelEvent.DOM_DELTA_LINE) {
-                scale = 16; // assume ~16px per line
-            } else if (event.deltaMode === WheelEvent.DOM_DELTA_PAGE) {
-                scale = window.innerHeight;
-            }
-            return event.deltaY * scale;
-        }
         view.zoomDelta = 0;
 
-        Utils.on(view.catalogCanvas, 'wheel', function (e) {
+        Utils.on(view.aladin.aladinDiv, 'wheel', function (e) {
             e.preventDefault();
             e.stopPropagation();
 
@@ -1430,7 +1433,7 @@ export let View = (function () {
                 onWheelTriggeredFunction(e)
             } else {
                 // Default Aladin Lite zooming
-                const normalizedDelta = e.deltaY && normalizeWheel(e) || e.detail || (-e.wheelDelta);
+                const normalizedDelta = e.deltaY && Utils.normalizeWheel(e) || e.detail || (-e.wheelDelta);
                 // Accumulate the normalized delta
                 // We do not zoom because we cannot rely on "wheel" event
                 // being triggered at constant time steps
@@ -1445,11 +1448,11 @@ export let View = (function () {
             return false;
         });
 
-        Utils.on(view.catalogCanvas, "mouseover", (_) => {
+        Utils.on(view.aladin.aladinDiv, "mouseover", (_) => {
             view.mouseover = true;
         });
 
-        Utils.on(view.catalogCanvas, "mouseout", (_) => {
+        Utils.on(view.aladin.aladinDiv, "mouseout", (_) => {
             view.mouseover = false;
         });
 
@@ -1569,6 +1572,11 @@ export let View = (function () {
         if (this.moving) {
             ALEvent.POSITION_CHANGED.dispatchedTo(this.aladin.aladinDiv, this.viewCenter);
             this.throttledPositionChanged(!is_inerting);
+
+            if (this.spectraDisplayer && this.spectraDisplayer.snapped) {
+                this.spectraDisplayer.setCursorCenter(this.viewCenter)
+            }
+            
         }
 
         ////// 2. Draw catalogues////////
@@ -1713,6 +1721,8 @@ export let View = (function () {
 
             this.selector.dispatch('draw')
         }
+
+        this.spectraDisplayer && this.spectraDisplayer.draw()
     };
 
     View.prototype.reverseLongitude = function(longitudeReversed) {

@@ -1060,6 +1060,9 @@ export let Catalog = (function () {
             return false;
         }
 
+        // catalog sources are drawn with full opacity
+        ctx.globalAlpha = 1.0;
+
         if (s.isFootprint()) {
             s.footprint.draw(ctx, this.view)
             s.tooSmallFootprint = s.footprint.isTooSmall();

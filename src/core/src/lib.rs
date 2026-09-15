@@ -115,6 +115,7 @@ pub mod renderable;
 mod shader;
 mod tile_fetcher;
 mod time;
+pub mod spectra_displayer;
 
 use crate::{
     camera::CameraViewPort, healpix::moc::SpaceMoc, math::lonlat::LonLatT, shader::ShaderManager,
@@ -426,6 +427,16 @@ impl WebClient {
         self.app.set_hips_url(&cdid, new_url)
     }
 
+    #[wasm_bindgen(js_name = "setSpectraDisplayerRadius")]
+    pub fn set_spectra_radius(&mut self, rad_deg: f64) {
+        self.app.set_spectra_radius(rad_deg.to_radians().to_angle());
+    }
+
+    #[wasm_bindgen(js_name = "setSpectraDisplayerCenter")]
+    pub fn set_spectra_center(&mut self, ra_deg: f64, dec_deg: f64) {
+        self.app.set_spectra_center(ra_deg.to_radians().to_angle(), dec_deg.to_radians().to_angle());
+    }
+
     #[wasm_bindgen(js_name = getImageMetadata)]
     pub fn get_layer_cfg(&self, layer: String) -> Result<ImageMetadata, JsValue> {
         self.app.get_layer_cfg(&layer)
@@ -440,8 +451,8 @@ impl WebClient {
     }
 
     #[wasm_bindgen(js_name = setFreq)]
-    pub fn set_hips_frequency(&mut self, layer: String, frequency: f32) -> Result<(), JsValue> {
-        self.app.set_hips_frequency(&layer, frequency)
+    pub fn set_hips_frequency(&mut self, layer: String, freq: f64) -> Result<(), JsValue> {
+        self.app.set_hips_frequency(&layer, freq)
     }
 
     #[wasm_bindgen(js_name = getFreq)]
@@ -450,20 +461,37 @@ impl WebClient {
     }
 
     #[wasm_bindgen(js_name = getFreqWindow)]
-    pub fn get_hips_frequency_window(&mut self, layer: String) -> Result<Vec<f32>, JsValue> {
-        let fw = self.app.get_hips_frequency_window(&layer)?;
+    pub fn get_hips_frequency_window(&mut self, layer: String) -> Box<[f32]> {
+        let fw = self.app.get_hips_frequency_window(&layer);
 
-        Ok(vec![fw[0].0 as f32, fw[1].0 as f32])
+        Box::new([fw[0].0 as f32, fw[1].0 as f32])
+    }
+
+    #[wasm_bindgen(js_name = attachHiPS3D)]
+    pub fn attach_hips3d(&mut self, layer: String) -> Result<(), JsValue> {
+        self.app.attach_hips3d(layer.as_str());
+
+        Ok(())
+    }
+
+    #[wasm_bindgen(js_name = setFreqResolution)]
+    pub fn set_dfreq(&mut self, dfreq: f64) -> Result<(), JsValue> {
+        self.app.set_dfreq(dfreq)
+    }
+
+    #[wasm_bindgen(js_name = spectraDisplayerFreqOrder)]
+    pub fn get_spectra_displayer_freq_order(&mut self) -> u8 {
+        self.app.spectra_displayer.f_order()
     }
 
     #[wasm_bindgen(js_name = freq2hash)]
-    pub fn get_freq_hash(&mut self, layer: String, freq: f64) -> Result<u64, JsValue> {
-        self.app.get_freq_hash(&layer, freq)
+    pub fn freq2hash(&mut self, freq: f64, order: u8) -> u64 {
+        self.app.freq2hash(freq, order)
     }
 
     #[wasm_bindgen(js_name = hash2freq)]
-    pub fn get_freq_from_hash(&mut self, layer: String, hash: u64) -> Result<f64, JsValue> {
-        self.app.get_freq_from_hash(&layer, hash)
+    pub fn hash2freq(&mut self, hash: u64, order: u8) -> f64 {
+        self.app.hash2freq(hash, order)
     }
 
     #[wasm_bindgen(js_name = setBackgroundColor)]

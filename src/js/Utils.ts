@@ -84,6 +84,17 @@ Utils.relMouseCoords = function (event) {
     }
 }
 
+Utils.normalizeWheel = function(event: WheelEvent) {
+    // Safari/Chrome on macOS: deltaMode = 0 (pixels), but trackpad steps are tiny
+    let scale = 1;
+    if (event.deltaMode === WheelEvent.DOM_DELTA_LINE) {
+        scale = 16; // assume ~16px per line
+    } else if (event.deltaMode === WheelEvent.DOM_DELTA_PAGE) {
+        scale = window.innerHeight;
+    }
+    return event.deltaY * scale;
+}
+
 //Function.prototype.bind polyfill from
 //https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Function/bind
 if (!Function.prototype.bind) {

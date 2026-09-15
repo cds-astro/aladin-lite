@@ -25,7 +25,6 @@ wasm-bindgen = "=0.2.92"
 async-channel = "1.8.0"
 mapproj = "0.3.0"
 colorgrad = "0.6.2"
-#fitsrs = "0.4.1"
 fitsrs = { git = "https://github.com/cds-astro/fitsrs", branch = "master" }
 
 [features]
@@ -50,7 +49,7 @@ version = "0.7.3"
 
 [dependencies.moclib]
 package = "moc"
-version = "0.19.1"
+version = "0.19.2"
 
 [dependencies.serde]
 version = "^1.0.183"

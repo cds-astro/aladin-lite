@@ -439,10 +439,13 @@ impl Layers {
                 DataproductType::Cube => HiPS::D3(HiPS3D::new(cfg, gl, &layer)?),
                 // HiPS 3D
                 DataproductType::SpectralCube => {
+                    let freq = cfg.em_min.unwrap();
                     let mut hips = HiPS3D::new(cfg, gl, &layer)?;
-                    hips.set_cursor_location(camera);
+                    use crate::math::spectra::Freq;
+                    hips.set_freq(freq);
+
                     HiPS::D3(hips)
-                }
+                },
                 // Typical HiPS image
                 _ => HiPS::D2(HiPS2D::new(cfg, gl)?),
             };
@@ -511,7 +514,7 @@ impl Layers {
                             s == "SCI"
                         } else {
                             // No EXTNAME found, we make the HDU visible
-                            true
+                            false
                         }
                     } else {
                         true

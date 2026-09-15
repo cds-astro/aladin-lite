@@ -4,8 +4,9 @@ use crate::math::spectra::Freq;
 use al_core::image::format::ImageFormatType;
 use al_core::texture::format::PixelType;
 use web_sys::{RequestCredentials, RequestMode};
+
 #[derive(Debug)]
-pub struct HiPSConfig {
+pub(crate) struct HiPSConfig {
     pub root_url: String,
     // HiPS image format
     // TODO: Make that independant of the HiPS but of the ImageFormat

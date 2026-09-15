@@ -6,6 +6,11 @@ use crate::renderable::hips::HiPS;
 use crate::renderable::image::Image;
 use crate::renderable::ImageLayer;
 use crate::tile_fetcher::HiPSLocalFiles;
+use crate::spectra_displayer::SpectraDisplayer;
+use crate::math::spectra::SpectralUnit;
+use crate::math::spectra::{FREQ_MIN, FREQ_MAX};
+use crate::renderable::line::RasterizedLineRenderer;
+
 use crate::PollInfo;
 use crate::{
     camera::CameraViewPort,
@@ -87,6 +92,8 @@ pub struct App {
     // Catalog manager
     manager: Manager,
 
+    line_renderer: RasterizedLineRenderer,
+
     // Task executor
     //exec: Rc<RefCell<TaskExecutor>>,
     inertia: Option<Inertia>,
@@ -122,6 +129,8 @@ pub struct App {
     ack_img_send: async_channel::Sender<ImageParams>,
 
     browser_features_support: BrowserFeaturesSupport,
+
+    pub spectra_displayer: SpectraDisplayer,
     //ack_img_recv: async_channel::Receiver<ImageParams>,
     // callbacks
     //callback_position_changed: js_sys::Function,
@@ -269,6 +278,10 @@ impl App {
             WebGl2RenderingContext::ONE_MINUS_SRC_ALPHA,
         );
 
+        let line_renderer = RasterizedLineRenderer::new(&gl)?;
+
+        let mut spectra_displayer = SpectraDisplayer::new();
+
         Ok(App {
             gl,
             shaders,
@@ -294,7 +307,7 @@ impl App {
             _fbo_ui,
             _final_rendering_pass,
 
-            //line_renderer,
+            line_renderer,
 
             // inertia
             inertia,
@@ -315,6 +328,7 @@ impl App {
 
             tile_fetcher,
             north_up: false,
+            spectra_displayer,
             colormaps,
             projection,
 
@@ -325,15 +339,6 @@ impl App {
 
             browser_features_support, //ack_img_recv,
         })
-    }
-
-    fn _update_hips_location(&mut self) {
-        let camera = &self.camera;
-        for hips in self.layers.get_mut_hipses() {
-            if let HiPS::D3(hips) = hips {
-                hips.set_cursor_location(camera);
-            }
-        }
     }
 
     fn look_for_new_tiles(&mut self) -> Result<(), JsValue> {
@@ -361,6 +366,8 @@ impl App {
                 &self.browser_features_support,
             );
         }
+
+        self.spectra_displayer.launch_new_tile_requests(&mut self.tile_fetcher, &self.browser_features_support, &self.layers);
 
         Ok(())
     }
@@ -572,6 +579,8 @@ impl App {
             })
         }
 
+        let mut cubic_tiles_copied = false;
+
         while let Ok(response) = self.worker_resp_recv.try_recv() {
             match response {
                 WorkerResponse::Tile3D {
@@ -594,6 +603,8 @@ impl App {
                             (tile_size, tile_size, tile_depth),
                             Time::now(),
                         )?;
+
+                        cubic_tiles_copied = true;
                     }
 
                     self.request_redraw = true;
@@ -624,6 +635,10 @@ impl App {
                     self.time_start_blending = Time::now();
                 }
             }
+        }
+
+        if cubic_tiles_copied {
+            self.spectra_displayer.redraw(&self.layers);
         }
 
         Ok(())
@@ -675,6 +690,7 @@ impl App {
         let layers = &mut self.layers;
         //let catalogs = &self.manager;
         let colormaps = &self.colormaps;
+        let line_renderer = &self.line_renderer;
         //let fbo_view = &self._fbo_view;
         //let final_rendering_pass = &self._final_rendering_pass;
 
@@ -710,6 +726,7 @@ impl App {
         //    },
         //    None,
         //)?;
+        line_renderer.draw(shaders, camera, projection)?;
 
         //final_rendering_pass.draw_on_screen(fbo_view, &mut self.shaders)?;
 
@@ -739,6 +756,19 @@ impl App {
         self.request_redraw = true;
 
         Ok(())
+    }
+
+    pub(crate) fn attach_hips3d(&mut self, layer: &str) {
+        if let Some(HiPS::D3(hips)) = self.layers.get_hips_from_layer(&layer) {
+            self.spectra_displayer.attach_hips3d(&hips);
+            // Compute a default freq order from the hips attached and the current fov
+            let s_order = self.camera.get_tile_depth();
+            let f_order = self.spectra_displayer.f_max_order - self.spectra_displayer.s_max_order + s_order;
+
+            self.spectra_displayer.set_freq_order(f_order);
+            self.update_spectra_displayer();
+            //self.draw_spectra_spatial_counterpart();
+        }
     }
 
     pub(crate) fn add_hips(
@@ -925,7 +955,7 @@ impl App {
     pub(crate) fn set_hips_frequency(
         &mut self,
         layer: &str,
-        frequency: f32,
+        freq: f64,
     ) -> Result<(), JsValue> {
         let hips = self
             .layers
@@ -933,15 +963,23 @@ impl App {
             .ok_or_else(|| JsValue::from_str("Layer not found"))?;
 
         self.request_for_new_tiles = true;
+        let freq = Freq(freq.min(FREQ_MAX).max(FREQ_MIN)); 
+
+        let f = freq.0;
 
         match hips {
-            HiPS::D2(_) => Err(JsValue::from_str("layer do not refers to a cube")),
+            HiPS::D2(_) => return Err(JsValue::from_str("layer does not refer to a cube")),
             HiPS::D3(hips) => {
-                hips.set_freq(Freq(frequency as f64));
-
-                Ok(())
+                hips.set_freq(freq);
             }
         }
+
+        if self.spectra_displayer.layer.as_deref() == Some(layer) {
+            self.spectra_displayer.set_freq(freq);
+            self.update_spectra_displayer();
+        }
+
+        Ok(())
     }
 
     pub(crate) fn get_hips_frequency(&mut self, layer: &str) -> Result<f32, JsValue> {
@@ -956,40 +994,66 @@ impl App {
         }
     }
 
-    pub(crate) fn get_hips_frequency_window(&mut self, layer: &str) -> Result<[Freq; 2], JsValue> {
-        let hips = self
-            .layers
-            .get_mut_hips_from_layer(layer)
-            .ok_or_else(|| JsValue::from_str("Layer not found"))?;
-
-        match hips {
-            HiPS::D2(_) => Err(JsValue::from_str("layer do not refers to a cube")),
-            HiPS::D3(hips) => Ok(hips.get_freq_window()),
-        }
+    pub(crate) fn get_hips_frequency_window(&mut self, layer: &str) -> [Freq; 2] {
+        self.spectra_displayer.get_freq_window()
     }
 
-    pub(crate) fn get_freq_from_hash(&mut self, layer: &str, hash: u64) -> Result<f64, JsValue> {
-        let hips = self
-            .layers
-            .get_mut_hips_from_layer(layer)
-            .ok_or_else(|| JsValue::from_str("Layer not found"))?;
-
-        match hips {
-            HiPS::D2(_) => Err(JsValue::from_str("layer do not refers to a cube")),
-            HiPS::D3(hips) => Ok(hips.get_freq_from_hash(hash).0),
-        }
+    pub(crate) fn hash2freq(&mut self, hash: u64, order: u8) -> f64 {
+        Freq::from_hash_with_order(hash, order).0
     }
 
-    pub(crate) fn get_freq_hash(&mut self, layer: &str, freq: f64) -> Result<u64, JsValue> {
-        let hips = self
-            .layers
-            .get_mut_hips_from_layer(layer)
-            .ok_or_else(|| JsValue::from_str("Layer not found"))?;
+    pub(crate) fn freq2hash(&mut self, freq: f64, order: u8) -> u64 {
+        Freq(freq).hash(order)
+    }
 
-        match hips {
-            HiPS::D2(_) => Err(JsValue::from_str("layer do not refers to a cube")),
-            HiPS::D3(hips) => Ok(hips.get_freq_hash(Freq(freq))),
-        }
+    fn draw_spectra_spatial_counterpart(&mut self) {
+        use crate::coo_space::CooSpace;
+        use crate::renderable::line::Style;
+        use crate::ColorRGBA;
+        use crate::renderable::line::PathVertices;
+
+
+            let paths = self.spectra_displayer.get_hpx_region()
+                .into_iter()
+                .map(|cell| {
+                    let vertices = cell.vertices();
+                    PathVertices {
+                        vertices: [[vertices[0].0 as f32, vertices[0].1 as f32], [vertices[1].0 as f32, vertices[1].1 as f32], [vertices[2].0 as f32, vertices[2].1 as f32], [vertices[3].0 as f32, vertices[3].1 as f32], [vertices[0].0 as f32, vertices[0].1 as f32]]
+                    }
+                });
+
+
+            self.line_renderer.add_stroke_paths(
+                paths,
+                2.0,
+                &ColorRGBA { r: 0.0, g: 1.0, b: 0.0, a: 1.0 },
+                &Style::None,
+                CooSpace::LonLat,
+                "hpx_spectra_counterpart"
+            );
+    }
+
+    pub(crate) fn set_dfreq(&mut self, df: f64) -> Result<(), JsValue> {
+        //let f_order = self.spectra_displayer.cell.f_depth;
+
+        self.spectra_displayer.set_dfreq(Freq(df));
+        self.update_spectra_displayer();
+
+        self.draw_spectra_spatial_counterpart();
+        
+        //self.spectra_displayer.launch_new_tile_requests(&mut self.tile_fetcher, &self.browser_features_support, &self.layers);
+        //self.spectra_displayer.update_spectra(&self.layers);
+        /*if f_order != self.spectra_displayer.cell.f_depth {
+            al_core::log("fetch new tiles");
+
+            // Change of order request the new tiles
+            self.request_tiles_along_spectral_axis(tile_fetcher, browser_features_support);
+        }*/
+
+        self.request_redraw = true;
+        self.request_for_new_tiles = true;
+
+        Ok(())
     }
 
     pub(crate) fn set_image_hips_color_cfg(
@@ -1118,6 +1182,18 @@ impl App {
         Ok(())
     }
 
+    pub(crate) fn set_spectra_radius(&mut self, rad: Angle<f64>) {
+        self.spectra_displayer.set_radius(rad);
+        self.update_spectra_displayer();
+        self.draw_spectra_spatial_counterpart();
+    }
+
+    pub(crate) fn set_spectra_center(&mut self, ra: Angle<f64>, dec: Angle<f64>) {
+        self.spectra_displayer.set_location(&LonLatT::new(ra, dec));
+        self.update_spectra_displayer();
+        self.draw_spectra_spatial_counterpart();
+    }
+
     pub(crate) fn set_kernel_strength(
         &mut self,
         name: String,
@@ -1190,11 +1266,15 @@ impl App {
 
         self.camera.set_center(lonlat, &self.projection);
         self.request_for_new_tiles = true;
+        self.request_redraw = true;
 
+
+        //self.spectra_displayer.set_location(lonlat);
+        //self.update_spectra_displayer();
+        //self.draw_spectra_spatial_counterpart();
+        
         // And stop the current inertia as well if there is one
         self.inertia = None;
-
-        self._update_hips_location();
     }
 
     pub(crate) fn press_left_button_mouse(&mut self) {
@@ -1411,7 +1491,9 @@ impl App {
                 self.prev_cam_position = prev_cam_position;
                 self.request_for_new_tiles = true;
 
-                self._update_hips_location();
+                //self.spectra_displayer.set_location(&self.get_center());
+                //self.update_spectra_displayer();
+                //self.draw_spectra_spatial_counterpart();
             }
         } else {
             // approx move
@@ -1440,10 +1522,21 @@ impl App {
                     self.prev_cam_position = prev_cam_position;
                     self.request_for_new_tiles = true;
 
-                    self._update_hips_location();
+                    //self.spectra_displayer.set_location(&self.get_center());
+                    //self.update_spectra_displayer();
+                    //self.draw_spectra_spatial_counterpart();
                 }
             }
         }
+    }
+
+    /// Spectra displayer freq has been changed i.e:
+    /// * its location
+    /// * its freq resolution/order
+    /// New tiles can be fetched and the plot must be redrawn
+    fn update_spectra_displayer(&mut self) {
+        self.spectra_displayer.launch_new_tile_requests(&mut self.tile_fetcher, &self.browser_features_support, &self.layers);
+        self.spectra_displayer.redraw(&self.layers);
     }
 
     pub(crate) fn lock_north_up(&mut self) {
@@ -1468,13 +1561,13 @@ impl App {
     }
 
     pub(crate) fn set_zoom_factor(&mut self, zoom_factor: f64) {
+        al_core::log("zoom factor");
+
         self.camera.set_zoom_factor(zoom_factor, &self.projection);
 
         // reset the parameters that determine if an inertia is needed
         self.vel_history.clear();
         self.dist_dragging = 0.0;
-
-        self._update_hips_location();
 
         self.request_for_new_tiles = true;
         self.request_redraw = true;
@@ -1541,13 +1634,11 @@ impl App {
             }
         }
 
-        self.tile_fetcher.notify(self.downloader.clone());
-
         // Poll worker responses — always needed
         self.poll_worker_responses()?;
 
         let rscs_received = self.downloader.borrow_mut().get_received_resources();
-
+        let mut cubic_tiles_copied = false;
         const MAX_FRAME_TIME: DeltaTime = DeltaTime::from_millis(1000.0 / 40.0);
         let rendering_timer = Time::now();
         for rsc in rscs_received {
@@ -1715,7 +1806,9 @@ impl App {
                                                         raw_bytes.clone(),
                                                         *size,
                                                         tile.request.time_request,
-                                                    )?
+                                                    )?;
+
+                                                    cubic_tiles_copied = true;
                                                 }
                                                 _ => unreachable!(),
                                             }
@@ -1776,6 +1869,10 @@ impl App {
             }
         }
 
+        if cubic_tiles_copied {
+            self.spectra_displayer.redraw(&self.layers);
+        }
+
         let center = self.view_to_icrs_coosys(&self.get_center());
         let ra: ArcDeg<f64> = center.lon().into();
         let dec: ArcDeg<f64> = center.lat().into();
@@ -1788,19 +1885,24 @@ impl App {
             | self.camera.has_zoomed()
             | self.request_redraw;
 
-        self.camera.reset();
+        let has_pending_tiles = self.has_pending_tiles();
 
-        Ok(PollInfo {
+        self.tile_fetcher.notify(self.downloader.clone());
+
+        let poll_info = PollInfo {
             needs_draw,
             moving: self.camera.has_moved(),
             zoom_factor: self.camera.get_zoom_factor(),
-            has_pending: self.has_pending_tiles(),
+            has_pending: has_pending_tiles,
             is_inerting: self.inertia.is_some(),
             ra: *ra,
             dec: *dec, // center coords
             fov_x: self.camera.get_aperture().to_degrees(),
             fov_y: self.camera.get_aperture_y().to_degrees(),
-        })
+        };
+
+        self.camera.reset();
+        Ok(poll_info)
     }
 
     pub(crate) fn draw(&mut self) -> Result<(), JsValue> {

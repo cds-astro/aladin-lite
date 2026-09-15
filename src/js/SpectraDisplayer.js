@@ -27,6 +27,7 @@ import SpectraIconUrl from '../../assets/icons/freq.svg';
 import { Utils } from "./Utils";
 import { Aladin } from "./Aladin";
 import { DOMElement } from "./gui/Widgets/Widget";
+import { PersistantCircleSelect } from "./FiniteStateMachine/PersistantCircleSelection";
 /******************************************************************************
  * Aladin Lite project
  *
@@ -130,6 +131,10 @@ export class SpectraDisplayer extends DOMElement {
         return this.unit === SpectraDisplayer.UNIT.FREQUENCY;
     }
 
+    getFrequencyResolution() {
+        return this.data.dfreq;
+    }
+
     constructor(view, options) {
         super()
 
@@ -209,7 +214,7 @@ export class SpectraDisplayer extends DOMElement {
                     self.data.values.reverse();
                 }
 
-                self._redraw(self.ctx);
+                self._redraw();
             },
         })
 
@@ -227,7 +232,7 @@ export class SpectraDisplayer extends DOMElement {
             classList: ['aladin-spectra-home'],
             action(e) {
                 self.resetScale()
-                self._redraw(self.ctx);
+                self._redraw();
             }
         })
         let extractionBtn = new ActionButton({
@@ -245,6 +250,58 @@ export class SpectraDisplayer extends DOMElement {
                 // TODO
             }
         })
+
+        this.snapped = true;
+        let snapDistance = 20*20;
+        this.circleSelector = new PersistantCircleSelect({
+            x: view.width * .5,
+            y: view.height * .5,
+            color: '#00ff00',
+            maxRadius: 0.3,
+            radius: 0.01,
+            callback: () => {
+                console.log("action finished")
+                self.enableInteraction();
+            },
+            resizeCallback: (circle) => {
+                self.disableInteraction();
+
+                self.view.wasm.setSpectraDisplayerRadius(circle.r);
+                self.view.requestRedraw();
+            },
+            movingCallback: (circle) => {
+                self.disableInteraction();
+
+                // snap it if near the view center
+                const screenViewCenter = {
+                    x: self.view.width * .5,
+                    y: self.view.height * .5,
+                };
+
+                const dx = self.view.xy.x - screenViewCenter.x;
+                const dy = self.view.xy.y - screenViewCenter.y;
+
+                if (!self.snapped && dx*dx + dy*dy <= snapDistance) {
+                    self.circleSelector.setColor('#00ff00');
+
+                    self.snapped = true;
+                    snapDistance = 40*40;
+                } else if (self.snapped && dx*dx + dy*dy > snapDistance) {
+                    self.circleSelector.setColor('#0000ff');
+                    self.snapped = false;
+                    snapDistance = 20*20;
+                }
+
+                let center;
+                if (!self.snapped) {
+                    center = {ra: circle.ra, dec: circle.dec};
+                } else {
+                    center = self.view.viewCenter;
+                }
+
+                self.setCursorCenter(center)
+            }
+        }, view);
 
         this.unit = SpectraDisplayer.UNIT.FREQUENCY;
 
@@ -268,7 +325,10 @@ export class SpectraDisplayer extends DOMElement {
         )
 
         this.defineEventListeners()
+
         this.hips3DList = new Map();
+
+        this.view.wasm.setSpectraDisplayerCenter(this.view.viewCenter.ra, this.view.viewCenter.dec);
     }
 
     defineEventListeners() {
@@ -289,7 +349,27 @@ export class SpectraDisplayer extends DOMElement {
         const CLICK_MOVE_THRESHOLD = 5;    // pixels
 
 
+        Utils.on(canvas, 'dblclick', (e) => {
+            console.log("spectra dblclick")
+            mouseDownPos = {x: e.clientX, y: e.clientY};
+
+            const mx = mouseDownPos.x;
+            const my = Utils.relMouseCoords(e).y;
+            let v = this.data.values[Math.round(mx / this.scaleX)]
+
+            if (!v) {
+                v = 0.5 * this.height;
+            }
+
+            v = Math.min(this.height - (v - this.minY) * this.scaleY, 0.5 * this.height);
+            if (my >= v) {
+                e.stopPropagation();
+                e.preventDefault();
+            }
+        })
+
         Utils.on(canvas, 'mousedown touchstart', (e) => {
+            console.log("spectra mousedown")
             mouseDownTime = Date.now();
             mouseDownPos = {x: e.clientX, y: e.clientY};
 
@@ -298,8 +378,11 @@ export class SpectraDisplayer extends DOMElement {
             let v = this.data.values[Math.round(mx / this.scaleX)]
 
             let len = this.data.values.length;
+            if (!v) {
+                v = 0.5 * this.height;
+            }
 
-            v = this.height - (v - this.minY) * this.scaleY
+            v = Math.min(this.height - (v - this.minY) * this.scaleY, 0.5 * this.height);
             if (my >= v) {
                 this.lastMouse = { x: mx, y: my };
                 canvas.style.cursor = 'grabbing';
@@ -318,32 +401,10 @@ export class SpectraDisplayer extends DOMElement {
                     this.lastMouse = { x: mx, y: my };
                     canvas.style.cursor = 'grabbing';
                 } else {
-                    // propagate event to its sibling
-                    let paramsEvent = {
-                        bubbles: e.bubbles,
-                        cancelable: e.cancelable,
-                        clientX: e.clientX,
-                        clientY: e.clientY,
-                        screenX: e.screenX,
-                        screenY: e.screenY,
-                        ctrlKey: e.ctrlKey,
-                        shiftKey: e.shiftKey,
-                        altKey: e.altKey,
-                        metaKey: e.metaKey,
-                        button: e.button,
-                        changedTouches: e.changedTouches,
-                        targetTouches: e.targetTouches,
-                        relatedTarget: e.relatedTarget,
-                    };
-                    let event;
-                    if (e.type === "mousedown") {
-                        event = new MouseEvent("mousedown", paramsEvent);
-                    } else {
-                        this.disableInteraction();
-                        event = new TouchEvent("touchstart", paramsEvent)
-                    }
+                    //this.view.catalogCanvas.dispatchEvent(event);
+
                     // Track timing to simulate dblclick
-                    const now = Date.now();
+                    /*const now = Date.now();
                     if (now - lastClickTime < DOUBLE_CLICK_DELAY) {
                         const dblClickEvent = new MouseEvent('dblclick', {
                             bubbles: true,
@@ -356,44 +417,19 @@ export class SpectraDisplayer extends DOMElement {
                         lastClickTime = 0; // reset
                     } else {
                         lastClickTime = now;
-                    }
-
-                    this.view.catalogCanvas.dispatchEvent(event);
+                    }*/
                 }
             }
         });
-            
-        Utils.on(document, 'mousemove touchmove', (e) => {
-            /*if (!this.enabled) {
-                let paramsEvent = {
-                    bubbles: e.bubbles,
-                    cancelable: e.cancelable,
-                    clientX: e.clientX,
-                    clientY: e.clientY,
-                    screenX: e.screenX,
-                    screenY: e.screenY,
-                    ctrlKey: e.ctrlKey,
-                    shiftKey: e.shiftKey,
-                    altKey: e.altKey,
-                    metaKey: e.metaKey,
-                    button: e.button,
-                    changedTouches: e.changedTouches,
-                    targetTouches: e.targetTouches,
-                    relatedTarget: e.relatedTarget,
-                };
 
-                let touchEvent = new TouchEvent("touchmove", paramsEvent);
-                this.view.catalogCanvas.dispatchEvent(touchEvent);
-                return;
-            }*/
+        Utils.on(canvas, 'mousemove touchmove', (e) => {
+            console.log("mousemove spectra ")
 
-            //let mouseXY = Utils.relMouseCoords(e)
-            //const mx = mouseXY.x;
-            //const my = mouseXY.y;         
             const mx = e.clientX;
             const my = Utils.relMouseCoords(e).y;
 
             // can be in the spectral area
+
             let v = this.data.values[Math.round(mx / this.scaleX)]
             let len = this.data.values.length;
 
@@ -404,11 +440,15 @@ export class SpectraDisplayer extends DOMElement {
 
             canvas.style.cursor = 'default';
 
+            if (!v) {
+                v = 0.5 * this.height;
+            }
+
             let w = this.view.aladin.aladinDiv.getBoundingClientRect().width;
             this.ctxCursor.clearRect(0, 0, w, this.height);
             this.mouseFreq = null;
 
-            if (my >= v) {
+            if (my >= Math.min(v, 0.5 * this.height) && my <= this.height) {
                 canvas.style.cursor = 'grab';
 
                 ctxCursor.beginPath();
@@ -418,21 +458,18 @@ export class SpectraDisplayer extends DOMElement {
                 ctxCursor.lineWidth = 2;
                 ctxCursor.stroke()
 
-                // compute the frequency at that position
-                let curFreq = self.hips.getFrequency();
-                let curHash = Number(self.view.wasm.freq2hash(self.hips.layer, curFreq));
+                self._redraw({lineWidth: 4})
 
-                let mouseHash;
-                if (self.unit === SpectraDisplayer.UNIT.FREQUENCY) {
-                    mouseHash = curHash + Math.round((mx - (w / 2)) / this.scaleX);
-                } else {
-                    mouseHash = curHash - Math.round((mx - (w / 2)) / this.scaleX);
+                // Compute the frequency at that position
+                let curFreq = self.hips.getFrequency();
+                if (!curFreq) {
+                    return;
                 }
-                this.mouseFreq = self.view.wasm.hash2freq(self.hips.layer, BigInt(mouseHash));
+            } else {
+                self._redraw({lineWidth: 2})
             }
 
             this._redrawLabels()
-
 
             if (!this.isDragging) {
                 // Draw the vertical line that can be grabed to move the slice
@@ -452,6 +489,8 @@ export class SpectraDisplayer extends DOMElement {
                     this.lastMouse = undefined;
                 }
 
+                //e.preventDefault();
+                //e.stopPropagation();
                 return;
             }
 
@@ -465,18 +504,9 @@ export class SpectraDisplayer extends DOMElement {
                 // Set the frequency
 
                 // look where we are in the freq range
-                let j = Utils.binarySearch(self.data.freqs, self.data.freq);
-                let df, f, f0;
-                if (j > 0 && j < self.data.freqs.length - 1) {
-                    df = (self.data.freqs[j + 1] - self.data.freqs[j - 1]) * 0.5;
-                    f0 = self.data.freq;
-                } else if (j == 0) {
-                    df = self.data.freqs[1] - self.data.freqs[0]
-                    f0 = self.data.freq[0];
-                } else {
-                    df = self.data.freqs[self.data.freqs.length - 1] - self.data.freqs[self.data.freqs.length - 2];
-                    f0 = self.data.freqs[self.data.freqs.length - 1];
-                }
+                let f;
+                let df = self.data.dfreq * 0.5;
+                let f0 = self.data.freq;
 
                 if (this.unit === SpectraDisplayer.UNIT.FREQUENCY) {
                     f = f0 - dx * df;
@@ -488,37 +518,19 @@ export class SpectraDisplayer extends DOMElement {
                     value: f,
                     unit: 'Hz'
                 })
+                
                 this.lastMouse = { x: mx, y: my };
 
                 self.view.requestRedraw();
+
+                
             }
+
+            e.preventDefault();
+            e.stopPropagation();
         });
 
-        Utils.on(document, 'mouseup touchend', (e) => {
-
-            /*if (!this.enabled) {
-                let paramsEvent = {
-                    bubbles: e.bubbles,
-                    cancelable: e.cancelable,
-                    clientX: e.clientX,
-                    clientY: e.clientY,
-                    screenX: e.screenX,
-                    screenY: e.screenY,
-                    ctrlKey: e.ctrlKey,
-                    shiftKey: e.shiftKey,
-                    altKey: e.altKey,
-                    metaKey: e.metaKey,
-                    button: e.button,
-                    changedTouches: e.changedTouches,
-                    targetTouches: e.targetTouches,
-                    relatedTarget: e.relatedTarget,
-                };
-
-                let touchEvent = new TouchEvent("touchend", paramsEvent);
-                this.view.catalogCanvas.dispatchEvent(touchEvent);
-                return;
-            }*/
-
+        Utils.on(this.view.aladin.aladinDiv, 'mouseout mouseup touchend', (e) => {
             this.isDragging = false;
             canvas.style.cursor = 'default';
 
@@ -539,25 +551,17 @@ export class SpectraDisplayer extends DOMElement {
                 let v = this.data.values[Math.round(mx / this.scaleX)]
                 v = this.height - (v - this.minY) * this.scaleY
 
-                if (my >= v) {
+                if (!v) {
+                    v = 0.5 * this.height;
+                }
+                if (my >= Math.min(v, 0.5 * this.height)) {
                     let dx = (mx - rect.width * 0.5) / this.scaleX;
                     if (dx != 0) {
-
                         // Set the frequency
-
                         // look where we are in the freq range
-                        let j = Utils.binarySearch(self.data.freqs, self.data.freq);
-                        let df, f, f0;
-                        if (j > 0 && j < self.data.freqs.length - 1) {
-                            df = (self.data.freqs[j + 1] - self.data.freqs[j - 1]) * 0.5;
-                            f0 = self.data.freq;
-                        } else if (j == 0) {
-                            df = self.data.freqs[1] - self.data.freqs[0]
-                            f0 = self.data.freq[0];
-                        } else {
-                            df = self.data.freqs[self.data.freqs.length - 1] - self.data.freqs[self.data.freqs.length - 2];
-                            f0 = self.data.freqs[self.data.freqs.length - 1];
-                        }
+                        let f;
+                        let df = self.data.dfreq * 0.5;
+                        let f0 = self.data.freq;
 
                         if (this.unit === SpectraDisplayer.UNIT.FREQUENCY) {
                             f = f0 + dx * df;
@@ -574,35 +578,53 @@ export class SpectraDisplayer extends DOMElement {
 
                 }
 
-                //this.ctxCursor.clearRect(0, 0, w, this.height);
                 this.mouseFreq = null;
             }
-
-
-            /*if (e.type !== "touchend") {
-                const clickEvent = new MouseEvent('click', {
-                    bubbles: true,
-                    cancelable: true,
-                    clientX: e.clientX,
-                    clientY: e.clientY
-                });
-                this.view.catalogCanvas.dispatchEvent(clickEvent);
-            }*/
         });
 
-        /*Utils.on(canvas, 'mouseout touchcancel', (e) => {
-
-            this.isDragging = false;
-        });*/
-
+        let zoomFinishedTimeout;
         Utils.on(canvas, 'wheel', (e) => {
             // stop the propagation to prevent scrolling on the page 
             e.preventDefault();
             e.stopPropagation();
 
             let w = this.view.aladin.aladinDiv.getBoundingClientRect().width;
-
             this.ctxCursor.clearRect(0, 0, w, this.height);
+
+            const mx = e.clientX;
+            const my = Utils.relMouseCoords(e).y;
+
+            // Can be in the spectral area
+            let v = this.data.values[Math.round(mx / this.scaleX)]
+            
+            v = this.height - (v - this.minY) * this.scaleY
+
+            if (!v) {
+                v = 0.5 * this.height;
+            }
+
+            if (my >= Math.min(v, 0.5 * this.height) || zoomFinishedTimeout) {
+                const normalizedDelta = e.deltaY && Utils.normalizeWheel(e) || e.detail || (-e.wheelDelta);
+                canvas.style.cursor = (normalizedDelta > 0) ? 'zoom-out' : 'zoom-in';
+
+                if (zoomFinishedTimeout) {
+                    clearTimeout(zoomFinishedTimeout)
+                }
+
+                zoomFinishedTimeout = setTimeout(() => {
+                    canvas.style.cursor = 'grab';
+
+                    zoomFinishedTimeout = null;
+                }, 500);
+
+                // Set the frequency resolution
+                let nextFreqResolution = this.getFrequencyResolution() * (1.0 + normalizedDelta / 200);
+                //if (nextFreqResolution > 0) {
+                    this.view.wasm.setFreqResolution(nextFreqResolution)
+                    this.view.requestRedraw()
+                //}
+                return;
+            }
 
             const wheelEvent = new WheelEvent('wheel', {
                 bubbles: true,
@@ -648,18 +670,21 @@ export class SpectraDisplayer extends DOMElement {
 
         // store new references to the new hips
         this.hips = hips;
+        this.view.wasm.attachHiPS3D(hips && hips.layer);
+        this.view.requestRedraw();
 
         if (hips) {
             this.spectraUpdateCallback = (event) => {
                 let data = event.detail;
-                if (data.layer === this.hips.layer) {
+                //if (data.layer === this.hips.layer) {
                     this.data = data;
+
                     if (this.unit !== SpectraDisplayer.UNIT.FREQUENCY) {
                         this.data.values.reverse();
                     }
 
-                    this._redraw(this.ctx);
-                }
+                    this._redraw();
+                //}
             };
 
             window.addEventListener("spectra", this.spectraUpdateCallback);
@@ -667,6 +692,32 @@ export class SpectraDisplayer extends DOMElement {
             this.resetScale();
             this._show()
         }
+    }
+
+    draw() {
+        if (this.requestRedraw)
+            this._redraw()
+
+        this.circleSelector.draw();
+
+        this.requestRedraw = false;
+    }
+
+    isInteracting() {
+        return this.circleSelector.isInteracting()
+    }
+
+    start(coo) {
+        this.circleSelector.start(coo)
+    }
+
+    requestRedraw() {
+        this.requestRedraw = true;
+    }
+
+    setCursorCenter(center) {
+        this.circleSelector.setCenter(center.ra, center.dec);
+        this.view.wasm.setSpectraDisplayerCenter(center.ra, center.dec);
     }
 
     // When changing the HiPS format, a scale reset is necessary
@@ -685,7 +736,7 @@ export class SpectraDisplayer extends DOMElement {
         this.divNode.style.pointerEvents = "none"
     }
 
-    _redraw() {
+    _redraw(options) {
         const values = this.data.values;
         let len = values.length;
 
@@ -711,7 +762,7 @@ export class SpectraDisplayer extends DOMElement {
         this.scaleX = w / (len - 1);
         this.scaleY = (this.maxY - this.minY === 0) ? 1 : this.height / (this.maxY - this.minY);
 
-        this._redrawSpectra(values)
+        this._redrawSpectra(options)
 
         // Draw the vertical line that can be grabed to move the slice
         this.ctx.beginPath();
@@ -823,10 +874,10 @@ export class SpectraDisplayer extends DOMElement {
         let str, fillStyle; 
         if (!this.isDragging && this.mouseFreq) {
             fillStyle = "yellow";
-            str = spectraValue2String(this.mouseFreq, this.data.freqStep);
+            str = spectraValue2String(this.mouseFreq, this.data.dfreq);
         } else {
             fillStyle = Aladin.DEFAULT_OPTIONS.reticleColor;
-            str = spectraValue2String(this.data.freq, this.data.freqStep);
+            str = spectraValue2String(this.data.freq, this.data.dfreq);
         }
         drawLabel(
             this.ctxLabels,
@@ -839,11 +890,12 @@ export class SpectraDisplayer extends DOMElement {
         )
     }
 
-    _redrawSpectra(array) {
+    _redrawSpectra(options) {
+        let array = this.data.values;
         this.ctx.beginPath();
-        this.ctx.lineWidth = 4;
+        this.ctx.lineWidth = (options && options.lineWidth) || 2;
 
-        let strokeStyle = "red";
+        let strokeStyle = (options && options.strokeStyle) || "red";
         this.ctx.strokeStyle = strokeStyle
 
         let prevY;
@@ -852,6 +904,8 @@ export class SpectraDisplayer extends DOMElement {
 
         const freqIdxStart = this.data.freqIdxStart !== undefined && (this.isShowingFreqUnit() ? this.data.freqIdxStart : i1 - this.data.freqIdxEnd);
         const freqIdxEnd = this.data.freqIdxEnd !== undefined && (this.isShowingFreqUnit() ? this.data.freqIdxEnd : i1 - this.data.freqIdxStart);
+
+        let spectraVertices = [];
 
         while (i < i1) {
             let y;
@@ -870,7 +924,7 @@ export class SpectraDisplayer extends DOMElement {
 
                         this.ctx.beginPath();
                         this.ctx.strokeStyle = strokeStyle
-                        this.ctx.lineWidth = 4
+                        //this.ctx.lineWidth = 4
                     }
 
                     y = this.height;
@@ -879,6 +933,8 @@ export class SpectraDisplayer extends DOMElement {
                     } else {
                         this.ctx.lineTo(x, y);
                     }
+
+                    spectraVertices.push([x, y]);
                 } else {
                     // valid frequency, color green
                     if (strokeStyle !== "lightgreen") {
@@ -887,7 +943,7 @@ export class SpectraDisplayer extends DOMElement {
 
                         this.ctx.beginPath();
                         this.ctx.strokeStyle = strokeStyle
-                        this.ctx.lineWidth = 2
+                        //this.ctx.lineWidth = 2
                         this.ctx.moveTo(x - this.scaleX, prevY)
                     }
 
@@ -895,9 +951,14 @@ export class SpectraDisplayer extends DOMElement {
 
                     if (i === 0) {
                         this.ctx.moveTo(x, y);
+
+                        spectraVertices.push([x, this.height]);
                     } else {
                         this.ctx.lineTo(x, y);
                     }
+
+                    spectraVertices.push([x, y]);
+
                 }
             } else {
                 // frequency out of the survey coverage => color red
@@ -908,7 +969,7 @@ export class SpectraDisplayer extends DOMElement {
                     this.ctx.beginPath();
                     strokeStyle = "red"
                     this.ctx.strokeStyle = strokeStyle
-                    this.ctx.lineWidth = 4
+                    //this.ctx.lineWidth = 4
                 }
 
                 y = this.height;
@@ -917,6 +978,8 @@ export class SpectraDisplayer extends DOMElement {
                 } else {
                     this.ctx.lineTo(x, y);
                 }
+
+                spectraVertices.push([x, y]);
             }
 
             i++;
@@ -924,6 +987,22 @@ export class SpectraDisplayer extends DOMElement {
         }
 
         this.ctx.stroke();
+
+        // draw the polygon under the spectra
+        if (spectraVertices.length > 0) {
+            const numVertices = spectraVertices.length;
+            spectraVertices.push([spectraVertices[numVertices - 1][0], this.height]);
+
+            this.ctx.beginPath();
+            this.ctx.fillStyle = '#90EE9077';
+            this.ctx.moveTo(spectraVertices[0][0], spectraVertices[0][1]);
+            for (let i = 1; i < spectraVertices.length; i++) {
+                this.ctx.lineTo(spectraVertices[i][0], spectraVertices[i][1]);
+            }
+            this.ctx.fill();
+
+        }
+        
     }
 }
  

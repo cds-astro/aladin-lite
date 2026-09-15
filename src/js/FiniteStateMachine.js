@@ -19,12 +19,35 @@
 //    You should have received a copy of the GNU Lesser General Public License
 //    along with Aladin Lite. If not, see <https://www.gnu.org/licenses/>.
 //
-
+import { Utils } from "./Utils";
 export class FSM {
     // Constructor
     constructor(options) {
         this.state = options && options.state;
         this.transitions = options && options.transitions || {};
+        this.view = options && options.view;
+
+        const EVENTS = ["mousedown", "mouseup", "mousemove", "mouseout"];
+
+        let self = this;
+        for (const [start, to] of Object.entries(this.transitions)) {
+            for (const [trigger, action] of Object.entries(to)) {
+                if (EVENTS.includes(trigger)) {
+                    Utils.on(self.view.aladin.aladinDiv, trigger, function (e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        if (self.state == start) {
+                            action(e)
+                        }
+                    })
+                }
+            }
+        }
+    }
+
+    start(params) {
+        this.dispatch('start', params)
     }
 
     // Do nothing if the to is inaccesible

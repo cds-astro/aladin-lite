@@ -32,6 +32,7 @@ where
         depth: u32,
     ) -> Self {
         let size_buf = width * height * depth * (T::NUM_CHANNELS as u32);
+        crate::log(&format!("{:?} {:?} {:?} {:?} {:?} {:?}", size_buf, data.len(), T::NUM_CHANNELS as u32, width, height, depth));
         debug_assert!(size_buf == data.len() as u32);
         //let buf = <<T as ImageFormat>::P as Pixel>::Container::new(buf);
         let size = (width, height, depth);

@@ -252,6 +252,16 @@ impl HEALPixCell {
         false
     }
 
+    #[inline]
+    pub(crate) fn contains(&self, other: &Self) -> bool {
+        if self.depth() > other.depth() {
+            false
+        } else {
+            let dd = other.depth() - self.depth();
+            other.idx() >> (2*dd) == self.idx()
+        }
+    }
+
     // Given in ICRS
     #[inline]
     pub fn new(depth: u8, theta: f64, delta: f64) -> Self {
@@ -503,6 +513,17 @@ use crate::math::spectra::Freq;
 use crate::math::spectra::SpectralUnit;
 
 impl HEALPixFreqCell {
+
+    pub(crate) fn from_hpx_cell_and_freq(hpx_cell: &HEALPixCell, freq: Freq, f_depth: u8) -> Self {
+        let f_hash = freq.hash(f_depth);
+
+        Self {
+            hpx: *hpx_cell,
+            f_hash,
+            f_depth,
+        }
+    }
+
     pub fn from_lonlat(lonlat: LonLatT<f64>, freq: Freq, s_depth: u8, f_depth: u8) -> Self {
         let hpx = HEALPixCell::new(
             s_depth,
@@ -604,6 +625,12 @@ mod tests {
         }
     }
 
+    #[test]
+    fn test_contains() {
+        assert!(HEALPixCell(1, 2).contains(&HEALPixCell(3, 33)));
+        assert!(!HEALPixCell(1, 2).contains(&HEALPixCell(3, 67)));
+    }
+    
     #[test]
     fn test_smallest_common_ancestor() {
         test_ancestor(HEALPixCell(1, 2), HEALPixCell(1, 3));

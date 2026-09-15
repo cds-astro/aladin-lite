@@ -9,6 +9,7 @@ use moclib::{
     ranges::SNORanges,
 };
 pub type Smoc = RangeMOC<u64, Hpx<u64>>;
+use std::collections::HashSet;
 
 use crate::healpix::cell::HEALPixCell;
 #[derive(Clone, Debug)]
@@ -102,6 +103,28 @@ impl SpaceMoc {
     ) -> Self {
         let moc = RangeMOC::from_fixed_depth_cells(depth, hpx_idx, cap);
         SpaceMoc(moc)
+    }
+
+    pub(crate) fn to_flattened_hpx_cells(
+        &self,
+        order: u8,
+    ) -> impl Iterator<Item = HEALPixCell> + use<'_> {
+        let mut seen = HashSet::new();
+
+        let depth = self.depth_max();
+        let dd = depth - order;
+
+        self.flatten_to_fixed_depth_cells()
+            .filter_map(move |idx| {
+                let hpx_cell = HEALPixCell(depth, idx);
+                let hpx_ancestor_cell = hpx_cell.ancestor(dd);
+
+                if seen.insert(hpx_ancestor_cell) {
+                    Some(hpx_ancestor_cell)
+                } else {
+                    None
+                }
+            })
     }
 
     pub fn from_hpx_cells<'a>(

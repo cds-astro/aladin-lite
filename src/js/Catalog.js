@@ -1056,6 +1056,10 @@ export let Catalog = (function () {
     };
 
     Catalog.prototype.drawSource = function (s, ctx, width, height) {
+
+        // set globalAlpha because it is changed in shapes
+        ctx.globalAlpha = 1;
+
         if (!s.isShowing) {
             return false;
         }

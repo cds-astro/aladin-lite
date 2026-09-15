@@ -1056,6 +1056,8 @@ export let Catalog = (function () {
     };
 
     Catalog.prototype.drawSource = function (s, ctx, width, height) {
+        ctx.globalAlpha = 1;
+
         if (!s.isShowing) {
             return false;
         }

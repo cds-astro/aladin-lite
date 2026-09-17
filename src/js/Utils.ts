@@ -43,9 +43,9 @@ Utils.HTTPS_WHITELIST = ['alasky.u-strasbg.fr', 'alaskybis.u-strasbg.fr', 'alask
 Utils.cssScale = undefined
 
 Utils.relMouseCoords = function (event) {
-    if (event.offsetX) {
-        return {x: event.offsetX, y: event.offsetY}
-    } else {
+    //if (event.offsetX) {
+    //    return {x: event.offsetX, y: event.offsetY}
+    //} else {
         if (!Utils.cssScale) {
             var st = window.getComputedStyle(document.body, null)
             var tr = st.getPropertyValue('-webkit-transform') ||
@@ -63,7 +63,7 @@ Utils.relMouseCoords = function (event) {
         }
         var e = event
         // http://www.jacklmoore.com/notes/mouse-position/
-        var target = e.target || e.srcElement
+        var target = e.currentTarget || e.target || e.srcElement
         var style = target.currentStyle || window.getComputedStyle(target, null)
         var borderLeftWidth = parseInt(style['borderLeftWidth'], 10)
         var borderTopWidth = parseInt(style['borderTopWidth'], 10)
@@ -81,7 +81,7 @@ Utils.relMouseCoords = function (event) {
         var offsetY = clientY - borderTopWidth - rect.top
 
         return {x: Math.round(offsetX / Utils.cssScale), y: Math.round(offsetY / Utils.cssScale)}
-    }
+    //}
 }
 
 Utils.normalizeWheel = function(event: WheelEvent) {

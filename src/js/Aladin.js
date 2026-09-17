@@ -412,6 +412,8 @@ export let Aladin = (function () {
         // Aladin logo
         new AladinLogo(this.aladinDiv);
         this.reticle = new Reticle(this.options, this);
+        this.setDefaultColor(this.options.reticleColor)
+
         this.popup = new Popup(this.aladinDiv, this.view);
         this.tooltip = document.createElement('div')
         this.tooltip.id = 'aladin-tooltip-mouse';
@@ -1101,6 +1103,8 @@ export let Aladin = (function () {
 
         let aladinBorderColor = Color.getLabelColorForBackground(`rgb(${aladinColor.r}, ${aladinColor.g}, ${aladinColor.b})`);
         this.aladinDiv.style.setProperty('--aladin-color-border', aladinBorderColor)
+
+        this.defaultColor = aladinColor.toHex();
     };
 
     /**
@@ -2835,9 +2839,13 @@ export let Aladin = (function () {
                 frame = CooFrameEnum.fromString(frame, CooFrameEnum.ICRS);
             }
         }
-        let [lon, lat] = this.view.wasm.pix2world(x, y, CooFrameEnum.toWasm(frame));
+        let lonlat = this.view.wasm.pix2world(x, y, CooFrameEnum.toWasm(frame));
+        if (lonlat) {
+            let [lon, lat] = lonlat;
+            return [lon < 0 ? lon + 360.0 : lon, lat];
+        }
 
-       return [lon < 0 ? lon + 360.0 : lon, lat];
+        return undefined;
     };
 
     /**

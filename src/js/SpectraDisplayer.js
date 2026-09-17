@@ -22,12 +22,15 @@
 
 import { ActionButton } from "./gui/Widgets/ActionButton";
 import { Input } from "./gui/Widgets/Input";
-import HomeIconUrl from '../../assets/icons/maximize.svg';
-import SpectraIconUrl from '../../assets/icons/freq.svg';
 import { Utils } from "./Utils";
 import { Aladin } from "./Aladin";
 import { DOMElement } from "./gui/Widgets/Widget";
 import { PersistantCircleSelect } from "./FiniteStateMachine/PersistantCircleSelection";
+import { TogglerActionButton } from "./gui/Button/Toggler";
+
+// Icon assets
+import HomeIconUrl from '../../assets/icons/maximize.svg';
+import LockerIconUrl from '../../assets/icons/locker.svg';
 /******************************************************************************
  * Aladin Lite project
  *
@@ -142,7 +145,7 @@ export class SpectraDisplayer extends DOMElement {
             const canvas = document.createElement("canvas");
             canvas.classList.add(name);
             canvas.width = this.width;
-            canvas.height = this.height;
+            canvas.height = this.view.aladin.aladinDiv.getBoundingClientRect().height;
             canvas.style.position = "absolute"
             canvas.style.top = 0;
             canvas.style.left = 0;
@@ -156,7 +159,7 @@ export class SpectraDisplayer extends DOMElement {
         this.data = undefined;
         this.scaleX = undefined;
         this.scaleY = undefined;
-        this.height = options && options.height || 300;
+        this.height = options && options.height || 250;
         this.width = options && options.width || view.aladin.aladinDiv.getBoundingClientRect().width;
         this.minY = undefined;
         this.maxY = undefined;
@@ -235,32 +238,44 @@ export class SpectraDisplayer extends DOMElement {
                 self._redraw();
             }
         })
-        let extractionBtn = new ActionButton({
-            size: 'small',
-            icon: {
-                monochrome: true,
-                url: SpectraIconUrl
-            },
-            tooltip: {
-                content: "Extract the spectra under the cursor",
-                position: {direction: "right"}
-            },
-            classList: ['aladin-spectra-extraction'],
-            action(e) {
-                // TODO
-            }
-        })
 
         this.snapped = true;
         let snapDistance = 20*20;
+
+        let snapProberBtn = new TogglerActionButton({
+            size: 'small',
+            toggled: true,
+            classList: ['snap-prober'],
+            icon: {
+                monochrome: true,
+                url: LockerIconUrl,
+            },
+            tooltip: {
+                aladin: view.aladin,
+                global: true,
+                content: "Snap the spectral prober",
+            },
+            on(e) {
+                self.snapped = true;
+                self.circleSelector.setColor(aladin.defaultColor);
+                self.setCursorCenter(self.view.viewCenter)
+                snapDistance = 40*40;
+            },
+            off(e) {
+                console.log("jjjj")
+                self.snapped = false;
+                self.circleSelector.setColor('red');
+                snapDistance = 20*20;
+            }
+        })
+
         this.circleSelector = new PersistantCircleSelect({
             x: view.width * .5,
             y: view.height * .5,
-            color: '#00ff00',
+            color: aladin.defaultColor,
             maxRadius: 0.3,
             radius: 0.01,
             callback: () => {
-                console.log("action finished")
                 self.enableInteraction();
             },
             resizeCallback: (circle) => {
@@ -282,13 +297,18 @@ export class SpectraDisplayer extends DOMElement {
                 const dy = self.view.xy.y - screenViewCenter.y;
 
                 if (!self.snapped && dx*dx + dy*dy <= snapDistance) {
-                    self.circleSelector.setColor('#00ff00');
+                    self.circleSelector.setColor(aladin.defaultColor);
 
                     self.snapped = true;
+                    snapProberBtn.toggle()
+
                     snapDistance = 40*40;
                 } else if (self.snapped && dx*dx + dy*dy > snapDistance) {
-                    self.circleSelector.setColor('#0000ff');
+                    self.circleSelector.setColor('red');
+
                     self.snapped = false;
+                    snapProberBtn.toggle()
+
                     snapDistance = 20*20;
                 }
 
@@ -315,13 +335,13 @@ export class SpectraDisplayer extends DOMElement {
         divNode.appendChild(canvasLabels)
         divNode.appendChild(unitSelector.element())
         divNode.appendChild(autoCenterBtn.element())
+        divNode.appendChild(snapProberBtn.element())
 
         this.divNode = divNode;
 
-        let statusBar = this.view.aladin.statusBar;
-        this.view.aladin.aladinDiv.insertBefore(
+        //let statusBar = this.view.aladin.statusBar;
+        this.view.viewDiv.appendChild(
             divNode,
-            statusBar && statusBar.element()
         )
 
         this.defineEventListeners()
@@ -385,7 +405,7 @@ export class SpectraDisplayer extends DOMElement {
             v = Math.min(this.height - (v - this.minY) * this.scaleY, 0.5 * this.height);
             if (my >= v) {
                 this.lastMouse = { x: mx, y: my };
-                canvas.style.cursor = 'grabbing';
+                //canvas.style.cursor = 'grabbing';
             } else {
                 // check if the click is next to the center bar
                 // Draw the vertical line that can be grabed to move the slice
@@ -399,8 +419,9 @@ export class SpectraDisplayer extends DOMElement {
 
                 if (this.ctx.isPointInStroke(mx, my)) {
                     this.lastMouse = { x: mx, y: my };
-                    canvas.style.cursor = 'grabbing';
+                    //canvas.style.cursor = 'grabbing';
                 } else {
+                    console.log("jjkjk")
                     //this.view.catalogCanvas.dispatchEvent(event);
 
                     // Track timing to simulate dblclick
@@ -438,7 +459,7 @@ export class SpectraDisplayer extends DOMElement {
                 this.isDragging = canvas.style.cursor === 'grabbing';
             }
 
-            canvas.style.cursor = 'default';
+            //canvas.style.cursor = 'default';
 
             if (!v) {
                 v = 0.5 * this.height;
@@ -449,7 +470,7 @@ export class SpectraDisplayer extends DOMElement {
             this.mouseFreq = null;
 
             if (my >= Math.min(v, 0.5 * this.height) && my <= this.height) {
-                canvas.style.cursor = 'grab';
+                //canvas.style.cursor = 'grab';
 
                 ctxCursor.beginPath();
                 ctxCursor.moveTo(mx, this.height);
@@ -480,7 +501,7 @@ export class SpectraDisplayer extends DOMElement {
                 this.ctx.lineWidth = 30;
 
                 if (this.ctx.isPointInStroke(mx, my)) {
-                    this.canvas.style.cursor = 'grab';
+                    //this.canvas.style.cursor = 'grab';
                 }
 
                 if (my >= v) {
@@ -494,13 +515,14 @@ export class SpectraDisplayer extends DOMElement {
                 return;
             }
 
-            canvas.style.cursor = 'grabbing';
+
             
             this.mouseFreq = null;
 
             // is dragged
             let dx = (mx - this.lastMouse.x) / this.scaleX;
             if (dx != 0) {
+                //canvas.style.cursor = 'grabbing';
                 // Set the frequency
 
                 // look where we are in the freq range
@@ -531,8 +553,9 @@ export class SpectraDisplayer extends DOMElement {
         });
 
         Utils.on(this.view.aladin.aladinDiv, 'mouseout mouseup touchend', (e) => {
+            console.log("mouseup spectra")
             this.isDragging = false;
-            canvas.style.cursor = 'default';
+            //canvas.style.cursor = 'default';
 
             //let mouseXY = Utils.relMouseCoords(e);
             let mouseXY = {x: e.clientX, y: e.clientY};
@@ -605,14 +628,14 @@ export class SpectraDisplayer extends DOMElement {
 
             if (my >= Math.min(v, 0.5 * this.height) || zoomFinishedTimeout) {
                 const normalizedDelta = e.deltaY && Utils.normalizeWheel(e) || e.detail || (-e.wheelDelta);
-                canvas.style.cursor = (normalizedDelta > 0) ? 'zoom-out' : 'zoom-in';
+                //canvas.style.cursor = (normalizedDelta > 0) ? 'zoom-out' : 'zoom-in';
 
                 if (zoomFinishedTimeout) {
                     clearTimeout(zoomFinishedTimeout)
                 }
 
                 zoomFinishedTimeout = setTimeout(() => {
-                    canvas.style.cursor = 'grab';
+                    //canvas.style.cursor = 'grab';
 
                     zoomFinishedTimeout = null;
                 }, 500);
@@ -695,8 +718,17 @@ export class SpectraDisplayer extends DOMElement {
     }
 
     draw() {
-        if (this.requestRedraw)
+        if (this.requestRedraw) {
             this._redraw()
+        }
+
+        const isInteracting = this.isInteracting();
+
+        if (isInteracting) {
+            this.disableInteraction()
+        } else {
+            this.enableInteraction()
+        }
 
         this.circleSelector.draw();
 
@@ -737,6 +769,9 @@ export class SpectraDisplayer extends DOMElement {
     }
 
     _redraw(options) {
+        if (!this.data)
+            return;
+
         const values = this.data.values;
         let len = values.length;
 

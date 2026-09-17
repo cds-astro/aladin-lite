@@ -105,6 +105,9 @@ export let View = (function () {
         // Add a reference to the WebGL API
         this.options = aladin.options;
         this.aladinDiv = this.aladin.aladinDiv;
+        this.viewDiv = document.createElement('div');
+        this.viewDiv.className = 'aladin-view';
+        this.aladinDiv.insertBefore(this.viewDiv, this.aladinDiv.firstChild);
         this.createCanvases();
 
         let self = this;
@@ -400,11 +403,6 @@ export let View = (function () {
             imageCanvas.remove();
         }
 
-        /*let gridCanvas = this.aladinDiv.querySelector('.aladin-gridCanvas');
-        if (gridCanvas) {
-            gridCanvas.remove();
-        }*/
-
         let catalogCanvas = this.aladinDiv.querySelector('.aladin-catalogCanvas')
         if (catalogCanvas) {
             catalogCanvas.remove();
@@ -417,13 +415,13 @@ export let View = (function () {
             canvas.className = name;
 
             // Append the canvas to the aladinDiv
-            this.aladinDiv.insertBefore(canvas, this.aladinDiv.firstChild);
+            this.viewDiv.insertBefore(canvas, this.viewDiv.firstChild);
 
             return canvas;
         };
 
+
         this.catalogCanvas = createCanvas('aladin-catalogCanvas');
-        //this.gridCanvas = createCanvas('aladin-gridCanvas');
         this.imageCanvas = createCanvas('aladin-imageCanvas');
     };
 
@@ -568,11 +566,15 @@ export let View = (function () {
     };
 
     View.prototype.setCursor = function (cursor) {
-        if (this.catalogCanvas.style.cursor == cursor) {
+        if (this.viewDiv.style.cursor == cursor) {
             return;
         }
 
-        this.catalogCanvas.style.cursor = cursor;
+        this.viewDiv.style.cursor = cursor;
+    };
+
+    View.prototype.getCursor = function () {
+        return this.viewDiv.style.cursor
     };
 
     View.prototype.getRawPixelsCanvas = function(width, height) {
@@ -666,7 +668,7 @@ export let View = (function () {
 
         if (imageLayer.dataproductType === "spectral-cube") {
             if (!this.spectraDisplayer) {
-                this.spectraDisplayer = new SpectraDisplayer(this, {height: 250});
+                this.spectraDisplayer = new SpectraDisplayer(this);
             }
 
             this.spectraDisplayer.attachHiPS3D(imageLayer)
@@ -702,11 +704,11 @@ export let View = (function () {
         };
 
         if (!Utils.hasTouchScreen()) {
-            Utils.on(view.aladin.aladinDiv, 'dblclick', onDblClick);
+            Utils.on(view.viewDiv, 'dblclick', onDblClick);
         }
 
         // prevent default context menu from appearing (potential clash with right-click cuts control)
-        Utils.on(view.aladin.aladinDiv, "contextmenu", function (e) {
+        Utils.on(view.viewDiv, "contextmenu", function (e) {
             e.preventDefault();
 
             if (view.aladin.options.showContextMenu) {
@@ -890,8 +892,8 @@ export let View = (function () {
         }
 
         var touchStartTime;
-        Utils.on(view.aladin.aladinDiv, "mousedown touchstart", function (e) {
-            console.log("mousedown main")
+        Utils.on(view.viewDiv, "mousedown touchstart", function (e) {
+            console.log("view mousedown")
             e.stopPropagation();
 
             view.requestRedraw();
@@ -899,11 +901,15 @@ export let View = (function () {
             const xymouse = Utils.relMouseCoords(e);
             view.xy = xymouse
 
-
             if (view.spectraDisplayer) {
-                //view.spectraDisplayer.disableInteraction();
                 view.spectraDisplayer.start(e);
+
+                if (view.spectraDisplayer.isInteracting()) {
+                    return;
+                }
             }
+
+            console.log("AAAA")
 
             ALEvent.CANVAS_EVENT.dispatchedTo(view.aladinDiv, {
                 state: {
@@ -992,7 +998,7 @@ export let View = (function () {
             return true;
         });
 
-        Utils.on(view.aladin.aladinDiv, "click", function (e) {
+        Utils.on(view.viewDiv, "click", function (e) {
             // call listener of 'click' event
             if (view.mode == View.TOOL_SIMBAD_POINTER) {
                 // call Simbad pointer or Planetary features
@@ -1016,7 +1022,7 @@ export let View = (function () {
             }
         });
 
-        Utils.on(view.aladin.aladinDiv, "mouseup touchend", function(e) {
+        Utils.on(view.viewDiv, "mouseup touchend", function(e) {
             var wasDragging = view.realDragging === true;
 
             view.requestRedraw();
@@ -1041,7 +1047,7 @@ export let View = (function () {
         });
 
         // reacting on 'click' rather on 'mouseup' is more reliable when panning the view
-        Utils.on(view.aladin.aladinDiv, "mouseup mouseout touchend touchcancel", function (e) {
+        Utils.on(view.viewDiv, "mouseup mouseout touchend touchcancel", function (e) {
             const xymouse = Utils.relMouseCoords(e);
             view.xy = xymouse
 
@@ -1211,16 +1217,12 @@ export let View = (function () {
             view.colorPickerTool.domElement.style.top = `${xymouse.y + view.aladin.aladinDiv.getBoundingClientRect().y}px`;
         }
 
-        Utils.on(view.aladin.aladinDiv, "mousemove touchmove", function (e) {
+        Utils.on(view.viewDiv, "mousemove touchmove", function (e) {
             e.preventDefault();
             console.log("mousemove main")
 
             const xymouse = Utils.relMouseCoords(e);
             view.xy = xymouse
-
-            if (view.spectraDisplayer && view.spectraDisplayer.isInteracting()) {
-                return;
-            }
 
             ALEvent.CANVAS_EVENT.dispatchedTo(view.aladinDiv, {
                 state: {
@@ -1411,7 +1413,7 @@ export let View = (function () {
 
         view.zoomDelta = 0;
 
-        Utils.on(view.aladin.aladinDiv, 'wheel', function (e) {
+        Utils.on(view.viewDiv, 'wheel', function (e) {
             e.preventDefault();
             e.stopPropagation();
 
@@ -1448,11 +1450,11 @@ export let View = (function () {
             return false;
         });
 
-        Utils.on(view.aladin.aladinDiv, "mouseover", (_) => {
+        Utils.on(view.viewDiv, "mouseover", (_) => {
             view.mouseover = true;
         });
 
-        Utils.on(view.aladin.aladinDiv, "mouseout", (_) => {
+        Utils.on(view.viewDiv, "mouseout", (_) => {
             view.mouseover = false;
         });
 

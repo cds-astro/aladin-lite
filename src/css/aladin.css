@@ -154,6 +154,11 @@
     bottom: 0;
     right: 8rem;
 }
+.aladin-spectra-displayer .snap-prober {
+    position: absolute;
+    bottom: 0;
+    right: 12rem;
+}
 .aladin-spectra-displayer .aladin-spectra-home {
     position: absolute;
     bottom: 0;

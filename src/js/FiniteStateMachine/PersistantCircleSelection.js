@@ -33,7 +33,9 @@ export class PersistantCircleSelect extends FSM {
 
         const start = (e) => {
             const coo = Utils.relMouseCoords(e);
+            console.log(coo)
             const lonlat = self.view.aladin.pix2world(coo.x, coo.y);
+            if (lonlat) {}
 
             let interaction = self._getInteraction(coo);
             self.interaction = interaction;
@@ -72,6 +74,8 @@ export class PersistantCircleSelect extends FSM {
         };
 
         const mouseup = () => {
+            console.log("mouseup circle")
+
             self._finishGesture();
 
             self._emitSelection();
@@ -126,6 +130,7 @@ export class PersistantCircleSelect extends FSM {
                 },
             },
             view,
+            canvas,
         });
 
         /*
@@ -155,7 +160,6 @@ export class PersistantCircleSelect extends FSM {
 
             // Hit area can be larger than the visual handle.
             handleHitRadius: 10,
-            hoverColor: '#ff0000',
 
             // ------------------------------------------------------------
 
@@ -163,6 +167,7 @@ export class PersistantCircleSelect extends FSM {
         };
 
         this.view = view;
+        this.prevCursor = view.getCursor();
 
         // ================================================================
         // Persistent geometry
@@ -214,6 +219,8 @@ export class PersistantCircleSelect extends FSM {
         this.canvas.style.left = "0";
         this.canvas.style.top = "0";
 
+        this.interaction = null;
+
         /*
          * Important:
          *
@@ -223,7 +230,7 @@ export class PersistantCircleSelect extends FSM {
          */
         this.canvas.style.pointerEvents = "none";
 
-        const container = view.aladin.aladinDiv;
+        const container = view.viewDiv;
 
         container.appendChild(this.canvas);
 
@@ -249,7 +256,7 @@ export class PersistantCircleSelect extends FSM {
     // ================================================================
 
     _resizeCanvas() {
-        const rect = this.canvas.parentElement.getBoundingClientRect();
+        const rect = this.view.aladin.aladinDiv.getBoundingClientRect();
 
         const dpr = window.devicePixelRatio || 1;
 
@@ -277,6 +284,9 @@ export class PersistantCircleSelect extends FSM {
      * Return the position of the center/move handle.
      */
     _getCenterHandle() {
+        if (!this.shape.center)
+            return null;
+
         return {
             x: this.shape.center.x,
             y: this.shape.center.y,
@@ -289,6 +299,9 @@ export class PersistantCircleSelect extends FSM {
      * The handle is placed at -45 degrees.
      */
     _getResizeHandles() {
+        if (!this.shape.center || !Utils.isNumber(this.shape.radius) || this.shape.isTooSmall)
+            return null
+
         return {
             top: {
                 x: this.shape.center.x,
@@ -332,28 +345,32 @@ export class PersistantCircleSelect extends FSM {
      *   null
      */
     _getInteraction(coo) {
-        const handles = this._getResizeHandles();
         /*
          * Check resize handles first.
          */
-        for (const [name, handle] of Object.entries(handles)) {
-            if (this._distance(coo, handle) <= this.options.handleHitRadius) {
-                return {
-                    type: "resize",
-                    handle: name,
-                };
+        const handles = this._getResizeHandles();
+        if (handles) {
+            for (const [name, handle] of Object.entries(handles)) {
+                if (this._distance(coo, handle) <= this.options.handleHitRadius) {
+                    return {
+                        type: "resize",
+                        handle: name,
+                    };
+                }
             }
         }
+        
 
         /*
          * Center = move.
          */
         const centerHandle = this._getCenterHandle();
-
-        if (this._distance(coo, centerHandle) <= this.options.handleHitRadius) {
-            return {
-                type: "move",
-            };
+        if (centerHandle) {
+            if (this._distance(coo, centerHandle) <= this.options.handleHitRadius) {
+                return {
+                    type: "move",
+                };
+            }
         }
 
         return null;
@@ -410,18 +427,19 @@ export class PersistantCircleSelect extends FSM {
         const ctx = this.ctx;
 
         ctx.clearRect(0, 0, this.width, this.height);
-
         // ============================================================
         // Circle
         // ============================================================
-        const drawn = this.shape.draw(ctx, this.view)
+        this.shape.draw(ctx, this.view, false, true)
+
+        this.prevCursor = this.view.getCursor();
 
         if (this._getInteraction(this.view.xy)) {
             this.view.setCursor('pointer');
 
             this.shape.hover()
         } else {
-            this.view.setCursor('default');
+            //this.view.setCursor(this.prevCursor);
 
             this.shape.unhover()
         }
@@ -429,11 +447,11 @@ export class PersistantCircleSelect extends FSM {
         // ============================================================
         // Handles
         // ============================================================
-
-        if (drawn) {
-            this._drawCenterHandle(ctx, this.shape.color);
+        console.log("too small", this.shape.isTooSmall)
+        if (!this.shape.isTooSmall)
             this._drawResizeHandles(ctx, this.shape.color);
-        }
+
+        this._drawCenterHandle(ctx, this.shape.color);
     }
 
     // ================================================================
@@ -580,7 +598,8 @@ export class PersistantCircleSelect extends FSM {
     }
 
     isInteracting() {
-        return this.interaction !== null;
+        //console.trace("interaction", this._getInteraction(this.view.xy), this.interaction)
+        return this._getInteraction(this.view.xy) !== null || (this.interaction !== null && this.interaction !== undefined);
     }
 
     /**

@@ -26,6 +26,7 @@ export class FSM {
         this.state = options && options.state;
         this.transitions = options && options.transitions || {};
         this.view = options && options.view;
+        this.canvas = options && options.canvas;
 
         const EVENTS = ["mousedown", "mouseup", "mousemove", "mouseout"];
 
@@ -34,9 +35,6 @@ export class FSM {
             for (const [trigger, action] of Object.entries(to)) {
                 if (EVENTS.includes(trigger)) {
                     Utils.on(self.view.aladin.aladinDiv, trigger, function (e) {
-                        e.preventDefault();
-                        e.stopPropagation();
-
                         if (self.state == start) {
                             action(e)
                         }

@@ -1022,7 +1022,8 @@ export let View = (function () {
             }
         });
 
-        Utils.on(view.viewDiv, "mouseup touchend", function(e) {
+        Utils.on(document, "mouseup touchend", function(e) {
+
             var wasDragging = view.realDragging === true;
 
             view.requestRedraw();
@@ -1039,15 +1040,12 @@ export let View = (function () {
                     // call the positionChanged once more with a dragging = false
                     view.throttledPositionChanged(false);
                 }
-
-                if (view.spectraDisplayer) {
-                    //view.spectraDisplayer.enableInteraction();
-                }
             } // end of "if (view.dragging) ... "
         });
 
         // reacting on 'click' rather on 'mouseup' is more reliable when panning the view
-        Utils.on(view.viewDiv, "mouseup mouseout touchend touchcancel", function (e) {
+        Utils.on(view.viewDiv, "mouseup touchend touchcancel", function (e) {
+            console.log("mouseout/mouseup")
             const xymouse = Utils.relMouseCoords(e);
             view.xy = xymouse
 
@@ -1219,7 +1217,7 @@ export let View = (function () {
 
         Utils.on(view.viewDiv, "mousemove touchmove", function (e) {
             e.preventDefault();
-            console.log("mousemove main")
+            //console.log("mousemove main")
 
             const xymouse = Utils.relMouseCoords(e);
             view.xy = xymouse

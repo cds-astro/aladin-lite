@@ -1012,25 +1012,24 @@ impl App {
         use crate::ColorRGBA;
         use crate::renderable::line::PathVertices;
 
+        let paths = self.spectra_displayer.get_hpx_region()
+            .into_iter()
+            .map(|cell| {
+                let vertices = cell.vertices();
+                PathVertices {
+                    vertices: [[vertices[0].0 as f32, vertices[0].1 as f32], [vertices[1].0 as f32, vertices[1].1 as f32], [vertices[2].0 as f32, vertices[2].1 as f32], [vertices[3].0 as f32, vertices[3].1 as f32], [vertices[0].0 as f32, vertices[0].1 as f32]]
+                }
+            });
 
-            let paths = self.spectra_displayer.get_hpx_region()
-                .into_iter()
-                .map(|cell| {
-                    let vertices = cell.vertices();
-                    PathVertices {
-                        vertices: [[vertices[0].0 as f32, vertices[0].1 as f32], [vertices[1].0 as f32, vertices[1].1 as f32], [vertices[2].0 as f32, vertices[2].1 as f32], [vertices[3].0 as f32, vertices[3].1 as f32], [vertices[0].0 as f32, vertices[0].1 as f32]]
-                    }
-                });
 
-
-            self.line_renderer.add_stroke_paths(
-                paths,
-                2.0,
-                &ColorRGBA { r: 0.0, g: 1.0, b: 0.0, a: 1.0 },
-                &Style::None,
-                CooSpace::LonLat,
-                "hpx_spectra_counterpart"
-            );
+        self.line_renderer.add_stroke_paths(
+            paths,
+            2.0,
+            &ColorRGBA { r: 0.0, g: 1.0, b: 0.0, a: 1.0 },
+            &Style::None,
+            CooSpace::LonLat,
+            "hpx_spectra_counterpart"
+        );
     }
 
     pub(crate) fn set_dfreq(&mut self, df: f64) -> Result<(), JsValue> {

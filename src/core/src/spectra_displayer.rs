@@ -109,6 +109,10 @@ impl SpectraDisplayer {
         self.f_tile_order
     }
 
+    pub(crate) fn hpx_pixel_order(&self) -> u8 {
+        self.hpx_tile_order + self.tile_size.trailing_zeros() as u8
+    }
+
     /// Get the window starting and ending hashed at the pixel order
     fn get_window_frequency_range(&self) -> FrequencyWindow {
         const NUM_VALUES: usize = 150;

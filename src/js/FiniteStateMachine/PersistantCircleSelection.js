@@ -33,7 +33,6 @@ export class PersistantCircleSelect extends FSM {
 
         const start = (e) => {
             const coo = Utils.relMouseCoords(e);
-            console.log(coo)
             const lonlat = self.view.aladin.pix2world(coo.x, coo.y);
             if (lonlat) {}
 
@@ -74,8 +73,6 @@ export class PersistantCircleSelect extends FSM {
         };
 
         const mouseup = () => {
-            console.log("mouseup circle")
-
             self._finishGesture();
 
             self._emitSelection();
@@ -447,7 +444,6 @@ export class PersistantCircleSelect extends FSM {
         // ============================================================
         // Handles
         // ============================================================
-        console.log("too small", this.shape.isTooSmall)
         if (!this.shape.isTooSmall)
             this._drawResizeHandles(ctx, this.shape.color);
 

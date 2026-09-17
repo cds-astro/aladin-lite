@@ -163,7 +163,6 @@ export class SpectraDisplayer extends DOMElement {
         this.width = options && options.width || view.aladin.aladinDiv.getBoundingClientRect().width;
         this.minY = undefined;
         this.maxY = undefined;
-        this.mouseFreq = undefined;
         this.enabled = true;
 
         // One canvas for the spectra
@@ -262,7 +261,6 @@ export class SpectraDisplayer extends DOMElement {
                 snapDistance = 40*40;
             },
             off(e) {
-                console.log("jjjj")
                 self.snapped = false;
                 self.circleSelector.setColor('red');
                 snapDistance = 20*20;
@@ -353,7 +351,7 @@ export class SpectraDisplayer extends DOMElement {
 
     defineEventListeners() {
         this.lastMouse = { x: 0, y: 0 };
-        this.isDragging = false;
+        this.dragging = false;
 
         let canvas = this.canvas;
         let ctxCursor = this.ctxCursor;
@@ -370,154 +368,70 @@ export class SpectraDisplayer extends DOMElement {
 
 
         Utils.on(canvas, 'dblclick', (e) => {
-            console.log("spectra dblclick")
-            mouseDownPos = {x: e.clientX, y: e.clientY};
+            const mousePos = Utils.relMouseCoords(e);
 
-            const mx = mouseDownPos.x;
-            const my = Utils.relMouseCoords(e).y;
-            let v = this.data.values[Math.round(mx / this.scaleX)]
-
-            if (!v) {
-                v = 0.5 * this.height;
-            }
-
-            v = Math.min(this.height - (v - this.minY) * this.scaleY, 0.5 * this.height);
-            if (my >= v) {
-                e.stopPropagation();
+            if (this._isPointerOnSpectraArea(mousePos) || this._isPointerOnCursor(mousePos)) {
+                // Catch the event and consume it
                 e.preventDefault();
+                e.stopPropagation();
             }
         })
 
         Utils.on(canvas, 'mousedown touchstart', (e) => {
-            console.log("spectra mousedown")
-            mouseDownTime = Date.now();
-            mouseDownPos = {x: e.clientX, y: e.clientY};
+            const mousePos = Utils.relMouseCoords(e);
+            if (this._isPointerOnSpectraArea(mousePos)) {
+                // For click handling
+                mouseDownTime = Date.now();
+                // Save the down absolute mouse position
+                mouseDownPos = { x: e.clientX, y: e.clientY };
 
-            const mx = mouseDownPos.x;
-            const my = Utils.relMouseCoords(e).y;
-            let v = this.data.values[Math.round(mx / this.scaleX)]
-
-            let len = this.data.values.length;
-            if (!v) {
-                v = 0.5 * this.height;
+                this.lastMouse = mousePos;
+                this.dragging = true;
+            } else if (this._isPointerOnCursor(mousePos)) {
+                this.lastMouse = mousePos;
+                this.dragging = true;
             }
 
-            v = Math.min(this.height - (v - this.minY) * this.scaleY, 0.5 * this.height);
-            if (my >= v) {
-                this.lastMouse = { x: mx, y: my };
-                //canvas.style.cursor = 'grabbing';
-            } else {
-                // check if the click is next to the center bar
-                // Draw the vertical line that can be grabed to move the slice
-
-                this.ctx.beginPath();
-                this.ctx.lineWidth = 30;
-
-                this.ctx.moveTo(this.scaleX * len / 2, this.height);
-                this.ctx.lineTo(this.scaleX * len / 2, this.height - (this.maxY - this.minY) * this.scaleY);
-                this.ctx.strokeStyle = Aladin.DEFAULT_OPTIONS.reticleColor;
-
-                if (this.ctx.isPointInStroke(mx, my)) {
-                    this.lastMouse = { x: mx, y: my };
-                    //canvas.style.cursor = 'grabbing';
-                } else {
-                    console.log("jjkjk")
-                    //this.view.catalogCanvas.dispatchEvent(event);
-
-                    // Track timing to simulate dblclick
-                    /*const now = Date.now();
-                    if (now - lastClickTime < DOUBLE_CLICK_DELAY) {
-                        const dblClickEvent = new MouseEvent('dblclick', {
-                            bubbles: true,
-                            cancelable: true,
-                            clientX: e.clientX,
-                            clientY: e.clientY
-                        });
-
-                        this.view.catalogCanvas.dispatchEvent(dblClickEvent);
-                        lastClickTime = 0; // reset
-                    } else {
-                        lastClickTime = now;
-                    }*/
-                }
+            if (this.dragging) {
+                this.view.setCursor('grabbing');
+                // the event has been consumed by the widget
+                e.preventDefault();
+                e.stopPropagation();
             }
         });
 
-        Utils.on(canvas, 'mousemove touchmove', (e) => {
-            console.log("mousemove spectra ")
+        /// Hovering the spectral interactive zone
+        Utils.on(this.view.viewDiv, 'mousemove touchmove', (e) => {
+            if (this.dragging || this.view.dragging)
+                return;
 
-            const mx = e.clientX;
-            const my = Utils.relMouseCoords(e).y;
-
-            // can be in the spectral area
-
-            let v = this.data.values[Math.round(mx / this.scaleX)]
-            let len = this.data.values.length;
-
-            v = this.height - (v - this.minY) * this.scaleY
-            if (!this.isDragging) {
-                this.isDragging = canvas.style.cursor === 'grabbing';
+            // Get the relative position of the mouse of the canvas
+            const rect = canvas.getBoundingClientRect();
+            const mousePos = {
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top
             }
 
-            //canvas.style.cursor = 'default';
+            this.lastMouse = mousePos;
 
-            if (!v) {
-                v = 0.5 * this.height;
-            }
-
-            let w = this.view.aladin.aladinDiv.getBoundingClientRect().width;
-            this.ctxCursor.clearRect(0, 0, w, this.height);
-            this.mouseFreq = null;
-
-            if (my >= Math.min(v, 0.5 * this.height) && my <= this.height) {
-                //canvas.style.cursor = 'grab';
-
-                ctxCursor.beginPath();
-                ctxCursor.moveTo(mx, this.height);
-                ctxCursor.lineTo(mx, v);
-                ctxCursor.strokeStyle = "yellow";
-                ctxCursor.lineWidth = 2;
-                ctxCursor.stroke()
-
+            if (this._isPointerOnSpectraArea(mousePos) || this._isPointerOnCursor(mousePos)) {
+                this.view.setCursor("grab")
                 self._redraw({lineWidth: 4})
-
-                // Compute the frequency at that position
-                let curFreq = self.hips.getFrequency();
-                if (!curFreq) {
-                    return;
-                }
             } else {
                 self._redraw({lineWidth: 2})
             }
+        })
 
-            this._redrawLabels()
-
-            if (!this.isDragging) {
-                // Draw the vertical line that can be grabed to move the slice
-                this.ctx.beginPath();
-                this.ctx.moveTo(this.scaleX * len / 2, this.height);
-                this.ctx.lineTo(this.scaleX * len / 2, this.height - (this.maxY - this.minY) * this.scaleY);
-                this.ctx.strokeStyle = "red";
-                this.ctx.lineWidth = 30;
-
-                if (this.ctx.isPointInStroke(mx, my)) {
-                    //this.canvas.style.cursor = 'grab';
-                }
-
-                if (my >= v) {
-                    this.lastMouse = { x: mx, y: my };
-                } else {
-                    this.lastMouse = undefined;
-                }
-
-                //e.preventDefault();
-                //e.stopPropagation();
+        /// Dragging the view when the mouse move
+        Utils.on(this.view.viewDiv, 'mousemove touchmove', (e) => {
+            if (!this.dragging) {
                 return;
             }
 
+            this.view.setCursor('grabbing');
 
-            
-            this.mouseFreq = null;
+            const mx = e.clientX;
+            const my = Utils.relMouseCoords(e).y;
 
             // is dragged
             let dx = (mx - this.lastMouse.x) / this.scaleX;
@@ -535,6 +449,7 @@ export class SpectraDisplayer extends DOMElement {
                 } else {
                     f = f0 + dx * df;
                 }
+                
 
                 self.hips.setFrequency({
                     value: f,
@@ -544,127 +459,121 @@ export class SpectraDisplayer extends DOMElement {
                 this.lastMouse = { x: mx, y: my };
 
                 self.view.requestRedraw();
-
-                
             }
 
             e.preventDefault();
             e.stopPropagation();
         });
 
-        Utils.on(this.view.aladin.aladinDiv, 'mouseout mouseup touchend', (e) => {
-            console.log("mouseup spectra")
-            this.isDragging = false;
-            //canvas.style.cursor = 'default';
+
+        /// Stop the dragging action when the mouse leave the full div or the user release the mouse
+        Utils.on(document, 'mouseleave mouseup touchend', (e) => {
+            this.dragging = false;
+        });
+
+        /// Click on the spectra
+        Utils.on(this.view.viewDiv, 'mouseup touchend', (e) => {
+            this.view.setCursor("default");
 
             //let mouseXY = Utils.relMouseCoords(e);
-            let mouseXY = {x: e.clientX, y: e.clientY};
+            const mouseXY = {x: e.clientX, y: e.clientY};
 
             const timeDiff = Date.now() - mouseDownTime;
             const dx = mouseXY.x - mouseDownPos.x;
             const dy = mouseXY.y - mouseDownPos.y;
 
-            const dist = Math.sqrt(dx * dx + dy * dy);
-
+            const dist = Math.sqrt(dx * dx + dy * dy)
             if (timeDiff < CLICK_TIME_THRESHOLD && dist < CLICK_MOVE_THRESHOLD) {
                 // Custom click detected
                 const rect = canvas.getBoundingClientRect();
-                const mx = mouseXY.x;
-                const my = mouseXY.y;
-                let v = this.data.values[Math.round(mx / this.scaleX)]
-                v = this.height - (v - this.minY) * this.scaleY
+                let dx = (mouseXY.x - rect.width * 0.5) / this.scaleX;
 
-                if (!v) {
-                    v = 0.5 * this.height;
-                }
-                if (my >= Math.min(v, 0.5 * this.height)) {
-                    let dx = (mx - rect.width * 0.5) / this.scaleX;
-                    if (dx != 0) {
-                        // Set the frequency
-                        // look where we are in the freq range
-                        let f;
-                        let df = self.data.dfreq * 0.5;
-                        let f0 = self.data.freq;
+                if (dx != 0) {
+                    // Set the frequency
+                    // look where we are in the freq range
+                    let f;
+                    let df = self.data.dfreq * 0.5;
+                    let f0 = self.data.freq;
 
-                        if (this.unit === SpectraDisplayer.UNIT.FREQUENCY) {
-                            f = f0 + dx * df;
-                        } else {
-                            f = f0 - dx * df;
-                        }
-
-                        self.hips.setFrequency({
-                            value: f,
-                            unit: 'Hz'
-                        })
+                    if (this.unit === SpectraDisplayer.UNIT.FREQUENCY) {
+                        f = f0 + dx * df;
+                    } else {
+                        f = f0 - dx * df;
                     }
-                    this.lastMouse = { x: mx, y: my };
 
+                    self.hips.setFrequency({
+                        value: f,
+                        unit: 'Hz'
+                    })
                 }
 
-                this.mouseFreq = null;
+                this.lastMouse = mouseXY;
             }
         });
 
-        let zoomFinishedTimeout;
+        let zoomFinishedTimeout, prevCursor;
         Utils.on(canvas, 'wheel', (e) => {
-            // stop the propagation to prevent scrolling on the page 
-            e.preventDefault();
-            e.stopPropagation();
-
-            let w = this.view.aladin.aladinDiv.getBoundingClientRect().width;
-            this.ctxCursor.clearRect(0, 0, w, this.height);
-
-            const mx = e.clientX;
-            const my = Utils.relMouseCoords(e).y;
-
-            // Can be in the spectral area
-            let v = this.data.values[Math.round(mx / this.scaleX)]
+            const mousePos = Utils.relMouseCoords(e);
             
-            v = this.height - (v - this.minY) * this.scaleY
-
-            if (!v) {
-                v = 0.5 * this.height;
-            }
-
-            if (my >= Math.min(v, 0.5 * this.height) || zoomFinishedTimeout) {
+            // Can be in the spectral area
+            if (this._isPointerOnSpectraArea(mousePos) || zoomFinishedTimeout) {
                 const normalizedDelta = e.deltaY && Utils.normalizeWheel(e) || e.detail || (-e.wheelDelta);
-                //canvas.style.cursor = (normalizedDelta > 0) ? 'zoom-out' : 'zoom-in';
+                let cursor = (normalizedDelta > 0) ? 'zoom-out' : 'zoom-in';
+                if (!zoomFinishedTimeout) {
+                    prevCursor = this.view.getCursor();
+                }
+
+                this.view.setCursor(cursor);
 
                 if (zoomFinishedTimeout) {
                     clearTimeout(zoomFinishedTimeout)
                 }
 
                 zoomFinishedTimeout = setTimeout(() => {
-                    //canvas.style.cursor = 'grab';
-
+                    this.view.setCursor(prevCursor)
                     zoomFinishedTimeout = null;
                 }, 500);
 
                 // Set the frequency resolution
                 let nextFreqResolution = this.getFrequencyResolution() * (1.0 + normalizedDelta / 200);
-                //if (nextFreqResolution > 0) {
-                    this.view.wasm.setFreqResolution(nextFreqResolution)
-                    this.view.requestRedraw()
-                //}
-                return;
+                this.view.wasm.setFreqResolution(nextFreqResolution)
+                this.view.requestRedraw()
+
+                // Consume the event
+                e.preventDefault()
+                e.stopPropagation()
             }
-
-            const wheelEvent = new WheelEvent('wheel', {
-                bubbles: true,
-                cancelable: true,
-                deltaX: e.deltaX,
-                deltaY: e.deltaY,
-                deltaMode: e.deltaMode,
-                clientX: e.clientX,
-                clientY: e.clientY,
-                ctrlKey: e.ctrlKey,
-                shiftKey: e.shiftKey,
-                altKey: e.altKey,
-                metaKey: e.metaKey
-            });
-
-            this.view.catalogCanvas.dispatchEvent(wheelEvent);
         });
+    }
+
+    /// Return if the pointer is on the spectra's interactible zone
+    /// mousePos has to be given in coo relative to the canvas DOM object
+    _isPointerOnSpectraArea(mousePos) {
+        const mx = mousePos.x;
+        const my = mousePos.y;
+        let v = this.data.values[Math.round(mx / this.scaleX)]
+        v = this.height - (v - this.minY) * this.scaleY
+
+        if (!v) {
+            v = 0.25 * this.height;
+        }
+
+        return my >= Math.min(v, 0.25 * this.height)
+    }
+
+    /// Return true if the pointer is on the spectral cursor (central vertical bar)
+    /// mousePos has to be given in coo relative to the canvas DOM object
+    _isPointerOnCursor(mousePos) {
+        // Check if the click is next to the central bar
+        // Draw the vertical line that can be grabed to move the slice
+        this.ctx.beginPath();
+        this.ctx.lineWidth = 50;
+
+        const numSamples = this.data.values.length
+        this.ctx.moveTo(this.scaleX * numSamples / 2, this.height);
+        this.ctx.lineTo(this.scaleX * numSamples / 2, this.height - (this.maxY - this.minY) * this.scaleY);
+
+        return this.ctx.isPointInStroke(mousePos.x, mousePos.y)
     }
 
     _hide() {
@@ -699,15 +608,13 @@ export class SpectraDisplayer extends DOMElement {
         if (hips) {
             this.spectraUpdateCallback = (event) => {
                 let data = event.detail;
-                //if (data.layer === this.hips.layer) {
-                    this.data = data;
+                this.data = data;
 
-                    if (this.unit !== SpectraDisplayer.UNIT.FREQUENCY) {
-                        this.data.values.reverse();
-                    }
+                if (this.unit !== SpectraDisplayer.UNIT.FREQUENCY) {
+                    this.data.values.reverse();
+                }
 
-                    this._redraw();
-                //}
+                this._redraw();
             };
 
             window.addEventListener("spectra", this.spectraUpdateCallback);
@@ -906,22 +813,43 @@ export class SpectraDisplayer extends DOMElement {
 
         // current window freq
         this.ctxLabels.textAlign = "center"; // Horizontally centered
-        let str, fillStyle; 
-        if (!this.isDragging && this.mouseFreq) {
-            fillStyle = "yellow";
-            str = spectraValue2String(this.mouseFreq, this.data.dfreq);
-        } else {
-            fillStyle = Aladin.DEFAULT_OPTIONS.reticleColor;
-            str = spectraValue2String(this.data.freq, this.data.dfreq);
-        }
+        
+        // Draw the label of the cursor current frequency
         drawLabel(
             this.ctxLabels,
-            str,
+            spectraValue2String(this.data.freq, this.data.dfreq),
             w / 2,
             this.height - 10,
             'black',
             '20px monospace',
-            fillStyle
+            this.view.aladin.defaultColor
+        )
+
+        this.ctxLabels.textAlign = "center"; // Horizontally centered
+        
+        // Draw the label of the cursor current frequency
+        drawLabel(
+            this.ctxLabels,
+            '[' + spectraValue2String(this.data.dfreq, 5) + ']',
+            w / 2,
+            this.height - 60,
+            'black',
+            '20px monospace',
+            this.view.aladin.defaultColor
+        )
+
+        // Draw the hovered frequency
+        const mouseFreq = this.data.freqs[Math.round(((this.lastMouse.x) / this.scaleX) )];
+        this.ctxLabels.textAlign = "left"; // Horizontally centered
+
+        drawLabel(
+            this.ctxLabels,
+            spectraValue2String(mouseFreq, this.data.freqs[1] - this.data.freqs[0]),
+            0,
+            this.height - 100,
+            'black',
+            '20px monospace',
+            'yellow'
         )
     }
 

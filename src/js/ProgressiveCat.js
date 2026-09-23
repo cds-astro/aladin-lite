@@ -131,6 +131,8 @@ export let ProgressiveCat = (function() {
 
         var fields = [];
         var k = 0;
+        var bestRaScore = -1;
+        var bestDecScore = -1;
         instance.keyRa = instance.keyDec = null;
         xml.querySelectorAll("FIELD").forEach((field) => {
             var f = {};
@@ -144,20 +146,18 @@ export let ProgressiveCat = (function() {
             if ( ! f.ID) {
                 f.ID = "col_" + k;
             }
-            if (!instance.keyRa && f.ucd && (f.ucd.indexOf('pos.eq.ra')==0 || f.ucd.indexOf('POS_EQ_RA')==0)) {
-                if (f.name) {
-                    instance.keyRa = f.name;
-                }
-                else {
-                    instance.keyRa = f.ID;
+            if (isUCDField(f, 'pos.eq.ra', 'pos_eq_ra')) {
+                var raScore = scorePositionField(f);
+                if (raScore > bestRaScore) {
+                    bestRaScore = raScore;
+                    instance.keyRa = f.name || f.ID;
                 }
             }
-            if (!instance.keyDec && f.ucd && (f.ucd.indexOf('pos.eq.dec')==0 || f.ucd.indexOf('POS_EQ_DEC')==0)) {
-                if (f.name) {
-                    instance.keyDec = f.name;
-                }
-                else {
-                    instance.keyDec = f.ID;
+            if (isUCDField(f, 'pos.eq.dec', 'pos_eq_dec')) {
+                var decScore = scorePositionField(f);
+                if (decScore > bestDecScore) {
+                    bestDecScore = decScore;
+                    instance.keyDec = f.name || f.ID;
                 }
             }
             
@@ -166,6 +166,38 @@ export let ProgressiveCat = (function() {
         });
 
         return fields;
+    }
+
+    function isUCDField(field, ucdField, oldUcdField) {
+        if (!field.ucd) {
+            return false;
+        }
+
+        var ucd = field.ucd.toLowerCase().trim();
+        return ucd.indexOf(ucdField) == 0 || ucd.indexOf(oldUcdField) == 0;
+    }
+
+    function scorePositionField(field) {
+        var score = 1;
+        var datatype = field.datatype ? field.datatype.toLowerCase() : "";
+        var unit = field.unit ? field.unit.toLowerCase().trim() : "";
+        var isDouble = datatype === "double";
+        var isDeg = unit === "deg";
+
+        if (datatype && datatype !== "char" && datatype !== "unicodechar") {
+            score += 20;
+        }
+        if (isDouble) {
+            score += 20;
+        }
+        if (isDeg) {
+            score += 10;
+        }
+        if (isDouble && isDeg) {
+            score += 50;
+        }
+
+        return score;
     }
 
     function getSources(instance, csv, fields) {

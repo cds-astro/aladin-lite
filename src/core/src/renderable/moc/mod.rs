@@ -22,9 +22,14 @@ use moclib::moc::range::CellAndEdges;
 
 use moclib::moc::RangeMOCIterator;
 
+use crate::renderable::utils::triangle::Triangle;
 use crate::HEALPixCell;
 
 use al_core::VecData;
+use cgmath::Vector3;
+
+// Max number of times a cell crossing the projection boundary is split before being dropped
+const MAX_BOUNDARY_SUBDIVISIONS: u8 = 5;
 
 pub struct MOC {
     pub sky_fraction: f32,
@@ -226,26 +231,82 @@ impl MOCIntern {
         Self { vao, gl, mode }
     }
 
+    fn cells_in_view<'a>(
+        &self,
+        moc: &'a SpaceMoc,
+        camera: &'a mut CameraViewPort,
+    ) -> impl Iterator<Item = HEALPixCell> + 'a {
+        let view_moc = camera.get_cov(CooSystem::ICRS);
+
+        moc.overlapped_by_iter(view_moc).cells().flat_map(|cell| {
+            let Cell { idx, depth } = cell;
+            let cell = HEALPixCell(depth, idx);
+            let dd = if 3 >= cell.depth() {
+                3 - cell.depth()
+            } else {
+                0
+            };
+            cell.get_tile_cells(dd)
+        })
+    }
+
     fn vertices_in_view<'a>(
         &self,
         moc: &'a SpaceMoc,
         camera: &'a mut CameraViewPort,
     ) -> impl Iterator<Item = [(f64, f64); 4]> + 'a {
-        let view_moc = camera.get_cov(CooSystem::ICRS);
-
-        moc.overlapped_by_iter(view_moc)
-            .cells()
-            .flat_map(|cell| {
-                let Cell { idx, depth } = cell;
-                let cell = HEALPixCell(depth, idx);
-                let dd = if 3 >= cell.depth() {
-                    3 - cell.depth()
-                } else {
-                    0
-                };
-                cell.get_tile_cells(dd)
-            })
+        self.cells_in_view(moc, camera)
             .map(|hpx_cell| hpx_cell.vertices())
+    }
+
+    // Cells crossing the projection boundary (seam or limb) would have their corners
+    // projected on opposite sides of the view, so they are split into their children.
+    fn fill_vertices_in_view(
+        &self,
+        moc: &SpaceMoc,
+        camera: &mut CameraViewPort,
+        proj: &ProjectionType,
+    ) -> Vec<[(f64, f64); 4]> {
+        let mut stack: Vec<(HEALPixCell, u8)> = self
+            .cells_in_view(moc, camera)
+            .map(|cell| (cell, 0))
+            .collect();
+
+        let icrs2view = CooSystem::ICRS.to(camera.get_coo_system());
+        let to_clip = |&(lon, lat): &(f64, f64)| -> Option<[f64; 2]> {
+            let (ds, dc) = lat.sin_cos();
+            let (ts, tc) = lon.sin_cos();
+            let xyz = icrs2view * Vector3::new(dc * ts, ds, dc * tc);
+            proj.model_to_clip_space(&xyz, camera).map(|p| [p.x, p.y])
+        };
+
+        let mut vertices = Vec::with_capacity(stack.len());
+        while let Some((cell, subdivisions)) = stack.pop() {
+            let v = cell.vertices();
+            let clip: Vec<Option<[f64; 2]>> = v.iter().map(to_clip).collect();
+            let num_projected = clip.iter().filter(|c| c.is_some()).count();
+            if num_projected == 0 {
+                // entirely outside the projection
+                continue;
+            }
+            // same triangles as the index buffer below
+            let straddles = num_projected < 4 || {
+                let c: Vec<[f64; 2]> = clip.into_iter().flatten().collect();
+                Triangle::new(&c[0], &c[2], &c[1]).is_elongated()
+                    || Triangle::new(&c[0], &c[3], &c[2]).is_elongated()
+            };
+
+            if !straddles {
+                vertices.push(v);
+            } else if subdivisions < MAX_BOUNDARY_SUBDIVISIONS {
+                stack.extend(
+                    cell.get_tile_cells(1)
+                        .map(|child| (child, subdivisions + 1)),
+                );
+            }
+        }
+
+        vertices
     }
 
     fn draw(
@@ -389,7 +450,8 @@ impl MOCIntern {
                 let mut off_idx = 0;
                 let mut indices: Vec<u32> = vec![];
                 let vertices = self
-                    .vertices_in_view(moc, camera)
+                    .fill_vertices_in_view(moc, camera, proj)
+                    .into_iter()
                     .flat_map(|v| {
                         let vertices = [
                             v[0].0 as f32,

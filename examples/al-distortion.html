@@ -24,10 +24,10 @@
 
         aladin.setBaseImageLayer("P/PanSTARRS/DR1/g", {imgFormat: "fits"});
         aladin.getBaseImageLayer().setColormap('redtemperature', {stretch: "Asinh"});*/
+        let survey = A.HiPS("./data/hips/CFHT", {name: "mysurvey"});
 
-        aladin = A.aladin('#aladin-lite-div', {survey: 'CDS/P/SDSS9/color', fov: 150, target: '0 90', fullScreen: true, cooFrame: 'equatorial', showCooGridControl: true, showSimbadPointerControl: true, showCooGrid: true});
+        aladin = A.aladin('#aladin-lite-div', {survey, fov: 150, target: '0 90', fullScreen: true, cooFrame: 'equatorial', showCooGridControl: true, showSimbadPointerControl: true, showCooGrid: true});
 
-        //let survey = aladin.createImageSurvey("P/PanSTARRS/DR1/g", null, null, null, null, );
         /*aladin.setBaseImageLayer("P/PanSTARRS/DR1/g");
         aladin.getBaseImageLayer().setColormap('viridis', {stretch: "Asinh"});*/
 

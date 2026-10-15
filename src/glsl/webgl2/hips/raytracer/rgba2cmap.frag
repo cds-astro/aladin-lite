@@ -1,8 +1,8 @@
 #version 300 es
 precision highp float;
-precision highp sampler2DArray;
-precision highp sampler2DArray;
-precision highp isampler2DArray;
+precision highp sampler2D;
+precision highp sampler2D;
+precision highp isampler2D;
 precision highp int;
 
 in vec3 frag_pos;
@@ -19,7 +19,7 @@ struct Tile {
 uniform Tile textures_tiles[12];
 
 uniform float opacity;
-uniform sampler2DArray tex;
+uniform sampler2D tex;
 
 #include ../color.glsl;
 #include ../../projection/hpx_proj.glsl;

@@ -61,7 +61,7 @@ fn create_hpx_texture_storage(
         (
             WebGlRenderingCtx::TEXTURE_MIN_FILTER,
             // apply mipmapping
-            WebGlRenderingCtx::NEAREST_MIPMAP_NEAREST,
+            WebGlRenderingCtx::NEAREST,
         ),
         (
             WebGlRenderingCtx::TEXTURE_MAG_FILTER,
@@ -337,8 +337,7 @@ impl HpxTileBuffer for HiPS2DBuffer {
     type C = HEALPixCell;
 
     fn new(gl: &WebGlContext, config: HiPSConfig) -> Result<Self, JsValue> {
-        let size = 128 - NUM_HPX_TILES_DEPTH_ZERO;
-        //let size = 128;
+        let size = 64 - NUM_HPX_TILES_DEPTH_ZERO;
         // Ensures there is at least space for the 12
         // root textures
         //debug_assert!(size >= NUM_HPX_TILES_DEPTH_ZERO);
@@ -363,7 +362,7 @@ impl HpxTileBuffer for HiPS2DBuffer {
 
         let channel = config.get_format().get_pixel_format();
         let tile_size = config.get_tile_size();
-        let tile_pixels = create_hpx_texture_storage(gl, channel, 128, tile_size)?;
+        let tile_pixels = create_hpx_texture_storage(gl, channel, 64, tile_size)?;
 
         let allsky_tile_size = config.allsky_tile_size();
         let allsky_pixels = create_hpx_texture_storage(gl, channel, 12, allsky_tile_size)?;
@@ -396,7 +395,7 @@ impl HpxTileBuffer for HiPS2DBuffer {
         let channel = self.config.get_format().get_pixel_format();
 
         let tile_size = self.config.get_tile_size();
-        self.tile_pixels = create_hpx_texture_storage(gl, channel, 128, tile_size)?;
+        self.tile_pixels = create_hpx_texture_storage(gl, channel, 64, tile_size)?;
 
         let allsky_tile_size = self.config.allsky_tile_size();
         self.allsky_pixels = create_hpx_texture_storage(gl, channel, 12, allsky_tile_size)?;

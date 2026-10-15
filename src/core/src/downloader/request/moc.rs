@@ -60,7 +60,7 @@ impl From<query::Moc> for MOCRequest {
 
             // Coosys is permissive because we load a moc
             Ok(match dataproduct_type {
-                DataproductType::SpectralCube => {
+                DataproductType::SpectralCube | DataproductType::TimeCube => {
                     Moc::FreqSpace(FreqSpaceMoc::from_fits_raw_bytes(&bytes)?)
                 }
                 DataproductType::Cube => {

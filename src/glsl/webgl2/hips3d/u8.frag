@@ -8,7 +8,7 @@ in vec3 frag_uv;
 
 out vec4 out_frag_color;
 
-#include ../hips/color.glsl;
+#include color.glsl;
 
 uniform float opacity;
 

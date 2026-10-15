@@ -132,6 +132,23 @@ PropertyParser.dataRange = function (properties) {
     return [minRange, maxRange];
 };
 
+PropertyParser.orderAxis2 = function(properties) {
+    let orderAxis2 =
+        properties &&
+        properties.hips_order_freq &&
+        +properties.hips_order_freq;
+
+    orderAxis2 = orderAxis2 || (properties && properties.hips_order_axis2 && +properties.hips_order_axis2);
+
+    return orderAxis2;
+}
+
+PropertyParser.minOrderAxis2 = function(properties) {
+    let minOrderAxis2 = (properties && properties.hips_order_min_axis2 && +properties.hips_order_min_axis2);
+
+    return minOrderAxis2;
+}
+
 PropertyParser.cutouts = function (properties) {
     let cuts =
         properties &&
@@ -346,10 +363,11 @@ export let HiPS = (function () {
         this.successCallback = options && options.successCallback;
         this.dataproductType = options && options.dataproductType || 'image';
         this.tileDepth = options && options.tileDepth;
-        this.orderFreq = options && options.orderFreq;
+        this.orderAxis2 = options && options.orderAxis2;
         this.emMin = options && options.emMin;
         this.emMax = options && options.emMax;
-
+        this.tMin = options && options.tMin;
+        this.tMax = options && options.tMax;
         // Opacity of the survey/image
         this.opacity = (options && options.opacity) || 1.0;
 
@@ -549,6 +567,7 @@ export let HiPS = (function () {
         // HiPS Cube special keywords
         self.cubeDepth = properties && properties.hips_cube_depth && +properties.hips_cube_depth;
         self.cubeFirstFrame = properties && properties.hips_cube_firstframe && +properties.hips_cube_firstframe;
+        console.log("properties", properties)
         self.emMin = (properties && properties.em_min && +properties.em_min) || self.emMin;
         self.emMax = (properties && properties.em_max && +properties.em_max) || self.emMax;
 
@@ -558,20 +577,32 @@ export let HiPS = (function () {
             self.emMax = tmp;
         }
 
+        self.tMin = (properties && properties.t_min && +properties.t_min) || self.tMin;
+        self.tMax = (properties && properties.t_max && +properties.t_max) || self.tMax;
+
         self.dataMinMax = PropertyParser.hipsDataMinmax(properties);
 
         self.dataRange = PropertyParser.dataRange(properties);
-
-        // HiPS3D special keywords
-        self.orderFreq = (properties && properties.hips_order_freq && +properties.hips_order_freq) || self.orderFreq;
-        self.tileDepth = (properties && properties.hips_tile_depth && +properties.hips_tile_depth) || self.tileDepth;
-        self.obsRestFreq = properties && properties.obs_restfreq && +properties.obs_restfreq;
 
         // Max order
         const maxOrder = PropertyParser.maxOrder(properties)
         if (maxOrder !== undefined) {
             self.maxOrder = maxOrder;
         }
+
+        // HiPS3D special keywords
+        self.orderAxis2 = PropertyParser.orderAxis2(properties) || self.orderAxis2;
+        let minOrderAxis2 = PropertyParser.minOrderAxis2(properties);
+
+        if (self.orderAxis2 && (minOrderAxis2 === undefined || minOrderAxis2 === null)) {
+            minOrderAxis2 = Math.max(self.orderAxis2 - self.maxOrder, 0);
+        }
+
+        self.minOrderAxis2 = minOrderAxis2;
+
+        self.tileDepth = (properties && properties.hips_tile_depth && +properties.hips_tile_depth) || self.tileDepth;
+        self.obsRestFreq = properties && properties.obs_restfreq && +properties.obs_restfreq;
+
 
         // dataproduct type
         self.dataproductType = properties && properties.dataproduct_type || self.dataproductType;
@@ -917,12 +948,12 @@ export let HiPS = (function () {
             let meters = this.emMin + ((slice / this.cubeDepth) * (this.emMax - this.emMin));
 
             let freq = 299792458.0 / meters;
-            this.view.wasm.setFreq(this.layer, freq);
+            this.view.wasm.setQty(this.layer, freq);
         }
     }
 
     /**
-     * Set the frequency to look at (for HiPS3D object only).
+     * Set the frequency to look at (for freq HiPS3D object only).
      *
      * @memberof HiPS
      *
@@ -957,8 +988,32 @@ export let HiPS = (function () {
                 freq = value;
             }
 
-            this.view.wasm.setFreq(this.layer, freq);
+            this.view.wasm.setQty(this.layer, freq);
         }
+    }
+
+    /**
+     * Set the time to look at (for time HiPS3D only).
+     *
+     * @memberof HiPS
+     *
+     * @param {float} time - The time
+     * @param {Object} [options]
+     * @param {"mjd"|"us"|"jd"} [options.format="mjd"] - The unit of the time passed
+     */
+    HiPS.prototype.setTime = function(time, options) {
+        const format = options.format || "mjd";
+
+        let us;
+        if (format === "mjd") {
+            const jd = time + 2400000.5;
+            us = jd * 86400000000.0;
+        } else if (format === "jd") {
+            us = jd * 86400000000.0;
+        } else {
+            us = time
+        }
+        this.view.wasm.setQty(this.layer, us);
     }
 
     /**
@@ -969,17 +1024,6 @@ export let HiPS = (function () {
     HiPS.prototype.getFrequency = function() {
         if (this.added) {
             return this.view.wasm.getFreq(this.layer);
-        }
-    }
-
-    /**
-     * Get the frequency window around the current observed frequency in Hz
-     *
-     * @memberof HiPS
-     */
-    HiPS.prototype.getFrequencyWindow = function() {
-        if (this.added) {
-            return this.view.wasm.getFreqWindow(this.layer);
         }
     }
 
@@ -1265,11 +1309,14 @@ export let HiPS = (function () {
                 initialDec: self.initialDec,
                 emMin: self.emMin,
                 emMax: self.emMax,
+                tMin: self.tMin,
+                tMax: self.tMax,
                 // HiPS Cube
                 cubeDepth: self.cubeDepth,
                 // HiPS3D
                 tileDepth: self.tileDepth,
-                orderFreq: self.orderFreq,
+                orderAxis2: self.orderAxis2,
+                minOrderAxis2: self.minOrderAxis2,
                 // Dataproduct type
                 dataproductType: self.dataproductType, 
                 isPlanetaryBody: self.isPlanetaryBody(),
@@ -1336,11 +1383,14 @@ export let HiPS = (function () {
                 initialDec: self.initialDec,
                 emMin: self.emMin,
                 emMax: self.emMax,
+                tMin: self.tMin,
+                tMax: self.tMax,
                 // HiPS Cube
                 cubeDepth: self.cubeDepth,
                 // HiPS3D
                 tileDepth: self.tileDepth,
-                orderFreq: self.orderFreq,
+                orderAxis2: self.orderAxis2,
+                minOrderAxis2: self.minOrderAxis2,
                 // Dataproduct type
                 dataproductType: self.dataproductType, 
                 isPlanetaryBody: self.isPlanetaryBody(),

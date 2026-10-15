@@ -1,65 +1,57 @@
-pub trait SpectralUnit: Into<Freq> + Clone + Copy {
-    fn hash(&self, order_f: u8) -> u64 {
-        let f: Freq = (*self).into();
-        let f_hash_max_order = Frequency::<u64>::freq2hash(f.0);
+use moclib::qty::{Frequency, MocQty};
+use crate::math::quantity::Qty;
+use std::convert::From;
+impl Qty for Freq {
+    /// Frequency is expressed in double floating point
+    type T = f64;
 
-        f_hash_max_order >> (Frequency::<u64>::MAX_DEPTH - order_f)
+    /// Frequency in Hz unit
+    const MIN_VALUE: Self::T = 1e-18;
+    const MAX_VALUE: Self::T = 1e+38;
+
+    const MAX_DEPTH: u8 = Frequency::<u64>::MAX_DEPTH;
+
+    fn hash_max_order(&self) -> u64 {
+        let f: Freq = (*self).into();
+        Frequency::<u64>::freq2hash(f.0)
     }
 
-    /// The frequency coverage, at a dedicated order, between to consecutive index is provided by this expression:
-    fn delta_freq(&self, order_f: u8) -> Freq {
-        let f: Freq = (*self).into();
-        let exponent = 56.0 / ((1u64 << order_f) as f64);
+    fn from_hash(hash: u64) -> Self {
+        let f = Frequency::hash2freq(hash);
+        Freq(f).into()
+    }
 
-        Freq(f.0 * (10.0_f64.powf(exponent) - 1.0))
+    fn num_max_cells(order: u8) -> u64 {
+        Frequency::<u64>::n_cells_max() >> (Self::MAX_DEPTH - order)
+    }
+
+    fn new(value: Self::T) -> Self {
+        Freq(value.max(Self::MIN_VALUE).min(Self::MAX_VALUE))
+    }
+
+    fn order(&self, dq: Self) -> u8 {
+        (56.0 / (1.0 + dq.0 / self.0).log10()).log2().floor() as u8
+    }
+
+    fn dq(&self, order: u8) -> Self {
+        let df = self.0 * (10.0_f64.powf(56.0 / ((1 << order) as f64)) - 1.0);
+
+        Freq(df)
     }
 }
 
 use std::ops::Add;
 
-/// The appropriate order required to map a ∆ftarget frequency at frequency f
-//  at a resolution is approximated by this formulae:
-pub(crate) fn order_f<S: SpectralUnit, V: SpectralUnit>(freq: S, delta_f_target: V) -> u8 {
-    let freq: Freq = freq.into();
-    let delta_f_target: Freq = delta_f_target.into();
-
-    ((56.0_f64 * freq.0 / delta_f_target.0).log2())
-        .round() as u8
-}
-
-use moclib::qty::{Frequency, MocQty};
-
-/// Frequency in Hz unit
-pub(crate) const FREQ_MIN: f64 = 1e-18;
-pub(crate) const FREQ_MAX: f64 = 1e+38;
-
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
 pub struct Freq(pub f64);
 
 impl Freq {
-    pub fn from_hash(hash: u64) -> Self {
-        let f = Frequency::hash2freq(hash);
-
-        Freq(f)
-    }
-
-    pub fn from_hash_with_order(hash: u64, order: u8) -> Self {
-        let hash_max_order = hash << (Frequency::<u64>::MAX_DEPTH - order);
-        let f = Frequency::hash2freq(hash_max_order);
-
-        Freq(f)
-    }
-
     pub fn max(&self, other: Self) -> Self {
         Freq(self.0.max(other.0))
     }
 
     pub fn min(&self, other: Self) -> Self {
         Freq(self.0.min(other.0))
-    }
-
-    pub fn num_max_cells(order: u8) -> usize {
-        (Frequency::<u64>::n_cells_max() >> (Frequency::<u64>::MAX_DEPTH - order)) as usize
     }
 }
 
@@ -135,7 +127,3 @@ impl From<Wavelength> for Freq {
         Freq(SPEED_OF_LIGHT / lambda.0)
     }
 }
-
-impl SpectralUnit for Freq {}
-impl SpectralUnit for Wavelength {}
-impl SpectralUnit for Velocity {}

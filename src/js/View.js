@@ -666,7 +666,7 @@ export let View = (function () {
         if (this.spectraDisplayer)
             this.spectraDisplayer._hide();
 
-        if (imageLayer.dataproductType === "spectral-cube") {
+        if (imageLayer.dataproductType === "spectral-cube" || imageLayer.dataproductType === "time-cube") {
             if (!this.spectraDisplayer) {
                 this.spectraDisplayer = new SpectraDisplayer(this);
             }
@@ -687,8 +687,6 @@ export let View = (function () {
         let onDblClick = function (e) {
             const xymouse = Utils.relMouseCoords(e);
 
-
-            console.log(xymouse)
             // deselect all the selected sources with Select panel
             view.unselectObjects();
 
@@ -893,7 +891,6 @@ export let View = (function () {
 
         var touchStartTime;
         Utils.on(view.viewDiv, "mousedown touchstart", function (e) {
-            console.log("view mousedown")
             e.stopPropagation();
 
             view.requestRedraw();
@@ -908,8 +905,6 @@ export let View = (function () {
                     return;
                 }
             }
-
-            console.log("AAAA")
 
             ALEvent.CANVAS_EVENT.dispatchedTo(view.aladinDiv, {
                 state: {
@@ -990,7 +985,7 @@ export let View = (function () {
             view.wasm.pressLeftMouseButton();
 
             if (view.mode === View.SELECT) {
-                view.selector.dispatch('mousedown', {coo: xymouse})
+                view.selector.dispatch('mousedown', e)
             }
 
             // false disables default browser behaviour like possibility to touch hold for context menu.
@@ -1045,7 +1040,6 @@ export let View = (function () {
 
         // reacting on 'click' rather on 'mouseup' is more reliable when panning the view
         Utils.on(view.viewDiv, "mouseup touchend touchcancel", function (e) {
-            console.log("mouseout/mouseup")
             const xymouse = Utils.relMouseCoords(e);
             view.xy = xymouse
 
@@ -1092,14 +1086,14 @@ export let View = (function () {
 
             if (e.type === "mouseup") {
                 if (view.mode === View.SELECT) {
-                    view.selector.dispatch('mouseup', {coo: xymouse})
+                    view.selector.dispatch('mouseup', e)
                 }
             }
 
             if (e.type === "mouseout" || e.type === "touchend" || e.type === "touchcancel") {
                 if (e.type === "mouseout" || e.type === "touchcancel") {
                     if (view.mode === View.SELECT) {
-                        view.selector.dispatch('mouseout', {coo: xymouse, e})
+                        view.selector.dispatch('mouseout', e)
                     }
 
                     return;
@@ -1107,7 +1101,7 @@ export let View = (function () {
 
                 if (e.type === "touchend") {
                     if (view.mode === View.SELECT) {
-                        view.selector.dispatch('mouseup', {coo: xymouse})
+                        view.selector.dispatch('mouseup', e)
 
                         return;
                     }
@@ -1163,7 +1157,7 @@ export let View = (function () {
             }
 
             if (view.mode === View.SELECT && e.type === "click") {
-                view.selector.dispatch('click', {coo: xymouse})
+                view.selector.dispatch('click', e)
             }
 
             // TODO : remplacer par mecanisme de listeners
@@ -1217,7 +1211,6 @@ export let View = (function () {
 
         Utils.on(view.viewDiv, "mousemove touchmove", function (e) {
             e.preventDefault();
-            //console.log("mousemove main")
 
             const xymouse = Utils.relMouseCoords(e);
             view.xy = xymouse
@@ -1373,7 +1366,7 @@ export let View = (function () {
             }
 
             if (view.mode === View.SELECT) {
-                view.selector.dispatch('mousemove', {coo: xymouse})
+                view.selector.dispatch('mousemove', e)
             }
 
             if (view.mode === View.TOOL_COLOR_PICKER) {

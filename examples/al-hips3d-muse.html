@@ -15,8 +15,8 @@
             {
                 showSimbadPointerControl: true,
                 projection: 'AIT', // set a projection
-                fov: 2.0/60, // initial field of view in degrees
-                target: '15 00 01.93 +01 53 31.2', // initial target
+                fov: 1.472, // initial field of view in degrees
+                target: '18 25 27.61 +67 49 45.4', // initial target
                 cooFrame: 'icrs', // set galactic frame
                 reticleColor: '#ff89ff', // change reticle color
                 showContextMenu: true,
@@ -28,9 +28,9 @@
             }
         );
 
-        hips = aladin.newImageSurvey("https://alasky.cds.unistra.fr/HIPS3D/MUSE-test", {
+        hips = aladin.newImageSurvey("https://alaskybis.cds.unistra.fr/HIPS3D/WISE-NEP/CDS_C_WISE-NEP_W2/", {
             successCallback: () => {
-                hips.setFrequency({value: 636.6e12, unit: "Hz"})
+                //hips.setFrequency({value: 636.6e12, unit: "Hz"})
             }
         });
         aladin.setImageLayer(hips)

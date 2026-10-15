@@ -1,14 +1,19 @@
 use crate::browser_support::BrowserFeaturesSupport;
 use crate::downloader::request::moc::MOCRequest;
 use crate::math::angle::ToAngle;
-use crate::math::spectra::Freq;
 use crate::renderable::hips::HiPS;
 use crate::renderable::image::Image;
 use crate::renderable::ImageLayer;
 use crate::tile_fetcher::HiPSLocalFiles;
 use crate::spectra_displayer::SpectraDisplayer;
-use crate::math::spectra::SpectralUnit;
-use crate::math::spectra::{FREQ_MIN, FREQ_MAX};
+use crate::math::quantity::Qty;
+use crate::math::quantity::frequency::Freq;
+
+use crate::coo_space::CooSpace;
+use crate::renderable::line::Style;
+use crate::ColorRGBA;
+use crate::renderable::line::PathVertices;
+
 use crate::renderable::line::RasterizedLineRenderer;
 
 use crate::PollInfo;
@@ -150,7 +155,7 @@ use al_api::resources::Resources;
 
 use al_api::cell::HEALPixCellProjeted;
 
-use crate::healpix::cell::HEALPixFreqCell;
+use crate::healpix::cell::HEALPix3DCell;
 
 use al_api::color::ColorRGB;
 
@@ -280,7 +285,7 @@ impl App {
 
         let line_renderer = RasterizedLineRenderer::new(&gl)?;
 
-        let mut spectra_displayer = SpectraDisplayer::new();
+        let spectra_displayer = SpectraDisplayer::new();
 
         Ok(App {
             gl,
@@ -344,6 +349,7 @@ impl App {
     fn look_for_new_tiles(&mut self) -> Result<(), JsValue> {
         // Move the views of the different active hips
         self.tile_fetcher.clear();
+        let q_order = self.spectra_displayer.q_order();
         // Loop over the hipss
         for hips in self.layers.get_mut_hipses() {
             /*if self.camera.get_tile_depth() == 0 {
@@ -364,6 +370,7 @@ impl App {
                 &mut self.tile_fetcher,
                 &self.camera,
                 &self.browser_features_support,
+                q_order
             );
         }
 
@@ -470,16 +477,16 @@ impl App {
 
                 let v = cell.vertices();
                 let proj2screen = |(lon, lat): &(f64, f64)| -> Option<[f64; 2]> {
-                    // 1. convert to xyz
+                    // 1. Convert to xyz
                     let xyz = crate::math::lonlat::radec_to_xyz(lon.to_angle(), lat.to_angle());
-                    // 2. get it back to the camera frame system
+                    // 2. Get it back to the camera frame system
                     let xyz = crate::coosys::apply_coo_system(
                         CooSystem::ICRS,
                         self.camera.get_coo_system(),
                         &xyz,
                     );
 
-                    // 3. project on screen
+                    // 3. Project on screen
                     self.projection
                         .model_to_clip_space(&xyz, &self.camera)
                         .map(|p| [p.x, p.y])
@@ -691,6 +698,7 @@ impl App {
         //let catalogs = &self.manager;
         let colormaps = &self.colormaps;
         let line_renderer = &self.line_renderer;
+        let spectra_displayer = &self.spectra_displayer;
         //let fbo_view = &self._fbo_view;
         //let final_rendering_pass = &self._final_rendering_pass;
 
@@ -701,7 +709,7 @@ impl App {
         gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
         // set the blending options
-        layers.draw(camera, shaders, colormaps, projection)?;
+        layers.draw(camera, shaders, colormaps, projection, spectra_displayer)?;
 
         // Draw the catalog
         //let fbo_view = &self.fbo_view;
@@ -763,11 +771,10 @@ impl App {
             self.spectra_displayer.attach_hips3d(&hips);
             // Compute a default freq order from the hips attached and the current fov
             let s_order = self.camera.get_tile_depth();
-            let f_order = self.spectra_displayer.f_max_order - self.spectra_displayer.s_max_order + s_order;
+            let q_order = self.spectra_displayer.q_max_order - self.spectra_displayer.s_max_order + s_order;
 
-            self.spectra_displayer.set_freq_order(f_order);
+            self.spectra_displayer.set_q_order(q_order);
             self.update_spectra_displayer();
-            //self.draw_spectra_spatial_counterpart();
         }
     }
 
@@ -952,10 +959,10 @@ impl App {
         self.layers.get_layer_cfg(layer)
     }
 
-    pub(crate) fn set_hips_frequency(
+    pub(crate) fn set_hips_quantity(
         &mut self,
         layer: &str,
-        freq: f64,
+        quantity: f64,
     ) -> Result<(), JsValue> {
         let hips = self
             .layers
@@ -963,26 +970,23 @@ impl App {
             .ok_or_else(|| JsValue::from_str("Layer not found"))?;
 
         self.request_for_new_tiles = true;
-        let freq = Freq(freq.min(FREQ_MAX).max(FREQ_MIN)); 
-
-        let f = freq.0;
 
         match hips {
             HiPS::D2(_) => return Err(JsValue::from_str("layer does not refer to a cube")),
             HiPS::D3(hips) => {
-                hips.set_freq(freq);
+                hips.set_qty(quantity);
             }
         }
 
         if self.spectra_displayer.layer.as_deref() == Some(layer) {
-            self.spectra_displayer.set_freq(freq);
+            self.spectra_displayer.set_qty(quantity);
             self.update_spectra_displayer();
         }
 
         Ok(())
     }
 
-    pub(crate) fn get_hips_frequency(&mut self, layer: &str) -> Result<f32, JsValue> {
+    pub(crate) fn get_hips_quantity(&mut self, layer: &str) -> Result<f32, JsValue> {
         let hips = self
             .layers
             .get_mut_hips_from_layer(layer)
@@ -990,12 +994,11 @@ impl App {
 
         match hips {
             HiPS::D2(_) => Err(JsValue::from_str("layer do not refers to a cube")),
-            HiPS::D3(hips) => Ok(hips.get_freq().0 as f32),
+            HiPS::D3(hips) => {
+                let q: f64 = hips.get_qty().into();
+                Ok(q as f32)
+            }
         }
-    }
-
-    pub(crate) fn get_hips_frequency_window(&mut self, layer: &str) -> [Freq; 2] {
-        self.spectra_displayer.get_freq_window()
     }
 
     pub(crate) fn hash2freq(&mut self, hash: u64, order: u8) -> f64 {
@@ -1007,20 +1010,23 @@ impl App {
     }
 
     fn draw_spectra_spatial_counterpart(&mut self) {
-        use crate::coo_space::CooSpace;
-        use crate::renderable::line::Style;
-        use crate::ColorRGBA;
-        use crate::renderable::line::PathVertices;
+        if self.spectra_displayer.is_hidden() {
+            return;
+        }
 
         let paths = self.spectra_displayer.get_hpx_region()
             .into_iter()
             .map(|cell| {
-                let vertices = cell.vertices();
+                let vertices = cell.vertices()
+                    .map(|(mut lon, lat)| {
+                        lon = if lon > std::f64::consts::PI { lon - 2.0 * std::f64::consts::PI } else { lon };
+                        [lon, lat]
+                    });
+
                 PathVertices {
-                    vertices: [[vertices[0].0 as f32, vertices[0].1 as f32], [vertices[1].0 as f32, vertices[1].1 as f32], [vertices[2].0 as f32, vertices[2].1 as f32], [vertices[3].0 as f32, vertices[3].1 as f32], [vertices[0].0 as f32, vertices[0].1 as f32]]
+                    vertices: [vertices[0], vertices[1], vertices[2], vertices[3], vertices[0]]
                 }
             });
-
 
         self.line_renderer.add_stroke_paths(
             paths,
@@ -1032,22 +1038,30 @@ impl App {
         );
     }
 
-    pub(crate) fn set_dfreq(&mut self, df: f64) -> Result<(), JsValue> {
-        //let f_order = self.spectra_displayer.cell.f_depth;
+    pub(crate) fn hide_spectra_displayer(&mut self) {
+        self.spectra_displayer.hide();
 
-        self.spectra_displayer.set_dfreq(Freq(df));
+        self.line_renderer.add_stroke_paths(
+            std::iter::empty::<PathVertices<Vec<[f64; 2]>>>(),
+            2.0,
+            &ColorRGBA { r: 0.0, g: 1.0, b: 0.0, a: 1.0 },
+            &Style::None,
+            CooSpace::LonLat,
+            "hpx_spectra_counterpart"
+        );
+    }
+
+    pub(crate) fn show_spectra_displayer(&mut self) {
+        self.spectra_displayer.show();
+
+        self.draw_spectra_spatial_counterpart();
+    }
+
+    pub(crate) fn set_dq(&mut self, dq: f64) -> Result<(), JsValue> {
+        self.spectra_displayer.set_dq(dq);
         self.update_spectra_displayer();
 
         self.draw_spectra_spatial_counterpart();
-        
-        //self.spectra_displayer.launch_new_tile_requests(&mut self.tile_fetcher, &self.browser_features_support, &self.layers);
-        //self.spectra_displayer.update_spectra(&self.layers);
-        /*if f_order != self.spectra_displayer.cell.f_depth {
-            al_core::log("fetch new tiles");
-
-            // Change of order request the new tiles
-            self.request_tiles_along_spectral_axis(tile_fetcher, browser_features_support);
-        }*/
 
         self.request_redraw = true;
         self.request_for_new_tiles = true;
@@ -1267,10 +1281,6 @@ impl App {
         self.request_for_new_tiles = true;
         self.request_redraw = true;
 
-
-        //self.spectra_displayer.set_location(lonlat);
-        //self.update_spectra_displayer();
-        //self.draw_spectra_spatial_counterpart();
         
         // And stop the current inertia as well if there is one
         self.inertia = None;
@@ -1489,10 +1499,6 @@ impl App {
 
                 self.prev_cam_position = prev_cam_position;
                 self.request_for_new_tiles = true;
-
-                //self.spectra_displayer.set_location(&self.get_center());
-                //self.update_spectra_displayer();
-                //self.draw_spectra_spatial_counterpart();
             }
         } else {
             // approx move
@@ -1520,10 +1526,6 @@ impl App {
 
                     self.prev_cam_position = prev_cam_position;
                     self.request_for_new_tiles = true;
-
-                    //self.spectra_displayer.set_location(&self.get_center());
-                    //self.update_spectra_displayer();
-                    //self.draw_spectra_spatial_counterpart();
                 }
             }
         }
@@ -1560,8 +1562,6 @@ impl App {
     }
 
     pub(crate) fn set_zoom_factor(&mut self, zoom_factor: f64) {
-        al_core::log("zoom factor");
-
         self.camera.set_zoom_factor(zoom_factor, &self.projection);
 
         // reset the parameters that determine if an inertia is needed
@@ -1739,7 +1739,7 @@ impl App {
                                             let f_hash = (*channel / 32) as u64;
                                             let slice_idx = (*channel % 32) as u16;
 
-                                            let cell = HEALPixFreqCell::new(
+                                            let cell = HEALPix3DCell::new(
                                                 *cell,
                                                 f_hash,
                                                 Frequency::<u64>::MAX_DEPTH,
@@ -1770,7 +1770,7 @@ impl App {
                                                     #[serde(rename_all = "camelCase")]
                                                     struct TileMessage<'a> {
                                                         tile_size: u32,
-                                                        cell: &'a HEALPixFreqCell,
+                                                        cell: &'a HEALPix3DCell,
                                                         tile_depth: u32,
                                                         hips: &'a str,
                                                         // bitmap is a JsValue, handle separately
@@ -1900,7 +1900,6 @@ impl App {
             fov_y: self.camera.get_aperture_y().to_degrees(),
         };
 
-        self.camera.reset();
         Ok(poll_info)
     }
 
@@ -1915,6 +1914,7 @@ impl App {
         //let sync = gl.fence_sync(WebGl2RenderingContext::SYNC_GPU_COMMANDS_COMPLETE, 0);
         //self.gl.flush();
         // optionally check sync status before next frame
+        self.camera.reset();
 
         Ok(())
     }

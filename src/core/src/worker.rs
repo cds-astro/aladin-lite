@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-use crate::healpix::cell::HEALPixFreqCell;
+use crate::healpix::cell::HEALPix3DCell;
 use wasm_bindgen::closure::Closure;
 use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;
@@ -17,7 +17,7 @@ pub struct Tile3DAttributes {
     #[serde(rename = "HiPSCDid")]
     pub hips_cdid: String,
 
-    pub cell: HEALPixFreqCell,
+    pub cell: HEALPix3DCell,
 }
 
 use crate::HEALPixCell;

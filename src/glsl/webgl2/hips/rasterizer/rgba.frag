@@ -1,8 +1,8 @@
 #version 300 es
 precision highp float;
-precision highp sampler2DArray;
+precision highp sampler2D;
 
-uniform sampler2DArray tex;
+uniform sampler2D tex;
 
 in vec3 frag_uv_start;
 in vec3 frag_uv_end;

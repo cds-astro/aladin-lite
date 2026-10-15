@@ -49,9 +49,17 @@ impl Shape {
     pub(crate) fn to_flattened_hpx_cells(&self, order: u8) -> Vec<HEALPixCell> {
         match self {
             Self::Circle { c, rad } => {
-                SpaceMoc::from_cone(&c, rad.to_radians(), order)
-                    .to_flattened_hpx_cells(order)
-                    .collect()
+                let rad = rad.to_radians();
+                if rad >= 1e-6 {
+                    //al_core::log(&format!("order rad {:?} {:?}", order, rad));
+                    SpaceMoc::from_cone(&c, rad, order)
+                        .to_flattened_hpx_cells(order)
+                        .collect()
+                } else {
+                    //al_core::log(&format!("order rad2 {:?} {:?} {:?}", order, c.lon().to_radians(), c.lat().to_radians()));
+
+                    vec![HEALPixCell::new(order, c.lon().to_radians(), c.lat().to_radians())]
+                }
             },
             _ => todo!(),
         }

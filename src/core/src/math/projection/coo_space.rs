@@ -6,6 +6,7 @@ pub type XYClip<S> = Vector2<S>;
 pub type XYZWorld<S> = Vector3<S>;
 pub type XYZModel<S> = Vector3<S>;
 
+#[derive(PartialEq, Clone)]
 pub enum CooSpace {
     Screen,
     NDC,

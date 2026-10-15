@@ -50,13 +50,18 @@ pub struct HiPSProperties {
     cube_depth: Option<u32>,
 
     // HiPS 3D keywords
-    order_freq: Option<u8>,
+    order_axis_2: Option<u8>,
+    min_order_axis_2: Option<u8>,
     tile_depth: Option<u8>,
 
     /// Start of spectral coordinates (in meters)
-    em_min: Option<f32>,
+    em_min: Option<f64>,
     /// End of spectral coordinates (in meters)
-    em_max: Option<f32>,
+    em_max: Option<f64>,
+    /// Starting observation time (in MJD)
+    t_min: Option<f64>,
+    /// Ending observation time (in MJD)
+    t_max: Option<f64>,
 
     // Parametrable by the user
     #[allow(unused)]
@@ -74,8 +79,12 @@ pub struct HiPSProperties {
 
 impl HiPSProperties {
     #[inline(always)]
-    pub fn get_hips_order_freq(&self) -> Option<u8> {
-        self.order_freq
+    pub fn get_hips_order_axis_2(&self) -> Option<u8> {
+        self.order_axis_2
+    }
+    #[inline(always)]
+    pub fn get_hips_min_order_axis_2(&self) -> Option<u8> {
+        self.min_order_axis_2
     }
     #[inline(always)]
     pub fn get_hips_tile_depth(&self) -> Option<u8> {
@@ -163,13 +172,23 @@ impl HiPSProperties {
     }
 
     #[inline(always)]
-    pub fn get_em_min(&self) -> Option<f32> {
+    pub fn get_em_min(&self) -> Option<f64> {
         self.em_min
     }
 
     #[inline(always)]
-    pub fn get_em_max(&self) -> Option<f32> {
+    pub fn get_em_max(&self) -> Option<f64> {
         self.em_max
+    }
+
+    #[inline(always)]
+    pub fn get_t_min(&self) -> Option<f64> {
+        self.t_min
+    }
+
+    #[inline(always)]
+    pub fn get_t_max(&self) -> Option<f64> {
+        self.t_max
     }
 }
 
@@ -191,6 +210,8 @@ pub enum ImageExt {
 pub enum DataproductType {
     #[serde(rename = "spectral-cube")]
     SpectralCube,
+    #[serde(rename = "time-cube")]
+    TimeCube,
     Image,
     Cube,
 }

@@ -20,6 +20,8 @@
 //    along with Aladin Lite. If not, see <https://www.gnu.org/licenses/>.
 //
 
+import { Utils } from "../Utils";
+
 import { FSM } from "../FiniteStateMachine";
 import { ActionButton } from "../gui/Widgets/ActionButton";
 import { View } from "../View";
@@ -54,17 +56,8 @@ export class PolySelect extends FSM {
         }
 
         let btn;
-        let mouseout = (params) => {
-            let {e, coo} = params;
-
-            if (btn.el.contains(e.relatedTarget) || e.relatedTarget.contains(btn.el)) {
-                // mouseout on the btn
-                self.dispatch('mousemove', {coo});
-            } else {
-                btn.remove();
-
-                off();
-            }
+        let mouseout = (e) => {
+            self.dispatch('mousemove', e);
         };
 
         let start = (params) => {
@@ -75,8 +68,7 @@ export class PolySelect extends FSM {
         }
 
         let click = (params) => {
-            const {coo} = params;
-
+            const coo = Utils.relMouseCoords(params)
             const firstClick = this.coos.length === 0;
             if (firstClick) {
                 // create a btn at the first click
@@ -111,8 +103,8 @@ export class PolySelect extends FSM {
             view.requestRedraw();
         };
 
-        let mousemove = (params) => {
-            const {coo} = params;
+        let mousemove = (e) => {
+            const coo = Utils.relMouseCoords(e);
             this.moveCoo = coo;
 
             view.requestRedraw();
@@ -218,88 +210,50 @@ export class PolySelect extends FSM {
         };
 
         let fsm;
-        //if (Utils.hasTouchScreen()) {
-            let mousedown = click;
-            let mouseup = click;
+        let mousedown = click;
+        let mouseup = click;
 
-            // smartphone, tablet
-            fsm = {
-                state: 'off',
-                transitions: {
-                    off: {
-                        start,
-                    },
-                    start: {
-                        mousedown
-                    },
-                    mousedown: {
-                        //mouseout,
-                        mousemove,
-                        draw,
-                    },
-                    mouseout: {
-                        start,
-                        mousemove,
-                    },
-                    mousemove: {
-                        draw,
-                        mouseup,
-                        finish
-                    },
-                    mouseup: {
-                        mousedown,
-                        finish,
-                        draw,
-                    },
-                    draw: {
-                        mouseup,
-                        mouseout,
-                        mousemove,
-                        finish
-                    },
-                    finish: {
-                        off
-                    }
+        // smartphone, tablet
+        fsm = {
+            state: 'off',
+            transitions: {
+                off: {
+                    start,
+                },
+                start: {
+                    mousedown
+                },
+                mousedown: {
+                    //mouseout,
+                    mousemove,
+                    draw,
+                },
+                mouseout: {
+                    start,
+                    mousemove,
+                },
+                mousemove: {
+                    draw,
+                    mouseup,
+                    finish
+                },
+                mouseup: {
+                    mousedown,
+                    finish,
+                    draw,
+                },
+                draw: {
+                    mouseup,
+                    mouseout,
+                    mousemove,
+                    finish
+                },
+                finish: {
+                    off
                 }
-            }
-        /*} else {
-            // desktop, laptops...
-            fsm = {
-                state: 'off',
-                transitions: {
-                    off: {
-                        start,
-                    },
-                    start: {
-                        click
-                    },
-                    click: {
-                        //mouseout,
-                        mousemove,
-                        draw,
-                        finish,
-                    },
-                    mouseout: {
-                        start,
-                        mousemove,
-                    },
-                    mousemove: {
-                        draw,
-                        click,
-                        finish
-                    },
-                    draw: {
-                        click,
-                        mouseout,
-                        mousemove,
-                        finish
-                    },
-                    finish: {
-                        off
-                    }
-                }
-            }
-        }*/
+            },
+            view
+        }
 
         super(fsm)
         let self = this;

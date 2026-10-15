@@ -50,7 +50,7 @@ export class MocServer {
     static getAllHiPSes() {
         if (!this._allHiPSes) {
             const params = {
-                expr: "dataproduct_type=image||dataproduct_type=spectral-cube",
+                expr: "dataproduct_type=image||dataproduct_type=spectral-cube||dataproduct_type=time-cube",
                 //expr: "dataproduct_type=image",
                 get: "record",
                 fmt: "json",
@@ -69,7 +69,7 @@ export class MocServer {
 
     static getAllHiPSesInsideView(aladin) {
         let params = {
-            expr: "dataproduct_type=image||dataproduct_type=spectral-cube",
+            expr: "dataproduct_type=image||dataproduct_type=spectral-cube||dataproduct_type=time-cube",
             //expr: "dataproduct_type=image",
             get: "record",
             fmt: "json",

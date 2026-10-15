@@ -12,6 +12,8 @@ pub mod utils;
 use crate::renderable::image::Image;
 use crate::tile_fetcher::TileFetcherQueue;
 
+use crate::spectra_displayer::SpectraDisplayer;
+
 use al_api::color::ColorRGB;
 use al_api::hips::DataproductType;
 use al_api::hips::HiPSCfg;
@@ -215,6 +217,7 @@ impl Layers {
         shaders: &mut ShaderManager,
         colormaps: &Colormaps,
         projection: &ProjectionType,
+        spectra_displayer: &SpectraDisplayer,
     ) -> Result<(), JsValue> {
         let raytracer = &self.raytracer;
         let raytracing = camera.is_raytracing(projection);
@@ -288,7 +291,7 @@ impl Layers {
                             hips.draw(shaders, colormaps, camera, raytracer, draw_opt, projection)?;
                         }
                         HiPS::D3(hips) => {
-                            hips.draw(shaders, colormaps, camera, draw_opt, projection)?;
+                            hips.draw(shaders, colormaps, camera, draw_opt, projection, spectra_displayer.q_order())?;
                         }
                     }
                 } else if let Some(images) = self.images.get_mut(id) {
@@ -438,12 +441,9 @@ impl Layers {
                 // HiPS cube
                 DataproductType::Cube => HiPS::D3(HiPS3D::new(cfg, gl, &layer)?),
                 // HiPS 3D
-                DataproductType::SpectralCube => {
-                    let freq = cfg.em_min.unwrap();
-                    let mut hips = HiPS3D::new(cfg, gl, &layer)?;
-                    use crate::math::spectra::Freq;
-                    hips.set_freq(freq);
-
+                DataproductType::SpectralCube | DataproductType::TimeCube => {
+                    //let freq = cfg.em_min.unwrap();
+                    let hips = HiPS3D::new(cfg, gl, &layer)?;
                     HiPS::D3(hips)
                 },
                 // Typical HiPS image

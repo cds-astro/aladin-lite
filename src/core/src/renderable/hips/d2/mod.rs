@@ -620,8 +620,7 @@ impl HiPS2D {
                 uv_0,
                 uv_1,
                 start_time,
-            }) = hpx_cell
-            {
+            }) = hpx_cell {
                 let d01s = uv_0[TileCorner::BottomRight].x - uv_0[TileCorner::BottomLeft].x;
                 let d02s = uv_0[TileCorner::TopLeft].y - uv_0[TileCorner::BottomLeft].y;
                 let d01e = uv_1[TileCorner::BottomRight].x - uv_1[TileCorner::BottomLeft].x;

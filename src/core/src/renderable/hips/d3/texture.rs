@@ -1,11 +1,12 @@
 use crate::time::Time;
 
-use crate::renderable::hips::d3::Freq;
 use crate::Abort;
 use crate::WebGlContext;
 use al_core::image::fits::FitsImage;
 use al_core::image::raw::ImageBuffer;
 use al_core::image::Image;
+use crate::HEALPixCell;
+use crate::LonLatT;
 use al_core::texture::format::{PixelType, R16I, R32F, R32I, R8U};
 use al_core::texture::Texture3D;
 use al_core::webgl_ctx::WebGlRenderingCtx;
@@ -15,8 +16,9 @@ use std::borrow::Cow;
 use std::cmp::Ordering;
 use std::ops::Range;
 use wasm_bindgen::JsValue;
+use crate::math::quantity::Qty;
 
-pub enum HpxFreqData {
+pub enum Hpx3DData {
     Fits {
         // The raw bytes of the whole cubic FITS file, data big endian
         raw_bytes: Box<[u8]>,
@@ -63,10 +65,10 @@ impl Pixel {
     }
 }
 
-impl HpxFreqData {
+impl Hpx3DData {
     pub fn read_pixel(&self, x: u32, y: u32, z: u32) -> Option<f32> {
         match self {
-            HpxFreqData::Fits {
+            Hpx3DData::Fits {
                 raw_bytes,
                 data_byte_offset,
                 bitpix,
@@ -113,13 +115,13 @@ impl HpxFreqData {
                     Some(pixel.to_f32() * (*bscale) + (*bzero))
                 }
             }
-            HpxFreqData::Jpeg { data, size } => {
+            Hpx3DData::Jpeg { data, size } => {
                 let pixel_bytes_off = (x + y * size.0 + z * (size.0 * size.1)) as usize;
 
                 let p = data[pixel_bytes_off];
                 Some(p as f32)
             }
-            HpxFreqData::Png { data, size } => {
+            Hpx3DData::Png { data, size } => {
                 let pixel_bytes_off = (x + y * size.0 + z * (size.0 * size.1)) as usize;
 
                 let p = data[2 * pixel_bytes_off];
@@ -129,8 +131,8 @@ impl HpxFreqData {
     }
 }
 
-pub struct HpxFreqTex {
-    pub cell: HEALPixFreqCell,
+pub struct Hpx3DTex {
+    pub cell: HEALPix3DCell,
     // The time the texture has been received
     // If the texture contains multiple tiles, then the receiving time
     // is set when all the tiles have been copied to the buffer
@@ -156,7 +158,7 @@ pub struct HpxFreqTex {
     /// The webgl2 3D texture of the cubic tile
     pub texture: Texture3D,
 
-    data: Option<HpxFreqData>,
+    data: Option<Hpx3DData>,
 
     // The real image data for accessing the pixel values
     //data: ImageType,
@@ -164,6 +166,8 @@ pub struct HpxFreqTex {
     /// It is limited to a cube depth of 256 (~ to the max texture size).
     slice_idx: [u32; 8],
 
+    /// Size of the tile
+    tile_size: u16,
     /// Depth of the tile
     num_slices: u16,
     /// Number of slices copied (concerns only HiPSCube)
@@ -196,11 +200,11 @@ const TEX_PARAMS: &[(u32, u32)] = &[
     ),
 ];
 
-use crate::healpix::cell::HEALPixFreqCell;
-impl HpxFreqTex {
+use crate::healpix::cell::HEALPix3DCell;
+impl Hpx3DTex {
     pub fn new(
         // The cubic tile definition to locate the cube in the sky + spectral axis
-        cell: HEALPixFreqCell,
+        cell: HEALPix3DCell,
         // The time the request has been made, i.e. when the tile was needed
         time_request: Time,
         // The size of the cubis tile
@@ -265,6 +269,7 @@ impl HpxFreqTex {
         let slice_idx = [0x0; 8];
         Ok(Self {
             cell,
+            tile_size,
             slice_idx,
             time_request,
             start_time,
@@ -295,7 +300,7 @@ impl HpxFreqTex {
             let bzero = image.bzero;
 
             if let Cow::Owned(uncompressed_bytes) = image.raw_bytes {
-                Some(HpxFreqData::Fits {
+                Some(Hpx3DData::Fits {
                     data_byte_offset: 0..uncompressed_bytes.len(),
                     raw_bytes: uncompressed_bytes.into_boxed_slice(),
                     bitpix,
@@ -310,7 +315,7 @@ impl HpxFreqTex {
 
                 std::mem::drop(image);
 
-                Some(HpxFreqData::Fits {
+                Some(Hpx3DData::Fits {
                     raw_bytes,
                     data_byte_offset,
                     bitpix,
@@ -337,16 +342,14 @@ impl HpxFreqTex {
         }
     }
 
-    pub fn frequencies(&self) -> Vec<f32> {
+    pub fn quantities<Q: Qty>(&self) -> impl Iterator<Item= Q> {
         let delta_depth = self.num_slices.trailing_zeros();
-        let pixel_depth = self.cell.f_depth + delta_depth as u8;
+        let pixel_depth = self.cell.q_depth + delta_depth as u8;
 
-        let h0 = self.cell.f_hash << delta_depth;
-        let h1 = (self.cell.f_hash + 1) << delta_depth;
+        let h1 = (self.cell.q_hash + 1) << delta_depth;
+        let h0 = self.cell.q_hash << delta_depth;
 
-        (h0..h1)
-            .map(|hash| Freq::from_hash_with_order(hash, pixel_depth).0 as f32)
-            .collect()
+        (h0..h1).map(move |hash| Q::from_hash_with_order(hash, pixel_depth))
     }
 
     pub fn set_data_from_jpeg(
@@ -360,7 +363,7 @@ impl HpxFreqTex {
 
         cubic_tile.insert_into_3d_texture(&self.texture, &Vector3::<i32>::new(0, 0, 0))?;
 
-        self.data = Some(HpxFreqData::Jpeg {
+        self.data = Some(Hpx3DData::Jpeg {
             data: cubic_tile.data,
             size,
         });
@@ -381,7 +384,7 @@ impl HpxFreqTex {
 
         cubic_tile.insert_into_3d_texture(&self.texture, &Vector3::<i32>::new(0, 0, 0))?;
 
-        self.data = Some(HpxFreqData::Png {
+        self.data = Some(Hpx3DData::Png {
             data: cubic_tile.data,
             size,
         });
@@ -422,29 +425,33 @@ impl HpxFreqTex {
     }
 
     // Cell must be contained in the texture
-    pub fn contains_slice(&self, offset: u16) -> bool {
-        let block_idx = (offset >> 5) as usize;
-        let slice_idx = offset & 0x1f;
+    pub fn contains_slice(&self, lonlat: &LonLatT<f64>, offset: u16) -> bool {
+        let (_, dy, dx) = HEALPixCell::hash_with_dxdy(self.cell.hpx.depth(), lonlat.lon().to_radians(), lonlat.lat().to_radians());
 
-        (self.slice_idx[block_idx] >> (31 - slice_idx)) & 0x1 == 1
+        let x = (dx * (self.tile_size as f64)) as u32;
+        let y = (dy * (self.tile_size as f64)) as u32;
+
+        let intensity = self.read_pixel(x, y, offset as u32).unwrap_or(f32::NAN);
+
+        !intensity.is_nan()
     }
 }
 
-impl PartialOrd for HpxFreqTex {
+impl PartialOrd for Hpx3DTex {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl Ord for HpxFreqTex {
+impl Ord for Hpx3DTex {
     fn cmp(&self, other: &Self) -> Ordering {
         self.partial_cmp(other).unwrap_abort()
     }
 }
 
-impl PartialEq for HpxFreqTex {
+impl PartialEq for Hpx3DTex {
     fn eq(&self, other: &Self) -> bool {
         self.cell == other.cell
     }
 }
-impl Eq for HpxFreqTex {}
+impl Eq for Hpx3DTex {}

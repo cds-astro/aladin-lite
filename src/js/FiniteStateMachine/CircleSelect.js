@@ -19,7 +19,7 @@
 //    You should have received a copy of the GNU Lesser General Public License
 //    along with Aladin Lite. If not, see <https://www.gnu.org/licenses/>.
 //
-
+import { Utils } from "../Utils";
 import { FSM } from "../FiniteStateMachine";
 import { View } from "../View";
 import { Selector } from "../Selector";
@@ -42,14 +42,14 @@ export class CircleSelect extends FSM {
             this.callback = callback;
         }
 
-        let mousedown = (params) => {
-            const {coo} = params;
+        let mousedown = (e) => {
+            const coo = Utils.relMouseCoords(e);
             // start a new selection
             this.startCoo = coo;
         }
 
-        let mousemove = (params) => {
-            const {coo} = params;
+        let mousemove = (e) => {
+            const coo = Utils.relMouseCoords(e);
             this.coo = coo;
 
             view.requestRedraw();
@@ -73,9 +73,9 @@ export class CircleSelect extends FSM {
             ctx.stroke();
         }
 
-        let mouseup = (params) => {
+        let mouseup = (e) => {
             var x, y;
-            const {coo} = params;
+            const coo = Utils.relMouseCoords(e);
             this.coo = coo;
             // finish the selection
             var r2 = (this.coo.x - this.startCoo.x) * (this.coo.x - this.startCoo.x) + (this.coo.y - this.startCoo.y) * (this.coo.y - this.startCoo.y);
@@ -120,9 +120,9 @@ export class CircleSelect extends FSM {
             this.dispatch("off");
         };
 
-        let mouseout = (params) => {
+        let mouseout = (e) => {
             if (this.startCoo) {
-                mouseup(params);
+                mouseup(e);
             }
         };
 
@@ -165,7 +165,8 @@ export class CircleSelect extends FSM {
                 mouseup: {
                     off,
                 }
-            }
+            },
+            view
         })
     };
 }

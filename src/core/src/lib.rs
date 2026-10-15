@@ -432,6 +432,16 @@ impl WebClient {
         self.app.set_spectra_radius(rad_deg.to_radians().to_angle());
     }
 
+    #[wasm_bindgen(js_name = "showSpectraDisplayer")]
+    pub fn show_spectra_displayer(&mut self) {
+        self.app.show_spectra_displayer();
+    }
+
+    #[wasm_bindgen(js_name = "hideSpectraDisplayer")]
+    pub fn hide_spectra_displayer(&mut self) {
+        self.app.hide_spectra_displayer();
+    }
+
     #[wasm_bindgen(js_name = "setSpectraDisplayerCenter")]
     pub fn set_spectra_center(&mut self, ra_deg: f64, dec_deg: f64) {
         self.app.set_spectra_center(ra_deg.to_radians().to_angle(), dec_deg.to_radians().to_angle());
@@ -450,21 +460,15 @@ impl WebClient {
         self.app.set_image_hips_color_cfg(layer, meta)
     }
 
-    #[wasm_bindgen(js_name = setFreq)]
-    pub fn set_hips_frequency(&mut self, layer: String, freq: f64) -> Result<(), JsValue> {
-        self.app.set_hips_frequency(&layer, freq)
+    #[wasm_bindgen(js_name = setQty)]
+    pub fn set_hips_quantity(&mut self, layer: String, mut qty: f64) -> Result<(), JsValue> {
+        qty = qty.max(1e-6).min(1e30);
+        self.app.set_hips_quantity(&layer, qty)
     }
 
     #[wasm_bindgen(js_name = getFreq)]
-    pub fn get_hips_frequency(&mut self, layer: String) -> Result<f32, JsValue> {
-        self.app.get_hips_frequency(&layer)
-    }
-
-    #[wasm_bindgen(js_name = getFreqWindow)]
-    pub fn get_hips_frequency_window(&mut self, layer: String) -> Box<[f32]> {
-        let fw = self.app.get_hips_frequency_window(&layer);
-
-        Box::new([fw[0].0 as f32, fw[1].0 as f32])
+    pub fn get_hips_quantity(&mut self, layer: String) -> Result<f32, JsValue> {
+        self.app.get_hips_quantity(&layer)
     }
 
     #[wasm_bindgen(js_name = attachHiPS3D)]
@@ -475,13 +479,13 @@ impl WebClient {
     }
 
     #[wasm_bindgen(js_name = setFreqResolution)]
-    pub fn set_dfreq(&mut self, dfreq: f64) -> Result<(), JsValue> {
-        self.app.set_dfreq(dfreq)
+    pub fn set_dq(&mut self, dq: f64) -> Result<(), JsValue> {
+        self.app.set_dq(dq)
     }
 
     #[wasm_bindgen(js_name = spectraDisplayerFreqOrder)]
-    pub fn get_spectra_displayer_freq_order(&mut self) -> u8 {
-        self.app.spectra_displayer.f_order()
+    pub fn get_spectra_displayer_order(&mut self) -> u8 {
+        self.app.spectra_displayer.q_order()
     }
 
     #[wasm_bindgen(js_name = freq2hash)]

@@ -23,7 +23,6 @@
 import { ActionButton } from "./gui/Widgets/ActionButton";
 import { Input } from "./gui/Widgets/Input";
 import { Utils } from "./Utils";
-import { Aladin } from "./Aladin";
 import { DOMElement } from "./gui/Widgets/Widget";
 import { PersistantCircleSelect } from "./FiniteStateMachine/PersistantCircleSelection";
 import { TogglerActionButton } from "./gui/Button/Toggler";
@@ -76,6 +75,16 @@ export class SpectraDisplayer extends DOMElement {
                 { unit: "pm/s", factor: 1e-12 },
             ]
         },
+        TIME: {
+            label: "t",
+            units: [
+                { unit: "d", factor: 86400e3 },
+                { unit: "h", factor: 3600e3 },
+                { unit: "m", factor: 60e3 },
+                { unit: "s", factor: 1e3 },
+                { unit: "ms", factor: 1 },
+            ]
+        },
         convertFrequency: function(freq, options) {
             const SPEED_OF_LIGHT = 299792458.0;
 
@@ -92,6 +101,12 @@ export class SpectraDisplayer extends DOMElement {
                 }
 
                 value = SPEED_OF_LIGHT * (1.0 - freq / restFreq)
+            } else if (unit === SpectraDisplayer.UNIT.TIME) {
+                // Origine du MJD : 17 novembre 1858 à 00:00:00 UTC
+                const MJD_EPOCH = Date.UTC(1858, 10, 17);
+                const timestamp = MJD_EPOCH + freq * 86400000;
+
+                value = timestamp;
             } else {
                 // unit is "Hz"
                 value = freq;
@@ -131,7 +146,7 @@ export class SpectraDisplayer extends DOMElement {
     }
 
     isShowingFreqUnit() {
-        return this.unit === SpectraDisplayer.UNIT.FREQUENCY;
+        return this.unit === SpectraDisplayer.UNIT.FREQUENCY || this.unit === SpectraDisplayer.UNIT.TIME ;
     }
 
     getFrequencyResolution() {
@@ -164,6 +179,7 @@ export class SpectraDisplayer extends DOMElement {
         this.minY = undefined;
         this.maxY = undefined;
         this.enabled = true;
+        this.lineWidth = 2;
 
         // One canvas for the spectra
         this.canvas = createPlotCanvas("spectra-line");
@@ -271,8 +287,7 @@ export class SpectraDisplayer extends DOMElement {
             x: view.width * .5,
             y: view.height * .5,
             color: aladin.defaultColor,
-            maxRadius: 0.3,
-            radius: 0.01,
+            radius: 0.0,
             callback: () => {
                 self.enableInteraction();
             },
@@ -321,8 +336,6 @@ export class SpectraDisplayer extends DOMElement {
             }
         }, view);
 
-        this.unit = SpectraDisplayer.UNIT.FREQUENCY;
-
         let divNode = document.createElement("div");
         //divNode.style.width = this.width + "px";
         divNode.style.height = this.height + "px";
@@ -354,12 +367,8 @@ export class SpectraDisplayer extends DOMElement {
         this.dragging = false;
 
         let canvas = this.canvas;
-        let ctxCursor = this.ctxCursor;
 
         let self = this;
-
-        let lastClickTime = 0;
-        const DOUBLE_CLICK_DELAY = 300; // most operating systems uses duration between 250ms and 500ms by default.
 
         let mouseDownTime = 0;
         let mouseDownPos = { x: 0, y: 0 };
@@ -416,9 +425,11 @@ export class SpectraDisplayer extends DOMElement {
 
             if (this._isPointerOnSpectraArea(mousePos) || this._isPointerOnCursor(mousePos)) {
                 this.view.setCursor("grab")
-                self._redraw({lineWidth: 4})
+                self.lineWidth = 4;
+                self._redraw()
             } else {
-                self._redraw({lineWidth: 2})
+                self.lineWidth = 2;
+                self._redraw()
             }
         })
 
@@ -427,6 +438,9 @@ export class SpectraDisplayer extends DOMElement {
             if (!this.dragging) {
                 return;
             }
+
+            self.lineWidth = 4;
+            self._redraw()
 
             this.view.setCursor('grabbing');
 
@@ -446,10 +460,11 @@ export class SpectraDisplayer extends DOMElement {
 
                 if (this.unit === SpectraDisplayer.UNIT.FREQUENCY) {
                     f = f0 - dx * df;
+                } else if (this.unit === SpectraDisplayer.UNIT.TIME) {
+                    f = f0 - 2.0 * dx * df;
                 } else {
                     f = f0 + dx * df;
                 }
-                
 
                 self.hips.setFrequency({
                     value: f,
@@ -497,14 +512,22 @@ export class SpectraDisplayer extends DOMElement {
 
                     if (this.unit === SpectraDisplayer.UNIT.FREQUENCY) {
                         f = f0 + dx * df;
+                    } else if (this.unit === SpectraDisplayer.UNIT.TIME) {
+                        f = f0 + 2.0 * dx * df;
                     } else {
                         f = f0 - dx * df;
                     }
-
-                    self.hips.setFrequency({
-                        value: f,
-                        unit: 'Hz'
-                    })
+                    if (this.unit === SpectraDisplayer.UNIT.TIME) {
+                        self.hips.setTime(f, {
+                            format: 'us'
+                        })
+                    } else {
+                        self.hips.setFrequency({
+                            value: f,
+                            unit: 'Hz'
+                        })
+                    }
+                    
                 }
 
                 this.lastMouse = mouseXY;
@@ -518,7 +541,7 @@ export class SpectraDisplayer extends DOMElement {
             // Can be in the spectral area
             if (this._isPointerOnSpectraArea(mousePos) || zoomFinishedTimeout) {
                 const normalizedDelta = e.deltaY && Utils.normalizeWheel(e) || e.detail || (-e.wheelDelta);
-                let cursor = (normalizedDelta > 0) ? 'zoom-out' : 'zoom-in';
+                let cursor = (normalizedDelta < 0) ? 'zoom-out' : 'zoom-in';
                 if (!zoomFinishedTimeout) {
                     prevCursor = this.view.getCursor();
                 }
@@ -535,10 +558,14 @@ export class SpectraDisplayer extends DOMElement {
                 }, 500);
 
                 // Set the frequency resolution
-                let nextFreqResolution = this.getFrequencyResolution() * (1.0 + normalizedDelta / 200);
-                this.view.wasm.setFreqResolution(nextFreqResolution)
-                this.view.requestRedraw()
+                const curFreqRes = this.getFrequencyResolution();
+                let nextFreqResolution = curFreqRes - curFreqRes * Math.sign(normalizedDelta) * 0.1;
 
+                if (nextFreqResolution <= this._lowestResolution()) {
+                    this.view.wasm.setFreqResolution(nextFreqResolution)
+                    this.view.requestRedraw()
+                }
+                
                 // Consume the event
                 e.preventDefault()
                 e.stopPropagation()
@@ -551,6 +578,10 @@ export class SpectraDisplayer extends DOMElement {
     _isPointerOnSpectraArea(mousePos) {
         const mx = mousePos.x;
         const my = mousePos.y;
+        if (!this.data) {
+            return false;
+        }
+
         let v = this.data.values[Math.round(mx / this.scaleX)]
         v = this.height - (v - this.minY) * this.scaleY
 
@@ -564,6 +595,10 @@ export class SpectraDisplayer extends DOMElement {
     /// Return true if the pointer is on the spectral cursor (central vertical bar)
     /// mousePos has to be given in coo relative to the canvas DOM object
     _isPointerOnCursor(mousePos) {
+        if (!this.data) {
+            return false;
+        }
+
         // Check if the click is next to the central bar
         // Draw the vertical line that can be grabed to move the slice
         this.ctx.beginPath();
@@ -581,6 +616,9 @@ export class SpectraDisplayer extends DOMElement {
             return;
         }
 
+        this.circleSelector._hide();
+        this.view.wasm.hideSpectraDisplayer();
+
         this.divNode.style.display = "none";
         this.isHidden = true;
     }
@@ -590,8 +628,27 @@ export class SpectraDisplayer extends DOMElement {
             return;
         }
 
+        this.circleSelector._show();
+        this.view.wasm.showSpectraDisplayer();
+
         this.divNode.style.display = "block";
         this.isHidden = false;
+    }
+
+    _angularSizeDistDeg(order) {
+        const twoPowerOrder = 2**(order);
+        const f = this.hips.tileSize * twoPowerOrder;
+        return (360.0 / (2.0 * Math.PI)) * Math.sqrt(4.0 * Math.PI / (12.0 * f * f))
+    }
+
+    _lowestResolution() {
+        let q_order = this.hips.minOrderAxis2 + Math.log2(this.hips.tileDepth);
+
+        if (this.unit === SpectraDisplayer.UNIT.TIME) {
+            return 2**(62 - q_order);
+        } else {
+            return this.data.freq * (10.0**(56.0 / (2**q_order)) - 1.0);
+        }
     }
 
     attachHiPS3D(hips) {
@@ -602,7 +659,20 @@ export class SpectraDisplayer extends DOMElement {
 
         // store new references to the new hips
         this.hips = hips;
+        if (hips.dataproductType === "time-cube") {
+            this.unit = SpectraDisplayer.UNIT.TIME;
+        } else {
+            this.unit = SpectraDisplayer.UNIT.FREQUENCY;
+        }
+
         this.view.wasm.attachHiPS3D(hips && hips.layer);
+
+        // The circle radius is changed so that one cell is taken into account in the spectra computation.
+        
+        let angularSizeDeg = this._angularSizeDistDeg(hips.maxOrder);
+        this.circleSelector.setRadius(angularSizeDeg * 0.25)
+        this.view.wasm.setSpectraDisplayerRadius(angularSizeDeg * 0.25)
+        
         this.view.requestRedraw();
 
         if (hips) {
@@ -610,7 +680,7 @@ export class SpectraDisplayer extends DOMElement {
                 let data = event.detail;
                 this.data = data;
 
-                if (this.unit !== SpectraDisplayer.UNIT.FREQUENCY) {
+                if (this.unit !== SpectraDisplayer.UNIT.FREQUENCY && this.unit !== SpectraDisplayer.UNIT.TIME) {
                     this.data.values.reverse();
                 }
 
@@ -688,17 +758,14 @@ export class SpectraDisplayer extends DOMElement {
         this.ctx.clearRect(0, 0, w, this.height);
 
         // Find min and max for scaling
-        let valuesWithNoNans = values.filter(v=>Number.isFinite(v));
+        let valuesWithNoNans = values.filter(v=>Number.isFinite(v) & v !== 0.0);
+        console.log("values", valuesWithNoNans)
 
-        if (Number.isFinite(this.minY)) {
-            this.minY = Math.min(...valuesWithNoNans, this.minY)
-        } else {
-            this.minY = Math.min(...valuesWithNoNans)
-        }
-        if (Number.isFinite(this.maxY)) {
-            this.maxY = Math.max(...valuesWithNoNans, this.maxY)
-        } else {
-            this.maxY = Math.max(...valuesWithNoNans)
+        this.minY = Math.min(...valuesWithNoNans)
+        this.maxY = Math.max(...valuesWithNoNans)
+
+        if (valuesWithNoNans.length === 1) {
+            this.minY = 0.0;
         }
 
         this.scaleX = w / (len - 1);
@@ -710,8 +777,8 @@ export class SpectraDisplayer extends DOMElement {
         this.ctx.beginPath();
         this.ctx.moveTo(this.scaleX * len / 2, this.height);
         this.ctx.lineTo(this.scaleX * len / 2, this.height - (this.maxY - this.minY) * this.scaleY);
-        this.ctx.strokeStyle = Aladin.DEFAULT_OPTIONS.reticleColor;
-        this.ctx.lineWidth = 2;
+        this.ctx.strokeStyle = this.view.aladin.defaultColor;
+        this.ctx.lineWidth = 3;
         this.ctx.stroke();
 
         this.ctxCursor.clearRect(0, 0, w, this.height);
@@ -723,7 +790,7 @@ export class SpectraDisplayer extends DOMElement {
             v = this.height - (v - this.minY) * this.scaleY;
             this.ctxCursor.lineTo(this.lastMouse.x, v);
             this.ctxCursor.strokeStyle = "yellow";
-            this.ctxCursor.lineWidth = 2;
+            this.ctxCursor.lineWidth = 3;
             this.ctxCursor.stroke()
         }
 
@@ -732,7 +799,82 @@ export class SpectraDisplayer extends DOMElement {
 
     _redrawLabels() {
         let self = this;
-        let spectraValue2String = (freq, precision) => {
+        let dv2String = (freq, precision) => {
+            if (self.unit === SpectraDisplayer.UNIT.TIME) {
+                let us = freq;
+                const totalSeconds = us / 1e6;
+
+                const days = Math.floor(totalSeconds / (3600 * 24));
+                const hours = Math.floor((totalSeconds - days * (3600 * 24)) / 3600);
+                const minutes = Math.floor((totalSeconds % 3600) / 60);
+                const seconds = totalSeconds % 60;
+
+                let result = "";
+                let exit = 0;
+                if (days) {
+                    result += `${days}D`;
+                    exit++;
+                }
+                if (hours) {
+                    result += `${hours}H`;
+                    exit++;
+                }
+                if (exit == 2)
+                    return result;
+
+                if (minutes) {
+                    result += `${minutes}M`;
+                    exit++;
+                }
+                if (exit == 2)
+                    return result;
+
+                if (seconds || (!hours && !minutes)) {
+                    result += `${seconds.toFixed(3)}S`;
+                }
+
+                return result;
+            }
+
+            let units = self.unit.units;
+
+            let x = SpectraDisplayer.UNIT.convertFrequency(
+                freq,
+                {
+                    unit: self.unit,
+                    restFreq: self.hips.obsRestFreq
+                }
+            )
+
+            let dx = SpectraDisplayer.UNIT.convertPrecisionFrequency(
+                precision,
+                freq,
+                {
+                    unit: self.unit,
+                    restFreq: self.hips.obsRestFreq
+                }
+            )
+
+            for (const { unit, factor } of units) {
+                const value = x / factor;
+                const precisionInUnit = dx / factor;
+            
+                if (Math.abs(value) >= 1 || unit === units[units.length - 1].unit) {
+                    // Calculate number of decimal places needed to show the given precision
+                    const decimals = Math.min(8, Math.max(0, Math.ceil(-Math.log10(precisionInUnit))));
+                    return value.toFixed(decimals) + " " + unit;
+                }
+            }
+        }
+        let v2String = (freq, precision) => {
+            if (self.unit === SpectraDisplayer.UNIT.TIME) {
+                let mjd = (freq / 86400000000.0) - 2400000.5;
+                const MJD_EPOCH = Date.UTC(1858, 10, 17);
+                const timestamp = MJD_EPOCH + mjd * 86400000;
+
+                return new Date(timestamp).toISOString();
+            }
+
             let units = self.unit.units;
 
             let x = SpectraDisplayer.UNIT.convertFrequency(
@@ -786,12 +928,12 @@ export class SpectraDisplayer extends DOMElement {
 
         // min window freq
         this.ctxLabels.textAlign = "left"; // Horizontally centered
-        let fmin = spectraValue2String(this.data.freqMin, this.data.freqs[1] - this.data.freqs[0]);
-        let fmax = spectraValue2String(this.data.freqMax, this.data.freqs[this.data.freqs.length - 1] - this.data.freqs[this.data.freqs.length - 2]);
+        let fmin = v2String(this.data.freqMin, this.data.freqs[1] - this.data.freqs[0]);
+        let fmax = v2String(this.data.freqMax, this.data.freqs[this.data.freqs.length - 1] - this.data.freqs[this.data.freqs.length - 2]);
         
         drawLabel(
             this.ctxLabels,
-            this.unit === SpectraDisplayer.UNIT.FREQUENCY ? fmin : fmax,
+            this.unit === SpectraDisplayer.UNIT.FREQUENCY || this.unit === SpectraDisplayer.UNIT.TIME ? fmin : fmax,
             0,
             this.height - 60,
             'black',
@@ -803,7 +945,7 @@ export class SpectraDisplayer extends DOMElement {
         this.ctxLabels.textAlign = "right"; // Horizontally centered
         drawLabel(
             this.ctxLabels,
-            this.unit === SpectraDisplayer.UNIT.FREQUENCY ? fmax : fmin,
+            this.unit === SpectraDisplayer.UNIT.FREQUENCY || this.unit === SpectraDisplayer.UNIT.TIME ? fmax : fmin,
             w,
             this.height - 60,
             'black',
@@ -817,7 +959,7 @@ export class SpectraDisplayer extends DOMElement {
         // Draw the label of the cursor current frequency
         drawLabel(
             this.ctxLabels,
-            spectraValue2String(this.data.freq, this.data.dfreq),
+            v2String(this.data.freq, this.data.dfreq),
             w / 2,
             this.height - 10,
             'black',
@@ -830,7 +972,7 @@ export class SpectraDisplayer extends DOMElement {
         // Draw the label of the cursor current frequency
         drawLabel(
             this.ctxLabels,
-            '[' + spectraValue2String(this.data.dfreq, 5) + ']',
+            '[' + dv2String(this.data.dfreq, this.data.dfreq * 1e-3) + ']',
             w / 2,
             this.height - 60,
             'black',
@@ -844,7 +986,7 @@ export class SpectraDisplayer extends DOMElement {
 
         drawLabel(
             this.ctxLabels,
-            spectraValue2String(mouseFreq, this.data.freqs[1] - this.data.freqs[0]),
+            v2String(mouseFreq, this.data.freqs[1] - this.data.freqs[0]),
             0,
             this.height - 100,
             'black',
@@ -856,7 +998,7 @@ export class SpectraDisplayer extends DOMElement {
     _redrawSpectra(options) {
         let array = this.data.values;
         this.ctx.beginPath();
-        this.ctx.lineWidth = (options && options.lineWidth) || 2;
+        this.ctx.lineWidth = this.lineWidth;
 
         let strokeStyle = (options && options.strokeStyle) || "red";
         this.ctx.strokeStyle = strokeStyle
@@ -870,6 +1012,10 @@ export class SpectraDisplayer extends DOMElement {
 
         let spectraVertices = [];
 
+        const lowValue = this.height - this.lineWidth * 0.5;
+
+        spectraVertices.push([0, lowValue]);
+
         while (i < i1) {
             let y;
             let x = i * this.scaleX;
@@ -879,63 +1025,60 @@ export class SpectraDisplayer extends DOMElement {
             if (inValidDomain) {
                 const tileNotReceived = !Number.isFinite(array[i]);
                 if (tileNotReceived) {
+                    if (prevY !== lowValue) {
+                        this.ctx.lineTo(x, prevY)
+                        spectraVertices.push([x, prevY]);
+                    }
+                   
+                    y = lowValue;
+                    this.ctx.lineTo(x, y);
+
+                    spectraVertices.push([x, y]);
+
                     // color orange
                     if (strokeStyle !== "orange") {
-                        this.ctx.lineTo(x, this.height)
+                        //this.ctx.lineTo(x, this.height)
                         strokeStyle = "orange"
                         this.ctx.stroke()
 
                         this.ctx.beginPath();
-                        this.ctx.strokeStyle = strokeStyle
-                        //this.ctx.lineWidth = 4
-                    }
-
-                    y = this.height;
-                    if (i === 0) {
                         this.ctx.moveTo(x, y);
-                    } else {
-                        this.ctx.lineTo(x, y);
+                        this.ctx.strokeStyle = strokeStyle
+                    }
+                } else {
+                    if (prevY === lowValue) {
+                        this.ctx.lineTo(x, prevY)
+                        spectraVertices.push([x, prevY]);
                     }
 
-                    spectraVertices.push([x, y]);
-                } else {
                     // valid frequency, color green
                     if (strokeStyle !== "lightgreen") {
                         strokeStyle = "lightgreen"
                         this.ctx.stroke()
 
                         this.ctx.beginPath();
+                        this.ctx.moveTo(x, prevY);
                         this.ctx.strokeStyle = strokeStyle
-                        //this.ctx.lineWidth = 2
-                        this.ctx.moveTo(x - this.scaleX, prevY)
                     }
 
                     y = this.height - (array[i] - this.minY) * this.scaleY;
 
-                    if (i === 0) {
-                        this.ctx.moveTo(x, y);
-
-                        spectraVertices.push([x, this.height]);
-                    } else {
-                        this.ctx.lineTo(x, y);
-                    }
-
+                    this.ctx.lineTo(x, y);
                     spectraVertices.push([x, y]);
-
                 }
             } else {
                 // frequency out of the survey coverage => color red
                 if (strokeStyle !== "red") {
-                    this.ctx.lineTo(x, this.height)
+                    //this.ctx.lineTo(x, lowValue)
                     this.ctx.stroke()
 
                     this.ctx.beginPath();
                     strokeStyle = "red"
                     this.ctx.strokeStyle = strokeStyle
-                    //this.ctx.lineWidth = 4
                 }
 
-                y = this.height;
+                y = lowValue;
+
                 if (i === 0) {
                     this.ctx.moveTo(x, y);
                 } else {

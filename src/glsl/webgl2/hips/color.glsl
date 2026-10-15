@@ -12,10 +12,24 @@ uniform float reversed;
 #include ../hsv.glsl;
 #include ../decode.glsl;
 
+vec2 atlas_uv(vec3 uv) {
+    float slice = floor(uv.z + 0.5);
+
+    float column = mod(slice, 8.0);
+    float row = floor(slice * 0.125);
+
+    vec2 tile_size = vec2(0.125);
+
+    return vec2(
+        column * tile_size.x + uv.x * tile_size.x,
+        row * tile_size.y + uv.y * tile_size.y
+    );
+}
+
 /////////////////////////////////////////////
 /// RED sampler
 vec4 uvw2c_r(vec3 uv) {    
-    vec2 va = texture(tex, uv).ra;
+    vec2 va = texture(tex, atlas_uv(uv)).ra;
 
     va.x = transfer_func(H, va.x, min_value, max_value);
 
@@ -28,7 +42,7 @@ vec4 uvw2c_r(vec3 uv) {
 
 /// RGBA sampler
 vec4 uvw2c_rgba(vec3 uv) {
-    vec4 c = texture(tex, uv).rgba;
+    vec4 c = texture(tex, atlas_uv(uv)).rgba;
 
     c.r = transfer_func(H, c.r, min_value, max_value);
     c.g = transfer_func(H, c.g, min_value, max_value);
@@ -41,7 +55,7 @@ vec4 uvw2c_rgba(vec3 uv) {
 }
 
 vec4 uvw2c_ra(vec3 uv) {
-    vec2 c = texture(tex, uv).rg;
+    vec2 c = texture(tex, atlas_uv(uv)).rg;
 
     c.r = transfer_func(H, c.r, min_value, max_value);
 
@@ -54,7 +68,7 @@ vec4 uvw2c_ra(vec3 uv) {
 }
 
 vec4 uvw2cmap_rgba(vec3 uv) {    
-    float v = texture(tex, uv).r;
+    float v = texture(tex, atlas_uv(uv)).r;
     // apply transfer f
     v = transfer_func(H, v, min_value, max_value);
     // apply cmap
@@ -90,21 +104,21 @@ vec4 val2c(float x) {
 }
 
 vec4 uvw2c_f32(vec3 uv) {
-    float val = decode_f32(texture(tex, uv).rgba*255.0);
+    float val = decode_f32(texture(tex, atlas_uv(uv)).rgba*255.0);
     return val2c_f32(val);
 }
 
 vec4 uvw2c_i32(vec3 uv) {
-    float val = float(decode_i32(texture(tex, uv).rgba));
+    float val = float(decode_i32(texture(tex, atlas_uv(uv)).rgba));
     return mix(val2c(val), vec4(0.0), float(val == -1.0));
 }
 
 vec4 uvw2c_i16(vec3 uv) {
-    float val = float(decode_i16(texture(tex, uv).rg));
+    float val = float(decode_i16(texture(tex, atlas_uv(uv)).rg));
     return mix(val2c(val), vec4(0.0), float(val == -1.0));
 }
 
 vec4 uvw2c_u8(vec3 uv) {
-    float val = float(decode_u8(texture(tex, uv).r));
+    float val = float(decode_u8(texture(tex, atlas_uv(uv)).r));
     return val2c(val);
 }

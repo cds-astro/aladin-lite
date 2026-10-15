@@ -127,7 +127,6 @@ export class PersistantCircleSelect extends FSM {
                 },
             },
             view,
-            canvas,
         });
 
         /*
@@ -141,7 +140,7 @@ export class PersistantCircleSelect extends FSM {
 
         this.options = {
             minRadius: 0.0,
-            maxRadius: 2.0,
+            maxRadius: undefined,
 
             radius: 0.1,
 
@@ -149,7 +148,7 @@ export class PersistantCircleSelect extends FSM {
             // Handle appearance
             // ------------------------------------------------------------
 
-            handleRadius: 5,
+            handleRadius: 7,
             handleHoverRadius: 7,
 
             handleLineWidth: 2,
@@ -172,7 +171,11 @@ export class PersistantCircleSelect extends FSM {
 
 
         let centerRaDec = (options && options.centerRaDec) || [view.viewCenter.ra, view.viewCenter.dec];
-        let radius = Math.min(Math.max(this.options.radius, this.options.minRadius), this.options.maxRadius); 
+        let radius = Math.max(this.options.radius, this.options.minRadius);
+        
+        if (this.options.maxRadius) {
+            radius = Math.min(radius, this.options.maxRadius);
+        }
 
         this.shape = new Circle(centerRaDec, radius, this.options);
 
@@ -296,7 +299,9 @@ export class PersistantCircleSelect extends FSM {
      * The handle is placed at -45 degrees.
      */
     _getResizeHandles() {
-        if (!this.shape.center || !Utils.isNumber(this.shape.radius) || this.shape.isTooSmall)
+        const tooSmall = this.shape.radius*2 < 20.0;
+
+        if (!this.shape.center || !Utils.isNumber(this.shape.radius) || tooSmall)
             return null
 
         return {
@@ -402,7 +407,10 @@ export class PersistantCircleSelect extends FSM {
         let radius = this.view.wasm.angularDist(lonlat[0], lonlat[1], this.shape.centerRaDec[0], this.shape.centerRaDec[1]);
 
         radius = Math.max(this.options.minRadius, radius);
-        radius = Math.min(this.options.maxRadius, radius);
+
+        if (this.options.maxRadius) {
+            radius = Math.min(radius, this.options.maxRadius);
+        }
 
         this.shape.setRadius(radius);
     }
@@ -431,23 +439,26 @@ export class PersistantCircleSelect extends FSM {
 
         this.prevCursor = this.view.getCursor();
 
-        if (this._getInteraction(this.view.xy)) {
+        if (this.view.xy && this._getInteraction(this.view.xy)) {
             this.view.setCursor('pointer');
 
             this.shape.hover()
         } else {
-            //this.view.setCursor(this.prevCursor);
-
             this.shape.unhover()
         }
 
         // ============================================================
         // Handles
         // ============================================================
-        if (!this.shape.isTooSmall)
+        const tooSmall = this.shape.radius*2.0 < 20.0
+        if (!tooSmall && (this.view.xy && this._isInCircle(this.view.xy)))
             this._drawResizeHandles(ctx, this.shape.color);
 
         this._drawCenterHandle(ctx, this.shape.color);
+    }
+
+    _isInCircle(pos) {
+        return this._distance(this.shape.center, pos) <= this.shape.radius + this.options.handleHoverRadius
     }
 
     // ================================================================
@@ -459,7 +470,7 @@ export class PersistantCircleSelect extends FSM {
 
         const hovered = this.interaction?.type === "move";
 
-        const radius = hovered
+        let radius = hovered
             ? this.options.handleHoverRadius
             : this.options.handleRadius;
 
@@ -563,8 +574,12 @@ export class PersistantCircleSelect extends FSM {
     setRadius(radius) {
         radius = Math.max(
             this.options.minRadius,
-            Math.min(this.options.maxRadius, radius),
+            radius,
         );
+
+        if (this.options.maxRadius) {
+            radius = Math.min(radius, this.options.maxRadius);
+        }
 
         this.shape.setRadius(radius);
 
@@ -594,7 +609,9 @@ export class PersistantCircleSelect extends FSM {
     }
 
     isInteracting() {
-        //console.trace("interaction", this._getInteraction(this.view.xy), this.interaction)
+        if (this.view.xy === undefined)
+            return;
+
         return this._getInteraction(this.view.xy) !== null || (this.interaction !== null && this.interaction !== undefined);
     }
 
@@ -631,5 +648,22 @@ export class PersistantCircleSelect extends FSM {
     setColor(color) {
         this.shape.setColor(color);
         this.options = { ...this.options, color };
+    }
+
+    /**
+     * Hide the circle selector.
+     */
+    _hide() {
+        this.canvas.style.display = "none";
+        this.view.requestRedraw();
+    }
+
+    /**
+     * Show the circle selector.
+     */
+    _show() {
+        this.canvas.style.display = "block";
+        this._resizeCanvas();
+        this.view.requestRedraw();
     }
 }

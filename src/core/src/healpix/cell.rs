@@ -1,4 +1,5 @@
 use std::cmp::Ordering;
+use crate::math::quantity::Qty;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, serde::Deserialize, serde::Serialize)]
 pub struct HEALPixCell(pub u8, pub u64);
@@ -503,64 +504,62 @@ impl Ord for HEALPixCell {
 
 /// A simple object describing a cubic tile of a HiPS3D
 #[derive(Eq, Hash, PartialEq, Clone, Debug, serde::Deserialize, serde::Serialize)]
-pub struct HEALPixFreqCell {
+pub struct HEALPix3DCell {
+    // Spatial HEALPix indexing
     pub hpx: HEALPixCell,
-    pub f_hash: u64,
-    pub f_depth: u8,
+    // Third axis indexing
+    pub q_hash: u64,
+    pub q_depth: u8,
 }
 
-use crate::math::spectra::Freq;
-use crate::math::spectra::SpectralUnit;
-
-impl HEALPixFreqCell {
-
-    pub(crate) fn from_hpx_cell_and_freq(hpx_cell: &HEALPixCell, freq: Freq, f_depth: u8) -> Self {
-        let f_hash = freq.hash(f_depth);
+impl HEALPix3DCell {
+    pub(crate) fn from_hpx_cell_and_qty<Q: Qty>(hpx_cell: &HEALPixCell, q: Q, q_depth: u8) -> Self {
+        let q_hash = q.hash(q_depth);
 
         Self {
             hpx: *hpx_cell,
-            f_hash,
-            f_depth,
+            q_hash,
+            q_depth,
         }
     }
 
-    pub fn from_lonlat(lonlat: LonLatT<f64>, freq: Freq, s_depth: u8, f_depth: u8) -> Self {
+    pub fn from_lonlat<Q: Qty>(lonlat: LonLatT<f64>, q: Q, s_depth: u8, q_depth: u8) -> Self {
         let hpx = HEALPixCell::new(
             s_depth,
             lonlat.lon().to_radians(),
             lonlat.lat().to_radians(),
         );
 
-        let f_hash = freq.hash(f_depth);
+        let q_hash = q.hash(q_depth);
 
         Self {
             hpx,
-            f_hash,
-            f_depth,
+            q_hash,
+            q_depth,
         }
     }
 
-    pub fn new(hpx: HEALPixCell, f_hash: u64, f_depth: u8) -> Self {
+    pub fn new(hpx: HEALPixCell, q_hash: u64, q_depth: u8) -> Self {
         Self {
             hpx,
-            f_hash,
-            f_depth,
+            q_hash,
+            q_depth,
         }
     }
 
     pub fn hpx_parent(&self) -> Self {
         Self {
             hpx: self.hpx.parent(),
-            f_hash: self.f_hash,
-            f_depth: self.f_depth,
+            q_hash: self.q_hash,
+            q_depth: self.q_depth,
         }
     }
 
     pub fn parent(&self) -> Self {
         Self {
             hpx: self.hpx.parent(),
-            f_hash: self.f_hash >> 1,
-            f_depth: self.f_depth - 1,
+            q_hash: self.q_hash >> 1,
+            q_depth: self.q_depth - 1,
         }
     }
 
@@ -568,24 +567,22 @@ impl HEALPixFreqCell {
         self.hpx.is_root()
     }
 
-    pub fn freq_range(&self) -> Range<Freq> {
-        let f0 = Freq::from_hash_with_order(self.f_hash, self.f_depth);
-        let f1 = Freq::from_hash_with_order(
-            (self.f_hash + 1).min(Freq::num_max_cells(self.f_depth) as u64),
-            self.f_depth,
-        );
+    pub fn qty_idx_range<Q: Qty>(&self) -> Range<u64> {
+        let delta_order = Q::MAX_DEPTH - self.q_depth;
+        let q_hash_max = self.q_hash << delta_order;
+        let q_next_hash_max = (self.q_hash + 1) << delta_order;
 
-        f0..f1
+        q_hash_max..q_next_hash_max
     }
 
-    pub fn pixel_frequencies(&self, num_pixels: usize) -> impl Iterator<Item = f32> {
+    pub fn pixels<Q: Qty>(&self, num_pixels: usize) -> impl Iterator<Item = Q> {
         let delta_depth = num_pixels.trailing_zeros();
-        let pixel_depth = self.f_depth + delta_depth as u8;
+        let pixel_depth = self.q_depth + delta_depth as u8;
 
-        let h0 = self.f_hash << delta_depth;
-        let h1 = (self.f_hash + 1) << delta_depth;
+        let h0 = self.q_hash << delta_depth;
+        let h1 = (self.q_hash + 1) << delta_depth;
 
-        (h0..h1).map(move |hash| Freq::from_hash_with_order(hash, pixel_depth).0 as f32)
+        (h0..h1).map(move |hash| Q::from_hash_with_order(hash, pixel_depth))
     }
 }
 

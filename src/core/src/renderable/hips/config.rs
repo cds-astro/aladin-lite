@@ -1,6 +1,5 @@
 use al_api::hips::{DataproductType, ImageExt};
 
-use crate::math::spectra::Freq;
 use al_core::image::format::ImageFormatType;
 use al_core::texture::format::PixelType;
 use web_sys::{RequestCredentials, RequestMode};
@@ -21,13 +20,18 @@ pub(crate) struct HiPSConfig {
     pub max_depth_tile: u8,
     /// Min depth of the current HiPS tiles
     min_depth_tile: u8,
-    /// Max depth in the frequency axis (HiPS3D only)
-    pub max_depth_freq: Option<u8>,
+    /// Max depth in the frequency/time axis (HiPS3D only)
+    pub max_depth_axis2: Option<u8>,
+    pub min_depth_axis2: Option<u8>,
 
     /// Start of spectral coordinates (in meters)
-    pub em_min: Option<Freq>,
+    pub em_min: Option<f64>,
     /// End of spectral coordinates (in meters)
-    pub em_max: Option<Freq>,
+    pub em_max: Option<f64>,
+    /// Starting observation time (in MJD)
+    pub t_min: Option<f64>,
+    /// Ending observation time (in MJD)
+    pub t_max: Option<f64>,
 
     // For HiPS3D
     pub tile_depth: Option<u8>,
@@ -47,7 +51,7 @@ pub(crate) struct HiPSConfig {
     pub request_mode: RequestMode,
 }
 
-use crate::{math::spectra::Wavelength, HiPSProperties};
+use crate::{math::quantity::frequency::Wavelength, HiPSProperties};
 use al_api::coo_system::CooSystem;
 use wasm_bindgen::JsValue;
 
@@ -134,15 +138,22 @@ impl HiPSConfig {
         let dataproduct_type = properties.get_dataproduct_type().ok_or(JsValue::from_str(
             "dataproduct_type keyword is required in the HiPS properties file",
         ))?;
-        let max_depth_freq = properties.get_hips_order_freq();
+        let max_depth_axis2 = properties.get_hips_order_axis_2();
+        let min_depth_axis2 = properties.get_hips_min_order_axis_2();
+
         let tile_depth = properties.get_hips_tile_depth();
 
-        let em_min: Option<Freq> = properties
+        let em_min: Option<f64> = properties
             .get_em_max()
-            .map(|lambda| Wavelength(lambda as f64).into());
-        let em_max: Option<Freq> = properties
+            .map(|lambda| Wavelength(lambda as f64).0);
+        let em_max: Option<f64> = properties
             .get_em_min()
-            .map(|lambda| Wavelength(lambda as f64).into());
+            .map(|lambda| Wavelength(lambda as f64).0);
+
+        let t_min: Option<f64> = properties
+            .get_t_min();
+        let t_max: Option<f64> = properties
+            .get_t_max();
 
         let hips_config = HiPSConfig {
             creator_did,
@@ -158,10 +169,13 @@ impl HiPSConfig {
 
             em_min,
             em_max,
+            t_min,
+            t_max,
 
             // HiPS3D
             tile_depth,
-            max_depth_freq,
+            max_depth_axis2,
+            min_depth_axis2,
 
             frame,
             bitpix,

@@ -22,7 +22,7 @@
 
 import { FSM } from "../FiniteStateMachine";
 import { View } from "../View";
-
+import { Utils } from "../Utils";
 /******************************************************************************
  * Aladin Lite project
  * 
@@ -49,9 +49,8 @@ export class LineSelect extends FSM {
 
             view.aladin.removeStatusBarMessage('selector')
         }
-        let mouseout = (params) => {
-            let {e, coo} = params;
-            self.dispatch('mousemove', {coo});
+        let mouseout = (e) => {
+            self.dispatch('mousemove', e);
         };
 
         let start = (params) => {
@@ -61,21 +60,21 @@ export class LineSelect extends FSM {
             this.coos = [];
         }
 
-        let mousedown = (params) => {
-            const {coo} = params;
+        let mousedown = (e) => {
+            const coo = Utils.relMouseCoords(e);
 
             this.coos.push(coo);
         };
 
-        let mouseup = (params) => {
-            const {coo} = params;
+        let mouseup = (e) => {
+            const coo = Utils.relMouseCoords(e);
 
             this.coos.push(coo);
             self.dispatch('finish');
         };
 
-        let mousemove = (params) => {
-            const {coo} = params;
+        let mousemove = (e) => {
+            const coo = Utils.relMouseCoords(e);
             this.moveCoo = coo;
 
             view.requestRedraw();
@@ -160,7 +159,8 @@ export class LineSelect extends FSM {
                 finish: {
                     off
                 }
-            }
+            },
+            view
         };
 
         super(fsm)

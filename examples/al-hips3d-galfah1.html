@@ -15,8 +15,8 @@
             {
                 showSimbadPointerControl: true,
                 projection: 'AIT', // set a projection
-                fov: 90.0, // initial field of view in degrees
-                target: '05 38 45.86 +22 25 56.0', // initial target
+                fov: 1.0, // initial field of view in degrees
+                target: '19 23 44.18 +14 30 29.5', // initial target
                 cooFrame: 'icrs', // set galactic frame
                 showContextMenu: true,
                 showFrame: true,
@@ -27,7 +27,16 @@
             }
         );
 
-        hips = aladin.newImageSurvey("https://alasky.cds.unistra.fr/HIPS3D/GalfaHI", {name: "GalfaH1"});
+        //hips = aladin.newImageSurvey("https://alasky.cds.unistra.fr/HIPS3D/ALMA-IMF/CDS_C_ALMA-IMF_B6/", {name: "GalfaH1"});
+        //hips = aladin.newImageSurvey("https://alasky.cds.unistra.fr/HIPS3D/GalfaHI", {name: "GalfaH1"});
+        hips = aladin.newImageSurvey("https://alasky.cds.unistra.fr/HIPS3D/ERA5/CDS_C_ERA5_tcwv/", {
+            name: "GalfaH1",
+            colormap: "redTemperature",
+            successCallback: (hips) => {
+                hips.setTime(52640, {format: 'mjd'});
+            }
+        });
+        
         aladin.setImageLayer(hips)
 
         aladin.on('positionChanged', (_) => {

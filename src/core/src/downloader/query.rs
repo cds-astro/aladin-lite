@@ -9,7 +9,7 @@ pub trait Query: Sized {
 pub type QueryId = String;
 
 use crate::browser_support::BrowserFeaturesSupport;
-use crate::healpix::cell::HEALPixFreqCell;
+use crate::healpix::cell::HEALPix3DCell;
 use al_api::hips::DataproductType;
 use al_core::image::format::ImageFormatType;
 
@@ -24,7 +24,7 @@ pub enum CellDesc {
     },
     HiPS3D {
         // A description of the tile in space and frequency
-        cell: HEALPixFreqCell,
+        cell: HEALPix3DCell,
         // Size of the tile requested
         tile_size: u32,
         // Depth of the cubic tile
@@ -159,7 +159,7 @@ impl Tile {
     }
 
     pub fn new_cubic(
-        hpx_f_cell: &HEALPixFreqCell,
+        hpx_3d_cell: &HEALPix3DCell,
         cfg: &HiPSConfig,
         browser_support: &BrowserFeaturesSupport,
     ) -> Self {
@@ -173,11 +173,11 @@ impl Tile {
 
         // f hash at order_f
 
-        let HEALPixFreqCell {
+        let HEALPix3DCell {
             hpx: HEALPixCell(k, n),
-            f_hash: m,
-            f_depth: l,
-        } = *hpx_f_cell;
+            q_hash: m,
+            q_depth: l,
+        } = *hpx_3d_cell;
 
         let d = (n / 10000) * 10000;
         let e = (m / 10) * 10;
@@ -192,7 +192,7 @@ impl Tile {
             hips_cdid: hips_cdid.to_string(),
             url,
             cell: CellDesc::HiPS3D {
-                cell: hpx_f_cell.clone(),
+                cell: hpx_3d_cell.clone(),
                 tile_size,
                 tile_depth,
             },

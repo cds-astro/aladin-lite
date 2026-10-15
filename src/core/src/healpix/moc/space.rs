@@ -142,9 +142,16 @@ impl SpaceMoc {
         if rad >= PI {
             Self::allsky(depth)
         } else {
+            //al_core::log(&format!("lon: {:?}, lat: {:?}", lonlat.lon().to_radians(), lonlat.lat().to_radians()));
+            let mut lon_rad = lonlat.lon().to_radians();
+            let lat_rad = lonlat.lat().to_radians();
+
+            if lon_rad < 0.0 {
+                lon_rad += std::f64::consts::PI * 2.0;
+            }
             SpaceMoc(RangeMOC::from_cone(
-                lonlat.lon().to_radians(),
-                lonlat.lat().to_radians(),
+                lon_rad,
+                lat_rad,
                 rad,
                 depth,
                 0,

@@ -1,11 +1,11 @@
 #version 300 es
 precision highp float;
-precision highp sampler2DArray;
-precision highp usampler2DArray;
-precision highp isampler2DArray;
+precision highp sampler2D;
+precision highp usampler2D;
+precision highp isampler2D;
 precision highp int;
 
-uniform sampler2DArray tex;
+uniform sampler2D tex;
 
 in vec3 frag_pos;
 in vec2 out_clip_pos;

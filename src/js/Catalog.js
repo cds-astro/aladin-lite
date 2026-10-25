@@ -518,7 +518,7 @@ export let Catalog = (function () {
         cacheMarkerCtx.fillStyle = this.color;
         cacheMarkerCtx.beginPath();
         var half = Math.max(this.markerSize / 2, 2.0);
-        
+
         cacheMarkerCtx.arc(half, half, half - 2, 0, 2 * Math.PI, false);
         cacheMarkerCtx.fill();
         cacheMarkerCtx.lineWidth = 2;
@@ -866,7 +866,12 @@ export let Catalog = (function () {
                     selection.push(s)
                 }
             }
-            this.view.selectObjects([selection]);
+            if (selection.length === 0) {
+                this.view.unselectObjects();
+            }
+            else {
+                this.view.selectObjects([selection]);  // TSD - This will erase all existing selections, not just this catalog.
+            }
         }
 
         if (this.view && this.view.aladin.callbacksByEventName) {

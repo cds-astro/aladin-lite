@@ -225,6 +225,38 @@ export let Catalog = (function () {
     // @param raField:  index or name of right ascension column (might be undefined)
     // @param decField: index or name of declination column (might be undefined)
     //
+    function isUCDField(field, ucdField, oldUcdField) {
+        if (!field.ucd) {
+            return false;
+        }
+
+        var ucd = field.ucd.toLowerCase().trim();
+        return ucd.indexOf(ucdField) == 0 || ucd.indexOf(oldUcdField) == 0;
+    }
+
+    function scorePositionField(field) {
+        var score = 1;
+        var datatype = field.datatype ? field.datatype.toLowerCase() : "";
+        var unit = field.unit ? field.unit.toLowerCase().trim() : "";
+        var isDouble = datatype === "double";
+        var isDeg = unit === "deg";
+
+        if (datatype && datatype !== "char" && datatype !== "unicodechar") {
+            score += 20;
+        }
+        if (isDouble) {
+            score += 20;
+        }
+        if (isDeg) {
+            score += 10;
+        }
+        if (isDouble && isDeg) {
+            score += 50;
+        }
+
+        return score;
+    }
+
     function findRADecFields(fields, raField, decField) {
         var raFieldIdx, decFieldIdx;
         raFieldIdx = decFieldIdx = null;
@@ -267,35 +299,29 @@ export let Catalog = (function () {
             }
         }
         // if not already given, let's guess position columns on the basis of UCDs
+        var guessRaField = raFieldIdx === null;
+        var guessDecField = decFieldIdx === null;
+        var bestRaScore = -1;
+        var bestDecScore = -1;
         for (var l = 0, len = fields.length; l < len; l++) {
-            if (raFieldIdx != null && decFieldIdx != null) {
+            if (!guessRaField && !guessDecField) {
                 break;
             }
 
             var field = fields[l];
-            if (!raFieldIdx) {
-                if (field.ucd) {
-                    var ucd = field.ucd.toLowerCase().trim();
-                    if (
-                        ucd.indexOf("pos.eq.ra") == 0 ||
-                        ucd.indexOf("pos_eq_ra") == 0
-                    ) {
-                        raFieldIdx = l;
-                        continue;
-                    }
+            if (guessRaField && isUCDField(field, "pos.eq.ra", "pos_eq_ra")) {
+                var raScore = scorePositionField(field);
+                if (raScore > bestRaScore) {
+                    bestRaScore = raScore;
+                    raFieldIdx = l;
                 }
             }
 
-            if (!decFieldIdx) {
-                if (field.ucd) {
-                    var ucd = field.ucd.toLowerCase().trim();
-                    if (
-                        ucd.indexOf("pos.eq.dec") == 0 ||
-                        ucd.indexOf("pos_eq_dec") == 0
-                    ) {
-                        decFieldIdx = l;
-                        continue;
-                    }
+            if (guessDecField && isUCDField(field, "pos.eq.dec", "pos_eq_dec")) {
+                var decScore = scorePositionField(field);
+                if (decScore > bestDecScore) {
+                    bestDecScore = decScore;
+                    decFieldIdx = l;
                 }
             }
         }

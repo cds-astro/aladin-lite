@@ -40,7 +40,11 @@ export let Sesame = (function() {
     Sesame.lastObjectNameResolved = undefined;
 
     //Sesame.SESAME_URL = "http://cds.unistra.fr/cgi-bin/nph-sesame.jsonp";
-    Sesame.SESAME_URL = "https://cds.unistra.fr/cgi-bin/nph-sesame/-o/SVNI?";
+    Sesame.SESAME_URLS = [
+        "https://cds.unistra.fr/cgi-bin/nph-sesame/-o/SVNI?",
+        "https://vizier.cfa.harvard.edu/viz-bin/nph-sesame/-o/SVNI?",
+        "https://vizier.idia.ac.za/viz-bin/nph-sesame/-o/SVNI?"
+    ];
 
     /** find RA, DEC for any target (object name or position)
      *  if successful, callback is called with an object {ra: <ra-value>, dec: <dec-value>}
@@ -89,15 +93,14 @@ export let Sesame = (function() {
             return;
         }
 
-        var sesameUrl = Sesame.SESAME_URL;
+        var sesameUrls = Sesame.SESAME_URLS.map((url) => url + objectName);
 
         Sesame.lastObjectNameResolved = objectName;
-        Utils.fetch({
-            desc: "Resolving name of: " + objectName,
-            url: sesameUrl + objectName,
-            dataType: 'text',
-            useProxy: false,
-            success: function(text) {
+        Utils.loadFromUrls(sesameUrls, {
+                desc: "Resolving name of: " + objectName,
+                dataType: 'text',
+            })
+            .then((text) => {
                 if (Sesame.lastObjectNameResolved !== objectName) {
                     return;
                 }
@@ -129,9 +132,8 @@ export let Sesame = (function() {
                 } catch(e) {
                     callbackFunctionError('Error resolving object: '  + objectName + '\nReason: ' + e);
                 }
-            },
-            error: callbackFunctionError
-        });
+            })
+            .catch(callbackFunctionError);
     };
     
     return Sesame;

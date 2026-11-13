@@ -1486,7 +1486,11 @@ impl App {
     }
 
     pub(crate) fn set_hips_url(&mut self, cdid: &String, new_url: String) -> Result<(), JsValue> {
-        self.layers.set_hips_url(cdid, new_url)
+        self.layers.set_hips_url(cdid, new_url)?;
+
+        self.request_for_new_tiles = true;
+
+        Ok(())
     }
 
     pub(crate) fn set_catalog_opacity(

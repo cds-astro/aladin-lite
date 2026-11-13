@@ -131,26 +131,45 @@ impl<'a> FitsImage<'a> {
 
                             let data_byte_offset = off..(off + len);
 
-                            let mut bitpix = *bitpix;
+                            let bitpix = *bitpix;
                             let raw_bytes = match fits.get_data(&hdu) {
                                 BinaryTableData::TileCompressed(Pixels::U8(pixels)) => {
-                                    Some(pixels.collect::<Vec<_>>())
+                                    let mut bytes = vec![0_u8; (width * height) as usize];
+                                    for (idx, pixel) in pixels {
+                                        bytes[idx] = pixel;
+                                    }
+                                    Some(bytes)
                                 }
                                 BinaryTableData::TileCompressed(Pixels::I16(pixels)) => {
-                                    Some(pixels.flat_map(|p| p.to_be_bytes()).collect::<Vec<_>>())
+                                    let mut bytes = vec![0_u8; (2 * width * height) as usize];
+                                    for (idx, pixel) in pixels {
+                                        let le_bytes = pixel.to_be_bytes();
+                                        bytes[2 * idx] = le_bytes[0];
+                                        bytes[2 * idx + 1] = le_bytes[1];
+                                    }
+                                    Some(bytes)
                                 }
                                 BinaryTableData::TileCompressed(Pixels::I32(pixels)) => {
-                                    Some(pixels.flat_map(|p| p.to_be_bytes()).collect::<Vec<_>>())
+                                    let mut bytes = vec![0_u8; (4 * width * height) as usize];
+                                    for (idx, pixel) in pixels {
+                                        let le_bytes = pixel.to_be_bytes();
+                                        bytes[4 * idx] = le_bytes[0];
+                                        bytes[4 * idx + 1] = le_bytes[1];
+                                        bytes[4 * idx + 2] = le_bytes[2];
+                                        bytes[4 * idx + 3] = le_bytes[3];
+                                    }
+                                    Some(bytes)
                                 }
                                 BinaryTableData::TileCompressed(Pixels::F32(pixels)) => {
-                                    Some(pixels.flat_map(|p| p.to_be_bytes()).collect::<Vec<_>>())
-                                }
-                                BinaryTableData::TileCompressed(Pixels::F64(pixels)) => {
-                                    bitpix = Bitpix::F32;
-                                    let raw_bytes =
-                                        pixels.flat_map(|p| p.to_be_bytes()).collect::<Vec<_>>();
-
-                                    Some(raw_bytes)
+                                    let mut bytes = vec![0_u8; (4 * width * height) as usize];
+                                    for (idx, pixel) in pixels {
+                                        let le_bytes = pixel.to_be_bytes();
+                                        bytes[4 * idx] = le_bytes[0];
+                                        bytes[4 * idx + 1] = le_bytes[1];
+                                        bytes[4 * idx + 2] = le_bytes[2];
+                                        bytes[4 * idx + 3] = le_bytes[3];
+                                    }
+                                    Some(bytes)
                                 }
                                 _ => None,
                             };

@@ -51,6 +51,7 @@ import { SpectraDisplayer } from "./SpectraDisplayer.js";
 import { DefaultActionsForContextMenu } from "./DefaultActionsForContextMenu.js";
 import { Source } from "./Source.js";
 import { blobToArrayBuffer, blobToDataURL, buildAvmFromWcs, injectAvmIntoPngBlob } from "./AvmUtils.js";
+import { MocServer } from "./MocServer.js";
 export let View = (function () {
 
     const normalizeImageType = function (imgType) {
@@ -2178,7 +2179,28 @@ export let View = (function () {
                     // This situation can occurs if the MOCServer is out
                     // If so we can directly put the url of the DSS hosted in alasky,
                     // it the best I can do if the MOCServer is out
-                    self.aladin.setBaseImageLayer(Aladin.DEFAULT_OPTIONS.survey);
+                    const trySetDefaultLayer = () => {
+                        if (!navigator.onLine) {
+                            // No connection — wait for it to come back
+                            window.addEventListener(
+                                'online',
+                                () => {
+                                    // If the connection comes back the MocServer's availability
+                                    // assumption is reset.
+                                    MocServer._notAvailable = false;
+                                    trySetDefaultLayer();
+                                },
+                                { once: true }
+                            );
+                            return;
+                        }
+
+                        if (!MocServer._notAvailable) {
+                            self.aladin.setBaseImageLayer(Aladin.DEFAULT_OPTIONS.survey);
+                        } 
+                    };
+
+                    trySetDefaultLayer();
                 }
             })
     }

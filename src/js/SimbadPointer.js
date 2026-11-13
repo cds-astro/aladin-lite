@@ -46,7 +46,7 @@ export let SimbadPointer = (function() {
         var coo = new Coo(ra, dec, 7);
         var params = {"Ident": coo.format('s/'), "SR": radiusDegrees};
 
-        Utils.loadFromUrls(SimbadPointer.MIRRORS, {contentType: "text/plain", data: params, dataType: 'text'})
+        Utils.fetchFromMirrorUrls(SimbadPointer.MIRRORS, {contentType: "text/plain", data: params, dataType: 'text'})
             .then((result) => {
 
                 var regexp = /(.*?)\/(.*?)\((.*?),(.*?)\)/g;

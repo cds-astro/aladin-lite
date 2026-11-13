@@ -96,7 +96,7 @@ export let Sesame = (function() {
         var sesameUrls = Sesame.SESAME_URLS.map((url) => url + objectName);
 
         Sesame.lastObjectNameResolved = objectName;
-        Utils.loadFromUrls(sesameUrls, {
+        Utils.fetchFromMirrorUrls(sesameUrls, {
                 desc: "Resolving name of: " + objectName,
                 dataType: 'text',
             })

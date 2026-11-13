@@ -287,7 +287,7 @@ Utils.LRUCache.prototype = {
 
  A promise is returned. When all the urls fail, a rejected Promise is returned so that it can be catched afterwards
  */
-Utils.loadFromUrls = function (urls, options) {
+Utils.fetchFromMirrorUrls = function (urls, options) {
     const data = options && options.data || undefined
     const timeout = options && options.timeout || 5000
     const mode = options && options.mode || 'cors';
@@ -298,7 +298,10 @@ Utils.loadFromUrls = function (urls, options) {
     const controller = new AbortController()
 
     // Launch a timemout that will interrupt the fetch if it has not yet succeded:
-    const timeoutId = setTimeout(() => controller.abort(), timeout)
+    const timeoutId = setTimeout(() => {
+        console.log('req aborted')
+        controller.abort()
+    }, timeout)
     let url = urls[0];
     if (data) {
         url += '?' + new URLSearchParams(data)
@@ -342,7 +345,7 @@ Utils.loadFromUrls = function (urls, options) {
                 let errorMsg = "Status: "+ e.status +"\nMessage: " + e.statusText;
                 return Promise.reject(errorMsg);
             } else {
-                return Utils.loadFromUrls(urls.slice(1), options);
+                return Utils.fetchFromMirrorUrls(urls.slice(1), options);
             }
         }
     })

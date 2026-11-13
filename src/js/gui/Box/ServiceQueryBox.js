@@ -70,7 +70,7 @@ export class ServiceQueryBox extends Box {
 
                     let name = url.searchParams.toString();
                     // Tackle CORS problems
-                    Utils.loadFromUrls([url, Utils.handleCORSNotSameOrigin(url)], {timeout: 30000, dataType: 'blob'})
+                    Utils.fetchFromMirrorUrls([url, Utils.handleCORSNotSameOrigin(url)], {timeout: 30000, dataType: 'blob'})
                         .then((blob) => {
                             const url = URL.createObjectURL(blob);
 

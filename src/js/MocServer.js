@@ -36,18 +36,42 @@ import { Utils } from "./Utils";
 
 export class MocServer {
     static MIRRORS_HTTP = [
-        'http://alaskybis.unistra.fr/MocServer/query',
-        'http://alasky.unistra.fr/MocServer/query'
+        'http://alaskybis.cds.unistra.fr/MocServer/query',
+        'http://alasky.cds.unistra.fr/MocServer/query'
     ]; // list of base URL for MocServer mirrors, available in HTTP
     static MIRRORS_HTTPS = [
-        'https://alaskybis.unistra.fr/MocServer/query',
-        'https://alasky.unistra.fr/MocServer/query'
+        'https://alaskybis.cds.unistra.fr/MocServer/query',
+        'https://alasky.cds.unistra.fr/MocServer/query'
     ]; // list of base URL for MocServer mirrors, available in HTTPS
 
     static _allHiPSes = undefined;
     static _allCatalogHiPSes = undefined;
+    static _notAvailable = false;
+
+    static fetchMetadataFromID(ID) {
+        const params = {
+            get: "record",
+            fmt: "json",
+            ID: "*" + decodeURI(ID) + "*",
+        };
+
+        if (MocServer._notAvailable) {
+            console.warn('MocServer mirrors not availables');
+        }
+
+        return Utils.fetchFromMirrorUrls(MocServer.MIRRORS_HTTPS, {
+            data: params,
+            dataType: 'json'
+        }).catch((_) => {
+            MocServer._notAvailable = true;
+        })
+    }
 
     static getAllHiPSes() {
+        if (MocServer._notAvailable) {
+            console.warn('MocServer mirrors not available');
+        }
+
         if (!this._allHiPSes) {
             const params = {
                 expr: "dataproduct_type=image||dataproduct_type=spectral-cube",
@@ -57,10 +81,12 @@ export class MocServer {
                 fields: "ID,hips_creator,hips_copyright,hips_order,hips_tile_width,hips_frame,hips_tile_format,obs_title,obs_description,obs_copyright,obs_regime,client_category,dataproduct_subtype,hips_service_url,hips_initial_ra,hips_initial_dec,hips_initial_fov,em_min,em_max",
             };
     
-            this._allHiPSes = Utils.loadFromUrls(MocServer.MIRRORS_HTTPS, {
+            this._allHiPSes = Utils.fetchFromMirrorUrls(MocServer.MIRRORS_HTTPS, {
                 data: params,
                 dataType: 'json',
                 desc: 'MOCServer query to get all the HiPS metadata'
+            }).catch((_) => {
+                MocServer._notAvailable = true;
             })
         }
 
@@ -86,25 +112,16 @@ export class MocServer {
             params['stc'] = stc;
         } catch (e) {}
 
-        return Utils.loadFromUrls(MocServer.MIRRORS_HTTPS, {
+        if (MocServer._notAvailable) {
+            console.warn('MocServer mirrors not available');
+        }
+
+        return Utils.fetchFromMirrorUrls(MocServer.MIRRORS_HTTPS, {
             data: params,
             dataType: 'json',
             desc: 'MOCServer: Retrieve HiPS inside FoV'
-        })
-    }
-
-    static getHiPSesFromIDs(ids) {
-        const params = {
-            //expr: "dataproduct_type=image||dataproduct_type=cube",
-            expr: "dataproduct_type=image&&ID=" + ids.join(','),
-            get: "record",
-            fmt: "json",
-            fields: "ID,hips_creator,hips_copyright,hips_frame,hips_tile_format,obs_title,obs_description,obs_copyright,obs_regime,dataproduct_subtype,hips_service_url,hips_initial_ra,hips_initial_dec,hips_initial_fov,em_min,em_max",
-        };
-
-        return Utils.loadFromUrls(MocServer.MIRRORS_HTTPS, {
-            data: params,
-            dataType: 'json'
+        }).catch((_) => {
+            MocServer._notAvailable = true;
         })
     }
 
@@ -117,12 +134,16 @@ export class MocServer {
                 fields: "ID,hips_copyright,obs_title,obs_description,obs_copyright,cs_service_url,hips_service_url",
             };
 
-            this._allCatalogHiPSes = Utils.loadFromUrls(MocServer.MIRRORS_HTTPS, {data: params, dataType: 'json'})
-            this._allCatalogHiPSes.then((aa) => console.log(aa))
+            if (MocServer._notAvailable) {
+                console.warn('MocServer mirrors not available');
+            }
+
+            this._allCatalogHiPSes = Utils.fetchFromMirrorUrls(MocServer.MIRRORS_HTTPS, {data: params, dataType: 'json'})
+                .catch((_) => {
+                    MocServer._notAvailable = true;
+                })
         }
 
         return this._allCatalogHiPSes;
     }
-
-
 }

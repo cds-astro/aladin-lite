@@ -37,16 +37,7 @@ export let HiPSProperties = {};
 
 HiPSProperties.fetchFromID = async function(ID) {
     // Use the MOCServer to retrieve the properties
-    const params = {
-        get: "record",
-        fmt: "json",
-        ID: "*" + decodeURI(ID) + "*",
-    };
-
-    let metadata = await Utils.loadFromUrls(MocServer.MIRRORS_HTTPS, {
-        data: params,
-        dataType: 'json'
-    });
+    let metadata = await MocServer.fetchMetadataFromID(ID);
 
     // We get the property here
     // 1. Ensure there is exactly one survey matching
@@ -191,14 +182,20 @@ HiPSProperties.getFasterMirrorUrl = function (metadata) {
             baseUrl = baseUrl.substr(0, baseUrl.length - 1);
         }
 
-        let validRequest = await fetch(baseUrl + '/properties', options).then((resp) => {
-            // completed request before timeout fired
-            clearTimeout(timeoutId)
-            // Resolve with the time duration of the request
-            return Promise.resolve(true);
-        }).catch((e) => {
-            return Promise.resolve(false);
-        });
+        let validRequest = await fetch(baseUrl + '/properties', options)
+            .then((resp) => {
+                // completed request before timeout fired
+                clearTimeout(timeoutId)
+
+                if (resp.ok) {
+                    // Resolve with the time duration of the request
+                    return Promise.resolve(true);
+                } else {
+                    return Promise.resolve(false);
+                }
+            }).catch((e) => {
+                return Promise.resolve(false);
+            });
         const duration = performance.now() - startRequestTime;//the time needed to do the request
 
         return {duration, validRequest, baseUrl};

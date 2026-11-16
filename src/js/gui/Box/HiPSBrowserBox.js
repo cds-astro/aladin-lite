@@ -21,14 +21,15 @@
 //
 
 import { MocServer } from "../../MocServer.js";
-
+import { RegTAP } from "../../vo/RegTAP.js";
 import { Box } from "../Widgets/Box.js";
 import { Dropdown } from "../Input/Dropdown.js";
 import filterOnUrl from "../../../../assets/icons/filter-on.svg";
 import treeIconUrl from "../../../../assets/icons/tree.svg";
+import ivoaUrl from "../../../../assets/icons/ivoa.png";
 import filterOffUrl from "../../../../assets/icons/filter-off.svg";
 import helpIconUrl from "../../../../assets/icons/help.svg";
-
+import { TogglerActionButton } from "../Button/Toggler.js";
 import { Input } from "../Widgets/Input.js";
 import { WidgetTogglerButton } from "../Button/Toggler.js";
 import { Layout } from "../Layout.js";
@@ -82,6 +83,30 @@ function fillHiPSHierarchy(name, hips, path, hierarchy) {
     }
 }
 
+async function harvestHiPSesFromRegistry() {
+    // Get the HiPSes from the registry
+    const HiPSList = await RegTAP.harvestHiPSLists()
+
+    let allHiPSes = [];
+    for (var key of Object.keys(HiPSList)) {
+        let HiPSes = HiPSList[key];
+
+        let hips = HiPSes[0];
+        hips['client_category'] = hips.creator_did;
+        hips['obs_title'] = hips.creator_did;
+        hips['ID'] = hips.creator_did;
+
+        for (var i = 1; i < HiPSes.length; i++) {
+            // Add these info needed for rebuilding the browsing tree
+            hips[`hips_service_url_${i}`] = HiPSes[i].hips_service_url;
+        }
+
+        allHiPSes.push(hips)
+    }
+
+    return allHiPSes;
+}
+
 export class HiPSBrowserBox extends Box {
     static HiPSList = {};
 
@@ -93,7 +118,9 @@ export class HiPSBrowserBox extends Box {
                 if (!item.obs_regime)
                     return false;
 
-                if (params.regime.toLowerCase() !== item.obs_regime.toLowerCase()) {
+                let regime = Array.isArray(item.obs_regime) ? item.obs_regime[0] : item.obs_regime;
+
+                if (params.regime.toLowerCase() !== regime.toLowerCase()) {
                     return false;
                 }
             }
@@ -150,39 +177,11 @@ export class HiPSBrowserBox extends Box {
             aladin,
         });
 
-        MocServer.getAllHiPSes().then((HiPSes) => {
-            HiPSBrowserBox.HiPSList = {}
-
-            let hipsHierarchy = {};
-            // Fill the HiPSList from the MOCServer
-
-            // Build a hierarchy w.r.t sorted by regime
-            let HiPSIDs = []
-            HiPSes.forEach((h) => {
-                let name = h.obs_title;
-                name = name.replace(/:|\'/g, '');
-                HiPSIDs.push(name)
-
-                HiPSBrowserBox.HiPSList[name] = h;
-
-                if (h.client_category) {
-                    let path = h.client_category
-
-                    fillHiPSHierarchy(name, h, path, hipsHierarchy)
-                } else {
-                    let hipsID = h.ID;
-                    hipsID = hipsID.replace('/P', '');
-
-                    let path = "Others/" + hipsID;
-                    fillHiPSHierarchy(name, h, path, hipsHierarchy)
-                }
-            });
-
-            self.searchDropdown.update({ options: HiPSIDs });
-            self.searchTree.setHierarchy(hipsHierarchy)
-
-            // Initialize the autocompletion without any filtering
-            self._filterHiPSList({})
+        MocServer.getAllHiPSes()
+        .catch((_) => harvestHiPSesFromRegistry())
+        .then((HiPSes) => {
+            console.log("hipp:", HiPSes)
+            self._populate(HiPSes);
         });
 
         const _parseHiPS = (e) => {
@@ -263,11 +262,52 @@ export class HiPSBrowserBox extends Box {
         let infoCurrentHiPSBtn = ActionButton.BUTTONS(aladin)
             .infoHiPS({disabled: true})
 
+
+
         let filterBox = new HiPSFilterBox(aladin, {
             callback: (params) => {
                 self._filterHiPSList(params);
             },
         })
+
+        let voRegistry = false;
+
+        let seekHiPSFromRegistry = new ActionButton({
+            content: 'VO registry',
+            toggled: false,
+            action: async (_) => {
+                voRegistry = true;
+                seekHiPSFromRegistry.update({toggled: true});
+                seekHiPSFromMOCServer.update({toggled: false});
+
+                const allHiPSes = await harvestHiPSesFromRegistry();
+
+                // If the user toggles off the button too fast
+                // we should not change the tree HiPS list
+                if (voRegistry)
+                    self._populate(allHiPSes)
+            },
+        });
+        let seekHiPSFromMOCServer = new ActionButton({
+            content: 'MOCServer',
+            toggled: true,
+            action: async (_) => {
+                voRegistry = false;
+                seekHiPSFromRegistry.update({toggled: false});
+                seekHiPSFromMOCServer.update({toggled: true});
+
+                let allHiPSes;
+                try {
+                    allHiPSes = await MocServer.getAllHiPSes();
+                } catch(e) {
+                    allHiPSes = [];
+                }
+                
+                if (!voRegistry)
+                    self._populate(allHiPSes);
+            },
+        });
+
         let filterBtn = new WidgetTogglerButton({
             icon: {
                 url: filterOffUrl,
@@ -319,6 +359,7 @@ export class HiPSBrowserBox extends Box {
                 sizeable: true,
                 classList: ['aladin-HiPS-browser-box'],
                 content: [
+                    [seekHiPSFromMOCServer, seekHiPSFromRegistry],
                     searchTree,
                     ["Search:", searchDropdown, infoCurrentHiPSBtn],
                     [filterEnabler, filterBtn, filterNumberElt],
@@ -348,6 +389,41 @@ export class HiPSBrowserBox extends Box {
         this._addListeners();
 
         this._requestMOCServer();
+    }
+
+    _populate(HiPSes) {
+        HiPSBrowserBox.HiPSList = {}
+
+        let hipsHierarchy = {};
+        // Fill the HiPSList from the MOCServer
+
+        // Build a hierarchy w.r.t sorted by regime
+        let HiPSIDs = []
+        HiPSes.forEach((h) => {
+            let name = h.obs_title;
+            name = name.replace(/:|\'/g, '');
+            HiPSIDs.push(name)
+
+            HiPSBrowserBox.HiPSList[name] = h;
+
+            if (h.client_category) {
+                let path = h.client_category
+
+                fillHiPSHierarchy(name, h, path, hipsHierarchy)
+            } else {
+                let hipsID = h.ID;
+                hipsID = hipsID.replace('/P', '');
+
+                let path = "Others/" + hipsID;
+                fillHiPSHierarchy(name, h, path, hipsHierarchy)
+            }
+        });
+
+        this.searchDropdown.update({ options: HiPSIDs });
+        this.searchTree.setHierarchy(hipsHierarchy)
+
+        // Initialize the autocompletion without any filtering
+        this._filterHiPSList({})
     }
 
     _addListeners() {

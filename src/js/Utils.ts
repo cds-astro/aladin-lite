@@ -300,13 +300,7 @@ Utils.fetchFromMirrorUrls = function (urls, options) {
     const contentType = options && options.contentType || undefined;
     const dataType = (options && options.dataType) || 'text';
     const desc = options && options.desc;
-    // A controller that can abort the query when a timeout is reached
-    const controller = new AbortController()
-
-    // Launch a timemout that will interrupt the fetch if it has not yet succeded:
-    const timeoutId = setTimeout(() => {
-        controller.abort()
-    }, timeout)
+    
     let url = urls[0];
     if (data) {
         url += '?' + new URLSearchParams(data)
@@ -323,11 +317,11 @@ Utils.fetchFromMirrorUrls = function (urls, options) {
         mode,
         // *default, no-cache, reload, force-cache, only-if-cached
         cache: 'default',
-        // Abort the request when a timeout exceeded
-        signal: controller.signal,
         dataType,
         // message description
-        desc
+        desc,
+        // timeout
+        timeout,
     }
 
     if (contentType) {
@@ -339,8 +333,6 @@ Utils.fetchFromMirrorUrls = function (urls, options) {
     return Utils.fetch({
         ...params,
         success: (resp) => {
-            // completed request before timeout fired
-            clearTimeout(timeoutId)
             return Promise.resolve(resp)
         },
         error: (e) => {
@@ -399,8 +391,17 @@ Utils.fetch = function(params) {
         url = params.url;
     }
 
+    // A controller that can abort the query when a timeout is reached
+    const timeout = params && params.timeout || 30000;
+    let controller = new AbortController();
+    let timeoutId = setTimeout(() => {
+        controller.abort()
+    }, timeout);
+
     let request = new Request(url, {
         method: params.method || 'GET',
+        // Abort the request when a timeout exceeded
+        signal: controller.signal,
         ...params
     })
 
@@ -412,6 +413,9 @@ Utils.fetch = function(params) {
 
     return fetch(request)
         .then((resp) => {
+            // completed request before timeout fired
+            clearTimeout(timeoutId)
+
             if (params.dataType && params.dataType.includes('json')) {
                 return resp.json();
             } else if (params.dataType && params.dataType.includes('blob')) {

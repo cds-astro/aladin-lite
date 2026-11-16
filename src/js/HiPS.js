@@ -536,6 +536,7 @@ export let HiPS = (function () {
 
                         self.view.requestRedraw();
                     }
+
                 }
             })
             .catch((e) => {

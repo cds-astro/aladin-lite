@@ -93,7 +93,7 @@ export let Sesame = (function() {
             return;
         }
 
-        var sesameUrls = Sesame.SESAME_URLS.map((url) => url + objectName);
+        var sesameUrls = Sesame.SESAME_URLS.map((url) => url + encodeURIComponent(objectName));
 
         Sesame.lastObjectNameResolved = objectName;
         Utils.fetchFromMirrorUrls(sesameUrls, {

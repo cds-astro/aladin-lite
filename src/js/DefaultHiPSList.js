@@ -34,7 +34,7 @@ export let HiPSList = (function () {
             tileSize: 512,
             imgFormat: "jpeg",
             cooFrame: "equatorial",
-            startUrl: "https://alasky.cds.unistra.fr/DSS/DSSColor",
+            //startUrl: "https://alasky.cds.unistra.fr/DSS/DSSColor",
             dataproductType: "image",
         },
         {
@@ -45,7 +45,7 @@ export let HiPSList = (function () {
             tileSize: 512,
             imgFormat: "png",
             cooFrame: "equatorial",
-            startUrl: "https://erosita.mpe.mpg.de/dr1/erodat/static/hips/eRASS1_RGB_Rate_c010/",
+            //startUrl: "https://erosita.mpe.mpg.de/dr1/erodat/static/hips/eRASS1_RGB_Rate_c010/",
             dataproductType: "image",
         },
         {
@@ -56,7 +56,7 @@ export let HiPSList = (function () {
             tileSize: 512,
             imgFormat: "jpeg",
             cooFrame: "equatorial",
-            startUrl: "https://alaskybis.cds.unistra.fr/2MASS/Color",
+            //startUrl: "https://alaskybis.cds.unistra.fr/2MASS/Color",
             dataproductType: "image",
         },
         {
@@ -74,7 +74,7 @@ export let HiPSList = (function () {
             colormap: "magma",
             stretch: "Linear",
             imgFormat: "fits",
-            startUrl: "https://alaskybis.cds.unistra.fr/DSS/DSS2Merged",
+            //startUrl: "https://alaskybis.cds.unistra.fr/DSS/DSS2Merged",
             dataproductType: "image",
         },
         {
@@ -90,7 +90,7 @@ export let HiPSList = (function () {
             stretch: "asinh",
             colormap: "rdylbu",
             imgFormat: "fits",
-            startUrl: "https://alaskybis.cds.unistra.fr/ancillary/GaiaEDR3/density-map",
+            //startUrl: "https://alaskybis.cds.unistra.fr/ancillary/GaiaEDR3/density-map",
             dataproductType: "image",
         },
         {
@@ -107,7 +107,7 @@ export let HiPSList = (function () {
             maxCut: {fits: 7000.0, jpeg: 255.0, png: 255.0},
             stretch: "asinh",
             colormap: "redtemperature",
-            startUrl: "https://alasky.cds.unistra.fr/Pan-STARRS/DR1/g",
+            //startUrl: "https://alasky.cds.unistra.fr/Pan-STARRS/DR1/g",
             dataproductType: "image",
         },
         {
@@ -118,7 +118,7 @@ export let HiPSList = (function () {
             tileSize: 512,
             imgFormat: "jpeg",
             cooFrame: "equatorial",
-            startUrl: "https://alasky.cds.unistra.fr/Pan-STARRS/DR1/color-z-zg-g",
+            //startUrl: "https://alasky.cds.unistra.fr/Pan-STARRS/DR1/color-z-zg-g",
             dataproductType: "image",
         },
         {
@@ -129,7 +129,7 @@ export let HiPSList = (function () {
             cooFrame: "equatorial",
             tileSize: 512,
             imgFormat: "png",
-            startUrl: "https://alasky.cds.unistra.fr/DECaPS/DR2/CDS_P_DECaPS_DR2_color",
+            //startUrl: "https://alasky.cds.unistra.fr/DECaPS/DR2/CDS_P_DECaPS_DR2_color",
             dataproductType: "image",
         },
         {
@@ -140,7 +140,7 @@ export let HiPSList = (function () {
             imgFormat: "jpeg",
             tileSize: 512,
             cooFrame: "equatorial",
-            startUrl: "https://alasky.cds.unistra.fr/Fermi/Color",
+            //startUrl: "https://alasky.cds.unistra.fr/Fermi/Color",
             dataproductType: "image",
         },
         {
@@ -151,7 +151,7 @@ export let HiPSList = (function () {
             imgFormat: "png",
             tileSize: 512,
             cooFrame: "equatorial",
-            startUrl: "https://alasky.cds.unistra.fr/GALEX/GALEXGR6_7_NUV",
+            //startUrl: "https://alasky.cds.unistra.fr/GALEX/GALEXGR6_7_NUV",
             dataproductType: "image",
         },
         {
@@ -162,7 +162,7 @@ export let HiPSList = (function () {
             tileSize: 256,
             imgFormat: "jpeg",
             cooFrame: "galactic",
-            startUrl: "https://alasky.cds.unistra.fr/IRISColor",
+            //startUrl: "https://alasky.cds.unistra.fr/IRISColor",
             dataproductType: "image",
         },
         {
@@ -173,7 +173,7 @@ export let HiPSList = (function () {
             tileSize: 512,
             imgFormat: "jpeg",
             cooFrame: "galactic",
-            startUrl: "https://alasky.cds.unistra.fr/MellingerRGB",
+            //startUrl: "https://alasky.cds.unistra.fr/MellingerRGB",
             dataproductType: "image",
         },
         {
@@ -184,7 +184,7 @@ export let HiPSList = (function () {
             tileSize: 512,
             imgFormat: "jpeg",
             cooFrame: "equatorial",
-            startUrl: "https://alasky.cds.unistra.fr/SDSS/DR9/color",
+            //startUrl: "https://alasky.cds.unistra.fr/SDSS/DR9/color",
             dataproductType: "image",
         },
         {
@@ -195,7 +195,7 @@ export let HiPSList = (function () {
             tileSize: 512,
             imgFormat: "jpeg",
             cooFrame: "galactic",
-            startUrl: "https://alasky.cds.unistra.fr/Spitzer/SpitzerI1I2I4color",
+            //startUrl: "https://alasky.cds.unistra.fr/Spitzer/SpitzerI1I2I4color",
             dataproductType: "image",
         },
         {
@@ -206,7 +206,7 @@ export let HiPSList = (function () {
             tileSize: 512,
             imgFormat: "jpeg",
             cooFrame: "equatorial",
-            startUrl: "https://alaskybis.cds.unistra.fr/AllWISE/RGB-W4-W2-W1",
+            //startUrl: "https://alaskybis.cds.unistra.fr/AllWISE/RGB-W4-W2-W1",
             dataproductType: "image",
         },
         {
@@ -222,7 +222,7 @@ export let HiPSList = (function () {
             maxCut: {fits: 1.8, jpeg: 255.0, png: 255.0},
             stretch: "linear",
             colormap: "redtemperature",
-            startUrl: "https://alasky.cds.unistra.fr/SDSS/DR9/band-g",
+            //startUrl: "https://alasky.cds.unistra.fr/SDSS/DR9/band-g",
             dataproductType: "image",
         },
         {
@@ -233,7 +233,7 @@ export let HiPSList = (function () {
             maxCut: {fits: 800.0, jpeg: 255.0, png: 255.0},
             colormap: "rdbu",
             imgFormat: "fits",
-            startUrl: "https://alasky.cds.unistra.fr/FinkbeinerHalpha",
+            //startUrl: "https://alasky.cds.unistra.fr/FinkbeinerHalpha",
             dataproductType: "image",
         },
         {
@@ -244,7 +244,7 @@ export let HiPSList = (function () {
             maxCut: {fits: 100.0, jpeg: 255.0, png: 255.0},
             colormap: "grayscale",
             imgFormat: "fits",
-            startUrl: "https://alasky.cds.unistra.fr/VTSS/Ha",
+            //startUrl: "https://alasky.cds.unistra.fr/VTSS/Ha",
             dataproductType: "image",
         },
         {
@@ -253,7 +253,7 @@ export let HiPSList = (function () {
             maxOrder: 9,
             imgFormat: "jpeg",
             minOrder: 3,
-            startUrl: "https://alasky.cds.unistra.fr/IPAC/IPAC_P_GLIMPSE360",
+            //startUrl: "https://alasky.cds.unistra.fr/IPAC/IPAC_P_GLIMPSE360",
         },
     ];
 

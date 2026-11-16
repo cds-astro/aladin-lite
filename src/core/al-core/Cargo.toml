@@ -1,6 +1,6 @@
 [package]
 name = "al-core"
-version = "3.9.0"
+version = "3.9.3"
 authors = ["baumannmatthieu0@gmail.com", "matthieu.baumann@astro.unistra.fr"]
 edition = "2018"
 

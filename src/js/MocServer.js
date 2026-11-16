@@ -146,4 +146,4 @@ export class MocServer {
 
         return this._allCatalogHiPSes;
     }
-}
+}   

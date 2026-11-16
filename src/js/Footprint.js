@@ -132,7 +132,11 @@ export let Footprint= (function() {
     };
 
     Footprint.prototype.getLineWidth = function() {
-        return this.shapes && this.shapes[0].getLineWidth();
+        if (this.shapes && this.shapes.length >= 1) {
+            return this.shapes[0].getLineWidth();
+        }
+
+        return undefined;
     };
 
 
@@ -141,7 +145,11 @@ export let Footprint= (function() {
     };
 
     Footprint.prototype.getSelectionLineWidth = function() {
-        return this.shapes && this.shapes[0].getSelectionLineWidth();
+        if (this.shapes && this.shapes.length >= 1) {
+            return this.shapes[0].getSelectionLineWidth();
+        }
+
+        return undefined;
     };
 
     Footprint.prototype.setSelectionLineWidth = function(selectionLineWidth) {

@@ -19,9 +19,7 @@
 //    You should have received a copy of the GNU Lesser General Public License
 //    along with Aladin Lite. If not, see <https://www.gnu.org/licenses/>.
 //
-
 import { Utils } from "./Utils";
-
 
 /******************************************************************************
  * Aladin Lite project
@@ -29,10 +27,9 @@ import { Utils } from "./Utils";
  * File MocServer
  *
  * 
- * Author: Thomas Boch[CDS]
+ * Author: Thomas Boch, Matthieu Baumann[CDS]
  * 
  *****************************************************************************/
-
 
 export class MocServer {
     static MIRRORS_HTTP = [
@@ -48,106 +45,152 @@ export class MocServer {
     static _allCatalogHiPSes = undefined;
     static _notAvailable = false;
 
-    static fetchMetadataFromID(ID) {
+    static async fetchPropertiesFromID(ID) {
+        // Check if we have already it in cache
+        if (MocServer._allHiPSes) {
+            let properties = MocServer._allHiPSes.filter((hips) => hips.ID.includes(ID));
+
+            if (properties.length > 0) {
+
+                console.log("properties found for ", ID, properties)
+                // HiPS have been found in the cache
+                return properties;
+            }
+        }
+
+        if (MocServer._notAvailable) {
+            throw new Error('MocServer mirrors not availables');
+        }
+
+        // Make the Query
         const params = {
             get: "record",
             fmt: "json",
             ID: "*" + decodeURI(ID) + "*",
         };
 
-        if (MocServer._notAvailable) {
-            console.warn('MocServer mirrors not availables');
-            return null;
-        }
-
-        return Utils.fetchFromMirrorUrls(MocServer.MIRRORS_HTTPS, {
-            data: params,
-            dataType: 'json'
-        }).catch((_) => {
-            MocServer._notAvailable = true;
-        })
-    }
-
-    static getAllHiPSes() {
-        if (MocServer._notAvailable) {
-            console.warn('MocServer mirrors not available');
-            return this._allHiPSes;
-        }
-
-        if (!this._allHiPSes) {
-            const params = {
-                expr: "dataproduct_type=image||dataproduct_type=spectral-cube",
-                //expr: "dataproduct_type=image",
-                get: "record",
-                fmt: "json",
-                fields: "ID,hips_creator,hips_copyright,hips_order,hips_tile_width,hips_frame,hips_tile_format,obs_title,obs_description,obs_copyright,obs_regime,client_category,dataproduct_subtype,hips_service_url,hips_initial_ra,hips_initial_dec,hips_initial_fov,em_min,em_max",
-            };
-    
-            this._allHiPSes = Utils.fetchFromMirrorUrls(MocServer.MIRRORS_HTTPS, {
+        try {
+            return await Utils.fetchFromMirrorUrls(MocServer.MIRRORS_HTTPS, {
                 data: params,
-                dataType: 'json',
-                desc: 'MOCServer query to get all the HiPS metadata'
-            }).catch((_) => {
-                MocServer._notAvailable = true;
-            })
-        }
+                dataType: 'json'
+            });
+        } catch (_) {
+            MocServer._notAvailable = true;
 
-        return this._allHiPSes;
+            // Propagate the error 
+            throw new Error('MocServer mirrors not availables');
+        }
     }
 
-    static getAllHiPSesInsideView(aladin) {
-        let params = {
+    static async getAllHiPSes() {
+        if (MocServer._allHiPSes) {
+            return MocServer._allHiPSes;
+        }
+
+        if (MocServer._notAvailable) {
+            throw new Error('MocServer mirrors not available');
+        }
+
+        // Query the MocServer
+        const params = {
             expr: "dataproduct_type=image||dataproduct_type=spectral-cube",
             //expr: "dataproduct_type=image",
             get: "record",
             fmt: "json",
-            fields: "ID",
+            fields: "ID,hips_creator,hips_copyright,hips_order,hips_tile_width,hips_frame,hips_tile_format,obs_title,obs_description,obs_copyright,obs_regime,client_category,dataproduct_subtype,hips_service_url*,hips_initial_ra,hips_initial_dec,hips_initial_fov,em_min,em_max",
         };
 
         try {
-            const corners = aladin.getFoVCorners(1, 'icrs');
-            let stc = 'Polygon '
-            for (var radec of corners) {
-                stc += radec[0] + ' ' + radec[1] + ' ';
-            }
+            const allHiPSes = await Utils.fetchFromMirrorUrls(
+                MocServer.MIRRORS_HTTPS,
+                {
+                    data: params,
+                    dataType: 'json',
+                    desc: 'MOCServer query to get all the HiPS metadata'
+                }
+            );
 
-            params['stc'] = stc;
-        } catch (e) {}
+            MocServer._allHiPSes = allHiPSes;
+            return MocServer._allHiPSes;
+        } catch (_) {
+            MocServer._notAvailable = true;
+            throw new Error('MocServer mirrors not available');
+        }
+    }
 
+    static async getAllHiPSesInsideView(aladin) {
         if (MocServer._notAvailable) {
             console.warn('MocServer mirrors not available');
             return [];
         }
 
-        return Utils.fetchFromMirrorUrls(MocServer.MIRRORS_HTTPS, {
-            data: params,
-            dataType: 'json',
-            desc: 'MOCServer: Retrieve HiPS inside FoV'
-        }).catch((_) => {
+        let stc;
+        try {
+            const corners = aladin.getFoVCorners(1, 'icrs');
+            stc = 'Polygon '
+            for (var radec of corners) {
+                stc += radec[0] + ' ' + radec[1] + ' ';
+            }
+        } catch (e) {}
+
+
+         let params = {
+            expr: "dataproduct_type=image||dataproduct_type=spectral-cube",
+            //expr: "dataproduct_type=image",
+            get: "record",
+            fmt: "json",
+            fields: "ID",
+            stc
+        };
+
+        try {
+            return await Utils.fetchFromMirrorUrls(MocServer.MIRRORS_HTTPS, {
+                data: params,
+                dataType: 'json',
+                desc: 'MOCServer: Retrieve HiPS inside FoV'
+            })
+        } catch(e) {
             MocServer._notAvailable = true;
-        })
+
+            throw new Error('MocServer is not available');
+        }
     }
 
-    static getAllCatalogHiPSes() {
-        if (!this._allCatalogHiPSes) {
-            const params = {
-                expr: "dataproduct_type=catalog",
-                get: "record",
-                fmt: "json",
-                fields: "ID,hips_copyright,obs_title,obs_description,obs_copyright,cs_service_url,hips_service_url",
-            };
-
-            if (MocServer._notAvailable) {
-                console.warn('MocServer mirrors not available');
-                return this._allCatalogHiPSes;
-            }
-
-            this._allCatalogHiPSes = Utils.fetchFromMirrorUrls(MocServer.MIRRORS_HTTPS, {data: params, dataType: 'json'})
-                .catch((_) => {
-                    MocServer._notAvailable = true;
-                })
+    static async getAllCatalogHiPSes() {
+        // Check if it has been cached
+        if (MocServer._allCatalogHiPSes) {
+            return MocServer._allCatalogHiPSes;
         }
 
-        return this._allCatalogHiPSes;
+        // Not cached, check the MocServer status
+        if (MocServer._notAvailable) {
+            throw new Error('MocServer mirrors not availables');
+        }
+
+        // Query the MocServer
+        const params = {
+            expr: "dataproduct_type=catalog",
+            get: "record",
+            fmt: "json",
+            fields: "ID,hips_copyright,obs_title,obs_description,obs_copyright,cs_service_url,hips_service_url*",
+        };
+
+        try {
+            const allCatalogHiPSes = await Utils.fetchFromMirrorUrls(
+                MocServer.MIRRORS_HTTPS,
+                {
+                    data: params,
+                    dataType: 'json',
+                    desc: 'MOCServer query to get all the HiPS metadata'
+                }
+            );
+
+            MocServer._allCatalogHiPSes = allCatalogHiPSes;
+            return MocServer._allCatalogHiPSes;
+
+        } catch (_) {
+            MocServer._notAvailable = true;
+            throw new Error('MocServer mirrors not availables');
+        }
     }
-}   
+}

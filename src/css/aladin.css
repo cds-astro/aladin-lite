@@ -42,7 +42,7 @@
 
 .aladin-tree {
     width: 100%;
-    height: calc(100% - 130px);
+    height: calc(100% - 160px);
     border-bottom: var(--border-size) solid var(--border-color);
 }
 
@@ -1237,7 +1237,7 @@ otherwise it fits its content options. If those are too big the select can go ou
 }
 
 .aladin-HiPS-browser-box {
-    height: 500px;
+    height: 70%;
     min-width: 400px;
 }
 

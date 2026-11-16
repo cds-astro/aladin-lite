@@ -209,6 +209,7 @@ export let GraphicOverlay = (function() {
             k++;
         }
 
+
         return footprints;
     };
 

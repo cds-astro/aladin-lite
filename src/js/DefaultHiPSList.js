@@ -77,7 +77,7 @@ export let HiPSList = (function () {
             //startUrl: "https://alaskybis.cds.unistra.fr/DSS/DSS2Merged",
             dataproductType: "image",
         },
-        {
+        /*{
             creatorDid: "ivo://CDS/P/DM/I/350/gaiaedr3",
             name: "Density map for Gaia EDR3 (I/350/gaiaedr3)",
             id: "P/DM/I/350/gaiaedr3",
@@ -92,8 +92,8 @@ export let HiPSList = (function () {
             imgFormat: "fits",
             //startUrl: "https://alaskybis.cds.unistra.fr/ancillary/GaiaEDR3/density-map",
             dataproductType: "image",
-        },
-        {
+        },*/
+        /*{
             creatorDid: "ivo://CDS/P/PanSTARRS/DR1/g",
             name: "PanSTARRS DR1 g",
             id: "P/PanSTARRS/DR1/g",
@@ -109,11 +109,11 @@ export let HiPSList = (function () {
             colormap: "redtemperature",
             //startUrl: "https://alasky.cds.unistra.fr/Pan-STARRS/DR1/g",
             dataproductType: "image",
-        },
+        },*/
         {
-            creatorDid: "ivo://CDS/P/PanSTARRS/DR1/color-z-zg-g",
+            creatorDid: "ivo://CDS/P/PanSTARRS/DR1/color-i-r-g",
             name: "PanSTARRS DR1 color",
-            id: "P/PanSTARRS/DR1/color-z-zg-g",
+            id: "P/PanSTARRS/DR1/color-i-r-g",
             maxOrder: 11,
             tileSize: 512,
             imgFormat: "jpeg",
@@ -144,9 +144,9 @@ export let HiPSList = (function () {
             dataproductType: "image",
         },
         {
-            creatorDid: "ivo://CDS/P/GALEXGR6_7/NUV",
-            id: "P/GALEXGR6_7/NUV",
-            name: "GALEXGR6_7 NUV",
+            creatorDid: "ivo://CDS/P/GALEXGR6_7/color",
+            id: "P/GALEXGR6_7/color",
+            name: "GALEXGR6_7 color",
             maxOrder: 8,
             imgFormat: "png",
             tileSize: 512,
@@ -209,7 +209,7 @@ export let HiPSList = (function () {
             //startUrl: "https://alaskybis.cds.unistra.fr/AllWISE/RGB-W4-W2-W1",
             dataproductType: "image",
         },
-        {
+        /*{
             creatorDid: "ivo://CDS/P/SDSS9/g",
             id: "P/SDSS9/g",
             name: "SDSS9 band-g",
@@ -224,8 +224,9 @@ export let HiPSList = (function () {
             colormap: "redtemperature",
             //startUrl: "https://alasky.cds.unistra.fr/SDSS/DR9/band-g",
             dataproductType: "image",
-        },
+        },*/
         {
+            creatorDid: "ivo://CDS/P/Finkbeiner",
             id: "P/Finkbeiner",
             name: "Halpha",
             maxOrder: 3,

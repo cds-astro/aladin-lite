@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+* [feat] Access the VO registry for HiPSes when the MOCServer is down. HiPSes in the registry are also available from the HiPS browser tool.
+
 ### What's Changed
 
 ## Released

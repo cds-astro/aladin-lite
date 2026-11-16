@@ -32,12 +32,46 @@
 import { Utils } from "./Utils";
 import { HiPSDefinition } from "./HiPSDefinition.js";
 import { MocServer } from "./MocServer.js";
+import { RegTAP } from "./vo/RegTAP.js";
 
 export let HiPSProperties = {};
 
 HiPSProperties.fetchFromID = async function(ID) {
     // Use the MOCServer to retrieve the properties
-    let metadata = await MocServer.fetchMetadataFromID(ID);
+    let metadata = await MocServer.fetchPropertiesFromID(ID)
+        .catch(async (_) => {
+            // Get the HiPS List from the registry
+            const HiPSList = await RegTAP.harvestHiPSLists();
+
+            // Get the list of HiPSes from an ID
+            let hipsesMatching = null;
+            for (var key of Object.keys(HiPSList)) {
+                let hipses = HiPSList[key];
+
+                if (key.includes(ID)) {
+                    hipsesMatching = hipses;
+                    break;
+                }
+            }
+
+            if (!hipsesMatching) {
+                // No HiPSes have been found
+                throw 'HiPS with ' + ID + ' has not been found through the registry';
+            }
+
+            let hipsPropertiesPromises = hipsesMatching.map((hips) => {
+                return HiPSProperties.fetchFromUrl(hips.hips_service_url);
+            });
+
+            let properties = await Promise.any(hipsPropertiesPromises);
+
+            properties["hips_service_url"] = hipsesMatching[0].hips_service_url;
+            for (var i = 1; i < hipsesMatching.length; i++) {
+                properties[`hips_service_url_${i}`] = hipsesMatching[i].hips_service_url;
+            }
+
+            return [properties];
+        })
 
     // We get the property here
     // 1. Ensure there is exactly one survey matching
@@ -58,6 +92,7 @@ HiPSProperties.fetchFromID = async function(ID) {
             // Exactly one matching
             result = metadata[0];
         }
+
         return result;
     }
 }

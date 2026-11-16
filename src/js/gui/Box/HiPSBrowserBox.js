@@ -21,7 +21,7 @@
 //
 
 import { MocServer } from "../../MocServer.js";
-
+import { RegTAP } from "../../vo/RegTAP.js";
 import { Box } from "../Widgets/Box.js";
 import { Dropdown } from "../Input/Dropdown.js";
 import filterOnUrl from "../../../../assets/icons/filter-on.svg";
@@ -150,7 +150,28 @@ export class HiPSBrowserBox extends Box {
             aladin,
         });
 
-        MocServer.getAllHiPSes().then((HiPSes) => {
+        MocServer.getAllHiPSes()
+        .catch(async (_) => {
+            // Get the HiPSes from the registry
+            const HiPSList = await RegTAP.harvestHiPSLists()
+           
+            let allHiPSes = [];
+            for (var key of Object.keys(HiPSList)) {
+                let HiPSes = HiPSList[key];
+
+                for (var hips of HiPSes) {
+                    // Add these info needed for rebuilding the browsing tree
+                    hips['client_category'] = hips.creator_did;
+                    hips['obs_title'] = hips.creator_did;
+                    hips['ID'] = hips.creator_did;
+
+                    allHiPSes.push(hips)
+                }
+            }
+
+            return allHiPSes;
+        })
+        .then((HiPSes) => {
             HiPSBrowserBox.HiPSList = {}
 
             let hipsHierarchy = {};

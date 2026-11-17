@@ -58,7 +58,7 @@ export let SimbadPointer = (function() {
                     const nbRef   = result.data[0][3];
                     const otype   = result.data[0][4];
                     const magB    = result.data[0][5];
-                    const title = '<div class="aladin-sp-title"><a target="_blank" href="https://simbad.idia.ac.za/simbad/sim-id?Ident=' + encodeURIComponent(objName) + '">' + objName + '</a></div>';
+                    const title = '<div class="aladin-sp-title"><a target="_blank" href="https://simbad.idia.ac.za/simbad/sim-id?Ident=' + encodeURIComponent(objName) + '">' + objName + '&output.format=html</a></div>';
                     let content = '<div class="aladin-sp-content">';
                     content += '<em>Type: </em>' + otype + '<br>';
                     if (Utils.isNumber(magB)) {

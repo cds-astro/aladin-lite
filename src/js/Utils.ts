@@ -299,7 +299,6 @@ Utils.fetchFromMirrorUrls = function (urls, options) {
 
     // Launch a timemout that will interrupt the fetch if it has not yet succeded:
     const timeoutId = setTimeout(() => {
-        console.log('req aborted')
         controller.abort()
     }, timeout)
     let url = urls[0];

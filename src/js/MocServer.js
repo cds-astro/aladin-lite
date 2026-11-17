@@ -36,12 +36,12 @@ import { Utils } from "./Utils";
 
 export class MocServer {
     static MIRRORS_HTTP = [
-        'http://alaskybis.cds.unistra.fr/MocServer/query',
-        'http://alasky.cds.unistra.fr/MocServer/query'
+        'http://alasky.cds.unistra.fr/MocServer/query',
+        'http://alaskybis.cds.unistra.fr/MocServer/query'
     ]; // list of base URL for MocServer mirrors, available in HTTP
     static MIRRORS_HTTPS = [
-        'https://alaskybis.cds.unistra.fr/MocServer/query',
-        'https://alasky.cds.unistra.fr/MocServer/query'
+        'https://alasky.cds.unistra.fr/MocServer/query',
+        'https://alaskybis.cds.unistra.fr/MocServer/query'
     ]; // list of base URL for MocServer mirrors, available in HTTPS
 
     static _allHiPSes = undefined;

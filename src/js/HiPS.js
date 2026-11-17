@@ -533,6 +533,8 @@ export let HiPS = (function () {
                             self.creatorDid,
                             url
                         );
+
+                        self.view.requestRedraw();
                     }
                 }
             })

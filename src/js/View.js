@@ -2479,7 +2479,17 @@ export let View = (function () {
 
             this.catalogs.splice(indexToDelete, 1);
 
-            this.unselectObjects();
+            // Remove selections for only the overlay we're removing.
+            const all_selections = [];
+            if (this.selection) {
+                for (const layer_selections of this.selection) {
+                    // Preserve the existing selections that aren't in this catalog layer.
+                    if (layer_selections[0].catalog !== overlay) {
+                        all_selections.push(layer_selections);
+                    }
+                }
+            }
+            this.selectObjects(all_selections);
         }
         else if (overlay.type == 'moc') {
             indexToDelete = this.mocs.indexOf(overlay);

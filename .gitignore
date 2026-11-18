@@ -18,6 +18,7 @@ src/core/target/
 # the tmp glsl files used when minifying the shaders into the wasm (build.rs)
 src/glsl/webgl2/**/*.min
 src/glsl/webgl2/**/*.tmp
+src/core/src/shaders.rs
 
 package/
 

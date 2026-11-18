@@ -57,6 +57,7 @@ export class MocServer {
 
         if (MocServer._notAvailable) {
             console.warn('MocServer mirrors not availables');
+            return null;
         }
 
         return Utils.fetchFromMirrorUrls(MocServer.MIRRORS_HTTPS, {
@@ -70,6 +71,7 @@ export class MocServer {
     static getAllHiPSes() {
         if (MocServer._notAvailable) {
             console.warn('MocServer mirrors not available');
+            return this._allHiPSes;
         }
 
         if (!this._allHiPSes) {
@@ -114,6 +116,7 @@ export class MocServer {
 
         if (MocServer._notAvailable) {
             console.warn('MocServer mirrors not available');
+            return [];
         }
 
         return Utils.fetchFromMirrorUrls(MocServer.MIRRORS_HTTPS, {
@@ -136,6 +139,7 @@ export class MocServer {
 
             if (MocServer._notAvailable) {
                 console.warn('MocServer mirrors not available');
+                return this._allCatalogHiPSes;
             }
 
             this._allCatalogHiPSes = Utils.fetchFromMirrorUrls(MocServer.MIRRORS_HTTPS, {data: params, dataType: 'json'})

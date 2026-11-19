@@ -518,7 +518,7 @@ export let Catalog = (function () {
         cacheMarkerCtx.fillStyle = this.color;
         cacheMarkerCtx.beginPath();
         var half = Math.max(this.markerSize / 2, 2.0);
-        
+
         cacheMarkerCtx.arc(half, half, half - 2, 0, 2 * Math.PI, false);
         cacheMarkerCtx.fill();
         cacheMarkerCtx.lineWidth = 2;
@@ -859,20 +859,34 @@ export let Catalog = (function () {
      * @param {Function} filter - A filter callback to select sources of a catalog.
      */
     Catalog.prototype.select = function(filter) {
-        let selection = [];
+        const all_selections = [];
+        const this_catalog_selections = [];
+
+        if (this.view.selection) {
+            for (const layer_selections of this.view.selection) {
+                // Preserve the existing selections that aren't in this catalog layer.
+                if (layer_selections[0].catalog !== this) {
+                    all_selections.push(layer_selections);
+                }
+            }
+        }
+
         if (typeof filter === "function") {
             for ( var s of this.sources ) {
                 if (filter(s)) {
-                    selection.push(s)
+                    this_catalog_selections.push(s)
                 }
             }
-            this.view.selectObjects([selection]);
+            if (this_catalog_selections.length > 0) {
+                all_selections.push(this_catalog_selections);
+            }
+            this.view.selectObjects(all_selections);
         }
 
         if (this.view && this.view.aladin.callbacksByEventName) {
             var callback = this.view.aladin.callbacksByEventName['objectsSelected'] || this.view.aladin.callbacksByEventName['select'];
             if (callback) {
-                callback([selection]);
+                callback([this_catalog_selections]);
             }
         }
     }

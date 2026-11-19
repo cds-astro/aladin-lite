@@ -8,7 +8,7 @@ use std::process::Command;
 // All my shaders reside in the 'src/shaders' directory
 fn generate_shaders() -> std::result::Result<(), Box<dyn Error>> {
     println!("generate shaders");
-    let mut shaders = HashMap::new();
+    let mut shaders = BTreeMap::new();
 
     for entry in WalkDir::new("../glsl/webgl2/")
         .into_iter()
@@ -112,12 +112,12 @@ fn read_shader<P: AsRef<std::path::Path>>(path: P) -> std::io::Result<String> {
     Ok(shader_src)
 }
 
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
 
-pub fn write(path: PathBuf, entries: HashMap<String, String>) -> Result<(), Box<dyn Error>> {
+pub fn write(path: PathBuf, entries: BTreeMap<String, String>) -> Result<(), Box<dyn Error>> {
     let mut all_the_files = File::create(&path)?;
 
     writeln!(&mut all_the_files, r#"use std::collections::HashMap;"#,)?;

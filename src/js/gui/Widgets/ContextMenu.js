@@ -350,8 +350,6 @@ export class ContextMenu extends DOMElement {
             this.setCss(options.cssStyle);
         }
 
-        // let mouseCoords = options && options.e && {x: options.e.x, y: options.e.y};  // TSD old behavior
-
         let mouseCoords;
         if (options && options.e) {
             // e.x/e.y are viewport coords; the menu is absolutely positioned inside aladinDiv

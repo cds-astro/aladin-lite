@@ -35,6 +35,10 @@ impl Downloader {
             cache,
         }
     }
+
+    pub fn num_concurrent_requests(&self) -> usize {
+        self.requests.len()
+    }
     // Returns true if the fetch has been done
     // Returns false if the query has already been done
     pub fn fetch<T>(&mut self, query: T) -> bool

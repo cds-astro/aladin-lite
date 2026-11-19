@@ -19,7 +19,7 @@
 //    You should have received a copy of the GNU Lesser General Public License
 //    along with Aladin Lite. If not, see <https://www.gnu.org/licenses/>.
 //
-
+import { Utils } from "../Utils";
 import { FSM } from "../FiniteStateMachine";
 import { View } from "../View";
 import { Selector } from "../Selector";
@@ -43,14 +43,14 @@ export class RectSelect extends FSM {
             this.callback = callback;
         }
 
-        let mousedown = (params) => {
-            const {coo} = params;
+        let mousedown = (e) => {
+            const coo = Utils.relMouseCoords(e);
             // start a new selection
             this.startCoo = coo;
         }
 
-        let mousemove = (params) => {
-            const {coo} = params;
+        let mousemove = (e) => {
+            const coo = Utils.relMouseCoords(e);
             this.coo = coo;
 
             view.requestRedraw();
@@ -73,9 +73,9 @@ export class RectSelect extends FSM {
             ctx.strokeRect(this.startCoo.x, this.startCoo.y, w, h); 
         }
 
-        let mouseup = (params) => {
+        let mouseup = (e) => {
             var x, y;
-            const {coo} = params;
+            const coo = Utils.relMouseCoords(e);
     
             this.coo = coo;
             // finish the selection
@@ -135,9 +135,9 @@ export class RectSelect extends FSM {
             view.aladin.removeStatusBarMessage('selector')
         }
 
-        let mouseout = (params) => {
+        let mouseout = (e) => {
             if (this.startCoo) {
-                mouseup(params);
+                mouseup(e);
             }
         };
 
@@ -176,7 +176,8 @@ export class RectSelect extends FSM {
                 mouseup: {
                     off,
                 }
-            }
+            },
+            view
         })
     };
 }

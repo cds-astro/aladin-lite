@@ -2,6 +2,7 @@
 // but contained inside a more specific type of query (e.g. for a tile or allsky)
 pub mod allsky;
 pub mod moc;
+pub mod on_resolved;
 pub mod tile;
 
 use wasm_bindgen_futures::JsFuture;
@@ -53,6 +54,10 @@ where
                 } else {
                     resolved_cloned.set(ResolvedStatus::Failed);
                 }
+
+                use crate::downloader::request::on_resolved::call_on_resolved_cb;
+                // Notify JS that a resource has arrived
+                call_on_resolved_cb();
 
                 Ok(JsValue::from_bool(true))
             };
@@ -157,6 +162,7 @@ use wasm_bindgen::JsCast;
 use web_sys::RequestInit;
 use web_sys::RequestMode;
 use web_sys::Response;
+#[allow(dead_code)]
 async fn query_bitmap_from_blob(
     url: &str,
     mode: RequestMode,
@@ -182,6 +188,37 @@ async fn query_bitmap_from_blob(
         let image_bitmap = JsFuture::from(window.create_image_bitmap_with_blob(&blob)?).await?;
 
         Ok(image_bitmap.into())
+    } else {
+        Err(JsValue::from_str(
+            "Response status code not between 200-299.",
+        ))
+    }
+}
+
+async fn query_blob(
+    url: &str,
+    mode: RequestMode,
+    credentials: RequestCredentials,
+) -> Result<web_sys::Blob, JsValue> {
+    let window = web_sys::window().unwrap_abort();
+
+    let mut opts = RequestInit::new();
+    opts.method("GET");
+    opts.mode(mode);
+    opts.credentials(credentials);
+
+    let request = web_sys::Request::new_with_str_and_init(url, &opts).unwrap_abort();
+    let resp_value = JsFuture::from(window.fetch_with_request(&request)).await?;
+    // `resp_value` is a `Response` object.
+    debug_assert!(resp_value.is_instance_of::<Response>());
+    let resp: Response = resp_value.dyn_into()?;
+
+    if resp.ok() {
+        let blob = JsFuture::from(resp.blob()?)
+            .await?
+            .dyn_into::<web_sys::Blob>()?;
+
+        Ok(blob)
     } else {
         Err(JsValue::from_str(
             "Response status code not between 200-299.",

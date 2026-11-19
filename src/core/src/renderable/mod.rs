@@ -12,6 +12,8 @@ pub mod utils;
 use crate::renderable::image::Image;
 use crate::tile_fetcher::TileFetcherQueue;
 
+use crate::spectra_displayer::SpectraDisplayer;
+
 use al_api::color::ColorRGB;
 use al_api::hips::DataproductType;
 use al_api::hips::HiPSCfg;
@@ -53,13 +55,18 @@ pub trait Renderer {
 pub(crate) type Id = String; // ID of an image, can be an url or a uuidv4
 pub(crate) type CreatorDid = String;
 
+struct Images {
+    stack: Vec<Image>,
+    visible: Vec<bool>,
+}
+
 use hips::HiPS;
 type LayerId = String;
 pub struct Layers {
     // Surveys to query
     hipses: HashMap<CreatorDid, HiPS>,
 
-    images: HashMap<Id, Vec<Image>>, // an url can contain multiple images i.e. a fits file can contain
+    images: HashMap<Id, Images>, // an url can contain multiple images i.e. a fits file can contain
     // multiple image extensions
     // The meta data associated with a layer
     meta: HashMap<LayerId, ImageMetadata>,
@@ -210,6 +217,7 @@ impl Layers {
         shaders: &mut ShaderManager,
         colormaps: &Colormaps,
         projection: &ProjectionType,
+        spectra_displayer: &SpectraDisplayer,
     ) -> Result<(), JsValue> {
         let raytracer = &self.raytracer;
         let raytracing = camera.is_raytracing(projection);
@@ -283,13 +291,15 @@ impl Layers {
                             hips.draw(shaders, colormaps, camera, raytracer, draw_opt, projection)?;
                         }
                         HiPS::D3(hips) => {
-                            hips.draw(shaders, colormaps, camera, draw_opt, projection)?;
+                            hips.draw(shaders, colormaps, camera, draw_opt, projection, spectra_displayer.q_order())?;
                         }
                     }
                 } else if let Some(images) = self.images.get_mut(id) {
                     // 2. Draw it if its opacity is not null
-                    for image in images {
-                        image.draw(shaders, colormaps, draw_opt, camera, projection)?;
+                    for (i, image) in images.stack.iter_mut().enumerate() {
+                        if images.visible[i] {
+                            image.draw(shaders, colormaps, draw_opt, camera, projection)?;
+                        }
                     }
                 }
             }
@@ -431,11 +441,11 @@ impl Layers {
                 // HiPS cube
                 DataproductType::Cube => HiPS::D3(HiPS3D::new(cfg, gl, &layer)?),
                 // HiPS 3D
-                DataproductType::SpectralCube => {
-                    let mut hips = HiPS3D::new(cfg, gl, &layer)?;
-                    hips.set_cursor_location(camera);
+                DataproductType::SpectralCube | DataproductType::TimeCube => {
+                    //let freq = cfg.em_min.unwrap();
+                    let hips = HiPS3D::new(cfg, gl, &layer)?;
                     HiPS::D3(hips)
-                }
+                },
                 // Typical HiPS image
                 _ => HiPS::D2(HiPS2D::new(cfg, gl)?),
             };
@@ -489,7 +499,36 @@ impl Layers {
         let fits_already_found = self.images.keys().any(|image_id| image_id == &id);
 
         if !fits_already_found {
-            self.images.insert(id.clone(), images);
+            let num_hdus = images.len();
+            let visible = images
+                .iter()
+                .map(|image| {
+                    if num_hdus == 1 {
+                        true
+                    } else if let Some(header) = image.get_header_dict() {
+                        let extname = header.get_parsed::<String>("EXTNAME");
+                        let extname = extname.as_ref();
+                        if let Ok(extname) = extname {
+                            let s = extname.as_str();
+
+                            s == "SCI"
+                        } else {
+                            // No EXTNAME found, we make the HDU visible
+                            false
+                        }
+                    } else {
+                        true
+                    }
+                })
+                .collect();
+
+            self.images.insert(
+                id.clone(),
+                Images {
+                    stack: images,
+                    visible,
+                },
+            );
         }
 
         self.ids.insert(layer.clone(), id.clone());
@@ -498,7 +537,7 @@ impl Layers {
             .images
             .get(&id)
             .ok_or(JsValue::from_str("Fits image not found"))?;
-        Ok(img.as_slice())
+        Ok(img.stack.as_slice())
     }
 
     pub fn get_layer_cfg(&self, layer: &str) -> Result<ImageMetadata, JsValue> {
@@ -539,18 +578,54 @@ impl Layers {
         self.hipses.values_mut()
     }
 
-    // Fits images getters
+    // FITS images getters
     pub fn get_mut_image_from_layer(&mut self, layer: &str) -> Option<&mut [Image]> {
         if let Some(url) = self.ids.get(layer) {
-            self.images.get_mut(url).map(|images| images.as_mut_slice())
+            self.images
+                .get_mut(url)
+                .map(|images| images.stack.as_mut_slice())
         } else {
             None
         }
     }
 
+    pub(crate) fn is_hdu_visible(&self, layer: &str, hdu_idx: usize) -> Result<bool, JsValue> {
+        let url = self
+            .ids
+            .get(layer)
+            .ok_or_else(|| JsValue::from_str("No HDU found"))?;
+
+        self.images
+            .get(url.as_str())
+            .and_then(|images| images.visible.get(hdu_idx))
+            .ok_or_else(|| JsValue::from_str("No HDU found"))
+            .copied()
+    }
+
+    pub(crate) fn make_hdu_visible(
+        &mut self,
+        layer: &str,
+        hdu_idx: usize,
+        visible: bool,
+    ) -> Result<(), JsValue> {
+        let url = self
+            .ids
+            .get(layer)
+            .ok_or_else(|| JsValue::from_str("No HDU found"))?;
+
+        let v = self
+            .images
+            .get_mut(url.as_str())
+            .and_then(|images| images.visible.get_mut(hdu_idx))
+            .ok_or_else(|| JsValue::from_str("No HDU found"))?;
+
+        *v = visible;
+        Ok(())
+    }
+
     pub fn get_image_from_layer(&self, layer: &str) -> Option<&[Image]> {
         let images = self.ids.get(layer).and_then(|url| self.images.get(url));
 
-        images.map(|images| images.as_slice())
+        images.map(|images| images.stack.as_slice())
     }
 }

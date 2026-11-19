@@ -1,5 +1,5 @@
 use crate::renderable::hips::d2::texture::HpxTex;
-use crate::renderable::hips::d3::texture::HpxFreqTex;
+use crate::renderable::hips::d3::texture::Hpx3DTex;
 use crate::time::Time;
 use crate::Abort;
 use crate::HEALPixCell;
@@ -70,9 +70,9 @@ impl From<&HpxTex> for Tile<HEALPixCell> {
         Self { cell, time_request }
     }
 }
-use crate::healpix::cell::HEALPixFreqCell;
-impl From<&HpxFreqTex> for Tile<HEALPixFreqCell> {
-    fn from(tex: &HpxFreqTex) -> Self {
+use crate::healpix::cell::HEALPix3DCell;
+impl From<&Hpx3DTex> for Tile<HEALPix3DCell> {
+    fn from(tex: &Hpx3DTex) -> Self {
         let time_request = tex.time_request;
         let cell = tex.cell.clone();
 

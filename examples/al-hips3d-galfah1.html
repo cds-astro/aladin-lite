@@ -1,0 +1,67 @@
+<!doctype html>
+<html>
+    <head>
+    </head>
+<body>
+
+
+<div id="aladin-lite-div" style="width: 768px; height: 512px"></div>
+<script>let aladin; let hips;</script>
+<script type="module">
+    import A from '../src/js/A.js';
+    A.init.then(() => {
+        aladin = A.aladin(
+            '#aladin-lite-div',
+            {
+                showSimbadPointerControl: true,
+                projection: 'AIT', // set a projection
+                fov: 1.0, // initial field of view in degrees
+                target: '19 23 44.18 +14 30 29.5', // initial target
+                cooFrame: 'icrs', // set galactic frame
+                showContextMenu: true,
+                showFrame: true,
+                showZoomControl:true,
+                showSettingsControl:true,
+                fullScreen: true,
+                samp: true,
+            }
+        );
+
+        //hips = aladin.newImageSurvey("https://alasky.cds.unistra.fr/HIPS3D/ALMA-IMF/CDS_C_ALMA-IMF_B6/", {name: "GalfaH1"});
+        //hips = aladin.newImageSurvey("https://alasky.cds.unistra.fr/HIPS3D/GalfaHI", {name: "GalfaH1"});
+        hips = aladin.newImageSurvey("https://alasky.cds.unistra.fr/HIPS3D/ERA5/CDS_C_ERA5_tcwv/", {
+            name: "GalfaH1",
+            colormap: "redTemperature",
+            successCallback: (hips) => {
+                hips.setTime(52640, {format: 'mjd'});
+            }
+        });
+        
+        aladin.setImageLayer(hips)
+
+        aladin.on('positionChanged', (_) => {
+            //console.log(hips.getFrequencyWindow())
+            //console.log("freq", hips.getFrequency())
+        })
+
+        //hips.setFrequency({value: emMin + delta * i, unit: "m"})
+        //hips.setFrequency({value: 6.374279333565797E-7, unit: "m"}) // MUSE
+        //hips.setFrequency({value: 0.21101690259115785, unit: "m"}) // DGHILG
+
+        /*let id;
+        aladin.on("zoomChanged", () => {
+            if (id)
+                clearTimeout(id);
+            id = setTimeout(() => {
+                console.log("wheel stopped, new cone search here")
+            }, 500);
+        })*/
+    });
+</script>
+<style>
+    .aladin-cat-browser-box {
+        width: 600px;
+    }
+</style>
+</body>
+</html>

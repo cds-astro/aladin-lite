@@ -3,20 +3,38 @@
 <head>
 </head>
 <body>
-<div id="al1" style="width: 512px; height: 512px">
+<div id="aladin-lite-div" style="width: 512px; height: 512px">
 </div>
-<div id="al2" style="width: 512px; height: 512px">
-</div>
+
   
 <script type="module">
   import A from '../src/js/A.js';
-  let al1;
-  let al2;
-  A.init.then(() => {
-      // Start up Aladin Lite
-      al1 = A.aladin('#al1', {target: 'M51', fov: 0.3, survey: 'https://alasky.cds.unistra.fr/HIPS3D/LGLBSHI-test-compression/', fullScreen: false, showContextMenu: true, showShareControl: true});
-      al2 = A.aladin('#al2', {target: 'M51', fov: 180, survey: 'P/PanSTARRS/DR1/z', showColorPickerControl: true, fullScreen: false, showContextMenu: true, showShareControl: true});
-  });
+  let aladin;
+
+A.init.then(() => {
+    aladin = A.aladin("#aladin-lite-div", {
+        fov: 2,
+        survey:
+        "https://images.rubinobservatory.org/hips/SVImages_v2/color_ugri",
+        backgroundColor: "rgb(0,0,0)",
+        cooFrame: "ICRSd",
+    });
+
+    aladin.setFoVRange(0.002, 10);
+    aladin.gotoRaDec(186.5, 6.95);
+    
+    // Only imgFormat, cooFrame, maxOrder and an url are required. If one is missing the properties file will be fetched 
+    const secondSurvey = {
+        imgFormat: "webp",
+        cooFrame: "ICRSd", 
+        maxOrder: 11,
+        url: "https://images.rubinobservatory.org/hips/asteroids/color_ugri",
+    };
+    
+    const hips = A.HiPS(secondSurvey.url, { ...secondSurvey, opacity: 1 });
+    // by default this overlays the first hips with a second. 
+    aladin.setOverlayImageLayer(hips);
+});
 </script>
 
 </body>

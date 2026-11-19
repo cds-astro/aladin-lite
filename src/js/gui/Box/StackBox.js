@@ -43,7 +43,7 @@ import treeIconUrl from "../../../../assets/icons/tree.svg";
 import showIconUrl from "../../../../assets/icons/show.svg";
 import addIconUrl from "../../../../assets/icons/plus.svg";
 import hideIconUrl from "../../../../assets/icons/hide.svg";
-import removeIconUrl from "../../../../assets/icons/remove.svg";
+import removeIconUrl from "../../../../assets/icons/remove.svg"
 import settingsIconUrl from "../../../../assets/icons/settings.svg";
 import searchIconImg from "../../../../assets/icons/search.svg";
 import downloadIconUrl from '../../../../assets/icons/download.svg';
@@ -60,6 +60,7 @@ import { ProgressiveCat } from "../../ProgressiveCat.js";
 import { Form } from "../Widgets/Form.js";
 import { LayerSelector } from "../Input/LayerSelector.js";
 import { HiPS } from "../../HiPS.js";
+import { FITSExplorerCtxMenu } from "../CtxMenu/FITSExplorer.js";
 
 export class OverlayStackBox extends Box {
     /*static previewImagesUrl = {
@@ -221,8 +222,6 @@ export class OverlayStackBox extends Box {
                                 action(o) {
                                     o.stopPropagation();
                                     o.preventDefault();
-
-                                    //self._hide();
 
                                     const simbadHiPS = A.catalogHiPS(
                                         OverlayStackBox.predefinedCats.twomass
@@ -578,27 +577,26 @@ export class OverlayStackBox extends Box {
                         },
                     },
                     ContextMenu.fileLoaderItem({
-                        label: "FITS image file",
-                        accept: ".fits",
+                        label: "Image file",
+                        accept: ".fits,.fits.gz,.jpg,.png",
                         action(file) {
-                            let url = URL.createObjectURL(file);
+                            const url = URL.createObjectURL(file);
+                            const name = file.name;
 
-                            const image = self.aladin.createImageFITS(
+                            // Consider other cases
+                            const image = A.image(
                                 url,
-                                {name: file.name},
-                                (ra, dec, fov, _) => {
-                                    // Center the view around the new fits object
-                                    self.aladin.gotoRaDec(ra, dec);
-                                    self.aladin.setFoV(fov * 1.1);
-
-                                    URL.revokeObjectURL(url);
-                                }
+                                {
+                                    name,
+                                    successCallback: (ra, dec, fov, _) => {
+                                        // Center the view around the new fits object
+                                        self.aladin.gotoRaDec(ra, dec);
+                                        self.aladin.setFoV(fov * 1.1);
+                                    }
+                                },
                             );
 
-                            self.aladin.setOverlayImageLayer(
-                                image,
-                                Utils.uuidv4()
-                            );
+                            self.aladin.setOverlayImageLayer(image, name)
                         },
                     }),
                     ContextMenu.webkitDir({
@@ -1124,12 +1122,39 @@ export class OverlayStackBox extends Box {
             }
             btns = btns.concat([swapBtn, deleteBtn]);
 
-            let item = Layout.horizontal([layerSelect, Layout.horizontal(btns)]);
+            let item = Layout.horizontal(
+                [layerSelect, Layout.horizontal(btns)]
+            );
+
+            if (hips instanceof Image && hips.imgFormat === 'fits') {
+                layerSelect.update({
+                    tooltip: {
+                        content: 'Right click for managing HDUs display',
+                        aladin: this.aladin,
+                        global: true,
+                    }
+                })
+
+                Utils.on(item.element(), "contextmenu", (e) => {
+                    e.stopPropagation()
+                    e.preventDefault()
+                    let fits = hips;
+                    
+                    (async () => {
+                        let ctxMenu = await FITSExplorerCtxMenu.getLayout(fits, this.aladin);
+
+                        if (this.aladin.contextMenu) {
+                            this.aladin.contextMenu.attach(ctxMenu);
+                            this.aladin.contextMenu && this.aladin.contextMenu._show({e});
+                        }
+                    })()
+                })
+            }
+
             layout.push(item);
 
             if (!(hips.layer in self.ui)) {
                 self.ui[hips.layer] = {
-                    //layerSelector: layerSelect,
                     settingsBox,
                     settingsBtn,
                     showBtn,

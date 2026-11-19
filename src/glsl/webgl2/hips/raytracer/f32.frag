@@ -1,6 +1,6 @@
 #version 300 es
 precision highp float;
-precision highp sampler2DArray;
+precision highp sampler2D;
 precision highp int;
 
 in vec3 frag_pos;
@@ -17,7 +17,7 @@ struct Tile {
 uniform Tile textures_tiles[12];
 
 uniform float opacity;
-uniform sampler2DArray tex;
+uniform sampler2D tex;
 
 struct TileColor {
     Tile tile;

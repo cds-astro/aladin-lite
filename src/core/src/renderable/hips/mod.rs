@@ -57,10 +57,11 @@ impl HiPS {
         tile_fetcher: &mut TileFetcherQueue,
         camera: &CameraViewPort,
         browser_features_support: &BrowserFeaturesSupport,
+        q_order: u8
     ) {
         match self {
             D2(hips) => hips.look_for_new_tiles(tile_fetcher, camera, browser_features_support),
-            D3(hips) => hips.look_for_new_tiles(tile_fetcher, camera, browser_features_support),
+            D3(hips) => hips.look_for_new_tiles(tile_fetcher, camera, browser_features_support, q_order),
         }
     }
 

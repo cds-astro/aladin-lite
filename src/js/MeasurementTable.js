@@ -43,15 +43,27 @@ export let MeasurementTable = (function() {
     // constructor
     function MeasurementTable(aladin) {
         this.aladin = aladin;
+        this.tables = {};
+    }
+
+    MeasurementTable.prototype.addTab = function(table) {
+        let tables = [].concat(table);
+
+        for (let table of tables) {
+            this.tables[table.name] = table;
+        }
+
+        this.show();
     }
 
     // show measurement associated with a given source
-    MeasurementTable.prototype.showMeasurement = function(tables) {
-        if (tables.length === 0) {
-            return;
-        }
+    MeasurementTable.prototype.show = function() {
+        let self = this;
 
-        let layout = tables.map((table) => {
+        let i = 0;
+        let layout = [];
+        for (let tabName in this.tables) {
+            let table = this.tables[tabName];
             let content = new Table(table);
 
             let textContent = '<div style="overflow: hidden; text-overflow: ellipsis;white-space: nowrap;max-width: 20em;">' +
@@ -60,19 +72,38 @@ export let MeasurementTable = (function() {
             let label = new ActionButton({
                 icon: {
                     size: 'small',
-                    url: Icon.dataURLFromSVG({svg: Icon.SVG_ICONS.CATALOG, color: table.color}),
+                    url: table.icon || Icon.dataURLFromSVG({svg: Icon.SVG_ICONS.CATALOG, color: table.color}),
                 },
-                content: textContent,
+                content: [
+                    textContent,
+                    new ActionButton({
+                        size: 'small',
+                        content: '❌',
+                        action(_) {
+                            self.hideTab(table.name)
+                        },
+                        cssStyle: {
+                            padding: 0,
+                            border: 0,
+                        },
+                    })
+                ],
             })
 
-            return {
+            i++;
+
+            layout.push({
                 title: table.name,
                 label,
                 content,
-            }
-        });
+            })
+        }
 
-        this.hide();
+        let scrollLeftMemorized = null;
+        if (this.table) {
+            scrollLeftMemorized = this.table.scrollLeftPosition;
+            this.table.remove();
+        }
 
         this.table = new Tabs({
             tooltip: {
@@ -84,17 +115,21 @@ export let MeasurementTable = (function() {
             layout,
         }, this.aladin.aladinDiv);
 
-        if (this.scrollLeft !== undefined && this.scrollLeft !== null) {
-            this.table.setScrollPosition(this.scrollLeft)
+        if (scrollLeftMemorized !== null) {
+            this.table.setScrollPosition(scrollLeftMemorized)
         }
     };
 
-    MeasurementTable.prototype.hide = function() {
-        if (this.table) {
-            this.scrollLeft = this.table.scrollLeftPosition;
+    MeasurementTable.prototype.hideAll = function() {
+        this.tables = {}
 
-            this.table.remove();
-        }
+        this.show();
+    };
+
+    MeasurementTable.prototype.hideTab = function(tabName) {
+        delete this.tables[tabName];
+
+        this.show();
     };
 
     return MeasurementTable;

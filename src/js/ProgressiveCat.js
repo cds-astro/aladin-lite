@@ -523,12 +523,8 @@ export let ProgressiveCat = (function() {
                     this.order3Sources[k].deselect();
                 }
             }
-            var keys = this.sourcesCache.keys();
-            for (key in keys) {
-                if ( ! this.sourcesCache[key]) {
-                    continue;
-                }
-                var sources = this.sourcesCache[key];
+            for (const key of this.sourcesCache.keys()) {
+                const sources = this.sourcesCache.get(key) || [];
                 for (var k=0; k<sources.length; k++) {
                     sources[k].deselect();
                 }

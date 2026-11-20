@@ -2644,7 +2644,7 @@ export let View = (function () {
                         dist = d;
                         closest = this.objLookup[x + dx][y + dy]
                     } else if (d == dist) {
-                        closest.concat(this.objLookup[x + dx][y + dy])
+                        closest = closest.concat(this.objLookup[x + dx][y + dy])
                     }
                 }
             }

@@ -218,11 +218,14 @@ impl Image for FitsImage<'_> {
         // An offset to write the image in the texture array
         offset: &Vector3<i32>,
     ) -> Result<(), JsValue> {
+        // The view does not borrow the converted bytes: keep them alive
+        // until the upload below has read them.
+        let new_bytes: Vec<u8>;
         let view = unsafe {
             match self.bitpix {
                 Bitpix::I64 => {
                     // convert to i64 first
-                    let new_bytes: Vec<_> = self
+                    new_bytes = self
                         .raw_bytes
                         .as_chunks::<8>()
                         .0
@@ -238,7 +241,7 @@ impl Image for FitsImage<'_> {
                 }
                 Bitpix::F64 => {
                     // convert to i64 first
-                    let new_bytes: Vec<_> = self
+                    new_bytes = self
                         .raw_bytes
                         .as_chunks::<8>()
                         .0

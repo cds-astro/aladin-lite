@@ -165,7 +165,7 @@ HiPSProperties.fetchFromUrl = async function(urlOrId, requestMode, requestCreden
                         resolve(metadata);
                     }
                 } else {
-                    reject('No surveys matching at this url: ' + rootURL);
+                    reject('No surveys matching at this url: ' + HiPSServiceUrl);
                 }
             })
         )
@@ -188,7 +188,7 @@ HiPSProperties.fetchFromFile = function(file) {
                 if (metadata && Object.keys(metadata).length > 0) {
                     resolve(metadata)
                 } else {
-                    reject('No surveys matching at this url: ' + rootURL);
+                    reject('No surveys matching in this file: ' + file.name);
                 }
             })
         );

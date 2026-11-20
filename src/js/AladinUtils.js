@@ -32,6 +32,18 @@
 import { Aladin } from "./Aladin";
 import { Sesame } from "./Sesame";
 
+// wasm-bindgen truncates a nside to an unsigned 32-bit integer, so check it here
+function checkNside(nside) {
+    if (!Number.isInteger(nside) || nside < 1 || nside > 2 ** 29 || (nside & (nside - 1)) !== 0) {
+        throw new Error('nside must be a power of two between 1 and 2^29, got ' + nside);
+    }
+}
+
+// Pass arrays and typed arrays as they are, wrap a single value
+function toArray(v) {
+    return Array.isArray(v) || ArrayBuffer.isView(v) ? v : [v];
+}
+
 // The WASM HEALPix functions take u64 cell indices, i.e. BigInt values
 function toBigIntArray(ipix) {
     if (!Array.isArray(ipix) && !ArrayBuffer.isView(ipix)) {
@@ -91,6 +103,7 @@ export let AladinUtils = {
                 // Cast to a 1d array of BigInt, as expected by the WASM
                 ipix = toBigIntArray(ipix);
 
+                checkNside(nside);
                 const vertices = wasm.HEALPixVertices(nside, ipix)
                 return vertices;
             },
@@ -114,15 +127,8 @@ export let AladinUtils = {
                     throw 'A.init must be called first'
                 }
 
-                if (!Array.isArray(lon)) {
-                    lon = [lon];
-                }
-
-                if (!Array.isArray(lat)) {
-                    lat = [lat];
-                }
-
-                const ipix = wasm.HEALPixAng2Pix(nside, lon, lat)
+                checkNside(nside);
+                const ipix = wasm.HEALPixAng2Pix(nside, toArray(lon), toArray(lat))
                 return ipix;
             },
 
@@ -148,6 +154,7 @@ export let AladinUtils = {
                 // Cast to a 1d array of BigInt, as expected by the WASM
                 ipix = toBigIntArray(ipix);
 
+                checkNside(nside);
                 const lonlat = wasm.HEALPixPix2Ang(nside, ipix)
                 return lonlat;
             }

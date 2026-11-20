@@ -89,13 +89,15 @@ impl Pixel for [u8; 1] {
     const BLACK: Self = [0];
 
     fn read_pixel(gl: &WebGlContext, x: i32, y: i32) -> Result<Self, JsValue> {
-        let pixels = js_sys::Uint8Array::new_with_length(1);
+        // R8 is a normalized format: RED_INTEGER cannot read it, while
+        // RGBA/UNSIGNED_BYTE is always accepted. The value is in the red byte.
+        let pixels = js_sys::Uint8Array::new_with_length(4);
         gl.read_pixels_with_opt_array_buffer_view(
             x,
             y,
             1,
             1,
-            WebGlRenderingCtx::RED_INTEGER,
+            WebGlRenderingCtx::RGBA,
             WebGlRenderingCtx::UNSIGNED_BYTE,
             Some(&pixels),
         )?;

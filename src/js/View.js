@@ -1704,11 +1704,14 @@ export let View = (function () {
     };
 
     View.prototype.readPixel = function(prober) {
-        // Hide the coo grid
-        this.aladin.hideCooGrid();
+        // Hide the coo grid if it is shown
+        const gridEnabled = this.gridCfg.enabled;
+        if (gridEnabled) {
+            this.aladin.hideCooGrid();
 
-        // Ask for the redraw to make the coo grid hiding effective
-        this.redraw()
+            // Ask for the redraw to make the coo grid hiding effective
+            this.redraw()
+        }
 
         let c = this.getRawPixelsCanvas(null, null);
         let ctx = c.getContext("2d");
@@ -1718,11 +1721,13 @@ export let View = (function () {
         if (Utils.isNumber(prober.x) && Utils.isNumber(prober.y)) {
             imageData = ctx.getImageData(prober.x, prober.y, 1, 1);
         } else if (Utils.isNumber(prober.top) && Utils.isNumber(prober.left) && Utils.isNumber(prober.w) && Utils.isNumber(prober.h)) {
-            imageData = ctx.getImageData(prober.top, prober.left, prober.w, prober.h);
+            imageData = ctx.getImageData(prober.left, prober.top, prober.w, prober.h);
         }
 
-        // Show the coo grid back again
-        this.aladin.showCooGrid();
+        // Show the coo grid back again if it was shown
+        if (gridEnabled) {
+            this.aladin.showCooGrid();
+        }
 
         return imageData;
     };

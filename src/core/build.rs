@@ -8,7 +8,10 @@ use std::process::Command;
 // All my shaders reside in the 'src/shaders' directory
 fn generate_shaders() -> std::result::Result<(), Box<dyn Error>> {
     println!("generate shaders");
-    let mut shaders = HashMap::new();
+    let mut shaders = BTreeMap::new();
+    let out_dir = PathBuf::from(std::env::var("OUT_DIR")?);
+    // Cargo scans a directory recursively, so this covers the included .glsl files too.
+    println!("cargo:rerun-if-changed=../glsl/webgl2");
 
     for entry in WalkDir::new("../glsl/webgl2/")
         .into_iter()
@@ -18,8 +21,6 @@ fn generate_shaders() -> std::result::Result<(), Box<dyn Error>> {
             let path = entry.path();
             if let Some(ext) = path.extension() {
                 if ext == "vert" || ext == "frag" {
-                    let file_name = path.file_name().unwrap().to_str().unwrap();
-
                     let out_file_name = path
                         .strip_prefix("../glsl/webgl2/")
                         .unwrap()
@@ -34,19 +35,9 @@ fn generate_shaders() -> std::result::Result<(), Box<dyn Error>> {
                     if std::env::var("CARGO_FEATURE_MINIFY_SHADERS").is_ok() {
                         println!("Feature `minify_shaders` enabled: running shader minifier");
 
-                        // save to a minified path
-                        let mut tmp_path = PathBuf::from(path);
-                        let mut min_path = PathBuf::from(path);
-
-                        let stem = path.file_stem().unwrap();
-                        // Build new filename: stem + ".min" + extension
-                        let tmp_file_name =
-                            format!("{}.{}.tmp", stem.to_string_lossy(), ext.to_string_lossy());
-                        tmp_path.set_file_name(tmp_file_name);
-
-                        let min_file_name =
-                            format!("{}.{}.min", stem.to_string_lossy(), ext.to_string_lossy());
-                        min_path.set_file_name(min_file_name);
+                        // save to a minified path, outside the watched shader directory
+                        let tmp_path = out_dir.join(format!("{out_file_name}.tmp"));
+                        let min_path = out_dir.join(format!("{out_file_name}.min"));
 
                         fs::write(tmp_path.clone(), &src)?;
 
@@ -71,14 +62,12 @@ fn generate_shaders() -> std::result::Result<(), Box<dyn Error>> {
                     }
 
                     shaders.insert(out_file_name, src);
-
-                    println!("cargo:rerun-if-changed=src/shaders/{file_name}");
                 }
             }
         }
     }
 
-    write("src/shaders.rs".into(), shaders)?;
+    write(out_dir.join("shaders.rs"), shaders)?;
 
     Ok(())
 }
@@ -112,12 +101,12 @@ fn read_shader<P: AsRef<std::path::Path>>(path: P) -> std::io::Result<String> {
     Ok(shader_src)
 }
 
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
 
-pub fn write(path: PathBuf, entries: HashMap<String, String>) -> Result<(), Box<dyn Error>> {
+pub fn write(path: PathBuf, entries: BTreeMap<String, String>) -> Result<(), Box<dyn Error>> {
     let mut all_the_files = File::create(&path)?;
 
     writeln!(&mut all_the_files, r#"use std::collections::HashMap;"#,)?;

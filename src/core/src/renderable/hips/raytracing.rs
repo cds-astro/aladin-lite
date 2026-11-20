@@ -18,7 +18,12 @@ fn create_vertices_array(proj: &ProjectionType) -> (Vec<f32>, Vec<u16>) {
             // Cast all the double into float
             // simple precision because this buffer
             // is sent to the GPU
-            let pos_world_space = proj.clip_to_world_space(&(pos_clip_space * 0.99)).unwrap();
+            // Boundary vertices can be just outside the inverse projection's
+            // domain. Keep the inward fallback for those vertices only.
+            let pos_world_space = proj
+                .clip_to_world_space(&pos_clip_space)
+                .or_else(|| proj.clip_to_world_space(&(pos_clip_space * 0.99)))
+                .unwrap();
             [
                 pos_clip_space.x as f32,
                 pos_clip_space.y as f32,
@@ -172,5 +177,35 @@ impl RayTracer {
                 WebGl2RenderingContext::UNSIGNED_SHORT,
                 0,
             )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use cgmath::Vector2;
+
+    #[test]
+    fn ait_mesh_samples_the_direction_at_each_interior_vertex() {
+        let projection = ProjectionType::Ait(mapproj::pseudocyl::ait::Ait::new());
+        let (vertices, _) = create_vertices_array(&projection);
+        let mut checked = 0;
+        for vertex in vertices.chunks_exact(5) {
+            let clip = Vector2::new(f64::from(vertex[0]), f64::from(vertex[1]));
+            // Avoid the boundary and the origin. Both can hide the uniform radial error.
+            if clip.x.abs() < 0.125 || clip.x.abs() > 0.5 || clip.y.abs() > 0.5 {
+                continue;
+            }
+            let expected = projection.clip_to_world_space(&clip).unwrap();
+            for (actual, expected) in vertex[2..].iter().zip([expected.x, expected.y, expected.z]) {
+                assert!(
+                    (f64::from(*actual) - expected).abs() < 1e-6,
+                    "clip {:?}",
+                    clip
+                );
+            }
+            checked += 1;
+        }
+        assert!(checked > 0);
     }
 }

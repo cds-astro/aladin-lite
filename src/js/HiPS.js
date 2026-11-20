@@ -1219,11 +1219,11 @@ export let HiPS = (function () {
             return this.view.wasm.probeLineOfPixels(prober.x1, prober.y1, prober.x2, prober.y2, this.layer);
         } else if (Utils.isNumber(prober.ra1) && Utils.isNumber(prober.dec1) && Utils.isNumber(prober.ra2) && Utils.isNumber(prober.dec2)) {
             // get the vertices along the great circle arc
-            let pixelsAlongArc = view.wasm.projectGreatCircleArc(prober.ra1, prober.dec1, prober.ra2, prober.dec2);
+            let pixelsAlongArc = this.view.wasm.projectGreatCircleArc(prober.ra1, prober.dec1, prober.ra2, prober.dec2);
 
             let pixels = []
             for (var i = 0; i < pixelsAlongArc.length; i+=4) {
-                pixels = pixels.concat(this.probe({
+                pixels = pixels.concat(this.probePixels({
                     x1: pixelsAlongArc[i],
                     y1: pixelsAlongArc[i+1],
                     x2: pixelsAlongArc[i+2],

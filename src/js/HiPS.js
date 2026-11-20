@@ -407,7 +407,7 @@ export let HiPS = (function () {
 
                         delete self.localFiles["properties"]
                     })
-                    .catch((e) => reject("HiPS " + self.id + " error: " + self.localFiles["properties"] + " does not point towards a local HiPS.\nReason: " + e.stack))
+                    .catch((e) => reject("HiPS " + self.id + " error: " + self.localFiles["properties"] + " does not point towards a local HiPS.\nReason: " + e))
 
                 resolve(self);
             });
@@ -444,7 +444,7 @@ export let HiPS = (function () {
                             .then((p) => {
                                 self._parseProperties(p);
                             })
-                            .catch((e) => reject("HiPS " + self.id + " error: starting url " + self.startUrl + " given does not points to a HiPS location.\nReason: " + e.stack))
+                            .catch((e) => reject("HiPS " + self.id + " error: starting url " + self.startUrl + " given does not points to a HiPS location.\nReason: " + e))
     
                         // the url stores a "CDS ID" we take it prioritaly
                         // if the url is null, take the id, this is for some tests
@@ -462,7 +462,7 @@ export let HiPS = (function () {
                                     .then((p) => {
                                         self._fetchFasterUrlFromProperties(p);
                                     })
-                                    .catch((e) => reject("HiPS " + self.id + " error: CDS ID " + id + " is not found.\nReason: " + e.stack));
+                                    .catch((e) => reject("HiPS " + self.id + " error: CDS ID " + id + " is not found.\nReason: " + e));
                             },
                             1000
                         );
@@ -486,14 +486,14 @@ export let HiPS = (function () {
                                     .then((p) => {
                                         self._parseProperties(p);
                                     })
-                                    .catch((e) => reject("HiPS " + self.id + " error: " + id + " does not refer to a found CDS ID nor a local path pointing towards a HiPS.\nReason: " + e.stack))
+                                    .catch((e) => reject("HiPS " + self.id + " error: " + id + " does not refer to a found CDS ID nor a local path pointing towards a HiPS.\nReason: " + e))
                             })
                     } else {
                         await HiPSProperties.fetchFromUrl(self.url, self.requestMode, self.requestCredentials)
                             .then((p) => {
                                 self._parseProperties(p);
                             })
-                            .catch((e) => reject("HiPS " + self.id + " error: HiPS not found at url " + self.url + "\nReason: " + e.stack))
+                            .catch((e) => reject("HiPS " + self.id + " error: HiPS not found at url " + self.url + "\nReason: " + e))
                     }
                 } else {
                     /*self._parseProperties({

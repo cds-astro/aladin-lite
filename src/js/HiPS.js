@@ -407,7 +407,7 @@ export let HiPS = (function () {
 
                         delete self.localFiles["properties"]
                     })
-                    .catch((e) => reject("HiPS " + self.id + " error: " + self.localFiles["properties"] + " does not point towards a local HiPS.\nReason: " + e.stack))
+                    .catch((e) => reject("HiPS " + self.id + " error: " + self.localFiles["properties"] + " does not point towards a local HiPS.\nReason: " + e))
 
                 resolve(self);
             });
@@ -444,7 +444,7 @@ export let HiPS = (function () {
                             .then((p) => {
                                 self._parseProperties(p);
                             })
-                            .catch((e) => reject("HiPS " + self.id + " error: starting url " + self.startUrl + " given does not points to a HiPS location.\nReason: " + e.stack))
+                            .catch((e) => reject("HiPS " + self.id + " error: starting url " + self.startUrl + " given does not points to a HiPS location.\nReason: " + e))
     
                         // the url stores a "CDS ID" we take it prioritaly
                         // if the url is null, take the id, this is for some tests
@@ -462,7 +462,7 @@ export let HiPS = (function () {
                                     .then((p) => {
                                         self._fetchFasterUrlFromProperties(p);
                                     })
-                                    .catch((e) => reject("HiPS " + self.id + " error: CDS ID " + id + " is not found.\nReason: " + e.stack));
+                                    .catch((e) => reject("HiPS " + self.id + " error: CDS ID " + id + " is not found.\nReason: " + e));
                             },
                             1000
                         );
@@ -486,14 +486,14 @@ export let HiPS = (function () {
                                     .then((p) => {
                                         self._parseProperties(p);
                                     })
-                                    .catch((e) => reject("HiPS " + self.id + " error: " + id + " does not refer to a found CDS ID nor a local path pointing towards a HiPS.\nReason: " + e.stack))
+                                    .catch((e) => reject("HiPS " + self.id + " error: " + id + " does not refer to a found CDS ID nor a local path pointing towards a HiPS.\nReason: " + e))
                             })
                     } else {
                         await HiPSProperties.fetchFromUrl(self.url, self.requestMode, self.requestCredentials)
                             .then((p) => {
                                 self._parseProperties(p);
                             })
-                            .catch((e) => reject("HiPS " + self.id + " error: HiPS not found at url " + self.url + "\nReason: " + e.stack))
+                            .catch((e) => reject("HiPS " + self.id + " error: HiPS not found at url " + self.url + "\nReason: " + e))
                     }
                 } else {
                     /*self._parseProperties({
@@ -1189,8 +1189,8 @@ export let HiPS = (function () {
      * @returns {number} - The pixel value coming directly from the tiles
      */
     HiPS.prototype.readPixel = function (x, y) {
-        x = x || (this.view.width / 2);
-        y = y || (this.view.height / 2);
+        x = x ?? (this.view.width / 2);
+        y = y ?? (this.view.height / 2);
         return this.view.wasm.probePixel(x, y, this.layer);
     };
 
@@ -1219,11 +1219,11 @@ export let HiPS = (function () {
             return this.view.wasm.probeLineOfPixels(prober.x1, prober.y1, prober.x2, prober.y2, this.layer);
         } else if (Utils.isNumber(prober.ra1) && Utils.isNumber(prober.dec1) && Utils.isNumber(prober.ra2) && Utils.isNumber(prober.dec2)) {
             // get the vertices along the great circle arc
-            let pixelsAlongArc = view.wasm.projectGreatCircleArc(prober.ra1, prober.dec1, prober.ra2, prober.dec2);
+            let pixelsAlongArc = this.view.wasm.projectGreatCircleArc(prober.ra1, prober.dec1, prober.ra2, prober.dec2);
 
             let pixels = []
             for (var i = 0; i < pixelsAlongArc.length; i+=4) {
-                pixels = pixels.concat(this.probe({
+                pixels = pixels.concat(this.probePixels({
                     x1: pixelsAlongArc[i],
                     y1: pixelsAlongArc[i+1],
                     x2: pixelsAlongArc[i+2],

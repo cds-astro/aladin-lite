@@ -1200,9 +1200,31 @@ pub struct HPXVertices {
 }
 
 /* HEALPix utils functions */
+fn hpx_depth(nside: u32) -> Result<u8, JsValue> {
+    if nside.is_power_of_two() && nside <= 1 << 29 {
+        Ok(crate::healpix::cell::nside2depth(nside))
+    } else {
+        Err(js_sys::Error::new(&format!(
+            "nside must be a power of two between 1 and 2^29, got {nside}"
+        ))
+        .into())
+    }
+}
+
+fn hpx_check_ipix(nside: u32, ipix: &[u64]) -> Result<u8, JsValue> {
+    let depth = hpx_depth(nside)?;
+    let n_cells = 12 * (nside as u64) * (nside as u64);
+    if let Some(i) = ipix.iter().find(|&&i| i >= n_cells) {
+        return Err(
+            js_sys::Error::new(&format!("ipix {i} is out of range for nside {nside}")).into(),
+        );
+    }
+    Ok(depth)
+}
+
 #[wasm_bindgen(js_name = HEALPixVertices)]
 pub fn hpx_vertices(nside: u32, ipix: &[u64]) -> Result<Box<[HPXVertices]>, JsValue> {
-    let depth = crate::healpix::cell::nside2depth(nside);
+    let depth = hpx_check_ipix(nside, ipix)?;
     let vertices = ipix
         .iter()
         .map(|i| {
@@ -1235,7 +1257,7 @@ pub fn hpx_vertices(nside: u32, ipix: &[u64]) -> Result<Box<[HPXVertices]>, JsVa
 
 #[wasm_bindgen(js_name = HEALPixPix2Ang)]
 pub fn hpx_pix2ang(nside: u32, ipix: &[u64]) -> Result<Box<[LonLat]>, JsValue> {
-    let depth = crate::healpix::cell::nside2depth(nside);
+    let depth = hpx_check_ipix(nside, ipix)?;
     let vertices = ipix
         .iter()
         .map(|i| {
@@ -1252,7 +1274,19 @@ pub fn hpx_pix2ang(nside: u32, ipix: &[u64]) -> Result<Box<[LonLat]>, JsValue> {
 
 #[wasm_bindgen(js_name = HEALPixAng2Pix)]
 pub fn hpx_ang2pix(nside: u32, lon: &[f64], lat: &[f64]) -> Result<Box<[u64]>, JsValue> {
-    let depth = crate::healpix::cell::nside2depth(nside);
+    let depth = hpx_depth(nside)?;
+    if lon.len() != lat.len() {
+        return Err(js_sys::Error::new("lon and lat must have the same length").into());
+    }
+    if let Some((lon, lat)) = lon.iter().zip(lat.iter()).find(|(lon, lat)| {
+        !lon.is_finite()
+            || !(-std::f64::consts::FRAC_PI_2..=std::f64::consts::FRAC_PI_2).contains(*lat)
+    }) {
+        return Err(js_sys::Error::new(&format!(
+            "invalid position (lon: {lon}, lat: {lat}): lon must be finite and lat in [-pi/2, pi/2] (radians)"
+        ))
+        .into());
+    }
     let vertices = lon
         .iter()
         .zip(lat.iter())

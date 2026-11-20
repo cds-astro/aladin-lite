@@ -303,7 +303,8 @@ export let HiPS = (function () {
 
                     let tile = path.substring(path.indexOf("Npix") + 4).split(".");
                     const ipix = +tile[0];
-                    const fmt = tile[1];
+                    // e.g. "fits.fz" for Npix12.fits.fz
+                    const fmt = tile.slice(1).join(".");
 
                     if (!localFiles[order][ipix]) {
                         localFiles[order][ipix] = {}
@@ -1357,19 +1358,23 @@ export let HiPS = (function () {
         if (this.localFiles) {
             localFiles = new Aladin.wasmLibs.core.HiPSLocalFiles(this.localFiles["moc"]);
 
-            let fmt;
+            const exts = {
+                fits: Aladin.wasmLibs.core.ImageExt.Fits,
+                "fits.fz": Aladin.wasmLibs.core.ImageExt.FitsFz,
+                jpg: Aladin.wasmLibs.core.ImageExt.Jpeg,
+                jpeg: Aladin.wasmLibs.core.ImageExt.Jpeg,
+                png: Aladin.wasmLibs.core.ImageExt.Png,
+                webp: Aladin.wasmLibs.core.ImageExt.Webp,
+            };
             for (var order in this.localFiles) {
                 if (order === "moc")
                     continue;
 
                 for (var ipix in this.localFiles[order]) {
                     for (var f in this.localFiles[order][ipix]) {
-                        if (f === "png") {
-                            fmt = Aladin.wasmLibs.core.ImageExt.Png;
-                        } else if (f === "fits") {
-                            fmt = Aladin.wasmLibs.core.ImageExt.Fits;
-                        } else {
-                            fmt = Aladin.wasmLibs.core.ImageExt.Jpeg;
+                        const fmt = exts[f];
+                        if (fmt === undefined) {
+                            continue;
                         }
 
                         const tileFile = this.localFiles[order][+ipix][f];

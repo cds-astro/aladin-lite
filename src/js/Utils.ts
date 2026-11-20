@@ -237,6 +237,12 @@ Utils.LRUCache.prototype = {
             size = this._size,
             maxsize = this._maxsize
 
+        if (Object.prototype.hasOwnProperty.call(items, key)) { // update an existing entry
+            items[key] = value
+            expires[key] = Date.now()
+            return
+        }
+
         if (size >= maxsize) { // remove oldest element when no more room
             keys.sort(function (a, b) {
                 if (expires[a] > expires[b]) return -1

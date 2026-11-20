@@ -99,7 +99,9 @@ use crate::math::angle::ToAngle;
 mod app;
 pub mod async_task;
 mod camera;
-mod shaders;
+mod shaders {
+    include!(concat!(env!("OUT_DIR"), "/shaders.rs"));
+}
 
 mod browser_support;
 mod coosys;

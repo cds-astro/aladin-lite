@@ -1192,8 +1192,8 @@ export let HiPS = (function () {
      * @returns {number} - The pixel value coming directly from the tiles
      */
     HiPS.prototype.readPixel = function (x, y) {
-        x = x || (this.view.width / 2);
-        y = y || (this.view.height / 2);
+        x = x ?? (this.view.width / 2);
+        y = y ?? (this.view.height / 2);
         return this.view.wasm.probePixel(x, y, this.layer);
     };
 

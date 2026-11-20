@@ -32,6 +32,15 @@
 import { Aladin } from "./Aladin";
 import { Sesame } from "./Sesame";
 
+// The WASM HEALPix functions take u64 cell indices, i.e. BigInt values
+function toBigIntArray(ipix) {
+    if (!Array.isArray(ipix) && !ArrayBuffer.isView(ipix)) {
+        ipix = [ipix];
+    }
+
+    return Array.from(ipix, (p) => BigInt(p));
+}
+
 /**
  * @namespace AladinUtils
  * @description Aladin Lite utils API namespace for basic functions
@@ -79,10 +88,8 @@ export let AladinUtils = {
                     throw 'A.init must be called first'
                 }
 
-                // Cast to 1d array
-                if (!Array.isArray(ipix)) {
-                    ipix = [ipix];
-                }
+                // Cast to a 1d array of BigInt, as expected by the WASM
+                ipix = toBigIntArray(ipix);
 
                 const vertices = wasm.HEALPixVertices(nside, ipix)
                 return vertices;
@@ -138,10 +145,8 @@ export let AladinUtils = {
                     throw 'A.init must be called first'
                 }
 
-                // Cast to 1d array
-                if (!Array.isArray(ipix)) {
-                    ipix = [ipix];
-                }
+                // Cast to a 1d array of BigInt, as expected by the WASM
+                ipix = toBigIntArray(ipix);
 
                 const lonlat = wasm.HEALPixPix2Ang(nside, ipix)
                 return lonlat;

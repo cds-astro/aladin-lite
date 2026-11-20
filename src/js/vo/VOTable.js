@@ -133,7 +133,8 @@ export class VOTable {
                 let dataType = fields[fieldIdx].datatype;
                 if (dataType === 'char') {
                     // check the arraysize
-                    const arraySize = fields[fieldIdx].arraysize;
+                    // no arraysize means a single character
+                    const arraySize = fields[fieldIdx].arraysize || '1';
 
                     if (arraySize.includes('*')) {
                         // variable size, read 32 bits
@@ -145,7 +146,9 @@ export class VOTable {
                             dataType = 'NULL';
                         }
                     } else {
-                        cellSizeInBytes = arraySize;
+                        // fixed size, possibly multidimensional (e.g. 10x3)
+                        cellSizeInBytes = arraySize.split('x')
+                            .reduce((size, dim) => size * parseInt(dim), 1);
                     }
                 } else {
                     cellSizeInBytes = tabDataSize[dataType];
@@ -154,7 +157,7 @@ export class VOTable {
                 let prec;
                 switch (dataType) {
                     case 'short': 
-                        value = view.getUint16(numBytesRead);
+                        value = view.getInt16(numBytesRead);
                     break;
                     case 'int': 
                         value = view.getInt32(numBytesRead);
@@ -182,6 +185,12 @@ export class VOTable {
                     case 'char':
                         value = bytes.slice(numBytesRead, numBytesRead + cellSizeInBytes);
                         value = VOTable.textDecoder.decode(value)
+                        // a string may be terminated by a NUL before its arraysize
+                        // (a multidimensional array holds several strings: not cut)
+                        const isMultiDim = (fields[fieldIdx].arraysize || '').includes('x');
+                        if (!isMultiDim && value.includes('\0')) {
+                            value = value.slice(0, value.indexOf('\0'));
+                        }
                     break;
                     case 'NULL': // Empty Data
                         value = null;

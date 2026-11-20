@@ -68,8 +68,8 @@ export let AladinUtils = {
              * Represents a geographical point with longitude and latitude coordinates.
              *
              * @typedef {Object} LonLat
-             * @property {number} lon - The longitude coordinate.
-             * @property {number} lat - The latitude coordinate.
+             * @property {number} lon - The longitude coordinate, in radians.
+             * @property {number} lat - The latitude coordinate, in radians.
              */
 
             /**
@@ -116,10 +116,10 @@ export let AladinUtils = {
              * @name ang2pix
              *
              * @param {number} nside - NSIDE parameter for the HEALPix grid.
-             * @param {number | number[]} lon - Longitude or an array of longitudes.
-             * @param {number | number[]} lat - Latitude or an array of latitudes.
+             * @param {number | number[]} lon - Longitude or an array of longitudes, in radians.
+             * @param {number | number[]} lat - Latitude or an array of latitudes, in radians, between -pi/2 and pi/2.
              * @throws {string} Throws an error if A.init is not called first.
-             * @returns {number[]} ipix - Pixel index or an array of pixel indices.
+             * @returns {BigUint64Array} ipix - The pixel indices, one per position.
              */
             ang2pix: function(nside, lon, lat) {
                 let wasm = Aladin.wasmLibs.core;

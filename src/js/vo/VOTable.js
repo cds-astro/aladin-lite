@@ -154,7 +154,7 @@ export class VOTable {
                 let prec;
                 switch (dataType) {
                     case 'short': 
-                        value = view.getUint16(numBytesRead);
+                        value = view.getInt16(numBytesRead);
                     break;
                     case 'int': 
                         value = view.getInt32(numBytesRead);

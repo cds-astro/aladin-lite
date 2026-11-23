@@ -165,6 +165,10 @@ npm run build
 > ```sh
 > git clean -di
 > ```
+> - As an alternative to the above point run:
+> ```sh
+> npm run clean
+> ```
 > - Then recompile
 > ```sh
 > npm run build

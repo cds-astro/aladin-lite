@@ -41,6 +41,7 @@
     "build:dev": "npm run wasm:dev && vite build",
     "build:dbg": "npm run wasm:dbg && vite build",
     "dev": "npm run build:dev && vite",
+    "clean": "cd src/core && rm -r target && rm -r Cargo.lock && cargo clean && git clean -di",
     "dev:dbg": "npm run build:dbg && vite",
     "serve": "npm run dev",
     "serve:dbg": "npm run dev:dbg",

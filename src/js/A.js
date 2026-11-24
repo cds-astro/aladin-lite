@@ -597,8 +597,9 @@ A.catalogFromURL = function (url, options, successCallback, errorCallback, usePr
     const processVOTable = function (table) {
         let {sources, fields} = table;
         c.setFields(fields);
-        if (fields.s_region) {
-            // for ObsCore tables, show also the (ra, dec) as a source
+        // for ObsCore tables, show also the (ra, dec) as a source as default if 
+        // the user does not explicitely set the 'onlyFootprints' optional keyword.
+        if (fields.s_region && typeof options.onlyFootprints !== 'boolean') {
             c.onlyFootprints = false;
         }
         c.addSources(sources);

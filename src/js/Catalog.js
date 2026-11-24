@@ -61,7 +61,7 @@ If a function is given, user can return Image, HTMLImageCanvas, HTMLImageElement
 * @property {string} [labelColumn] - The name of the column to be used for the label.
 * @property {string} [labelColor=color] - The color of the source labels.
 * @property {string} [labelFont="10px sans-serif"] - The font for the source labels.
-* @property {boolean} [onlyFootprints=true] - When shapes/footprints are associated to a source (through a shape function given), decide wheter to show the point source as well. Point source is hidden by default
+* @property {boolean} [onlyFootprints=true] - Hide the source point display when shapes/footprints are associated. By default sources with shapes are hidden except for IVOA ObsCore tables (s_region column).
 */
 
 export let Catalog = (function () {
@@ -1070,7 +1070,6 @@ export let Catalog = (function () {
     };
 
     Catalog.prototype.drawSource = function (s, ctx, width, height) {
-
         // set globalAlpha because it is changed in shapes
         ctx.globalAlpha = 1;
 

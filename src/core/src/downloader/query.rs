@@ -137,7 +137,11 @@ impl Tile {
 
         let dir_idx = (idx / 10000) * 10000;
 
-        let url = format!("{hips_url}/Norder{depth}/Dir{dir_idx}/Npix{idx}_{channel:?}.{ext}");
+        let url = if channel == 0 {
+            format!("{hips_url}/Norder{depth}/Dir{dir_idx}/Npix{idx}.{ext}")
+        } else {
+            format!("{hips_url}/Norder{depth}/Dir{dir_idx}/Npix{idx}_{channel}.{ext}")
+        };
 
         let id = format!("{}_{}_{}_{}_{}", hips_cdid, depth, idx, channel, ext);
 

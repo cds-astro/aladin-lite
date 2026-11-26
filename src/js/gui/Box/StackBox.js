@@ -541,7 +541,11 @@ export class OverlayStackBox extends Box {
 
                             aladin.hipsBrowser._show({
                                 selected: (hips) => {
-                                    aladin.setOverlayImageLayer(hips, newLayer);
+                                    if (hips instanceof ProgressiveCat) {
+                                        aladin.addCatalog(hips)
+                                    } else {
+                                        aladin.setOverlayImageLayer(hips, newLayer);
+                                    }
                                 },
                                 position: {
                                     anchor: 'center center'
@@ -976,8 +980,11 @@ export class OverlayStackBox extends Box {
                         let newLayer = hips.layer;
                         aladin.hipsBrowser._show({
                             selected: (hips) => {
-
-                                self.aladin.setOverlayImageLayer(hips, newLayer);
+                                if (hips instanceof ProgressiveCat) {
+                                    self.aladin.addCatalog(hips)
+                                } else {
+                                    self.aladin.setOverlayImageLayer(hips, newLayer);
+                                }
                             },
                             position: { anchor: "center center" }
                         });

@@ -537,6 +537,8 @@ export let HiPS = (function () {
                         self.view.requestRedraw();
                     }
 
+                    // Save the new url to the cache
+                    self._updateMetadata()
                 }
             })
             .catch((e) => {

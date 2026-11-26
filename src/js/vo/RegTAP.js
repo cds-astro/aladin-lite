@@ -68,7 +68,7 @@
             "select access_url, standard_id, ivoid from rr.resource \
     natural left outer join rr.capability \
     natural left outer join rr.interface \
-    where standard_id like 'ivo://ivoa.net/std/hips%' and ivoid not like '%cds%'"
+    where standard_id like 'ivo://ivoa.net/std/hips%'"
         );
 
         RegTAP.HiPSList = {};
@@ -105,7 +105,7 @@
         })
 
         const fileContents = await Promise.allSettled(hipsListFetchingPromises)
-    
+
         for (const fileContent of fileContents) {
             if (fileContent.status === "fulfilled") {
                 const HiPSList = parseHiPSList(fileContent.value);

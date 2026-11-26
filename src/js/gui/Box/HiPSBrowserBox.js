@@ -96,6 +96,10 @@ async function harvestHiPSesFromRegistry() {
         hips['obs_title'] = hips.creator_did;
         hips['ID'] = hips.creator_did;
 
+        // FIX: There is no way a.t.m. to discrimate HiPS image from HiPSCat in he registry
+        // As a dirty workaround, I just check for the creator_did to contain vizier... 
+        hips['type'] = hips.creator_did.includes("vizier") ? 'catalog' : 'image';
+
         for (var i = 1; i < HiPSes.length; i++) {
             // Add these info needed for rebuilding the browsing tree
             hips[`hips_service_url_${i}`] = HiPSes[i].hips_service_url;
@@ -161,14 +165,24 @@ export class HiPSBrowserBox extends Box {
             },
             // a callback called when the user selects a leaf item of the tree
             click: (item) => {
-                let image = item.ID || item.hips_service_url;
                 let name = item.obs_title || item.ID;
-                self._addHiPS(image, name)
+                
+                if (item.type === 'catalog') {
+                    self._addHiPSCat(item.hips_service_url, name)
+                } else {
+                    let id = item.ID || item.hips_service_url;
+                    self._addHiPS(id, name)
+                }
             },
             dblclick: (item) => {
-                let image = item.ID || item.hips_service_url;
                 let name = item.obs_title || item.ID;
-                self._addHiPS(image, name)
+                
+                if (item.type === 'catalog') {
+                    self._addHiPSCat(item.hips_service_url, name)
+                } else {
+                    let id = item.ID || item.hips_service_url;
+                    self._addHiPS(id, name)
+                }
 
                 self.close();
             },
@@ -180,7 +194,6 @@ export class HiPSBrowserBox extends Box {
         MocServer.getAllHiPSes()
         .catch((_) => harvestHiPSesFromRegistry())
         .then((HiPSes) => {
-            console.log("hipp:", HiPSes)
             self._populate(HiPSes);
         });
 
@@ -440,12 +453,26 @@ export class HiPSBrowserBox extends Box {
             return;
         }
 
+        if (!this.aladin) {
+            return;
+        }
+
         let self = this;
         MocServer.getAllHiPSesInsideView(this.aladin)
             .then((HiPSes) => {
                 let HiPSIDs = HiPSes.map((x) => x.ID);
                 self.searchTree.highlightNodes(HiPSIDs)
             })
+    }
+
+    _addHiPSCat(id, name) {
+        let self = this;
+
+        self.searchDropdown.update({value: name, title: name});
+
+        let hipsCat = A.catalogHiPS(id, {name});
+
+        self.selected(hipsCat)
     }
 
     _addHiPS(id, name) {

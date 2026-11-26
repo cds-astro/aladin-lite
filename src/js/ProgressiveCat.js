@@ -608,6 +608,7 @@ export let ProgressiveCat = (function() {
                             url: self.getTileURL(norder, ipix),
                             desc: "Get tile .tsv " + norder + ' ' + ipix + ' of ' + self.name,
                             method: 'GET',
+                            timeout: 5000,
                             //dataType: 'jsonp',
                             success: function(tsv) {
                                 let sources = getSources(self, tsv, self.fields);

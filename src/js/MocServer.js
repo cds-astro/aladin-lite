@@ -97,7 +97,7 @@ export class MocServer {
             //expr: "dataproduct_type=image",
             get: "record",
             fmt: "json",
-            fields: "ID,hips_creator,hips_copyright,hips_order,hips_tile_width,hips_frame,hips_tile_format,obs_title,obs_description,obs_copyright,obs_regime,client_category,dataproduct_subtype,hips_service_url*,hips_initial_ra,hips_initial_dec,hips_initial_fov,em_min,em_max",
+            fields: "*",
         };
 
         try {
@@ -124,24 +124,23 @@ export class MocServer {
             return [];
         }
 
-        let stc;
-        try {
-            const corners = aladin.getFoVCorners(1, 'icrs');
-            stc = 'Polygon '
-            for (var radec of corners) {
-                stc += radec[0] + ' ' + radec[1] + ' ';
-            }
-        } catch (e) {}
-
-
-         let params = {
+        let params = {
             expr: "dataproduct_type=image||dataproduct_type=spectral-cube",
             //expr: "dataproduct_type=image",
             get: "record",
             fmt: "json",
             fields: "ID",
-            stc
         };
+
+        try {
+            const corners = aladin.getFoVCorners(1, 'icrs');
+            let stc = 'Polygon '
+            for (var radec of corners) {
+                stc += radec[0] + ' ' + radec[1] + ' ';
+            }
+
+            params['stc'] = stc;
+        } catch (e) {}
 
         try {
             return await Utils.fetchFromMirrorUrls(MocServer.MIRRORS_HTTPS, {

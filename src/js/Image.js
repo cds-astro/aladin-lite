@@ -559,7 +559,7 @@ export let Image = (function () {
             let self = this;
             let img = document.createElement('img');
 
-            let checkImgFormat = Utils.fetchWithProxy({url: this.url, dataType: 'arrayBuffer'})
+            let checkImgFormat = Utils.fetchWithProxy({url: this.url, dataType: 'arrayBuffer', timeout: 5000})
                 .then(arrayBuffer => {
                     const view = new DataView(arrayBuffer);
                     // See the magic bytes for JPEG or PNG files

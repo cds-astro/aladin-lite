@@ -306,8 +306,8 @@ mod tests {
         assert_eq!(x, &[(0, 0.0), (4096, 1.0)]);
         assert_eq!(y, &[(0, 0.0), (4096, 1.0)]);
 
-        assert_eq!(x_idx_rng, &[0..=1]);
-        assert_eq!(y_idx_rng, &[0..=1]);
+        assert_eq!(x_idx_rng, vec![0..=1]);
+        assert_eq!(y_idx_rng, vec![0..=1]);
 
         let (x, y) = super::get_grid_params(&(0.0, 0.0), &(11000.0, 7000.0), 4096, 4096, 1);
 

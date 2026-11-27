@@ -210,7 +210,6 @@ impl<'a> FitsImage<'a> {
 }
 
 use crate::{image::Image, texture::Tex3D};
-use std::convert::TryInto;
 impl Image for FitsImage<'_> {
     fn insert_into_3d_texture<T: Tex3D>(
         &self,
@@ -225,10 +224,11 @@ impl Image for FitsImage<'_> {
                     // convert to i64 first
                     let new_bytes: Vec<_> = self
                         .raw_bytes
-                        .chunks_exact(8)
-                        .flat_map(|chunk| {
-                            let bytes: [u8; 8] = chunk.try_into().unwrap();
-                            let value = i64::from_be_bytes(bytes);
+                        .as_chunks::<8>()
+                        .0
+                        .iter()
+                        .flat_map(|bytes| {
+                            let value = i64::from_be_bytes(*bytes);
 
                             (value as i32).to_be_bytes()
                         })
@@ -240,10 +240,11 @@ impl Image for FitsImage<'_> {
                     // convert to i64 first
                     let new_bytes: Vec<_> = self
                         .raw_bytes
-                        .chunks_exact(8)
-                        .flat_map(|chunk| {
-                            let bytes: [u8; 8] = chunk.try_into().unwrap();
-                            let value = f64::from_be_bytes(bytes);
+                        .as_chunks::<8>()
+                        .0
+                        .iter()
+                        .flat_map(|bytes| {
+                            let value = f64::from_be_bytes(*bytes);
 
                             (value as f32).to_be_bytes()
                         })

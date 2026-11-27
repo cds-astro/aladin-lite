@@ -190,7 +190,7 @@ mod tests {
         let projection = ProjectionType::Ait(mapproj::pseudocyl::ait::Ait::new());
         let (vertices, _) = create_vertices_array(&projection);
         let mut checked = 0;
-        for vertex in vertices.chunks_exact(5) {
+        for vertex in vertices.as_chunks::<5>().0 {
             let clip = Vector2::new(f64::from(vertex[0]), f64::from(vertex[1]));
             // Avoid the boundary and the origin. Both can hide the uniform radial error.
             if clip.x.abs() < 0.125 || clip.x.abs() > 0.5 || clip.y.abs() > 0.5 {

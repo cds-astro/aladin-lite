@@ -396,11 +396,7 @@ impl CameraViewPort {
             ProjectionType::Tan(_) | ProjectionType::Mer(_) | ProjectionType::Stg(_)
         );
 
-        if !can_unzoom_more && self.zoom_factor >= 1.0 {
-            return true;
-        }
-
-        false
+        !can_unzoom_more && self.zoom_factor >= 1.0
     }
 
     pub(crate) fn set_aperture(&mut self, mut aperture: f64, proj: &ProjectionType) {

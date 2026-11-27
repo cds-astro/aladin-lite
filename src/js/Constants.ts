@@ -20,4 +20,4 @@
 //    along with Aladin Lite. If not, see <https://www.gnu.org/licenses/>.
 //
 
-export const JSONP_PROXY = "https://alaskybis.cds.unistra.fr/cgi/JSONProxy";
+export const JSONP_PROXY = "https://alasky.cds.unistra.fr/cgi/JSONProxy";

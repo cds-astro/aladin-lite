@@ -23,13 +23,8 @@ fn ndc_to_world(
             n.x * ndc_to_clip.x * clip_zoom_factor,
             n.y * ndc_to_clip.y * clip_zoom_factor,
         );
-        let w = projection.clip_to_world_space(&c);
-        if let Some(w) = w {
-            world_coo.push(w);
-        } else {
-            // out of fov
-            return None;
-        }
+        let w = projection.clip_to_world_space(&c)?;
+        world_coo.push(w);
     }
 
     Some(world_coo)

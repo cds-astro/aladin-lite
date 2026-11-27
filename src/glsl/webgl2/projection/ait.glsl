@@ -1,8 +1,8 @@
 
 vec2 w2c_ait(vec3 p) {
     float r = length(p.zx);
-    float w = sqrt((r * (r + p.z)) * 0.5f); // = cos(b) cos(l/2)
-    w = sqrt((1.0 + w) * 0.5f);             // = 1 / gamma
+    float w = sqrt((r * (r + p.z)) * 0.5); // = cos(b) cos(l/2)
+    w = sqrt((1.0 + w) * 0.5);             // = 1 / gamma
     float y2d = p.y / w;
 
     float x2d = 0.0;

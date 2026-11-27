@@ -84,6 +84,8 @@ extern "C" {
 #[macro_use]
 mod utils;
 
+pub mod worker;
+
 use math::projection::*;
 
 //use votable::votable::VOTableWrapper;
@@ -115,6 +117,7 @@ pub mod renderable;
 mod shader;
 mod tile_fetcher;
 mod time;
+pub mod spectra_displayer;
 
 use crate::{
     camera::CameraViewPort, healpix::moc::SpaceMoc, math::lonlat::LonLatT, shader::ShaderManager,
@@ -133,6 +136,19 @@ use cgmath::{Vector2, Vector3};
 
 use crate::healpix::cell::HEALPixCell;
 use math::angle::ArcDeg;
+
+#[wasm_bindgen]
+pub struct PollInfo {
+    pub needs_draw: bool,
+    pub has_pending: bool,
+    pub is_inerting: bool,
+    pub ra: f64,
+    pub dec: f64,
+    pub moving: bool,
+    pub zoom_factor: f64,
+    pub fov_x: f64,
+    pub fov_y: f64,
+}
 
 #[wasm_bindgen]
 pub struct WebClient {
@@ -174,30 +190,39 @@ impl WebClient {
         self.app.set_callback_position_changed(callback);
     }*/
 
-    #[wasm_bindgen(js_name = isInerting)]
-    pub fn is_inerting(&self) -> bool {
-        self.app.is_inerting()
-    }
-
     /// Update the view
     ///
     /// # Arguments
     ///
     /// * `dt` - The time elapsed from the last frame update
-    /// * `force` - This parameter ensures to force the update of some elements
-    ///   even if the camera has not moved
     ///
     /// # Return
     /// Whether the view is moving or not
-    pub fn update(&mut self, dt: f64) -> Result<bool, JsValue> {
+    #[wasm_bindgen(js_name = draw)]
+    pub fn draw(&mut self) -> Result<(), JsValue> {
         // dt refers to the time taking (in ms) rendering the previous frame
         //self.dt = DeltaTime::from_millis(dt as f32);
 
         // Update the application and get back the
         // world coordinates of the center of projection in (ra, dec)
-        self.app.update(
+        self.app.draw()
+    }
+
+    #[wasm_bindgen(js_name = poll)]
+    pub fn poll(
+        &mut self,
+        dt: f64,
+        pan: Option<Box<[f64]>>,
+        zoom: Option<f64>,
+    ) -> Result<PollInfo, JsValue> {
+        // dt refers to the time taking (in ms) rendering the previous frame
+        //self.dt = DeltaTime::from_millis(dt as f32);
+
+        // Update the application and get back the
+        // world coordinates of the center of projection in (ra, dec)
+        self.app.poll(
             // Time of the previous frame rendering
-            dt,
+            dt, pan, zoom,
         )
     }
 
@@ -350,6 +375,21 @@ impl WebClient {
         self.app.add_fits_image(bytes, cfg, layer)
     }
 
+    #[wasm_bindgen(js_name = isHDUVisible)]
+    pub fn is_hdu_visible(&self, layer: String, hdu_id: usize) -> Result<bool, JsValue> {
+        self.app.is_hdu_visible(layer.as_str(), hdu_id)
+    }
+
+    #[wasm_bindgen(js_name = makeHDUVisible)]
+    pub fn make_hdu_visible(
+        &mut self,
+        layer: String,
+        hdu_id: usize,
+        visible: bool,
+    ) -> Result<(), JsValue> {
+        self.app.make_hdu_visible(layer.as_str(), hdu_id, visible)
+    }
+
     #[wasm_bindgen(js_name = addRGBAImage)]
     pub fn add_rgba_image(
         &mut self,
@@ -389,6 +429,26 @@ impl WebClient {
         self.app.set_hips_url(&cdid, new_url)
     }
 
+    #[wasm_bindgen(js_name = "setSpectraDisplayerRadius")]
+    pub fn set_spectra_radius(&mut self, rad_deg: f64) {
+        self.app.set_spectra_radius(rad_deg.to_radians().to_angle());
+    }
+
+    #[wasm_bindgen(js_name = "showSpectraDisplayer")]
+    pub fn show_spectra_displayer(&mut self) {
+        self.app.show_spectra_displayer();
+    }
+
+    #[wasm_bindgen(js_name = "hideSpectraDisplayer")]
+    pub fn hide_spectra_displayer(&mut self) {
+        self.app.hide_spectra_displayer();
+    }
+
+    #[wasm_bindgen(js_name = "setSpectraDisplayerCenter")]
+    pub fn set_spectra_center(&mut self, ra_deg: f64, dec_deg: f64) {
+        self.app.set_spectra_center(ra_deg.to_radians().to_angle(), dec_deg.to_radians().to_angle());
+    }
+
     #[wasm_bindgen(js_name = getImageMetadata)]
     pub fn get_layer_cfg(&self, layer: String) -> Result<ImageMetadata, JsValue> {
         self.app.get_layer_cfg(&layer)
@@ -402,31 +462,42 @@ impl WebClient {
         self.app.set_image_hips_color_cfg(layer, meta)
     }
 
-    #[wasm_bindgen(js_name = setFreq)]
-    pub fn set_hips_frequency(&mut self, layer: String, frequency: f32) -> Result<(), JsValue> {
-        self.app.set_hips_frequency(&layer, frequency)
+    #[wasm_bindgen(js_name = setQty)]
+    pub fn set_hips_quantity(&mut self, layer: String, mut qty: f64) -> Result<(), JsValue> {
+        qty = qty.max(1e-6).min(1e30);
+        self.app.set_hips_quantity(&layer, qty)
     }
 
     #[wasm_bindgen(js_name = getFreq)]
-    pub fn get_hips_frequency(&mut self, layer: String) -> Result<f32, JsValue> {
-        self.app.get_hips_frequency(&layer)
+    pub fn get_hips_quantity(&mut self, layer: String) -> Result<f32, JsValue> {
+        self.app.get_hips_quantity(&layer)
     }
 
-    #[wasm_bindgen(js_name = getFreqWindow)]
-    pub fn get_hips_frequency_window(&mut self, layer: String) -> Result<Vec<f32>, JsValue> {
-        let fw = self.app.get_hips_frequency_window(&layer)?;
+    #[wasm_bindgen(js_name = attachHiPS3D)]
+    pub fn attach_hips3d(&mut self, layer: String) -> Result<(), JsValue> {
+        self.app.attach_hips3d(layer.as_str());
 
-        Ok(vec![fw[0].0 as f32, fw[1].0 as f32])
+        Ok(())
+    }
+
+    #[wasm_bindgen(js_name = setFreqResolution)]
+    pub fn set_dq(&mut self, dq: f64) -> Result<(), JsValue> {
+        self.app.set_dq(dq)
+    }
+
+    #[wasm_bindgen(js_name = spectraDisplayerFreqOrder)]
+    pub fn get_spectra_displayer_order(&mut self) -> u8 {
+        self.app.spectra_displayer.q_order()
     }
 
     #[wasm_bindgen(js_name = freq2hash)]
-    pub fn get_freq_hash(&mut self, layer: String, freq: f64) -> Result<u64, JsValue> {
-        self.app.get_freq_hash(&layer, freq)
+    pub fn freq2hash(&mut self, freq: f64, order: u8) -> u64 {
+        self.app.freq2hash(freq, order)
     }
 
     #[wasm_bindgen(js_name = hash2freq)]
-    pub fn get_freq_from_hash(&mut self, layer: String, hash: u64) -> Result<f64, JsValue> {
-        self.app.get_freq_from_hash(&layer, hash)
+    pub fn hash2freq(&mut self, hash: u64, order: u8) -> f64 {
+        self.app.hash2freq(hash, order)
     }
 
     #[wasm_bindgen(js_name = setBackgroundColor)]
@@ -642,21 +713,6 @@ impl WebClient {
         Ok(Box::new([lon_deg.0, lat_deg.0]))
     }
 
-    /// Go from a location to another one
-    ///
-    /// # Arguments
-    ///
-    /// * `s1x` - The x screen coordinate in pixels of the starting point
-    /// * `s1y` - The y screen coordinate in pixels of the starting point
-    /// * `s2x` - The x screen coordinate in pixels of the goal point
-    /// * `s2y` - The y screen coordinate in pixels of the goal point
-    #[wasm_bindgen(js_name = goFromTo)]
-    pub fn go_from_to(&mut self, s1x: f64, s1y: f64, s2x: f64, s2y: f64) -> Result<(), JsValue> {
-        self.app.go_from_to(s1x, s1y, s2x, s2y);
-
-        Ok(())
-    }
-
     /// View frame to ICRS coosys conversion
     ///
     /// Coordinates must be given in the ICRS coo system
@@ -807,18 +863,16 @@ impl WebClient {
         Ok(())
     }
 
+    #[wasm_bindgen(js_name = setOnTileResolved)]
+    pub fn set_on_tile_resolved(&mut self, cb: js_sys::Function) {
+        use crate::downloader::request::on_resolved::set_on_resolved_cb;
+        set_on_resolved_cb(cb);
+    }
+
     /// Signal the backend when the left mouse button has been pressed.
     #[wasm_bindgen(js_name = pressLeftMouseButton)]
     pub fn press_left_button_mouse(&mut self) -> Result<(), JsValue> {
         self.app.press_left_button_mouse();
-
-        Ok(())
-    }
-
-    /// Signal the backend when the left mouse button has been pressed.
-    #[wasm_bindgen(js_name = moveMouse)]
-    pub fn move_mouse(&mut self, s1x: f32, s1y: f32, s2x: f32, s2y: f32) -> Result<(), JsValue> {
-        self.app.move_mouse(s1x, s1y, s2x, s2y);
 
         Ok(())
     }
@@ -1036,11 +1090,6 @@ impl WebClient {
     pub fn get_visible_cells(&self, depth: u8) -> Result<JsValue, JsValue> {
         let cells = self.app.get_visible_cells(depth);
         Ok(serde_wasm_bindgen::to_value(&cells)?)
-    }
-
-    #[wasm_bindgen(js_name = isRendering)]
-    pub fn is_rendering(&self) -> bool {
-        self.app.is_rendering()
     }
 
     #[wasm_bindgen(js_name = drawGridLabels)]

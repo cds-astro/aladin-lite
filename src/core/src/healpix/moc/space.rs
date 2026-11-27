@@ -9,6 +9,7 @@ use moclib::{
     ranges::SNORanges,
 };
 pub type Smoc = RangeMOC<u64, Hpx<u64>>;
+use std::collections::HashSet;
 
 use crate::healpix::cell::HEALPixCell;
 #[derive(Clone, Debug)]
@@ -104,6 +105,28 @@ impl SpaceMoc {
         SpaceMoc(moc)
     }
 
+    pub(crate) fn to_flattened_hpx_cells(
+        &self,
+        order: u8,
+    ) -> impl Iterator<Item = HEALPixCell> + use<'_> {
+        let mut seen = HashSet::new();
+
+        let depth = self.depth_max();
+        let dd = depth - order;
+
+        self.flatten_to_fixed_depth_cells()
+            .filter_map(move |idx| {
+                let hpx_cell = HEALPixCell(depth, idx);
+                let hpx_ancestor_cell = hpx_cell.ancestor(dd);
+
+                if seen.insert(hpx_ancestor_cell) {
+                    Some(hpx_ancestor_cell)
+                } else {
+                    None
+                }
+            })
+    }
+
     pub fn from_hpx_cells<'a>(
         depth: u8,
         hpx_cell_it: impl Iterator<Item = &'a HEALPixCell>,
@@ -119,9 +142,16 @@ impl SpaceMoc {
         if rad >= PI {
             Self::allsky(depth)
         } else {
+            //al_core::log(&format!("lon: {:?}, lat: {:?}", lonlat.lon().to_radians(), lonlat.lat().to_radians()));
+            let mut lon_rad = lonlat.lon().to_radians();
+            let lat_rad = lonlat.lat().to_radians();
+
+            if lon_rad < 0.0 {
+                lon_rad += std::f64::consts::PI * 2.0;
+            }
             SpaceMoc(RangeMOC::from_cone(
-                lonlat.lon().to_radians(),
-                lonlat.lat().to_radians(),
+                lon_rad,
+                lat_rad,
                 rad,
                 depth,
                 0,

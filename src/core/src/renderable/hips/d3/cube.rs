@@ -4,8 +4,8 @@ use al_core::image::Image;
 use al_core::WebGlContext;
 
 use super::super::tile_heap::TileHeap;
-use super::texture::HpxFreqTex;
-use crate::healpix::cell::HEALPixFreqCell;
+use super::texture::Hpx3DTex;
+use crate::healpix::cell::HEALPix3DCell;
 use crate::renderable::hips::config::HiPSConfig;
 use crate::renderable::hips::HpxTileBuffer;
 use crate::time::Time;
@@ -15,8 +15,8 @@ use al_api::hips::ImageExt;
 // Fixed sized binary heap
 pub struct HiPS3DBuffer {
     // Some information about the HiPS
-    textures: HashMap<HEALPixFreqCell, HpxFreqTex>,
-    heap: TileHeap<HEALPixFreqCell>,
+    textures: HashMap<HEALPix3DCell, Hpx3DTex>,
+    heap: TileHeap<HEALPix3DCell>,
 
     config: HiPSConfig,
 
@@ -54,7 +54,7 @@ impl HiPS3DBuffer {
         self.get(cell).and_then(|t| t.find_nearest_slice(slice))
     }*/
 
-    fn push_cell(&mut self, cell: &HEALPixFreqCell, time_request: Time) -> Result<(), JsValue> {
+    fn push_cell(&mut self, cell: &HEALPix3DCell, time_request: Time) -> Result<(), JsValue> {
         // Check if the cell is not yet contain in the buffer
         if !self.contains(cell) {
             // If not, add create it and add it to the buffer
@@ -68,7 +68,7 @@ impl HiPS3DBuffer {
                     .expect("Texture (oldest one) has not been found in the buffer of textures");
             }
 
-            let texture = HpxFreqTex::new(
+            let texture = Hpx3DTex::new(
                 cell.clone(),
                 time_request,
                 self.config.tile_size as u16,
@@ -88,7 +88,7 @@ impl HiPS3DBuffer {
     // Push a image slice into the buffer
     pub fn push_tile_slice<I: Image>(
         &mut self,
-        cell: &HEALPixFreqCell,
+        cell: &HEALPix3DCell,
         image: I,
         time_request: Time,
         // this slice index inside the cubic cell
@@ -107,7 +107,7 @@ impl HiPS3DBuffer {
 
     pub fn push_tile_from_fits(
         &mut self,
-        cell: &HEALPixFreqCell,
+        cell: &HEALPix3DCell,
         raw_bytes: js_sys::Uint8Array,
         size: (u32, u32, u32),
         time_request: Time,
@@ -125,7 +125,7 @@ impl HiPS3DBuffer {
 
     pub fn push_tile_from_jpeg(
         &mut self,
-        cell: &HEALPixFreqCell,
+        cell: &HEALPix3DCell,
         decoded_bytes: Box<[u8]>,
         size: (u32, u32, u32),
         time_request: Time,
@@ -143,7 +143,7 @@ impl HiPS3DBuffer {
 
     pub fn push_tile_from_png(
         &mut self,
-        cell: &HEALPixFreqCell,
+        cell: &HEALPix3DCell,
         decoded_bytes: Box<[u8]>,
         size: (u32, u32, u32),
         time_request: Time,
@@ -159,20 +159,22 @@ impl HiPS3DBuffer {
         Ok(())
     }
 
-    // Tell if a texture is available meaning all its sub tiles
+    /*// Tell if a texture is available meaning all its sub tiles
     // must have been written for the GPU
     pub fn contains_slice(
         &self,
         // the cell to check
-        cell: &HEALPixFreqCell,
+        cell: &HEALPix3DCell,
         // the idx of one slice inside the cube, has to be in [0; 2^(f_order) - 1]
         idx_slice: u16,
     ) -> bool {
-        self.get(cell).is_some_and(|t| t.contains_slice(idx_slice))
-    }
+        self.get(cell).is_some_and(|t| {
+            t.contains_slice(idx_slice)
+        })
+    }*/
 
     // Get the nearest spatial parent found in the buffer
-    pub fn get_nearest_parent(&self, cell: &HEALPixFreqCell) -> Option<HEALPixFreqCell> {
+    pub fn get_nearest_parent(&self, cell: &HEALPix3DCell) -> Option<HEALPix3DCell> {
         let mut parent_cell = cell.parent();
 
         while !self.contains(&parent_cell) && !parent_cell.is_hpx_root() {
@@ -188,8 +190,8 @@ impl HiPS3DBuffer {
 }
 
 impl HpxTileBuffer for HiPS3DBuffer {
-    type T = HpxFreqTex;
-    type C = HEALPixFreqCell;
+    type T = Hpx3DTex;
+    type C = HEALPix3DCell;
 
     fn new(gl: &WebGlContext, config: HiPSConfig) -> Result<Self, JsValue> {
         let textures = HashMap::new();
@@ -229,7 +231,7 @@ impl HpxTileBuffer for HiPS3DBuffer {
     }
 
     /// Accessors
-    fn get(&self, cell: &Self::C) -> Option<&HpxFreqTex> {
+    fn get(&self, cell: &Self::C) -> Option<&Hpx3DTex> {
         self.textures.get(cell)
     }
 

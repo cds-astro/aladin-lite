@@ -28,7 +28,8 @@ pub struct TileFetcherQueue {
 #[wasm_bindgen]
 pub struct HiPSLocalFiles {
     #[allow(clippy::type_complexity)]
-    tiles: Box<[Box<[HashMap<u64, web_sys::File>]>; 4]>,
+    // One map per order for each ImageExt variant, indexed by `ext as usize`
+    tiles: Box<[Box<[HashMap<u64, web_sys::File>]>; 5]>,
     moc: web_sys::File,
 }
 
@@ -49,6 +50,7 @@ impl HiPSLocalFiles {
                 tiles_per_fmt.clone(),
                 tiles_per_fmt.clone(),
                 tiles_per_fmt.clone(),
+                tiles_per_fmt.clone(),
                 tiles_per_fmt,
             ]),
             moc,
@@ -64,15 +66,7 @@ impl HiPSLocalFiles {
         let d = cell.depth() as usize;
         let i = cell.idx();
 
-        let tiles_per_fmt = match ext {
-            ImageExt::Fits => &self.tiles[0],
-            ImageExt::Jpeg => &self.tiles[1],
-            ImageExt::Png => &self.tiles[2],
-            ImageExt::Webp => &self.tiles[3],
-            ImageExt::FitsFz => todo!(),
-        };
-
-        tiles_per_fmt[d].get(&i)
+        self.tiles[ext as usize][d].get(&i)
     }
 }
 
